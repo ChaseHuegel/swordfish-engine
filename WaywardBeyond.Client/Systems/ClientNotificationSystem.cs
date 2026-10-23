@@ -81,7 +81,7 @@ internal sealed class ClientNotificationSystem : IEntitySystem
         }
 
         string text = _localizedFormatter.GetString(message.Key, ResolveArgs(message.Args));
-        var type = (NotificationType)message.Type;
+        var type = message.Type;
 
         //  Bar notifications need their dedupe id and progress; other types never carry them.
         if (type == NotificationType.Bar && message.ID != null && message.Amount != null)

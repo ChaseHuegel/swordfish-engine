@@ -63,7 +63,7 @@ public class TransportPolicyTests
                 RemovedComponents = [],
             };
 
-            if (!serverPeer.Notify(GameRpc.Methods.WORLD_SNAPSHOT, in snapshot))
+            if (!serverPeer.Notify(GameRpc.Methods.SEND_WORLD_SNAPSHOT, in snapshot))
             {
                 break;
             }

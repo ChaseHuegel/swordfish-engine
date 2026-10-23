@@ -32,20 +32,24 @@ tags, per-type receive queues, or FIFO request matching.
   `SendBatchMaxBytes`.
 - `RpcPeer.Stats` reports frames, bytes, queued and peak bytes, writes, and
   rejected sends.
-- `TraceLogging` gates the game's per-frame trace logs. nsd-rpc drop and error
-  events go to `RpcOptions.LogSink` regardless.
+- nsd-rpc drop and error events go to `RpcOptions.LogSink`.
 
 ## Loopback
 
 `WaywardBeyond.Networking/Transport/LoopbackRpc*.cs` implements the nsd-rpc
 transport interfaces for the in-process host.
 
-- `LoopbackRpcServerTransport` accepts one client connection at a time. It
-  stays open when a client closes, so a new client connection gets a new id.
+- `LoopbackRpcServerTransport` queues every connection and accepts them in order.
+  It stays open when a client closes, so a new client connection gets a new id.
 - `LoopbackRpcClientConnection` connects and pairs with a server endpoint.
 - `LoopbackRpcServerConnection` is the server half. Its remote endpoint is null.
 - A receiving endpoint buffers frames until the peer subscribes to
   `FrameReceived`, so a hello sent before the server peer is wired is not lost.
+  One thread at a time drains the buffer in send order; senders never wait for
+  a callback.
+- The pending buffer is capped. A peer that exceeds it is closed with
+  `ProtocolViolation`.
+- `AcceptAsync` returns null once the transport is closed.
 - `Disconnected` fires once. The closing side passes its reason. The peer sees
   `PeerClosed`.
 - Each side reports its own `IRpcConnectionStats` counters.
@@ -91,6 +95,7 @@ the claim, the bound world, and the last inbound stamp.
 
 `WaywardBeyond.Server/SessionManager.cs` binds
 `game Uuid ↔ Session ↔ player entity` and stamps `NetworkComponent.Session`.
+`Session` and `NetworkComponent` live in `WaywardBeyond.Gameplay/Networking/`.
 
 - `ServerJoinSystem` allocates a `Session` per peer and calls `Register`.
 - `NetworkReplicationSystem` reads each peer's acked input through
@@ -125,7 +130,7 @@ state.
 - `LanDiscoveryService` listens on the discovery port for
   `Discovery.ScanDurationSeconds`, drops non-matching protocol versions, dedupes
   by endpoint, and ignores its own server by source address and TCP port.
-- `LanDiscovery.ProtocolVersion` is 2. An old client cannot join a new server.
+- `LanDiscovery.PROTOCOL_VERSION` is 3. An old client cannot join a new server.
 - `MultiplayerPage` pre-fills host and port and uses the normal
   `ClientRpcHost.ConnectRemote` path.
 
@@ -134,6 +139,10 @@ state.
 `NetworkingConfig` (`WaywardBeyond.Config/NetworkingConfig.cs`) loads from
 `network.toml`. The remote endpoint keys are top-level. The rest group into
 `[Server]`, `[Discovery]`, `[Transport]`, and `[Protocol]`.
+
+`WaywardBeyond.Config/NetworkingConfigExtensions.cs` maps the config onto nsd-rpc
+through `ToRpcOptions` and `ToTcpOptions`. `ConfigComposition` validates the
+transport policy once at startup and fails fast.
 
 Top-level:
 
@@ -164,7 +173,6 @@ Top-level:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `TraceLogging` | `false` | per-frame game trace logs |
 | `ConnectTimeoutMs` | `5000` | one connect attempt |
 | `IdleTimeoutMs` | `5000` | close a silent peer |
 | `SendBatchIntervalMs` | `16` | coalesce frames per write; zero sends at once |
@@ -186,7 +194,10 @@ Top-level:
 | `LevelStreamBytesPerTick` | `262144` | level stream budget per server tick |
 
 `SendBacklogDisconnectBytes` must not exceed `SendQueueBytes`. The backlog keys
-are both zero or both positive. An invalid combination fails at startup.
+are both zero or both positive. An invalid combination fails at startup through
+`NetworkingConfig.Validate()`.
+
+`ToRpcOptions` pins `MaxFrameBytes` to 65,570. The fragment budget stays below it.
 
 ## Threading
 
@@ -213,18 +224,5 @@ exits non-zero.
 - `WaywardBeyond.Server/LanHost.cs`
 - `WaywardBeyond.Server/SessionManager.cs`
 - `WaywardBeyond.Client/Networking/{ClientRpcHost,ClientInbound,ClientHandlers,LanDiscoveryService}.cs`
-- `WaywardBeyond.Config/{NetworkingConfig,TransportConfig,ProtocolConfig,ServerConfig}.cs`
+- `WaywardBeyond.Config/{NetworkingConfig,NetworkingConfigExtensions,TransportConfig,ProtocolConfig,ServerConfig}.cs`
 - `WaywardBeyond.Server.Launcher/config/network.toml`
-
-## Tests that pin this
-
-- `Swordfish.Tests/RpcProtocolTests.cs` — method ids, directions, fragments.
-- `Swordfish.Tests/LoopbackRpcTests.cs` — call, notification, timeout,
-  cancellation, counters, sequential clients.
-- `Swordfish.Tests/ServerRpcTests.cs` — peer directory, recording transport,
-  menu calls over loopback and TCP.
-- `Swordfish.Tests/ClientRpcTests.cs` — loopback startup, remote switch,
-  remote-drop restore.
-- `Swordfish.Tests/TransportPolicyTests.cs` — backlog and idle close reasons.
-- `Swordfish.Tests/ServerWorldIntegrationTests.cs` — join, stream, save, leave,
-  rejoin over loopback and TCP.

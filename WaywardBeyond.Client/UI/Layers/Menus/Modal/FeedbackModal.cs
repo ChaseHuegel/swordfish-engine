@@ -16,6 +16,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.IO;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 

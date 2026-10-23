@@ -9,8 +9,9 @@ One subject: dirty-driven replication between server and client.
 - **Apply stage** drains each bound peer's `ServerPeer.Snapshots` queue. Every
   inbound `ClientOwned` snapshot is bound to its sender's session entity: a wire
   uuid naming any other entity is ignored, never allocated, staged, or applied.
-  Accepted `InputComponent`s advance `LastAckedInput`/`LastAckedSnapshot`.
-  Input, interaction events, and inventory ops are staged, not applied in place.
+  Accepted `InputComponent`s advance `LastAckedInput` and stage the command.
+  Input, interaction events, and inventory ops are staged in the session
+  entity's `StageRing<T>` buffers, not applied in place.
   A malformed snapshot from one peer is logged and skipped.
 - **Publish stage** queries entities carrying `NetworkComponent`, serializes
   every dirty `ServerOwned` component into `ComponentSnapshot`s, and composes a
@@ -19,7 +20,7 @@ One subject: dirty-driven replication between server and client.
 - **Despawns** are recorded via `RequestDespawn` before the entity is freed
   (`DataStore.Free` clears the uuid) and broadcast in `RemovedEntities`.
 - **Reliable send.** Each snapshot is a typed `WorldSnapshot` notification. A
-  payload over `GameRpc.FragmentBudget` is split into ordered `SnapshotBatch`
+  payload over `PayloadFragmenter.FRAGMENT_BUDGET` is split into ordered `SnapshotBatch`
   notifications. No snapshot is dropped. A send that the reliable path rejects
   is a peer failure: the server logs it and closes the peer with
   `RpcPeer.Close()`. The peer reconnects to a fresh join and full state.
@@ -63,10 +64,10 @@ which flow as `VoxelEdit` notifications rather than snapshots.
 ## Client → server
 
 `ClientReplicationSystem` (`WaywardBeyond.Client/Systems/ClientReplicationSystem.cs`)
-iterates dirty `ClientOwned` components and sends one `WorldSnapshot`
-notification per cadence.
+iterates dirty `ClientOwned` components and sends one `WorldSnapshot` upload per
+cadence through `SendSnapshot`.
 
-- Discrete interaction taps are latched into the outbound edge queue.
+- Discrete interaction taps are latched into the outbound `StageRing`.
   Inventory moves ride the same drain as `InventoryEvent` ops (see
   [inventory](networking-inventory.md)).
 - Staged edges and ops clear only after the sending peer accepts the snapshot.
@@ -107,14 +108,4 @@ tick. Input is staged per sim tick and consumed exactly once per step. See
 - `WaywardBeyond.Gameplay/SimulationStep.cs`
 - `Swordfish/Physics/Jolt/JoltPhysicsSystem.cs`
 - `WaywardBeyond.Networking/Rpc/{PayloadFragmenter,FragmentAssembler}.cs`
-- `WaywardBeyond.Networking/Components/NetworkComponent.cs`
-
-## Tests that pin this
-
-- `Swordfish.Tests/RpcProtocolTests.cs` — fragment split, join, stale groups.
-- `Swordfish.Tests/ServerWorldIntegrationTests.cs` — join, stream, save, leave,
-  rejoin over loopback and TCP.
-- `Swordfish.Tests/PhysicsSyncIdleTests.cs` — an idle body stays clean and sleeps.
-- `Swordfish.Tests/SimulationStepIdleTests.cs` — an idle command does not dirty.
-- `Swordfish.Tests/ClientInputIdleTests.cs` — identical input is not resent.
-- `Swordfish.Tests` interaction-staging tests.
+- `WaywardBeyond.Gameplay/Networking/{NetworkComponent,StageRing}.cs`

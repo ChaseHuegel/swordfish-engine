@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using Swordfish.ECS;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Components;
@@ -17,10 +18,12 @@ namespace WaywardBeyond.Client.Components;
 /// </summary>
 public struct PendingInteractionComponent(in PendingInteractionQueue queue) : IDataComponent
 {
+    private const int CAPACITY = 64;
+
     public readonly PendingInteractionQueue Queue = queue;
 
     /// <summary>Edges authored by <c>PlayerInteractionService</c> awaiting replication to the server.</summary>
-    public readonly InteractionStageBuffer Outbound = new();
+    public readonly StageRing<InteractionEvent> Outbound = new(CAPACITY);
 }
 
 /// <summary>

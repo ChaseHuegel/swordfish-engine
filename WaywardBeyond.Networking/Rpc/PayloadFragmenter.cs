@@ -2,62 +2,40 @@ using System;
 
 namespace WaywardBeyond.Networking.Rpc;
 
-/// <summary>
-/// Splits one serialized payload into fragments of at most <see cref="GameRpc.FRAGMENT_BUDGET"/> bytes
-/// and joins them back. An empty payload yields one empty part, so the split always round-trips.
-/// </summary>
+/// <summary>Splits one serialized payload into ordered parts and joins them back.</summary>
 public static class PayloadFragmenter
 {
+    /// <summary>The largest payload one part carries, below the nsd-rpc default frame cap of 65,570 bytes.</summary>
+    public const int FRAGMENT_BUDGET = 60_000;
+
+    /// <summary>The most parts one payload may occupy.</summary>
+    public const int MAX_PARTS = 512;
+
+    /// <summary>The largest payload a fragmented group may assemble into.</summary>
+    public const int MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
+
     /// <summary>The number of parts a payload of <paramref name="length"/> bytes occupies.</summary>
-    public static int PartCount(int length, int budget = GameRpc.FRAGMENT_BUDGET)
+    public static int PartCount(int length)
     {
         if (length < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(length));
         }
 
-        if (budget < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(budget));
-        }
-
-        return length == 0 ? 1 : (length + budget - 1) / budget;
-    }
-
-    /// <summary>Splits a payload into parts. Each part is copied into its own array.</summary>
-    public static byte[][] Split(ReadOnlySpan<byte> payload, int budget = GameRpc.FRAGMENT_BUDGET)
-    {
-        if (budget < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(budget));
-        }
-
-        int count = PartCount(payload.Length, budget);
-        var parts = new byte[count][];
-        for (var index = 0; index < count; index++)
-        {
-            parts[index] = Slice(payload, index, budget);
-        }
-
-        return parts;
+        return length == 0 ? 1 : (length + FRAGMENT_BUDGET - 1) / FRAGMENT_BUDGET;
     }
 
     /// <summary>Copies one part of a payload.</summary>
-    public static byte[] Slice(ReadOnlySpan<byte> payload, int partIndex, int budget = GameRpc.FRAGMENT_BUDGET)
+    public static byte[] Slice(ReadOnlySpan<byte> payload, int partIndex)
     {
-        if (budget < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(budget));
-        }
-
-        int count = PartCount(payload.Length, budget);
+        int count = PartCount(payload.Length);
         if (partIndex < 0 || partIndex >= count)
         {
             throw new ArgumentOutOfRangeException(nameof(partIndex));
         }
 
-        int start = partIndex * budget;
-        int length = Math.Min(budget, payload.Length - start);
+        int start = partIndex * FRAGMENT_BUDGET;
+        int length = Math.Min(FRAGMENT_BUDGET, payload.Length - start);
         return payload.Slice(start, length).ToArray();
     }
 
@@ -72,14 +50,19 @@ public static class PayloadFragmenter
         int length = 0;
         for (var index = 0; index < parts.Length; index++)
         {
-            length = checked(length + (parts[index]?.Length ?? 0));
+            length = checked(length + parts[index].Length);
+        }
+
+        if (length > MAX_PAYLOAD_BYTES)
+        {
+            throw new InvalidOperationException($"A fragmented payload may not exceed {MAX_PAYLOAD_BYTES} bytes.");
         }
 
         var payload = new byte[length];
         int offset = 0;
         for (var index = 0; index < parts.Length; index++)
         {
-            byte[] part = parts[index] ?? [];
+            byte[] part = parts[index];
             part.CopyTo(payload, offset);
             offset += part.Length;
         }

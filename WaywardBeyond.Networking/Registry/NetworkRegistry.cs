@@ -1,137 +1,105 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Data.Registry;
+using WaywardBeyond.Networking.Codecs;
 
 namespace WaywardBeyond.Networking.Registry;
 
-/// <summary>
-/// Maps networked ECS component types to a stable on-wire <see cref="Uuid"/> identity, an
-/// authoritative <see cref="NetworkDirection"/>, and the <see cref="IPayloadCodec"/> used to
-/// (de)serialize their snapshots. The networking composition registers one instance at startup and the
-/// mappings are read lock-free on the replication hot path; do not register concurrently with reads.
-/// </summary>
+/// <summary>Maps networked component types to a stable wire uuid, an authoritative owner, and a payload codec.</summary>
 public sealed class NetworkRegistry
 {
-    private volatile Dictionary<Type, NetworkComponentInfo> _byType = [];
-    private volatile Dictionary<Uuid, NetworkComponentInfo> _byUuid = [];
+    private readonly Dictionary<Type, NetworkComponentInfo> _byType = [];
+    private readonly Dictionary<Uuid, NetworkComponentInfo> _byUuid = [];
     private readonly Lock _lock = new();
+    private volatile NetworkComponentInfo[] _serverOwned = [];
+    private volatile NetworkComponentInfo[] _clientOwned = [];
+    private bool _frozen;
 
-    public Result Register<T>(Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
+    /// <summary>Registers one networked component. Fails after <see cref="Freeze"/> or on a duplicate type or uuid.</summary>
+    public Result Register<T>(Uuid uuid, NetworkDirection direction, IPayloadCodec<T> codec)
         where T : struct, IDataComponent
-    {
-        return Register(typeof(T), uuid, direction, codec);
-    }
-
-    /// <summary>
-    /// Scans the given <paramref name="assemblies"/> for <see cref="IDataComponent"/> structs annotated
-    /// with <see cref="NetworkComponentAttribute"/> and registers them, using a
-    /// <see cref="NsdComponentCodec{T}"/> derived from their generated nsd serializer.
-    /// </summary>
-    public void Initialize(IEnumerable<Assembly> assemblies)
-    {
-        foreach (Assembly assembly in assemblies)
-        {
-            Type[] types;
-            try
-            {
-                types = assembly.GetTypes();
-            }
-            catch (ReflectionTypeLoadException e)
-            {
-                types = e.Types.Where(t => t != null).ToArray()!;
-            }
-
-            foreach (Type type in types)
-            {
-                NetworkComponentAttribute? attribute = type.GetCustomAttribute<NetworkComponentAttribute>();
-                if (!type.IsValueType
-                    || !typeof(IDataComponent).IsAssignableFrom(type)
-                    || attribute == null)
-                {
-                    continue;
-                }
-
-                Type codecType = typeof(NsdComponentCodec<>).MakeGenericType(type);
-                IPayloadCodec codec = (IPayloadCodec)Activator.CreateInstance(codecType)!;
-                Register(type, attribute.Uuid, attribute.Direction, codec);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Registers a networked component, returning a contextual failure message instead of failing
-    /// silently. Codec validity is proven at registration time: an nsd codec whose type lacks the
-    /// generated <c>Serialize</c>/<c>Deserialize</c> methods fails here (its validation lives in the
-    /// static constructor, forced via <c>RunClassConstructor</c>), not mid-game on the wire.
-    /// </summary>
-    public Result Register(Type type, Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
     {
         if (uuid == Uuid.Null)
         {
-            return Result.FromFailure($"Cannot register {type.Name}: uuid is Null.");
-        }
-
-        Type codecType = codec.GetType();
-        if (codecType.IsGenericType
-            && codecType.GetGenericTypeDefinition() == typeof(NsdComponentCodec<>))
-        {
-            //  Force the static constructor now: it validates the generated serializer methods and
-            //  throws a descriptive error when they are missing.
-            RuntimeHelpers.RunClassConstructor(codecType.TypeHandle);
+            return Result.FromFailure($"Cannot register {typeof(T).Name}: uuid is Null.");
         }
 
         lock (_lock)
         {
-            if (_byType.ContainsKey(type))
+            if (_frozen)
             {
-                return Result.FromFailure($"Cannot register {type.Name}: a component of this type is already registered.");
+                return Result.FromFailure($"Cannot register {typeof(T).Name}: the registry is frozen.");
+            }
+
+            if (_byType.ContainsKey(typeof(T)))
+            {
+                return Result.FromFailure($"Cannot register {typeof(T).Name}: the type is already registered.");
             }
 
             if (_byUuid.ContainsKey(uuid))
             {
-                return Result.FromFailure($"Cannot register {type.Name}: uuid {uuid} is already registered.");
+                return Result.FromFailure($"Cannot register {typeof(T).Name}: uuid {uuid} is already registered.");
             }
 
-            var info = new NetworkComponentInfo(type, uuid, direction, codec);
-            _byType[type] = info;
+            var info = new NetworkComponentInfo(typeof(T), uuid, direction, codec);
+            _byType[typeof(T)] = info;
             _byUuid[uuid] = info;
             return Result.FromSuccess();
         }
     }
 
-    public bool TryGetInfo(Type type, out NetworkComponentInfo info)
+    /// <summary>Closes the registry to further registration and caches the per-direction views.</summary>
+    public void Freeze()
     {
-        return _byType.TryGetValue(type, out info);
-    }
-
-    public bool TryGetInfo(Uuid uuid, out NetworkComponentInfo info)
-    {
-        return _byUuid.TryGetValue(uuid, out info);
-    }
-
-    public bool TryGetInfo<T>(out NetworkComponentInfo info) where T : struct, IDataComponent
-    {
-        return TryGetInfo(typeof(T), out info);
-    }
-
-    /// <summary>Enumerates every registered component in the given <paramref name="direction"/>.</summary>
-    public IReadOnlyCollection<NetworkComponentInfo> GetComponents(NetworkDirection direction)
-    {
-        var result = new List<NetworkComponentInfo>(_byType.Count);
-        foreach (NetworkComponentInfo info in _byType.Values)
+        lock (_lock)
         {
-            if (info.Direction == direction)
+            if (_frozen)
             {
-                result.Add(info);
+                return;
             }
-        }
 
-        return result;
+            _frozen = true;
+
+            var serverOwned = new List<NetworkComponentInfo>();
+            var clientOwned = new List<NetworkComponentInfo>();
+            foreach (NetworkComponentInfo info in _byType.Values)
+            {
+                (info.Direction == NetworkDirection.ServerOwned ? serverOwned : clientOwned).Add(info);
+            }
+
+            _serverOwned = [.. serverOwned];
+            _clientOwned = [.. clientOwned];
+        }
+    }
+
+    /// <summary>Looks up one registered component type, or fails when it is not registered.</summary>
+    public Result<NetworkComponentInfo> GetInfo<T>()
+        where T : struct, IDataComponent
+    {
+        return GetInfo(typeof(T));
+    }
+
+    /// <summary>Looks up one registered component type, or fails when it is not registered.</summary>
+    public Result<NetworkComponentInfo> GetInfo(Type type)
+    {
+        return _byType.TryGetValue(type, out NetworkComponentInfo info)
+            ? Result<NetworkComponentInfo>.FromSuccess(info)
+            : Result<NetworkComponentInfo>.FromFailure((string?)null);
+    }
+
+    /// <summary>Looks up one registered component by wire uuid, or fails when it is not registered.</summary>
+    public Result<NetworkComponentInfo> GetInfo(Uuid uuid)
+    {
+        return _byUuid.TryGetValue(uuid, out NetworkComponentInfo info)
+            ? Result<NetworkComponentInfo>.FromSuccess(info)
+            : Result<NetworkComponentInfo>.FromFailure((string?)null);
+    }
+
+    /// <summary>Returns the frozen components owned by <paramref name="direction"/>. Do not mutate the array.</summary>
+    public NetworkComponentInfo[] GetComponents(NetworkDirection direction)
+    {
+        return direction == NetworkDirection.ServerOwned ? _serverOwned : _clientOwned;
     }
 }

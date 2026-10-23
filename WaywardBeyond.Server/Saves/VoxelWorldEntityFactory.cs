@@ -2,7 +2,7 @@
 using Swordfish.ECS;
 using Swordfish.Physics;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Voxels;

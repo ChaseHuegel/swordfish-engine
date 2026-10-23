@@ -49,8 +49,9 @@ save levels. Level data is streamed to the client during join.
 
 4. **Build the view.** The client ECS tick drains `ClientInbound.LevelChunks`,
    reassembles each entity with `FragmentAssembler`, and builds a view entity
-   (mesh plus a local prediction collider). It enters `Playing` only after the
-   stream response lands and every chunk applied.
+   (mesh plus a local prediction collider). A rejected part fails the join. It
+   enters `Playing` only after the stream response lands and every chunk
+   applied.
 
 ## Worlds and routing
 
@@ -142,10 +143,3 @@ in-world save call in the world tick. See [persistence](persistence.md) and
 - `WaywardBeyond.Server/ServerPeers.cs`
 - `WaywardBeyond.Data/Nsd/levels.nsd`
 - `WaywardBeyond.Data/Nsd/network.nsd`
-
-## Tests that pin this
-
-- `Swordfish.Tests/ServerWorldIntegrationTests.cs` — join, stream, save, leave,
-  and rejoin over loopback and TCP.
-- `Swordfish.Tests/ClientRpcTests.cs` — loopback startup, remote switch, and
-  remote-drop restore.

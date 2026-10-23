@@ -1,8 +1,8 @@
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using Xunit;
 using WaywardBeyond.Data.Components;
-using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Data.Registry;
+using WaywardBeyond.Networking.Codecs;
 using WaywardBeyond.Networking.Registry;
 
 namespace Swordfish.Tests;
@@ -12,7 +12,10 @@ public class NetworkComponentCodecTests
     private static NetworkRegistry CreateRegistry()
     {
         var registry = new NetworkRegistry();
-        registry.Initialize([typeof(InputComponent).Assembly]);
+        Assert.True(registry.Register<InputComponent>(Uuid.FromValue(1), NetworkDirection.ClientOwned, new NsdComponentCodec<InputComponent>()).Success);
+        Assert.True(registry.Register<BodyViewComponent>(Uuid.FromValue(10), NetworkDirection.ServerOwned, new NsdComponentCodec<BodyViewComponent>()).Success);
+        Assert.True(registry.Register<InteractionEvent>(Uuid.FromValue(15), NetworkDirection.ClientOwned, new NsdComponentCodec<InteractionEvent>()).Success);
+        registry.Freeze();
         return registry;
     }
 
@@ -35,13 +38,14 @@ public class NetworkComponentCodecTests
         store.AddOrUpdate(entity, input);
 
         var codec = new NsdComponentCodec<InputComponent>();
-        byte[] payload = codec.Serialize(store, entity);
+        Result<byte[]> serialized = codec.Serialize(store, entity);
 
-        Assert.NotEmpty(payload);
+        Assert.True(serialized.Success);
+        Assert.NotEmpty(serialized.Value);
 
         var output = new DataStore();
         int outputEntity = output.Alloc();
-        codec.Apply(output, outputEntity, payload);
+        Assert.True(codec.Apply(output, outputEntity, serialized.Value).Success);
 
         Assert.True(output.TryGet(outputEntity, out InputComponent result));
         Assert.Equal(input.MovementX, result.MovementX);
@@ -55,18 +59,29 @@ public class NetworkComponentCodecTests
     }
 
     [Fact]
-    public void InitializeRegistersAttributedComponents()
+    public void RegistryRegistersAndFreezesComponents()
     {
         NetworkRegistry registry = CreateRegistry();
 
-        Assert.True(registry.TryGetInfo<InputComponent>(out NetworkComponentInfo info));
-        Assert.Equal(NetworkDirection.ClientOwned, info.Direction);
-        Assert.IsType<NsdComponentCodec<InputComponent>>(info.Codec);
+        Result<NetworkComponentInfo> lookup = registry.GetInfo<InputComponent>();
+        Assert.True(lookup.Success);
+        Assert.Equal(NetworkDirection.ClientOwned, lookup.Value.Direction);
+        Assert.IsType<NsdComponentCodec<InputComponent>>(lookup.Value.Codec);
 
-        //  The server-authored appearance index auto-registers from the same assembly scan.
-        Assert.True(registry.TryGetInfo<BodyViewComponent>(out NetworkComponentInfo bodyInfo));
-        Assert.Equal(NetworkDirection.ServerOwned, bodyInfo.Direction);
-        Assert.IsType<NsdComponentCodec<BodyViewComponent>>(bodyInfo.Codec);
+        Assert.True(registry.GetInfo<BodyViewComponent>().Success);
+        Assert.Equal(2, registry.GetComponents(NetworkDirection.ClientOwned).Length);
+        Assert.Single(registry.GetComponents(NetworkDirection.ServerOwned));
+
+        Assert.False(registry.Register<InputComponent>(Uuid.FromValue(99), NetworkDirection.ClientOwned, new NsdComponentCodec<InputComponent>()).Success);
+    }
+
+    [Fact]
+    public void RegistryRejectsDuplicateTypeAndUuid()
+    {
+        var registry = new NetworkRegistry();
+        Assert.True(registry.Register<InputComponent>(Uuid.FromValue(1), NetworkDirection.ClientOwned, new NsdComponentCodec<InputComponent>()).Success);
+        Assert.False(registry.Register<InputComponent>(Uuid.FromValue(2), NetworkDirection.ClientOwned, new NsdComponentCodec<InputComponent>()).Success);
+        Assert.False(registry.Register<BodyViewComponent>(Uuid.FromValue(1), NetworkDirection.ServerOwned, new NsdComponentCodec<BodyViewComponent>()).Success);
     }
 
     [Fact]
@@ -77,24 +92,16 @@ public class NetworkComponentCodecTests
         store.AddOrUpdate(entity, new BodyViewComponent { Body = "wb:human_m" });
 
         var codec = new NsdComponentCodec<BodyViewComponent>();
-        byte[] payload = codec.Serialize(store, entity);
-        Assert.NotEmpty(payload);
+        Result<byte[]> serialized = codec.Serialize(store, entity);
+        Assert.True(serialized.Success);
+        Assert.NotEmpty(serialized.Value);
 
         var output = new DataStore();
         int outputEntity = output.Alloc();
-        codec.Apply(output, outputEntity, payload);
+        Assert.True(codec.Apply(output, outputEntity, serialized.Value).Success);
 
         Assert.True(output.TryGet(outputEntity, out BodyViewComponent result));
         Assert.Equal("wb:human_m", result.Body);
-    }
-
-    [Fact]
-    public void InitializeRegistersInteractionEventComponent()
-    {
-        NetworkRegistry registry = CreateRegistry();
-
-        Assert.True(registry.TryGetInfo<InteractionEvent>(out NetworkComponentInfo info));
-        Assert.Equal(NetworkDirection.ClientOwned, info.Direction);
     }
 
     [Fact]
@@ -112,12 +119,13 @@ public class NetworkComponentCodecTests
         });
 
         var codec = new NsdComponentCodec<InteractionEvent>();
-        byte[] payload = codec.Serialize(store, entity);
-        Assert.NotEmpty(payload);
+        Result<byte[]> serialized = codec.Serialize(store, entity);
+        Assert.True(serialized.Success);
+        Assert.NotEmpty(serialized.Value);
 
         var output = new DataStore();
         int outputEntity = output.Alloc();
-        codec.Apply(output, outputEntity, payload);
+        Assert.True(codec.Apply(output, outputEntity, serialized.Value).Success);
 
         Assert.True(output.TryGet(outputEntity, out InteractionEvent result));
         Assert.Equal(0x1234UL, result.Entity);
@@ -128,58 +136,15 @@ public class NetworkComponentCodecTests
         Assert.Equal(-2, result.Brick.Value.TargetX);
         Assert.Equal(5, result.Brick.Value.TargetY);
         Assert.Equal(1, result.Brick.Value.TargetZ);
-        Assert.Equal(3, result.Brick.Value.HintShape);
-        Assert.Equal(4, result.Brick.Value.HintOrientation);
     }
 
     [Fact]
-    public void InteractionEventCodecRoundTripsHintless()
+    public void CodecFailsWhenTheEntityHasNoComponent()
     {
         var store = new DataStore();
         int entity = store.Alloc();
-        store.AddOrUpdate(entity, new InteractionEvent
-        {
-            Entity = 0x1111,
-            SequenceNumber = 12,
-            ServerTickAtSample = 10,
-            Kind = InteractionKind.PrimaryReleased,
-            Brick = null,
-        });
 
-        var codec = new NsdComponentCodec<InteractionEvent>();
-        byte[] payload = codec.Serialize(store, entity);
-
-        var output = new DataStore();
-        int outputEntity = output.Alloc();
-        codec.Apply(output, outputEntity, payload);
-
-        Assert.True(output.TryGet(outputEntity, out InteractionEvent result));
-        Assert.False(result.Brick.HasValue);
-        Assert.Equal(InteractionKind.PrimaryReleased, result.Kind);
-    }
-
-    [Fact]
-    public void WorldSnapshotRoundTripsComponentSnapshots()
-    {
-        var snapshot = new WorldSnapshot
-        {
-            TickNumber = 5,
-            LastProcessedInput = 3,
-            Components =
-            [
-                new ComponentSnapshot(0x1234, 0x1001, [1, 2, 3, 4]),
-            ],
-            RemovedEntities = [0xFFFF],
-        };
-
-        byte[] bytes = snapshot.Serialize();
-        WorldSnapshot roundTripped = WorldSnapshot.Deserialize(bytes);
-
-        Assert.Equal(snapshot.TickNumber, roundTripped.TickNumber);
-        Assert.Equal(snapshot.LastProcessedInput, roundTripped.LastProcessedInput);
-        Assert.Equal(snapshot.Components[0].Entity, roundTripped.Components[0].Entity);
-        Assert.Equal(snapshot.Components[0].TypeUuid, roundTripped.Components[0].TypeUuid);
-        Assert.Equal(snapshot.Components[0].Payload, roundTripped.Components[0].Payload);
-        Assert.Equal(snapshot.RemovedEntities, roundTripped.RemovedEntities);
+        var codec = new NsdComponentCodec<InputComponent>();
+        Assert.False(codec.Serialize(store, entity).Success);
     }
 }

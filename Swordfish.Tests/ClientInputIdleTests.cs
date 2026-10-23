@@ -14,7 +14,6 @@ using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data.Components;
-using WaywardBeyond.Networking.Components;
 
 namespace Swordfish.Tests;
 
@@ -98,7 +97,7 @@ public class ClientInputIdleTests
     private static int PendingCount(TestContext context)
     {
         Assert.True(context.Store.TryGet(context.Entity, out PendingInputComponent pending));
-        return pending.PendingCount;
+        return pending.Ring!.Count;
     }
 
     private sealed class TestContext(

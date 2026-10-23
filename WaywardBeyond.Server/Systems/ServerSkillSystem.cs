@@ -90,7 +90,7 @@ public sealed class ServerSkillSystem(
 
         SendOrLog(clientId, new NotificationMessage
         {
-            Type = (byte)NotificationType.Bar,
+            Type = NotificationType.Bar,
             Key = "notification.skill.bar",
             Args = [skill.Name, currentLevel.Level.ToString()],
             ID = skill.ID,
@@ -102,7 +102,7 @@ public sealed class ServerSkillSystem(
     {
         SendOrLog(clientId, new NotificationMessage
         {
-            Type = (byte)NotificationType.Toast,
+            Type = NotificationType.Toast,
             Key = "notification.skill.levelUp",
             Args = [skill.Name, previousLevel.ToString(), currentLevel.ToString()],
         });

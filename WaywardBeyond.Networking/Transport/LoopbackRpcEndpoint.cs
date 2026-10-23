@@ -5,22 +5,20 @@ using NsdRpc;
 
 namespace WaywardBeyond.Networking.Transport;
 
-/// <summary>
-/// One side of an in-process loopback link. The endpoint copies every sent frame into the peer's
-/// inbox. Frames that arrive before the peer subscribes to <see cref="FrameReceived"/> wait there, so
-/// a hello sent before the RPC peer is wired is not lost. Counters and the disconnect event belong to
-/// this side only.
-/// </summary>
+/// <summary>One side of an in-process loopback link. Frames are delivered in send order.</summary>
 internal sealed class LoopbackRpcEndpoint
 {
+    private const int MAX_PENDING_BYTES = 1 << 20;
+
     private readonly Lock _gate = new();
-    private readonly Lock _deliveryGate = new();
     private readonly Queue<byte[]> _pending = [];
     private RpcFrameHandler? _frameReceived;
     private Action<RpcDisconnectReason>? _disconnected;
     private LoopbackRpcEndpoint? _peer;
+    private int _pendingBytes;
+    private int _drainThreadId;
     private bool _connected;
-    private bool _closed;
+    private volatile bool _closed;
 
     private long _packetsSent;
     private long _packetsReceived;
@@ -72,28 +70,13 @@ internal sealed class LoopbackRpcEndpoint
     {
         add
         {
-            //  Hold the delivery gate while subscribing and draining the buffered frames, so a frame
-            //  sent during the subscription cannot overtake the frames already waiting.
-            lock (_deliveryGate)
+            lock (_gate)
             {
-                List<byte[]> buffered;
-                lock (_gate)
-                {
-                    _frameReceived += value;
-                    if (_pending.Count == 0)
-                    {
-                        return;
-                    }
-
-                    buffered = [.. _pending];
-                    _pending.Clear();
-                }
-
-                foreach (byte[] frame in buffered)
-                {
-                    value(frame);
-                }
+                _frameReceived += value;
             }
+
+            //  Deliver frames that arrived before the subscriber existed.
+            Drain();
         }
         remove
         {
@@ -140,10 +123,10 @@ internal sealed class LoopbackRpcEndpoint
         return true;
     }
 
-    /// <summary>Accepts one copied frame from the peer, buffering it until a subscriber exists.</summary>
+    /// <summary>Accepts one copied frame from the peer and delivers it in order.</summary>
     public bool Deliver(byte[] frame)
     {
-        RpcFrameHandler? handler;
+        var overflow = false;
         lock (_gate)
         {
             if (_closed)
@@ -154,16 +137,19 @@ internal sealed class LoopbackRpcEndpoint
             Interlocked.Increment(ref _packetsReceived);
             Interlocked.Add(ref _bytesReceived, frame.Length);
 
-            if (_frameReceived == null)
-            {
-                _pending.Enqueue(frame);
-                return true;
-            }
-
-            handler = _frameReceived;
+            _pending.Enqueue(frame);
+            _pendingBytes += frame.Length;
+            overflow = _pendingBytes > MAX_PENDING_BYTES;
         }
 
-        DeliverToSubscriber(handler, frame);
+        if (overflow)
+        {
+            //  A peer that outruns its subscriber by this much is not going to recover.
+            Close(RpcDisconnectReason.ProtocolViolation);
+            return false;
+        }
+
+        Drain();
         return true;
     }
 
@@ -181,7 +167,9 @@ internal sealed class LoopbackRpcEndpoint
 
             _closed = true;
             _connected = false;
+            _frameReceived = null;
             _pending.Clear();
+            _pendingBytes = 0;
             handler = _disconnected;
             _disconnected = null;
             peer = _peer;
@@ -191,12 +179,49 @@ internal sealed class LoopbackRpcEndpoint
         peer?.Close(RpcDisconnectReason.PeerClosed);
     }
 
-    private void DeliverToSubscriber(RpcFrameHandler handler, byte[] frame)
+    private void Drain()
     {
-        //  Serialize deliveries so one subscriber sees frames in send order.
-        lock (_deliveryGate)
+        lock (_gate)
         {
-            handler(frame);
+            if (_closed || _drainThreadId != 0 || _pending.Count == 0)
+            {
+                return;
+            }
+
+            _drainThreadId = Environment.CurrentManagedThreadId;
+        }
+
+        try
+        {
+            while (true)
+            {
+                byte[] frame;
+                RpcFrameHandler? handler;
+                lock (_gate)
+                {
+                    if (_closed || _frameReceived == null || _pending.Count == 0)
+                    {
+                        _drainThreadId = 0;
+                        return;
+                    }
+
+                    frame = _pending.Dequeue();
+                    _pendingBytes -= frame.Length;
+                    handler = _frameReceived;
+                }
+
+                handler(frame);
+            }
+        }
+        finally
+        {
+            lock (_gate)
+            {
+                if (_drainThreadId == Environment.CurrentManagedThreadId)
+                {
+                    _drainThreadId = 0;
+                }
+            }
         }
     }
 }

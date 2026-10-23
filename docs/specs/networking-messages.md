@@ -277,7 +277,7 @@ the client resolves keys against its own locale files.
 ```nsd
 message NotificationMessage
 {
-    byte Type = 0;        // NotificationType: Toast/Action/Interaction/Bar
+    NotificationType Type = 0;
     string Key = 1;       // localization key for the template
     string[] Args = 2;    // positional args; text values are localization keys
     string? ID = 3;       // Bar only: dedupe id (e.g. skill id)
@@ -294,8 +294,9 @@ message SkillStateUpdateMessage
 }
 ```
 
-`NotificationType` is a shared enum (`WaywardBeyond.Networking/
-NotificationType.cs`); its byte values are a wire contract. `ClientNotificationSystem`
+`NotificationType` is generated from `network.nsd`
+(`WaywardBeyond.Data.Networking.NotificationType`); its values are a wire
+contract. `ClientNotificationSystem`
 writes each `SkillStateUpdateMessage` total into the client-owned character save.
 See [skills](skills.md) for the authority model.
 
@@ -314,9 +315,3 @@ A UDP control-plane beacon only. See [transports](networking-transports.md).
 - Generator wiring: `WaywardBeyond.Data/WaywardBeyond.Data.csproj`.
 - Generated namespaces: `WaywardBeyond.Data.Networking` for wire messages,
   `WaywardBeyond.Data.Components` for networked components.
-
-## Tests that pin this
-
-- `Swordfish.Tests/InputCodecTests.cs` covers the component codecs
-  (`InputComponent`, `BodyViewComponent`, `IdentifierComponent`,
-  `InteractionEvent`, and world snapshots).

@@ -79,9 +79,17 @@ message VoxelEditMessage
     string? BrickId = 6;
 }
 
+enum NotificationType
+{
+    Toast = 0;
+    Action = 1;
+    Interaction = 2;
+    Bar = 3;
+}
+
 message NotificationMessage
 {
-    byte Type = 0;
+    NotificationType Type = 0;
     string Key = 1;
     string[] Args = 2;
     string? ID = 3;

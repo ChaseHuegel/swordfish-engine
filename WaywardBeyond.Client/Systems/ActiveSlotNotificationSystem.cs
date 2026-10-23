@@ -7,6 +7,7 @@ using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 

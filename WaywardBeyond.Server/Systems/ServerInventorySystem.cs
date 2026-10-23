@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -12,8 +13,8 @@ namespace WaywardBeyond.Server.Systems;
 /// interaction processing, so a move and a place in the same tick resolve against the moved inventory:
 /// each staged op is validated and applied to the authoritative <see cref="InventoryComponent"/> via the
 /// shared resolver, and the component is marked dirty so its echo flows downstream and corrects any
-/// client prediction. Ops are sequence-deduped by <see cref="InventoryOpStageBuffer"/>; the server
-/// tracks the last consumed sequence per entity.
+/// client prediction. Ops are sequence-deduped by the staged ring; the server tracks the last consumed
+/// sequence per entity.
 /// </summary>
 public sealed class ServerInventorySystem(ILogger<ServerInventorySystem> logger) : IServerWorldSystem
 {
@@ -27,7 +28,7 @@ public sealed class ServerInventorySystem(ILogger<ServerInventorySystem> logger)
 
     private void Consume(DataStore store, int entity, in NetworkComponent net)
     {
-        InventoryOpStageBuffer? staged = net.StagedInventoryOps;
+        StageRing<InventoryOp>? staged = net.StagedInventoryOps;
         if (staged == null)
         {
             return;
@@ -39,31 +40,33 @@ public sealed class ServerInventorySystem(ILogger<ServerInventorySystem> logger)
         }
 
         bool consumed = false;
-        while (staged.TryConsume(lastSequence, out InventoryOpStageBuffer.InventoryOp op))
+        Result<InventoryOp> stagedOp = staged.Consume(lastSequence);
+        while (stagedOp.Success)
         {
+            InventoryOp op = stagedOp.Value;
             lastSequence = op.SequenceNumber;
             consumed = true;
 
             if (!store.TryGet(entity, out InventoryComponent inventory))
             {
                 logger.LogWarning("Dropping inventory op {sequence} for entity {entity} without an inventory.", op.SequenceNumber, entity);
-                continue;
+            }
+            else
+            {
+                InventoryComponent updated = inventory;
+                if (InventoryResolver.Apply(ref updated, op.SlotMove))
+                {
+                    store.AddOrUpdate(entity, updated);
+                }
             }
 
-            InventoryComponent updated = inventory;
-            if (InventoryResolver.Apply(ref updated, op.SlotMove))
-            {
-                store.AddOrUpdate(entity, updated);
-            }
+            stagedOp = staged.Consume(lastSequence);
         }
 
         if (consumed)
         {
             _lastConsumedSequences[entity] = lastSequence;
-
-            NetworkComponent updated = net;
-            updated.StagedInventoryOps = null;
-            store.AddOrUpdate(entity, updated);
+            staged.Clear();
         }
     }
 

@@ -3,12 +3,13 @@ using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -112,9 +113,14 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
         //  Replay: resolve per sim tick from the pending ring (newest-per-sim-tick, matching the
         //  server's staging), so after a reconcile AlignTo the surviving in-flight inputs re-apply
         //  tick-exactly instead of the newest live sample being re-applied every step.
-        if (store.TryGet(entity, out PendingInputComponent pending) && pending.TryGetNewestAtOrBefore(simTick, out command))
+        if (store.TryGet(entity, out PendingInputComponent pending) && pending.Ring != null)
         {
-            return true;
+            Result<InputComponent> staged = pending.Ring.GetCommand(simTick);
+            if (staged.Success)
+            {
+                command = staged.Value;
+                return true;
+            }
         }
 
         //  Fallback for entities without a pending ring (or whose ring is fully trimmed): the live

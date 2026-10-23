@@ -101,7 +101,7 @@ public sealed class ServerSaveSystem(
                 GameRpcErrors.PERMISSION_DENIED, "level saving is not permitted"));
             peer.Client.Notification(new NotificationMessage
             {
-                Type = (byte)NotificationType.Toast,
+                Type = NotificationType.Toast,
                 Key = "notification.save.denied",
                 Args = [],
             });
@@ -141,7 +141,7 @@ public sealed class ServerSaveSystem(
         string levelName = saveService.CurrentLevel?.Name ?? string.Empty;
         var message = new NotificationMessage
         {
-            Type = (byte)NotificationType.Toast,
+            Type = NotificationType.Toast,
             Key = key,
             Args = [levelName],
         };

@@ -1,36 +1,33 @@
+using System;
+
 namespace WaywardBeyond.Networking.Rpc;
 
-/// <summary>
-/// Reassembles one fragmented payload at a time. Parts must arrive in order. A newer group id, a
-/// repeated first part, or an out-of-order part drops the stale incomplete group, so an abandoned
-/// batch can never join with a later batch.
-/// </summary>
+/// <summary>Reassembles one fragmented payload at a time. Parts must arrive in order.</summary>
 public sealed class FragmentAssembler
 {
     private uint _groupId;
     private int _partCount;
     private byte[][]? _parts;
     private int _received;
+    private int _bytes;
     private bool _active;
 
     /// <summary>True while a group is incomplete.</summary>
     public bool IsActive => _active;
 
-    /// <summary>The group id in flight, or zero when idle.</summary>
-    public uint GroupId => _groupId;
-
-    /// <summary>
-    /// Adds one part. Returns true only when the last part completes the group and
-    /// <paramref name="payload"/> holds the joined bytes. The assembler is idle again after a complete
-    /// join and after any reset.
-    /// </summary>
-    public bool TryAppend(uint groupId, int partIndex, int partCount, byte[]? part, out byte[] payload)
+    /// <summary>Appends one part and reports whether the group completed or was rejected.</summary>
+    public FragmentState Append(uint groupId, int partIndex, int partCount, ReadOnlySpan<byte> part, out byte[] payload)
     {
         payload = [];
-        if (partCount < 1 || partIndex < 0 || partIndex >= partCount)
+
+        if (partCount < 1
+            || partCount > PayloadFragmenter.MAX_PARTS
+            || partIndex < 0
+            || partIndex >= partCount
+            || part.Length > PayloadFragmenter.FRAGMENT_BUDGET)
         {
             Reset();
-            return false;
+            return FragmentState.Rejected;
         }
 
         if (partIndex == 0)
@@ -44,23 +41,30 @@ public sealed class FragmentAssembler
         }
         else if (!_active || _groupId != groupId || partCount != _partCount || partIndex != _received)
         {
-            //  A stale group can never complete. Drop it and wait for a fresh first part.
+            //  A stale or out-of-order group can never complete. Drop it and wait for a fresh first part.
             Reset();
-            return false;
+            return FragmentState.Rejected;
         }
 
-        _parts![_received] = part ?? [];
+        _bytes += part.Length;
+        if (_bytes > PayloadFragmenter.MAX_PAYLOAD_BYTES)
+        {
+            Reset();
+            return FragmentState.Rejected;
+        }
+
+        _parts![_received] = part.ToArray();
         _received++;
 
         if (_received < _partCount)
         {
-            return false;
+            return FragmentState.Incomplete;
         }
 
         byte[][] completed = _parts;
         Reset();
         payload = PayloadFragmenter.Join(completed);
-        return true;
+        return FragmentState.Complete;
     }
 
     /// <summary>Drops the incomplete group, if any.</summary>
@@ -70,6 +74,7 @@ public sealed class FragmentAssembler
         _partCount = 0;
         _parts = null;
         _received = 0;
+        _bytes = 0;
         _active = false;
     }
 }

@@ -1,46 +1,23 @@
 using System;
 using System.Threading.Tasks;
 using NsdRpc;
-using RpcClientConnection = NsdRpc.IClientConnection;
 
 namespace WaywardBeyond.Networking.Transport;
 
-/// <summary>
-/// The client half of an in-process loopback link. Connect it before passing it to an
-/// <see cref="RpcClient"/>. A closed instance is not reusable. Create a fresh one to restore the
-/// loopback session.
-/// </summary>
-public sealed class LoopbackRpcClientConnection(LoopbackRpcServerTransport transport) : RpcClientConnection, IRpcConnectionStats
+/// <summary>The client half of an in-process loopback link. A closed instance is not reusable.</summary>
+public sealed class LoopbackRpcClientConnection : LoopbackRpcConnection, IClientConnection
 {
-    private readonly LoopbackRpcServerTransport _transport = transport ?? throw new ArgumentNullException(nameof(transport));
-    private readonly LoopbackRpcEndpoint _endpoint = new();
+    private readonly LoopbackRpcServerTransport _transport;
 
-    public bool IsConnected => _endpoint.IsConnected;
-
-    public RpcConnectionStats Stats => _endpoint.Stats;
-
-    public void Close(RpcDisconnectReason reason = RpcDisconnectReason.LocalClose)
+    /// <summary>Creates a client connection that pairs with <paramref name="transport"/> on connect.</summary>
+    public LoopbackRpcClientConnection(LoopbackRpcServerTransport transport)
+        : base(new LoopbackRpcEndpoint())
     {
-        _endpoint.Close(reason);
+        _transport = transport ?? throw new ArgumentNullException(nameof(transport));
     }
 
-    public bool TrySend(ReadOnlySpan<byte> frame)
-    {
-        return _endpoint.TrySend(frame);
-    }
-
-    public event Action<RpcDisconnectReason> Disconnected
-    {
-        add => _endpoint.Disconnected += value;
-        remove => _endpoint.Disconnected -= value;
-    }
-
-    public event RpcFrameHandler FrameReceived
-    {
-        add => _endpoint.FrameReceived += value;
-        remove => _endpoint.FrameReceived -= value;
-    }
-
+    /// <inheritdoc/>
+    /// <inheritdoc/>
     public Task ConnectAsync()
     {
         if (IsConnected)
@@ -48,7 +25,7 @@ public sealed class LoopbackRpcClientConnection(LoopbackRpcServerTransport trans
             throw new InvalidOperationException("The loopback connection is already connected.");
         }
 
-        _transport.Connect(_endpoint);
+        _transport.Connect(Endpoint);
         return Task.CompletedTask;
     }
 }

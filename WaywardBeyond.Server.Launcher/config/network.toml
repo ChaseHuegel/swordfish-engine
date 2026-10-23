@@ -14,7 +14,6 @@ BroadcastSeconds = 5
 ScanDurationSeconds = 20
 
 [Transport]
-TraceLogging = false
 ConnectTimeoutMs = 5000
 IdleTimeoutMs = 5000
 SendBatchIntervalMs = 16

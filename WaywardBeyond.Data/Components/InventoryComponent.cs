@@ -1,13 +1,11 @@
 using System;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Data.Registry;
 
 namespace WaywardBeyond.Data.Components;
 
 /// <summary>The server-authoritative inventory of an entity.</summary>
 /// <remarks>Mutation off the ECS thread is unsafe.</remarks>
-[NetworkComponent(13, NetworkDirection.ServerOwned)]
 public partial struct InventoryComponent : IDataComponent
 {
     /// <summary>Canonical inventory slot count for players. Client build and server seed agree on this.</summary>

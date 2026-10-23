@@ -55,9 +55,9 @@ Every top-level path and what it is:
 | `WaywardBeyond.Client.Launcher/` | Game client launcher |
 | `WaywardBeyond.Config/` | Shared config types |
 | `WaywardBeyond.Data/` | Shared data models, nsd schemas, sqlite storage, localization |
-| `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, body config, interactions, save codec |
+| `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, networked staging state, body config, interactions, save codec |
 | `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations |
-| `WaywardBeyond.Networking/` | Standalone networking layer over the ECS: registry, RPC, transports |
+| `WaywardBeyond.Networking/` | Game networking layer: wire contracts, registry, codecs, transports |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader |
 | `WaywardBeyond.Server/` | Game server module |
 | `WaywardBeyond.Server.Launcher/` | Game server launcher |

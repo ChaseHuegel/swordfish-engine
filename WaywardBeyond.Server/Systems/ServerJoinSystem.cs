@@ -9,9 +9,8 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Rpc;
-using WaywardBeyond.Networking.Sessions;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
@@ -226,7 +225,7 @@ public sealed class ServerJoinSystem(
         int entity = store.Alloc(uuid);
         interaction.ResetPlayerSequence(entity);
 
-        store.AddOrUpdate(entity, new NetworkComponent());
+        store.AddOrUpdate(entity, NetworkComponent.Create());
         store.AddOrUpdate(entity, new InputComponent());
         store.AddOrUpdate(entity, new TransformComponent(position, orientation, CharacterDefaults.PlayerScale));
         store.AddOrUpdate(entity, CharacterDefaults.CreateCharacterPhysicsComponent());

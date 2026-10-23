@@ -12,7 +12,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Levels;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Saves;

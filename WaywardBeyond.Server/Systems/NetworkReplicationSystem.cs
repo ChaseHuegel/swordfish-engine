@@ -6,8 +6,8 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Data.Registry;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Networking.Rpc;
 
@@ -76,7 +76,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         _logger = logger;
         _config = config;
         _registry = registry;
-        _serverOwnedComponents = [.. registry.GetComponents(NetworkDirection.ServerOwned)];
+        _serverOwnedComponents = registry.GetComponents(NetworkDirection.ServerOwned);
     }
 
     /// <summary>
@@ -292,12 +292,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// </summary>
     private bool SendSnapshot(ServerPeer peer, in WorldSnapshot snapshot)
     {
-        byte[] payload = snapshot.Serialize();
-        if (payload.Length <= GameRpc.FRAGMENT_BUDGET)
+        if (snapshot.GetSize() <= PayloadFragmenter.FRAGMENT_BUDGET)
         {
-            return peer.Rpc.Notify(GameRpc.Methods.WORLD_SNAPSHOT, in snapshot);
+            return peer.Rpc.Notify(GameRpc.Methods.SEND_WORLD_SNAPSHOT, in snapshot);
         }
 
+        byte[] payload = snapshot.Serialize();
         uint batchId = ++_nextBatchId;
         int partCount = PayloadFragmenter.PartCount(payload.Length);
         for (var partIndex = 0; partIndex < partCount; partIndex++)
@@ -328,11 +328,14 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             return;
         }
 
-        if (!_registry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info))
+        Result<NetworkComponentInfo> lookup = _registry.GetInfo(Uuid.FromValue(snapshot.TypeUuid));
+        if (!lookup.Success)
         {
             _logger.LogWarning("Ignoring component snapshot with unknown type uuid {uuid}.", snapshot.TypeUuid);
             return;
         }
+
+        NetworkComponentInfo info = lookup.Value;
 
         //  Server-owned state is server-authored; inbound server-owned payloads are never accepted.
         if (info.Direction != NetworkDirection.ClientOwned)
@@ -341,64 +344,75 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         }
 
         //  The session entity already exists (spawned at join); wire uuids never allocate entities.
-        info.Codec.Apply(store, sessionEntity, snapshot.Payload);
-
-        if (info.Type == typeof(InputComponent))
+        Result applied = info.Codec.Apply(store, sessionEntity, snapshot.Payload);
+        if (!applied.Success)
         {
-            if (!store.TryGet<NetworkComponent>(sessionEntity, out _))
-            {
-                return;
-            }
-
-            store.QueryRef(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
-            {
-                net.Write.StagedInputs ??= new InputStageBuffer();
-                if (s.TryGet(e, out InputComponent input))
-                {
-                    net.Write.StagedInputs.Stage(input);
-                }
-
-                if (input.ServerTickAtSample > net.Read.LastAckedInput)
-                {
-                    net.Write.LastAckedInput = input.ServerTickAtSample;
-                }
-
-                net.Write.LastAckedSnapshot = input.ServerTickAtSample;
-            });
+            _logger.LogWarning("Ignoring {component} snapshot for entity {entity}: {message}.",
+                info.Type.Name, sessionEntity, applied.Message);
+            return;
         }
 
-        if (info.Type == typeof(InteractionEvent))
+        if (info.Type == typeof(InputComponent) && store.TryGet(sessionEntity, out InputComponent input))
         {
-            if (!store.TryGet<NetworkComponent>(sessionEntity, out _))
-            {
-                return;
-            }
-
-            store.QueryRef(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
-            {
-                net.Write.StagedInteractions ??= new InteractionStageBuffer();
-                if (s.TryGet(e, out InteractionEvent interaction))
-                {
-                    net.Write.StagedInteractions.Stage(interaction);
-                }
-            });
+            var stage = new StageInput(in input);
+            store.QueryRef<NetworkComponent, StageInput>(sessionEntity, 0f, ref stage);
         }
 
-        if (info.Type == typeof(InventoryEvent))
+        if (info.Type == typeof(InteractionEvent) && store.TryGet(sessionEntity, out InteractionEvent interaction))
         {
-            if (!store.TryGet<NetworkComponent>(sessionEntity, out _))
+            var stage = new StageInteraction(in interaction);
+            store.Query<NetworkComponent, StageInteraction>(sessionEntity, 0f, ref stage);
+        }
+
+        if (info.Type == typeof(InventoryEvent)
+            && store.TryGet(sessionEntity, out InventoryEvent inventoryEvent)
+            && inventoryEvent.SlotMove != null)
+        {
+            var stage = new StageInventory(inventoryEvent.SequenceNumber, inventoryEvent.SlotMove.Value);
+            store.Query<NetworkComponent, StageInventory>(sessionEntity, 0f, ref stage);
+        }
+    }
+
+    private struct StageInput(in InputComponent input) : IForEachRef<NetworkComponent>
+    {
+        private readonly InputComponent _input = input;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<NetworkComponent> net)
+        {
+            ref readonly NetworkComponent current = ref net.Read;
+            if (current.StagedInputs == null && _input.ServerTickAtSample <= current.LastAckedInput)
             {
                 return;
             }
 
-            store.QueryRef(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            ref NetworkComponent value = ref net.Write;
+            value.StagedInputs?.Add(_input);
+
+            if (_input.ServerTickAtSample > value.LastAckedInput)
             {
-                net.Write.StagedInventoryOps ??= new InventoryOpStageBuffer();
-                if (s.TryGet(e, out InventoryEvent inventoryEvent) && inventoryEvent.SlotMove != null)
-                {
-                    net.Write.StagedInventoryOps.Stage(inventoryEvent.SequenceNumber, inventoryEvent.SlotMove.Value);
-                }
-            });
+                value.LastAckedInput = _input.ServerTickAtSample;
+            }
+        }
+    }
+
+    private struct StageInteraction(in InteractionEvent interaction) : IForEach<NetworkComponent>
+    {
+        private readonly InteractionEvent _interaction = interaction;
+
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
+        {
+            net.StagedInteractions?.Stage(_interaction);
+        }
+    }
+
+    private struct StageInventory(uint sequenceNumber, in SlotMoveOp slotMove) : IForEach<NetworkComponent>
+    {
+        private readonly uint _sequenceNumber = sequenceNumber;
+        private readonly SlotMoveOp _slotMove = slotMove;
+
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
+        {
+            net.StagedInventoryOps?.Stage(_sequenceNumber, in _slotMove);
         }
     }
 
@@ -431,6 +445,8 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
                 if (!serialize.Success)
                 {
+                    Owner._logger.LogDebug("Dropping {component} snapshot for entity {uuid}: the codec failed.",
+                        info.Type.Name, entityUuid);
                     continue;
                 }
 

@@ -215,25 +215,23 @@ internal sealed class ClientJoinSystem : IEntitySystem
                 return;
             }
 
-            bool complete = _levelAssembler.TryAppend(
+            FragmentState state = _levelAssembler.Append(
                 groupId: 0,
                 partIndex: (int)chunk.PartIndex,
                 partCount: (int)chunk.PartCount,
                 chunk.Payload,
                 out byte[] payload);
 
-            if (complete)
+            if (state == FragmentState.Complete)
             {
                 BuildViewEntity(VoxelEntityData.Deserialize(payload), store);
                 continue;
             }
 
-            //  An out-of-order or stale part leaves the assembler idle. The stream is ordered on the
-            //  wire, so that means the join is corrupt.
-            if (!_levelAssembler.IsActive && chunk.PartIndex > 0)
+            //  The stream is ordered on the wire, so a rejected part means the join is corrupt.
+            if (state == FragmentState.Rejected)
             {
-                _logger.LogWarning("World stream part {index}/{count} arrived without its group.",
-                    chunk.PartIndex, chunk.PartCount);
+                _logger.LogWarning("World stream part {index}/{count} was rejected.", chunk.PartIndex, chunk.PartCount);
                 FailJoin();
                 return;
             }

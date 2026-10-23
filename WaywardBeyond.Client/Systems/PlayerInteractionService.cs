@@ -20,6 +20,7 @@ using WaywardBeyond.Client.Debug;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI;

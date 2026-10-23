@@ -13,7 +13,6 @@
         <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
-        <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
     </ItemGroup>
 

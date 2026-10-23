@@ -18,9 +18,9 @@ replicate.
 - **Client-authoritative active slot** rides `ClientOwned` `EquipmentComponent`.
 - **Discrete button edges** are delivered as a `ClientOwned` `InteractionEvent`
   (uuid 15) — an extensible pseudo-union of nullable hint sub-messages. The
-  server stages them into each player mirror's `InteractionStageBuffer`
-  (`NetworkComponent.StagedInteractions`), keyed by `ServerTickAtSample`,
-  newest-per-tick, deduped by `SequenceNumber`.
+  server stages them into each player mirror's
+  `NetworkComponent.StagedInteractions` ring, keyed by `ServerTickAtSample`,
+  deduped by `SequenceNumber`, and consumed in tick order.
 
 `InteractionEvent` carries `Entity`, `SequenceNumber`, `ServerTickAtSample`, and
 `Kind` at the root. `Kind` is the button/edge and is not the union discriminator;
@@ -126,9 +126,5 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs`
 - `WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`
 - `WaywardBeyond.Client/Systems/*InteractionSystem.cs`
-- `WaywardBeyond.Networking/Components/NetworkComponent.cs`
+- `WaywardBeyond.Gameplay/Networking/{NetworkComponent,StageRing}.cs`
   (`StagedInteractions`)
-
-## Tests that pin this
-
-- `Swordfish.Tests` — the interaction-to-broadcast flow.

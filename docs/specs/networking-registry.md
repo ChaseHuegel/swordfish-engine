@@ -4,41 +4,26 @@ One subject: stable wire identity for networked components.
 
 ## `NetworkRegistry`
 
-`WaywardBeyond.Networking/Registry/NetworkRegistry.cs` maps networked
-component types to a stable wire identity. One instance is registered as a DI
-singleton by the networking composition; systems take it through constructor
-injection.
+`WaywardBeyond.Networking/Registry/NetworkRegistry.cs` maps networked component
+types to a stable wire uuid, an owning endpoint, and a payload codec. One
+instance is registered as a DI singleton by `NetworkingComposition`; systems take
+it through constructor injection.
 
-- `Initialize(assemblies)` scans assemblies for value-type `IDataComponent`
-  structs annotated with `[NetworkComponent(uuid, direction)]` and registers
-  each with an `NsdComponentCodec<T>` that drives the generated nsd serializers.
-  The built-in wired components live in the `WaywardBeyond.Data` assembly, so
-  the composition passes that assembly. Duplicates from the scan fail
-  registration and the scan continues (mod-facing path: log and continue).
-- `Register<T>(Uuid, NetworkDirection, IPayloadCodec)` is the explicit path for
-  engine/third-party components that are not nsd messages. It returns a
-  `Result` with a contextual failure message (duplicate type, duplicate uuid,
-  `Uuid.Null`, invalid codec) instead of failing silently; the networking
-  composition treats a failed built-in registration as fatal at startup.
-- Codec validity is proven at registration: the generated-nsd-methods check in
-  `NsdComponentCodec<T>`'s static constructor is forced via
-  `RunClassConstructor`, so a component without generated serialize/deserialize
-  fails at registration, never mid-game on the wire.
-- Reverse lookups: `TryGetInfo(Type)` / `TryGetInfo(Uuid)`.
-- Enumeration by direction via `GetComponents(NetworkDirection)`. Replication
-  systems cache the enumeration per instance so the per-tick hot path does not
-  allocate (see [replication](networking-replication.md)).
-- Reads are lock-free: registration happens at startup (module composition) and
-  the mappings are not written afterward. Do not register concurrently with
-  reads.
-
-Engine/third-party components are registered explicitly from the game wiring,
-never from the engine.
+- `Register<T>(Uuid, NetworkDirection, IPayloadCodec<T>)` is the only
+  registration path. The typed codec ties the registration to the component at
+  compile time. It returns `Result` with a contextual failure message (duplicate
+  type, duplicate uuid, `Uuid.Null`).
+- `Freeze()` closes the registry to registration and caches the per-direction
+  views. `NetworkingComposition` freezes after the built-in registrations, so a
+  failed built-in registration is fatal at startup.
+- Lookups: `GetInfo<T>()`, `GetInfo(Type)`, and `GetInfo(Uuid)` return
+  `Result<NetworkComponentInfo>`.
+- `GetComponents(NetworkDirection)` returns the frozen array for one direction.
+- Reads are lock-free after `Freeze`. Do not register concurrently with reads.
 
 ## `NetworkDirection`
 
-`NetworkDirection` and `NetworkComponentAttribute` live in
-`WaywardBeyond.Data/Registry` with the generated component schemas.
+`WaywardBeyond.Networking/Registry/NetworkDirection.cs`.
 
 - `ServerOwned` — the server is authoritative; replicated downstream to clients.
 - `ClientOwned` — the client is authoritative; replicated upstream to the
@@ -46,15 +31,18 @@ never from the engine.
 
 ## Codecs
 
-`IPayloadCodec` serializes a component into the opaque `byte[]` payload of a
-`ComponentSnapshot` and applies a payload back onto an entity. Serialization
-returns `Result<byte[]>`: a codec fails when the entity carries no such
-component, so callers never treat an empty payload as a valid snapshot.
+`WaywardBeyond.Networking/Codecs/`.
+
+`IPayloadCodec.Serialize(DataStore, int)` returns `Result<byte[]>` and fails when
+the entity does not carry the component. `IPayloadCodec.Apply(DataStore, int,
+ReadOnlySpan<byte>)` returns `Result` and fails when the payload cannot be
+applied. `IPayloadCodec<T>` adds the typed `Serialize(in T)` used by the client
+drains.
 
 - `NsdComponentCodec<T>` — the default; requires the component to be an nsd
-  message. Delegates to the generated `Serialize()`/`Deserialize`.
-- Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`
-  (in `WaywardBeyond.Networking/Codecs/`).
+  message. It binds the generated `Serialize()` and
+  `Deserialize(ReadOnlySpan<byte>)` through delegates.
+- Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`.
 
 ## Registered components
 
@@ -93,21 +81,15 @@ quad with the sector-facing material. See [asset-definitions](asset-definitions.
 for the body data format.
 
 The interaction context (`EquipmentComponent`, `InventoryComponent`,
-`GameModeComponent`) is seeded from the client's local character save at join
-and is server-owned thereafter. See [join](networking-join.md) and
+`GameModeComponent`) is seeded from the client's local character save at join.
+`EquipmentComponent` stays client-owned; the server validates interactions and
+consumes items against its values. See [join](networking-join.md) and
 [voxel-edits](networking-voxel-edits.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Networking/Registry/NetworkRegistry.cs`
-- `WaywardBeyond.Networking/Registry/NsdComponentCodec.cs`
-- `WaywardBeyond.Networking/Registry/{IPayloadCodec,NetworkComponentInfo}.cs`
-- `WaywardBeyond.Data/Registry/{NetworkComponentAttribute,NetworkDirection}.cs`
+- `WaywardBeyond.Networking/Registry/{NetworkRegistry,NetworkComponentInfo,NetworkDirection}.cs`
+- `WaywardBeyond.Networking/Codecs/{IPayloadCodec,IPayloadCodecOfT,NsdComponentCodec}.cs`
+- `WaywardBeyond.Networking/NetworkingComposition.cs`
 - Component declarations: `WaywardBeyond.Data/Components/`
 - Schemas: `WaywardBeyond.Data/Nsd/components.nsd`
-- Wiring: `WaywardBeyond.Networking/NetworkingComposition.cs`
-
-## Tests that pin this
-
-- `Swordfish.Tests/InputCodecTests.cs` — registry lookup and nsd-component
-  codec round-trips.

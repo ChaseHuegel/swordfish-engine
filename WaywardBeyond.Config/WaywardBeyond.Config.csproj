@@ -12,4 +12,10 @@
       <ProjectReference Include="..\Shoal\Shoal.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <!--  Private: consumers see the option extensions, not the nsd-rpc assemblies. -->
+      <PackageReference Include="NsdRpc" Version="0.3.0" PrivateAssets="all" />
+      <PackageReference Include="NsdRpc.Tcp" Version="0.3.0" PrivateAssets="all" />
+    </ItemGroup>
+
 </Project>

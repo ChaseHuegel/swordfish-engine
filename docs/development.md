@@ -135,7 +135,10 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 
 ### Threading
 
-- `lock` for monitor-based synchronization.
+- `System.Threading.Lock` for monitor-based synchronization. Never use an
+  `object` or `this` as a lock target. `Lock` is reentrant.
+- Never invoke external callbacks while holding a delivery lock. Queue the
+  work, then drain it outside the lock.
 - `ConcurrentQueue<T>` for producer-consumer patterns.
 - `volatile` on boolean flags (`_stop`, `_pause`).
 - `Interlocked.Exchange` for atomic field swaps.

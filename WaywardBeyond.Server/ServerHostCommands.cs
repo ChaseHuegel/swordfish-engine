@@ -10,7 +10,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Saves;

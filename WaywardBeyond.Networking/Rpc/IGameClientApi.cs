@@ -12,11 +12,11 @@ namespace WaywardBeyond.Networking.Rpc;
 [RpcService]
 public interface IGameClientApi
 {
-    [RpcMethod(GameRpc.Methods.WORLD_SNAPSHOT, RpcDirection.ServerToClient)]
-    void WorldSnapshot(WorldSnapshot snapshot);
+    [RpcMethod(GameRpc.Methods.SEND_WORLD_SNAPSHOT, RpcDirection.ServerToClient)]
+    void SendSnapshot(WorldSnapshot snapshot);
 
-    [RpcMethod(GameRpc.Methods.WORLD_SNAPSHOT, RpcDirection.ServerToClient)]
-    void OnWorldSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken);
+    [RpcMethod(GameRpc.Methods.SEND_WORLD_SNAPSHOT, RpcDirection.ServerToClient)]
+    void OnSendSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken);
 
     [RpcMethod(GameRpc.Methods.SNAPSHOT_BATCH, RpcDirection.ServerToClient)]
     void SnapshotBatch(SnapshotBatch batch);

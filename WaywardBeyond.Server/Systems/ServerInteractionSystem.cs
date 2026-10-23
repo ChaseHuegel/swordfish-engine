@@ -10,7 +10,7 @@ using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Voxels;
 
@@ -60,12 +60,15 @@ public sealed class ServerInteractionSystem(
         }
 
         uint lastSequence = _lastConsumedSequences.GetValueOrDefault(entity);
-        InteractionStageBuffer buffer = net.StagedInteractions;
+        StageRing<InteractionEvent> buffer = net.StagedInteractions;
 
-        while (buffer.TryConsume(simTick, lastSequence, out InteractionEvent interaction))
+        Result<InteractionEvent> staged = buffer.Consume(simTick, lastSequence);
+        while (staged.Success)
         {
+            InteractionEvent interaction = staged.Value;
             lastSequence = interaction.SequenceNumber;
             ProcessInteraction(store, entity, in interaction, in transform);
+            staged = buffer.Consume(simTick, lastSequence);
         }
 
         _lastConsumedSequences[entity] = lastSequence;
@@ -73,7 +76,7 @@ public sealed class ServerInteractionSystem(
 
     /// <summary>
     /// Clears the per-entity sequence watermark so a reused mirror index from a prior session does not
-    /// cause <see cref="InteractionStageBuffer.TryConsume"/> to skip a fresh session's low sequence numbers.
+    /// cause <see cref="StageRingExtensions.Consume(StageRing{InteractionEvent}, uint, uint)"/> to skip a fresh session's low sequence numbers.
     /// Called by the server when a player mirror is freed or reallocated (leave, rejoin, disconnect).
     /// </summary>
     public void ResetPlayerSequence(int entity)

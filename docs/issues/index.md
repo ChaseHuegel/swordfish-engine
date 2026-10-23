@@ -25,7 +25,7 @@ is not part of this workflow.
 - [x] [Migrate the client to nsd-rpc services](/docs/issues/0048-migrate-client-to-rpc.md) — client host, inbound staging, two-call join, typed level calls
 - [x] [Restore the loopback session after a remote disconnect](/docs/issues/0049-restore-loopback-after-remote.md) — a remote drop leaves no active connection; local play needs an application restart
 - [x] [Remove the legacy transport and remap network config](/docs/issues/0050-remove-legacy-transport.md) — delete the old TCP stack, serializers, hub, and keys; bump the discovery protocol
-- [ ] [Add the RPC migration test suite and networking docs pass](/docs/issues/0051-rpc-tests-and-docs.md) — pin fragmentation, join, backlog, reconnect, and rewrite the networking specs
+- [x] [Add the RPC migration test suite and networking docs pass](/docs/issues/0051-rpc-tests-and-docs.md) — pin fragmentation, join, backlog, reconnect, and rewrite the networking specs
 
 ### Research
 

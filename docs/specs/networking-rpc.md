@@ -46,7 +46,7 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 1 | `ClientHello` | client → server | notification | `ClientHello` |
 | 2 | `LeaveGame` | client → server | notification | `LeaveGameRequest` |
 | 3 | `ClientHeartbeat` | client → server | notification | `ClientHeartbeatMessage` |
-| 20 | `ClientSnapshot` | client → server | notification | `WorldSnapshot` |
+| 20 | `SendSnapshot` | client → server | notification | `WorldSnapshot` |
 | 60 | `Chat` | client → server | notification | `ChatMessage` |
 | 100 | `ListLevels` | client → server | call | `ListLevelsRequest` → `ListLevelsResponse` |
 | 101 | `CreateLevel` | client → server | call | `NewLevelRequest` → `NewLevelResponse` |
@@ -54,7 +54,7 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 103 | `SaveLevel` | client → server | call | `SaveLevelRequest` → `SaveLevelResponse` |
 | 200 | `Join` | client → server | call | `JoinRequest` → `JoinAccept` |
 | 201 | `StreamLevel` | client → server | stream | `StreamLevelRequest` → `LevelStreamChunk`* → `LevelStreamComplete` |
-| 300 | `WorldSnapshot` | server → client | notification | `WorldSnapshot` |
+| 300 | `SendSnapshot` | server → client | notification | `WorldSnapshot` |
 | 301 | `SnapshotBatch` | server → client | notification | `SnapshotBatch` |
 | 350 | `VoxelEdit` | server → client | notification | `VoxelEditMessage` |
 | 351 | `Notification` | server → client | notification | `NotificationMessage` |
@@ -74,6 +74,10 @@ Source of truth: `WaywardBeyond.Networking/Rpc/`.
 one `GameClientApiClient` per peer in `ServerPeer.Client`. `ClientHandlers`
 derives from `GameClientApiHandler`.
 
+Both interfaces name the snapshot notifications `SendSnapshot`. The direction is
+the contract: `SEND_SNAPSHOT` (20) uploads the client's components,
+`SEND_WORLD_SNAPSHOT` (300) delivers the authoritative delta.
+
 Every method sets `RpcDirection`. A call in the wrong direction answers
 `MethodNotFound`. The registry is built once and frozen at startup.
 
@@ -86,13 +90,13 @@ message, never exception detail.
 
 | Code | Name | Meaning |
 |---|---|---|
-| -32100 | `NotJoined` | The peer has no session for the requested action. |
-| -32101 | `JoinRefused` | The server refused the join. |
-| -32102 | `LevelNotFound` | The requested level does not exist. |
-| -32103 | `LevelLoadFailed` | The level exists but did not load. |
-| -32104 | `PermissionDenied` | The peer lacks the required permission. |
-| -32105 | `InvalidState` | The request is not valid in the current state. |
-| -32106 | `StreamFailed` | The level stream aborted. |
+| -32100 | `NOT_JOINED` | The peer has no session for the requested action. |
+| -32101 | `JOIN_REFUSED` | The server refused the join. |
+| -32102 | `LEVEL_NOT_FOUND` | The requested level does not exist. |
+| -32103 | `LEVEL_LOAD_FAILED` | The level exists but did not load. |
+| -32104 | `PERMISSION_DENIED` | The peer lacks the required permission. |
+| -32105 | `INVALID_STATE` | The request is not valid in the current state. |
+| -32106 | `STREAM_FAILED` | The level stream aborted. |
 
 ## Send policy
 
@@ -131,9 +135,10 @@ snapshot queue.
 Source of truth: `WaywardBeyond.Networking/Rpc/PayloadFragmenter.cs` and
 `FragmentAssembler.cs`.
 
-A payload larger than `GameRpc.FragmentBudget` (60,000 bytes) is split into
-ordered parts. The budget is below the 65,570-byte frame cap with envelope
-headroom. A zero-length payload is one empty part.
+A payload larger than `PayloadFragmenter.FRAGMENT_BUDGET` (60,000 bytes) is split
+into ordered parts. The budget is below the 65,570-byte frame cap with envelope
+headroom. `NetworkingConfigExtensions.ToRpcOptions` pins `MaxFrameBytes` to that
+cap. A zero-length payload is one empty part.
 
 `SnapshotBatch` carries `BatchId`, `PartIndex`, `PartCount`, and `Payload`.
 `LevelStreamChunk` carries `PartIndex`, `PartCount`, and the payload bytes. A
@@ -141,8 +146,10 @@ level chunk payload is a serialized `VoxelEntityData`, never a `LevelEntityAdd`
 wrapper.
 
 Parts must arrive in order. A new batch id, a repeated first part, an
-out-of-order part, or a changed part count drops the stale incomplete group. A
-stale group never joins with a later group.
+out-of-order part, or a changed part count drops the stale incomplete group and
+reports `FragmentState.Rejected`. A group over `MAX_PARTS` or
+`MAX_PAYLOAD_BYTES` is rejected before it can allocate. A stale group never
+joins with a later group.
 
 ## Join and level stream
 
@@ -214,6 +221,5 @@ order, off the caller's thread.
 Source of truth: `WaywardBeyond.Networking/Rpc/RpcLogging.cs`.
 
 `RpcOptions.LogSink` receives every nsd-rpc drop and error event. The game maps
-`TraceEventType` to the engine log levels. The sink is not gated by the
-transport trace switch. `Transport.TraceLogging` still gates the per-frame game
-logs.
+`TraceEventType` to the engine log levels. The sink is not gated by a trace
+switch.

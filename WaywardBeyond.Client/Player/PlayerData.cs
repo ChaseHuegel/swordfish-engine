@@ -6,6 +6,7 @@ using WaywardBeyond.Client.Items;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Gameplay.Networking;
 
 namespace WaywardBeyond.Client.Player;
 

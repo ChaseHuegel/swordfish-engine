@@ -128,7 +128,7 @@ declares the `default` and `admin` groups. Mods ship defaults under their own
 
 `ServerSaveSystem` requires `GamePermissions.LevelSave`
 (`waywardbeyond.level.save`) for a client `SaveLevelAsync` call. A denied call
-returns `RpcResult.Failure(GameRpcErrors.PermissionDenied, ...)` and sends a
+returns `RpcResult.Failure(GameRpcErrors.PERMISSION_DENIED, ...)` and sends a
 targeted `notification.save.denied` toast. The server logs the denial at
 information level. The server autosave does not need the permission. The stock
 remote client never sends the call unless the menu offers it; this check
@@ -140,7 +140,7 @@ protects against a modified client.
 `GamePermissions.LevelCreate` (`waywardbeyond.level.create`) for a client
 `CreateLevelAsync` call. A local loopback peer is always allowed. A remote peer
 is allowed only after its claim arrives and the key is granted. A denied call
-returns `RpcResult.Failure(GameRpcErrors.PermissionDenied, ...)` and logs at
+returns `RpcResult.Failure(GameRpcErrors.PERMISSION_DENIED, ...)` and logs at
 information level. It creates no data. The stock client hides the "Create save" option when
 it lacks the key, so the check protects against a modified client. The server
 also reports the same verdict in `ListLevelsResponse.CanCreateSave`, which the

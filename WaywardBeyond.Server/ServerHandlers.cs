@@ -50,7 +50,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         }
     }
 
-    public override void OnClientSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken)
+    public override void OnSendSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken)
     {
         if (TryGetPeer(in context, out ServerPeer peer) && peer.World != null)
         {

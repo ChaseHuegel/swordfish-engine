@@ -1,12 +1,11 @@
 namespace WaywardBeyond.Networking.Discovery;
 
-/// <summary>
-/// Shared constants for the LAN discovery beacon. The protocol version guards against mixed-version
-/// hosts and clients; the broadcast address is the IPv4 limited-broadcast target every host and scanner
-/// uses by agreement.
-/// </summary>
+/// <summary>Shared constants for the LAN discovery beacon.</summary>
 public static class LanDiscovery
 {
-    public const int PROTOCOL_VERSION = 2;
+    /// <summary>The beacon protocol version. Hosts and clients must match.</summary>
+    public const int PROTOCOL_VERSION = 3;
+
+    /// <summary>The IPv4 limited-broadcast address every host and scanner uses.</summary>
     public const string BROADCAST_ADDRESS = "255.255.255.255";
 }

@@ -1,5 +1,4 @@
 using Swordfish.ECS;
-using WaywardBeyond.Data.Registry;
 
 namespace WaywardBeyond.Data.Components;
 
@@ -7,5 +6,4 @@ namespace WaywardBeyond.Data.Components;
 /// op against its copy, applies it, and its <see cref="InventoryComponent"/> echo (already a replicated
 /// ServerOwned component) corrects any invalid client prediction.
 /// </summary>
-[NetworkComponent(16, NetworkDirection.ClientOwned)]
 public partial struct InventoryEvent : IDataComponent;

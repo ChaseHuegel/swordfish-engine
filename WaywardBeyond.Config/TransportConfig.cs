@@ -5,9 +5,6 @@ namespace WaywardBeyond.Config;
 /// <summary>Network transport configuration.</summary>
 public sealed record TransportConfig
 {
-    /// <summary>Logs every sent and received frame (type, byte count, direction) at trace level.</summary>
-    public DataBinding<bool> TraceLogging { get; private set; } = new(false);
-
     /// <summary>The deadline for one TCP connect attempt, in milliseconds. Zero disables it.</summary>
     public DataBinding<int> ConnectTimeoutMs { get; private set; } = new(5_000);
 

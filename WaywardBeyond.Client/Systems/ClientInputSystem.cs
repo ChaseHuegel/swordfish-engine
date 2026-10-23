@@ -6,7 +6,7 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Data.Components;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -132,13 +132,13 @@ internal sealed class ClientInputSystem : IEntitySystem
         {
             store.AddOrUpdate(entity, Input);
 
-            if (!store.TryGet(entity, out PendingInputComponent pending))
+            if (!store.TryGet(entity, out PendingInputComponent pending) || pending.Ring == null)
             {
-                pending = new PendingInputComponent();
+                pending = PendingInputComponent.Create();
+                store.AddOrUpdate(entity, pending);
             }
 
-            pending.Push(Input);
-            store.AddOrUpdate(entity, pending);
+            pending.Ring.Add(Input);
         }
     }
 

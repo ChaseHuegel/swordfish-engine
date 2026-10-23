@@ -55,7 +55,7 @@ internal sealed class ClientRpcHost : IDisposable
         _registry = new RpcRegistry();
         _registry.AddService(handlers);
         _registry.Freeze();
-        _options = GameRpcOptions.CreateRpc(config, loggerFactory.CreateLogger("NsdRpc"));
+        _options = config.ToRpcOptions(RpcLogging.ToLogSink(loggerFactory.CreateLogger("NsdRpc")));
 
         //  Singleplayer is the default lifecycle.
         ConnectLocal();
@@ -96,7 +96,7 @@ internal sealed class ClientRpcHost : IDisposable
     {
         try
         {
-            TcpOptions tcpOptions = GameRpcOptions.CreateTcp(_config, host, port);
+            TcpOptions tcpOptions = _config.ToTcpOptions(host, port);
             var connection = new TcpClientConnection(_options, tcpOptions);
             connection.ConnectAsync().GetAwaiter().GetResult();
 

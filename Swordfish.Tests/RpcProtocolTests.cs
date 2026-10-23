@@ -110,35 +110,36 @@ public class PayloadFragmenterTests
     [Fact]
     public void ZeroLengthPayloadRoundTripsAsOnePart()
     {
-        byte[][] parts = PayloadFragmenter.Split([], budget: 4);
+        byte[] payload = [];
+        int partCount = PayloadFragmenter.PartCount(payload.Length);
 
-        Assert.Single(parts);
-        Assert.Empty(parts[0]);
-        Assert.Empty(PayloadFragmenter.Join(parts));
+        Assert.Equal(1, partCount);
+        Assert.Empty(PayloadFragmenter.Slice(payload, 0));
+        Assert.Empty(PayloadFragmenter.Join([PayloadFragmenter.Slice(payload, 0)]));
     }
 
     [Fact]
     public void ExactBoundaryStaysInOnePart()
     {
-        byte[] payload = [1, 2, 3, 4];
+        var payload = new byte[PayloadFragmenter.FRAGMENT_BUDGET];
+        Random.Shared.NextBytes(payload);
 
-        byte[][] parts = PayloadFragmenter.Split(payload, budget: 4);
-
-        Assert.Single(parts);
-        Assert.Equal(payload, PayloadFragmenter.Join(parts));
+        Assert.Equal(1, PayloadFragmenter.PartCount(payload.Length));
+        Assert.Equal(payload, PayloadFragmenter.Join([PayloadFragmenter.Slice(payload, 0)]));
     }
 
     [Fact]
     public void OneByteOverTheBoundarySplitsInTwo()
     {
-        byte[] payload = [1, 2, 3, 4, 5];
+        var payload = new byte[PayloadFragmenter.FRAGMENT_BUDGET + 1];
+        Random.Shared.NextBytes(payload);
 
-        byte[][] parts = PayloadFragmenter.Split(payload, budget: 4);
+        int partCount = PayloadFragmenter.PartCount(payload.Length);
 
-        Assert.Equal(2, parts.Length);
-        Assert.Equal(4, parts[0].Length);
-        Assert.Single(parts[1]);
-        Assert.Equal(payload, PayloadFragmenter.Join(parts));
+        Assert.Equal(2, partCount);
+        Assert.Equal(PayloadFragmenter.FRAGMENT_BUDGET, PayloadFragmenter.Slice(payload, 0).Length);
+        Assert.Single(PayloadFragmenter.Slice(payload, 1));
+        Assert.Equal(payload, PayloadFragmenter.Join([PayloadFragmenter.Slice(payload, 0), PayloadFragmenter.Slice(payload, 1)]));
     }
 
     [Fact]
@@ -146,9 +147,9 @@ public class PayloadFragmenterTests
     {
         var assembler = new FragmentAssembler();
 
-        Assert.False(assembler.TryAppend(groupId: 1, partIndex: 0, partCount: 2, [1], out _));
-        Assert.False(assembler.TryAppend(groupId: 2, partIndex: 0, partCount: 2, [2], out _));
-        Assert.True(assembler.TryAppend(groupId: 2, partIndex: 1, partCount: 2, [3], out byte[] payload));
+        Assert.Equal(FragmentState.Incomplete, assembler.Append(groupId: 1, partIndex: 0, partCount: 2, [1], out _));
+        Assert.Equal(FragmentState.Incomplete, assembler.Append(groupId: 2, partIndex: 0, partCount: 2, [2], out _));
+        Assert.Equal(FragmentState.Complete, assembler.Append(groupId: 2, partIndex: 1, partCount: 2, [3], out byte[] payload));
 
         Assert.Equal([2, 3], payload);
         Assert.False(assembler.IsActive);
@@ -161,27 +162,27 @@ public class PayloadFragmenterTests
         {
             TickNumber = 7,
             LastProcessedInput = 3,
-            Components = [new ComponentSnapshot(1, 2, new byte[200])],
+            Components = [new ComponentSnapshot(1, 2, new byte[PayloadFragmenter.FRAGMENT_BUDGET])],
             RemovedEntities = [9],
             RemovedComponents = [new ComponentRemoval(9, 2)],
         };
 
         byte[] payload = snapshot.Serialize();
-        byte[][] parts = PayloadFragmenter.Split(payload, budget: 64);
-        Assert.True(parts.Length > 1);
+        int partCount = PayloadFragmenter.PartCount(payload.Length);
+        Assert.True(partCount > 1);
 
         var assembler = new FragmentAssembler();
         WorldSnapshot? joined = null;
-        for (var index = 0; index < parts.Length; index++)
+        for (var index = 0; index < partCount; index++)
         {
-            bool complete = assembler.TryAppend(
+            FragmentState state = assembler.Append(
                 groupId: 11,
                 partIndex: index,
-                partCount: parts.Length,
-                parts[index],
+                partCount: partCount,
+                PayloadFragmenter.Slice(payload, index),
                 out byte[] joinedPayload);
 
-            if (complete)
+            if (state == FragmentState.Complete)
             {
                 joined = WorldSnapshot.Deserialize(joinedPayload);
             }
@@ -191,7 +192,7 @@ public class PayloadFragmenterTests
         Assert.Equal(7u, joined.Value.TickNumber);
         Assert.Equal(3u, joined.Value.LastProcessedInput);
         Assert.Equal(1UL, joined.Value.Components[0].Entity);
-        Assert.Equal(200, joined.Value.Components[0].Payload.Length);
+        Assert.Equal(PayloadFragmenter.FRAGMENT_BUDGET, joined.Value.Components[0].Payload.Length);
         Assert.Equal(9UL, joined.Value.RemovedEntities[0]);
     }
 
@@ -200,9 +201,20 @@ public class PayloadFragmenterTests
     {
         var assembler = new FragmentAssembler();
 
-        Assert.False(assembler.TryAppend(groupId: 1, partIndex: 0, partCount: 2, [1], out _));
-        Assert.False(assembler.TryAppend(groupId: 1, partIndex: 1, partCount: 3, [2], out _));
+        Assert.Equal(FragmentState.Incomplete, assembler.Append(groupId: 1, partIndex: 0, partCount: 2, [1], out _));
+        Assert.Equal(FragmentState.Rejected, assembler.Append(groupId: 1, partIndex: 1, partCount: 3, [2], out _));
         Assert.False(assembler.IsActive);
-        Assert.False(assembler.TryAppend(groupId: 1, partIndex: 2, partCount: 3, [3], out _));
+        Assert.Equal(FragmentState.Rejected, assembler.Append(groupId: 1, partIndex: 2, partCount: 3, [3], out _));
+    }
+
+    [Fact]
+    public void OversizedPartCountIsRejected()
+    {
+        var assembler = new FragmentAssembler();
+
+        Assert.Equal(
+            FragmentState.Rejected,
+            assembler.Append(groupId: 1, partIndex: 0, partCount: PayloadFragmenter.MAX_PARTS + 1, [], out _));
+        Assert.False(assembler.IsActive);
     }
 }

@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Data.Registry;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Networking.Rpc;
 
@@ -27,6 +28,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly ClientPlayerMotionProcessor _motionProcessor;
     private readonly NetworkRegistry _registry;
+    private readonly ILogger<ClientReconcileSystem> _logger;
     private readonly FragmentAssembler _snapshotAssembler = new();
     private readonly List<WorldSnapshot> _snapshots = [];
 
@@ -41,12 +43,14 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         in ClientInbound inbound,
         SnapshotAckTracker snapshotAck,
         in ClientPlayerMotionProcessor motionProcessor,
-        NetworkRegistry registry
+        NetworkRegistry registry,
+        ILogger<ClientReconcileSystem> logger
     ) {
         _inbound = inbound;
         _snapshotAck = snapshotAck;
         _motionProcessor = motionProcessor;
         _registry = registry;
+        _logger = logger;
     }
 
     public void Tick(float delta, DataStore store)
@@ -111,21 +115,34 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
         while (_inbound.Snapshots.TryDequeue(out ClientInbound.InboundSnapshot message))
         {
-            if (!message.IsBatch)
+            try
             {
-                _snapshots.Add(message.Full);
-                continue;
-            }
+                if (!message.IsBatch)
+                {
+                    _snapshots.Add(message.Full);
+                    continue;
+                }
 
-            SnapshotBatch batch = message.Batch;
-            if (_snapshotAssembler.TryAppend(
+                SnapshotBatch batch = message.Batch;
+                FragmentState state = _snapshotAssembler.Append(
                     batch.BatchId,
                     (int)batch.PartIndex,
                     (int)batch.PartCount,
                     batch.Payload,
-                    out byte[] payload))
+                    out byte[] payload);
+
+                if (state == FragmentState.Complete)
+                {
+                    _snapshots.Add(WorldSnapshot.Deserialize(payload));
+                }
+                else if (state == FragmentState.Rejected)
+                {
+                    _logger.LogWarning("Dropping a snapshot batch with an invalid fragment.");
+                }
+            }
+            catch (Exception ex)
             {
-                _snapshots.Add(WorldSnapshot.Deserialize(payload));
+                _logger.LogWarning(ex, "Dropping a malformed snapshot.");
             }
         }
 
@@ -149,13 +166,13 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         for (var i = 0; i < removedComponents.Length; i++)
         {
             ComponentRemoval removal = removedComponents[i];
-            if (!store.TryGet(Uuid.FromValue(removal.Entity), out int entity)
-                || !_registry.TryGetInfo(Uuid.FromValue(removal.TypeUuid), out NetworkComponentInfo info))
+            Result<NetworkComponentInfo> lookup = _registry.GetInfo(Uuid.FromValue(removal.TypeUuid));
+            if (!lookup.Success || !store.TryGet(Uuid.FromValue(removal.Entity), out int entity))
             {
                 continue;
             }
 
-            store.Remove(info.Type, entity);
+            store.Remove(lookup.Value.Type, entity);
         }
 
         ulong[] removed = snapshot.RemovedEntities ?? [];
@@ -183,32 +200,52 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             entity = store.Alloc(entityUuid);
         }
 
-        if (!_registry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info)
-            || info.Direction != NetworkDirection.ServerOwned)
+        Result<NetworkComponentInfo> lookup = _registry.GetInfo(Uuid.FromValue(snapshot.TypeUuid));
+        if (!lookup.Success || lookup.Value.Direction != NetworkDirection.ServerOwned)
         {
             return;
         }
 
+        NetworkComponentInfo info = lookup.Value;
+
         if (!store.TryGet(entity, out PlayerComponent _))
         {
-            info.Codec.Apply(store, entity, snapshot.Payload);
+            ApplyCodec(store, entity, in info, snapshot.Payload);
             return;
         }
 
         //  The local player's look is client-predicted; never accept the authoritative echo over it.
         //  Position/scale (and linear velocity) are authority, but orientation and angular velocity stay
         //  locally predicted once seated at spawn, so the echo never snaps or clobbers the local look.
-        if (info.Type == typeof(TransformComponent))
+        try
         {
-            ApplyLocallyOwnedTransform(store, entity, snapshot.Payload);
+            if (info.Type == typeof(TransformComponent))
+            {
+                ApplyLocallyOwnedTransform(store, entity, snapshot.Payload);
+            }
+            else if (info.Type == typeof(PhysicsComponent))
+            {
+                ApplyLocallyOwnedPhysics(store, entity, snapshot.Payload);
+            }
+            else
+            {
+                ApplyCodec(store, entity, in info, snapshot.Payload);
+            }
         }
-        else if (info.Type == typeof(PhysicsComponent))
+        catch (Exception ex)
         {
-            ApplyLocallyOwnedPhysics(store, entity, snapshot.Payload);
+            _logger.LogWarning(ex, "Dropping {component} snapshot for entity {entity}.", info.Type.Name, entity);
         }
-        else
+    }
+
+    private void ApplyCodec(DataStore store, int entity, in NetworkComponentInfo info, ReadOnlySpan<byte> payload)
+    {
+        Result applied = info.Codec.Apply(store, entity, payload);
+        if (!applied.Success)
         {
-            info.Codec.Apply(store, entity, snapshot.Payload);
+            _logger.LogWarning(
+                "Dropping {component} snapshot for entity {entity}: {message}.",
+                info.Type.Name, entity, applied.Message);
         }
     }
 
@@ -222,9 +259,10 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         ComponentSnapshot[] components = snapshot.Components;
         for (var i = 0; i < components.Length; i++)
         {
-            if (!_registry.TryGetInfo(Uuid.FromValue(components[i].TypeUuid), out NetworkComponentInfo info)
-                || info.Type == typeof(TransformComponent)
-                || info.Type == typeof(PhysicsComponent))
+            Result<NetworkComponentInfo> lookup = _registry.GetInfo(Uuid.FromValue(components[i].TypeUuid));
+            if (!lookup.Success
+                || lookup.Value.Type == typeof(TransformComponent)
+                || lookup.Value.Type == typeof(PhysicsComponent))
             {
                 continue;
             }
@@ -253,13 +291,27 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         }
 
         //  Keep the locally predicted look; snap only position/scale from the authority.
-        store.QueryRef(entity, 0f, (float _, DataStore s, int e, ref Ref<TransformComponent> transform) =>
+        var write = new SeatTransform(in serverPosition, in serverScale);
+        store.QueryRef<TransformComponent, SeatTransform>(entity, 0f, ref write);
+    }
+
+    private struct SeatTransform(in Vector3 position, in Vector3 scale) : IForEachRef<TransformComponent>
+    {
+        private readonly Vector3 _position = position;
+        private readonly Vector3 _scale = scale;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<TransformComponent> transform)
         {
-            ref TransformComponent transformValue = ref transform.Write;
-            transformValue.Position = serverPosition;
-            transformValue.Orientation = serverOrientation;
-            transformValue.Scale = serverScale;
-        });
+            ref readonly TransformComponent current = ref transform.Read;
+            if (current.Position == _position && current.Scale == _scale)
+            {
+                return;
+            }
+
+            ref TransformComponent value = ref transform.Write;
+            value.Position = _position;
+            value.Scale = _scale;
+        }
     }
 
     private static void ApplyLocallyOwnedPhysics(DataStore store, int entity, ReadOnlySpan<byte> payload)
@@ -267,11 +319,24 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         //  Linear velocity is authority; angular velocity is the local torque-driven look and must not be
         //  clobbered by the server echo.
         PhysicsMessage message = PhysicsMessage.Deserialize(payload);
+        var write = new SeatVelocity(new Vector3(message.VelocityX, message.VelocityY, message.VelocityZ));
+        store.QueryRef<PhysicsComponent, SeatVelocity>(entity, 0f, ref write);
+    }
 
-        store.QueryRef<PhysicsComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<PhysicsComponent> physics) =>
+    private struct SeatVelocity(in Vector3 velocity) : IForEachRef<PhysicsComponent>
+    {
+        private readonly Vector3 _velocity = velocity;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<PhysicsComponent> physics)
         {
-            physics.Write.Velocity = new Vector3(message.VelocityX, message.VelocityY, message.VelocityZ);
-        });
+            ref readonly PhysicsComponent current = ref physics.Read;
+            if (current.Velocity == _velocity)
+            {
+                return;
+            }
+
+            physics.Write.Velocity = _velocity;
+        }
     }
 
     private static void TrimPendingInput(uint ackTick, DataStore store)
@@ -286,9 +351,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in PendingInputComponent pending)
         {
-            PendingInputComponent trimmed = pending;
-            trimmed.AckUpTo(AckTick);
-            store.AddOrUpdate(entity, trimmed);
+            pending.Ring?.TrimAtOrBelow(AckTick);
         }
     }
 }

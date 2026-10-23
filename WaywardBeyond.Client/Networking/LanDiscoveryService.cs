@@ -40,7 +40,7 @@ internal sealed class LanDiscoveryService
 
     /// <summary>
     /// Streams every unique server discovered within the scan window. The window is bounded by
-    /// <see cref="NetworkingConfig.DiscoveryScanDurationSeconds"/>; the enumeration completes normally when it
+    /// <see cref="DiscoveryConfig.ScanDurationSeconds"/>; the enumeration completes normally when it
     /// elapses or when <paramref name="cancellationToken"/> is cancelled.
     /// </summary>
     public async IAsyncEnumerable<DiscoveredServer> ScanAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)

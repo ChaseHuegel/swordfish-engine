@@ -43,8 +43,8 @@ public sealed class ServerRpcHost : IEntryPoint, IDisposable
         _loopbackRecorder = new RecordingRpcServerTransport(loopbackTransport);
         _peers = peers;
         _logger = loggerFactory.CreateLogger<ServerRpcHost>();
-        _options = GameRpcOptions.CreateRpc(config, loggerFactory.CreateLogger("NsdRpc"));
-        _tcpOptions = GameRpcOptions.CreateTcp(config, host: "0.0.0.0", port: 0);
+        _options = config.ToRpcOptions(RpcLogging.ToLogSink(loggerFactory.CreateLogger("NsdRpc")));
+        _tcpOptions = config.ToTcpOptions(host: "0.0.0.0", port: 0);
 
         _registry = new RpcRegistry();
         _registry.AddService(handlers);

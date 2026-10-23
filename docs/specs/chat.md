@@ -109,7 +109,3 @@ edit.
 - `WaywardBeyond.Client/Systems/ClientChatSystem.cs`
 - `WaywardBeyond.Client/UI/Layers/ChatLayer.cs`
 - `WaywardBeyond.Config/ChatConfig.cs`
-
-## Tests that pin this
-
-- No tests pin the ring buffer or the send queue. The game test suite is unmaintained.

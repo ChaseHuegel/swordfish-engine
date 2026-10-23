@@ -1,6 +1,6 @@
 using Swordfish.ECS;
 using WaywardBeyond.Data.Components;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 
 namespace WaywardBeyond.Client.Components;
 
@@ -12,8 +12,10 @@ namespace WaywardBeyond.Client.Components;
 /// </summary>
 public struct PendingInventoryComponent() : IDataComponent
 {
+    private const int CAPACITY = 32;
+
     /// <summary>Ops authored by the inventory UI awaiting replication to the server.</summary>
-    public readonly InventoryOpStageBuffer Outbound = new();
+    public readonly StageRing<InventoryOp> Outbound = new(CAPACITY);
 
     /// <summary>Monotonic op sequence counter; also used by <see cref="InventoryEvent.SequenceNumber"/>.</summary>
     public uint NextSequence = 0;

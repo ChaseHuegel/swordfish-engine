@@ -79,14 +79,13 @@ The schema namespace becomes the generated C# namespace.
 | `network.nsd` | `WaywardBeyond.Data.Networking` |
 
 The hand-written component partials live in
-`WaywardBeyond.Data/Components`. The registry marker types
-`NetworkComponentAttribute` and `NetworkDirection` live in
-`WaywardBeyond.Data/Registry` with namespace `WaywardBeyond.Data.Registry`.
+`WaywardBeyond.Data/Components`. Schemas may declare enums; `network.nsd`
+declares `NotificationType`, which generates into the schema namespace.
 
-Types that still live in `WaywardBeyond.Networking` keep the
-`WaywardBeyond.Networking.*` namespaces. This includes `NetworkRegistry`,
-`IPayloadCodec`, `NetworkComponent`, `PendingInputComponent`, and the stage
-buffers.
+Wire identity lives in `WaywardBeyond.Networking` (`NetworkRegistry`,
+`NetworkDirection`, `IPayloadCodec`). Networked runtime state lives in
+`WaywardBeyond.Gameplay/Networking` (`NetworkComponent`, `StageRing<T>`, the
+staged ops) and `WaywardBeyond.Client/Components` (`PendingInputComponent`).
 
 ## Generated output
 
@@ -112,4 +111,4 @@ Do not edit generated source. The source does not exist in the tree.
 - Generator wiring: `WaywardBeyond.Data/WaywardBeyond.Data.csproj`
 - Schemas: `WaywardBeyond.Data/Nsd/`
 - Generated component partials: `WaywardBeyond.Data/Components/`
-- Registry markers: `WaywardBeyond.Data/Registry/`
+- Wire identity: `WaywardBeyond.Networking/Registry/`

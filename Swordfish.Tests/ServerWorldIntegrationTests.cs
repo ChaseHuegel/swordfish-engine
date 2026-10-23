@@ -18,7 +18,7 @@ using WaywardBeyond.Data;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
@@ -154,12 +154,12 @@ public class ServerWorldIntegrationTests
             LevelStreamChunk chunk = chunks[index];
             Assert.Equal((uint)index, chunk.PartIndex);
 
-            if (assembler.TryAppend(
+            if (assembler.Append(
                     groupId: 0,
                     partIndex: (int)chunk.PartIndex,
                     partCount: (int)chunk.PartCount,
                     chunk.Payload,
-                    out byte[] payload))
+                    out byte[] payload) == FragmentState.Complete)
             {
                 streamed = VoxelEntityData.Deserialize(payload);
             }

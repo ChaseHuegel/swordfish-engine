@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Data.Registry;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Codecs;
+using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Networking.Rpc;
 
@@ -16,7 +17,7 @@ namespace WaywardBeyond.Client.Systems;
 /// <summary>
 /// Client-side replication. Publishes dirty client-owned components (e.g. input) upstream to the
 /// server, automatically driven by ECS dirty tracking. Discrete <see cref="InteractionEvent"/> edges are
-/// drained from the player's outbound <see cref="InteractionStageBuffer"/> and emitted as one snapshot
+/// drained from the player's outbound ring and emitted as one snapshot
 /// per edge, so rapid clicks between sends survive. Uploads are paced to
 /// <see cref="NetworkingConfig.Protocol.SnapshotHz"/>, not the ECS tick rate.
 /// </summary>
@@ -47,7 +48,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
         _disconnectSystem = disconnectSystem;
         _config = config;
         _registry = registry;
-        _clientOwnedComponents = [.. registry.GetComponents(NetworkDirection.ClientOwned)];
+        _clientOwnedComponents = registry.GetComponents(NetworkDirection.ClientOwned);
     }
 
     public void Tick(float delta, DataStore store)
@@ -86,7 +87,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
         //  Edges and ops are consumed exactly once: the outbound buffers are cleared only after the
         //  containing snapshot is accepted by the reliable send path. A rejected send is a peer
         //  failure: the teardown runs on the next client tick.
-        if (!_host.Notify(GameRpc.Methods.CLIENT_SNAPSHOT, in snapshot))
+        if (!_host.Notify(GameRpc.Methods.SEND_SNAPSHOT, in snapshot))
         {
             _disconnectSystem.RequestDisconnect();
             return;
@@ -127,7 +128,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
 
             foreach (NetworkComponentInfo info in Owner._clientOwnedComponents)
             {
-                if (info.Type == typeof(InteractionEvent))
+                if (info.Type == typeof(InteractionEvent) || info.Type == typeof(InventoryEvent))
                 {
                     continue;
                 }
@@ -137,36 +138,38 @@ internal sealed class ClientReplicationSystem : IEntitySystem
                     continue;
                 }
 
-                byte[] payload = info.Codec.Serialize(store, entity);
+                Result<byte[]> serialized = info.Codec.Serialize(store, entity);
                 store.ClearDirty(info.Type, entity);
 
-                if (payload.Length == 0)
+                if (!serialized.Success || serialized.Value.Length == 0)
                 {
                     continue;
                 }
 
-                Owner._pending.Add(new ComponentSnapshot(store.GetUuid(entity).ToValue(), info.Uuid.ToValue(), payload));
+                Owner._pending.Add(new ComponentSnapshot(store.GetUuid(entity).ToValue(), info.Uuid.ToValue(), serialized.Value));
             }
         }
 
         private void DrainInteractions(DataStore store, int entity, in PendingInteractionComponent pending)
         {
-            if (!Owner._registry.TryGetInfo<InteractionEvent>(out NetworkComponentInfo info)
-                || info.Codec is not IPayloadCodec<InteractionEvent> codec)
+            Result<NetworkComponentInfo> lookup = Owner._registry.GetInfo<InteractionEvent>();
+            if (!lookup.Success || lookup.Value.Codec is not IPayloadCodec<InteractionEvent> codec)
             {
                 return;
             }
 
-            InteractionEvent[] events = pending.Outbound.Snapshot();
-            if (events.Length == 0)
+            NetworkComponentInfo info = lookup.Value;
+
+            StageRing<InteractionEvent> ring = pending.Outbound;
+            if (ring.Count == 0)
             {
                 return;
             }
 
             ulong entityUuid = store.GetUuid(entity).ToValue();
-            for (var i = 0; i < events.Length; i++)
+            for (var i = 0; i < ring.Count; i++)
             {
-                byte[] payload = codec.Serialize(in events[i]);
+                byte[] payload = codec.Serialize(in ring[i]);
                 if (payload.Length > 0)
                 {
                     Owner._pending.Add(new ComponentSnapshot(entityUuid, info.Uuid.ToValue(), payload));
@@ -180,22 +183,24 @@ internal sealed class ClientReplicationSystem : IEntitySystem
 
         private void DrainInventoryOps(DataStore store, int entity, in PendingInventoryComponent pending)
         {
-            if (!Owner._registry.TryGetInfo<InventoryEvent>(out NetworkComponentInfo info)
-                || info.Codec is not IPayloadCodec<InventoryEvent> codec)
+            Result<NetworkComponentInfo> lookup = Owner._registry.GetInfo<InventoryEvent>();
+            if (!lookup.Success || lookup.Value.Codec is not IPayloadCodec<InventoryEvent> codec)
             {
                 return;
             }
 
-            InventoryOpStageBuffer.InventoryOp[] ops = pending.Outbound.Snapshot();
-            if (ops.Length == 0)
+            NetworkComponentInfo info = lookup.Value;
+
+            StageRing<InventoryOp> ring = pending.Outbound;
+            if (ring.Count == 0)
             {
                 return;
             }
 
             ulong entityUuid = store.GetUuid(entity).ToValue();
-            for (var i = 0; i < ops.Length; i++)
+            for (var i = 0; i < ring.Count; i++)
             {
-                InventoryOpStageBuffer.InventoryOp op = ops[i];
+                InventoryOp op = ring[i];
                 byte[] payload = codec.Serialize(new InventoryEvent
                 {
                     Entity = entityUuid,

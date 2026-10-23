@@ -14,8 +14,8 @@ corrected automatically. The client reports a move as a discrete
 resolver.
 
 Wire types live in `WaywardBeyond.Data/Nsd/components.nsd`. Component
-declarations live in `WaywardBeyond.Data/Components/`. Stage buffers live in
-`WaywardBeyond.Networking/Components/`. The resolver is
+declarations live in `WaywardBeyond.Data/Components/`. Staging rings live in
+`WaywardBeyond.Gameplay/Networking/`. The resolver is
 `WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`.
 
 ## The envelope: `InventoryEvent`
@@ -30,13 +30,13 @@ message InventoryEvent
 ```
 
 `InventoryEvent` is registered ClientOwned under uuid 16. Staging mirrors
-`InteractionEvent`: the inbound buffer lives on `NetworkComponent.StagedInventoryOps`,
-the server consumes it between the replication ApplyStage and interaction
-processing, and ops are sequence-deduplicated (a retransmitted sequence
-overwrites its slot). Outbound, the client mirrors it with
-`PendingInventoryComponent.Outbound`, drained by `ClientReplicationSystem` and
-cleared only after the reliable RPC path accepts the containing snapshot (see
-[replication](networking-replication.md)).
+`InteractionEvent`: the inbound ring lives on
+`NetworkComponent.StagedInventoryOps`, the server consumes it between the
+replication ApplyStage and interaction processing, and ops are
+sequence-deduplicated (a re-staged sequence overwrites its slot). Outbound, the
+client mirrors it with `PendingInventoryComponent.Outbound`, drained by
+`ClientReplicationSystem` and cleared only after the reliable RPC path accepts
+the containing snapshot (see [replication](networking-replication.md)).
 
 ## The op: `SlotMoveOp`
 
@@ -125,13 +125,9 @@ them until the behavior is designed.
 - `WaywardBeyond.Data/Nsd/components.nsd`
 - `WaywardBeyond.Data/Components/{InventoryEvent,SlotMoveOp}.cs`
 - `WaywardBeyond.Data/Components/InventoryComponent.cs`
-- `WaywardBeyond.Networking/Components/{InventoryOpStageBuffer,NetworkComponent}.cs`
+- `WaywardBeyond.Gameplay/Networking/{NetworkComponent,InventoryOp,StageRing}.cs`
 - `WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`
 - `WaywardBeyond.Server/Systems/ServerInventorySystem.cs`
 - `WaywardBeyond.Client/Player/PlayerData.cs` (`ApplyMove`)
 - `WaywardBeyond.Client/Systems/{ClientReplicationSystem,PlayerInteractionService}.cs`
 - `WaywardBeyond.Client/UI/Layers/Inventory.cs`
-
-## Tests that pin this
-
-- `Swordfish.Tests/InventoryResolverTests.cs` — op resolution cases.

@@ -43,7 +43,7 @@ no services. It applies CLI overrides after the engine builds
 | Project | Entry point | Owns |
 |---|---|---|
 | `WaywardBeyond.Networking` | `RegisterNetworking()` | `NetworkRegistry` and the built-in wire components |
-| `WaywardBeyond.Config` | `RegisterNetworkingConfig()` | `networking.toml` config and its sub-config views |
+| `WaywardBeyond.Config` | `RegisterNetworkingConfig()` | `network.toml` config, its sub-config views, and validation |
 | `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services such as `Migrator` |
 | `WaywardBeyond.Data` (localization) | `LocalizationComposition.RegisterTags()` | localized tag database and parser |
 | `WaywardBeyond.Server` | `RegisterHost()`, `RegisterServer()` | host wire-up, server composition |

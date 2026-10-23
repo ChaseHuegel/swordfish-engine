@@ -11,7 +11,7 @@ namespace WaywardBeyond.Client.Networking;
 /// </summary>
 internal sealed class ClientHandlers(ClientInbound inbound) : GameClientApiHandler
 {
-    public override void OnWorldSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken)
+    public override void OnSendSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken)
     {
         inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
     }

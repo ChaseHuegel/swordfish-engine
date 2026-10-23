@@ -17,6 +17,7 @@ public static class ConfigComposition
     public static void RegisterNetworkingConfig(this IContainer container)
     {
         container.RegisterConfig<NetworkingConfig>(file: "network.toml");
+        container.Resolve<NetworkingConfig>().Validate();
 
         container.RegisterDelegate<DiscoveryConfig>(context => context.Resolve<NetworkingConfig>().Discovery, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.RegisterDelegate<ProtocolConfig>(context => context.Resolve<NetworkingConfig>().Protocol, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);

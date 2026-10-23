@@ -1,15 +1,8 @@
 namespace WaywardBeyond.Networking.Rpc;
 
-/// <summary>
-/// The game wire contract for nsd-rpc.
-/// Method ids are stable: never reuse or renumber one between builds.
-/// Ranges group methods by subject.
-/// </summary>
+/// <summary>The game wire contract for nsd-rpc. Method ids are stable; never reuse or renumber one.</summary>
 public static class GameRpc
 {
-    /// <summary>The largest payload bytes one fragment carries, below the RPC frame cap with headroom.</summary>
-    public const int FRAGMENT_BUDGET = 60_000;
-
     /// <summary>Method ids grouped by subject. Each id is a wire contract.</summary>
     public static class Methods
     {
@@ -19,7 +12,7 @@ public static class GameRpc
         public const ulong CLIENT_HEARTBEAT = 3;
 
         //  Replication
-        public const ulong CLIENT_SNAPSHOT = 20;
+        public const ulong SEND_SNAPSHOT = 20;
 
         //  Gameplay commands
         public const ulong CHAT = 60;
@@ -35,7 +28,7 @@ public static class GameRpc
         public const ulong STREAM_LEVEL = 201;
 
         //  Server state
-        public const ulong WORLD_SNAPSHOT = 300;
+        public const ulong SEND_WORLD_SNAPSHOT = 300;
         public const ulong SNAPSHOT_BATCH = 301;
 
         //  Server events

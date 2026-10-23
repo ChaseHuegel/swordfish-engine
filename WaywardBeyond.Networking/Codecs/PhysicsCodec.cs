@@ -3,46 +3,71 @@ using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking.Registry;
 
 namespace WaywardBeyond.Networking.Codecs;
 
-/// <summary>
-/// Maps the engine <see cref="PhysicsComponent"/> onto the canonical <see cref="PhysicsMessage"/> wire
-/// shape. The engine component's <c>Torque</c> field holds angular velocity only at sync boundaries
-/// (set from <c>body.GetAngularVelocity()</c> during the Jolt sync cycle); the codec therefore treats
-/// it as angular velocity. The component's <c>Layer</c>/<c>BodyType</c>/<c>CollisionDetection</c> are
-/// constructor-only and are never fabricated here - the server owns body construction at spawn.
-/// </summary>
-public sealed class PhysicsCodec : IPayloadCodec
+/// <summary>Replicates <see cref="PhysicsComponent"/> velocity as <see cref="PhysicsMessage"/>.</summary>
+public sealed class PhysicsCodec : IPayloadCodec<PhysicsComponent>
 {
-    /// <inheritdoc/>
-    public Type ComponentType => typeof(PhysicsComponent);
-
     /// <inheritdoc/>
     public Result<byte[]> Serialize(DataStore store, int entity)
     {
-        if (!store.TryGet(entity, out PhysicsComponent physics))
-        {
-            return Result<byte[]>.FromFailure($"Entity {entity} has no PhysicsComponent.");
-        }
-
-        var message = new PhysicsMessage(
-            physics.Velocity.X, physics.Velocity.Y, physics.Velocity.Z,
-            physics.Torque.X, physics.Torque.Y, physics.Torque.Z
-        );
-        return Result<byte[]>.FromSuccess(message.Serialize());
+        return store.TryGet(entity, out PhysicsComponent physics)
+            ? Result<byte[]>.FromSuccess(Serialize(in physics))
+            : Result<byte[]>.FromFailure((string?)null);
     }
 
     /// <inheritdoc/>
-    public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
+    public Result Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
-        PhysicsMessage message = PhysicsMessage.Deserialize(payload);
-
-        store.QueryRef(entity, 0f, (float _, DataStore _, int _, ref Ref<PhysicsComponent> physics) =>
+        if (!store.TryGet(entity, out PhysicsComponent physics))
         {
-            physics.Write.Velocity = new Vector3(message.VelocityX, message.VelocityY, message.VelocityZ);
-            physics.Write.Torque = new Vector3(message.AngularVelocityX, message.AngularVelocityY, message.AngularVelocityZ);
-        });
+            return Result.FromFailure((string?)null);
+        }
+
+        PhysicsMessage message = PhysicsMessage.Deserialize(payload);
+        var write = new PhysicsWrite(
+            new Vector3(message.VelocityX, message.VelocityY, message.VelocityZ),
+            new Vector3(message.AngularVelocityX, message.AngularVelocityY, message.AngularVelocityZ)
+        );
+
+        store.QueryRef<PhysicsComponent, PhysicsWrite>(entity, 0f, ref write);
+        return Result.FromSuccess();
+    }
+
+    /// <inheritdoc/>
+    public byte[] Serialize(in PhysicsComponent value)
+    {
+        var message = new PhysicsMessage(
+            value.Velocity.X, value.Velocity.Y, value.Velocity.Z,
+            value.Torque.X, value.Torque.Y, value.Torque.Z
+        );
+
+        return message.Serialize();
+    }
+
+    private struct PhysicsWrite : IForEachRef<PhysicsComponent>
+    {
+        private readonly Vector3 _velocity;
+        private readonly Vector3 _torque;
+
+        public PhysicsWrite(in Vector3 velocity, in Vector3 torque)
+        {
+            _velocity = velocity;
+            _torque = torque;
+        }
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<PhysicsComponent> physics)
+        {
+            ref readonly PhysicsComponent current = ref physics.Read;
+            if (current.Velocity == _velocity && current.Torque == _torque)
+            {
+                return;
+            }
+
+            ref PhysicsComponent value = ref physics.Write;
+            value.Velocity = _velocity;
+            value.Torque = _torque;
+        }
     }
 }

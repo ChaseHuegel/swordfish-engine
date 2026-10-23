@@ -3,44 +3,49 @@ using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking.Registry;
 
 namespace WaywardBeyond.Networking.Codecs;
 
-/// <summary>
-/// Maps the engine <see cref="TransformComponent"/> onto the canonical <see cref="TransformMessage"/> wire
-/// shape so the authoritative pose replicates through the snapshot path.
-/// </summary>
-public sealed class TransformCodec : IPayloadCodec
+/// <summary>Replicates <see cref="TransformComponent"/> as <see cref="TransformMessage"/>.</summary>
+public sealed class TransformCodec : IPayloadCodec<TransformComponent>
 {
-    /// <inheritdoc/>
-    public Type ComponentType => typeof(TransformComponent);
-
     /// <inheritdoc/>
     public Result<byte[]> Serialize(DataStore store, int entity)
     {
-        if (!store.TryGet(entity, out TransformComponent transform))
-        {
-            return Result<byte[]>.FromFailure($"Entity {entity} has no TransformComponent.");
-        }
-
-        var message = new TransformMessage(
-            transform.Position.X, transform.Position.Y, transform.Position.Z,
-            transform.Orientation.X, transform.Orientation.Y, transform.Orientation.Z, transform.Orientation.W,
-            transform.Scale.X, transform.Scale.Y, transform.Scale.Z
-        );
-        return Result<byte[]>.FromSuccess(message.Serialize());
+        return store.TryGet(entity, out TransformComponent transform)
+            ? Result<byte[]>.FromSuccess(Serialize(in transform))
+            : Result<byte[]>.FromFailure((string?)null);
     }
 
     /// <inheritdoc/>
-    public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
+    public Result Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
         TransformMessage message = TransformMessage.Deserialize(payload);
+        var position = new Vector3(message.PositionX, message.PositionY, message.PositionZ);
+        var orientation = new Quaternion(message.OrientationX, message.OrientationY, message.OrientationZ, message.OrientationW);
+        var scale = new Vector3(message.ScaleX, message.ScaleY, message.ScaleZ);
 
-        store.AddOrUpdate(entity, new TransformComponent(
-            new Vector3(message.PositionX, message.PositionY, message.PositionZ),
-            new Quaternion(message.OrientationX, message.OrientationY, message.OrientationZ, message.OrientationW),
-            new Vector3(message.ScaleX, message.ScaleY, message.ScaleZ)
-        ));
+        if (store.TryGet(entity, out TransformComponent current)
+            && current.Position == position
+            && current.Orientation == orientation
+            && current.Scale == scale)
+        {
+            return Result.FromSuccess();
+        }
+
+        store.AddOrUpdate(entity, new TransformComponent(position, orientation, scale));
+        return Result.FromSuccess();
+    }
+
+    /// <inheritdoc/>
+    public byte[] Serialize(in TransformComponent value)
+    {
+        var message = new TransformMessage(
+            value.Position.X, value.Position.Y, value.Position.Z,
+            value.Orientation.X, value.Orientation.Y, value.Orientation.Z, value.Orientation.W,
+            value.Scale.X, value.Scale.Y, value.Scale.Z
+        );
+
+        return message.Serialize();
     }
 }

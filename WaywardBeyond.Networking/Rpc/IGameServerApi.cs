@@ -32,11 +32,11 @@ public interface IGameServerApi
     [RpcMethod(GameRpc.Methods.CLIENT_HEARTBEAT, RpcDirection.ClientToServer)]
     void OnClientHeartbeat(ClientHeartbeatMessage message, RpcContext context, CancellationToken cancellationToken);
 
-    [RpcMethod(GameRpc.Methods.CLIENT_SNAPSHOT, RpcDirection.ClientToServer)]
-    void ClientSnapshot(WorldSnapshot snapshot);
+    [RpcMethod(GameRpc.Methods.SEND_SNAPSHOT, RpcDirection.ClientToServer)]
+    void SendSnapshot(WorldSnapshot snapshot);
 
-    [RpcMethod(GameRpc.Methods.CLIENT_SNAPSHOT, RpcDirection.ClientToServer)]
-    void OnClientSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken);
+    [RpcMethod(GameRpc.Methods.SEND_SNAPSHOT, RpcDirection.ClientToServer)]
+    void OnSendSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken);
 
     [RpcMethod(GameRpc.Methods.CHAT, RpcDirection.ClientToServer)]
     void Chat(ChatMessage message);

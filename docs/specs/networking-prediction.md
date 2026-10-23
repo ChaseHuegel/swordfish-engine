@@ -15,9 +15,8 @@ mapping, which makes "same input sequence → same state" hold across two
 independently-paced threads.
 
 The canonical **sim tick = physics-step ordinal**. `TickNumber`,
-`LastProcessedInput`, `ServerTickAtSample`, and `LastAckedInput`/
-`LastAckedSnapshot` are rebased onto it. Snapshots publish `TickNumber` = sim
-tick at publish.
+`LastProcessedInput`, `ServerTickAtSample`, and `LastAckedInput` are rebased onto
+it. Snapshots publish `TickNumber` = sim tick at publish.
 
 The shared step is a per-world instance, not a DI singleton, because it holds
 per-world sim state.
@@ -27,14 +26,14 @@ per-world sim state.
 - `ClientInputSystem` samples `IInputService` every tick, builds an
   `InputComponent` (with a monotonic `SequenceNumber` and `ServerTickAtSample`
   echoing the last applied snapshot tick), writes it to the local player, and
-  stores a copy in `PendingInputComponent` (a 256-entry, sim-tick-keyed ring
-  buffer). It writes only when the movement, look totals, or held buttons differ
-  from the last sample it sent, plus a 1 s keepalive. The server and the pending
-  ring keep applying the newest staged command, so an unchanged sample does not
-  need a resend every tick.
+  stages it in the player's `PendingInputComponent` ring (128 entries, newest at
+  the end). It writes only when the movement, look totals, or held buttons differ
+  from the last sample it sent, plus a 1 s keepalive. Both sides keep resolving
+  the newest staged command, so an unchanged sample does not need a resend every
+  tick.
 - `ClientReplicationSystem` publishes dirty client-owned components upstream.
-- On the server, input is staged per sim tick; the shared step consumes one
-  staged command per sim tick, newest-for-tick on collision.
+- On the server, input is staged per sim tick; the shared step resolves the
+  newest staged command at or before the current sim tick.
 
 ## Reconcile
 
@@ -48,16 +47,17 @@ aligns the shared step (`AlignTo` the snapshot's sim tick).
 `SnapshotAckTracker` records the last applied snapshot tick.
 
 Replay is per-sim-tick resolution, not a separate phase: the shared step's
-command resolver reads the pending ring
-(`PendingInputComponent.TryGetNewestAtOrBefore`) instead of the newest live
-component, so every step after an `AlignTo` applies the surviving in-flight
-inputs tick-exactly. The lookup pins the **newest-per-sim-tick collapse rule**:
-it scans newest-to-oldest and returns the newest sample whose
-`ServerTickAtSample` is at or below the sim tick — the exact scan the server's
-`InputStageBuffer.TryGet` performs, so both sides consume the same
-command-per-tick sequence and "same input sequence → same state" holds. The
-ring is written by `ClientInputSystem` and read by no other caller; a player
-without a ring (or a fully trimmed one) falls back to its live component.
+command resolver reads the pending ring (`StageRingExtensions.GetCommand`)
+instead of the newest live component, so every step after an `AlignTo` applies
+the surviving in-flight inputs tick-exactly. The lookup implements the
+**newest-per-sim-tick rule**: it scans newest-to-oldest and returns the newest
+sample whose `ServerTickAtSample` is at or below the sim tick. The server's
+staged ring uses the same lookup, so both sides consume the same command-per-tick
+sequence and "same input sequence → same state" holds.
+
+The client ring is staged by `ClientInputSystem` and trimmed in place by
+`ClientReconcileSystem`. A player without a ring (or a fully trimmed one) falls
+back to its live component.
 
 ## Prediction acks
 
@@ -91,10 +91,5 @@ client-owned → predict via shared step → render reads final `Transform`.
 
 - `WaywardBeyond.Client/Systems/{ClientInputSystem,ClientReconcileSystem,ClientReplicationSystem}.cs`
 - `WaywardBeyond.Gameplay/SimulationStep.cs` — the shared simulation step
-- `WaywardBeyond.Networking/Components/PendingInputComponent.cs`
-
-## Tests that pin this
-
-- `Swordfish.Tests` determinism / authority divergence tests (deliberately drift
-  client state and watch reconcile correct it).
-- Interaction replay and reconcile tests in `Swordfish.Tests`.
+- `WaywardBeyond.Client/Components/PendingInputComponent.cs`
+- `WaywardBeyond.Gameplay/Networking/StageRing.cs`

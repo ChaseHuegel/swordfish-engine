@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Data.Components;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 
 namespace WaywardBeyond.Gameplay;
 
@@ -49,7 +50,12 @@ public sealed class SimulationStep : IDisposable
     {
         if (store.TryGet(entity, out NetworkComponent net) && net.StagedInputs != null)
         {
-            return net.StagedInputs.TryGet(simTick, out command);
+            Result<InputComponent> staged = net.StagedInputs.GetCommand(simTick);
+            if (staged.Success)
+            {
+                command = staged.Value;
+                return true;
+            }
         }
 
         command = default;

@@ -6,7 +6,7 @@ using Swordfish.Physics;
 using Xunit;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Gameplay.Networking;
 
 namespace Swordfish.Tests;
 
@@ -51,16 +51,14 @@ public class SimulationStepIdleTests
         store.AddOrUpdate(entity, new InputComponent());
         store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Discrete));
         store.AddOrUpdate(entity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
-        store.AddOrUpdate(entity, new NetworkComponent { StagedInputs = new InputStageBuffer() });
+        store.AddOrUpdate(entity, NetworkComponent.Create());
         return entity;
     }
 
     private static void StageInput(DataStore store, int entity, in InputComponent input)
     {
         Assert.True(store.TryGet(entity, out NetworkComponent net));
-        net.StagedInputs ??= new InputStageBuffer();
-        net.StagedInputs.Stage(input);
-        store.AddOrUpdate(entity, net);
+        net.StagedInputs!.Add(input);
     }
 
     private sealed class FakePhysics : IPhysics
