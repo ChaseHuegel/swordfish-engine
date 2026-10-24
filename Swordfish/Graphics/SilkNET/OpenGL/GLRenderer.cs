@@ -42,10 +42,10 @@ internal sealed class GLRenderer : IRenderer, IDisposable, IAutoActivate
         _windowContext.Render -= OnWindowRender;
     }
 
-    public Texture Screenshot()
+    public unsafe Texture Screenshot()
     {
         (byte[] Pixels, int Width, int Height, DateTime Time) screenshot = _synchronizationContext.WaitForResult(ScreenshotCallback);
-        unsafe (byte[] Pixels, int Width, int Height, DateTime Time) ScreenshotCallback()
+        (byte[] Pixels, int Width, int Height, DateTime Time) ScreenshotCallback()
         {
             Vector2 size = _windowContext.GetSize();
             var width = (uint)size.X;
