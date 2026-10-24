@@ -35,6 +35,8 @@ change touches a subject, run the docs pass (see `development.md`).
 | Voxel container: chunk addressing, sampling, out-of-bounds, palette counts | [specs/voxels](specs/voxels.md) |
 | Native resource lifetime: GPU handle and Jolt shape disposal | [specs/resource-lifetime](specs/resource-lifetime.md) |
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |
+| Reef element layout, styling, borders, no-wrap text, clipping | [specs/reef-ui](specs/reef-ui.md) |
+| Window video modes and batched display changes | [specs/window-display](specs/window-display.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
 | Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
 | Config schemas: `manifest.toml`, `modules.toml` | [specs/config-schemas](specs/config-schemas.md) |
