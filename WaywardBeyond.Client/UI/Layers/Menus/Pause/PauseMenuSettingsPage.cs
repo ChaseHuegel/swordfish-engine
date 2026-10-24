@@ -1,4 +1,6 @@
+using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
+using Swordfish.Library.IO;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Services;
@@ -15,6 +17,8 @@ internal sealed class PauseMenuSettingsPage(
     in GameplayConfig gameplayConfig,
     in UISettings uiSettings,
     in SoundEffectService soundEffectService,
+    in IWindowContext windowContext,
+    in IInputService inputService,
     in ILocalization localization
 ) : SettingsPage<PausePage>(
     in configManager,
@@ -25,7 +29,10 @@ internal sealed class PauseMenuSettingsPage(
     in gameplayConfig,
     in uiSettings,
     in soundEffectService,
+    in windowContext,
+    in inputService,
     in localization
 ) {
+    /// <inheritdoc/>
     public override PausePage ID => PausePage.Settings;
 }

@@ -1,13 +1,18 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
-using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Settings;
 using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus;
@@ -21,9 +26,40 @@ internal abstract class SettingsPage<TIdentifier>(
     in GameplayConfig gameplayConfig,
     in UISettings uiSettings,
     in SoundEffectService soundEffectService,
+    in IWindowContext windowContext,
+    in IInputService inputService,
     in ILocalization localization
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
 {
+    private static readonly SettingsDisplayMode[] DISPLAY_MODES =
+    [
+        SettingsDisplayMode.Windowed,
+        SettingsDisplayMode.BorderlessWindow,
+        SettingsDisplayMode.Maximized,
+        SettingsDisplayMode.BorderlessMaximized,
+        SettingsDisplayMode.Fullscreen,
+        SettingsDisplayMode.BorderlessFullscreen,
+    ];
+
+    private static readonly AntiAliasing[] ANTI_ALIASING_OPTIONS =
+    [
+        AntiAliasing.None,
+        AntiAliasing.MSAA,
+    ];
+
+    private static readonly BorderStyle PANEL_BORDER = new()
+    {
+        Thickness = 1,
+        Color = SettingsTheme.Border,
+    };
+
+    private static readonly CornerCapStyle PANEL_CAPS = new()
+    {
+        Length = SettingsMetrics.PanelCapLength,
+        Thickness = SettingsMetrics.PanelCapThickness,
+        Color = SettingsTheme.Border,
+    };
+
     private readonly ConfigManager _configManager = configManager;
     private readonly ControlSettings _controlSettings = controlSettings;
     private readonly WindowSettings _windowSettings = windowSettings;
@@ -32,341 +68,686 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly GameplayConfig _gameplayConfig = gameplayConfig;
     private readonly UISettings _uiSettings = uiSettings;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
+    private readonly IWindowContext _windowContext = windowContext;
+    private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
 
-    private readonly Widgets.ButtonOptions _buttonOptions = new(
-        new FontOptions {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
+    private SettingsRenderer? _renderer;
+    private SettingsDraft? _draft;
+    private SettingsCategory[]? _categories;
+    private int _categoryIndex;
+    private int _scrollY;
+    private string? _status;
+    private double _statusUntil;
 
     public abstract TIdentifier ID { get; }
 
+    /// <inheritdoc/>
+    public bool UsesFullContentArea => true;
+
+    /// <inheritdoc/>
+    public void OnEnter()
+    {
+        _draft = SettingsDraft.FromConfigs(
+            _controlSettings,
+            _windowSettings,
+            _renderSettings,
+            _volumeSettings,
+            _gameplayConfig,
+            _uiSettings,
+            _windowContext
+        );
+        _categories = BuildCategories();
+        _categoryIndex = 0;
+        _scrollY = 0;
+        _status = null;
+        _statusUntil = 0d;
+    }
+
+    /// <inheritdoc/>
+    public void OnExit()
+    {
+        _draft = null;
+        _categories = null;
+        _status = null;
+    }
+
+    /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<TIdentifier> menu)
     {
-        using (ui.Element())
+        if (_draft == null || _categories == null)
         {
+            OnEnter();
+        }
+
+        RefreshExternalDisplaySettings();
+
+        SettingsLayout layout = SettingsLayout.Compute(ui.Width, ui.Height);
+        _renderer ??= new SettingsRenderer(ui, _localization, _soundEffectService, _inputService);
+        _renderer.SetLayout(layout);
+        SettingsRenderer renderer = _renderer;
+
+        using (ui.Element("SettingsPage"))
+        {
+            ui.LayoutDirection = LayoutDirection.None;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
+                Width = new Fixed(layout.PageWidth),
+                Height = new Fixed(layout.PageHeight),
             };
-        
-            using (ui.Text(_localization.GetString("ui.menu.controls")!))
+            ui.ClipConstraints = new Constraints
             {
-                ui.FontSize = 24;
+                Width = new Fixed(layout.PageWidth),
+                Height = new Fixed(layout.PageHeight),
+            };
+
+            renderer.DrawPageTitle();
+
+            if (layout.UseTabs)
+            {
+                if (renderer.DrawTabs(_categories, ref _categoryIndex))
+                {
+                    _scrollY = 0;
+                }
             }
-        }
-        
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
+            else
             {
-                Anchors = Anchors.Center,
-                Width = new Fixed(300),
-            };
-            
-            bool rememberShape = ui.Checkbox(id: "Checkbox_RememberShape", text: _localization.GetString("ui.setting.rememberShape")!, isChecked: _controlSettings.RememberShape, _soundEffectService);
-            _controlSettings.RememberShape.Set(rememberShape);
-            
-            bool rememberOrientation = ui.Checkbox(id: "Checkbox_RememberOrientation", text: _localization.GetString("ui.setting.rememberOrientation")!, isChecked: _controlSettings.RememberOrientation, _soundEffectService);
-            _controlSettings.RememberOrientation.Set(rememberOrientation);
-            
-            ui.NumberControl(
-                id: "Control_LookSensitivity",
-                text: _localization.GetString("ui.setting.mouseSensitivity")!,
-                _controlSettings.LookSensitivity,
-                constraints: new Int2(1, 10),
-                display: new Int2(1, 10),
-                steps: 9,
-                _soundEffectService,
-                OnLookSensitivityChanged
-            );
-        }
-                
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-
-            using (ui.Text(_localization.GetString("ui.menu.gameplay")!))
-            {
-                ui.FontSize = 24;
+                using (ui.SettingsPanel(layout.Tray, SettingsTheme.PanelBackground, PANEL_BORDER, PANEL_CAPS))
+                {
+                    if (renderer.DrawTray(_categories, ref _categoryIndex))
+                    {
+                        _scrollY = 0;
+                    }
+                }
             }
-        }
 
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
+            using (ui.SettingsPanel(layout.Pane, SettingsTheme.PanelBackground, PANEL_BORDER, PANEL_CAPS))
             {
-                Anchors = Anchors.Center,
-                Width = new Fixed(300),
-            };
-            
-            bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplayConfig.ControlHints, _soundEffectService);
-            _gameplayConfig.ControlHints.Set(controlHints);
-            
-            bool crosshair = ui.Checkbox(id: "Checkbox_Crosshair", text: _localization.GetString("ui.setting.crosshair")!, isChecked: _gameplayConfig.Crosshair, _soundEffectService);
-            _gameplayConfig.Crosshair.Set(crosshair);
-            
-            bool autosave = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplayConfig.Autosave, _soundEffectService);
-            _gameplayConfig.Autosave.Set(autosave);
-
-            if (autosave)
-            {
-                ui.NumberControl(
-                    id: "Control_AutosaveMinutes",
-                    text: _localization.GetString("ui.setting.autosave.interval.minutes")!,
-                    _gameplayConfig.AutosaveIntervalMs,
-                    constraints: new Int2(1000 * 60, 1000 * 60 * 60), //  1 minute to 1 hour
-                    display: new Int2(1, 60),
-                    steps: 59,
-                    _soundEffectService,
-                    OnAutosaveIntervalChanged
-                );
+                renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
             }
-            
-            ui.NumberControl(
-                id: "Control_FOV",
-                text: _localization.GetString("ui.setting.fov")!,
-                _renderSettings.FOV,
-                constraints: new Int2(60, 120),
-                display: new Int2(60, 120),
-                steps: 12,
-                _soundEffectService,
-                OnFOVChanged
-            );
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-        
-            using (ui.Text(_localization.GetString("ui.menu.volume")!))
-            {
-                ui.FontSize = 24;
-            }
-        }
-        
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(300),
-            };
-            
-            ui.NumberControl(
-                id: "Control_Volume_Master",
-                text: _localization.GetString("ui.setting.volume.master")!,
-                _volumeSettings.Master,
-                constraints: new Float2(0f, 1f),
-                display: new Int2(0, 100),
-                steps: 20,
-                _soundEffectService,
-                OnMasterVolumeChanged
-            );
-        
-            ui.NumberControl(
-                id: "Control_Volume_Interface",
-                text: _localization.GetString("ui.setting.volume.interface")!,
-                _volumeSettings.Interface,
-                constraints: new Float2(0f, 1f),
-                display: new Int2(0, 100),
-                steps: 20,
-                _soundEffectService,
-                OnInterfaceVolumeChanged
-            );
-        
-            ui.NumberControl(
-                id: "Control_Volume_Effects",
-                text: _localization.GetString("ui.setting.volume.effects")!,
-                _volumeSettings.Effects,
-                constraints: new Float2(0f, 1f),
-                display: new Int2(0, 100),
-                steps: 20,
-                _soundEffectService,
-                OnEffectsVolumeChanged
-            );
-            
-            ui.NumberControl(
-                id: "Control_Volume_Music",
-                text: _localization.GetString("ui.setting.volume.music")!,
-                _volumeSettings.Music,
-                constraints: new Float2(0f, 1f),
-                display: new Int2(0, 100),
-                steps: 20,
-                _soundEffectService,
-                OnMusicVolumeChanged
-            );
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
 
-            using (ui.Text(_localization.GetString("ui.menu.display")!))
+            bool dirty = IsDirty();
+            string? status = _status != null && ui.Time < _statusUntil ? _status : null;
+            renderer.DrawFooter(dirty, status, out bool cancelClicked, out bool applyClicked);
+
+            if (cancelClicked)
             {
-                ui.FontSize = 24;
-            }
-        }
-
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(300),
-            };
-
-            bool value = ui.Checkbox(id: "Checkbox_VSync", text: _localization.GetString("ui.setting.vsync")!, isChecked: _renderSettings.VSync, _soundEffectService);
-            _renderSettings.VSync.Set(value);
-
-            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: _localization.GetString("ui.setting.fullscreen")!, isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _soundEffectService);
-            _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
-
-            value = ui.Checkbox(id: "Checkbox_Borderless", text: _localization.GetString("ui.setting.borderless")!, isChecked: _windowSettings.Borderless, _soundEffectService);
-            _windowSettings.Borderless.Set(value);
-
-            value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _soundEffectService);
-            _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
-            
-            value = ui.Checkbox(id: "Checkbox_SAO", text: _localization.GetString("ui.setting.sao")!, isChecked: _renderSettings.SAO.Enabled, _soundEffectService);
-            _renderSettings.SAO.Enabled.Set(value);
-            
-            value = ui.Checkbox(id: "Checkbox_Bloom", text: _localization.GetString("ui.setting.bloom")!, isChecked: _renderSettings.Bloom.Enabled, _soundEffectService);
-            _renderSettings.Bloom.Enabled.Set(value);
-            
-            ui.NumberControl(
-                id: "Control_RenderDistance",
-                text: _localization.GetString("ui.setting.renderDistance")!,
-                _renderSettings.FarPlane,
-                constraints: new Float2(500, 5_000),
-                display: new Int2(1, 10),
-                steps: 9,
-                _soundEffectService,
-                OnRenderDistanceChanged
-            );
-
-            ui.NumberControl(
-                id: "Control_NameplateDistance",
-                text: _localization.GetString("ui.setting.nameplateDistance")!,
-                _uiSettings.NameplateDistance.Get(),
-                constraints: new Int2(0, 64),
-                display: new Int2(0, 64),
-                steps: 8,
-                _soundEffectService,
-                OnNameplateDistanceChanged
-            );
-        }
-
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
-        
-        using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonOptions, out Widgets.Interactions interactions))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                _configManager.ApplySettings();
+                PlayButton();
                 menu.GoBack();
             }
+            else if (applyClicked)
+            {
+                ApplySettings(ui.Time);
+            }
         }
-        
+
         return Result.FromSuccess();
     }
 
-    private void OnFOVChanged(int oldValue, int newValue, int change)
+    private void ApplySettings(double time)
     {
-        _renderSettings.FOV.Set(newValue);
-    }
-    
-    private void OnLookSensitivityChanged(int oldValue, int newValue, int change)
-    {
-        _controlSettings.LookSensitivity.Set(newValue);
+        SettingsDraft draft = _draft ?? throw new InvalidOperationException("The settings draft is not initialized.");
+
+        bool displayChanged = IsEntryDirty("Settings.DisplayMode") || IsEntryDirty("Settings.Resolution");
+        if (displayChanged)
+        {
+            _windowContext.ApplyDisplaySettings(
+                draft.DisplayMode.ToWindowMode(),
+                draft.DisplayMode.IsBorderless(),
+                draft.Resolution.Width,
+                draft.Resolution.Height
+            );
+        }
+
+        _renderSettings.VSync.Set(draft.VSync);
+        _renderSettings.Framerate.Set(draft.FrameLimit);
+        _renderSettings.FOV.Set(draft.Fov);
+        _renderSettings.FarPlane.Set(draft.ViewDistance);
+        _renderSettings.AntiAliasing.Set(draft.AntiAliasingMode);
+        _renderSettings.SAO.Enabled.Set(draft.AmbientOcclusion);
+        _renderSettings.SAO.Samples.Set(draft.AoSamples);
+        _renderSettings.Bloom.Enabled.Set(draft.Bloom);
+        _renderSettings.Bloom.Passes.Set(draft.BloomPasses);
+
+        _volumeSettings.Master.Set(draft.MasterVolume);
+        _volumeSettings.Music.Set(draft.MusicVolume);
+        _volumeSettings.Effects.Set(draft.EffectsVolume);
+        _volumeSettings.Interface.Set(draft.InterfaceVolume);
+
+        _gameplayConfig.Autosave.Set(draft.Autosave);
+        _gameplayConfig.AutosaveIntervalMs.Set(draft.AutosaveIntervalMinutes * 60000);
+        _gameplayConfig.ControlHints.Set(draft.ControlHints);
+        _gameplayConfig.Crosshair.Set(draft.Crosshair);
+
+        _uiSettings.NameplateDistance.Set(draft.NameTagDistance);
+
+        _controlSettings.LookSensitivity.Set(draft.MouseSensitivity);
+        _controlSettings.RememberShape.Set(draft.RememberShape);
+        _controlSettings.RememberOrientation.Set(draft.RememberOrientation);
+
+        _configManager.ApplySettings();
+
+        if (_categories != null)
+        {
+            for (var i = 0; i < _categories.Length; i++)
+            {
+                _categories[i].CaptureBaselines();
+            }
+        }
+
+        _status = L("ui.settings.saved");
+        _statusUntil = time + 2d;
+        PlayButton();
     }
 
-    private void OnMasterVolumeChanged(float oldValue, float newValue, float change)
+    private SettingsCategory[] BuildCategories()
     {
-        _volumeSettings.Master.Set(newValue);
+        return
+        [
+            BuildDisplayCategory(),
+            BuildAudioCategory(),
+            BuildGameplayCategory(),
+            BuildControlsCategory(),
+        ];
     }
 
-    private void OnInterfaceVolumeChanged(float oldValue, float newValue, float change)
+    private SettingsCategory BuildDisplayCategory()
     {
-        _volumeSettings.Interface.Set(newValue);
-    }
-    
-    private void OnEffectsVolumeChanged(float oldValue, float newValue, float change)
-    {
-        _volumeSettings.Effects.Set(newValue);
-    }
-    
-    private void OnMusicVolumeChanged(float oldValue, float newValue, float change)
-    {
-        _volumeSettings.Music.Set(newValue);
-    }
-    
-    private void OnAutosaveIntervalChanged(int oldValue, int newValue, int change)
-    {
-        _gameplayConfig.AutosaveIntervalMs.Set(newValue);
-    }
-    
-    private void OnRenderDistanceChanged(float oldValue, float newValue, float change)
-    {
-        _renderSettings.FarPlane.Set(newValue);
+        return new SettingsCategory(
+            id: "display",
+            titleKey: "ui.settings.category.display",
+            shortTitleKey: "ui.settings.category.display.short",
+            descriptionKey: "ui.settings.category.display.description",
+            rows:
+            [
+                new SettingsSection("ui.settings.section.window"),
+                new StepperEntry<SettingsDisplayMode>(
+                    id: "Settings.DisplayMode",
+                    labelKey: "ui.settings.displayMode",
+                    get: () => _draft!.DisplayMode,
+                    set: value => _draft!.DisplayMode = value,
+                    defaultValue: () => SettingsDefaults.DisplayMode,
+                    options: DISPLAY_MODES,
+                    format: FormatDisplayMode
+                ),
+                new StepperEntry<SettingsResolution>(
+                    id: "Settings.Resolution",
+                    labelKey: "ui.settings.resolution",
+                    get: () => _draft!.Resolution,
+                    set: value => _draft!.Resolution = value,
+                    defaultValue: () => SettingsDraft.GetNativeResolution(_windowContext),
+                    options: GetResolutionOptions(),
+                    format: resolution => $"{resolution.Width} x {resolution.Height}",
+                    isEnabled: () => _draft!.DisplayMode.UsesWindowSize()
+                ),
+                new ToggleEntry(
+                    id: "Settings.VSync",
+                    labelKey: "ui.settings.vsync",
+                    get: () => _draft!.VSync,
+                    set: value => _draft!.VSync = value,
+                    defaultValue: () => SettingsDefaults.VSync
+                ),
+                new StepperEntry<int>(
+                    id: "Settings.FrameLimit",
+                    labelKey: "ui.settings.frameLimit",
+                    get: () => _draft!.FrameLimit,
+                    set: value => _draft!.FrameLimit = value,
+                    defaultValue: () => SettingsDefaults.FrameLimit,
+                    options: SettingsDefaults.GetFrameLimits(_draft?.FrameLimit ?? SettingsDefaults.FrameLimit),
+                    format: FormatFrameLimit,
+                    isEnabled: () => !_draft!.VSync
+                ),
+                new SettingsSection("ui.settings.section.view"),
+                new SliderEntry(
+                    id: "Settings.Fov",
+                    labelKey: "ui.settings.fov",
+                    get: () => _draft!.Fov,
+                    set: value => _draft!.Fov = (int)MathF.Round(value),
+                    defaultValue: () => SettingsDefaults.Fov,
+                    min: SettingsDefaults.FovMin,
+                    max: SettingsDefaults.FovMax,
+                    step: 1f,
+                    format: FormatDegrees
+                ),
+                new StepperEntry<float>(
+                    id: "Settings.ViewDistance",
+                    labelKey: "ui.settings.viewDistance",
+                    get: () => _draft!.ViewDistance,
+                    set: value => _draft!.ViewDistance = value,
+                    defaultValue: () => SettingsDefaults.ViewDistance,
+                    options: SettingsDefaults.GetViewDistances(_draft?.ViewDistance ?? SettingsDefaults.ViewDistance),
+                    format: FormatDistance
+                ),
+                new SettingsSection("ui.settings.section.quality"),
+                new ChoiceEntry<AntiAliasing>(
+                    id: "Settings.AntiAliasing",
+                    labelKey: "ui.settings.antiAliasing",
+                    get: () => _draft!.AntiAliasingMode,
+                    set: value => _draft!.AntiAliasingMode = value,
+                    defaultValue: () => SettingsDefaults.AntiAliasingMode,
+                    options: ANTI_ALIASING_OPTIONS,
+                    optionLabel: FormatAntiAliasing
+                ),
+                new ToggleEntry(
+                    id: "Settings.AmbientOcclusion",
+                    labelKey: "ui.settings.ambientOcclusion",
+                    get: () => _draft!.AmbientOcclusion,
+                    set: value => _draft!.AmbientOcclusion = value,
+                    defaultValue: () => SettingsDefaults.AmbientOcclusion
+                ),
+                new StepperEntry<int>(
+                    id: "Settings.AoSamples",
+                    labelKey: "ui.settings.aoSamples",
+                    get: () => _draft!.AoSamples,
+                    set: value => _draft!.AoSamples = value,
+                    defaultValue: () => SettingsDefaults.AoSamples,
+                    options: SettingsDefaults.GetAoSamples(_draft?.AoSamples ?? SettingsDefaults.AoSamples),
+                    format: FormatSamples,
+                    isEnabled: () => _draft!.AmbientOcclusion
+                ),
+                new ToggleEntry(
+                    id: "Settings.Bloom",
+                    labelKey: "ui.settings.bloom",
+                    get: () => _draft!.Bloom,
+                    set: value => _draft!.Bloom = value,
+                    defaultValue: () => SettingsDefaults.Bloom
+                ),
+                new StepperEntry<int>(
+                    id: "Settings.BloomPasses",
+                    labelKey: "ui.settings.bloomPasses",
+                    get: () => _draft!.BloomPasses,
+                    set: value => _draft!.BloomPasses = value,
+                    defaultValue: () => SettingsDefaults.BloomPasses,
+                    options: SettingsDefaults.GetBloomPasses(_draft?.BloomPasses ?? SettingsDefaults.BloomPasses),
+                    format: FormatInteger,
+                    isEnabled: () => _draft!.Bloom
+                ),
+                new SettingsResetRow("Settings.Reset.display", () => ResetCategory("display")),
+            ]
+        );
     }
 
-    private void OnNameplateDistanceChanged(int oldValue, int newValue, int change)
+    private SettingsCategory BuildAudioCategory()
     {
-        _uiSettings.NameplateDistance.Set(newValue);
+        return new SettingsCategory(
+            id: "audio",
+            titleKey: "ui.settings.category.audio",
+            shortTitleKey: "ui.settings.category.audio.short",
+            descriptionKey: "ui.settings.category.audio.description",
+            rows:
+            [
+                new SettingsSection("ui.settings.section.mix"),
+                BuildVolumeSlider(
+                    "Settings.MasterVolume",
+                    "ui.settings.masterVolume",
+                    () => _draft!.MasterVolume,
+                    value => _draft!.MasterVolume = value,
+                    SettingsDefaults.MasterVolume
+                ),
+                BuildVolumeSlider(
+                    "Settings.MusicVolume",
+                    "ui.settings.musicVolume",
+                    () => _draft!.MusicVolume,
+                    value => _draft!.MusicVolume = value,
+                    SettingsDefaults.MusicVolume
+                ),
+                BuildVolumeSlider(
+                    "Settings.EffectsVolume",
+                    "ui.settings.effectsVolume",
+                    () => _draft!.EffectsVolume,
+                    value => _draft!.EffectsVolume = value,
+                    SettingsDefaults.EffectsVolume
+                ),
+                BuildVolumeSlider(
+                    "Settings.InterfaceVolume",
+                    "ui.settings.interfaceVolume",
+                    () => _draft!.InterfaceVolume,
+                    value => _draft!.InterfaceVolume = value,
+                    SettingsDefaults.InterfaceVolume
+                ),
+                new SettingsResetRow("Settings.Reset.audio", () => ResetCategory("audio")),
+            ]
+        );
+    }
+
+    private SettingsCategory BuildGameplayCategory()
+    {
+        return new SettingsCategory(
+            id: "gameplay",
+            titleKey: "ui.settings.category.gameplay",
+            shortTitleKey: "ui.settings.category.gameplay.short",
+            descriptionKey: "ui.settings.category.gameplay.description",
+            rows:
+            [
+                new SettingsSection("ui.settings.section.autosave"),
+                new ToggleEntry(
+                    id: "Settings.Autosave",
+                    labelKey: "ui.settings.autosave",
+                    get: () => _draft!.Autosave,
+                    set: value => _draft!.Autosave = value,
+                    defaultValue: () => SettingsDefaults.Autosave
+                ),
+                new StepperEntry<int>(
+                    id: "Settings.AutosaveInterval",
+                    labelKey: "ui.settings.autosaveInterval",
+                    get: () => _draft!.AutosaveIntervalMinutes,
+                    set: value => _draft!.AutosaveIntervalMinutes = value,
+                    defaultValue: () => SettingsDefaults.AutosaveIntervalMinutes,
+                    options: SettingsDefaults.GetAutosaveIntervals(_draft?.AutosaveIntervalMinutes ?? SettingsDefaults.AutosaveIntervalMinutes),
+                    format: FormatMinutes,
+                    isEnabled: () => _draft!.Autosave
+                ),
+                new SettingsSection("ui.settings.section.hud"),
+                new ToggleEntry(
+                    id: "Settings.ControlHints",
+                    labelKey: "ui.settings.controlHints",
+                    get: () => _draft!.ControlHints,
+                    set: value => _draft!.ControlHints = value,
+                    defaultValue: () => SettingsDefaults.ControlHints
+                ),
+                new ToggleEntry(
+                    id: "Settings.Crosshair",
+                    labelKey: "ui.settings.crosshair",
+                    get: () => _draft!.Crosshair,
+                    set: value => _draft!.Crosshair = value,
+                    defaultValue: () => SettingsDefaults.Crosshair
+                ),
+                new SliderEntry(
+                    id: "Settings.NameTagDistance",
+                    labelKey: "ui.settings.nameTagDistance",
+                    get: () => _draft!.NameTagDistance,
+                    set: value => _draft!.NameTagDistance = (int)MathF.Round(value),
+                    defaultValue: () => SettingsDefaults.NameTagDistance,
+                    min: SettingsDefaults.NameTagMin,
+                    max: SettingsDefaults.NameTagMax,
+                    step: SettingsDefaults.NameTagStep,
+                    format: FormatNameTagDistance
+                ),
+                new SettingsResetRow("Settings.Reset.gameplay", () => ResetCategory("gameplay")),
+            ]
+        );
+    }
+
+    private SettingsCategory BuildControlsCategory()
+    {
+        return new SettingsCategory(
+            id: "controls",
+            titleKey: "ui.settings.category.controls",
+            shortTitleKey: "ui.settings.category.controls.short",
+            descriptionKey: "ui.settings.category.controls.description",
+            rows:
+            [
+                new SettingsSection("ui.settings.section.mouse"),
+                new SliderEntry(
+                    id: "Settings.MouseSensitivity",
+                    labelKey: "ui.settings.mouseSensitivity",
+                    get: () => _draft!.MouseSensitivity,
+                    set: value => _draft!.MouseSensitivity = (int)MathF.Round(value),
+                    defaultValue: () => SettingsDefaults.MouseSensitivity,
+                    min: SettingsDefaults.SensitivityMin,
+                    max: SettingsDefaults.SensitivityMax,
+                    step: 1f,
+                    format: FormatInteger
+                ),
+                new SettingsSection("ui.settings.section.placement"),
+                new ToggleEntry(
+                    id: "Settings.RememberShape",
+                    labelKey: "ui.settings.rememberShape",
+                    get: () => _draft!.RememberShape,
+                    set: value => _draft!.RememberShape = value,
+                    defaultValue: () => SettingsDefaults.RememberShape
+                ),
+                new ToggleEntry(
+                    id: "Settings.RememberOrientation",
+                    labelKey: "ui.settings.rememberOrientation",
+                    get: () => _draft!.RememberOrientation,
+                    set: value => _draft!.RememberOrientation = value,
+                    defaultValue: () => SettingsDefaults.RememberOrientation
+                ),
+                new SettingsResetRow("Settings.Reset.controls", () => ResetCategory("controls")),
+            ]
+        );
+    }
+
+    private SliderEntry BuildVolumeSlider(
+        string id,
+        string labelKey,
+        Func<float> get,
+        Action<float> set,
+        float defaultVolume
+    )
+    {
+        return new SliderEntry(
+            id: id,
+            labelKey: labelKey,
+            get: get,
+            set: set,
+            defaultValue: () => defaultVolume,
+            min: 0f,
+            max: 1f,
+            step: 0.05f,
+            format: FormatPercent
+        );
+    }
+
+    private IReadOnlyList<SettingsResolution> GetResolutionOptions()
+    {
+        var options = new List<SettingsResolution>();
+        var seen = new HashSet<(int Width, int Height)>();
+
+        void Add(SettingsResolution resolution, bool alwaysInclude = false)
+        {
+            if (resolution.Width <= 0 || resolution.Height <= 0)
+            {
+                return;
+            }
+
+            if (!alwaysInclude && (resolution.Width < 800 || resolution.Height < 600))
+            {
+                return;
+            }
+
+            if (seen.Add((resolution.Width, resolution.Height)))
+            {
+                options.Add(resolution);
+            }
+        }
+
+        if (_draft != null)
+        {
+            Add(_draft.Resolution, alwaysInclude: true);
+        }
+
+        IReadOnlyList<Vector2> videoModes = _windowContext.GetVideoModes();
+        for (var i = 0; i < videoModes.Count; i++)
+        {
+            Vector2 mode = videoModes[i];
+            Add(new SettingsResolution((int)mode.X, (int)mode.Y));
+        }
+
+        Add(SettingsDraft.GetNativeResolution(_windowContext), alwaysInclude: true);
+
+        options.Sort(static (left, right) =>
+        {
+            int widthComparison = left.Width.CompareTo(right.Width);
+            return widthComparison != 0 ? widthComparison : left.Height.CompareTo(right.Height);
+        });
+
+        return options;
+    }
+
+    private void RefreshExternalDisplaySettings()
+    {
+        if (_draft == null)
+        {
+            return;
+        }
+
+        SettingsEntry? displayModeEntry = FindEntry("Settings.DisplayMode");
+        SettingsDisplayMode currentMode = SettingsDisplayModeExtensions.FromWindowSettings(
+            _windowSettings.Mode.Get(),
+            _windowSettings.Borderless.Get()
+        );
+
+        if (displayModeEntry != null && !displayModeEntry.IsDirty && _draft.DisplayMode != currentMode)
+        {
+            _draft.DisplayMode = currentMode;
+            displayModeEntry.CaptureBaseline();
+        }
+
+        SettingsEntry? resolutionEntry = FindEntry("Settings.Resolution");
+        SettingsResolution currentResolution = SettingsDraft.GetWindowResolution(_windowSettings, _windowContext);
+
+        if (resolutionEntry != null && !resolutionEntry.IsDirty && _draft.Resolution != currentResolution)
+        {
+            _draft.Resolution = currentResolution;
+            resolutionEntry.CaptureBaseline();
+        }
+    }
+
+    private SettingsEntry? FindEntry(string id)
+    {
+        if (_categories == null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            SettingsEntry[] entries = _categories[i].Entries;
+            for (var n = 0; n < entries.Length; n++)
+            {
+                if (entries[n].Id == id)
+                {
+                    return entries[n];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsEntryDirty(string id)
+    {
+        SettingsEntry? entry = FindEntry(id);
+        return entry != null && entry.IsDirty;
+    }
+
+    private bool IsDirty()
+    {
+        if (_categories == null)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            if (_categories[i].IsDirty)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ResetCategory(string categoryId)
+    {
+        if (_categories == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            if (_categories[i].Id == categoryId)
+            {
+                _categories[i].ResetToDefaults();
+                return;
+            }
+        }
+    }
+
+    private void PlayButton()
+    {
+        Widgets.Interactions.Click.WithButtonAudio(_soundEffectService);
+    }
+
+    private string L(string key)
+    {
+        return _localization.GetString(key) ?? key;
+    }
+
+    private string FormatDisplayMode(SettingsDisplayMode mode)
+    {
+        return mode switch
+        {
+            SettingsDisplayMode.Windowed => L("ui.settings.displayMode.windowed"),
+            SettingsDisplayMode.BorderlessWindow => L("ui.settings.displayMode.borderlessWindow"),
+            SettingsDisplayMode.Maximized => L("ui.settings.displayMode.maximized"),
+            SettingsDisplayMode.BorderlessMaximized => L("ui.settings.displayMode.borderlessMaximized"),
+            SettingsDisplayMode.Fullscreen => L("ui.settings.displayMode.fullscreen"),
+            SettingsDisplayMode.BorderlessFullscreen => L("ui.settings.displayMode.borderlessFullscreen"),
+            _ => mode.ToString(),
+        };
+    }
+
+    private string FormatAntiAliasing(AntiAliasing antiAliasing)
+    {
+        return antiAliasing == AntiAliasing.MSAA
+            ? L("ui.settings.antiAliasing.msaa")
+            : L("ui.settings.antiAliasing.off");
+    }
+
+    private string FormatFrameLimit(int value)
+    {
+        return value == 0
+            ? L("ui.settings.unlimited")
+            : $"{value} {L("ui.unit.fps")}";
+    }
+
+    private string FormatDistance(float value)
+    {
+        return value >= 1000f
+            ? $"{value / 1000f:0.#} {L("ui.unit.kilometers")}"
+            : $"{MathF.Round(value)} {L("ui.unit.meters")}";
+    }
+
+    private string FormatDegrees(float value)
+    {
+        return $"{MathF.Round(value)}°";
+    }
+
+    private string FormatPercent(float value)
+    {
+        return $"{MathF.Round(value * 100f)}%";
+    }
+
+    private string FormatMinutes(int value)
+    {
+        return $"{value} {L("ui.unit.minutes")}";
+    }
+
+    private string FormatSamples(int value)
+    {
+        return $"{value}x";
+    }
+
+    private string FormatInteger(float value)
+    {
+        return MathF.Round(value).ToString(CultureInfo.CurrentCulture);
+    }
+
+    private string FormatInteger(int value)
+    {
+        return value.ToString(CultureInfo.CurrentCulture);
+    }
+
+    private string FormatNameTagDistance(float value)
+    {
+        return value <= 0f
+            ? L("ui.settings.disabled")
+            : $"{MathF.Round(value)} {L("ui.unit.meters")}";
     }
 }

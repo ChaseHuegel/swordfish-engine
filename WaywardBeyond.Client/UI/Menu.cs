@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Swordfish.Graphics;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 
@@ -33,9 +34,21 @@ internal abstract class Menu<TIdentifier> : IUILayer
         }
         
         _currentPage = _pages.Keys.First();
+        EnterPage(_pages[_currentPage]);
     }
 
     public abstract bool IsVisible();
+
+    protected bool CurrentPageUsesFullContentArea
+    {
+        get
+        {
+            lock (_pageLock)
+            {
+                return _pages.TryGetValue(_currentPage, out IMenuPage<TIdentifier>? page) && page.UsesFullContentArea;
+            }
+        }
+    }
     
     public TIdentifier GetCurrentPage()
     {
@@ -60,9 +73,12 @@ internal abstract class Menu<TIdentifier> : IUILayer
 
     public Result GoToPage(TIdentifier page)
     {
+        IMenuPage<TIdentifier>? previousPage;
+        IMenuPage<TIdentifier>? nextPage;
+
         lock (_pageLock)
         {
-            if (!_pages.ContainsKey(page))
+            if (!_pages.TryGetValue(page, out nextPage))
             {
                 return Result.FromFailure($"Page \"{page.ToString()}\" not found.");
             }
@@ -72,23 +88,53 @@ internal abstract class Menu<TIdentifier> : IUILayer
                 return Result.FromSuccess();
             }
 
+            previousPage = _pages[_currentPage];
             _pageHistory.Push(_currentPage);
             _currentPage = page;
-            return Result.FromSuccess();
         }
+
+        ExitPage(previousPage);
+        EnterPage(nextPage);
+        return Result.FromSuccess();
     }
     
     public Result GoBack()
     {
+        IMenuPage<TIdentifier>? previousPage;
+        IMenuPage<TIdentifier>? nextPage;
+
         lock (_pageLock)
         {
             if (!_pageHistory.TryPop(out TIdentifier? page))
             {
                 return Result.FromFailure("There is no page in the history to go back to.");
             }
-            
+
+            previousPage = _pages[_currentPage];
+            nextPage = _pages[page];
             _currentPage = page;
-            return Result.FromSuccess();
+        }
+
+        ExitPage(previousPage);
+        EnterPage(nextPage);
+        return Result.FromSuccess();
+    }
+
+    private void EnterPage(IMenuPage<TIdentifier> page)
+    {
+        Result<Exception> result = Safe.Invoke(page.OnEnter);
+        if (!result)
+        {
+            _logger.LogError(result.Value, "Failed to enter menu page \"{page}\".", page.GetType());
+        }
+    }
+
+    private void ExitPage(IMenuPage<TIdentifier> page)
+    {
+        Result<Exception> result = Safe.Invoke(page.OnExit);
+        if (!result)
+        {
+            _logger.LogError(result.Value, "Failed to exit menu page \"{page}\".", page.GetType());
         }
     }
 

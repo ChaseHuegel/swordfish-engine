@@ -47,6 +47,24 @@
       <Compile Update="UI\Widgets.TextBox.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
+      <Compile Update="UI\Widgets.SettingsPanel.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.SettingsButton.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.SettingsToggle.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.SettingsStepper.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.SettingsSlider.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.SettingsScroll.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
     </ItemGroup>
 
 </Project>
