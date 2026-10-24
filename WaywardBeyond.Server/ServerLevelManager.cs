@@ -78,4 +78,10 @@ public sealed class ServerLevelManager(
     {
         return _resolver.Resolve(peer.Claim, peer.IsLocal).HasPermission(GamePermissions.LEVEL_CREATE);
     }
+
+    /// <summary>True when the peer may delete a level. A host always may.</summary>
+    public bool CanDelete(ServerPeer peer)
+    {
+        return _resolver.Resolve(peer.Claim, peer.IsLocal).HasPermission(GamePermissions.LEVEL_DELETE);
+    }
 }

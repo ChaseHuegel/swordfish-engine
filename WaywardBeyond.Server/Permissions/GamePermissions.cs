@@ -8,4 +8,7 @@ public static class GamePermissions
 
     /// <summary>Create a new saved level.</summary>
     public const string LEVEL_CREATE = "waywardbeyond.level.create";
+
+    /// <summary>Delete a saved level.</summary>
+    public const string LEVEL_DELETE = "waywardbeyond.level.delete";
 }

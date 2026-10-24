@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NsdRpc;
 using NsdRpc.Tcp;
 using NsdRpc.Wire;
+using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -117,6 +118,46 @@ public class ServerRpcTests
     }
 
     [Fact]
+    public void RemotePeerWithoutDeletePermissionIsDenied()
+    {
+        var policy = PermissionPolicy.Create([]);
+        var manager = new ServerLevelManager(new FakeLevelCatalog(), new PermissionResolver(policy), NullLoggerFactory.Instance);
+        ServerPeer peer = CreateGamePeer(clientId: 6, isLocal: false);
+
+        Assert.False(manager.CanDelete(peer));
+    }
+
+    [Fact]
+    public void LocalPeerMayDelete()
+    {
+        var policy = PermissionPolicy.Create([]);
+        var manager = new ServerLevelManager(new FakeLevelCatalog(), new PermissionResolver(policy), NullLoggerFactory.Instance);
+        ServerPeer peer = CreateGamePeer(clientId: 7, isLocal: true);
+
+        Assert.True(manager.CanDelete(peer));
+    }
+
+    [Fact]
+    public void GrantedClaimMayDelete()
+    {
+        var file = new SourcedPermissionFile("test.toml", Toml.To<PermissionFile>("""
+            [Groups.builder]
+            Permissions = ["waywardbeyond.level.delete"]
+
+            [Users."builder"]
+            Roles = ["builder"]
+            """));
+        var policy = PermissionPolicy.Create([file]);
+        var manager = new ServerLevelManager(new FakeLevelCatalog(), new PermissionResolver(policy), NullLoggerFactory.Instance);
+        ServerPeer peer = CreateGamePeer(clientId: 8, isLocal: false);
+
+        Assert.False(manager.CanDelete(peer));
+
+        peer.Claim = new UserClaim("builder");
+        Assert.True(manager.CanDelete(peer));
+    }
+
+    [Fact]
     public async Task LoopbackMenuCallsRoundTrip()
     {
         var catalog = new FakeLevelCatalog();
@@ -156,7 +197,7 @@ public class ServerRpcTests
     }
 
     [Fact]
-    public async Task TcpMenuCallsUseTheLanEndpointAndDenyRemoteCreate()
+    public async Task TcpMenuCallsUseTheLanEndpointAndDenyRemoteWrites()
     {
         var catalog = new FakeLevelCatalog();
         var transport = new LoopbackRpcServerTransport();
@@ -192,6 +233,17 @@ public class ServerRpcTests
         Assert.False(createResult.IsSuccess);
         Assert.Equal(GameRpcErrors.PERMISSION_DENIED, createResult.ErrorCode);
         Assert.Equal(0, catalog.Created);
+
+        Task<RpcResult<DeleteLevelResponse>> delete = api.DeleteLevelAsync(new DeleteLevelRequest
+        {
+            LevelGuid = Guid.NewGuid().ToString(),
+        });
+        await PumpUntil(delete, commands);
+
+        RpcResult<DeleteLevelResponse> deleteResult = await delete;
+        Assert.False(deleteResult.IsSuccess);
+        Assert.Equal(GameRpcErrors.PERMISSION_DENIED, deleteResult.ErrorCode);
+        Assert.Equal(0, catalog.Deleted);
 
         connection.Close();
     }
@@ -409,6 +461,8 @@ public class ServerRpcTests
     {
         public int Created { get; private set; }
 
+        public int Deleted { get; private set; }
+
         public bool Create(string name, string seed, GameMode gameMode, out string levelGuid)
         {
             Created++;
@@ -418,7 +472,11 @@ public class ServerRpcTests
 
         public Level[] ListLevels() => [];
 
-        public bool Delete(string levelGuid) => true;
+        public bool Delete(string levelGuid)
+        {
+            Deleted++;
+            return true;
+        }
 
         public bool Exists(string levelGuid) => false;
 

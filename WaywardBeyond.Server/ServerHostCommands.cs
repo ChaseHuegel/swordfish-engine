@@ -13,6 +13,7 @@ using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
+using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Voxels;
 
@@ -160,6 +161,16 @@ public sealed class ServerHostCommands(
         if (call.CancellationToken.IsCancellationRequested)
         {
             call.Completion.TrySetResult(RpcResult<DeleteLevelResponse>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
+            return;
+        }
+
+        if (!levelManager.CanDelete(call.Peer))
+        {
+            logger.LogInformation(
+                "Denied level deletion for client {clientId} without {permission}.",
+                call.Peer.GameId, GamePermissions.LEVEL_DELETE);
+            call.Completion.TrySetResult(RpcResult<DeleteLevelResponse>.Failure(
+                GameRpcErrors.PERMISSION_DENIED, "level deletion is not permitted"));
             return;
         }
 
@@ -373,8 +384,7 @@ public sealed class ServerHostCommands(
             return;
         }
 
-        token.Register(() => completion.TrySetResult(
-            RpcResult<T>.Failure(GameRpcErrors.INVALID_STATE, "cancelled")));
+        token.Register(() => completion.TrySetResult(RpcResult<T>.Failure(GameRpcErrors.INVALID_STATE, "cancelled")));
     }
 
     private abstract class HostCall
@@ -500,13 +510,11 @@ public sealed class ServerHostCommands(
         public byte[]? Payload { get; set; }
     }
 
-    private struct CollectLevelEntitiesAction(List<int> entities) : IForEach<VoxelWorldComponent, NetworkComponent, TransformComponent>
+    private readonly struct CollectLevelEntitiesAction(List<int> entities) : IForEach<VoxelWorldComponent, NetworkComponent, TransformComponent>
     {
-        private readonly List<int> _entities = entities;
-
         public void Execute(float delta, DataStore store, int entity, in VoxelWorldComponent world, in NetworkComponent network, in TransformComponent transform)
         {
-            _entities.Add(entity);
+            entities.Add(entity);
         }
     }
 }

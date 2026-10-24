@@ -171,6 +171,17 @@ modified client. The server also reports the same verdict in
 `ListLevelsResponse.CanCreateSave`, which the client caches in
 `GameSaveService.CanCreateSave` and uses to gate the menu button (`HomePage`).
 
+### Delete authorization
+
+`ServerHostCommands` requires `GamePermissions.LEVEL_DELETE`
+(`waywardbeyond.level.delete`) for a client `DeleteLevelAsync` call. It asks
+`ServerLevelManager.CanDelete`, so the delete check resolves through the same
+`PermissionResolver` as create. The resolver grants a local loopback peer
+everything. A denied call returns
+`RpcResult.Failure(GameRpcErrors.PERMISSION_DENIED, ...)`, logs at information
+level, and deletes nothing. The stock client does not know the verdict in
+advance, so a denied client sees the failure from the call itself.
+
 ## Tests that pin this
 
 - `Swordfish.Tests/Permissions/PermissionCompilerTests.cs` — merging, layering,
