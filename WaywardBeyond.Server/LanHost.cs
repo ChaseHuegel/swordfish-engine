@@ -102,16 +102,16 @@ public sealed class LanHost : IEntryPoint, IDisposable
 
         while (_beaconRunning)
         {
-            byte[] payload = new LanBeacon
-            {
-                ServerName = serverName,
-                TcpPort = tcpPort,
-                ProtocolVersion = LanDiscovery.PROTOCOL_VERSION,
-                PlayerCount = _worldHost.PlayerCount,
-            }.Serialize();
-
             try
             {
+                byte[] payload = new LanBeacon
+                {
+                    ServerName = serverName,
+                    TcpPort = tcpPort,
+                    ProtocolVersion = LanDiscovery.PROTOCOL_VERSION,
+                    PlayerCount = _worldHost.PlayerCount,
+                }.Serialize();
+
                 _beacon!.Send(payload, payload.Length, LanDiscovery.BROADCAST_ADDRESS, discoveryPort);
             }
             catch (SocketException)
@@ -122,6 +122,12 @@ public sealed class LanHost : IEntryPoint, IDisposable
             catch (ObjectDisposedException)
             {
                 break; //  Beacon disposed during shutdown.
+            }
+            catch (Exception ex)
+            {
+                //  A background thread must never take the process down: discovery degrades instead.
+                _logger.LogError(ex, "LAN beacon broadcast failed; LAN discovery disabled.");
+                break;
             }
 
             for (int slept = 0; slept < intervalMs && _beaconRunning; slept += 100)

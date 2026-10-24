@@ -26,15 +26,9 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     {
         get
         {
-            //  Read from the server thread and the LAN beacon thread: snapshot so a concurrent
-            //  join/unload cannot invalidate the enumeration.
-            int count = 0;
-            foreach (WorldEntry entry in _worlds.ToArray())
-            {
-                count += entry.World.Sessions.Count;
-            }
-
-            return count;
+            //  Written on the server thread after every world pass and read from the LAN beacon
+            //  thread. Volatile gives the cross-thread visibility the mutable world table cannot.
+            return Volatile.Read(ref _playerCount);
         }
     }
 
@@ -48,6 +42,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private readonly ThreadWorker _threadWorker;
     private readonly List<WorldEntry> _worlds = [];
     private readonly List<WorldEntry> _unloads = [];
+    private int _playerCount;
     private bool _disposed;
 
     public ServerWorldHost(
@@ -191,7 +186,17 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
             //  Process host calls first so joins and leaves reach the worlds in this tick.
             _commands.Tick(this);
             HandlePeerDisconnects();
-            _hostHeartbeat.Tick((uint)PlayerCount);
+
+            //  Publish the count once per tick, after joins and leaves settled, so the LAN beacon
+            //  thread never reads the mutable world table.
+            int playerCount = 0;
+            foreach (WorldEntry entry in _worlds)
+            {
+                playerCount += entry.World.Sessions.Count;
+            }
+
+            Volatile.Write(ref _playerCount, playerCount);
+            _hostHeartbeat.Tick((uint)playerCount);
 
             //  Unloads are deferred until after the world iteration: removing from _worlds during the
             //  tick loop would invalidate the enumerator.
