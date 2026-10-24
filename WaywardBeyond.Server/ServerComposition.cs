@@ -13,7 +13,9 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Permissions;
+using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Server;
 
@@ -104,9 +106,27 @@ public static class ServerComposition
         RegisterServerSystem<ServerChatSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);
 
-        //  Server-side interaction mod hooks: a single shared registry that server mods register their
-        //  interaction handlers into, resolved by the authoritative ServerInteractionSystem.
+        //  The one interaction handler registry. Server gameplay and gameplay modules both register
+        //  handlers into it; the authoritative ServerInteractionSystem runs them in order.
         container.Register<IInteractionHandlerRegistry, InteractionHandlerRegistry>(Reuse.Singleton);
+
+        //  DryIoc children only inherit a parent singleton the parent has already created. Resolve
+        //  every shared service a world graph consumes before any world container exists, so a world
+        //  cannot silently get a private copy (a second handler registry would ignore registered
+        //  handlers). New shared singletons belong on this list.
+        PinSharedSingletons(container);
+    }
+
+    private static void PinSharedSingletons(IContainer container)
+    {
+        container.Resolve<NetworkRegistry>();
+        container.Resolve<ILevelCatalog>();
+        container.Resolve<IInteractionContent>();
+        container.Resolve<IInteractionHandlerRegistry>();
+        container.Resolve<PermissionPolicy>();
+        container.Resolve<ServerPeers>();
+        container.Resolve<IBrickRegistry>();
+        container.Resolve<ISkillDatabase>();
     }
 
     /// <summary>

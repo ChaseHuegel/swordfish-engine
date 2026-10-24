@@ -111,7 +111,7 @@ public sealed class ServerInteractionSystem(
             return;
         }
 
-        //  Server-side mod hook: registered handlers run after base validation and may reject/override.
+        //  Registered handlers run after base validation and may reject or override the outcome.
         resolution = handlerRegistry.Apply(request, resolution, heldItemID);
         if (resolution.Action == InteractionAction.None)
         {

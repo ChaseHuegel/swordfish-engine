@@ -237,6 +237,41 @@ public class ServerWorldIntegrationTests
         connection.Close();
     }
 
+    [Fact]
+    public async Task WorldResolvesTheComposedInteractionHandlerRegistry()
+    {
+        using TestServer server = CreateServer();
+
+        //  The registry is composed once in the root. A world that built its own copy would silently
+        //  ignore every handler registered before the world existed.
+        var handlers = server.Container.Resolve<IInteractionHandlerRegistry>();
+        handlers.Register(new RejectingHandler());
+
+        server.WorldHost.Run();
+        server.RpcHost.Run();
+
+        var connection = new LoopbackRpcClientConnection(server.Loopback);
+        await connection.ConnectAsync();
+        var registry = new RpcRegistry();
+        registry.Freeze();
+        var api = new GameServerApiClient(new RpcClient(connection, registry));
+
+        RpcResult<JoinAccept> join = await api.JoinAsync(CreateJoinRequest(321)).WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(join.IsSuccess, join.ErrorMessage);
+
+        ServerWorld world = Assert.IsType<ServerWorld>(server.WorldHost.FindWorld(string.Empty));
+        Assert.Same(handlers, world.HandlerRegistry);
+
+        connection.Close();
+    }
+
+    private sealed class RejectingHandler : IInteractionHandler
+    {
+        public InteractionHandlerFilter Filter => default;
+
+        public InteractionResolution Handle(in InteractionContext context) => InteractionResolution.None;
+    }
+
     private static async Task<bool> WaitForAsync(Func<bool> condition, int timeoutMs = 5000)
     {
         long deadline = Environment.TickCount64 + timeoutMs;
@@ -393,6 +428,7 @@ public class ServerWorldIntegrationTests
         LoopbackRpcServerTransport loopback
     ) : IDisposable
     {
+        public IContainer Container { get; } = container;
         public ServerWorldHost WorldHost { get; } = worldHost;
         public ServerRpcHost RpcHost { get; } = rpcHost;
         public LoopbackRpcServerTransport Loopback { get; } = loopback;

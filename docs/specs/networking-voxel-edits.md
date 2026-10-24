@@ -101,15 +101,15 @@ the local `PendingInteractionComponent.Queue` by
   **revert** (the server rejected it).
 - unpredicted edits (remote witnesses) apply directly.
 
-## Server mod API
+## Interaction handlers
 
-Because every outcome resolves server-side, mods customize interactions
-**server-side only**, no client mod.
+Every interaction outcome resolves server-side, so handler customization is
+server-side too. Handlers are the extension point for gameplay, not only for
+mods.
 
-- Mods register `IInteractionHandler`s into the shared, DI-singleton
-  `IInteractionHandlerRegistry` (registered in `ServerComposition`), keyed on an
-  `InteractionHandlerFilter` (`InteractionKind?`/`HeldItemID?`/`GameMode?`,
-  null = match-any).
+- Handlers register into the shared, DI-singleton `IInteractionHandlerRegistry`
+  (registered in `ServerComposition`), keyed on an `InteractionHandlerFilter`
+  (`InteractionKind?`/`HeldItemID?`/`GameMode?`, null = match-any).
 - After base validation, `ServerInteractionSystem` routes each resolution
   through the registry.
 - A handler returning `InteractionResolution.None` **rejects** the interaction,

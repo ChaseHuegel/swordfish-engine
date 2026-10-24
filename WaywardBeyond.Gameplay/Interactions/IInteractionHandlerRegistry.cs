@@ -1,6 +1,6 @@
 ﻿namespace WaywardBeyond.Gameplay.Interactions;
 
-/// <summary>Server-side registry of interaction handlers.</summary>
+/// <summary>The registry of interaction handlers the authoritative resolver runs.</summary>
 public interface IInteractionHandlerRegistry
 {
     /// <summary>Registers a handler. It runs for every interaction matching its filter.</summary>

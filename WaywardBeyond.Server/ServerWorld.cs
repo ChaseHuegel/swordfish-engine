@@ -26,6 +26,9 @@ public sealed class ServerWorld : IDisposable
     public ServerJoinQueue JoinQueue { get; }
     public NetworkReplicationSystem Replication { get; }
 
+    /// <summary>The shared interaction handler registry this world resolves through.</summary>
+    internal IInteractionHandlerRegistry HandlerRegistry { get; }
+
     private readonly IContainer _container;
 
     public ServerWorld(IContainer container)
@@ -36,6 +39,8 @@ public sealed class ServerWorld : IDisposable
         SaveService = Pin<LevelSaveService>(container);
         JoinQueue = Pin<ServerJoinQueue>(container);
         Replication = Pin<NetworkReplicationSystem>(container);
+        //  Shared with every other world, so resolve it from the root instead of pinning a child copy.
+        HandlerRegistry = container.Resolve<IInteractionHandlerRegistry>();
         Pin<ServerSkillSystem>(container);
         Pin<IUserPermissionService>(container);
         Pin<IServerWorldPhysics>(container);
