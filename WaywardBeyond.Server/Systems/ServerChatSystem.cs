@@ -22,18 +22,19 @@ public sealed class ServerChatSystem(
     /// <summary>Maximum characters of a chat message after sanitization.</summary>
     private const int MAX_MESSAGE_LENGTH = 512;
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
-        foreach (ServerPeer peer in peers.Peers)
+        foreach (Uuid clientId in sessions.Clients)
         {
-            if (peer.World?.Store != store)
+            if (!peers.TryGet(clientId, out ServerPeer peer))
             {
                 continue;
             }
 
             while (peer.Chats.TryDequeue(out ChatMessage message))
             {
-                Relay(store, peer.GameId, message);
+                Relay(store, clientId, message);
             }
         }
     }
@@ -57,9 +58,9 @@ public sealed class ServerChatSystem(
 
         logger.LogInformation("[Chat] {CharacterUuid} {SenderName}: {Value}", relay.CharacterUuid, relay.SenderName, relay.Value);
 
-        foreach (ServerPeer peer in peers.Peers)
+        foreach (Uuid recipientId in sessions.Clients)
         {
-            if (peer.World?.Store == store)
+            if (peers.TryGet(recipientId, out ServerPeer peer))
             {
                 peer.Client.ChatRelay(relay);
             }

@@ -93,6 +93,7 @@ public static class ServerComposition
         container.Register<ServerInteractionSystem>(
             made: Made.Of(() => new ServerInteractionSystem(
                 Arg.Of<ServerPeers>(),
+                Arg.Of<SessionManager>(),
                 Arg.Of<IInteractionContent>(),
                 Arg.Of<ILogger<ServerInteractionSystem>>(),
                 Arg.Of<IInteractionHandlerRegistry>(),

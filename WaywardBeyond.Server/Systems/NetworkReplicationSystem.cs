@@ -26,7 +26,7 @@ namespace WaywardBeyond.Server.Systems;
 /// <see cref="WorldSnapshot.TickNumber"/> is the server's current sim tick
 /// (physics-step ordinal), set via <see cref="SimTick"/>.
 /// </summary>
-public sealed class NetworkReplicationSystem : IEntitySystem
+public sealed class NetworkReplicationSystem
 {
     private readonly ServerPeers _peers;
     private readonly SessionManager _sessions;
@@ -36,6 +36,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     private readonly List<ComponentSnapshot> _pending = [];
     private readonly List<ComponentRemoval> _pendingRemovals = [];
     private readonly Queue<ulong> _removed = [];
+
+    //  Publish buffers. A WorldSnapshot is serialized synchronously inside the publish loop and then
+    //  dropped, so the arrays can be reused across publishes when the counts hold steady.
+    private ComponentSnapshot[] _pendingSnapshot = [];
+    private ComponentRemoval[] _removalSnapshot = [];
+    private ulong[] _removedSnapshot = [];
 
     //  Clients awaiting a one-shot full-state snapshot (full server-owned state of every networked
     //  entity) on their next publish, in place of that tick's delta. Newly joined clients request it so
@@ -165,12 +171,6 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         }
     }
 
-    public void Tick(float delta, DataStore store)
-    {
-        ApplyStage(delta, store);
-        PublishStage(delta, store);
-    }
-
     /// <summary>
     /// Drains and applies inbound client-owned components from all connected clients. Every snapshot is
     /// bound to the sender's session entity: a component whose wire uuid is not the sender's own player
@@ -179,9 +179,9 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// </summary>
     public void ApplyStage(float delta, DataStore store)
     {
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (Uuid clientId in _sessions.Clients)
         {
-            if (peer.World?.Store != store)
+            if (!_peers.TryGet(clientId, out ServerPeer peer))
             {
                 continue;
             }
@@ -261,9 +261,9 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             return;
         }
 
-        ComponentSnapshot[] components = _pending.ToArray();
-        ComponentRemoval[] removedComponents = _pendingRemovals.ToArray();
-        ulong[] removed = _removed.ToArray();
+        ComponentSnapshot[] components = ToExactArray(_pending, ref _pendingSnapshot);
+        ComponentRemoval[] removedComponents = ToExactArray(_pendingRemovals, ref _removalSnapshot);
+        ulong[] removed = ToExactArray(_removed, ref _removedSnapshot);
         _removed.Clear();
 
         ComponentSnapshot[]? fullState = null;
@@ -276,14 +276,13 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             fullState = collect.Components.ToArray();
         }
 
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (Uuid clientId in _sessions.Clients)
         {
-            if (peer.World?.Store != store)
+            if (!_peers.TryGet(clientId, out ServerPeer peer))
             {
                 continue;
             }
 
-            Uuid clientId = peer.GameId;
             uint lastProcessedInput = 0;
             if (_sessions.TryGetEntity(clientId, out int entity)
                 && store.TryGet(entity, out NetworkComponent net))
@@ -371,6 +370,44 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Copies a list into an exact-length array, reusing the previous array when the length matches.
+    /// </summary>
+    private static T[] ToExactArray<T>(List<T> source, ref T[] cache)
+    {
+        if (source.Count == 0)
+        {
+            return cache.Length == 0 ? cache : cache = [];
+        }
+
+        if (cache.Length != source.Count)
+        {
+            cache = new T[source.Count];
+        }
+
+        source.CopyTo(cache);
+        return cache;
+    }
+
+    /// <summary>
+    /// Copies a queue into an exact-length array, reusing the previous array when the length matches.
+    /// </summary>
+    private static T[] ToExactArray<T>(Queue<T> source, ref T[] cache)
+    {
+        if (source.Count == 0)
+        {
+            return cache.Length == 0 ? cache : cache = [];
+        }
+
+        if (cache.Length != source.Count)
+        {
+            cache = new T[source.Count];
+        }
+
+        source.CopyTo(cache, 0);
+        return cache;
     }
 
     private void ApplyComponent(DataStore store, int sessionEntity, Uuid sessionUuid, ComponentSnapshot snapshot)

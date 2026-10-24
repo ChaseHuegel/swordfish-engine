@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using NsdRpc.Tcp;
@@ -21,8 +22,8 @@ public sealed class ServerRpcHost : IEntryPoint, IDisposable
     private readonly LoopbackRpcServerTransport _loopbackTransport;
     private readonly RecordingRpcServerTransport _loopbackRecorder;
     private readonly ServerPeers _peers;
+    private readonly NetworkingConfig _config;
     private readonly RpcOptions _options;
-    private readonly TcpOptions _tcpOptions;
     private readonly RpcRegistry _registry;
     private readonly ILogger<ServerRpcHost> _logger;
     private readonly RpcServer _loopback;
@@ -42,9 +43,9 @@ public sealed class ServerRpcHost : IEntryPoint, IDisposable
         _loopbackTransport = loopbackTransport;
         _loopbackRecorder = new RecordingRpcServerTransport(loopbackTransport);
         _peers = peers;
+        _config = config;
         _logger = loggerFactory.CreateLogger<ServerRpcHost>();
         _options = config.ToRpcOptions(RpcLogging.ToLogSink(loggerFactory.CreateLogger("NsdRpc")));
-        _tcpOptions = config.ToTcpOptions(host: "0.0.0.0", port: 0);
 
         _registry = new RpcRegistry();
         _registry.AddService(handlers);
@@ -62,7 +63,7 @@ public sealed class ServerRpcHost : IEntryPoint, IDisposable
     }
 
     /// <summary>The bound LAN port, or zero while the LAN server is not running.</summary>
-    public int LanPort => _lanPort;
+    public int LanPort => Volatile.Read(ref _lanPort);
 
     public void Run()
     {
@@ -80,17 +81,17 @@ public sealed class ServerRpcHost : IEntryPoint, IDisposable
             return;
         }
 
-        _tcpOptions.Port = port;
-        var tcp = new TcpServerTransport(_options, _tcpOptions);
+        TcpOptions tcpOptions = _config.ToTcpOptions(host: "0.0.0.0", port: port);
+        var tcp = new TcpServerTransport(_options, tcpOptions);
         _lanTransport = new RecordingRpcServerTransport(tcp);
         _lan = new RpcServer(_lanTransport, _registry, _options);
         _peers.RegisterHost(_lan, isLocal: false);
         _lan.ClientConnected += peer => OnClientConnected(_lan, peer, isLocal: false);
         _lan.ClientDisconnected += peer => OnClientDisconnected(_lan, peer, isLocal: false);
         _lan.Start();
-        _lanPort = tcp.Port;
+        Volatile.Write(ref _lanPort, tcp.Port);
 
-        _logger.LogInformation("Listening for LAN RPC connections on port {port}.", _lanPort);
+        _logger.LogInformation("Listening for LAN RPC connections on port {port}.", tcp.Port);
     }
 
     public void Dispose()

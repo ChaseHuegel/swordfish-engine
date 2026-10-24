@@ -28,6 +28,7 @@ namespace WaywardBeyond.Server.Systems;
 /// </summary>
 public sealed class ServerInteractionSystem(
     ServerPeers peers,
+    SessionManager sessions,
     IInteractionContent content,
     ILogger<ServerInteractionSystem> logger,
     IInteractionHandlerRegistry handlerRegistry,
@@ -171,9 +172,9 @@ public sealed class ServerInteractionSystem(
             BrickId = brickRegistry.Name(voxel.ID),
         };
 
-        foreach (ServerPeer peer in peers.Peers)
+        foreach (Uuid clientId in sessions.Clients)
         {
-            if (peer.World?.Store == store)
+            if (peers.TryGet(clientId, out ServerPeer peer))
             {
                 peer.Client.VoxelEdit(message);
             }

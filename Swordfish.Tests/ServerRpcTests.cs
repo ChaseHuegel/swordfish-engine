@@ -36,8 +36,8 @@ public class ServerRpcTests
         RpcPeer rpcA = CreateServerPeer(clientId: 1);
         RpcPeer rpcB = CreateServerPeer(clientId: 1);
 
-        ServerPeer peerA = peers.Add(hostA, rpcA, isLocal: true);
-        ServerPeer peerB = peers.Add(hostB, rpcB, isLocal: false);
+        ServerPeer peerA = peers.GetOrAdd(hostA, rpcA, isLocal: true);
+        ServerPeer peerB = peers.GetOrAdd(hostB, rpcB, isLocal: false);
 
         Assert.NotEqual(peerA.GameId, peerB.GameId);
         Assert.True(peers.TryGet(hostA, 1, out ServerPeer foundA));
@@ -53,7 +53,7 @@ public class ServerRpcTests
     {
         var peers = new ServerPeers();
         var host = new FakeHost();
-        ServerPeer peer = peers.Add(host, CreateServerPeer(7), isLocal: false);
+        ServerPeer peer = peers.GetOrAdd(host, CreateServerPeer(7), isLocal: false);
 
         Assert.Same(peer, peers.Remove(host, 7));
         Assert.Null(peers.Remove(host, 7));
@@ -257,7 +257,7 @@ public class ServerRpcTests
         await PumpUntil(list, commands);
 
         RpcResult<ListLevelsResponse> listResult = await list;
-        Assert.True(listResult.IsSuccess);
+        Assert.True(listResult.IsSuccess, listResult.ErrorMessage);
         Assert.False(listResult.Value.CanCreateSave);
 
         Task<RpcResult<NewLevelResponse>> create = api.CreateLevelAsync(new NewLevelRequest
@@ -468,7 +468,7 @@ public class ServerRpcTests
     {
         var peers = new ServerPeers();
         var host = new FakeHost();
-        return peers.Add(host, CreateServerPeer(clientId), isLocal);
+        return peers.GetOrAdd(host, CreateServerPeer(clientId), isLocal);
     }
 
     private static RpcPeer CreateServerPeer(ulong clientId)

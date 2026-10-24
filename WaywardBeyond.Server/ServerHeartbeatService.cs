@@ -27,6 +27,7 @@ public sealed class ServerHeartbeatService(
     private readonly uint _lagWarnThreshold = (uint)Math.Max(1, config.Server.TickLagWarnThreshold.Get());
 
     private readonly HashSet<Uuid> _lagWarned = [];
+    private readonly List<Uuid> _lagWarnedSnapshot = [];
 
     private int _tps;
     private int _tpsFrames;
@@ -38,26 +39,31 @@ public sealed class ServerHeartbeatService(
         MeasureTps();
         uint simTick = simulationStep.CurrentSimTick;
 
-        foreach (ServerPeer peer in peers.Peers)
+        foreach (Uuid clientId in sessions.Clients)
         {
-            if (peer.World?.Store != store)
+            if (!peers.TryGet(clientId, out ServerPeer peer))
             {
                 continue;
             }
 
             while (peer.Heartbeats.TryDequeue(out ClientHeartbeatMessage heartbeat))
             {
-                TrackClientTick(peer.GameId, heartbeat.TickNumber, simTick);
+                TrackClientTick(clientId, heartbeat.TickNumber, simTick);
             }
         }
 
         //  A lag-warned client that disconnected stops sending heartbeats, so TrackClientTick can no
         //  longer retire the entry; prune it here instead so the set cannot grow with client churn.
-        foreach (Uuid clientId in _lagWarned.ToArray())
+        if (_lagWarned.Count > 0)
         {
-            if (!peers.TryGet(clientId, out _))
+            _lagWarnedSnapshot.Clear();
+            _lagWarnedSnapshot.AddRange(_lagWarned);
+            for (var index = 0; index < _lagWarnedSnapshot.Count; index++)
             {
-                _lagWarned.Remove(clientId);
+                if (!peers.TryGet(_lagWarnedSnapshot[index], out _))
+                {
+                    _lagWarned.Remove(_lagWarnedSnapshot[index]);
+                }
             }
         }
 
@@ -74,9 +80,9 @@ public sealed class ServerHeartbeatService(
             PlayerCount = (uint)sessions.Count,
         };
 
-        foreach (ServerPeer peer in peers.Peers)
+        foreach (Uuid clientId in sessions.Clients)
         {
-            if (peer.World?.Store == store)
+            if (peers.TryGet(clientId, out ServerPeer peer))
             {
                 peer.Client.ServerHeartbeat(outbound);
             }

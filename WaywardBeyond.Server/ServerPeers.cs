@@ -36,11 +36,6 @@ public sealed class ServerPeers
         }
     }
 
-    public ServerPeer Add(IRpcHost host, RpcPeer rpc, bool isLocal)
-    {
-        return GetOrAdd(host, rpc, isLocal);
-    }
-
     /// <summary>
     /// Returns the peer for one RPC client, creating it on first use. A handler can run before the
     /// server's connect event reaches the host, so the handler path is the first user in that race.

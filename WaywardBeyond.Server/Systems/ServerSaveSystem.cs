@@ -68,9 +68,9 @@ public sealed class ServerSaveSystem(
 
     private void HandleSaveRequests(DataStore store)
     {
-        foreach (ServerPeer peer in peers.Peers)
+        foreach (Uuid clientId in sessions.Clients)
         {
-            if (peer.World?.Store != store)
+            if (!peers.TryGet(clientId, out ServerPeer peer))
             {
                 continue;
             }
@@ -124,7 +124,7 @@ public sealed class ServerSaveSystem(
         }
 
         saveService.QueueSave(store);
-        BroadcastNotification(store, "notification.save.saving");
+        BroadcastNotification("notification.save.saving");
     }
 
     /// <summary>Broadcasts the outcome of every finished database write.</summary>
@@ -132,11 +132,11 @@ public sealed class ServerSaveSystem(
     {
         while (saveService.TryDequeueCompletion(out bool success))
         {
-            BroadcastNotification(store, success ? "notification.save.saved" : "notification.save.saving.failed");
+            BroadcastNotification(success ? "notification.save.saved" : "notification.save.saving.failed");
         }
     }
 
-    private void BroadcastNotification(DataStore store, string key)
+    private void BroadcastNotification(string key)
     {
         string levelName = saveService.CurrentLevel?.Name ?? string.Empty;
         var message = new NotificationMessage
@@ -146,9 +146,9 @@ public sealed class ServerSaveSystem(
             Args = [levelName],
         };
 
-        foreach (ServerPeer peer in peers.Peers)
+        foreach (Uuid clientId in sessions.Clients)
         {
-            if (peer.World?.Store == store)
+            if (peers.TryGet(clientId, out ServerPeer peer))
             {
                 peer.Client.Notification(message);
             }

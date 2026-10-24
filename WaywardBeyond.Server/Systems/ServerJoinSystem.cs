@@ -50,7 +50,7 @@ public sealed class ServerJoinSystem(
 
         //  Leaves run before joins so a player who returns to the menu and rejoins in the same tick
         //  has the old session torn down first.
-        foreach (Uuid clientId in joinQueue.DrainLeaves())
+        while (joinQueue.TryDequeueLeave(out Uuid clientId))
         {
             try
             {
@@ -63,7 +63,7 @@ public sealed class ServerJoinSystem(
         }
 
         //  Joins the world host pre-routed: it already bound the peer to this world.
-        foreach (ServerJoinQueue.JoinCall join in joinQueue.Drain())
+        while (joinQueue.TryDequeueJoin(out ServerJoinQueue.JoinCall join))
         {
             try
             {
@@ -85,7 +85,7 @@ public sealed class ServerJoinSystem(
     /// </summary>
     private void HandleDisconnects(DataStore store)
     {
-        foreach (Uuid clientId in joinQueue.DrainDisconnects())
+        while (joinQueue.TryDequeueDisconnect(out Uuid clientId))
         {
             try
             {

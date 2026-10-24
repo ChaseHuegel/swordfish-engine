@@ -90,7 +90,7 @@ public class ServerSkillSystemTests
             int player = Store.Alloc(new SkillStateComponent([]), new NetworkComponent());
             Player = player;
 
-            ServerPeer peer = Peers.Add(new FakeHost(), new RpcPeer(new FakeServerConnection(clientId: 1)), isLocal: true);
+            ServerPeer peer = Peers.GetOrAdd(new FakeHost(), new RpcPeer(new FakeServerConnection(clientId: 1)), isLocal: true);
             Sessions.Register(Store, player, peer.GameId, new Session(1));
 
             System = new ServerSkillSystem(Skills, Sessions, Peers, NullLogger<ServerSkillSystem>.Instance);

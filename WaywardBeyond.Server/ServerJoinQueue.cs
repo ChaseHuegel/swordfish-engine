@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NsdRpc;
@@ -28,12 +27,9 @@ public sealed class ServerJoinQueue
         _joins.Enqueue(new JoinCall(peer, request, completion, cancellationToken));
     }
 
-    public IEnumerable<JoinCall> Drain()
+    public bool TryDequeueJoin(out JoinCall join)
     {
-        while (_joins.TryDequeue(out JoinCall join))
-        {
-            yield return join;
-        }
+        return _joins.TryDequeue(out join);
     }
 
     public void EnqueueDisconnect(Uuid gameId)
@@ -41,12 +37,9 @@ public sealed class ServerJoinQueue
         _disconnects.Enqueue(gameId);
     }
 
-    public IEnumerable<Uuid> DrainDisconnects()
+    public bool TryDequeueDisconnect(out Uuid gameId)
     {
-        while (_disconnects.TryDequeue(out Uuid gameId))
-        {
-            yield return gameId;
-        }
+        return _disconnects.TryDequeue(out gameId);
     }
 
     public void EnqueueLeave(Uuid gameId)
@@ -54,12 +47,9 @@ public sealed class ServerJoinQueue
         _leaves.Enqueue(gameId);
     }
 
-    public IEnumerable<Uuid> DrainLeaves()
+    public bool TryDequeueLeave(out Uuid gameId)
     {
-        while (_leaves.TryDequeue(out Uuid gameId))
-        {
-            yield return gameId;
-        }
+        return _leaves.TryDequeue(out gameId);
     }
 
     /// <summary>One routed join waiting for the world tick.</summary>
