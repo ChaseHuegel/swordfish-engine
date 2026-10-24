@@ -6,6 +6,9 @@ public sealed class MeshRenderer : IHandle
 {
     public event EventHandler<EventArgs>? Disposed;
 
+    /// <inheritdoc/>
+    public bool IsDisposed { get; private set; }
+
     public RenderOptions RenderOptions { get; set; }
 
     public Mesh Mesh { get; }
@@ -30,6 +33,13 @@ public sealed class MeshRenderer : IHandle
 
     public void Dispose()
     {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        IsDisposed = true;
         Disposed?.Invoke(this, EventArgs.Empty);
+        GC.SuppressFinalize(this);
     }
 }
