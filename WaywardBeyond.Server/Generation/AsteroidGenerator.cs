@@ -14,7 +14,6 @@ namespace WaywardBeyond.Server.Generation;
 /// <summary>A type for generating voxel asteroid structures.</summary>
 internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, AsteroidConfig config)
 {
-    private readonly AsteroidConfig _config = config;
     private readonly Randomizer _randomizer = new(seed);
     private readonly SimplexPerlin _simplexPerlin = new(seed, NoiseQuality.Fast);
     private readonly Voxel[] _materialVoxels = ResolveMaterials(brickRegistry, config);
@@ -26,11 +25,11 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
         Voxel voxel = _materialVoxels[_randomizer.NextInt(_materialVoxels.Length)];
 
         int width = diameter / 2;
-        int radius = _randomizer.NextInt(Math.Max(1, width / _config.RadiusMinDivisor), width);
+        int radius = _randomizer.NextInt(Math.Max(1, width / config.RadiusMinDivisor), width);
         var origin = new Vector3(width);
-        int offset = _randomizer.NextInt(_config.NoiseOffsetRange);
-        float frequency = _randomizer.NextFloat() * _config.NoiseFrequencyRange + _config.NoiseFrequencyMin;
-        float amplitude = _randomizer.NextFloat() * _config.NoiseAmplitudeRange + _config.NoiseAmplitudeMin;
+        int offset = _randomizer.NextInt(config.NoiseOffsetRange);
+        float frequency = _randomizer.NextFloat() * config.NoiseFrequencyRange + config.NoiseFrequencyMin;
+        float amplitude = _randomizer.NextFloat() * config.NoiseAmplitudeRange + config.NoiseAmplitudeMin;
 
         for (var x = 0; x < diameter; x++)
         {
@@ -43,7 +42,7 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
 
                     float percentDistance = distance / radius;
 
-                    float value = _simplexPerlin.GetLayeredNoiseValue(_config.NoiseOctaves, frequency, amplitude, x + offset * diameter, y, z);
+                    float value = _simplexPerlin.GetLayeredNoiseValue(config.NoiseOctaves, frequency, amplitude, x + offset * diameter, y, z);
 
                     bool solid = percentDistance < value;
                     if (!solid)

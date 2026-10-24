@@ -10,13 +10,12 @@ namespace WaywardBeyond.Server.Permissions;
 /// </summary>
 public sealed class UserPermissionService(PermissionResolver resolver) : IUserPermissionService
 {
-    private readonly PermissionResolver _resolver = resolver;
     private readonly ConcurrentDictionary<Uuid, PermissionSet> _permissions = new();
 
     /// <inheritdoc/>
     public void Bind(Uuid clientId, in UserClaim claim, bool isHost)
     {
-        _permissions[clientId] = _resolver.Resolve(in claim, isHost);
+        _permissions[clientId] = resolver.Resolve(in claim, isHost);
     }
 
     /// <inheritdoc/>

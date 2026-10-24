@@ -13,13 +13,10 @@ public sealed class NetworkPublishSystem(
     SimulationStep simulationStep
 ) : IServerWorldSystem
 {
-    private readonly NetworkReplicationSystem _replication = replication;
-    private readonly SimulationStep _simulationStep = simulationStep;
-
     /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
-        _replication.SimTick = _simulationStep.CurrentSimTick;
-        _replication.PublishStage(delta, store);
+        replication.SimTick = simulationStep.CurrentSimTick;
+        replication.PublishStage(delta, store);
     }
 }

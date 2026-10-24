@@ -500,12 +500,11 @@ public sealed class NetworkReplicationSystem
 
     private struct StageInventory(uint sequenceNumber, in SlotMoveOp slotMove) : IForEach<NetworkComponent>
     {
-        private readonly uint _sequenceNumber = sequenceNumber;
         private readonly SlotMoveOp _slotMove = slotMove;
 
         public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
         {
-            net.StagedInventoryOps?.Stage(_sequenceNumber, in _slotMove);
+            net.StagedInventoryOps?.Stage(sequenceNumber, in _slotMove);
         }
     }
 

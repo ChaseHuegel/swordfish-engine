@@ -19,8 +19,6 @@ public sealed class ServerLevelManager(
     ILoggerFactory loggerFactory
 )
 {
-    private readonly ILevelCatalog _levelCatalog = levelCatalog;
-    private readonly PermissionResolver _resolver = resolver;
     private readonly ILogger _logger = loggerFactory.CreateLogger<ServerLevelManager>();
 
     /// <summary>Serves the save-listing call. Runs on the catalog worker.</summary>
@@ -28,7 +26,7 @@ public sealed class ServerLevelManager(
     {
         try
         {
-            Level[] levels = _levelCatalog.ListLevels();
+            Level[] levels = levelCatalog.ListLevels();
             return RpcResult<ListLevelsResponse>.Success(new ListLevelsResponse
             {
                 Levels = levels,
@@ -60,7 +58,7 @@ public sealed class ServerLevelManager(
 
         try
         {
-            bool success = _levelCatalog.Create(
+            bool success = levelCatalog.Create(
                 request.Name ?? string.Empty,
                 request.Seed ?? string.Empty,
                 request.GameMode,
@@ -83,13 +81,13 @@ public sealed class ServerLevelManager(
     /// <summary>True when the peer may create a level. A host always may.</summary>
     public bool CanCreate(ServerPeer peer)
     {
-        return _resolver.Resolve(peer.Claim, peer.IsLocal).HasPermission(GamePermissions.LEVEL_CREATE);
+        return resolver.Resolve(peer.Claim, peer.IsLocal).HasPermission(GamePermissions.LEVEL_CREATE);
     }
 
     /// <summary>True when the peer may delete a level. A host always may.</summary>
     public bool CanDelete(ServerPeer peer)
     {
-        return _resolver.Resolve(peer.Claim, peer.IsLocal).HasPermission(GamePermissions.LEVEL_DELETE);
+        return resolver.Resolve(peer.Claim, peer.IsLocal).HasPermission(GamePermissions.LEVEL_DELETE);
     }
 
     /// <summary>Deletes a level from the catalog. Runs off the server tick thread.</summary>
@@ -97,7 +95,7 @@ public sealed class ServerLevelManager(
     {
         try
         {
-            return _levelCatalog.Delete(levelGuid);
+            return levelCatalog.Delete(levelGuid);
         }
         catch (Exception ex)
         {

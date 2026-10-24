@@ -9,11 +9,9 @@ namespace WaywardBeyond.Server.Systems;
 /// </summary>
 public sealed class NetworkApplySystem(NetworkReplicationSystem replication) : IServerWorldSystem
 {
-    private readonly NetworkReplicationSystem _replication = replication;
-
     /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
-        _replication.ApplyStage(delta, store);
+        replication.ApplyStage(delta, store);
     }
 }

@@ -22,7 +22,6 @@ using AsteroidStructure = (Vector3 Position, int Radius);
 /// </summary>
 public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, LevelGeneratorConfig config)
 {
-    private readonly LevelGeneratorConfig _config = config;
     private readonly int _seed = seed;
     private readonly Randomizer _randomizer = new(seed);
     private readonly AsteroidGenerator _asteroidGenerator = new(brickRegistry, seed, config.Asteroid);
@@ -47,12 +46,12 @@ public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, Le
     /// <summary>Generates the level structures for the seed. Throws when placement cannot complete.</summary>
     public VoxelEntityData[] Generate()
     {
-        int asteroidCount = _config.AsteroidCount;
-        int asteroidMinRadius = _config.AsteroidMinRadius;
-        int asteroidMaxRadius = _config.AsteroidMaxRadius;
+        int asteroidCount = config.AsteroidCount;
+        int asteroidMinRadius = config.AsteroidMinRadius;
+        int asteroidMaxRadius = config.AsteroidMaxRadius;
 
-        int worldHeight = _config.WorldHeight;
-        int worldSpan = _config.WorldSpan;
+        int worldHeight = config.WorldHeight;
+        int worldSpan = config.WorldSpan;
 
         var asteroids = new List<AsteroidStructure>(asteroidCount);
         int attempts = 0;

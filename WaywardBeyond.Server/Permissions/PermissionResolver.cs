@@ -8,11 +8,9 @@ namespace WaywardBeyond.Server.Permissions;
 /// </summary>
 public sealed class PermissionResolver(PermissionPolicy policy)
 {
-    private readonly PermissionPolicy _policy = policy;
-
     /// <summary>Returns the effective permission set for a claim. A host gets every permission.</summary>
     public PermissionSet Resolve(in UserClaim claim, bool isHost)
     {
-        return isHost ? PermissionSet.AllowAll : _policy.GetPermissions(claim.UserId);
+        return isHost ? PermissionSet.AllowAll : policy.GetPermissions(claim.UserId);
     }
 }
