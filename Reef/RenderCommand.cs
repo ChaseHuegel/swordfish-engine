@@ -10,6 +10,8 @@ public readonly struct RenderCommand<TRendererData>(
     Vector4 color,
     Vector4 backgroundColor,
     CornerRadius cornerRadius,
+    BorderStyle border,
+    CornerCapStyle cornerCaps,
     FontOptions fontOptions,
     string? text,
     bool passthrough,
@@ -21,6 +23,8 @@ public readonly struct RenderCommand<TRendererData>(
     public readonly Vector4 Color = color;
     public readonly Vector4 BackgroundColor = backgroundColor;
     public readonly CornerRadius CornerRadius = cornerRadius;
+    public readonly BorderStyle Border = border;
+    public readonly CornerCapStyle CornerCaps = cornerCaps;
     public readonly FontOptions FontOptions = fontOptions;
     public readonly string? Text = text;
     public readonly TRendererData? RendererData = rendererData;
