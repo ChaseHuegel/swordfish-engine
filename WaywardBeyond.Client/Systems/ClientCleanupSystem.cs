@@ -54,6 +54,11 @@ internal sealed class ClientCleanupSystem : IEntitySystem
                 return;
             }
 
+            if (store.TryGet(entity, out MeshRendererCleanup cleanup))
+            {
+                cleanup.DisposeMeshRenderers();
+            }
+
             if (store.TryGet(entity, out MeshRendererComponent mesh) && mesh.MeshRenderer != null)
             {
                 mesh.MeshRenderer.Dispose();

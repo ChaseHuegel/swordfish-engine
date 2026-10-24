@@ -36,7 +36,7 @@ is not part of this workflow.
 - [ ] [The voxel container leaks live voxel arrays](/docs/issues/0071-voxel-container-leaks-live-arrays.md) — `VoxelCodec.Encode` still reuses the caller's chunk arrays
 - [ ] [The two voxel sample producers disagree](/docs/issues/0072-voxel-sample-producers-disagree.md) — one rotates neighbours by voxel orientation and one does not; one leaves the coordinate fields at zero
 - [ ] [Voxel chunks are unbounded and chunk coordinates truncate](/docs/issues/0073-unbounded-voxel-chunks.md) — a `short` chunk cast wraps a distant write into a resident chunk, and `_chunks` never shrinks
-- [ ] [Voxel edits leak mesh renderers and rebuild collision shapes](/docs/issues/0083-voxel-edit-memory-leak.md) — the cleanup gate never runs, so every edit leaks a mesh and a render target, and the Jolt compound is rebuilt without deterministic shape disposal ([#612](https://github.com/ChaseHuegel/swordfish-engine/issues/612))
+- [x] [Voxel edits leak mesh renderers and rebuild collision shapes](/docs/issues/0083-voxel-edit-memory-leak.md) — the cleanup gate never runs, so every edit leaks a mesh and a render target, and the Jolt compound is rebuilt without deterministic shape disposal ([#612](https://github.com/ChaseHuegel/swordfish-engine/issues/612))
 
 ### Improvement
 
@@ -64,5 +64,6 @@ is not part of this workflow.
 - [ ] [Harden the voxel module](/docs/issues/0081-voxels-tech-debt.md) — unmasked `ShapeLight` nibbles, a heavyweight transitive `Data` dependency, and an undocumented angle unit
 - [ ] [Unify the game data version](/docs/issues/0084-unify-data-version.md) — the server catalog hardcodes a `Data.Version` that duplicates `WaywardBeyond.Version` and can drift
 - [ ] [nsd-rpc notification proxies swallow the send result](/docs/issues/0085-notification-proxy-send-result.md) — the generated proxy discards `RpcPeer.Notify`, so the server bypasses it to detect a rejected send
+- [ ] [Reduce the cost of a voxel edit rebuild](/docs/issues/0086-incremental-voxel-rebuild.md) — every edit remeshes the whole structure, collides every solid voxel, and draws unseen structures
 
 ### Research

@@ -106,6 +106,11 @@ the local `PendingInteractionComponent.Queue` by
   **revert** (the server rejected it).
 - unpredicted edits (remote witnesses) apply directly.
 
+A confirmed or reconciled edit marks the component dirty.
+`VoxelEntityRebuildSystem` rebuilds the mesh and collider on the ECS thread. The
+rebuild queues the previous renderers for disposal. See
+[resource-lifetime](resource-lifetime.md).
+
 ## Interaction handlers
 
 The pipeline that runs each stage, the priority bands, and the four decisions live in
