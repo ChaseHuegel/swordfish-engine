@@ -11,6 +11,7 @@ using WaywardBeyond.Server.Components;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Voxels;
@@ -125,6 +126,9 @@ public sealed class LevelSaveService : IDisposable
     {
         UnloadAction action = new();
         store.Query<NetworkComponent, UnloadAction>(0f, ref action);
+
+        //  A queued capture still targets the storage it came from, so drain it before the handle closes.
+        AwaitPendingSave();
 
         lock (_saveLock)
         {
@@ -289,23 +293,24 @@ public sealed class LevelSaveService : IDisposable
 
     private void QueuePersistLevelMeta(in Level level)
     {
+        ILevelStorage? storage = _levelStorage;
+        if (storage == null)
+        {
+            return;
+        }
+
         Level levelCopy = level;
         lock (_saveLock)
         {
-            _pendingSave = _pendingSave.ContinueWith(_ => PersistLevelMeta(levelCopy));
+            _pendingSave = _pendingSave.ContinueWith(_ => PersistLevelMeta(storage, levelCopy));
         }
     }
 
-    private void PersistLevelMeta(in Level level)
+    private void PersistLevelMeta(ILevelStorage storage, in Level level)
     {
         lock (_saveLock)
         {
-            if (_levelStorage == null)
-            {
-                return;
-            }
-
-            Result result = _levelStorage.Save(level);
+            Result result = storage.Save(level);
             if (!result.Success)
             {
                 _logger.LogError(result.Exception, "Failed to persist level metadata for \"{guid}\": {message}", level.Guid, result.Message);
@@ -329,6 +334,9 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     private CapturedSave Capture(DataStore store)
     {
+        ILevelStorage storage = _levelStorage
+            ?? throw new InvalidOperationException("A level must be loaded before it can be captured.");
+
         //  Stamp and carry the level metadata so the save persists the aggregate playtime.
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         CurrentLevel = StampMeta(CurrentLevel!.Value, nowMs);
@@ -348,7 +356,7 @@ public sealed class LevelSaveService : IDisposable
         };
         store.Query<OwnedCharacterComponent, TransformComponent, CaptureLocationAction>(0f, ref locationAction);
 
-        return new CapturedSave(CurrentLevel.Value, entities.ToArray(), locations.ToArray());
+        return new CapturedSave(storage, CurrentLevel.Value, entities.ToArray(), locations.ToArray());
     }
 
     private void Persist(in CapturedSave save)
@@ -364,19 +372,16 @@ public sealed class LevelSaveService : IDisposable
 
     private bool PersistLocked(in CapturedSave save)
     {
-        if (_levelStorage == null)
-        {
-            return false;
-        }
-
         try
         {
-            Result result = _levelStorage.Save(save.Level, save.Entities, save.Locations);
+            //  The capture owns the storage it was taken from, so a queued save can never land in
+            //  whichever level happens to be loaded when the worker runs.
+            Result result = save.Storage.Save(save.Level, save.Entities, save.Locations);
             return result.Success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to persist level save for level \"{level}\".", CurrentLevelGuid);
+            _logger.LogError(ex, "Failed to persist level save for level \"{level}\".", save.Level.Guid);
             return false;
         }
     }
@@ -418,6 +423,7 @@ public sealed class LevelSaveService : IDisposable
         public void Execute(float delta, DataStore store, int entity, in OwnedCharacterComponent owned, in TransformComponent transform)
         {
             Uuid uuid = store.GetUuid(entity);
+            GameMode gameMode = store.TryGet(entity, out GameModeComponent mode) ? mode.Mode : GameMode.Adventure;
             var data = new CharacterEntityData(
                 uuid.ToValue(),
                 transform.Position.X,
@@ -427,18 +433,19 @@ public sealed class LevelSaveService : IDisposable
                 transform.Orientation.Y,
                 transform.Orientation.Z,
                 transform.Orientation.W,
-                _ScaleX: 1,
-                _ScaleY: 1,
-                _ScaleZ: 1,
-                _GameMode: 0
+                _ScaleX: transform.Scale.X,
+                _ScaleY: transform.Scale.Y,
+                _ScaleZ: transform.Scale.Z,
+                _GameMode: gameMode
             );
 
             Entries.Add(data);
         }
     }
 
-    private readonly struct CapturedSave(in Level level, in VoxelEntityData[] entities, in CharacterEntityData[] locations)
+    private readonly struct CapturedSave(in ILevelStorage storage, in Level level, in VoxelEntityData[] entities, in CharacterEntityData[] locations)
     {
+        public readonly ILevelStorage Storage = storage;
         public readonly Level Level = level;
         public readonly VoxelEntityData[] Entities = entities;
         public readonly CharacterEntityData[] Locations = locations;

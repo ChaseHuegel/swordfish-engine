@@ -71,14 +71,16 @@ not deserialize or migrate.
 authoritative world on the server thread and submits the blocking writes to a
 worker. It tracks the in-flight save. `Flush` awaits it and then writes, so a
 pending capture can never land after a newer snapshot. `Dispose` awaits the
-pending save and closes the store handle. The world unload path is:
-`Unload` disposes the store, a level switch opens the next level through the
-catalog, and server shutdown flushes each world before its container is
-disposed.
+pending save and closes the store handle. A capture carries the storage it was
+taken from, so a queued write always lands in its own level database. The world
+unload path is: `Unload` drains the pending save, disposes the store, a level
+switch opens the next level through the catalog, and server shutdown flushes
+each world before its container is disposed.
 
 `MarkActive` and `EndSessionStamp` are small writes that only touch the `level`
-row. Character locations are captured with the full save and upserted with it.
-The playtime stamping rules are unchanged (`PlayClock.Advance`).
+row. Character locations are captured with the full save and upserted with it,
+including the character's game mode and scale. The playtime stamping rules are
+unchanged (`PlayClock.Advance`).
 
 ### Server autosave
 
