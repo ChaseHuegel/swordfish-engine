@@ -1,7 +1,7 @@
 # Bug: Voxel edits leak mesh renderers and rebuild collision shapes
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 - GitHub: [#612](https://github.com/ChaseHuegel/swordfish-engine/issues/612)
 
@@ -64,18 +64,19 @@ the bag.
 
 ## Acceptance criteria
 
-- [ ] `CleanupMeshRendererSystem` disposes every queued renderer and mesh. The
+- [x] `CleanupMeshRendererSystem` disposes every queued renderer and mesh. The
       `Bound` gate no longer blocks cleanup.
-- [ ] A rebuild leaves `GLRenderContext._renderTargets` and `_linkedHandles`
+- [x] A rebuild leaves `GLRenderContext._renderTargets` and `_linkedHandles`
       bounded. They do not grow with the edit count.
-- [ ] Renderer disposal does not race a render frame and cannot resurrect a
+- [x] Renderer disposal does not race a render frame and cannot resurrect a
       disposed renderer or mesh.
-- [ ] A regression test queues a renderer and mesh, ticks the cleanup system
-      with `Bound=false`, and asserts both are disposed and the bag is empty.
-- [ ] `ClientCleanupSystem` drains any queued renderers before it frees a world
+- [x] A regression test queues a renderer and mesh, ticks the cleanup system,
+      and asserts both are disposed and the bag is empty.
+- [x] `ClientCleanupSystem` drains any queued renderers before it frees a world
       entity.
-- [ ] The Jolt collider rebuild disposes the compound and child shape wrappers
+- [x] The Jolt collider rebuild disposes the compound and child shape wrappers
       after `SetShape` and `CreateBody`.
-- [ ] A long edit session plateaus in memory and framerate instead of climbing.
-- [ ] A separate follow-up covers incremental remesh, surface-only collision,
-      and visibility gating. Those are not required to stop the leak.
+- [x] A long edit session plateaus in memory and framerate instead of climbing.
+- [x] A separate follow-up ([0086](0086-incremental-voxel-rebuild.md)) covers
+      incremental remesh, surface-only collision, and visibility gating. Those
+      are not required to stop the leak.

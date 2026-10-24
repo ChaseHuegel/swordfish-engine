@@ -1,31 +1,21 @@
 using Swordfish.ECS;
-using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
 
 namespace WaywardBeyond.Client.Systems;
 
 internal sealed class CleanupMeshRendererSystem : IEntitySystem
 {
-    private struct ForEachAction : IForEach<MeshRendererCleanup, MeshRendererComponent>
+    private struct ForEachAction : IForEach<MeshRendererCleanup>
     {
-        public void Execute(float delta, DataStore store, int entity, in MeshRendererCleanup meshRendererCleanup, in MeshRendererComponent meshRendererComponent)
+        public void Execute(float delta, DataStore store, int entity, in MeshRendererCleanup meshRendererCleanup)
         {
-            if (!meshRendererComponent.Bound)
-            {
-                return;
-            }
-
-            while (meshRendererCleanup.MeshRenderers.TryTake(out MeshRenderer? meshRenderer))
-            {
-                meshRenderer.Dispose();
-                meshRenderer.Mesh.Dispose();
-            }
+            meshRendererCleanup.DisposeMeshRenderers();
         }
     }
 
     public void Tick(float delta, DataStore store)
     {
         ForEachAction action = default;
-        store.Query<MeshRendererCleanup, MeshRendererComponent, ForEachAction>(delta, ref action);
+        store.Query<MeshRendererCleanup, ForEachAction>(delta, ref action);
     }
 }

@@ -33,6 +33,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Asset definition TOML formats (items, bricks, materials, skills) | [specs/asset-definitions](specs/asset-definitions.md) |
 | Brick identity, voxel ids, the palette, and data versioning | [specs/brick-identity](specs/brick-identity.md) |
 | Voxel container: chunk addressing, sampling, out-of-bounds, palette counts | [specs/voxels](specs/voxels.md) |
+| Native resource lifetime: GPU handle and Jolt shape disposal | [specs/resource-lifetime](specs/resource-lifetime.md) |
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
 | Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
