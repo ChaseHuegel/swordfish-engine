@@ -19,9 +19,9 @@ Disposal runs on the GL thread. The `Disposed` callback posts one work item to
 the GL synchronization context. That work item removes the map entry and
 disposes the GL handle (`GLRenderContext.cs:66-82`). The mapping must not change
 on the ECS thread, because the render thread also reads the map. A disposed
-handle cannot create a new GL handle, because the binder checks `IsDisposed`
-before it creates anything (`GLRenderContext.cs:182-187`, `:227-232`).
-
+A disposed mesh or renderer cannot create a new GL handle. The binder checks
+`IsDisposed` before it creates anything (`GLRenderContext.cs:182-187`,
+`:227-232`).
 A mesh renderer owns one render target. The renderer's `Disposed` event removes
 the target from `_renderTargets` (`GLRenderContext.cs:270-274`). The target
 leaves the draw list in the tick that disposes the renderer.
