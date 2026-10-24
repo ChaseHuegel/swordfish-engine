@@ -101,6 +101,7 @@ public sealed class ServerJoinSystem(
     private void HandleDisconnect(Uuid clientId, DataStore store)
     {
         permissions.Unbind(clientId);
+        replication.CancelStream(clientId);
 
         if (sessions.TryGetEntity(clientId, out int entity))
         {
@@ -130,6 +131,8 @@ public sealed class ServerJoinSystem(
     /// </summary>
     private void HandleLeave(Uuid clientId, DataStore store)
     {
+        replication.CancelStream(clientId);
+
         if (sessions.TryGetEntity(clientId, out int entity))
         {
             if (store.TryGet(entity, out PhysicsComponent physics))
@@ -198,6 +201,8 @@ public sealed class ServerJoinSystem(
 
         if (sessions.TryGetEntity(clientId, out int existing))
         {
+            replication.CancelStream(clientId);
+
             if (store.TryGet(existing, out PhysicsComponent physics))
             {
                 physics.Dispose();

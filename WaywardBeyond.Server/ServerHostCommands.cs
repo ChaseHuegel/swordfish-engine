@@ -273,6 +273,15 @@ public sealed class ServerHostCommands(
             return true;
         }
 
+        int timeoutMs = Math.Max(1, config.Protocol.JoinStreamTimeoutMs.Get());
+        if (Environment.TickCount64 - stream.StartedMs >= timeoutMs)
+        {
+            logger.LogWarning("Level stream to client {clientId} exceeded {timeout} ms.", peer.GameId, timeoutMs);
+            Abort(stream, GameRpcErrors.STREAM_FAILED, "the stream timed out");
+            peer.Rpc.Close();
+            return true;
+        }
+
         int sent = 0;
         while (true)
         {
@@ -504,6 +513,7 @@ public sealed class ServerHostCommands(
         public CancellationToken CancellationToken { get; } = cancellationToken;
         public ServerWorld World { get; } = world;
         public List<int> Entities { get; } = entities;
+        public long StartedMs { get; } = Environment.TickCount64;
         public int EntityIndex { get; set; }
         public int PartIndex { get; set; }
         public int PartCount { get; set; }

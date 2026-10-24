@@ -195,6 +195,59 @@ public class ServerWorldIntegrationTests
         ownerConnection.Close();
     }
 
+    [Fact]
+    public async Task JoinStreamGateIsClearedByTheStreamAndByLeave()
+    {
+        using TestServer server = CreateServer();
+        server.WorldHost.Run();
+        server.RpcHost.Run();
+
+        var connection = new LoopbackRpcClientConnection(server.Loopback);
+        await connection.ConnectAsync();
+        var registry = new RpcRegistry();
+        registry.Freeze();
+        var api = new GameServerApiClient(new RpcClient(connection, registry));
+
+        JoinRequest request = CreateJoinRequest(123);
+        RpcResult<JoinAccept> join = await api.JoinAsync(request).WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(join.IsSuccess, join.ErrorMessage);
+
+        ServerWorld world = Assert.IsType<ServerWorld>(server.WorldHost.FindWorld(string.Empty));
+        Assert.Equal(1, world.Replication.StreamingClientCount);
+
+        var sink = new CollectingSink();
+        RpcResult<LevelStreamComplete> stream = await api
+            .StreamLevelAsync(new StreamLevelRequest { LevelGuid = string.Empty }, sink)
+            .WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(stream.IsSuccess, stream.ErrorMessage);
+        Assert.True(
+            await WaitForAsync(() => world.Replication.StreamingClientCount == 0),
+            "The stream complete must lift the join gate.");
+
+        //  A rejoin opens a new gate; leaving must lift it without a stream ever starting.
+        RpcResult<JoinAccept> rejoin = await api.JoinAsync(request).WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(rejoin.IsSuccess, rejoin.ErrorMessage);
+        Assert.Equal(1, world.Replication.StreamingClientCount);
+
+        api.LeaveGame(new LeaveGameRequest());
+        Assert.True(
+            await WaitForAsync(() => world.Replication.StreamingClientCount == 0),
+            "Leaving must lift the join gate.");
+
+        connection.Close();
+    }
+
+    private static async Task<bool> WaitForAsync(Func<bool> condition, int timeoutMs = 5000)
+    {
+        long deadline = Environment.TickCount64 + timeoutMs;
+        while (!condition() && Environment.TickCount64 < deadline)
+        {
+            await Task.Delay(10);
+        }
+
+        return condition();
+    }
+
     private static void SeedVoxelEntity(ServerWorld world)
     {
         var voxelObject = new VoxelObject(chunkSize: 16);

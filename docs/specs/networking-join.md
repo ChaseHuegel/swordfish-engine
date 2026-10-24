@@ -97,9 +97,13 @@ disconnect, so no menu request or join waits forever.
 `JoinAsync` and `StreamLevelAsync`. A timeout or a failed result cancels the
 calls and runs the normal disconnect teardown.
 
-The server bounds the other side: the RPC call deadline resets on every stream
-chunk, and a peer that cannot drain its send backlog is closed with
-`BacklogLimit`. See [rpc](networking-rpc.md#backlog-and-idle-policy).
+The server bounds the other side with the same key. The RPC call deadline resets
+on every stream chunk, and a peer that cannot drain its send backlog is closed
+with `BacklogLimit` (see [rpc](networking-rpc.md#backlog-and-idle-policy)). A
+stream that exceeds `Protocol.JoinStreamTimeoutMs` aborts and closes the peer.
+A client that opens the gate at join and never starts a stream is reaped on the
+same deadline. Leaving or disconnecting clears the gate immediately, so an
+abandoned join cannot leak a gated session.
 
 ## Character ownership nuance
 

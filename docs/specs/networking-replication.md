@@ -32,7 +32,10 @@ One subject: dirty-driven replication between server and client.
 - **Join-stream gating.** `BeginStream` opens when the join seats the session.
   The publish stage sends no per-tick deltas until `EndStream` after the level
   stream completes. The one-shot full-sync publish is exempt and stays the
-  client's first snapshot.
+  client's first snapshot. `CancelStream` lifts the gate when a client leaves,
+  disconnects, or rejoins, and a gate older than
+  `Protocol.JoinStreamTimeoutMs` closes its peer, so the table tracks live
+  joins only.
 - **World/voxel bodies.** Server-authoritative structures carrying a
   `NetworkComponent` flow through the same path. The Jolt sync writes their
   `TransformComponent`/`PhysicsComponent` only when the body state actually

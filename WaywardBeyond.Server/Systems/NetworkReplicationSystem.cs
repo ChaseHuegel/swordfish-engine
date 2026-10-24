@@ -45,8 +45,10 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
     //  Clients whose join world stream is in flight: they receive no per-tick deltas (which would pile
     //  up unapplied while the client is Loading) until the stream complete has been enqueued. The
-    //  full-sync publish is exempt and remains the client's first snapshot.
-    private readonly HashSet<Uuid> _streamingClients = [];
+    //  full-sync publish is exempt and remains the client's first snapshot. Each entry carries the tick
+    //  time the gate opened, so a client that never starts or finishes its stream is reaped.
+    private readonly Dictionary<Uuid, long> _streamingClients = [];
+    private readonly List<Uuid> _expiredStreams = [];
 
     //  Stream-complete notices queued by the join system; applied at the END of the publish stage so
     //  the tick that enqueues the complete still publishes no deltas.
@@ -103,7 +105,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// <summary>Marks a client's join world stream as in flight: no per-tick deltas until <see cref="EndStream"/>.</summary>
     public void BeginStream(Uuid clientId)
     {
-        _streamingClients.Add(clientId);
+        _streamingClients[clientId] = Environment.TickCount64;
     }
 
     /// <summary>
@@ -113,6 +115,54 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     public void EndStream(Uuid clientId)
     {
         _streamEnds.Enqueue(clientId);
+    }
+
+    /// <summary>
+    /// Lifts a client's streaming gate immediately, without a publish. Called when a client leaves or
+    /// disconnects before its stream completes, so the gate table cannot grow with abandoned joins.
+    /// </summary>
+    public void CancelStream(Uuid clientId)
+    {
+        _streamingClients.Remove(clientId);
+        _fullSync.Remove(clientId);
+    }
+
+    /// <summary>The number of clients whose join stream is still gated.</summary>
+    internal int StreamingClientCount => _streamingClients.Count;
+
+    private void ExpireStalledStreams()
+    {
+        if (_streamingClients.Count == 0)
+        {
+            return;
+        }
+
+        int timeoutMs = Math.Max(1, _config.Protocol.JoinStreamTimeoutMs.Get());
+        long now = Environment.TickCount64;
+
+        _expiredStreams.Clear();
+        foreach ((Uuid clientId, long startedMs) in _streamingClients)
+        {
+            if (now - startedMs >= timeoutMs)
+            {
+                _expiredStreams.Add(clientId);
+            }
+        }
+
+        for (var index = 0; index < _expiredStreams.Count; index++)
+        {
+            Uuid clientId = _expiredStreams[index];
+            _streamingClients.Remove(clientId);
+            _fullSync.Remove(clientId);
+
+            if (_peers.TryGet(clientId, out ServerPeer peer))
+            {
+                _logger.LogWarning(
+                    "Client {clientId} did not complete its join stream within {timeout} ms; closing the peer.",
+                    clientId, timeoutMs);
+                peer.Rpc.Close();
+            }
+        }
     }
 
     public void Tick(float delta, DataStore store)
@@ -184,6 +234,10 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// </summary>
     public void PublishStage(float delta, DataStore store)
     {
+        //  A client that joined but never streamed would otherwise hold its gate forever. Reap it on
+        //  the tick, not the publish cadence, so the check runs even when nothing else is published.
+        ExpireStalledStreams();
+
         //  Snapshot cadence: publish once per SnapshotHz, measured from the tick deltas so it does not
         //  depend on the server tick rate. Subtracting, not resetting, keeps the average exact. All
         //  publish effects ride the cadence, so nothing on the wire waits more than one interval.
@@ -253,7 +307,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             {
                 //  A joining client's stream is still in flight: no per-tick deltas until the stream
                 //  complete has been enqueued (the full-sync publish above remains its first snapshot).
-                if (_streamingClients.Contains(clientId))
+                if (_streamingClients.ContainsKey(clientId))
                 {
                     continue;
                 }
