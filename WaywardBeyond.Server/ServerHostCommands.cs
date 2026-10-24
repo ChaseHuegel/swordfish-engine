@@ -33,6 +33,12 @@ public sealed class ServerHostCommands(
     private readonly ConcurrentQueue<HostCall> _calls = new();
     private readonly List<ActiveStream> _streams = [];
 
+    //  Level catalog work (list, create, delete) is serialized here instead of on the server tick:
+    //  generation and the SQLite writes can take hundreds of milliseconds, and the catalog is not
+    //  safe to touch from two threads. One chain keeps catalog access single-threaded.
+    private Task _catalogTail = Task.CompletedTask;
+    private readonly Lock _catalogLock = new();
+
     /// <summary>Drains host calls and advances every active level stream. Called on the server thread.</summary>
     public void Tick(ServerWorldHost host)
     {
@@ -60,7 +66,18 @@ public sealed class ServerHostCommands(
     {
         var completion = NewCompletion<ListLevelsResponse>();
         RegisterCancellation(cancellationToken, completion);
-        _calls.Enqueue(new ListLevelsCall(peer, completion, cancellationToken));
+
+        RunOnCatalogWorker(() =>
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                completion.TrySetResult(RpcResult<ListLevelsResponse>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
+                return;
+            }
+
+            completion.TrySetResult(levelManager.List(peer));
+        });
+
         return completion.Task;
     }
 
@@ -71,7 +88,18 @@ public sealed class ServerHostCommands(
     ) {
         var completion = NewCompletion<NewLevelResponse>();
         RegisterCancellation(cancellationToken, completion);
-        _calls.Enqueue(new CreateLevelCall(peer, request, completion, cancellationToken));
+
+        RunOnCatalogWorker(() =>
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                completion.TrySetResult(RpcResult<NewLevelResponse>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
+                return;
+            }
+
+            completion.TrySetResult(levelManager.Create(peer, request));
+        });
+
         return completion.Task;
     }
 
@@ -134,28 +162,6 @@ public sealed class ServerHostCommands(
         peer.World?.JoinQueue.EnqueueLeave(peer.GameId);
     }
 
-    private void HandleListLevels(in ListLevelsCall call)
-    {
-        if (call.CancellationToken.IsCancellationRequested)
-        {
-            call.Completion.TrySetResult(RpcResult<ListLevelsResponse>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
-            return;
-        }
-
-        call.Completion.TrySetResult(levelManager.List(call.Peer));
-    }
-
-    private void HandleCreateLevel(in CreateLevelCall call)
-    {
-        if (call.CancellationToken.IsCancellationRequested)
-        {
-            call.Completion.TrySetResult(RpcResult<NewLevelResponse>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
-            return;
-        }
-
-        call.Completion.TrySetResult(levelManager.Create(call.Peer, call.Request));
-    }
-
     private void HandleDeleteLevel(ServerWorldHost host, in DeleteLevelCall call)
     {
         if (call.CancellationToken.IsCancellationRequested)
@@ -176,8 +182,17 @@ public sealed class ServerHostCommands(
 
         try
         {
-            bool success = host.DeleteLevel(call.Request.LevelGuid ?? string.Empty);
-            call.Completion.TrySetResult(RpcResult<DeleteLevelResponse>.Success(new DeleteLevelResponse { Success = success }));
+            //  The world teardown mutates the host's world table, so it stays on this thread. The
+            //  catalog delete is submitted to the catalog worker and completes the caller there.
+            string levelGuid = call.Request.LevelGuid ?? string.Empty;
+            TaskCompletionSource<RpcResult<DeleteLevelResponse>> completion = call.Completion;
+            host.UnloadLevel(levelGuid);
+
+            RunOnCatalogWorker(() =>
+            {
+                bool success = levelManager.Delete(levelGuid);
+                completion.TrySetResult(RpcResult<DeleteLevelResponse>.Success(new DeleteLevelResponse { Success = success }));
+            });
         }
         catch (Exception ex)
         {
@@ -386,6 +401,32 @@ public sealed class ServerHostCommands(
         return new TaskCompletionSource<RpcResult<T>>(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
+    /// <summary>
+    /// Chains one catalog operation onto the single catalog worker. The chain is serialized so the
+    /// catalog stays single-threaded without occupying the server tick.
+    /// </summary>
+    private void RunOnCatalogWorker(Action work)
+    {
+        lock (_catalogLock)
+        {
+            _catalogTail = _catalogTail.ContinueWith(
+                _ =>
+                {
+                    try
+                    {
+                        work();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Unhandled exception in the level catalog worker.");
+                    }
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default);
+        }
+    }
+
     private static void RegisterCancellation<T>(CancellationToken token, TaskCompletionSource<RpcResult<T>> completion)
     {
         if (!token.CanBeCanceled)
@@ -406,40 +447,6 @@ public sealed class ServerHostCommands(
         public override void Execute(ServerHostCommands owner, ServerWorldHost host)
         {
             owner.HandleLeave(peer);
-        }
-    }
-
-    private sealed class ListLevelsCall(
-        ServerPeer peer,
-        TaskCompletionSource<RpcResult<ListLevelsResponse>> completion,
-        CancellationToken cancellationToken
-    ) : HostCall
-    {
-        public ServerPeer Peer { get; } = peer;
-        public TaskCompletionSource<RpcResult<ListLevelsResponse>> Completion { get; } = completion;
-        public CancellationToken CancellationToken { get; } = cancellationToken;
-
-        public override void Execute(ServerHostCommands owner, ServerWorldHost host)
-        {
-            owner.HandleListLevels(this);
-        }
-    }
-
-    private sealed class CreateLevelCall(
-        ServerPeer peer,
-        NewLevelRequest request,
-        TaskCompletionSource<RpcResult<NewLevelResponse>> completion,
-        CancellationToken cancellationToken
-    ) : HostCall
-    {
-        public ServerPeer Peer { get; } = peer;
-        public NewLevelRequest Request { get; } = request;
-        public TaskCompletionSource<RpcResult<NewLevelResponse>> Completion { get; } = completion;
-        public CancellationToken CancellationToken { get; } = cancellationToken;
-
-        public override void Execute(ServerHostCommands owner, ServerWorldHost host)
-        {
-            owner.HandleCreateLevel(this);
         }
     }
 

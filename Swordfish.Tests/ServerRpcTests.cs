@@ -2,6 +2,7 @@
 using System;
 using System.Buffers.Binary;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -114,6 +115,24 @@ public class ServerRpcTests
 
         Assert.True(result.IsSuccess);
         Assert.True(result.Value.Success);
+        Assert.Equal(1, catalog.Created);
+    }
+
+    [Fact]
+    public async Task CreateLevelCompletesWithoutAServerTick()
+    {
+        var catalog = new FakeLevelCatalog();
+        ServerHostCommands commands = CreateHostCommands(catalog, out _, out _);
+        ServerPeer peer = CreateGamePeer(clientId: 9, isLocal: true);
+
+        //  Catalog work must not depend on the tick: generation and the store write are expensive
+        //  enough to stall every live world if the server thread did them.
+        RpcResult<NewLevelResponse> created = await commands
+            .CreateLevelAsync(peer, new NewLevelRequest { Name = "OffTick", Seed = "1", GameMode = 0 }, CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(created.IsSuccess, created.ErrorMessage);
+        Assert.True(created.Value.Success);
         Assert.Equal(1, catalog.Created);
     }
 

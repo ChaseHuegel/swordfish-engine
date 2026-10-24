@@ -91,11 +91,12 @@ unload path flushes it.
 
 ## Level delete
 
-A menu-time delete is an RPC call. `ServerHostCommands` handles it on the
-server thread and calls `ServerWorldHost.DeleteLevel`. A loaded level is torn
+A menu-time delete is an RPC call. `ServerHostCommands` unloads the world on the
+server thread through `ServerWorldHost.UnloadLevel`. A loaded level is torn
 down without a final save, because a queued save would recreate the files after
-deletion. Bound peers lose their world binding. The catalog then deletes the
-level directory. The call returns `RpcResult<DeleteLevelResponse>`.
+deletion. Bound peers lose their world binding. `ServerLevelManager` then
+deletes the level directory on the catalog worker. The call returns
+`RpcResult<DeleteLevelResponse>`.
 
 ## Client facade
 

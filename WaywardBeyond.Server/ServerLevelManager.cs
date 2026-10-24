@@ -84,4 +84,18 @@ public sealed class ServerLevelManager(
     {
         return _resolver.Resolve(peer.Claim, peer.IsLocal).HasPermission(GamePermissions.LEVEL_DELETE);
     }
+
+    /// <summary>Deletes a level from the catalog. Runs off the server tick thread.</summary>
+    public bool Delete(string levelGuid)
+    {
+        try
+        {
+            return _levelCatalog.Delete(levelGuid);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete level {level}.", levelGuid);
+            return false;
+        }
+    }
 }

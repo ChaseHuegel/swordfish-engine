@@ -209,8 +209,10 @@ order, off the caller's thread.
 - `ServerHandlers` only reads the context and enqueues. No handler touches a
   `DataStore`.
 - `ServerHostCommands` runs on the server thread. It routes joins and leaves,
-  serves menu calls, and paces level streams. `ILevelCatalog` access stays
-  single-threaded.
+  unloads worlds for a menu-time delete, and paces level streams. Level catalog
+  work (list, create, delete) is serialized on one catalog worker, so the
+  catalog stays single-threaded and the tick never waits on generation or the
+  store.
 - In-world save calls stay in the world tick. `ServerSaveSystem` completes the
   caller's result on the server thread.
 - `ClientHandlers` only enqueues. The client ECS thread drains

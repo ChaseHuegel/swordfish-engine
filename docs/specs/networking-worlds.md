@@ -26,10 +26,10 @@ down the first world.
    persisted in the background), peer bindings cleared, world container
    disposed.
 6. A late join recreates the world before any other processing of that peer.
-7. A menu-time delete runs on the server thread. `ServerWorldHost.DeleteLevel`
-   disposes the loaded world without a final save, then removes the level from
-   the `ILevelCatalog`. The write is skipped because it would recreate the
-   removed files.
+7. A menu-time delete unloads the world on the server thread
+   (`ServerWorldHost.UnloadLevel`) without a final save, then removes the level
+   from the `ILevelCatalog` on the catalog worker. The write is skipped because
+   it would recreate the removed files.
 
 ## DI: per-world graphs from module templates
 
@@ -96,10 +96,11 @@ on current runtimes.
 
 ## Menu-time calls
 
-`ServerLevelManager` serves `ListLevels` and `CreateLevel` on the server thread.
-`ServerWorldHost.DeleteLevel` serves `DeleteLevel`. Calls are correlated by
-nsd-rpc, so no per-connection FIFO chain exists. `ILevelCatalog` access stays
-single-threaded.
+`ServerLevelManager` serves `ListLevels`, `CreateLevel`, and the catalog side of
+`DeleteLevel`. The server thread only unloads a world; all `ILevelCatalog`
+access runs serialized on one catalog worker, so generation and the SQLite
+writes never stall the tick and the catalog stays single-threaded. Calls are
+correlated by nsd-rpc, so no per-connection FIFO chain exists.
 
 ## Persistence and failure modes
 

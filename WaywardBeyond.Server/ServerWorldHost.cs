@@ -36,7 +36,6 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private readonly ServerHostCommands _commands;
     private readonly PendingConnectionHeartbeat _hostHeartbeat;
     private readonly ServerPeers _peers;
-    private readonly ILevelCatalog _levelCatalog;
     private readonly ILogger _logger;
     private readonly long _idleUnloadMs;
     private readonly ThreadWorker _threadWorker;
@@ -50,7 +49,6 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         ServerHostCommands commands,
         PendingConnectionHeartbeat hostHeartbeat,
         ServerPeers peers,
-        ILevelCatalog levelCatalog,
         NetworkingConfig config,
         ILoggerFactory loggerFactory
     ) {
@@ -58,7 +56,6 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         _commands = commands;
         _hostHeartbeat = hostHeartbeat;
         _peers = peers;
-        _levelCatalog = levelCatalog;
         _logger = loggerFactory.CreateLogger<ServerWorldHost>();
         _idleUnloadMs = Math.Max(1, config.Server.IdleUnloadMs.Get());
         _threadWorker = new ThreadWorker(Update, "Server");
@@ -99,24 +96,11 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     }
 
     /// <summary>
-    /// Tears down a loaded world without a final save, then removes the level from the catalog. Runs
-    /// on the server thread. Returns the catalog result.
+    /// Tears down a loaded world without a final save and clears the peer bindings that pointed at it.
+    /// Runs on the server thread; the catalog delete is a separate, off-tick step. A queued save would
+    /// recreate the files after deletion, so nothing is flushed.
     /// </summary>
-    /// <summary>The loaded world for a level, or null. Tests use it to seed world content.</summary>
-    internal ServerWorld? FindWorld(string levelGuid)
-    {
-        foreach (WorldEntry entry in _worlds)
-        {
-            if (entry.LevelGuid == levelGuid)
-            {
-                return entry.World;
-            }
-        }
-
-        return null;
-    }
-
-    public bool DeleteLevel(string levelGuid)
+    public void UnloadLevel(string levelGuid)
     {
         for (var index = 0; index < _worlds.Count; index++)
         {
@@ -138,10 +122,22 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
             entry.World.Dispose();
             _worlds.RemoveAt(index);
             _logger.LogInformation("Unloaded level {level} for deletion.", levelGuid);
-            break;
+            return;
+        }
+    }
+
+    /// <summary>The loaded world for a level, or null. Tests use it to seed world content.</summary>
+    internal ServerWorld? FindWorld(string levelGuid)
+    {
+        foreach (WorldEntry entry in _worlds)
+        {
+            if (entry.LevelGuid == levelGuid)
+            {
+                return entry.World;
+            }
         }
 
-        return _levelCatalog.Delete(levelGuid);
+        return null;
     }
 
     public void Dispose()
