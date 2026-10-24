@@ -16,26 +16,15 @@ is not part of this workflow.
 
 ### Bug
 
-- [x] [Authoritative snapshot deltas are droppable](/docs/issues/0045-snapshot-delta-loss.md) — drop-oldest loses removals, one-shot updates, and client commands. Snapshots must ride the reliable path.
-
-
 ### Improvement
-- [x] [Add the nsd-rpc protocol layer and loopback transport](/docs/issues/0046-nsd-rpc-protocol-layer.md) — services, method ids, fragments, loopback pair, RPC logging bridge
-- [x] [Migrate the server to nsd-rpc services](/docs/issues/0047-migrate-server-to-rpc.md) — peer directory, deferred handlers, two-call join, paced level stream, reliable snapshots
-- [x] [Migrate the client to nsd-rpc services](/docs/issues/0048-migrate-client-to-rpc.md) — client host, inbound staging, two-call join, typed level calls
-- [x] [Restore the loopback session after a remote disconnect](/docs/issues/0049-restore-loopback-after-remote.md) — a remote drop leaves no active connection; local play needs an application restart
-- [x] [Remove the legacy transport and remap network config](/docs/issues/0050-remove-legacy-transport.md) — delete the old TCP stack, serializers, hub, and keys; bump the discovery protocol
-- [x] [Add the RPC migration test suite and networking docs pass](/docs/issues/0051-rpc-tests-and-docs.md) — pin fragmentation, join, backlog, reconnect, and rewrite the networking specs
 
 ### Research
-
 
 ## Backlog
 
 ### Bug
 
 - [ ] [DataStore.Free can double-free an entity index](/docs/issues/0039-datastore-free-idempotency.md) — a second Free re-enqueues the index; one index can reach two owners (engine-first)
-- [x] [Idle worlds replicate physics state every snapshot](/docs/issues/0053-idle-replication-traffic.md) — the Jolt sync re-dirties unchanged Transform/Physics and resets sleep; idle input uploads every tick
 - [ ] [nsd-rpc keeps a canceled inbound entry with a disposed token source](/docs/issues/0052-nsd-rpc-canceled-inbound-dispose.md) — a canceled call makes the next disconnect throw (upstream)
 - [ ] [CharacterSaveManagerTests session-time test never sets the active save](/docs/issues/0041-character-save-load-test.md) — Load returns failure; the test asserts success
 - [ ] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` parses to `['Smoke', 'Test']`; consumers take only `values[0]`
