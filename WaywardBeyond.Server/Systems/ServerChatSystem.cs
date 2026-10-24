@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
 
 namespace WaywardBeyond.Server.Systems;
@@ -60,9 +61,9 @@ public sealed class ServerChatSystem(
 
         foreach (Uuid recipientId in sessions.Clients)
         {
-            if (peers.TryGet(recipientId, out ServerPeer peer))
+            if (peers.TryGet(recipientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.CHAT_RELAY, in relay))
             {
-                peer.Client.ChatRelay(relay);
+                peer.CloseOnRejectedSend(logger);
             }
         }
     }

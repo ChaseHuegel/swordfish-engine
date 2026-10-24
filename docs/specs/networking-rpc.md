@@ -111,6 +111,11 @@ snapshot queue.
   reconnects and receives a fresh join and full state.
 - `RpcPeer.Stats` reports frames, bytes, queued bytes, peak queued bytes,
   writes, and rejected sends.
+- A rejected server notification closes the peer. The generated client proxy
+  discards the send result, so the server paths that must observe rejection
+  (heartbeat, chat relay, notification, skill update, voxel edit) call
+  `RpcPeer.Notify` directly and treat a rejection as a peer failure instead of
+  silently dropping the frame.
 - Send batching is opt-in. With `SendBatchIntervalMs` positive, the transport
   coalesces queued frames into one write, up to `SendBatchMaxBytes`. A frame
   larger than the limit is written alone.

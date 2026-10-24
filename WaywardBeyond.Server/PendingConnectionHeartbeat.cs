@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
+using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
 
@@ -55,9 +56,9 @@ public sealed class PendingConnectionHeartbeat
 
         foreach (ServerPeer peer in _peers.Peers)
         {
-            if (peer.World == null)
+            if (peer.World == null && !peer.Rpc.Notify(GameRpc.Methods.SERVER_HEARTBEAT, in outbound))
             {
-                peer.Client.ServerHeartbeat(outbound);
+                peer.CloseOnRejectedSend(_logger);
             }
         }
     }

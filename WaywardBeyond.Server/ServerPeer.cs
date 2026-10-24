@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using NsdRpc;
 using Swordfish.ECS;
 using WaywardBeyond.Data;
@@ -134,6 +135,20 @@ public sealed class ServerPeer
     public bool TryMarkRejectLogged()
     {
         return Interlocked.Exchange(ref _rejectLogged, 1) == 0;
+    }
+
+    /// <summary>
+    /// Closes the peer after the reliable send path rejected a notification. The delta stream cannot
+    /// be repaired by dropping a message, so the peer reconnects to a fresh join.
+    /// </summary>
+    public void CloseOnRejectedSend(ILogger logger)
+    {
+        if (TryMarkRejectLogged())
+        {
+            logger.LogWarning("Closing client {clientId}: the reliable send path rejected a notification.", GameId);
+        }
+
+        Rpc.Close();
     }
 
     /// <summary>True exactly once; used to make disconnect handling idempotent.</summary>

@@ -140,6 +140,14 @@ public sealed class ServerHandlers : GameServerApiHandler
         }
 
         var completion = new TaskCompletionSource<RpcResult<SaveLevelResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        if (cancellationToken.CanBeCanceled)
+        {
+            //  The world tick completes the call when it drains the queue; a cancelled or timed-out
+            //  caller must not leave the entry waiting for a tick that will answer nobody.
+            cancellationToken.Register(() => completion.TrySetResult(
+                RpcResult<SaveLevelResponse>.Failure(GameRpcErrors.INVALID_STATE, "the save request was cancelled")));
+        }
+
         if (!TryStage(peer, peer.SaveCalls, new ServerPeer.SaveLevelCall(completion, cancellationToken)))
         {
             return new ValueTask<RpcResult<SaveLevelResponse>>(

@@ -99,12 +99,18 @@ public sealed class ServerSaveSystem(
 
             call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Failure(
                 GameRpcErrors.PERMISSION_DENIED, "level saving is not permitted"));
-            peer.Client.Notification(new NotificationMessage
+            var denied = new NotificationMessage
             {
                 Type = NotificationType.Toast,
                 Key = "notification.save.denied",
                 Args = [],
-            });
+            };
+
+            if (!peer.Rpc.Notify(GameRpc.Methods.NOTIFICATION, in denied))
+            {
+                peer.CloseOnRejectedSend(_logger);
+            }
+
             return;
         }
 
@@ -148,9 +154,9 @@ public sealed class ServerSaveSystem(
 
         foreach (Uuid clientId in sessions.Clients)
         {
-            if (peers.TryGet(clientId, out ServerPeer peer))
+            if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.NOTIFICATION, in message))
             {
-                peer.Client.Notification(message);
+                peer.CloseOnRejectedSend(_logger);
             }
         }
     }

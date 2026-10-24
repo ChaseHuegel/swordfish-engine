@@ -11,6 +11,7 @@ using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Server.Components;
+using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Systems;
@@ -174,9 +175,9 @@ public sealed class ServerInteractionSystem(
 
         foreach (Uuid clientId in sessions.Clients)
         {
-            if (peers.TryGet(clientId, out ServerPeer peer))
+            if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.VOXEL_EDIT, in message))
             {
-                peer.Client.VoxelEdit(message);
+                peer.CloseOnRejectedSend(logger);
             }
         }
     }

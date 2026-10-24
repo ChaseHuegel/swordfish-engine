@@ -7,7 +7,8 @@ namespace WaywardBeyond.Networking.Rpc;
 /// <summary>
 /// Every server-to-client notification. Invocation shapes generate <c>GameClientApiClient</c>, which
 /// the server uses through each peer. Handler shapes generate <c>GameClientApiHandler</c>, which the
-/// client subclasses.
+/// client subclasses. A notification proxy does not report whether the reliable send path accepted
+/// the frame, so a server path that must observe rejection calls <c>RpcPeer.Notify</c> directly.
 /// </summary>
 [RpcService]
 public interface IGameClientApi

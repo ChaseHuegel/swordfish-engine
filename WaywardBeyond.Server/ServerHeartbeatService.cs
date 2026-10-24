@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Gameplay;
 
 namespace WaywardBeyond.Server;
@@ -82,9 +83,9 @@ public sealed class ServerHeartbeatService(
 
         foreach (Uuid clientId in sessions.Clients)
         {
-            if (peers.TryGet(clientId, out ServerPeer peer))
+            if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.SERVER_HEARTBEAT, in outbound))
             {
-                peer.Client.ServerHeartbeat(outbound);
+                peer.CloseOnRejectedSend(logger);
             }
         }
     }

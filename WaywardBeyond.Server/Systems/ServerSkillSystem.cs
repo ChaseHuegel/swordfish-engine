@@ -4,6 +4,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Server.Components;
+using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Server.Systems;
@@ -110,17 +111,17 @@ public sealed class ServerSkillSystem(
 
     private void SendOrLog(Uuid clientId, in SkillStateUpdateMessage message)
     {
-        if (peers.TryGet(clientId, out ServerPeer peer))
+        if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.SKILL_UPDATE, in message))
         {
-            peer.Client.SkillUpdate(message);
+            peer.CloseOnRejectedSend(logger);
         }
     }
 
     private void SendOrLog(Uuid clientId, in NotificationMessage message)
     {
-        if (peers.TryGet(clientId, out ServerPeer peer))
+        if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.NOTIFICATION, in message))
         {
-            peer.Client.Notification(message);
+            peer.CloseOnRejectedSend(logger);
         }
     }
 }
