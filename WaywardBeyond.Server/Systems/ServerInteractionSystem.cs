@@ -17,15 +17,11 @@ using WaywardBeyond.Voxels;
 namespace WaywardBeyond.Server.Systems;
 
 /// <summary>
-/// The authoritative interaction system. Runs once per server tick, between the replication apply stage
+/// The authoritative interaction pump. Runs once per server tick, between the replication apply stage
 /// (which drains inbound client interaction events into each player mirror's staged buffer) and the
-/// publish stage. For each staged interaction at or below the current sim tick it:
-/// builds an authority ray from the mirror's settled transform + look, resolves the interaction with the
-/// shared <see cref="WaywardBeyond.Gameplay.Interactions.InteractionResolver"/>, and applies the outcome on the target structure's live
-/// <see cref="VoxelWorldComponent"/> - rebuilding the collider and re-deriving the persisted chunks.
-/// Survival consumption/loot is applied against the server-owned <see cref="InventoryComponent"/>;
-/// creative mode is free. A hint-less or rejected interaction resolves to <see cref="InteractionAction.None"/>
-/// and is simply skipped.
+/// publish stage. For each staged interaction at or below the current sim tick it builds the running
+/// context and hands it to the interaction pipeline, which decides the content, outcome, authority
+/// change, and consequences.
 /// </summary>
 public sealed class ServerInteractionSystem(
     ServerPeers peers,
@@ -83,39 +79,45 @@ public sealed class ServerInteractionSystem(
     {
         var kind = (InteractionKind)interaction.Kind;
 
-        //  Resolve the held item to the placeable brick it places, if any (the resolver rejects a
-        //  place hint without one; a break never needs it).
         string? heldItemID = GetHeldItemID(store, player);
-        Brick? placeable = null;
+        GameMode mode = store.TryGet(player, out GameModeComponent gameMode) ? gameMode.Mode : GameMode.Creative;
+        IVoxelInteractionWorld world = worldFactory(store);
+        Uuid clientId = sessions.TryGetClient(player, out Uuid client) ? client : Uuid.Null;
+
+        //  The hint and the mirror transform are the only client-authored inputs; the pipeline resolves
+        //  the rest against the authority store.
+        var request = new InteractionRequest(
+            mirror.Position,
+            interaction.Brick,
+            kind,
+            null,
+            mode,
+            CharacterDefaults.DEFAULT_REACH
+        );
+
+        var context = new InteractionContext(store, player, clientId, interaction.SequenceNumber, world, in request, heldItemID);
+
+        //  Resolve the held item to the placeable brick it places, if any. The Select stage takes this
+        //  over once the default content handlers register.
         if (heldItemID != null)
         {
             Result<Brick> placeableResult = content.GetPlaceable(heldItemID);
             if (placeableResult.Success)
             {
-                placeable = placeableResult.Value;
+                context.Placeable = placeableResult.Value;
             }
         }
 
-        GameMode mode = GameMode.Creative;
-        if (store.TryGet(player, out GameModeComponent gameMode))
+        InteractionRunResult result = handlerRegistry.Run(ref context);
+        if (result.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
         {
-            mode = gameMode.Mode;
-        }
-
-        //  Validate the hinted structure + cell against the authority store purely by identity and reach;
-        //  no raycasting is needed (the client's screen-aim targeting produced the hint).
-        Vector3 origin = mirror.Position;
-        IVoxelInteractionWorld world = worldFactory(store);
-
-        InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, CharacterDefaults.DEFAULT_REACH);
-        InteractionResolution resolution = InteractionResolver.Resolve(in request, world, brickRegistry);
-        if (resolution.Action == InteractionAction.None)
-        {
+            logger.LogDebug(
+                "Interaction {sequence} for player {player} ended with {decision}.",
+                interaction.SequenceNumber, player, result.Decision);
             return;
         }
 
-        //  Registered handlers run after base validation and may reject or override the outcome.
-        resolution = handlerRegistry.Apply(request, resolution, heldItemID);
+        InteractionResolution resolution = result.Resolution;
         if (resolution.Action == InteractionAction.None)
         {
             return;

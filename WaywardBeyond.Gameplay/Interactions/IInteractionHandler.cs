@@ -1,15 +1,14 @@
 ﻿namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
-///     A handler for interaction outcomes. A handler is registered against an
-///     <see cref="InteractionHandlerFilter"/>; it runs after base validation and may return a replacement
-///     resolution. Returning a <see cref="InteractionAction.None"/> resolution rejects the interaction.
+/// One listener in the interaction pipeline. A handler registers into a single stage and runs for every
+/// interaction matching its filter; the stages it does not register into never call it.
 /// </summary>
 public interface IInteractionHandler
 {
-    /// <summary>The key this handler opts into; null fields match any value.</summary>
+    /// <summary>The filter this handler opts into; null fields match any value.</summary>
     InteractionHandlerFilter Filter { get; }
 
-    /// <summary>Runs after base validation for a matching interaction. Returns the resolution to apply. Return the context's resolution to allow it unchanged.</summary>
-    InteractionResolution Handle(in InteractionContext context);
+    /// <summary>Processes one matching interaction and decides whether the pipeline continues.</summary>
+    InteractionDecision Handle(ref InteractionContext context);
 }

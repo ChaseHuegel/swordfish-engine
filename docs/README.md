@@ -24,6 +24,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Client prediction and reconciliation | [specs/networking-prediction](specs/networking-prediction.md) |
 | Join handshake and full-world streaming | [specs/networking-join](specs/networking-join.md) |
 | Server-authoritative interactions and voxel edits | [specs/networking-voxel-edits](specs/networking-voxel-edits.md) |
+| Interaction pipeline: stages, priority, decisions, handler composition | [specs/interaction-pipeline](specs/interaction-pipeline.md) |
 | Server-authoritative inventory moves | [specs/networking-inventory](specs/networking-inventory.md) |
 | Multiple server worlds: per-world DI graphs, routing, idle unload | [specs/networking-worlds](specs/networking-worlds.md) |
 | Lua scripting proposal (not implemented) | [proposals/scripting-lua](proposals/scripting-lua.md) |

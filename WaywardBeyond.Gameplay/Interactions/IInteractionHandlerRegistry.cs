@@ -1,15 +1,15 @@
 ﻿namespace WaywardBeyond.Gameplay.Interactions;
 
-/// <summary>The registry of interaction handlers the authoritative resolver runs.</summary>
+/// <summary>
+/// The ordered interaction handlers. Handlers register into one stage at a priority; within a stage they
+/// run by priority and then registration order. The composition of handlers decides the outcome, so the
+/// game registers the same kinds of handlers a mod would.
+/// </summary>
 public interface IInteractionHandlerRegistry
 {
-    /// <summary>Registers a handler. It runs for every interaction matching its filter.</summary>
-    void Register(IInteractionHandler handler);
+    /// <summary>Registers a handler in a stage. Handlers run by priority, then registration order.</summary>
+    void Register(InteractionStage stage, InteractionPriority priority, IInteractionHandler handler);
 
-    /// <summary>
-    /// Runs every matching handler in registration order. Each handler receives the running resolution,
-    /// so an override carries forward. Returning a <see cref="InteractionAction.None"/> resolution
-    /// rejects the interaction and short-circuits; otherwise the last matching resolution wins.
-    /// </summary>
-    InteractionResolution Apply(in InteractionRequest request, in InteractionResolution baseResolution, string? heldItemID);
+    /// <summary>Runs every stage for one interaction, stopping on <c>Consume</c> or <c>Cancel</c>.</summary>
+    InteractionRunResult Run(ref InteractionContext context);
 }

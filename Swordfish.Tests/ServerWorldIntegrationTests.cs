@@ -245,7 +245,7 @@ public class ServerWorldIntegrationTests
         //  The registry is composed once in the root. A world that built its own copy would silently
         //  ignore every handler registered before the world existed.
         var handlers = server.Container.Resolve<IInteractionHandlerRegistry>();
-        handlers.Register(new RejectingHandler());
+        handlers.Register(InteractionStage.Validate, InteractionPriority.High, new RejectingHandler());
 
         server.WorldHost.Run();
         server.RpcHost.Run();
@@ -294,7 +294,7 @@ public class ServerWorldIntegrationTests
     {
         public InteractionHandlerFilter Filter => default;
 
-        public InteractionResolution Handle(in InteractionContext context) => InteractionResolution.None;
+        public InteractionDecision Handle(ref InteractionContext context) => InteractionDecision.Cancel;
     }
 
     private static async Task<bool> WaitForAsync(Func<bool> condition, int timeoutMs = 5000)

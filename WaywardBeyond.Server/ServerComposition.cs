@@ -112,14 +112,25 @@ public static class ServerComposition
         RegisterServerSystem<NetworkPublishSystem>(container);
 
         //  The one interaction handler registry. Server gameplay and gameplay modules both register
-        //  handlers into it; the authoritative ServerInteractionSystem runs them in order.
-        container.Register<IInteractionHandlerRegistry, InteractionHandlerRegistry>(Reuse.Singleton);
+        //  handlers into it; the authoritative ServerInteractionSystem runs them in order. Handlers
+        //  register after this line, so a module that adds one must load after the server module.
+        container.Register<InteractionHandlerRegistry>(Reuse.Singleton);
+        container.RegisterMapping<IInteractionHandlerRegistry, InteractionHandlerRegistry>();
+        RegisterDefaultInteractionHandlers(container);
 
         //  DryIoc children only inherit a parent singleton the parent has already created. Resolve
         //  every shared service a world graph consumes before any world container exists, so a world
         //  cannot silently get a private copy (a second handler registry would ignore registered
         //  handlers). New shared singletons belong on this list.
         PinSharedSingletons(container);
+    }
+
+    private static void RegisterDefaultInteractionHandlers(IContainer container)
+    {
+        InteractionHandlerRegistry registry = container.Resolve<InteractionHandlerRegistry>();
+
+        container.Register<HintResolveHandler>(Reuse.Singleton);
+        registry.Register(InteractionStage.Resolve, InteractionPriority.Normal, container.Resolve<HintResolveHandler>());
     }
 
     private static void PinSharedSingletons(IContainer container)

@@ -103,6 +103,10 @@ the local `PendingInteractionComponent.Queue` by
 
 ## Interaction handlers
 
+The pipeline that runs each stage, the priority bands, and the four decisions live in
+[interaction-pipeline](interaction-pipeline.md). This section records what the default
+handlers do.
+
 Every interaction outcome resolves server-side, so handler customization is
 server-side too. Handlers are the extension point for gameplay, not only for
 mods.
