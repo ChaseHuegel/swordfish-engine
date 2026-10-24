@@ -65,9 +65,19 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private void OnHandleDisposed(object? sender, EventArgs _)
     {
-        if (_linkedHandles.TryRemove(Unsafe.As<IHandle>(sender)!, out IHandle? internalHandle))
+        if (sender is not IHandle handle)
         {
-            _synchronizationContext.Post(_ => internalHandle.Dispose(), null);
+            return;
+        }
+
+        _synchronizationContext.Post(_ => DisposeHandle(handle), null);
+    }
+
+    private void DisposeHandle(IHandle handle)
+    {
+        if (_linkedHandles.TryRemove(handle, out IHandle? internalHandle))
+        {
+            internalHandle.Dispose();
         }
     }
 
@@ -169,8 +179,13 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         return Unsafe.As<IGLTexture>(handle);
     }
 
-    private VertexArrayObject<float, uint> BindMesh(Mesh mesh)
+    private VertexArrayObject<float, uint>? BindMesh(Mesh mesh)
     {
+        if (mesh.IsDisposed)
+        {
+            return null;
+        }
+
         if (_linkedHandles.TryGetValue(mesh, out IHandle? handle))
         {
             return Unsafe.As<VertexArrayObject<float, uint>>(handle);
@@ -211,12 +226,22 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private void BindMeshRenderer(MeshRenderer meshRenderer, Uuid entity)
     {
+        if (meshRenderer.IsDisposed)
+        {
+            return;
+        }
+
         if (_linkedHandles.TryGetValue(meshRenderer, out IHandle? _))
         {
             return;
         }
 
-        VertexArrayObject<float, uint> vao = BindMesh(meshRenderer.Mesh);
+        VertexArrayObject<float, uint>? vao = BindMesh(meshRenderer.Mesh);
+        if (vao == null)
+        {
+            return;
+        }
+
         BufferObject<Matrix4x4> mbo = BindToMbo(vao);
 
         var glMaterials = new GLMaterial[meshRenderer.Materials.Length];

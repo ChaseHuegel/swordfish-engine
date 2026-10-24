@@ -6,16 +6,19 @@ public abstract class Handle : IHandle
 {
     public event EventHandler<EventArgs> Disposed;
 
-    protected volatile bool IsDisposed;
+    private volatile bool _isDisposed;
+
+    /// <inheritdoc/>
+    public bool IsDisposed => _isDisposed;
 
     public void Dispose()
     {
-        if (IsDisposed)
+        if (_isDisposed)
         {
             return;
         }
 
-        IsDisposed = true;
+        _isDisposed = true;
         Disposed?.Invoke(this, EventArgs.Empty);
         OnDisposed();
         GC.SuppressFinalize(this);
