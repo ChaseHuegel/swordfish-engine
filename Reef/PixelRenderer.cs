@@ -61,34 +61,7 @@ public sealed class PixelRenderer
             }
             
             //  Skip pixels that are outside the corner radii
-            var skipPixel = false;
-            CornerRadius radius = renderCommand.CornerRadius;
-            if (x < renderCommand.Rect.Left + radius.TopLeft && y < renderCommand.Rect.Top + radius.TopLeft)
-            {
-                int dx = x - (renderCommand.Rect.Left + radius.TopLeft);
-                int dy = y - (renderCommand.Rect.Top + radius.TopLeft);
-                skipPixel = dx * dx + dy * dy > radius.TopLeft * radius.TopLeft;
-            }
-            else if (x > renderCommand.Rect.Right - radius.TopRight && y < renderCommand.Rect.Top + radius.TopRight)
-            {
-                int dx = x - (renderCommand.Rect.Right - radius.TopRight);
-                int dy = y - (renderCommand.Rect.Top + radius.TopRight);
-                skipPixel = dx * dx + dy * dy > radius.TopRight * radius.TopRight;
-            }
-            else if (x > renderCommand.Rect.Right - radius.BottomRight && y > renderCommand.Rect.Bottom - radius.BottomRight)
-            {
-                int dx = x - (renderCommand.Rect.Right - radius.BottomRight);
-                int dy = y - (renderCommand.Rect.Bottom - radius.BottomRight);
-                skipPixel = dx * dx + dy * dy > radius.BottomRight * radius.BottomRight;
-            }
-            else if (x < renderCommand.Rect.Left + radius.BottomLeft && y > renderCommand.Rect.Bottom - radius.BottomLeft)
-            {
-                int dx = x - (renderCommand.Rect.Left + radius.BottomLeft);
-                int dy = y - (renderCommand.Rect.Bottom - radius.BottomLeft);
-                skipPixel = dx * dx + dy * dy > radius.BottomLeft * radius.BottomLeft;
-            }
-
-            if (skipPixel)
+            if (IsOutsideCornerRadius(renderCommand, x, y))
             {
                 continue;
             }
@@ -121,6 +94,9 @@ public sealed class PixelRenderer
                 _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, rectColor));
             }
         }
+
+        DrawBorder(renderCommand);
+        DrawCornerCaps(renderCommand);
         
         if (renderCommand.Text == null)
         {
@@ -151,6 +127,116 @@ public sealed class PixelRenderer
         }
     }
     
+    private void DrawBorder(RenderCommand<PixelTexture> renderCommand)
+    {
+        BorderStyle border = renderCommand.Border;
+        IntRect rect = renderCommand.Rect;
+        int thickness = Math.Min(border.Thickness, Math.Min(rect.Size.X, rect.Size.Y) / 2);
+
+        if (thickness <= 0 || border.Color.W <= 0f)
+        {
+            return;
+        }
+
+        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top, rect.Right, rect.Top + thickness), border.Color);
+        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Bottom - thickness, rect.Right, rect.Bottom), border.Color);
+        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Bottom - thickness), border.Color);
+        DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Bottom - thickness), border.Color);
+    }
+
+    private void DrawCornerCaps(RenderCommand<PixelTexture> renderCommand)
+    {
+        CornerCapStyle caps = renderCommand.CornerCaps;
+        IntRect rect = renderCommand.Rect;
+        int maxLength = Math.Min(rect.Size.X, rect.Size.Y) / 2;
+        int length = Math.Min(caps.Length, maxLength);
+        int thickness = Math.Min(caps.Thickness, length);
+
+        if (length <= 0 || thickness <= 0 || caps.Color.W <= 0f)
+        {
+            return;
+        }
+
+        //  Top left
+        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color);
+        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color);
+
+        //  Top right
+        DrawSolidRect(renderCommand, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color);
+        DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color);
+
+        //  Bottom left
+        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color);
+        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color);
+
+        //  Bottom right
+        DrawSolidRect(renderCommand, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color);
+        DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color);
+    }
+
+    private void DrawSolidRect(RenderCommand<PixelTexture> renderCommand, IntRect rect, Vector4 color)
+    {
+        for (int y = rect.Top; y < rect.Bottom; y++)
+        {
+            for (int x = rect.Left; x < rect.Right; x++)
+            {
+                if (!renderCommand.ClipRect.Contains(x, y))
+                {
+                    continue;
+                }
+
+                if (IsOutsideCornerRadius(renderCommand, x, y))
+                {
+                    continue;
+                }
+
+                if (x < 0 || y < 0 || x >= _width || y >= _height)
+                {
+                    continue;
+                }
+
+                Vector4 currentColor = _renderTexture.GetPixel(x, y);
+                _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, color));
+            }
+        }
+    }
+
+    private static bool IsOutsideCornerRadius(RenderCommand<PixelTexture> renderCommand, int x, int y)
+    {
+        CornerRadius radius = renderCommand.CornerRadius;
+        IntRect rect = renderCommand.Rect;
+
+        if (x < rect.Left + radius.TopLeft && y < rect.Top + radius.TopLeft)
+        {
+            int dx = x - (rect.Left + radius.TopLeft);
+            int dy = y - (rect.Top + radius.TopLeft);
+            return dx * dx + dy * dy > radius.TopLeft * radius.TopLeft;
+        }
+
+        if (x > rect.Right - radius.TopRight && y < rect.Top + radius.TopRight)
+        {
+            int dx = x - (rect.Right - radius.TopRight);
+            int dy = y - (rect.Top + radius.TopRight);
+            return dx * dx + dy * dy > radius.TopRight * radius.TopRight;
+        }
+
+        if (x > rect.Right - radius.BottomRight && y > rect.Bottom - radius.BottomRight)
+        {
+            int dx = x - (rect.Right - radius.BottomRight);
+            int dy = y - (rect.Bottom - radius.BottomRight);
+            return dx * dx + dy * dy > radius.BottomRight * radius.BottomRight;
+        }
+
+        if (x < rect.Left + radius.BottomLeft && y > rect.Bottom - radius.BottomLeft)
+        {
+            int dx = x - (rect.Left + radius.BottomLeft);
+            int dy = y - (rect.Bottom - radius.BottomLeft);
+            return dx * dx + dy * dy > radius.BottomLeft * radius.BottomLeft;
+        }
+
+        return false;
+    }
+
     private void DrawCharacter(IntRect bbox, IntRect clipRect, IntRect uv, Vector4 color, PixelFontSDF font)
     {
         for (int y = bbox.Top; y < bbox.Bottom; y++)
