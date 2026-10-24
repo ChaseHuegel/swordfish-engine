@@ -76,7 +76,7 @@ Runtime UI tunables. Registered via `RegisterConfig<UISettings>`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
-| `NameplateDistance` | int | 32 | remote player name tag render distance in world units; 0 disables tags (settings page control: 0-64, steps of 8) |
+| `NameplateDistance` | int | 32 | remote player name tag render distance in world units; 0 disables tags (settings page control: 0-64, steps of 4) |
 
 ## `gameplay.toml` (per app)
 
@@ -88,7 +88,7 @@ Gameplay tunables shared by the client and the server, registered via
 | Key | Type | Default | Purpose |
 |---|---|---|---|
 | `Autosave` | bool | `true` | enables the client character timer and the server level autosave |
-| `AutosaveIntervalMs` | int | `300000` | autosave cadence in milliseconds; the settings page edits it as minutes (1-60) |
+| `AutosaveIntervalMs` | int | `300000` | autosave cadence in milliseconds; the settings page uses preset minute intervals |
 | `ControlHints` | bool | `true` | show the control hints overlay |
 | `Crosshair` | bool | `true` | show the crosshair |
 | `DefaultSpawnPosition` | float[3] | `[0, 1, 5]` | the position a character spawns at; the level-creation spawn row derives from it |

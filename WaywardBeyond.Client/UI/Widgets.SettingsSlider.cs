@@ -1,0 +1,233 @@
+using System;
+using Reef;
+using Reef.Constraints;
+using Reef.UI;
+using Swordfish.Graphics;
+using WaywardBeyond.Client.UI.Settings;
+
+namespace WaywardBeyond.Client.UI;
+
+internal static partial class Widgets
+{
+    /// <summary>Creates a draggable slider and returns true when the value changes.</summary>
+    public static bool SettingsSlider(
+        this UIBuilder<Material> ui,
+        string id,
+        IntRect rect,
+        float value,
+        float min,
+        float max,
+        float step,
+        Func<float, string> format,
+        bool enabled,
+        out float newValue
+    )
+    {
+        newValue = value;
+        var changed = false;
+
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Color = SettingsTheme.Transparent;
+            ui.Constraints = SettingsRectConstraints(rect);
+            ui.ClipConstraints = SettingsRectConstraints(rect);
+
+            int buttonSize = SettingsMetrics.SliderButtonSize;
+            int valueWidth = SettingsMetrics.SliderValueWidth;
+            int gap = 8;
+            int buttonY = (rect.Size.Y - buttonSize) / 2;
+
+            IntRect minusRect = SettingsRect(0, buttonY, buttonSize, buttonSize);
+            IntRect valueRect = SettingsRect(rect.Size.X - valueWidth, 0, valueWidth, rect.Size.Y);
+            IntRect plusRect = SettingsRect(valueRect.Left - gap - buttonSize, buttonY, buttonSize, buttonSize);
+            int trackX = minusRect.Right + gap;
+            int trackWidth = plusRect.Left - gap - trackX;
+            IntRect trackRect = SettingsRect(
+                trackX,
+                (rect.Size.Y - SettingsMetrics.SliderTrackHeight) / 2,
+                trackWidth,
+                SettingsMetrics.SliderTrackHeight
+            );
+
+            if (ui.SettingsButton($"{id}.minus", minusRect, "-", SettingsButtonVariant.Secondary, enabled))
+            {
+                newValue = SnapSliderValue(newValue - step, min, max, step);
+                changed = true;
+            }
+
+            if (ui.SettingsButton($"{id}.plus", plusRect, "+", SettingsButtonVariant.Secondary, enabled))
+            {
+                newValue = SnapSliderValue(newValue + step, min, max, step);
+                changed = true;
+            }
+
+            if (trackWidth > 10 && DrawSliderTrack(ui, enabled ? $"{id}.track" : null, trackRect, newValue, min, max, step, enabled, out float trackValue))
+            {
+                newValue = trackValue;
+                changed = true;
+            }
+
+            using (ui.Element())
+            {
+                ui.LayoutDirection = LayoutDirection.None;
+                ui.Color = SettingsTheme.Transparent;
+                ui.Constraints = SettingsRectConstraints(valueRect);
+                ui.ClipConstraints = SettingsRectConstraints(valueRect);
+
+                using (ui.Text(format(newValue)))
+                {
+                    ui.FontOptions = new FontOptions
+                    {
+                        Size = SettingsMetrics.ControlFont,
+                        NoWrap = true,
+                    };
+                    ui.Color = enabled ? SettingsTheme.Text : SettingsTheme.TextDim;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Right | Anchors.Center,
+                    };
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    private static bool DrawSliderTrack(
+        UIBuilder<Material> ui,
+        string? id,
+        IntRect rect,
+        float value,
+        float min,
+        float max,
+        float step,
+        bool enabled,
+        out float newValue
+    )
+    {
+        newValue = value;
+        var changed = false;
+
+        if (enabled)
+        {
+            using (ui.Element(id!))
+            {
+                changed = UpdateSliderFromCursor(ui, rect, min, max, step, ref newValue);
+                DrawSliderTrackBody(ui, rect, newValue, min, max, enabled);
+            }
+        }
+        else
+        {
+            using (ui.Element())
+            {
+                DrawSliderTrackBody(ui, rect, newValue, min, max, enabled);
+            }
+        }
+
+        return changed;
+    }
+
+    private static bool UpdateSliderFromCursor(
+        UIBuilder<Material> ui,
+        IntRect rect,
+        float min,
+        float max,
+        float step,
+        ref float value
+    )
+    {
+        if (!ui.Clicked() && !ui.Held())
+        {
+            return false;
+        }
+
+        int innerWidth = Math.Max(1, rect.Size.X - 2);
+        IntVector2 cursor = ui.GetRelativeCursorPosition();
+        float ratio = Math.Clamp((cursor.X - 1f) / innerWidth, 0f, 1f);
+        float snapped = SnapSliderValue(min + ratio * (max - min), min, max, step);
+
+        if (Math.Abs(snapped - value) < 0.0001f)
+        {
+            return false;
+        }
+
+        value = snapped;
+        return true;
+    }
+
+    private static void DrawSliderTrackBody(
+        UIBuilder<Material> ui,
+        IntRect rect,
+        float value,
+        float min,
+        float max,
+        bool enabled
+    )
+    {
+        ui.LayoutDirection = LayoutDirection.None;
+        ui.Color = SettingsTheme.Track;
+        ui.Border = new BorderStyle
+        {
+            Thickness = 1,
+            Color = enabled ? SettingsTheme.Border : SettingsTheme.BorderInner,
+        };
+        ui.Constraints = SettingsRectConstraints(rect);
+        ui.ClipConstraints = SettingsRectConstraints(rect);
+
+        int innerWidth = Math.Max(1, rect.Size.X - 2);
+        float ratio = max > min ? Math.Clamp((value - min) / (max - min), 0f, 1f) : 0f;
+        int fillWidth = (int)MathF.Round(ratio * innerWidth);
+
+        using (ui.Element())
+        {
+            ui.Color = enabled ? SettingsTheme.TrackFill : SettingsTheme.BorderInner;
+            ui.Constraints = new Constraints
+            {
+                X = new Fixed(1),
+                Y = new Fixed(1),
+                Width = new Fixed(fillWidth),
+                Height = new Fixed(Math.Max(0, rect.Size.Y - 2)),
+            };
+        }
+
+        for (var i = 1; i < 4; i++)
+        {
+            using (ui.Element())
+            {
+                ui.Color = SettingsTheme.BorderInner;
+                ui.Constraints = new Constraints
+                {
+                    X = new Fixed(1 + innerWidth * i / 4),
+                    Y = new Fixed(4),
+                    Width = new Fixed(1),
+                    Height = new Fixed(Math.Max(0, rect.Size.Y - 8)),
+                };
+            }
+        }
+
+        using (ui.Element())
+        {
+            int thumbX = 1 + Math.Clamp(fillWidth - 1, 0, Math.Max(0, innerWidth - 3));
+            ui.Color = enabled ? SettingsTheme.Thumb : SettingsTheme.TextDim;
+            ui.Constraints = new Constraints
+            {
+                X = new Fixed(thumbX),
+                Y = new Fixed(1),
+                Width = new Fixed(3),
+                Height = new Fixed(Math.Max(0, rect.Size.Y - 2)),
+            };
+        }
+    }
+
+    private static float SnapSliderValue(float value, float min, float max, float step)
+    {
+        if (step <= 0f)
+        {
+            return Math.Clamp(value, min, max);
+        }
+
+        float snapped = MathF.Round((value - min) / step) * step + min;
+        return Math.Clamp(snapped, min, max);
+    }
+}

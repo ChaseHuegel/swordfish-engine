@@ -62,6 +62,21 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
                     };
                 }
             }
+
+            if (CurrentPageUsesFullContentArea)
+            {
+                using (ui.Element("MenuContent"))
+                {
+                    ui.LayoutDirection = LayoutDirection.None;
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Relative(1f),
+                        Height = new Fill(),
+                    };
+
+                    return base.RenderUI(delta, ui);
+                }
+            }
             
             using (ui.Element())
             {
