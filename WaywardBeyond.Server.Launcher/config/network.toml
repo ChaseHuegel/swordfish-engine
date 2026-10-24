@@ -2,7 +2,7 @@ RemoteHost = "127.0.0.1"
 RemotePort = 7777
 
 [Server]
-Port = 0
+Port = 7777
 Name = "LAN Server"
 IdleUnloadMs = 60000
 TickLagWarnThreshold = 10
