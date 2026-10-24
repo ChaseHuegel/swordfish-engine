@@ -370,13 +370,25 @@ public sealed class UIController
         _interactionConsumed = false;
     }
     
-    internal void UpdateInteraction(string id, IntRect rect)
+    internal void UpdateInteraction(string id, IntRect rect, IntRect clipRect)
     {
         _updatedInteractionIDs.Add(id);
 
         Position cursorPos = _cursor.Current;
-        
-        bool hovering = !_interactionConsumed && rect.Contains(cursorPos.X, cursorPos.Y);
+
+        int left = Math.Max(rect.Left, clipRect.Left);
+        int top = Math.Max(rect.Top, clipRect.Top);
+        int right = Math.Min(rect.Right, clipRect.Right);
+        int bottom = Math.Min(rect.Bottom, clipRect.Bottom);
+
+        bool insideClip = right > left
+            && bottom > top
+            && cursorPos.X >= left
+            && cursorPos.X < right
+            && cursorPos.Y >= top
+            && cursorPos.Y < bottom;
+
+        bool hovering = !_interactionConsumed && insideClip;
         bool clicked = hovering && IsPressed(_leftMouse);
         bool interacting = clicked || _lastInteractedID == id && IsHeld(_leftMouse);
 

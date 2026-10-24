@@ -298,7 +298,7 @@ public sealed class UIBuilder<TRendererData>
             RenderCommand<TRendererData> command = commands[i];
             if (command.ID != null && !command.Passthrough)
             {
-                _controller.UpdateInteraction(command.ID, command.Rect);
+                _controller.UpdateInteraction(command.ID, command.Rect, command.ClipRect);
             }
         }
         _controller.EndUpdate();
