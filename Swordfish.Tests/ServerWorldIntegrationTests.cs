@@ -134,6 +134,67 @@ public class ServerWorldIntegrationTests
         Assert.False(result.IsSuccess);
     }
 
+    [Fact]
+    public async Task JoinWithZeroCharacterUuidIsRefused()
+    {
+        using TestServer server = CreateServer();
+        server.WorldHost.Run();
+        server.RpcHost.Run();
+
+        var connection = new LoopbackRpcClientConnection(server.Loopback);
+        await connection.ConnectAsync();
+        var registry = new RpcRegistry();
+        registry.Freeze();
+        var api = new GameServerApiClient(new RpcClient(connection, registry));
+
+        RpcResult<JoinAccept> join = await api.JoinAsync(CreateJoinRequest(0))
+            .WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.False(join.IsSuccess);
+        Assert.Equal(GameRpcErrors.JOIN_REFUSED, join.ErrorCode);
+
+        //  The rejected join must not have unwound the world tick.
+        RpcResult<JoinAccept> retry = await api.JoinAsync(CreateJoinRequest(1))
+            .WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(retry.IsSuccess, retry.ErrorMessage);
+
+        connection.Close();
+    }
+
+    [Fact]
+    public async Task JoinWithAnotherPlayersCharacterUuidIsRefused()
+    {
+        using TestServer server = CreateServer();
+        server.WorldHost.Run();
+        server.RpcHost.Run();
+
+        var registry = new RpcRegistry();
+        registry.Freeze();
+
+        var ownerConnection = new LoopbackRpcClientConnection(server.Loopback);
+        await ownerConnection.ConnectAsync();
+        var owner = new GameServerApiClient(new RpcClient(ownerConnection, registry));
+        RpcResult<JoinAccept> first = await owner.JoinAsync(CreateJoinRequest(42))
+            .WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(first.IsSuccess, first.ErrorMessage);
+
+        var otherConnection = new LoopbackRpcClientConnection(server.Loopback);
+        await otherConnection.ConnectAsync();
+        var other = new GameServerApiClient(new RpcClient(otherConnection, registry));
+
+        RpcResult<JoinAccept> duplicate = await other.JoinAsync(CreateJoinRequest(42))
+            .WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.False(duplicate.IsSuccess);
+        Assert.Equal(GameRpcErrors.JOIN_REFUSED, duplicate.ErrorCode);
+
+        //  The refused peer is still seated on its own character, and the world keeps ticking.
+        RpcResult<JoinAccept> own = await other.JoinAsync(CreateJoinRequest(43))
+            .WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(own.IsSuccess, own.ErrorMessage);
+
+        otherConnection.Close();
+        ownerConnection.Close();
+    }
+
     private static void SeedVoxelEntity(ServerWorld world)
     {
         var voxelObject = new VoxelObject(chunkSize: 16);

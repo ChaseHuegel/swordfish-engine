@@ -41,21 +41,40 @@ public sealed class ServerJoinSystem(
 {
     private uint _nextSessionId;
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
+        //  One malformed entry must never unwind the world tick: every join, leave, and teardown is
+        //  isolated so the remaining clients keep simulating and the queue keeps draining.
         HandleDisconnects(store);
 
         //  Leaves run before joins so a player who returns to the menu and rejoins in the same tick
         //  has the old session torn down first.
         foreach (Uuid clientId in joinQueue.DrainLeaves())
         {
-            HandleLeave(clientId, store);
+            try
+            {
+                HandleLeave(clientId, store);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to end the session for client {client}.", clientId);
+            }
         }
 
         //  Joins the world host pre-routed: it already bound the peer to this world.
         foreach (ServerJoinQueue.JoinCall join in joinQueue.Drain())
         {
-            HandleJoin(join, store);
+            try
+            {
+                HandleJoin(join, store);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to seat client {client}.", join.Peer.GameId);
+                join.Completion.TrySetResult(RpcResult<JoinAccept>.Failure(
+                    GameRpcErrors.JOIN_REFUSED, "the player could not be seated"));
+            }
         }
     }
 
@@ -68,27 +87,39 @@ public sealed class ServerJoinSystem(
     {
         foreach (Uuid clientId in joinQueue.DrainDisconnects())
         {
-            permissions.Unbind(clientId);
-
-            if (sessions.TryGetEntity(clientId, out int entity))
+            try
             {
-                if (store.TryGet(entity, out PhysicsComponent physics))
-                {
-                    physics.Dispose();
-                }
+                HandleDisconnect(clientId, store);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to tear down the session for client {client}.", clientId);
+            }
+        }
+    }
 
-                //  Capture the uuid before Free (which clears it) so the despawn can replicate.
-                replication.RequestDespawn(store.GetUuid(entity).ToValue());
-                store.Free(entity);
+    private void HandleDisconnect(Uuid clientId, DataStore store)
+    {
+        permissions.Unbind(clientId);
+
+        if (sessions.TryGetEntity(clientId, out int entity))
+        {
+            if (store.TryGet(entity, out PhysicsComponent physics))
+            {
+                physics.Dispose();
             }
 
-            if (sessions.EndSession(clientId))
-            {
-                logger.LogInformation("Ended session for client {client}.", clientId);
+            //  Capture the uuid before Free (which clears it) so the despawn can replicate.
+            replication.RequestDespawn(store.GetUuid(entity).ToValue());
+            store.Free(entity);
+        }
 
-                //  Stamp the save's server-owned time played: a player's session ended abruptly.
-                saveService.EndSessionStamp();
-            }
+        if (sessions.EndSession(clientId))
+        {
+            logger.LogInformation("Ended session for client {client}.", clientId);
+
+            //  Stamp the save's server-owned time played: a player's session ended abruptly.
+            saveService.EndSessionStamp();
         }
     }
 
@@ -134,6 +165,16 @@ public sealed class ServerJoinSystem(
             return;
         }
 
+        //  The character uuid is client-authored and becomes the mirror's entity identity. A zero or
+        //  already-owned uuid would be rejected by the store, so validate it before any work is done.
+        if (request.CharacterUuid == 0UL)
+        {
+            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.JOIN_REFUSED, "the character id is invalid"));
+            return;
+        }
+
+        Uuid uuid = Uuid.FromValue(request.CharacterUuid);
+
         if (!peers.TryGet(clientId, out _))
         {
             completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.NOT_JOINED, "the peer disconnected"));
@@ -166,6 +207,17 @@ public sealed class ServerJoinSystem(
             replication.RequestDespawn(store.GetUuid(existing).ToValue());
             store.Free(existing);
             sessions.EndSession(clientId);
+        }
+
+        //  The mirror is allocated with the character's uuid, so the uuid must belong to this character
+        //  alone: refuse another player's mirror or a level structure instead of throwing from the store.
+        if (store.TryGet(uuid, out _))
+        {
+            logger.LogWarning(
+                "Refusing join for client {clientId}: character {uuid} is already owned by another entity.",
+                clientId, uuid);
+            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.JOIN_REFUSED, "the character id is in use"));
+            return;
         }
 
         bool levelLoaded = !string.IsNullOrEmpty(levelGuid);
@@ -217,7 +269,6 @@ public sealed class ServerJoinSystem(
             saveService.MarkActive();
         }
 
-        Uuid uuid = Uuid.FromValue(request.CharacterUuid);
         int entity = store.Alloc(uuid);
 
         store.AddOrUpdate(entity, NetworkComponent.Create());
