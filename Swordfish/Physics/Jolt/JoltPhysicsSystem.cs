@@ -206,20 +206,35 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         if (collider.CompoundShape.HasValue)
         {
             CompoundShape compoundShape = collider.CompoundShape.Value;
-            var mutableCompoundShapeSettings = new MutableCompoundShapeSettings();
-            for (var i = 0; i < compoundShape.Shapes.Length; i++)
-            {
-                Shape childShape = compoundShape.Shapes[i];
+            var compoundShapeSettings = new MutableCompoundShapeSettings();
+            var childShapes = new List<JoltShape>(compoundShape.Shapes.Length);
 
-                if (!TryGetJoltShape(childShape, scale, out JoltShape childJoltShape))
+            try
+            {
+                for (var i = 0; i < compoundShape.Shapes.Length; i++)
                 {
-                    continue;
+                    Shape childShape = compoundShape.Shapes[i];
+
+                    if (!TryGetJoltShape(childShape, scale, out JoltShape childJoltShape))
+                    {
+                        continue;
+                    }
+
+                    childShapes.Add(childJoltShape);
+                    compoundShapeSettings.AddShape(compoundShape.Positions[i] * scale, compoundShape.Orientations[i], childJoltShape);
                 }
 
-                mutableCompoundShapeSettings.AddShape(compoundShape.Positions[i] * scale, compoundShape.Orientations[i], childJoltShape);
+                joltShape = new MutableCompoundShape(compoundShapeSettings);
+                return true;
             }
-            joltShape = new MutableCompoundShape(mutableCompoundShapeSettings);
-            return true;
+            finally
+            {
+                compoundShapeSettings.Dispose();
+                for (var i = 0; i < childShapes.Count; i++)
+                {
+                    childShapes[i].Dispose();
+                }
+            }
         }
 
         if (collider.Shape.HasValue)
@@ -317,7 +332,10 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                     return;
                 }
 
-                _owner._bodyInterface.SetShape(body.ID, shape, true, physics.Read.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
+                using (shape)
+                {
+                    _owner._bodyInterface.SetShape(body.ID, shape, true, physics.Read.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
+                }
             }
             else
             {
@@ -328,19 +346,22 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                     return;
                 }
 
-                using BodyCreationSettings creationSettings = new(shape, transform.Read.Position, transform.Read.Orientation, (MotionType)physics.Read.BodyType, physics.Read.Layer);
-                body = _owner._bodyInterface.CreateBody(creationSettings);
-                _owner._bodyInterface.AddBody(body.ID, physics.Read.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
-                _owner._bodyInterface.SetMotionQuality(body.ID, (MotionQuality)physics.Read.CollisionDetection);
+                using (shape)
+                using (BodyCreationSettings creationSettings = new(shape, transform.Read.Position, transform.Read.Orientation, (MotionType)physics.Read.BodyType, physics.Read.Layer))
+                {
+                    body = _owner._bodyInterface.CreateBody(creationSettings);
+                    _owner._bodyInterface.AddBody(body.ID, physics.Read.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
+                    _owner._bodyInterface.SetMotionQuality(body.ID, (MotionQuality)physics.Read.CollisionDetection);
 
-                physics.Write.Body = body;
-                physics.Write.BodyID = body.ID;
-                physics.Write.BodyInterface = _owner._bodyInterface;
-                physics.Write.ThreadContext = _owner._context;
+                    physics.Write.Body = body;
+                    physics.Write.BodyID = body.ID;
+                    physics.Write.BodyInterface = _owner._bodyInterface;
+                    physics.Write.ThreadContext = _owner._context;
 
-                ref TransformComponent transformValue = ref transform.Write;
-                var syncJoltToEntityAction = new SyncJoltToEntityAction(_owner);
-                syncJoltToEntityAction.Execute(delta, store, entity, physics.Read, transformValue);
+                    ref TransformComponent transformValue = ref transform.Write;
+                    var syncJoltToEntityAction = new SyncJoltToEntityAction(_owner);
+                    syncJoltToEntityAction.Execute(delta, store, entity, physics.Read, transformValue);
+                }
             }
         }
     }

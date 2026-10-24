@@ -8,6 +8,9 @@ public sealed class RectRenderer : IHandle
 {
     public event EventHandler<EventArgs>? Disposed;
 
+    /// <inheritdoc/>
+    public bool IsDisposed { get; private set; }
+
     public Rect2 Rect { get; }
     public Color Color { get; }
     public Material[] Materials { get; }
@@ -28,6 +31,13 @@ public sealed class RectRenderer : IHandle
 
     public void Dispose()
     {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        IsDisposed = true;
         Disposed?.Invoke(this, EventArgs.Empty);
+        GC.SuppressFinalize(this);
     }
 }
