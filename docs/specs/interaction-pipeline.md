@@ -17,11 +17,11 @@ Select → Resolve → Validate → Apply → React
 
 | Stage | Job | Default handler |
 |---|---|---|
-| `Select` | Determine the content the interaction operates with | none yet |
+| `Select` | Determine the content the interaction operates with | `ItemPlaceableHandler` maps the held item to the brick it places |
 | `Resolve` | Derive the base outcome from the client's target hint | `HintResolveHandler` runs `InteractionResolver` |
 | `Validate` | Adjust or reject before any authority change | none; the stage is a policy hook |
-| `Apply` | Perform the authority change | none yet |
-| `React` | Apply the consequences | none yet |
+| `Apply` | Perform the authority change | `VoxelWriteHandler` writes, rebuilds the collider, and broadcasts |
+| `React` | Apply the consequences | `BreakLootHandler`, `PlaceConsumeHandler`, `SkillXpHandler` |
 
 The game and its mods register the same kind of handler. There is no privileged path:
 a mod can replace the authority write, cancel it, or produce a different outcome entirely.
@@ -74,5 +74,6 @@ they must not keep per-world state; it lives in the context or the store.
 - `WaywardBeyond.Gameplay/Interactions/{InteractionStage,InteractionPriority,InteractionDecision,InteractionRunResult}.cs`
 - `WaywardBeyond.Gameplay/Interactions/{InteractionContext,IInteractionHandler,IInteractionHandlerRegistry,InteractionHandlerRegistry}.cs`
 - `WaywardBeyond.Gameplay/Interactions/HintResolveHandler.cs`
+- `WaywardBeyond.Server/Interactions/` — the default `Select`, `Apply`, and `React` handlers
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs` — the pump
 - `WaywardBeyond.Server/ServerComposition.cs` — default registration order

@@ -5,6 +5,7 @@ using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
 using Swordfish.ECS;
 using Swordfish.Settings;
+using WaywardBeyond.Server.Interactions;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Server.Systems;
@@ -52,10 +53,6 @@ public static class ServerComposition
         container.Register<IUserPermissionService, UserPermissionService>();
         container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
 
-        //  The default interaction content. A client module replaces it with richer content; a headless
-        //  server keeps this one. The replacement is order-independent: Keep here, Replace in the client.
-        container.Register<IInteractionContent, ServerInteractionContent>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
-
         //  The server reads the level autosave cadence from gameplay.toml. The client registers the
         //  same file earlier in host mode, so the first registration is kept.
         container.RegisterConfig<GameplayConfig>(file: "gameplay.toml");
@@ -74,7 +71,6 @@ public static class ServerComposition
         container.Register<LevelSaveService>(setup: Setup.With(allowDisposableTransient: true));
         container.Register<ServerJoinQueue>();
         container.Register<NetworkReplicationSystem>();
-        container.Register<ServerSkillSystem>();
         //  The world physics bundle is created directly (it owns the engine's Jolt system) and exposed
         //  under the game-owned identity, so nothing resolves the engine's concrete JoltPhysicsSystem
         //  (which the engine also registers as a root singleton).
@@ -96,14 +92,10 @@ public static class ServerComposition
         container.Register(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<ServerInteractionSystem>(
             made: Made.Of(() => new ServerInteractionSystem(
-                Arg.Of<ServerPeers>(),
                 Arg.Of<SessionManager>(),
-                Arg.Of<IInteractionContent>(),
                 Arg.Of<ILogger<ServerInteractionSystem>>(),
                 Arg.Of<IInteractionHandlerRegistry>(),
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
-                Arg.Of<IBrickRegistry>(),
-                Arg.Of<ServerSkillSystem>(),
                 Arg.Of<SimulationStep>()
             ))
         );
@@ -129,15 +121,27 @@ public static class ServerComposition
     {
         InteractionHandlerRegistry registry = container.Resolve<InteractionHandlerRegistry>();
 
+        container.Register<ItemPlaceableHandler>(Reuse.Singleton);
         container.Register<HintResolveHandler>(Reuse.Singleton);
+        container.Register<VoxelWriteHandler>(Reuse.Singleton);
+        container.Register<BreakLootHandler>(Reuse.Singleton);
+        container.Register<PlaceConsumeHandler>(Reuse.Singleton);
+        container.Register<SkillXpHandler>(Reuse.Singleton);
+
+        //  Stage order and bands are the world's contract: the write is Low so a handler that claims
+        //  the outcome at Normal or High replaces it.
+        registry.Register(InteractionStage.Select, InteractionPriority.Normal, container.Resolve<ItemPlaceableHandler>());
         registry.Register(InteractionStage.Resolve, InteractionPriority.Normal, container.Resolve<HintResolveHandler>());
+        registry.Register(InteractionStage.Apply, InteractionPriority.Low, container.Resolve<VoxelWriteHandler>());
+        registry.Register(InteractionStage.React, InteractionPriority.Normal, container.Resolve<BreakLootHandler>());
+        registry.Register(InteractionStage.React, InteractionPriority.Normal, container.Resolve<PlaceConsumeHandler>());
+        registry.Register(InteractionStage.React, InteractionPriority.Normal, container.Resolve<SkillXpHandler>());
     }
 
     private static void PinSharedSingletons(IContainer container)
     {
         container.Resolve<NetworkRegistry>();
         container.Resolve<ILevelCatalog>();
-        container.Resolve<IInteractionContent>();
         container.Resolve<IInteractionHandlerRegistry>();
         container.Resolve<PermissionPolicy>();
         container.Resolve<ServerPeers>();

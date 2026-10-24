@@ -48,7 +48,6 @@ public sealed class ServerWorld : IDisposable
         Replication = Pin<NetworkReplicationSystem>(container);
         //  Shared with every other world, so resolve it from the root instead of pinning a child copy.
         HandlerRegistry = container.Resolve<IInteractionHandlerRegistry>();
-        Pin<ServerSkillSystem>(container);
         Pin<IUserPermissionService>(container);
         Pin<IServerWorldPhysics>(container);
         Pin<SimulationStep>(container);

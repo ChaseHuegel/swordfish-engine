@@ -4,11 +4,17 @@ using System.Net;
 using Microsoft.Extensions.Logging.Abstractions;
 using NsdRpc;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Server;
 using WaywardBeyond.Server.Components;
-using WaywardBeyond.Server.Systems;
+using WaywardBeyond.Server.Interactions;
+using WaywardBeyond.Voxels;
 using WaywardBeyond.Skills;
 using Xunit;
 using RpcServerConnection = NsdRpc.IServerConnection;
@@ -20,14 +26,14 @@ namespace Swordfish.Tests;
 /// <see cref="SkillStateComponent"/> from the shipped skill definitions, unknown bricks grant nothing,
 /// and seeded totals continue the curve.
 /// </summary>
-public class ServerSkillSystemTests
+public class SkillXpHandlerTests
 {
     [Fact]
     public void BreakingARockGrantsMiningXP()
     {
         Fixture fixture = new();
 
-        fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, fixture.Registry.Id("wb:rock"), isBreak: true);
+        fixture.Apply(InteractionAction.Break, fixture.Registry.Id("wb:rock"));
 
         Assert.Equal(1, fixture.State.GetXP("mining"));
         Assert.Equal(0, fixture.State.GetXP("building"));
@@ -38,8 +44,8 @@ public class ServerSkillSystemTests
     {
         Fixture fixture = new();
 
-        fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, fixture.Registry.Id("wb:rock"), isBreak: true);
-        fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, fixture.Registry.Id("wb:rock"), isBreak: true);
+        fixture.Apply(InteractionAction.Break, fixture.Registry.Id("wb:rock"));
+        fixture.Apply(InteractionAction.Break, fixture.Registry.Id("wb:rock"));
 
         Assert.Equal(2, fixture.State.GetXP("mining"));
     }
@@ -49,7 +55,7 @@ public class ServerSkillSystemTests
     {
         Fixture fixture = new();
 
-        fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, fixture.Registry.Id("wb:panel"), isBreak: false);
+        fixture.Apply(InteractionAction.Place, fixture.Registry.Id("wb:panel"));
 
         Assert.Equal(1, fixture.State.GetXP("building"));
         Assert.Equal(0, fixture.State.GetXP("mining"));
@@ -60,7 +66,7 @@ public class ServerSkillSystemTests
     {
         Fixture fixture = new();
 
-        fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, brickDataID: 999, isBreak: true);
+        fixture.Apply(InteractionAction.Break, brickDataID: 999);
 
         Assert.Equal(0, fixture.State.GetXP("mining"));
         Assert.Equal(0, fixture.State.GetXP("salvaging"));
@@ -72,12 +78,23 @@ public class ServerSkillSystemTests
         Fixture fixture = new();
         fixture.Store.AddOrUpdate(fixture.Player, new SkillStateComponent(new Dictionary<string, long> { ["mining"] = 61 }));
 
-        fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, fixture.Registry.Id("wb:rock"), isBreak: true);
+        fixture.Apply(InteractionAction.Break, fixture.Registry.Id("wb:rock"));
 
         Assert.Equal(62, fixture.State.GetXP("mining"));
 
         Skill mining = fixture.Skills.Get("mining").Value;
         Assert.Equal(new LevelInfo(1, 1), mining.CalculateLevel(fixture.State.GetXP("mining")));
+    }
+
+    [Fact]
+    public void AResolvedNothingGrantsNoXP()
+    {
+        Fixture fixture = new();
+
+        fixture.Apply(InteractionAction.None, brickDataID: 1);
+
+        Assert.Equal(0, fixture.State.GetXP("mining"));
+        Assert.Equal(0, fixture.State.GetXP("building"));
     }
 
     /// <summary>One world's worth of grant dependencies over the shipped skill definitions.</summary>
@@ -91,20 +108,51 @@ public class ServerSkillSystemTests
             Player = player;
 
             ServerPeer peer = Peers.GetOrAdd(new FakeHost(), new RpcPeer(new FakeServerConnection(clientId: 1)), isLocal: true);
-            Sessions.Register(Store, player, peer.GameId, new Session(1));
+            ClientId = peer.GameId;
 
-            System = new ServerSkillSystem(Skills, Sessions, Peers, NullLogger<ServerSkillSystem>.Instance);
+            Handler = new SkillXpHandler(Skills, Peers, NullLogger<SkillXpHandler>.Instance);
         }
 
         public SkillDatabase Skills { get; }
         public IBrickRegistry Registry { get; }
         public ServerPeers Peers { get; } = new();
-        public SessionManager Sessions { get; } = new();
         public DataStore Store { get; } = new();
         public int Player { get; }
-        public ServerSkillSystem System { get; }
+        public Uuid ClientId { get; }
+        public SkillXpHandler Handler { get; }
 
         public SkillStateComponent State => Store.TryGet(Player, out SkillStateComponent state) ? state : default;
+
+        public InteractionDecision Apply(InteractionAction action, ushort brickDataID)
+        {
+            var request = new InteractionRequest(
+                default,
+                null,
+                InteractionKind.None,
+                null,
+                GameMode.Adventure,
+                reach: 1f
+            );
+
+            var context = new InteractionContext(
+                Store,
+                Player,
+                ClientId,
+                sequence: 1,
+                world: null!,
+                in request,
+                heldItemID: null
+            );
+
+            context.Resolution = new InteractionResolution(
+                action,
+                entity: 0,
+                coordinate: default,
+                voxel: new Voxel(brickDataID, default, default)
+            );
+
+            return Handler.Handle(ref context);
+        }
     }
 
     private sealed class FakeHost : IRpcHost

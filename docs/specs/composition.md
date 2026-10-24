@@ -55,7 +55,7 @@ overrides after the engine builds
 | `WaywardBeyond.Bodies` | `Injector` | body database, parser |
 | `WaywardBeyond.Skills` | `Injector` | skill database, parser, tags |
 | `WaywardBeyond.Permissions` | `RegisterPermissions()` | permission file parser, loader, and compiled policy |
-| `WaywardBeyond.Gameplay` | none | no registrations. `ServerComposition` registers its one DI type, `IInteractionHandlerRegistry` |
+| `WaywardBeyond.Gameplay` | none | no registrations. `ServerComposition` registers its one DI type, `IInteractionHandlerRegistry`, and the default handlers |
 
 ## Embedding choices
 
@@ -69,13 +69,12 @@ shared wire-up:
   `ServerComposition` registers `ServerPeers`, `ServerHostCommands`,
   `ServerHandlers`, and `ServerRpcHost`. The client module registers
   `ClientInbound`, `ClientHandlers`, and `ClientRpcHost`.
-- Interaction content: `ServerComposition` registers `ServerInteractionContent`
-  as the default. The client module replaces it with `ClientInteractionContent`.
 - Interaction handlers: `ServerComposition` registers the shared
-  `IInteractionHandlerRegistry` as a host singleton. A mod resolves it from the
-  host container at startup and registers its handlers. The registry is not
-  owned by a Gameplay composition entry, because Gameplay has no other
-  registrations and does not reference DryIoc.
+  `IInteractionHandlerRegistry` as a host singleton and registers the default
+  handlers in stage order. A mod resolves it from the host container at startup
+  and registers its handlers, so a module that adds a handler must load after
+  the server module. The registry is not owned by a Gameplay composition entry,
+  because Gameplay has no other registrations and does not reference DryIoc.
 
 ## Registration policies
 

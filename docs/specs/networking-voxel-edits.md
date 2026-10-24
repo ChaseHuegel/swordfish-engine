@@ -50,20 +50,25 @@ prediction and server authority:
 
 ## Authority apply
 
-`ServerInteractionSystem` (`WaywardBeyond.Server/Systems/`, server tick between the
-replication Apply and Publish stages):
+`ServerInteractionSystem` (`WaywardBeyond.Server/Systems/`) is the pump: on the
+server tick between the replication Apply and Publish stages it builds the
+interaction context and runs the pipeline (see
+[interaction-pipeline](interaction-pipeline.md)).
 
-- Validates the hinted structure and cell against the authority store by
-  identity and reach. It never raycasts.
-- Resolves with `InteractionResolver`.
-- Applies the outcome on the structure's live `VoxelObject`
-  (`WaywardBeyond.Server/Components/VoxelWorldComponent.cs`), rebuilds the
+The default handlers:
+
+- `HintResolveHandler` validates the hinted structure and cell against the
+  authority store by identity and reach. It never raycasts, and it resolves
+  with `InteractionResolver`.
+- `VoxelWriteHandler` applies the outcome on the structure's live `VoxelObject`
+  (`WaywardBeyond.Server/Components/VoxelWorldComponent.cs`) and rebuilds the
   structure `ColliderComponent` (`VoxelColliderBuilder`) so subsequent raycasts
   see the change. Saves and streams re-derive `ChunkInfo[]` from the live
   `VoxelObject`; the authority holds no parallel chunk copy.
-- Survival consumes a held item on place and grants the broken brick's loot via
-  `IInteractionContent` against the server-owned `InventoryComponent`. Creative
-  is free on both paths.
+- `BreakLootHandler` and `PlaceConsumeHandler` grant a broken brick's own item
+  and consume one held item on place, against the server-owned
+  `InventoryComponent`. Creative is free on both paths.
+- `SkillXpHandler` grants the brick's skill XP.
 
 ## Downstream replication
 
@@ -107,21 +112,21 @@ The pipeline that runs each stage, the priority bands, and the four decisions li
 [interaction-pipeline](interaction-pipeline.md). This section records what the default
 handlers do.
 
-Every interaction outcome resolves server-side, so handler customization is
-server-side too. Handlers are the extension point for gameplay, not only for
-mods.
+Every interaction outcome resolves server-side, and handlers are the extension
+point for gameplay, not only for mods.
 
 - Handlers register into the shared, DI-singleton `IInteractionHandlerRegistry`
   (registered in `ServerComposition`), keyed on an `InteractionHandlerFilter`
   (`InteractionKind?`/`HeldItemID?`/`GameMode?`, null = match-any).
-- After base validation, `ServerInteractionSystem` routes each resolution
-  through the registry.
-- A handler returning `InteractionResolution.None` **rejects** the interaction,
-  returning the context's resolution **allows** it, and returning a different
-  resolution **overrides/augments** it.
-- Matching handlers run in registration order. Each handler receives the running
-  resolution, so an allow after an override keeps the override. The last
-  non-reject wins.
+- `ServerInteractionSystem` is the pump: it builds the context and hands it to
+  the pipeline, which runs the stages in order.
+- A handler mutates the running context and returns a decision. `Handled` owns
+  the stage, `Consume` owns the interaction, and `Cancel` rejects it.
+- Matching handlers run by priority band, then registration order. Each handler
+  sees the running resolution, so a change by an earlier handler carries
+  forward.
+- `High` pre-empts the built-ins; the default authority write registers
+  `Low`, so a handler that claims the outcome replaces it.
 
 The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 `GameModeComponent`) are seeded from the client save via

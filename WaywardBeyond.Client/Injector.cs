@@ -264,8 +264,6 @@ public class Injector : IDryIocInjector
 
         container.Register<ItemIconDatabase>(Reuse.Singleton);
 
-        //  The client's richer interaction content replaces the headless server default.
-        container.Register<IInteractionContent, ClientInteractionContent>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         
         container.Register<BlueprintDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();

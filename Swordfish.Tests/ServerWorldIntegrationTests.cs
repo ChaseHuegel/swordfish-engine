@@ -19,6 +19,7 @@ using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
@@ -385,7 +386,8 @@ public class ServerWorldIntegrationTests
         container.RegisterDelegate<ILevelCatalog>(_ => catalog, Reuse.Singleton);
         container.RegisterDelegate<IBrickRegistry>(_ => BrickRegistry.FromNames(["test"]), Reuse.Singleton);
         container.RegisterDelegate<ISkillDatabase>(_ => new FakeSkillDatabase(), Reuse.Singleton);
-        container.RegisterDelegate<IInteractionContent>(_ => new FakeInteractionContent(), Reuse.Singleton);
+        container.RegisterDelegate<IItemDatabase>(_ => new FakeItemDatabase(), Reuse.Singleton);
+        container.RegisterDelegate<IBrickDatabase>(_ => new FakeBrickDatabase(), Reuse.Singleton);
         container.RegisterDelegate<PermissionPolicy>(_ => PermissionPolicy.Create([]), Reuse.Singleton);
         new ServerModule().Inject(container);
 
@@ -499,11 +501,20 @@ public class ServerWorldIntegrationTests
         public IReadOnlyList<Skill> Get(XPSource xpSource) => [];
     }
 
-    private sealed class FakeInteractionContent : IInteractionContent
+    private sealed class FakeItemDatabase : IItemDatabase
     {
-        public Result<Brick> GetPlaceable(string? itemID) => Result<Brick>.FromFailure((string?)null);
+        public Result<Item> Get(string id) => Result<Item>.FromFailure((string?)null);
+    }
 
-        public Result<ItemData> GetLoot(ushort brickDataID) => Result<ItemData>.FromFailure((string?)null);
+    private sealed class FakeBrickDatabase : IBrickDatabase
+    {
+        public Result<Brick> Get(string id) => Result<Brick>.FromFailure((string?)null);
+
+        public Result<Brick> Get(ushort id) => Result<Brick>.FromFailure((string?)null);
+
+        public List<Brick> Get(Func<Brick, bool> predicate) => [];
+
+        public bool IsCuller(in Voxel voxel, BrickShape shape) => false;
     }
 
     private sealed class FakeLevelCatalog : ILevelCatalog

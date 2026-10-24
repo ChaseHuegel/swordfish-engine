@@ -2,42 +2,43 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking;
-using WaywardBeyond.Server.Components;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Rpc;
+using WaywardBeyond.Server.Components;
 using WaywardBeyond.Skills;
 
-namespace WaywardBeyond.Server.Systems;
+namespace WaywardBeyond.Server.Interactions;
 
 /// <summary>
-/// The authoritative skill progression engine. Called by <see cref="ServerInteractionSystem"/> after an
-/// accepted break/place interaction, it resolves the XP each <see cref="Skill"/> grants for the involved
-/// brick, accumulates it into the player's transient <see cref="SkillStateComponent"/> (seeded from the
-/// client's statistics at join), and pushes the authoritative per-skill totals to the acting player's
-/// client. Level-ups are detected here; surfacing them (as notifications) happens in
-/// <see cref="OnInteractionApplied"/>. The server persists no skill data.
+/// React stage: the authoritative skill progression. Resolves the XP each skill grants for the involved
+/// brick, accumulates it into the player's transient <see cref="SkillStateComponent"/>, and pushes the
+/// authoritative totals and level-ups to the acting client. The server persists no skill data.
 /// </summary>
-public sealed class ServerSkillSystem(
+public sealed class SkillXpHandler(
     ISkillDatabase skillDatabase,
-    SessionManager sessions,
     ServerPeers peers,
-    ILogger<ServerSkillSystem> logger
-)
+    ILogger<SkillXpHandler> logger
+) : IInteractionHandler
 {
-    /// <summary>
-    /// Grants XP for a successfully applied interaction. <paramref name="isBreak"/> maps to
-    /// <see cref="XPSource.Break"/>; otherwise the interaction is a place. The state component must exist
-    /// on the player mirror (seeded at join); without a bound client the grant is skipped.
-    /// </summary>
-    public void OnInteractionApplied(DataStore store, int player, ushort brickDataID, bool isBreak)
+    /// <inheritdoc/>
+    public InteractionHandlerFilter Filter => default;
+
+    /// <inheritdoc/>
+    public InteractionDecision Handle(ref InteractionContext context)
     {
-        if (!store.TryGet(player, out SkillStateComponent state) ||
-            !sessions.TryGetClient(player, out Uuid clientId))
+        if (context.Resolution.Action == InteractionAction.None)
         {
-            return;
+            return InteractionDecision.Continue;
         }
 
+        if (!context.Store.TryGet(context.Player, out SkillStateComponent state))
+        {
+            return InteractionDecision.Continue;
+        }
+
+        bool isBreak = context.Resolution.Action == InteractionAction.Break;
         XPSource source = isBreak ? XPSource.Break : XPSource.Place;
+        ushort brickDataID = context.Resolution.Voxel.ID;
 
         bool mutated = false;
         foreach (Skill skill in skillDatabase.Get(source))
@@ -56,7 +57,7 @@ public sealed class ServerSkillSystem(
             LevelInfo previousLevel = skill.CalculateLevel(previousXP);
             LevelInfo currentLevel = skill.CalculateLevel(totalXP);
 
-            SendOrLog(clientId, new SkillStateUpdateMessage
+            SendOrLog(context.ClientId, new SkillStateUpdateMessage
             {
                 SkillId = skill.ID,
                 TotalXP = totalXP,
@@ -65,25 +66,26 @@ public sealed class ServerSkillSystem(
                 GainedXP = gainedXP.Value,
             });
 
-            SendXpBar(clientId, skill, currentLevel);
+            SendXpBar(context.ClientId, skill, currentLevel);
 
             if (previousLevel.Level != currentLevel.Level)
             {
-                SendLevelUp(clientId, skill, previousLevel.Level, currentLevel.Level);
-                logger.LogDebug("Skill \"{skill}\" for player {player} leveled from {previous} to {level}.", skill.ID, player, previousLevel.Level, currentLevel.Level);
+                SendLevelUp(context.ClientId, skill, previousLevel.Level, currentLevel.Level);
+                logger.LogDebug(
+                    "Skill \"{skill}\" for player {player} leveled from {previous} to {level}.",
+                    skill.ID, context.Player, previousLevel.Level, currentLevel.Level);
             }
         }
 
         if (mutated)
         {
-            store.AddOrUpdate(player, state);
+            context.Store.AddOrUpdate(context.Player, state);
         }
+
+        return InteractionDecision.Continue;
     }
 
-    /// <summary>
-    /// Displays the XP progress bar for a granted skill. The client formats the message from its own
-    /// localization; amounts are display-ready.
-    /// </summary>
+    /// <summary>Displays the XP progress bar for a granted skill. The client formats the message itself.</summary>
     private void SendXpBar(Uuid clientId, Skill skill, LevelInfo currentLevel)
     {
         int nextLevelXP = skill.Levels.TryGetValue(currentLevel.Level + 1, out int next) ? next : 0;

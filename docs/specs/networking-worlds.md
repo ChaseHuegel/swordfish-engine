@@ -42,9 +42,9 @@ pins it into an exclusive child container per world
 to that world's own instance graph.
 
 Shared singletons resolve through the child fall-through:
-`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`,
-`IInteractionContent`, `ILevelCatalog` backing, `NetworkingConfig`, the
-loopback transport, and the RPC hosts. A child only inherits a parent singleton
+`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`, the interaction
+handler registry, `ILevelCatalog` backing, `NetworkingConfig`, the loopback
+transport, and the RPC hosts. A child only inherits a parent singleton
 that the parent has already created, so `RegisterServer` resolves every shared
 service a world consumes before any child exists. `withDisposables: false`
 keeps the child from tracking host-owned singletons. Instances the world pins
@@ -63,9 +63,9 @@ on current runtimes.
 ## What is per-world
 
 - `World`/`DataStore`, `SessionManager`, `LevelSaveService`, `SimulationStep`,
-  physics, `NetworkReplicationSystem`, `ServerSkillSystem`,
-  `ServerInteractionSystem`, `ServerJoinQueue`, `IUserPermissionService`, and
-  the interaction world factory.
+  physics, `NetworkReplicationSystem`, `ServerInteractionSystem`,
+  `ServerJoinQueue`, `IUserPermissionService`, and the interaction world
+  factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
   `ServerInventorySystem` → `ServerHeartbeatService` → physics →
@@ -75,8 +75,8 @@ on current runtimes.
 
 ## What stays shared
 
-`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`,
-`IInteractionContent` and the handler registry, `NetworkingConfig`,
+`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`, the interaction
+handler registry and the default handlers, `NetworkingConfig`,
 `LoopbackRpcServerTransport`, `ServerRpcHost`/`LanHost` (one listen socket),
 `ServerPeers`, `ServerHostCommands`, `ServerHandlers`, `ILevelCatalog` and
 `StoragePaths`.

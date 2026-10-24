@@ -62,11 +62,10 @@ client's `assets/lang/en/skills.toml` holds the display strings.
   (`Statistic[]? Statistics`). `ServerJoinSystem` filters them to known skill ids
   and stores them in the player's transient `SkillStateComponent`. New characters
   seed an empty component.
-- **Gameplay**: `ServerInteractionSystem` calls
-  `ServerSkillSystem.OnInteractionApplied` for each accepted break/place with the
-  involved brick's data id. It accumulates XP, computes the level, and sends
-  `SkillStateUpdateMessage` (authoritative totals) plus `NotificationMessage`
-  (display) to that player's client.
+- **Gameplay**: `SkillXpHandler` (the pipeline's `React` stage) grants XP for
+  each accepted break/place with the involved brick's data id. It accumulates
+  XP, computes the level, and sends `SkillStateUpdateMessage` (authoritative
+  totals) plus `NotificationMessage` (display) to that player's client.
 - **Persistence**: only the client persists. Each `SkillStateUpdateMessage`
   writes the authoritative total into the client-owned `Character.Statistics`,
   which the normal autosave persists. The server stores no character skill data
@@ -90,7 +89,7 @@ increment; a max-level skill renders a full bar.
 - `WaywardBeyond.Skills/assets/{skills,lang/tags}/**`
 - `WaywardBeyond.Data/Localization/{LocalizedTagsDefinition,LocalizedTags,LocalizedTagsDatabase,LocalizedTagDefinitionParser,ILocalizedTagsDatabase,LocalizationComposition}.cs`
 - `WaywardBeyond.Server/Components/SkillStateComponent.cs`
-- `WaywardBeyond.Server/Systems/ServerSkillSystem.cs`
+- `WaywardBeyond.Server/Interactions/SkillXpHandler.cs`
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` (seed)
 - `WaywardBeyond.Client/Systems/ClientNotificationSystem.cs`
 - `WaywardBeyond.Client/assets/lang/en/{skills,notification}.toml`
@@ -102,7 +101,7 @@ increment; a max-level skill renders a full bar.
   sources expand to the brick data ids worldgen writes, skills group by
   `XPSource`, the curve stays sorted, and the level thresholds and rejection
   paths hold.
-- `Swordfish.Tests/ServerSkillSystemTests.cs` — the authoritative grant
+- `Swordfish.Tests/SkillXpHandlerTests.cs` — the authoritative grant
   accumulates into `SkillStateComponent`, an unknown brick grants nothing, and
   a seeded total continues the curve.
 - `Swordfish.Tests/ServerJoinSkillSeedTests.cs` — the join seed carries known

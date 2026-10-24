@@ -68,7 +68,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly SoundEffectService _soundEffectService;
     private readonly EventInvoker<PlaceEvent> _placeEvent;
     private readonly EventInvoker<BreakEvent> _breakEvent;
-    private readonly IInteractionContent _content;
     private readonly SnapshotAckTracker _snapshotAck;
 
     private uint _interactionSequence;
@@ -102,7 +101,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in SoundEffectService soundEffectService,
         in EventInvoker<PlaceEvent> placeEvent,
         in EventInvoker<BreakEvent> breakEvent,
-in IInteractionContent content,
     in SnapshotAckTracker snapshotAck
     ) {
         _interactionState = interactionState;
@@ -120,7 +118,6 @@ in IInteractionContent content,
         _soundEffectService = soundEffectService;
         _placeEvent = placeEvent;
         _breakEvent = breakEvent;
-        _content = content;
         _snapshotAck = snapshotAck;
 
         Mesh slope = meshDatabase.Get("slope.obj").Value;
@@ -270,7 +267,7 @@ in IInteractionContent content,
         Brick? placeable = null;
         if (isPlace && heldItemID != null)
         {
-            Result<Brick> placeableResult = _content.GetPlaceable(heldItemID);
+            Result<Brick> placeableResult = ItemPlaceables.ResolvePlaceable(_itemDatabase, _brickDatabase, heldItemID);
             if (placeableResult.Success)
             {
                 placeable = placeableResult.Value;
