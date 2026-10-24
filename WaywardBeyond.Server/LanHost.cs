@@ -24,6 +24,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
     private UdpClient? _beacon;
     private volatile bool _beaconRunning;
 
+    /// <summary>Creates the LAN facade over the RPC host.</summary>
     public LanHost(
         ServerRpcHost rpcHost,
         ServerWorldHost worldHost,
@@ -38,6 +39,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         _logger = loggerFactory.CreateLogger<LanHost>();
     }
 
+    /// <inheritdoc/>
     public void Run()
     {
         int port = _config.Server.Port.Get();
@@ -145,6 +147,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         _beacon?.Dispose();
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         StopBeacon();

@@ -16,6 +16,7 @@ public sealed class NetworkPublishSystem(
     private readonly NetworkReplicationSystem _replication = replication;
     private readonly SimulationStep _simulationStep = simulationStep;
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         _replication.SimTick = _simulationStep.CurrentSimTick;

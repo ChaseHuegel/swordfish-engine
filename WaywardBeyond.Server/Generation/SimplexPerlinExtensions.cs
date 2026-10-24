@@ -2,8 +2,10 @@ using LibNoise.Primitive;
 
 namespace WaywardBeyond.Server.Generation;
 
+/// <summary>Layered simplex noise sampling for asteroid generation.</summary>
 internal static class SimplexPerlinExtensions
 {
+    /// <summary>Samples the octave-weighted noise at a point, normalized to zero through one.</summary>
     public static float GetLayeredNoiseValue(this SimplexPerlin simplexPerlin, int octaves, float frequency, float amplitude, int x, int y, int z)
     {
         var value = 0f;

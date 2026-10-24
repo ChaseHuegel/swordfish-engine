@@ -37,6 +37,7 @@ public sealed class SqliteLevelCatalog(
     private readonly LevelGeneratorConfig _levelGeneratorConfig = levelGeneratorConfig;
     private readonly Migrator _migrator = migrator;
 
+    /// <inheritdoc/>
     public bool Create(string name, string seed, GameMode gameMode, out string levelGuid)
     {
         levelGuid = string.Empty;
@@ -84,6 +85,7 @@ public sealed class SqliteLevelCatalog(
         return true;
     }
 
+    /// <inheritdoc/>
     public Level[] ListLevels()
     {
         var levels = new List<Level>();
@@ -114,6 +116,7 @@ public sealed class SqliteLevelCatalog(
         return levels.ToArray();
     }
 
+    /// <inheritdoc/>
     public bool Delete(string levelGuid)
     {
         if (string.IsNullOrEmpty(levelGuid))
@@ -139,11 +142,13 @@ public sealed class SqliteLevelCatalog(
         }
     }
 
+    /// <inheritdoc/>
     public bool Exists(string levelGuid)
     {
         return !string.IsNullOrEmpty(levelGuid) && _paths.LevelExists(levelGuid);
     }
 
+    /// <inheritdoc/>
     public ILevelStorage? Open(string levelGuid)
     {
         if (!Exists(levelGuid))

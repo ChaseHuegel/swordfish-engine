@@ -19,6 +19,7 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public static class HostComposition
 {
+    /// <summary>Registers the host wire-up shared by every embedding.</summary>
     public static void RegisterHost(this IContainer container)
     {
         container.RegisterNetworking();

@@ -35,6 +35,7 @@ public sealed class ServerHeartbeatService(
     private long _tpsWindowStartedTicks = Environment.TickCount64;
     private long _nextHeartbeatTicks = Environment.TickCount64;
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         MeasureTps();

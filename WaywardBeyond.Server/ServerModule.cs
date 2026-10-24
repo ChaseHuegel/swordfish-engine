@@ -13,6 +13,7 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public sealed class ServerModule : IDryIocInjector
 {
+    /// <inheritdoc/>
     public void Inject(IContainer container)
     {
         container.RegisterHost();

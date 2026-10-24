@@ -23,6 +23,7 @@ public sealed class ServerLevelManager(
     private readonly PermissionResolver _resolver = resolver;
     private readonly ILogger _logger = loggerFactory.CreateLogger<ServerLevelManager>();
 
+    /// <summary>Serves the save-listing call. Runs on the catalog worker.</summary>
     public RpcResult<ListLevelsResponse> List(ServerPeer peer)
     {
         try
@@ -41,6 +42,7 @@ public sealed class ServerLevelManager(
         }
     }
 
+    /// <summary>Serves the create call after the permission and game-mode checks. Runs on the catalog worker.</summary>
     public RpcResult<NewLevelResponse> Create(ServerPeer peer, in NewLevelRequest request)
     {
         if (!CanCreate(peer))

@@ -29,6 +29,7 @@ public sealed class ServerHandlers : GameServerApiHandler
     private readonly int _inboundBurst;
     private readonly int _inboundQueueDepth;
 
+    /// <summary>Creates the handler set with the per-peer inbound budget from the protocol config.</summary>
     public ServerHandlers(ServerPeers peers, ServerHostCommands commands, NetworkingConfig config, ILogger<ServerHandlers> logger)
     {
         _peers = peers;
@@ -39,6 +40,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         _inboundQueueDepth = Math.Max(1, config.Protocol.InboundQueueDepth.Get());
     }
 
+    /// <inheritdoc/>
     public override void OnClientHello(ClientHello message, RpcContext context, CancellationToken cancellationToken)
     {
         if (!TryGetPeer(in context, out ServerPeer peer))
@@ -65,6 +67,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         peer.Claim = new UserClaim(userId);
     }
 
+    /// <inheritdoc/>
     public override void OnLeaveGame(LeaveGameRequest message, RpcContext context, CancellationToken cancellationToken)
     {
         if (TryGetPeer(in context, out ServerPeer peer))
@@ -73,6 +76,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         }
     }
 
+    /// <inheritdoc/>
     public override void OnClientHeartbeat(ClientHeartbeatMessage message, RpcContext context, CancellationToken cancellationToken)
     {
         if (TryGetPeer(in context, out ServerPeer peer) && peer.World != null)
@@ -81,6 +85,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         }
     }
 
+    /// <inheritdoc/>
     public override void OnSendSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken)
     {
         if (TryGetPeer(in context, out ServerPeer peer) && peer.World != null)
@@ -89,6 +94,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         }
     }
 
+    /// <inheritdoc/>
     public override void OnChat(ChatMessage message, RpcContext context, CancellationToken cancellationToken)
     {
         if (TryGetPeer(in context, out ServerPeer peer) && peer.World != null)
@@ -97,6 +103,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         }
     }
 
+    /// <inheritdoc/>
     public override ValueTask<RpcResult<ListLevelsResponse>> ListLevelsAsync(
         ListLevelsRequest request,
         RpcContext context,
@@ -107,6 +114,7 @@ public sealed class ServerHandlers : GameServerApiHandler
             : Failed<ListLevelsResponse>();
     }
 
+    /// <inheritdoc/>
     public override ValueTask<RpcResult<NewLevelResponse>> CreateLevelAsync(
         NewLevelRequest request,
         RpcContext context,
@@ -117,6 +125,7 @@ public sealed class ServerHandlers : GameServerApiHandler
             : Failed<NewLevelResponse>();
     }
 
+    /// <inheritdoc/>
     public override ValueTask<RpcResult<DeleteLevelResponse>> DeleteLevelAsync(
         DeleteLevelRequest request,
         RpcContext context,
@@ -127,6 +136,7 @@ public sealed class ServerHandlers : GameServerApiHandler
             : Failed<DeleteLevelResponse>();
     }
 
+    /// <inheritdoc/>
     public override ValueTask<RpcResult<SaveLevelResponse>> SaveLevelAsync(
         SaveLevelRequest request,
         RpcContext context,
@@ -157,6 +167,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         return new ValueTask<RpcResult<SaveLevelResponse>>(completion.Task);
     }
 
+    /// <inheritdoc/>
     public override ValueTask<RpcResult<JoinAccept>> JoinAsync(
         JoinRequest request,
         RpcContext context,
@@ -167,6 +178,7 @@ public sealed class ServerHandlers : GameServerApiHandler
             : Failed<JoinAccept>();
     }
 
+    /// <inheritdoc/>
     public override ValueTask<RpcResult<LevelStreamComplete>> StreamLevelAsync(
         StreamLevelRequest request,
         RpcContext context,

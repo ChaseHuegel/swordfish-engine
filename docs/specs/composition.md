@@ -87,6 +87,11 @@ shared wire-up:
 `Keep` makes shared entry points idempotent. Any module can call them, in any
 order.
 
+A world container is a child of the root. DryIoc children only inherit a parent
+singleton that the parent has already created, so `RegisterServer` resolves the
+shared services a world graph consumes before any world container exists. Add a
+new shared singleton to that list, or a world silently gets a private copy.
+
 ## Order contracts
 
 - Module load order comes from `config/modules.toml`. The client module loads

@@ -16,6 +16,7 @@ namespace WaywardBeyond.Server.Systems;
 /// </summary>
 public sealed class ServerInventorySystem : IServerWorldSystem
 {
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         ConsumeOpsAction action = new() { Owner = this };

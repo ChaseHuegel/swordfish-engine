@@ -11,6 +11,7 @@ namespace WaywardBeyond.Server.Systems;
 /// </summary>
 public sealed class ServerVoxelInteractionWorld(DataStore store) : IVoxelInteractionWorld
 {
+    /// <inheritdoc/>
     public Result<VoxelTarget> GetTarget(in Uuid entityUuid)
     {
         if (store.TryGet(entityUuid, out int entity) &&

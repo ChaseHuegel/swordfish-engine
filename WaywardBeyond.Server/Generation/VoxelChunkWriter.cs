@@ -23,6 +23,7 @@ internal sealed class VoxelChunkWriter
 
     private readonly Dictionary<(short X, short Y, short Z), Chunk> _chunks = [];
 
+    /// <summary>Creates a writer whose chunk edge must be a positive power of two.</summary>
     public VoxelChunkWriter(byte chunkSize)
     {
         if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
@@ -37,6 +38,7 @@ internal sealed class VoxelChunkWriter
         _voxelsPerChunk = chunkSize * chunkSize * chunkSize;
     }
 
+    /// <summary>Writes one voxel at a world-local coordinate.</summary>
     public void Set(int x, int y, int z, in Voxel voxel)
     {
         var chunkX = (short)(x >> _chunkShift);
@@ -58,6 +60,7 @@ internal sealed class VoxelChunkWriter
         chunk.Voxels[index] = voxel;
     }
 
+    /// <summary>Returns the written chunks in a stable offset order.</summary>
     public ChunkInfo[] GetChunkInfos()
     {
         return _chunks

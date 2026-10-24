@@ -31,6 +31,7 @@ public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, Le
     //  intersect, so cap the work instead of spinning on the server thread.
     private const int MAX_PLACEMENT_ATTEMPTS_PER_ASTEROID = 100;
 
+    /// <summary>Hashes a seed string to the integer the generator and level metadata use.</summary>
     public static int HashSeed(string seed)
     {
         if (int.TryParse(seed, out int seedValue))
@@ -43,6 +44,7 @@ public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, Le
         return BitConverter.ToInt32(seedHash);
     }
 
+    /// <summary>Generates the level structures for the seed. Throws when placement cannot complete.</summary>
     public VoxelEntityData[] Generate()
     {
         int asteroidCount = _config.AsteroidCount;

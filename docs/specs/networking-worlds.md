@@ -44,9 +44,12 @@ to that world's own instance graph.
 Shared singletons resolve through the child fall-through:
 `NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`,
 `IInteractionContent`, `ILevelCatalog` backing, `NetworkingConfig`, the
-loopback transport, and the RPC hosts. `withDisposables: false` is required: a
-child-container disposal would otherwise cascade to the root's singleton
-disposables.
+loopback transport, and the RPC hosts. A child only inherits a parent singleton
+that the parent has already created, so `RegisterServer` resolves every shared
+service a world consumes before any child exists. `withDisposables: false`
+keeps the child from tracking host-owned singletons. Instances the world pins
+with `RegisterInstance` are still disposed, which is what closes the world's
+save store.
 
 World systems register under the `IServerWorldSystem` marker, never
 `IEntitySystem`, so the client's ECS context cannot resolve them. Any module
@@ -60,8 +63,9 @@ on current runtimes.
 ## What is per-world
 
 - `World`/`DataStore`, `SessionManager`, `LevelSaveService`, `SimulationStep`,
-  physics, `NetworkReplicationSystem`, `ServerSkillSystem`, `ServerJoinQueue`,
-  `IUserPermissionService`, and the interaction world factory.
+  physics, `NetworkReplicationSystem`, `ServerSkillSystem`,
+  `ServerInteractionSystem`, `ServerJoinQueue`, `IUserPermissionService`, and
+  the interaction world factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
   `ServerInventorySystem` → `ServerHeartbeatService` → physics →

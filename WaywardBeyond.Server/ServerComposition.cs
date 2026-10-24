@@ -31,6 +31,7 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public static class ServerComposition
 {
+    /// <summary>Registers the authoritative server services and the ordered world systems.</summary>
     public static void RegisterServer(this IContainer container)
     {
         container.RegisterDataServices();

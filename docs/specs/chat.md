@@ -94,7 +94,7 @@ renders nothing once every message has faded. Open chat shows every message
 at full alpha. `ChatService` stamps the arrival time when the client receives
 the message; the overlay itself never resets a message's clock.
 
-The overlay has no background in either state. The send box has a fixed
+The overlay and the send box share one translucent background. The send box has a fixed
 height, so it anchors to the overlay bottom even when it is empty.
 
 The chat box focuses programmatically when it opens (`UIBuilder.Focus`). The

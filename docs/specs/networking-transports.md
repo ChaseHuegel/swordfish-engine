@@ -126,7 +126,8 @@ state.
 - `LanHost` starts the LAN RPC listener and a `"LAN BEACON"` thread. The thread
   sends an nsd `LanBeacon` to `255.255.255.255` every
   `Discovery.BroadcastSeconds`. `PlayerCount` is the sum of world session
-  counts.
+  counts, published by the server thread once per tick so the beacon thread
+  never walks the world table.
 - `LanDiscoveryService` listens on the discovery port for
   `Discovery.ScanDurationSeconds`, drops non-matching protocol versions, dedupes
   by endpoint, and ignores its own server by source address and TCP port.

@@ -13,5 +13,6 @@ namespace WaywardBeyond.Server.Components;
 /// </summary>
 public readonly struct VoxelWorldComponent(in VoxelObject voxelObject) : IDataComponent
 {
+    /// <summary>The live, mutable voxel container the server owns.</summary>
     public readonly VoxelObject VoxelObject = voxelObject;
 }

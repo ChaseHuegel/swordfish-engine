@@ -30,16 +30,19 @@ public sealed class ServerPhysicsSystem : IServerWorldSystem, IServerWorldPhysic
         _physics.FixedUpdate += OnFixedUpdate;
     }
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         _physics.Tick(delta, store);
     }
 
+    /// <inheritdoc/>
     public RaycastResult Raycast(in Ray ray)
     {
         return _physics.Raycast(ray);
     }
 
+    /// <inheritdoc/>
     public void SetGravity(System.Numerics.Vector3 gravity)
     {
         _physics.SetGravity(gravity);

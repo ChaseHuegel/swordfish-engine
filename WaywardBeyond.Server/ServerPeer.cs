@@ -20,7 +20,7 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public sealed class ServerPeer
 {
-    private readonly object _claimGate = new();
+    private readonly Lock _claimGate = new();
     private readonly Lock _inboundGate = new();
     private UserClaim _claim = UserClaim.Anonymous;
     private long _lastInboundTicks;
@@ -30,6 +30,7 @@ public sealed class ServerPeer
     private long _droppedInbound;
     private int _rejectLogged;
 
+    /// <summary>Creates the game-side record for one RPC client.</summary>
     public ServerPeer(Uuid gameId, RpcPeer rpc, bool isLocal)
     {
         GameId = gameId;
@@ -51,8 +52,10 @@ public sealed class ServerPeer
     /// <summary>True for the in-process loopback peer.</summary>
     public bool IsLocal { get; }
 
+    /// <summary>The transport endpoint, or null for the in-process loopback.</summary>
     public EndPoint? RemoteEndPoint => Rpc.RemoteEndPoint;
 
+    /// <summary>The connection counters for this peer.</summary>
     public RpcConnectionStats Stats => Rpc.Stats;
 
     /// <summary>The claim from <c>ClientHello</c>. An absent hello resolves as anonymous.</summary>
@@ -83,12 +86,16 @@ public sealed class ServerPeer
     /// <summary>The last inbound message time on the monotonic tick clock.</summary>
     public long LastInboundTicks => Interlocked.Read(ref _lastInboundTicks);
 
+    /// <summary>Inbound client snapshots staged for the world tick.</summary>
     public ConcurrentQueue<WorldSnapshot> Snapshots { get; } = new();
 
+    /// <summary>Inbound chat messages staged for the world tick.</summary>
     public ConcurrentQueue<ChatMessage> Chats { get; } = new();
 
+    /// <summary>Inbound client heartbeats staged for the world tick.</summary>
     public ConcurrentQueue<ClientHeartbeatMessage> Heartbeats { get; } = new();
 
+    /// <summary>Inbound save requests staged for the world tick.</summary>
     public ConcurrentQueue<SaveLevelCall> SaveCalls { get; } = new();
 
     /// <summary>Stamps the last inbound message time. Called for every inbound message.</summary>

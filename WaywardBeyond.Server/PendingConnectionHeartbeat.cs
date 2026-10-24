@@ -24,6 +24,7 @@ public sealed class PendingConnectionHeartbeat
 
     private long _nextHeartbeatTicks;
 
+    /// <summary>Creates the host pulse with its cadence clamped below the transport idle timeout.</summary>
     public PendingConnectionHeartbeat(
         ServerPeers peers,
         NetworkingConfig config,

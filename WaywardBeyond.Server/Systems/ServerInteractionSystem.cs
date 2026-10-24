@@ -39,6 +39,7 @@ public sealed class ServerInteractionSystem(
     SimulationStep simulationStep
 ) : IServerWorldSystem
 {
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         Tick(delta, store, simulationStep.CurrentSimTick);

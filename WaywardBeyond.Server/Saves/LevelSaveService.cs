@@ -38,12 +38,16 @@ public sealed class LevelSaveService : IDisposable
     private Task _pendingSave = Task.CompletedTask;
     private bool _disposed;
 
+    /// <summary>The loaded level guid, or null when no level is loaded.</summary>
     public string? CurrentLevelGuid { get; private set; }
+    /// <summary>The loaded level metadata, or null when no level is loaded.</summary>
     public Level? CurrentLevel { get; private set; }
+    /// <summary>The level spawn point, or the configured default when no level is loaded.</summary>
     public Vector3 LevelSpawn { get; private set; }
 
     private readonly GameplayConfig _gameplayConfig;
 
+    /// <summary>Creates the save service for one world. Each world owns its own instance and handle.</summary>
     public LevelSaveService(
         ILogger logger,
         ILevelCatalog levelCatalog,
@@ -215,6 +219,7 @@ public sealed class LevelSaveService : IDisposable
         _logger.LogInformation("Flushed server level save for level \"{level}\".", CurrentLevelGuid);
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         AwaitPendingSave();

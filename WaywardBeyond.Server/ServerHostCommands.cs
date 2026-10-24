@@ -57,11 +57,13 @@ public sealed class ServerHostCommands(
         TickStreams();
     }
 
+    /// <summary>Queues a leave from the RPC pump for the next world tick.</summary>
     public void EnqueueLeave(ServerPeer peer)
     {
         _calls.Enqueue(new LeaveCall(peer));
     }
 
+    /// <summary>Queues the save-listing call on the catalog worker.</summary>
     public Task<RpcResult<ListLevelsResponse>> ListLevelsAsync(ServerPeer peer, CancellationToken cancellationToken)
     {
         var completion = NewCompletion<ListLevelsResponse>();
@@ -81,6 +83,7 @@ public sealed class ServerHostCommands(
         return completion.Task;
     }
 
+    /// <summary>Queues the create call on the catalog worker.</summary>
     public Task<RpcResult<NewLevelResponse>> CreateLevelAsync(
         ServerPeer peer,
         NewLevelRequest request,
@@ -103,6 +106,7 @@ public sealed class ServerHostCommands(
         return completion.Task;
     }
 
+    /// <summary>Queues a delete for the next tick and the catalog worker.</summary>
     public Task<RpcResult<DeleteLevelResponse>> DeleteLevelAsync(
         ServerPeer peer,
         DeleteLevelRequest request,
@@ -114,6 +118,7 @@ public sealed class ServerHostCommands(
         return completion.Task;
     }
 
+    /// <summary>Queues a join for the next tick.</summary>
     public Task<RpcResult<JoinAccept>> JoinAsync(
         ServerPeer peer,
         JoinRequest request,
@@ -125,6 +130,7 @@ public sealed class ServerHostCommands(
         return completion.Task;
     }
 
+    /// <summary>Queues a level-stream request for the next tick.</summary>
     public Task<RpcResult<LevelStreamComplete>> StreamLevelAsync(
         ServerPeer peer,
         in RpcContext context,

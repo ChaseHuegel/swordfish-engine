@@ -91,7 +91,7 @@ through RPC handlers and notifications.
 | Client prediction + reconciliation | Implemented (server-authoritative, sim-tick driven) |
 | Authoritative server simulation | Implemented (shared deterministic step on the server world) |
 | Multi-client sessions and disconnect | Implemented (`ServerPeers` + `SessionManager`) |
-| LAN server discovery (UDP beacon) | Implemented (protocol version 2) |
+| LAN server discovery (UDP beacon) | Implemented (protocol version 3) |
 
 ## Source of truth
 

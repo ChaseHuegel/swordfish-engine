@@ -31,6 +31,7 @@ public sealed class ServerSaveSystem(
 
     private float _autosaveElapsedSeconds;
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         HandleAutosave(delta, store);

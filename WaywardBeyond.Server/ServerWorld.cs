@@ -19,11 +19,17 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public sealed class ServerWorld : IDisposable
 {
+    /// <summary>The engine world this container owns.</summary>
     public World World { get; }
+    /// <summary>The world data store. Only the server thread may touch it.</summary>
     public DataStore Store => World.DataStore;
+    /// <summary>The world level save service.</summary>
     public LevelSaveService SaveService { get; }
+    /// <summary>The world session registry.</summary>
     public SessionManager Sessions { get; }
+    /// <summary>The world inbound join and leave queue.</summary>
     public ServerJoinQueue JoinQueue { get; }
+    /// <summary>The world replication stages.</summary>
     public NetworkReplicationSystem Replication { get; }
 
     /// <summary>The shared interaction handler registry this world resolves through.</summary>
@@ -31,6 +37,7 @@ public sealed class ServerWorld : IDisposable
 
     private readonly IContainer _container;
 
+    /// <summary>Resolves and pins this world's graph, then registers its systems with the world.</summary>
     public ServerWorld(IContainer container)
     {
         _container = container;
@@ -54,11 +61,13 @@ public sealed class ServerWorld : IDisposable
         }
     }
 
+    /// <summary>Ticks every world system once. Runs on the server thread.</summary>
     public void Tick(float delta)
     {
         World.Tick(delta);
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         _container.Dispose();

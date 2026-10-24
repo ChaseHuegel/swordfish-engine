@@ -11,6 +11,7 @@ public sealed class NetworkApplySystem(NetworkReplicationSystem replication) : I
 {
     private readonly NetworkReplicationSystem _replication = replication;
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         _replication.ApplyStage(delta, store);

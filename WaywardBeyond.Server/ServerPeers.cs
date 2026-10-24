@@ -14,7 +14,7 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public sealed class ServerPeers
 {
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly Dictionary<Uuid, ServerPeer> _byGameId = [];
     private readonly Dictionary<(IRpcHost Host, ulong ClientId), ServerPeer> _byRpc = [];
     private readonly Dictionary<IRpcHost, bool> _hosts = new();
@@ -25,6 +25,7 @@ public sealed class ServerPeers
     /// <summary>The live peers. A read-only snapshot that does not change when peers join or leave.</summary>
     public ReadOnlySpan<ServerPeer> Peers => _snapshot;
 
+    /// <summary>The number of live peers.</summary>
     public int Count => _snapshot.Length;
 
     /// <summary>Records which RPC endpoint a host is, so a peer can be created before the connect event.</summary>
@@ -69,6 +70,7 @@ public sealed class ServerPeers
         }
     }
 
+    /// <summary>Finds a peer by game id.</summary>
     public bool TryGet(Uuid gameId, out ServerPeer peer)
     {
         lock (_gate)
@@ -77,6 +79,7 @@ public sealed class ServerPeers
         }
     }
 
+    /// <summary>Finds a peer by RPC endpoint and client id.</summary>
     public bool TryGet(IRpcHost host, ulong clientId, out ServerPeer peer)
     {
         lock (_gate)
@@ -85,6 +88,7 @@ public sealed class ServerPeers
         }
     }
 
+    /// <summary>Finds the peer that sent one RPC.</summary>
     public bool TryGet(RpcContext context, out ServerPeer peer)
     {
         return TryGet(context.Host, context.ClientId, out peer);
@@ -115,6 +119,7 @@ public sealed class ServerPeers
         _disconnected.Enqueue(peer);
     }
 
+    /// <summary>Takes the next peer queued for teardown, if any.</summary>
     public bool TryDequeueDisconnected(out ServerPeer peer)
     {
         return _disconnected.TryDequeue(out peer!);

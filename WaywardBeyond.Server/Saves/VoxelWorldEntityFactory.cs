@@ -20,6 +20,7 @@ namespace WaywardBeyond.Server.Saves;
 /// </summary>
 public static class VoxelWorldEntityFactory
 {
+    /// <summary>Builds the authority components for one structure. Returns a default entity when it has no solid voxels.</summary>
     public static Entity CreateAuthority(DataStore store, in VoxelEntityData data)
     {
         //  Skip entities with no solid voxels - an empty CompoundShape would otherwise be handed to the

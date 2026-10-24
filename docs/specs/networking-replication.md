@@ -89,8 +89,9 @@ Store-mediated writes (`Alloc<T...>`, `AddOrUpdate`, `Entity.Add`) auto-mark a
 component dirty. In-place mutation through a query `ref` is not auto-detected:
 mutating systems use `store.QueryRef<T...>(...)` and the `Ref<T>.Write`
 accessor. Replication caches its direction's `NetworkRegistry` component list
-once per instance, so the hot path allocates nothing per entity. The client
-collection is player-scoped.
+once per instance, so a publish does not rebuild it. The hot path still
+allocates per dirty component (a snapshot object and its payload) and reuses
+its publish arrays between frames. The client collection is player-scoped.
 
 Physics writeback and the shared simulation step compare before they write.
 They never mark a component dirty with the value it already holds. The Jolt sync

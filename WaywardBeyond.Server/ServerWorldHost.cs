@@ -22,6 +22,7 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public sealed class ServerWorldHost : IEntryPoint, IDisposable
 {
+    /// <summary>The live player count, published once per tick for the LAN beacon thread.</summary>
     public int PlayerCount
     {
         get
@@ -44,6 +45,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private int _playerCount;
     private bool _disposed;
 
+    /// <summary>Creates the world table and its server thread.</summary>
     public ServerWorldHost(
         IContainer container,
         ServerHostCommands commands,
@@ -61,6 +63,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         _threadWorker = new ThreadWorker(Update, "Server");
     }
 
+    /// <inheritdoc/>
     public void Run()
     {
         _threadWorker.Start();
@@ -140,6 +143,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         return null;
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (_disposed)

@@ -18,6 +18,7 @@ public sealed class ServerJoinQueue
     private readonly ConcurrentQueue<Uuid> _disconnects = new();
     private readonly ConcurrentQueue<Uuid> _leaves = new();
 
+    /// <summary>Queues one routed join for the world tick.</summary>
     public void Enqueue(
         ServerPeer peer,
         JoinRequest request,
@@ -27,26 +28,31 @@ public sealed class ServerJoinQueue
         _joins.Enqueue(new JoinCall(peer, request, completion, cancellationToken));
     }
 
+    /// <summary>Takes the next routed join, if any.</summary>
     public bool TryDequeueJoin(out JoinCall join)
     {
         return _joins.TryDequeue(out join);
     }
 
+    /// <summary>Queues a disconnect teardown for the world tick.</summary>
     public void EnqueueDisconnect(Uuid gameId)
     {
         _disconnects.Enqueue(gameId);
     }
 
+    /// <summary>Takes the next disconnect teardown, if any.</summary>
     public bool TryDequeueDisconnect(out Uuid gameId)
     {
         return _disconnects.TryDequeue(out gameId);
     }
 
+    /// <summary>Queues a menu leave for the world tick.</summary>
     public void EnqueueLeave(Uuid gameId)
     {
         _leaves.Enqueue(gameId);
     }
 
+    /// <summary>Takes the next menu leave, if any.</summary>
     public bool TryDequeueLeave(out Uuid gameId)
     {
         return _leaves.TryDequeue(out gameId);

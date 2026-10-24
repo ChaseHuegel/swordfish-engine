@@ -33,6 +33,7 @@ public sealed class ServerRpcHost : IEntryPoint, IDisposable
     private int _lanPort;
     private bool _disposed;
 
+    /// <summary>Builds the server endpoints from the protocol and transport config.</summary>
     public ServerRpcHost(
         LoopbackRpcServerTransport loopbackTransport,
         ServerPeers peers,
@@ -65,6 +66,7 @@ public sealed class ServerRpcHost : IEntryPoint, IDisposable
     /// <summary>The bound LAN port, or zero while the LAN server is not running.</summary>
     public int LanPort => Volatile.Read(ref _lanPort);
 
+    /// <inheritdoc/>
     public void Run()
     {
         _loopback.Start();
@@ -94,6 +96,7 @@ public sealed class ServerRpcHost : IEntryPoint, IDisposable
         _logger.LogInformation("Listening for LAN RPC connections on port {port}.", tcp.Port);
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (_disposed)

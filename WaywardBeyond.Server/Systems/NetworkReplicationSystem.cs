@@ -8,7 +8,6 @@ using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Gameplay.Networking;
-using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Server.Systems;
@@ -60,6 +59,7 @@ public sealed class NetworkReplicationSystem
     //  the tick that enqueues the complete still publishes no deltas.
     private readonly Queue<Uuid> _streamEnds = new();
 
+    /// <summary>The sim tick stamped on the next published snapshot. Set by the publish system.</summary>
     public uint SimTick { get; set; }
 
     private readonly NetworkingConfig _config;
@@ -72,6 +72,7 @@ public sealed class NetworkReplicationSystem
 
     private uint _nextBatchId;
 
+    /// <summary>Creates the replication stages for one world.</summary>
     public NetworkReplicationSystem(
         ServerPeers peers,
         SessionManager sessions,
