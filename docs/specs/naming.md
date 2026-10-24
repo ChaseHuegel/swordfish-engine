@@ -61,6 +61,26 @@ Call sites and ownership rules live in [composition](composition.md).
 | `<thing>System` | an ECS system (`EntitySystem`) |
 | `<thing>Component` | an ECS component (`readonly struct : IDataComponent`) |
 
+## Interaction handlers
+
+An interaction handler's suffix names the pipeline stage it runs in. The subject names
+the content or action it handles.
+
+| Suffix | Stage |
+|---|---|
+| `<thing>Selector` | `Select` — chooses the content the interaction operates with |
+| `<thing>Resolver` | `Resolve` — derives the base outcome from the client's target hint |
+| `<thing>Validator` | `Validate` — adjusts or rejects before the authority change |
+| `<thing>Committer` | `Commit` — performs the authority change |
+| `<thing>Reactor` | `React` — applies the consequences |
+
+Examples: `ItemPlaceableSelector`, `HintResolver`, `VoxelWriteCommitter`,
+`BreakLootReactor`, `SkillXpReactor`.
+
+A handler declares its `Stage` and `Priority` as properties rather than at registration,
+so the type is the one place that says where it runs. Handlers register as
+`IInteractionHandler` through DI. See [interaction-pipeline](interaction-pipeline.md).
+
 ## Storage
 
 The persistence layer returns models.
