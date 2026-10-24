@@ -9,9 +9,10 @@ public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
     private const int STAGE_COUNT = 5;
     private const int PRIORITY_COUNT = 3;
 
-    //  One ordered array per stage: handlers are placed by their own stage and priority when the registry
-    //  is built, so a run is a flat walk with no per-interaction sorting or allocation.
-    private readonly IInteractionHandler[][] _stages = new IInteractionHandler[STAGE_COUNT][];
+    //  One ordered list per stage: handlers are placed by their own stage and priority when the registry
+    //  is built, so a run is a flat walk with no per-interaction sorting or allocation. The lists are
+    //  read-only wrappers, so a caller cannot cast them back to an array and mutate the pipeline.
+    private readonly IReadOnlyList<IInteractionHandler>[] _stages = new IReadOnlyList<IInteractionHandler>[STAGE_COUNT];
 
     /// <summary>Builds the pipeline from the registered handlers, ordered by stage and priority.</summary>
     public InteractionHandlerRegistry(IEnumerable<IInteractionHandler> handlers)
@@ -47,7 +48,7 @@ public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
                 ordered.AddRange(buckets[(stage * PRIORITY_COUNT) + priority]);
             }
 
-            _stages[stage] = [.. ordered];
+            _stages[stage] = Array.AsReadOnly(ordered.ToArray());
         }
     }
 
@@ -75,8 +76,8 @@ public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
 
     private InteractionDecision RunStage(InteractionStage stage, ref InteractionContext context)
     {
-        IInteractionHandler[] handlers = _stages[(int)stage];
-        for (var index = 0; index < handlers.Length; index++)
+        IReadOnlyList<IInteractionHandler> handlers = _stages[(int)stage];
+        for (var index = 0; index < handlers.Count; index++)
         {
             IInteractionHandler handler = handlers[index];
             if (!Matches(handler.Filter, in context))
