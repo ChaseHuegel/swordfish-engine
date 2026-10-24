@@ -1,11 +1,17 @@
 ﻿namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
-/// One listener in the interaction pipeline. A handler registers into a single stage and runs for every
-/// interaction matching its filter; the stages it does not register into never call it.
+/// One listener in the interaction pipeline. A handler declares the stage it belongs to and its priority
+/// inside that stage, so the type carries its own placement; the registry discovers handlers through DI.
 /// </summary>
 public interface IInteractionHandler
 {
+    /// <summary>The stage this handler belongs to.</summary>
+    InteractionStage Stage { get; }
+
+    /// <summary>The priority band inside <see cref="Stage"/>.</summary>
+    InteractionPriority Priority { get; }
+
     /// <summary>The filter this handler opts into; null fields match any value.</summary>
     InteractionHandlerFilter Filter { get; }
 

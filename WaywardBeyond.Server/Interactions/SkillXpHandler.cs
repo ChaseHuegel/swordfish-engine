@@ -21,6 +21,12 @@ public sealed class SkillXpHandler(
 ) : IInteractionHandler
 {
     /// <inheritdoc/>
+    public InteractionStage Stage => InteractionStage.React;
+
+    /// <inheritdoc/>
+    public InteractionPriority Priority => InteractionPriority.Normal;
+
+    /// <inheritdoc/>
     public InteractionHandlerFilter Filter => default;
 
     /// <inheritdoc/>

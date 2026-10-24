@@ -245,8 +245,9 @@ public class ServerWorldIntegrationTests
 
         //  The registry is composed once in the root. A world that built its own copy would silently
         //  ignore every handler registered before the world existed.
+        //  The registry is built from DI once every module has registered its handlers.
         var handlers = server.Container.Resolve<IInteractionHandlerRegistry>();
-        handlers.Register(InteractionStage.Validate, InteractionPriority.High, new RejectingHandler());
+        Assert.Contains(handlers.GetHandlers(InteractionStage.Validate), handler => handler is RejectingHandler);
 
         server.WorldHost.Run();
         server.RpcHost.Run();
@@ -293,6 +294,10 @@ public class ServerWorldIntegrationTests
 
     private sealed class RejectingHandler : IInteractionHandler
     {
+        public InteractionStage Stage => InteractionStage.Validate;
+
+        public InteractionPriority Priority => InteractionPriority.High;
+
         public InteractionHandlerFilter Filter => default;
 
         public InteractionDecision Handle(ref InteractionContext context) => InteractionDecision.Cancel;
@@ -383,6 +388,7 @@ public class ServerWorldIntegrationTests
         container.RegisterInstance(new LevelGeneratorConfig());
         container.RegisterInstance(new PhysicsSettings());
         container.RegisterInstance(new StorageConfig());
+        container.Register<IInteractionHandler, RejectingHandler>(Reuse.Singleton);
         container.RegisterDelegate<ILevelCatalog>(_ => catalog, Reuse.Singleton);
         container.RegisterDelegate<IBrickRegistry>(_ => BrickRegistry.FromNames(["test"]), Reuse.Singleton);
         container.RegisterDelegate<ISkillDatabase>(_ => new FakeSkillDatabase(), Reuse.Singleton);

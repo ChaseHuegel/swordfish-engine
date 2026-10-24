@@ -26,10 +26,18 @@ Select → Resolve → Validate → Apply → React
 The game and its mods register the same kind of handler. There is no privileged path:
 a mod can replace the authority write, cancel it, or produce a different outcome entirely.
 
+## Registration
+
+A handler carries its own `Stage` and `Priority` as properties, so the type states where it
+belongs. The composition registers the implementation as an `IInteractionHandler`; the
+registry is built once at startup from every registration, after all modules have loaded.
+A mod registers its implementation and never resolves the registry, so module load order
+does not decide placement.
+
 ## Priority
 
-Within a stage, handlers run `High` then `Normal` then `Low`; ties keep registration
-order. The default authority write registers `Low`, so any `High` or `Normal` handler in
+Within a stage, handlers run `High` then `Normal` then `Low`; ties keep DI registration
+order. The default authority write declares `Low`, so any `High` or `Normal` handler in
 `Apply` gets the outcome first. A handler that claims the outcome returns
 `InteractionDecision.Handled`, which skips the remaining handlers in the stage — including
 the built-in write.

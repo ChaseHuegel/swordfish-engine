@@ -69,12 +69,13 @@ shared wire-up:
   `ServerComposition` registers `ServerPeers`, `ServerHostCommands`,
   `ServerHandlers`, and `ServerRpcHost`. The client module registers
   `ClientInbound`, `ClientHandlers`, and `ClientRpcHost`.
-- Interaction handlers: `ServerComposition` registers the shared
-  `IInteractionHandlerRegistry` as a host singleton and registers the default
-  handlers in stage order. A mod resolves it from the host container at startup
-  and registers its handlers, so a module that adds a handler must load after
-  the server module. The registry is not owned by a Gameplay composition entry,
-  because Gameplay has no other registrations and does not reference DryIoc.
+- Interaction handlers: a handler declares its own stage and priority, and a
+  module registers it as an `IInteractionHandler`. `ServerComposition`
+  registers the built-ins and the host `IInteractionHandlerRegistry`.
+  `InteractionHandlerEntryPoint` builds the registry from every registration at
+  startup, so a module that adds a handler may load in any order. The registry is
+  not owned by a Gameplay composition entry, because Gameplay has no other
+  registrations and does not reference DryIoc.
 
 ## Registration policies
 

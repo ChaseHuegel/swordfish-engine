@@ -9,28 +9,46 @@ public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
     private const int STAGE_COUNT = 5;
     private const int PRIORITY_COUNT = 3;
 
-    //  One list per (stage, priority). Registration happens at startup, so the nested walk a run does
-    //  is over the pre-sorted bands: no per-interaction sorting or allocation.
-    private readonly List<IInteractionHandler>[] _handlers = new List<IInteractionHandler>[STAGE_COUNT * PRIORITY_COUNT];
+    //  One ordered array per stage: handlers are placed by their own stage and priority when the registry
+    //  is built, so a run is a flat walk with no per-interaction sorting or allocation.
+    private readonly IInteractionHandler[][] _stages = new IInteractionHandler[STAGE_COUNT][];
 
-    /// <summary>Creates an empty registry.</summary>
-    public InteractionHandlerRegistry()
+    /// <summary>Builds the pipeline from the registered handlers, ordered by stage and priority.</summary>
+    public InteractionHandlerRegistry(IEnumerable<IInteractionHandler> handlers)
     {
-        for (var index = 0; index < _handlers.Length; index++)
+        if (handlers == null)
         {
-            _handlers[index] = [];
-        }
-    }
-
-    /// <inheritdoc/>
-    public void Register(InteractionStage stage, InteractionPriority priority, IInteractionHandler handler)
-    {
-        if (handler == null)
-        {
-            throw new ArgumentNullException(nameof(handler));
+            throw new ArgumentNullException(nameof(handlers));
         }
 
-        _handlers[Index(stage, priority)].Add(handler);
+        var buckets = new List<IInteractionHandler>[STAGE_COUNT * PRIORITY_COUNT];
+        for (var index = 0; index < buckets.Length; index++)
+        {
+            buckets[index] = [];
+        }
+
+        foreach (IInteractionHandler handler in handlers)
+        {
+            if (handler == null)
+            {
+                throw new ArgumentException("An interaction handler must not be null.", nameof(handlers));
+            }
+
+            RequireDefined(handler.Stage, nameof(handler.Stage));
+            RequireDefined(handler.Priority, nameof(handler.Priority));
+            buckets[Index(handler.Stage, handler.Priority)].Add(handler);
+        }
+
+        for (var stage = 0; stage < STAGE_COUNT; stage++)
+        {
+            var ordered = new List<IInteractionHandler>();
+            for (var priority = 0; priority < PRIORITY_COUNT; priority++)
+            {
+                ordered.AddRange(buckets[(stage * PRIORITY_COUNT) + priority]);
+            }
+
+            _stages[stage] = [.. ordered];
+        }
     }
 
     /// <inheritdoc/>
@@ -48,25 +66,29 @@ public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
         return new InteractionRunResult(in context.Resolution, InteractionDecision.Continue);
     }
 
+    /// <inheritdoc/>
+    public IReadOnlyList<IInteractionHandler> GetHandlers(InteractionStage stage)
+    {
+        RequireDefined(stage, nameof(stage));
+        return _stages[(int)stage];
+    }
+
     private InteractionDecision RunStage(InteractionStage stage, ref InteractionContext context)
     {
-        for (var priority = 0; priority < PRIORITY_COUNT; priority++)
+        IInteractionHandler[] handlers = _stages[(int)stage];
+        for (var index = 0; index < handlers.Length; index++)
         {
-            List<IInteractionHandler> handlers = _handlers[Index(stage, (InteractionPriority)priority)];
-            for (var index = 0; index < handlers.Count; index++)
+            IInteractionHandler handler = handlers[index];
+            if (!Matches(handler.Filter, in context))
             {
-                IInteractionHandler handler = handlers[index];
-                if (!Matches(handler.Filter, in context))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                InteractionDecision decision = handler.Handle(ref context);
-                if (decision != InteractionDecision.Continue)
-                {
-                    //  Handled ends this stage; Consume and Cancel end the whole pipeline.
-                    return decision;
-                }
+            InteractionDecision decision = handler.Handle(ref context);
+            if (decision != InteractionDecision.Continue)
+            {
+                //  Handled ends this stage; Consume and Cancel end the whole pipeline.
+                return decision;
             }
         }
 
@@ -93,8 +115,16 @@ public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
         return true;
     }
 
+    private static void RequireDefined<TEnum>(TEnum value, string parameterName) where TEnum : struct, Enum
+    {
+        if (!Enum.IsDefined(value))
+        {
+            throw new ArgumentOutOfRangeException(parameterName, value, "The interaction stage or priority is not defined.");
+        }
+    }
+
     private static int Index(InteractionStage stage, InteractionPriority priority)
     {
-        return (int)stage * PRIORITY_COUNT + (int)priority;
+        return ((int)stage * PRIORITY_COUNT) + (int)priority;
     }
 }

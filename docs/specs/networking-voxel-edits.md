@@ -115,9 +115,10 @@ handlers do.
 Every interaction outcome resolves server-side, and handlers are the extension
 point for gameplay, not only for mods.
 
-- Handlers register into the shared, DI-singleton `IInteractionHandlerRegistry`
-  (registered in `ServerComposition`), keyed on an `InteractionHandlerFilter`
-  (`InteractionKind?`/`HeldItemID?`/`GameMode?`, null = match-any).
+- A handler declares its stage, priority, and an `InteractionHandlerFilter`
+  (`InteractionKind?`/`HeldItemID?`/`GameMode?`, null = match-any), and registers
+  as an `IInteractionHandler`. `ServerComposition` registers the built-ins;
+  `InteractionHandlerEntryPoint` builds the shared registry from all of them.
 - `ServerInteractionSystem` is the pump: it builds the context and hands it to
   the pipeline, which runs the stages in order.
 - A handler mutates the running context and returns a decision. `Handled` owns

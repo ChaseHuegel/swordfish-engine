@@ -24,6 +24,12 @@ public sealed class VoxelWriteHandler(
 ) : IInteractionHandler
 {
     /// <inheritdoc/>
+    public InteractionStage Stage => InteractionStage.Apply;
+
+    /// <inheritdoc/>
+    public InteractionPriority Priority => InteractionPriority.Low;
+
+    /// <inheritdoc/>
     public InteractionHandlerFilter Filter => default;
 
     /// <inheritdoc/>

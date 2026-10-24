@@ -10,6 +10,12 @@ namespace WaywardBeyond.Gameplay.Interactions;
 public sealed class HintResolveHandler(IBrickRegistry brickRegistry) : IInteractionHandler
 {
     /// <inheritdoc/>
+    public InteractionStage Stage => InteractionStage.Resolve;
+
+    /// <inheritdoc/>
+    public InteractionPriority Priority => InteractionPriority.Normal;
+
+    /// <inheritdoc/>
     public InteractionHandlerFilter Filter => default;
 
     /// <inheritdoc/>

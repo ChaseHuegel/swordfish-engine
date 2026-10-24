@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
@@ -13,21 +14,22 @@ using Xunit;
 namespace Swordfish.Tests;
 
 /// <summary>
-/// Pins the staged interaction pipeline: priority bands, per-stage filters, stage-scoped ownership
-/// (<see cref="InteractionDecision.Handled"/>), and the two pipeline-scoped stops.
+/// Pins the staged interaction pipeline: handlers place themselves by stage and priority, filters run
+/// per stage, <see cref="InteractionDecision.Handled"/> owns a stage, and the two pipeline-scoped stops.
 /// </summary>
 public class InteractionHandlerRegistryTests
 {
     private static readonly InteractionResolution BASE = Resolution(InteractionAction.Break, entity: 1);
 
     [Fact]
-    public void RunsHandlersInARegistrationOrderWithinABand()
+    public void RunsHandlersInRegistrationOrderWithinABand()
     {
-        var registry = new InteractionHandlerRegistry();
         var order = new Order();
-
-        registry.Register(InteractionStage.Validate, InteractionPriority.Normal, new Handler(order, "first", _ => InteractionDecision.Continue));
-        registry.Register(InteractionStage.Validate, InteractionPriority.Normal, new Handler(order, "second", _ => InteractionDecision.Continue));
+        var registry = new InteractionHandlerRegistry(
+        [
+            new Handler(order, "first", InteractionStage.Validate, InteractionPriority.Normal),
+            new Handler(order, "second", InteractionStage.Validate, InteractionPriority.Normal),
+        ]);
 
         Run(registry, BASE);
 
@@ -37,12 +39,13 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void RunsPriorityBandsHighToLow()
     {
-        var registry = new InteractionHandlerRegistry();
         var order = new Order();
-
-        registry.Register(InteractionStage.Validate, InteractionPriority.Low, new Handler(order, "low", _ => InteractionDecision.Continue));
-        registry.Register(InteractionStage.Validate, InteractionPriority.High, new Handler(order, "high", _ => InteractionDecision.Continue));
-        registry.Register(InteractionStage.Validate, InteractionPriority.Normal, new Handler(order, "normal", _ => InteractionDecision.Continue));
+        var registry = new InteractionHandlerRegistry(
+        [
+            new Handler(order, "low", InteractionStage.Validate, InteractionPriority.Low),
+            new Handler(order, "high", InteractionStage.Validate, InteractionPriority.High),
+            new Handler(order, "normal", InteractionStage.Validate, InteractionPriority.Normal),
+        ]);
 
         Run(registry, BASE);
 
@@ -52,13 +55,14 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void HandledSkipsTheRestOfTheStageButRunsTheNext()
     {
-        var registry = new InteractionHandlerRegistry();
         var order = new Order();
-
-        registry.Register(InteractionStage.Validate, InteractionPriority.High, new Handler(order, "validate-high", _ => InteractionDecision.Continue));
-        registry.Register(InteractionStage.Validate, InteractionPriority.Normal, new Handler(order, "validate-normal", _ => InteractionDecision.Handled));
-        registry.Register(InteractionStage.Validate, InteractionPriority.Low, new Handler(order, "validate-low", _ => InteractionDecision.Continue));
-        registry.Register(InteractionStage.Apply, InteractionPriority.Normal, new Handler(order, "apply", _ => InteractionDecision.Continue));
+        var registry = new InteractionHandlerRegistry(
+        [
+            new Handler(order, "validate-high", InteractionStage.Validate, InteractionPriority.High),
+            new Handler(order, "validate-normal", InteractionStage.Validate, InteractionPriority.Normal, _ => InteractionDecision.Handled),
+            new Handler(order, "validate-low", InteractionStage.Validate, InteractionPriority.Low),
+            new Handler(order, "apply", InteractionStage.Apply, InteractionPriority.Normal),
+        ]);
 
         InteractionRunResult result = Run(registry, BASE);
 
@@ -69,11 +73,12 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void ConsumeStopsEveryLaterStage()
     {
-        var registry = new InteractionHandlerRegistry();
         var order = new Order();
-
-        registry.Register(InteractionStage.Apply, InteractionPriority.Normal, new Handler(order, "apply", _ => InteractionDecision.Consume));
-        registry.Register(InteractionStage.React, InteractionPriority.Normal, new Handler(order, "react", _ => InteractionDecision.Continue));
+        var registry = new InteractionHandlerRegistry(
+        [
+            new Handler(order, "apply", InteractionStage.Apply, InteractionPriority.Normal, _ => InteractionDecision.Consume),
+            new Handler(order, "react", InteractionStage.React, InteractionPriority.Normal),
+        ]);
 
         InteractionRunResult result = Run(registry, BASE);
 
@@ -84,11 +89,12 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void CancelStopsEveryLaterStage()
     {
-        var registry = new InteractionHandlerRegistry();
         var order = new Order();
-
-        registry.Register(InteractionStage.Resolve, InteractionPriority.Normal, new Handler(order, "resolve", _ => InteractionDecision.Cancel));
-        registry.Register(InteractionStage.Apply, InteractionPriority.Normal, new Handler(order, "apply", _ => InteractionDecision.Continue));
+        var registry = new InteractionHandlerRegistry(
+        [
+            new Handler(order, "resolve", InteractionStage.Resolve, InteractionPriority.Normal, _ => InteractionDecision.Cancel),
+            new Handler(order, "apply", InteractionStage.Apply, InteractionPriority.Normal),
+        ]);
 
         InteractionRunResult result = Run(registry, BASE);
 
@@ -99,19 +105,16 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void SkipsHandlersWhoseFilterDoesNotMatch()
     {
-        var registry = new InteractionHandlerRegistry();
         var reached = new Order();
-
-        registry.Register(
-            InteractionStage.Validate,
-            InteractionPriority.Normal,
+        var registry = new InteractionHandlerRegistry(
+        [
             new Handler(
                 reached,
                 "mismatched",
-                _ => InteractionDecision.Continue,
-                new InteractionHandlerFilter(HeldItemID: "other")
-            )
-        );
+                InteractionStage.Validate,
+                InteractionPriority.Normal,
+                filter: new InteractionHandlerFilter(HeldItemID: "other")),
+        ]);
 
         Run(registry, BASE, heldItemID: "wb:panel");
 
@@ -121,19 +124,21 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void AHandlerSeesAndAdjustsTheRunningResolution()
     {
-        var registry = new InteractionHandlerRegistry();
-
-        registry.Register(InteractionStage.Validate, InteractionPriority.High, new AdjustingHandler(InteractionAction.Place, entity: 2));
-        registry.Register(
-            InteractionStage.Validate,
-            InteractionPriority.Normal,
-            new Handler(new Order(), "reads", context =>
-            {
-                Assert.Equal(InteractionAction.Place, context.Resolution.Action);
-                Assert.Equal(2, context.Resolution.Entity);
-                return InteractionDecision.Continue;
-            })
-        );
+        var registry = new InteractionHandlerRegistry(
+        [
+            new AdjustingHandler(InteractionAction.Place, entity: 2),
+            new Handler(
+                new Order(),
+                "reads",
+                InteractionStage.Validate,
+                InteractionPriority.Normal,
+                context =>
+                {
+                    Assert.Equal(InteractionAction.Place, context.Resolution.Action);
+                    Assert.Equal(2, context.Resolution.Entity);
+                    return InteractionDecision.Continue;
+                }),
+        ]);
 
         InteractionRunResult result = Run(registry, BASE);
 
@@ -144,8 +149,7 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void TheDefaultResolveHandlerResolvesTheHint()
     {
-        var registry = new InteractionHandlerRegistry();
-        registry.Register(InteractionStage.Resolve, InteractionPriority.Normal, new HintResolveHandler(new FakeRegistry()));
+        var registry = new InteractionHandlerRegistry([new HintResolveHandler(new FakeRegistry())]);
 
         var context = Context(Hint(cell: 0));
         InteractionRunResult result = registry.Run(ref context);
@@ -156,16 +160,44 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void TheDefaultResolveHandlerLeavesAnUnresolvedHintForLaterHandlers()
     {
-        var registry = new InteractionHandlerRegistry();
         var order = new Order();
-
-        registry.Register(InteractionStage.Resolve, InteractionPriority.Normal, new HintResolveHandler(new FakeRegistry()));
-        registry.Register(InteractionStage.Resolve, InteractionPriority.Low, new Handler(order, "later", _ => InteractionDecision.Handled));
+        var registry = new InteractionHandlerRegistry(
+        [
+            new HintResolveHandler(new FakeRegistry()),
+            new Handler(order, "later", InteractionStage.Resolve, InteractionPriority.Low, _ => InteractionDecision.Handled),
+        ]);
 
         //  A hintless request cannot be resolved, so the stage must stay open for the later handler.
         Run(registry, hint: null, in InteractionResolution.None);
 
         Assert.Equal("later", order.Value);
+    }
+
+    [Fact]
+    public void AnUndefinedStageIsRejectedWhenTheRegistryIsBuilt()
+    {
+        var handlers = new IInteractionHandler[]
+        {
+            new Handler(new Order(), "bad", (InteractionStage)99, InteractionPriority.Normal),
+        };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new InteractionHandlerRegistry(handlers));
+    }
+
+    [Fact]
+    public void GetHandlersReturnsTheStageOrder()
+    {
+        var registry = new InteractionHandlerRegistry(
+        [
+            new Handler(new Order(), "normal", InteractionStage.React, InteractionPriority.Normal),
+            new Handler(new Order(), "high", InteractionStage.React, InteractionPriority.High),
+        ]);
+
+        IReadOnlyList<IInteractionHandler> handlers = registry.GetHandlers(InteractionStage.React);
+
+        Assert.Equal(2, handlers.Count);
+        Assert.Equal(InteractionPriority.High, handlers[0].Priority);
+        Assert.Equal(InteractionPriority.Normal, handlers[1].Priority);
     }
 
     private static InteractionRunResult Run(
@@ -248,21 +280,31 @@ public class InteractionHandlerRegistryTests
     private sealed class Handler(
         Order order,
         string name,
-        Func<InteractionContext, InteractionDecision> handle,
+        InteractionStage stage,
+        InteractionPriority priority,
+        Func<InteractionContext, InteractionDecision>? handle = null,
         InteractionHandlerFilter? filter = null
     ) : IInteractionHandler
     {
+        public InteractionStage Stage => stage;
+
+        public InteractionPriority Priority => priority;
+
         public InteractionHandlerFilter Filter => filter ?? default;
 
         public InteractionDecision Handle(ref InteractionContext context)
         {
             order.Add(name);
-            return handle(context);
+            return handle?.Invoke(context) ?? InteractionDecision.Continue;
         }
     }
 
     private sealed class AdjustingHandler(InteractionAction action, int entity) : IInteractionHandler
     {
+        public InteractionStage Stage => InteractionStage.Validate;
+
+        public InteractionPriority Priority => InteractionPriority.High;
+
         public InteractionHandlerFilter Filter => default;
 
         public InteractionDecision Handle(ref InteractionContext context)

@@ -103,12 +103,18 @@ public static class ServerComposition
         RegisterServerSystem<ServerChatSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);
 
-        //  The one interaction handler registry. Server gameplay and gameplay modules both register
-        //  handlers into it; the authoritative ServerInteractionSystem runs them in order. Handlers
-        //  register after this line, so a module that adds one must load after the server module.
+        //  Interaction handlers declare their own stage and priority, so the composition only decides
+        //  which handlers exist. The registry is built once at startup, after every module has loaded,
+        //  so a mod registers an IInteractionHandler implementation and never touches the registry.
+        container.Register<IInteractionHandler, ItemPlaceableHandler>(Reuse.Singleton);
+        container.Register<IInteractionHandler, HintResolveHandler>(Reuse.Singleton);
+        container.Register<IInteractionHandler, VoxelWriteHandler>(Reuse.Singleton);
+        container.Register<IInteractionHandler, BreakLootHandler>(Reuse.Singleton);
+        container.Register<IInteractionHandler, PlaceConsumeHandler>(Reuse.Singleton);
+        container.Register<IInteractionHandler, SkillXpHandler>(Reuse.Singleton);
         container.Register<InteractionHandlerRegistry>(Reuse.Singleton);
         container.RegisterMapping<IInteractionHandlerRegistry, InteractionHandlerRegistry>();
-        RegisterDefaultInteractionHandlers(container);
+        container.Register<IEntryPoint, InteractionHandlerEntryPoint>(Reuse.Singleton);
 
         //  DryIoc children only inherit a parent singleton the parent has already created. Resolve
         //  every shared service a world graph consumes before any world container exists, so a world
@@ -117,32 +123,10 @@ public static class ServerComposition
         PinSharedSingletons(container);
     }
 
-    private static void RegisterDefaultInteractionHandlers(IContainer container)
-    {
-        InteractionHandlerRegistry registry = container.Resolve<InteractionHandlerRegistry>();
-
-        container.Register<ItemPlaceableHandler>(Reuse.Singleton);
-        container.Register<HintResolveHandler>(Reuse.Singleton);
-        container.Register<VoxelWriteHandler>(Reuse.Singleton);
-        container.Register<BreakLootHandler>(Reuse.Singleton);
-        container.Register<PlaceConsumeHandler>(Reuse.Singleton);
-        container.Register<SkillXpHandler>(Reuse.Singleton);
-
-        //  Stage order and bands are the world's contract: the write is Low so a handler that claims
-        //  the outcome at Normal or High replaces it.
-        registry.Register(InteractionStage.Select, InteractionPriority.Normal, container.Resolve<ItemPlaceableHandler>());
-        registry.Register(InteractionStage.Resolve, InteractionPriority.Normal, container.Resolve<HintResolveHandler>());
-        registry.Register(InteractionStage.Apply, InteractionPriority.Low, container.Resolve<VoxelWriteHandler>());
-        registry.Register(InteractionStage.React, InteractionPriority.Normal, container.Resolve<BreakLootHandler>());
-        registry.Register(InteractionStage.React, InteractionPriority.Normal, container.Resolve<PlaceConsumeHandler>());
-        registry.Register(InteractionStage.React, InteractionPriority.Normal, container.Resolve<SkillXpHandler>());
-    }
-
     private static void PinSharedSingletons(IContainer container)
     {
         container.Resolve<NetworkRegistry>();
         container.Resolve<ILevelCatalog>();
-        container.Resolve<IInteractionHandlerRegistry>();
         container.Resolve<PermissionPolicy>();
         container.Resolve<ServerPeers>();
         container.Resolve<IBrickRegistry>();

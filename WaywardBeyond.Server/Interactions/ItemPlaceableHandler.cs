@@ -12,6 +12,12 @@ namespace WaywardBeyond.Server.Interactions;
 public sealed class ItemPlaceableHandler(IItemDatabase items, IBrickDatabase bricks) : IInteractionHandler
 {
     /// <inheritdoc/>
+    public InteractionStage Stage => InteractionStage.Select;
+
+    /// <inheritdoc/>
+    public InteractionPriority Priority => InteractionPriority.Normal;
+
+    /// <inheritdoc/>
     public InteractionHandlerFilter Filter => default;
 
     /// <inheritdoc/>

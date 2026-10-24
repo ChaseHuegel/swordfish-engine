@@ -14,6 +14,12 @@ public sealed class BreakLootHandler(IBrickDatabase brickDatabase) : IInteractio
     private const int DEFAULT_STACK_SIZE = 100;
 
     /// <inheritdoc/>
+    public InteractionStage Stage => InteractionStage.React;
+
+    /// <inheritdoc/>
+    public InteractionPriority Priority => InteractionPriority.Normal;
+
+    /// <inheritdoc/>
     public InteractionHandlerFilter Filter => default;
 
     /// <inheritdoc/>
