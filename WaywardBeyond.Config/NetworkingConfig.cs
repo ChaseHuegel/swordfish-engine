@@ -43,5 +43,20 @@ public sealed class NetworkingConfig : Config<NetworkingConfig>
             throw new InvalidOperationException(
                 "Transport.SendBacklogDisconnectBytes and Transport.SendBacklogDisconnectMs must both be zero or both be positive.");
         }
+
+        if (Protocol.InboundRatePerSecond.Get() < 1)
+        {
+            throw new InvalidOperationException("Protocol.InboundRatePerSecond must be at least 1.");
+        }
+
+        if (Protocol.InboundBurst.Get() < 1)
+        {
+            throw new InvalidOperationException("Protocol.InboundBurst must be at least 1.");
+        }
+
+        if (Protocol.InboundQueueDepth.Get() < 1)
+        {
+            throw new InvalidOperationException("Protocol.InboundQueueDepth must be at least 1.");
+        }
     }
 }

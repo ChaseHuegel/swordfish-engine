@@ -40,6 +40,7 @@ public class ClientRpcTests
         var handlers = new ServerHandlers(
             peers,
             commands,
+            config,
             NullLoggerFactory.Instance.CreateLogger<ServerHandlers>());
 
         using var serverHost = new ServerRpcHost(transport, peers, handlers, config, NullLoggerFactory.Instance);

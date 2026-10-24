@@ -20,9 +20,14 @@ namespace WaywardBeyond.Server;
 public sealed class ServerPeer
 {
     private readonly object _claimGate = new();
+    private readonly Lock _inboundGate = new();
     private UserClaim _claim = UserClaim.Anonymous;
     private long _lastInboundTicks;
     private int _disconnectHandled;
+    private double _inboundTokens;
+    private long _inboundRefilledMs;
+    private long _droppedInbound;
+    private int _rejectLogged;
 
     public ServerPeer(Uuid gameId, RpcPeer rpc, bool isLocal)
     {
@@ -89,6 +94,46 @@ public sealed class ServerPeer
     public void Touch()
     {
         Interlocked.Exchange(ref _lastInboundTicks, Environment.TickCount64);
+    }
+
+    /// <summary>Counts inbound messages this peer dropped for exceeding its rate or queue budget.</summary>
+    public long DroppedInbound => Interlocked.Read(ref _droppedInbound);
+
+    /// <summary>
+    /// Spends one message from the peer's inbound token budget. The peer's handlers run on one dispatch
+    /// pump, so the bucket needs no interlocked read-modify-write; it only guards against a tick race.
+    /// </summary>
+    public bool TryConsumeInbound(int ratePerSecond, int burst)
+    {
+        long now = Environment.TickCount64;
+
+        lock (_inboundGate)
+        {
+            if (_inboundRefilledMs == 0)
+            {
+                _inboundRefilledMs = now;
+                _inboundTokens = burst;
+            }
+
+            double elapsedSeconds = (now - _inboundRefilledMs) / 1000d;
+            _inboundRefilledMs = now;
+            _inboundTokens = Math.Min(burst, _inboundTokens + elapsedSeconds * ratePerSecond);
+
+            if (_inboundTokens < 1)
+            {
+                Interlocked.Increment(ref _droppedInbound);
+                return false;
+            }
+
+            _inboundTokens -= 1;
+            return true;
+        }
+    }
+
+    /// <summary>True once per peer; bounds the log to one line while a rejected peer is closing.</summary>
+    public bool TryMarkRejectLogged()
+    {
+        return Interlocked.Exchange(ref _rejectLogged, 1) == 0;
     }
 
     /// <summary>True exactly once; used to make disconnect handling idempotent.</summary>

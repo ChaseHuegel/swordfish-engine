@@ -207,7 +207,9 @@ The nsd-rpc peer runs one dispatch pump per connection. Handlers run in arrival
 order, off the caller's thread.
 
 - `ServerHandlers` only reads the context and enqueues. No handler touches a
-  `DataStore`.
+  `DataStore`. Every message spends from the peer's inbound budget, and each
+  staged queue has a depth cap, so a flooding client is closed rather than
+  growing a queue without bound.
 - `ServerHostCommands` runs on the server thread. It routes joins and leaves,
   unloads worlds for a menu-time delete, and paces level streams. Level catalog
   work (list, create, delete) is serialized on one catalog worker, so the

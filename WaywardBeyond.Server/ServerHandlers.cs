@@ -1,7 +1,10 @@
+using System;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;
@@ -12,6 +15,8 @@ namespace WaywardBeyond.Server;
 /// <summary>
 /// The server RPC handlers. Every handler runs on the nsd-rpc dispatch pump, never the server thread.
 /// A handler reads the peer and enqueues. No handler touches a <c>DataStore</c> or the level catalog.
+/// Inbound traffic is budgeted per peer: a client that exceeds its rate or stages more than one tick
+/// of work is closed, because a reliable delta stream cannot be repaired by dropping messages.
 /// </summary>
 public sealed class ServerHandlers : GameServerApiHandler
 {
@@ -20,12 +25,18 @@ public sealed class ServerHandlers : GameServerApiHandler
     private readonly ServerPeers _peers;
     private readonly ServerHostCommands _commands;
     private readonly ILogger<ServerHandlers> _logger;
+    private readonly int _inboundRatePerSecond;
+    private readonly int _inboundBurst;
+    private readonly int _inboundQueueDepth;
 
-    public ServerHandlers(ServerPeers peers, ServerHostCommands commands, ILogger<ServerHandlers> logger)
+    public ServerHandlers(ServerPeers peers, ServerHostCommands commands, NetworkingConfig config, ILogger<ServerHandlers> logger)
     {
         _peers = peers;
         _commands = commands;
         _logger = logger;
+        _inboundRatePerSecond = Math.Max(1, config.Protocol.InboundRatePerSecond.Get());
+        _inboundBurst = Math.Max(1, config.Protocol.InboundBurst.Get());
+        _inboundQueueDepth = Math.Max(1, config.Protocol.InboundQueueDepth.Get());
     }
 
     public override void OnClientHello(ClientHello message, RpcContext context, CancellationToken cancellationToken)
@@ -66,7 +77,7 @@ public sealed class ServerHandlers : GameServerApiHandler
     {
         if (TryGetPeer(in context, out ServerPeer peer) && peer.World != null)
         {
-            peer.Heartbeats.Enqueue(message);
+            TryStage(peer, peer.Heartbeats, message);
         }
     }
 
@@ -74,7 +85,7 @@ public sealed class ServerHandlers : GameServerApiHandler
     {
         if (TryGetPeer(in context, out ServerPeer peer) && peer.World != null)
         {
-            peer.Snapshots.Enqueue(snapshot);
+            TryStage(peer, peer.Snapshots, snapshot);
         }
     }
 
@@ -82,7 +93,7 @@ public sealed class ServerHandlers : GameServerApiHandler
     {
         if (TryGetPeer(in context, out ServerPeer peer) && peer.World != null)
         {
-            peer.Chats.Enqueue(message);
+            TryStage(peer, peer.Chats, message);
         }
     }
 
@@ -129,7 +140,12 @@ public sealed class ServerHandlers : GameServerApiHandler
         }
 
         var completion = new TaskCompletionSource<RpcResult<SaveLevelResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
-        peer.SaveCalls.Enqueue(new ServerPeer.SaveLevelCall(completion, cancellationToken));
+        if (!TryStage(peer, peer.SaveCalls, new ServerPeer.SaveLevelCall(completion, cancellationToken)))
+        {
+            return new ValueTask<RpcResult<SaveLevelResponse>>(
+                RpcResult<SaveLevelResponse>.Failure(GameRpcErrors.INVALID_STATE, "the server is behind on this client's requests"));
+        }
+
         return new ValueTask<RpcResult<SaveLevelResponse>>(completion.Task);
     }
 
@@ -171,8 +187,42 @@ public sealed class ServerHandlers : GameServerApiHandler
             return false;
         }
 
+        if (!peer.TryConsumeInbound(_inboundRatePerSecond, _inboundBurst))
+        {
+            RejectPeer(peer, "it exceeded the inbound message rate");
+            return false;
+        }
+
         peer.Touch();
         return true;
+    }
+
+    /// <summary>
+    /// Stages one message for the world tick. A client that stages more than one tick of work is
+    /// flooding, so the peer is closed rather than letting an unbounded queue grow.
+    /// </summary>
+    private bool TryStage<T>(ServerPeer peer, ConcurrentQueue<T> queue, T message)
+    {
+        if (queue.Count >= _inboundQueueDepth)
+        {
+            RejectPeer(peer, $"it staged more than {_inboundQueueDepth} messages");
+            return false;
+        }
+
+        queue.Enqueue(message);
+        return true;
+    }
+
+    private void RejectPeer(ServerPeer peer, string reason)
+    {
+        //  One log line per peer: the close is asynchronous and the dispatch pump keeps delivering
+        //  until it lands, so an unbounded log here would be the flood.
+        if (peer.TryMarkRejectLogged())
+        {
+            _logger.LogWarning("Closing client {clientId}: {reason}.", peer.GameId, reason);
+        }
+
+        peer.Rpc.Close();
     }
 
     private static ValueTask<RpcResult<T>> Failed<T>()

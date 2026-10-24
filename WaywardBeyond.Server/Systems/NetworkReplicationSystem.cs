@@ -378,14 +378,15 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         Uuid entityUuid = Uuid.FromValue(snapshot.Entity);
         if (entityUuid != sessionUuid)
         {
-            _logger.LogWarning("Ignoring client-owned snapshot addressed at entity {uuid}; only the sender's session entity {sessionUuid} is writable.", snapshot.Entity, sessionUuid);
+            //  Client-triggerable and unbounded: debug keeps a flood from filling the log.
+            _logger.LogDebug("Ignoring client-owned snapshot addressed at entity {uuid}; only the sender's session entity {sessionUuid} is writable.", snapshot.Entity, sessionUuid);
             return;
         }
 
         Result<NetworkComponentInfo> lookup = _registry.GetInfo(Uuid.FromValue(snapshot.TypeUuid));
         if (!lookup.Success)
         {
-            _logger.LogWarning("Ignoring component snapshot with unknown type uuid {uuid}.", snapshot.TypeUuid);
+            _logger.LogDebug("Ignoring component snapshot with unknown type uuid {uuid}.", snapshot.TypeUuid);
             return;
         }
 
@@ -401,7 +402,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         Result applied = info.Codec.Apply(store, sessionEntity, snapshot.Payload);
         if (!applied.Success)
         {
-            _logger.LogWarning("Ignoring {component} snapshot for entity {entity}: {message}.",
+            _logger.LogDebug("Ignoring {component} snapshot for entity {entity}: {message}.",
                 info.Type.Name, sessionEntity, applied.Message);
             return;
         }

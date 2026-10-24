@@ -119,6 +119,26 @@ public class ServerRpcTests
     }
 
     [Fact]
+    public void PeerRejectsMessagesBeyondItsBurst()
+    {
+        ServerPeer peer = CreateGamePeer(clientId: 11, isLocal: false);
+
+        Assert.True(peer.TryConsumeInbound(ratePerSecond: 1, burst: 2));
+        Assert.True(peer.TryConsumeInbound(ratePerSecond: 1, burst: 2));
+        Assert.False(peer.TryConsumeInbound(ratePerSecond: 1, burst: 2));
+        Assert.Equal(1, peer.DroppedInbound);
+    }
+
+    [Fact]
+    public void InboundBudgetKeysMustBePositive()
+    {
+        var config = new NetworkingConfig();
+        config.Protocol.InboundRatePerSecond.Set(0);
+
+        Assert.Throws<InvalidOperationException>(config.Validate);
+    }
+
+    [Fact]
     public async Task CreateLevelCompletesWithoutAServerTick()
     {
         var catalog = new FakeLevelCatalog();
@@ -425,6 +445,7 @@ public class ServerRpcTests
         handlers = new ServerHandlers(
             peers,
             commands,
+            config,
             NullLoggerFactory.Instance.CreateLogger<ServerHandlers>());
         return commands;
     }

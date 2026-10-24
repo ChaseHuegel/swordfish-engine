@@ -25,4 +25,13 @@ public sealed record ProtocolConfig
 
     /// <summary>The level-stream bytes one server tick may enqueue per stream.</summary>
     public DataBinding<int> LevelStreamBytesPerTick { get; private set; } = new(262_144);
+
+    /// <summary>The sustained inbound messages per second one client may send before the server closes it.</summary>
+    public DataBinding<int> InboundRatePerSecond { get; private set; } = new(240);
+
+    /// <summary>The inbound message burst one client may send before the rate budget applies.</summary>
+    public DataBinding<int> InboundBurst { get; private set; } = new(480);
+
+    /// <summary>The most messages one client may have staged for a world tick, per queue.</summary>
+    public DataBinding<int> InboundQueueDepth { get; private set; } = new(256);
 }

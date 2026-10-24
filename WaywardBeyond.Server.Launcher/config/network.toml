@@ -30,3 +30,6 @@ CallTimeoutMs = 30000
 MaxPendingCalls = 1024
 MaxBufferedChunks = 1024
 LevelStreamBytesPerTick = 262144
+InboundRatePerSecond = 240
+InboundBurst = 480
+InboundQueueDepth = 256

@@ -192,19 +192,31 @@ Top-level:
 | `MaxPendingCalls` | `1024` | pending calls and inbound requests per peer |
 | `MaxBufferedChunks` | `1024` | buffered chunks per stream session |
 | `LevelStreamBytesPerTick` | `262144` | level stream budget per server tick |
+| `InboundRatePerSecond` | `240` | sustained inbound messages one client may send |
+| `InboundBurst` | `480` | inbound burst before the rate budget applies |
+| `InboundQueueDepth` | `256` | staged messages per client, per queue |
+
+The server bounds inbound traffic per peer in `ServerHandlers`. Every message
+spends one token (`InboundRatePerSecond`, up to `InboundBurst`), and each staged
+queue stops at `InboundQueueDepth`. A breach closes the peer. nsd-rpc bounds the
+outbound queue and inbound calls, but its notification dispatch queue is
+unbounded, so the server owns this bound. See
+[threading](#threading).
 
 `SendBacklogDisconnectBytes` must not exceed `SendQueueBytes`. The backlog keys
 are both zero or both positive. An invalid combination fails at startup through
-`NetworkingConfig.Validate()`.
+`NetworkingConfig.Validate()`. The inbound budget keys must be at least 1.
 
 `ToRpcOptions` pins `MaxFrameBytes` to 65,570. The fragment budget stays below it.
 
 ## Threading
 
 The nsd-rpc peer runs one dispatch pump per connection. The game runs one server
-thread for all worlds. `ServerHandlers` and `ClientHandlers` only enqueue.
-`ServerHostCommands` and the world systems run on the server thread. The old
-2N+1 thread model is gone.
+thread for all worlds. `ServerHandlers` only enqueues, and it budgets what it
+enqueues: the per-peer inbound rate and queue depth from `[Protocol]` close a
+client that floods instead of growing a queue without bound. `ServerHostCommands`
+and the world systems run on the server thread. The old 2N+1 thread model is
+gone.
 
 ## Dedicated server
 
