@@ -66,6 +66,11 @@ the parent clip rect. `Viewport.Offset` shifts child positions. Callers own the
 scroll value and the clamp. The settings screen computes both from its fixed
 layout.
 
+Interaction hit testing uses the intersection of the element rect and its clip
+rect. A clipped control cannot receive hover or click outside the clip. The
+check is in `Reef/UIController.cs:373`, and `UIBuilder` passes both rects at
+`Reef/UIBuilder.cs:301`.
+
 ## Renderers
 
 - `Reef/PixelRenderer.cs` renders to a CPU pixel buffer. Tests use it.
@@ -78,3 +83,7 @@ layout.
 - `Reef.Tests/UIBuilderBorderTests.cs:57` checks that zero styles change nothing.
 - `Reef.Tests/TextLayoutTests.cs:11` checks `NoWrap`.
 - `Reef.Tests/TextLayoutTests.cs:27` checks the default wrap behavior.
+- `Reef.Tests/UIControllerClipTests.cs:11` checks that a clipped control does
+  not receive a click outside the clip.
+- `Reef.Tests/UIControllerClipTests.cs:33` checks that a control inside the
+  clip still receives a click.
