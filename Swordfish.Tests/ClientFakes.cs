@@ -8,6 +8,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
+using Swordfish.Settings;
 
 namespace Swordfish.Tests;
 
@@ -109,6 +110,20 @@ internal sealed class FakeWindowContext : IWindowContext
     public Action<Vector2>? Resized { get; set; }
 
     public Vector2 GetSize() => Vector2.Zero;
+
+    /// <inheritdoc/>
+    public IReadOnlyList<Vector2> GetVideoModes()
+    {
+        return
+        [
+            new Vector2(1280, 720),
+            new Vector2(1920, 1080),
+            new Vector2(2560, 1440),
+        ];
+    }
+
+    /// <inheritdoc/>
+    public void ApplyDisplaySettings(WindowMode mode, bool borderless, int width, int height) { }
 
     public void Close() { }
 
