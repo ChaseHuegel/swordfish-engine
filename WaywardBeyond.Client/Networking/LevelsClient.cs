@@ -44,7 +44,7 @@ internal sealed class LevelsClient(ClientRpcHost host, ILogger<LevelsClient> log
         }
 
         RpcResult<NewLevelResponse> result = await _host.Api
-            .CreateLevelAsync(new NewLevelRequest { Name = name, Seed = seed, GameMode = (int)gameMode }, cancellationToken)
+            .CreateLevelAsync(new NewLevelRequest { Name = name, Seed = seed, GameMode = gameMode }, cancellationToken)
             .ConfigureAwait(false);
 
         return result.IsSuccess && result.Value.Success;

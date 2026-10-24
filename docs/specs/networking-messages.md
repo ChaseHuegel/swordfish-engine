@@ -256,10 +256,14 @@ message CharacterState
     int Body = 2;
     ItemData[]? Inventory = 3;
     int ActiveInventorySlot = 4;
-    int GameMode = 5;
+    GameMode GameMode = 5;
     Statistic[]? Statistics = 6;   // skill XP seed; server keeps only what matches a skill id
 }
 ```
+
+`GameMode` resolves as an enum because `levels.nsd` includes `saves.nsd` in the
+same namespace. The server rejects an undefined value on a level request and
+falls back to adventure on a join seed.
 
 `ClientHello.UserId` is the client's stable user id. The client sends it once
 when the connection opens. The server keeps it as `ServerPeer.Claim`.

@@ -289,7 +289,7 @@ public sealed class ServerJoinSystem(
         //  are not relayed for remote rendering. The "game" tag is the client teardown key: it lets the
         //  remote client free the mirror with the rest of its gameplay entities on exit.
         store.AddOrUpdate(entity, new BodyViewComponent { Body = request.View.Body });
-        store.AddOrUpdate(entity, new IdentifierComponent(request.View.Name, tag: "game"));
+        store.AddOrUpdate(entity, new IdentifierComponent(CharacterNames.Clamp(request.View.Name), tag: "game"));
 
         //  Seed the server-authoritative interaction context from the joining client's local save. The
         //  client owns its initial save; from here the server owns these components and replicates them.
@@ -343,7 +343,16 @@ public sealed class ServerJoinSystem(
         inventory.CopyFrom(PlayerInitialInventory.Resolve(seed.Inventory));
         store.AddOrUpdate(entity, inventory);
         store.AddOrUpdate(entity, new EquipmentComponent(InventoryComponent.ClampSlot(seed.ActiveInventorySlot)));
-        store.AddOrUpdate(entity, new GameModeComponent((GameMode)seed.GameMode));
+        store.AddOrUpdate(entity, new GameModeComponent(ResolveGameMode(seed.GameMode)));
+    }
+
+    /// <summary>
+    /// Resolves the seeded game mode. An undefined wire value falls back to adventure, which applies
+    /// survival rules, so a malformed save cannot grant creative placement.
+    /// </summary>
+    private static GameMode ResolveGameMode(GameMode gameMode)
+    {
+        return Enum.IsDefined(gameMode) ? gameMode : GameMode.Adventure;
     }
 
     /// <summary>

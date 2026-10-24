@@ -10,8 +10,10 @@ complements [networking-messages](networking-messages.md).
 `WaywardBeyond.Data/Nsd/network.nsd`. Fields:
 `CharacterUuid`, `SenderName`, `Value`.
 
-The client sends `Value` only. The server never trusts client-supplied
-identity.
+The client sends `Value` only. The relay `CharacterUuid` and `SenderName` come
+from the server's player mirror, never from the message. The mirror's name is
+the client-chosen display name, clamped to
+`CharacterNames.MAX_LENGTH` at join. The value is markup-tolerant by design.
 
 Chat is a client-to-server RPC notification (method 60) and a server-to-client
 notification (method 353). `ClientInbound.Chats` stages inbound relays for the

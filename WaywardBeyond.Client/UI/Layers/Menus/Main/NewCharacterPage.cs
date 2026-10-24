@@ -260,7 +260,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     }
                 }
 
-                nameValue = _nameTextBox.Text.ToString().Trim(_characterNameTrimChars);
+                nameValue = CharacterNames.Clamp(_nameTextBox.Text.ToString().Trim(_characterNameTrimChars));
                 if (string.IsNullOrWhiteSpace(nameValue))
                 {
                     using (ui.Text(_localization.GetString("ui.notification.name.required")!))

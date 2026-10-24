@@ -51,12 +51,17 @@ public sealed class ServerLevelManager(
             return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.PERMISSION_DENIED, "level creation is not permitted");
         }
 
+        if (!Enum.IsDefined(request.GameMode))
+        {
+            return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.INVALID_STATE, "the game mode is invalid");
+        }
+
         try
         {
             bool success = _levelCatalog.Create(
                 request.Name ?? string.Empty,
                 request.Seed ?? string.Empty,
-                (GameMode)request.GameMode,
+                request.GameMode,
                 out string levelGuid
             );
 

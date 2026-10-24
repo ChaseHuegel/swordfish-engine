@@ -121,7 +121,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
                 Body = character.Body,
                 Inventory = character.Inventory,
                 ActiveInventorySlot = character.ActiveInventorySlot,
-                GameMode = (int)character.GameMode,
+                GameMode = character.GameMode,
                 Statistics = character.Statistics,
             },
         }, _timeout.Token);

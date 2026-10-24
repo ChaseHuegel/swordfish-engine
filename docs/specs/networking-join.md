@@ -20,7 +20,9 @@ save levels. Level data is streamed to the client during join.
 1. **`JoinAsync`.** `ClientJoinSystem` calls
    `JoinRequest { LevelGuid, CharacterUuid, CharacterView, CharacterState }`.
    - `CharacterView` is the minimal identity relay (`CharacterUuid`, `Name`,
-     `Body`) used for remote rendering.
+     `Body`) used for remote rendering. The server clamps `Name` to
+     `CharacterNames.MAX_LENGTH` (128) characters, so a modified client cannot
+     inject an unbounded nameplate or chat sender.
    - `CharacterState` carries the client's authoritative **initial** interaction
      context (inventory, active slot, game mode) and its saved skill statistics.
      It is non-nullable. An older client that omits it receives the struct

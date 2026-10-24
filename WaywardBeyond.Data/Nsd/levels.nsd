@@ -6,7 +6,7 @@ message NewLevelRequest
 {
     string Name = 0;
     string Seed = 1;
-    int GameMode = 2;
+    GameMode GameMode = 2;
 }
 
 message NewLevelResponse
@@ -73,7 +73,7 @@ message CharacterState
     string Body = 2;
     ItemData[]? Inventory = 3;
     int ActiveInventorySlot = 4;
-    int GameMode = 5;
+    GameMode GameMode = 5;
     Statistic[]? Statistics = 6;
 }
 

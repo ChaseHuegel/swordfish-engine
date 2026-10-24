@@ -265,6 +265,31 @@ public class ServerWorldIntegrationTests
         connection.Close();
     }
 
+    [Fact]
+    public async Task JoinClampsAnOverlongDisplayName()
+    {
+        using TestServer server = CreateServer();
+        server.WorldHost.Run();
+        server.RpcHost.Run();
+
+        var connection = new LoopbackRpcClientConnection(server.Loopback);
+        await connection.ConnectAsync();
+        var registry = new RpcRegistry();
+        registry.Freeze();
+        var api = new GameServerApiClient(new RpcClient(connection, registry));
+
+        JoinRequest request = CreateJoinRequest(456, name: new string('a', CharacterNames.MAX_LENGTH * 4));
+        RpcResult<JoinAccept> join = await api.JoinAsync(request).WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(join.IsSuccess, join.ErrorMessage);
+
+        ServerWorld world = Assert.IsType<ServerWorld>(server.WorldHost.FindWorld(string.Empty));
+        Assert.True(world.Store.TryGet(Uuid.FromValue(join.Value.PlayerEntity), out int entity));
+        Assert.True(world.Store.TryGet(entity, out IdentifierComponent identifier));
+        Assert.Equal(CharacterNames.MAX_LENGTH, identifier.Name?.Length);
+
+        connection.Close();
+    }
+
     private sealed class RejectingHandler : IInteractionHandler
     {
         public InteractionHandlerFilter Filter => default;
@@ -319,7 +344,7 @@ public class ServerWorldIntegrationTests
         Assert.NotEmpty(streamed.Value.Chunks);
     }
 
-    private static JoinRequest CreateJoinRequest(ulong characterUuid)
+    private static JoinRequest CreateJoinRequest(ulong characterUuid, string name = "Tester")
     {
         return new JoinRequest
         {
@@ -328,16 +353,16 @@ public class ServerWorldIntegrationTests
             View = new CharacterView
             {
                 CharacterUuid = characterUuid,
-                Name = "Tester",
+                Name = name,
                 Body = "default",
             },
             State = new CharacterState
             {
                 CharacterUuid = characterUuid,
-                Name = "Tester",
+                Name = name,
                 Body = "default",
                 ActiveInventorySlot = 0,
-                GameMode = 1,
+                GameMode = GameMode.Adventure,
             },
         };
     }
