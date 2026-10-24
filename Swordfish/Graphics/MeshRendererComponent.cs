@@ -7,6 +7,4 @@ public struct MeshRendererComponent(in MeshRenderer meshRenderer) : IDataCompone
     public const int DefaultIndex = 3;
 
     public readonly MeshRenderer? MeshRenderer = meshRenderer;
-
-    public bool Bound;
 }
