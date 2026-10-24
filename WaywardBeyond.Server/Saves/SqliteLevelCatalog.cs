@@ -28,7 +28,7 @@ public sealed class SqliteLevelCatalog(
     in LevelGeneratorConfig levelGeneratorConfig
 ) : ILevelCatalog
 {
-    //  TODO unify with WaywardBeyond.Version to introduce a single source of truth. Currently this can drift too easily.
+    //  The game version stamped on every created level.
     private static readonly Data.Version _gameVersion = new(_DataVersion: DataVersion.CURRENT, _Name: "Wayward Beyond", _Environment: "Development");
 
     private readonly ILogger _logger = logger;

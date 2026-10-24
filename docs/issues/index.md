@@ -73,5 +73,6 @@ is not part of this workflow.
 - [ ] [Document the voxel public surface](/docs/issues/0079-document-voxel-surface.md) — the new shared assembly has almost no contract docs and no `<inheritdoc/>`
 - [ ] [Encapsulate VoxelObject internals](/docs/issues/0080-encapsulate-voxel-object.md) — `ChunkData` re-derives index math from raw internal fields, under a `TODO`
 - [ ] [Harden the voxel module](/docs/issues/0081-voxels-tech-debt.md) — unmasked `ShapeLight` nibbles, a heavyweight transitive `Data` dependency, and an undocumented angle unit
+- [ ] [Unify the game data version](/docs/issues/0084-unify-data-version.md) — the server catalog hardcodes a `Data.Version` that duplicates `WaywardBeyond.Version` and can drift
 
 ### Research
