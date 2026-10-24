@@ -40,6 +40,7 @@ public class SilkWindowContext : IWindowContext
     private readonly GL _gl;
     private readonly SynchronizationContext _mainThread;
     private Vector2D<int>? _pendingResizeSize;
+    private bool _suppressWindowEvents;
 
     public SilkWindowContext(
         GL gl,
@@ -97,8 +98,15 @@ public class SilkWindowContext : IWindowContext
                 ShortcutModifiers.None,
                 Key.F11,
                 Shortcut.DefaultEnabled,
-                () => WindowSettings.Mode.Set(WindowSettings.Mode != WindowMode.Maximized ? WindowMode.Maximized : WindowMode.Windowed)
-            )
+                () =>
+                {
+                    ApplyDisplaySettings(
+                        WindowSettings.Mode != WindowMode.Maximized ? WindowMode.Maximized : WindowMode.Windowed,
+                        borderless: false,
+                        width: int.MaxValue,
+                        height: int.MaxValue
+                    );
+                })
         );
 
         ShortcutService.RegisterShortcut(new Shortcut(
@@ -107,7 +115,15 @@ public class SilkWindowContext : IWindowContext
                 ShortcutModifiers.Alt,
                 Key.Enter,
                 Shortcut.DefaultEnabled,
-                () => WindowSettings.Mode.Set(WindowSettings.Mode != WindowMode.Fullscreen ? WindowMode.Fullscreen : WindowMode.Maximized)
+                () =>
+                {
+                    ApplyDisplaySettings(
+                        WindowSettings.Mode != WindowMode.Maximized ? WindowMode.Maximized : WindowMode.Windowed,
+                        borderless: false,
+                        width: int.MaxValue,
+                        height: int.MaxValue
+                    );
+                }
             )
         );
 
@@ -144,6 +160,109 @@ public class SilkWindowContext : IWindowContext
     public Vector2 GetSize()
     {
         return (Vector2)Window.Size;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<Vector2> GetVideoModes()
+    {
+        IMonitor? monitor = Window.Monitor;
+        if (monitor == null)
+        {
+            return [Resolution];
+        }
+
+        var videoModes = monitor.GetAllVideoModes();
+        var resolutions = new List<Vector2>();
+        var seen = new HashSet<(int Width, int Height)>();
+
+        foreach (var videoMode in videoModes)
+        {
+            Vector2D<int>? resolution = videoMode.Resolution;
+            if (resolution == null)
+            {
+                continue;
+            }
+
+            int width = resolution.Value.X;
+            int height = resolution.Value.Y;
+            if (width <= 0 || height <= 0 || !seen.Add((width, height)))
+            {
+                continue;
+            }
+
+            resolutions.Add(new Vector2(width, height));
+        }
+
+        if (resolutions.Count == 0)
+        {
+            resolutions.Add(Resolution);
+        }
+
+        resolutions.Sort(static (left, right) =>
+        {
+            int widthComparison = left.X.CompareTo(right.X);
+            return widthComparison != 0 ? widthComparison : left.Y.CompareTo(right.Y);
+        });
+
+        return resolutions;
+    }
+
+    /// <inheritdoc/>
+    public void ApplyDisplaySettings(WindowMode mode, bool borderless, int width, int height)
+    {
+        if (Window.Monitor != null)
+        {
+            Vector2D<int> monitorSize = Window.Monitor.VideoMode.Resolution ?? Window.Monitor.Bounds.Size;
+            width = Math.Clamp(width, 320, monitorSize.X);
+            height = Math.Clamp(height, 240, monitorSize.Y);
+        }
+
+        _suppressWindowEvents = true;
+        try
+        {
+            if (mode == WindowMode.Windowed)
+            {
+                WindowSettings.Width.Set(width);
+                WindowSettings.Height.Set(height);
+            }
+
+            if (mode != WindowMode.Fullscreen || !borderless)
+            {
+                WindowSettings.Borderless.Set(borderless);
+            }
+
+            WindowSettings.Mode.Set(mode);
+            
+            ApplyWindowStyle(mode, borderless, WindowSettings.AllowResize.Get());
+
+            if (mode == WindowMode.Windowed)
+            {
+                ApplySize(width, height);
+                Window.Center();
+
+                WindowSettings.X.Set(Window.Position.X);
+                WindowSettings.Y.Set(Window.Position.Y);
+            }
+            
+            WindowSettings.Save();
+        }
+        finally
+        {
+            _suppressWindowEvents = false;
+        }
+
+        Logger.LogDebug(
+            "Applied display settings. Requested mode={mode}, borderless={borderless}, size={width}x{height}. Actual state={state}, border={border}, size={actualWidth}x{actualHeight}, position={position}.",
+            mode,
+            borderless,
+            width,
+            height,
+            Window.WindowState,
+            Window.WindowBorder,
+            Window.Size.X,
+            Window.Size.Y,
+            Window.Position
+        );
     }
 
     public void Close()
@@ -222,26 +341,51 @@ public class SilkWindowContext : IWindowContext
 
     private void OnXChanged(object? sender, DataChangedEventArgs<int?> e)
     {
+        if (_suppressWindowEvents)
+        {
+            return;
+        }
+
         ApplyPosition(x: e.NewValue, WindowSettings.Y);
     }
 
     private void OnYChanged(object? sender, DataChangedEventArgs<int?> e)
     {
+        if (_suppressWindowEvents)
+        {
+            return;
+        }
+
         ApplyPosition(WindowSettings.X, y: e.NewValue);
     }
     
     private void OnWidthChanged(object? sender, DataChangedEventArgs<int?> e)
     {
+        if (_suppressWindowEvents)
+        {
+            return;
+        }
+
         ApplySize(width: e.NewValue, WindowSettings.Height);
     }
 
     private void OnHeightChanged(object? sender, DataChangedEventArgs<int?> e)
     {
+        if (_suppressWindowEvents)
+        {
+            return;
+        }
+
         ApplySize(WindowSettings.Width, height: e.NewValue);
     }
     
     private void OnBorderlessChanged(object? sender, DataChangedEventArgs<bool> e)
     {
+        if (_suppressWindowEvents)
+        {
+            return;
+        }
+
         WindowMode mode = WindowSettings.Mode.Get();
         bool allowResize = WindowSettings.AllowResize.Get();
         ApplyWindowStyle(mode, borderless: e.NewValue, allowResize);
@@ -256,6 +400,11 @@ public class SilkWindowContext : IWindowContext
     
     private void OnModeChanged(object? sender, DataChangedEventArgs<WindowMode> e)
     {
+        if (_suppressWindowEvents)
+        {
+            return;
+        }
+
         bool borderless = WindowSettings.Borderless.Get();
         bool allowResize = WindowSettings.AllowResize.Get();
         ApplyWindowStyle(mode: e.NewValue, borderless, allowResize);

@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Text;
+using Reef.UI;
 using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.IO;
@@ -136,6 +137,9 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
             //  Build rect vertices
             //  Only use the foreground Color if this isn't text
             instance.Rect.AddVertexData(command.Rect, command.Text == null ? command.Color : command.BackgroundColor, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+
+            AddBorder(instance, command);
+            AddCornerCaps(instance, command);
             
             if (command.Text != null)
             {
@@ -165,6 +169,63 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
             
             _instances[command] = instance;
         }
+    }
+
+    private void AddBorder(InstanceVertexData instance, RenderCommand<Material> command)
+    {
+        BorderStyle border = command.Border;
+        IntRect rect = command.Rect;
+        int thickness = Math.Min(border.Thickness, Math.Min(rect.Size.X, rect.Size.Y) / 2);
+
+        if (thickness <= 0 || border.Color.W <= 0f)
+        {
+            return;
+        }
+
+        AddRect(instance, new IntRect(rect.Left, rect.Top, rect.Right, rect.Top + thickness), border.Color, command.ClipRect);
+        AddRect(instance, new IntRect(rect.Left, rect.Bottom - thickness, rect.Right, rect.Bottom), border.Color, command.ClipRect);
+        AddRect(instance, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Bottom - thickness), border.Color, command.ClipRect);
+        AddRect(instance, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Bottom - thickness), border.Color, command.ClipRect);
+    }
+
+    private void AddCornerCaps(InstanceVertexData instance, RenderCommand<Material> command)
+    {
+        CornerCapStyle caps = command.CornerCaps;
+        IntRect rect = command.Rect;
+        int maxLength = Math.Min(rect.Size.X, rect.Size.Y) / 2;
+        int length = Math.Min(caps.Length, maxLength);
+        int thickness = Math.Min(caps.Thickness, length);
+
+        if (length <= 0 || thickness <= 0 || caps.Color.W <= 0f)
+        {
+            return;
+        }
+
+        //  Top left
+        AddRect(instance, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color, command.ClipRect);
+        AddRect(instance, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color, command.ClipRect);
+
+        //  Top right
+        AddRect(instance, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color, command.ClipRect);
+        AddRect(instance, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color, command.ClipRect);
+
+        //  Bottom left
+        AddRect(instance, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color, command.ClipRect);
+        AddRect(instance, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color, command.ClipRect);
+
+        //  Bottom right
+        AddRect(instance, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color, command.ClipRect);
+        AddRect(instance, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color, command.ClipRect);
+    }
+
+    private void AddRect(InstanceVertexData instance, IntRect rect, Vector4 color, IntRect clipRect)
+    {
+        if (rect.Size.X <= 0 || rect.Size.Y <= 0)
+        {
+            return;
+        }
+
+        instance.Rect.AddVertexData(rect, color, clipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
     }
 
     public int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
