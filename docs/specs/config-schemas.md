@@ -160,9 +160,9 @@ lives in `profile.toml` (`LastServerMode`).
 `[Transport]`, and `[Protocol]` tables. The full key list lives in
 [networking-transports](networking-transports.md).
 
-The dedicated server ships its own `config/network.toml` with LAN defaults;
-`--name`/`--port` overrides persist to it (see
-[networking-transports](networking-transports.md)).
+The dedicated server ships its own `config/network.toml` with LAN defaults.
+`--name`/`--port` override it in memory for that run only; the launcher never
+rewrites the shipped file (see [networking-transports](networking-transports.md)).
 
 ## `storage.toml` (per app)
 

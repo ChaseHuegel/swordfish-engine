@@ -223,9 +223,10 @@ gone.
 `WaywardBeyond.Server.Launcher` loads the server and shared modules only. The
 server module registers `ServerWorldHost`, `ServerRpcHost`, and `LanHost`.
 There is no loopback client and no client module. The dedicated
-`config/network.toml` uses the schema above. `Ctrl+C`/SIGTERM runs the clean
-shutdown: level flush, session teardown, store disposal. A LAN listen failure
-exits non-zero.
+`config/network.toml` uses the schema above. `--name`, `--port`, and `--data`
+override that config in memory for one run and never rewrite the file.
+`Ctrl+C`/SIGTERM runs the clean shutdown: level flush, session teardown, store
+disposal. A LAN listen failure exits non-zero.
 
 ## Source of truth
 

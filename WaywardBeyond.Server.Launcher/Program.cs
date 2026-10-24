@@ -54,32 +54,29 @@ internal static class Program
         return 0;
     }
 
+    /// <summary>
+    /// Applies the command-line overrides in memory. The shipped config files are never rewritten, so a
+    /// one-off flag cannot silently change the next launch.
+    /// </summary>
     private static void ApplyCliOverrides(IContainer container)
     {
         CommandLineArgs args = container.Resolve<CommandLineArgs>();
 
         NetworkingConfig networkingConfig = container.Resolve<NetworkingConfig>();
-        bool networkingChanged = false;
         if (args.TryGetValue("name", out string? name) && !string.IsNullOrWhiteSpace(name))
         {
             networkingConfig.Server.Name.Set(name);
-            networkingChanged = true;
         }
+
         if (args.TryGetValue("port", out string? port) && int.TryParse(port, out int parsedPort) && parsedPort is >= 1 and <= 65535)
         {
             networkingConfig.Server.Port.Set(parsedPort);
-            networkingChanged = true;
-        }
-        if (networkingChanged)
-        {
-            networkingConfig.Save();
         }
 
         StorageConfig storageConfig = container.Resolve<StorageConfig>();
         if (args.TryGetValue("data", out string? dataRoot) && !string.IsNullOrWhiteSpace(dataRoot))
         {
             storageConfig.SaveRoot.Set(dataRoot);
-            storageConfig.Save();
         }
     }
 }
