@@ -61,12 +61,12 @@ public class InteractionHandlerRegistryTests
             new Handler(order, "validate-high", InteractionStage.Validate, InteractionPriority.High),
             new Handler(order, "validate-normal", InteractionStage.Validate, InteractionPriority.Normal, _ => InteractionDecision.Handled),
             new Handler(order, "validate-low", InteractionStage.Validate, InteractionPriority.Low),
-            new Handler(order, "apply", InteractionStage.Apply, InteractionPriority.Normal),
+            new Handler(order, "commit", InteractionStage.Commit, InteractionPriority.Normal),
         ]);
 
         InteractionRunResult result = Run(registry, BASE);
 
-        Assert.Equal("validate-high,validate-normal,apply", order.Value);
+        Assert.Equal("validate-high,validate-normal,commit", order.Value);
         Assert.Equal(InteractionDecision.Continue, result.Decision);
     }
 
@@ -76,13 +76,13 @@ public class InteractionHandlerRegistryTests
         var order = new Order();
         var registry = new InteractionHandlerRegistry(
         [
-            new Handler(order, "apply", InteractionStage.Apply, InteractionPriority.Normal, _ => InteractionDecision.Consume),
+            new Handler(order, "commit", InteractionStage.Commit, InteractionPriority.Normal, _ => InteractionDecision.Consume),
             new Handler(order, "react", InteractionStage.React, InteractionPriority.Normal),
         ]);
 
         InteractionRunResult result = Run(registry, BASE);
 
-        Assert.Equal("apply", order.Value);
+        Assert.Equal("commit", order.Value);
         Assert.Equal(InteractionDecision.Consume, result.Decision);
     }
 
@@ -93,7 +93,7 @@ public class InteractionHandlerRegistryTests
         var registry = new InteractionHandlerRegistry(
         [
             new Handler(order, "resolve", InteractionStage.Resolve, InteractionPriority.Normal, _ => InteractionDecision.Cancel),
-            new Handler(order, "apply", InteractionStage.Apply, InteractionPriority.Normal),
+            new Handler(order, "commit", InteractionStage.Commit, InteractionPriority.Normal),
         ]);
 
         InteractionRunResult result = Run(registry, BASE);
@@ -149,7 +149,7 @@ public class InteractionHandlerRegistryTests
     [Fact]
     public void TheDefaultResolveHandlerResolvesTheHint()
     {
-        var registry = new InteractionHandlerRegistry([new HintResolveHandler(new FakeRegistry())]);
+        var registry = new InteractionHandlerRegistry([new HintResolver(new FakeRegistry())]);
 
         var context = Context(Hint(cell: 0));
         InteractionRunResult result = registry.Run(ref context);
@@ -163,7 +163,7 @@ public class InteractionHandlerRegistryTests
         var order = new Order();
         var registry = new InteractionHandlerRegistry(
         [
-            new HintResolveHandler(new FakeRegistry()),
+            new HintResolver(new FakeRegistry()),
             new Handler(order, "later", InteractionStage.Resolve, InteractionPriority.Low, _ => InteractionDecision.Handled),
         ]);
 

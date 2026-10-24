@@ -26,7 +26,7 @@ namespace Swordfish.Tests;
 /// <see cref="SkillStateComponent"/> from the shipped skill definitions, unknown bricks grant nothing,
 /// and seeded totals continue the curve.
 /// </summary>
-public class SkillXpHandlerTests
+public class SkillXpReactorTests
 {
     [Fact]
     public void BreakingARockGrantsMiningXP()
@@ -110,7 +110,7 @@ public class SkillXpHandlerTests
             ServerPeer peer = Peers.GetOrAdd(new FakeHost(), new RpcPeer(new FakeServerConnection(clientId: 1)), isLocal: true);
             ClientId = peer.GameId;
 
-            Handler = new SkillXpHandler(Skills, Peers, NullLogger<SkillXpHandler>.Instance);
+            Handler = new SkillXpReactor(Skills, Peers, NullLogger<SkillXpReactor>.Instance);
         }
 
         public SkillDatabase Skills { get; }
@@ -119,7 +119,7 @@ public class SkillXpHandlerTests
         public DataStore Store { get; } = new();
         public int Player { get; }
         public Uuid ClientId { get; }
-        public SkillXpHandler Handler { get; }
+        public SkillXpReactor Handler { get; }
 
         public SkillStateComponent State => Store.TryGet(Player, out SkillStateComponent state) ? state : default;
 

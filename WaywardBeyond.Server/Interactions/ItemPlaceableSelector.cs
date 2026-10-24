@@ -9,7 +9,7 @@ namespace WaywardBeyond.Server.Interactions;
 /// Select stage: resolves the held item to the brick it places. An item that places nothing leaves the
 /// stage open, so a break still resolves and a custom content source can claim the item first.
 /// </summary>
-public sealed class ItemPlaceableHandler(IItemDatabase items, IBrickDatabase bricks) : IInteractionHandler
+public sealed class ItemPlaceableSelector(IItemDatabase items, IBrickDatabase bricks) : IInteractionHandler
 {
     /// <inheritdoc/>
     public InteractionStage Stage => InteractionStage.Select;

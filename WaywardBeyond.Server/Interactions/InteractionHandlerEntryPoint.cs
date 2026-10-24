@@ -22,7 +22,7 @@ public sealed class InteractionHandlerEntryPoint(
             registry.GetHandlers(InteractionStage.Select).Count,
             registry.GetHandlers(InteractionStage.Resolve).Count,
             registry.GetHandlers(InteractionStage.Validate).Count,
-            registry.GetHandlers(InteractionStage.Apply).Count,
+            registry.GetHandlers(InteractionStage.Commit).Count,
             registry.GetHandlers(InteractionStage.React).Count);
     }
 }

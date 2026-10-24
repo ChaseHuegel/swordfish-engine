@@ -31,7 +31,7 @@ public class ServerInteractionHandlerTests
         var store = new DataStore();
         VoxelObject voxels = FilledVoxels();
         int entity = AllocStructure(store, voxels);
-        var handler = new VoxelWriteHandler(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteHandler>.Instance);
+        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteCommitter>.Instance);
 
         InteractionContext context = Context(store, entity);
         context.Resolution = new InteractionResolution(InteractionAction.Break, entity, new Int3(0, 0, 0), voxels.Get(0, 0, 0));
@@ -47,7 +47,7 @@ public class ServerInteractionHandlerTests
         var store = new DataStore();
         VoxelObject voxels = FilledVoxels();
         int entity = AllocStructure(store, voxels);
-        var handler = new VoxelWriteHandler(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteHandler>.Instance);
+        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteCommitter>.Instance);
 
         InteractionContext context = Context(store, entity);
         var placed = new Voxel(2, new ShapeLight(BrickShape.Block, lightLevel: 0), default);
@@ -63,7 +63,7 @@ public class ServerInteractionHandlerTests
         var store = new DataStore();
         VoxelObject voxels = FilledVoxels();
         int entity = AllocStructure(store, voxels);
-        var handler = new VoxelWriteHandler(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteHandler>.Instance);
+        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteCommitter>.Instance);
 
         InteractionContext context = Context(store, entity);
 
@@ -75,7 +75,7 @@ public class ServerInteractionHandlerTests
     public void TheItemHandlerSelectsThePlacedBrick()
     {
         var (items, bricks) = LoadContent();
-        var handler = new ItemPlaceableHandler(items, bricks);
+        var handler = new ItemPlaceableSelector(items, bricks);
         var store = new DataStore();
 
         InteractionContext context = Context(store, entity: 0, heldItemID: "wb:rock");
@@ -88,7 +88,7 @@ public class ServerInteractionHandlerTests
     public void TheItemHandlerLeavesAnUnknownItemForLaterHandlers()
     {
         var (items, bricks) = LoadContent();
-        var handler = new ItemPlaceableHandler(items, bricks);
+        var handler = new ItemPlaceableSelector(items, bricks);
         var store = new DataStore();
 
         InteractionContext context = Context(store, entity: 0, heldItemID: "wb:missing");

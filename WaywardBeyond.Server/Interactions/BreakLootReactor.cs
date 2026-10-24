@@ -9,7 +9,7 @@ namespace WaywardBeyond.Server.Interactions;
 /// <summary>
 /// React stage: grants the broken brick's own item in survival. Creative mode is free.
 /// </summary>
-public sealed class BreakLootHandler(IBrickDatabase brickDatabase) : IInteractionHandler
+public sealed class BreakLootReactor(IBrickDatabase brickDatabase) : IInteractionHandler
 {
     private const int DEFAULT_STACK_SIZE = 100;
 

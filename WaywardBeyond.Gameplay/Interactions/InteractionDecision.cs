@@ -8,7 +8,7 @@ public enum InteractionDecision : byte
 
     /// <summary>
     /// Skip the remaining handlers in this stage and continue to the next stage. In
-    /// <see cref="InteractionStage.Apply"/> this asserts the outcome is now authoritative.
+    /// <see cref="InteractionStage.Commit"/> this asserts the outcome is now authoritative.
     /// </summary>
     Handled = 1,
 

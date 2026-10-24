@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DryIoc;
 using Microsoft.Extensions.Logging;
 using Shoal.Extensions.Swordfish;
@@ -106,12 +106,12 @@ public static class ServerComposition
         //  Interaction handlers declare their own stage and priority, so the composition only decides
         //  which handlers exist. The registry is built once at startup, after every module has loaded,
         //  so a mod registers an IInteractionHandler implementation and never touches the registry.
-        container.Register<IInteractionHandler, ItemPlaceableHandler>(Reuse.Singleton);
-        container.Register<IInteractionHandler, HintResolveHandler>(Reuse.Singleton);
-        container.Register<IInteractionHandler, VoxelWriteHandler>(Reuse.Singleton);
-        container.Register<IInteractionHandler, BreakLootHandler>(Reuse.Singleton);
-        container.Register<IInteractionHandler, PlaceConsumeHandler>(Reuse.Singleton);
-        container.Register<IInteractionHandler, SkillXpHandler>(Reuse.Singleton);
+        container.Register<IInteractionHandler, ItemPlaceableSelector>(Reuse.Singleton);
+        container.Register<IInteractionHandler, HintResolver>(Reuse.Singleton);
+        container.Register<IInteractionHandler, VoxelWriteCommitter>(Reuse.Singleton);
+        container.Register<IInteractionHandler, BreakLootReactor>(Reuse.Singleton);
+        container.Register<IInteractionHandler, PlaceConsumeReactor>(Reuse.Singleton);
+        container.Register<IInteractionHandler, SkillXpReactor>(Reuse.Singleton);
         container.Register<InteractionHandlerRegistry>(Reuse.Singleton);
         container.RegisterMapping<IInteractionHandlerRegistry, InteractionHandlerRegistry>();
         container.Register<IEntryPoint, InteractionHandlerEntryPoint>(Reuse.Singleton);

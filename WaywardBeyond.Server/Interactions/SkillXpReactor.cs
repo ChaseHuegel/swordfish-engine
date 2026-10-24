@@ -14,10 +14,10 @@ namespace WaywardBeyond.Server.Interactions;
 /// brick, accumulates it into the player's transient <see cref="SkillStateComponent"/>, and pushes the
 /// authoritative totals and level-ups to the acting client. The server persists no skill data.
 /// </summary>
-public sealed class SkillXpHandler(
+public sealed class SkillXpReactor(
     ISkillDatabase skillDatabase,
     ServerPeers peers,
-    ILogger<SkillXpHandler> logger
+    ILogger<SkillXpReactor> logger
 ) : IInteractionHandler
 {
     /// <inheritdoc/>

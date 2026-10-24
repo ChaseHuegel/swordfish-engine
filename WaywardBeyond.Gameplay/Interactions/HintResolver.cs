@@ -7,7 +7,7 @@ namespace WaywardBeyond.Gameplay.Interactions;
 /// default resolver: a custom resolver registered at a higher priority pre-empts it, and a hint it cannot
 /// resolve leaves the stage open for a later handler.
 /// </summary>
-public sealed class HintResolveHandler(IBrickRegistry brickRegistry) : IInteractionHandler
+public sealed class HintResolver(IBrickRegistry brickRegistry) : IInteractionHandler
 {
     /// <inheritdoc/>
     public InteractionStage Stage => InteractionStage.Resolve;

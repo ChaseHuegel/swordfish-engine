@@ -57,18 +57,18 @@ interaction context and runs the pipeline (see
 
 The default handlers:
 
-- `HintResolveHandler` validates the hinted structure and cell against the
+- `HintResolver` validates the hinted structure and cell against the
   authority store by identity and reach. It never raycasts, and it resolves
   with `InteractionResolver`.
-- `VoxelWriteHandler` applies the outcome on the structure's live `VoxelObject`
+- `VoxelWriteCommitter` applies the outcome on the structure's live `VoxelObject`
   (`WaywardBeyond.Server/Components/VoxelWorldComponent.cs`) and rebuilds the
   structure `ColliderComponent` (`VoxelColliderBuilder`) so subsequent raycasts
   see the change. Saves and streams re-derive `ChunkInfo[]` from the live
   `VoxelObject`; the authority holds no parallel chunk copy.
-- `BreakLootHandler` and `PlaceConsumeHandler` grant a broken brick's own item
+- `BreakLootReactor` and `PlaceConsumeReactor` grant a broken brick's own item
   and consume one held item on place, against the server-owned
   `InventoryComponent`. Creative is free on both paths.
-- `SkillXpHandler` grants the brick's skill XP.
+- `SkillXpReactor` grants the brick's skill XP.
 
 ## Downstream replication
 

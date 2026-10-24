@@ -12,16 +12,16 @@ sorted by priority band and then registration order. A handler sees a mutable
 `InteractionContext` and returns an `InteractionDecision`.
 
 ```
-Select → Resolve → Validate → Apply → React
+Select → Resolve → Validate → Commit → React
 ```
 
 | Stage | Job | Default handler |
 |---|---|---|
-| `Select` | Determine the content the interaction operates with | `ItemPlaceableHandler` maps the held item to the brick it places |
-| `Resolve` | Derive the base outcome from the client's target hint | `HintResolveHandler` runs `InteractionResolver` |
+| `Select` | Determine the content the interaction operates with | `ItemPlaceableSelector` maps the held item to the brick it places |
+| `Resolve` | Derive the base outcome from the client's target hint | `HintResolver` runs `InteractionResolver` |
 | `Validate` | Adjust or reject before any authority change | none; the stage is a policy hook |
-| `Apply` | Perform the authority change | `VoxelWriteHandler` writes, rebuilds the collider, and broadcasts |
-| `React` | Apply the consequences | `BreakLootHandler`, `PlaceConsumeHandler`, `SkillXpHandler` |
+| `Commit` | Perform the authority change | `VoxelWriteCommitter` writes, rebuilds the collider, and broadcasts |
+| `React` | Apply the consequences | `BreakLootReactor`, `PlaceConsumeReactor`, `SkillXpReactor` |
 
 The game and its mods register the same kind of handler. There is no privileged path:
 a mod can replace the authority write, cancel it, or produce a different outcome entirely.
@@ -38,7 +38,7 @@ does not decide placement.
 
 Within a stage, handlers run `High` then `Normal` then `Low`; ties keep DI registration
 order. The default authority write declares `Low`, so any `High` or `Normal` handler in
-`Apply` gets the outcome first. A handler that claims the outcome returns
+`Commit` gets the outcome first. A handler that claims the outcome returns
 `InteractionDecision.Handled`, which skips the remaining handlers in the stage — including
 the built-in write.
 
@@ -51,10 +51,10 @@ the built-in write.
 | `Consume` | Stop the pipeline; no later stage runs |
 | `Cancel` | Stop the pipeline; the interaction is rejected |
 
-`Handled` is stage-scoped ownership. In `Apply` it asserts the outcome is now
+`Handled` is stage-scoped ownership. In `Commit` it asserts the outcome is now
 authoritative, which is what lets `React` trust the resolution. `Consume` is
 pipeline-scoped ownership: a mod that takes over the whole interaction, including
-suppressing reactions, returns it from `Apply`.
+suppressing reactions, returns it from `Commit`.
 
 ## Composition rules
 
@@ -68,7 +68,7 @@ suppressing reactions, returns it from `Apply`.
 
 Prediction is composition, not a mode. The client builds its own registry with the
 handlers it wants to predict; today that is the voxel edit only, and no effect is
-predicted. The shared `HintResolveHandler` and `InteractionResolver` are already usable
+predicted. The shared `HintResolver` and `InteractionResolver` are already usable
 on both sides.
 
 ## Threading
@@ -81,7 +81,7 @@ they must not keep per-world state; it lives in the context or the store.
 
 - `WaywardBeyond.Gameplay/Interactions/{InteractionStage,InteractionPriority,InteractionDecision,InteractionRunResult}.cs`
 - `WaywardBeyond.Gameplay/Interactions/{InteractionContext,IInteractionHandler,IInteractionHandlerRegistry,InteractionHandlerRegistry}.cs`
-- `WaywardBeyond.Gameplay/Interactions/HintResolveHandler.cs`
-- `WaywardBeyond.Server/Interactions/` — the default `Select`, `Apply`, and `React` handlers
+- `WaywardBeyond.Gameplay/Interactions/HintResolver.cs`
+- `WaywardBeyond.Server/Interactions/` — the default `Select`, `Commit`, and `React` handlers
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs` — the pump
 - `WaywardBeyond.Server/ServerComposition.cs` — default registration order

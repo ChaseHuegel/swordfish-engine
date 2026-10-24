@@ -13,7 +13,7 @@ public enum InteractionStage : byte
     Validate = 2,
 
     /// <summary>Performs the authority change. <see cref="InteractionDecision.Handled"/> asserts it is authoritative.</summary>
-    Apply = 3,
+    Commit = 3,
 
     /// <summary>Applies the consequences of an authoritative outcome, such as loot, consumption, and progression.</summary>
     React = 4,

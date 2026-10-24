@@ -7,7 +7,7 @@ namespace WaywardBeyond.Server.Interactions;
 /// <summary>
 /// React stage: consumes one item from the active slot on a survival place. Creative mode is free.
 /// </summary>
-public sealed class PlaceConsumeHandler : IInteractionHandler
+public sealed class PlaceConsumeReactor : IInteractionHandler
 {
     /// <inheritdoc/>
     public InteractionStage Stage => InteractionStage.React;

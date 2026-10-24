@@ -13,18 +13,18 @@ using WaywardBeyond.Voxels;
 namespace WaywardBeyond.Server.Interactions;
 
 /// <summary>
-/// Apply stage, low priority: the default authority write. Writes the resolved voxel, rebuilds the
+/// Commit stage, low priority: the default authority write. Writes the resolved voxel, rebuilds the
 /// structure collider, and broadcasts the edit. A handler that registers earlier and returns
 /// <see cref="InteractionDecision.Handled"/> replaces it.
 /// </summary>
-public sealed class VoxelWriteHandler(
+public sealed class VoxelWriteCommitter(
     ServerPeers peers,
     IBrickRegistry brickRegistry,
-    ILogger<VoxelWriteHandler> logger
+    ILogger<VoxelWriteCommitter> logger
 ) : IInteractionHandler
 {
     /// <inheritdoc/>
-    public InteractionStage Stage => InteractionStage.Apply;
+    public InteractionStage Stage => InteractionStage.Commit;
 
     /// <inheritdoc/>
     public InteractionPriority Priority => InteractionPriority.Low;
