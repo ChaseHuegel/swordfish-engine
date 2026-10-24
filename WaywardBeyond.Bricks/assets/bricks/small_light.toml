@@ -1,0 +1,14 @@
+[[Bricks]]
+ID      = "wb:small_light"
+Shape   = "any"
+Tags    = [
+    "entity",
+    "light",
+    "metal",
+    "glass",
+    "decoration",
+    "buildable",
+    "convertable_truss",
+]
+[Bricks.Textures]
+Default   = ["small_light"]

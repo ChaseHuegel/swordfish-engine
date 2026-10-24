@@ -1,0 +1,10 @@
+namespace WaywardBeyond.Data.Components;
+
+/// <summary>
+/// A slot move operation carried by <see cref="InventoryEvent"/>. <see cref="Count"/> follows the
+/// <c>null = whole stack</c> rule: null moves the entire stack from <see cref="FromSlot"/>, a value moves
+/// at most that many. Occupied-destination resolution is deterministic server-side (and mirrored by the
+/// client's prediction): same item + capacity stacks, otherwise the stacks swap; a partial move onto a
+/// different item is a no-op.
+/// </summary>
+public partial struct SlotMoveOp;

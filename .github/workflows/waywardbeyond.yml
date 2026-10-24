@@ -47,11 +47,6 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: generated-atlases
-    - name: Setup nsdc
-      run: |
-        curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
-        unzip nsdc.zip
-        echo "$PWD" >> $GITHUB_PATH
     - name: Publish
       run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r win-x64 -o artifact
     - name: Upload build artifacts
@@ -73,11 +68,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: generated-atlases
-      - name: Setup nsdc
-        run: |
-          curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
-          unzip nsdc.zip
-          echo "$PWD" >> $GITHUB_PATH
       - name: Publish
         run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r linux-x64 -o artifact
       - name: Upload build artifacts

@@ -1,0 +1,220 @@
+using System;
+using System.Collections.Generic;
+using Swordfish.ECS;
+using Swordfish.Library.Util;
+using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Config;
+using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Networking.Codecs;
+using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Networking.Rpc;
+
+namespace WaywardBeyond.Client.Systems;
+
+/// <summary>
+/// Client-side replication. Publishes dirty client-owned components (e.g. input) upstream to the
+/// server, automatically driven by ECS dirty tracking. Discrete <see cref="InteractionEvent"/> edges are
+/// drained from the player's outbound ring and emitted as one snapshot
+/// per edge, so rapid clicks between sends survive. Uploads are paced to
+/// <see cref="NetworkingConfig.Protocol.SnapshotHz"/>, not the ECS tick rate.
+/// </summary>
+internal sealed class ClientReplicationSystem : IEntitySystem
+{
+    private readonly ClientRpcHost _host;
+    private readonly ClientDisconnectSystem _disconnectSystem;
+    private readonly NetworkingConfig _config;
+    private readonly NetworkRegistry _registry;
+    private float _sinceSend;
+    private readonly List<ComponentSnapshot> _pending = [];
+
+    //  Entities whose staged (interaction-edge or inventory-op) buffers rode this tick's snapshot; their
+    //  buffers are cleared only after the send succeeds so a failed send leaves them staged for re-emission.
+    private readonly HashSet<int> _stagedEntities = [];
+
+    //  Cached once per system instance: the per-call registry enumeration would otherwise allocate a
+    //  fresh list on every tick of the replication hot path.
+    private readonly NetworkComponentInfo[] _clientOwnedComponents;
+
+    public ClientReplicationSystem(
+        in ClientRpcHost host,
+        in ClientDisconnectSystem disconnectSystem,
+        in NetworkingConfig config,
+        NetworkRegistry registry
+    ) {
+        _host = host;
+        _disconnectSystem = disconnectSystem;
+        _config = config;
+        _registry = registry;
+        _clientOwnedComponents = registry.GetComponents(NetworkDirection.ClientOwned);
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        //  Upload at SnapshotHz, decoupled from the ECS tick rate. Dirty flags persist across skipped
+        //  ticks and staged interaction/inventory edges stay buffered, so nothing is lost.
+        float interval = 1f / Math.Max(1, _config.Protocol.SnapshotHz.Get());
+        _sinceSend += delta;
+        if (_sinceSend < interval)
+        {
+            return;
+        }
+
+        _sinceSend -= interval;
+        _pending.Clear();
+        _stagedEntities.Clear();
+
+        //  Player-scoped: only the local player carries client-owned components, so collection never
+        //  visits world structures.
+        CollectAction action = new() { Owner = this };
+        store.Query<PlayerComponent, CollectAction>(delta, ref action);
+
+        if (_pending.Count == 0)
+        {
+            return;
+        }
+
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 0,
+            LastProcessedInput = 0,
+            Components = _pending.ToArray(),
+            RemovedEntities = [],
+        };
+
+        //  Edges and ops are consumed exactly once: the outbound buffers are cleared only after the
+        //  containing snapshot is accepted by the reliable send path. A rejected send is a peer
+        //  failure: the teardown runs on the next client tick.
+        if (!_host.Notify(GameRpc.Methods.SEND_SNAPSHOT, in snapshot))
+        {
+            _disconnectSystem.RequestDisconnect();
+            return;
+        }
+
+        foreach (int entity in _stagedEntities)
+        {
+            if (store.TryGet(entity, out PendingInteractionComponent edges))
+            {
+                edges.Outbound.Clear();
+            }
+
+            if (store.TryGet(entity, out PendingInventoryComponent ops))
+            {
+                ops.Outbound.Clear();
+            }
+        }
+    }
+
+    private struct CollectAction : IForEach<PlayerComponent>
+    {
+        public ClientReplicationSystem Owner;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
+        {
+            //  Buffered interaction edges and inventory ops are drained as their own snapshots before the
+            //  dirty-scan, so a player who staged edges or moves this frame has them emitted even though
+            //  the single component slots are no longer the transmission unit.
+            if (store.TryGet(entity, out PendingInteractionComponent pending))
+            {
+                DrainInteractions(store, entity, pending);
+            }
+
+            if (store.TryGet(entity, out PendingInventoryComponent pendingOps))
+            {
+                DrainInventoryOps(store, entity, pendingOps);
+            }
+
+            foreach (NetworkComponentInfo info in Owner._clientOwnedComponents)
+            {
+                if (info.Type == typeof(InteractionEvent) || info.Type == typeof(InventoryEvent))
+                {
+                    continue;
+                }
+
+                if (!store.IsDirty(info.Type, entity))
+                {
+                    continue;
+                }
+
+                Result<byte[]> serialized = info.Codec.Serialize(store, entity);
+                store.ClearDirty(info.Type, entity);
+
+                if (!serialized.Success || serialized.Value.Length == 0)
+                {
+                    continue;
+                }
+
+                Owner._pending.Add(new ComponentSnapshot(store.GetUuid(entity).ToValue(), info.Uuid.ToValue(), serialized.Value));
+            }
+        }
+
+        private void DrainInteractions(DataStore store, int entity, in PendingInteractionComponent pending)
+        {
+            Result<NetworkComponentInfo> lookup = Owner._registry.GetInfo<InteractionEvent>();
+            if (!lookup.Success || lookup.Value.Codec is not IPayloadCodec<InteractionEvent> codec)
+            {
+                return;
+            }
+
+            NetworkComponentInfo info = lookup.Value;
+
+            StageRing<InteractionEvent> ring = pending.Outbound;
+            if (ring.Count == 0)
+            {
+                return;
+            }
+
+            ulong entityUuid = store.GetUuid(entity).ToValue();
+            for (var i = 0; i < ring.Count; i++)
+            {
+                byte[] payload = codec.Serialize(in ring[i]);
+                if (payload.Length > 0)
+                {
+                    Owner._pending.Add(new ComponentSnapshot(entityUuid, info.Uuid.ToValue(), payload));
+                }
+            }
+
+            //  The edges ride this tick's snapshot; the buffer is cleared after the send succeeds (see
+            //  ClientReplicationSystem.Tick), so a failed send leaves them staged for the next tick.
+            Owner._stagedEntities.Add(entity);
+        }
+
+        private void DrainInventoryOps(DataStore store, int entity, in PendingInventoryComponent pending)
+        {
+            Result<NetworkComponentInfo> lookup = Owner._registry.GetInfo<InventoryEvent>();
+            if (!lookup.Success || lookup.Value.Codec is not IPayloadCodec<InventoryEvent> codec)
+            {
+                return;
+            }
+
+            NetworkComponentInfo info = lookup.Value;
+
+            StageRing<InventoryOp> ring = pending.Outbound;
+            if (ring.Count == 0)
+            {
+                return;
+            }
+
+            ulong entityUuid = store.GetUuid(entity).ToValue();
+            for (var i = 0; i < ring.Count; i++)
+            {
+                InventoryOp op = ring[i];
+                byte[] payload = codec.Serialize(new InventoryEvent
+                {
+                    Entity = entityUuid,
+                    SequenceNumber = op.SequenceNumber,
+                    SlotMove = op.SlotMove,
+                });
+                if (payload.Length > 0)
+                {
+                    Owner._pending.Add(new ComponentSnapshot(entityUuid, info.Uuid.ToValue(), payload));
+                }
+            }
+
+            //  The ops ride this tick's snapshot; the buffer is cleared after the send succeeds.
+            Owner._stagedEntities.Add(entity);
+        }
+    }
+}

@@ -1,0 +1,22 @@
+"Language" = ""
+
+[Tags]
+"manufactured" = [
+    "wb:caution_panel",
+    "wb:control_buttons",
+    "wb:control_panel",
+    "wb:core",
+    "wb:display_console",
+    "wb:display_control",
+    "wb:display_monitor",
+    "wb:glass",
+    "wb:grate",
+    "wb:light",
+    "wb:panel",
+    "wb:porthole",
+    "wb:small_light",
+    "wb:storage",
+    "wb:thruster",
+    "wb:truss",
+    "wb:vent",
+]

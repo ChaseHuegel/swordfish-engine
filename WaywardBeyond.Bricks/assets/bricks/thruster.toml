@@ -1,0 +1,14 @@
+[[Bricks]]
+ID      = "wb:thruster"
+Shape   = "custom"
+Mesh    = "thruster.obj"
+Tags    = [
+    "entity",
+    "metal",
+    "thruster",
+    "buildable",
+    "orientable",
+    "convertable_truss",
+]
+[Bricks.Textures]
+Default = ["vent"]

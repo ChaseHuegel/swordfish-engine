@@ -1,0 +1,17 @@
+[[Bricks]]
+ID      = "wb:storage"
+Shape   = "block"
+Tags    = [
+    "metal",
+    "buildable",
+    "orientable",
+    "convertable_truss",
+]
+[Bricks.Textures]
+Default = ["storage_front"]
+Top     = ["storage_top"]
+Bottom  = ["storage_bottom"]
+Front   = ["storage_front"]
+Back    = ["storage_back"]
+Left    = ["storage_side"]
+Right   = ["storage_side"]

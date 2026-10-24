@@ -1,0 +1,9 @@
+# Shipped permission baseline. Modules and admins extend these groups from their
+# own files under permissions/ or config/permissions/. See docs/specs/permissions.md.
+
+[Groups.default]
+Permissions = []
+
+# Convenience role for trusted operators. Assign it to a user id in your own file.
+[Groups.admin]
+Permissions = ["waywardbeyond.*"]

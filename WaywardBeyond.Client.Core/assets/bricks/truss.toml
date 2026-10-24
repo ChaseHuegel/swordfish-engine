@@ -1,9 +1,0 @@
-[[Bricks]]
-ID          = "truss"
-Shape       = "any"
-Transparent = true
-Tags        = [
-    "metal",
-]
-[Bricks.Textures]
-Default = ["truss"]

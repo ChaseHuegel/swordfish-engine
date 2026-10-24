@@ -1,0 +1,9 @@
+[[Bodies]]
+ID = "wb:alien2_f"
+
+[Bodies.States.standing]
+front = ["characters/alien2_f_standing.png"]
+
+[Bodies.States.floating]
+front = ["characters/alien2_f_floating.png"]
+back  = ["characters/alien2_f_floating_back.png"]

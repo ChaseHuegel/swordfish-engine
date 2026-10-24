@@ -1,0 +1,79 @@
+using System;
+using System.Collections.Concurrent;
+using Swordfish.ECS;
+using WaywardBeyond.Gameplay.Networking;
+
+namespace WaywardBeyond.Server;
+
+/// <summary>
+/// Server-side registry binding each peer to its session and player entity. A peer is keyed
+/// by its stable game <see cref="Uuid"/> from <see cref="ServerPeer.GameId"/>; <see cref="Session"/> is the
+/// gameplay handle stored on <see cref="NetworkComponent.Session"/>. One client id maps to at most one
+/// session and one player entity.
+/// </summary>
+public sealed class SessionManager
+{
+    private readonly ConcurrentDictionary<Uuid, int> _clientToEntity = new();
+    private readonly ConcurrentDictionary<Uuid, Session> _clientToSession = new();
+    private readonly ConcurrentDictionary<int, Uuid> _entityToClient = new();
+    private Uuid[] _clients = [];
+
+    /// <summary>Number of live sessions (joined players); a world with zero is idle and eligible for unload.</summary>
+    public int Count => _clientToSession.Count;
+
+    /// <summary>
+    /// The joined clients. A snapshot that does not change while a system iterates it, so per-tick
+    /// loops scan this world's sessions instead of every peer in the process.
+    /// </summary>
+    public ReadOnlySpan<Uuid> Clients => _clients;
+
+    /// <summary>
+    /// Binds a client connection to a fresh session and its spawned player entity, also stamping
+    /// <see cref="NetworkComponent.Session"/> on the entity.
+    /// </summary>
+    public void Register(DataStore store, int entity, Uuid clientId, Session session)
+    {
+        store.QueryRef(entity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+        {
+            net.Write.Session = session;
+        });
+
+        _clientToEntity[clientId] = entity;
+        _clientToSession[clientId] = session;
+        _entityToClient[entity] = clientId;
+        _clients = [.. _clientToSession.Keys];
+    }
+
+    /// <summary>Returns the player entity bound to a client, if it is in this world.</summary>
+    public bool TryGetEntity(Uuid clientId, out int entity)
+    {
+        return _clientToEntity.TryGetValue(clientId, out entity);
+    }
+
+    /// <summary>Returns the client connection bound to a player entity, if any (reverse of <see cref="TryGetEntity(Uuid, out int)"/>).</summary>
+    public bool TryGetClient(int entity, out Uuid clientId)
+    {
+        return _entityToClient.TryGetValue(entity, out clientId);
+    }
+
+    /// <summary>
+    /// Removes every mapping bound to a client id (disconnect teardown). Returns true when a session
+    /// existed, so callers can gate per-session side effects such as the time-played stamp.
+    /// </summary>
+    public bool EndSession(Uuid clientId)
+    {
+        bool hadSession = _clientToSession.TryRemove(clientId, out _);
+
+        if (_clientToEntity.TryRemove(clientId, out int entity))
+        {
+            _entityToClient.TryRemove(entity, out _);
+        }
+
+        if (hadSession)
+        {
+            _clients = [.. _clientToSession.Keys];
+        }
+
+        return hadSession;
+    }
+}

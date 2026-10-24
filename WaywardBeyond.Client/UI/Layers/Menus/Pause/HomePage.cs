@@ -1,0 +1,98 @@
+using Reef;
+using Reef.Constraints;
+using Reef.UI;
+using Swordfish.Graphics;
+using Swordfish.Library.Globalization;
+using Swordfish.Library.Util;
+using WaywardBeyond.Client.Saves;
+using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Layers.Menus.Modal;
+
+namespace WaywardBeyond.Client.UI.Layers.Menus.Pause;
+
+internal sealed class HomePage(
+    in SoundEffectService soundEffectService,
+    in ILocalization localization,
+    in GameSaveManager gameSaveManager,
+    in ModalMenu modalMenu
+) : IMenuPage<PausePage>
+{
+    public PausePage ID => PausePage.Home;
+
+    private readonly ILocalization _localization = localization;
+    private readonly GameSaveManager _gameSaveManager = gameSaveManager;
+    private readonly ModalMenu _modalMenu = modalMenu;
+
+    private readonly Widgets.ButtonOptions _buttonOptions = new(
+        new FontOptions {
+            Size = 32,
+        },
+        new Widgets.AudioOptions(soundEffectService)
+    );
+
+    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)
+    {
+        using (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                WaywardBeyond.Unpause();
+            }
+        }
+
+        using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                menu.GoToPage(PausePage.Settings);
+            }
+        }
+        
+        using (ui.TextButton(id: "Button_Feedback", text: _localization.GetString("ui.button.feedback")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                _modalMenu.GoToPage(FeedbackModal.Modal);
+            }
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+        }
+
+        using (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                _gameSaveManager.SaveAndExit();
+            }
+        }
+        
+        return Result.FromSuccess();
+    }
+}

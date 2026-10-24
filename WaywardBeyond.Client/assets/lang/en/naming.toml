@@ -1,0 +1,17 @@
+"Language" = "en"
+
+[Translations]
+"formats.name.wb:human_m" = "{Title} {First} {Nickname} {Last} {Subtitle}"
+"formats.name.wb:human_f" = "{Title} {First} {Nickname} {Last} {Subtitle}"
+"formats.name.wb:alien_m" = "{Title} {First} {Nickname} {Last}{Subtitle}"
+"formats.name.wb:alien_f" = "{Title} {First} {Nickname} {Last}{Subtitle}"
+"formats.name.wb:bot" = "{Nickname} {Title}{First}-{Last} {Subtitle}"
+"formats.name.wb:bot2_m" = "{Title} {First} {Last}"
+"formats.name.wb:bot2_f" = "{Title} {First} {Last}"
+"formats.name.wb:alien2_m" = "{Title} {First} {Last}"
+"formats.name.wb:alien2_f" = "{Title} {First} {Last}"
+"formats.name.wb:alien3_m" = "{Title} {First} {Last} {Subtitle}"
+"formats.name.wb:alien3_f" = "{Title} {First} {Last} {Subtitle}"
+"formats.name.wb:alien4_m" = "{Title} {First} {Last}{Subtitle}"
+"formats.name.wb:alien4_f" = "{Title} {First} {Last}{Subtitle}"
+"formats.name.save" = "{Nickname} {Title} {First} {Last} {Subtitle}"

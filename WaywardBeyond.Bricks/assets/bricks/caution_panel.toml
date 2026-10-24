@@ -1,0 +1,10 @@
+[[Bricks]]
+ID      = "wb:caution_panel"
+Shape   = "any"
+Tags    = [
+    "metal",
+    "buildable",
+    "convertable_truss",
+]
+[Bricks.Textures]
+Default = ["caution_panel"]

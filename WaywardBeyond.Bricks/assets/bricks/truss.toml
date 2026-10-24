@@ -1,0 +1,9 @@
+[[Bricks]]
+ID          = "wb:truss"
+Shape       = "any"
+Transparent = true
+Tags        = [
+    "metal",
+]
+[Bricks.Textures]
+Default = ["truss"]

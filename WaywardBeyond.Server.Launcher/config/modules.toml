@@ -1,0 +1,8 @@
+AllowScriptCompilation = false
+LoadOrder = [
+    "waywardbeyond.bricks",
+    "waywardbeyond.items",
+    "waywardbeyond.skills",
+    "waywardbeyond.bodies",
+    "waywardbeyond.server",
+]

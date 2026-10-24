@@ -1,8 +1,0 @@
-[[Bricks]]
-ID      = "ice"
-Shape   = "any"
-Tags    = [
-    "environment",
-]
-[Bricks.Textures]
-Default = ["ice"]

@@ -1,0 +1,104 @@
+# Brick Identity: Namespaced Ids, Transient Voxel Ids, and the Palette
+
+One subject ties voxel content together: how a brick is named and how that name
+becomes a voxel id, on disk, on the wire, and at runtime.
+
+## Canonical identity
+
+The canonical identity of a brick (and of the items that place it) is a
+**namespaced string id**. Base-game ids are prefixed with the `wb` namespace,
+for example `wb:rock`. A mod declares its own namespace, so no mod brick can
+shadow a base brick by name.
+
+- Namespacing is a `wb:` string prefix on `Brick.ID`
+  (`WaywardBeyond.Bricks/Brick.cs`).
+- `BrickDatabase` loads the brick `ID` from each `assets/bricks/*.toml` row and
+  keys everything by that namespaced string.
+- Skill tag sets, the starter inventory, loot, and the interaction/place and
+  break resolution all use the same namespaced string ids.
+
+The `wb` prefix is purely a string convention. It does not change voxel id
+values. It makes name collisions between content authors impossible.
+
+Bricks are defined only in toml. Nothing hardcodes the brick set in the runtime
+API. One content seed references known base names in code: the starter loadout
+in `PlayerInitialInventory` (`WaywardBeyond.Server/Systems/`). The worldgen
+material names ship as `levelgen.toml` defaults (`Asteroid.Materials`).
+
+## Runtime voxel id
+
+A voxel packs a `ushort ID` (`WaywardBeyond.Data/Nsd/voxels.nsd:40`).
+That id comes from a sorted, collision-free registry. `BrickRegistry`
+(`WaywardBeyond.Bricks/BrickRegistry.cs`) assigns ids by sorting
+the present brick names, so id 0 (the empty voxel) is reserved and ids depend
+only on the name set, never on load order. `BrickDatabase`
+(`WaywardBeyond.Bricks/BrickDatabase.cs`) builds the id space purely from
+its loaded toml content and owns it as the process `IBrickRegistry`. It parses
+each toml once through the base `VirtualAssetDatabase`, stages the definitions,
+then builds the sorted registry with `BrickRegistry.FromNames` and binds each
+brick's id. Name lookups use the base store; id lookups index a lock-free array,
+so the per-voxel path takes no lock. A brick's id shifts only when the present
+content set changes, which is safe because edits reconcile by name and saved
+structures carry a palette.
+
+`IBrickRegistry` (`WaywardBeyond.Bricks/IBrickRegistry.cs`) is the single
+name-to-id lens every consumer resolves through: `Id(name)` (0 for an unknown
+name), `Name(id)`. It is injected, never a global static.
+
+| Consumer | Resolves through |
+|---|---|
+| `SkillDatabase` | an injected `IBrickRegistry` |
+| `LevelGenerator` | an `IBrickRegistry` constructor argument |
+| `BrickExtensions.ToVoxel` / `InteractionResolver` | the caller's `IBrickRegistry` |
+| `VoxelCodec` | an `IBrickRegistry` argument |
+| `ClientJoinSystem`, `ClientVoxelReconcileSystem` | an injected `IBrickRegistry` |
+
+`Brick` (`WaywardBeyond.Bricks/Brick.cs`) is the headless view of
+a loaded brick: it carries the voxel id, shape, textures, tags, and the custom
+mesh **id** (a string). It holds no renderable mesh and builds no voxel, so it
+is reusable by the server. The client resolves the mesh id to a renderable mesh
+through an `IAssetDatabase<Mesh>` in the mesh-build and gizmo paths. Brick tags
+are case-insensitive.
+
+## Persistent voxel data
+
+A saved world structure is a `VoxelEntityData`, which since **data version 4**
+carries a brick palette: `BrickPalette[n]` is the brick name for voxel id `n`
+(`WaywardBeyond.Data/Nsd/voxels.nsd:22`). A live structure already
+carries registry ids; `VoxelCodec.Encode` records a name for
+each present id. The palette is the durable, self-describing identity. It
+survives content changes, because a later run resolves the palette name through
+its own `IBrickRegistry`.
+
+`VoxelCodec` (`WaywardBeyond.Voxels/VoxelCodec.cs`) owns the boundary:
+
+- `Encode` attaches a palette to live registry-id data.
+- `Decode` resolves a palette name to the caller's local id space.
+
+`LevelSaveService` encodes palettes when it writes and decodes when it loads.
+On join the server attaches a palette to each streamed structure, and the client
+decodes it in `ClientJoinSystem` before building its view world.
+
+## Network reconciliation
+
+Voxel edits reconcile by **canonical name**, not by numeric id. The server
+broadcasts each edit in a `VoxelEditMessage` carrying `BrickId` (the brick name,
+`network.nsd`). `ClientVoxelReconcileSystem` compares the predicted id and the
+authoritative name through its local `IBrickRegistry`, so a client and server with
+different registries still agree, and a snapped edit is written with the local
+id for that name. Placement authors the placed voxel via the caller's map too,
+so each side uses its own id space.
+
+## Data format versioning and migration
+
+Every save-bearing record stamps a data version. The current version is
+`DataVersion.CURRENT` (`WaywardBeyond.Data/DataVersion.cs`), now `4`.
+The palette is the durable identity; pre-palette (data version 3) saves are
+unsupported. `Migrator` (`WaywardBeyond.Data/Migrations/Migrator.cs`)
+and `IMigration` remain for future record migrations, but no migrations ship in
+this build - `DataComposition` registers an empty `Migrator`. See
+[persistence](persistence.md).
+
+## Tests that pin this
+
+- No tests pin the migration path; none ship in this build.

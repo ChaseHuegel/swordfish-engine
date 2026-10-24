@@ -1,0 +1,10 @@
+[[Bricks]]
+ID      = "wb:core"
+Shape   = "block"
+Tags    = [
+    "metal",
+    "buildable",
+    "convertable_truss",
+]
+[Bricks.Textures]
+Default = ["core"]

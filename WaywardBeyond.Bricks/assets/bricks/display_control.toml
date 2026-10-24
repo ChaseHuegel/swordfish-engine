@@ -1,0 +1,22 @@
+[[Bricks]]
+ID      = "wb:display_control"
+Shape   = "block"
+Tags    = [
+    "metal",
+    "buildable",
+    "orientable",
+    "convertable_truss",
+]
+[Bricks.Textures]
+Top     = ["panel.0"]
+Bottom  = ["panel.0"]
+Back    = ["vent"]
+Left    = ["greeble1"]
+Right   = ["greeble1"]
+Front   = [
+    "display_control.0",
+    "display_control.1",
+    "display_control.2",
+    "display_control.3",
+    "display_control.4",
+]

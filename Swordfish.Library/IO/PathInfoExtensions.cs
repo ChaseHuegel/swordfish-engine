@@ -86,15 +86,15 @@ public static class PathInfoExtensions
         return GetFiles(path, "*", searchOption);
     }
 
+    /// <summary>Lists the files under the directory this path names.</summary>
     public static PathInfo[] GetFiles(this PathInfo path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
-        string dir = path.GetDirectory().Value;
-        if (!Directory.Exists(dir))
+        if (!Directory.Exists(path.Value))
         {
             return [];
         }
-            
-        return Directory.GetFiles(dir, searchPattern, searchOption)
+
+        return Directory.GetFiles(path.Value, searchPattern, searchOption)
             .Select(str => new PathInfo(str))
             .ToArray();
     }
@@ -104,15 +104,15 @@ public static class PathInfoExtensions
         return GetFolders(path, "*", searchOption);
     }
     
+    /// <summary>Lists the subdirectories under the directory this path names.</summary>
     public static PathInfo[] GetFolders(this PathInfo path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
-        string dir = path.GetDirectory().Value;
-        if (!Directory.Exists(dir))
+        if (!Directory.Exists(path.Value))
         {
             return [];
         }
-            
-        return Directory.GetDirectories(dir, searchPattern, searchOption)
+
+        return Directory.GetDirectories(path.Value, searchPattern, searchOption)
             .Select(str => new PathInfo(str))
             .ToArray();
     }

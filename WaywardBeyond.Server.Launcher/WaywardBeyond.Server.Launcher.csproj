@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <AssemblyName>WaywardBeyond.Server.Launcher</AssemblyName>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <BeautyLibsDir>./lib</BeautyLibsDir>
+        <BeautyUsePatch>True</BeautyUsePatch>
+        <BeautyExcludes>*glfw*</BeautyExcludes>
+        <SelfContained>true</SelfContained>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Shoal\Shoal.csproj" />
+        <!--  Root assembly: WaywardBeyond.Server compiles against Swordfish with ExcludeAssets=runtime,
+              so the launcher places the engine assemblies at the app root for the server module. -->
+        <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Config\WaywardBeyond.Config.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" ModulePath="waywardbeyond.bricks" />
+        <ProjectReference Include="..\WaywardBeyond.Items\WaywardBeyond.Items.csproj" ModulePath="waywardbeyond.items" />
+        <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" ModulePath="waywardbeyond.skills" />
+        <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" ModulePath="waywardbeyond.bodies" />
+        <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" ModulePath="waywardbeyond.server" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="nulastudio.NetBeauty" Version="2.1.5.0" />
+        <!--  The server embeds the engine's PhysicsComponent/JoltPhysicsSystem, so the Jolt runtime ships. -->
+        <PackageReference Include="JoltPhysicsSharp" Version="2.17.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="config\modules.toml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="config\network.toml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="config\physics.toml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <Import Project="..\Shoal.Build\build\Shoal.Build.targets" />
+
+</Project>

@@ -1,5 +1,10 @@
 ﻿AllowScriptCompilation = false
 LoadOrder = [
     "swordfish",
-    "waywardbeyond.client.core",
+    "waywardbeyond.bricks",
+    "waywardbeyond.items",
+    "waywardbeyond.skills",
+    "waywardbeyond.bodies",
+    "waywardbeyond.client",
+    "waywardbeyond.server",
 ]
