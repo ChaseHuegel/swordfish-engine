@@ -21,7 +21,7 @@ public sealed class PendingConnectionHeartbeat
     private long _tpsWindowStartedTicks;
     private int _tps;
 
-    private int _nextHeartbeatTicks;
+    private long _nextHeartbeatTicks;
 
     public PendingConnectionHeartbeat(
         ServerPeers peers,
@@ -31,8 +31,8 @@ public sealed class PendingConnectionHeartbeat
         _peers = peers;
         _logger = logger;
         _heartbeatIntervalMs = ServerHeartbeatService.ClampHeartbeat(config);
-        _tpsWindowStartedTicks = Environment.TickCount;
-        _nextHeartbeatTicks = Environment.TickCount;
+        _tpsWindowStartedTicks = Environment.TickCount64;
+        _nextHeartbeatTicks = Environment.TickCount64;
     }
 
     /// <summary>Runs once per server update.</summary>
@@ -40,12 +40,12 @@ public sealed class PendingConnectionHeartbeat
     {
         MeasureTps();
 
-        if (Environment.TickCount - _nextHeartbeatTicks < _heartbeatIntervalMs)
+        if (Environment.TickCount64 - _nextHeartbeatTicks < _heartbeatIntervalMs)
         {
             return;
         }
 
-        _nextHeartbeatTicks = Environment.TickCount;
+        _nextHeartbeatTicks = Environment.TickCount64;
         var outbound = new ServerHeartbeatMessage
         {
             TPS = (uint)Math.Max(1, _tps),
@@ -66,7 +66,7 @@ public sealed class PendingConnectionHeartbeat
     {
         _tpsFrames++;
 
-        long now = Environment.TickCount;
+        long now = Environment.TickCount64;
         long elapsed = now - _tpsWindowStartedTicks;
         if (elapsed < 1000)
         {

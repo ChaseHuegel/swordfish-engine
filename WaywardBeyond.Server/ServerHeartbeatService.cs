@@ -31,8 +31,8 @@ public sealed class ServerHeartbeatService(
 
     private int _tps;
     private int _tpsFrames;
-    private long _tpsWindowStartedTicks = Environment.TickCount;
-    private int _nextHeartbeatTicks = Environment.TickCount;
+    private long _tpsWindowStartedTicks = Environment.TickCount64;
+    private long _nextHeartbeatTicks = Environment.TickCount64;
 
     public void Tick(float delta, DataStore store)
     {
@@ -67,12 +67,12 @@ public sealed class ServerHeartbeatService(
             }
         }
 
-        if (Environment.TickCount - _nextHeartbeatTicks < _heartbeatIntervalMs)
+        if (Environment.TickCount64 - _nextHeartbeatTicks < _heartbeatIntervalMs)
         {
             return;
         }
 
-        _nextHeartbeatTicks = Environment.TickCount;
+        _nextHeartbeatTicks = Environment.TickCount64;
         var outbound = new ServerHeartbeatMessage
         {
             TPS = (uint)Math.Max(1, _tps),
@@ -101,7 +101,7 @@ public sealed class ServerHeartbeatService(
     {
         _tpsFrames++;
 
-        long now = Environment.TickCount;
+        long now = Environment.TickCount64;
         long elapsed = now - _tpsWindowStartedTicks;
         if (elapsed < 1000)
         {
