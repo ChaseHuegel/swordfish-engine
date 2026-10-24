@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Reef.Tests;
 
+[Collection("TextEngine")]
 public class UITests
 {
     [Fact]

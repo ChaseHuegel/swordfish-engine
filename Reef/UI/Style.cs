@@ -8,4 +8,6 @@ public struct Style
     public Vector4 BackgroundColor;
     public Padding Padding;
     public CornerRadius CornerRadius;
+    public BorderStyle Border;
+    public CornerCapStyle CornerCaps;
 }

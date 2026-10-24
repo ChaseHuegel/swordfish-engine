@@ -81,6 +81,11 @@ internal sealed class Typeface : ITypeface
 
     private TextLayout Layout(FontOptions fontOptions, RichText parsed, int maxWidth)
     {
+        if (fontOptions.NoWrap)
+        {
+            maxWidth = int.MaxValue;
+        }
+
         float scale = fontOptions.Size / _metrics.emSize;
         var glyphs = new List<GlyphLayout>();
         
@@ -159,6 +164,11 @@ internal sealed class Typeface : ITypeface
 
     private (string[] Lines, int[] LineStarts) Wrap(FontOptions fontOptions, string text, int maxWidth)
     {
+        if (fontOptions.NoWrap)
+        {
+            maxWidth = int.MaxValue;
+        }
+
         var lines = new List<string>();
         var lineStarts = new List<int>();
         var wordBuilder = new StringBuilder();

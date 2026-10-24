@@ -82,6 +82,18 @@ public sealed class UIBuilder<TRendererData>
         get => _currentElement.Style.CornerRadius;
         set => _currentElement.Style.CornerRadius = value;
     }
+
+    public BorderStyle Border
+    {
+        get => _currentElement.Style.Border;
+        set => _currentElement.Style.Border = value;
+    }
+
+    public CornerCapStyle CornerCaps
+    {
+        get => _currentElement.Style.CornerCaps;
+        set => _currentElement.Style.CornerCaps = value;
+    }
     
     public bool VerticalScroll
     {
@@ -641,6 +653,8 @@ public sealed class UIBuilder<TRendererData>
                     color,
                     backgroundColor,
                     element.Style.CornerRadius,
+                    element.Style.Border,
+                    element.Style.CornerCaps,
                     element.FontOptions,
                     element.Text,
                     element.Passthrough,
