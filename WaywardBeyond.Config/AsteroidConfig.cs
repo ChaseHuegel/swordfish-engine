@@ -1,3 +1,4 @@
+using System;
 using Swordfish.Library.Types;
 
 namespace WaywardBeyond.Config;
@@ -28,4 +29,40 @@ public sealed record AsteroidConfig
 
     /// <summary>Brick names a generated asteroid may be built from.</summary>
     public DataBinding<string[]> Materials { get; private set; } = new(["wb:rock", "wb:ice"]);
+
+    /// <summary>Throws when the noise or material tuning cannot produce a solid asteroid.</summary>
+    public void Validate()
+    {
+        if (NoiseOctaves.Get() < 1)
+        {
+            throw new InvalidOperationException("LevelGenerator.Asteroid.NoiseOctaves must be at least 1.");
+        }
+
+        if (RadiusMinDivisor.Get() < 1)
+        {
+            throw new InvalidOperationException("LevelGenerator.Asteroid.RadiusMinDivisor must be at least 1.");
+        }
+
+        if (NoiseOffsetRange.Get() < 0)
+        {
+            throw new InvalidOperationException("LevelGenerator.Asteroid.NoiseOffsetRange must not be negative.");
+        }
+
+        if (NoiseFrequencyMin.Get() + NoiseFrequencyRange.Get() <= 0f)
+        {
+            throw new InvalidOperationException(
+                "LevelGenerator.Asteroid noise frequency must be positive; the shape would be a constant sphere.");
+        }
+
+        if (NoiseAmplitudeMin.Get() + NoiseAmplitudeRange.Get() <= 0f)
+        {
+            throw new InvalidOperationException(
+                "LevelGenerator.Asteroid noise amplitude must be positive; no voxel would be solid.");
+        }
+
+        if (Materials.Get().Length == 0)
+        {
+            throw new InvalidOperationException("LevelGenerator.Asteroid.Materials must name at least one brick.");
+        }
+    }
 }

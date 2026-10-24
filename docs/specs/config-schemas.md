@@ -104,6 +104,14 @@ maps `AsteroidConfig` (`WaywardBeyond.Config/AsteroidConfig.cs`), registered by 
 Generation is deterministic for a seed plus the values present when a level is
 created; changing tuning after creation does not rewrite existing levels.
 
+`LevelGeneratorConfig.Validate` runs at startup and throws on tuning that cannot
+produce a level: a count or radius below 1, an inverted radius range, a
+non-positive world span, a `RadiusMinDivisor` below 1, non-positive noise
+frequency or amplitude, or an empty material list. `AsteroidMaxRadius` is
+inclusive. A material that is not a known brick fails level creation instead of
+emitting air, and placement stops after 100 candidates per asteroid rather than
+spinning.
+
 | Key | Type | Default | Purpose |
 |---|---|---|---|
 | `AsteroidCount` | int | `20` | number of asteroid structures generated per level |

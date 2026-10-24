@@ -27,6 +27,10 @@ public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, Le
     private readonly Randomizer _randomizer = new(seed);
     private readonly AsteroidGenerator _asteroidGenerator = new(brickRegistry, seed, config.Asteroid);
 
+    //  Placement is rejection-sampled: a dense radius or a tight volume can make every candidate
+    //  intersect, so cap the work instead of spinning on the server thread.
+    private const int MAX_PLACEMENT_ATTEMPTS_PER_ASTEROID = 100;
+
     public static int HashSeed(string seed)
     {
         if (int.TryParse(seed, out int seedValue))
@@ -49,8 +53,17 @@ public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, Le
         int worldSpan = _config.WorldSpan;
 
         var asteroids = new List<AsteroidStructure>(asteroidCount);
+        int attempts = 0;
+        int maxAttempts = asteroidCount * MAX_PLACEMENT_ATTEMPTS_PER_ASTEROID;
         while (asteroids.Count < asteroidCount)
         {
+            if (++attempts > maxAttempts)
+            {
+                throw new InvalidOperationException(
+                    $"Could not place {asteroidCount} asteroids in the configured volume after {maxAttempts} attempts; " +
+                    "reduce LevelGenerator.AsteroidCount or the asteroid radii, or widen the world span.");
+            }
+
             var position = new Vector3
             (
                 _randomizer.NextInt(-worldSpan, worldSpan),
@@ -58,7 +71,7 @@ public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, Le
                 _randomizer.NextInt(-worldSpan, worldSpan)
             );
 
-            int radius = _randomizer.NextInt(asteroidMinRadius, asteroidMaxRadius);
+            int radius = _randomizer.NextInt(asteroidMinRadius, asteroidMaxRadius + 1);
 
             if (asteroids.Any(asteroid => Intersection.SphereToSphere(asteroid.Position, asteroid.Radius, position, radius)))
             {

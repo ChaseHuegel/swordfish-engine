@@ -64,6 +64,9 @@ public static class ServerComposition
         container.RegisterDelegate<AsteroidConfig>(context => context.Resolve<LevelGeneratorConfig>().Asteroid, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterDataBinding<string[]>();
 
+        //  Fail fast on generation tuning that cannot produce a level, rather than at the first create.
+        container.Resolve<LevelGeneratorConfig>().Validate();
+
         container.Register<World>();
         container.Register<SessionManager>();
         //  The level save service holds an open save database; each world pins and disposes its own.

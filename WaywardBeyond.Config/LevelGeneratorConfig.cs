@@ -1,3 +1,4 @@
+using System;
 using Swordfish.Library.Configuration;
 using Swordfish.Library.Types;
 
@@ -23,4 +24,36 @@ public sealed class LevelGeneratorConfig : Config<LevelGeneratorConfig>
 
     /// <summary>Asteroid generator configuration.</summary>
     public AsteroidConfig Asteroid { get; private set; } = new();
+
+    /// <summary>Throws when the generation tuning cannot produce a level.</summary>
+    public void Validate()
+    {
+        if (AsteroidCount.Get() < 1)
+        {
+            throw new InvalidOperationException("LevelGenerator.AsteroidCount must be at least 1.");
+        }
+
+        if (AsteroidMinRadius.Get() < 1)
+        {
+            throw new InvalidOperationException("LevelGenerator.AsteroidMinRadius must be at least 1.");
+        }
+
+        if (AsteroidMaxRadius.Get() < AsteroidMinRadius.Get())
+        {
+            throw new InvalidOperationException(
+                "LevelGenerator.AsteroidMaxRadius must be at least AsteroidMinRadius.");
+        }
+
+        if (WorldHeight.Get() < 1)
+        {
+            throw new InvalidOperationException("LevelGenerator.WorldHeight must be at least 1.");
+        }
+
+        if (WorldSpan.Get() < 1)
+        {
+            throw new InvalidOperationException("LevelGenerator.WorldSpan must be at least 1.");
+        }
+
+        Asteroid.Validate();
+    }
 }

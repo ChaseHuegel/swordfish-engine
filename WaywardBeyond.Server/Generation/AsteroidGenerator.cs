@@ -76,7 +76,7 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
 
     private static Voxel[] ResolveMaterials(IBrickRegistry brickRegistry, in AsteroidConfig config)
     {
-        string[] names = config.Materials;
+        string[] names = config.Materials.Get();
         if (names.Length == 0)
         {
             throw new InvalidOperationException("Level generation requires at least one asteroid material.");
@@ -85,7 +85,14 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
         var voxels = new Voxel[names.Length];
         for (var i = 0; i < names.Length; i++)
         {
-            voxels[i] = new Voxel(brickRegistry.Id(names[i]), _ShapeLight: 0, _Orientation: 0);
+            ushort id = brickRegistry.Id(names[i]);
+            if (id == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Level generation material \"{names[i]}\" is not a known brick; an unknown material would produce air.");
+            }
+
+            voxels[i] = new Voxel(id, _ShapeLight: 0, _Orientation: 0);
         }
 
         return voxels;
