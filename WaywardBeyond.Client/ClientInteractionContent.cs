@@ -1,7 +1,7 @@
 ﻿using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Items;
+using WaywardBeyond.Items;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay.Interactions;
 
@@ -18,30 +18,7 @@ internal sealed class ClientInteractionContent(
     /// <inheritdoc/>
     public Result<Brick> GetPlaceable(string? itemID)
     {
-        if (string.IsNullOrEmpty(itemID))
-        {
-            return Result<Brick>.FromFailure(message: null);
-        }
-
-        Result<Item> itemResult = itemDatabase.Get(itemID);
-        if (!itemResult.Success)
-        {
-            return new Result<Brick>(success: false, null!, itemResult.Message, itemResult.Exception);
-        }
-        
-        if (!itemResult.Success || itemResult.Value.Placeable == null || itemResult.Value.Placeable.Value.Type != PlaceableType.Brick)
-        {
-            return Result<Brick>.FromFailure(message: null);
-        }
-
-        string brickID = itemResult.Value.Placeable.Value.ID;
-        Result<Brick> brickResult = brickDatabase.Get(brickID);
-        if (!brickResult.Success)
-        {
-            return new Result<Brick>(success: false, null!, brickResult.Message, brickResult.Exception);
-        }
-
-        return Result<Brick>.FromSuccess(brickResult.Value);
+        return ItemPlaceables.ResolvePlaceable(itemDatabase, brickDatabase, itemID);
     }
 
     /// <inheritdoc/>

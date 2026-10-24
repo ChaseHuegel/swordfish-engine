@@ -30,6 +30,7 @@ and world split, the persistence schema, and the CLI surface.
 | `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations | `net9.0` | — |
 | `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader | `net9.0` | — |
 | `WaywardBeyond.Bricks/` | Shared brick module: definitions, headless database, id registry | `net9.0` | — |
+| `WaywardBeyond.Items/` | Shared item module: definitions, headless database, item-to-brick resolution | `net9.0` | — |
 | `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database | `net9.0` | — |
 
 **Entrypoints**: `Swordfish.Launcher/Program.cs` (`new SwordfishEngine(args).Run()`),

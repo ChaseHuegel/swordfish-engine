@@ -1,20 +1,22 @@
 # Asset Definition TOML Formats
 
 One subject: the TOML config types that define game content (items, bricks,
-materials, skills). Item definitions live under `WaywardBeyond.Client/assets/`.
+materials, skills). Item definitions live under `WaywardBeyond.Items/assets/`.
 Brick definitions live in `WaywardBeyond.Bricks/assets/`. Skill definitions live
 in `WaywardBeyond.Skills/assets/`. Brick and item localization stays
 client-owned.
 
-Parser registration: `WaywardBeyond.Client/Injector.cs:276`
+Parser registration: `WaywardBeyond.Items/Injector.cs:15`
 (`RegisterTomlParser<ItemDefinitions>`), `WaywardBeyond.Bricks/Injector.cs:14`
 (`RegisterTomlParser<BrickDefinitions>`), and
 `WaywardBeyond.Skills/Injector.cs:16` (`RegisterTomlParser<SkillDefinitions>`).
 
 ## Items (`assets/items/*.toml`)
 
-Schema: `WaywardBeyond.Client/Items/ItemDefinitions.cs` (collection),
-`ItemDefinition.cs` (row).
+Schema: `WaywardBeyond.Items/ItemDefinitions.cs` (collection),
+`ItemDefinition.cs` (row). The module loads them headlessly, so the dedicated
+server resolves a placeable without the client. Render assets stay client-side:
+the item carries the icon and model ids, and the client resolves them.
 
 Each row is a `[[Items]]` table followed by optional sub-tables:
 
@@ -185,7 +187,7 @@ hosted in `WaywardBeyond.Data/Localization/`.
 
 ## Source of truth
 
-- `WaywardBeyond.Client/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
+- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`

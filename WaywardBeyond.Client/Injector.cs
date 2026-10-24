@@ -15,6 +15,7 @@ using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Identity;
 using WaywardBeyond.Client.Items;
+using WaywardBeyond.Items;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Saves;
@@ -261,9 +262,8 @@ public class Injector : IDryIocInjector
         //  The client reads localized tags for naming and the load screen, so it owns that registration.
         container.RegisterTags();
 
-        container.Register<ItemDatabase>(Reuse.Singleton);
-        container.RegisterMapping<IAssetDatabase<Item>, ItemDatabase>();
-        
+        container.Register<ItemIconDatabase>(Reuse.Singleton);
+
         //  The client's richer interaction content replaces the headless server default.
         container.Register<IInteractionContent, ClientInteractionContent>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         

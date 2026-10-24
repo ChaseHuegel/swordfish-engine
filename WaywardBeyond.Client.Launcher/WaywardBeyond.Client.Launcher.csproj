@@ -18,6 +18,7 @@
         <ProjectReference Include="..\Swordfish\Swordfish.csproj" ModulePath="swordfish" />
         <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" ModulePath="waywardbeyond.skills" />
         <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" ModulePath="waywardbeyond.bricks" />
+        <ProjectReference Include="..\WaywardBeyond.Items\WaywardBeyond.Items.csproj" ModulePath="waywardbeyond.items" />
         <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" ModulePath="waywardbeyond.bodies" />
         <ProjectReference Include="..\WaywardBeyond.Client\WaywardBeyond.Client.csproj" ModulePath="waywardbeyond.client" />
         <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" ModulePath="waywardbeyond.server" />

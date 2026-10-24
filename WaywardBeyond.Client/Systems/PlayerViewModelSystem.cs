@@ -4,7 +4,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Client.Items;
+using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Data.Components;
 

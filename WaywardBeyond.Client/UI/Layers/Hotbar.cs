@@ -14,6 +14,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Items;
+using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data;
@@ -27,6 +28,7 @@ internal class Hotbar
     public const int SLOT_COUNT = 9;
 
     private readonly IAssetDatabase<Item> _itemDatabase;
+    private readonly ItemIconDatabase _itemIcons;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
     private readonly InteractionState _interactionState;
@@ -40,12 +42,14 @@ internal class Hotbar
         in IShortcutService shortcutService,
         in IInputService inputService,
         in IAssetDatabase<Item> itemDatabase,
+        in ItemIconDatabase itemIcons,
         in PlayerData playerData,
         in IECSContext ecsContext,
         in InteractionState interactionState,
         in ControlSettings controlSettings
     ) {
         _itemDatabase = itemDatabase;
+        _itemIcons = itemIcons;
         _playerData = playerData;
         _ecsContext = ecsContext;
         _interactionState = interactionState;
@@ -132,8 +136,6 @@ internal class Hotbar
                         continue;
                     }
                     
-                    Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
-
                     //  Stack size
                     using (ui.Text(itemStack.Count.ToString()))
                     {
@@ -145,7 +147,7 @@ internal class Hotbar
                     }
                     
                     //  Icon
-                    Material icon = itemResult.Success ? itemResult.Value.Icon : null!;
+                    Material icon = _itemIcons.Get(itemStack.ID);
                     using (ui.Image(icon))
                     {
                         ui.Constraints = new Constraints

@@ -2,6 +2,7 @@
 LoadOrder = [
     "swordfish",
     "waywardbeyond.bricks",
+    "waywardbeyond.items",
     "waywardbeyond.skills",
     "waywardbeyond.bodies",
     "waywardbeyond.client",

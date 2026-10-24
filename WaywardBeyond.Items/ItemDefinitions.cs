@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace WaywardBeyond.Client.Items;
+namespace WaywardBeyond.Items;
 
 public struct ItemDefinitions()
 {

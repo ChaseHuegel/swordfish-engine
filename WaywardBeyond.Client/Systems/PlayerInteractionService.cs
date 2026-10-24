@@ -18,7 +18,7 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Debug;
 using WaywardBeyond.Client.Events;
-using WaywardBeyond.Client.Items;
+using WaywardBeyond.Items;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Client.Player;

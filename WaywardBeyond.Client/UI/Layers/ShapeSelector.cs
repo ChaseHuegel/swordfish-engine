@@ -10,7 +10,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Items;
+using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 

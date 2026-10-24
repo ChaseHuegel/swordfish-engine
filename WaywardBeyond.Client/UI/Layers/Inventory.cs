@@ -12,6 +12,7 @@ using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Items;
+using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data;
@@ -25,6 +26,7 @@ internal class Inventory : IUILayer
     private const int SLOTS_PER_ROW = 9;
 
     private readonly IAssetDatabase<Item> _itemDatabase;
+    private readonly ItemIconDatabase _itemIcons;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
     private readonly InteractionState _interactionState;
@@ -45,12 +47,14 @@ internal class Inventory : IUILayer
     public Inventory(
         in IShortcutService shortcutService,
         in IAssetDatabase<Item> itemDatabase,
+        in ItemIconDatabase itemIcons,
         in PlayerData playerData,
         in IECSContext ecsContext,
         in InteractionState interactionState,
         in IInputService inputService
     ) {
         _itemDatabase = itemDatabase;
+        _itemIcons = itemIcons;
         _playerData = playerData;
         _ecsContext = ecsContext;
         _interactionState = interactionState;
@@ -299,8 +303,6 @@ internal class Inventory : IUILayer
                                     continue;
                                 }
 
-                                Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
-
                                 //  Stack size
                                 var text = itemStack.Count.ToString();
                                 using (ui.Text(text))
@@ -313,7 +315,7 @@ internal class Inventory : IUILayer
                                 }
 
                                 //  Icon
-                                Material icon = itemResult.Success ? itemResult.Value.Icon : null!;
+                                Material icon = _itemIcons.Get(itemStack.ID);
                                 using (ui.Image(icon))
                                 {
                                     ui.Constraints = new Constraints

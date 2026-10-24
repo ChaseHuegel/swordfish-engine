@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Client.Items;
+namespace WaywardBeyond.Items;
 
 internal readonly struct ItemSlot(in int slot, in Item item)
 {

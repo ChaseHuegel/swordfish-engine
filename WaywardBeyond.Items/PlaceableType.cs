@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Client.Items;
+namespace WaywardBeyond.Items;
 
 public enum PlaceableType
 {

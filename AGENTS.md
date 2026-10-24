@@ -59,6 +59,7 @@ Every top-level path and what it is:
 | `WaywardBeyond.Config/` | Shared config types |
 | `WaywardBeyond.Data/` | Shared data models, nsd schemas, sqlite storage, localization |
 | `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, networked staging state, body config, interactions, save codec |
+| `WaywardBeyond.Items/` | Shared item module: definitions, headless database, item-to-brick resolution |
 | `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations |
 | `WaywardBeyond.Networking/` | Game networking layer: wire contracts, registry, codecs, transports |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader |

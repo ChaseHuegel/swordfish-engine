@@ -35,6 +35,7 @@
     <None Include="..\WaywardBeyond.Skills\assets\skills\*.toml" Link="TestFiles\Skills\assets\skills\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\WaywardBeyond.Skills\assets\lang\tags\*.toml" Link="TestFiles\Skills\assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\WaywardBeyond.Bricks\assets\bricks\*.toml" Link="TestFiles\Bricks\assets\bricks\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <None Include="..\WaywardBeyond.Items\assets\items\*.toml" Link="TestFiles\Items\assets\items\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\WaywardBeyond.Bodies\assets\bodies\*.toml" Link="TestFiles\Bodies\assets\bodies\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Include="..\WaywardBeyond.Bodies\assets\textures\characters\*.png" Link="TestFiles\Bodies\assets\textures\characters\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Update="TestFiles\Fonts\Font Awesome 6 Free Solid.otf">

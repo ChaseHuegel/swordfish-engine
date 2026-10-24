@@ -1,6 +1,6 @@
 using System;
 
-namespace WaywardBeyond.Client.Items;
+namespace WaywardBeyond.Items;
 
 public record struct ModelDefinition()
 {

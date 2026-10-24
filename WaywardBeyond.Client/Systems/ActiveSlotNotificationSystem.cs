@@ -2,7 +2,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Client.Items;
+using WaywardBeyond.Items;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
