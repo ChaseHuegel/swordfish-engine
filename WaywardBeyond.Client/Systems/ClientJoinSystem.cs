@@ -19,8 +19,9 @@ namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
 /// Runs the client side of the join handshake and world stream, driving
-/// <c>MainMenu → Loading → Playing</c>. The join is a correlated RPC call. On success the system starts
-/// the level stream call with the inbound queue as its chunk sink, reassembles each entity on the ECS
+/// <c>MainMenu → Loading → Playing</c>. The join is a correlated RPC call. On success the system seats
+/// the local player at the server-assigned spawn, resets session-scoped prediction state, starts the
+/// level stream call with the inbound queue as its chunk sink, reassembles each entity on the ECS
 /// thread, and enters <c>Playing</c> only after the stream response lands and every chunk applied.
 /// </summary>
 internal sealed class ClientJoinSystem : IEntitySystem
@@ -31,6 +32,8 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private readonly VoxelEntityBuilder _voxelBuilder;
     private readonly IBrickRegistry _brickRegistry;
     private readonly ClientDisconnectSystem _disconnectSystem;
+    private readonly ClientInputSystem _inputSystem;
+    private readonly SnapshotAckTracker _snapshotAck;
     private readonly NetworkingConfig _config;
     private readonly ILogger<ClientJoinSystem> _logger;
 
@@ -51,6 +54,8 @@ internal sealed class ClientJoinSystem : IEntitySystem
         ILogger<ClientJoinSystem> logger,
         IBrickRegistry brickRegistry,
         in ClientDisconnectSystem disconnectSystem,
+        in ClientInputSystem inputSystem,
+        in SnapshotAckTracker snapshotAck,
         in NetworkingConfig config
     ) {
         _host = host;
@@ -59,6 +64,8 @@ internal sealed class ClientJoinSystem : IEntitySystem
         _voxelBuilder = voxelBuilder;
         _brickRegistry = brickRegistry;
         _disconnectSystem = disconnectSystem;
+        _inputSystem = inputSystem;
+        _snapshotAck = snapshotAck;
         _config = config;
         _logger = logger;
     }
@@ -276,8 +283,20 @@ internal sealed class ClientJoinSystem : IEntitySystem
             return;
         }
 
+        //  A join is a new prediction session. Clear look totals, the last sample, and the snapshot ack
+        //  so nothing keyed to the previous session (including a same-character rejoin) survives.
+        _inputSystem.ResetSession(playerUuid);
+        _snapshotAck.LastAppliedSnapshotTick = 0;
+
         int entity = store.TryGet(playerUuid, out int existing) ? existing : store.Alloc(playerUuid);
-        _playerBuilder.Decorate(new Entity(entity, store), character);
+        var spawnPosition = new Vector3(accept.SpawnX, accept.SpawnY, accept.SpawnZ);
+        var spawnOrientation = new Quaternion(
+            accept.OrientationX,
+            accept.OrientationY,
+            accept.OrientationZ,
+            accept.OrientationW
+        );
+        _playerBuilder.Decorate(new Entity(entity, store), character, spawnPosition, spawnOrientation);
         _seated = true;
         _logger.LogInformation("Seated local player entity {uuid}.", playerUuid);
     }

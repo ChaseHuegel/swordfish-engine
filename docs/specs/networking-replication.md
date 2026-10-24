@@ -63,6 +63,9 @@ which flow as `VoxelEdit` notifications rather than snapshots.
 - Applies `ServerOwned` components, frees despawned entities, trims
   `PendingInputComponent` by `LastProcessedInput`, and aligns the shared step
   with the snapshot tick.
+- Applies the local player's authoritative position and scale only. Its
+  orientation and angular velocity stay client-predicted; the spawn transform is
+  seeded from `JoinAccept` when the client seats the player.
 
 ## Client → server
 

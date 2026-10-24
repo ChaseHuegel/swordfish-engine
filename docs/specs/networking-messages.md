@@ -92,6 +92,11 @@ message InputComponent
 Mouse sensitivity is a client-local setting, never networked. The wire carries
 resolved look, not config.
 
+Look totals are relative to the current session. A join resets them on the
+client and forgets the identity's last applied totals on the receiver, so a
+same-character rejoin starts from the seeded spawn rather than the previous
+session's accumulated look.
+
 ## Interaction event (extensible pseudo-union)
 
 Discrete interaction edges ride a `ClientOwned` message as an extensible union

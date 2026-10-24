@@ -2,29 +2,29 @@
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 
-internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderContext, in GameplayConfig gameplayConfig)
+internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderContext)
 {
     private readonly IRenderContext _renderContext = renderContext;
-    private readonly GameplayConfig _gameplayConfig = gameplayConfig;
 
-    public void Decorate(Entity player, Character character)
+    public void Decorate(Entity player, Character character, Vector3 spawnPosition, Quaternion spawnOrientation)
     {
         player.Add<PlayerComponent>();
         player.AddOrUpdate(new PendingInventoryComponent());
         player.AddOrUpdate(new EquipmentComponent(character.ActiveInventorySlot));
         player.AddOrUpdate(new IdentifierComponent(character.Name, "game"));
         player.AddOrUpdate(new TransformComponent(
-            _gameplayConfig.DefaultSpawnPosition,
-            Quaternion.Identity,
+            spawnPosition,
+            spawnOrientation,
             CharacterDefaults.PlayerScale
         ));
+        player.AddOrUpdate(new InputComponent());
+        player.AddOrUpdate(PendingInputComponent.Create());
         player.AddOrUpdate(CharacterDefaults.CreateCharacterPhysicsComponent());
         player.AddOrUpdate(CharacterDefaults.CreateCharacterColliderComponent(CharacterDefaults.PlayerScale));
         

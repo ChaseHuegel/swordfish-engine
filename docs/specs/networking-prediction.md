@@ -85,11 +85,17 @@ transport reliability layer.
   body torque, decoupled from `dt`, so each step rotates by the full accumulated
   delta. Jolt integrates rotation.
 - The step keys the last applied totals by entity identity (`Uuid`), not by the
-  store index. A freed index that is recycled after a rejoin starts with no
+  store index. A freed index that is recycled with a new identity starts with no
   delta, so it cannot inherit the previous session's totals.
-- The local player's orientation stays client-predicted. Reconcile seats it
-  once at spawn, then corrects only position/velocity, so the authoritative
-  echo never snaps the view.
+- A join resets session-scoped prediction state. The client clears its look
+  totals, last input sample, and snapshot ack, and both the client and the server
+  forget the identity's last applied look history. A same-character rejoin reuses
+  the identity, so the forget is required; the step drains forget requests on the
+  physics thread.
+- The local player's orientation stays client-predicted. `JoinAccept` carries the
+  server-resolved spawn transform, and `ClientJoinSystem` seeds the local
+  `TransformComponent` with it when it seats the player. Reconcile then applies
+  only authoritative position and scale, so the echo never snaps the view.
 
 ## Client vs server system order (client)
 
@@ -98,7 +104,8 @@ client-owned → predict via shared step → render reads final `Transform`.
 
 ## Source of truth
 
-- `WaywardBeyond.Client/Systems/{ClientInputSystem,ClientReconcileSystem,ClientReplicationSystem}.cs`
+- `WaywardBeyond.Client/Systems/{ClientInputSystem,ClientJoinSystem,ClientReconcileSystem,ClientReplicationSystem}.cs`
+- `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` — seats the mirror and forgets its prior look history
 - `WaywardBeyond.Gameplay/SimulationStep.cs` — the shared simulation step
 - `WaywardBeyond.Client/Components/PendingInputComponent.cs`
 - `WaywardBeyond.Gameplay/Networking/StageRing.cs`

@@ -19,6 +19,8 @@ namespace WaywardBeyond.Client.Systems;
 /// the server's last-processed sim tick, realigns the shared prediction step to the server's published
 /// sim tick, and frees entities despawned by the server. Local prediction continues from the corrected
 /// state, so concatenated snapshots never over-apply commands the server already collapsed.
+/// The local player's spawn transform is seeded from the join accept, so its orientation and angular
+/// velocity stay client-predicted and reconciliation never applies the authoritative echo over them.
 /// The transition into <c>Playing</c> coalesces any queued snapshot burst to the newest frame so a
 /// Loading-time backlog can never hitch the first play tick.
 /// </summary>
@@ -31,11 +33,6 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     private readonly ILogger<ClientReconcileSystem> _logger;
     private readonly FragmentAssembler _snapshotAssembler = new();
     private readonly List<WorldSnapshot> _snapshots = [];
-
-    //  Local players whose look is now client-predicted. The first authoritative transform seats them
-    //  (server-assigned spawn); afterwards their orientation comes from local prediction, not the echo,
-    //  so the authoritative snapshot never snaps the view back and causes look jitter.
-    private readonly HashSet<Uuid> _seatedPlayers = [];
 
     private bool _wasBelowPlaying = true;
 
@@ -216,7 +213,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
         //  The local player's look is client-predicted; never accept the authoritative echo over it.
         //  Position/scale (and linear velocity) are authority, but orientation and angular velocity stay
-        //  locally predicted once seated at spawn, so the echo never snaps or clobbers the local look.
+        //  locally predicted from the join-accept spawn, so the echo never snaps or clobbers the local look.
         try
         {
             if (info.Type == typeof(TransformComponent))
@@ -252,7 +249,8 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     /// <summary>
     /// Applies every component of a superseded burst frame except the continuously-dirty motion pair,
     /// so one-shot server state seeded early in the join burst (the starter inventory, seeded context)
-    /// survives the entering-play coalesce.
+    /// survives the entering-play coalesce. The local player's spawn is seeded at join, so a dropped
+    /// motion frame cannot lose its seat.
     /// </summary>
     private void ApplyOneShotComponents(WorldSnapshot snapshot, DataStore store)
     {
@@ -271,24 +269,12 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         }
     }
 
-    private void ApplyLocallyOwnedTransform(DataStore store, int entity, ReadOnlySpan<byte> payload)
+    private static void ApplyLocallyOwnedTransform(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
         TransformMessage message = TransformMessage.Deserialize(payload);
 
         var serverPosition = new Vector3(message.PositionX, message.PositionY, message.PositionZ);
-        var serverOrientation = new Quaternion(message.OrientationX, message.OrientationY, message.OrientationZ, message.OrientationW);
         var serverScale = new Vector3(message.ScaleX, message.ScaleY, message.ScaleZ);
-
-        if (_seatedPlayers.Add(store.GetUuid(entity)))
-        {
-            //  Seed the server-assigned spawn transform once.
-            store.AddOrUpdate(entity, new TransformComponent(
-                serverPosition,
-                serverOrientation,
-                serverScale
-            ));
-            return;
-        }
 
         //  Keep the locally predicted look; snap only position/scale from the authority.
         var write = new SeatTransform(in serverPosition, in serverScale);

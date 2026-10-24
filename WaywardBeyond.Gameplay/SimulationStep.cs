@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.ECS;
@@ -22,6 +23,11 @@ public sealed class SimulationStep : IDisposable
     private readonly CommandResolver _resolveCommand;
 
     private readonly Dictionary<Uuid, Vector3> _lastAppliedLook = [];
+
+    //  Forgets arrive from the ECS or server thread; the step owns the dictionary on the physics thread,
+    //  so they are queued and drained at the start of the next step.
+    private readonly ConcurrentQueue<Uuid> _lookForgetRequests = new();
+
     private uint _stepsSinceLookPrune;
 
     /// <summary>The sim tick the next step applies; the server publishes it and reconcile aligns to it.</summary>
@@ -31,6 +37,12 @@ public sealed class SimulationStep : IDisposable
     public void AlignTo(uint simTick)
     {
         CurrentSimTick = simTick;
+    }
+
+    /// <summary>Drops the last applied look totals for an entity identity before the next step.</summary>
+    public void ForgetLookHistory(Uuid owner)
+    {
+        _lookForgetRequests.Enqueue(owner);
     }
 
     /// <summary>
@@ -79,6 +91,7 @@ public sealed class SimulationStep : IDisposable
     /// <summary>Advances the sim tick and applies the command for it to every input-driven body.</summary>
     public void Step()
     {
+        DrainLookForgets();
         CurrentSimTick++;
 
         if (++_stepsSinceLookPrune >= LOOK_PRUNE_INTERVAL)
@@ -89,6 +102,19 @@ public sealed class SimulationStep : IDisposable
 
         StepAction action = new() { Owner = this };
         _store.QueryRef<InputComponent, PhysicsComponent, TransformComponent, StepAction>(0f, ref action);
+    }
+
+    private void DrainLookForgets()
+    {
+        if (_lookForgetRequests.IsEmpty)
+        {
+            return;
+        }
+
+        while (_lookForgetRequests.TryDequeue(out Uuid owner))
+        {
+            _lastAppliedLook.Remove(owner);
+        }
     }
 
     private struct StepAction : IForEachRef<InputComponent, PhysicsComponent, TransformComponent>
@@ -136,7 +162,8 @@ public sealed class SimulationStep : IDisposable
             //  Look: the wire carries absolute look totals; apply their per-sim-tick difference as
             //  angular velocity, decoupled from dt so each step rotates by the full accumulated delta.
             //  Totals are absolute per session, so the delta is tracked per entity identity: a recycled
-            //  store index must never inherit a prior session's totals.
+            //  store index must never inherit a prior session's totals, and a join forgets the identity
+            //  because a same-character rejoin reuses it.
             Uuid owner = _store.GetUuid(entity);
             var lookTotals = new Vector3(command.LookPitch, command.LookYaw, command.LookRoll);
             if (owner != Uuid.Null)

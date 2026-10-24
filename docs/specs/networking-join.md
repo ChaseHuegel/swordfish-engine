@@ -38,8 +38,11 @@ save levels. Level data is streamed to the client during join.
    uuid, seeds the interaction context and skill state from `CharacterState`,
    binds a fresh `Session`, and binds the peer's claim to the session's
    permission service. The local peer gets the all-granting set.
-   `JoinAsync` returns `JoinAccept { Level, SpawnTransform, PlayerEntity }`
-   only after the session and mirror exist.
+   `JoinAsync` returns `JoinAccept { Level, SpawnX/Y/Z, OrientationX/Y/Z/W,
+   PlayerEntity }` only after the session and mirror exist. The client seats
+   the local player with that spawn and resets session-scoped prediction state:
+   look totals, the last input sample, the snapshot ack, and the identity's
+   last applied look history on both sides.
 
 3. **`StreamLevelAsync`.** `ClientJoinSystem` starts the stream call with
    `ClientInbound` as the `IChunkSink<LevelStreamChunk>`. The server thread
@@ -91,6 +94,11 @@ save list and a local join work without an application restart. See
 The teardown frees every entity tagged `"game"`: the local player, remote
 player mirrors, and world geometry. `RpcClient` faults every pending call on
 disconnect, so no menu request or join waits forever.
+
+The next join is a new prediction session. The client seats the local player from
+the new `JoinAccept` and clears the previous session's input sample, snapshot
+ack, look totals, and look history. A same-character rejoin reuses the player
+identity, so the server forgets that identity's look history at the join too.
 
 ## Join-stream timeout
 

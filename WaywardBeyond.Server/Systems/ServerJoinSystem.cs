@@ -31,6 +31,7 @@ public sealed class ServerJoinSystem(
     SessionManager sessions,
     LevelSaveService saveService,
     NetworkReplicationSystem replication,
+    SimulationStep simulationStep,
     ILogger<ServerJoinSystem> logger,
     GameplayConfig gameplayConfig,
     ISkillDatabase skillDatabase,
@@ -273,6 +274,10 @@ public sealed class ServerJoinSystem(
         {
             saveService.MarkActive();
         }
+
+        //  A same-character rejoin reuses the mirror uuid, so drop the previous session's look totals
+        //  before the first command. The client resets its totals to zero at seat.
+        simulationStep.ForgetLookHistory(uuid);
 
         int entity = store.Alloc(uuid);
 

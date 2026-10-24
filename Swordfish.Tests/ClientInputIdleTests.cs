@@ -71,6 +71,27 @@ public class ClientInputIdleTests
         Assert.True(context.Store.IsDirty<InputComponent>(context.Entity), "The keepalive must resend an unchanged sample.");
     }
 
+    [Fact]
+    public void ResetSessionClearsLookTotalsAndWritesTheFirstSample()
+    {
+        TestContext context = CreateContext();
+
+        context.MotionProcessor.CursorUpdates.Enqueue(new Vector2(10f, 0f));
+        context.System.Tick(1f / 64f, context.Store);
+        Assert.True(context.Store.TryGet(context.Entity, out InputComponent before));
+        Assert.NotEqual(0f, before.LookYaw);
+
+        context.Store.ClearDirty<InputComponent>(context.Entity);
+        context.System.ResetSession(context.Store.GetUuid(context.Entity));
+        context.System.Tick(1f / 64f, context.Store);
+
+        Assert.True(context.Store.TryGet(context.Entity, out InputComponent after));
+        Assert.Equal(0f, after.LookPitch);
+        Assert.Equal(0f, after.LookYaw);
+        Assert.Equal(0f, after.LookRoll);
+        Assert.True(context.Store.IsDirty<InputComponent>(context.Entity), "The reset must force a first sample.");
+    }
+
     private static TestContext CreateContext()
     {
         var inputService = new FakeInputService();
@@ -91,7 +112,7 @@ public class ClientInputIdleTests
         store.AddOrUpdate(entity, new PendingInputComponent());
 
         var system = new ClientInputSystem(motionProcessor, inputService, new ControlSettings(), new SnapshotAckTracker());
-        return new TestContext(store, entity, system, inputService);
+        return new TestContext(store, entity, system, inputService, motionProcessor);
     }
 
     private static int PendingCount(TestContext context)
@@ -104,128 +125,13 @@ public class ClientInputIdleTests
         DataStore store,
         int entity,
         ClientInputSystem system,
-        FakeInputService inputService
+        FakeInputService inputService,
+        ClientPlayerMotionProcessor motionProcessor
     ) {
         public DataStore Store { get; } = store;
         public int Entity { get; } = entity;
         public ClientInputSystem System { get; } = system;
         public FakeInputService InputService { get; } = inputService;
-    }
-
-    private sealed class FakePhysics : IPhysics
-    {
-        public float FixedTimestamp => 1f / 64f;
-
-        public event EventHandler<EventArgs>? FixedUpdate
-        {
-            add { }
-            remove { }
-        }
-
-        public RaycastResult Raycast(in Ray ray) => default;
-
-        public void SetGravity(Vector3 gravity) { }
-    }
-
-    private sealed class FakeWindowContext : IWindowContext
-    {
-        public DataBinding<double> UpdateDelta { get; } = new(0d);
-
-        public DataBinding<double> RenderDelta { get; } = new(0d);
-
-        public Vector2 Resolution => Vector2.Zero;
-
-        public Vector2 MonitorResolution => Vector2.Zero;
-
-        public Action? Loaded { get; set; }
-
-        public Action? Closed { get; set; }
-
-        public Action<double>? Render { get; set; }
-
-        public Action<double>? Update { get; set; }
-
-        public Action? Focused { get; set; }
-
-        public Action? Unfocused { get; set; }
-
-        public Action<Vector2>? Resized { get; set; }
-
-        public Vector2 GetSize() => Vector2.Zero;
-
-        public void Close() { }
-
-        public void SetIcon(Texture icon) { }
-    }
-
-    private sealed class FakeInputService : IInputService
-    {
-        public HashSet<Key> HeldKeys { get; } = [];
-
-        public HashSet<MouseButton> HeldButtons { get; } = [];
-
-        public InputDevice[] Devices => [];
-
-        public InputDevice[] Mice => [];
-
-        public InputDevice[] Keyboards => [];
-
-        public InputDevice[] Gamepads => [];
-
-        public InputDevice[] Joysticks => [];
-
-        public InputDevice[] UnknownDevices => [];
-
-        public EventHandler<ClickedEventArgs> Clicked { get; set; } = null!;
-
-        public EventHandler<ClickedEventArgs> DoubleClicked { get; set; } = null!;
-
-        public EventHandler<ScrolledEventArgs> Scrolled { get; set; } = null!;
-
-        public EventHandler<CharEventArgs> CharInput { get; set; } = null!;
-
-        public EventHandler<KeyEventArgs> KeyPressed { get; set; } = null!;
-
-        public EventHandler<KeyEventArgs> KeyReleased { get; set; } = null!;
-
-        public EventHandler<InputButtonEventArgs> ButtonPressed { get; set; } = null!;
-
-        public EventHandler<InputButtonEventArgs> ButtonReleased { get; set; } = null!;
-
-        public CursorOptions CursorOptions { get; set; }
-
-        public Vector2 CursorDelta => Vector2.Zero;
-
-        public Vector2 CursorPosition { get; set; }
-
-        public bool IsMouseHeld(MouseButton mouseButton) => HeldButtons.Contains(mouseButton);
-
-        public bool IsMousePressed(MouseButton mouseButton) => false;
-
-        public bool IsMouseReleased(MouseButton mouseButton) => false;
-
-        public float GetMouseScroll() => 0f;
-
-        public bool IsKeyHeld(Key key) => HeldKeys.Contains(key);
-
-        public bool IsKeyPressed(Key key) => false;
-
-        public bool IsKeyReleased(Key key) => false;
-
-        public bool IsButtonHeld(InputButton button) => false;
-
-        public bool IsButtonPressed(InputButton button) => false;
-
-        public bool IsButtonReleased(InputButton button) => false;
-
-        public float GetAxis(InputAxis axis) => 0f;
-
-        public float GetAxisDeadzone(InputAxis axis) => 0f;
-
-        public void SetAxisDeadzone(InputAxis axis, float deadzone) { }
-
-        public string GetClipboard() => string.Empty;
-
-        public void SetClipboard(string content) { }
+        public ClientPlayerMotionProcessor MotionProcessor { get; } = motionProcessor;
     }
 }

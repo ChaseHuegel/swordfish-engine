@@ -104,6 +104,20 @@ internal sealed class ClientInputSystem : IEntitySystem
         store.Query<PlayerComponent, CollectInputAction>(0f, ref collectInput);
     }
 
+    /// <summary>Clears look totals, the last sample, and the step's look history for a new join session.</summary>
+    internal void ResetSession(Uuid playerUuid)
+    {
+        _sequenceNumber = 0;
+        _lastSent = default;
+        _hasSent = false;
+        _sinceSend = 0f;
+        _lookPitch = 0f;
+        _lookYaw = 0f;
+        _lookRoll = 0f;
+        _motionProcessor.CursorUpdates.Clear();
+        _motionProcessor.Step?.ForgetLookHistory(playerUuid);
+    }
+
     /// <summary>
     /// Compares the fields a consumer acts on. The sequence number and sampled server tick are
     /// bookkeeping and always differ, so they must not force a new upload.
