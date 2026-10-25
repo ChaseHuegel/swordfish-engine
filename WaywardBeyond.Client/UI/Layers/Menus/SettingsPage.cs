@@ -31,7 +31,7 @@ internal abstract class SettingsPage<TIdentifier>(
     in ILocalization localization
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
 {
-    private static readonly SettingsDisplayMode[] DISPLAY_MODES =
+    private readonly SettingsDisplayMode[] _displayModes =
     [
         SettingsDisplayMode.Windowed,
         SettingsDisplayMode.BorderlessWindow,
@@ -41,19 +41,19 @@ internal abstract class SettingsPage<TIdentifier>(
         SettingsDisplayMode.BorderlessFullscreen,
     ];
 
-    private static readonly AntiAliasing[] ANTI_ALIASING_OPTIONS =
+    private readonly AntiAliasing[] _antiAliasingOptions =
     [
         AntiAliasing.None,
         AntiAliasing.MSAA,
     ];
 
-    private static readonly BorderStyle PANEL_BORDER = new()
+    private readonly BorderStyle _panelBorder = new()
     {
         Thickness = 1,
         Color = SettingsTheme.Border,
     };
 
-    private static readonly CornerCapStyle PANEL_CAPS = new()
+    private readonly CornerCapStyle _panelCaps = new()
     {
         Length = SettingsMetrics.PanelCapLength,
         Thickness = SettingsMetrics.PanelCapThickness,
@@ -117,6 +117,11 @@ internal abstract class SettingsPage<TIdentifier>(
             OnEnter();
         }
 
+        if (_draft == null || _categories == null)
+        {
+            return Result.FromFailure("Failed to prepare the page.");
+        }
+
         RefreshExternalDisplaySettings();
 
         SettingsLayout layout = SettingsLayout.Compute(ui.Width, ui.Height);
@@ -150,7 +155,7 @@ internal abstract class SettingsPage<TIdentifier>(
             }
             else
             {
-                using (ui.SettingsPanel(layout.Tray, SettingsTheme.PanelBackground, PANEL_BORDER, PANEL_CAPS))
+                using (ui.SettingsPanel(layout.Tray, SettingsTheme.PanelBackground, _panelBorder, _panelCaps))
                 {
                     if (renderer.DrawTray(_categories, ref _categoryIndex))
                     {
@@ -159,7 +164,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 }
             }
 
-            using (ui.SettingsPanel(layout.Pane, SettingsTheme.PanelBackground, PANEL_BORDER, PANEL_CAPS))
+            using (ui.SettingsPanel(layout.Pane, SettingsTheme.PanelBackground, _panelBorder, _panelCaps))
             {
                 renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
             }
@@ -265,7 +270,7 @@ internal abstract class SettingsPage<TIdentifier>(
                     get: () => _draft!.DisplayMode,
                     set: value => _draft!.DisplayMode = value,
                     defaultValue: () => SettingsDefaults.DisplayMode,
-                    options: DISPLAY_MODES,
+                    options: _displayModes,
                     format: FormatDisplayMode
                 ),
                 new StepperEntry<SettingsResolution>(
@@ -323,7 +328,7 @@ internal abstract class SettingsPage<TIdentifier>(
                     get: () => _draft!.AntiAliasingMode,
                     set: value => _draft!.AntiAliasingMode = value,
                     defaultValue: () => SettingsDefaults.AntiAliasingMode,
-                    options: ANTI_ALIASING_OPTIONS,
+                    options: _antiAliasingOptions,
                     optionLabel: FormatAntiAliasing
                 ),
                 new ToggleEntry(
