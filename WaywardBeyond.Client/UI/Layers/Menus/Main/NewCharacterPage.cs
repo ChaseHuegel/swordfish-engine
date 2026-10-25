@@ -189,10 +189,12 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         {
             int padding = 20;
             const int inputWidth = 300;
+            int nameGroupWidth = inputWidth + 8 + UiMetrics.SmallIconButtonSize;
+            int nameGroupX = (rect.Size.X - nameGroupWidth) / 2;
 
             ui.Label(
                 _localization.GetString("ui.field.characterNameLabel")!,
-                Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 16),
+                Widgets.Rect(nameGroupX, 38, nameGroupWidth, 16),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
@@ -200,7 +202,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             using (ui.Element())
             {
-                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(padding, 54, inputWidth, UiMetrics.ControlHeight));
+                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(nameGroupX, 54, inputWidth, UiMetrics.ControlHeight));
                 ui.ClipConstraints = new Constraints
                 {
                     Width = new Fixed(inputWidth),
@@ -211,7 +213,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             if (ui.IconButton(
                     "Button_RandomName",
-                    Widgets.Rect(padding + inputWidth + 8, 54, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
+                    Widgets.Rect(nameGroupX + inputWidth + 8, 54, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
                     MenuGlyphs.Dice,
                     new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
@@ -270,7 +272,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             if (ui.IconButton(
                     "Button_RandomCharacter",
-                    Widgets.Rect(rect.Size.X - padding - 32, boxY + 6, 32, 32),
+                    Widgets.Rect(boxX + boxWidth + 48, boxY + boxHeight / 2 - 16, 32, 32),
                     MenuGlyphs.Dice,
                     new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ) && _characterAssetService.GetAppearancesCount() > 0)
@@ -387,12 +389,16 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             }
 
             int infoY = Math.Max(272, rect.Size.Y - 112);
-            ui.InfoBox(
-                Widgets.Rect(padding, infoY, rect.Size.X - padding * 2, 96),
-                _localization.GetString("ui.menu.info")!,
-                descriptions[_focusedStat],
-                names[_focusedStat] + ":"
-            );
+            int infoHeight = Math.Max(0, Math.Min(96, rect.Size.Y - infoY - 8));
+            if (infoHeight >= 64)
+            {
+                ui.InfoBox(
+                    Widgets.Rect(padding, infoY, rect.Size.X - padding * 2, infoHeight),
+                    _localization.GetString("ui.menu.info")!,
+                    descriptions[_focusedStat],
+                    names[_focusedStat] + ":"
+                );
+            }
         }
     }
 
@@ -434,8 +440,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     ui.Color = UiTheme.Primary;
                     ui.Constraints = new Constraints
                     {
-                        X = new Fixed(padding - 4),
-                        Y = new Fixed(y + 6),
+                        X = new Fixed(2),
+                        Y = new Fixed(9),
                         Width = new Fixed(6),
                         Height = new Fixed(6),
                     };
@@ -444,21 +450,21 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             ui.Label(
                 shortName,
-                Widgets.Rect(padding, y, 20, 18),
+                Widgets.Rect(6, 3, 20, 18),
                 UiMetrics.MenuSmallFont,
                 focused ? UiTheme.Primary : UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 label,
-                Widgets.Rect(padding + 24, y, rowWidth - 150, 18),
+                Widgets.Rect(30, 3, rowWidth - 150, 18),
                 UiMetrics.MenuBodyFont,
                 focused ? UiTheme.Text : UiTheme.TextSoft,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 value.ToString(),
-                Widgets.Rect(padding + rowWidth - 104, y, 28, 18),
+                Widgets.Rect(rowWidth - 98, 3, 28, 18),
                 UiMetrics.MenuBodyFont,
                 UiTheme.Text,
                 Anchors.Right | Anchors.Center
@@ -467,7 +473,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             bool canDecrease = value > MIN_STAT;
             if (ui.ActionButton(
                     $"StatMinus_{index}",
-                    Widgets.Rect(padding + rowWidth - 68, y - 2, 24, 24),
+                    Widgets.Rect(rowWidth - 62, 1, 24, 24),
                     "-",
                     ButtonVariant.Secondary,
                     canDecrease
@@ -481,7 +487,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             bool canIncrease = _spacerPoints > 0 && value < MAX_STAT;
             if (ui.ActionButton(
                     $"StatPlus_{index}",
-                    Widgets.Rect(padding + rowWidth - 36, y - 2, 24, 24),
+                    Widgets.Rect(rowWidth - 30, 1, 24, 24),
                     "+",
                     ButtonVariant.Secondary,
                     canIncrease

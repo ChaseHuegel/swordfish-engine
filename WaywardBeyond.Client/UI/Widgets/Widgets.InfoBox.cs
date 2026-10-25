@@ -41,7 +41,7 @@ internal static partial class Widgets
             ui.Divider(Rect(10, 21, Math.Max(0, rect.Size.X - 20), 1), UiTheme.Border);
 
             string bodyText = highlightPrefix != null
-                ? $"#F2994AFF{highlightPrefix} #R{body}"
+                ? $"#F2994AFF {highlightPrefix} #R {body}"
                 : body;
 
             ui.Paragraph(

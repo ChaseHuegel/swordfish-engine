@@ -56,6 +56,8 @@ content stays unchanged.
 - `Tab` covers narrow pane switching, Favorites/LAN Discovery, and attached
   section tabs.
 - `InfoBox` covers the sector and stat descriptions.
+- Create Character centers the name field and dice. The body arrows and
+  randomize dice form one control cluster.
 - Archive, crew, and saved-server delete actions are trash icons on their list
   rows. A saved-server delete opens a confirmation.
 - Primary proceed actions live in the footer: Launch, Initialize, Create, and
