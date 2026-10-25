@@ -9,7 +9,7 @@ The page uses fixed metrics. It does not rely on nested `Fill` or `Relative`
 constraints inside the page.
 
 `SettingsLayout.Compute` is at
-`WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:39`. It produces:
+`WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:37`. It produces:
 
 - a centered page of at most 1280 by 840 pixels;
 - a tray and a pane, or a horizontal tab strip and a full-width pane;
