@@ -139,14 +139,6 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 Height = new Fixed(layout.PageHeight),
             };
 
-            ui.Label(
-                _localization.GetString("ui.menu.subspaceComms")!,
-                layout.Title,
-                UiMetrics.MenuTitleFont,
-                UiTheme.Accent,
-                Anchors.Center
-            );
-
             DrawTabs(ui, layout);
 
             IntRect directRect = Widgets.Rect(

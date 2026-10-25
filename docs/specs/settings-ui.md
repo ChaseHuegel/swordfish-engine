@@ -12,7 +12,6 @@ constraints inside the page.
 `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:39`. It produces:
 
 - a centered page of at most 1280 by 840 pixels;
-- a 28 pixel title;
 - a tray and a pane, or a horizontal tab strip and a full-width pane;
 - a 48 pixel footer;
 - a pane list rect and a scrollbar rect.

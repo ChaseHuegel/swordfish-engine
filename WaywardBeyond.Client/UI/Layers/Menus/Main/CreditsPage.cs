@@ -54,14 +54,6 @@ internal sealed class CreditsPage(
                 Height = new Fixed(layout.PageHeight),
             };
 
-            ui.Label(
-                _localization.GetString("ui.menu.credits")!,
-                layout.Title,
-                UiMetrics.MenuTitleFont,
-                UiTheme.Text,
-                Anchors.Center
-            );
-
             IntRect panel = Widgets.Rect(
                 0,
                 layout.Right.Top,

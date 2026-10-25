@@ -37,6 +37,7 @@ public class SettingsLayoutTests
         SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
 
         Assert.False(layout.UseTabs);
+        Assert.Equal(12, layout.Tray.Top);
         Assert.True(layout.Tray.Right <= layout.Pane.Left);
         Assert.True(layout.Tray.Right <= layout.PageWidth);
         Assert.True(layout.Pane.Right <= layout.PageWidth);

@@ -8,7 +8,6 @@ internal readonly record struct SettingsLayout(
     int PageWidth,
     int PageHeight,
     bool UseTabs,
-    IntRect Title,
     IntRect Tray,
     IntRect Pane,
     IntRect Tabs,
@@ -21,7 +20,6 @@ internal readonly record struct SettingsLayout(
 {
     private const int MAX_PAGE_WIDTH = 1280;
     private const int MAX_PAGE_HEIGHT = 840;
-    private const int PAGE_TITLE_HEIGHT = 28;
     private const int PAGE_GAP = 12;
     private const int PANEL_GAP = 16;
     private const int FOOTER_HEIGHT = 48;
@@ -42,12 +40,11 @@ internal readonly record struct SettingsLayout(
         int pageHeight = Math.Max(280, Math.Min(windowHeight - 240, MAX_PAGE_HEIGHT));
         bool useTabs = windowWidth < 900;
 
-        var title = new IntRect(new IntVector2(0, 0), new IntVector2(pageWidth, PAGE_TITLE_HEIGHT));
         var footer = new IntRect(
             new IntVector2(0, pageHeight - FOOTER_HEIGHT),
             new IntVector2(pageWidth, FOOTER_HEIGHT)
         );
-        int panelY = PAGE_TITLE_HEIGHT + PAGE_GAP;
+        int panelY = PAGE_GAP;
         int panelBottom = footer.Top - PAGE_GAP;
         int panelHeight = Math.Max(0, panelBottom - panelY);
 
@@ -95,7 +92,6 @@ internal readonly record struct SettingsLayout(
             pageWidth,
             pageHeight,
             useTabs,
-            title,
             tray,
             pane,
             tabs,

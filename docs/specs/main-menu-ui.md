@@ -24,11 +24,12 @@ it opens Crew Manifest.
 ## Layout
 
 `MenuLayout` is at `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`. It
-computes a centered page with a title rect, left and right panel rects, a tab
-strip, a footer, and Return/Primary footer buttons.
+computes a centered page with left and right panel rects, a tab strip, a footer,
+and Return/Primary footer buttons.
 
 - The design base is 1280 by 720.
 - The page shrinks with the window and has a 480 pixel minimum width.
+- Panels start 12 pixels below the top of the page.
 - Two-pane pages stay side-by-side down to a 900 pixel page width.
 - Below 900 pixels, the same pages use a tab strip and one full-width pane.
 - Settings keeps its own `SettingsLayout`. Do not replace it.

@@ -32,18 +32,6 @@ internal sealed class SettingsRenderer(
         _layout = layout;
     }
 
-    /// <summary>Draws the page title.</summary>
-    public void DrawPageTitle()
-    {
-        _ui.Label(
-            L("ui.menu.settings"),
-            _layout.Title,
-            UiMetrics.PageTitleFont,
-            UiTheme.Text,
-            Anchors.Center
-        );
-    }
-
     /// <summary>Draws the category tray and returns true when the selected category changes.</summary>
     public bool DrawTray(SettingsCategory[] categories, ref int categoryIndex)
     {

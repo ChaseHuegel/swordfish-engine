@@ -10,6 +10,8 @@ public class MenuLayoutTests
     {
         MenuLayout layout = MenuLayout.Compute(1920, 1080, maxPageWidth: 1160, twoColumn: true);
 
+        Assert.Equal(12, layout.Left.Top);
+        Assert.Equal(12, layout.Right.Top);
         Assert.False(layout.UseTabs);
         Assert.True(layout.Left.Size.X > 0);
         Assert.True(layout.Right.Size.X > 0);
