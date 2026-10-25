@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -191,17 +192,17 @@ internal static partial class Widgets
             };
         }
 
-        for (var i = 1; i < 4; i++)
+        for (var i = 1; i < 10; i++)
         {
             using (ui.Element())
             {
-                ui.Color = SettingsTheme.BorderInner;
+                ui.Color = SettingsTheme.Track * new Vector4(0.5f);
                 ui.Constraints = new Constraints
                 {
-                    X = new Fixed(1 + innerWidth * i / 4),
-                    Y = new Fixed(4),
-                    Width = new Fixed(1),
-                    Height = new Fixed(Math.Max(0, rect.Size.Y - 8)),
+                    X = new Fixed(1 + innerWidth * i / 10),
+                    Y = new Fixed(1),
+                    Width = new Fixed(2),
+                    Height = new Fixed(Math.Max(0, rect.Size.Y - 2)),
                 };
             }
         }
