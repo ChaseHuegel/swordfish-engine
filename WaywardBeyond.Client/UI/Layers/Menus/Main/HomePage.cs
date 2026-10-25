@@ -116,7 +116,7 @@ internal sealed class HomePage(
             }
 
             y += UiMetrics.MenuButtonHeight + DIVIDER_GAP;
-            DrawDivider(ui, buttonX, y, UiMetrics.MenuButtonMinWidth);
+            ui.DottedDivider(Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, DIVIDER_HEIGHT));
             y += DIVIDER_HEIGHT + DIVIDER_GAP;
 
             if (ui.ActionButton("Button_Settings", _localization.GetString("ui.button.settings")!, _optionsButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
@@ -158,26 +158,6 @@ internal sealed class HomePage(
                     Y = new Fixed(y + i),
                     Width = new Fixed(2),
                     Height = new Fixed(6 - i * 2),
-                };
-            }
-        }
-    }
-
-    private void DrawDivider(UIBuilder<Material> ui, int x, int y, int width)
-    {
-        const int dotWidth = 2;
-        const int dotGap = 4;
-        for (var offset = 0; offset < width - dotWidth; offset += dotWidth + dotGap)
-        {
-            using (ui.Element())
-            {
-                ui.Color = UiTheme.Border;
-                ui.Constraints = new Constraints
-                {
-                    X = new Fixed(x + offset),
-                    Y = new Fixed(y),
-                    Width = new Fixed(dotWidth),
-                    Height = new Fixed(DIVIDER_HEIGHT),
                 };
             }
         }
