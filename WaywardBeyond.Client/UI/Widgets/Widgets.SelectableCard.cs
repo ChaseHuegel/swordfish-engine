@@ -77,29 +77,40 @@ internal static partial class Widgets
                         ? UiTheme.BorderHover
                         : UiTheme.Border,
         };
-        ui.CornerCaps = options.Selected
-            ? new CornerCapStyle
-            {
-                Length = UiMetrics.SelectionCapLength,
-                Thickness = UiMetrics.SelectionCapThickness,
-                Color = UiTheme.Primary,
-            }
-            : default;
+        ui.CornerCaps = default;
         ui.Constraints = RectConstraints(rect);
         ui.ClipConstraints = RectConstraints(rect);
 
-        using (ui.Element())
+        if (options.Selected)
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.Transparent;
-            ui.Border = new BorderStyle
+            using (ui.Element())
             {
-                Thickness = UiMetrics.PanelBorderThickness,
-                Color = options.Selected ? UiTheme.Accent : UiTheme.BorderInner,
-            };
-            IntRect inner = Rect(2, 2, Math.Max(0, rect.Size.X - 4), Math.Max(0, rect.Size.Y - 4));
-            ui.Constraints = RectConstraints(inner);
-            ui.ClipConstraints = RectConstraints(inner);
+                ui.LayoutDirection = LayoutDirection.None;
+                ui.Color = UiTheme.Accent;
+                ui.Constraints = new Constraints
+                {
+                    X = new Fixed(2),
+                    Y = new Fixed(6),
+                    Width = new Fixed(3),
+                    Height = new Fixed(Math.Max(0, rect.Size.Y - 12)),
+                };
+            }
+        }
+        else
+        {
+            using (ui.Element())
+            {
+                ui.LayoutDirection = LayoutDirection.None;
+                ui.Color = UiTheme.Transparent;
+                ui.Border = new BorderStyle
+                {
+                    Thickness = UiMetrics.PanelBorderThickness,
+                    Color = UiTheme.BorderInner,
+                };
+                IntRect inner = Rect(2, 2, Math.Max(0, rect.Size.X - 4), Math.Max(0, rect.Size.Y - 4));
+                ui.Constraints = RectConstraints(inner);
+                ui.ClipConstraints = RectConstraints(inner);
+            }
         }
     }
 

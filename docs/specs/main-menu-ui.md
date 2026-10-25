@@ -49,7 +49,8 @@ content stays unchanged.
 - `ActionButtonOptions.Compact` covers small text actions. `IconButton` is a
   borderless ghost button for dice, trash, chevrons, and social icons. It keeps
   a full square hit target and adds only hover/pressed fills.
-- `SelectableCard` covers archive cards, crew cards, and server rows.
+- `SelectableCard` covers archive cards, crew cards, and server rows. Selected
+  rows use one orange border and a cyan left caret bar, not a double outline.
 - `Tab` covers narrow pane switching, Favorites/LAN Discovery, and attached
   section tabs.
 - `InfoBox` covers the sector and stat descriptions.

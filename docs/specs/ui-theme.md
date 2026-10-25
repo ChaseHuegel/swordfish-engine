@@ -80,7 +80,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
 | `MenuPanel` | `Widgets.MenuPanel.cs:24` | Shared menu panel with inner hairline, corner caps, and optional title. |
 | `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. |
-| `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with custom content. |
+| `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with one orange border and a cyan left caret. |
 | `Tab` | `Widgets.Tab.cs:12` | Attached tab with selected state. |
 | `Label` | `Widgets.Text.cs:13` | Fixed-rect single-line text. |
 | `Paragraph` | `Widgets.Text.cs:48` | Fixed-rect wrapped text. |
@@ -136,7 +136,7 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 - `Swordfish.Tests/MenuLayoutTests.cs` covers wide, narrow, and footer geometry.
 - `Swordfish.Tests/PingDisplayTests.cs` covers ping bands and unknown/unreachable states.
 - `Swordfish.Tests/MenuPanelRenderTests.cs` checks that menu panels have no outer
-  border and keep the inner hairline.
+  border and that selected cards use one border plus a cyan caret.
 - `Swordfish.Tests/TextBoxZOrderTests.cs` checks selection and caret paint
   order with the theme colors, plus relative text-box sizing.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.

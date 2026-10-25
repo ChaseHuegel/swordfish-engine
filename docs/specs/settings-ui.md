@@ -39,6 +39,8 @@ column are fixed by `SettingsLayout`.
 The label uses `NoWrap` and clips to the label column. The control column holds
 one of these widgets:
 
+- Category rows use the shared selected-row treatment: one orange border and a
+  cyan left caret.
 - `Widgets.Toggle` for on/off choices.
 - `Widgets.SegmentedControl` for two or more radio-like choices.
 - `Widgets.Stepper` for discrete values.
