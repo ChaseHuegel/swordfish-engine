@@ -63,7 +63,6 @@ internal sealed class SettingsRenderer(
 
         int y = SettingsMetrics.TrayHeaderHeight + 8;
         var changed = false;
-        bool useShortLabels = tray.Size.X < 280;
 
         for (var i = 0; i < categories.Length; i++)
         {
@@ -71,7 +70,7 @@ internal sealed class SettingsRenderer(
             IntRect itemRect = Widgets.SettingsRect(padding, y, width, SettingsMetrics.TrayItemHeight);
             bool selected = i == categoryIndex;
             string itemId = $"Settings.Category.{category.Id}";
-            string label = L(useShortLabels ? category.ShortTitleKey : category.TitleKey);
+            string label = L(category.TitleKey);
 
             using (_ui.Element(itemId))
             {
@@ -130,7 +129,7 @@ internal sealed class SettingsRenderer(
                 {
                     bool clicked = _ui.Clicked();
                     bool hovering = _ui.Hovering();
-                    DrawCategoryItem(tabRect, L(category.ShortTitleKey), selected, hovering, SettingsMetrics.SmallFont);
+                    DrawCategoryItem(tabRect, L(category.TitleKey), selected, hovering, SettingsMetrics.SmallFont);
 
                     if (clicked && !selected)
                     {
@@ -216,13 +215,6 @@ internal sealed class SettingsRenderer(
             Widgets.SettingsRect(padding, 14, contentWidth, 28),
             SettingsMetrics.PaneTitleFont,
             SettingsTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
-        DrawText(
-            L(category.DescriptionKey),
-            Widgets.SettingsRect(padding, 42, contentWidth, 18),
-            SettingsMetrics.SmallFont,
-            SettingsTheme.TextMuted,
             Anchors.Left | Anchors.Center
         );
         DrawLine(Widgets.SettingsRect(padding, 62, contentWidth, 1), SettingsTheme.BorderInner);

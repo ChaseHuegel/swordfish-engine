@@ -259,8 +259,6 @@ internal abstract class SettingsPage<TIdentifier>(
         return new SettingsCategory(
             id: "display",
             titleKey: "ui.settings.category.display",
-            shortTitleKey: "ui.settings.category.display.short",
-            descriptionKey: "ui.settings.category.display.description",
             rows:
             [
                 new SettingsSection("ui.settings.section.window"),
@@ -269,7 +267,7 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.displayMode",
                     get: () => _draft!.DisplayMode,
                     set: value => _draft!.DisplayMode = value,
-                    defaultValue: () => SettingsDefaults.DisplayMode,
+                    defaultValue: () => SettingsDefaults.DISPLAY_MODE,
                     options: _displayModes,
                     format: FormatDisplayMode
                 ),
@@ -288,15 +286,15 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.vsync",
                     get: () => _draft!.VSync,
                     set: value => _draft!.VSync = value,
-                    defaultValue: () => SettingsDefaults.VSync
+                    defaultValue: () => SettingsDefaults.V_SYNC
                 ),
                 new StepperEntry<int>(
                     id: "Settings.FrameLimit",
                     labelKey: "ui.settings.frameLimit",
                     get: () => _draft!.FrameLimit,
                     set: value => _draft!.FrameLimit = value,
-                    defaultValue: () => SettingsDefaults.FrameLimit,
-                    options: SettingsDefaults.GetFrameLimits(_draft?.FrameLimit ?? SettingsDefaults.FrameLimit),
+                    defaultValue: () => SettingsDefaults.FRAME_LIMIT,
+                    options: SettingsDefaults.GetFrameLimits(_draft?.FrameLimit ?? SettingsDefaults.FRAME_LIMIT),
                     format: FormatFrameLimit,
                     isEnabled: () => !_draft!.VSync
                 ),
@@ -306,9 +304,9 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.fov",
                     get: () => _draft!.Fov,
                     set: value => _draft!.Fov = (int)MathF.Round(value),
-                    defaultValue: () => SettingsDefaults.Fov,
-                    min: SettingsDefaults.FovMin,
-                    max: SettingsDefaults.FovMax,
+                    defaultValue: () => SettingsDefaults.FOV,
+                    min: SettingsDefaults.FOV_MIN,
+                    max: SettingsDefaults.FOV_MAX,
                     step: 1f,
                     format: FormatDegrees
                 ),
@@ -317,8 +315,8 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.viewDistance",
                     get: () => _draft!.ViewDistance,
                     set: value => _draft!.ViewDistance = value,
-                    defaultValue: () => SettingsDefaults.ViewDistance,
-                    options: SettingsDefaults.GetViewDistances(_draft?.ViewDistance ?? SettingsDefaults.ViewDistance),
+                    defaultValue: () => SettingsDefaults.VIEW_DISTANCE,
+                    options: SettingsDefaults.GetViewDistances(_draft?.ViewDistance ?? SettingsDefaults.VIEW_DISTANCE),
                     format: FormatDistance
                 ),
                 new SettingsSection("ui.settings.section.quality"),
@@ -327,7 +325,7 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.antiAliasing",
                     get: () => _draft!.AntiAliasingMode,
                     set: value => _draft!.AntiAliasingMode = value,
-                    defaultValue: () => SettingsDefaults.AntiAliasingMode,
+                    defaultValue: () => SettingsDefaults.ANTI_ALIASING_MODE,
                     options: _antiAliasingOptions,
                     optionLabel: FormatAntiAliasing
                 ),
@@ -336,15 +334,15 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.ambientOcclusion",
                     get: () => _draft!.AmbientOcclusion,
                     set: value => _draft!.AmbientOcclusion = value,
-                    defaultValue: () => SettingsDefaults.AmbientOcclusion
+                    defaultValue: () => SettingsDefaults.AMBIENT_OCCLUSION
                 ),
                 new StepperEntry<int>(
                     id: "Settings.AoSamples",
                     labelKey: "ui.settings.aoSamples",
                     get: () => _draft!.AoSamples,
                     set: value => _draft!.AoSamples = value,
-                    defaultValue: () => SettingsDefaults.AoSamples,
-                    options: SettingsDefaults.GetAoSamples(_draft?.AoSamples ?? SettingsDefaults.AoSamples),
+                    defaultValue: () => SettingsDefaults.AO_SAMPLES,
+                    options: SettingsDefaults.GetAoSamples(_draft?.AoSamples ?? SettingsDefaults.AO_SAMPLES),
                     format: FormatSamples,
                     isEnabled: () => _draft!.AmbientOcclusion
                 ),
@@ -353,15 +351,15 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.bloom",
                     get: () => _draft!.Bloom,
                     set: value => _draft!.Bloom = value,
-                    defaultValue: () => SettingsDefaults.Bloom
+                    defaultValue: () => SettingsDefaults.BLOOM
                 ),
                 new StepperEntry<int>(
                     id: "Settings.BloomPasses",
                     labelKey: "ui.settings.bloomPasses",
                     get: () => _draft!.BloomPasses,
                     set: value => _draft!.BloomPasses = value,
-                    defaultValue: () => SettingsDefaults.BloomPasses,
-                    options: SettingsDefaults.GetBloomPasses(_draft?.BloomPasses ?? SettingsDefaults.BloomPasses),
+                    defaultValue: () => SettingsDefaults.BLOOM_PASSES,
+                    options: SettingsDefaults.GetBloomPasses(_draft?.BloomPasses ?? SettingsDefaults.BLOOM_PASSES),
                     format: FormatInteger,
                     isEnabled: () => _draft!.Bloom
                 ),
@@ -375,8 +373,6 @@ internal abstract class SettingsPage<TIdentifier>(
         return new SettingsCategory(
             id: "audio",
             titleKey: "ui.settings.category.audio",
-            shortTitleKey: "ui.settings.category.audio.short",
-            descriptionKey: "ui.settings.category.audio.description",
             rows:
             [
                 new SettingsSection("ui.settings.section.mix"),
@@ -385,28 +381,28 @@ internal abstract class SettingsPage<TIdentifier>(
                     "ui.settings.masterVolume",
                     () => _draft!.MasterVolume,
                     value => _draft!.MasterVolume = value,
-                    SettingsDefaults.MasterVolume
+                    SettingsDefaults.MASTER_VOLUME
                 ),
                 BuildVolumeSlider(
                     "Settings.MusicVolume",
                     "ui.settings.musicVolume",
                     () => _draft!.MusicVolume,
                     value => _draft!.MusicVolume = value,
-                    SettingsDefaults.MusicVolume
+                    SettingsDefaults.MUSIC_VOLUME
                 ),
                 BuildVolumeSlider(
                     "Settings.EffectsVolume",
                     "ui.settings.effectsVolume",
                     () => _draft!.EffectsVolume,
                     value => _draft!.EffectsVolume = value,
-                    SettingsDefaults.EffectsVolume
+                    SettingsDefaults.EFFECTS_VOLUME
                 ),
                 BuildVolumeSlider(
                     "Settings.InterfaceVolume",
                     "ui.settings.interfaceVolume",
                     () => _draft!.InterfaceVolume,
                     value => _draft!.InterfaceVolume = value,
-                    SettingsDefaults.InterfaceVolume
+                    SettingsDefaults.INTERFACE_VOLUME
                 ),
                 new SettingsResetRow("Settings.Reset.audio", () => ResetCategory("audio")),
             ]
@@ -418,8 +414,6 @@ internal abstract class SettingsPage<TIdentifier>(
         return new SettingsCategory(
             id: "gameplay",
             titleKey: "ui.settings.category.gameplay",
-            shortTitleKey: "ui.settings.category.gameplay.short",
-            descriptionKey: "ui.settings.category.gameplay.description",
             rows:
             [
                 new SettingsSection("ui.settings.section.autosave"),
@@ -428,15 +422,15 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.autosave",
                     get: () => _draft!.Autosave,
                     set: value => _draft!.Autosave = value,
-                    defaultValue: () => SettingsDefaults.Autosave
+                    defaultValue: () => SettingsDefaults.AUTOSAVE
                 ),
                 new StepperEntry<int>(
                     id: "Settings.AutosaveInterval",
                     labelKey: "ui.settings.autosaveInterval",
                     get: () => _draft!.AutosaveIntervalMinutes,
                     set: value => _draft!.AutosaveIntervalMinutes = value,
-                    defaultValue: () => SettingsDefaults.AutosaveIntervalMinutes,
-                    options: SettingsDefaults.GetAutosaveIntervals(_draft?.AutosaveIntervalMinutes ?? SettingsDefaults.AutosaveIntervalMinutes),
+                    defaultValue: () => SettingsDefaults.AUTOSAVE_INTERVAL_MINUTES,
+                    options: SettingsDefaults.GetAutosaveIntervals(_draft?.AutosaveIntervalMinutes ?? SettingsDefaults.AUTOSAVE_INTERVAL_MINUTES),
                     format: FormatMinutes,
                     isEnabled: () => _draft!.Autosave
                 ),
@@ -446,24 +440,24 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.controlHints",
                     get: () => _draft!.ControlHints,
                     set: value => _draft!.ControlHints = value,
-                    defaultValue: () => SettingsDefaults.ControlHints
+                    defaultValue: () => SettingsDefaults.CONTROL_HINTS
                 ),
                 new ToggleEntry(
                     id: "Settings.Crosshair",
                     labelKey: "ui.settings.crosshair",
                     get: () => _draft!.Crosshair,
                     set: value => _draft!.Crosshair = value,
-                    defaultValue: () => SettingsDefaults.Crosshair
+                    defaultValue: () => SettingsDefaults.CROSSHAIR
                 ),
                 new SliderEntry(
                     id: "Settings.NameTagDistance",
                     labelKey: "ui.settings.nameTagDistance",
                     get: () => _draft!.NameTagDistance,
                     set: value => _draft!.NameTagDistance = (int)MathF.Round(value),
-                    defaultValue: () => SettingsDefaults.NameTagDistance,
-                    min: SettingsDefaults.NameTagMin,
-                    max: SettingsDefaults.NameTagMax,
-                    step: SettingsDefaults.NameTagStep,
+                    defaultValue: () => SettingsDefaults.NAME_TAG_DISTANCE,
+                    min: SettingsDefaults.NAME_TAG_MIN,
+                    max: SettingsDefaults.NAME_TAG_MAX,
+                    step: SettingsDefaults.NAME_TAG_STEP,
                     format: FormatNameTagDistance
                 ),
                 new SettingsResetRow("Settings.Reset.gameplay", () => ResetCategory("gameplay")),
@@ -476,8 +470,6 @@ internal abstract class SettingsPage<TIdentifier>(
         return new SettingsCategory(
             id: "controls",
             titleKey: "ui.settings.category.controls",
-            shortTitleKey: "ui.settings.category.controls.short",
-            descriptionKey: "ui.settings.category.controls.description",
             rows:
             [
                 new SettingsSection("ui.settings.section.mouse"),
@@ -486,9 +478,9 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.mouseSensitivity",
                     get: () => _draft!.MouseSensitivity,
                     set: value => _draft!.MouseSensitivity = (int)MathF.Round(value),
-                    defaultValue: () => SettingsDefaults.MouseSensitivity,
-                    min: SettingsDefaults.SensitivityMin,
-                    max: SettingsDefaults.SensitivityMax,
+                    defaultValue: () => SettingsDefaults.MOUSE_SENSITIVITY,
+                    min: SettingsDefaults.SENSITIVITY_MIN,
+                    max: SettingsDefaults.SENSITIVITY_MAX,
                     step: 1f,
                     format: FormatInteger
                 ),
@@ -498,14 +490,14 @@ internal abstract class SettingsPage<TIdentifier>(
                     labelKey: "ui.settings.rememberShape",
                     get: () => _draft!.RememberShape,
                     set: value => _draft!.RememberShape = value,
-                    defaultValue: () => SettingsDefaults.RememberShape
+                    defaultValue: () => SettingsDefaults.REMEMBER_SHAPE
                 ),
                 new ToggleEntry(
                     id: "Settings.RememberOrientation",
                     labelKey: "ui.settings.rememberOrientation",
                     get: () => _draft!.RememberOrientation,
                     set: value => _draft!.RememberOrientation = value,
-                    defaultValue: () => SettingsDefaults.RememberOrientation
+                    defaultValue: () => SettingsDefaults.REMEMBER_ORIENTATION
                 ),
                 new SettingsResetRow("Settings.Reset.controls", () => ResetCategory("controls")),
             ]
