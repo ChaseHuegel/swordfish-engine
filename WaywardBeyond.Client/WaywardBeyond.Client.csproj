@@ -48,6 +48,9 @@
       <Compile Update="UI\Widgets\Widgets.IconButton.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
+      <Compile Update="UI\Widgets\Widgets.Ping.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
       <Compile Update="UI\Widgets\Widgets.Toggle.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>

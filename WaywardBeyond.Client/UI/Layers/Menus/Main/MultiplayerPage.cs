@@ -214,9 +214,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             int contentWidth = rect.Size.X - PANEL_PADDING * 2;
             int deleteWidth = _favoritesTab ? 32 : 0;
             int tableWidth = contentWidth - deleteWidth;
-            int nameWidth = Math.Max(110, (int)(tableWidth * 0.34f));
-            int addressWidth = Math.Max(140, (int)(tableWidth * 0.46f));
-            int playersWidth = Math.Max(50, tableWidth - nameWidth - addressWidth);
+            int nameWidth = Math.Max(110, (int)(tableWidth * 0.30f));
+            int addressWidth = Math.Max(130, (int)(tableWidth * 0.38f));
+            int playersWidth = Math.Max(50, (int)(tableWidth * 0.12f));
+            int pingWidth = Math.Max(80, tableWidth - nameWidth - addressWidth - playersWidth);
             int headerY = 38;
             int listY = 62;
             int listHeight = Math.Max(0, rect.Size.Y - listY - PANEL_PADDING);
@@ -238,6 +239,13 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             ui.Label(
                 _localization.GetString("ui.menu.players")!,
                 Widgets.Rect(PANEL_PADDING + nameWidth + addressWidth, headerY, playersWidth, 16),
+                UiMetrics.MenuLabelFont,
+                UiTheme.TextMuted,
+                Anchors.Left | Anchors.Center
+            );
+            ui.Label(
+                _localization.GetString("ui.menu.ping")!,
+                Widgets.Rect(PANEL_PADDING + nameWidth + addressWidth + playersWidth, headerY, pingWidth, 16),
                 UiMetrics.MenuLabelFont,
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
@@ -321,9 +329,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                                     nameWidth,
                                     addressWidth,
                                     playersWidth,
+                                    pingWidth,
                                     server.Name,
                                     $"{server.Host}:{server.Port}",
-                                    "-"
+                                    "-",
+                                    ping: null
                                 );
 
                                 if (contentUi.IconButton(
@@ -347,9 +357,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                                     nameWidth,
                                     addressWidth,
                                     playersWidth,
+                                    pingWidth,
                                     server.Name,
                                     $"{server.Host}:{server.Port}",
-                                    server.Players.ToString()
+                                    server.Players.ToString(),
+                                    ping: null
                                 );
                             }
                         }
@@ -391,9 +403,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         int nameWidth,
         int addressWidth,
         int playersWidth,
+        int pingWidth,
         string name,
         string address,
-        string players
+        string players,
+        int? ping
     )
     {
         ui.Label(
@@ -424,6 +438,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             UiMetrics.MenuSmallFont,
             UiTheme.Text,
             Anchors.Left | Anchors.Center
+        );
+        ui.PingIndicator(
+            Widgets.Rect(nameWidth + addressWidth + playersWidth, 0, pingWidth - 8, ROW_HEIGHT),
+            ping
         );
     }
 

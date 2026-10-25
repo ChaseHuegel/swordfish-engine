@@ -72,6 +72,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Panel` | `Widgets.Panel.cs:14` | Clipped panel with border, caps, and optional inner hairline. |
 | `ActionButton` | `Widgets.ActionButton.cs:31` | Fixed or intrinsic text action button. |
 | `IconButton` | `Widgets.IconButton.cs:12` | Borderless icon action with hover/pressed fills. |
+| `PingIndicator` | `Widgets.Ping.cs:45` | Colored signal icon and ping value. |
 | `Toggle` | `Widgets.Toggle.cs:16` | Two-cell on/off control. |
 | `SegmentedControl` | `Widgets.Toggle.cs:39` | Radio-like choice row. |
 | `Stepper` | `Widgets.Stepper.cs:14` | Discrete value control. |
@@ -133,6 +134,7 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 - `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic button
   sizing plus Font Awesome glyph centering.
 - `Swordfish.Tests/MenuLayoutTests.cs` covers wide, narrow, and footer geometry.
+- `Swordfish.Tests/PingDisplayTests.cs` covers ping bands and unknown/unreachable states.
 - `Swordfish.Tests/MenuPanelRenderTests.cs` checks that menu panels have no outer
   border and keep the inner hairline.
 - `Swordfish.Tests/TextBoxZOrderTests.cs` checks selection and caret paint
