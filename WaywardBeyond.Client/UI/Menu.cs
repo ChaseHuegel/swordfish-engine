@@ -38,17 +38,6 @@ internal abstract class Menu<TIdentifier> : IUILayer
     }
 
     public abstract bool IsVisible();
-
-    protected bool CurrentPageUsesFullContentArea
-    {
-        get
-        {
-            lock (_pageLock)
-            {
-                return _pages.TryGetValue(_currentPage, out IMenuPage<TIdentifier>? page) && page.UsesFullContentArea;
-            }
-        }
-    }
     
     public TIdentifier GetCurrentPage()
     {

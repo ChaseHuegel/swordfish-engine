@@ -62,21 +62,6 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
                     };
                 }
             }
-
-            if (CurrentPageUsesFullContentArea)
-            {
-                using (ui.Element("MenuContent"))
-                {
-                    ui.LayoutDirection = LayoutDirection.None;
-                    ui.Constraints = new Constraints
-                    {
-                        Width = new Relative(1f),
-                        Height = new Fill(),
-                    };
-
-                    return base.RenderUI(delta, ui);
-                }
-            }
             
             using (ui.Element())
             {
@@ -87,7 +72,18 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
                 };
             }
 
-            return base.RenderUI(delta, ui);
+            var result = base.RenderUI(delta, ui);
+            
+            using (ui.Element())
+            {
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+            }
+
+            return result;
         }
     }
 }
