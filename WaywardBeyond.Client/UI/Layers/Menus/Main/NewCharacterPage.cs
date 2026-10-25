@@ -313,23 +313,30 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         {
             int padding = 16;
 
+            ui.Paragraph(
+                _localization.GetString("ui.field.spacer.description")!,
+                Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 36),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted
+            );
+
             ui.Label(
                 _localization.GetString("ui.field.spacer.points")!,
-                Widgets.Rect(padding, 38, rect.Size.X - padding * 2 - 48, 20),
+                Widgets.Rect(padding, 80, rect.Size.X - padding * 2 - 48, 20),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 _spacerPoints.ToString(),
-                Widgets.Rect(rect.Size.X - padding - 76, 38, 36, 20),
+                Widgets.Rect(rect.Size.X - padding - 76, 80, 36, 20),
                 UiMetrics.MenuBodyFont,
                 UiTheme.Primary,
                 Anchors.Right | Anchors.Center
             );
             if (ui.IconButton(
                     "Button_RandomPoints",
-                    Widgets.Rect(rect.Size.X - padding - 32, 32, 32, 32),
+                    Widgets.Rect(rect.Size.X - padding - 32, 74, 32, 32),
                     MenuGlyphs.Dice,
                     new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
@@ -337,13 +344,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 RandomizePoints();
             }
 
-            int rowY = 74;
-            DrawStatRow(ui, rect, 0, _localization.GetString("ui.field.strength")!, "S", _strength, padding, rowY);
-            DrawStatRow(ui, rect, 1, _localization.GetString("ui.field.precision")!, "P", _precision, padding, rowY + 34);
-            DrawStatRow(ui, rect, 2, _localization.GetString("ui.field.awareness")!, "A", _awareness, padding, rowY + 68);
-            DrawStatRow(ui, rect, 3, _localization.GetString("ui.field.charisma")!, "C", _charisma, padding, rowY + 102);
-            DrawStatRow(ui, rect, 4, _localization.GetString("ui.field.education")!, "E", _education, padding, rowY + 136);
-            DrawStatRow(ui, rect, 5, _localization.GetString("ui.field.resolve")!, "R", _resolve, padding, rowY + 170);
+            int rowY = 112;
+            DrawStatRow(ui, rect, 0, _localization.GetString("ui.field.strength")!, _strength, padding, rowY);
+            DrawStatRow(ui, rect, 1, _localization.GetString("ui.field.precision")!, _precision, padding, rowY + 28);
+            DrawStatRow(ui, rect, 2, _localization.GetString("ui.field.awareness")!, _awareness, padding, rowY + 56);
+            DrawStatRow(ui, rect, 3, _localization.GetString("ui.field.charisma")!, _charisma, padding, rowY + 84);
+            DrawStatRow(ui, rect, 4, _localization.GetString("ui.field.education")!, _education, padding, rowY + 112);
+            DrawStatRow(ui, rect, 5, _localization.GetString("ui.field.resolve")!, _resolve, padding, rowY + 140);
 
             string[] descriptions =
             [
@@ -364,31 +371,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 _localization.GetString("ui.field.resolve")!,
             ];
 
-            if (rect.Size.Y > 430)
-            {
-                int total = _strength + _precision + _awareness + _charisma + _education + _resolve;
-                int summaryY = rect.Size.Y - 154;
-                ui.Divider(
-                    Widgets.Rect(padding, summaryY, rect.Size.X - padding * 2, 1),
-                    UiTheme.Border
-                );
-                ui.Label(
-                    _localization.GetString("ui.menu.spacerTotal")!,
-                    Widgets.Rect(padding, summaryY + 10, rect.Size.X - padding * 2 - 80, 20),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.TextMuted,
-                    Anchors.Left | Anchors.Center
-                );
-                ui.Label(
-                    total.ToString(),
-                    Widgets.Rect(rect.Size.X - padding - 80, summaryY + 10, 80, 20),
-                    UiMetrics.MenuBodyFont,
-                    UiTheme.AccentBright,
-                    Anchors.Right | Anchors.Center
-                );
-            }
-
-            int infoY = Math.Max(272, rect.Size.Y - 112);
+            int infoY = Math.Max(292, rect.Size.Y - 112);
             int infoHeight = Math.Max(0, Math.Min(96, rect.Size.Y - infoY - 8));
             if (infoHeight >= 64)
             {
@@ -407,7 +390,6 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         IntRect rect,
         int index,
         string label,
-        string shortName,
         int value,
         int padding,
         int y
@@ -433,34 +415,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 focused = true;
             }
 
-            if (focused)
-            {
-                using (ui.Element())
-                {
-                    ui.Color = UiTheme.Primary;
-                    ui.Constraints = new Constraints
-                    {
-                        X = new Fixed(2),
-                        Y = new Fixed(9),
-                        Width = new Fixed(6),
-                        Height = new Fixed(6),
-                    };
-                }
-            }
-
-            ui.Label(
-                shortName,
-                Widgets.Rect(6, 3, 20, 18),
-                UiMetrics.MenuSmallFont,
-                focused ? UiTheme.Primary : UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
-            );
-            ui.Label(
+            ui.StatLabel(
                 label,
-                Widgets.Rect(30, 3, rowWidth - 150, 18),
+                Widgets.Rect(6, 3, rowWidth - 112, 18),
                 UiMetrics.MenuBodyFont,
-                focused ? UiTheme.Text : UiTheme.TextSoft,
-                Anchors.Left | Anchors.Center
+                focused
             );
             ui.Label(
                 value.ToString(),

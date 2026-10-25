@@ -47,6 +47,30 @@ public class MenuPanelRenderTests
     }
 
     [Fact]
+    public void StatLabelMarkupKeepsVisibleText()
+    {
+        const string focused = "#orangeS#Rtrength";
+        const string unfocused = "#cyanA#Rwareness";
+
+        Assert.Equal("Strength", RichText.Parse(focused, 0, focused.Length).Text);
+        Assert.Equal("Awareness", RichText.Parse(unfocused, 0, unfocused.Length).Text);
+    }
+
+    [Fact]
+    public void StatLabelEmphasizesFirstLetter()
+    {
+        var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
+
+        ui.StatLabel("Strength", Widgets.Rect(0, 0, 200, 20), 14, focused: true);
+        ui.StatLabel("Awareness", Widgets.Rect(0, 30, 200, 20), 14, focused: false);
+
+        List<RenderCommand<Material>> commands = ui.Build(0f);
+
+        Assert.Contains(commands, command => command.Text == "#orangeS#Rtrength");
+        Assert.Contains(commands, command => command.Text == "#cyanA#Rwareness");
+    }
+
+    [Fact]
     public void ModalPanelHasOneOuterBorder()
     {
         var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());

@@ -59,6 +59,10 @@ content stays unchanged.
 - `InfoBox` covers the sector and stat descriptions.
 - Create Character centers the name field and dice. The body arrows and
   randomize dice form one control cluster.
+- Stat rows color the first letter only. Focused rows use orange, unfocused
+  rows use cyan. The separate short-name box is gone.
+- The S.P.A.C.E.R description sits under the evaluation header. The S.P.A.C.E.R
+  total is not shown.
 - Archive, crew, and saved-server delete actions are trash icons on their list
   rows. A saved-server delete opens a confirmation.
 - Primary proceed actions live in the footer: Launch, Initialize, Create, and

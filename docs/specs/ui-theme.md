@@ -82,6 +82,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `MenuPanel` | `Widgets.MenuPanel.cs:40` | Shared menu panel with inner hairline, corner caps, and optional title. |
 | `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
 | `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with one orange border and a cyan left caret. |
+| `StatLabel` | `Widgets.StatLabel.cs:10` | Stat name with a colored first letter. |
 | `Tab` | `Widgets.Tab.cs:12` | Attached tab with selected state. |
 | `Label` | `Widgets.Text.cs:13` | Fixed-rect single-line text. |
 | `Paragraph` | `Widgets.Text.cs:48` | Fixed-rect wrapped text. |
