@@ -1,4 +1,3 @@
-using System.Numerics;
 using Reef;
 using Swordfish.ECS;
 using Swordfish.Graphics;
