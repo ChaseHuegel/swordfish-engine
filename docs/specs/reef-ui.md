@@ -109,6 +109,8 @@ check is in `Reef/UIController.cs:373`, and `UIBuilder` passes both rects at
   not receive a click outside the clip.
 - `Reef.Tests/UIControllerClipTests.cs:33` checks that a control inside the
   clip still receives a click.
+- `Reef.Tests/UIBuilderDefaultFontTests.cs` checks the default font fallback
+  and explicit font override.
 - `Reef.Tests/UIBuilderZOrderTests.cs:15` checks that a later sibling paints on
   top.
 - `Reef.Tests/UIBuilderZOrderTests.cs:58` checks that a parent background stays

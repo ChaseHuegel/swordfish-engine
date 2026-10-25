@@ -1,0 +1,15 @@
+namespace WaywardBeyond.Client.UI;
+
+/// <summary>Font Awesome glyphs used by menu widgets.</summary>
+internal static class MenuGlyphs
+{
+    public const string Dice = "\uf074";
+    public const string Trash = "\uf2ed";
+    public const string Crew = "\uf0c0";
+    public const string Server = "\uf233";
+    public const string Galaxy = "\uf186";
+    public const string Feedback = "\uf086";
+    public const string Settings = "\uf013";
+    public const string Discord = "\uf392";
+    public const string Steam = "\uf1b6";
+}

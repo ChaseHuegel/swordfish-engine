@@ -16,7 +16,8 @@ internal static partial class Widgets
         IntRect rect,
         int fontSize,
         Vector4 color,
-        Anchors anchors = Anchors.Left | Anchors.Center
+        Anchors anchors = Anchors.Left | Anchors.Center,
+        string? fontId = null
     )
     {
         using (ui.Element())
@@ -30,8 +31,42 @@ internal static partial class Widgets
             {
                 ui.FontOptions = new FontOptions
                 {
+                    ID = fontId ?? UiTheme.FontUI,
                     Size = fontSize,
                     NoWrap = true,
+                };
+                ui.Color = color;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = anchors,
+                };
+            }
+        }
+    }
+
+    /// <summary>Draws wrapped text inside a fixed rectangle.</summary>
+    public static void Paragraph(
+        this UIBuilder<Material> ui,
+        string text,
+        IntRect rect,
+        int fontSize,
+        Vector4 color,
+        Anchors anchors = Anchors.Left | Anchors.Top
+    )
+    {
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Color = UiTheme.Transparent;
+            ui.Constraints = RectConstraints(rect);
+            ui.ClipConstraints = RectConstraints(rect);
+
+            using (ui.Text(text))
+            {
+                ui.FontOptions = new FontOptions
+                {
+                    ID = UiTheme.FontUI,
+                    Size = fontSize,
                 };
                 ui.Color = color;
                 ui.Constraints = new Constraints

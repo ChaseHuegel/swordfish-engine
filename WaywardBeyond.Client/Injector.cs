@@ -204,10 +204,10 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<MenuPage>, MainMenuSettingsPage>();
         container.Register<IMenuPage<MenuPage>, SelectSavePage>();
         container.Register<IMenuPage<MenuPage>, NewSavePage>();
-        container.Register<IMenuPage<MenuPage>, CharactersPage>();
         container.Register<IMenuPage<MenuPage>, SelectCharacterPage>();
         container.Register<IMenuPage<MenuPage>, NewCharacterPage>();
         container.Register<IMenuPage<MenuPage>, MultiplayerPage>();
+        container.Register<IMenuPage<MenuPage>, CreditsPage>();
         
         container.Register<PauseMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, PauseMenu>();

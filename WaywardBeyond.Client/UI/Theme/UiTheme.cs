@@ -5,8 +5,16 @@ namespace WaywardBeyond.Client.UI.Theme;
 /// <summary>Semantic colors shared by all game UI.</summary>
 internal static class UiTheme
 {
+    public const string FontUI = "monogram-extended";
+    public const string FontIcons = "Font Awesome 6 Free Solid";
+    public const string FontBrands = "Font Awesome 6 Free Brands";
+
     public static readonly Vector4 PanelBackground = FromRgb(17, 23, 35, 240);
+    public static readonly Vector4 PanelSolid = FromRgb(17, 23, 35);
     public static readonly Vector4 PanelInner = FromRgb(13, 18, 28, 240);
+    public static readonly Vector4 InputBackground = FromRgb(28, 36, 51);
+    public static readonly Vector4 InputFocus = FromRgb(35, 46, 66);
+    public static readonly Vector4 Bracket = FromRgb(99, 122, 153);
     public static readonly Vector4 Border = FromRgb(43, 56, 78);
     public static readonly Vector4 BorderInner = FromRgb(26, 35, 51);
     public static readonly Vector4 BorderHover = FromRgb(73, 93, 122);

@@ -169,7 +169,8 @@ and logs at information level. It creates no data. The stock client hides the
 "Create save" option when it lacks the key, so the check protects against a
 modified client. The server also reports the same verdict in
 `ListLevelsResponse.CanCreateSave`, which the client caches in
-`GameSaveService.CanCreateSave` and uses to gate the menu button (`HomePage`).
+`GameSaveService.CanCreateSave` and uses to gate the New Game button
+(`HomePage`).
 
 ### Delete authorization
 

@@ -149,10 +149,25 @@ internal sealed class GameSaveService(
         }
     }
 
-    public void CreateSave(GameOptions options)
+    public async Task<GameSave?> CreateSaveAsync(GameOptions options)
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.creating", options.Name));
-        _ = CreateLevelAsync(options.Name, options.Seed);
+        bool success = await CreateLevelAsync(options.Name, options.Seed);
+        if (!success)
+        {
+            return null;
+        }
+
+        GameSave[] saves = GetSaves();
+        for (var i = 0; i < saves.Length; i++)
+        {
+            if (saves[i].Name == options.Name)
+            {
+                return saves[i];
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -170,7 +185,7 @@ internal sealed class GameSaveService(
         _levelsClient.SendLeaveGame();
     }
 
-    private async Task CreateLevelAsync(string name, string seed)
+    private async Task<bool> CreateLevelAsync(string name, string seed)
     {
         bool success = await _levelsClient.CreateLevelAsync(name, seed, GameMode.Creative);
         await RefreshLevelsAsync();
@@ -179,6 +194,8 @@ internal sealed class GameSaveService(
             success ? "notification.save.created" : "notification.save.creating.failed",
             name
         ));
+
+        return success;
     }
 
     public void Delete(GameSave save)

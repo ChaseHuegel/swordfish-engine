@@ -4,11 +4,13 @@ using Reef;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
@@ -16,8 +18,11 @@ namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 internal sealed class MainMenu : TitleMenu<MenuPage>
 {
     private readonly ExternalAppService _externalAppService;
+    private readonly ILocalization _localization;
+    private readonly ModalMenu _modalMenu;
 
     private readonly Widgets.ActionButtonOptions _brandIconButton;
+    private readonly Widgets.ActionButtonOptions _feedbackButton;
 
     public MainMenu(
         ILogger<Menu<MenuPage>> logger,
@@ -26,17 +31,33 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         IShortcutService shortcutService,
         SoundEffectService soundEffectService,
         ExternalAppService externalAppService,
+        ILocalization localization,
+        ModalMenu modalMenu,
         IMenuPage<MenuPage>[] pages
     ) : base(logger, materialDatabase, reefContext, pages)
     {
         _externalAppService = externalAppService;
+        _localization = localization;
+        _modalMenu = modalMenu;
         _brandIconButton = Widgets.ActionButtonOptions.Icon(
             ButtonVariant.Secondary,
             soundEffectService,
             size: UiMetrics.IconButtonSize,
             fontSize: UiMetrics.LargeIconFont,
-            fontId: "Font Awesome 6 Free Brands"
+            fontId: UiTheme.FontBrands
         );
+        _feedbackButton = Widgets.ActionButtonOptions.Compact(
+            ButtonVariant.Secondary,
+            soundEffectService
+        ) with
+        {
+            Font = new FontOptions
+            {
+                ID = UiTheme.FontUI,
+                Size = UiMetrics.MenuSmallFont,
+                NoWrap = true,
+            },
+        };
 
         //  TODO introduce the menu spaceship
         // Result<VoxelEntityModel> blueprintResult = blueprintDatabase.Get("builtin/mainMenu");
@@ -75,15 +96,29 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
             ui.Padding = new Padding(20);
             ui.Constraints = new Constraints
             {
+                Anchors = Anchors.Bottom | Anchors.Left,
+            };
+
+            if (ui.ActionButton("Button_Feedback", _localization.GetString("ui.menu.feedback")!, _feedbackButton))
+            {
+                _modalMenu.GoToPage(FeedbackModal.Modal);
+            }
+        }
+
+        using (ui.Element())
+        {
+            ui.Padding = new Padding(20);
+            ui.Constraints = new Constraints
+            {
                 Anchors = Anchors.Bottom | Anchors.Right,
             };
 
-            if (ui.ActionButton("Button_Discord", "\uf392", _brandIconButton))
+            if (ui.ActionButton("Button_Discord", MenuGlyphs.Discord, _brandIconButton))
             {
                 Task.Run(_externalAppService.TryOpenDiscordAsync);
             }
 
-            if (ui.ActionButton("Button_Steam", "\uf1b6", _brandIconButton))
+            if (ui.ActionButton("Button_Steam", MenuGlyphs.Steam, _brandIconButton))
             {
                 Task.Run(_externalAppService.TryOpenSteamAsync);
             }

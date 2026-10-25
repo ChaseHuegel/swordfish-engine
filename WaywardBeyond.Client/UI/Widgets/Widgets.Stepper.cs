@@ -102,6 +102,7 @@ internal static partial class Widgets
                 {
                     ui.FontOptions = new FontOptions
                     {
+                        ID = UiTheme.FontUI,
                         Size = UiMetrics.ControlFont,
                         NoWrap = true,
                     };
@@ -138,6 +139,7 @@ internal static partial class Widgets
         {
             ui.FontOptions = new FontOptions
             {
+                ID = UiTheme.FontUI,
                 Size = UiMetrics.ControlFont,
                 NoWrap = true,
             };
