@@ -12,10 +12,12 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
+using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
@@ -27,6 +29,7 @@ internal sealed class SelectCharacterPage(
     in ILocalization localization,
     in CharacterAssetService characterAssetService,
     in GameSaveManager gameSaveManager,
+    in ISkillDatabase skillDatabase,
     in ModalMenu modalMenu,
     in ConfirmModal confirmModal
 ) : IMenuPage<MenuPage>
@@ -45,6 +48,7 @@ internal sealed class SelectCharacterPage(
     private readonly ILocalization _localization = localization;
     private readonly CharacterAssetService _characterAssetService = characterAssetService;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
+    private readonly ISkillDatabase _skillDatabase = skillDatabase;
     private readonly ModalMenu _modalMenu = modalMenu;
     private readonly ConfirmModal _confirmModal = confirmModal;
 
@@ -321,12 +325,21 @@ internal sealed class SelectCharacterPage(
                 Anchors.Center
             );
 
+            int level = character.GetTotalSkillLevel(_skillDatabase);
+            ui.Label(
+                $"{_localization.GetString("ui.menu.level")!} {level}",
+                Widgets.Rect(padding, 66, rect.Size.X - padding * 2, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.AccentBright,
+                Anchors.Center
+            );
+
             string lastPlayed = character.Playtime.LastPlayedMs > 0
                 ? DateTimeOffset.FromUnixTimeMilliseconds(character.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
                 : _localization.GetString("ui.label.never")!;
             ui.Label(
                 $"{_localization.GetString("ui.label.lastPlayed")!}: {lastPlayed}",
-                Widgets.Rect(padding, 64, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 88, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Center
@@ -335,13 +348,13 @@ internal sealed class SelectCharacterPage(
             TimeSpan age = TimeSpan.FromMilliseconds(character.Playtime.AgeMs);
             ui.Label(
                 $"{_localization.GetString("ui.label.timePlayed")!}: {_localization.GetLongString(age)}",
-                Widgets.Rect(padding, 82, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 106, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Center
             );
 
-            int previewY = 116;
+            int previewY = 140;
             Material appearance = _characterAssetService.GetAppearanceMaterial(character);
             using (ui.Image(appearance))
             {
@@ -355,59 +368,44 @@ internal sealed class SelectCharacterPage(
             }
 
             int statsX = padding + 148;
-            DrawStat(ui, "S", _localization.GetString("ui.field.strength")!, character.Strength, statsX, previewY);
-            DrawStat(ui, "P", _localization.GetString("ui.field.precision")!, character.Precision, statsX, previewY + 24);
-            DrawStat(ui, "A", _localization.GetString("ui.field.awareness")!, character.Awareness, statsX, previewY + 48);
-            DrawStat(ui, "C", _localization.GetString("ui.field.charisma")!, character.Charisma, statsX, previewY + 72);
-            DrawStat(ui, "E", _localization.GetString("ui.field.education")!, character.Education, statsX, previewY + 96);
-            DrawStat(ui, "R", _localization.GetString("ui.field.resolve")!, character.Resolve, statsX, previewY + 120);
+            DrawStat(ui, _localization.GetString("ui.field.strength")!, character.Strength, statsX, previewY);
+            DrawStat(ui, _localization.GetString("ui.field.precision")!, character.Precision, statsX, previewY + 24);
+            DrawStat(ui, _localization.GetString("ui.field.awareness")!, character.Awareness, statsX, previewY + 48);
+            DrawStat(ui, _localization.GetString("ui.field.charisma")!, character.Charisma, statsX, previewY + 72);
+            DrawStat(ui, _localization.GetString("ui.field.education")!, character.Education, statsX, previewY + 96);
+            DrawStat(ui, _localization.GetString("ui.field.resolve")!, character.Resolve, statsX, previewY + 120);
 
-            int total = character.Strength + character.Precision + character.Awareness
-                + character.Charisma + character.Education + character.Resolve;
-            if (rect.Size.Y > 400)
+            if (rect.Size.Y > 440)
             {
                 ui.Divider(
-                    Widgets.Rect(padding, 280, rect.Size.X - padding * 2, 1),
+                    Widgets.Rect(padding, 296, rect.Size.X - padding * 2, 1),
                     UiTheme.Border
                 );
                 ui.Label(
                     _localization.GetString("ui.menu.assignment")!,
-                    Widgets.Rect(padding, 292, rect.Size.X - padding * 2, 18),
+                    Widgets.Rect(padding, 308, rect.Size.X - padding * 2, 18),
                     UiMetrics.MenuSmallFont,
                     UiTheme.TextMuted,
                     Anchors.Left | Anchors.Center
                 );
                 ui.Label(
                     _gameSaveManager.ActiveSave?.Name ?? _localization.GetString("ui.text.none")!,
-                    Widgets.Rect(padding, 312, rect.Size.X - padding * 2, 22),
+                    Widgets.Rect(padding, 328, rect.Size.X - padding * 2, 22),
                     UiMetrics.MenuBodyFont,
                     UiTheme.Text,
                     Anchors.Left | Anchors.Center
                 );
             }
 
-            int summaryY = Math.Max(previewY + 164, rect.Size.Y - 96);
+            int statsBottom = previewY + 5 * 24 + 18;
+            int summaryY = Math.Max(statsBottom + 16, rect.Size.Y - 64);
             ui.Divider(
                 Widgets.Rect(padding, summaryY, rect.Size.X - padding * 2, 1),
                 UiTheme.Border
             );
             ui.Label(
-                _localization.GetString("ui.menu.spacerTotal")!,
-                Widgets.Rect(padding, summaryY + 12, 200, 20),
-                UiMetrics.MenuSmallFont,
-                UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
-            );
-            ui.Label(
-                total.ToString(),
-                Widgets.Rect(rect.Size.X - padding - 120, summaryY + 12, 120, 20),
-                UiMetrics.MenuBodyFont,
-                UiTheme.AccentBright,
-                Anchors.Right | Anchors.Center
-            );
-            ui.Label(
                 _localization.GetString("ui.menu.readyForLaunch")!,
-                Widgets.Rect(padding, summaryY + 38, rect.Size.X - padding * 2, 20),
+                Widgets.Rect(padding, summaryY + 12, rect.Size.X - padding * 2, 20),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Success,
                 Anchors.Left | Anchors.Center
@@ -417,41 +415,21 @@ internal sealed class SelectCharacterPage(
 
     private static void DrawStat(
         UIBuilder<Material> ui,
-        string shortName,
         string label,
         int value,
         int x,
         int y
     )
     {
-        using (ui.Element())
-        {
-            ui.Color = UiTheme.ControlBackground;
-            ui.Border = new BorderStyle
-            {
-                Thickness = UiMetrics.PanelBorderThickness,
-                Color = UiTheme.BorderHover,
-            };
-            ui.Constraints = Widgets.RectConstraints(Widgets.Rect(x, y, 18, 18));
-        }
-
-        ui.Label(
-            shortName,
-            Widgets.Rect(x, y, 18, 18),
-            UiMetrics.MenuSmallFont,
-            UiTheme.Text,
-            Anchors.Center
-        );
-        ui.Label(
+        ui.StatLabel(
             label,
-            Widgets.Rect(x + 26, y, 96, 18),
+            Widgets.Rect(x, y, 130, 18),
             UiMetrics.MenuSmallFont,
-            UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
+            focused: false
         );
         ui.Label(
             value.ToString(),
-            Widgets.Rect(x + 124, y, 28, 18),
+            Widgets.Rect(x + 140, y, 28, 18),
             UiMetrics.MenuSmallFont,
             UiTheme.Text,
             Anchors.Right | Anchors.Center

@@ -63,6 +63,7 @@ content stays unchanged.
   rows use cyan. The separate short-name box is gone.
 - The S.P.A.C.E.R description sits under the evaluation header. The S.P.A.C.E.R
   total is not shown.
+- The selected colonist dossier shows the combined skill level under the name.
 - Archive, crew, and saved-server delete actions are trash icons on their list
   rows. A saved-server delete opens a confirmation.
 - Primary proceed actions live in the footer: Launch, Initialize, Create, and
@@ -126,7 +127,7 @@ Do not add fake menu controls.
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:21`
 - Continue: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
 - New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:17`
-- Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:22`
+- Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:24`
 - Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:22`
 - Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:22`
 - Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:14`
