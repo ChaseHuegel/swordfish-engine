@@ -6,12 +6,15 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
+using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
@@ -23,6 +26,7 @@ internal sealed class HomePage(
     in GameSaveManager gameSaveManager,
     in CharacterSaveManager characterSaveManager,
     in CharacterAssetService characterAssetService,
+    in ISkillDatabase skillDatabase,
     in ModalMenu modalMenu
 ) : IMenuPage<MenuPage>
 {
@@ -40,6 +44,7 @@ internal sealed class HomePage(
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
     private readonly CharacterAssetService _characterAssetService = characterAssetService;
+    private readonly ISkillDatabase _skillDatabase = skillDatabase;
     private readonly ModalMenu _modalMenu = modalMenu;
 
     private readonly Widgets.ActionButtonOptions _continueButton = MenuButton(ButtonVariant.Primary, soundEffectService);
@@ -192,7 +197,7 @@ internal sealed class HomePage(
             return;
         }
 
-        const int height = 180;
+        const int height = 196;
         using (ui.MenuPanel(Widgets.Rect(x, y, width, height)))
         {
             int padding = 12;
@@ -236,6 +241,15 @@ internal sealed class HomePage(
                 Anchors.Left | Anchors.Center
             );
 
+            TimeSpan age = TimeSpan.FromMilliseconds(save.Level.Playtime.AgeMs);
+            ui.Label(
+                $"{_localization.GetString("ui.label.timePlayed")!}: {_localization.GetLongString(age)}",
+                Widgets.Rect(padding, 106, width - padding * 2, 16),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted,
+                Anchors.Left | Anchors.Center
+            );
+
             if (character != null)
             {
                 Material appearance = _characterAssetService.GetAppearanceMaterial(character.Value);
@@ -244,30 +258,24 @@ internal sealed class HomePage(
                     ui.Constraints = new Constraints
                     {
                         X = new Fixed(padding),
-                        Y = new Fixed(112),
+                        Y = new Fixed(124),
                         Width = new Fixed(64),
                         Height = new Fixed(64),
                     };
                 }
 
                 int textX = padding + 76;
+                int level = character.Value.GetTotalSkillLevel(_skillDatabase);
                 ui.Label(
                     character.Value.Name,
-                    Widgets.Rect(textX, 112, width - textX - padding, 18),
+                    Widgets.Rect(textX, 124, width - textX - padding, 18),
                     UiMetrics.MenuSmallFont,
                     UiTheme.AccentBright,
                     Anchors.Left | Anchors.Center
                 );
                 ui.Label(
-                    $"S:{character.Value.Strength} P:{character.Value.Precision} A:{character.Value.Awareness}",
-                    Widgets.Rect(textX, 132, width - textX - padding, 16),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.Text,
-                    Anchors.Left | Anchors.Center
-                );
-                ui.Label(
-                    $"C:{character.Value.Charisma} E:{character.Value.Education} R:{character.Value.Resolve}",
-                    Widgets.Rect(textX, 150, width - textX - padding, 16),
+                    $"{_localization.GetString("ui.menu.level")!} {level}",
+                    Widgets.Rect(textX, 146, width - textX - padding, 18),
                     UiMetrics.MenuSmallFont,
                     UiTheme.Text,
                     Anchors.Left | Anchors.Center
@@ -277,7 +285,7 @@ internal sealed class HomePage(
             {
                 ui.Label(
                     _localization.GetString("ui.menu.noColonist")!,
-                    Widgets.Rect(padding, 120, width - padding * 2, 18),
+                    Widgets.Rect(padding, 132, width - padding * 2, 18),
                     UiMetrics.MenuSmallFont,
                     UiTheme.TextDim,
                     Anchors.Left | Anchors.Center

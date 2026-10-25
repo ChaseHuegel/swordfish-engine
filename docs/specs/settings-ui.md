@@ -59,8 +59,10 @@ It copies every editable config value when the page opens.
 
 Each entry keeps its baseline value. The page compares the draft against the
 baselines to decide whether changes exist. `Apply Changes` commits the draft,
-saves the configs, and captures new baselines. `Cancel` and Back discard the
-draft. `Reset section to defaults` restores one category.
+saves the configs, and captures new baselines. The footer action reads `Return`
+when there are no pending changes and `Cancel` when there are. Both leave the
+page, and `Cancel` discards the draft. `Reset section to defaults` restores one
+category.
 
 The recommended defaults are in `SettingsDefaults` at
 `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`. Display Mode defaults

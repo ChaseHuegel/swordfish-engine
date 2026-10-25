@@ -163,7 +163,7 @@ internal sealed class SettingsRenderer(
         cancelClicked = _ui.ActionButton(
             "Settings.Cancel",
             cancelRect,
-            L("ui.settings.cancel"),
+            dirty ? L("ui.settings.cancel") : L("ui.button.return"),
             ButtonVariant.Secondary
         );
         applyClicked = _ui.ActionButton(

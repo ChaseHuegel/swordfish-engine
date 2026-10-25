@@ -26,7 +26,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private const int ROW_GAP = 3;
     private const int PANEL_PADDING = 12;
     private const int TABS_HEIGHT = 40;
-    private const int DIRECT_HEIGHT = 108;
+    private const int DIRECT_HEIGHT = 72;
+    private const int DIRECT_ERROR_HEIGHT = 96;
 
     private readonly ClientRpcHost _rpcHost;
     private readonly GameSaveService _gameSaveService;
@@ -45,6 +46,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private bool _favoritesTab = true;
     private int _selectedFavorite;
     private int _selectedLan;
+    private int _pendingRemoveFavorite = -1;
     private string? _errorMessage;
     private bool _scanning;
     private string? _discoverMessage;
@@ -141,7 +143,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             DrawTabs(ui, layout);
 
-            IntRect directRect = Widgets.Rect(0, layout.Right.Bottom - DIRECT_HEIGHT, layout.PageWidth, DIRECT_HEIGHT);
+            int directHeight = _errorMessage != null ? DIRECT_ERROR_HEIGHT : DIRECT_HEIGHT;
+            IntRect directRect = Widgets.Rect(0, layout.Right.Bottom - directHeight, layout.PageWidth, directHeight);
             int tableTop = layout.Right.Top + TABS_HEIGHT;
             IntRect tableRect = Widgets.Rect(
                 0,
@@ -209,9 +212,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         using (ui.MenuPanel(rect, _localization.GetString("ui.menu.serverList")!))
         {
             int contentWidth = rect.Size.X - PANEL_PADDING * 2;
-            int nameWidth = Math.Max(110, (int)(contentWidth * 0.34f));
-            int addressWidth = Math.Max(140, (int)(contentWidth * 0.46f));
-            int playersWidth = Math.Max(50, contentWidth - nameWidth - addressWidth);
+            int deleteWidth = _favoritesTab ? 32 : 0;
+            int tableWidth = contentWidth - deleteWidth;
+            int nameWidth = Math.Max(110, (int)(tableWidth * 0.34f));
+            int addressWidth = Math.Max(140, (int)(tableWidth * 0.46f));
+            int playersWidth = Math.Max(50, tableWidth - nameWidth - addressWidth);
             int headerY = 38;
             int listY = 62;
             int listHeight = Math.Max(0, rect.Size.Y - listY - PANEL_PADDING);
@@ -311,12 +316,41 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                             if (_favoritesTab)
                             {
                                 SavedServer server = _savedServers[index];
-                                DrawServerRow(contentUi, contentWidth, nameWidth, addressWidth, playersWidth, server.Name, $"{server.Host}:{server.Port}", "-");
+                                DrawServerRow(
+                                    contentUi,
+                                    nameWidth,
+                                    addressWidth,
+                                    playersWidth,
+                                    server.Name,
+                                    $"{server.Host}:{server.Port}",
+                                    "-"
+                                );
+
+                                if (contentUi.IconButton(
+                                        $"RemoveSavedServer_{index}",
+                                        Widgets.Rect(contentWidth - 30, 3, 24, 24),
+                                        MenuGlyphs.Trash,
+                                        new Widgets.IconButtonOptions(
+                                            Danger: true,
+                                            SoundEffectService: _soundEffectService
+                                        )
+                                    ))
+                                {
+                                    _pendingRemoveFavorite = index;
+                                }
                             }
                             else
                             {
                                 DiscoveredServer server = _discoveredServers[index];
-                                DrawServerRow(contentUi, contentWidth, nameWidth, addressWidth, playersWidth, server.Name, $"{server.Host}:{server.Port}", server.Players.ToString());
+                                DrawServerRow(
+                                    contentUi,
+                                    nameWidth,
+                                    addressWidth,
+                                    playersWidth,
+                                    server.Name,
+                                    $"{server.Host}:{server.Port}",
+                                    server.Players.ToString()
+                                );
                             }
                         }
                     );
@@ -343,12 +377,17 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 listHeight,
                 _scrollY
             );
+
+            if (_pendingRemoveFavorite >= 0)
+            {
+                RemoveFavoriteAt(_pendingRemoveFavorite);
+                _pendingRemoveFavorite = -1;
+            }
         }
     }
 
     private void DrawServerRow(
         UIBuilder<Material> ui,
-        int contentWidth,
         int nameWidth,
         int addressWidth,
         int playersWidth,
@@ -392,24 +431,34 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     {
         using (ui.MenuPanel(rect))
         {
-            int padding = 12;
+            const int groupWidth = 496;
+            int groupX = (rect.Size.X - groupWidth) / 2;
+            int rowY = _errorMessage != null ? 14 : 20;
+
             ui.Label(
                 _localization.GetString("ui.menu.directConnect")!,
-                Widgets.Rect(padding, 8, rect.Size.X - padding * 2, 16),
+                Widgets.Rect(groupX, rowY, 124, UiMetrics.ControlHeight),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
 
-            int inputY = 30;
-            int inputGroupWidth = 366;
-            int inputGroupX = (rect.Size.X - inputGroupWidth) / 2;
+            if (ui.IconButton(
+                    "Button_SaveServer",
+                    Widgets.Rect(groupX + 132, rowY, UiMetrics.ControlHeight, UiMetrics.ControlHeight),
+                    MenuGlyphs.Star,
+                    new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
+                ))
+            {
+                AddCurrentServer();
+            }
+
             using (ui.Element())
             {
-                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(inputGroupX, inputY, 200, UiMetrics.ControlHeight));
+                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(groupX + 172, rowY, 156, UiMetrics.ControlHeight));
                 ui.ClipConstraints = new Constraints
                 {
-                    Width = new Fixed(200),
+                    Width = new Fixed(156),
                     Height = new Fixed(UiMetrics.ControlHeight),
                 };
                 ui.TextBox("TextBox_Host", ref _hostTextBox, new FontOptions { Size = UiMetrics.MenuSmallFont }, _inputService, out Widgets.Interactions hostInteractions);
@@ -421,10 +470,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             using (ui.Element())
             {
-                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(inputGroupX + 208, inputY, 70, UiMetrics.ControlHeight));
+                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(groupX + 336, rowY, 60, UiMetrics.ControlHeight));
                 ui.ClipConstraints = new Constraints
                 {
-                    Width = new Fixed(70),
+                    Width = new Fixed(60),
                     Height = new Fixed(UiMetrics.ControlHeight),
                 };
                 ui.TextBox("TextBox_Port", ref _portTextBox, new FontOptions { Size = UiMetrics.MenuSmallFont }, _inputService, out Widgets.Interactions portInteractions);
@@ -436,7 +485,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             if (ui.ActionButton(
                     "Button_Connect",
-                    Widgets.Rect(inputGroupX + 286, inputY, 80, UiMetrics.ControlHeight),
+                    Widgets.Rect(groupX + 404, rowY, 92, UiMetrics.ControlHeight),
                     _localization.GetString("ui.button.connect")!,
                     ButtonVariant.Primary,
                     soundEffectService: _soundEffectService
@@ -445,37 +494,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 TryConnect(menu);
             }
 
-            int buttonY = rect.Size.Y - 40;
-            int buttonGroupWidth = 286;
-            int buttonGroupX = (rect.Size.X - buttonGroupWidth) / 2;
-            if (ui.ActionButton(
-                    "Button_SaveServer",
-                    Widgets.Rect(buttonGroupX, buttonY, 160, 28),
-                    _localization.GetString("ui.savedServer.add")!,
-                    ButtonVariant.Subtle,
-                    soundEffectService: _soundEffectService
-                ))
-            {
-                AddCurrentServer();
-            }
-
-            if (_favoritesTab && _savedServers.Count > 0 && ui.ActionButton(
-                    "Button_RemoveSavedServer",
-                    Widgets.Rect(buttonGroupX + 176, buttonY, 110, 28),
-                    _localization.GetString("ui.savedServer.remove")!,
-                    ButtonVariant.Danger,
-                    _selectedFavorite >= 0 && _selectedFavorite < _savedServers.Count,
-                    soundEffectService: _soundEffectService
-                ))
-            {
-                RemoveSelectedServer();
-            }
-
             if (_errorMessage != null)
             {
                 ui.Label(
                     _errorMessage,
-                    Widgets.Rect(padding + 130, 8, rect.Size.X - padding * 2 - 130, 16),
+                    Widgets.Rect(groupX, rect.Size.Y - 24, groupWidth, 16),
                     UiMetrics.MenuSmallFont,
                     UiTheme.Danger,
                     Anchors.Left | Anchors.Center
@@ -600,14 +623,14 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _errorMessage = null;
     }
 
-    private void RemoveSelectedServer()
+    private void RemoveFavoriteAt(int index)
     {
-        if (_selectedFavorite < 0 || _selectedFavorite >= _savedServers.Count)
+        if (index < 0 || index >= _savedServers.Count)
         {
             return;
         }
 
-        _savedServers.RemoveAt(_selectedFavorite);
+        _savedServers.RemoveAt(index);
         _selectedFavorite = Math.Clamp(_selectedFavorite, 0, Math.Max(0, _savedServers.Count - 1));
         PersistSavedServers();
     }

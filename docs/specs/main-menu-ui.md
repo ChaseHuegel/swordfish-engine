@@ -53,7 +53,8 @@ content stays unchanged.
 - `Tab` covers narrow pane switching, Favorites/LAN Discovery, and attached
   section tabs.
 - `InfoBox` covers the sector and stat descriptions.
-- Archive and crew delete actions are trash icons on their list rows.
+- Archive, crew, and saved-server delete actions are trash icons on their list
+  rows.
 - Primary proceed actions live in the footer: Launch, Initialize, Create, and
   Join Server.
 
@@ -70,9 +71,12 @@ The mockup uses galaxy terminology. The game stores levels and characters.
 - Favorites is `ProfileSettings.SavedServers`.
 - LAN Discovery is `LanDiscoveryService`.
 - The server table shows only real fields: name, address, and players.
+- Direct Connect keeps the host, port, Connect action, and a star icon for saving
+  the current endpoint. Saved-server removal is a trash icon on the row.
 
 Continue shows a hover card with the active or most recent archive, its mode,
-seed, last played time, and the active colonist's S.P.A.C.E.R values.
+seed, last played time, time played, and the active colonist's combined skill
+level. The combined level is the sum of every recorded skill's resolved level.
 
 ## Omitted controls
 
