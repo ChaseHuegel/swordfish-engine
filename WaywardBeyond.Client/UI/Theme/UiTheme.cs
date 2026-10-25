@@ -5,7 +5,7 @@ namespace WaywardBeyond.Client.UI.Theme;
 /// <summary>Semantic colors shared by all game UI.</summary>
 internal static class UiTheme
 {
-    public const string FontUI = "monogram-extended";
+    public const string FontUI = "Salmon Mono 9 Regular";
     public const string FontIcons = "Font Awesome 6 Free Solid";
     public const string FontBrands = "Font Awesome 6 Free Brands";
 
