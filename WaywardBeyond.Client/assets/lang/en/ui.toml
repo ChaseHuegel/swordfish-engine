@@ -30,6 +30,8 @@
 
 "ui.menu.confirm" = "Are you sure?"
 "ui.menu.confirmBody" = "This action cannot be undone."
+"ui.menu.removeFavorite" = "Remove Favorite?"
+"ui.menu.removeFavoriteBody" = "Remove {0} from your favorites?"
 
 "ui.button.submit" = "Submit"
 "ui.button.back" = "Back"
@@ -38,6 +40,8 @@
 "ui.button.next" = "Next"
 "ui.button.yes" = "Yes"
 "ui.button.no" = "No"
+"ui.button.remove" = "Remove"
+"ui.button.cancel" = "Cancel"
 "ui.button.ok" = "Ok"
 
 "ui.button.selectSave" = "Continue"
@@ -210,13 +214,14 @@
 "ui.field.bodyPreset" = "Body preset"
 "ui.menu.subspaceComms" = "Subspace Comms"
 "ui.menu.favorites" = "Favorites"
+"ui.button.addFavorite" = "Add favorite"
 "ui.menu.lanDiscovery" = "LAN Discovery"
 "ui.menu.serverList" = "Server List"
 "ui.menu.serverName" = "Server name"
 "ui.menu.address" = "Address"
 "ui.menu.players" = "Players"
 "ui.menu.ping" = "Ping"
-"ui.menu.directConnect" = "Direct connect"
+"ui.menu.directConnect" = "Direct Connect"
 "ui.field.strength.desc" = "Physical power and carrying capacity."
 "ui.field.precision.desc" = "Fine motor control and accuracy."
 "ui.field.awareness.desc" = "Perception and environmental awareness."
