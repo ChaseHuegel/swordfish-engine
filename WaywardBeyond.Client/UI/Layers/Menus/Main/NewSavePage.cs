@@ -172,10 +172,13 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 menu.GoToPage(MenuPage.Home);
             }
 
+            string currentName = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
+            bool duplicateName = _gameSaveService.GetSaves().Any(save => save.Name == currentName);
+            bool canInitialize = !string.IsNullOrWhiteSpace(currentName) && !duplicateName;
             if (ui.ActionButton(
                     "Button_Initialize",
                     _localization.GetString("ui.button.initialize")!,
-                    _initializeButton with { Rect = layout.PrimaryButton }
+                    _initializeButton with { Rect = layout.PrimaryButton, Enabled = canInitialize }
                 ))
             {
                 TryCreate();
@@ -213,16 +216,25 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
     private void DrawInitialization(UIBuilder<Material> ui, IntRect rect)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.sectorInitialization")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.sectorInitialization")!))
         {
             int padding = 20;
             int x = padding;
             const int inputWidth = 300;
-            int inputY = 44;
+            int formOffset = Math.Min(60, Math.Max(0, (rect.Size.Y - 190) / 2 - 38));
+            int inputY = 54 + formOffset;
+
+            ui.Label(
+                _localization.GetString("ui.menu.sectorInitHint")!,
+                Widgets.Rect(x, 50, rect.Size.X - padding * 2, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted,
+                Anchors.Left | Anchors.Center
+            );
 
             ui.Label(
                 _localization.GetString("ui.field.galaxyName")!,
-                Widgets.Rect(x, 30, 120, 18),
+                Widgets.Rect(x, 38 + formOffset, 160, 16),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
@@ -251,10 +263,10 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 RandomizeName();
             }
 
-            int seedY = 92;
+            int seedY = 100 + formOffset;
             ui.Label(
                 _localization.GetString("ui.field.worldSeed")!,
-                Widgets.Rect(x, 78, 120, 18),
+                Widgets.Rect(x, 86 + formOffset, 160, 16),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
@@ -284,14 +296,10 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 _seedTextBox.Text.Append(Random.Shared.NextInt64());
             }
 
-            int errorY = 136;
+            int errorY = 148 + formOffset;
             string saveName = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
             string? error = _createError;
-            if (error == null && string.IsNullOrWhiteSpace(saveName))
-            {
-                error = _localization.GetString("ui.notification.name.required");
-            }
-            else if (error == null && _gameSaveService.GetSaves().Any(save => save.Name == saveName))
+            if (error == null && !string.IsNullOrWhiteSpace(saveName) && _gameSaveService.GetSaves().Any(save => save.Name == saveName))
             {
                 error = _localization.GetString("ui.notification.name.taken");
             }
@@ -306,12 +314,24 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     Anchors.Left | Anchors.Center
                 );
             }
+
+            int infoY = errorY + 30;
+            int infoHeight = Math.Min(120, Math.Max(0, rect.Size.Y - infoY - 20));
+            if (infoHeight >= 64)
+            {
+                ui.InfoBox(
+                    Widgets.Rect(padding, infoY, rect.Size.X - padding * 2, infoHeight),
+                    _localization.GetString("ui.menu.info")!,
+                    _localization.GetString("ui.menu.sectorInitInfo")!,
+                    bodyFontSize: UiMetrics.MenuBodyFont
+                );
+            }
         }
     }
 
     private void DrawDossier(UIBuilder<Material> ui, IntRect rect)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.sectorDossier")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.sectorDossier")!))
         {
             int padding = 20;
             string name = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
@@ -322,39 +342,81 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
             ui.Label(
                 name,
-                Widgets.Rect(padding, 36, rect.Size.X - padding * 2, 26),
+                Widgets.Rect(padding, 42, rect.Size.X - padding * 2, 26),
                 UiMetrics.MenuTitleFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 $"{_localization.GetString("ui.menu.mode")!}: CREATIVE",
-                Widgets.Rect(padding, 70, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 76, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 $"{_localization.GetString("ui.menu.seed")!}: {(_seedTextBox.Text.Length > 0 ? _seedTextBox.Text.ToString() : _localization.GetString("ui.field.random"))}",
-                Widgets.Rect(padding, 90, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 96, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 $"{_localization.GetString("ui.menu.generation")!}: {_localization.GetString("ui.menu.procedural")!}",
-                Widgets.Rect(padding, 110, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 116, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
 
-            ui.InfoBox(
-                Widgets.Rect(padding, 144, rect.Size.X - padding * 2, 126),
-                _localization.GetString("ui.menu.sectorInfoTitle")!,
-                _localization.GetString("ui.menu.sectorInfoBody")!,
-                _localization.GetString("ui.menu.sectorInfoPrefix")
+            ui.Divider(
+                Widgets.Rect(padding, 150, rect.Size.X - padding * 2, 1),
+                UiTheme.Border
             );
+            int signatureY = Math.Max(160, (rect.Size.Y - 120) / 2);
+            ui.Label(
+                _localization.GetString("ui.menu.sectorSignature")!,
+                Widgets.Rect(padding, signatureY, rect.Size.X - padding * 2, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted,
+                Anchors.Left | Anchors.Center
+            );
+
+            using (ui.Element())
+            {
+                ui.Color = UiTheme.PanelInner;
+                ui.Border = new BorderStyle
+                {
+                    Thickness = UiMetrics.PanelBorderThickness,
+                    Color = UiTheme.Border,
+                };
+                ui.Constraints = Widgets.RectConstraints(
+                    Widgets.Rect(padding, signatureY + 26, rect.Size.X - padding * 2, 72)
+                );
+            }
+            string signature = _seedTextBox.Text.Length > 0
+                ? _seedTextBox.Text.ToString()
+                : _localization.GetString("ui.field.random")!;
+            ui.Label(
+                signature,
+                Widgets.Rect(padding, 186, rect.Size.X - padding * 2, 72),
+                UiMetrics.MenuBodyFont,
+                UiTheme.AccentBright,
+                Anchors.Center
+            );
+
+            int infoY = Math.Max(272, rect.Size.Y - 128);
+            int infoHeight = Math.Max(0, Math.Min(112, rect.Size.Y - infoY - 8));
+            if (infoHeight >= 64)
+            {
+                ui.InfoBox(
+                    Widgets.Rect(padding, infoY, rect.Size.X - padding * 2, infoHeight),
+                    _localization.GetString("ui.menu.sectorInfoTitle")!,
+                    _localization.GetString("ui.menu.sectorInfoBody")!,
+                    _localization.GetString("ui.menu.sectorInfoPrefix"),
+                    bodyFontSize: UiMetrics.MenuBodyFont
+                );
+            }
         }
     }
 
@@ -377,7 +439,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Height = new Fixed(layout.PageHeight),
             };
 
-            using (ui.BracketPanel(layout.Right, _localization.GetString("ui.menu.sectorInitialization")!))
+            using (ui.MenuPanel(layout.Right, _localization.GetString("ui.menu.sectorInitialization")!))
             {
                 ui.Label(
                     _localization.GetString("ui.menu.creatingSector")!,

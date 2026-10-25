@@ -26,7 +26,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private const int ROW_GAP = 3;
     private const int PANEL_PADDING = 12;
     private const int TABS_HEIGHT = 40;
-    private const int DIRECT_HEIGHT = 100;
+    private const int DIRECT_HEIGHT = 108;
 
     private readonly ClientRpcHost _rpcHost;
     private readonly GameSaveService _gameSaveService;
@@ -112,7 +112,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         MenuLayout layout = MenuLayout.Compute(
             ui.Width,
             ui.Height,
-            maxPageWidth: 960,
+            maxPageWidth: 1160,
             twoColumn: false
         );
 
@@ -206,14 +206,14 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private void DrawServerTable(UIBuilder<Material> ui, IntRect rect)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.serverList")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.serverList")!))
         {
             int contentWidth = rect.Size.X - PANEL_PADDING * 2;
-            int nameWidth = Math.Max(110, (int)(contentWidth * 0.36f));
-            int addressWidth = Math.Max(110, (int)(contentWidth * 0.34f));
+            int nameWidth = Math.Max(110, (int)(contentWidth * 0.34f));
+            int addressWidth = Math.Max(140, (int)(contentWidth * 0.46f));
             int playersWidth = Math.Max(50, contentWidth - nameWidth - addressWidth);
-            int headerY = 30;
-            int listY = 48;
+            int headerY = 38;
+            int listY = 62;
             int listHeight = Math.Max(0, rect.Size.Y - listY - PANEL_PADDING);
 
             ui.Label(
@@ -237,12 +237,12 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
-            ui.Divider(Widgets.Rect(PANEL_PADDING, 44, contentWidth, 1), UiTheme.Border);
+            ui.Divider(Widgets.Rect(PANEL_PADDING, 56, contentWidth, 1), UiTheme.Border);
 
             if (!_favoritesTab && ui.ActionButton(
                     "Button_Scan",
-                    Widgets.Rect(rect.Size.X - PANEL_PADDING - 80, 8, 80, 24),
-                    _localization.GetString("ui.button.scan")!,
+                    Widgets.Rect(rect.Size.X - PANEL_PADDING - 80, 6, 80, 22),
+                    _localization.GetString("ui.button.scanShort")!,
                     ButtonVariant.Secondary,
                     !_scanning,
                     soundEffectService: _soundEffectService
@@ -285,6 +285,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             using (ui.Element())
             {
+                ui.LayoutDirection = LayoutDirection.None;
                 ui.Color = UiTheme.Transparent;
                 ui.Constraints = Widgets.RectConstraints(Widgets.Rect(PANEL_PADDING, listY, contentWidth, listHeight));
                 ui.ClipConstraints = new Constraints
@@ -389,16 +390,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private void DrawDirectConnect(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
     {
-        using (ui.Panel(
-                   rect,
-                   UiTheme.PanelBackground,
-                   new BorderStyle
-                   {
-                       Thickness = UiMetrics.PanelBorderThickness,
-                       Color = UiTheme.Border,
-                   },
-                   caps: default
-               ))
+        using (ui.MenuPanel(rect))
         {
             int padding = 12;
             ui.Label(
@@ -409,7 +401,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 Anchors.Left | Anchors.Center
             );
 
-            int inputY = 28;
+            int inputY = 30;
             using (ui.Element())
             {
                 ui.Constraints = Widgets.RectConstraints(Widgets.Rect(padding, inputY, 200, UiMetrics.ControlHeight));
@@ -454,7 +446,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             int buttonY = rect.Size.Y - 40;
             if (ui.ActionButton(
                     "Button_SaveServer",
-                    Widgets.Rect(padding, buttonY, 130, 28),
+                    Widgets.Rect(padding, buttonY, 160, 28),
                     _localization.GetString("ui.savedServer.add")!,
                     ButtonVariant.Subtle,
                     soundEffectService: _soundEffectService
@@ -465,7 +457,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             if (_favoritesTab && _savedServers.Count > 0 && ui.ActionButton(
                     "Button_RemoveSavedServer",
-                    Widgets.Rect(rect.Size.X - padding - 120, buttonY, 120, 28),
+                    Widgets.Rect(rect.Size.X - padding - 110, buttonY, 110, 28),
                     _localization.GetString("ui.savedServer.remove")!,
                     ButtonVariant.Danger,
                     _selectedFavorite >= 0 && _selectedFavorite < _savedServers.Count,
@@ -479,10 +471,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             {
                 ui.Label(
                     _errorMessage,
-                    Widgets.Rect(padding + 300, 8, rect.Size.X - padding * 2 - 300, 16),
+                    Widgets.Rect(padding + 130, 8, rect.Size.X - padding * 2 - 130, 16),
                     UiMetrics.MenuSmallFont,
                     UiTheme.Danger,
-                    Anchors.Right | Anchors.Center
+                    Anchors.Left | Anchors.Center
                 );
             }
         }

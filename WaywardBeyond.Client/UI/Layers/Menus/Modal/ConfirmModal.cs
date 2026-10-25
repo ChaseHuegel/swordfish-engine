@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
@@ -21,69 +22,91 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
 
     private readonly ConcurrentStack<Action> _actions = new();
 
-    private readonly Widgets.ActionButtonOptions _secondaryButton = CompactButton(ButtonVariant.Secondary, soundEffectService);
-    private readonly Widgets.ActionButtonOptions _primaryButton = CompactButton(ButtonVariant.Primary, soundEffectService);
-
-    private static Widgets.ActionButtonOptions CompactButton(ButtonVariant variant, SoundEffectService soundEffectService)
-    {
-        return Widgets.ActionButtonOptions.Compact(variant, soundEffectService) with
-        {
-            Anchors = Anchors.Center,
-        };
-    }
+    private readonly Widgets.ActionButtonOptions _secondaryButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Secondary,
+        soundEffectService
+    );
+    private readonly Widgets.ActionButtonOptions _primaryButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Danger,
+        soundEffectService
+    );
 
     public Modal ID => Modal;
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        ui.Constraints = new Constraints
-        {
-            Anchors = Anchors.Center,
-        };
+        const int panelWidth = 520;
+        const int panelHeight = 250;
 
         using (ui.Element())
         {
             ui.Color = UiTheme.Scrim;
-
-            ui.LayoutDirection = LayoutDirection.Vertical;
-
-            ui.Padding = new Padding
+            ui.Constraints = new Constraints
             {
-                Left = 20,
-                Top = 20,
-                Right = 20,
-                Bottom = 20,
+                Width = new Fill(),
+                Height = new Fill(),
             };
 
             using (ui.Element())
             {
-                using (ui.Text(_localization.GetString("ui.menu.confirm")!))
-                {
-                    ui.FontSize = UiMetrics.TitleFont;
-                    ui.Color = UiTheme.Text;
-                }
-            }
-
-            using (ui.Element())
-            {
-                ui.Spacing = 40;
+                ui.LayoutDirection = LayoutDirection.None;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
+                    Width = new Fixed(panelWidth),
+                    Height = new Fixed(panelHeight),
+                };
+                ui.ClipConstraints = new Constraints
+                {
+                    Width = new Fixed(panelWidth),
+                    Height = new Fixed(panelHeight),
                 };
 
-                using (ui.Element())
+                using (ui.MenuPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
                 {
-                    if (ui.ActionButton("Button_No", _localization.GetString("ui.button.no")!, _secondaryButton))
+                    int padding = 28;
+                    int contentWidth = panelWidth - padding * 2;
+
+                    ui.Label(
+                        _localization.GetString("ui.menu.confirm")!,
+                        Widgets.Rect(padding, 22, contentWidth, 30),
+                        UiMetrics.MenuTitleFont,
+                        UiTheme.Text,
+                        Anchors.Center
+                    );
+                    ui.Divider(
+                        Widgets.Rect(padding, 62, contentWidth, 1),
+                        UiTheme.Border
+                    );
+                    ui.Paragraph(
+                        _localization.GetString("ui.menu.confirmBody")!,
+                        Widgets.Rect(padding, 86, contentWidth, 56),
+                        UiMetrics.MenuBodyFont,
+                        UiTheme.TextMuted
+                    );
+
+                    int buttonY = panelHeight - 68;
+                    if (ui.ActionButton(
+                            "Button_No",
+                            _localization.GetString("ui.button.no")!,
+                            _secondaryButton with
+                            {
+                                Rect = Widgets.Rect(padding, buttonY, 180, UiMetrics.IconButtonSize),
+                            }
+                        ))
                     {
                         _actions.TryPop(out _);
                         menu.GoBack();
                     }
-                }
 
-                using (ui.Element())
-                {
-                    if (ui.ActionButton("Button_Yes", _localization.GetString("ui.button.yes")!, _primaryButton))
+                    if (ui.ActionButton(
+                            "Button_Yes",
+                            _localization.GetString("ui.button.yes")!,
+                            _primaryButton with
+                            {
+                                Rect = Widgets.Rect(panelWidth - padding - 180, buttonY, 180, UiMetrics.IconButtonSize),
+                            }
+                        ))
                     {
                         if (_actions.TryPop(out Action? action))
                         {
@@ -101,9 +124,9 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
                     }
                 }
             }
-
-            return Result.FromSuccess();
         }
+
+        return Result.FromSuccess();
     }
 
     public Modal Create(Action action)

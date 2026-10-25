@@ -37,14 +37,7 @@ internal static class UiMetrics
     public const int ListRowMinWidth = 420;
     public const int ListRowHeight = 36;
     public const int ListRowPaddingX = 12;
-    public const int MenuFooterHeight = 52;
-    public const int MenuTabHeight = 40;
-    public const int MenuPanelPadding = 20;
-    public const int MenuPanelGap = 20;
-    public const int BracketCapLength = 12;
-    public const int BracketCapThickness = 3;
     public const int InfoBoxTitleFont = 12;
-    public const int StatRowHeight = 32;
 
     public const int StepperArrowWidth = 32;
     public const int SliderButtonSize = 24;

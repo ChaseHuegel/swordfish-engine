@@ -15,7 +15,8 @@ internal static partial class Widgets
         IntRect rect,
         string title,
         string body,
-        string? highlightPrefix = null
+        string? highlightPrefix = null,
+        int bodyFontSize = 0
     )
     {
         using (ui.Element())
@@ -25,7 +26,7 @@ internal static partial class Widgets
             ui.Border = new BorderStyle
             {
                 Thickness = UiMetrics.PanelBorderThickness,
-                Color = UiTheme.BorderHover,
+                Color = UiTheme.Border,
             };
             ui.Constraints = RectConstraints(rect);
             ui.ClipConstraints = RectConstraints(rect);
@@ -46,7 +47,7 @@ internal static partial class Widgets
             ui.Paragraph(
                 bodyText,
                 Rect(10, 27, Math.Max(0, rect.Size.X - 20), Math.Max(0, rect.Size.Y - 35)),
-                UiMetrics.MenuSmallFont,
+                bodyFontSize > 0 ? bodyFontSize : UiMetrics.MenuSmallFont,
                 UiTheme.Text
             );
         }

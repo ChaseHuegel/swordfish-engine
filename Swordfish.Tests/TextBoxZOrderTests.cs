@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using Reef;
+using Reef.Constraints;
 using Reef.Text;
 using Reef.UI;
 using Swordfish.Graphics;
@@ -73,6 +74,55 @@ public class TextBoxZOrderTests
         Assert.True(textIndex >= 0);
         Assert.True(caretIndex >= 0);
         Assert.True(textIndex < caretIndex);
+    }
+
+    [Fact]
+    public void RelativeTextBoxFillsItsParent()
+    {
+        var controller = new UIController();
+        var ui = new UIBuilder<Material>(200, 100, new StubTextEngine(), controller);
+        var state = new TextBoxState(
+            "Hello",
+            new TextBoxState.Options(
+                Constraints: new Constraints
+                {
+                    Width = new Relative(1f),
+                    Height = new Relative(1f),
+                }
+            )
+        );
+
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Width = new Fixed(240),
+                Height = new Fixed(140),
+            };
+            using (ui.Element())
+            {
+                ui.Constraints = new Constraints
+                {
+                    X = new Fixed(20),
+                    Y = new Fixed(30),
+                    Width = new Fixed(200),
+                    Height = new Fixed(80),
+                };
+                ui.ClipConstraints = new Constraints
+                {
+                    Width = new Fixed(200),
+                    Height = new Fixed(80),
+                };
+                ui.TextBox("relative", ref state, new FontOptions { Size = 20 }, new FakeInputService(), out _);
+            }
+        }
+
+        List<RenderCommand<Material>> commands = ui.Build(delta: 0f);
+        int index = FindId(commands, "relative");
+
+        Assert.True(index >= 0);
+        Assert.Equal(200, commands[index].Rect.Size.X);
+        Assert.Equal(80, commands[index].Rect.Size.Y);
     }
 
     private static List<RenderCommand<Material>> RenderAndBuild(UIBuilder<Material> ui, ref TextBoxState state, double delta)

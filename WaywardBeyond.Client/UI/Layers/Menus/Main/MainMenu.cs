@@ -91,36 +91,39 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
 
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        using (ui.Element())
+        if (GetCurrentPage() == MenuPage.Home)
         {
-            ui.Padding = new Padding(20);
-            ui.Constraints = new Constraints
+            using (ui.Element())
             {
-                Anchors = Anchors.Bottom | Anchors.Left,
-            };
+                ui.Padding = new Padding(20);
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Bottom | Anchors.Left,
+                };
 
-            if (ui.ActionButton("Button_Feedback", _localization.GetString("ui.menu.feedback")!, _feedbackButton))
-            {
-                _modalMenu.GoToPage(FeedbackModal.Modal);
-            }
-        }
-
-        using (ui.Element())
-        {
-            ui.Padding = new Padding(20);
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Bottom | Anchors.Right,
-            };
-
-            if (ui.ActionButton("Button_Discord", MenuGlyphs.Discord, _brandIconButton))
-            {
-                Task.Run(_externalAppService.TryOpenDiscordAsync);
+                if (ui.ActionButton("Button_Feedback", _localization.GetString("ui.menu.feedback")!, _feedbackButton))
+                {
+                    _modalMenu.GoToPage(FeedbackModal.Modal);
+                }
             }
 
-            if (ui.ActionButton("Button_Steam", MenuGlyphs.Steam, _brandIconButton))
+            using (ui.Element())
             {
-                Task.Run(_externalAppService.TryOpenSteamAsync);
+                ui.Padding = new Padding(20);
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Bottom | Anchors.Right,
+                };
+
+                if (ui.ActionButton("Button_Discord", MenuGlyphs.Discord, _brandIconButton))
+                {
+                    Task.Run(_externalAppService.TryOpenDiscordAsync);
+                }
+
+                if (ui.ActionButton("Button_Steam", MenuGlyphs.Steam, _brandIconButton))
+                {
+                    Task.Run(_externalAppService.TryOpenSteamAsync);
+                }
             }
         }
 

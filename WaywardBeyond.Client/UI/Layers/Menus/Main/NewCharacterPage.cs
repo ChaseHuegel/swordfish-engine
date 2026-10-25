@@ -151,10 +151,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 menu.GoToPage(MenuPage.SelectCharacter);
             }
 
+            string currentName = CharacterNames.Clamp(_nameTextBox.Text.ToString().Trim(_characterNameTrimChars));
+            bool canCreate = !string.IsNullOrWhiteSpace(currentName)
+                && !_characterStorage.GetAllCharacters().Any(character => character.Name == currentName);
             if (ui.ActionButton(
                     "Button_CreateCharacter",
                     _localization.GetString("ui.button.createCharacter")!,
-                    _createButton with { Rect = layout.PrimaryButton }
+                    _createButton with { Rect = layout.PrimaryButton, Enabled = canCreate }
                 ))
             {
                 TryCreate(menu);
@@ -190,14 +193,14 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
     private void DrawIdentity(UIBuilder<Material> ui, IntRect rect)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.colonistIdentity")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.colonistIdentity")!))
         {
             int padding = 20;
             const int inputWidth = 300;
 
             ui.Label(
-                _localization.GetString("ui.field.characterName")!,
-                Widgets.Rect(padding, 30, rect.Size.X - padding * 2, 18),
+                _localization.GetString("ui.field.characterNameLabel")!,
+                Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 16),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
@@ -205,7 +208,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             using (ui.Element())
             {
-                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(padding, 44, inputWidth, UiMetrics.ControlHeight));
+                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(padding, 54, inputWidth, UiMetrics.ControlHeight));
                 ui.ClipConstraints = new Constraints
                 {
                     Width = new Fixed(inputWidth),
@@ -216,7 +219,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             if (ui.ActionButton(
                     "Button_RandomName",
-                    Widgets.Rect(padding + inputWidth + 8, 44, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
+                    Widgets.Rect(padding + inputWidth + 8, 54, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
                     MenuGlyphs.Dice,
                     ButtonVariant.Secondary,
                     fontId: UiTheme.FontIcons,
@@ -226,8 +229,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 RandomizeName();
             }
 
-            int boxWidth = 140;
-            int boxHeight = 160;
+            int boxWidth = 208;
+            int boxHeight = 208;
             int boxX = (rect.Size.X - boxWidth) / 2;
             int boxY = 96;
             using (ui.Element())
@@ -248,10 +251,10 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             {
                 ui.Constraints = new Constraints
                 {
-                    X = new Fixed(boxX + (boxWidth - 100) / 2),
-                    Y = new Fixed(boxY + 12),
-                    Width = new Fixed(100),
-                    Height = new Fixed(136),
+                    X = new Fixed(boxX + (boxWidth - 192) / 2),
+                    Y = new Fixed(boxY + 8),
+                    Width = new Fixed(192),
+                    Height = new Fixed(192),
                 };
             }
 
@@ -301,32 +304,42 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 UiTheme.AccentBright,
                 Anchors.Center
             );
+
+            if (rect.Size.Y > 430)
+            {
+                ui.Paragraph(
+                    _localization.GetString("ui.menu.bodyPresetInfo")!,
+                    Widgets.Rect(padding, rect.Size.Y - 64, rect.Size.X - padding * 2, 60),
+                    UiMetrics.MenuSmallFont,
+                    UiTheme.TextMuted
+                );
+            }
         }
     }
 
     private void DrawEvaluation(UIBuilder<Material> ui, IntRect rect)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.spacerEvaluation")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.spacerEvaluation")!))
         {
             int padding = 16;
 
             ui.Label(
                 _localization.GetString("ui.field.spacer.points")!,
-                Widgets.Rect(padding, 30, rect.Size.X - padding * 2 - 48, 20),
+                Widgets.Rect(padding, 38, rect.Size.X - padding * 2 - 48, 20),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 _spacerPoints.ToString(),
-                Widgets.Rect(rect.Size.X - padding - 44, 30, 36, 20),
+                Widgets.Rect(rect.Size.X - padding - 76, 38, 36, 20),
                 UiMetrics.MenuBodyFont,
                 UiTheme.Primary,
                 Anchors.Right | Anchors.Center
             );
             if (ui.ActionButton(
                     "Button_RandomPoints",
-                    Widgets.Rect(rect.Size.X - padding - 32, 24, 32, 32),
+                    Widgets.Rect(rect.Size.X - padding - 32, 32, 32, 32),
                     MenuGlyphs.Dice,
                     ButtonVariant.Secondary,
                     fontId: UiTheme.FontIcons,
@@ -336,7 +349,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 RandomizePoints();
             }
 
-            int rowY = 66;
+            int rowY = 74;
             DrawStatRow(ui, rect, 0, _localization.GetString("ui.field.strength")!, "S", _strength, padding, rowY);
             DrawStatRow(ui, rect, 1, _localization.GetString("ui.field.precision")!, "P", _precision, padding, rowY + 34);
             DrawStatRow(ui, rect, 2, _localization.GetString("ui.field.awareness")!, "A", _awareness, padding, rowY + 68);
@@ -362,6 +375,30 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 _localization.GetString("ui.field.education")!,
                 _localization.GetString("ui.field.resolve")!,
             ];
+
+            if (rect.Size.Y > 430)
+            {
+                int total = _strength + _precision + _awareness + _charisma + _education + _resolve;
+                int summaryY = rect.Size.Y - 154;
+                ui.Divider(
+                    Widgets.Rect(padding, summaryY, rect.Size.X - padding * 2, 1),
+                    UiTheme.Border
+                );
+                ui.Label(
+                    _localization.GetString("ui.menu.spacerTotal")!,
+                    Widgets.Rect(padding, summaryY + 10, rect.Size.X - padding * 2 - 80, 20),
+                    UiMetrics.MenuSmallFont,
+                    UiTheme.TextMuted,
+                    Anchors.Left | Anchors.Center
+                );
+                ui.Label(
+                    total.ToString(),
+                    Widgets.Rect(rect.Size.X - padding - 80, summaryY + 10, 80, 20),
+                    UiMetrics.MenuBodyFont,
+                    UiTheme.AccentBright,
+                    Anchors.Right | Anchors.Center
+                );
+            }
 
             int infoY = Math.Max(272, rect.Size.Y - 112);
             ui.InfoBox(
@@ -411,10 +448,10 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     ui.Color = UiTheme.Primary;
                     ui.Constraints = new Constraints
                     {
-                        X = new Fixed(padding - 6),
-                        Y = new Fixed(y + 7),
-                        Width = new Fixed(4),
-                        Height = new Fixed(4),
+                        X = new Fixed(padding - 8),
+                        Y = new Fixed(y + 6),
+                        Width = new Fixed(6),
+                        Height = new Fixed(6),
                     };
                 }
             }

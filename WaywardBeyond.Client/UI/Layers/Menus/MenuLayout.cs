@@ -24,7 +24,7 @@ internal readonly record struct MenuLayout(
     private const int TABS_HEIGHT = 40;
     private const int MIN_PAGE_WIDTH = 480;
     private const int MIN_PAGE_HEIGHT = 360;
-    private const int MAX_PAGE_HEIGHT = 720;
+    private const int MAX_PAGE_HEIGHT = 560;
     private const int NARROW_BREAKPOINT = 900;
     private const int MIN_LEFT_WIDTH = 280;
     private const int MIN_RIGHT_WIDTH = 320;

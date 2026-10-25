@@ -62,7 +62,7 @@
       <Compile Update="UI\Widgets\Widgets.Text.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets\Widgets.BracketPanel.cs">
+      <Compile Update="UI\Widgets\Widgets.MenuPanel.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
       <Compile Update="UI\Widgets\Widgets.InfoBox.cs">

@@ -45,6 +45,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     private readonly ProfileSettings _profileSettings;
 
     private readonly Widgets.ActionButtonOptions _returnButton;
+    private readonly Widgets.ActionButtonOptions _launchButton;
 
     private bool _remoteConnectTried;
     private long _lastRenderMs;
@@ -82,6 +83,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         _profileSettings = profileSettings;
 
         _returnButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
+        _launchButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
     }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
@@ -95,7 +97,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             ui.Height,
             maxPageWidth: 1160,
             twoColumn: true,
-            leftRatio: 0.34f
+            leftRatio: 0.37f
         );
 
         using (ui.Element())
@@ -122,18 +124,29 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 }
                 else
                 {
-                    DrawTelemetry(ui, layout.Right, menu);
+                    DrawTelemetry(ui, layout.Right);
                 }
             }
             else
             {
                 DrawArchives(ui, layout.Left, menu);
-                DrawTelemetry(ui, layout.Right, menu);
+                DrawTelemetry(ui, layout.Right);
             }
 
             if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.return")!, _returnButton with { Rect = layout.ReturnButton }))
             {
                 menu.GoToPage(MenuPage.Home);
+            }
+
+            GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
+            if (ui.ActionButton(
+                    "Button_Embark",
+                    _localization.GetString("ui.button.loadSave")!,
+                    _launchButton with { Rect = layout.PrimaryButton, Enabled = activeSave != null }
+                ))
+            {
+                IEnumerable<Character> characters = _characterStorage.GetAllCharacters();
+                menu.GoToPage(characters.Any() ? MenuPage.SelectCharacter : MenuPage.NewCharacter);
             }
         }
 
@@ -166,17 +179,18 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
     private void DrawArchives(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.galacticArchives")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.galacticArchives")!))
         {
             GameSave[] saves = _gameSaveService.GetSaves();
             int contentWidth = Math.Max(1, rect.Size.X - PANEL_PADDING * 2);
             int newButtonHeight = 32;
-            int listY = 32;
+            int listY = 38;
             int listHeight = Math.Max(0, rect.Size.Y - listY - newButtonHeight - PANEL_PADDING - 8);
 
             IntRect listRect = Widgets.Rect(PANEL_PADDING, listY, contentWidth, listHeight);
             using (ui.Element())
             {
+                ui.LayoutDirection = LayoutDirection.None;
                 ui.Color = UiTheme.Transparent;
                 ui.VerticalScroll = true;
                 ui.ScrollY = -_scrollY;
@@ -285,9 +299,9 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         }
     }
 
-    private void DrawTelemetry(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
+    private void DrawTelemetry(UIBuilder<Material> ui, IntRect rect)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.sectorTelemetry")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.sectorTelemetry")!))
         {
             GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
             if (activeSave == null)
@@ -309,21 +323,21 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
             ui.Label(
                 save.Name,
-                Widgets.Rect(padding, 34, rect.Size.X - padding * 2, 24),
+                Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 24),
                 UiMetrics.MenuTitleFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 $"{_localization.GetString("ui.menu.mode")!}: {save.Level.DefaultGameMode}",
-                Widgets.Rect(padding, 64, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 70, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 $"{_localization.GetString("ui.menu.seed")!}: {save.Level.Seed}",
-                Widgets.Rect(padding, 82, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 88, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
@@ -334,7 +348,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 : _localization.GetString("ui.label.never")!;
             ui.Label(
                 $"{_localization.GetString("ui.label.lastPlayed")!}: {lastPlayed}",
-                Widgets.Rect(padding, 100, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 106, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
@@ -343,13 +357,25 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             TimeSpan age = TimeSpan.FromMilliseconds(save.Level.Playtime.AgeMs);
             ui.Label(
                 $"{_localization.GetString("ui.label.timePlayed")!}: {_localization.GetLongString(age)}",
-                Widgets.Rect(padding, 118, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 124, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
 
-            int previewY = 150;
+            ui.Divider(
+                Widgets.Rect(padding, 148, rect.Size.X - padding * 2, 1),
+                UiTheme.Border
+            );
+            ui.Label(
+                _localization.GetString("ui.menu.activeColonist")!,
+                Widgets.Rect(padding, 152, rect.Size.X - padding * 2, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted,
+                Anchors.Left | Anchors.Center
+            );
+
+            int previewY = 174;
             if (character != null)
             {
                 Material appearance = _characterAssetService.GetAppearanceMaterial(character.Value);
@@ -359,12 +385,12 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                     {
                         X = new Fixed(padding),
                         Y = new Fixed(previewY),
-                        Width = new Fixed(72),
-                        Height = new Fixed(72),
+                        Width = new Fixed(96),
+                        Height = new Fixed(96),
                     };
                 }
 
-                int statsX = padding + 84;
+                int statsX = padding + 112;
                 ui.Label(
                     character.Value.Name,
                     Widgets.Rect(statsX, previewY, rect.Size.X - statsX - padding, 22),
@@ -398,17 +424,45 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 );
             }
 
-            int buttonY = rect.Size.Y - 42;
-            if (ui.ActionButton(
-                    "Button_Embark",
-                    Widgets.Rect(rect.Size.X - 156, buttonY, 140, 30),
-                    _localization.GetString("ui.button.loadSave")!,
-                    ButtonVariant.Primary,
-                    soundEffectService: _soundEffectService
-                ))
+            if (rect.Size.Y > 430)
             {
-                IEnumerable<Character> characters = _characterStorage.GetAllCharacters();
-                menu.GoToPage(characters.Any() ? MenuPage.SelectCharacter : MenuPage.NewCharacter);
+                ui.Divider(
+                    Widgets.Rect(padding, 280, rect.Size.X - padding * 2, 1),
+                    UiTheme.Border
+                );
+                ui.Label(
+                    _localization.GetString("ui.menu.sectorStatus")!,
+                    Widgets.Rect(padding, 292, rect.Size.X - padding * 2, 18),
+                    UiMetrics.MenuSmallFont,
+                    UiTheme.TextMuted,
+                    Anchors.Left | Anchors.Center
+                );
+                ui.Label(
+                    _localization.GetString("ui.menu.readyForLaunch")!,
+                    Widgets.Rect(padding, 312, rect.Size.X - padding * 2, 20),
+                    UiMetrics.MenuBodyFont,
+                    UiTheme.Success,
+                    Anchors.Left | Anchors.Center
+                );
+            }
+
+            if (rect.Size.Y > 430)
+            {
+                ui.InfoBox(
+                    Widgets.Rect(padding, rect.Size.Y - 96, rect.Size.X - padding * 2, 80),
+                    _localization.GetString("ui.menu.info")!,
+                    _localization.GetString("ui.menu.archiveInfoBody")!
+                );
+            }
+            else if (rect.Size.Y > 300)
+            {
+                ui.Label(
+                    _localization.GetString("ui.menu.readyForLaunch")!,
+                    Widgets.Rect(padding, rect.Size.Y - 36, rect.Size.X - padding * 2, 18),
+                    UiMetrics.MenuSmallFont,
+                    UiTheme.Success,
+                    Anchors.Left | Anchors.Center
+                );
             }
         }
     }

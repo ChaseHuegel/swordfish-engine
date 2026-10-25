@@ -52,6 +52,10 @@ internal sealed class SelectCharacterPage(
         ButtonVariant.Secondary,
         soundEffectService
     );
+    private readonly Widgets.ActionButtonOptions _launchButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Primary,
+        soundEffectService
+    );
     private int _scrollY;
     private int _narrowTab;
 
@@ -64,7 +68,7 @@ internal sealed class SelectCharacterPage(
             ui.Height,
             maxPageWidth: 1160,
             twoColumn: true,
-            leftRatio: 0.34f
+            leftRatio: 0.37f
         );
 
         using (ui.Element())
@@ -108,6 +112,16 @@ internal sealed class SelectCharacterPage(
             {
                 menu.GoToPage(MenuPage.Home);
             }
+
+            bool canLaunch = _characterSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave != null;
+            if (ui.ActionButton(
+                    "Button_LoadSave",
+                    _localization.GetString("ui.button.loadSave")!,
+                    _launchButton with { Rect = layout.PrimaryButton, Enabled = canLaunch }
+                ))
+            {
+                Task.Run(_gameSaveManager.Load);
+            }
         }
 
         return Result.FromSuccess();
@@ -139,7 +153,7 @@ internal sealed class SelectCharacterPage(
 
     private void DrawManifest(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.crewManifest")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.crewManifest")!))
         {
             List<Character> characters = _characterStorage.GetAllCharacters()
                 .OrderByDescending(character => character.Playtime.LastPlayedMs)
@@ -151,7 +165,7 @@ internal sealed class SelectCharacterPage(
             }
 
             int contentWidth = Math.Max(1, rect.Size.X - PANEL_PADDING * 2);
-            int listY = 32;
+            int listY = 38;
             int listHeight = Math.Max(0, rect.Size.Y - listY - NEW_BUTTON_HEIGHT - PANEL_PADDING - 8);
 
             if (characters.Count == 0)
@@ -169,6 +183,7 @@ internal sealed class SelectCharacterPage(
                 IntRect listRect = Widgets.Rect(PANEL_PADDING, listY, contentWidth, listHeight);
                 using (ui.Element())
                 {
+                    ui.LayoutDirection = LayoutDirection.None;
                     ui.Color = UiTheme.Transparent;
                     ui.Constraints = Widgets.RectConstraints(listRect);
                     ui.ClipConstraints = new Constraints
@@ -215,11 +230,32 @@ internal sealed class SelectCharacterPage(
 
                                 contentUi.Label(
                                     character.Name,
-                                    Widgets.Rect(44, 0, Math.Max(1, contentWidth - 56), CARD_HEIGHT),
+                                    Widgets.Rect(44, 0, Math.Max(1, contentWidth - 90), CARD_HEIGHT),
                                     UiMetrics.MenuBodyFont,
                                     selected ? UiTheme.AccentBright : UiTheme.Text,
                                     Anchors.Left | Anchors.Center
                                 );
+
+                                bool canDelete = characters.Count > 1;
+                                if (contentUi.ActionButton(
+                                        $"Button_DeleteCharacter_{character.Uuid}",
+                                        Widgets.Rect(contentWidth - 42, 8, 28, 28),
+                                        MenuGlyphs.Trash,
+                                        ButtonVariant.Danger,
+                                        canDelete,
+                                        fontId: UiTheme.FontIcons,
+                                        soundEffectService: _soundEffectService
+                                    ))
+                                {
+                                    _characterSaveManager.ActiveSave = character;
+                                    _modalMenu.GoToPage(_confirmModal.Create(DeleteCharacter));
+                                }
+
+                                void DeleteCharacter()
+                                {
+                                    _characterSaveManager.Delete(character);
+                                    _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
+                                }
                             }
                         );
 
@@ -258,7 +294,7 @@ internal sealed class SelectCharacterPage(
 
     private void DrawDossier(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
     {
-        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.colonistDossier")!))
+        using (ui.MenuPanel(rect, _localization.GetString("ui.menu.colonistDossier")!))
         {
             Character? activeCharacter = _characterSaveManager.ActiveSave;
             if (activeCharacter == null)
@@ -278,7 +314,7 @@ internal sealed class SelectCharacterPage(
 
             ui.Label(
                 character.Name,
-                Widgets.Rect(padding, 32, rect.Size.X - padding * 2, 26),
+                Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 26),
                 UiMetrics.MenuTitleFont,
                 UiTheme.Text,
                 Anchors.Center
@@ -289,7 +325,7 @@ internal sealed class SelectCharacterPage(
                 : _localization.GetString("ui.label.never")!;
             ui.Label(
                 $"{_localization.GetString("ui.label.lastPlayed")!}: {lastPlayed}",
-                Widgets.Rect(padding, 58, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 64, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Center
@@ -298,13 +334,13 @@ internal sealed class SelectCharacterPage(
             TimeSpan age = TimeSpan.FromMilliseconds(character.Playtime.AgeMs);
             ui.Label(
                 $"{_localization.GetString("ui.label.timePlayed")!}: {_localization.GetLongString(age)}",
-                Widgets.Rect(padding, 76, rect.Size.X - padding * 2, 18),
+                Widgets.Rect(padding, 82, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
                 Anchors.Center
             );
 
-            int previewY = 108;
+            int previewY = 116;
             Material appearance = _characterAssetService.GetAppearanceMaterial(character);
             using (ui.Image(appearance))
             {
@@ -312,51 +348,69 @@ internal sealed class SelectCharacterPage(
                 {
                     X = new Fixed(padding),
                     Y = new Fixed(previewY),
-                    Width = new Fixed(100),
-                    Height = new Fixed(100),
+                    Width = new Fixed(128),
+                    Height = new Fixed(128),
                 };
             }
 
-            int statsX = padding + 116;
+            int statsX = padding + 148;
             DrawStat(ui, "S", _localization.GetString("ui.field.strength")!, character.Strength, statsX, previewY);
-            DrawStat(ui, "P", _localization.GetString("ui.field.precision")!, character.Precision, statsX, previewY + 22);
-            DrawStat(ui, "A", _localization.GetString("ui.field.awareness")!, character.Awareness, statsX, previewY + 44);
-            DrawStat(ui, "C", _localization.GetString("ui.field.charisma")!, character.Charisma, statsX, previewY + 66);
-            DrawStat(ui, "E", _localization.GetString("ui.field.education")!, character.Education, statsX, previewY + 88);
-            DrawStat(ui, "R", _localization.GetString("ui.field.resolve")!, character.Resolve, statsX, previewY + 110);
+            DrawStat(ui, "P", _localization.GetString("ui.field.precision")!, character.Precision, statsX, previewY + 24);
+            DrawStat(ui, "A", _localization.GetString("ui.field.awareness")!, character.Awareness, statsX, previewY + 48);
+            DrawStat(ui, "C", _localization.GetString("ui.field.charisma")!, character.Charisma, statsX, previewY + 72);
+            DrawStat(ui, "E", _localization.GetString("ui.field.education")!, character.Education, statsX, previewY + 96);
+            DrawStat(ui, "R", _localization.GetString("ui.field.resolve")!, character.Resolve, statsX, previewY + 120);
 
-            int buttonY = rect.Size.Y - 42;
-            bool canDelete = _characterStorage.GetAllCharacters().Count() > 1;
-            if (ui.ActionButton(
-                    "Button_DeleteCharacter",
-                    Widgets.Rect(padding, buttonY, 120, 30),
-                    _localization.GetString("ui.button.delete")!,
-                    ButtonVariant.Danger,
-                    canDelete,
-                    soundEffectService: _soundEffectService
-                ))
+            int total = character.Strength + character.Precision + character.Awareness
+                + character.Charisma + character.Education + character.Resolve;
+            if (rect.Size.Y > 400)
             {
-                _modalMenu.GoToPage(_confirmModal.Create(DeleteCharacter));
-
-                void DeleteCharacter()
-                {
-                    _characterSaveManager.Delete(character);
-                    _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
-                }
+                ui.Divider(
+                    Widgets.Rect(padding, 280, rect.Size.X - padding * 2, 1),
+                    UiTheme.Border
+                );
+                ui.Label(
+                    _localization.GetString("ui.menu.assignment")!,
+                    Widgets.Rect(padding, 292, rect.Size.X - padding * 2, 18),
+                    UiMetrics.MenuSmallFont,
+                    UiTheme.TextMuted,
+                    Anchors.Left | Anchors.Center
+                );
+                ui.Label(
+                    _gameSaveManager.ActiveSave?.Name ?? _localization.GetString("ui.text.none")!,
+                    Widgets.Rect(padding, 312, rect.Size.X - padding * 2, 22),
+                    UiMetrics.MenuBodyFont,
+                    UiTheme.Text,
+                    Anchors.Left | Anchors.Center
+                );
             }
 
-            bool canLaunch = _gameSaveManager.ActiveSave != null;
-            if (ui.ActionButton(
-                    "Button_LoadSave",
-                    Widgets.Rect(rect.Size.X - 156, buttonY, 140, 30),
-                    _localization.GetString("ui.button.loadSave")!,
-                    ButtonVariant.Primary,
-                    canLaunch,
-                    soundEffectService: _soundEffectService
-                ))
-            {
-                Task.Run(_gameSaveManager.Load);
-            }
+            int summaryY = Math.Max(previewY + 164, rect.Size.Y - 96);
+            ui.Divider(
+                Widgets.Rect(padding, summaryY, rect.Size.X - padding * 2, 1),
+                UiTheme.Border
+            );
+            ui.Label(
+                _localization.GetString("ui.menu.spacerTotal")!,
+                Widgets.Rect(padding, summaryY + 12, 200, 20),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted,
+                Anchors.Left | Anchors.Center
+            );
+            ui.Label(
+                total.ToString(),
+                Widgets.Rect(rect.Size.X - padding - 120, summaryY + 12, 120, 20),
+                UiMetrics.MenuBodyFont,
+                UiTheme.AccentBright,
+                Anchors.Right | Anchors.Center
+            );
+            ui.Label(
+                _localization.GetString("ui.menu.readyForLaunch")!,
+                Widgets.Rect(padding, summaryY + 38, rect.Size.X - padding * 2, 20),
+                UiMetrics.MenuSmallFont,
+                UiTheme.Success,
+                Anchors.Left | Anchors.Center
+            );
         }
     }
 

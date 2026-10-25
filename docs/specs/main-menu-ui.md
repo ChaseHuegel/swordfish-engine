@@ -29,7 +29,7 @@ strip, a footer, and Return/Primary footer buttons.
 
 - The design base is 1280 by 720.
 - The page shrinks with the window and has a 480 pixel minimum width.
-- Two-pane pages stay side-by-side down to 900 pixels.
+- Two-pane pages stay side-by-side down to a 900 pixel page width.
 - Below 900 pixels, the same pages use a tab strip and one full-width pane.
 - Settings keeps its own `SettingsLayout`. Do not replace it.
 
@@ -39,10 +39,11 @@ content stays unchanged.
 ## Visual rules
 
 - `DefaultUIRenderer` sets `UIBuilder.DefaultFontID` to `UiTheme.FontUI`
-  (`monogram-extended`). Menus, HUD, chat, and debug overlays use it.
+  (`Salmon Mono 9 Regular`). Menus, HUD, chat, and debug overlays use it.
 - `UiTheme` supplies the palette. Do not add raw colors to menu pages.
-- `BracketPanel` draws the heavy dossier frame.
-- `Panel` draws clean bordered panels.
+- `MenuPanel` draws the shared settings-style panel: no outer border, an
+  inner hairline, and corner caps.
+- `Panel` remains the primitive for special sub-panels.
 - `ActionButtonOptions.Menu` gives the amber-cyan menu treatment, including the
   double border and cyan hover accent.
 - `ActionButtonOptions.Compact` and `Icon` cover footer, dice, and trash actions.
@@ -50,6 +51,9 @@ content stays unchanged.
 - `Tab` covers narrow pane switching, Favorites/LAN Discovery, and attached
   section tabs.
 - `InfoBox` covers the sector and stat descriptions.
+- Archive and crew delete actions are trash icons on their list rows.
+- Primary proceed actions live in the footer: Launch, Initialize, Create, and
+  Join Server.
 
 ## Data mapping
 
