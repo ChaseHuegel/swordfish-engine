@@ -118,7 +118,7 @@ internal class PlaytestNoticeModal(
 
                     if (ui.ActionButton(
                             "Button_Close",
-                            _localization.GetString("ui.button.close")!,
+                            _localization.GetString("ui.button.ok")!,
                             _closeButton with
                             {
                                 Rect = Widgets.Rect(panelWidth - padding - 200, buttonY, 200, UiMetrics.IconButtonSize),

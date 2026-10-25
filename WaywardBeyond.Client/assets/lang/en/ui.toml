@@ -38,6 +38,7 @@
 "ui.button.next" = "Next"
 "ui.button.yes" = "Yes"
 "ui.button.no" = "No"
+"ui.button.ok" = "Ok"
 
 "ui.button.selectSave" = "Continue"
 "ui.button.newSave" = "Create save"
