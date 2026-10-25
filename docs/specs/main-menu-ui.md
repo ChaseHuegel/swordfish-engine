@@ -29,6 +29,7 @@ and Return/Primary footer buttons.
 
 - The design base is 1280 by 720.
 - The page shrinks with the window and has a 480 pixel minimum width.
+- Menu pages have no page-level title. Panel titles and tabs identify the page.
 - Panels start 12 pixels below the top of the page.
 - Two-pane pages stay side-by-side down to a 900 pixel page width.
 - Below 900 pixels, the same pages use a tab strip and one full-width pane.
@@ -105,14 +106,14 @@ Do not add fake menu controls.
 
 - Flow: `WaywardBeyond.Client/UI/Layers/Menus/Main/MenuPage.cs:3`
 - Layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`
-- Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:18`
-- Continue: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:24`
+- Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:21`
+- Continue: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
 - New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:17`
 - Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:22`
 - Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:22`
-- Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:21`
-- Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:12`
-- Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:18`
+- Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:22`
+- Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:14`
+- Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:19`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
 - Localization: `WaywardBeyond.Client/assets/lang/en/ui.toml`
 
