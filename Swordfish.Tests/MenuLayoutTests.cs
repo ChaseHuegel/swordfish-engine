@@ -31,6 +31,20 @@ public class MenuLayoutTests
     }
 
     [Fact]
+    public void CreditsCanUseTallerPage()
+    {
+        MenuLayout layout = MenuLayout.Compute(
+            1920,
+            1080,
+            maxPageWidth: 1160,
+            twoColumn: false,
+            maxPageHeight: 720
+        );
+
+        Assert.Equal(720, layout.PageHeight);
+    }
+
+    [Fact]
     public void FooterButtonsStayInsideThePage()
     {
         MenuLayout layout = MenuLayout.Compute(1280, 720, maxPageWidth: 960, twoColumn: false);

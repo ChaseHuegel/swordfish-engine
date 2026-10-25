@@ -35,11 +35,12 @@ internal readonly record struct MenuLayout(
         int windowHeight,
         int maxPageWidth,
         bool twoColumn,
-        float leftRatio = 0.4f
+        float leftRatio = 0.4f,
+        int maxPageHeight = MAX_PAGE_HEIGHT
     )
     {
         int pageWidth = Math.Max(MIN_PAGE_WIDTH, Math.Min(windowWidth - 120, maxPageWidth));
-        int pageHeight = Math.Max(MIN_PAGE_HEIGHT, Math.Min(windowHeight - 240, MAX_PAGE_HEIGHT));
+        int pageHeight = Math.Max(MIN_PAGE_HEIGHT, Math.Min(windowHeight - 240, maxPageHeight));
         bool useTabs = twoColumn && pageWidth < NARROW_BREAKPOINT;
 
         var footer = new IntRect(

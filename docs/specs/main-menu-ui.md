@@ -107,7 +107,9 @@ The credits page reads three entries from `ui.toml`:
 
 The renderer splits the header on the newline so the kicker uses the small font
 and the studio name uses the title font. The body and thanks render as
-paragraphs. Markup supplies the colors.
+paragraphs and size to their measured text height. Markup supplies the colors.
+Credits uses a 720 pixel maximum page height. The whole block scrolls inside the
+panel with a scrollbar when needed.
 
 ## Omitted controls
 
