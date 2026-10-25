@@ -35,6 +35,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Voxel container: chunk addressing, sampling, out-of-bounds, palette counts | [specs/voxels](specs/voxels.md) |
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |
 | Reef element layout, styling, borders, no-wrap text, clipping | [specs/reef-ui](specs/reef-ui.md) |
+| Game UI theme tokens, metrics, style resolution, and shared widgets | [specs/ui-theme](specs/ui-theme.md) |
 | Window video modes and batched display changes | [specs/window-display](specs/window-display.md) |
 | Settings page layout, controls, draft, and apply behavior | [specs/settings-ui](specs/settings-ui.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |

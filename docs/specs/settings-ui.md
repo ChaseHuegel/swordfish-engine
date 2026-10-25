@@ -39,14 +39,15 @@ column are fixed by `SettingsLayout`.
 The label uses `NoWrap` and clips to the label column. The control column holds
 one of these widgets:
 
-- `Widgets.SettingsToggle` for on/off choices.
-- `Widgets.SettingsChoice` for two or more radio-like choices.
-- `Widgets.SettingsStepper` for discrete values.
-- `Widgets.SettingsSlider` for continuous values.
-- `Widgets.SettingsButton` for actions.
+- `Widgets.Toggle` for on/off choices.
+- `Widgets.SegmentedControl` for two or more radio-like choices.
+- `Widgets.Stepper` for discrete values.
+- `Widgets.Slider` for continuous values.
+- `Widgets.ActionButton` for actions.
 
-The widgets live in the game widget library. They use the Reef border, corner
-cap, and no-wrap text support.
+The widgets live in the game widget library. They use the shared theme and
+metrics from [ui-theme](ui-theme.md). They use the Reef border, corner cap, and
+no-wrap text support.
 
 Disabled rows stay visible and dim. A setting can disable another row. For
 example, V-Sync disables the frame limit, and Autosave disables the interval.
@@ -88,7 +89,7 @@ dim the resolution row and use the monitor resolution. See
 The page applies display changes through
 `IWindowContext.ApplyDisplaySettings`. See [window-display](window-display.md).
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:580` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:569` keeps the display
 mode and resolution rows in sync when a shortcut or a manual resize changes the
 window while the page is open.
 
@@ -120,15 +121,17 @@ existing spacer layout.
 
 ## Source
 
-- Page: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:20`
+- Page: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:21`
 - Layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:7`
-- Renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:15`
+- Renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:16`
 - Draft: `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:11`
 - Defaults: `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`
-- Widgets: `WaywardBeyond.Client/UI/Widgets.SettingsPanel.cs:14`,
-  `Widgets.SettingsButton.cs:14`, `Widgets.SettingsToggle.cs:16`,
-  `Widgets.SettingsStepper.cs:14`, `Widgets.SettingsSlider.cs:13`,
-  `Widgets.SettingsScroll.cs`
+- Theme: `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`
+- Metrics: `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`
+- Widgets: `WaywardBeyond.Client/UI/Widgets/Widgets.Panel.cs:14`,
+  `Widgets.ActionButton.cs:31`, `Widgets.Toggle.cs:16`,
+  `Widgets.Stepper.cs:14`, `Widgets.Slider.cs:14`,
+  `Widgets.Scrollbar.cs:13`
 - Localization: `WaywardBeyond.Client/assets/lang/en/ui.toml`
 
 ## Tests
@@ -139,3 +142,4 @@ existing spacer layout.
   option lists.
 - `Swordfish.Tests/SettingsPageRenderTests.cs` builds the real page and checks
   that the page centers and that controls stay inside the list.
+- `Swordfish.Tests/UiThemeResolverTests.cs` covers control styles and states.

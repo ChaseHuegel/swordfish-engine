@@ -17,8 +17,7 @@ no user control.
       32) replaces the `MAX_RENDER_DISTANCE` constant; `NameplateSystem`
       reads it per tick.
 - [x] Settings page gains a name tag distance control following the
-      existing `RenderDistance` `NumberControl` precedent
-      (`SettingsPage.cs:277-284`): range 0-64, increments of 8,
+      existing `SliderEntry` precedent: range 0-64, increments of 8,
       0 = tags disabled.
 - [x] Config key documented in `docs/specs/config-schemas.md` (docs
       pass).
