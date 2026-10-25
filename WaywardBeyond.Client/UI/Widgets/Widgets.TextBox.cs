@@ -9,6 +9,7 @@ using Reef.UI;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
@@ -23,15 +24,6 @@ internal static partial class Widgets
     /// </summary>
     [GeneratedRegex(@"\S+")]
     private static partial Regex WordRegex();
-    
-    /// <summary>
-    ///     Creates a text box that can be typed into.
-    /// </summary>
-    /// <returns>True if the text box was submitted; otherwise false.</returns>
-    public static bool TextButton<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService)
-    {
-        return ui.TextBox(id, ref state, fontOptions, inputService, out Interactions interactions) && (interactions & Interactions.Submit) == Interactions.Submit;
-    }
     
     /// <summary>
     ///     Creates a text box that can be typed into, with audio cues.
@@ -50,7 +42,12 @@ internal static partial class Widgets
     {
         using (ui.Element(id))
         {
-            ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.1f);
+            ui.Color = UiTheme.ControlBackground;
+            ui.Border = new BorderStyle
+            {
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = UiTheme.Border,
+            };
             ui.LayoutDirection = LayoutDirection.None;
             ui.Padding = new Padding(left: 0, top: 0, right: 0, bottom: 0);
             
@@ -537,7 +534,7 @@ internal static partial class Widgets
                 {
                     ui.Passthrough = true;
                     ui.FontOptions = fontOptions;
-                    ui.Color = focused ? new Vector4(0.5f, 0.5f, 0.5f, 1f) : new Vector4(0.325f, 0.325f, 0.325f, 1f);
+                    ui.Color = focused ? UiTheme.TextMuted : UiTheme.TextDim;
                 }
             }
 
@@ -549,11 +546,11 @@ internal static partial class Widgets
 
                 if (focused)
                 {
-                    ui.Color = new Vector4(1f, 1f, 1f, 1f);
+                    ui.Color = UiTheme.Text;
                 }
                 else
                 {
-                    ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                    ui.Color = UiTheme.TextMuted;
                 }
             }
 
@@ -646,7 +643,7 @@ internal static partial class Widgets
 
                 using (ui.Element())
                 {
-                    ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
+                    ui.Color = UiTheme.RowSelected;
                     ui.Constraints = new Constraints
                     {
                         X = new Fixed(x),
@@ -712,7 +709,7 @@ internal static partial class Widgets
 
                 using (ui.Element())
                 {
-                    ui.Color = new Vector4(1f, 1f, 1f, 1f);
+                    ui.Color = UiTheme.Text;
                     ui.Constraints = new Constraints
                     {
                         X = new Fixed(x + 1),

@@ -35,9 +35,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="UI\Widgets\Widgets.NumberControl.cs">
-        <DependentUpon>Widgets.cs</DependentUpon>
-      </Compile>
       <Compile Update="UI\Widgets\Widgets.TextBox.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>

@@ -23,6 +23,7 @@ namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 {
     private const int DEFAULT_SPACER_POINTS = 18;
+    private static readonly int[] AttributeOptions = [1, 2, 3, 4, 5, 6, 7, 8];
     
     private static readonly char[] _characterNameTrimChars = [' ', '\t', '.', '\n', '\r'];
 
@@ -368,71 +369,67 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     }
                 }
 
-                ui.NumberControl(
-                    id: "Control_Strength",
-                    text: _localization.GetString("ui.field.strength")!,
-                    _strength,
-                    constraints: new Int2(1, 8),
-                    display: new Int2(1, 8),
-                    steps: 7,
-                    _soundEffectService,
-                    OnStrengthChanged
-                );
+                void DrawAttributeStepper(string id, string label, int value, Action<int, int, int> onChanged)
+                {
+                    using (ui.Element())
+                    {
+                        ui.Spacing = 8;
+                        ui.Constraints = new Constraints
+                        {
+                            Width = new Relative(1f),
+                            Height = new Fixed(UiMetrics.ControlHeight),
+                        };
 
-                ui.NumberControl(
-                    id: "Control_Precision",
-                    text: _localization.GetString("ui.field.precision")!,
-                    _precision,
-                    constraints: new Int2(1, 8),
-                    display: new Int2(1, 8),
-                    steps: 7,
-                    _soundEffectService,
-                    OnPrecisionChanged
-                );
+                        using (ui.Text(label))
+                        {
+                            ui.FontSize = UiMetrics.BodyFont;
+                            ui.Color = UiTheme.Text;
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Left | Anchors.Center,
+                            };
+                        }
 
-                ui.NumberControl(
-                    id: "Control_Awareness",
-                    text: _localization.GetString("ui.field.awareness")!,
-                    _awareness,
-                    constraints: new Int2(1, 8),
-                    display: new Int2(1, 8),
-                    steps: 7,
-                    _soundEffectService,
-                    OnAwarenessChanged
-                );
+                        using (ui.Element())
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Width = new Fill(),
+                                Height = new Fill(),
+                            };
+                        }
 
-                ui.NumberControl(
-                    id: "Control_Charisma",
-                    text: _localization.GetString("ui.field.charisma")!,
-                    _charisma,
-                    constraints: new Int2(1, 8),
-                    display: new Int2(1, 8),
-                    steps: 7,
-                    _soundEffectService,
-                    OnCharismaChanged
-                );
+                        if (ui.Stepper(
+                                id,
+                                Widgets.Rect(0, 0, 100, UiMetrics.ControlHeight),
+                                AttributeOptions,
+                                value - 1,
+                                static option => option.ToString(),
+                                enabled: true,
+                                out int newIndex))
+                        {
+                            int newValue = AttributeOptions[newIndex];
+                            int change = newValue - value;
+                            onChanged(value, newValue, change);
 
-                ui.NumberControl(
-                    id: "Control_Education",
-                    text: _localization.GetString("ui.field.education")!,
-                    _education,
-                    constraints: new Int2(1, 8),
-                    display: new Int2(1, 8),
-                    steps: 7,
-                    _soundEffectService,
-                    OnEducationChanged
-                );
+                            if (change > 0)
+                            {
+                                Widgets.Interactions.Click.WithButtonIncreaseAudio(_soundEffectService);
+                            }
+                            else if (change < 0)
+                            {
+                                Widgets.Interactions.Click.WithButtonDecreaseAudio(_soundEffectService);
+                            }
+                        }
+                    }
+                }
 
-                ui.NumberControl(
-                    id: "Control_Resolve",
-                    text: _localization.GetString("ui.field.resolve")!,
-                    _resolve,
-                    constraints: new Int2(1, 8),
-                    display: new Int2(1, 8),
-                    steps: 7,
-                    _soundEffectService,
-                    OnResolveChanged
-                );
+                DrawAttributeStepper("Control_Strength", _localization.GetString("ui.field.strength")!, _strength, OnStrengthChanged);
+                DrawAttributeStepper("Control_Precision", _localization.GetString("ui.field.precision")!, _precision, OnPrecisionChanged);
+                DrawAttributeStepper("Control_Awareness", _localization.GetString("ui.field.awareness")!, _awareness, OnAwarenessChanged);
+                DrawAttributeStepper("Control_Charisma", _localization.GetString("ui.field.charisma")!, _charisma, OnCharismaChanged);
+                DrawAttributeStepper("Control_Education", _localization.GetString("ui.field.education")!, _education, OnEducationChanged);
+                DrawAttributeStepper("Control_Resolve", _localization.GetString("ui.field.resolve")!, _resolve, OnResolveChanged);
 
                 void OnStrengthChanged(int oldValue, int newValue, int change)
                 {
