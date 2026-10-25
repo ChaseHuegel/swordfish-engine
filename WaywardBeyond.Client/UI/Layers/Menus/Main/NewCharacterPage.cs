@@ -13,6 +13,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
@@ -38,6 +39,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly CharacterAssetService _characterAssetService;
     private readonly NameGenerator _nameGenerator;
     private readonly NotificationService _notificationService;
+    private readonly ModalMenu _modalMenu;
+    private readonly ConfirmModal _confirmModal;
 
     private readonly Widgets.ActionButtonOptions _backButton;
     private readonly Widgets.ActionButtonOptions _createButton;
@@ -64,7 +67,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         in ILocalization localization,
         in CharacterAssetService characterAssetService,
         in NameGenerator nameGenerator,
-        in NotificationService notificationService
+        in NotificationService notificationService,
+        in ModalMenu modalMenu,
+        in ConfirmModal confirmModal
     ) {
         _logger = logger;
         _characterStorage = characterStorage;
@@ -75,6 +80,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _characterAssetService = characterAssetService;
         _nameGenerator = nameGenerator;
         _notificationService = notificationService;
+        _modalMenu = modalMenu;
+        _confirmModal = confirmModal;
 
         _backButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _createButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
@@ -152,7 +159,23 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _createButton with { Rect = layout.PrimaryButton, Enabled = canCreate }
                 ))
             {
-                TryCreate(menu);
+                if (_spacerPoints > 0)
+                {
+                    _modalMenu.GoToPage(_confirmModal.Create(
+                        () => TryCreate(menu),
+                        _localization.GetString("ui.menu.unspentPoints")!,
+                        string.Format(
+                            _localization.GetString("ui.menu.unspentPointsBody")!,
+                            _spacerPoints
+                        ),
+                        _localization.GetString("ui.button.createCharacter")!,
+                        _localization.GetString("ui.button.cancel")!
+                    ));
+                }
+                else
+                {
+                    TryCreate(menu);
+                }
             }
         }
 
