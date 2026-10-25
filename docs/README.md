@@ -37,6 +37,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Reef element layout, styling, borders, no-wrap text, clipping | [specs/reef-ui](specs/reef-ui.md) |
 | Game UI theme tokens, metrics, style resolution, and shared widgets | [specs/ui-theme](specs/ui-theme.md) |
 | Main menu flow, menu layout, data mapping, and visual rules | [specs/main-menu-ui](specs/main-menu-ui.md) |
+| Full-screen loading layer, visual rules, copy timing, data sources | [specs/loading-screen](specs/loading-screen.md) |
 | Window video modes and batched display changes | [specs/window-display](specs/window-display.md) |
 | Settings page layout, controls, draft, and apply behavior | [specs/settings-ui](specs/settings-ui.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
