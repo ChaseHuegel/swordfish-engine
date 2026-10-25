@@ -40,6 +40,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly ILocalization _localization;
     private readonly ModalMenu _modalMenu;
     private readonly ConfirmModal _confirmModal;
+    private readonly AddFavoriteModal _addFavoriteModal;
 
     private readonly Widgets.ActionButtonOptions _returnButton;
     private readonly Widgets.ActionButtonOptions _joinButton;
@@ -66,7 +67,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         in SoundEffectService soundEffectService,
         in ILocalization localization,
         in ModalMenu modalMenu,
-        in ConfirmModal confirmModal
+        in ConfirmModal confirmModal,
+        in AddFavoriteModal addFavoriteModal
     ) {
         _rpcHost = rpcHost;
         _gameSaveService = gameSaveService;
@@ -78,6 +80,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _localization = localization;
         _modalMenu = modalMenu;
         _confirmModal = confirmModal;
+        _addFavoriteModal = addFavoriteModal;
 
         _returnButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _joinButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
@@ -456,7 +459,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                     ButtonVariant.Subtle
                 ))
             {
-                AddCurrentServer();
+                _modalMenu.GoToPage(_addFavoriteModal.Create(
+                    AddFavoriteFromForm,
+                    _networkingConfig.RemotePort.Get()
+                ));
             }
         }
     }
@@ -693,21 +699,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         menu?.GoToPage(MenuPage.SelectSave);
     }
 
-    private void AddCurrentServer()
+    private void AddFavoriteFromForm(string host, int port)
     {
-        string host = _hostTextBox.Text.ToString().Trim();
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            _errorMessage = _localization.GetString("ui.notification.connect.hostRequired");
-            return;
-        }
-
-        if (!int.TryParse(_portTextBox.Text.ToString().Trim(), out int port) || port < 1 || port > 65535)
-        {
-            _errorMessage = _localization.GetString("ui.notification.connect.portInvalid");
-            return;
-        }
-
         AddFavorite(new SavedServer { Name = host, Host = host, Port = port });
     }
 
