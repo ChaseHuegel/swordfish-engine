@@ -18,8 +18,8 @@ The content block holds:
 - a 1 pixel signal track with a 48 pixel cyan segment;
 - the control hint at 16 pixels in `UiTheme.TextMuted`.
 
-The signal segment moves back and forth across a 160 pixel track. It is an
-indeterminate signal. Do not add a fake percentage.
+The signal segment scans left to right across a 160 pixel track, then wraps to
+the start. It is an indeterminate signal. Do not add a fake percentage.
 
 The hint styles bracketed key names in the accent color. For example,
 `[F5]` renders with a cyan key name.
