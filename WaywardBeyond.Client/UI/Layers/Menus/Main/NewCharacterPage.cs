@@ -152,30 +152,32 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             string currentName = CharacterNames.Clamp(_nameTextBox.Text.ToString().Trim(_characterNameTrimChars));
             bool canCreate = !string.IsNullOrWhiteSpace(currentName)
-                && !_characterStorage.GetAllCharacters().Any(character => character.Name == currentName);
-            if (ui.ActionButton(
+                && _characterStorage.GetAllCharacters().All(character => character.Name != currentName);
+
+            if (!ui.ActionButton(
                     "Button_CreateCharacter",
                     _localization.GetString("ui.button.createCharacter")!,
                     _createButton with { Rect = layout.PrimaryButton, Enabled = canCreate }
-                ))
+            )) {
+                return Result.FromSuccess();
+            }
+            
+            if (_spacerPoints > 0)
             {
-                if (_spacerPoints > 0)
-                {
-                    _modalMenu.GoToPage(_confirmModal.Create(
-                        () => TryCreate(menu),
-                        _localization.GetString("ui.menu.unspentPoints")!,
-                        string.Format(
-                            _localization.GetString("ui.menu.unspentPointsBody")!,
-                            _spacerPoints
-                        ),
-                        _localization.GetString("ui.button.createCharacter")!,
-                        _localization.GetString("ui.button.cancel")!
-                    ));
-                }
-                else
-                {
-                    TryCreate(menu);
-                }
+                _modalMenu.GoToPage(_confirmModal.Create(
+                    () => TryCreate(menu),
+                    _localization.GetString("ui.menu.unspentPoints")!,
+                    string.Format(
+                        _localization.GetString("ui.menu.unspentPointsBody")!,
+                        _spacerPoints
+                    ),
+                    _localization.GetString("ui.button.createCharacter")!,
+                    _localization.GetString("ui.button.cancel")!
+                ));
+            }
+            else
+            {
+                TryCreate(menu);
             }
         }
 
@@ -338,28 +340,28 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             ui.Paragraph(
                 _localization.GetString("ui.field.spacer.description")!,
-                Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 36),
+                Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 60),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted
             );
 
             ui.Label(
                 _localization.GetString("ui.field.spacer.points")!,
-                Widgets.Rect(padding, 84, rect.Size.X - padding * 2 - 48, 20),
+                Widgets.Rect(padding, 104, rect.Size.X - padding * 2 - 48, 20),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 _spacerPoints.ToString(),
-                Widgets.Rect(rect.Size.X - padding - 76, 84, 36, 20),
+                Widgets.Rect(rect.Size.X - padding - 76, 104, 36, 20),
                 UiMetrics.MenuBodyFont,
                 UiTheme.Primary,
                 Anchors.Right | Anchors.Center
             );
             if (ui.IconButton(
                     "Button_RandomPoints",
-                    Widgets.Rect(rect.Size.X - padding - 32, 78, 32, 32),
+                    Widgets.Rect(rect.Size.X - padding - 32, 98, 32, 32),
                     MenuGlyphs.Dice,
                     new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
@@ -367,7 +369,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 RandomizePoints();
             }
 
-            int rowY = 112;
+            int rowY = 132;
             DrawStatRow(ui, rect, 0, _localization.GetString("ui.field.strength")!, _strength, padding, rowY);
             DrawStatRow(ui, rect, 1, _localization.GetString("ui.field.precision")!, _precision, padding, rowY + 28);
             DrawStatRow(ui, rect, 2, _localization.GetString("ui.field.awareness")!, _awareness, padding, rowY + 56);
