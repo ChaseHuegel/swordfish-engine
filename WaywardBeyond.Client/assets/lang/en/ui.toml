@@ -31,6 +31,8 @@
 "ui.menu.confirm" = "Are you sure?"
 "ui.menu.confirmBody" = "This action cannot be undone."
 "ui.menu.addFavorite" = "Add Favorite"
+"ui.menu.unspentPoints" = "Unspent Points"
+"ui.menu.unspentPointsBody" = "You still have {0} S.P.A.C.E.R. points available. Create the colonist anyway?"
 "ui.menu.removeFavorite" = "Remove Favorite?"
 "ui.menu.removeFavoriteBody" = "Remove {0} from your favorites?"
 

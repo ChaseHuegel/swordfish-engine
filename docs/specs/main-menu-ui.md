@@ -59,6 +59,8 @@ content stays unchanged.
 - `InfoBox` covers the sector and stat descriptions.
 - Create Character centers the name field and dice. The body arrows and
   randomize dice form one control cluster.
+- Create Character asks for confirmation when S.P.A.C.E.R points remain. The
+  player can still create the colonist.
 - Stat rows color the first letter only. Focused rows use orange, unfocused
   rows use cyan. The separate short-name box is gone.
 - The S.P.A.C.E.R description sits under the evaluation header. The S.P.A.C.E.R
@@ -130,7 +132,7 @@ Do not add fake menu controls.
 - Continue: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
 - New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:17`
 - Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:24`
-- Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:22`
+- Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:23`
 - Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:22`
 - Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:14`
 - Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:19`
