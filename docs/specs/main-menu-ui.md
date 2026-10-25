@@ -38,6 +38,17 @@ and Return/Primary footer buttons.
 Pages render inside the `TitleMenu` content host. The title texture above the
 content stays unchanged.
 
+## Pause menu
+
+The pause home page is a centered 300 by 221 pixel block below the title image.
+It has four buttons in one column. Continue, Settings, and Send feedback form
+the first group. A dotted divider separates them from Save & exit.
+
+- Buttons are 264 by 44 pixels.
+- The gap between buttons is 10 pixels.
+- The gap around the divider is 12 pixels.
+- Continue has the cyan menu chevron.
+
 ## Visual rules
 
 - `DefaultUIRenderer` sets `UIBuilder.DefaultFontID` to `UiTheme.FontUI`
@@ -129,6 +140,7 @@ Do not add fake menu controls.
 - Flow: `WaywardBeyond.Client/UI/Layers/Menus/Main/MenuPage.cs:3`
 - Layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:21`
+- Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:14`
 - Continue: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
 - New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:17`
 - Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:24`
