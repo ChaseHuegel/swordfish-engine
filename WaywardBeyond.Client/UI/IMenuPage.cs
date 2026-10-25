@@ -9,9 +9,6 @@ internal interface IMenuPage<TIdentifier>
 {
     TIdentifier ID { get; }
 
-    /// <summary>When true, the page renders inside the menu's full content area.</summary>
-    bool UsesFullContentArea => false;
-
     /// <summary>Runs when the menu makes this page current.</summary>
     void OnEnter() { }
 

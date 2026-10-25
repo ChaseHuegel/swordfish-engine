@@ -83,9 +83,6 @@ internal abstract class SettingsPage<TIdentifier>(
     public abstract TIdentifier ID { get; }
 
     /// <inheritdoc/>
-    public bool UsesFullContentArea => true;
-
-    /// <inheritdoc/>
     public void OnEnter()
     {
         _draft = SettingsDraft.FromConfigs(
