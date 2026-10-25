@@ -46,6 +46,12 @@ despawned entities, trims `PendingInputComponent` by `LastProcessedInput`, and
 aligns the shared step (`AlignTo` the snapshot's sim tick).
 `SnapshotAckTracker` records the last applied snapshot tick.
 
+For the local player, position and linear velocity are authority. Small position
+errors are ignored and larger ones are blended over a few snapshots, so prediction
+error does not visibly jitter. Orientation targets the server orientation plus the
+look applied after the snapshot's ack, and angular velocity is authority only while
+look is idle.
+
 Replay is per-sim-tick resolution, not a separate phase: the shared step's
 command resolver reads the pending ring (`StageRingExtensions.GetCommand`)
 instead of the newest live component, so every step after an `AlignTo` applies
@@ -90,21 +96,29 @@ transport reliability layer.
 - A join resets session-scoped prediction state. The client clears its look
   totals, last input sample, and snapshot ack, and both the client and the server
   forget the identity's last applied look history. A same-character rejoin reuses
-  the identity, so the forget is required; the step drains forget requests on the
-  physics thread.
-- The local player's orientation stays client-predicted. `JoinAccept` carries the
+  the identity, so the forget is required; the step drains forget requests before
+  it applies commands.
+- The local player's look stays client-predicted. `JoinAccept` carries the
   server-resolved spawn transform, and `ClientJoinSystem` seeds the local
-  `TransformComponent` with it when it seats the player. Reconcile then applies
-  only authoritative position and scale, so the echo never snaps the view.
+  `TransformComponent` with it when it seats the player.
+- Collision rotation is authoritative. `ClientReconcileSystem` delegates local
+  player motion to `LocalPlayerReconciler`, which targets
+  `serverOrientation * pendingLook`, where `pendingLook` is the look applied after
+  the snapshot's ack, and slerps the local orientation toward it over about
+  100 ms. The current look is preserved, so the view never rewinds to the
+  server's older look. When the look is idle, the server's angular velocity is
+  applied and the target advances with it.
 
 ## Client vs server system order (client)
 
-reconcile (apply incoming) → sample input (push pending) → replicate dirty
-client-owned → predict via shared step → render reads final `Transform`.
+shared step (inside `JoltPhysicsSystem.Tick`) → `ClientPlayerMotionProcessor` →
+sample input (push pending) → replicate dirty client-owned → reconcile (apply
+incoming, correct local-player orientation) → render reads final `Transform`.
 
 ## Source of truth
 
 - `WaywardBeyond.Client/Systems/{ClientInputSystem,ClientJoinSystem,ClientReconcileSystem,ClientReplicationSystem}.cs`
+- `WaywardBeyond.Client/Player/LocalPlayerReconciler.cs` — local-player orientation and angular reconciliation
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` — seats the mirror and forgets its prior look history
 - `WaywardBeyond.Gameplay/SimulationStep.cs` — the shared simulation step
 - `WaywardBeyond.Client/Components/PendingInputComponent.cs`

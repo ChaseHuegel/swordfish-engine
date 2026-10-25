@@ -63,9 +63,12 @@ which flow as `VoxelEdit` notifications rather than snapshots.
 - Applies `ServerOwned` components, frees despawned entities, trims
   `PendingInputComponent` by `LastProcessedInput`, and aligns the shared step
   with the snapshot tick.
-- Applies the local player's authoritative position and scale only. Its
-  orientation and angular velocity stay client-predicted; the spawn transform is
-  seeded from `JoinAccept` when the client seats the player.
+- Applies the local player's authoritative position and scale. Small position
+  errors are deadbanded and larger ones are blended over a few snapshots. Its
+  orientation targets the server orientation plus the look applied after the
+  snapshot ack, and slerps toward that target so collision rotation is corrected
+  without rewinding the local look. Angular velocity is applied while look is
+  idle, and the target advances with it.
 
 ## Client → server
 
@@ -111,6 +114,7 @@ tick. Input is staged per sim tick and consumed exactly once per step. See
 
 - `WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs`
 - `WaywardBeyond.Client/Systems/{ClientReplicationSystem,ClientReconcileSystem,ClientInputSystem}.cs`
+- `WaywardBeyond.Client/Player/LocalPlayerReconciler.cs` — local-player orientation and angular reconciliation
 - `WaywardBeyond.Client/Networking/ClientInbound.cs`
 - `WaywardBeyond.Gameplay/SimulationStep.cs`
 - `Swordfish/Physics/Jolt/JoltPhysicsSystem.cs`

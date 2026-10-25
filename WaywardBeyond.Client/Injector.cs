@@ -111,6 +111,7 @@ public class Injector : IDryIocInjector
 
         container.Register<IEntitySystem, ClientHeartbeatSystem>();
 
+        container.Register<LocalPlayerReconciler>(Reuse.Singleton);
         container.Register<ClientInputSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();

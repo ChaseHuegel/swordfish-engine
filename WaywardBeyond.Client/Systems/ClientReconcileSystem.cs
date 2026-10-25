@@ -6,6 +6,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Client.Player;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Registry;
@@ -14,41 +15,26 @@ using WaywardBeyond.Networking.Rpc;
 namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
-/// Client-side reconciliation. Applies authoritative server-owned component snapshots (full state:
-/// position, orientation, linear + angular velocity), trims <see cref="PendingInputComponent"/> up to
-/// the server's last-processed sim tick, realigns the shared prediction step to the server's published
-/// sim tick, and frees entities despawned by the server. Local prediction continues from the corrected
-/// state, so concatenated snapshots never over-apply commands the server already collapsed.
-/// The local player's spawn transform is seeded from the join accept, so its orientation and angular
-/// velocity stay client-predicted and reconciliation never applies the authoritative echo over them.
-/// The transition into <c>Playing</c> coalesces any queued snapshot burst to the newest frame so a
-/// Loading-time backlog can never hitch the first play tick.
+/// Client-side reconciliation. Drains authoritative snapshots, applies server-owned components, trims
+/// <see cref="PendingInputComponent"/> to the server's ack, aligns the shared prediction step, and frees
+/// despawned entities. Local-player motion is delegated to <see cref="LocalPlayerReconciler"/>, which
+/// keeps the look client-predicted while reconciling collision rotation. The transition into
+/// <c>Playing</c> coalesces any queued snapshot burst to the newest frame so a Loading-time backlog can
+/// never hitch the first play tick.
 /// </summary>
-internal sealed class ClientReconcileSystem : IEntitySystem
+internal sealed class ClientReconcileSystem(
+    ClientInbound inbound,
+    SnapshotAckTracker snapshotAck,
+    ClientPlayerMotionProcessor motionProcessor,
+    LocalPlayerReconciler localPlayerReconciler,
+    NetworkRegistry registry,
+    ILogger<ClientReconcileSystem> logger
+) : IEntitySystem
 {
-    private readonly ClientInbound _inbound;
-    private readonly SnapshotAckTracker _snapshotAck;
-    private readonly ClientPlayerMotionProcessor _motionProcessor;
-    private readonly NetworkRegistry _registry;
-    private readonly ILogger<ClientReconcileSystem> _logger;
     private readonly FragmentAssembler _snapshotAssembler = new();
     private readonly List<WorldSnapshot> _snapshots = [];
 
     private bool _wasBelowPlaying = true;
-
-    public ClientReconcileSystem(
-        in ClientInbound inbound,
-        SnapshotAckTracker snapshotAck,
-        in ClientPlayerMotionProcessor motionProcessor,
-        NetworkRegistry registry,
-        ILogger<ClientReconcileSystem> logger
-    ) {
-        _inbound = inbound;
-        _snapshotAck = snapshotAck;
-        _motionProcessor = motionProcessor;
-        _registry = registry;
-        _logger = logger;
-    }
 
     public void Tick(float delta, DataStore store)
     {
@@ -64,42 +50,47 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         _wasBelowPlaying = belowPlaying;
         if (belowPlaying)
         {
+            localPlayerReconciler.Reset();
             return;
         }
 
         DrainSnapshots();
-        if (_snapshots.Count == 0)
+        if (_snapshots.Count > 0)
         {
-            return;
-        }
-
-        if (enteringPlay)
-        {
-            //  Defensive: a burst queued during Loading is coalesced to the newest frame so the first
-            //  play tick performs exactly one full ApplySnapshot. One-shot server state (e.g. the seeded
-            //  inventory) rides only the early frames and must not be dropped, so each frame that is
-            //  superseded has its non-motion components applied first; the newest applies fully and its
-            //  transform/physics win (the per-frame motion history is otherwise useless).
-            for (var index = 0; index < _snapshots.Count - 1; index++)
+            if (enteringPlay)
             {
-                ApplyOneShotComponents(_snapshots[index], store);
+                //  Defensive: a burst queued during Loading is coalesced to the newest frame so the first
+                //  play tick performs exactly one full ApplySnapshot. One-shot server state (e.g. the seeded
+                //  inventory) rides only the early frames and must not be dropped, so each frame that is
+                //  superseded has its non-motion components applied first; the newest applies fully and its
+                //  transform/physics win (the per-frame motion history is otherwise useless).
+                for (var index = 0; index < _snapshots.Count - 1; index++)
+                {
+                    ApplyOneShotComponents(_snapshots[index], store);
+                }
+
+                ApplySnapshot(_snapshots[^1], store);
             }
-
-            ApplySnapshot(_snapshots[^1], store);
-            return;
-        }
-
-        foreach (WorldSnapshot snapshot in _snapshots)
-        {
-            //  Re-check the gate inside the drain so an exit to the menu mid-drain stops applying (and
-            //  can no longer re-allocate entities the teardown is freeing).
-            if (WaywardBeyond.GameState < GameState.Playing)
+            else
             {
-                return;
-            }
+                foreach (WorldSnapshot snapshot in _snapshots)
+                {
+                    //  Re-check the gate inside the drain so an exit to the menu mid-drain stops applying
+                    //  (and can no longer re-allocate entities the teardown is freeing).
+                    if (WaywardBeyond.GameState < GameState.Playing)
+                    {
+                        localPlayerReconciler.Reset();
+                        return;
+                    }
 
-            ApplySnapshot(snapshot, store);
+                    ApplySnapshot(snapshot, store);
+                }
+            }
         }
+
+        //  The orientation target advances every tick, not only on a snapshot, so the correction stays
+        //  smooth between authoritative frames.
+        localPlayerReconciler.Tick(delta, store);
     }
 
     /// <summary>
@@ -110,7 +101,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     {
         _snapshots.Clear();
 
-        while (_inbound.Snapshots.TryDequeue(out ClientInbound.InboundSnapshot message))
+        while (inbound.Snapshots.TryDequeue(out ClientInbound.InboundSnapshot message))
         {
             try
             {
@@ -134,12 +125,12 @@ internal sealed class ClientReconcileSystem : IEntitySystem
                 }
                 else if (state == FragmentState.Rejected)
                 {
-                    _logger.LogWarning("Dropping a snapshot batch with an invalid fragment.");
+                    logger.LogWarning("Dropping a snapshot batch with an invalid fragment.");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Dropping a malformed snapshot.");
+                logger.LogWarning(ex, "Dropping a malformed snapshot.");
             }
         }
 
@@ -163,7 +154,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         for (var i = 0; i < removedComponents.Length; i++)
         {
             ComponentRemoval removal = removedComponents[i];
-            Result<NetworkComponentInfo> lookup = _registry.GetInfo(Uuid.FromValue(removal.TypeUuid));
+            Result<NetworkComponentInfo> lookup = registry.GetInfo(Uuid.FromValue(removal.TypeUuid));
             if (!lookup.Success || !store.TryGet(Uuid.FromValue(removal.Entity), out int entity))
             {
                 continue;
@@ -181,12 +172,16 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             }
         }
 
+        //  The pending ring has not been trimmed yet, so the reconciler can read the look totals at the
+        //  server's ack before the trim removes them.
+        localPlayerReconciler.ApplySnapshot(store, snapshot.LastProcessedInput);
+
         TrimPendingInput(snapshot.LastProcessedInput, store);
 
         //  Align live prediction with the server's sim tick after the authoritative state is applied.
-        _motionProcessor.Step?.AlignTo(snapshot.TickNumber);
+        motionProcessor.Step?.AlignTo(snapshot.TickNumber);
 
-        _snapshotAck.LastAppliedSnapshotTick = snapshot.TickNumber;
+        snapshotAck.LastAppliedSnapshotTick = snapshot.TickNumber;
     }
 
     private void ApplyComponent(ComponentSnapshot snapshot, DataStore store)
@@ -197,7 +192,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             entity = store.Alloc(entityUuid);
         }
 
-        Result<NetworkComponentInfo> lookup = _registry.GetInfo(Uuid.FromValue(snapshot.TypeUuid));
+        Result<NetworkComponentInfo> lookup = registry.GetInfo(Uuid.FromValue(snapshot.TypeUuid));
         if (!lookup.Success || lookup.Value.Direction != NetworkDirection.ServerOwned)
         {
             return;
@@ -211,18 +206,31 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             return;
         }
 
-        //  The local player's look is client-predicted; never accept the authoritative echo over it.
-        //  Position/scale (and linear velocity) are authority, but orientation and angular velocity stay
-        //  locally predicted from the join-accept spawn, so the echo never snaps or clobbers the local look.
+        //  The local player's look is client-predicted. The reconciler applies position/scale/linear
+        //  velocity and uses the authoritative orientation and angular velocity to correct collision
+        //  rotation without rewinding the local look.
         try
         {
             if (info.Type == typeof(TransformComponent))
             {
-                ApplyLocallyOwnedTransform(store, entity, snapshot.Payload);
+                TransformMessage message = TransformMessage.Deserialize(snapshot.Payload);
+                localPlayerReconciler.ApplyTransform(
+                    store,
+                    entity,
+                    new Vector3(message.PositionX, message.PositionY, message.PositionZ),
+                    new Quaternion(message.OrientationX, message.OrientationY, message.OrientationZ, message.OrientationW),
+                    new Vector3(message.ScaleX, message.ScaleY, message.ScaleZ)
+                );
             }
             else if (info.Type == typeof(PhysicsComponent))
             {
-                ApplyLocallyOwnedPhysics(store, entity, snapshot.Payload);
+                PhysicsMessage message = PhysicsMessage.Deserialize(snapshot.Payload);
+                localPlayerReconciler.ApplyPhysics(
+                    store,
+                    entity,
+                    new Vector3(message.VelocityX, message.VelocityY, message.VelocityZ),
+                    new Vector3(message.AngularVelocityX, message.AngularVelocityY, message.AngularVelocityZ)
+                );
             }
             else
             {
@@ -231,7 +239,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Dropping {component} snapshot for entity {entity}.", info.Type.Name, entity);
+            logger.LogWarning(ex, "Dropping {component} snapshot for entity {entity}.", info.Type.Name, entity);
         }
     }
 
@@ -240,7 +248,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         Result applied = info.Codec.Apply(store, entity, payload);
         if (!applied.Success)
         {
-            _logger.LogWarning(
+            logger.LogWarning(
                 "Dropping {component} snapshot for entity {entity}: {message}.",
                 info.Type.Name, entity, applied.Message);
         }
@@ -257,7 +265,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         ComponentSnapshot[] components = snapshot.Components;
         for (var i = 0; i < components.Length; i++)
         {
-            Result<NetworkComponentInfo> lookup = _registry.GetInfo(Uuid.FromValue(components[i].TypeUuid));
+            Result<NetworkComponentInfo> lookup = registry.GetInfo(Uuid.FromValue(components[i].TypeUuid));
             if (!lookup.Success
                 || lookup.Value.Type == typeof(TransformComponent)
                 || lookup.Value.Type == typeof(PhysicsComponent))
@@ -266,62 +274,6 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             }
 
             ApplyComponent(components[i], store);
-        }
-    }
-
-    private static void ApplyLocallyOwnedTransform(DataStore store, int entity, ReadOnlySpan<byte> payload)
-    {
-        TransformMessage message = TransformMessage.Deserialize(payload);
-
-        var serverPosition = new Vector3(message.PositionX, message.PositionY, message.PositionZ);
-        var serverScale = new Vector3(message.ScaleX, message.ScaleY, message.ScaleZ);
-
-        //  Keep the locally predicted look; snap only position/scale from the authority.
-        var write = new SeatTransform(in serverPosition, in serverScale);
-        store.QueryRef<TransformComponent, SeatTransform>(entity, 0f, ref write);
-    }
-
-    private struct SeatTransform(in Vector3 position, in Vector3 scale) : IForEachRef<TransformComponent>
-    {
-        private readonly Vector3 _position = position;
-        private readonly Vector3 _scale = scale;
-
-        public void Execute(float delta, DataStore store, int entity, ref Ref<TransformComponent> transform)
-        {
-            ref readonly TransformComponent current = ref transform.Read;
-            if (current.Position == _position && current.Scale == _scale)
-            {
-                return;
-            }
-
-            ref TransformComponent value = ref transform.Write;
-            value.Position = _position;
-            value.Scale = _scale;
-        }
-    }
-
-    private static void ApplyLocallyOwnedPhysics(DataStore store, int entity, ReadOnlySpan<byte> payload)
-    {
-        //  Linear velocity is authority; angular velocity is the local torque-driven look and must not be
-        //  clobbered by the server echo.
-        PhysicsMessage message = PhysicsMessage.Deserialize(payload);
-        var write = new SeatVelocity(new Vector3(message.VelocityX, message.VelocityY, message.VelocityZ));
-        store.QueryRef<PhysicsComponent, SeatVelocity>(entity, 0f, ref write);
-    }
-
-    private struct SeatVelocity(in Vector3 velocity) : IForEachRef<PhysicsComponent>
-    {
-        private readonly Vector3 _velocity = velocity;
-
-        public void Execute(float delta, DataStore store, int entity, ref Ref<PhysicsComponent> physics)
-        {
-            ref readonly PhysicsComponent current = ref physics.Read;
-            if (current.Velocity == _velocity)
-            {
-                return;
-            }
-
-            physics.Write.Velocity = _velocity;
         }
     }
 
@@ -335,6 +287,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     {
         public uint AckTick;
 
+        /// <inheritdoc/>
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in PendingInputComponent pending)
         {
             pending.Ring?.TrimAtOrBelow(AckTick);

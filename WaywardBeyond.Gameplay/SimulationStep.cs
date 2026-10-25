@@ -24,8 +24,8 @@ public sealed class SimulationStep : IDisposable
 
     private readonly Dictionary<Uuid, Vector3> _lastAppliedLook = [];
 
-    //  Forgets arrive from the ECS or server thread; the step owns the dictionary on the physics thread,
-    //  so they are queued and drained at the start of the next step.
+    //  Forgets arrive between steps; queue them so the next step drops the totals before it applies
+    //  commands. The queue also keeps the API safe if the caller and the step ever run on different threads.
     private readonly ConcurrentQueue<Uuid> _lookForgetRequests = new();
 
     private uint _stepsSinceLookPrune;
