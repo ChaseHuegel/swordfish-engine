@@ -47,12 +47,6 @@ internal abstract class SettingsPage<TIdentifier>(
         AntiAliasing.MSAA,
     ];
 
-    private readonly BorderStyle _panelBorder = new()
-    {
-        Thickness = 1,
-        Color = SettingsTheme.Border,
-    };
-
     private readonly CornerCapStyle _panelCaps = new()
     {
         Length = SettingsMetrics.PanelCapLength,
@@ -155,7 +149,7 @@ internal abstract class SettingsPage<TIdentifier>(
             }
             else
             {
-                using (ui.SettingsPanel(layout.Tray, SettingsTheme.PanelBackground, _panelBorder, _panelCaps))
+                using (ui.SettingsPanel(layout.Tray, SettingsTheme.PanelBackground, border: default, _panelCaps))
                 {
                     if (renderer.DrawTray(_categories, ref _categoryIndex))
                     {
@@ -164,7 +158,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 }
             }
 
-            using (ui.SettingsPanel(layout.Pane, SettingsTheme.PanelBackground, _panelBorder, _panelCaps))
+            using (ui.SettingsPanel(layout.Pane, SettingsTheme.PanelBackground, border: default, _panelCaps))
             {
                 renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
             }
