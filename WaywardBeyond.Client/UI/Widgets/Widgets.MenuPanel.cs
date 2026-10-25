@@ -33,6 +33,7 @@ internal static partial class Widgets
             border: default,
             MenuPanelCaps()
         );
+        ui.Border = default;
 
         if (!string.IsNullOrEmpty(title))
         {

@@ -133,6 +133,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 - `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic button
   sizing plus Font Awesome glyph centering.
 - `Swordfish.Tests/MenuLayoutTests.cs` covers wide, narrow, and footer geometry.
+- `Swordfish.Tests/MenuPanelRenderTests.cs` checks that menu panels have no outer
+  border and keep the inner hairline.
 - `Swordfish.Tests/TextBoxZOrderTests.cs` checks selection and caret paint
   order with the theme colors, plus relative text-box sizing.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.

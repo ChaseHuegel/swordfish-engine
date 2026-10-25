@@ -13,11 +13,13 @@ using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
+using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
@@ -34,6 +36,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     private readonly GameSaveService _gameSaveService;
     private readonly CharacterSaveManager _characterSaveManager;
     private readonly CharacterAssetService _characterAssetService;
+    private readonly ISkillDatabase _skillDatabase;
     private readonly IInputService _inputService;
     private readonly ILocalization _localization;
     private readonly ICharacterStorage _characterStorage;
@@ -58,6 +61,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         in GameSaveService gameSaveService,
         in CharacterSaveManager characterSaveManager,
         in CharacterAssetService characterAssetService,
+        in ISkillDatabase skillDatabase,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
@@ -72,6 +76,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         _gameSaveService = gameSaveService;
         _characterSaveManager = characterSaveManager;
         _characterAssetService = characterAssetService;
+        _skillDatabase = skillDatabase;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
@@ -399,16 +404,10 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                     UiTheme.AccentBright,
                     Anchors.Left | Anchors.Center
                 );
+                int level = character.Value.GetTotalSkillLevel(_skillDatabase);
                 ui.Label(
-                    $"S:{character.Value.Strength} P:{character.Value.Precision} A:{character.Value.Awareness}",
-                    Widgets.Rect(statsX, previewY + 24, rect.Size.X - statsX - padding, 18),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.Text,
-                    Anchors.Left | Anchors.Center
-                );
-                ui.Label(
-                    $"C:{character.Value.Charisma} E:{character.Value.Education} R:{character.Value.Resolve}",
-                    Widgets.Rect(statsX, previewY + 42, rect.Size.X - statsX - padding, 18),
+                    $"{_localization.GetString("ui.menu.level")!} {level}",
+                    Widgets.Rect(statsX, previewY + 28, rect.Size.X - statsX - padding, 18),
                     UiMetrics.MenuSmallFont,
                     UiTheme.Text,
                     Anchors.Left | Anchors.Center
