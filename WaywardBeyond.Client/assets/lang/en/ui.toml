@@ -226,13 +226,9 @@
 "ui.field.education.desc" = "Technical knowledge and research."
 "ui.field.resolve.desc" = "Mental resilience and endurance."
 "ui.credits.manifest" = "Manifest of Origin"
-"ui.credits.producedBy" = "A production by"
-"ui.credits.development" = "Development & architecture"
-"ui.credits.engine" = "Core simulation engine"
-"ui.credits.contributions" = "Audio & visual contributions"
-"ui.credits.audioVisual" = "Original soundtrack & pixel art design"
-"ui.credits.thanks" = "Special thanks to our early playtesters"
-"ui.credits.community" = "& the open-source community"
+"ui.credits.header" = "#8DA0B8 A production by\n#F2994AFF BITFISH LLC"
+"ui.credits.body" = "#4BE3E3 Development & architecture\n#F0F3F6 CHASE M. HUEGEL\n\n#4BE3E3 Core simulation engine\n#F0F3F6 SWORDFISH CUSTOM ENGINE\n\n#4BE3E3 Audio & visual contributions\n#F0F3F6 Original soundtrack & pixel art design"
+"ui.credits.thanks" = "#8DA0B8 Special thanks to our early playtesters\n#F0F3F6 & the open-source community"
 
 # Menu layout and form copy
 "ui.menu.activeColonist" = "Active colonist"
