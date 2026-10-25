@@ -386,29 +386,31 @@ internal sealed class SettingsRenderer(
         _ui.Border = new BorderStyle
         {
             Thickness = selected || hovering ? 1 : 0,
-            Color = selected ? UiTheme.Accent : UiTheme.BorderHover,
+            Color = selected ? UiTheme.Primary : UiTheme.BorderHover,
         };
-        _ui.CornerCaps = selected
-            ? new CornerCapStyle
-            {
-                Length = UiMetrics.SelectionCapLength,
-                Thickness = UiMetrics.SelectionCapThickness,
-                Color = UiTheme.Accent,
-            }
-            : default;
+        _ui.CornerCaps = default;
         _ui.Constraints = Widgets.RectConstraints(rect);
         _ui.ClipConstraints = Widgets.RectConstraints(rect);
 
-        _ui.Label(
-            selected ? "•" : "",
-            Widgets.Rect(10, 0, 24, rect.Size.Y),
-            fontSize,
-            selected ? UiTheme.AccentBright : UiTheme.TextDim,
-            Anchors.Left | Anchors.Center
-        );
+        if (selected)
+        {
+            using (_ui.Element())
+            {
+                _ui.LayoutDirection = LayoutDirection.None;
+                _ui.Color = UiTheme.Accent;
+                _ui.Constraints = new Constraints
+                {
+                    X = new Fixed(2),
+                    Y = new Fixed(6),
+                    Width = new Fixed(3),
+                    Height = new Fixed(Math.Max(0, rect.Size.Y - 12)),
+                };
+            }
+        }
+
         _ui.Label(
             label,
-            Widgets.Rect(36, 0, rect.Size.X - 46, rect.Size.Y),
+            Widgets.Rect(16, 0, rect.Size.X - 22, rect.Size.Y),
             fontSize,
             selected ? UiTheme.AccentBright : hovering ? UiTheme.Text : UiTheme.TextMuted,
             Anchors.Left | Anchors.Center
