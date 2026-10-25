@@ -40,9 +40,11 @@ internal static partial class Widgets
     /// <returns>True if the text box is being interacted with; otherwise false.</returns>
     public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService, out Interactions interactions)
     {
+        fontOptions.ID ??= ui.DefaultFontID;
+
         using (ui.Element(id))
         {
-            ui.Color = UiTheme.ControlBackground;
+            ui.Color = UiTheme.InputBackground;
             ui.Border = new BorderStyle
             {
                 Thickness = UiMetrics.PanelBorderThickness,
@@ -63,7 +65,14 @@ internal static partial class Widgets
             bool entered = ui.Entered();
             bool exited = ui.Exited();
             bool focused = ui.Focused();
-            
+
+            ui.Color = focused ? UiTheme.InputFocus : UiTheme.InputBackground;
+            ui.Border = new BorderStyle
+            {
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = focused ? UiTheme.BorderHover : UiTheme.Border,
+            };
+
             var submitted = false;
             var typing = false;
             var navigating = false;

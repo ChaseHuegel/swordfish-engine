@@ -32,382 +32,372 @@ internal sealed class SelectCharacterPage(
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectCharacter;
-    
+
+    private const int CARD_HEIGHT = 44;
+    private const int CARD_GAP = 8;
+    private const int PANEL_PADDING = 12;
+    private const int NEW_BUTTON_HEIGHT = 32;
+
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
     private readonly ICharacterStorage _characterStorage = characterStorage;
     private readonly IInputService _inputService = inputService;
+    private readonly SoundEffectService _soundEffectService = soundEffectService;
     private readonly ILocalization _localization = localization;
     private readonly CharacterAssetService _characterAssetService = characterAssetService;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
     private readonly ModalMenu _modalMenu = modalMenu;
     private readonly ConfirmModal _confirmModal = confirmModal;
 
-    private readonly Widgets.ActionButtonOptions _primaryButton = Widgets.ActionButtonOptions.Menu(
-        ButtonVariant.Primary,
-        soundEffectService
-    ) with
-    {
-        Anchors = Anchors.Center,
-    };
-
-    private readonly Widgets.ActionButtonOptions _subtleButton = Widgets.ActionButtonOptions.Menu(
-        ButtonVariant.Subtle,
-        soundEffectService
-    ) with
-    {
-        Anchors = Anchors.Center,
-    };
-
-    private readonly Widgets.ActionButtonOptions _characterRowButton = Widgets.ActionButtonOptions.ListRow(
+    private readonly Widgets.ActionButtonOptions _returnButton = Widgets.ActionButtonOptions.Menu(
         ButtonVariant.Secondary,
         soundEffectService
     );
-
-    private readonly Widgets.ActionButtonOptions _deleteIconButton = Widgets.ActionButtonOptions.Icon(
-        ButtonVariant.Danger,
-        soundEffectService,
-        size: UiMetrics.SmallIconButtonSize,
-        fontSize: UiMetrics.IconFont,
-        fontId: "Font Awesome 6 Free Solid"
-    );
-
     private int _scrollY;
+    private int _narrowTab;
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        using (ui.Element())
-        {
-            ui.Padding = new Padding(8);
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
+        _characterSaveManager.ActiveSave ??= _characterSaveManager.GetMostRecentSave();
 
-            using (ui.Text(_localization.GetString("ui.menu.characters")!))
-            {
-                ui.FontSize = UiMetrics.TitleFont;
-            }
-        }
+        MenuLayout layout = MenuLayout.Compute(
+            ui.Width,
+            ui.Height,
+            maxPageWidth: 1160,
+            twoColumn: true,
+            leftRatio: 0.34f
+        );
 
         using (ui.Element())
         {
-            ui.Spacing = 20;
+            ui.LayoutDirection = LayoutDirection.None;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
+                Width = new Fixed(layout.PageWidth),
+                Height = new Fixed(layout.PageHeight),
             };
-            
-            if (_characterSaveManager.ActiveSave != null)
+            ui.ClipConstraints = new Constraints
             {
-                Character activeCharacter = _characterSaveManager.ActiveSave.Value;
-                
-                Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(activeCharacter);
-                using (ui.Image(appearanceMaterial))
-                {
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                        Width = new Fixed(196),
-                        Height = new Fixed(196),
-                    };
-                }
-                
-                using (ui.Element())
-                {
-                    ui.LayoutDirection = LayoutDirection.Vertical;
-                    ui.Spacing = 4;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
+                Width = new Fixed(layout.PageWidth),
+                Height = new Fixed(layout.PageHeight),
+            };
 
-                    using (ui.Element())
-                    {
-                        ui.Spacing = 8;
-                        using (ui.Text(_localization.GetString("ui.label.spacer.s")!))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-                        }
-                        
-                        using (ui.Text(activeCharacter.Strength.ToString()))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-
-                            ui.FontSize = UiMetrics.BodyFont;
-                            ui.Color = UiTheme.TextSoft;
-                        }
-                    }
-
-                    using (ui.Element())
-                    {
-                        ui.Spacing = 8;
-                        using (ui.Text(_localization.GetString("ui.label.spacer.p")!))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-                        }
-
-                        using (ui.Text(activeCharacter.Precision.ToString()))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-
-                            ui.FontSize = UiMetrics.BodyFont;
-                            ui.Color = UiTheme.TextSoft;
-                        }
-                    }
-
-                    using (ui.Element())
-                    {
-                        ui.Spacing = 8;
-                        using (ui.Text(_localization.GetString("ui.label.spacer.a")!))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-                        }
-
-                        using (ui.Text(activeCharacter.Awareness.ToString()))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-
-                            ui.FontSize = UiMetrics.BodyFont;
-                            ui.Color = UiTheme.TextSoft;
-                        }
-                    }
-
-                    using (ui.Element())
-                    {
-                        ui.Spacing = 8;
-                        using (ui.Text(_localization.GetString("ui.label.spacer.c")!))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-                        }
-
-                        using (ui.Text(activeCharacter.Charisma.ToString()))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-
-                            ui.FontSize = UiMetrics.BodyFont;
-                            ui.Color = UiTheme.TextSoft;
-                        }
-                    }
-
-                    using (ui.Element())
-                    {
-                        ui.Spacing = 8;
-                        using (ui.Text(_localization.GetString("ui.label.spacer.e")!))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-                        }
-
-                        using (ui.Text(activeCharacter.Education.ToString()))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-
-                            ui.FontSize = UiMetrics.BodyFont;
-                            ui.Color = UiTheme.TextSoft;
-                        }
-                    }
-
-                    using (ui.Element())
-                    {
-                        ui.Spacing = 8;
-                        using (ui.Text(_localization.GetString("ui.label.spacer.r")!))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-                        }
-
-                        using (ui.Text(activeCharacter.Resolve.ToString()))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-
-                            ui.FontSize = UiMetrics.BodyFont;
-                            ui.Color = UiTheme.TextSoft;
-                        }
-                    }
-                }
-            }
-
-            using (ui.Element("characters"))
+            if (layout.UseTabs)
             {
-                ui.VerticalScroll = true;
-
-                ui.ClipConstraints = new Constraints
+                DrawTabs(ui, layout);
+                if (_narrowTab == 0)
                 {
-                    Width = new Relative(1f),
-                    Height = new Relative(1f),
-                };
-
-                _characterSaveManager.ActiveSave ??= _characterSaveManager.GetMostRecentSave();
-
-                List<Character> characters = _characterStorage.GetAllCharacters().ToList();
-                if (characters.Count == 0)
-                {
-                    using (ui.Text(_localization.GetString("ui.text.none")!))
-                    {
-                        ui.FontSize = UiMetrics.BodyFont;
-                        ui.Color = UiTheme.TextDim;
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                        };
-                    }
+                    DrawManifest(ui, layout.Right, menu);
                 }
                 else
                 {
-                    float scroll = _inputService.GetMouseScroll();
-                    _scrollY = Math.Clamp(_scrollY + (int)scroll, -(characters.Count - 1), 0);
-                    ui.ScrollY = _scrollY * 30;
-                    ui.Spacing = 20;
-
-                    using (ui.Element())
-                    {
-                        ui.LayoutDirection = LayoutDirection.Vertical;
-                        ui.Spacing = 12;
-                    
-                        foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
-                        {
-                            if (ui.ActionButton($"Button_DeleteCharacter_{character.Uuid}", "\uf2ed", _deleteIconButton))
-                            {
-                                _characterSaveManager.ActiveSave = character;
-                                _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
-
-                                void DeleteSave()
-                                {
-                                    _characterSaveManager.Delete(character);
-                                    _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
-                                }
-                            }
-                        }
-                    }
-                    
-                    using (ui.Element())
-                    {
-                        ui.LayoutDirection = LayoutDirection.Vertical;
-
-                        foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
-                        {
-                            bool selected = _characterSaveManager.ActiveSave != null &&
-                                _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid;
-                            Widgets.ActionButtonOptions options = _characterRowButton with
-                            {
-                                Selected = selected,
-                            };
-
-                            if (ui.ActionButton($"Button_SelectCharacter_{character.Uuid}", character.Name, options))
-                            {
-                                _characterSaveManager.ActiveSave = character;
-                            }
-                        }
-                    }
+                    DrawDossier(ui, layout.Right, menu);
                 }
+            }
+            else
+            {
+                DrawManifest(ui, layout.Left, menu);
+                DrawDossier(ui, layout.Right, menu);
+            }
+
+            if (ui.ActionButton(
+                    "Button_Back",
+                    _localization.GetString("ui.button.return")!,
+                    _returnButton with { Rect = layout.ReturnButton }
+                ))
+            {
+                menu.GoToPage(MenuPage.Home);
             }
         }
-        
-        if (_characterSaveManager.ActiveSave != null)
+
+        return Result.FromSuccess();
+    }
+
+    private void DrawTabs(UIBuilder<Material> ui, in MenuLayout layout)
+    {
+        int tabWidth = layout.PageWidth / 2;
+        if (ui.Tab(
+                "ManifestTab",
+                Widgets.Rect(0, layout.Tabs.Top, tabWidth - 4, layout.Tabs.Size.Y),
+                _localization.GetString("ui.menu.crewManifest")!,
+                selected: _narrowTab == 0
+            ))
         {
-            Character activeCharacter = _characterSaveManager.ActiveSave.Value;
-            
-            using (ui.Element())
+            _narrowTab = 0;
+        }
+
+        if (ui.Tab(
+                "DossierTab",
+                Widgets.Rect(tabWidth + 4, layout.Tabs.Top, tabWidth - 4, layout.Tabs.Size.Y),
+                _localization.GetString("ui.menu.colonistDossier")!,
+                selected: _narrowTab == 1
+            ))
+        {
+            _narrowTab = 1;
+        }
+    }
+
+    private void DrawManifest(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
+    {
+        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.crewManifest")!))
+        {
+            List<Character> characters = _characterStorage.GetAllCharacters()
+                .OrderByDescending(character => character.Playtime.LastPlayedMs)
+                .ToList();
+
+            if (_characterSaveManager.ActiveSave == null)
             {
-                ui.Spacing = 8;
-                ui.Padding = new Padding(16);
-                ui.LayoutDirection = LayoutDirection.Vertical;
+                _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
+            }
+
+            int contentWidth = Math.Max(1, rect.Size.X - PANEL_PADDING * 2);
+            int listY = 32;
+            int listHeight = Math.Max(0, rect.Size.Y - listY - NEW_BUTTON_HEIGHT - PANEL_PADDING - 8);
+
+            if (characters.Count == 0)
+            {
+                ui.Label(
+                    _localization.GetString("ui.text.none")!,
+                    Widgets.Rect(PANEL_PADDING, listY + 12, contentWidth, 20),
+                    UiMetrics.MenuBodyFont,
+                    UiTheme.TextDim,
+                    Anchors.Center
+                );
+            }
+            else
+            {
+                IntRect listRect = Widgets.Rect(PANEL_PADDING, listY, contentWidth, listHeight);
+                using (ui.Element())
+                {
+                    ui.Color = UiTheme.Transparent;
+                    ui.Constraints = Widgets.RectConstraints(listRect);
+                    ui.ClipConstraints = new Constraints
+                    {
+                        Width = new Fixed(listRect.Size.X),
+                        Height = new Fixed(listRect.Size.Y),
+                    };
+
+                    int contentHeight = characters.Count * (CARD_HEIGHT + CARD_GAP);
+                    int maxScroll = Math.Max(0, contentHeight - listHeight);
+                    float wheel = _inputService.GetMouseScroll();
+                    if (wheel != 0f)
+                    {
+                        _scrollY -= (int)MathF.Round(wheel * UiMetrics.ScrollStep);
+                    }
+                    _scrollY = Math.Clamp(_scrollY, 0, maxScroll);
+                    ui.ScrollY = -_scrollY;
+
+                    for (var i = 0; i < characters.Count; i++)
+                    {
+                        Character character = characters[i];
+                        bool selected = _characterSaveManager.ActiveSave != null &&
+                            _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid;
+                        int cardY = i * (CARD_HEIGHT + CARD_GAP);
+                        IntRect cardRect = Widgets.Rect(0, cardY, contentWidth - 8, CARD_HEIGHT);
+
+                        bool clicked = ui.SelectableCard(
+                            $"Button_SelectCharacter_{character.Uuid}",
+                            cardRect,
+                            new Widgets.SelectableCardOptions(selected, SoundEffectService: _soundEffectService),
+                            contentUi =>
+                            {
+                                Material appearance = _characterAssetService.GetAppearanceMaterial(character);
+                                using (contentUi.Image(appearance))
+                                {
+                                    contentUi.Constraints = new Constraints
+                                    {
+                                        X = new Fixed(6),
+                                        Y = new Fixed(6),
+                                        Width = new Fixed(32),
+                                        Height = new Fixed(32),
+                                    };
+                                }
+
+                                contentUi.Label(
+                                    character.Name,
+                                    Widgets.Rect(44, 0, Math.Max(1, contentWidth - 56), CARD_HEIGHT),
+                                    UiMetrics.MenuBodyFont,
+                                    selected ? UiTheme.AccentBright : UiTheme.Text,
+                                    Anchors.Left | Anchors.Center
+                                );
+                            }
+                        );
+
+                        if (clicked)
+                        {
+                            _characterSaveManager.ActiveSave = character;
+                        }
+                    }
+                }
+
+                ui.Scrollbar(
+                    Widgets.Rect(rect.Size.X - PANEL_PADDING - 6, listY, 6, listHeight),
+                    characters.Count * (CARD_HEIGHT + CARD_GAP),
+                    listHeight,
+                    _scrollY
+                );
+            }
+
+            IntRect newButtonRect = Widgets.Rect(
+                PANEL_PADDING,
+                rect.Size.Y - NEW_BUTTON_HEIGHT - PANEL_PADDING,
+                contentWidth,
+                NEW_BUTTON_HEIGHT
+            );
+            if (ui.ActionButton(
+                    "Button_NewCharacter",
+                    newButtonRect,
+                    "+ " + _localization.GetString("ui.button.newCharacter")!,
+                    ButtonVariant.Subtle
+                ))
+            {
+                menu.GoToPage(MenuPage.NewCharacter);
+            }
+        }
+    }
+
+    private void DrawDossier(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
+    {
+        using (ui.BracketPanel(rect, _localization.GetString("ui.menu.colonistDossier")!))
+        {
+            Character? activeCharacter = _characterSaveManager.ActiveSave;
+            if (activeCharacter == null)
+            {
+                ui.Label(
+                    _localization.GetString("ui.text.none")!,
+                    Widgets.Rect(0, 44, rect.Size.X, 24),
+                    UiMetrics.MenuBodyFont,
+                    UiTheme.TextDim,
+                    Anchors.Center
+                );
+                return;
+            }
+
+            Character character = activeCharacter.Value;
+            int padding = 16;
+
+            ui.Label(
+                character.Name,
+                Widgets.Rect(padding, 32, rect.Size.X - padding * 2, 26),
+                UiMetrics.MenuTitleFont,
+                UiTheme.Text,
+                Anchors.Center
+            );
+
+            string lastPlayed = character.Playtime.LastPlayedMs > 0
+                ? DateTimeOffset.FromUnixTimeMilliseconds(character.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
+                : _localization.GetString("ui.label.never")!;
+            ui.Label(
+                $"{_localization.GetString("ui.label.lastPlayed")!}: {lastPlayed}",
+                Widgets.Rect(padding, 58, rect.Size.X - padding * 2, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted,
+                Anchors.Center
+            );
+
+            TimeSpan age = TimeSpan.FromMilliseconds(character.Playtime.AgeMs);
+            ui.Label(
+                $"{_localization.GetString("ui.label.timePlayed")!}: {_localization.GetLongString(age)}",
+                Widgets.Rect(padding, 76, rect.Size.X - padding * 2, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted,
+                Anchors.Center
+            );
+
+            int previewY = 108;
+            Material appearance = _characterAssetService.GetAppearanceMaterial(character);
+            using (ui.Image(appearance))
+            {
                 ui.Constraints = new Constraints
                 {
-                    Anchors = Anchors.Center,
+                    X = new Fixed(padding),
+                    Y = new Fixed(previewY),
+                    Width = new Fixed(100),
+                    Height = new Fixed(100),
                 };
-                
-                using (ui.Element())
-                {
-                    ui.Spacing = 8;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
+            }
 
-                    string lastPlayedStr = activeCharacter.Playtime.LastPlayedMs > 0
-                        ? DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.Playtime.LastPlayedMs).ToLocalTime().ToString(format: "g")
-                        : _localization.GetString("ui.label.never")!;
-                    
-                    using (ui.Text($"{_localization.GetString("ui.label.lastPlayed")!} #BFBFBFFF {lastPlayedStr}")) { }
-                }
+            int statsX = padding + 116;
+            DrawStat(ui, "S", _localization.GetString("ui.field.strength")!, character.Strength, statsX, previewY);
+            DrawStat(ui, "P", _localization.GetString("ui.field.precision")!, character.Precision, statsX, previewY + 22);
+            DrawStat(ui, "A", _localization.GetString("ui.field.awareness")!, character.Awareness, statsX, previewY + 44);
+            DrawStat(ui, "C", _localization.GetString("ui.field.charisma")!, character.Charisma, statsX, previewY + 66);
+            DrawStat(ui, "E", _localization.GetString("ui.field.education")!, character.Education, statsX, previewY + 88);
+            DrawStat(ui, "R", _localization.GetString("ui.field.resolve")!, character.Resolve, statsX, previewY + 110);
 
-                TimeSpan age = TimeSpan.FromMilliseconds(activeCharacter.Playtime.AgeMs);
-                string timePlayedStr = _localization.GetLongString(age);
-                using (ui.Element())
+            int buttonY = rect.Size.Y - 42;
+            bool canDelete = _characterStorage.GetAllCharacters().Count() > 1;
+            if (ui.ActionButton(
+                    "Button_DeleteCharacter",
+                    Widgets.Rect(padding, buttonY, 120, 30),
+                    _localization.GetString("ui.button.delete")!,
+                    ButtonVariant.Danger,
+                    canDelete
+                ))
+            {
+                _modalMenu.GoToPage(_confirmModal.Create(DeleteCharacter));
+
+                void DeleteCharacter()
                 {
-                    ui.Spacing = 8;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
-                    
-                    using (ui.Text($"{_localization.GetString("ui.label.timePlayed")!} #BFBFBFFF {timePlayedStr}")) { }
+                    _characterSaveManager.Delete(character);
+                    _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
                 }
             }
-            
-            if (ui.ActionButton("Button_LoadSave", _localization.GetString("ui.button.loadSave")!, _primaryButton))
+
+            bool canLaunch = _gameSaveManager.ActiveSave != null;
+            if (ui.ActionButton(
+                    "Button_LoadSave",
+                    Widgets.Rect(rect.Size.X - 156, buttonY, 140, 30),
+                    _localization.GetString("ui.button.loadSave")!,
+                    ButtonVariant.Primary,
+                    canLaunch
+                ))
             {
                 Task.Run(_gameSaveManager.Load);
             }
         }
+    }
 
+    private static void DrawStat(
+        UIBuilder<Material> ui,
+        string shortName,
+        string label,
+        int value,
+        int x,
+        int y
+    )
+    {
         using (ui.Element())
         {
-            ui.Constraints = new Constraints
+            ui.Color = UiTheme.ControlBackground;
+            ui.Border = new BorderStyle
             {
-                Width = new Fill(),
-                Height = new Fill(),
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = UiTheme.BorderHover,
             };
+            ui.Constraints = Widgets.RectConstraints(Widgets.Rect(x, y, 18, 18));
         }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-            
-            if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.back")!, _subtleButton))
-            {
-                menu.GoBack();
-            }
-        }
-        
-        return Result.FromSuccess();
+
+        ui.Label(
+            shortName,
+            Widgets.Rect(x, y, 18, 18),
+            UiMetrics.MenuSmallFont,
+            UiTheme.Text,
+            Anchors.Center
+        );
+        ui.Label(
+            label,
+            Widgets.Rect(x + 26, y, 96, 18),
+            UiMetrics.MenuSmallFont,
+            UiTheme.TextMuted,
+            Anchors.Left | Anchors.Center
+        );
+        ui.Label(
+            value.ToString(),
+            Widgets.Rect(x + 124, y, 28, 18),
+            UiMetrics.MenuSmallFont,
+            UiTheme.Text,
+            Anchors.Right | Anchors.Center
+        );
     }
 }

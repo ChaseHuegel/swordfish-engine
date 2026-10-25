@@ -21,10 +21,14 @@ internal static class UiMetrics
     public const int ControlHeight = 32;
     public const int RowGap = 16;
 
-    public const int MenuButtonMinWidth = 360;
-    public const int MenuButtonHeight = 48;
+    public const int MenuTitleFont = 24;
+    public const int MenuBodyFont = 18;
+    public const int MenuSmallFont = 14;
+    public const int MenuLabelFont = 12;
+    public const int MenuButtonMinWidth = 264;
+    public const int MenuButtonHeight = 44;
     public const int MenuButtonPaddingX = 20;
-    public const int MenuButtonPaddingY = 12;
+    public const int MenuButtonPaddingY = 10;
     public const int CompactButtonHeight = 32;
     public const int CompactButtonPaddingX = 12;
     public const int CompactButtonPaddingY = 6;
@@ -33,6 +37,14 @@ internal static class UiMetrics
     public const int ListRowMinWidth = 420;
     public const int ListRowHeight = 36;
     public const int ListRowPaddingX = 12;
+    public const int MenuFooterHeight = 52;
+    public const int MenuTabHeight = 40;
+    public const int MenuPanelPadding = 20;
+    public const int MenuPanelGap = 20;
+    public const int BracketCapLength = 12;
+    public const int BracketCapThickness = 3;
+    public const int InfoBoxTitleFont = 12;
+    public const int StatRowHeight = 32;
 
     public const int StepperArrowWidth = 32;
     public const int SliderButtonSize = 24;

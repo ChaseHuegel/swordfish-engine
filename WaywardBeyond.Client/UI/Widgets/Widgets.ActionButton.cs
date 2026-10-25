@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -17,13 +18,22 @@ internal static partial class Widgets
         IntRect rect,
         string text,
         ButtonVariant variant,
-        bool enabled = true
+        bool enabled = true,
+        string? fontId = null
     )
     {
         return ui.ActionButton(id, text, new ActionButtonOptions(
             Variant: variant,
             Enabled: enabled,
-            Rect: rect
+            Rect: rect,
+            Font: fontId == null
+                ? null
+                : new FontOptions
+                {
+                    ID = fontId,
+                    Size = UiMetrics.IconFont,
+                    NoWrap = true,
+                }
         ));
     }
 
@@ -35,8 +45,19 @@ internal static partial class Widgets
         ActionButtonOptions options
     )
     {
+        return ui.ActionButton(id, text, options, out _);
+    }
+
+    /// <summary>Creates an action button and reports hover state.</summary>
+    public static bool ActionButton(
+        this UIBuilder<Material> ui,
+        string id,
+        string text,
+        ActionButtonOptions options,
+        out bool hovering
+    )
+    {
         bool clicked;
-        bool hovering;
 
         if (options.Enabled)
         {
@@ -55,6 +76,7 @@ internal static partial class Widgets
             }
 
             clicked = false;
+            hovering = false;
         }
 
         if (clicked && options.SoundEffectService != null)
@@ -75,6 +97,18 @@ internal static partial class Widgets
     )
     {
         ControlStyle style = UiThemeResolver.ResolveButton(options.Variant, enabled, hovering, clicked);
+
+        if (options.DoubleBorder && enabled)
+        {
+            if (options.Variant == ButtonVariant.Secondary && hovering)
+            {
+                style = style with { Border = UiTheme.Accent };
+            }
+            else if (options.Variant == ButtonVariant.Primary)
+            {
+                style = style with { Text = hovering || clicked ? UiTheme.Text : UiTheme.AccentBright };
+            }
+        }
 
         if (options.Selected && enabled)
         {
@@ -100,7 +134,9 @@ internal static partial class Widgets
             Color = style.Border,
         };
         ui.CornerCaps = style.Caps;
-        ui.Padding = new Padding(options.PaddingX, options.PaddingY, options.PaddingX, options.PaddingY);
+        ui.Padding = options.DoubleBorder
+            ? new Padding(0)
+            : new Padding(options.PaddingX, options.PaddingY, options.PaddingX, options.PaddingY);
 
         if (options.Rect is { } rect)
         {
@@ -129,26 +165,30 @@ internal static partial class Widgets
 
         if (options.Rect is { } buttonRect && options.Variant == ButtonVariant.Primary && enabled)
         {
-            using (ui.Element())
+            DrawInnerBorder(ui, buttonRect, UiTheme.PrimaryDark);
+        }
+        else if (options.DoubleBorder && enabled && style.BorderThickness > 0)
+        {
+            int width = options.Rect?.Size.X ?? options.MinWidth;
+            int height = options.Rect?.Size.Y ?? options.Height;
+            if (width > 0 && height > 0)
             {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = UiTheme.Transparent;
-                ui.Border = new BorderStyle
+                Vector4 color = options.Variant switch
                 {
-                    Thickness = UiMetrics.PanelBorderThickness,
-                    Color = UiTheme.PrimaryDark,
+                    ButtonVariant.Primary => UiTheme.PrimaryDark,
+                    ButtonVariant.Danger => UiTheme.DangerDark,
+                    _ => UiTheme.BorderInner,
                 };
-                IntRect inner = Rect(2, 2, Math.Max(0, buttonRect.Size.X - 4), Math.Max(0, buttonRect.Size.Y - 4));
-                ui.Constraints = RectConstraints(inner);
-                ui.ClipConstraints = RectConstraints(inner);
+                DrawInnerBorder(ui, Rect(0, 0, width, height), color);
             }
         }
 
         FontOptions font = options.Font ?? new FontOptions
         {
-            Size = options.Rect != null ? UiMetrics.ButtonFont : UiMetrics.BodyFont,
+            Size = options.Rect != null ? UiMetrics.ButtonFont : UiMetrics.MenuBodyFont,
             NoWrap = true,
         };
+        font.ID ??= UiTheme.FontUI;
         font.NoWrap = true;
 
         using (ui.Text(text))
@@ -159,6 +199,23 @@ internal static partial class Widgets
             {
                 Anchors = options.ContentAnchors,
             };
+        }
+    }
+
+    private static void DrawInnerBorder(UIBuilder<Material> ui, IntRect rect, Vector4 color)
+    {
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Color = UiTheme.Transparent;
+            ui.Border = new BorderStyle
+            {
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = color,
+            };
+            IntRect inner = Rect(2, 2, Math.Max(0, rect.Size.X - 4), Math.Max(0, rect.Size.Y - 4));
+            ui.Constraints = RectConstraints(inner);
+            ui.ClipConstraints = RectConstraints(inner);
         }
     }
 
@@ -175,7 +232,8 @@ internal static partial class Widgets
         Anchors Anchors = default,
         SoundEffectService? SoundEffectService = null,
         IntRect? Rect = null,
-        bool Selected = false
+        bool Selected = false,
+        bool DoubleBorder = false
     )
     {
         /// <summary>Creates a full-size menu button.</summary>
@@ -191,9 +249,10 @@ internal static partial class Widgets
                 Height: UiMetrics.MenuButtonHeight,
                 PaddingX: UiMetrics.MenuButtonPaddingX,
                 PaddingY: UiMetrics.MenuButtonPaddingY,
-                Font: font ?? new FontOptions { Size = UiMetrics.BodyFont, NoWrap = true },
+                Font: font ?? new FontOptions { ID = UiTheme.FontUI, Size = UiMetrics.MenuBodyFont, NoWrap = true },
                 ContentAnchors: Anchors.Center,
-                SoundEffectService: soundEffectService
+                SoundEffectService: soundEffectService,
+                DoubleBorder: true
             );
         }
 
@@ -209,7 +268,7 @@ internal static partial class Widgets
                 Height: UiMetrics.CompactButtonHeight,
                 PaddingX: UiMetrics.CompactButtonPaddingX,
                 PaddingY: UiMetrics.CompactButtonPaddingY,
-                Font: font ?? new FontOptions { Size = UiMetrics.ControlFont, NoWrap = true },
+                Font: font ?? new FontOptions { ID = UiTheme.FontUI, Size = UiMetrics.MenuSmallFont, NoWrap = true },
                 ContentAnchors: Anchors.Center,
                 SoundEffectService: soundEffectService
             );
@@ -227,7 +286,7 @@ internal static partial class Widgets
                 MinWidth: UiMetrics.ListRowMinWidth,
                 Height: UiMetrics.ListRowHeight,
                 PaddingX: UiMetrics.ListRowPaddingX,
-                Font: font ?? new FontOptions { Size = UiMetrics.BodyFont, NoWrap = true },
+                Font: font ?? new FontOptions { ID = UiTheme.FontUI, Size = UiMetrics.MenuBodyFont, NoWrap = true },
                 ContentAnchors: Anchors.Left | Anchors.Center,
                 SoundEffectService: soundEffectService
             );
@@ -246,7 +305,7 @@ internal static partial class Widgets
                 Variant: variant,
                 MinWidth: size,
                 Height: size,
-                Font: new FontOptions { ID = fontId, Size = fontSize, NoWrap = true },
+                Font: new FontOptions { ID = fontId ?? UiTheme.FontIcons, Size = fontSize, NoWrap = true },
                 ContentAnchors: Anchors.Center,
                 SoundEffectService: soundEffectService
             );

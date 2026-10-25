@@ -14,12 +14,14 @@ that time.
 
 ## Theme tokens
 
-`UiTheme` is at `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`. It holds semantic
-colors:
+`UiTheme` is at `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`. It holds the font
+IDs and semantic colors:
 
-- surfaces: `PanelBackground`, `PanelInner`, `ControlBackground`,
-  `SelectionBackground`;
-- borders: `Border`, `BorderInner`, `BorderHover`;
+- fonts: `FontUI` (`monogram-extended`), `FontIcons`, and `FontBrands`;
+- surfaces: `PanelBackground`, `PanelSolid`, `PanelInner`, `InputBackground`,
+  `InputFocus`, `ControlBackground`, `SelectionBackground`;
+
+- borders: `Border`, `BorderInner`, `BorderHover`, `Bracket`;
 - text: `Text`, `TextMuted`, `TextDim`, `TextSoft`;
 - accents: `Accent`, `AccentBright`, `AccentDark`;
 - primary actions: `Primary`, `PrimaryBright`, `PrimaryDark`;
@@ -32,8 +34,15 @@ colors:
 Use semantic tokens, not component names, in new code. Do not add a new color
 literal to a page or a widget.
 
+`UIBuilder.DefaultFontID` at `Reef/UIBuilder.cs:155` applies `FontUI` to game
+text that does not specify a font. `DefaultUIRenderer` sets it once at startup.
+An explicit `FontOptions.ID` still wins. This keeps menus, HUD, chat, and debug
+overlays on the same pixel font.
+
 `UiMetrics` is at `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`. It holds font
 sizes, control heights, button sizes, spacing, border sizes, and scroll metrics.
+The menu suite adds `MenuTitleFont`, `MenuBodyFont`, `MenuSmallFont`,
+`MenuLabelFont`, `MenuFooterHeight`, `BracketCapLength`, and `StatRowHeight`.
 
 `SettingsMetrics` is at
 `WaywardBeyond.Client/UI/Settings/SettingsMetrics.cs:4`. It holds only geometry
@@ -67,8 +76,13 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Stepper` | `Widgets.Stepper.cs:14` | Discrete value control. |
 | `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
+| `BracketPanel` | `Widgets.BracketPanel.cs:24` | Dossier panel with heavy brackets and a title. |
+| `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. |
+| `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with custom content. |
+| `Tab` | `Widgets.Tab.cs:12` | Attached tab with selected state. |
 | `Label` | `Widgets.Text.cs:13` | Fixed-rect single-line text. |
-| `Divider` | `Widgets.Text.cs:46` | One-pixel divider. |
+| `Paragraph` | `Widgets.Text.cs:48` | Fixed-rect wrapped text. |
+| `Divider` | `Widgets.Text.cs:81` | One-pixel divider. |
 
 `Widgets.ActionButton.cs:166` defines `ActionButtonOptions`. Use the factories:
 
@@ -103,6 +117,7 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 - Metrics: `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`
 - Resolver: `WaywardBeyond.Client/UI/Theme/UiThemeResolver.cs:6`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
+- Menu layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`
 - Settings layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:7`
 - Settings renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:16`
 
@@ -112,6 +127,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   styles, segmented cells, and stepper arrows.
 - `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic button
   sizing.
+- `Swordfish.Tests/MenuLayoutTests.cs` covers wide, narrow, and footer geometry.
 - `Swordfish.Tests/TextBoxZOrderTests.cs` checks selection and caret paint
   order with the theme colors.
+- `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.
 - `Reef.Tests/UIBuilderZOrderTests.cs` checks the Reef paint-order contract.

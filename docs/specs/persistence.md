@@ -103,13 +103,15 @@ deletes the level directory on the catalog worker. The call returns
 ## Client facade
 
 `GameSaveService` (`WaywardBeyond.Client/Saves/`) is a thin client facade: a
-cached save listing from `ListLevelsRequest`, with `CreateSave`/`Delete`/
+cached save listing from `ListLevelsRequest`, with `CreateSaveAsync`/`Delete`/
 `TriggerServerSave` routed to the server via `LevelsClient`
-(`WaywardBeyond.Client/Networking/LevelsClient.cs`). `SelectSavePage` pulls the
-listing when it opens and re-pulls it every second while it stays visible, so a
-level another client creates appears without leaving the page. The listing
-response also carries `CanCreateSave`, which `GameSaveService.CanCreateSave`
-exposes so `HomePage` hides "Create save" when the server denies the
+(`WaywardBeyond.Client/Networking/LevelsClient.cs`). `CreateSaveAsync` returns
+the created `GameSave` after the listing refreshes, so `NewSavePage` can set the
+active save and open Crew Manifest. `SelectSavePage` pulls the listing when it
+opens and re-pulls it every second while it stays visible, so a level another
+client creates appears without leaving the page. The listing response also
+carries `CanCreateSave`, which `GameSaveService.CanCreateSave` exposes so
+`HomePage` disables New Game when the server denies the
 `waywardbeyond.level.create` key. The client tracks its own per-save "last
 played" and "time played" in the `level_metadata` table, merged over the server's
 level metadata in `GameSaveService.GetSaves()`. Character save is handled by

@@ -62,6 +62,18 @@
       <Compile Update="UI\Widgets\Widgets.Text.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
+      <Compile Update="UI\Widgets\Widgets.BracketPanel.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.InfoBox.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.SelectableCard.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Tab.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
     </ItemGroup>
 
 </Project>
