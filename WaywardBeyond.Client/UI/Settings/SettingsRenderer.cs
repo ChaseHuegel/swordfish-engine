@@ -408,7 +408,7 @@ internal sealed class SettingsRenderer(
         _ui.ClipConstraints = Widgets.SettingsRectConstraints(rect);
 
         DrawText(
-            selected ? "[*]" : "[ ]",
+            selected ? "•" : "",
             Widgets.SettingsRect(10, 0, 24, rect.Size.Y),
             fontSize,
             selected ? SettingsTheme.AccentBright : SettingsTheme.TextDim,
