@@ -197,10 +197,18 @@ internal static partial class Widgets
         {
             ui.FontOptions = font;
             ui.Color = style.Text;
-            ui.Constraints = new Constraints
+            var constraints = new Constraints
             {
                 Anchors = options.ContentAnchors,
             };
+
+            int iconOffset = IconVerticalOffset(font);
+            if (iconOffset != 0 && (options.ContentAnchors & Anchors.Center) == Anchors.Center)
+            {
+                constraints.Y = new Fixed(-iconOffset);
+            }
+
+            ui.Constraints = constraints;
         }
     }
 

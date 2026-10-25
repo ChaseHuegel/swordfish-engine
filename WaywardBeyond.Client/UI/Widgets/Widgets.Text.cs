@@ -29,17 +29,26 @@ internal static partial class Widgets
 
             using (ui.Text(text))
             {
-                ui.FontOptions = new FontOptions
+                var fontOptions = new FontOptions
                 {
                     ID = fontId ?? UiTheme.FontUI,
                     Size = fontSize,
                     NoWrap = true,
                 };
+                ui.FontOptions = fontOptions;
                 ui.Color = color;
-                ui.Constraints = new Constraints
+                var constraints = new Constraints
                 {
                     Anchors = anchors,
                 };
+
+                int iconOffset = IconVerticalOffset(fontOptions);
+                if (iconOffset != 0 && (anchors & Anchors.Center) == Anchors.Center)
+                {
+                    constraints.Y = new Fixed(-iconOffset);
+                }
+
+                ui.Constraints = constraints;
             }
         }
     }

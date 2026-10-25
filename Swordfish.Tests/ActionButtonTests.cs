@@ -42,6 +42,29 @@ public class ActionButtonTests
         Assert.Equal(UiMetrics.MenuButtonHeight, button.Rect.Size.Y);
     }
 
+    [Fact]
+    public void FontAwesomeIconIsVerticallyCentered()
+    {
+        UIBuilder<Material> ui = CreateBuilder();
+        Widgets.ActionButtonOptions options = Widgets.ActionButtonOptions.Icon(
+            ButtonVariant.Secondary,
+            soundEffectService: null!,
+            size: 40,
+            fontSize: 32,
+            fontId: UiTheme.FontIcons
+        ) with
+        {
+            Rect = Widgets.Rect(10, 20, 40, 40),
+        };
+
+        ui.ActionButton("icon", "\uf2ed", options);
+
+        RenderCommand<Material> text = ui.Build(0f).Single(command => command.Text == "\uf2ed");
+
+        Assert.Equal(14, text.Rect.Left);
+        Assert.Equal(20, text.Rect.Top);
+    }
+
     private static UIBuilder<Material> CreateBuilder()
     {
         return new UIBuilder<Material>(400, 200, new StubTextEngine(), new UIController());
@@ -55,7 +78,7 @@ public class ActionButtonTests
     private sealed class StubTextEngine : ITextEngine
     {
         private static readonly TextLayout CachedLayout = new(
-            new TextConstraints(50, 20, 50, 20),
+            new TextConstraints(32, 32, 32, 32),
             [],
             ["OK"],
             lineHeight: 20
@@ -71,9 +94,9 @@ public class ActionButtonTests
             return false;
         }
 
-        public TextConstraints Measure(FontOptions fontOptions, string text) => new(50, 20, 50, 20);
+        public TextConstraints Measure(FontOptions fontOptions, string text) => new(32, 32, 32, 32);
 
-        public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length) => new(50, 20, 50, 20);
+        public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length) => new(32, 32, 32, 32);
 
         public TextLayout Layout(FontOptions fontOptions, string text) => CachedLayout;
 

@@ -1,11 +1,24 @@
 using System;
+using Reef.UI;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
     private const string InterfaceAudioChannel = "interface";
+
+    /// <summary>Gets the vertical correction for Font Awesome glyphs, which sit low in their line box.</summary>
+    private static int IconVerticalOffset(in FontOptions font)
+    {
+        if (font.ID != UiTheme.FontIcons && font.ID != UiTheme.FontBrands)
+        {
+            return 0;
+        }
+
+        return (int)System.MathF.Round(font.Size * 0.125f);
+    }
     
     /// <summary>
     ///     Plays standard button audio for interactions.

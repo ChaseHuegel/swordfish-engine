@@ -40,6 +40,7 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
 
         using (ui.Element())
         {
+            ui.LayoutDirection = LayoutDirection.None;
             ui.Color = UiTheme.Scrim;
             ui.Constraints = new Constraints
             {
