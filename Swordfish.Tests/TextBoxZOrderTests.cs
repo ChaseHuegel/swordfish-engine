@@ -6,13 +6,14 @@ using Reef.Text;
 using Reef.UI;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.UI.Theme;
 using Xunit;
 
 namespace Swordfish.Tests;
 
 public class TextBoxZOrderTests
 {
-    private static readonly Vector4 SELECTION_COLOR = new(0f, 0.455f, 1f, 0.5f);
+    private static readonly Vector4 SELECTION_COLOR = UiTheme.RowSelected;
 
     [Fact]
     public void SelectionPaintsBehindText()
@@ -123,7 +124,7 @@ public class TextBoxZOrderTests
         for (var i = 0; i < commands.Count; i++)
         {
             RenderCommand<Material> command = commands[i];
-            if (command.ID == null && command.Text == null && command.Rect.Size.X == 1 && command.Color == Vector4.One)
+            if (command.ID == null && command.Text == null && command.Rect.Size.X == 1 && command.Color == UiTheme.Text)
             {
                 return i;
             }

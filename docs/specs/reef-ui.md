@@ -60,6 +60,9 @@ border. Zero values disable them.
 
 The builder exposes both fields at `Reef/UIBuilder.cs:86` and `:92`.
 
+Game pages do not use raw styles. They use the shared theme, metrics, and
+widgets in [ui-theme](ui-theme.md).
+
 The pixel renderer draws both at `Reef/PixelRenderer.cs:130` and `:147`. The
 OpenGL renderer adds both to the command's rect vertex list at
 `Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:174` and `:191`.

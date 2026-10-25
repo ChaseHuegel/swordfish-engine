@@ -159,69 +159,69 @@ internal class FeedbackModal : IMenuPage<Modal>
                 if (ui.ActionButton("Button_Submit", _localization.GetString("ui.button.submit")!, _submitButton))
                 {
                     double timeSinceLastSubmission = ui.Time - _lastSubmissionTime;
-                        bool canSubmit = timeSinceLastSubmission > 15;
-                        if (!canSubmit)
-                        {
-                            var notification = new Notification(_localization.GetString("ui.notification.tooSoon")!, NotificationType.Interaction);
-                            _notificationService.Push(notification);
-                        }
-                        else
-                        {
-                            _lastSubmissionTime = ui.Time;
-                            var contact = _contactTextBox.Text.ToString();
-                            var description = _descriptionTextBox.Text.ToString();
-                            menu.GoBack();
-                            Task.Run(SubmitAsync);
+                    bool canSubmit = timeSinceLastSubmission > 15;
+                    if (!canSubmit)
+                    {
+                        var notification = new Notification(_localization.GetString("ui.notification.tooSoon")!, NotificationType.Interaction);
+                        _notificationService.Push(notification);
+                    }
+                    else
+                    {
+                        _lastSubmissionTime = ui.Time;
+                        var contact = _contactTextBox.Text.ToString();
+                        var description = _descriptionTextBox.Text.ToString();
+                        menu.GoBack();
+                        Task.Run(SubmitAsync);
 
-                            async Task SubmitAsync()
+                        async Task SubmitAsync()
+                        {
+                            //  ! HACK !
+                            //  ! Brief delay to allow time for the menu to have closed
+                            await Task.Delay(100);
+                            
+                            //  Collect log info
+                            LogEventArgs[] logHistory = _logListener.GetHistory();
+
+                            //  Create the log stream
+                            await using var logStream = new MemoryStream();
+                            await using var logStreamWriter = new StreamWriter(logStream);
+                            foreach (LogEventArgs logEntry in logHistory)
                             {
-                                //  ! HACK !
-                                //  ! Brief delay to allow time for the menu to have closed
-                                await Task.Delay(100);
-                                
-                                //  Collect log info
-                                LogEventArgs[] logHistory = _logListener.GetHistory();
+                                await logStreamWriter.WriteLineAsync($"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
+                            }
 
-                                //  Create the log stream
-                                await using var logStream = new MemoryStream();
-                                await using var logStreamWriter = new StreamWriter(logStream);
-                                foreach (LogEventArgs logEntry in logHistory)
-                                {
-                                    await logStreamWriter.WriteLineAsync($"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
-                                }
+                            await logStreamWriter.FlushAsync();
+                            logStream.Position = 0;
 
-                                await logStreamWriter.FlushAsync();
-                                logStream.Position = 0;
+                            //  Collect a screenshot
+                            Texture screenshotTexture = _renderer.Screenshot();
 
-                                //  Collect a screenshot
-                                Texture screenshotTexture = _renderer.Screenshot();
+                            //  Create the screenshot stream
+                            await using var screenshotStream = new MemoryStream();
+                            using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels, screenshotTexture.Width, screenshotTexture.Height);
+                            await image.SaveAsPngAsync(screenshotStream);
+                            screenshotStream.Position = 0;
 
-                                //  Create the screenshot stream
-                                await using var screenshotStream = new MemoryStream();
-                                using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels, screenshotTexture.Width, screenshotTexture.Height);
-                                await image.SaveAsPngAsync(screenshotStream);
-                                screenshotStream.Position = 0;
+                            //  Name the streams
+                            await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);
+                            await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
 
-                                //  Name the streams
-                                await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);
-                                await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
-
-                                //  Send the feedback form
-                                Result<Guid> result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
-                                if (result.Success)
-                                {
-                                    _logger.LogInformation($"Feedback submitted ({result.Value}).");
-                                    var notification = new Notification("Feedback submitted. Thank you, spacer!");
-                                    _notificationService.Push(notification);
-                                }
-                                else
-                                {
-                                    _logger.LogError(result.Exception, result.Message);
-                                    var notification = new Notification("Feedback submission failed, please try again.");
-                                    _notificationService.Push(notification);
-                                }
+                            //  Send the feedback form
+                            Result<Guid> result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
+                            if (result.Success)
+                            {
+                                _logger.LogInformation($"Feedback submitted ({result.Value}).");
+                                var notification = new Notification("Feedback submitted. Thank you, spacer!");
+                                _notificationService.Push(notification);
+                            }
+                            else
+                            {
+                                _logger.LogError(result.Exception, result.Message);
+                                var notification = new Notification("Feedback submission failed, please try again.");
+                                _notificationService.Push(notification);
                             }
                         }
+                    }
                 }
             }
             
