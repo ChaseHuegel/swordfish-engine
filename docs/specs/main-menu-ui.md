@@ -81,8 +81,8 @@ The mockup uses galaxy terminology. The game stores levels and characters.
 - Direct Connect is a left-aligned toolbar with host, port, and Connect.
   Connection errors render centered in the footer between Return and Join
   Server, so the page does not shift.
-- The Favorites list has an Add Favorite action at the bottom. It saves the
-  host and port from the Direct Connect toolbar.
+- The Favorites list has an Add Favorite action at the bottom. It opens a modal
+  with address, port, Cancel, and Submit.
 - LAN rows have a star action that saves the discovered server.
 - Ping uses Font Awesome `signal` with color bands: green below 60 ms, yellow
   below 100 ms, orange below 150 ms, red below 250 ms. At 250 ms or more it

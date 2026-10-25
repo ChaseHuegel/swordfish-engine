@@ -243,6 +243,8 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<Modal>, PlaytestNoticeModal>();
         container.Register<ConfirmModal>(Reuse.Singleton);
         container.RegisterMapping<IMenuPage<Modal>, ConfirmModal>();
+        container.Register<AddFavoriteModal>(Reuse.Singleton);
+        container.RegisterMapping<IMenuPage<Modal>, AddFavoriteModal>();
     }
     
     private static void RegisterInput(IContainer container)

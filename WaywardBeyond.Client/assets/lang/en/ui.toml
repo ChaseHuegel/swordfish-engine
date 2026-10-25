@@ -30,6 +30,7 @@
 
 "ui.menu.confirm" = "Are you sure?"
 "ui.menu.confirmBody" = "This action cannot be undone."
+"ui.menu.addFavorite" = "Add Favorite"
 "ui.menu.removeFavorite" = "Remove Favorite?"
 "ui.menu.removeFavoriteBody" = "Remove {0} from your favorites?"
 
