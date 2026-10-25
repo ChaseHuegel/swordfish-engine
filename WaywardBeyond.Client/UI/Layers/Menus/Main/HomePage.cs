@@ -119,7 +119,7 @@ internal sealed class HomePage(
             DrawDivider(ui, buttonX, y, UiMetrics.MenuButtonMinWidth);
             y += DIVIDER_HEIGHT + DIVIDER_GAP;
 
-            if (ui.ActionButton("Button_Settings", _localization.GetString("ui.button.options")!, _optionsButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
+            if (ui.ActionButton("Button_Settings", _localization.GetString("ui.button.settings")!, _optionsButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
             {
                 menu.GoToPage(MenuPage.Settings);
             }

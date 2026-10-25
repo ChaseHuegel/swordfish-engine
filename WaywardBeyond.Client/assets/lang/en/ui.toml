@@ -180,7 +180,6 @@
 "ui.hint.feedback" = "F8: Send feedback"
 
 # Main menu suite
-"ui.button.options" = "Options"
 "ui.button.initialize" = "Initialize"
 "ui.button.delete" = "Delete"
 "ui.button.joinServer" = "Join Server"
@@ -196,7 +195,9 @@
 "ui.menu.sectorInitialization" = "Sector Initialization"
 "ui.menu.sectorDossier" = "Sector Dossier"
 "ui.menu.generation" = "Generation"
-"ui.menu.procedural" = "Procedural"
+"ui.level.type" = "Type"
+"ui.level.type.procedural" = "Procedural"
+"ui.level.type.asteroids" = "Asteroids"
 "ui.menu.sectorInfoTitle" = "Info"
 "ui.menu.sectorInfoPrefix" = "SECTOR:"
 "ui.menu.sectorInfoBody" = "The sector is generated from the seed. The same seed and generation settings produce the same world."
