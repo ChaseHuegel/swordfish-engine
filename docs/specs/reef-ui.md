@@ -21,6 +21,11 @@ fixed-metric rectangles. `Fill` and `Relative` are appropriate for simple
 containers, but they can shrink content below its natural height when a screen
 overflows.
 
+`Anchors.Center` is resolved along an axis only when the parent's layout is not
+aligned along that axis. Use `LayoutDirection.None` for full-screen overlay
+roots that center a fixed-size modal. `Reef.Tests/UIBuilderLayoutTests.cs`
+covers this.
+
 ## Paint order
 
 Elements paint in declaration order. The parent paints first, then the first

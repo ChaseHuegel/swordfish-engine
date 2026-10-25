@@ -102,6 +102,7 @@ internal class FeedbackModal : IMenuPage<Modal>
 
         using (ui.Element())
         {
+            ui.LayoutDirection = LayoutDirection.None;
             ui.Color = UiTheme.ScrimHeavy;
             ui.Constraints = new Constraints
             {

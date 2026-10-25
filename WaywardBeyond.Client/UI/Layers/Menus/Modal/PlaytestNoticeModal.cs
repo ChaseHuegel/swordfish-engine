@@ -44,6 +44,7 @@ internal class PlaytestNoticeModal(
 
         using (ui.Element())
         {
+            ui.LayoutDirection = LayoutDirection.None;
             ui.Color = UiTheme.ScrimHeavy;
             ui.Constraints = new Constraints
             {
