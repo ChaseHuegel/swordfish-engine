@@ -35,34 +35,40 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="UI\Widgets.NumberControl.cs">
+      <Compile Update="UI\Widgets\Widgets.NumberControl.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.Checkbox.cs">
+      <Compile Update="UI\Widgets\Widgets.Checkbox.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.TextButton.cs">
+      <Compile Update="UI\Widgets\Widgets.TextButton.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.TextBox.cs">
+      <Compile Update="UI\Widgets\Widgets.TextBox.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.SettingsPanel.cs">
+      <Compile Update="UI\Widgets\Widgets.Panel.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.SettingsButton.cs">
+      <Compile Update="UI\Widgets\Widgets.ActionButton.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.SettingsToggle.cs">
+      <Compile Update="UI\Widgets\Widgets.Toggle.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.SettingsStepper.cs">
+      <Compile Update="UI\Widgets\Widgets.Stepper.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.SettingsSlider.cs">
+      <Compile Update="UI\Widgets\Widgets.Slider.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.SettingsScroll.cs">
+      <Compile Update="UI\Widgets\Widgets.Scrollbar.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Layout.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Text.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
     </ItemGroup>

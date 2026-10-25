@@ -1,4 +1,5 @@
 using System;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Settings;
 
@@ -21,7 +22,7 @@ internal abstract class SettingsEntry : SettingsRow
     public bool CanEdit => _isEnabled?.Invoke() ?? true;
 
     /// <inheritdoc/>
-    public override int Height => SettingsMetrics.RowHeight;
+    public override int Height => UiMetrics.RowHeight;
 
     /// <summary>Gets whether the value differs from its baseline.</summary>
     public abstract bool IsDirty { get; }

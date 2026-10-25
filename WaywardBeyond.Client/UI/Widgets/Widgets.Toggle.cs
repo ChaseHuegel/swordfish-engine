@@ -4,7 +4,7 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using WaywardBeyond.Client.UI.Settings;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
@@ -13,7 +13,7 @@ internal static partial class Widgets
     private static readonly bool[] BoolOptions = [false, true];
 
     /// <summary>Creates an on/off control and returns true when the value changes.</summary>
-    public static bool SettingsToggle(
+    public static bool Toggle(
         this UIBuilder<Material> ui,
         string id,
         IntRect rect,
@@ -24,7 +24,7 @@ internal static partial class Widgets
         out bool newValue
     )
     {
-        return ui.SettingsChoice(
+        return ui.SegmentedControl(
             id,
             rect,
             BoolOptions,
@@ -36,7 +36,7 @@ internal static partial class Widgets
     }
 
     /// <summary>Creates a row of radio-like choices and returns true when the value changes.</summary>
-    public static bool SettingsChoice<T>(
+    public static bool SegmentedControl<T>(
         this UIBuilder<Material> ui,
         string id,
         IntRect rect,
@@ -53,17 +53,17 @@ internal static partial class Widgets
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = SettingsTheme.ControlBackground;
+            ui.Color = UiTheme.ControlBackground;
             ui.Border = new BorderStyle
             {
-                Thickness = 1,
-                Color = enabled ? SettingsTheme.Border : SettingsTheme.BorderInner,
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = enabled ? UiTheme.Border : UiTheme.BorderInner,
             };
-            ui.Constraints = SettingsRectConstraints(rect);
-            ui.ClipConstraints = SettingsRectConstraints(rect);
+            ui.Constraints = RectConstraints(rect);
+            ui.ClipConstraints = RectConstraints(rect);
 
-            IntRect localRect = SettingsRect(0, 0, rect.Size.X, rect.Size.Y);
-            IntRect inner = SettingsInset(localRect, 1);
+            IntRect localRect = Rect(0, 0, rect.Size.X, rect.Size.Y);
+            IntRect inner = Inset(localRect, UiMetrics.PanelBorderThickness);
             int count = options.Count;
             if (count == 0)
             {
@@ -109,7 +109,7 @@ internal static partial class Widgets
                 using (ui.Element())
                 {
                     int x = inner.Left + i * cellWidth;
-                    ui.Color = SettingsTheme.BorderInner;
+                    ui.Color = UiTheme.BorderInner;
                     ui.Constraints = new Constraints
                     {
                         X = new Fixed(x),
@@ -133,31 +133,20 @@ internal static partial class Widgets
         bool hovering
     )
     {
+        ControlStyle style = UiThemeResolver.ResolveChoiceCell(selected, enabled, hovering);
         ui.LayoutDirection = LayoutDirection.None;
-        ui.Color = !enabled
-            ? SettingsTheme.ControlBackground
-            : selected
-                ? SettingsTheme.AccentDark
-                : hovering
-                    ? SettingsTheme.ButtonHover
-                    : SettingsTheme.ControlBackground;
-        ui.Constraints = SettingsRectConstraints(rect);
-        ui.ClipConstraints = SettingsRectConstraints(rect);
+        ui.Color = style.Fill;
+        ui.Constraints = RectConstraints(rect);
+        ui.ClipConstraints = RectConstraints(rect);
 
         using (ui.Text(label))
         {
             ui.FontOptions = new FontOptions
             {
-                Size = SettingsMetrics.ControlFont,
+                Size = UiMetrics.ControlFont,
                 NoWrap = true,
             };
-            ui.Color = !enabled
-                ? SettingsTheme.TextDim
-                : selected
-                    ? SettingsTheme.AccentBright
-                    : hovering
-                        ? SettingsTheme.Text
-                        : SettingsTheme.TextMuted;
+            ui.Color = style.Text;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,

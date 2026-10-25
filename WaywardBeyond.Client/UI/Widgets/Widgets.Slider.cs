@@ -4,14 +4,14 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using WaywardBeyond.Client.UI.Settings;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
     /// <summary>Creates a draggable slider and returns true when the value changes.</summary>
-    public static bool SettingsSlider(
+    public static bool Slider(
         this UIBuilder<Material> ui,
         string id,
         IntRect rect,
@@ -30,34 +30,34 @@ internal static partial class Widgets
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = SettingsTheme.Transparent;
-            ui.Constraints = SettingsRectConstraints(rect);
-            ui.ClipConstraints = SettingsRectConstraints(rect);
+            ui.Color = UiTheme.Transparent;
+            ui.Constraints = RectConstraints(rect);
+            ui.ClipConstraints = RectConstraints(rect);
 
-            int buttonSize = SettingsMetrics.SliderButtonSize;
-            int valueWidth = SettingsMetrics.SliderValueWidth;
+            int buttonSize = UiMetrics.SliderButtonSize;
+            int valueWidth = UiMetrics.SliderValueWidth;
             int gap = 8;
             int buttonY = (rect.Size.Y - buttonSize) / 2;
 
-            IntRect minusRect = SettingsRect(0, buttonY, buttonSize, buttonSize);
-            IntRect valueRect = SettingsRect(rect.Size.X - valueWidth, 0, valueWidth, rect.Size.Y);
-            IntRect plusRect = SettingsRect(valueRect.Left - gap - buttonSize, buttonY, buttonSize, buttonSize);
+            IntRect minusRect = Rect(0, buttonY, buttonSize, buttonSize);
+            IntRect valueRect = Rect(rect.Size.X - valueWidth, 0, valueWidth, rect.Size.Y);
+            IntRect plusRect = Rect(valueRect.Left - gap - buttonSize, buttonY, buttonSize, buttonSize);
             int trackX = minusRect.Right + gap;
             int trackWidth = plusRect.Left - gap - trackX;
-            IntRect trackRect = SettingsRect(
+            IntRect trackRect = Rect(
                 trackX,
-                (rect.Size.Y - SettingsMetrics.SliderTrackHeight) / 2,
+                (rect.Size.Y - UiMetrics.SliderTrackHeight) / 2,
                 trackWidth,
-                SettingsMetrics.SliderTrackHeight
+                UiMetrics.SliderTrackHeight
             );
 
-            if (ui.SettingsButton($"{id}.minus", minusRect, "-", SettingsButtonVariant.Secondary, enabled))
+            if (ui.ActionButton($"{id}.minus", minusRect, "-", ButtonVariant.Secondary, enabled))
             {
                 newValue = SnapSliderValue(newValue - step, min, max, step);
                 changed = true;
             }
 
-            if (ui.SettingsButton($"{id}.plus", plusRect, "+", SettingsButtonVariant.Secondary, enabled))
+            if (ui.ActionButton($"{id}.plus", plusRect, "+", ButtonVariant.Secondary, enabled))
             {
                 newValue = SnapSliderValue(newValue + step, min, max, step);
                 changed = true;
@@ -72,18 +72,18 @@ internal static partial class Widgets
             using (ui.Element())
             {
                 ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = SettingsTheme.Transparent;
-                ui.Constraints = SettingsRectConstraints(valueRect);
-                ui.ClipConstraints = SettingsRectConstraints(valueRect);
+                ui.Color = UiTheme.Transparent;
+                ui.Constraints = RectConstraints(valueRect);
+                ui.ClipConstraints = RectConstraints(valueRect);
 
                 using (ui.Text(format(newValue)))
                 {
                     ui.FontOptions = new FontOptions
                     {
-                        Size = SettingsMetrics.ControlFont,
+                        Size = UiMetrics.ControlFont,
                         NoWrap = true,
                     };
-                    ui.Color = enabled ? SettingsTheme.Text : SettingsTheme.TextDim;
+                    ui.Color = enabled ? UiTheme.Text : UiTheme.TextDim;
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Right | Anchors.Center,
@@ -167,14 +167,14 @@ internal static partial class Widgets
     )
     {
         ui.LayoutDirection = LayoutDirection.None;
-        ui.Color = SettingsTheme.Track;
+        ui.Color = UiTheme.Track;
         ui.Border = new BorderStyle
         {
-            Thickness = 1,
-            Color = enabled ? SettingsTheme.Border : SettingsTheme.BorderInner,
+            Thickness = UiMetrics.PanelBorderThickness,
+            Color = enabled ? UiTheme.Border : UiTheme.BorderInner,
         };
-        ui.Constraints = SettingsRectConstraints(rect);
-        ui.ClipConstraints = SettingsRectConstraints(rect);
+        ui.Constraints = RectConstraints(rect);
+        ui.ClipConstraints = RectConstraints(rect);
 
         int innerWidth = Math.Max(1, rect.Size.X - 2);
         float ratio = max > min ? Math.Clamp((value - min) / (max - min), 0f, 1f) : 0f;
@@ -182,7 +182,7 @@ internal static partial class Widgets
 
         using (ui.Element())
         {
-            ui.Color = enabled ? SettingsTheme.TrackFill : SettingsTheme.BorderInner;
+            ui.Color = enabled ? UiTheme.TrackFill : UiTheme.BorderInner;
             ui.Constraints = new Constraints
             {
                 X = new Fixed(1),
@@ -196,7 +196,7 @@ internal static partial class Widgets
         {
             using (ui.Element())
             {
-                ui.Color = SettingsTheme.Track * new Vector4(0.5f);
+                ui.Color = UiTheme.Track * new Vector4(0.5f);
                 ui.Constraints = new Constraints
                 {
                     X = new Fixed(1 + innerWidth * i / 10),
@@ -210,7 +210,7 @@ internal static partial class Widgets
         using (ui.Element())
         {
             int thumbX = 1 + Math.Clamp(fillWidth - 1, 0, Math.Max(0, innerWidth - 3));
-            ui.Color = enabled ? SettingsTheme.Thumb : SettingsTheme.TextDim;
+            ui.Color = enabled ? UiTheme.Thumb : UiTheme.TextDim;
             ui.Constraints = new Constraints
             {
                 X = new Fixed(thumbX),

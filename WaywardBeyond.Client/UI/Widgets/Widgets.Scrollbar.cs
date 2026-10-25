@@ -3,14 +3,14 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using WaywardBeyond.Client.UI.Settings;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
-    /// <summary>Draws a non-interactive scrollbar for a settings list.</summary>
-    public static void SettingsScrollbar(
+    /// <summary>Draws a non-interactive scrollbar for a clipped list.</summary>
+    public static void Scrollbar(
         this UIBuilder<Material> ui,
         IntRect trackRect,
         int contentHeight,
@@ -26,21 +26,21 @@ internal static partial class Widgets
 
         using (ui.Element())
         {
-            ui.Color = SettingsTheme.Track;
-            ui.Constraints = SettingsRectConstraints(trackRect);
-            ui.ClipConstraints = SettingsRectConstraints(trackRect);
+            ui.Color = UiTheme.Track;
+            ui.Constraints = RectConstraints(trackRect);
+            ui.ClipConstraints = RectConstraints(trackRect);
         }
 
         int thumbHeight = Math.Clamp(
             trackRect.Size.Y * viewportHeight / contentHeight,
-            SettingsMetrics.ScrollbarThumbMinHeight,
+            UiMetrics.ScrollbarThumbMinHeight,
             trackRect.Size.Y
         );
         int thumbY = trackRect.Top + (trackRect.Size.Y - thumbHeight) * Math.Clamp(scrollY, 0, maxScroll) / maxScroll;
 
         using (ui.Element())
         {
-            ui.Color = SettingsTheme.BorderHover;
+            ui.Color = UiTheme.BorderHover;
             ui.Constraints = new Constraints
             {
                 X = new Fixed(trackRect.Left),
