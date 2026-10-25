@@ -240,7 +240,6 @@
 "ui.menu.sectorInitHint" = "Name and seed define the new sector."
 "ui.menu.sectorInitInfo" = "The world is generated from the seed. The same seed and generation settings produce the same sector."
 "ui.menu.sectorSignature" = "Sector signature"
-"ui.menu.spacerTotal" = "S.P.A.C.E.R. total"
 "ui.feedback.message" = "Message"
 "ui.feedback.contact" = "Contact (optional)"
 "ui.feedback.helper" = "Sends the message with recent logs and a screenshot."
