@@ -92,6 +92,18 @@ Continue shows a hover card with the active or most recent archive, its mode,
 seed, last played time, time played, and the active colonist's combined skill
 level. The combined level is the sum of every recorded skill's resolved level.
 
+## Credits
+
+The credits page reads three entries from `ui.toml`:
+
+- `ui.credits.header` holds the kicker and the studio name on two lines.
+- `ui.credits.body` holds the three production sections.
+- `ui.credits.thanks` holds the playtester thanks.
+
+The renderer splits the header on the newline so the kicker uses the small font
+and the studio name uses the title font. The body and thanks render as
+paragraphs. Markup supplies the colors.
+
 ## Omitted controls
 
 Do not add fake menu controls.

@@ -19,7 +19,7 @@ internal sealed class CreditsPage(
 {
     public MenuPage ID => MenuPage.Credits;
 
-    private const int CONTENT_HEIGHT = 300;
+    private const int CONTENT_HEIGHT = 380;
 
     private readonly ILocalization _localization = localization;
     private readonly IInputService _inputService = inputService;
@@ -91,16 +91,17 @@ internal sealed class CreditsPage(
                     ui.ScrollY = -_scrollY;
 
                     int y = maxScroll > 0 ? 0 : Math.Max(0, (viewportHeight - CONTENT_HEIGHT) / 2);
+                    string[] header = _localization.GetString("ui.credits.header")!.Split('\n', 2);
 
                     ui.Label(
-                        _localization.GetString("ui.credits.producedBy")!,
+                        header[0],
                         Widgets.Rect(0, y, panel.Size.X, 18),
                         UiMetrics.MenuSmallFont,
                         UiTheme.TextMuted,
                         Anchors.Center
                     );
                     ui.Label(
-                        "BITFISH LLC",
+                        header.Length > 1 ? header[1] : string.Empty,
                         Widgets.Rect(0, y + 22, panel.Size.X, 30),
                         UiMetrics.MenuTitleFont,
                         UiTheme.Primary,
@@ -108,45 +109,22 @@ internal sealed class CreditsPage(
                     );
 
                     y += 62;
-                    DrawCreditSection(
-                        ui,
-                        _localization.GetString("ui.credits.development")!,
-                        "CHASE M. HUEGEL",
-                        contentX,
-                        ref y,
-                        contentWidth
-                    );
-                    DrawCreditSection(
-                        ui,
-                        _localization.GetString("ui.credits.engine")!,
-                        "SWORDFISH CUSTOM ENGINE",
-                        contentX,
-                        ref y,
-                        contentWidth
-                    );
-                    DrawCreditSection(
-                        ui,
-                        _localization.GetString("ui.credits.contributions")!,
-                        _localization.GetString("ui.credits.audioVisual")!,
-                        contentX,
-                        ref y,
-                        contentWidth
+                    int bodyFontSize = contentWidth < 500
+                        ? UiMetrics.MenuSmallFont
+                        : UiMetrics.MenuBodyFont;
+                    ui.Paragraph(
+                        _localization.GetString("ui.credits.body")!,
+                        Widgets.Rect(contentX, y, contentWidth, 208),
+                        bodyFontSize,
+                        UiTheme.Text
                     );
 
-                    y += 8;
+                    y += 216;
                     ui.Divider(Widgets.Rect(contentX, y, contentWidth, 1), UiTheme.Border);
                     y += 16;
-                    ui.Label(
-                        _localization.GetString("ui.credits.thanks")!,
-                        Widgets.Rect(contentX, y, contentWidth, 18),
-                        UiMetrics.MenuSmallFont,
-                        UiTheme.TextMuted,
-                        Anchors.Left | Anchors.Center
-                    );
-                    y += 20;
                     ui.Paragraph(
-                        _localization.GetString("ui.credits.community")!,
-                        Widgets.Rect(contentX, y, contentWidth, 24),
+                        _localization.GetString("ui.credits.thanks")!,
+                        Widgets.Rect(contentX, y, contentWidth, 60),
                         UiMetrics.MenuSmallFont,
                         UiTheme.Text
                     );
@@ -176,29 +154,4 @@ internal sealed class CreditsPage(
         return Result.FromSuccess();
     }
 
-    private static void DrawCreditSection(
-        UIBuilder<Material> ui,
-        string label,
-        string value,
-        int x,
-        ref int y,
-        int width
-    )
-    {
-        ui.Label(
-            label,
-            Widgets.Rect(x, y, width, 18),
-            UiMetrics.MenuSmallFont,
-            UiTheme.Accent,
-            Anchors.Left | Anchors.Center
-        );
-        y += 20;
-        ui.Paragraph(
-            value,
-            Widgets.Rect(x, y, width, 24),
-            width < 500 ? UiMetrics.MenuSmallFont : UiMetrics.MenuBodyFont,
-            UiTheme.Text
-        );
-        y += 42;
-    }
 }
