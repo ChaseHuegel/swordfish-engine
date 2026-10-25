@@ -402,9 +402,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             );
 
             int inputY = 30;
+            int inputGroupWidth = 366;
+            int inputGroupX = (rect.Size.X - inputGroupWidth) / 2;
             using (ui.Element())
             {
-                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(padding, inputY, 200, UiMetrics.ControlHeight));
+                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(inputGroupX, inputY, 200, UiMetrics.ControlHeight));
                 ui.ClipConstraints = new Constraints
                 {
                     Width = new Fixed(200),
@@ -419,7 +421,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             using (ui.Element())
             {
-                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(padding + 208, inputY, 70, UiMetrics.ControlHeight));
+                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(inputGroupX + 208, inputY, 70, UiMetrics.ControlHeight));
                 ui.ClipConstraints = new Constraints
                 {
                     Width = new Fixed(70),
@@ -434,7 +436,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             if (ui.ActionButton(
                     "Button_Connect",
-                    Widgets.Rect(padding + 286, inputY, 80, UiMetrics.ControlHeight),
+                    Widgets.Rect(inputGroupX + 286, inputY, 80, UiMetrics.ControlHeight),
                     _localization.GetString("ui.button.connect")!,
                     ButtonVariant.Primary,
                     soundEffectService: _soundEffectService
@@ -444,9 +446,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             }
 
             int buttonY = rect.Size.Y - 40;
+            int buttonGroupWidth = 286;
+            int buttonGroupX = (rect.Size.X - buttonGroupWidth) / 2;
             if (ui.ActionButton(
                     "Button_SaveServer",
-                    Widgets.Rect(padding, buttonY, 160, 28),
+                    Widgets.Rect(buttonGroupX, buttonY, 160, 28),
                     _localization.GetString("ui.savedServer.add")!,
                     ButtonVariant.Subtle,
                     soundEffectService: _soundEffectService
@@ -457,7 +461,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             if (_favoritesTab && _savedServers.Count > 0 && ui.ActionButton(
                     "Button_RemoveSavedServer",
-                    Widgets.Rect(rect.Size.X - padding - 110, buttonY, 110, 28),
+                    Widgets.Rect(buttonGroupX + 176, buttonY, 110, 28),
                     _localization.GetString("ui.savedServer.remove")!,
                     ButtonVariant.Danger,
                     _selectedFavorite >= 0 && _selectedFavorite < _savedServers.Count,

@@ -448,7 +448,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     ui.Color = UiTheme.Primary;
                     ui.Constraints = new Constraints
                     {
-                        X = new Fixed(padding - 8),
+                        X = new Fixed(padding - 4),
                         Y = new Fixed(y + 6),
                         Width = new Fixed(6),
                         Height = new Fixed(6),
