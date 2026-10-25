@@ -350,7 +350,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
-                $"{_localization.GetString("ui.menu.generation")!}: {_localization.GetString("ui.menu.procedural")!}",
+                $"{_localization.GetString("ui.level.type")!}: {_localization.GetString("ui.level.type.asteroids")!}",
                 Widgets.Rect(padding, 116, rect.Size.X - padding * 2, 18),
                 UiMetrics.MenuSmallFont,
                 UiTheme.TextMuted,
