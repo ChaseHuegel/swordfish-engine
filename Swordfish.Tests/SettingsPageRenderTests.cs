@@ -11,6 +11,7 @@ using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Settings;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 using Xunit;
 
@@ -60,6 +61,17 @@ public class SettingsPageRenderTests
             IntRect rect = FindRequired(commands, controlIds[i]).Rect;
             Assert.True(Contains(listRect, rect), $"{controlIds[i]} escaped the list.");
         }
+    }
+
+    [Fact]
+    public void ResetRowUsesDangerStyling()
+    {
+        List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);
+
+        RenderCommand<Material> reset = FindRequired(commands, "Settings.Reset.display");
+
+        Assert.Equal(1, reset.Border.Thickness);
+        Assert.Equal(UiTheme.Danger, reset.Border.Color);
     }
 
     [Fact]

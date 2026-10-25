@@ -45,6 +45,7 @@ one of these widgets:
 - `Widgets.Stepper` for discrete values.
 - `Widgets.Slider` for continuous values.
 - `Widgets.ActionButton` for actions.
+- The category reset row uses the danger button variant.
 
 The widgets live in the game widget library. They use the shared theme and
 metrics from [ui-theme](ui-theme.md). They use the Reef border, corner cap, and

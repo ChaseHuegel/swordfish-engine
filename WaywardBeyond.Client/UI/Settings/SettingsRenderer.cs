@@ -360,7 +360,7 @@ internal sealed class SettingsRenderer(
         _ui.Divider(Widgets.Rect(0, y, width, 1), UiTheme.BorderInner);
 
         IntRect buttonRect = Widgets.Rect(0, y + 4, width, SettingsMetrics.ResetRowHeight - 8);
-        if (_ui.ActionButton(id, buttonRect, L("ui.settings.resetSection"), ButtonVariant.Subtle))
+        if (_ui.ActionButton(id, buttonRect, L("ui.settings.resetSection"), ButtonVariant.Danger))
         {
             reset();
             PlayButton();
