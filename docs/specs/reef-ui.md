@@ -70,6 +70,10 @@ This keeps one draw call per element.
 
 ## Text
 
+`UIBuilder.DefaultFontID` at `Reef/UIBuilder.cs:155` applies a font ID to text
+that does not specify one. An explicit `FontOptions.ID` wins. The game sets this
+once in `DefaultUIRenderer`.
+
 `FontOptions.NoWrap` is at `Reef/UI/FontOptions.cs:9`. The default is false, so
 text wraps to the available width. When true, `Typeface` ignores the maximum
 width and lays the text out on one line. The element or its parent must clip the
