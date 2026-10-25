@@ -332,7 +332,8 @@ internal sealed class SelectCharacterPage(
                     Widgets.Rect(padding, buttonY, 120, 30),
                     _localization.GetString("ui.button.delete")!,
                     ButtonVariant.Danger,
-                    canDelete
+                    canDelete,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 _modalMenu.GoToPage(_confirmModal.Create(DeleteCharacter));
@@ -350,7 +351,8 @@ internal sealed class SelectCharacterPage(
                     Widgets.Rect(rect.Size.X - 156, buttonY, 140, 30),
                     _localization.GetString("ui.button.loadSave")!,
                     ButtonVariant.Primary,
-                    canLaunch
+                    canLaunch,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 Task.Run(_gameSaveManager.Load);

@@ -232,7 +232,8 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                                     Widgets.Rect(contentWidth - 34, 6, 28, 28),
                                     MenuGlyphs.Trash,
                                     ButtonVariant.Danger,
-                                    fontId: UiTheme.FontIcons
+                                    fontId: UiTheme.FontIcons,
+                                    soundEffectService: _soundEffectService
                                 ))
                             {
                                 _gameSaveManager.ActiveSave = save;
@@ -402,7 +403,8 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                     "Button_Embark",
                     Widgets.Rect(rect.Size.X - 156, buttonY, 140, 30),
                     _localization.GetString("ui.button.loadSave")!,
-                    ButtonVariant.Primary
+                    ButtonVariant.Primary,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 IEnumerable<Character> characters = _characterStorage.GetAllCharacters();

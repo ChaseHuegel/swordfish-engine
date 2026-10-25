@@ -219,7 +219,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     Widgets.Rect(padding + inputWidth + 8, 44, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
                     MenuGlyphs.Dice,
                     ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons
+                    fontId: UiTheme.FontIcons,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 RandomizeName();
@@ -279,7 +280,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     Widgets.Rect(rect.Size.X - padding - 32, boxY + 6, 32, 32),
                     MenuGlyphs.Dice,
                     ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons
+                    fontId: UiTheme.FontIcons,
+                    soundEffectService: _soundEffectService
                 ) && _characterAssetService.GetAppearancesCount() > 0)
             {
                 _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
@@ -327,7 +329,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     Widgets.Rect(rect.Size.X - padding - 32, 24, 32, 32),
                     MenuGlyphs.Dice,
                     ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons
+                    fontId: UiTheme.FontIcons,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 RandomizePoints();
