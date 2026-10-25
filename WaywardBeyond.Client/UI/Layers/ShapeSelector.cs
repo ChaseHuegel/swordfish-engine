@@ -154,6 +154,17 @@ internal class ShapeSelector : IUILayer, IActionIndicator
                         Height = new Fixed(64),
                     };
 
+                    //  Draw the shape
+                    using (ui.Image(shapeSelectorElement.BaseImage))
+                    {
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Center,
+                            Width = new Fixed(32),
+                            Height = new Fixed(32),
+                        };
+                    }
+
                     //  Draw the selection indicator
                     if (isSelected)
                     {
@@ -165,17 +176,6 @@ internal class ShapeSelector : IUILayer, IActionIndicator
                                 Height = new Fixed(64),
                             };
                         }
-                    }
-
-                    //  Draw the shape
-                    using (ui.Image(shapeSelectorElement.BaseImage))
-                    {
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                            Width = new Fixed(32),
-                            Height = new Fixed(32),
-                        };
                     }
                 }
             }

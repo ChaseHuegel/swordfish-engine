@@ -124,6 +124,21 @@ internal class Hotbar
                         Height = new Fixed(48),
                     };
                     
+                    //  Icon
+                    if (itemStack.Count > 0 && itemStack.ID != null)
+                    {
+                        Material icon = _itemIcons.Get(itemStack.ID);
+                        using (ui.Image(icon))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                                Width = new Relative(1f),
+                                Height = new Relative(1f),
+                            };
+                        }
+                    }
+
                     //  Slot number
                     int slotNumber = slotIndex + 1;
                     using (ui.Text(slotNumber.ToString()))
@@ -143,18 +158,6 @@ internal class Hotbar
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Bottom | Anchors.Right,
-                        };
-                    }
-                    
-                    //  Icon
-                    Material icon = _itemIcons.Get(itemStack.ID);
-                    using (ui.Image(icon))
-                    {
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                            Width = new Relative(1f),
-                            Height = new Relative(1f),
                         };
                     }
                 }

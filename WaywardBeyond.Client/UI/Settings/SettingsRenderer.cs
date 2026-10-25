@@ -105,8 +105,11 @@ internal sealed class SettingsRenderer(
             return false;
         }
 
+        var changed = false;
+
         using (_ui.Element())
         {
+            _ui.LayoutDirection = LayoutDirection.None;
             _ui.Color = SettingsTheme.PanelBackground;
             _ui.Border = new BorderStyle
             {
@@ -115,28 +118,26 @@ internal sealed class SettingsRenderer(
             };
             _ui.Constraints = Widgets.SettingsRectConstraints(tabs);
             _ui.ClipConstraints = Widgets.SettingsRectConstraints(tabs);
-        }
 
-        var changed = false;
-
-        for (var i = 0; i < categories.Length; i++)
-        {
-            SettingsCategory category = categories[i];
-            IntRect tabRect = Widgets.SettingsRect(tabs.Left + i * (tabWidth + gap), tabs.Top, tabWidth, tabs.Size.Y);
-            bool selected = i == categoryIndex;
-            string itemId = $"Settings.Tab.{category.Id}";
-
-            using (_ui.Element(itemId))
+            for (var i = 0; i < categories.Length; i++)
             {
-                bool clicked = _ui.Clicked();
-                bool hovering = _ui.Hovering();
-                DrawCategoryItem(tabRect, L(category.ShortTitleKey), selected, hovering, SettingsMetrics.SmallFont);
+                SettingsCategory category = categories[i];
+                IntRect tabRect = Widgets.SettingsRect(i * (tabWidth + gap), 0, tabWidth, tabs.Size.Y);
+                bool selected = i == categoryIndex;
+                string itemId = $"Settings.Tab.{category.Id}";
 
-                if (clicked && !selected)
+                using (_ui.Element(itemId))
                 {
-                    categoryIndex = i;
-                    changed = true;
-                    PlayToggle();
+                    bool clicked = _ui.Clicked();
+                    bool hovering = _ui.Hovering();
+                    DrawCategoryItem(tabRect, L(category.ShortTitleKey), selected, hovering, SettingsMetrics.SmallFont);
+
+                    if (clicked && !selected)
+                    {
+                        categoryIndex = i;
+                        changed = true;
+                        PlayToggle();
+                    }
                 }
             }
         }
