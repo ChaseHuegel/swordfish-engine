@@ -21,6 +21,21 @@ fixed-metric rectangles. `Fill` and `Relative` are appropriate for simple
 containers, but they can shrink content below its natural height when a screen
 overflows.
 
+## Paint order
+
+Elements paint in declaration order. The parent paints first, then the first
+child, then later siblings. A later sibling paints on top of an earlier sibling.
+Root elements follow the same rule.
+
+Declare backgrounds first and overlays last. Do not rely on first-child-on-top
+ordering. Prefer a parent background over a sibling background. A parent always
+paints behind its children.
+
+Interaction uses the reverse command order, so the topmost element receives
+input first. The reverse interaction loop is at `Reef/UIBuilder.cs:296`.
+Children are pushed in reverse at `Reef/UIBuilder.cs:709` so they paint in
+declaration order.
+
 ## Style
 
 `Reef/UI/Style.cs:5` holds:
@@ -87,3 +102,11 @@ check is in `Reef/UIController.cs:373`, and `UIBuilder` passes both rects at
   not receive a click outside the clip.
 - `Reef.Tests/UIControllerClipTests.cs:33` checks that a control inside the
   clip still receives a click.
+- `Reef.Tests/UIBuilderZOrderTests.cs:15` checks that a later sibling paints on
+  top.
+- `Reef.Tests/UIBuilderZOrderTests.cs:58` checks that a parent background stays
+  behind its children.
+- `Reef.Tests/UIBuilderZOrderTests.cs:92` checks that a later root paints on
+  top.
+- `Reef.Tests/UIBuilderZOrderTests.cs:124` checks that a later sibling receives
+  interaction first.
