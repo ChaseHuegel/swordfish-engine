@@ -46,18 +46,11 @@ public class ActionButtonTests
     public void FontAwesomeIconIsVerticallyCentered()
     {
         UIBuilder<Material> ui = CreateBuilder();
-        Widgets.ActionButtonOptions options = Widgets.ActionButtonOptions.Icon(
-            ButtonVariant.Secondary,
-            soundEffectService: null!,
-            size: 40,
-            fontSize: 32,
-            fontId: UiTheme.FontIcons
-        ) with
-        {
-            Rect = Widgets.Rect(10, 20, 40, 40),
-        };
+        var options = new Widgets.IconButtonOptions(
+            FontSize: 32
+        );
 
-        ui.ActionButton("icon", "\uf2ed", options);
+        ui.IconButton("icon", Widgets.Rect(10, 20, 40, 40), "\uf2ed", options);
 
         RenderCommand<Material> text = ui.Build(0f).Single(command => command.Text == "\uf2ed");
 

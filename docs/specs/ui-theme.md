@@ -70,7 +70,8 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | Widget | Source | Purpose |
 |---|---|---|
 | `Panel` | `Widgets.Panel.cs:14` | Clipped panel with border, caps, and optional inner hairline. |
-| `ActionButton` | `Widgets.ActionButton.cs:31` | Fixed or intrinsic action button. |
+| `ActionButton` | `Widgets.ActionButton.cs:31` | Fixed or intrinsic text action button. |
+| `IconButton` | `Widgets.IconButton.cs:12` | Borderless icon action with hover/pressed fills. |
 | `Toggle` | `Widgets.Toggle.cs:16` | Two-cell on/off control. |
 | `SegmentedControl` | `Widgets.Toggle.cs:39` | Radio-like choice row. |
 | `Stepper` | `Widgets.Stepper.cs:14` | Discrete value control. |
@@ -90,10 +91,14 @@ The widgets are extension methods on `UIBuilder<Material>` in
   is `UiMetrics.MenuButtonHeight`.
 - `Compact` for a small action button.
 - `ListRow` for a full-width list row. Content aligns left.
-- `Icon` for a square icon button.
 
-A button gets a fixed rect through the `ActionButton` overload. A button without
-a fixed rect uses its `MinWidth`, `Height`, and padding to size itself.
+Icon-only actions use `Widgets.IconButton` with `IconButtonOptions`, not the text
+button factories. Icon buttons are borderless and transparent at rest, then use a
+hover/pressed fill and icon-color change. Danger icons use the danger palette.
+Keep the full square hit target and let the glyph center in it.
+
+A text button gets a fixed rect through the `ActionButton` overload. A button
+without a fixed rect uses its `MinWidth`, `Height`, and padding to size itself.
 
 Set `Selected` to true for a current list row. Set `Anchors` for placement in a
 parent layout. Pass a `SoundEffectService` to play the standard click sound.
@@ -123,8 +128,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 
 ## Tests
 
-- `Swordfish.Tests/UiThemeResolverTests.cs` covers button variants, disabled
-  styles, segmented cells, and stepper arrows.
+- `Swordfish.Tests/UiThemeResolverTests.cs` covers button variants, ghost icon
+  states, disabled styles, segmented cells, and stepper arrows.
 - `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic button
   sizing plus Font Awesome glyph centering.
 - `Swordfish.Tests/MenuLayoutTests.cs` covers wide, narrow, and footer geometry.

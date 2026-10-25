@@ -27,12 +27,10 @@ internal class PlaytestNoticeModal(
         soundEffectService
     );
 
-    private readonly Widgets.ActionButtonOptions _brandIconButton = Widgets.ActionButtonOptions.Icon(
-        ButtonVariant.Secondary,
-        soundEffectService,
-        size: UiMetrics.IconButtonSize,
-        fontSize: UiMetrics.LargeIconFont,
-        fontId: UiTheme.FontBrands
+    private readonly Widgets.IconButtonOptions _brandIconOptions = new(
+        FontId: UiTheme.FontBrands,
+        FontSize: UiMetrics.LargeIconFont,
+        SoundEffectService: soundEffectService
     );
 
     public Modal ID => Modal;
@@ -93,25 +91,21 @@ internal class PlaytestNoticeModal(
                     );
 
                     int buttonY = footerTop + 8;
-                    if (ui.ActionButton(
+                    if (ui.IconButton(
                             "Button_Community",
+                            Widgets.Rect(padding, buttonY, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize),
                             MenuGlyphs.Discord,
-                            _brandIconButton with
-                            {
-                                Rect = Widgets.Rect(padding, buttonY, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize),
-                            }
+                            _brandIconOptions
                         ))
                     {
                         Task.Run(_externalAppService.TryOpenDiscordAsync);
                     }
 
-                    if (ui.ActionButton(
+                    if (ui.IconButton(
                             "Button_Wishlist",
+                            Widgets.Rect(padding + UiMetrics.IconButtonSize + 8, buttonY, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize),
                             MenuGlyphs.Steam,
-                            _brandIconButton with
-                            {
-                                Rect = Widgets.Rect(padding + UiMetrics.IconButtonSize + 8, buttonY, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize),
-                            }
+                            _brandIconOptions
                         ))
                     {
                         Task.Run(_externalAppService.TryOpenSteamAsync);

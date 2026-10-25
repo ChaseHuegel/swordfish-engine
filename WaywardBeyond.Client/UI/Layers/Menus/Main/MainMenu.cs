@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
@@ -21,7 +22,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
     private readonly ILocalization _localization;
     private readonly ModalMenu _modalMenu;
 
-    private readonly Widgets.ActionButtonOptions _brandIconButton;
+    private readonly Widgets.IconButtonOptions _brandIconOptions;
     private readonly Widgets.ActionButtonOptions _feedbackButton;
 
     public MainMenu(
@@ -39,12 +40,10 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         _externalAppService = externalAppService;
         _localization = localization;
         _modalMenu = modalMenu;
-        _brandIconButton = Widgets.ActionButtonOptions.Icon(
-            ButtonVariant.Secondary,
-            soundEffectService,
-            size: UiMetrics.IconButtonSize,
-            fontSize: UiMetrics.LargeIconFont,
-            fontId: UiTheme.FontBrands
+        _brandIconOptions = new Widgets.IconButtonOptions(
+            FontId: UiTheme.FontBrands,
+            FontSize: UiMetrics.LargeIconFont,
+            SoundEffectService: soundEffectService
         );
         _feedbackButton = Widgets.ActionButtonOptions.Compact(
             ButtonVariant.Secondary,
@@ -109,18 +108,21 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
 
             using (ui.Element())
             {
+                ui.LayoutDirection = LayoutDirection.None;
                 ui.Padding = new Padding(20);
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Bottom | Anchors.Right,
+                    Width = new Fixed(128),
+                    Height = new Fixed(80),
                 };
 
-                if (ui.ActionButton("Button_Discord", MenuGlyphs.Discord, _brandIconButton))
+                if (ui.IconButton("Button_Discord", Widgets.Rect(0, 0, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize), MenuGlyphs.Discord, _brandIconOptions))
                 {
                     Task.Run(_externalAppService.TryOpenDiscordAsync);
                 }
 
-                if (ui.ActionButton("Button_Steam", MenuGlyphs.Steam, _brandIconButton))
+                if (ui.IconButton("Button_Steam", Widgets.Rect(UiMetrics.IconButtonSize + 8, 0, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize), MenuGlyphs.Steam, _brandIconOptions))
                 {
                     Task.Run(_externalAppService.TryOpenSteamAsync);
                 }

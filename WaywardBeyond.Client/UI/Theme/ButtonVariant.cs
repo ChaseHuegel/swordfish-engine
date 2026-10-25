@@ -7,4 +7,6 @@ internal enum ButtonVariant
     Primary,
     Subtle,
     Danger,
+    Icon,
+    IconDanger,
 }

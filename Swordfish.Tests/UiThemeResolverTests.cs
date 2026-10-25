@@ -75,6 +75,50 @@ public class UiThemeResolverTests
     }
 
     [Fact]
+    public void GhostIconButtonIsTransparentAtRest()
+    {
+        ControlStyle style = UiThemeResolver.ResolveButton(ButtonVariant.Icon, ControlState.Normal);
+
+        Assert.Equal(UiTheme.Transparent, style.Fill);
+        Assert.Equal(0, style.BorderThickness);
+        Assert.Equal(UiTheme.TextMuted, style.Text);
+    }
+
+    [Fact]
+    public void GhostIconButtonUsesHoverAndPressedFills()
+    {
+        ControlStyle hover = UiThemeResolver.ResolveButton(ButtonVariant.Icon, ControlState.Hover);
+        ControlStyle pressed = UiThemeResolver.ResolveButton(ButtonVariant.Icon, ControlState.Pressed);
+
+        Assert.Equal(UiTheme.ButtonHover, hover.Fill);
+        Assert.Equal(UiTheme.Text, hover.Text);
+        Assert.Equal(UiTheme.AccentDark, pressed.Fill);
+        Assert.Equal(UiTheme.Text, pressed.Text);
+    }
+
+    [Fact]
+    public void GhostDangerIconUsesDangerColors()
+    {
+        ControlStyle normal = UiThemeResolver.ResolveButton(ButtonVariant.IconDanger, ControlState.Normal);
+        ControlStyle hover = UiThemeResolver.ResolveButton(ButtonVariant.IconDanger, ControlState.Hover);
+
+        Assert.Equal(UiTheme.Transparent, normal.Fill);
+        Assert.Equal(UiTheme.Danger, normal.Text);
+        Assert.Equal(UiTheme.DangerDark, hover.Fill);
+        Assert.Equal(UiTheme.DangerBright, hover.Text);
+    }
+
+    [Fact]
+    public void DisabledGhostIconHasNoBackgroundOrBorder()
+    {
+        ControlStyle style = UiThemeResolver.ResolveButton(ButtonVariant.Icon, ControlState.Disabled);
+
+        Assert.Equal(UiTheme.Transparent, style.Fill);
+        Assert.Equal(0, style.BorderThickness);
+        Assert.Equal(UiTheme.TextDim, style.Text);
+    }
+
+    [Fact]
     public void DisabledStepperArrowUsesDimText()
     {
         ControlStyle style = UiThemeResolver.ResolveStepperArrow(enabled: false, hovering: false);

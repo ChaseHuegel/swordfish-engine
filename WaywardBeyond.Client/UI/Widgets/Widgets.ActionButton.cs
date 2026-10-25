@@ -19,7 +19,6 @@ internal static partial class Widgets
         string text,
         ButtonVariant variant,
         bool enabled = true,
-        string? fontId = null,
         SoundEffectService? soundEffectService = null
     )
     {
@@ -27,14 +26,6 @@ internal static partial class Widgets
             Variant: variant,
             Enabled: enabled,
             Rect: rect,
-            Font: fontId == null
-                ? null
-                : new FontOptions
-                {
-                    ID = fontId,
-                    Size = UiMetrics.IconFont,
-                    NoWrap = true,
-                },
             SoundEffectService: soundEffectService
         ));
     }
@@ -302,23 +293,5 @@ internal static partial class Widgets
             );
         }
 
-        /// <summary>Creates a square icon button.</summary>
-        public static ActionButtonOptions Icon(
-            ButtonVariant variant,
-            SoundEffectService soundEffectService,
-            int size = UiMetrics.IconButtonSize,
-            int fontSize = UiMetrics.LargeIconFont,
-            string? fontId = null
-        )
-        {
-            return new ActionButtonOptions(
-                Variant: variant,
-                MinWidth: size,
-                Height: size,
-                Font: new FontOptions { ID = fontId ?? UiTheme.FontIcons, Size = fontSize, NoWrap = true },
-                ContentAnchors: Anchors.Center,
-                SoundEffectService: soundEffectService
-            );
-        }
     }
 }

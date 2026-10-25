@@ -241,13 +241,14 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                                 Anchors.Left | Anchors.Center
                             );
 
-                            if (contentUi.ActionButton(
+                            if (contentUi.IconButton(
                                     $"Button_DeleteSave_{save.Name}",
                                     Widgets.Rect(contentWidth - 34, 6, 28, 28),
                                     MenuGlyphs.Trash,
-                                    ButtonVariant.Danger,
-                                    fontId: UiTheme.FontIcons,
-                                    soundEffectService: _soundEffectService
+                                    new Widgets.IconButtonOptions(
+                                        Danger: true,
+                                        SoundEffectService: _soundEffectService
+                                    )
                                 ))
                             {
                                 _gameSaveManager.ActiveSave = save;

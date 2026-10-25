@@ -22,6 +22,11 @@ internal static class UiThemeResolver
     /// <summary>Resolves a button style for an explicit state.</summary>
     public static ControlStyle ResolveButton(ButtonVariant variant, ControlState state)
     {
+        if (variant is ButtonVariant.Icon or ButtonVariant.IconDanger)
+        {
+            return ResolveIconButton(variant, state);
+        }
+
         if (state == ControlState.Disabled)
         {
             return new ControlStyle(
@@ -82,6 +87,47 @@ internal static class UiThemeResolver
                     state == ControlState.Pressed ? UiTheme.AccentBright : UiTheme.Text
                 );
         }
+    }
+
+    private static ControlStyle ResolveIconButton(ButtonVariant variant, ControlState state)
+    {
+        bool danger = variant == ButtonVariant.IconDanger;
+
+        if (state == ControlState.Disabled)
+        {
+            return new ControlStyle(
+                UiTheme.Transparent,
+                UiTheme.Transparent,
+                0,
+                default,
+                UiTheme.TextDim
+            );
+        }
+
+        if (state == ControlState.Selected)
+        {
+            return new ControlStyle(
+                UiTheme.AccentDark,
+                UiTheme.Transparent,
+                0,
+                default,
+                danger ? UiTheme.DangerBright : UiTheme.AccentBright
+            );
+        }
+
+        return new ControlStyle(
+            state == ControlState.Pressed
+                ? danger ? UiTheme.DangerDark : UiTheme.AccentDark
+                : state == ControlState.Hover
+                    ? danger ? UiTheme.DangerDark : UiTheme.ButtonHover
+                    : UiTheme.Transparent,
+            UiTheme.Transparent,
+            0,
+            default,
+            danger
+                ? state is ControlState.Hover or ControlState.Pressed ? UiTheme.DangerBright : UiTheme.Danger
+                : state is ControlState.Hover or ControlState.Pressed ? UiTheme.Text : UiTheme.TextMuted
+        );
     }
 
     /// <summary>Resolves the style of one cell in a segmented control.</summary>
