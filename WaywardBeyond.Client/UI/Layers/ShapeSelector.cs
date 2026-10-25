@@ -13,6 +13,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
@@ -125,7 +126,7 @@ internal class ShapeSelector : IUILayer, IActionIndicator
                 vector = Vector2.Transform(vector, rotation);
                 
                 ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = new Vector4(0f, 0f, 0f, 0f);
+                ui.Color = UiTheme.Transparent;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,

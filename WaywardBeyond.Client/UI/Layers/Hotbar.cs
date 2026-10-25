@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Drawing;
 using System.Globalization;
-using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -13,6 +11,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
@@ -34,9 +33,6 @@ internal class Hotbar
     private readonly InteractionState _interactionState;
     private readonly ControlSettings _controlSettings;
 
-    private readonly Vector4 _backgroundColor;
-    private readonly Vector4 _slotColor;
-    private readonly Vector4 _selectedColor;
 
     public Hotbar(
         in IShortcutService shortcutService,
@@ -55,9 +51,6 @@ internal class Hotbar
         _interactionState = interactionState;
         _controlSettings = controlSettings;
 
-        _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
-        _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
-        _selectedColor = Color.FromArgb(int.Parse("FF8AEBF1", NumberStyles.HexNumber)).ToVector4();
         
         for (var i = 0; i < SLOT_COUNT; i++)
         {
@@ -99,7 +92,7 @@ internal class Hotbar
         //  Hotbar
         using (ui.Element())
         {
-            ui.Color = _backgroundColor;
+            ui.Color = UiTheme.SlotBackground;
             ui.Spacing = 8;
             ui.Padding = new Padding(
                 left: 8,
@@ -117,7 +110,7 @@ internal class Hotbar
                 {
                     ui.LayoutDirection = LayoutDirection.None;
                     ui.Padding = new Padding(left: 2, top: 2, right: 2, bottom: 2);
-                    ui.Color = activeSlot == slotIndex ? _selectedColor : _slotColor;
+                    ui.Color = activeSlot == slotIndex ? UiTheme.SlotSelected : UiTheme.Slot;
                     ui.Constraints = new Constraints
                     {
                         Width = new Fixed(48),
@@ -143,7 +136,7 @@ internal class Hotbar
                     int slotNumber = slotIndex + 1;
                     using (ui.Text(slotNumber.ToString()))
                     {
-                        ui.FontSize = 16;
+                        ui.FontSize = UiMetrics.SmallFont;
                     }
 
                     if (itemStack.Count == 0 || itemStack.ID == null)
@@ -154,7 +147,7 @@ internal class Hotbar
                     //  Stack size
                     using (ui.Text(itemStack.Count.ToString()))
                     {
-                        ui.FontSize = 16;
+                        ui.FontSize = UiMetrics.SmallFont;
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Bottom | Anchors.Right,

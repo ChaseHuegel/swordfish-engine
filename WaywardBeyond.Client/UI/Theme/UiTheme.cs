@@ -33,6 +33,7 @@ internal static class UiTheme
     public static readonly Vector4 ControlBackground = FromRgb(21, 29, 42);
     public static readonly Vector4 SelectionBackground = FromRgb(23, 35, 54);
     public static readonly Vector4 RowSelected = FromRgb(0, 116, 255, 128);
+    public static readonly Vector4 ScreenBackground = FromRgb(0, 0, 0);
     public static readonly Vector4 Scrim = FromRgb(0, 0, 0, 191);
     public static readonly Vector4 ScrimSoft = FromRgb(0, 0, 0, 128);
     public static readonly Vector4 ScrimHeavy = FromRgb(0, 0, 0, 242);

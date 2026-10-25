@@ -4,6 +4,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
@@ -37,11 +38,11 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
         {
             if (fpsSample.Median < 30)
             {
-                ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                ui.Color = UiTheme.Danger;
             }
             else if (fpsSample.Median < 45)
             {
-                ui.Color = new Vector4(1f, 1f, 0f, 1f);
+                ui.Color = UiTheme.Warning;
             }
         }
         
@@ -49,11 +50,11 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
         {
             if (upsSample.Median < 30)
             {
-                ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                ui.Color = UiTheme.Danger;
             }
             else if (upsSample.Median < 60)
             {
-                ui.Color = new Vector4(1f, 1f, 0f, 1f);
+                ui.Color = UiTheme.Warning;
             }
         }
         
@@ -61,11 +62,11 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
         {
             if (tpsSample.Median < 30)
             {
-                ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                ui.Color = UiTheme.Danger;
             }
             else if (tpsSample.Median < 60)
             {
-                ui.Color = new Vector4(1f, 1f, 0f, 1f);
+                ui.Color = UiTheme.Warning;
             }
         }
 

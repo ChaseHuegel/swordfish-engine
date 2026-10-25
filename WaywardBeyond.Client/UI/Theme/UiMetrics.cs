@@ -9,6 +9,7 @@ internal static class UiMetrics
     public const int BodyFont = 20;
     public const int ControlFont = 18;
     public const int SmallFont = 16;
+    public const int TinyFont = 14;
     public const int SectionFont = 16;
     public const int ButtonFont = 18;
     public const int IconFont = 20;

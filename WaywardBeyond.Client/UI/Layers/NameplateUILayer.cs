@@ -5,6 +5,7 @@ using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
@@ -33,7 +34,7 @@ internal sealed class NameplateUILayer(in NameplateSnapshot snapshot) : IUILayer
             using (ui.Text(nameplate.Name, nameplate.FontSize))
             {
                 ui.ID = $"nameplate_{nameplate.Entity}";
-                ui.BackgroundColor = new Vector4(0f, 0f, 0f, 0.5f);
+                ui.BackgroundColor = UiTheme.ScrimSoft;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Local | Anchors.Bottom | Anchors.Center,
