@@ -28,6 +28,25 @@ public class MenuPanelRenderTests
     }
 
     [Fact]
+    public void InfoBoxSeparatesColorTokenFromHighlight()
+    {
+        var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
+
+        ui.InfoBox(Widgets.Rect(0, 0, 200, 100), "Info", "Body.", "Awareness:");
+
+        List<RenderCommand<Material>> commands = ui.Build(0f);
+        Assert.True(
+            commands.Exists(command => command.Text?.Contains("#F2994AFF") == true),
+            string.Join("\n", commands.Select(command => $"{command.ID ?? "-"} {command.Text ?? "<null>"}"))
+        );
+        RenderCommand<Material> text = commands.Single(
+            command => command.Text?.Contains("#F2994AFF") == true
+        );
+
+        Assert.Equal("#F2994AFF Awareness: #R Body.", text.Text);
+    }
+
+    [Fact]
     public void ModalPanelHasOneOuterBorder()
     {
         var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
@@ -102,6 +121,13 @@ public class MenuPanelRenderTests
 
     private sealed class StubTextEngine : ITextEngine
     {
+        private static readonly TextLayout CachedLayout = new(
+            new TextConstraints(32, 32, 32, 32),
+            [],
+            ["OK"],
+            lineHeight: 20
+        );
+
         public ITypeface GetDefaultTypeface() => null!;
 
         public ITypeface[] GetTypefaces() => [];
@@ -112,20 +138,20 @@ public class MenuPanelRenderTests
             return false;
         }
 
-        public TextConstraints Measure(FontOptions fontOptions, string text) => default;
+        public TextConstraints Measure(FontOptions fontOptions, string text) => new(32, 32, 32, 32);
 
-        public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length) => default;
+        public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length) => new(32, 32, 32, 32);
 
-        public TextLayout Layout(FontOptions fontOptions, string text) => TextLayout.Empty;
+        public TextLayout Layout(FontOptions fontOptions, string text) => CachedLayout;
 
-        public TextLayout Layout(FontOptions fontOptions, string text, int maxWidth) => TextLayout.Empty;
+        public TextLayout Layout(FontOptions fontOptions, string text, int maxWidth) => CachedLayout;
 
-        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length) => TextLayout.Empty;
+        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length) => CachedLayout;
 
-        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth) => TextLayout.Empty;
+        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth) => CachedLayout;
 
-        public string[] Wrap(FontOptions fontOptions, string text, int maxWidth) => [];
+        public string[] Wrap(FontOptions fontOptions, string text, int maxWidth) => ["OK"];
 
-        public string[] Wrap(FontOptions fontOptions, string text, int start, int length, int maxWidth) => [];
+        public string[] Wrap(FontOptions fontOptions, string text, int start, int length, int maxWidth) => ["OK"];
     }
 }
