@@ -20,7 +20,7 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
     private readonly ILogger<ConfirmModal> _logger = logger;
     private readonly ILocalization _localization = localization;
 
-    private readonly ConcurrentStack<Action> _actions = new();
+    private readonly ConcurrentStack<ConfirmRequest> _requests = new();
 
     private readonly Widgets.ActionButtonOptions _secondaryButton = Widgets.ActionButtonOptions.Menu(
         ButtonVariant.Secondary,
@@ -67,9 +67,10 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
                 {
                     int padding = 28;
                     int contentWidth = panelWidth - padding * 2;
+                    ConfirmRequest request = CurrentRequest();
 
                     ui.Label(
-                        _localization.GetString("ui.menu.confirm")!,
+                        request.Title,
                         Widgets.Rect(padding, 22, contentWidth, 30),
                         UiMetrics.MenuTitleFont,
                         UiTheme.Text,
@@ -80,7 +81,7 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
                         UiTheme.Border
                     );
                     ui.Paragraph(
-                        _localization.GetString("ui.menu.confirmBody")!,
+                        request.Body,
                         Widgets.Rect(padding, 86, contentWidth, 56),
                         UiMetrics.MenuBodyFont,
                         UiTheme.TextMuted
@@ -89,31 +90,31 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
                     int buttonY = panelHeight - 68;
                     if (ui.ActionButton(
                             "Button_No",
-                            _localization.GetString("ui.button.no")!,
+                            request.CancelLabel,
                             _secondaryButton with
                             {
                                 Rect = Widgets.Rect(padding, buttonY, 180, UiMetrics.IconButtonSize),
                             }
                         ))
                     {
-                        _actions.TryPop(out _);
+                        _requests.TryPop(out _);
                         menu.GoBack();
                     }
 
                     if (ui.ActionButton(
                             "Button_Yes",
-                            _localization.GetString("ui.button.yes")!,
+                            request.ConfirmLabel,
                             _primaryButton with
                             {
                                 Rect = Widgets.Rect(panelWidth - padding - 180, buttonY, 180, UiMetrics.IconButtonSize),
                             }
                         ))
                     {
-                        if (_actions.TryPop(out Action? action))
+                        if (_requests.TryPop(out ConfirmRequest confirmed))
                         {
                             try
                             {
-                                action();
+                                confirmed.Action();
                             }
                             catch (Exception ex)
                             {
@@ -130,9 +131,43 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
         return Result.FromSuccess();
     }
 
-    public Modal Create(Action action)
+    public Modal Create(
+        Action action,
+        string? title = null,
+        string? body = null,
+        string? confirmLabel = null,
+        string? cancelLabel = null
+    )
     {
-        _actions.Push(action);
+        _requests.Clear();
+        _requests.Push(new ConfirmRequest(
+            action,
+            title ?? _localization.GetString("ui.menu.confirm")!,
+            body ?? _localization.GetString("ui.menu.confirmBody")!,
+            confirmLabel ?? _localization.GetString("ui.button.yes")!,
+            cancelLabel ?? _localization.GetString("ui.button.no")!
+        ));
         return new Modal(id: "core.confirm");
     }
+
+    private ConfirmRequest CurrentRequest()
+    {
+        return _requests.TryPeek(out ConfirmRequest request)
+            ? request
+            : new ConfirmRequest(
+                static () => { },
+                _localization.GetString("ui.menu.confirm")!,
+                _localization.GetString("ui.menu.confirmBody")!,
+                _localization.GetString("ui.button.yes")!,
+                _localization.GetString("ui.button.no")!
+            );
+    }
+
+    private readonly record struct ConfirmRequest(
+        Action Action,
+        string Title,
+        string Body,
+        string ConfirmLabel,
+        string CancelLabel
+    );
 }

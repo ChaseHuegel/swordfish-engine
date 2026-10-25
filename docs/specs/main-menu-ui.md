@@ -55,7 +55,7 @@ content stays unchanged.
   section tabs.
 - `InfoBox` covers the sector and stat descriptions.
 - Archive, crew, and saved-server delete actions are trash icons on their list
-  rows.
+  rows. A saved-server delete opens a confirmation.
 - Primary proceed actions live in the footer: Launch, Initialize, Create, and
   Join Server.
 
@@ -73,8 +73,11 @@ The mockup uses galaxy terminology. The game stores levels and characters.
 - LAN Discovery is `LanDiscoveryService`.
 - The server table shows name, address, players, and ping. Ping currently renders
   the unknown state (`-`) until the transport exposes a reading.
-- Direct Connect keeps the host, port, Connect action, and a star icon for saving
-  the current endpoint. Saved-server removal is a trash icon on the row.
+- Direct Connect is a left-aligned toolbar with host, port, and Connect. It has a
+  fixed status line for errors, so the page does not shift.
+- The Favorites list has an Add Favorite action at the bottom. It saves the
+  host and port from the Direct Connect toolbar.
+- LAN rows have a star action that saves the discovered server.
 - Ping uses Font Awesome `signal` with color bands: green below 60 ms, yellow
   below 100 ms, orange below 150 ms, red below 250 ms. At 250 ms or more it
   switches to a red `xmark`. Unknown is a dim `signal` plus `-`.
