@@ -151,6 +151,9 @@ public sealed class UIBuilder<TRendererData>
         set => _currentElement.Passthrough = value;
     }
 
+    /// <summary>Gets or sets the font ID applied to text that does not specify one.</summary>
+    public string? DefaultFontID { get; set; }
+
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
 
@@ -193,6 +196,11 @@ public sealed class UIBuilder<TRendererData>
 
     public Scope Text(string value, FontOptions fontOptions)
     {
+        if (fontOptions.ID == null)
+        {
+            fontOptions.ID = DefaultFontID;
+        }
+
         var element = new Element<TRendererData>
         {
             Text = value,
