@@ -95,7 +95,7 @@ internal sealed class HomePage(
 
             if (saves.Length > 0)
             {
-                DrawChevron(ui, buttonX - 8, y + (UiMetrics.MenuButtonHeight - 6) / 2);
+                ui.MenuChevron(buttonX - 8, y + (UiMetrics.MenuButtonHeight - 6) / 2);
             }
 
             if (ui.ActionButton("Button_Continue", _localization.GetString("ui.button.continue")!, _continueButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = saves.Length > 0 }, out bool continueHovered))
@@ -143,24 +143,6 @@ internal sealed class HomePage(
         }
 
         return Result.FromSuccess();
-    }
-
-    private static void DrawChevron(UIBuilder<Material> ui, int x, int y)
-    {
-        for (var i = 0; i < 3; i++)
-        {
-            using (ui.Element())
-            {
-                ui.Color = UiTheme.AccentBright;
-                ui.Constraints = new Constraints
-                {
-                    X = new Fixed(x + i * 2),
-                    Y = new Fixed(y + i),
-                    Width = new Fixed(2),
-                    Height = new Fixed(6 - i * 2),
-                };
-            }
-        }
     }
 
     private void DrawContinueCard(
