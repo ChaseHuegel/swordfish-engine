@@ -319,16 +319,6 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 UiTheme.AccentBright,
                 Anchors.Center
             );
-
-            if (rect.Size.Y > 430)
-            {
-                ui.Paragraph(
-                    _localization.GetString("ui.menu.bodyPresetInfo")!,
-                    Widgets.Rect(padding, rect.Size.Y - 64, rect.Size.X - padding * 2, 60),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.TextMuted
-                );
-            }
         }
     }
 

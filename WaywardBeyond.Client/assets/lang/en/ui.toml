@@ -236,7 +236,6 @@
 # Menu layout and form copy
 "ui.menu.activeColonist" = "Active colonist"
 "ui.menu.archiveInfoBody" = "Launch to enter this sector with the active colonist. The selected colonist and archive are saved together."
-"ui.menu.bodyPresetInfo" = "Body presets change the colonist's visual model. Use the arrows or dice to cycle the available bodies."
 "ui.menu.readyForLaunch" = "Ready for launch"
 "ui.menu.sectorStatus" = "Sector status"
 "ui.menu.assignment" = "Assignment"
