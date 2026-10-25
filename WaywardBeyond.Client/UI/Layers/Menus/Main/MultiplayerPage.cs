@@ -387,7 +387,9 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                                     {
                                         AddFavorite(new SavedServer
                                         {
-                                            Name = server.Name,
+                                            Name = string.IsNullOrWhiteSpace(server.Name)
+                                                ? server.Host
+                                                : server.Name,
                                             Host = server.Host,
                                             Port = server.Port,
                                         });
@@ -488,7 +490,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     {
         using (ui.MenuPanel(rect))
         {
-            const int labelWidth = 110;
+            const int labelWidth = 124;
             const int portWidth = 64;
             const int connectWidth = 92;
             const int gap = 8;
