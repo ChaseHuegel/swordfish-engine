@@ -78,8 +78,9 @@ The mockup uses galaxy terminology. The game stores levels and characters.
 - LAN Discovery is `LanDiscoveryService`.
 - The server table shows name, address, players, and ping. Ping currently renders
   the unknown state (`-`) until the transport exposes a reading.
-- Direct Connect is a left-aligned toolbar with host, port, and Connect. It has a
-  fixed status line for errors, so the page does not shift.
+- Direct Connect is a left-aligned toolbar with host, port, and Connect.
+  Connection errors render centered in the footer between Return and Join
+  Server, so the page does not shift.
 - The Favorites list has an Add Favorite action at the bottom. It saves the
   host and port from the Direct Connect toolbar.
 - LAN rows have a star action that saves the discovered server.
