@@ -215,6 +215,7 @@
 "ui.menu.serverName" = "Server name"
 "ui.menu.address" = "Address"
 "ui.menu.players" = "Players"
+"ui.menu.ping" = "Ping"
 "ui.menu.directConnect" = "Direct connect"
 "ui.field.strength.desc" = "Physical power and carrying capacity."
 "ui.field.precision.desc" = "Fine motor control and accuracy."

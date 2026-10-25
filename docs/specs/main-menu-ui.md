@@ -70,9 +70,13 @@ The mockup uses galaxy terminology. The game stores levels and characters.
   and suit selectors.
 - Favorites is `ProfileSettings.SavedServers`.
 - LAN Discovery is `LanDiscoveryService`.
-- The server table shows only real fields: name, address, and players.
+- The server table shows name, address, players, and ping. Ping currently renders
+  the unknown state (`-`) until the transport exposes a reading.
 - Direct Connect keeps the host, port, Connect action, and a star icon for saving
   the current endpoint. Saved-server removal is a trash icon on the row.
+- Ping uses Font Awesome `signal` with color bands: green below 60 ms, yellow
+  below 100 ms, orange below 150 ms, red below 250 ms. At 250 ms or more it
+  switches to a red `xmark`. Unknown is a dim `signal` plus `-`.
 
 Continue shows a hover card with the active or most recent archive, its mode,
 seed, last played time, time played, and the active colonist's combined skill
