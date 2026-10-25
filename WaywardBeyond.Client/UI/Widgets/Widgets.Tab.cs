@@ -27,7 +27,7 @@ internal static partial class Widgets
             ui.Border = new BorderStyle
             {
                 Thickness = UiMetrics.PanelBorderThickness,
-                Color = selected ? UiTheme.BorderHover : UiTheme.Border,
+                Color = selected ? UiTheme.Accent : UiTheme.Border,
             };
             ui.Constraints = RectConstraints(rect);
             ui.ClipConstraints = RectConstraints(rect);

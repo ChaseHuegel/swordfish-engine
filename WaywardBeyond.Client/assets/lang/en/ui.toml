@@ -29,6 +29,7 @@
 "ui.text.playtest" = "This is an evolving version of Wayward Beyond in early development. Please wishlist it if you are interested in the release!\n\nFeatures and content will be added and changed throughout this playtest. I greatly appreciate feedback on any ideas, suggestions, or bugs, which can be submitted from the menu or by joining the Discord.\n\nThank you for trying out Wayward Beyond!\n-Seven"
 
 "ui.menu.confirm" = "Are you sure?"
+"ui.menu.confirmBody" = "This action cannot be undone."
 
 "ui.button.submit" = "Submit"
 "ui.button.back" = "Back"
@@ -46,6 +47,7 @@
 "ui.button.quit" = "Exit Game"
 
 "ui.button.scan" = "Scan for LAN servers"
+"ui.button.scanShort" = "Scan"
 
 "ui.button.continue" = "Continue"
 "ui.button.saveAndExit" = "Save & exit"
@@ -55,7 +57,7 @@
 "ui.notification.connect.portInvalid" = "Enter a valid port (1-65535)"
 "ui.notification.connect.failed" = "Failed to connect to the server"
 "ui.savedServer.saved" = "Saved servers"
-"ui.savedServer.add" = "Save to favorites"
+"ui.savedServer.add" = "Save favorite"
 "ui.menu.saves" = "Game Saves"
 "ui.menu.multiplayer" = "Multiplayer"
 "ui.button.newGame" = "New Game"
@@ -77,6 +79,7 @@
 "ui.menu.characters" = "Characters"
 "ui.button.createCharacter" = "Create"
 "ui.field.characterName" = "Enter name..."
+"ui.field.characterNameLabel" = "Character name"
 
 "ui.menu.settings" = "Settings"
 
@@ -176,7 +179,7 @@
 "ui.button.initialize" = "Initialize"
 "ui.button.delete" = "Delete"
 "ui.button.joinServer" = "Join Server"
-"ui.savedServer.remove" = "Remove favorite"
+"ui.savedServer.remove" = "Remove"
 "ui.menu.credits" = "Credits"
 "ui.menu.activeArchive" = "Active archive"
 "ui.menu.mode" = "Mode"
@@ -227,3 +230,19 @@
 "ui.credits.audioVisual" = "Original soundtrack & pixel art design"
 "ui.credits.thanks" = "Special thanks to our early playtesters"
 "ui.credits.community" = "& the open-source community"
+
+# Menu layout and form copy
+"ui.menu.activeColonist" = "Active colonist"
+"ui.menu.archiveInfoBody" = "Launch to enter this sector with the active colonist. The selected colonist and archive are saved together."
+"ui.menu.bodyPresetInfo" = "Body presets change the colonist's visual model. Use the arrows or dice to cycle the available bodies."
+"ui.menu.readyForLaunch" = "Ready for launch"
+"ui.menu.sectorStatus" = "Sector status"
+"ui.menu.assignment" = "Assignment"
+"ui.menu.sectorInitHint" = "Name and seed define the new sector."
+"ui.menu.sectorInitInfo" = "The world is generated from the seed. The same seed and generation settings produce the same sector."
+"ui.menu.sectorSignature" = "Sector signature"
+"ui.menu.spacerTotal" = "S.P.A.C.E.R. total"
+"ui.feedback.message" = "Message"
+"ui.feedback.contact" = "Contact (optional)"
+"ui.feedback.helper" = "Sends the message with recent logs and a screenshot."
+"ui.field.feedback.contactValue" = "Email, Discord, or other contact"

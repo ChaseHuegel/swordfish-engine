@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -24,35 +25,26 @@ internal class PlaytestNoticeModal(
     private readonly Widgets.ActionButtonOptions _closeButton = Widgets.ActionButtonOptions.Menu(
         ButtonVariant.Primary,
         soundEffectService
-    ) with
-    {
-        Anchors = Anchors.Center,
-    };
+    );
 
     private readonly Widgets.ActionButtonOptions _brandIconButton = Widgets.ActionButtonOptions.Icon(
         ButtonVariant.Secondary,
         soundEffectService,
         size: UiMetrics.IconButtonSize,
         fontSize: UiMetrics.LargeIconFont,
-        fontId: "Font Awesome 6 Free Brands"
+        fontId: UiTheme.FontBrands
     );
 
     public Modal ID => Modal;
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
+        int panelWidth = Math.Clamp(ui.Width - 160, 520, 760);
+        int panelHeight = Math.Clamp(ui.Height - 160, 460, 500);
+
         using (ui.Element())
         {
-            //  Fullscreen tint
             ui.Color = UiTheme.ScrimHeavy;
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Padding = new Padding
-            {
-                Left = 20,
-                Top = 20,
-                Right = 20,
-                Bottom = 20,
-            };
             ui.Constraints = new Constraints
             {
                 Width = new Fill(),
@@ -61,85 +53,84 @@ internal class PlaytestNoticeModal(
 
             using (ui.Element())
             {
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                };
-            }
-
-            using (ui.Element())
-            {
+                ui.LayoutDirection = LayoutDirection.None;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
-                };
-
-                using (ui.Text(_localization.GetString("ui.menu.playtest")!))
-                {
-                    ui.FontSize = UiMetrics.TitleFont;
-                    ui.Color = UiTheme.Text;
-                }
-            }
-
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(500),
-                    Height = new Fixed(300),
+                    Width = new Fixed(panelWidth),
+                    Height = new Fixed(panelHeight),
                 };
                 ui.ClipConstraints = new Constraints
                 {
-                    Width = new Relative(1f),
-                    Height = new Relative(1f),
+                    Width = new Fixed(panelWidth),
+                    Height = new Fixed(panelHeight),
                 };
 
-                using (ui.Text(_localization.GetString("ui.text.playtest")!)) { }
-            }
-
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
+                using (ui.MenuPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
                 {
-                    Anchors = Anchors.Center,
-                };
+                    int padding = 28;
+                    int contentWidth = panelWidth - padding * 2;
 
-                if (ui.ActionButton("Button_Close", _localization.GetString("ui.button.close")!, _closeButton))
-                {
-                    menu.GoBack();
+                    ui.Label(
+                        _localization.GetString("ui.menu.playtest")!,
+                        Widgets.Rect(padding, 22, contentWidth, 30),
+                        UiMetrics.MenuTitleFont,
+                        UiTheme.Text,
+                        Anchors.Center
+                    );
+                    ui.Divider(
+                        Widgets.Rect(padding, 62, contentWidth, 1),
+                        UiTheme.Border
+                    );
+
+                    int footerTop = panelHeight - 68;
+                    ui.Paragraph(
+                        _localization.GetString("ui.text.playtest")!,
+                        Widgets.Rect(padding, 78, contentWidth, Math.Max(0, footerTop - 96)),
+                        UiMetrics.MenuBodyFont,
+                        UiTheme.Text
+                    );
+
+                    int buttonY = footerTop + 8;
+                    if (ui.ActionButton(
+                            "Button_Community",
+                            MenuGlyphs.Discord,
+                            _brandIconButton with
+                            {
+                                Rect = Widgets.Rect(padding, buttonY, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize),
+                            }
+                        ))
+                    {
+                        Task.Run(_externalAppService.TryOpenDiscordAsync);
+                    }
+
+                    if (ui.ActionButton(
+                            "Button_Wishlist",
+                            MenuGlyphs.Steam,
+                            _brandIconButton with
+                            {
+                                Rect = Widgets.Rect(padding + UiMetrics.IconButtonSize + 8, buttonY, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize),
+                            }
+                        ))
+                    {
+                        Task.Run(_externalAppService.TryOpenSteamAsync);
+                    }
+
+                    if (ui.ActionButton(
+                            "Button_Close",
+                            _localization.GetString("ui.button.close")!,
+                            _closeButton with
+                            {
+                                Rect = Widgets.Rect(panelWidth - padding - 200, buttonY, 200, UiMetrics.IconButtonSize),
+                            }
+                        ))
+                    {
+                        menu.GoBack();
+                    }
                 }
             }
-
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-
-                if (ui.ActionButton("Button_Community", "\uf392", _brandIconButton))
-                {
-                    Task.Run(_externalAppService.TryOpenDiscordAsync);
-                }
-
-                if (ui.ActionButton("Button_Wishlist", "\uf1b6", _brandIconButton))
-                {
-                    Task.Run(_externalAppService.TryOpenSteamAsync);
-                }
-            }
-
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                };
-            }
-
-            return Result.FromSuccess();
         }
+
+        return Result.FromSuccess();
     }
 }

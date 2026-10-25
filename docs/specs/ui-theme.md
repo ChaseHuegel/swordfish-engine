@@ -17,11 +17,11 @@ that time.
 `UiTheme` is at `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`. It holds the font
 IDs and semantic colors:
 
-- fonts: `FontUI` (`monogram-extended`), `FontIcons`, and `FontBrands`;
+- fonts: `FontUI` (`Salmon Mono 9 Regular`), `FontIcons`, and `FontBrands`;
 - surfaces: `PanelBackground`, `PanelSolid`, `PanelInner`, `InputBackground`,
   `InputFocus`, `ControlBackground`, `SelectionBackground`;
 
-- borders: `Border`, `BorderInner`, `BorderHover`, `Bracket`;
+- borders: `Border`, `BorderInner`, `BorderHover`;
 - text: `Text`, `TextMuted`, `TextDim`, `TextSoft`;
 - accents: `Accent`, `AccentBright`, `AccentDark`;
 - primary actions: `Primary`, `PrimaryBright`, `PrimaryDark`;
@@ -42,7 +42,7 @@ overlays on the same pixel font.
 `UiMetrics` is at `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`. It holds font
 sizes, control heights, button sizes, spacing, border sizes, and scroll metrics.
 The menu suite adds `MenuTitleFont`, `MenuBodyFont`, `MenuSmallFont`,
-`MenuLabelFont`, `MenuFooterHeight`, `BracketCapLength`, and `StatRowHeight`.
+`MenuLabelFont`, and the shared panel cap sizes.
 
 `SettingsMetrics` is at
 `WaywardBeyond.Client/UI/Settings/SettingsMetrics.cs:4`. It holds only geometry
@@ -76,7 +76,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Stepper` | `Widgets.Stepper.cs:14` | Discrete value control. |
 | `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
-| `BracketPanel` | `Widgets.BracketPanel.cs:24` | Dossier panel with heavy brackets and a title. |
+| `MenuPanel` | `Widgets.MenuPanel.cs:24` | Shared menu panel with inner hairline, corner caps, and optional title. |
 | `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. |
 | `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with custom content. |
 | `Tab` | `Widgets.Tab.cs:12` | Attached tab with selected state. |
@@ -129,6 +129,6 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   sizing.
 - `Swordfish.Tests/MenuLayoutTests.cs` covers wide, narrow, and footer geometry.
 - `Swordfish.Tests/TextBoxZOrderTests.cs` checks selection and caret paint
-  order with the theme colors.
+  order with the theme colors, plus relative text-box sizing.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.
 - `Reef.Tests/UIBuilderZOrderTests.cs` checks the Reef paint-order contract.

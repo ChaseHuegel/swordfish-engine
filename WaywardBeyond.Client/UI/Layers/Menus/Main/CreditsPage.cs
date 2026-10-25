@@ -1,8 +1,10 @@
+using System;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
@@ -11,23 +13,29 @@ namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
 internal sealed class CreditsPage(
     in SoundEffectService soundEffectService,
-    in ILocalization localization
+    in ILocalization localization,
+    in IInputService inputService
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Credits;
 
+    private const int CONTENT_HEIGHT = 300;
+
     private readonly ILocalization _localization = localization;
+    private readonly IInputService _inputService = inputService;
     private readonly Widgets.ActionButtonOptions _returnButton = Widgets.ActionButtonOptions.Menu(
         ButtonVariant.Secondary,
         soundEffectService
     );
+
+    private int _scrollY;
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         MenuLayout layout = MenuLayout.Compute(
             ui.Width,
             ui.Height,
-            maxPageWidth: 820,
+            maxPageWidth: 1160,
             twoColumn: false
         );
 
@@ -61,29 +69,113 @@ internal sealed class CreditsPage(
                 layout.Right.Size.Y
             );
 
-            using (ui.BracketPanel(panel, _localization.GetString("ui.credits.manifest")!))
+            using (ui.MenuPanel(panel, _localization.GetString("ui.credits.manifest")!))
             {
-                int cx = layout.PageWidth / 2;
+                int padding = 40;
+                int contentWidth = Math.Min(760, panel.Size.X - padding * 2);
+                int contentX = (panel.Size.X - contentWidth) / 2;
+                int viewportY = 38;
+                int viewportHeight = Math.Max(1, panel.Size.Y - viewportY - 12);
+                int maxScroll = Math.Max(0, CONTENT_HEIGHT - viewportHeight);
+                float wheel = _inputService.GetMouseScroll();
+                if (wheel != 0f)
+                {
+                    _scrollY -= (int)MathF.Round(wheel * UiMetrics.ScrollStep);
+                }
+                _scrollY = Math.Clamp(_scrollY, 0, maxScroll);
 
-                DrawCentered(ui, _localization.GetString("ui.credits.producedBy")!, cx, 42, UiTheme.TextMuted, UiMetrics.MenuSmallFont);
-                DrawCentered(ui, "BITFISH LLC", cx, 58, UiTheme.Primary, UiMetrics.MenuTitleFont);
+                using (ui.Element())
+                {
+                    ui.LayoutDirection = LayoutDirection.None;
+                    ui.Color = UiTheme.Transparent;
+                    ui.Constraints = Widgets.RectConstraints(
+                        Widgets.Rect(0, viewportY, panel.Size.X, viewportHeight)
+                    );
+                    ui.ClipConstraints = new Constraints
+                    {
+                        Width = new Fixed(panel.Size.X),
+                        Height = new Fixed(viewportHeight),
+                    };
+                    ui.ScrollY = -_scrollY;
 
-                DrawCentered(ui, _localization.GetString("ui.credits.development")!, cx, 102, UiTheme.Accent, UiMetrics.MenuSmallFont);
-                DrawCentered(ui, "CHASE M. HUEGEL", cx, 118, UiTheme.Text, UiMetrics.MenuBodyFont);
+                    int y = maxScroll > 0 ? 0 : Math.Max(0, (viewportHeight - CONTENT_HEIGHT) / 2);
 
-                DrawCentered(ui, _localization.GetString("ui.credits.engine")!, cx, 146, UiTheme.Accent, UiMetrics.MenuSmallFont);
-                DrawCentered(ui, "SWORDFISH CUSTOM ENGINE", cx, 162, UiTheme.Text, UiMetrics.MenuBodyFont);
+                    ui.Label(
+                        _localization.GetString("ui.credits.producedBy")!,
+                        Widgets.Rect(0, y, panel.Size.X, 18),
+                        UiMetrics.MenuSmallFont,
+                        UiTheme.TextMuted,
+                        Anchors.Center
+                    );
+                    ui.Label(
+                        "BITFISH LLC",
+                        Widgets.Rect(0, y + 22, panel.Size.X, 30),
+                        UiMetrics.MenuTitleFont,
+                        UiTheme.Primary,
+                        Anchors.Center
+                    );
 
-                DrawCentered(ui, _localization.GetString("ui.credits.contributions")!, cx, 190, UiTheme.Accent, UiMetrics.MenuSmallFont);
-                DrawCentered(ui, _localization.GetString("ui.credits.audioVisual")!, cx, 206, UiTheme.Text, UiMetrics.MenuBodyFont);
+                    y += 62;
+                    DrawCreditSection(
+                        ui,
+                        _localization.GetString("ui.credits.development")!,
+                        "CHASE M. HUEGEL",
+                        contentX,
+                        ref y,
+                        contentWidth
+                    );
+                    DrawCreditSection(
+                        ui,
+                        _localization.GetString("ui.credits.engine")!,
+                        "SWORDFISH CUSTOM ENGINE",
+                        contentX,
+                        ref y,
+                        contentWidth
+                    );
+                    DrawCreditSection(
+                        ui,
+                        _localization.GetString("ui.credits.contributions")!,
+                        _localization.GetString("ui.credits.audioVisual")!,
+                        contentX,
+                        ref y,
+                        contentWidth
+                    );
 
-                ui.Divider(Widgets.Rect(36, 230, layout.PageWidth - 72, 1), UiTheme.Border);
+                    y += 8;
+                    ui.Divider(Widgets.Rect(contentX, y, contentWidth, 1), UiTheme.Border);
+                    y += 16;
+                    ui.Label(
+                        _localization.GetString("ui.credits.thanks")!,
+                        Widgets.Rect(contentX, y, contentWidth, 18),
+                        UiMetrics.MenuSmallFont,
+                        UiTheme.TextMuted,
+                        Anchors.Left | Anchors.Center
+                    );
+                    y += 20;
+                    ui.Paragraph(
+                        _localization.GetString("ui.credits.community")!,
+                        Widgets.Rect(contentX, y, contentWidth, 24),
+                        UiMetrics.MenuSmallFont,
+                        UiTheme.Text
+                    );
+                }
 
-                DrawCentered(ui, _localization.GetString("ui.credits.thanks")!, cx, 240, UiTheme.TextMuted, UiMetrics.MenuSmallFont);
-                DrawCentered(ui, _localization.GetString("ui.credits.community")!, cx, 256, UiTheme.TextMuted, UiMetrics.MenuSmallFont);
+                if (maxScroll > 0)
+                {
+                    ui.Scrollbar(
+                        Widgets.Rect(panel.Size.X - 18, viewportY, 6, viewportHeight),
+                        CONTENT_HEIGHT,
+                        viewportHeight,
+                        _scrollY
+                    );
+                }
             }
 
-            if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.return")!, _returnButton with { Rect = layout.ReturnButton }))
+            if (ui.ActionButton(
+                    "Button_Back",
+                    _localization.GetString("ui.button.return")!,
+                    _returnButton with { Rect = layout.ReturnButton }
+                ))
             {
                 menu.GoToPage(MenuPage.Home);
             }
@@ -92,21 +184,29 @@ internal sealed class CreditsPage(
         return Result.FromSuccess();
     }
 
-    private static void DrawCentered(
+    private static void DrawCreditSection(
         UIBuilder<Material> ui,
-        string text,
-        int centerX,
-        int y,
-        System.Numerics.Vector4 color,
-        int fontSize
+        string label,
+        string value,
+        int x,
+        ref int y,
+        int width
     )
     {
         ui.Label(
-            text,
-            Widgets.Rect(0, y, centerX * 2, 18),
-            fontSize,
-            color,
-            Anchors.Center
+            label,
+            Widgets.Rect(x, y, width, 18),
+            UiMetrics.MenuSmallFont,
+            UiTheme.Accent,
+            Anchors.Left | Anchors.Center
         );
+        y += 20;
+        ui.Paragraph(
+            value,
+            Widgets.Rect(x, y, width, 24),
+            width < 500 ? UiMetrics.MenuSmallFont : UiMetrics.MenuBodyFont,
+            UiTheme.Text
+        );
+        y += 42;
     }
 }

@@ -90,7 +90,7 @@ internal sealed class HomePage(
 
             if (saves.Length > 0)
             {
-                DrawChevron(ui, buttonX - 8, y + 8);
+                DrawChevron(ui, buttonX - 8, y + (UiMetrics.MenuButtonHeight - 6) / 2);
             }
 
             if (ui.ActionButton("Button_Continue", _localization.GetString("ui.button.continue")!, _continueButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = saves.Length > 0 }, out bool continueHovered))
@@ -150,7 +150,7 @@ internal sealed class HomePage(
                 ui.Constraints = new Constraints
                 {
                     X = new Fixed(x + i * 2),
-                    Y = new Fixed(y + i * 2),
+                    Y = new Fixed(y + i),
                     Width = new Fixed(2),
                     Height = new Fixed(6 - i * 2),
                 };
@@ -193,11 +193,7 @@ internal sealed class HomePage(
         }
 
         const int height = 180;
-        using (ui.Panel(Widgets.Rect(x, y, width, height), UiTheme.PanelBackground, new BorderStyle
-               {
-                   Thickness = UiMetrics.PanelBorderThickness,
-                   Color = UiTheme.Border,
-               }, caps: default))
+        using (ui.MenuPanel(Widgets.Rect(x, y, width, height)))
         {
             int padding = 12;
             ui.Label(
@@ -230,7 +226,7 @@ internal sealed class HomePage(
             );
 
             string lastPlayed = save.Level.Playtime.LastPlayedMs > 0
-                ? DateTimeOffset.FromUnixTimeMilliseconds(save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
+                ? DateTimeOffset.FromUnixTimeMilliseconds(save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("d")
                 : _localization.GetString("ui.label.never")!;
             ui.Label(
                 $"{_localization.GetString("ui.label.lastPlayed")!}: {lastPlayed}",
@@ -249,16 +245,16 @@ internal sealed class HomePage(
                     {
                         X = new Fixed(padding),
                         Y = new Fixed(112),
-                        Width = new Fixed(56),
-                        Height = new Fixed(56),
+                        Width = new Fixed(64),
+                        Height = new Fixed(64),
                     };
                 }
 
-                int textX = padding + 68;
+                int textX = padding + 76;
                 ui.Label(
                     character.Value.Name,
                     Widgets.Rect(textX, 112, width - textX - padding, 18),
-                    UiMetrics.MenuBodyFont,
+                    UiMetrics.MenuSmallFont,
                     UiTheme.AccentBright,
                     Anchors.Left | Anchors.Center
                 );
