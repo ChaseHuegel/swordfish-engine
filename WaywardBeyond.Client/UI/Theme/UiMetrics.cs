@@ -3,7 +3,6 @@ namespace WaywardBeyond.Client.UI.Theme;
 /// <summary>Fixed sizes shared by all game UI.</summary>
 internal static class UiMetrics
 {
-    public const int PageTitleFont = 20;
     public const int PaneTitleFont = 24;
     public const int TitleFont = 24;
     public const int BodyFont = 20;

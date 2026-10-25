@@ -139,8 +139,6 @@ internal abstract class SettingsPage<TIdentifier>(
                 Height = new Fixed(layout.PageHeight),
             };
 
-            renderer.DrawPageTitle();
-
             if (layout.UseTabs)
             {
                 if (renderer.DrawTabs(_categories, ref _categoryIndex))

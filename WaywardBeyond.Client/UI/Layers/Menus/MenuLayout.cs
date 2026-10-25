@@ -8,7 +8,6 @@ internal readonly record struct MenuLayout(
     int PageWidth,
     int PageHeight,
     bool UseTabs,
-    IntRect Title,
     IntRect Left,
     IntRect Right,
     IntRect Tabs,
@@ -17,7 +16,6 @@ internal readonly record struct MenuLayout(
     IntRect PrimaryButton
 )
 {
-    private const int PAGE_TITLE_HEIGHT = 36;
     private const int PAGE_GAP = 12;
     private const int PANEL_GAP = 20;
     private const int FOOTER_HEIGHT = 52;
@@ -44,13 +42,12 @@ internal readonly record struct MenuLayout(
         int pageHeight = Math.Max(MIN_PAGE_HEIGHT, Math.Min(windowHeight - 240, MAX_PAGE_HEIGHT));
         bool useTabs = twoColumn && pageWidth < NARROW_BREAKPOINT;
 
-        var title = new IntRect(new IntVector2(0, 0), new IntVector2(pageWidth, PAGE_TITLE_HEIGHT));
         var footer = new IntRect(
             new IntVector2(0, pageHeight - FOOTER_HEIGHT),
             new IntVector2(pageWidth, FOOTER_HEIGHT)
         );
 
-        int panelY = PAGE_TITLE_HEIGHT + PAGE_GAP;
+        int panelY = PAGE_GAP;
         int panelBottom = footer.Top - PAGE_GAP;
         int panelHeight = Math.Max(0, panelBottom - panelY);
 
@@ -98,7 +95,6 @@ internal readonly record struct MenuLayout(
             pageWidth,
             pageHeight,
             useTabs,
-            title,
             left,
             right,
             tabs,

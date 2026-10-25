@@ -69,7 +69,7 @@ public class SettingsPageRenderTests
         const int windowHeight = 600;
         SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
         Assert.True(layout.UseTabs);
-        Assert.Equal(92, layout.Pane.Top);
+        Assert.Equal(64, layout.Pane.Top);
         List<RenderCommand<Material>> commands = RenderSettingsPage(windowWidth, windowHeight);
 
         Assert.True(

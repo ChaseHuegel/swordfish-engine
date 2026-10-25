@@ -79,13 +79,11 @@
 "ui.button.selectCharacter" = "Select character"
 "ui.button.newCharacter" = "Create character"
 
-"ui.menu.createCharacter" = "Create Character"
 "ui.menu.characters" = "Characters"
 "ui.button.createCharacter" = "Create"
 "ui.field.characterName" = "Enter name..."
 "ui.field.characterNameLabel" = "Character name"
 
-"ui.menu.settings" = "Settings"
 
 "ui.settings.categories" = "Categories"
 "ui.settings.category.display" = "Display"
@@ -192,7 +190,6 @@
 "ui.menu.galacticArchives" = "Galactic Archives"
 "ui.menu.sectorTelemetry" = "Sector Telemetry"
 "ui.menu.chartNewGalaxy" = "Chart new galaxy"
-"ui.menu.sectorSpecification" = "Sector Specification"
 "ui.menu.sectorInitialization" = "Sector Initialization"
 "ui.menu.sectorDossier" = "Sector Dossier"
 "ui.menu.generation" = "Generation"
@@ -212,7 +209,6 @@
 "ui.menu.spacerEvaluation" = "S.P.A.C.E.R. Evaluation"
 "ui.menu.info" = "Info"
 "ui.field.bodyPreset" = "Body preset"
-"ui.menu.subspaceComms" = "Subspace Comms"
 "ui.menu.favorites" = "Favorites"
 "ui.button.addFavorite" = "Add favorite"
 "ui.menu.lanDiscovery" = "LAN Discovery"

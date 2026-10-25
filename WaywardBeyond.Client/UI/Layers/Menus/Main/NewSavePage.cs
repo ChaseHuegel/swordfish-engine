@@ -137,14 +137,6 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Height = new Fixed(layout.PageHeight),
             };
 
-            ui.Label(
-                _localization.GetString("ui.menu.sectorSpecification")!,
-                layout.Title,
-                UiMetrics.MenuTitleFont,
-                UiTheme.Text,
-                Anchors.Center
-            );
-
             if (layout.UseTabs)
             {
                 DrawTabs(ui, layout);

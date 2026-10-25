@@ -116,14 +116,6 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 Height = new Fixed(layout.PageHeight),
             };
 
-            ui.Label(
-                _localization.GetString("ui.menu.createCharacter")!,
-                layout.Title,
-                UiMetrics.MenuTitleFont,
-                UiTheme.Text,
-                Anchors.Center
-            );
-
             if (layout.UseTabs)
             {
                 DrawTabs(ui, layout);
