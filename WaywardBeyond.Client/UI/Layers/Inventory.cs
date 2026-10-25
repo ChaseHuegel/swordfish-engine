@@ -257,6 +257,23 @@ internal class Inventory : IUILayer
                                     slotIsSelected = true;
                                 }
                                 
+                                Material? icon = null;
+                                if (itemStack.Count > 0 && itemStack.ID != null)
+                                {
+                                    //  Icon
+                                    Material slotIcon = _itemIcons.Get(itemStack.ID);
+                                    icon = slotIcon;
+                                    using (ui.Image(slotIcon))
+                                    {
+                                        ui.Constraints = new Constraints
+                                        {
+                                            Anchors = Anchors.Center,
+                                            Width = new Fill(),
+                                            Height = new Fill(),
+                                        };
+                                    }
+                                }
+
                                 //  Slot number (only display for the hotbar slots)
                                 if (inventorySlot < SLOTS_PER_ROW)
                                 {
@@ -311,18 +328,6 @@ internal class Inventory : IUILayer
                                     ui.Constraints = new Constraints
                                     {
                                         Anchors = Anchors.Bottom | Anchors.Right,
-                                    };
-                                }
-
-                                //  Icon
-                                Material icon = _itemIcons.Get(itemStack.ID);
-                                using (ui.Image(icon))
-                                {
-                                    ui.Constraints = new Constraints
-                                    {
-                                        Anchors = Anchors.Center,
-                                        Width = new Fill(),
-                                        Height = new Fill(),
                                     };
                                 }
 
@@ -405,16 +410,6 @@ internal class Inventory : IUILayer
                     Height = new Fixed(48),
                 };
                 
-                //  Stack size
-                using (ui.Text(draggedSlotText))
-                {
-                    ui.FontSize = 16;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Bottom | Anchors.Right,
-                    };
-                }
-
                 //  Icon
                 using (ui.Image(draggedSlotIcon))
                 {
@@ -423,6 +418,16 @@ internal class Inventory : IUILayer
                         Anchors = Anchors.Center,
                         Width = new Fill(),
                         Height = new Fill(),
+                    };
+                }
+
+                //  Stack size
+                using (ui.Text(draggedSlotText))
+                {
+                    ui.FontSize = 16;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Bottom | Anchors.Right,
                     };
                 }
             }

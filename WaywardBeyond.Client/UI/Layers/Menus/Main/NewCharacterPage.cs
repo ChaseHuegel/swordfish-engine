@@ -191,11 +191,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                         using (ui.Element())
                         {
+                            ui.LayoutDirection = LayoutDirection.Horizontal;
+                            ui.Spacing = 12;
                             ui.Constraints = new Constraints
                             {
                                 Anchors = Anchors.Center,
                             };
-                            
+
                             using (ui.TextButton(id: "Button_PreviousCharacter", text: "\uf0d9", _iconOptions, out Widgets.Interactions interactions))
                             {
                                 ui.Constraints = new Constraints
