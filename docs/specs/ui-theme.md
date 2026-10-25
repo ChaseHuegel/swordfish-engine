@@ -110,6 +110,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 
 - `Swordfish.Tests/UiThemeResolverTests.cs` covers button variants, disabled
   styles, segmented cells, and stepper arrows.
+- `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic button
+  sizing.
 - `Swordfish.Tests/TextBoxZOrderTests.cs` checks selection and caret paint
   order with the theme colors.
 - `Reef.Tests/UIBuilderZOrderTests.cs` checks the Reef paint-order contract.
