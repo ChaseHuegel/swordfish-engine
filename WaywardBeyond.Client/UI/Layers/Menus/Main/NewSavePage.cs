@@ -251,13 +251,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 ui.TextBox("TextBox_SaveName", ref _saveNameTextBox, new FontOptions { Size = UiMetrics.MenuBodyFont }, _inputService, _soundEffectService);
             }
 
-            if (ui.ActionButton(
+            if (ui.IconButton(
                     "Button_RandomSaveName",
                     Widgets.Rect(x + inputWidth + 8, inputY, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
                     MenuGlyphs.Dice,
-                    ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons,
-                    soundEffectService: _soundEffectService
+                    new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
             {
                 RandomizeName();
@@ -283,13 +281,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 ui.TextBox("TextBox_SaveSeed", ref _seedTextBox, new FontOptions { Size = UiMetrics.MenuBodyFont }, _inputService, _soundEffectService);
             }
 
-            if (ui.ActionButton(
+            if (ui.IconButton(
                     "Button_RandomSeed",
                     Widgets.Rect(x + inputWidth + 8, seedY + 12, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
                     MenuGlyphs.Dice,
-                    ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons,
-                    soundEffectService: _soundEffectService
+                    new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
             {
                 _seedTextBox.Text.Clear();

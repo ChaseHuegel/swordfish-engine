@@ -8,6 +8,8 @@ internal static class MenuGlyphs
     public const string Crew = "\uf0c0";
     public const string Server = "\uf233";
     public const string Galaxy = "\uf186";
+    public const string ChevronLeft = "\uf053";
+    public const string ChevronRight = "\uf054";
     public const string Feedback = "\uf086";
     public const string Settings = "\uf013";
     public const string Discord = "\uf392";

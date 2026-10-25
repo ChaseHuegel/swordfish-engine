@@ -217,13 +217,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 ui.TextBox("TextBox_CharacterName", ref _nameTextBox, new FontOptions { Size = UiMetrics.MenuBodyFont }, _inputService, _soundEffectService);
             }
 
-            if (ui.ActionButton(
+            if (ui.IconButton(
                     "Button_RandomName",
                     Widgets.Rect(padding + inputWidth + 8, 54, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
                     MenuGlyphs.Dice,
-                    ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons,
-                    soundEffectService: _soundEffectService
+                    new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
             {
                 RandomizeName();
@@ -258,33 +256,31 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 };
             }
 
-            if (ui.ActionButton(
+            if (ui.IconButton(
                     "Button_PreviousCharacter",
                     Widgets.Rect(boxX - 40, boxY + boxHeight / 2 - 16, 32, 32),
-                    "<",
-                    ButtonVariant.Secondary
+                    MenuGlyphs.ChevronLeft,
+                    new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
             {
                 CycleBody(-1);
             }
 
-            if (ui.ActionButton(
+            if (ui.IconButton(
                     "Button_NextCharacter",
                     Widgets.Rect(boxX + boxWidth + 8, boxY + boxHeight / 2 - 16, 32, 32),
-                    ">",
-                    ButtonVariant.Secondary
+                    MenuGlyphs.ChevronRight,
+                    new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
             {
                 CycleBody(1);
             }
 
-            if (ui.ActionButton(
+            if (ui.IconButton(
                     "Button_RandomCharacter",
                     Widgets.Rect(rect.Size.X - padding - 32, boxY + 6, 32, 32),
                     MenuGlyphs.Dice,
-                    ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons,
-                    soundEffectService: _soundEffectService
+                    new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ) && _characterAssetService.GetAppearancesCount() > 0)
             {
                 _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
@@ -337,13 +333,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 UiTheme.Primary,
                 Anchors.Right | Anchors.Center
             );
-            if (ui.ActionButton(
+            if (ui.IconButton(
                     "Button_RandomPoints",
                     Widgets.Rect(rect.Size.X - padding - 32, 32, 32, 32),
                     MenuGlyphs.Dice,
-                    ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons,
-                    soundEffectService: _soundEffectService
+                    new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
             {
                 RandomizePoints();

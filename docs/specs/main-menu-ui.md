@@ -46,7 +46,9 @@ content stays unchanged.
 - `Panel` remains the primitive for special sub-panels.
 - `ActionButtonOptions.Menu` gives the amber-cyan menu treatment, including the
   double border and cyan hover accent.
-- `ActionButtonOptions.Compact` and `Icon` cover footer, dice, and trash actions.
+- `ActionButtonOptions.Compact` covers small text actions. `IconButton` is a
+  borderless ghost button for dice, trash, chevrons, and social icons. It keeps
+  a full square hit target and adds only hover/pressed fills.
 - `SelectableCard` covers archive cards, crew cards, and server rows.
 - `Tab` covers narrow pane switching, Favorites/LAN Discovery, and attached
   section tabs.

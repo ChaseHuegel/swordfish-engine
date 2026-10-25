@@ -237,14 +237,15 @@ internal sealed class SelectCharacterPage(
                                 );
 
                                 bool canDelete = characters.Count > 1;
-                                if (contentUi.ActionButton(
+                                if (contentUi.IconButton(
                                         $"Button_DeleteCharacter_{character.Uuid}",
                                         Widgets.Rect(contentWidth - 42, 8, 28, 28),
                                         MenuGlyphs.Trash,
-                                        ButtonVariant.Danger,
-                                        canDelete,
-                                        fontId: UiTheme.FontIcons,
-                                        soundEffectService: _soundEffectService
+                                        new Widgets.IconButtonOptions(
+                                            Danger: true,
+                                            Enabled: canDelete,
+                                            SoundEffectService: _soundEffectService
+                                        )
                                     ))
                                 {
                                     _characterSaveManager.ActiveSave = character;
