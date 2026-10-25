@@ -162,6 +162,7 @@ public sealed class UIBuilder<TRendererData>
     private bool _hasOpenElement;
     private Element<TRendererData> _currentElement;
     private readonly Stack<Element<TRendererData>> _openElements = new();
+    private readonly Stack<ElementNode> _childStack = new();
     private readonly List<Element<TRendererData>> _closedRootElements = [];
     
     private readonly char[] _whiteSpaceChars = [' ', '\t', '\n'];
@@ -674,6 +675,8 @@ public sealed class UIBuilder<TRendererData>
                 //  Apply viewport offset
                 leftOffset += element.Viewport.Offset.X;
                 topOffset += element.Viewport.Offset.Y;
+
+                _childStack.Clear();
                 
                 for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
                 {
@@ -682,7 +685,7 @@ public sealed class UIBuilder<TRendererData>
                     //  Propagate the debug flag to children
                     child.Debug |= element.Debug;
                     
-                    stack.Push(new ElementNode(child, element, childIndex)
+                    _childStack.Push(new ElementNode(child, element, childIndex)
                     {
                         LeftOffset = leftOffset,
                         TopOffset = topOffset,
@@ -701,6 +704,13 @@ public sealed class UIBuilder<TRendererData>
                             //  Do nothing
                             break;
                     }
+                }
+
+                //  Push children in reverse so the first child is positioned first
+                //  and later siblings paint over earlier siblings.
+                while (_childStack.Count > 0)
+                {
+                    stack.Push(_childStack.Pop());
                 }
             }
         }
