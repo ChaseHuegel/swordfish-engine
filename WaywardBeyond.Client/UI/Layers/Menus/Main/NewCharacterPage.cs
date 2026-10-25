@@ -322,21 +322,21 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             ui.Label(
                 _localization.GetString("ui.field.spacer.points")!,
-                Widgets.Rect(padding, 80, rect.Size.X - padding * 2 - 48, 20),
+                Widgets.Rect(padding, 84, rect.Size.X - padding * 2 - 48, 20),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 _spacerPoints.ToString(),
-                Widgets.Rect(rect.Size.X - padding - 76, 80, 36, 20),
+                Widgets.Rect(rect.Size.X - padding - 76, 84, 36, 20),
                 UiMetrics.MenuBodyFont,
                 UiTheme.Primary,
                 Anchors.Right | Anchors.Center
             );
             if (ui.IconButton(
                     "Button_RandomPoints",
-                    Widgets.Rect(rect.Size.X - padding - 32, 74, 32, 32),
+                    Widgets.Rect(rect.Size.X - padding - 32, 78, 32, 32),
                     MenuGlyphs.Dice,
                     new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
