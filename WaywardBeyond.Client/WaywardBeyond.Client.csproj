@@ -38,12 +38,6 @@
       <Compile Update="UI\Widgets\Widgets.NumberControl.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets\Widgets.Checkbox.cs">
-        <DependentUpon>Widgets.cs</DependentUpon>
-      </Compile>
-      <Compile Update="UI\Widgets\Widgets.TextButton.cs">
-        <DependentUpon>Widgets.cs</DependentUpon>
-      </Compile>
       <Compile Update="UI\Widgets\Widgets.TextBox.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>

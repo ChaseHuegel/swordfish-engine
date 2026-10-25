@@ -14,6 +14,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 
@@ -37,10 +38,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly NameGenerator _nameGenerator;
     private readonly NotificationService _notificationService;
 
-    private readonly Widgets.ButtonOptions _menuButtonOptions;
-    private readonly Widgets.ButtonOptions _buttonOptions;
-    private readonly Widgets.ButtonOptions _iconOptions;
-    private readonly Widgets.ButtonOptions _smallIconOptions;
+    private readonly Widgets.ActionButtonOptions _primaryButton;
+    private readonly Widgets.ActionButtonOptions _subtleButton;
+    private readonly Widgets.ActionButtonOptions _iconButton;
+    private readonly Widgets.ActionButtonOptions _smallIconButton;
+    private readonly FontOptions _bodyFont;
     private readonly Randomizer _randomizer = new();
 
     private int _characterMaterialIndex;
@@ -75,35 +77,32 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _nameGenerator = nameGenerator;
         _notificationService = notificationService;
 
-        _menuButtonOptions = new Widgets.ButtonOptions(
-            new FontOptions {
-                Size = 32,
-            },
-            new Widgets.AudioOptions(soundEffectService)
+        _primaryButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+        _subtleButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Subtle, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+        _iconButton = Widgets.ActionButtonOptions.Icon(
+            ButtonVariant.Secondary,
+            soundEffectService,
+            size: UiMetrics.IconButtonSize,
+            fontSize: UiMetrics.LargeIconFont,
+            fontId: "Font Awesome 6 Free Solid"
         );
-        
-        _buttonOptions = new Widgets.ButtonOptions(
-            new FontOptions {
-                Size = 20,
-            },
-            new Widgets.AudioOptions(soundEffectService)
+        _smallIconButton = Widgets.ActionButtonOptions.Icon(
+            ButtonVariant.Secondary,
+            soundEffectService,
+            size: UiMetrics.SmallIconButtonSize,
+            fontSize: UiMetrics.IconFont,
+            fontId: "Font Awesome 6 Free Solid"
         );
-        
-        _iconOptions = new Widgets.ButtonOptions(
-            new FontOptions {
-                ID = "Font Awesome 6 Free Solid",
-                Size = 32,
-            },
-            new Widgets.AudioOptions(soundEffectService)
-        );
-        
-        _smallIconOptions = new Widgets.ButtonOptions(
-            new FontOptions {
-                ID = "Font Awesome 6 Free Solid",
-                Size = 20,
-            },
-            new Widgets.AudioOptions(soundEffectService)
-        );
+        _bodyFont = new FontOptions
+        {
+            Size = UiMetrics.BodyFont,
+        };
 
         var saveNameTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.characterName"),
@@ -130,16 +129,12 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             
             using (ui.Text(_localization.GetString("ui.menu.createCharacter")!))
             {
-                ui.FontSize = 24;
+                ui.FontSize = UiMetrics.TitleFont;
             }
             
-            using (ui.TextButton(id: "Button_RandomAll", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
+            if (ui.ActionButton("Button_RandomAll", "\uf074", _smallIconButton))
             {
-                ui.Padding = new Padding(4);
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    randomAll = true;
-                }
+                randomAll = true;
             }
         }
 
@@ -176,17 +171,15 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                             Anchors = Anchors.Center,
                         };
                         
-                        using (ui.TextButton(id: "Button_RandomCharacter", text: "\uf074", _iconOptions, out Widgets.Interactions interactions))
+                        bool randomizeCharacter = randomAll;
+                        if (ui.ActionButton("Button_RandomCharacter", "\uf074", _iconButton))
                         {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
+                            randomizeCharacter = true;
+                        }
 
-                            if (interactions.Has(Widgets.Interactions.Click) || randomAll)
-                            {
-                                _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
-                            }
+                        if (randomizeCharacter)
+                        {
+                            _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
                         }
 
                         using (ui.Element())
@@ -198,17 +191,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                                 Anchors = Anchors.Center,
                             };
 
-                            using (ui.TextButton(id: "Button_PreviousCharacter", text: "\uf0d9", _iconOptions, out Widgets.Interactions interactions))
+                            if (ui.ActionButton("Button_PreviousCharacter", "\uf0d9", _iconButton))
                             {
-                                ui.Constraints = new Constraints
-                                {
-                                    Anchors = Anchors.Center,
-                                };
-
-                                if (interactions.Has(Widgets.Interactions.Click))
-                                {
-                                    _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0, _characterAssetService.GetAppearancesCount() - 1);
-                                }
+                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0, _characterAssetService.GetAppearancesCount() - 1);
                             }
 
                             Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(_characterAssetService.GetBodyId(_characterMaterialIndex));
@@ -221,17 +206,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                                 };
                             }
 
-                            using (ui.TextButton(id: "Button_NextCharacter", text: "\uf0da", _iconOptions, out Widgets.Interactions interactions))
+                            if (ui.ActionButton("Button_NextCharacter", "\uf0da", _iconButton))
                             {
-                                ui.Constraints = new Constraints
-                                {
-                                    Anchors = Anchors.Center,
-                                };
-
-                                if (interactions.Has(Widgets.Interactions.Click))
-                                {
-                                    _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0, _characterAssetService.GetAppearancesCount() - 1);
-                                }
+                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0, _characterAssetService.GetAppearancesCount() - 1);
                             }
                         }
                     }
@@ -241,24 +218,27 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 {
                     ui.Spacing = 8;
                     
-                    ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
-                    
-                    using (ui.TextButton(id: "Button_RandomName", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
+                    ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _bodyFont, _inputService, _soundEffectService);
+
+                    bool randomizeName = randomAll;
+                    if (ui.ActionButton("Button_RandomName", "\uf074", _smallIconButton))
                     {
-                        if (interactions.Has(Widgets.Interactions.Click) || randomAll)
-                        {
-                            NameGenerator.Options nameGeneratorOptions = new NameGenerator.Options(
-                                TitleChance: 0.2f,
-                                FirstNameChance: 0.7f,
-                                LastNameChance: 1.0f,
-                                SubtitleChance: 0.1f,
-                                NicknameChance: 0.1f
-                            );
-                            
-                            string generatedName = _nameGenerator.Generate(key: _characterAssetService.GetBodyId(_characterMaterialIndex), nameGeneratorOptions);
-                            _nameTextBox.Text.Clear();
-                            _nameTextBox.Text.Append(generatedName);
-                        }
+                        randomizeName = true;
+                    }
+
+                    if (randomizeName)
+                    {
+                        NameGenerator.Options nameGeneratorOptions = new NameGenerator.Options(
+                            TitleChance: 0.2f,
+                            FirstNameChance: 0.7f,
+                            LastNameChance: 1.0f,
+                            SubtitleChance: 0.1f,
+                            NicknameChance: 0.1f
+                        );
+
+                        string generatedName = _nameGenerator.Generate(key: _characterAssetService.GetBodyId(_characterMaterialIndex), nameGeneratorOptions);
+                        _nameTextBox.Text.Clear();
+                        _nameTextBox.Text.Append(generatedName);
                     }
                 }
 
@@ -267,7 +247,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 {
                     using (ui.Text(_localization.GetString("ui.notification.name.required")!))
                     {
-                        ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                        ui.Color = UiTheme.Danger;
                     }
 
                     validName = false;
@@ -276,7 +256,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 {
                     using (ui.Text(_localization.GetString("ui.notification.name.taken")!))
                     {
-                        ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                        ui.Color = UiTheme.Danger;
                     }
 
                     validName = false;
@@ -303,13 +283,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                     using (ui.Text(_localization.GetString("ui.field.spacer")!))
                     {
-                        ui.FontSize = 24;
+                        ui.FontSize = UiMetrics.TitleFont;
                     }
                 }
 
                 using (ui.Text(_localization.GetString("ui.field.spacer.description")!))
                 {
-                    ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                    ui.Color = UiTheme.TextSoft;
                 }
 
                 using (ui.Element())
@@ -342,44 +322,47 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     
                     using (ui.Text($"{_spacerPoints}"))
                     {
-                        ui.FontSize = 20;
+                        ui.FontSize = UiMetrics.BodyFont;
                     }
                     
-                    using (ui.TextButton(id: "Button_RandomPoints", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
+                    bool randomizePoints = randomAll;
+                    if (ui.ActionButton("Button_RandomPoints", "\uf074", _smallIconButton))
                     {
-                        if (interactions.Has(Widgets.Interactions.Click) || randomAll)
+                        randomizePoints = true;
+                    }
+
+                    if (randomizePoints)
+                    {
+                        //  If there are no points available, randomize all attributes.
+                        //  Otherwise, whatever points remain will be randomly distributed.
+                        if (_spacerPoints == 0)
                         {
-                            //  If there are no points available, randomize all attributes.
-                            //  Otherwise, whatever points remain will be randomly distributed.
-                            if (_spacerPoints == 0)
+                            ResetAttributes();
+                        }
+
+                        while (_spacerPoints > 0)
+                        {
+                            int attributeIndex = _randomizer.NextInt(0, 6);
+                            switch (attributeIndex)
                             {
-                                ResetAttributes();
-                            }
-                            
-                            while (_spacerPoints > 0)
-                            {
-                                int attributeIndex = _randomizer.NextInt(0, 6);
-                                switch (attributeIndex)
-                                {
-                                    case 0:
-                                        OnStrengthChanged(_strength, _strength + 1, change: 1);
-                                        break;
-                                    case 1:
-                                        OnPrecisionChanged(_precision, _precision + 1, change: 1);
-                                        break;
-                                    case 2:
-                                        OnAwarenessChanged(_awareness, _awareness + 1, change: 1);
-                                        break;
-                                    case 3:
-                                        OnCharismaChanged(_charisma, _charisma + 1, change: 1);
-                                        break;
-                                    case 4:
-                                        OnEducationChanged(_education, _education + 1, change: 1);
-                                        break;
-                                    case 5:
-                                        OnResolveChanged(_resolve, _resolve + 1, change: 1);
-                                        break;
-                                }
+                                case 0:
+                                    OnStrengthChanged(_strength, _strength + 1, change: 1);
+                                    break;
+                                case 1:
+                                    OnPrecisionChanged(_precision, _precision + 1, change: 1);
+                                    break;
+                                case 2:
+                                    OnAwarenessChanged(_awareness, _awareness + 1, change: 1);
+                                    break;
+                                case 3:
+                                    OnCharismaChanged(_charisma, _charisma + 1, change: 1);
+                                    break;
+                                case 4:
+                                    OnEducationChanged(_education, _education + 1, change: 1);
+                                    break;
+                                case 5:
+                                    OnResolveChanged(_resolve, _resolve + 1, change: 1);
+                                    break;
                             }
                         }
                     }
@@ -519,52 +502,44 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             }
         }
 
-        using (ui.TextButton(id: "Button_CreateCharacter", text: _localization.GetString("ui.button.createCharacter")!, _menuButtonOptions, out Widgets.Interactions interactions))
+        if (validName && ui.ActionButton("Button_CreateCharacter", _localization.GetString("ui.button.createCharacter")!, _primaryButton))
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-            
-            if (validName && interactions.Has(Widgets.Interactions.Click))
-            {
-                var character = new Character(
-                    WaywardBeyond.Version,
-                    Uuid.NewUuid().ToValue(),
-                    _Playtime: new Playtime(),
-                    nameValue,
-                    _strength,
-                    _precision,
-                    _awareness,
-                    _charisma,
-                    _education,
-                    _resolve,
-                    _Body: _characterAssetService.GetBodyId(_characterMaterialIndex),
-                    _ActiveInventorySlot: 0,
-                    _GameMode: GameMode.Creative,
-                    _Statistics: null,
-                    _Inventory: null
-                );
-                
-                Task.Run(() =>
+            var character = new Character(
+                WaywardBeyond.Version,
+                Uuid.NewUuid().ToValue(),
+                _Playtime: new Playtime(),
+                nameValue,
+                _strength,
+                _precision,
+                _awareness,
+                _charisma,
+                _education,
+                _resolve,
+                _Body: _characterAssetService.GetBodyId(_characterMaterialIndex),
+                _ActiveInventorySlot: 0,
+                _GameMode: GameMode.Creative,
+                _Statistics: null,
+                _Inventory: null
+            );
+
+            Task.Run(() =>
+                {
+                    Result saveResult = _characterStorage.SaveCharacter(character);
+                    if (saveResult)
                     {
-                        Result saveResult = _characterStorage.SaveCharacter(character);
-                        if (saveResult)
-                        {
-                            _characterSaveManager.ActiveSave = character;
-                            menu.GoToPage(MenuPage.SelectCharacter);
-                            ResetState();
-                        }
-                        else
-                        {
-                            var notification = new Notification("Failed to create character!");
-                            _notificationService.Push(notification);
-                            
-                            _logger.LogError(saveResult.Exception, "Failed to save character \"{name}\" ({id}): {message}", character.Name, character.Uuid, saveResult.Message);
-                        }
+                        _characterSaveManager.ActiveSave = character;
+                        menu.GoToPage(MenuPage.SelectCharacter);
+                        ResetState();
                     }
-                );
-            }
+                    else
+                    {
+                        var notification = new Notification("Failed to create character!");
+                        _notificationService.Push(notification);
+
+                        _logger.LogError(saveResult.Exception, "Failed to save character \"{name}\" ({id}): {message}", character.Name, character.Uuid, saveResult.Message);
+                    }
+                }
+            );
         }
         
         using (ui.Element())
@@ -583,17 +558,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 Anchors = Anchors.Center,
             };
             
-            using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _menuButtonOptions, out Widgets.Interactions interactions))
+            if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.back")!, _subtleButton))
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    menu.GoBack();
-                }
+                menu.GoBack();
             }
         }
         

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -15,38 +14,27 @@ using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
-internal sealed class SelectSavePage(
-    in GameSaveManager gameSaveManager,
-    in GameSaveService gameSaveService,
-    in IInputService inputService,
-    in SoundEffectService soundEffectService,
-    in ILocalization localization,
-    in ICharacterStorage characterStorage,
-    in ModalMenu modalMenu,
-    in ConfirmModal confirmModal,
-    in ClientRpcHost rpcHost,
-    in NetworkingConfig networkingConfig,
-    in ProfileSettings profileSettings
-) : IMenuPage<MenuPage>
+internal sealed class SelectSavePage : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectSave;
-    
-    private readonly GameSaveManager _gameSaveManager = gameSaveManager;
-    private readonly GameSaveService _gameSaveService = gameSaveService;
-    private readonly IInputService _inputService = inputService;
-    private readonly ILocalization _localization = localization;
-    private readonly ICharacterStorage _characterStorage = characterStorage;
-    private readonly ModalMenu _modalMenu = modalMenu;
-    private readonly ConfirmModal _confirmModal = confirmModal;
-    private readonly ClientRpcHost _rpcHost = rpcHost;
-    private readonly NetworkingConfig _networkingConfig = networkingConfig;
-    private readonly ProfileSettings _profileSettings = profileSettings;
+
+    private readonly GameSaveManager _gameSaveManager;
+    private readonly GameSaveService _gameSaveService;
+    private readonly IInputService _inputService;
+    private readonly ILocalization _localization;
+    private readonly ICharacterStorage _characterStorage;
+    private readonly ModalMenu _modalMenu;
+    private readonly ConfirmModal _confirmModal;
+    private readonly ClientRpcHost _rpcHost;
+    private readonly NetworkingConfig _networkingConfig;
+    private readonly ProfileSettings _profileSettings;
 
     private const int RefreshIntervalMs = 1000;
 
@@ -54,39 +42,54 @@ internal sealed class SelectSavePage(
     private long _lastRenderMs;
     private long _lastRefreshMs;
 
-    private readonly Widgets.ButtonOptions _menuButtonOptions = new(
-        new FontOptions 
-        {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
+    private readonly Widgets.ActionButtonOptions _primaryButton;
+    private readonly Widgets.ActionButtonOptions _subtleButton;
+    private readonly Widgets.ActionButtonOptions _saveRowButton;
+    private readonly Widgets.ActionButtonOptions _deleteIconButton;
 
-    private readonly Widgets.ButtonOptions _buttonOptions = new(
-        new FontOptions
-        {
-            Size = 20,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-    
-    private readonly Widgets.ButtonOptions _iconOptions = new(
-        new FontOptions {
-            ID = "Font Awesome 6 Free Solid",
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-        
-    private readonly Widgets.ButtonOptions _smallIconOptions = new(
-        new FontOptions {
-            ID = "Font Awesome 6 Free Solid",
-            Size = 20,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-    
     private int _scrollY;
+
+    public SelectSavePage(
+        in GameSaveManager gameSaveManager,
+        in GameSaveService gameSaveService,
+        in IInputService inputService,
+        in SoundEffectService soundEffectService,
+        in ILocalization localization,
+        in ICharacterStorage characterStorage,
+        in ModalMenu modalMenu,
+        in ConfirmModal confirmModal,
+        in ClientRpcHost rpcHost,
+        in NetworkingConfig networkingConfig,
+        in ProfileSettings profileSettings
+    ) {
+        _gameSaveManager = gameSaveManager;
+        _gameSaveService = gameSaveService;
+        _inputService = inputService;
+        _localization = localization;
+        _characterStorage = characterStorage;
+        _modalMenu = modalMenu;
+        _confirmModal = confirmModal;
+        _rpcHost = rpcHost;
+        _networkingConfig = networkingConfig;
+        _profileSettings = profileSettings;
+
+        _primaryButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+        _subtleButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Subtle, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+        _saveRowButton = Widgets.ActionButtonOptions.ListRow(ButtonVariant.Secondary, soundEffectService);
+        _deleteIconButton = Widgets.ActionButtonOptions.Icon(
+            ButtonVariant.Danger,
+            soundEffectService,
+            size: UiMetrics.SmallIconButtonSize,
+            fontSize: UiMetrics.IconFont,
+            fontId: "Font Awesome 6 Free Solid"
+        );
+    }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
@@ -102,7 +105,8 @@ internal sealed class SelectSavePage(
 
             using (ui.Text(_localization.GetString("ui.menu.saves")!))
             {
-                ui.FontSize = 24;
+                ui.FontSize = UiMetrics.TitleFont;
+                ui.Color = UiTheme.Text;
             }
         }
 
@@ -121,7 +125,7 @@ internal sealed class SelectSavePage(
                 Width = new Relative(1f),
                 Height = new Relative(1f),
             };
-            
+
             if (_gameSaveManager.ActiveSave == null)
             {
                 _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
@@ -132,8 +136,8 @@ internal sealed class SelectSavePage(
             {
                 using (ui.Text(_localization.GetString("ui.text.none")!))
                 {
-                    ui.FontOptions = _buttonOptions.FontOptions;
-                    ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
+                    ui.FontSize = UiMetrics.BodyFont;
+                    ui.Color = UiTheme.TextDim;
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Center,
@@ -149,58 +153,53 @@ internal sealed class SelectSavePage(
                 using (ui.Element())
                 {
                     ui.Spacing = 20;
-                    
+
                     using (ui.Element())
                     {
                         ui.LayoutDirection = LayoutDirection.Vertical;
                         ui.Spacing = 12;
-                        
+
                         foreach (GameSave save in saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs))
                         {
-                            using (ui.TextButton(id: $"Button_DeleteSave_{save.Name}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
+                            if (ui.ActionButton($"Button_DeleteSave_{save.Name}", "\uf2ed", _deleteIconButton))
                             {
-                                if (interactions.Has(Widgets.Interactions.Click))
-                                {
-                                    _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
+                                _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
 
-                                    void DeleteSave()
-                                    {
-                                        _gameSaveManager.Delete(save);
-                                        _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
-                                    }
+                                void DeleteSave()
+                                {
+                                    _gameSaveManager.Delete(save);
+                                    _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
                                 }
                             }
                         }
                     }
-                    
+
                     using (ui.Element())
                     {
                         ui.LayoutDirection = LayoutDirection.Vertical;
-                        
+
                         foreach (GameSave save in saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs))
                         {
-                            using (ui.TextButton(id: $"Button_SelectSave_{save.Name}", text: save.Name, _buttonOptions, out Widgets.Interactions interactions))
+                            bool selected = _gameSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave.Value.Name == save.Name;
+                            Widgets.ActionButtonOptions options = _saveRowButton with
                             {
-                                if (_gameSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave.Value.Name == save.Name)
-                                {
-                                    ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
-                                }
+                                Selected = selected,
+                            };
 
-                                if (interactions.Has(Widgets.Interactions.Click))
-                                {
-                                    _gameSaveManager.ActiveSave = save;
-                                }
+                            if (ui.ActionButton($"Button_SelectSave_{save.Name}", save.Name, options))
+                            {
+                                _gameSaveManager.ActiveSave = save;
                             }
                         }
                     }
                 }
             }
         }
-        
+
         if (_gameSaveManager.ActiveSave != null)
         {
             GameSave activeSave = _gameSaveManager.ActiveSave.Value;
-            
+
             using (ui.Element())
             {
                 ui.Spacing = 8;
@@ -210,7 +209,7 @@ internal sealed class SelectSavePage(
                 {
                     Anchors = Anchors.Center,
                 };
-                
+
                 using (ui.Element())
                 {
                     ui.Spacing = 8;
@@ -222,7 +221,7 @@ internal sealed class SelectSavePage(
                     string lastPlayedStr = activeSave.Level.Playtime.LastPlayedMs > 0
                         ? DateTimeOffset.FromUnixTimeMilliseconds(activeSave.Level.Playtime.LastPlayedMs).ToLocalTime().ToString(format: "g")
                         : _localization.GetString("ui.label.never")!;
-                    
+
                     using (ui.Text($"{_localization.GetString("ui.label.lastPlayed")!} #BFBFBFFF {lastPlayedStr}")) { }
                 }
 
@@ -235,26 +234,18 @@ internal sealed class SelectSavePage(
                     {
                         Anchors = Anchors.Center,
                     };
-                    
+
                     using (ui.Text($"{_localization.GetString("ui.label.timePlayed")!} #BFBFBFFF {timePlayedStr}")) { }
                 }
             }
-            
-            using (ui.TextButton(id: "Button_Next", text: _localization.GetString("ui.button.next")!, _menuButtonOptions, out Widgets.Interactions interactions))
+
+            if (ui.ActionButton("Button_Next", _localization.GetString("ui.button.next")!, _primaryButton))
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-            
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    IEnumerable<Character> characters = _characterStorage.GetAllCharacters();
-                    menu.GoToPage(characters.Any() ? MenuPage.Characters : MenuPage.NewCharacter);
-                }
+                IEnumerable<Character> characters = _characterStorage.GetAllCharacters();
+                menu.GoToPage(characters.Any() ? MenuPage.Characters : MenuPage.NewCharacter);
             }
         }
-        
+
         using (ui.Element())
         {
             ui.Constraints = new Constraints
@@ -270,21 +261,13 @@ internal sealed class SelectSavePage(
             {
                 Anchors = Anchors.Center,
             };
-            
-            using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _menuButtonOptions, out Widgets.Interactions interactions))
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
 
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    menu.GoBack();
-                }
+            if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.back")!, _subtleButton))
+            {
+                menu.GoBack();
             }
         }
-        
+
         return Result.FromSuccess();
     }
 

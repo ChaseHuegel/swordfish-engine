@@ -15,6 +15,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.IO;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Data.Networking;
 
@@ -33,8 +34,8 @@ internal class FeedbackModal : IMenuPage<Modal>
     private readonly LogListener _logListener;
     private readonly NotificationService _notificationService;
 
-    private readonly Widgets.ButtonOptions _menuButtonOptions;
-    private readonly Widgets.ButtonOptions _buttonOptions;
+    private readonly Widgets.ActionButtonOptions _submitButton;
+    private readonly Widgets.ActionButtonOptions _backButton;
     private readonly FontOptions _fieldFontOptions;
 
     private TextBoxState _contactTextBox;
@@ -62,23 +63,17 @@ internal class FeedbackModal : IMenuPage<Modal>
         _logListener = logListener;
         _notificationService = notificationService;
 
-        _menuButtonOptions = new Widgets.ButtonOptions(
-            new FontOptions {
-                Size = 32,
-            },
-            new Widgets.AudioOptions(soundEffectService)
-        );
-        
-        _buttonOptions = new Widgets.ButtonOptions(
-            new FontOptions {
-                Size = 24,
-            },
-            new Widgets.AudioOptions(soundEffectService)
-        );
-        
+        _submitButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+        _backButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Subtle, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
         _fieldFontOptions = new FontOptions
         {
-            Size = 20,
+            Size = UiMetrics.BodyFont,
         };
         
         var contactTextBoxOptions = new TextBoxState.Options(
@@ -112,7 +107,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         using (ui.Element())
         {
             //  Fullscreen tint
-            ui.Color = new Vector4(0f, 0f, 0f, 0.95f);
+            ui.Color = UiTheme.ScrimHeavy;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Padding = new Padding
             {
@@ -145,7 +140,7 @@ internal class FeedbackModal : IMenuPage<Modal>
                 
                 using (ui.Text(_localization.GetString("ui.menu.feedback")!))
                 {
-                    ui.FontSize = 24;
+                    ui.FontSize = UiMetrics.TitleFont;
                 }
             }
             
@@ -161,16 +156,9 @@ internal class FeedbackModal : IMenuPage<Modal>
                 ui.TextBox(id: "TextBox_Message", state: ref _descriptionTextBox, _fieldFontOptions, _inputService, _soundEffectService);
                 ui.TextBox(id: "TextBox_Contact", state: ref _contactTextBox, _fieldFontOptions, _inputService, _soundEffectService);
                 
-                using (ui.TextButton(id: "Button_Submit", text: _localization.GetString("ui.button.submit")!, _buttonOptions, out Widgets.Interactions interactions))
+                if (ui.ActionButton("Button_Submit", _localization.GetString("ui.button.submit")!, _submitButton))
                 {
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
-                    
-                    if (interactions.Has(Widgets.Interactions.Click))
-                    {
-                        double timeSinceLastSubmission = ui.Time - _lastSubmissionTime;
+                    double timeSinceLastSubmission = ui.Time - _lastSubmissionTime;
                         bool canSubmit = timeSinceLastSubmission > 15;
                         if (!canSubmit)
                         {
@@ -234,7 +222,6 @@ internal class FeedbackModal : IMenuPage<Modal>
                                 }
                             }
                         }
-                    }
                 }
             }
             
@@ -254,17 +241,9 @@ internal class FeedbackModal : IMenuPage<Modal>
                     Anchors = Anchors.Center,
                 };
                 
-                using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _menuButtonOptions, out Widgets.Interactions interactions))
+                if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.back")!, _backButton))
                 {
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
-
-                    if (interactions.Has(Widgets.Interactions.Click))
-                    {
-                        menu.GoBack();
-                    }
+                    menu.GoBack();
                 }
             }
             

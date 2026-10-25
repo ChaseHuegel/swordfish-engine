@@ -9,13 +9,15 @@ using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
 internal sealed class MainMenu : TitleMenu<MenuPage>
 {
     private readonly ExternalAppService _externalAppService;
-    private readonly Widgets.ButtonOptions _buttonOptions;
+
+    private readonly Widgets.ActionButtonOptions _brandIconButton;
 
     public MainMenu(
         ILogger<Menu<MenuPage>> logger,
@@ -28,27 +30,26 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
     ) : base(logger, materialDatabase, reefContext, pages)
     {
         _externalAppService = externalAppService;
+        _brandIconButton = Widgets.ActionButtonOptions.Icon(
+            ButtonVariant.Secondary,
+            soundEffectService,
+            size: UiMetrics.IconButtonSize,
+            fontSize: UiMetrics.LargeIconFont,
+            fontId: "Font Awesome 6 Free Brands"
+        );
 
         //  TODO introduce the menu spaceship
         // Result<VoxelEntityModel> blueprintResult = blueprintDatabase.Get("builtin/mainMenu");
         // if (blueprintResult)
         // {
         //     VoxelEntityModel voxelEntityModel = blueprintResult.Value;
-        //     voxelEntityBuilder.Create(voxelEntityModel.Uuid, voxelEntityModel.VoxelObject, new Vector3(5f, 0f, -20f), Quaternion.Identity, Vector3.One);
+        //     VoxelEntityBuilder.Create(voxelEntityModel.Uuid, voxelEntityModel.VoxelObject, new Vector3(5f, 0f, -20f), Quaternion.Identity, Vector3.One);
         // }
         // else
         // {
         //     logger.LogError(blueprintResult, "Failed to load the background blueprint, it will not be displayed.");
         // }
-        
-        _buttonOptions = new Widgets.ButtonOptions(
-            new FontOptions {
-                ID = "Font Awesome 6 Free Brands",
-                Size = 32,
-            },
-            new Widgets.AudioOptions(soundEffectService)
-        );
-        
+
         Shortcut backShortcut = new(
             name: "Go back",
             category: "General",
@@ -76,38 +77,28 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
             {
                 Anchors = Anchors.Bottom | Anchors.Right,
             };
-            
-            using (ui.TextButton(id: "Button_Discord", text: "\uf392", _buttonOptions, out Widgets.Interactions interactions))
+
+            if (ui.ActionButton("Button_Discord", "\uf392", _brandIconButton))
             {
-                ui.Padding = new Padding(4);
-                
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    Task.Run(_externalAppService.TryOpenDiscordAsync);
-                }
+                Task.Run(_externalAppService.TryOpenDiscordAsync);
             }
-        
-            using (ui.TextButton(id: "Button_Steam", text: "\uf1b6", _buttonOptions, out Widgets.Interactions interactions))
+
+            if (ui.ActionButton("Button_Steam", "\uf1b6", _brandIconButton))
             {
-                ui.Padding = new Padding(4);
-                
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    Task.Run(_externalAppService.TryOpenSteamAsync);
-                }
+                Task.Run(_externalAppService.TryOpenSteamAsync);
             }
         }
 
         return base.RenderUI(delta, ui);
     }
-    
+
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
     {
         if (e.NewValue != GameState.MainMenu)
         {
             return;
         }
-        
+
         GoToPage(MenuPage.Home);
     }
 }
