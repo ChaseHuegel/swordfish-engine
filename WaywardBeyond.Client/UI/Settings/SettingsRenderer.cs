@@ -8,6 +8,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Settings;
 
@@ -36,11 +37,11 @@ internal sealed class SettingsRenderer(
     /// <summary>Draws the page title.</summary>
     public void DrawPageTitle()
     {
-        DrawText(
+        _ui.Label(
             L("ui.menu.settings"),
             _layout.Title,
-            SettingsMetrics.PageTitleFont,
-            SettingsTheme.Text,
+            UiMetrics.PageTitleFont,
+            UiTheme.Text,
             Anchors.Center
         );
     }
@@ -52,14 +53,14 @@ internal sealed class SettingsRenderer(
         int padding = SettingsMetrics.TrayPadding;
         int width = tray.Size.X - padding * 2;
 
-        DrawText(
+        _ui.Label(
             L("ui.settings.categories"),
-            Widgets.SettingsRect(padding, 10, width, 20),
-            SettingsMetrics.SmallFont,
-            SettingsTheme.TextMuted,
+            Widgets.Rect(padding, 10, width, 20),
+            UiMetrics.SmallFont,
+            UiTheme.TextMuted,
             Anchors.Center
         );
-        DrawLine(Widgets.SettingsRect(padding, SettingsMetrics.TrayHeaderHeight - 1, width, 1), SettingsTheme.BorderInner);
+        _ui.Divider(Widgets.Rect(padding, SettingsMetrics.TrayHeaderHeight - 1, width, 1), UiTheme.BorderInner);
 
         int y = SettingsMetrics.TrayHeaderHeight + 8;
         var changed = false;
@@ -67,7 +68,7 @@ internal sealed class SettingsRenderer(
         for (var i = 0; i < categories.Length; i++)
         {
             SettingsCategory category = categories[i];
-            IntRect itemRect = Widgets.SettingsRect(padding, y, width, SettingsMetrics.TrayItemHeight);
+            IntRect itemRect = Widgets.Rect(padding, y, width, SettingsMetrics.TrayItemHeight);
             bool selected = i == categoryIndex;
             string itemId = $"Settings.Category.{category.Id}";
             string label = L(category.TitleKey);
@@ -109,19 +110,19 @@ internal sealed class SettingsRenderer(
         using (_ui.Element())
         {
             _ui.LayoutDirection = LayoutDirection.None;
-            _ui.Color = SettingsTheme.PanelBackground;
+            _ui.Color = UiTheme.PanelBackground;
             _ui.Border = new BorderStyle
             {
                 Thickness = 1,
-                Color = SettingsTheme.Border,
+                Color = UiTheme.Border,
             };
-            _ui.Constraints = Widgets.SettingsRectConstraints(tabs);
-            _ui.ClipConstraints = Widgets.SettingsRectConstraints(tabs);
+            _ui.Constraints = Widgets.RectConstraints(tabs);
+            _ui.ClipConstraints = Widgets.RectConstraints(tabs);
 
             for (var i = 0; i < categories.Length; i++)
             {
                 SettingsCategory category = categories[i];
-                IntRect tabRect = Widgets.SettingsRect(i * (tabWidth + gap), 0, tabWidth, tabs.Size.Y);
+                IntRect tabRect = Widgets.Rect(i * (tabWidth + gap), 0, tabWidth, tabs.Size.Y);
                 bool selected = i == categoryIndex;
                 string itemId = $"Settings.Tab.{category.Id}";
 
@@ -129,7 +130,7 @@ internal sealed class SettingsRenderer(
                 {
                     bool clicked = _ui.Clicked();
                     bool hovering = _ui.Hovering();
-                    DrawCategoryItem(tabRect, L(category.TitleKey), selected, hovering, SettingsMetrics.SmallFont);
+                    DrawCategoryItem(tabRect, L(category.TitleKey), selected, hovering, UiMetrics.SmallFont);
 
                     if (clicked && !selected)
                     {
@@ -148,56 +149,56 @@ internal sealed class SettingsRenderer(
     public void DrawFooter(bool dirty, string? status, out bool cancelClicked, out bool applyClicked)
     {
         IntRect footer = _layout.Footer;
-        IntRect cancelRect = Widgets.SettingsRect(
+        IntRect cancelRect = Widgets.Rect(
             footer.Left,
             footer.Top + 4,
             SettingsMetrics.CancelButtonWidth,
             SettingsMetrics.FooterButtonHeight
         );
-        IntRect applyRect = Widgets.SettingsRect(
+        IntRect applyRect = Widgets.Rect(
             footer.Right - SettingsMetrics.ApplyButtonWidth,
             footer.Top + 4,
             SettingsMetrics.ApplyButtonWidth,
             SettingsMetrics.FooterButtonHeight
         );
 
-        cancelClicked = _ui.SettingsButton(
+        cancelClicked = _ui.ActionButton(
             "Settings.Cancel",
             cancelRect,
             L("ui.settings.cancel"),
-            SettingsButtonVariant.Secondary
+            ButtonVariant.Secondary
         );
-        applyClicked = _ui.SettingsButton(
+        applyClicked = _ui.ActionButton(
             "Settings.Apply",
             applyRect,
             L("ui.settings.apply"),
-            SettingsButtonVariant.Primary,
+            ButtonVariant.Primary,
             dirty
         );
 
         if (dirty)
         {
-            DrawText(
+            _ui.Label(
                 L("ui.settings.unsaved"),
-                Widgets.SettingsRect(applyRect.Left - 110, footer.Top + 4, 100, SettingsMetrics.FooterButtonHeight),
-                SettingsMetrics.SmallFont,
-                SettingsTheme.Primary,
+                Widgets.Rect(applyRect.Left - 110, footer.Top + 4, 100, SettingsMetrics.FooterButtonHeight),
+                UiMetrics.SmallFont,
+                UiTheme.Primary,
                 Anchors.Right | Anchors.Center
             );
         }
 
         if (status != null && !dirty)
         {
-            DrawText(
+            _ui.Label(
                 status,
-                Widgets.SettingsRect(
+                Widgets.Rect(
                     footer.Left + SettingsMetrics.CancelButtonWidth + 20,
                     footer.Top + 4,
                     footer.Size.X - SettingsMetrics.CancelButtonWidth - SettingsMetrics.ApplyButtonWidth - 60,
                     SettingsMetrics.FooterButtonHeight
                 ),
-                SettingsMetrics.SmallFont,
-                SettingsTheme.Success,
+                UiMetrics.SmallFont,
+                UiTheme.Success,
                 Anchors.Center
             );
         }
@@ -210,21 +211,21 @@ internal sealed class SettingsRenderer(
         int padding = 24;
         int contentWidth = pane.Size.X - padding * 2;
 
-        DrawText(
+        _ui.Label(
             L(category.TitleKey),
-            Widgets.SettingsRect(padding, 14, contentWidth, 28),
-            SettingsMetrics.PaneTitleFont,
-            SettingsTheme.Text,
+            Widgets.Rect(padding, 14, contentWidth, 28),
+            UiMetrics.PaneTitleFont,
+            UiTheme.Text,
             Anchors.Left | Anchors.Center
         );
-        DrawLine(Widgets.SettingsRect(padding, 62, contentWidth, 1), SettingsTheme.BorderInner);
+        _ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.BorderInner);
 
         int viewportHeight = _layout.List.Size.Y;
         int maxScroll = Math.Max(0, category.ContentHeight - viewportHeight);
         float wheel = _inputService.GetMouseScroll();
         if (wheel != 0f)
         {
-            scrollY -= (int)MathF.Round(wheel * SettingsMetrics.ScrollStep);
+            scrollY -= (int)MathF.Round(wheel * UiMetrics.ScrollStep);
         }
 
         scrollY = Math.Clamp(scrollY, 0, maxScroll);
@@ -233,8 +234,8 @@ internal sealed class SettingsRenderer(
         using (_ui.Element())
         {
             _ui.LayoutDirection = LayoutDirection.None;
-            _ui.Color = SettingsTheme.Transparent;
-            _ui.Constraints = Widgets.SettingsRectConstraints(list);
+            _ui.Color = UiTheme.Transparent;
+            _ui.Constraints = Widgets.RectConstraints(list);
             _ui.ClipConstraints = new Constraints
             {
                 Width = new Fixed(list.Size.X),
@@ -252,21 +253,21 @@ internal sealed class SettingsRenderer(
         }
 
         IntRect scrollbar = LocalRect(_layout.Scrollbar);
-        _ui.SettingsScrollbar(scrollbar, category.ContentHeight, viewportHeight, scrollY);
+        _ui.Scrollbar(scrollbar, category.ContentHeight, viewportHeight, scrollY);
     }
 
     /// <summary>Draws a section header row.</summary>
     public void DrawSection(string labelKey, int y)
     {
         int width = _layout.List.Size.X;
-        DrawText(
+        _ui.Label(
             L(labelKey),
-            Widgets.SettingsRect(0, y + 8, width, 20),
-            SettingsMetrics.SectionFont,
-            SettingsTheme.TextMuted,
+            Widgets.Rect(0, y + 8, width, 20),
+            UiMetrics.SectionFont,
+            UiTheme.TextMuted,
             Anchors.Left | Anchors.Center
         );
-        DrawLine(Widgets.SettingsRect(0, y + SettingsMetrics.SectionHeight - 1, width, 1), SettingsTheme.BorderInner);
+        _ui.Divider(Widgets.Rect(0, y + UiMetrics.SectionHeight - 1, width, 1), UiTheme.BorderInner);
     }
 
     /// <summary>Draws an on/off row.</summary>
@@ -275,7 +276,7 @@ internal sealed class SettingsRenderer(
         DrawEntryLabel(entry, y);
         IntRect control = ControlRect(y);
 
-        if (_ui.SettingsToggle(
+        if (_ui.Toggle(
                 entry.Id,
                 control,
                 entry.Value,
@@ -296,7 +297,7 @@ internal sealed class SettingsRenderer(
         DrawEntryLabel(entry, y);
         IntRect control = ControlRect(y);
 
-        if (_ui.SettingsChoice(
+        if (_ui.SegmentedControl(
                 entry.Id,
                 control,
                 entry.Options,
@@ -318,7 +319,7 @@ internal sealed class SettingsRenderer(
         IntRect control = ControlRect(y);
         int index = entry.IndexOf(entry.Value);
 
-        if (_ui.SettingsStepper(
+        if (_ui.Stepper(
                 entry.Id,
                 control,
                 entry.Options,
@@ -349,7 +350,7 @@ internal sealed class SettingsRenderer(
         DrawEntryLabel(entry, y);
         IntRect control = ControlRect(y);
 
-        if (_ui.SettingsSlider(
+        if (_ui.Slider(
                 entry.Id,
                 control,
                 entry.Value,
@@ -370,115 +371,81 @@ internal sealed class SettingsRenderer(
     public void DrawResetRow(string id, int y, Action reset)
     {
         int width = _layout.List.Size.X;
-        DrawLine(Widgets.SettingsRect(0, y, width, 1), SettingsTheme.BorderInner);
+        _ui.Divider(Widgets.Rect(0, y, width, 1), UiTheme.BorderInner);
 
-        IntRect buttonRect = Widgets.SettingsRect(0, y + 4, width, SettingsMetrics.ResetRowHeight - 8);
-        if (_ui.SettingsButton(id, buttonRect, L("ui.settings.resetSection"), SettingsButtonVariant.Subtle))
+        IntRect buttonRect = Widgets.Rect(0, y + 4, width, SettingsMetrics.ResetRowHeight - 8);
+        if (_ui.ActionButton(id, buttonRect, L("ui.settings.resetSection"), ButtonVariant.Subtle))
         {
             reset();
             PlayButton();
         }
     }
 
-    private void DrawCategoryItem(IntRect rect, string label, bool selected, bool hovering, int fontSize = SettingsMetrics.BodyFont)
+    private void DrawCategoryItem(IntRect rect, string label, bool selected, bool hovering, int fontSize = UiMetrics.BodyFont)
     {
         _ui.LayoutDirection = LayoutDirection.None;
-        _ui.Color = selected ? SettingsTheme.SelectionBackground : SettingsTheme.Transparent;
+        _ui.Color = selected ? UiTheme.SelectionBackground : UiTheme.Transparent;
         _ui.Border = new BorderStyle
         {
             Thickness = selected || hovering ? 1 : 0,
-            Color = selected ? SettingsTheme.Accent : SettingsTheme.BorderHover,
+            Color = selected ? UiTheme.Accent : UiTheme.BorderHover,
         };
         _ui.CornerCaps = selected
             ? new CornerCapStyle
             {
-                Length = SettingsMetrics.SelectionCapLength,
-                Thickness = SettingsMetrics.SelectionCapThickness,
-                Color = SettingsTheme.Accent,
+                Length = UiMetrics.SelectionCapLength,
+                Thickness = UiMetrics.SelectionCapThickness,
+                Color = UiTheme.Accent,
             }
             : default;
-        _ui.Constraints = Widgets.SettingsRectConstraints(rect);
-        _ui.ClipConstraints = Widgets.SettingsRectConstraints(rect);
+        _ui.Constraints = Widgets.RectConstraints(rect);
+        _ui.ClipConstraints = Widgets.RectConstraints(rect);
 
-        DrawText(
+        _ui.Label(
             selected ? "•" : "",
-            Widgets.SettingsRect(10, 0, 24, rect.Size.Y),
+            Widgets.Rect(10, 0, 24, rect.Size.Y),
             fontSize,
-            selected ? SettingsTheme.AccentBright : SettingsTheme.TextDim,
+            selected ? UiTheme.AccentBright : UiTheme.TextDim,
             Anchors.Left | Anchors.Center
         );
-        DrawText(
+        _ui.Label(
             label,
-            Widgets.SettingsRect(36, 0, rect.Size.X - 46, rect.Size.Y),
+            Widgets.Rect(36, 0, rect.Size.X - 46, rect.Size.Y),
             fontSize,
-            selected ? SettingsTheme.AccentBright : hovering ? SettingsTheme.Text : SettingsTheme.TextMuted,
+            selected ? UiTheme.AccentBright : hovering ? UiTheme.Text : UiTheme.TextMuted,
             Anchors.Left | Anchors.Center
         );
     }
 
     private void DrawEntryLabel(SettingsEntry entry, int y)
     {
-        DrawText(
+        _ui.Label(
             L(entry.LabelKey),
-            Widgets.SettingsRect(0, y, _layout.LabelWidth, SettingsMetrics.RowHeight),
-            SettingsMetrics.BodyFont,
-            entry.CanEdit ? SettingsTheme.Text : SettingsTheme.TextDim,
+            Widgets.Rect(0, y, _layout.LabelWidth, UiMetrics.RowHeight),
+            UiMetrics.BodyFont,
+            entry.CanEdit ? UiTheme.Text : UiTheme.TextDim,
             Anchors.Left | Anchors.Center
         );
     }
 
     private IntRect ControlRect(int y)
     {
-        return Widgets.SettingsRect(
-            _layout.LabelWidth + SettingsMetrics.RowGap,
-            y + (SettingsMetrics.RowHeight - SettingsMetrics.ControlHeight) / 2,
+        return Widgets.Rect(
+            _layout.LabelWidth + UiMetrics.RowGap,
+            y + (UiMetrics.RowHeight - UiMetrics.ControlHeight) / 2,
             _layout.ControlWidth,
-            SettingsMetrics.ControlHeight
+            UiMetrics.ControlHeight
         );
     }
 
     private IntRect LocalRect(IntRect rect)
     {
-        return Widgets.SettingsRect(
+        return Widgets.Rect(
             rect.Left - _layout.Pane.Left,
             rect.Top - _layout.Pane.Top,
             rect.Size.X,
             rect.Size.Y
         );
-    }
-
-    private void DrawText(string text, IntRect rect, int fontSize, Vector4 color, Anchors anchors)
-    {
-        using (_ui.Element())
-        {
-            _ui.LayoutDirection = LayoutDirection.None;
-            _ui.Color = SettingsTheme.Transparent;
-            _ui.Constraints = Widgets.SettingsRectConstraints(rect);
-            _ui.ClipConstraints = Widgets.SettingsRectConstraints(rect);
-
-            using (_ui.Text(text))
-            {
-                _ui.FontOptions = new FontOptions
-                {
-                    Size = fontSize,
-                    NoWrap = true,
-                };
-                _ui.Color = color;
-                _ui.Constraints = new Constraints
-                {
-                    Anchors = anchors,
-                };
-            }
-        }
-    }
-
-    private void DrawLine(IntRect rect, Vector4 color)
-    {
-        using (_ui.Element())
-        {
-            _ui.Color = color;
-            _ui.Constraints = Widgets.SettingsRectConstraints(rect);
-        }
     }
 
     private string L(string key)

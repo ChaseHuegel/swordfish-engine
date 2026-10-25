@@ -4,14 +4,14 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using WaywardBeyond.Client.UI.Settings;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
     /// <summary>Creates a discrete stepper and returns true when the selected index changes.</summary>
-    public static bool SettingsStepper<T>(
+    public static bool Stepper<T>(
         this UIBuilder<Material> ui,
         string id,
         IntRect rect,
@@ -28,18 +28,18 @@ internal static partial class Widgets
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = SettingsTheme.ControlBackground;
+            ui.Color = UiTheme.ControlBackground;
             ui.Border = new BorderStyle
             {
-                Thickness = 1,
-                Color = enabled ? SettingsTheme.Border : SettingsTheme.BorderInner,
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = enabled ? UiTheme.Border : UiTheme.BorderInner,
             };
-            ui.Constraints = SettingsRectConstraints(rect);
-            ui.ClipConstraints = SettingsRectConstraints(rect);
+            ui.Constraints = RectConstraints(rect);
+            ui.ClipConstraints = RectConstraints(rect);
 
-            IntRect localRect = SettingsRect(0, 0, rect.Size.X, rect.Size.Y);
-            IntRect inner = SettingsInset(localRect, 1);
-            int arrowWidth = Math.Min(SettingsMetrics.StepperArrowWidth, Math.Max(1, inner.Size.X / 3));
+            IntRect localRect = Rect(0, 0, rect.Size.X, rect.Size.Y);
+            IntRect inner = Inset(localRect, UiMetrics.PanelBorderThickness);
+            int arrowWidth = Math.Min(UiMetrics.StepperArrowWidth, Math.Max(1, inner.Size.X / 3));
             var previousRect = new IntRect(inner.Left, inner.Top, inner.Left + arrowWidth, inner.Bottom);
             var nextRect = new IntRect(inner.Right - arrowWidth, inner.Top, inner.Right, inner.Bottom);
             var valueRect = new IntRect(previousRect.Right, inner.Top, nextRect.Left, inner.Bottom);
@@ -94,18 +94,18 @@ internal static partial class Widgets
             using (ui.Element())
             {
                 ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = SettingsTheme.Transparent;
-                ui.Constraints = SettingsRectConstraints(valueRect);
-                ui.ClipConstraints = SettingsRectConstraints(valueRect);
+                ui.Color = UiTheme.Transparent;
+                ui.Constraints = RectConstraints(valueRect);
+                ui.ClipConstraints = RectConstraints(valueRect);
 
                 using (ui.Text(options.Count > 0 ? format(options[newIndex]) : string.Empty))
                 {
                     ui.FontOptions = new FontOptions
                     {
-                        Size = SettingsMetrics.ControlFont,
+                        Size = UiMetrics.ControlFont,
                         NoWrap = true,
                     };
-                    ui.Color = enabled ? SettingsTheme.Text : SettingsTheme.TextDim;
+                    ui.Color = enabled ? UiTheme.Text : UiTheme.TextDim;
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Center,
@@ -128,23 +128,20 @@ internal static partial class Widgets
         bool hovering
     )
     {
+        ControlStyle style = UiThemeResolver.ResolveStepperArrow(enabled, hovering);
         ui.LayoutDirection = LayoutDirection.None;
-        ui.Color = hovering && enabled ? SettingsTheme.ButtonHover : SettingsTheme.Transparent;
-        ui.Constraints = SettingsRectConstraints(rect);
-        ui.ClipConstraints = SettingsRectConstraints(rect);
+        ui.Color = style.Fill;
+        ui.Constraints = RectConstraints(rect);
+        ui.ClipConstraints = RectConstraints(rect);
 
         using (ui.Text(symbol))
         {
             ui.FontOptions = new FontOptions
             {
-                Size = SettingsMetrics.ControlFont,
+                Size = UiMetrics.ControlFont,
                 NoWrap = true,
             };
-            ui.Color = !enabled
-                ? SettingsTheme.TextDim
-                : hovering
-                    ? SettingsTheme.AccentBright
-                    : SettingsTheme.TextMuted;
+            ui.Color = style.Text;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
@@ -156,7 +153,7 @@ internal static partial class Widgets
     {
         using (ui.Element())
         {
-            ui.Color = SettingsTheme.BorderInner;
+            ui.Color = UiTheme.BorderInner;
             ui.Constraints = new Constraints
             {
                 X = new Fixed(x),

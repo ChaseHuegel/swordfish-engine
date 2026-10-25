@@ -13,6 +13,7 @@ using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Settings;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus;
@@ -49,9 +50,9 @@ internal abstract class SettingsPage<TIdentifier>(
 
     private readonly CornerCapStyle _panelCaps = new()
     {
-        Length = SettingsMetrics.PanelCapLength,
-        Thickness = SettingsMetrics.PanelCapThickness,
-        Color = SettingsTheme.Border,
+        Length = UiMetrics.PanelCapLength,
+        Thickness = UiMetrics.PanelCapThickness,
+        Color = UiTheme.Border,
     };
 
     private readonly ConfigManager _configManager = configManager;
@@ -149,7 +150,7 @@ internal abstract class SettingsPage<TIdentifier>(
             }
             else
             {
-                using (ui.SettingsPanel(layout.Tray, SettingsTheme.PanelBackground, border: default, _panelCaps))
+                using (ui.Panel(layout.Tray, UiTheme.PanelBackground, border: default, _panelCaps))
                 {
                     if (renderer.DrawTray(_categories, ref _categoryIndex))
                     {
@@ -158,7 +159,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 }
             }
 
-            using (ui.SettingsPanel(layout.Pane, SettingsTheme.PanelBackground, border: default, _panelCaps))
+            using (ui.Panel(layout.Pane, UiTheme.PanelBackground, border: default, _panelCaps))
             {
                 renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
             }
