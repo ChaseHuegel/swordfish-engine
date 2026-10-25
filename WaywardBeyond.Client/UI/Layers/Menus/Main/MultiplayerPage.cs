@@ -27,7 +27,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private const int ROW_GAP = 3;
     private const int PANEL_PADDING = 12;
     private const int TABS_HEIGHT = 40;
-    private const int DIRECT_HEIGHT = 78;
+    private const int DIRECT_HEIGHT = 60;
     private const int ADD_BUTTON_HEIGHT = 32;
 
     private readonly ClientRpcHost _rpcHost;
@@ -175,6 +175,28 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 ))
             {
                 JoinSelected(menu);
+            }
+
+            if (_errorMessage != null)
+            {
+                int errorLeft = layout.ReturnButton.Right + 12;
+                int errorRight = layout.PrimaryButton.Left - 12;
+                int errorWidth = Math.Max(0, errorRight - errorLeft);
+                if (errorWidth > 0)
+                {
+                    ui.Label(
+                        _errorMessage,
+                        Widgets.Rect(
+                            errorLeft,
+                            layout.Footer.Top + 6,
+                            errorWidth,
+                            layout.Footer.Size.Y - 12
+                        ),
+                        UiMetrics.MenuSmallFont,
+                        UiTheme.Danger,
+                        Anchors.Center
+                    );
+                }
             }
         }
 
@@ -494,7 +516,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             const int portWidth = 64;
             const int connectWidth = 92;
             const int gap = 8;
-            int rowY = 16;
+            int rowY = 14;
             int hostX = PANEL_PADDING + labelWidth + gap;
             int hostWidth = Math.Clamp(
                 rect.Size.X - hostX - portWidth - connectWidth - gap * 2 - PANEL_PADDING,
@@ -573,17 +595,6 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 ))
             {
                 TryConnect(menu);
-            }
-
-            if (_errorMessage != null)
-            {
-                ui.Label(
-                    _errorMessage,
-                    Widgets.Rect(PANEL_PADDING, 52, rect.Size.X - PANEL_PADDING * 2, 16),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.Danger,
-                    Anchors.Left | Anchors.Center
-                );
             }
         }
     }
