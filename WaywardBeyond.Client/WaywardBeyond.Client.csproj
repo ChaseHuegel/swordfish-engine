@@ -75,6 +75,9 @@
       <Compile Update="UI\Widgets\Widgets.ScrollArea.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
+      <Compile Update="UI\Widgets\Widgets.DottedDivider.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
       <Compile Update="UI\Widgets\Widgets.MenuPanel.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
