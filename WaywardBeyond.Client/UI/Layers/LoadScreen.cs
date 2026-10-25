@@ -31,10 +31,9 @@ internal sealed class LoadScreen(
     private const int SIGNAL_WIDTH = 160;
     private const int SIGNAL_HEIGHT = 1;
     private const int SIGNAL_SEGMENT_WIDTH = 48;
-    private const float SIGNAL_SPEED = 0.4f;
+    private const float SIGNAL_SPEED = 1f;
 
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase = localizedTagDatabase;
-    private readonly Material? _backgroundMaterial = materialDatabase.Get("ui/menu/background");
     private readonly Randomizer _randomizer = new();
 
     private double _currentTime;
@@ -70,71 +69,61 @@ internal sealed class LoadScreen(
     {
         _currentTime += delta;
         UpdateCopy();
-
+        
         float fade = Math.Clamp((float)(_currentTime / FADE_IN_SECONDS), 0f, 1f);
-
+        
         using (ui.Element())
         {
-            ui.Color = UiTheme.ScreenBackground;
+            ui.LayoutDirection = LayoutDirection.None;
             ui.Constraints = new Constraints
             {
-                Width = new Fill(),
-                Height = new Fill(),
+                Width = new Relative(1f),
+                Height = new Relative(1f),
             };
-        }
-
-        if (_backgroundMaterial != null)
-        {
-            using (ui.Image(_backgroundMaterial))
+            
+            using (ui.Element())
             {
+                ui.Color = UiTheme.ScrimHeavy;
                 ui.Constraints = new Constraints
                 {
                     Width = new Fill(),
                     Height = new Fill(),
                 };
             }
-        }
 
-        using (ui.Element())
-        {
-            ui.Color = UiTheme.Scrim;
-            ui.Constraints = new Constraints
+            using (ui.Element())
             {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
+                ui.LayoutDirection = LayoutDirection.None;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                    Width = new Fixed(CONTENT_WIDTH),
+                    Height = new Fixed(CONTENT_HEIGHT),
+                };
+                ui.ClipConstraints = new Constraints
+                {
+                    Width = new Fixed(CONTENT_WIDTH),
+                    Height = new Fixed(CONTENT_HEIGHT),
+                };
 
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(CONTENT_WIDTH),
-                Height = new Fixed(CONTENT_HEIGHT),
-            };
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(CONTENT_WIDTH),
-                Height = new Fixed(CONTENT_HEIGHT),
-            };
-
-            ui.Label(
-                _status,
-                Widgets.Rect(0, 0, CONTENT_WIDTH, 30),
-                UiMetrics.BodyFont,
-                Fade(UiTheme.Text, fade),
-                Anchors.Center
-            );
-            DrawSignal(ui, fade);
-            ui.Label(
-                FormatHint(_hint),
-                Widgets.Rect(0, 50, CONTENT_WIDTH, 24),
-                UiMetrics.SmallFont,
-                Fade(UiTheme.TextMuted, fade),
-                Anchors.Center
-            );
+                ui.Label(
+                    _status,
+                    Widgets.Rect(0, 0, CONTENT_WIDTH, 30),
+                    UiMetrics.BodyFont,
+                    Fade(UiTheme.Text, fade),
+                    Anchors.Center
+                );
+                
+                DrawSignal(ui, fade);
+                
+                ui.Label(
+                    FormatHint(_hint),
+                    Widgets.Rect(0, 50, CONTENT_WIDTH, 24),
+                    UiMetrics.SmallFont,
+                    Fade(UiTheme.TextMuted, fade),
+                    Anchors.Center
+                );
+            }
         }
 
         return Result.FromSuccess();
@@ -173,7 +162,7 @@ internal sealed class LoadScreen(
                 Widgets.Rect(lineX, 38, SIGNAL_WIDTH, SIGNAL_HEIGHT)
             );
 
-            float phase = (float)(_currentTime * SIGNAL_SPEED % 2d);
+            float phase = (float)(_currentTime * 1.75f % 2d);
             float progress = phase <= 1f ? phase : 2f - phase;
             int segmentX = (int)((SIGNAL_WIDTH - SIGNAL_SEGMENT_WIDTH) * progress);
 
