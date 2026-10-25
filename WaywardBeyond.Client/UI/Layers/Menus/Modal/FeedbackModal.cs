@@ -125,7 +125,7 @@ internal class FeedbackModal : IMenuPage<Modal>
                     Height = new Fixed(panelHeight),
                 };
 
-                using (ui.MenuPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
+                using (ui.ModalPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
                 {
                     int padding = 28;
                     int contentWidth = panelWidth - padding * 2;

@@ -96,22 +96,6 @@ internal static partial class Widgets
                 };
             }
         }
-        else
-        {
-            using (ui.Element())
-            {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = UiTheme.Transparent;
-                ui.Border = new BorderStyle
-                {
-                    Thickness = UiMetrics.PanelBorderThickness,
-                    Color = UiTheme.BorderInner,
-                };
-                IntRect inner = Rect(2, 2, Math.Max(0, rect.Size.X - 4), Math.Max(0, rect.Size.Y - 4));
-                ui.Constraints = RectConstraints(inner);
-                ui.ClipConstraints = RectConstraints(inner);
-            }
-        }
     }
 
     /// <summary>Options for a selectable card.</summary>

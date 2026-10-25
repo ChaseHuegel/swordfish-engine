@@ -20,6 +20,22 @@ internal static partial class Widgets
         };
     }
 
+    /// <summary>Creates a single-outline panel for modal dialogs.</summary>
+    public static UIBuilder<Material>.Scope ModalPanel(this UIBuilder<Material> ui, IntRect rect)
+    {
+        return ui.Panel(
+            rect,
+            UiTheme.PanelBackground,
+            new BorderStyle
+            {
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = UiTheme.Border,
+            },
+            MenuPanelCaps(),
+            innerBorder: false
+        );
+    }
+
     /// <summary>Creates a menu panel with the shared inner hairline and corner caps.</summary>
     public static UIBuilder<Material>.Scope MenuPanel(
         this UIBuilder<Material> ui,
