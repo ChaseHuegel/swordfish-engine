@@ -88,6 +88,11 @@ internal sealed class HomePage(
             int buttonX = (pageWidth - UiMetrics.MenuButtonMinWidth) / 2;
             var y = 0;
 
+            if (saves.Length > 0)
+            {
+                DrawChevron(ui, buttonX - 8, y + 8);
+            }
+
             if (ui.ActionButton("Button_Continue", _localization.GetString("ui.button.continue")!, _continueButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = saves.Length > 0 }, out bool continueHovered))
             {
                 menu.GoToPage(MenuPage.SelectSave);
@@ -133,6 +138,24 @@ internal sealed class HomePage(
         }
 
         return Result.FromSuccess();
+    }
+
+    private static void DrawChevron(UIBuilder<Material> ui, int x, int y)
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            using (ui.Element())
+            {
+                ui.Color = UiTheme.AccentBright;
+                ui.Constraints = new Constraints
+                {
+                    X = new Fixed(x + i * 2),
+                    Y = new Fixed(y + i * 2),
+                    Width = new Fixed(2),
+                    Height = new Fixed(6 - i * 2),
+                };
+            }
+        }
     }
 
     private void DrawDivider(UIBuilder<Material> ui, int x, int y, int width)

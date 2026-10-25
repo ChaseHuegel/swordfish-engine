@@ -19,7 +19,8 @@ internal static partial class Widgets
         string text,
         ButtonVariant variant,
         bool enabled = true,
-        string? fontId = null
+        string? fontId = null,
+        SoundEffectService? soundEffectService = null
     )
     {
         return ui.ActionButton(id, text, new ActionButtonOptions(
@@ -33,7 +34,8 @@ internal static partial class Widgets
                     ID = fontId,
                     Size = UiMetrics.IconFont,
                     NoWrap = true,
-                }
+                },
+            SoundEffectService: soundEffectService
         ));
     }
 

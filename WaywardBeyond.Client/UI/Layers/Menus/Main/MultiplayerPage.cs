@@ -34,6 +34,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly ProfileSettings _profileSettings;
     private readonly LanDiscoveryService _discovery;
     private readonly IInputService _inputService;
+    private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
 
     private readonly Widgets.ActionButtonOptions _returnButton;
@@ -67,6 +68,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _profileSettings = profileSettings;
         _discovery = discovery;
         _inputService = inputService;
+        _soundEffectService = soundEffectService;
         _localization = localization;
 
         _returnButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
@@ -242,7 +244,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                     Widgets.Rect(rect.Size.X - PANEL_PADDING - 80, 8, 80, 24),
                     _localization.GetString("ui.button.scan")!,
                     ButtonVariant.Secondary,
-                    !_scanning
+                    !_scanning,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 _scanning = true;
@@ -441,7 +444,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                     "Button_Connect",
                     Widgets.Rect(padding + 286, inputY, 80, UiMetrics.ControlHeight),
                     _localization.GetString("ui.button.connect")!,
-                    ButtonVariant.Primary
+                    ButtonVariant.Primary,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 TryConnect(menu);
@@ -452,7 +456,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                     "Button_SaveServer",
                     Widgets.Rect(padding, buttonY, 130, 28),
                     _localization.GetString("ui.savedServer.add")!,
-                    ButtonVariant.Subtle
+                    ButtonVariant.Subtle,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 AddCurrentServer();
@@ -463,7 +468,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                     Widgets.Rect(rect.Size.X - padding - 120, buttonY, 120, 28),
                     _localization.GetString("ui.savedServer.remove")!,
                     ButtonVariant.Danger,
-                    _selectedFavorite >= 0 && _selectedFavorite < _savedServers.Count
+                    _selectedFavorite >= 0 && _selectedFavorite < _savedServers.Count,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 RemoveSelectedServer();

@@ -244,7 +244,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     Widgets.Rect(x + inputWidth + 8, inputY, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
                     MenuGlyphs.Dice,
                     ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons
+                    fontId: UiTheme.FontIcons,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 RandomizeName();
@@ -275,7 +276,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     Widgets.Rect(x + inputWidth + 8, seedY + 12, UiMetrics.SmallIconButtonSize, UiMetrics.SmallIconButtonSize),
                     MenuGlyphs.Dice,
                     ButtonVariant.Secondary,
-                    fontId: UiTheme.FontIcons
+                    fontId: UiTheme.FontIcons,
+                    soundEffectService: _soundEffectService
                 ))
             {
                 _seedTextBox.Text.Clear();
