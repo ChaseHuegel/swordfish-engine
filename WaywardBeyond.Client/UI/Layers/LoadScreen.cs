@@ -162,8 +162,7 @@ internal sealed class LoadScreen(
                 Widgets.Rect(lineX, 38, SIGNAL_WIDTH, SIGNAL_HEIGHT)
             );
 
-            float phase = (float)(_currentTime * 1.75f % 2d);
-            float progress = phase <= 1f ? phase : 2f - phase;
+            float progress = (float)(_currentTime * SIGNAL_SPEED % 1d);
             int segmentX = (int)((SIGNAL_WIDTH - SIGNAL_SEGMENT_WIDTH) * progress);
 
             using (ui.Element())
