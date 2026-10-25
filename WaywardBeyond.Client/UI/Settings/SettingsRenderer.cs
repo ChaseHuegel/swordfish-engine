@@ -206,40 +206,23 @@ internal sealed class SettingsRenderer(
         );
         _ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.BorderInner);
 
-        int viewportHeight = _layout.List.Size.Y;
-        int maxScroll = Math.Max(0, category.ContentHeight - viewportHeight);
-        float wheel = _inputService.GetMouseScroll();
-        if (wheel != 0f)
-        {
-            scrollY -= (int)MathF.Round(wheel * UiMetrics.ScrollStep);
-        }
-
-        scrollY = Math.Clamp(scrollY, 0, maxScroll);
-
-        IntRect list = LocalRect(_layout.List);
-        using (_ui.Element())
-        {
-            _ui.LayoutDirection = LayoutDirection.None;
-            _ui.Color = UiTheme.Transparent;
-            _ui.Constraints = Widgets.RectConstraints(list);
-            _ui.ClipConstraints = new Constraints
+        _ui.ScrollArea(
+            LocalRect(_layout.List),
+            category.ContentHeight,
+            ref scrollY,
+            _inputService,
+            LocalRect(_layout.Scrollbar),
+            _ =>
             {
-                Width = new Fixed(list.Size.X),
-                Height = new Fixed(list.Size.Y),
-            };
-            _ui.ScrollY = -scrollY;
-
-            var rowY = 0;
-            for (var i = 0; i < category.Rows.Length; i++)
-            {
-                SettingsRow row = category.Rows[i];
-                row.Render(this, rowY);
-                rowY += row.Height;
+                var rowY = 0;
+                for (var i = 0; i < category.Rows.Length; i++)
+                {
+                    SettingsRow row = category.Rows[i];
+                    row.Render(this, rowY);
+                    rowY += row.Height;
+                }
             }
-        }
-
-        IntRect scrollbar = LocalRect(_layout.Scrollbar);
-        _ui.Scrollbar(scrollbar, category.ContentHeight, viewportHeight, scrollY);
+        );
     }
 
     /// <summary>Draws a section header row.</summary>

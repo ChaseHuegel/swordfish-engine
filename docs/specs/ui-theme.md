@@ -78,6 +78,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Stepper` | `Widgets.Stepper.cs:14` | Discrete value control. |
 | `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
+| `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar. |
 | `ModalPanel` | `Widgets.MenuPanel.cs:24` | Single-outline panel for modal dialogs. |
 | `MenuPanel` | `Widgets.MenuPanel.cs:40` | Shared menu panel with inner hairline, corner caps, and optional title. |
 | `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
