@@ -9,6 +9,7 @@ using Swordfish.Graphics;
 using Swordfish.Integrations;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.UI.Layers;
@@ -61,7 +62,7 @@ internal sealed class LoadScreen(in IAssetDatabase<LocalizedTags> localizedTagDa
 
         using (ui.Element())
         {
-            ui.Color = new Vector4(0f, 0f, 0f, 1f);
+            ui.Color = UiTheme.ScreenBackground;
             ui.Constraints = new Constraints
             {
                 Width = new Relative(1f),
@@ -92,7 +93,7 @@ internal sealed class LoadScreen(in IAssetDatabase<LocalizedTags> localizedTagDa
 
             using (ui.Text(statusBuilder.ToString()))
             {
-                ui.FontSize = 24;
+                ui.FontSize = UiMetrics.TitleFont;
                 ui.FontID = "Font Awesome 6 Free Regular";
                 ui.Constraints = new Constraints
                 {
@@ -102,7 +103,7 @@ internal sealed class LoadScreen(in IAssetDatabase<LocalizedTags> localizedTagDa
             
             using (ui.Text(_status))
             {
-                ui.FontSize = 16;
+                ui.FontSize = UiMetrics.SmallFont;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center | Anchors.Bottom,
@@ -111,8 +112,8 @@ internal sealed class LoadScreen(in IAssetDatabase<LocalizedTags> localizedTagDa
             
             using (ui.Text(_hint))
             {
-                ui.FontSize = 14;
-                ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 1f);
+                ui.FontSize = UiMetrics.TinyFont;
+                ui.Color = UiTheme.TextMuted;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center | Anchors.Bottom,

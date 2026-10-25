@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
 using System.Linq;
-using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Data.Networking;
 
@@ -17,9 +16,6 @@ namespace WaywardBeyond.Client.UI.Layers;
 internal class Bars(in NotificationService notificationService)
 {
     private readonly NotificationService _notificationService = notificationService;
-    private readonly Vector4 _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
-    private readonly Vector4 _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
-    private readonly Vector4 _selectedColor = Color.FromArgb(int.Parse("FF8AEBF1", NumberStyles.HexNumber)).ToVector4();
     
     public bool IsVisible()
     {
@@ -68,7 +64,7 @@ internal class Bars(in NotificationService notificationService)
                         using (ui.Element())
                         {
                             ui.LayoutDirection = LayoutDirection.None;
-                            ui.Color = _backgroundColor;
+                            ui.Color = UiTheme.SlotBackground;
                             ui.Padding = new Padding(4);
                             ui.Constraints = new Constraints
                             {
@@ -78,7 +74,7 @@ internal class Bars(in NotificationService notificationService)
                             
                             using (ui.Element())
                             {
-                                ui.Color = _selectedColor;
+                                ui.Color = UiTheme.SlotSelected;
                                 ui.Constraints = new Constraints
                                 {
                                     Width = new Relative(state.Notification.Amount),

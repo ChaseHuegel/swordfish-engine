@@ -10,6 +10,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
 
@@ -29,7 +30,6 @@ internal sealed class ChatLayer : IUILayer
 {
     private const string TEXT_BOX_ID = "TextBox_Chat";
     private const int WIDTH = 600;
-    private const int FONT_SIZE = 16;
     private const int LINE_HEIGHT = 22;
     private const int SPACING = 0;
     private const int TEXT_BOX_HEIGHT = 26;
@@ -44,7 +44,7 @@ internal sealed class ChatLayer : IUILayer
 
     private readonly FontOptions _fieldFontOptions = new()
     {
-        Size = FONT_SIZE
+        Size = UiMetrics.SmallFont
     };
     
     private TextBoxState _textBox;
@@ -209,7 +209,7 @@ internal sealed class ChatLayer : IUILayer
 
                     if (open)
                     {
-                        ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.1f);
+                        ui.Color = UiTheme.HudPanel;
                     }
 
                     for (var index = 0; index < history.Length; index++)
@@ -257,12 +257,12 @@ internal sealed class ChatLayer : IUILayer
         using (ui.Text($"#8AEBF1 {message.SenderName}: #R {message.Value}"))
         {
             ui.Passthrough = true;
-            ui.FontSize = FONT_SIZE;
-            ui.Color = new Vector4(1f, 1f, 1f, alpha);
+            ui.FontSize = UiMetrics.SmallFont;
+            ui.Color = UiTheme.Text * new Vector4(1f, 1f, 1f, alpha);
             
             if (renderBackground)
             {
-                ui.BackgroundColor = new Vector4(0.5f, 0.5f, 0.5f, 0.1f * alpha);
+                ui.BackgroundColor = UiTheme.HudPanel * new Vector4(1f, 1f, 1f, alpha);
             }
 
             if (index >= 0)

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Drawing;
 using System.Globalization;
 using System.Numerics;
 using Reef;
@@ -15,6 +14,7 @@ using WaywardBeyond.Client.Items;
 using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Interactions;
@@ -32,10 +32,6 @@ internal class Inventory : IUILayer
     private readonly InteractionState _interactionState;
     private readonly IInputService _inputService;
 
-    private readonly Vector4 _backgroundColor;
-    private readonly Vector4 _slotColor;
-    private readonly Vector4 _selectedColor;
-    private readonly Vector4 _dragColor;
 
     private bool _open;
     private int _selectedSlot = -1;
@@ -60,10 +56,6 @@ internal class Inventory : IUILayer
         _interactionState = interactionState;
         _inputService = inputService;
 
-        _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
-        _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
-        _selectedColor = Color.FromArgb(int.Parse("FF8AEBF1", NumberStyles.HexNumber)).ToVector4();
-        _dragColor = Color.FromArgb(int.Parse("FF3940A8", NumberStyles.HexNumber)).ToVector4();
         
         var toggleShortcut = new Shortcut
         {
@@ -192,7 +184,7 @@ internal class Inventory : IUILayer
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Color = _backgroundColor;
+            ui.Color = UiTheme.SlotBackground;
             ui.Padding = new Padding(
                 left: 4,
                 top: 4,
@@ -209,7 +201,7 @@ internal class Inventory : IUILayer
                 //  Row
                 using (ui.Element())
                 {
-                    ui.Color = Vector4.Zero;
+                    ui.Color = UiTheme.Transparent;
 
                     for (var slotIndex = 0; slotIndex < SLOTS_PER_ROW; slotIndex++)
                     {
@@ -220,7 +212,7 @@ internal class Inventory : IUILayer
                         using (ui.Element())
                         {
                             ui.LayoutDirection = LayoutDirection.None;
-                            ui.Color = _backgroundColor;
+                            ui.Color = UiTheme.SlotBackground;
                             ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
                             ui.Constraints = new Constraints
                             {
@@ -246,9 +238,9 @@ internal class Inventory : IUILayer
 
                                 ui.Color = inventorySlot switch
                                 {
-                                    _ when inventorySlot == _draggingSlot && _dragging => _dragColor,
-                                    _ when inventorySlot == _selectedSlot => _selectedColor,
-                                    _ => _slotColor,
+                                    _ when inventorySlot == _draggingSlot && _dragging => UiTheme.SlotDragging,
+                                    _ when inventorySlot == _selectedSlot => UiTheme.SlotSelected,
+                                    _ => UiTheme.Slot,
                                 };
 
                                 if (!slotIsSelected && hovering)
@@ -280,7 +272,7 @@ internal class Inventory : IUILayer
                                     int slotNumber = slotIndex + 1;
                                     using (ui.Text(slotNumber.ToString()))
                                     {
-                                        ui.FontSize = 16;
+                                        ui.FontSize = UiMetrics.SmallFont;
                                     }
                                 }
                                 
@@ -324,7 +316,7 @@ internal class Inventory : IUILayer
                                 var text = itemStack.Count.ToString();
                                 using (ui.Text(text))
                                 {
-                                    ui.FontSize = 16;
+                                    ui.FontSize = UiMetrics.SmallFont;
                                     ui.Constraints = new Constraints
                                     {
                                         Anchors = Anchors.Bottom | Anchors.Right,
@@ -424,7 +416,7 @@ internal class Inventory : IUILayer
                 //  Stack size
                 using (ui.Text(draggedSlotText))
                 {
-                    ui.FontSize = 16;
+                    ui.FontSize = UiMetrics.SmallFont;
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Bottom | Anchors.Right,
