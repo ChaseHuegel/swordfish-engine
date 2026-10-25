@@ -41,8 +41,8 @@ public class SettingsEntryTests
     [Fact]
     public void DefaultsSitInsideSliderRanges()
     {
-        Assert.InRange(SettingsDefaults.Fov, SettingsDefaults.FovMin, SettingsDefaults.FovMax);
-        Assert.InRange(SettingsDefaults.MouseSensitivity, SettingsDefaults.SensitivityMin, SettingsDefaults.SensitivityMax);
-        Assert.InRange(SettingsDefaults.NameTagDistance, SettingsDefaults.NameTagMin, SettingsDefaults.NameTagMax);
+        Assert.InRange(SettingsDefaults.FOV, SettingsDefaults.FOV_MIN, SettingsDefaults.FOV_MAX);
+        Assert.InRange(SettingsDefaults.MOUSE_SENSITIVITY, SettingsDefaults.SENSITIVITY_MIN, SettingsDefaults.SENSITIVITY_MAX);
+        Assert.InRange(SettingsDefaults.NAME_TAG_DISTANCE, SettingsDefaults.NAME_TAG_MIN, SettingsDefaults.NAME_TAG_MAX);
     }
 }

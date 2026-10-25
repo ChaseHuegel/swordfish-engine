@@ -6,18 +6,11 @@ namespace WaywardBeyond.Client.UI.Settings;
 internal sealed class SettingsCategory(
     string id,
     string titleKey,
-    string shortTitleKey,
-    string descriptionKey,
     SettingsRow[] rows
-)
-{
+) {
     public string Id { get; } = id;
 
     public string TitleKey { get; } = titleKey;
-
-    public string ShortTitleKey { get; } = shortTitleKey;
-
-    public string DescriptionKey { get; } = descriptionKey;
 
     public SettingsRow[] Rows { get; } = rows;
 
