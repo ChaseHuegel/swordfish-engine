@@ -1,4 +1,3 @@
-using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
@@ -8,6 +7,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Pause;
 
@@ -57,7 +57,7 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
         //  Tint the screen
         using (ui.Element())
         {
-            ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
+            ui.Color = UiTheme.ScrimSoft;
             ui.Constraints = new Constraints
             {
                 Width = new Relative(1f),

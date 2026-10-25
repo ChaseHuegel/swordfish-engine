@@ -76,6 +76,22 @@ internal static partial class Widgets
     {
         ControlStyle style = UiThemeResolver.ResolveButton(options.Variant, enabled, hovering, clicked);
 
+        if (options.Selected && enabled)
+        {
+            style = new ControlStyle(
+                UiTheme.SelectionBackground,
+                UiTheme.Accent,
+                UiMetrics.PanelBorderThickness,
+                new CornerCapStyle
+                {
+                    Length = UiMetrics.SelectionCapLength,
+                    Thickness = UiMetrics.SelectionCapThickness,
+                    Color = UiTheme.Accent,
+                },
+                UiTheme.AccentBright
+            );
+        }
+
         ui.LayoutDirection = LayoutDirection.None;
         ui.Color = style.Fill;
         ui.Border = new BorderStyle
@@ -158,7 +174,8 @@ internal static partial class Widgets
         Anchors ContentAnchors = Anchors.Center,
         Anchors Anchors = default,
         SoundEffectService? SoundEffectService = null,
-        IntRect? Rect = null
+        IntRect? Rect = null,
+        bool Selected = false
     )
     {
         /// <summary>Creates a full-size menu button.</summary>

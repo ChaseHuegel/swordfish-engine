@@ -1,8 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -15,6 +13,7 @@ using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 
@@ -43,30 +42,35 @@ internal sealed class SelectCharacterPage(
     private readonly ModalMenu _modalMenu = modalMenu;
     private readonly ConfirmModal _confirmModal = confirmModal;
 
-    private readonly Widgets.ButtonOptions _menuButtonOptions = new(
-        new FontOptions 
-        {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
+    private readonly Widgets.ActionButtonOptions _primaryButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Primary,
+        soundEffectService
+    ) with
+    {
+        Anchors = Anchors.Center,
+    };
+
+    private readonly Widgets.ActionButtonOptions _subtleButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Subtle,
+        soundEffectService
+    ) with
+    {
+        Anchors = Anchors.Center,
+    };
+
+    private readonly Widgets.ActionButtonOptions _characterRowButton = Widgets.ActionButtonOptions.ListRow(
+        ButtonVariant.Secondary,
+        soundEffectService
     );
 
-    private readonly Widgets.ButtonOptions _buttonOptions = new(
-        new FontOptions
-        {
-            Size = 20,
-        },
-        new Widgets.AudioOptions(soundEffectService)
+    private readonly Widgets.ActionButtonOptions _deleteIconButton = Widgets.ActionButtonOptions.Icon(
+        ButtonVariant.Danger,
+        soundEffectService,
+        size: UiMetrics.SmallIconButtonSize,
+        fontSize: UiMetrics.IconFont,
+        fontId: "Font Awesome 6 Free Solid"
     );
-    
-    private readonly Widgets.ButtonOptions _smallIconOptions = new(
-        new FontOptions {
-            ID = "Font Awesome 6 Free Solid",
-            Size = 20,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-    
+
     private int _scrollY;
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
@@ -81,7 +85,7 @@ internal sealed class SelectCharacterPage(
 
             using (ui.Text(_localization.GetString("ui.menu.characters")!))
             {
-                ui.FontSize = 24;
+                ui.FontSize = UiMetrics.TitleFont;
             }
         }
 
@@ -135,8 +139,8 @@ internal sealed class SelectCharacterPage(
                                 Anchors = Anchors.Center,
                             };
 
-                            ui.FontSize = 20;
-                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                            ui.FontSize = UiMetrics.BodyFont;
+                            ui.Color = UiTheme.TextSoft;
                         }
                     }
 
@@ -158,8 +162,8 @@ internal sealed class SelectCharacterPage(
                                 Anchors = Anchors.Center,
                             };
 
-                            ui.FontSize = 20;
-                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                            ui.FontSize = UiMetrics.BodyFont;
+                            ui.Color = UiTheme.TextSoft;
                         }
                     }
 
@@ -181,8 +185,8 @@ internal sealed class SelectCharacterPage(
                                 Anchors = Anchors.Center,
                             };
 
-                            ui.FontSize = 20;
-                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                            ui.FontSize = UiMetrics.BodyFont;
+                            ui.Color = UiTheme.TextSoft;
                         }
                     }
 
@@ -204,8 +208,8 @@ internal sealed class SelectCharacterPage(
                                 Anchors = Anchors.Center,
                             };
 
-                            ui.FontSize = 20;
-                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                            ui.FontSize = UiMetrics.BodyFont;
+                            ui.Color = UiTheme.TextSoft;
                         }
                     }
 
@@ -227,8 +231,8 @@ internal sealed class SelectCharacterPage(
                                 Anchors = Anchors.Center,
                             };
 
-                            ui.FontSize = 20;
-                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                            ui.FontSize = UiMetrics.BodyFont;
+                            ui.Color = UiTheme.TextSoft;
                         }
                     }
 
@@ -250,8 +254,8 @@ internal sealed class SelectCharacterPage(
                                 Anchors = Anchors.Center,
                             };
 
-                            ui.FontSize = 20;
-                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                            ui.FontSize = UiMetrics.BodyFont;
+                            ui.Color = UiTheme.TextSoft;
                         }
                     }
                 }
@@ -274,8 +278,8 @@ internal sealed class SelectCharacterPage(
                 {
                     using (ui.Text(_localization.GetString("ui.text.none")!))
                     {
-                        ui.FontOptions = _buttonOptions.FontOptions;
-                        ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
+                        ui.FontSize = UiMetrics.BodyFont;
+                        ui.Color = UiTheme.TextDim;
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Center,
@@ -296,18 +300,15 @@ internal sealed class SelectCharacterPage(
                     
                         foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
                         {
-                            using (ui.TextButton(id: $"Button_DeleteCharacter_{character.Uuid}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
+                            if (ui.ActionButton($"Button_DeleteCharacter_{character.Uuid}", "\uf2ed", _deleteIconButton))
                             {
-                                if (interactions.Has(Widgets.Interactions.Click))
-                                {
-                                    _characterSaveManager.ActiveSave = character;
-                                    _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
+                                _characterSaveManager.ActiveSave = character;
+                                _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
 
-                                    void DeleteSave()
-                                    {
-                                        _characterSaveManager.Delete(character);
-                                        _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
-                                    }
+                                void DeleteSave()
+                                {
+                                    _characterSaveManager.Delete(character);
+                                    _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
                                 }
                             }
                         }
@@ -319,23 +320,16 @@ internal sealed class SelectCharacterPage(
 
                         foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
                         {
-                            using (ui.TextButton(id: $"Button_SelectCharacter_{character.Uuid}", text: character.Name, _buttonOptions, out Widgets.Interactions interactions))
+                            bool selected = _characterSaveManager.ActiveSave != null &&
+                                _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid;
+                            Widgets.ActionButtonOptions options = _characterRowButton with
                             {
-                                ui.Constraints = new Constraints
-                                {
-                                    Anchors = Anchors.Center | Anchors.Left,
-                                };
+                                Selected = selected,
+                            };
 
-                                if (_characterSaveManager.ActiveSave != null &&
-                                    _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid)
-                                {
-                                    ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
-                                }
-
-                                if (interactions.Has(Widgets.Interactions.Click))
-                                {
-                                    _characterSaveManager.ActiveSave = character;
-                                }
+                            if (ui.ActionButton($"Button_SelectCharacter_{character.Uuid}", character.Name, options))
+                            {
+                                _characterSaveManager.ActiveSave = character;
                             }
                         }
                     }
@@ -386,17 +380,9 @@ internal sealed class SelectCharacterPage(
                 }
             }
             
-            using (ui.TextButton(id: "Button_LoadSave", text: _localization.GetString("ui.button.loadSave")!, _menuButtonOptions, out Widgets.Interactions interactions))
+            if (ui.ActionButton("Button_LoadSave", _localization.GetString("ui.button.loadSave")!, _primaryButton))
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-            
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    Task.Run(_gameSaveManager.Load);
-                }
+                Task.Run(_gameSaveManager.Load);
             }
         }
 
@@ -416,17 +402,9 @@ internal sealed class SelectCharacterPage(
                 Anchors = Anchors.Center,
             };
             
-            using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _menuButtonOptions, out Widgets.Interactions interactions))
+            if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.back")!, _subtleButton))
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    menu.GoBack();
-                }
+                menu.GoBack();
             }
         }
         

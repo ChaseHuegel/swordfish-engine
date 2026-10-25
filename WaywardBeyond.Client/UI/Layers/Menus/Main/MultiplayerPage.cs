@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -14,6 +13,7 @@ using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
@@ -28,13 +28,14 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly ProfileSettings _profileSettings;
     private readonly LanDiscoveryService _discovery;
     private readonly IInputService _inputService;
-    private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
 
-    private readonly Widgets.ButtonOptions _menuButtonOptions;
-    private readonly Widgets.ButtonOptions _buttonOptions;
-    private readonly Widgets.ButtonOptions _iconOptions;
-    private readonly Widgets.ButtonOptions _smallIconOptions;
+    private readonly Widgets.ActionButtonOptions _primaryButton;
+    private readonly Widgets.ActionButtonOptions _secondaryButton;
+    private readonly Widgets.ActionButtonOptions _subtleButton;
+    private readonly Widgets.ActionButtonOptions _serverRowButton;
+    private readonly Widgets.ActionButtonOptions _deleteIconButton;
+    private readonly FontOptions _bodyFont;
 
     private TextBoxState _hostTextBox;
     private TextBoxState _portTextBox;
@@ -61,28 +62,36 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _profileSettings = profileSettings;
         _discovery = discovery;
         _inputService = inputService;
-        _soundEffectService = soundEffectService;
         _localization = localization;
 
-        _menuButtonOptions = new Widgets.ButtonOptions(
-            new FontOptions { Size = 32, },
-            new Widgets.AudioOptions(soundEffectService)
+        _primaryButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+        _secondaryButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+        _subtleButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Subtle, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+        _serverRowButton = Widgets.ActionButtonOptions.ListRow(ButtonVariant.Secondary, soundEffectService) with
+        {
+            MinWidth = 520,
+            Anchors = Anchors.Center,
+        };
+        _deleteIconButton = Widgets.ActionButtonOptions.Icon(
+            ButtonVariant.Danger,
+            soundEffectService,
+            size: UiMetrics.SmallIconButtonSize,
+            fontSize: UiMetrics.IconFont,
+            fontId: "Font Awesome 6 Free Solid"
         );
-
-        _buttonOptions = new Widgets.ButtonOptions(
-            new FontOptions { Size = 20, },
-            new Widgets.AudioOptions(soundEffectService)
-        );
-
-        _iconOptions = new Widgets.ButtonOptions(
-            new FontOptions { ID = "Font Awesome 6 Free Solid", Size = 32, },
-            new Widgets.AudioOptions(soundEffectService)
-        );
-
-        _smallIconOptions = new Widgets.ButtonOptions(
-            new FontOptions { ID = "Font Awesome 6 Free Solid", Size = 20, },
-            new Widgets.AudioOptions(soundEffectService)
-        );
+        _bodyFont = new FontOptions
+        {
+            Size = UiMetrics.BodyFont,
+        };
 
         //  The persisted last-used endpoint prefills the page (the #0028 prefill).
         _hostTextBox = new TextBoxState(
@@ -119,7 +128,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             using (ui.Text(_localization.GetString("ui.menu.multiplayer")!))
             {
-                ui.FontSize = 24;
+                ui.FontSize = UiMetrics.TitleFont;
+                ui.Color = UiTheme.Text;
             }
         }
 
@@ -130,26 +140,21 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             ui.Constraints = new Constraints { Anchors = Anchors.Center, };
 
             //  Enter in either field submits the connect, matching the connect button path.
-            ui.TextBox(id: "TextBox_Host", state: ref _hostTextBox, _buttonOptions.FontOptions, _inputService, out Widgets.Interactions hostInteractions);
-            ui.TextBox(id: "TextBox_Port", state: ref _portTextBox, _buttonOptions.FontOptions, _inputService, out Widgets.Interactions portInteractions);
+            ui.TextBox(id: "TextBox_Host", state: ref _hostTextBox, _bodyFont, _inputService, out Widgets.Interactions hostInteractions);
+            ui.TextBox(id: "TextBox_Port", state: ref _portTextBox, _bodyFont, _inputService, out Widgets.Interactions portInteractions);
             bool submitted = hostInteractions.Has(Widgets.Interactions.Submit) || portInteractions.Has(Widgets.Interactions.Submit);
 
             if (_errorMessage != null)
             {
                 using (ui.Text(_errorMessage))
                 {
-                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                    ui.Color = UiTheme.Danger;
                 }
             }
 
-            using (ui.TextButton(id: "Button_Connect", text: _localization.GetString("ui.button.connect")!, _buttonOptions, out Widgets.Interactions interactions))
+            if (ui.ActionButton("Button_Connect", _localization.GetString("ui.button.connect")!, _primaryButton) || submitted)
             {
-                ui.Constraints = new Constraints { Anchors = Anchors.Center, };
-
-                if (interactions.Has(Widgets.Interactions.Click) || submitted)
-                {
-                    TryConnect(menu);
-                }
+                TryConnect(menu);
             }
 
             //  Saved servers: connect on click, remove via the trash icon.
@@ -157,7 +162,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             {
                 using (ui.Text(_localization.GetString("ui.savedServer.saved")!))
                 {
-                    ui.FontSize = 18;
+                    ui.FontSize = UiMetrics.ControlFont;
+                    ui.Color = UiTheme.TextMuted;
                 }
 
                 foreach (SavedServer saved in _savedServers)
@@ -168,75 +174,53 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                         ui.Spacing = 8;
                         ui.Constraints = new Constraints { Anchors = Anchors.Center, };
 
-                        using (ui.TextButton(id: $"SavedServer_{saved.Host}:{saved.Port}", text: $"{saved.Name} ({saved.Host}:{saved.Port})", _buttonOptions, out Widgets.Interactions serverInteractions))
+                        if (ui.ActionButton($"SavedServer_{saved.Host}:{saved.Port}", $"{saved.Name} ({saved.Host}:{saved.Port})", _serverRowButton))
                         {
-                            ui.Constraints = new Constraints { Anchors = Anchors.Center, };
-
-                            if (serverInteractions.Has(Widgets.Interactions.Click))
-                            {
-                                _hostTextBox.Text.Clear().Append(saved.Host);
-                                _portTextBox.Text.Clear().Append(saved.Port.ToString());
-                                TryConnect(menu);
-                            }
+                            _hostTextBox.Text.Clear().Append(saved.Host);
+                            _portTextBox.Text.Clear().Append(saved.Port.ToString());
+                            TryConnect(menu);
                         }
 
-                        using (ui.TextButton(id: $"RemoveSavedServer_{saved.Host}:{saved.Port}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions removeInteractions))
+                        if (ui.ActionButton($"RemoveSavedServer_{saved.Host}:{saved.Port}", "\uf2ed", _deleteIconButton))
                         {
-                            if (removeInteractions.Has(Widgets.Interactions.Click))
-                            {
-                                _savedServers.Remove(saved);
-                                PersistSavedServers();
-                            }
+                            _savedServers.Remove(saved);
+                            PersistSavedServers();
                         }
                     }
                 }
             }
 
-            using (ui.TextButton(id: "Button_SaveServer", text: _localization.GetString("ui.savedServer.add")!, _buttonOptions, out Widgets.Interactions saveInteractions))
+            if (ui.ActionButton("Button_SaveServer", _localization.GetString("ui.savedServer.add")!, _secondaryButton))
             {
-                ui.Constraints = new Constraints { Anchors = Anchors.Center, };
-
-                if (saveInteractions.Has(Widgets.Interactions.Click))
-                {
-                    AddCurrentServer();
-                }
+                AddCurrentServer();
             }
 
             if (_scanning)
             {
                 using (ui.Text(_localization.GetString("ui.notification.discover.scanning")!))
                 {
-                    ui.FontSize = 16;
+                    ui.FontSize = UiMetrics.SmallFont;
+                    ui.Color = UiTheme.TextMuted;
                 }
             }
             else
             {
-                using (ui.TextButton(id: "Button_Scan", text: _localization.GetString("ui.button.scan")!, _buttonOptions, out Widgets.Interactions scanInteractions))
+                if (ui.ActionButton("Button_Scan", _localization.GetString("ui.button.scan")!, _secondaryButton) && !_scanning)
                 {
-                    ui.Constraints = new Constraints { Anchors = Anchors.Center, };
-
-                    if (scanInteractions.Has(Widgets.Interactions.Click) && !_scanning)
-                    {
-                        _scanning = true;
-                        _discoverMessage = null;
-                        _foundServers.Clear();
-                        _discoveredServers = [];
-                        _ = ScanServersAsync();
-                    }
+                    _scanning = true;
+                    _discoverMessage = null;
+                    _foundServers.Clear();
+                    _discoveredServers = [];
+                    _ = ScanServersAsync();
                 }
             }
 
             foreach (DiscoveredServer server in _discoveredServers)
             {
-                using (ui.TextButton(id: $"Server_{server.Host}:{server.Port}", text: $"{server.Name} ({server.Host}:{server.Port}) — {server.Players} players", _buttonOptions, out Widgets.Interactions serverInteractions))
+                if (ui.ActionButton($"Server_{server.Host}:{server.Port}", $"{server.Name} ({server.Host}:{server.Port}) — {server.Players} players", _serverRowButton))
                 {
-                    ui.Constraints = new Constraints { Anchors = Anchors.Center, };
-
-                    if (serverInteractions.Has(Widgets.Interactions.Click))
-                    {
-                        PickServer(in server);
-                        TryConnect(menu);
-                    }
+                    PickServer(in server);
+                    TryConnect(menu);
                 }
             }
 
@@ -244,7 +228,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             {
                 using (ui.Text(_discoverMessage))
                 {
-                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                    ui.Color = UiTheme.Danger;
                 }
             }
         }
@@ -258,14 +242,9 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         {
             ui.Constraints = new Constraints { Anchors = Anchors.Center, };
 
-            using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _menuButtonOptions, out Widgets.Interactions interactions))
+            if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.back")!, _subtleButton))
             {
-                ui.Constraints = new Constraints { Anchors = Anchors.Center, };
-
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    menu.GoBack();
-                }
+                menu.GoBack();
             }
         }
 

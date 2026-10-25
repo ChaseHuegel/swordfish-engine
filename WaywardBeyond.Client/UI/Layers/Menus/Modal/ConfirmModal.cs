@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Concurrent;
-using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
@@ -8,6 +7,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
@@ -18,15 +18,19 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
 
     private readonly ILogger<ConfirmModal> _logger = logger;
     private readonly ILocalization _localization = localization;
-    
+
     private readonly ConcurrentStack<Action> _actions = new();
 
-    private readonly Widgets.ButtonOptions _menuButtonOptions = new(
-        new FontOptions {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
+    private readonly Widgets.ActionButtonOptions _secondaryButton = CompactButton(ButtonVariant.Secondary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _primaryButton = CompactButton(ButtonVariant.Primary, soundEffectService);
+
+    private static Widgets.ActionButtonOptions CompactButton(ButtonVariant variant, SoundEffectService soundEffectService)
+    {
+        return Widgets.ActionButtonOptions.Compact(variant, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+    }
 
     public Modal ID => Modal;
 
@@ -36,13 +40,13 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
         {
             Anchors = Anchors.Center,
         };
-        
+
         using (ui.Element())
         {
-            ui.Color = new Vector4(0f, 0f, 0f, 0.75f);
-            
+            ui.Color = UiTheme.Scrim;
+
             ui.LayoutDirection = LayoutDirection.Vertical;
-            
+
             ui.Padding = new Padding
             {
                 Left = 20,
@@ -50,12 +54,13 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
                 Right = 20,
                 Bottom = 20,
             };
-            
+
             using (ui.Element())
             {
                 using (ui.Text(_localization.GetString("ui.menu.confirm")!))
                 {
-                    ui.FontSize = 24;
+                    ui.FontSize = UiMetrics.TitleFont;
+                    ui.Color = UiTheme.Text;
                 }
             }
 
@@ -66,57 +71,41 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
                 {
                     Anchors = Anchors.Center,
                 };
-                
+
                 using (ui.Element())
                 {
-                    using (ui.TextButton(id: "Button_No", text: _localization.GetString("ui.button.no")!, _menuButtonOptions, out Widgets.Interactions interactions))
+                    if (ui.ActionButton("Button_No", _localization.GetString("ui.button.no")!, _secondaryButton))
                     {
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                        };
-
-                        if (interactions.Has(Widgets.Interactions.Click))
-                        {
-                            _actions.TryPop(out _);
-                            menu.GoBack();
-                        }
+                        _actions.TryPop(out _);
+                        menu.GoBack();
                     }
                 }
 
                 using (ui.Element())
                 {
-                    using (ui.TextButton(id: "Button_Yes", text: _localization.GetString("ui.button.yes")!, _menuButtonOptions, out Widgets.Interactions interactions))
+                    if (ui.ActionButton("Button_Yes", _localization.GetString("ui.button.yes")!, _primaryButton))
                     {
-                        ui.Constraints = new Constraints
+                        if (_actions.TryPop(out Action? action))
                         {
-                            Anchors = Anchors.Center,
-                        };
-
-                        if (interactions.Has(Widgets.Interactions.Click))
-                        {
-                            if (_actions.TryPop(out Action? action))
+                            try
                             {
-                                try
-                                {
-                                    action();
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogError(ex, "Error raising a confirm modal action.");
-                                }
+                                action();
                             }
-                            
-                            menu.GoBack();
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error raising a confirm modal action.");
+                            }
                         }
+
+                        menu.GoBack();
                     }
                 }
             }
-            
+
             return Result.FromSuccess();
         }
     }
-    
+
     public Modal Create(Action action)
     {
         _actions.Push(action);

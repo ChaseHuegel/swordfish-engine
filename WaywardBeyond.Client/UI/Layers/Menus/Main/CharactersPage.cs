@@ -7,6 +7,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 
@@ -19,49 +20,38 @@ internal sealed class CharactersPage(
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Characters;
-    
+
     private readonly ILocalization _localization = localization;
     private readonly ICharacterStorage _characterSaveService = characterSaveService;
 
-    private readonly Widgets.ButtonOptions _buttonOptions = new(
-        new FontOptions {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-    
+    private readonly Widgets.ActionButtonOptions _primaryButton = MenuButton(ButtonVariant.Primary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _secondaryButton = MenuButton(ButtonVariant.Secondary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _subtleButton = MenuButton(ButtonVariant.Subtle, soundEffectService);
+
+    private static Widgets.ActionButtonOptions MenuButton(ButtonVariant variant, SoundEffectService soundEffectService)
+    {
+        return Widgets.ActionButtonOptions.Menu(variant, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+    }
+
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         IEnumerable<Character> characters = _characterSaveService.GetAllCharacters();
         if (characters.Any())
         {
-            using (ui.TextButton(id: "Button_SelectCharacter", text: _localization.GetString("ui.button.selectCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
+            if (ui.ActionButton("Button_SelectCharacter", _localization.GetString("ui.button.selectCharacter")!, _primaryButton))
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-                
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    menu.GoToPage(MenuPage.SelectCharacter);
-                }
+                menu.GoToPage(MenuPage.SelectCharacter);
             }
         }
-        
-        using (ui.TextButton(id: "Button_NewCharacter", text: _localization.GetString("ui.button.newCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
+
+        if (ui.ActionButton("Button_NewCharacter", _localization.GetString("ui.button.newCharacter")!, _secondaryButton))
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-            
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                menu.GoToPage(MenuPage.NewCharacter);
-            }
+            menu.GoToPage(MenuPage.NewCharacter);
         }
-        
+
         using (ui.Element())
         {
             ui.Constraints = new Constraints
@@ -70,20 +60,12 @@ internal sealed class CharactersPage(
                 Height = new Fill(),
             };
         }
-        
-        using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonOptions, out Widgets.Interactions interactions))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
 
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                menu.GoBack();
-            }
+        if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.back")!, _subtleButton))
+        {
+            menu.GoBack();
         }
-        
+
         return Result.FromSuccess();
     }
 }

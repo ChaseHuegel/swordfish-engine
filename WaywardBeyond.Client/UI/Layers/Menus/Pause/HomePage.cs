@@ -7,6 +7,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Pause;
 
@@ -23,54 +24,35 @@ internal sealed class HomePage(
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
     private readonly ModalMenu _modalMenu = modalMenu;
 
-    private readonly Widgets.ButtonOptions _buttonOptions = new(
-        new FontOptions {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
+    private readonly Widgets.ActionButtonOptions _primaryButton = MenuButton(ButtonVariant.Primary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _secondaryButton = MenuButton(ButtonVariant.Secondary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _dangerButton = MenuButton(ButtonVariant.Danger, soundEffectService);
+
+    private static Widgets.ActionButtonOptions MenuButton(ButtonVariant variant, SoundEffectService soundEffectService)
+    {
+        return Widgets.ActionButtonOptions.Menu(variant, soundEffectService) with
+        {
+            Anchors = Anchors.Center,
+        };
+    }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)
     {
-        using (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonOptions, out Widgets.Interactions interactions))
+        if (ui.ActionButton("Button_Continue", _localization.GetString("ui.button.continue")!, _primaryButton))
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                WaywardBeyond.Unpause();
-            }
+            WaywardBeyond.Unpause();
         }
 
-        using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
+        if (ui.ActionButton("Button_Settings", _localization.GetString("ui.button.settings")!, _secondaryButton))
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
+            menu.GoToPage(PausePage.Settings);
+        }
 
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                menu.GoToPage(PausePage.Settings);
-            }
-        }
-        
-        using (ui.TextButton(id: "Button_Feedback", text: _localization.GetString("ui.button.feedback")!, _buttonOptions, out Widgets.Interactions interactions))
+        if (ui.ActionButton("Button_Feedback", _localization.GetString("ui.button.feedback")!, _secondaryButton))
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-            
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                _modalMenu.GoToPage(FeedbackModal.Modal);
-            }
+            _modalMenu.GoToPage(FeedbackModal.Modal);
         }
-        
+
         using (ui.Element())
         {
             ui.Constraints = new Constraints
@@ -80,19 +62,11 @@ internal sealed class HomePage(
             };
         }
 
-        using (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonOptions, out Widgets.Interactions interactions))
+        if (ui.ActionButton("Button_SaveAndExit", _localization.GetString("ui.button.saveAndExit")!, _dangerButton))
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                _gameSaveManager.SaveAndExit();
-            }
+            _gameSaveManager.SaveAndExit();
         }
-        
+
         return Result.FromSuccess();
     }
 }

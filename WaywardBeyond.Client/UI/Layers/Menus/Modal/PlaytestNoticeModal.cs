@@ -1,4 +1,3 @@
-using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -7,6 +6,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
@@ -17,23 +17,24 @@ internal class PlaytestNoticeModal(
 ) : IMenuPage<Modal>
 {
     public static Modal Modal { get; } = new(id: "core.playtest");
-    
+
     private readonly ILocalization _localization = localization;
     private readonly ExternalAppService _externalAppService = externalAppService;
 
-    private readonly Widgets.ButtonOptions _menuButtonOptions = new(
-        new FontOptions {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-    
-    private readonly Widgets.ButtonOptions _iconButtonOptions = new(
-        new FontOptions {
-            ID = "Font Awesome 6 Free Brands",
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
+    private readonly Widgets.ActionButtonOptions _closeButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Primary,
+        soundEffectService
+    ) with
+    {
+        Anchors = Anchors.Center,
+    };
+
+    private readonly Widgets.ActionButtonOptions _brandIconButton = Widgets.ActionButtonOptions.Icon(
+        ButtonVariant.Secondary,
+        soundEffectService,
+        size: UiMetrics.IconButtonSize,
+        fontSize: UiMetrics.LargeIconFont,
+        fontId: "Font Awesome 6 Free Brands"
     );
 
     public Modal ID => Modal;
@@ -43,7 +44,7 @@ internal class PlaytestNoticeModal(
         using (ui.Element())
         {
             //  Fullscreen tint
-            ui.Color = new Vector4(0f, 0f, 0f, 0.95f);
+            ui.Color = UiTheme.ScrimHeavy;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Padding = new Padding
             {
@@ -57,7 +58,7 @@ internal class PlaytestNoticeModal(
                 Width = new Fill(),
                 Height = new Fill(),
             };
-            
+
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
@@ -66,17 +67,18 @@ internal class PlaytestNoticeModal(
                     Height = new Fill(),
                 };
             }
-            
+
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
                 };
-                
+
                 using (ui.Text(_localization.GetString("ui.menu.playtest")!))
                 {
-                    ui.FontSize = 24;
+                    ui.FontSize = UiMetrics.TitleFont;
+                    ui.Color = UiTheme.Text;
                 }
             }
 
@@ -93,56 +95,38 @@ internal class PlaytestNoticeModal(
                     Width = new Relative(1f),
                     Height = new Relative(1f),
                 };
-                
-                using (ui.Text(_localization.GetString("ui.text.playtest")!)) {}
-            }
-            
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-                
-                using (ui.TextButton(id: "Button_Close", text: _localization.GetString("ui.button.close")!, _menuButtonOptions, out Widgets.Interactions interactions))
-                {
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
 
-                    if (interactions.Has(Widgets.Interactions.Click))
-                    {
-                        menu.GoBack();
-                    }
-                }
+                using (ui.Text(_localization.GetString("ui.text.playtest")!)) { }
             }
-            
+
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
                 };
-                
-                using (ui.TextButton(id: "Button_Community", text: "\uf392", _iconButtonOptions, out Widgets.Interactions interactions))
+
+                if (ui.ActionButton("Button_Close", _localization.GetString("ui.button.close")!, _closeButton))
                 {
-                    ui.Padding = new Padding(8);
-                    
-                    if (interactions.Has(Widgets.Interactions.Click))
-                    {
-                        Task.Run(_externalAppService.TryOpenDiscordAsync);
-                    }
+                    menu.GoBack();
                 }
-                
-                using (ui.TextButton(id: "Button_Wishlist", text: "\uf1b6", _iconButtonOptions, out Widgets.Interactions interactions))
+            }
+
+            using (ui.Element())
+            {
+                ui.Constraints = new Constraints
                 {
-                    ui.Padding = new Padding(8);
-                    
-                    if (interactions.Has(Widgets.Interactions.Click))
-                    {
-                        Task.Run(_externalAppService.TryOpenSteamAsync);
-                    }
+                    Anchors = Anchors.Center,
+                };
+
+                if (ui.ActionButton("Button_Community", "\uf392", _brandIconButton))
+                {
+                    Task.Run(_externalAppService.TryOpenDiscordAsync);
+                }
+
+                if (ui.ActionButton("Button_Wishlist", "\uf1b6", _brandIconButton))
+                {
+                    Task.Run(_externalAppService.TryOpenSteamAsync);
                 }
             }
 
@@ -154,7 +138,7 @@ internal class PlaytestNoticeModal(
                     Height = new Fill(),
                 };
             }
-            
+
             return Result.FromSuccess();
         }
     }
