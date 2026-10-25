@@ -128,11 +128,11 @@
 "ui.settings.displayMode.fullscreen" = "Fullscreen"
 "ui.settings.displayMode.borderlessFullscreen" = "Borderless FS"
 
-"ui.settings.antiAliasing.off" = "Off"
+"ui.settings.antiAliasing.off" = "OFF"
 "ui.settings.antiAliasing.msaa" = "MSAA"
 "ui.settings.on" = "ON"
 "ui.settings.off" = "OFF"
-"ui.settings.disabled" = "Off"
+"ui.settings.disabled" = "OFF"
 "ui.settings.unlimited" = "Unlimited"
 "ui.settings.resetSection" = "Reset section to defaults"
 "ui.settings.cancel" = "Cancel"
