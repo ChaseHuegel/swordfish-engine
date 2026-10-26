@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Reef;
 using Reef.Constraints;
@@ -26,11 +27,13 @@ internal sealed class HomePage(
     in ILocalization localization,
     in GameSaveService gameSaveService,
     in GameSaveManager gameSaveManager,
-    in CharacterSaveManager characterSaveManager,
+    in ICharacterStorage characterStorage,
     in CharacterAssetService characterAssetService,
     in ISkillDatabase skillDatabase,
     in ClientRpcHost rpcHost,
     in ProfileSettings profileSettings,
+    in ContinueService continueService,
+    in MessageModal messageModal,
     in ModalMenu modalMenu
 ) : IMenuPage<MenuPage>
 {
@@ -46,11 +49,13 @@ internal sealed class HomePage(
     private readonly ILocalization _localization = localization;
     private readonly GameSaveService _gameSaveService = gameSaveService;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
-    private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
+    private readonly ICharacterStorage _characterStorage = characterStorage;
     private readonly CharacterAssetService _characterAssetService = characterAssetService;
     private readonly ISkillDatabase _skillDatabase = skillDatabase;
     private readonly ClientRpcHost _rpcHost = rpcHost;
     private readonly ProfileSettings _profileSettings = profileSettings;
+    private readonly ContinueService _continueService = continueService;
+    private readonly MessageModal _messageModal = messageModal;
     private readonly ModalMenu _modalMenu = modalMenu;
 
     private readonly Widgets.ActionButtonOptions _continueButton = MenuButton(ButtonVariant.Primary, soundEffectService);
@@ -75,9 +80,56 @@ internal sealed class HomePage(
             _modalMenu.GoToPage(PlaytestNoticeModal.Modal);
         }
 
+        if (_continueService.TryDequeueFailure(out ContinueService.Failure failure))
+        {
+            _modalMenu.GoToPage(_messageModal.Create(failure.Title, failure.Body));
+        }
+
         GameSave[] saves = _gameSaveService.GetSaves();
-        GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
-        Character? activeCharacter = _characterSaveManager.ActiveSave ?? _characterSaveManager.GetMostRecentSave();
+        bool hasLastSession = _continueService.HasLastSession;
+        LastServerMode lastMode = _profileSettings.LastServerMode.Get();
+
+        GameSave? continueSave = null;
+        string lastSaveGuid = _profileSettings.LastSaveGuid.Get();
+        for (var i = 0; i < saves.Length; i++)
+        {
+            if (saves[i].Level.Guid == lastSaveGuid)
+            {
+                continueSave = saves[i];
+                break;
+            }
+        }
+
+        Character? continueCharacter = null;
+        string lastCharacterUuid = _profileSettings.LastCharacterUuid.Get();
+        IReadOnlyList<Character> characters = _characterStorage.GetAllCharacters();
+        for (var i = 0; i < characters.Count; i++)
+        {
+            if (characters[i].Uuid.ToString() == lastCharacterUuid)
+            {
+                continueCharacter = characters[i];
+                break;
+            }
+        }
+
+        string? continueDestination = null;
+        if (lastMode == LastServerMode.Remote)
+        {
+            string host = _profileSettings.LastServerHost.Get();
+            int port = _profileSettings.LastServerPort.Get();
+            string? name = null;
+            List<SavedServer> savedServers = _profileSettings.SavedServers.Get();
+            for (var i = 0; i < savedServers.Count; i++)
+            {
+                if (savedServers[i].Host == host && savedServers[i].Port == port)
+                {
+                    name = savedServers[i].Name;
+                    break;
+                }
+            }
+
+            continueDestination = !string.IsNullOrWhiteSpace(name) ? name : $"{host}:{port}";
+        }
 
         int pageWidth = Math.Clamp(ui.Width - 80, 360, MAX_PAGE_WIDTH);
         var singleplayerClicked = false;
@@ -100,14 +152,14 @@ internal sealed class HomePage(
             int buttonX = (pageWidth - UiMetrics.MenuButtonMinWidth) / 2;
             var y = 0;
 
-            if (saves.Length > 0)
+            if (hasLastSession)
             {
                 ui.MenuChevron(buttonX - 8, y + (UiMetrics.MenuButtonHeight - 6) / 2);
             }
 
-            if (ui.ActionButton("Button_Continue", _localization.GetString("ui.button.continue")!, _continueButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = saves.Length > 0 }, out bool continueHovered))
+            if (ui.ActionButton("Button_Continue", _localization.GetString("ui.button.continue")!, _continueButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = hasLastSession }, out bool continueHovered))
             {
-                menu.GoToPage(MenuPage.SelectSave);
+                _continueService.Start();
             }
 
             y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
@@ -143,9 +195,18 @@ internal sealed class HomePage(
                 _entry.Quit();
             }
 
-            if (continueHovered && saves.Length > 0 && activeSave != null)
+            if (continueHovered && hasLastSession && continueSave != null && continueCharacter != null)
             {
-                DrawContinueCard(ui, activeSave.Value, activeCharacter, buttonX + UiMetrics.MenuButtonMinWidth + 24, 0, pageWidth - buttonX - UiMetrics.MenuButtonMinWidth - 28);
+                DrawContinueCard(
+                    ui,
+                    continueSave.Value,
+                    continueCharacter.Value,
+                    lastMode == LastServerMode.Remote,
+                    continueDestination,
+                    buttonX + UiMetrics.MenuButtonMinWidth + 24,
+                    0,
+                    pageWidth - buttonX - UiMetrics.MenuButtonMinWidth - 28
+                );
             }
         }
 
@@ -159,8 +220,6 @@ internal sealed class HomePage(
 
     private void StartSingleplayer(Menu<MenuPage> menu)
     {
-        _profileSettings.LastServerMode.Set(LastServerMode.Local);
-        _profileSettings.Save();
         _rpcHost.Disconnect();
         _gameSaveService.ClearListing();
         _gameSaveManager.ActiveSave = null;
@@ -170,26 +229,48 @@ internal sealed class HomePage(
     private void DrawContinueCard(
         UIBuilder<Material> ui,
         in GameSave save,
-        Character? character,
+        in Character character,
+        bool remote,
+        string? destination,
         int x,
         int y,
         int width
-    )
-    {
+    ) {
         if (width < 200)
         {
             return;
         }
 
-        const int height = 196;
+        const int padding = 12;
+        const int labelWidth = 100;
+        int metadataY = remote ? 74 : 52;
+        int dividerY = metadataY + 4 * 18 + 8;
+        int characterY = dividerY + 12;
+        int height = characterY + 64 + 8;
+
         using (ui.MenuPanel(Widgets.Rect(x, y, width, height)))
         {
-            int padding = 12;
+            int typeX = padding;
+            if (remote)
+            {
+                ui.Label(
+                    MenuGlyphs.Server,
+                    Widgets.Rect(padding, 8, 16, 16),
+                    UiMetrics.MenuSmallFont,
+                    UiTheme.Accent,
+                    Anchors.Center,
+                    UiTheme.FontIcons
+                );
+                typeX += 18;
+            }
+
             ui.Label(
-                _localization.GetString("ui.menu.activeArchive")!,
-                Widgets.Rect(padding, 8, width - padding * 2, 16),
+                remote
+                    ? _localization.GetString("ui.button.multiplayer")!
+                    : _localization.GetString("ui.button.singleplayer")!,
+                Widgets.Rect(typeX, 8, width - typeX - padding, 16),
                 UiMetrics.MenuSmallFont,
-                UiTheme.Primary,
+                remote ? UiTheme.Accent : UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
@@ -199,82 +280,119 @@ internal sealed class HomePage(
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
-            ui.Label(
-                $"{_localization.GetString("ui.menu.mode")!}: {save.Level.DefaultGameMode}",
-                Widgets.Rect(padding, 52, width - padding * 2, 16),
-                UiMetrics.MenuSmallFont,
-                UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
-            );
-            ui.Label(
-                $"{_localization.GetString("ui.menu.seed")!}: {save.Level.Seed}",
-                Widgets.Rect(padding, 70, width - padding * 2, 16),
-                UiMetrics.MenuSmallFont,
-                UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
-            );
+
+            if (remote && !string.IsNullOrWhiteSpace(destination))
+            {
+                ui.Label(
+                    destination,
+                    Widgets.Rect(padding, 50, width - padding * 2, 16),
+                    UiMetrics.MenuSmallFont,
+                    UiTheme.TextMuted,
+                    Anchors.Left | Anchors.Center
+                );
+            }
 
             string lastPlayed = save.Level.Playtime.LastPlayedMs > 0
                 ? DateTimeOffset.FromUnixTimeMilliseconds(save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("d")
                 : _localization.GetString("ui.label.never")!;
-            ui.Label(
-                $"{_localization.GetString("ui.label.lastPlayed")!}: {lastPlayed}",
-                Widgets.Rect(padding, 88, width - padding * 2, 16),
-                UiMetrics.MenuSmallFont,
-                UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
-            );
-
             TimeSpan age = TimeSpan.FromMilliseconds(save.Level.Playtime.AgeMs);
-            ui.Label(
-                $"{_localization.GetString("ui.label.timePlayed")!}: {_localization.GetLongString(age)}",
-                Widgets.Rect(padding, 106, width - padding * 2, 16),
-                UiMetrics.MenuSmallFont,
-                UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
+
+            DrawContinueDetail(
+                ui,
+                padding,
+                metadataY,
+                width,
+                labelWidth,
+                _localization.GetString("ui.menu.mode")!,
+                save.Level.DefaultGameMode.ToString()
+            );
+            DrawContinueDetail(
+                ui,
+                padding,
+                metadataY + 18,
+                width,
+                labelWidth,
+                _localization.GetString("ui.menu.seed")!,
+                save.Level.Seed.ToString()
+            );
+            DrawContinueDetail(
+                ui,
+                padding,
+                metadataY + 36,
+                width,
+                labelWidth,
+                _localization.GetString("ui.label.lastPlayed")!,
+                lastPlayed
+            );
+            DrawContinueDetail(
+                ui,
+                padding,
+                metadataY + 54,
+                width,
+                labelWidth,
+                _localization.GetString("ui.label.timePlayed")!,
+                _localization.GetLongString(age)
             );
 
-            if (character != null)
-            {
-                Material appearance = _characterAssetService.GetAppearanceMaterial(character.Value);
-                using (ui.Image(appearance))
-                {
-                    ui.Constraints = new Constraints
-                    {
-                        X = new Fixed(padding),
-                        Y = new Fixed(124),
-                        Width = new Fixed(64),
-                        Height = new Fixed(64),
-                    };
-                }
+            ui.Divider(
+                Widgets.Rect(padding, dividerY, width - padding * 2, 1),
+                UiTheme.BorderInner
+            );
 
-                int textX = padding + 76;
-                int level = character.Value.GetTotalSkillLevel(_skillDatabase);
-                ui.Label(
-                    character.Value.Name,
-                    Widgets.Rect(textX, 124, width - textX - padding, 18),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.AccentBright,
-                    Anchors.Left | Anchors.Center
-                );
-                ui.Label(
-                    $"{_localization.GetString("ui.menu.level")!} {level}",
-                    Widgets.Rect(textX, 146, width - textX - padding, 18),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.Text,
-                    Anchors.Left | Anchors.Center
-                );
-            }
-            else
+            Material appearance = _characterAssetService.GetAppearanceMaterial(character);
+            using (ui.Image(appearance))
             {
-                ui.Label(
-                    _localization.GetString("ui.menu.noColonist")!,
-                    Widgets.Rect(padding, 132, width - padding * 2, 18),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.TextDim,
-                    Anchors.Left | Anchors.Center
-                );
+                ui.Constraints = new Constraints
+                {
+                    X = new Fixed(padding),
+                    Y = new Fixed(characterY),
+                    Width = new Fixed(64),
+                    Height = new Fixed(64),
+                };
             }
+
+            int textX = padding + 76;
+            int level = character.GetTotalSkillLevel(_skillDatabase);
+            ui.Label(
+                character.Name,
+                Widgets.Rect(textX, characterY, width - textX - padding, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.AccentBright,
+                Anchors.Left | Anchors.Center
+            );
+            ui.Label(
+                $"{_localization.GetString("ui.menu.level")!} {level}",
+                Widgets.Rect(textX, characterY + 20, width - textX - padding, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.Text,
+                Anchors.Left | Anchors.Center
+            );
         }
+    }
+
+    private static void DrawContinueDetail(
+        UIBuilder<Material> ui,
+        int padding,
+        int y,
+        int width,
+        int labelWidth,
+        string label,
+        string value
+    )
+    {
+        ui.Label(
+            label,
+            Widgets.Rect(padding, y, labelWidth, 16),
+            UiMetrics.MenuLabelFont,
+            UiTheme.TextMuted,
+            Anchors.Left | Anchors.Center
+        );
+        ui.Label(
+            value,
+            Widgets.Rect(padding + labelWidth, y, width - padding * 2 - labelWidth, 16),
+            UiMetrics.MenuLabelFont,
+            UiTheme.TextSoft,
+            Anchors.Left | Anchors.Center
+        );
     }
 }

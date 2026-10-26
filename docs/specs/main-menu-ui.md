@@ -9,19 +9,19 @@ One subject: the main menu suite layout, flow, data mapping, and visual rules.
 | Page | Opens | Primary action |
 |---|---|---|
 | Home | Main menu | Continue, Singleplayer, Multiplayer, Settings, Credits, Exit Game |
-| SelectSave | Continue or Singleplayer | Launch selected archive, or create a colonist when none exist |
+| SelectSave | Singleplayer or Multiplayer | Launch selected archive, or create a colonist when none exist |
 | NewSave | SelectSave | Initialize a sector, then open Crew Manifest |
 | SelectCharacter | SelectSave or NewSave | Launch the selected colonist |
-| NewCharacter | Crew Manifest or empty Continue | Create a colonist, then return to Crew Manifest |
+| NewCharacter | Crew Manifest or empty Singleplayer | Create a colonist, then return to Crew Manifest |
 | Multiplayer | Home | Join a favorite or LAN server |
 | Settings | Home or Pause | Keep the existing draft/apply behavior |
 | Credits | Home | Return |
 
-The old `CharactersPage` is gone. Continue opens the save list for the current
-server. Singleplayer switches the RPC host to the local loopback, clears the
-cached save listing and active save, then opens the same page immediately. The
-local listing populates through the normal refresh. New Game creates a sector
-before it opens Crew Manifest.
+The old `CharactersPage` is gone. Continue resumes the last played server, save,
+and colonist directly. Singleplayer switches the RPC host to the local loopback,
+clears the cached save listing and active save, then opens the save list
+immediately. The local listing populates through the normal refresh. New Game
+creates a sector before it opens Crew Manifest.
 
 ## Layout
 
@@ -141,9 +141,13 @@ The mockup uses galaxy terminology. The game stores levels and characters.
   below 100 ms, orange below 150 ms, red below 250 ms. At 250 ms or more it
   switches to a red `xmark`. Unknown is a dim `signal` plus `-`.
 
-Continue shows a hover card with the active or most recent archive, its mode,
-seed, last played time, time played, and the active colonist's combined skill
-level. The combined level is the sum of every recorded skill's resolved level.
+Continue shows a hover card with the last played archive, its session type, its
+mode, seed, last played time, time played, and the last colonist's combined
+skill level. The type is `Singleplayer` or `Multiplayer`. A multiplayer card
+adds one destination line with the saved server name, or the endpoint when no
+name matches. The card only appears when the current cache contains the last
+save and character. The combined level is the sum of every recorded skill's
+resolved level.
 
 ## Credits
 
@@ -174,9 +178,11 @@ Do not add fake menu controls.
 
 - Flow: `WaywardBeyond.Client/UI/Layers/Menus/Main/MenuPage.cs:3`
 - Layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`
-- Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:23`
+- Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
+- Continue: `WaywardBeyond.Client/Saves/ContinueService.cs:18`
+- Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:13`
 - Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:14`
-- Continue: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
+- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
 - New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:22`
 - Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:24`
 - Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:23`

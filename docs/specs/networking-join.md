@@ -139,9 +139,11 @@ in-world save call in the world tick. See [persistence](persistence.md) and
 
 ### Continue and the multiplayer page
 
-- **Continue** branches on `ProfileSettings.LastServerMode`. A `Remote` marker
-  reconnects to the persisted endpoint before the save list and join target that
-  server. A `Local` marker uses the restored loopback.
+- **Continue** resumes the last played session from `ProfileSettings`. A `Remote`
+  marker connects to `LastServerHost` and `LastServerPort`. A `Local` marker uses
+  the restored loopback. The service then finds `LastSaveGuid` and
+  `LastCharacterUuid`, assigns both active selections, and starts the join. A
+  failure returns to the main menu with a Continue Failed modal.
 - **Saved servers** are capped at 32 and deduped by host:port. They use the same
   `ConnectRemote` and join path.
 - **Keyboard submit** in the address or port field uses the same connect path as
