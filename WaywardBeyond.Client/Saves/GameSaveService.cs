@@ -37,6 +37,7 @@ internal sealed class GameSaveService(
     private Dictionary<string, LevelMetadata> _clientMeta = new();
     private bool _metaLoaded;
     private bool _canCreateSave;
+    private int _listingGeneration;
 
     /// <summary>True when the server reports that this client may create saves.</summary>
     public bool CanCreateSave
@@ -47,6 +48,17 @@ internal sealed class GameSaveService(
             {
                 return _canCreateSave;
             }
+        }
+    }
+
+    /// <summary>Clears the cached listing while the active server changes.</summary>
+    public void ClearListing()
+    {
+        lock (_savesGate)
+        {
+            _levels = [];
+            _canCreateSave = false;
+            _listingGeneration++;
         }
     }
 
@@ -128,12 +140,23 @@ internal sealed class GameSaveService(
     /// </summary>
     public async Task RefreshLevelsAsync()
     {
+        int generation;
+        lock (_savesGate)
+        {
+            generation = _listingGeneration;
+        }
+
         try
         {
             LevelListing listing = await _levelsClient.GetLevelsAsync();
 
             lock (_savesGate)
             {
+                if (generation != _listingGeneration)
+                {
+                    return;
+                }
+
                 _levels = listing.Levels;
                 _canCreateSave = listing.CanCreateSave;
                 if (!_metaLoaded)
