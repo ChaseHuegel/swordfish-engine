@@ -104,9 +104,9 @@ internal sealed class HomePage(
             }
 
             y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_NewSave", _localization.GetString("ui.button.newGame")!, _newGameButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = _gameSaveService.CanCreateSave }))
+            if (ui.ActionButton("Button_Singleplayer", _localization.GetString("ui.button.singleplayer")!, _newGameButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = _gameSaveService.CanCreateSave }))
             {
-                menu.GoToPage(MenuPage.NewSave);
+                menu.GoToPage(MenuPage.SelectSave);
             }
 
             y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
