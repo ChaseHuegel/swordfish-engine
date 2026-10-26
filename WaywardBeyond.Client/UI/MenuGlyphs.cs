@@ -15,6 +15,8 @@ internal static class MenuGlyphs
     public const string XMark = "\uf00d";
     public const string Feedback = "\uf086";
     public const string Settings = "\uf013";
+    public const string Rotate = "\uf021";
+    public const string Shapes = "\uf61f";
     public const string Discord = "\uf392";
     public const string Steam = "\uf1b6";
 }

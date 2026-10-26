@@ -44,11 +44,6 @@ internal static class UiTheme
     public static readonly Vector4 Scrim = FromRgb(0, 0, 0, 191);
     public static readonly Vector4 ScrimSoft = FromRgb(0, 0, 0, 128);
     public static readonly Vector4 ScrimHeavy = FromRgb(0, 0, 0, 242);
-    public static readonly Vector4 HudPanel = FromRgb(128, 128, 128, 26);
-    public static readonly Vector4 SlotBackground = FromRgb(79, 84, 107);
-    public static readonly Vector4 Slot = FromRgb(57, 120, 168);
-    public static readonly Vector4 SlotSelected = FromRgb(138, 235, 241);
-    public static readonly Vector4 SlotDragging = FromRgb(57, 64, 168);
     public static readonly Vector4 Transparent = Vector4.Zero;
 
     private static Vector4 FromRgb(byte r, byte g, byte b, byte a = 255)

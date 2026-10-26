@@ -1,29 +1,34 @@
-﻿using Reef;
+using Reef;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
-internal class ToastNotificationLayer(in NotificationService notificationService)
+/// <summary>Renders stacked toast notifications in the top-left corner of the viewport.</summary>
+internal sealed class ToastNotificationLayer(in NotificationService notificationService)
     : NotificationLayer(notificationService)
 {
+    /// <inheritdoc/>
     public override NotificationType Type => NotificationType.Toast;
-    
-    protected override bool HasBackground => false;
+
+    /// <inheritdoc/>
+    protected override bool HasBackground => true;
+
+    /// <inheritdoc/>
     protected override bool OnlyRenderLatest => false;
 
-    public override bool IsVisible()
-    {
-        return true;
-    }
-    
+    /// <inheritdoc/>
+    public override bool IsVisible() => true;
+
+    /// <inheritdoc/>
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         using (ui.Element())
         {
+            ui.Passthrough = true;
+            ui.Spacing = 6;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
@@ -33,7 +38,7 @@ internal class ToastNotificationLayer(in NotificationService notificationService
 
             base.RenderUI(delta, ui);
         }
-        
+
         return Result.FromSuccess();
     }
 }

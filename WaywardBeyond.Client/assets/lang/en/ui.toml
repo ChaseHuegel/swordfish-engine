@@ -24,6 +24,9 @@
 "ui.field.feedback.contact" = "Contact (optional)"
 
 "ui.field.chat" = "Enter a message..."
+"ui.chat.header" = "SUBSPACE COMMS // LOCAL"
+"ui.chat.closeHint" = "[ESC] CLOSE"
+"ui.chat.sendHint" = "[ENTER]"
 
 "ui.menu.playtest" = "In-development Playtest"
 "ui.text.playtest" = "This is an evolving version of Wayward Beyond in early development. Please wishlist it if you are interested in the release!\n\nFeatures and content will be added and changed throughout this playtest. I greatly appreciate feedback on any ideas, suggestions, or bugs, which can be submitted from the menu or by joining the Discord.\n\nThank you for trying out Wayward Beyond!\n-Seven"
@@ -179,6 +182,16 @@
 "ui.hint.quicksave" = "F5: Quicksave"
 "ui.hint.inventory" = "Tab: Inventory"
 "ui.hint.feedback" = "F8: Send feedback"
+"ui.hint.inventory.move" = "LMB: Move / stack"
+"ui.hint.inventory.split" = "RMB: Split half"
+"ui.hint.inventory.quickMove" = "Shift+LMB: Quick move"
+"ui.hint.inventory.hotbar" = "1-9: Move to hotbar"
+"ui.hint.inventory.close" = "Tab / Esc: Close"
+
+"ui.inventory.title" = "Inventory"
+"ui.inventory.emptySlot" = "Empty slot"
+"ui.inventory.shapeable" = "Shapeable"
+"ui.inventory.orientable" = "Rotatable"
 
 # Main menu suite
 "ui.button.initialize" = "Initialize"
