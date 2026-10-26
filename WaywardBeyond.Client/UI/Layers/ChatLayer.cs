@@ -211,7 +211,7 @@ internal sealed class ChatLayer : IUILayer
         int viewportOffsetY;
         if (contentHeight < HISTORY_VIEWPORT_HEIGHT)
         {
-            //  When there are only a few messages, push them to the bottom of the fixed 200px viewport.
+            //  When there are only a few messages, push them to the bottom of the fixed viewport.
             viewportOffsetY = HISTORY_VIEWPORT_HEIGHT - contentHeight;
         }
         else
