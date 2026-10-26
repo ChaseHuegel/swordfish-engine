@@ -49,6 +49,18 @@ the first group. A dotted divider separates them from Save & exit.
 - The gap around the divider is 12 pixels.
 - Continue has the cyan menu chevron.
 
+## Form validation
+
+Create Character and New Game show one form status centered in the footer.
+Errors use `UiTheme.Danger`. Warnings use `UiTheme.Warning`. Required field
+errors take priority over optional field warnings.
+
+Create Character:
+
+- Missing name: `Name is required`.
+- Duplicate name: `Name is already taken`.
+- Unspent points: `S.P.A.C.E.R. points remaining: {0}`.
+
 ## Visual rules
 
 - `DefaultUIRenderer` sets `UIBuilder.DefaultFontID` to `UiTheme.FontUI`
