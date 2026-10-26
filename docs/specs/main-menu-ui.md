@@ -20,8 +20,9 @@ One subject: the main menu suite layout, flow, data mapping, and visual rules.
 The old `CharactersPage` is gone. Continue resumes the last played server, save,
 and colonist directly. Singleplayer switches the RPC host to the local loopback,
 clears the cached save listing and active save, then opens the save list
-immediately. The local listing populates through the normal refresh. New Game
-creates a sector before it opens Crew Manifest.
+immediately. The local listing populates through the normal refresh. A local save
+list returns with `Return`. A remote save list returns with `Servers` to the
+multiplayer server hub. New Game creates a sector before it opens Crew Manifest.
 
 ## Layout
 
