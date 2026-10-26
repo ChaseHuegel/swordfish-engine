@@ -69,6 +69,11 @@ internal sealed class Bars(in NotificationService notificationService)
                     ui.Padding = new Padding(left: 12, top: 8, right: 12, bottom: 8);
                     ui.LayoutDirection = LayoutDirection.Vertical;
                     ui.Color = UiTheme.PanelBackground * fade;
+                    ui.Border = new BorderStyle
+                    {
+                        Thickness = UiMetrics.PanelBorderThickness,
+                        Color = UiTheme.BorderInner
+                    };
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Center,
