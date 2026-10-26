@@ -90,42 +90,44 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
 
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (GetCurrentPage() == MenuPage.Home)
+        if (GetCurrentPage() != MenuPage.Home)
         {
-            using (ui.Element())
+            return base.RenderUI(delta, ui);
+        }
+        
+        using (ui.Element())
+        {
+            ui.Padding = new Padding(20);
+            ui.Constraints = new Constraints
             {
-                ui.Padding = new Padding(20);
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Bottom | Anchors.Left,
-                };
+                Anchors = Anchors.Bottom | Anchors.Left,
+            };
 
-                if (ui.ActionButton("Button_Feedback", _localization.GetString("ui.menu.feedback")!, _feedbackButton))
-                {
-                    _modalMenu.GoToPage(FeedbackModal.Modal);
-                }
+            if (ui.ActionButton("Button_Feedback", _localization.GetString("ui.menu.feedback")!, _feedbackButton))
+            {
+                _modalMenu.GoToPage(FeedbackModal.Modal);
+            }
+        }
+
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Padding = new Padding(20);
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Bottom | Anchors.Right,
+                Width = new Fixed(128),
+                Height = new Fixed(80),
+            };
+
+            if (ui.IconButton("Button_Discord", Widgets.Rect(0, 0, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize), MenuGlyphs.Discord, _brandIconOptions))
+            {
+                Task.Run(_externalAppService.TryOpenDiscordAsync);
             }
 
-            using (ui.Element())
+            if (ui.IconButton("Button_Steam", Widgets.Rect(UiMetrics.IconButtonSize + 8, 0, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize), MenuGlyphs.Steam, _brandIconOptions))
             {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Padding = new Padding(20);
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Bottom | Anchors.Right,
-                    Width = new Fixed(128),
-                    Height = new Fixed(80),
-                };
-
-                if (ui.IconButton("Button_Discord", Widgets.Rect(0, 0, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize), MenuGlyphs.Discord, _brandIconOptions))
-                {
-                    Task.Run(_externalAppService.TryOpenDiscordAsync);
-                }
-
-                if (ui.IconButton("Button_Steam", Widgets.Rect(UiMetrics.IconButtonSize + 8, 0, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize), MenuGlyphs.Steam, _brandIconOptions))
-                {
-                    Task.Run(_externalAppService.TryOpenSteamAsync);
-                }
+                Task.Run(_externalAppService.TryOpenSteamAsync);
             }
         }
 

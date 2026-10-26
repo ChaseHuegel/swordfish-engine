@@ -47,8 +47,7 @@
 "ui.button.cancel" = "Cancel"
 "ui.button.ok" = "Ok"
 
-"ui.button.selectSave" = "Continue"
-"ui.button.newSave" = "Create save"
+"ui.button.singleplayer" = "Singleplayer"
 "ui.button.multiplayer" = "Multiplayer"
 "ui.button.connect" = "Connect"
 "ui.button.settings" = "Settings"
