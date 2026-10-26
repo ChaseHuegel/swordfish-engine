@@ -77,7 +77,7 @@ public static class PathInfoExtensions
 
     public static void Write(this PathInfo path, Stream stream)
     {
-        using Stream output = File.Open(path.Value, FileMode.OpenOrCreate, FileAccess.Write);
+        using Stream output = File.Open(path.Value, FileMode.Create, FileAccess.Write);
         stream.CopyTo(output);
     }
 
