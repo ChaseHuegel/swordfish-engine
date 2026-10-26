@@ -71,7 +71,7 @@ public class MenuPanelRenderTests
     }
 
     [Fact]
-    public void ModalPanelHasOneOuterBorder()
+    public void ModalPanelHasNoBorder()
     {
         var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
 
@@ -80,8 +80,7 @@ public class MenuPanelRenderTests
         List<RenderCommand<Material>> commands = ui.Build(0f);
         RenderCommand<Material> root = commands.Single(command => command.Rect.Size.X == 100 && command.Rect.Size.Y == 100);
 
-        Assert.Equal(1, root.Border.Thickness);
-        Assert.Equal(UiTheme.Border, root.Border.Color);
+        Assert.Equal(0, root.Border.Thickness);
         Assert.DoesNotContain(
             commands,
             command => command.Rect.Size.X == 96 && command.Rect.Size.Y == 96

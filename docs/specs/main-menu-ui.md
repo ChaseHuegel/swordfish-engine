@@ -56,7 +56,8 @@ the first group. A dotted divider separates them from Save & exit.
 - `UiTheme` supplies the palette. Do not add raw colors to menu pages.
 - `MenuPanel` draws the shared settings-style panel: no outer border, an
   inner hairline, and corner caps.
-- `ModalPanel` draws one outer border for dialogs. It has no inner hairline.
+- `ModalPanel` draws no border for dialogs. It keeps the corner caps and has
+  no inner hairline.
 - `Panel` remains the primitive for special sub-panels.
 - `ActionButtonOptions.Menu` gives the amber-cyan menu treatment, including the
   double border and cyan hover accent.
