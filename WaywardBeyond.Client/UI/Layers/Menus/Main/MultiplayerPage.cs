@@ -27,11 +27,14 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private const int ROW_GAP = 3;
     private const int PANEL_PADDING = 12;
     private const int TABS_HEIGHT = 40;
+    private const int BANNER_HEIGHT = 40;
+    private const int BANNER_GAP = 8;
     private const int DIRECT_HEIGHT = 60;
     private const int ADD_BUTTON_HEIGHT = 32;
 
     private readonly ClientRpcHost _rpcHost;
     private readonly GameSaveService _gameSaveService;
+    private readonly GameSaveManager _gameSaveManager;
     private readonly NetworkingConfig _networkingConfig;
     private readonly ProfileSettings _profileSettings;
     private readonly LanDiscoveryService _discovery;
@@ -44,6 +47,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private readonly Widgets.ActionButtonOptions _returnButton;
     private readonly Widgets.ActionButtonOptions _joinButton;
+    private readonly Widgets.ActionButtonOptions _viewSavesButton;
+    private readonly Widgets.ActionButtonOptions _disconnectButton;
 
     private TextBoxState _hostTextBox;
     private TextBoxState _portTextBox;
@@ -60,6 +65,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     public MultiplayerPage(
         in ClientRpcHost rpcHost,
         in GameSaveService gameSaveService,
+        in GameSaveManager gameSaveManager,
         in NetworkingConfig networkingConfig,
         in ProfileSettings profileSettings,
         in LanDiscoveryService discovery,
@@ -72,6 +78,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     ) {
         _rpcHost = rpcHost;
         _gameSaveService = gameSaveService;
+        _gameSaveManager = gameSaveManager;
         _networkingConfig = networkingConfig;
         _profileSettings = profileSettings;
         _discovery = discovery;
@@ -84,6 +91,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
         _returnButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _joinButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
+        _viewSavesButton = Widgets.ActionButtonOptions.Compact(ButtonVariant.Primary, soundEffectService);
+        _disconnectButton = Widgets.ActionButtonOptions.Compact(ButtonVariant.Secondary, soundEffectService);
 
         _hostTextBox = new TextBoxState(
             initialValue: networkingConfig.RemoteHost.Get(),
@@ -142,7 +151,14 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 Height = new Fixed(layout.PageHeight),
             };
 
-            DrawTabs(ui, layout);
+            int tabsTop = layout.Right.Top;
+            if (_rpcHost.IsRemote)
+            {
+                DrawConnectionBanner(ui, layout, menu, tabsTop);
+                tabsTop += BANNER_HEIGHT + BANNER_GAP;
+            }
+
+            DrawTabs(ui, layout, tabsTop);
 
             IntRect directRect = Widgets.Rect(
                 0,
@@ -150,7 +166,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 layout.PageWidth,
                 DIRECT_HEIGHT
             );
-            int tableTop = layout.Right.Top + TABS_HEIGHT;
+            int tableTop = tabsTop + TABS_HEIGHT;
             IntRect tableRect = Widgets.Rect(
                 0,
                 tableTop,
@@ -192,12 +208,12 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         return Result.FromSuccess();
     }
 
-    private void DrawTabs(UIBuilder<Material> ui, in MenuLayout layout)
+    private void DrawTabs(UIBuilder<Material> ui, in MenuLayout layout, int top)
     {
         int width = Math.Min(180, layout.PageWidth / 2 - 4);
         if (ui.Tab(
                 "FavoritesTab",
-                Widgets.Rect(0, layout.Right.Top, width, TABS_HEIGHT),
+                Widgets.Rect(0, top, width, TABS_HEIGHT),
                 _localization.GetString("ui.menu.favorites")!,
                 _favoritesTab
             ))
@@ -209,7 +225,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
         if (ui.Tab(
                 "LanDiscoveryTab",
-                Widgets.Rect(width + 4, layout.Right.Top, width, TABS_HEIGHT),
+                Widgets.Rect(width + 4, top, width, TABS_HEIGHT),
                 _localization.GetString("ui.menu.lanDiscovery")!,
                 !_favoritesTab
             ))
@@ -218,6 +234,108 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             _errorMessage = null;
             _scrollY = 0;
         }
+    }
+
+    private void DrawConnectionBanner(
+        UIBuilder<Material> ui,
+        in MenuLayout layout,
+        Menu<MenuPage> menu,
+        int top
+    )
+    {
+        int width = layout.PageWidth;
+        using (ui.Element())
+        {
+            ui.Color = UiTheme.PanelBackground;
+            ui.Constraints = Widgets.RectConstraints(Widgets.Rect(0, top, width, BANNER_HEIGHT));
+        }
+        ui.Divider(
+            Widgets.Rect(0, top + BANNER_HEIGHT - 1, width, 1),
+            UiTheme.BorderInner
+        );
+
+        string host = _networkingConfig.RemoteHost.Get();
+        int port = _networkingConfig.RemotePort.Get();
+        string? savedName = null;
+        for (var i = 0; i < _savedServers.Count; i++)
+        {
+            if (_savedServers[i].Host == host && _savedServers[i].Port == port)
+            {
+                savedName = _savedServers[i].Name;
+                break;
+            }
+        }
+
+        string server = !string.IsNullOrWhiteSpace(savedName) ? savedName : $"{host}:{port}";
+        const int disconnectWidth = 120;
+        const int viewWidth = 120;
+        const int gap = 8;
+        int viewX = width - PANEL_PADDING - viewWidth;
+        int disconnectX = viewX - gap - disconnectWidth;
+
+        ui.Label(
+            MenuGlyphs.Server,
+            Widgets.Rect(PANEL_PADDING, top, 16, BANNER_HEIGHT),
+            UiMetrics.MenuSmallFont,
+            UiTheme.Accent,
+            Anchors.Center,
+            UiTheme.FontIcons
+        );
+        ui.Label(
+            $"{_localization.GetString("ui.menu.connectedTo")!} {server}",
+            Widgets.Rect(
+                PANEL_PADDING + 20,
+                top,
+                Math.Max(0, disconnectX - PANEL_PADDING - 32),
+                BANNER_HEIGHT
+            ),
+            UiMetrics.MenuSmallFont,
+            UiTheme.Text,
+            Anchors.Left | Anchors.Center
+        );
+
+        if (ui.ActionButton(
+                "Button_Disconnect",
+                _localization.GetString("ui.button.disconnect")!,
+                _disconnectButton with
+                {
+                    Rect = Widgets.Rect(
+                        disconnectX,
+                        top + 4,
+                        disconnectWidth,
+                        UiMetrics.CompactButtonHeight
+                    ),
+                }
+            ))
+        {
+            DisconnectServer();
+        }
+
+        if (ui.ActionButton(
+                "Button_ViewSaves",
+                _localization.GetString("ui.button.viewSaves")!,
+                _viewSavesButton with
+                {
+                    Rect = Widgets.Rect(
+                        viewX,
+                        top + 4,
+                        viewWidth,
+                        UiMetrics.CompactButtonHeight
+                    ),
+                }
+            ))
+        {
+            menu.GoToPage(MenuPage.SelectSave);
+        }
+    }
+
+    private void DisconnectServer()
+    {
+        _rpcHost.Disconnect();
+        _gameSaveService.ClearListing();
+        _gameSaveManager.ActiveSave = null;
+        _errorMessage = null;
+        _scrollY = 0;
     }
 
     private void DrawServerTable(UIBuilder<Material> ui, IntRect rect)

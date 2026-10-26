@@ -137,6 +137,9 @@ The mockup uses galaxy terminology. The game stores levels and characters.
 - The Favorites list has an Add Favorite action at the bottom. It opens a modal
   with address, port, Cancel, and Submit.
 - LAN rows have a star action that saves the discovered server.
+- When connected to a remote server, the server list shows a connected banner
+  with View Saves and Disconnect. Disconnect restores the local loopback, clears
+  the cached listing and active save, and stays on the server list.
 - Ping uses Font Awesome `signal` with color bands: green below 60 ms, yellow
   below 100 ms, orange below 150 ms, red below 250 ms. At 250 ms or more it
   switches to a red `xmark`. Unknown is a dim `signal` plus `-`.
