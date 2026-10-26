@@ -6,7 +6,9 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Extensions;
+using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.Statistics;
@@ -27,6 +29,8 @@ internal sealed class HomePage(
     in CharacterSaveManager characterSaveManager,
     in CharacterAssetService characterAssetService,
     in ISkillDatabase skillDatabase,
+    in ClientRpcHost rpcHost,
+    in ProfileSettings profileSettings,
     in ModalMenu modalMenu
 ) : IMenuPage<MenuPage>
 {
@@ -45,6 +49,8 @@ internal sealed class HomePage(
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
     private readonly CharacterAssetService _characterAssetService = characterAssetService;
     private readonly ISkillDatabase _skillDatabase = skillDatabase;
+    private readonly ClientRpcHost _rpcHost = rpcHost;
+    private readonly ProfileSettings _profileSettings = profileSettings;
     private readonly ModalMenu _modalMenu = modalMenu;
 
     private readonly Widgets.ActionButtonOptions _continueButton = MenuButton(ButtonVariant.Primary, soundEffectService);
@@ -74,6 +80,7 @@ internal sealed class HomePage(
         Character? activeCharacter = _characterSaveManager.ActiveSave ?? _characterSaveManager.GetMostRecentSave();
 
         int pageWidth = Math.Clamp(ui.Width - 80, 360, MAX_PAGE_WIDTH);
+        var singleplayerClicked = false;
 
         using (ui.Element())
         {
@@ -104,9 +111,9 @@ internal sealed class HomePage(
             }
 
             y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Singleplayer", _localization.GetString("ui.button.singleplayer")!, _newGameButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = _gameSaveService.CanCreateSave }))
+            if (ui.ActionButton("Button_Singleplayer", _localization.GetString("ui.button.singleplayer")!, _newGameButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
             {
-                menu.GoToPage(MenuPage.SelectSave);
+                singleplayerClicked = true;
             }
 
             y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
@@ -142,7 +149,22 @@ internal sealed class HomePage(
             }
         }
 
+        if (singleplayerClicked)
+        {
+            StartSingleplayer(menu);
+        }
+
         return Result.FromSuccess();
+    }
+
+    private void StartSingleplayer(Menu<MenuPage> menu)
+    {
+        _profileSettings.LastServerMode.Set(LastServerMode.Local);
+        _profileSettings.Save();
+        _rpcHost.Disconnect();
+        _gameSaveService.ClearListing();
+        _gameSaveManager.ActiveSave = null;
+        menu.GoToPage(MenuPage.SelectSave);
     }
 
     private void DrawContinueCard(

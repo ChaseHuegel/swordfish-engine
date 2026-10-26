@@ -8,18 +8,20 @@ One subject: the main menu suite layout, flow, data mapping, and visual rules.
 
 | Page | Opens | Primary action |
 |---|---|---|
-| Home | Main menu | Continue, New Game, Multiplayer, Options, Credits, Exit Game |
-| SelectSave | Continue | Launch selected archive, or create a colonist when none exist |
-| NewSave | New Game | Initialize a sector, then open Crew Manifest |
-| SelectCharacter | Continue or New Game | Launch the selected colonist |
+| Home | Main menu | Continue, Singleplayer, Multiplayer, Settings, Credits, Exit Game |
+| SelectSave | Continue or Singleplayer | Launch selected archive, or create a colonist when none exist |
+| NewSave | SelectSave | Initialize a sector, then open Crew Manifest |
+| SelectCharacter | SelectSave or NewSave | Launch the selected colonist |
 | NewCharacter | Crew Manifest or empty Continue | Create a colonist, then return to Crew Manifest |
 | Multiplayer | Home | Join a favorite or LAN server |
 | Settings | Home or Pause | Keep the existing draft/apply behavior |
 | Credits | Home | Return |
 
-The old `CharactersPage` is gone. Continue goes directly to Crew Manifest, or to
-Create Character when no character exists. New Game sets the active save before
-it opens Crew Manifest.
+The old `CharactersPage` is gone. Continue opens the save list for the current
+server. Singleplayer switches the RPC host to the local loopback, clears the
+cached save listing and active save, then opens the same page immediately. The
+local listing populates through the normal refresh. New Game creates a sector
+before it opens Crew Manifest.
 
 ## Layout
 
@@ -172,7 +174,7 @@ Do not add fake menu controls.
 
 - Flow: `WaywardBeyond.Client/UI/Layers/Menus/Main/MenuPage.cs:3`
 - Layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`
-- Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:21`
+- Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:23`
 - Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:14`
 - Continue: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
 - New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:22`
