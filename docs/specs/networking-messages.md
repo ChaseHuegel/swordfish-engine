@@ -287,10 +287,14 @@ the client resolves keys against its own locale files.
 message NotificationMessage
 {
     NotificationType Type = 0;
-    string Key = 1;       // localization key for the template
-    string[] Args = 2;    // positional args; text values are localization keys
-    string? ID = 3;       // Bar only: dedupe id (e.g. skill id)
-    float? Amount = 4;    // Bar only: progress 0..1
+    string Key = 1;            // localization key for the primary template
+    string[] Args = 2;         // positional args; text values are localization keys
+    string? ID = 3;            // Bar only: dedupe id (e.g. skill id)
+    float? Amount = 4;         // Bar only: progress 0..1
+    string? Subtext = 5;       // Bar only: optional right-aligned label key or literal
+    string[]? SubtextArgs = 6; // Bar only: positional args for Subtext
+    int? Segments = 7;         // Bar only: optional segment count (null or <= 1 is continuous)
+    uint? Color = 8;           // Bar only: optional 0xRRGGBBAA fill color override
 }
 
 message SkillStateUpdateMessage
