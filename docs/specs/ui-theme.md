@@ -17,17 +17,15 @@ that time.
 `UiTheme` is at `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`. It holds the font
 IDs and semantic colors:
 
-- fonts: `FontUI` (`Salmon Mono 9 Regular`), `FontIcons`, and `FontBrands`;
+- fonts: `FontUI` (`Salmon Mono 9 Regular`), `FontIcons`, and `FontBrands`.
 - surfaces: `PanelBackground`, `PanelSolid`, `PanelInner`, `InputBackground`,
-  `InputFocus`, `ControlBackground`, `SelectionBackground`;
-
-- borders: `Border`, `BorderInner`, `BorderHover`;
-- text: `Text`, `TextMuted`, `TextDim`, `TextSoft`;
-- accents: `Accent`, `AccentBright`, `AccentDark`;
-- primary actions: `Primary`, `PrimaryBright`, `PrimaryDark`;
-- status: `Danger`, `DangerBright`, `DangerDark`, `Success`, `Warning`;
-- scrims: `ScreenBackground`, `Scrim`, `ScrimSoft`, `ScrimHeavy`;
-- HUD: `HudPanel`, `SlotBackground`, `Slot`, `SlotSelected`, `SlotDragging`;
+  `InputFocus`, `ControlBackground`, `SelectionBackground`.
+- borders: `Border`, `BorderInner`, `BorderHover`.
+- text: `Text`, `TextMuted`, `TextDim`, `TextSoft`.
+- accents: `Accent`, `AccentBright`, `AccentDark`.
+- primary actions: `Primary`, `PrimaryBright`, `PrimaryDark`.
+- status: `Danger`, `DangerBright`, `DangerDark`, `Success`, `Warning`.
+- scrims: `ScreenBackground`, `Scrim`, `ScrimSoft`, `ScrimHeavy`.
 - controls: `Track`, `TrackFill`, `Thumb`, `ButtonBackground`, `ButtonHover`,
   `RowSelected`, `Transparent`.
 
@@ -117,9 +115,13 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   destructive actions.
 - Lists use `ActionButtonOptions.ListRow`. Use `Selected` for the active item.
 - Text inputs use `Widgets.TextBox`. It reads theme colors for focus,
-  placeholder, selection, and caret.
-- HUD elements use theme tokens for color and font size. Do not force HUD
-  elements into menu panels or buttons. HUD layout stays local.
+  placeholder, selection, and caret, and accepts `drawChrome: false` when
+  embedded inside a custom-framed container such as the chat send bar.
+- HUD overlays (`Hotbar`, `Bars`, `Actions`, `ShapeSelector`,
+  `OrientationSelector`, `ControlHints`, `ChatLayer`) use theme tokens, borders,
+  and corner caps directly. `ChatLayer` uses `Widgets.Panel` and
+  `Widgets.Scrollbar` when open. The modal `Inventory` window uses
+  `Widgets.MenuPanel` and `Widgets.DottedDivider`.
 - Settings controls use the common widgets. The block layout stays in
   `SettingsRenderer`.
 
@@ -127,6 +129,7 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 
 - Theme: `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`
 - Metrics: `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`
+- Glyphs: `WaywardBeyond.Client/UI/MenuGlyphs.cs:4`
 - Resolver: `WaywardBeyond.Client/UI/Theme/UiThemeResolver.cs:6`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
 - Menu layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`

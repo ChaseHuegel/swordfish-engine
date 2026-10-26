@@ -1,88 +1,221 @@
-﻿using Reef;
+using System;
+using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.Items;
+using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
+using WaywardBeyond.Items;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
-internal class ControlHints(
-    in OrientationSelector orientationSelector,
-    in ShapeSelector shapeSelector,
-    in ILocalization localization,
-    in GameplayConfig gameplayConfig
-) : IUILayer
+/// <summary>Renders contextual keycap control hints in the bottom-right corner above HUD and modal layers.</summary>
+internal sealed class ControlHints : IUILayer
 {
-    private readonly OrientationSelector _orientationSelector = orientationSelector;
-    private readonly ShapeSelector _shapeSelector = shapeSelector;
-    private readonly ILocalization _localization = localization;
-    private readonly GameplayConfig _gameplayConfig = gameplayConfig;
-
-    public bool IsVisible()
+    private readonly struct HintEntry(string key, string action)
     {
-        return WaywardBeyond.GameState == GameState.Playing && _gameplayConfig.ControlHints.Get();
+        public readonly string Key = key;
+        public readonly string Action = action;
     }
 
+    private readonly OrientationSelector _orientationSelector;
+    private readonly ShapeSelector _shapeSelector;
+    private readonly Inventory _inventory;
+    private readonly PlayerData _playerData;
+    private readonly IECSContext _ecsContext;
+    private readonly GameplayConfig _gameplayConfig;
+
+    private readonly HintEntry _changeShapeHint;
+    private readonly HintEntry _changeOrientationHint;
+    private readonly HintEntry _snapBrickHint;
+    private readonly HintEntry _pickBrickHint;
+    private readonly HintEntry _breakBrickHint;
+    private readonly HintEntry _placeBrickHint;
+    private readonly HintEntry _rollHint;
+    private readonly HintEntry _inventoryHint;
+
+    private readonly HintEntry _inventoryMoveHint;
+    private readonly HintEntry _inventorySplitHint;
+    private readonly HintEntry _inventoryQuickMoveHint;
+    private readonly HintEntry _inventoryHotbarHint;
+    private readonly HintEntry _inventoryCloseHint;
+
+    /// <summary>Initializes a new instance of the <see cref="ControlHints"/> class.</summary>
+    public ControlHints(
+        in OrientationSelector orientationSelector,
+        in ShapeSelector shapeSelector,
+        in Inventory inventory,
+        in PlayerData playerData,
+        in IECSContext ecsContext,
+        in ILocalization localization,
+        in GameplayConfig gameplayConfig
+    )
+    {
+        _orientationSelector = orientationSelector;
+        _shapeSelector = shapeSelector;
+        _inventory = inventory;
+        _playerData = playerData;
+        _ecsContext = ecsContext;
+        _gameplayConfig = gameplayConfig;
+
+        _changeShapeHint = ParseHint(localization.GetString("ui.hint.changeShape"));
+        _changeOrientationHint = ParseHint(localization.GetString("ui.hint.changeOrientation"));
+        _snapBrickHint = ParseHint(localization.GetString("ui.hint.snapBrick"));
+        _pickBrickHint = ParseHint(localization.GetString("ui.hint.pickBrick"));
+        _breakBrickHint = ParseHint(localization.GetString("ui.hint.breakBrick"));
+        _placeBrickHint = ParseHint(localization.GetString("ui.hint.placeBrick"));
+        _rollHint = ParseHint(localization.GetString("ui.hint.movement.roll"));
+        _inventoryHint = ParseHint(localization.GetString("ui.hint.inventory"));
+
+        _inventoryMoveHint = ParseHint(localization.GetString("ui.hint.inventory.move"));
+        _inventorySplitHint = ParseHint(localization.GetString("ui.hint.inventory.split"));
+        _inventoryQuickMoveHint = ParseHint(localization.GetString("ui.hint.inventory.quickMove"));
+        _inventoryHotbarHint = ParseHint(localization.GetString("ui.hint.inventory.hotbar"));
+        _inventoryCloseHint = ParseHint(localization.GetString("ui.hint.inventory.close"));
+    }
+
+    /// <inheritdoc/>
+    public bool IsVisible() => WaywardBeyond.GameState == GameState.Playing && _gameplayConfig.ControlHints.Get();
+
+    /// <inheritdoc/>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         using (ui.Element())
         {
+            ui.Passthrough = true;
+            ui.Spacing = 6;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Bottom | Anchors.Right,
                 X = new Fixed(-20),
-                Y = new Fixed(-100),
+                Y = new Fixed(-20),
             };
 
-            if (_shapeSelector.Available)
+            if (_inventory.IsVisible())
             {
-                using (ui.Text(_localization.GetString("ui.hint.changeShape")!)) {}
+                RenderHintPill(ui, in _inventoryMoveHint);
+                RenderHintPill(ui, in _inventorySplitHint);
+                RenderHintPill(ui, in _inventoryQuickMoveHint);
+                RenderHintPill(ui, in _inventoryHotbarHint);
+                RenderHintPill(ui, in _inventoryCloseHint);
+                return Result.FromSuccess();
             }
 
-            if (_orientationSelector.Available)
+            Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
+            bool holdingPlaceable = mainHandResult.Success && mainHandResult.Value.Item.Placeable != null;
+
+            if (holdingPlaceable)
             {
-                using (ui.Text(_localization.GetString("ui.hint.changeOrientation")!)) {}
-            }
-            
-            using (ui.Text(_localization.GetString("ui.hint.snapBrick")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.pickBrick")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.breakBrick")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.placeBrick")!)) {}
-            
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
+                if (_shapeSelector.Available)
                 {
-                    Width = new Relative(1f),
-                    Height = new Fixed(8),
-                };
-            }
-            
-            using (ui.Text(_localization.GetString("ui.hint.movement.roll")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.movement.up")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.movement.down")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.movement")!)) {}
-            
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
+                    RenderHintPill(ui, in _changeShapeHint);
+                }
+
+                if (_orientationSelector.Available)
                 {
-                    Width = new Relative(1f),
-                    Height = new Fixed(8),
-                };
+                    RenderHintPill(ui, in _changeOrientationHint);
+                }
+
+                RenderHintPill(ui, in _snapBrickHint);
+                RenderHintPill(ui, in _pickBrickHint);
+                RenderHintPill(ui, in _breakBrickHint);
+                RenderHintPill(ui, in _placeBrickHint);
+                RenderHintPill(ui, in _inventoryHint);
             }
-            
-            using (ui.Text(_localization.GetString("ui.hint.quit")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.quicksave")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.inventory")!)) {}
-            
-            using (ui.Text(_localization.GetString("ui.hint.feedback")!)) {}
+            else
+            {
+                RenderHintPill(ui, in _breakBrickHint);
+                RenderHintPill(ui, in _pickBrickHint);
+                RenderHintPill(ui, in _rollHint);
+                RenderHintPill(ui, in _inventoryHint);
+            }
         }
-        
+
         return Result.FromSuccess();
+    }
+
+    private static void RenderHintPill(UIBuilder<Material> ui, in HintEntry hint)
+    {
+        if (string.IsNullOrEmpty(hint.Action))
+        {
+            return;
+        }
+
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.Spacing = 8;
+            ui.Padding = new Padding(left: 4, top: 4, right: 10, bottom: 4);
+            ui.LayoutDirection = LayoutDirection.Horizontal;
+            ui.Color = UiTheme.PanelBackground;
+            ui.Border = new BorderStyle
+            {
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = UiTheme.Border,
+            };
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Right,
+            };
+
+            if (!string.IsNullOrEmpty(hint.Key))
+            {
+                using (ui.Element())
+                {
+                    ui.Passthrough = true;
+                    ui.Padding = new Padding(left: 6, top: 2, right: 6, bottom: 2);
+                    ui.Color = UiTheme.AccentDark;
+                    ui.Border = new BorderStyle
+                    {
+                        Thickness = UiMetrics.PanelBorderThickness,
+                        Color = UiTheme.BorderHover,
+                    };
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                    };
+
+                    using (ui.Text(hint.Key, UiMetrics.TinyFont))
+                    {
+                        ui.Passthrough = true;
+                        ui.Color = UiTheme.AccentBright;
+                    }
+                }
+            }
+
+            using (ui.Text(hint.Action, UiMetrics.TinyFont))
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.Text;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+            }
+        }
+    }
+
+    private static HintEntry ParseHint(string? rawHint)
+    {
+        if (string.IsNullOrWhiteSpace(rawHint))
+        {
+            return default;
+        }
+
+        int separatorIndex = rawHint.IndexOf(": ", StringComparison.Ordinal);
+        if (separatorIndex <= 0)
+        {
+            return new HintEntry(string.Empty, rawHint.Trim());
+        }
+
+        string key = rawHint[..separatorIndex].Trim();
+        string action = rawHint[(separatorIndex + 2)..].Trim();
+        return new HintEntry(key, action);
     }
 }

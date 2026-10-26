@@ -1,58 +1,72 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Extensions;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
-internal class Actions(
+/// <summary>Renders the transient fading action notification and active indicator icons above the hotbar.</summary>
+internal sealed class Actions(
     in IActionIndicator[] actionIndicators,
     in NotificationService notificationService
-) {
+)
+{
     private readonly IActionIndicator[] _actionIndicators = actionIndicators;
     private readonly NotificationService _notificationService = notificationService;
 
-    public bool IsVisible()
-    {
-        return true;
-    }
+    /// <summary>Returns whether the actions strip is active.</summary>
+    public bool IsVisible() => true;
 
+    /// <summary>Renders the latest action notification and any visible action indicators.</summary>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         using (ui.Element())
         {
-            ui.Spacing = 20;
+            ui.Passthrough = true;
+            ui.Spacing = 8;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
+                Width = new Fixed(ui.Width),
             };
-            
-            //  Render the latest action notification
-            using (ui.Element())
+
+            //  Render the latest transient action notification in its own full-width row so text length
+            //  changes never perturb the horizontal alignment of the indicator icons below.
+            IReadOnlyList<NotificationState> activeStates = _notificationService.GetActiveNotifications();
+            for (var i = 0; i < activeStates.Count; i++)
             {
-                ui.Constraints = new Constraints
+                NotificationState state = activeStates[i];
+                if (state.Notification.Type != NotificationType.Action)
                 {
-                    Anchors = Anchors.Center,
-                };
-                
-                foreach (NotificationState state in _notificationService.GetActiveNotifications(NotificationType.Action))
-                {
-                    DateTime now = DateTime.Now;
-                    state.Render(ui, now, hasBackground: false);
-                    break;
+                    continue;
                 }
+
+                using (ui.Element())
+                {
+                    ui.Passthrough = true;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                    };
+
+                    state.Render(ui, DateTime.Now, hasBackground: true);
+                }
+
+                break;
             }
 
-            //  Render indicators
+            //  Render active indicator icons centered directly against the full viewport width
             using (ui.Element())
             {
+                ui.Passthrough = true;
                 ui.LayoutDirection = LayoutDirection.Horizontal;
-                ui.Spacing = 20;
+                ui.Spacing = 12;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
@@ -63,8 +77,11 @@ internal class Actions(
                     IActionIndicator actionIndicator = _actionIndicators[i];
                     if (actionIndicator.IsVisible())
                     {
-                        //  TODO handle non-success results
-                        actionIndicator.RenderIndicator(delta, ui);
+                        Result result = actionIndicator.RenderIndicator(delta, ui);
+                        if (!result)
+                        {
+                            return result;
+                        }
                     }
                 }
             }

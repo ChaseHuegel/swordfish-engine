@@ -7,3 +7,8 @@
 "brick.shape.slope" = "Slope"
 "brick.shape.column" = "Column"
 "brick.shape.plate" = "Plate"
+
+"brick.orientation.up" = "Up"
+"brick.orientation.down" = "Down"
+"brick.orientation.left" = "Left"
+"brick.orientation.right" = "Right"
