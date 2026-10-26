@@ -54,11 +54,13 @@ the first group. A dotted divider separates them from Save & exit.
 While a sector is preparing, the progress panel shows the stable `Preparing
 sector` line and a rolling terminal feed from the `game_create` tag set.
 
+- The header and feed are left-aligned at the top of the panel.
 - The feed keeps five lines.
 - A new line appears every 3.5 seconds.
 - New lines fade in over 0.3 seconds.
 - The oldest line drops when the feed is full.
 - A cyan prompt and cursor mark the live line.
+- A divider closes the feed region at its fixed bottom.
 
 ## Form validation
 

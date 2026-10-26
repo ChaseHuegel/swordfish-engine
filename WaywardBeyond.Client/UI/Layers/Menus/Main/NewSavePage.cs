@@ -424,11 +424,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             twoColumn: false
         );
 
-        int blockHeight = 24 + 16 + (MAX_CREATE_MESSAGES + 1) * CREATE_MESSAGE_ROW_HEIGHT;
-        int top = Math.Max(48, (layout.Right.Size.Y - blockHeight) / 2);
+        const int top = 48;
         int feedWidth = Math.Min(480, layout.PageWidth - 80);
         int feedX = (layout.PageWidth - feedWidth) / 2;
         int feedY = top + 40;
+        int feedBottom = feedY + (MAX_CREATE_MESSAGES + 1) * CREATE_MESSAGE_ROW_HEIGHT;
 
         using (ui.Element())
         {
@@ -444,10 +444,10 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             {
                 ui.Label(
                     _localization.GetString("ui.menu.creatingSector")!,
-                    Widgets.Rect(0, top, layout.PageWidth, 24),
+                    Widgets.Rect(feedX, top, feedWidth, 24),
                     UiMetrics.MenuBodyFont,
                     UiTheme.Text,
-                    Anchors.Center
+                    Anchors.Left | Anchors.Center
                 );
 
                 for (var i = 0; i < _createMessages.Count; i++)
@@ -492,6 +492,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                         );
                     }
                 }
+
+                ui.Divider(
+                    Widgets.Rect(feedX, feedBottom, feedWidth, 1),
+                    UiTheme.Border
+                );
             }
         }
     }
