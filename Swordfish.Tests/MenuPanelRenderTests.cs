@@ -47,6 +47,24 @@ public class MenuPanelRenderTests
     }
 
     [Fact]
+    public void FooterStatusCentersBetweenButtons()
+    {
+        var ui = new UIBuilder<Material>(600, 200, new StubTextEngine(), new UIController());
+        var footer = Widgets.Rect(0, 100, 600, 52);
+        var left = Widgets.Rect(0, 106, 170, 40);
+        var right = Widgets.Rect(380, 106, 220, 40);
+
+        ui.FooterStatus(footer, left, right, "Name is required", UiTheme.Danger);
+
+        RenderCommand<Material> text = ui.Build(0f).Single(
+            command => command.Text == "Name is required"
+        );
+
+        Assert.Equal(UiTheme.Danger, text.Color);
+        Assert.Equal(275, text.Rect.Left + text.Rect.Size.X / 2);
+    }
+
+    [Fact]
     public void StatLabelMarkupKeepsVisibleText()
     {
         const string focused = "#orangeS#Rtrength";

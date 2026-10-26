@@ -180,27 +180,13 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 JoinSelected(menu);
             }
 
-            if (_errorMessage != null)
-            {
-                int errorLeft = layout.ReturnButton.Right + 12;
-                int errorRight = layout.PrimaryButton.Left - 12;
-                int errorWidth = Math.Max(0, errorRight - errorLeft);
-                if (errorWidth > 0)
-                {
-                    ui.Label(
-                        _errorMessage,
-                        Widgets.Rect(
-                            errorLeft,
-                            layout.Footer.Top + 6,
-                            errorWidth,
-                            layout.Footer.Size.Y - 12
-                        ),
-                        UiMetrics.MenuSmallFont,
-                        UiTheme.Danger,
-                        Anchors.Center
-                    );
-                }
-            }
+            ui.FooterStatus(
+                layout.Footer,
+                layout.ReturnButton,
+                layout.PrimaryButton,
+                _errorMessage,
+                UiTheme.Danger
+            );
         }
 
         return Result.FromSuccess();
