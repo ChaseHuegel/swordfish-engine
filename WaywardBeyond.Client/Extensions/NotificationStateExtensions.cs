@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
@@ -24,10 +25,25 @@ internal static class NotificationStateExtensions
             ui.Passthrough = true;
             if (hasBackground)
             {
-                ui.Padding = new Padding(left: 8, top: 3, right: 8, bottom: 3);
-                ui.Color = UiTheme.ScrimSoft * fade;
+                ui.Padding = new Padding(left: 0, top: 0, right: 8, bottom: 0);
+                ui.Color = UiTheme.ScrimSoft * UiTheme.PanelInner * fade;
+                ui.Spacing = 10;
+            
+                //  Vertical cyan bar anchor on the left edge
+                using (ui.Element())
+                {
+                    ui.Passthrough = true;
+                    ui.Color = UiTheme.Accent * fade;
+                    ui.Constraints = new Constraints
+                    {
+                        X = new Fixed(0),
+                        Y = new Fixed(0),
+                        Width = new Fixed(3),
+                        Height = new Fill(),
+                    };
+                }
             }
-
+            
             using (ui.Text(state.Notification.Text, UiMetrics.SmallFont))
             {
                 ui.Passthrough = true;
