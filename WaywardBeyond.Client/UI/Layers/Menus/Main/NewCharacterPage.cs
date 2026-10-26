@@ -151,17 +151,49 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             }
 
             string currentName = CharacterNames.Clamp(_nameTextBox.Text.ToString().Trim(_characterNameTrimChars));
-            bool canCreate = !string.IsNullOrWhiteSpace(currentName)
-                && _characterStorage.GetAllCharacters().All(character => character.Name != currentName);
+            bool nameMissing = string.IsNullOrWhiteSpace(currentName);
+            bool nameTaken = !nameMissing
+                && _characterStorage.GetAllCharacters().Any(character => character.Name == currentName);
+            bool canCreate = !nameMissing && !nameTaken;
 
-            if (!ui.ActionButton(
-                    "Button_CreateCharacter",
-                    _localization.GetString("ui.button.createCharacter")!,
-                    _createButton with { Rect = layout.PrimaryButton, Enabled = canCreate }
-            )) {
+            string? footerMessage = null;
+            var footerColor = UiTheme.Danger;
+            if (nameMissing)
+            {
+                footerMessage = _localization.GetString("ui.notification.name.required");
+            }
+            else if (nameTaken)
+            {
+                footerMessage = _localization.GetString("ui.notification.name.taken");
+            }
+            else if (_spacerPoints > 0)
+            {
+                footerMessage = string.Format(
+                    _localization.GetString("ui.menu.unspentPointsWarning")!,
+                    _spacerPoints
+                );
+                footerColor = UiTheme.Warning;
+            }
+
+            bool createClicked = ui.ActionButton(
+                "Button_CreateCharacter",
+                _localization.GetString("ui.button.createCharacter")!,
+                _createButton with { Rect = layout.PrimaryButton, Enabled = canCreate }
+            );
+
+            ui.FooterStatus(
+                layout.Footer,
+                layout.ReturnButton,
+                layout.PrimaryButton,
+                footerMessage,
+                footerColor
+            );
+
+            if (!createClicked)
+            {
                 return Result.FromSuccess();
             }
-            
+
             if (_spacerPoints > 0)
             {
                 _modalMenu.GoToPage(_confirmModal.Create(
