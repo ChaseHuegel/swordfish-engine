@@ -1,85 +1,110 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+using System;
+using System.Collections.Generic;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.UI.Theme;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
-internal class Bars(in NotificationService notificationService)
+/// <summary>Renders top-center progress bar notifications such as skill XP telemetry.</summary>
+internal sealed class Bars(in NotificationService notificationService)
 {
-    private readonly NotificationService _notificationService = notificationService;
-    
-    public bool IsVisible()
-    {
-        return true;
-    }
+    private const int BAR_WIDTH = 512;
+    private const int TRACK_HEIGHT = 6;
 
+    private readonly NotificationService _notificationService = notificationService;
+    private readonly HashSet<string> _seenNotificationIDs = [];
+
+    /// <summary>Returns whether the progress bars container is visible.</summary>
+    public bool IsVisible() => true;
+
+    /// <summary>Renders active bar notifications deduplicated by notification ID.</summary>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        IReadOnlyList<NotificationState> activeStates = _notificationService.GetActiveNotifications();
+        if (activeStates.Count == 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        _seenNotificationIDs.Clear();
+        DateTime now = DateTime.Now;
+
         using (ui.Element())
         {
-            ui.Spacing = 20;
+            ui.Passthrough = true;
+            ui.Spacing = 8;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
             };
-            
-            //  Render the bar notifications
-            using (ui.Element())
-            {
-                ui.Spacing = 10;
-                ui.LayoutDirection = LayoutDirection.Vertical;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
 
-                IEnumerable<NotificationState> notificationStates = _notificationService.GetActiveNotifications(NotificationType.Bar)
-                    .DistinctBy(state => state.Notification.ID);
-                
-                foreach (NotificationState state in notificationStates)
+            for (var i = 0; i < activeStates.Count; i++)
+            {
+                NotificationState state = activeStates[i];
+                if (state.Notification.Type != NotificationType.Bar)
                 {
+                    continue;
+                }
+
+                if (!_seenNotificationIDs.Add(state.Notification.ID))
+                {
+                    continue;
+                }
+
+                float alpha = state.GetAlpha(now);
+                var fade = new Vector4(1f, 1f, 1f, alpha);
+
+                using (ui.Element())
+                {
+                    ui.Passthrough = true;
+                    ui.Spacing = 6;
+                    ui.Padding = new Padding(left: 12, top: 8, right: 12, bottom: 8);
+                    ui.LayoutDirection = LayoutDirection.Vertical;
+                    ui.Color = UiTheme.PanelBackground * fade;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                        Width = new Fixed(BAR_WIDTH),
+                    };
+
+                    using (ui.Text(state.Notification.Text, UiMetrics.SmallFont))
+                    {
+                        ui.Passthrough = true;
+                        ui.Color = UiTheme.Text * fade;
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Left,
+                        };
+                    }
+
                     using (ui.Element())
                     {
-                        ui.Spacing = 4;
-                        ui.LayoutDirection = LayoutDirection.Vertical;
-
-                        using (ui.Text(state.Notification.Text))
+                        ui.Passthrough = true;
+                        ui.LayoutDirection = LayoutDirection.None;
+                        ui.Color = UiTheme.Track * fade;
+                        ui.Constraints = new Constraints
                         {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-                        }
+                            Width = new Relative(1f),
+                            Height = new Fixed(TRACK_HEIGHT),
+                        };
 
                         using (ui.Element())
                         {
-                            ui.LayoutDirection = LayoutDirection.None;
-                            ui.Color = UiTheme.SlotBackground;
-                            ui.Padding = new Padding(4);
+                            ui.Passthrough = true;
+                            ui.Color = UiTheme.Accent * fade;
                             ui.Constraints = new Constraints
                             {
-                                Width = new Fixed(512),
-                                Height = new Fixed(16),
+                                Width = new Relative(Math.Clamp(state.Notification.Amount, 0f, 1f)),
+                                Height = new Relative(1f),
                             };
-                            
-                            using (ui.Element())
-                            {
-                                ui.Color = UiTheme.SlotSelected;
-                                ui.Constraints = new Constraints
-                                {
-                                    Width = new Relative(state.Notification.Amount),
-                                    Height = new Relative(1f),
-                                };
-                            }
                         }
                     }
                 }

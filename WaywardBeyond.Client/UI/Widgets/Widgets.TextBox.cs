@@ -38,18 +38,20 @@ internal static partial class Widgets
     ///     Creates a text box that can be typed into.
     /// </summary>
     /// <returns>True if the text box is being interacted with; otherwise false.</returns>
-    public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService, out Interactions interactions)
+    public static bool TextBox<T>(
+        this UIBuilder<T> ui,
+        string id,
+        ref TextBoxState state,
+        FontOptions fontOptions,
+        IInputService inputService,
+        out Interactions interactions,
+        bool drawChrome = true
+    )
     {
         fontOptions.ID ??= ui.DefaultFontID;
 
         using (ui.Element(id))
         {
-            ui.Color = UiTheme.InputBackground;
-            ui.Border = new BorderStyle
-            {
-                Thickness = UiMetrics.PanelBorderThickness,
-                Color = UiTheme.Border,
-            };
             ui.LayoutDirection = LayoutDirection.None;
             ui.Padding = new Padding(left: 0, top: 0, right: 0, bottom: 0);
             
@@ -66,12 +68,32 @@ internal static partial class Widgets
             bool exited = ui.Exited();
             bool focused = ui.Focused();
 
-            ui.Color = focused ? UiTheme.InputFocus : UiTheme.InputBackground;
-            ui.Border = new BorderStyle
+            if (drawChrome)
             {
-                Thickness = UiMetrics.PanelBorderThickness,
-                Color = focused ? UiTheme.BorderHover : UiTheme.Border,
-            };
+                if (focused)
+                {
+                    ui.Color = UiTheme.InputFocus;
+                    ui.Border = new BorderStyle
+                    {
+                        Thickness = UiMetrics.PanelBorderThickness,
+                        Color = UiTheme.BorderHover,
+                    };
+                }
+                else
+                {
+                    ui.Color = UiTheme.InputBackground;
+                    ui.Border = new BorderStyle
+                    {
+                        Thickness = UiMetrics.PanelBorderThickness,
+                        Color = UiTheme.Border,
+                    };
+                }
+            }
+            else
+            {
+                ui.Color = UiTheme.Transparent;
+                ui.Border = default;
+            }
 
             var submitted = false;
             var typing = false;

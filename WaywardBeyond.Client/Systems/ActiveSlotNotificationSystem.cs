@@ -1,26 +1,27 @@
 using Swordfish.ECS;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Items;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Items;
 
 namespace WaywardBeyond.Client.Systems;
 
-internal class ActiveSlotNotificationSystem(
+/// <summary>Pushes a localized action notification when the local player changes their active hotbar slot.</summary>
+internal sealed class ActiveSlotNotificationSystem(
     in IAssetDatabase<Item> itemDatabase,
-    in NotificationService notificationService
+    in NotificationService notificationService,
+    in ILocalization localization
 ) : IEntitySystem
 {
     private readonly IAssetDatabase<Item> _itemDatabase = itemDatabase;
     private readonly NotificationService _notificationService = notificationService;
+    private readonly ILocalization _localization = localization;
 
-    //  TODO it should be possible to update this system to use dirty tracking to pick up
-    //       when the slot changes instead of it being stateful and tracking changes itself
     private int _lastActiveSlot;
 
     private struct ForEachAction : IForEach<PlayerComponent, EquipmentComponent>
@@ -31,33 +32,37 @@ internal class ActiveSlotNotificationSystem(
         {
             if (equipment.ActiveInventorySlot == Owner._lastActiveSlot)
             {
-                //  No change
                 return;
             }
 
             Owner._lastActiveSlot = equipment.ActiveInventorySlot;
 
-            //  Attempt to push a notification when the slot changes
             if (!store.TryGet(entity, out InventoryComponent inventory))
             {
                 return;
             }
 
-            ItemData activeStack = Owner._lastActiveSlot < inventory.Contents.Length ? inventory.Contents[Owner._lastActiveSlot] : default;
-            
-            if (activeStack.Count <= 0)
+            ItemData activeStack = default;
+            if (Owner._lastActiveSlot >= 0 && Owner._lastActiveSlot < inventory.Contents.Length)
+            {
+                activeStack = inventory.Contents[Owner._lastActiveSlot];
+            }
+
+            if (activeStack.Count <= 0 || activeStack.ID == null)
             {
                 return;
             }
-            
+
             Result<Item> activeItemResult = Owner._itemDatabase.Get(activeStack.ID);
             if (activeItemResult.Success)
             {
-                Owner._notificationService.Push(new Notification(activeItemResult.Value.Name, NotificationType.Action));
+                string localizedName = Owner._localization.GetString(activeItemResult.Value.Name) ?? activeItemResult.Value.Name;
+                Owner._notificationService.Push(new Notification(localizedName, NotificationType.Action));
             }
         }
     }
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         ForEachAction action = new() { Owner = this };
