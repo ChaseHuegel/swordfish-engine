@@ -182,7 +182,11 @@ Schema: `WaywardBeyond.Client/Configuration/ProfileSettings.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
-| `LastServerMode` | enum | `Local` | how the last session was joined (`Local` \| `Remote`); Continue branches on this |
+| `LastServerMode` | enum | `Local` | how the last played session was joined (`Local` \| `Remote`); Continue branches on this |
+| `LastServerHost` | string | `""` | remote host of the last played session |
+| `LastServerPort` | int | `0` | remote port of the last played session |
+| `LastSaveGuid` | string | `""` | level GUID of the last played save |
+| `LastCharacterUuid` | string | `""` | character UUID of the last played colonist |
 | `UserId` | string | `""` | stable local user id; generated on first use and sent as the connection hello permission claim |
 | `SavedServers` | `SavedServer[]` | `[]` | saved connect targets, each `{ Name, Host, Port }`; deduped by host:port, capped at 32 |
 

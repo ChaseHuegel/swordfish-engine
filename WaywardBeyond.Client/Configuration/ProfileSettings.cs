@@ -6,17 +6,28 @@ using Swordfish.Library.Types;
 namespace WaywardBeyond.Client.Configuration;
 
 /// <summary>
-/// Client-local state and preferences that are not real configuration: how the last session was joined
-/// and the player's saved remote/LAN servers. Persisted to <c>profile.toml</c> alongside the other
-/// configs, and the intended home for future client-local state (last character, etc.).
+/// Client-local state and preferences that are not real configuration: the last played session, how
+/// it was joined, and the player's saved remote servers. Persisted to <c>profile.toml</c>.
 /// </summary>
 public sealed class ProfileSettings : Config<ProfileSettings>
 {
     /// <summary>Maximum saved-server entries; the list cannot grow unbounded in the config file.</summary>
     public const int MaxSavedServers = 32;
 
-    /// <summary>How the last gameplay session was joined; Continue branches on this.</summary>
+    /// <summary>How the last played session was joined; Continue branches on this.</summary>
     public DataBinding<Configuration.LastServerMode> LastServerMode { get; private set; } = new(Configuration.LastServerMode.Local);
+
+    /// <summary>The remote host used by the last played session.</summary>
+    public DataBinding<string> LastServerHost { get; private set; } = new(string.Empty);
+
+    /// <summary>The remote port used by the last played session.</summary>
+    public DataBinding<int> LastServerPort { get; private set; } = new(0);
+
+    /// <summary>The level GUID of the last played save.</summary>
+    public DataBinding<string> LastSaveGuid { get; private set; } = new(string.Empty);
+
+    /// <summary>The UUID of the last played character.</summary>
+    public DataBinding<string> LastCharacterUuid { get; private set; } = new(string.Empty);
 
     /// <summary>The stable local user id. It is generated on first use and sent as the permission claim.</summary>
     public DataBinding<string> UserId { get; private set; } = new(string.Empty);
