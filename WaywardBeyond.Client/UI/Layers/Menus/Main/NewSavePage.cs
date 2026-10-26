@@ -256,7 +256,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             int seedY = 100 + formOffset;
             ui.Label(
                 _localization.GetString("ui.field.worldSeed")!,
-                Widgets.Rect(x, 86 + formOffset, 160, 16),
+                Widgets.Rect(x, 96 + formOffset, 160, 16),
                 UiMetrics.MenuSmallFont,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
@@ -300,18 +300,6 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     UiMetrics.MenuSmallFont,
                     UiTheme.Danger,
                     Anchors.Left | Anchors.Center
-                );
-            }
-
-            int infoY = errorY + 30;
-            int infoHeight = Math.Min(120, Math.Max(0, rect.Size.Y - infoY - 20));
-            if (infoHeight >= 64)
-            {
-                ui.InfoBox(
-                    Widgets.Rect(padding, infoY, rect.Size.X - padding * 2, infoHeight),
-                    _localization.GetString("ui.menu.info")!,
-                    _localization.GetString("ui.menu.sectorInitInfo")!,
-                    bodyFontSize: UiMetrics.MenuBodyFont
                 );
             }
         }
@@ -361,50 +349,6 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Widgets.Rect(padding, 150, rect.Size.X - padding * 2, 1),
                 UiTheme.Border
             );
-            int signatureY = Math.Max(160, (rect.Size.Y - 120) / 2);
-            ui.Label(
-                _localization.GetString("ui.menu.sectorSignature")!,
-                Widgets.Rect(padding, signatureY, rect.Size.X - padding * 2, 18),
-                UiMetrics.MenuSmallFont,
-                UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
-            );
-
-            using (ui.Element())
-            {
-                ui.Color = UiTheme.PanelInner;
-                ui.Border = new BorderStyle
-                {
-                    Thickness = UiMetrics.PanelBorderThickness,
-                    Color = UiTheme.Border,
-                };
-                ui.Constraints = Widgets.RectConstraints(
-                    Widgets.Rect(padding, signatureY + 26, rect.Size.X - padding * 2, 72)
-                );
-            }
-            string signature = _seedTextBox.Text.Length > 0
-                ? _seedTextBox.Text.ToString()
-                : _localization.GetString("ui.field.random")!;
-            ui.Label(
-                signature,
-                Widgets.Rect(padding, 186, rect.Size.X - padding * 2, 72),
-                UiMetrics.MenuBodyFont,
-                UiTheme.AccentBright,
-                Anchors.Center
-            );
-
-            int infoY = Math.Max(272, rect.Size.Y - 128);
-            int infoHeight = Math.Max(0, Math.Min(112, rect.Size.Y - infoY - 8));
-            if (infoHeight >= 64)
-            {
-                ui.InfoBox(
-                    Widgets.Rect(padding, infoY, rect.Size.X - padding * 2, infoHeight),
-                    _localization.GetString("ui.menu.sectorInfoTitle")!,
-                    _localization.GetString("ui.menu.sectorInfoBody")!,
-                    _localization.GetString("ui.menu.sectorInfoPrefix"),
-                    bodyFontSize: UiMetrics.MenuBodyFont
-                );
-            }
         }
     }
 
