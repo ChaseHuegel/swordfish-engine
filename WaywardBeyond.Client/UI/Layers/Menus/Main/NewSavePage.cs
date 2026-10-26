@@ -1,22 +1,33 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
 internal sealed class NewSavePage : IMenuPage<MenuPage>
 {
     private static readonly char[] _saveNameTrimChars = [' ', '\t', '.', '\n', '\r'];
+
+    private const int MAX_CREATE_MESSAGES = 5;
+    private const int CREATE_MESSAGE_ROW_HEIGHT = 24;
+    private const float CREATE_MESSAGE_INTERVAL_SECONDS = 2f;
+    private const float CREATE_MESSAGE_FADE_SECONDS = 0.3f;
+    private const string CREATE_MESSAGE_TAG = "game_create";
 
     public MenuPage ID => MenuPage.NewSave;
 
@@ -26,6 +37,10 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
     private readonly NameGenerator _nameGenerator;
+    private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase;
+    private readonly Randomizer _randomizer = new();
+    private readonly List<string> _createMessages = [];
+    private readonly List<double> _createMessageTimes = [];
 
     private readonly Widgets.ActionButtonOptions _cancelButton;
     private readonly Widgets.ActionButtonOptions _initializeButton;
@@ -34,6 +49,9 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private TextBoxState _seedTextBox;
     private Task<GameSave?>? _createTask;
     private string? _createError;
+    private double _createTime;
+    private double _nextCreateMessageTime;
+    private string _lastCreateMessage = string.Empty;
 
     public NewSavePage(
         in GameSaveService gameSaveService,
@@ -41,7 +59,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
-        in NameGenerator nameGenerator
+        in NameGenerator nameGenerator,
+        in IAssetDatabase<LocalizedTags> localizedTagDatabase
     ) {
         _gameSaveService = gameSaveService;
         _gameSaveManager = gameSaveManager;
@@ -49,6 +68,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _soundEffectService = soundEffectService;
         _localization = localization;
         _nameGenerator = nameGenerator;
+        _localizedTagDatabase = localizedTagDatabase;
 
         _cancelButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _initializeButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
@@ -88,7 +108,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         {
             if (!_createTask.IsCompleted)
             {
-                DrawCreating(ui);
+                DrawCreating(ui, delta);
                 return Result.FromSuccess();
             }
 
@@ -389,14 +409,26 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         }
     }
 
-    private void DrawCreating(UIBuilder<Material> ui)
+    private void DrawCreating(UIBuilder<Material> ui, double delta)
     {
+        _createTime += delta;
+        if (_createTime >= _nextCreateMessageTime)
+        {
+            AddCreateMessage();
+        }
+
         MenuLayout layout = MenuLayout.Compute(
             ui.Width,
             ui.Height,
             maxPageWidth: 600,
             twoColumn: false
         );
+
+        int blockHeight = 24 + 16 + (MAX_CREATE_MESSAGES + 1) * CREATE_MESSAGE_ROW_HEIGHT;
+        int top = Math.Max(48, (layout.Right.Size.Y - blockHeight) / 2);
+        int feedWidth = Math.Min(480, layout.PageWidth - 80);
+        int feedX = (layout.PageWidth - feedWidth) / 2;
+        int feedY = top + 40;
 
         using (ui.Element())
         {
@@ -412,14 +444,111 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             {
                 ui.Label(
                     _localization.GetString("ui.menu.creatingSector")!,
-                    Widgets.Rect(0, 48, layout.PageWidth, 24),
+                    Widgets.Rect(0, top, layout.PageWidth, 24),
                     UiMetrics.MenuBodyFont,
                     UiTheme.Text,
                     Anchors.Center
                 );
+
+                for (var i = 0; i < _createMessages.Count; i++)
+                {
+                    float fade = Math.Clamp(
+                        (float)((_createTime - _createMessageTimes[i]) / CREATE_MESSAGE_FADE_SECONDS),
+                        0f,
+                        1f
+                    );
+                    int lineY = feedY + i * CREATE_MESSAGE_ROW_HEIGHT;
+                    ui.Label(
+                        ">",
+                        Widgets.Rect(feedX, lineY, 12, 18),
+                        UiMetrics.MenuSmallFont,
+                        Fade(UiTheme.Accent, fade),
+                        Anchors.Left | Anchors.Center
+                    );
+                    ui.Label(
+                        _createMessages[i],
+                        Widgets.Rect(feedX + 14, lineY, feedWidth - 14, 18),
+                        UiMetrics.MenuSmallFont,
+                        Fade(UiTheme.TextMuted, fade),
+                        Anchors.Left | Anchors.Center
+                    );
+                }
+
+                int cursorY = feedY + _createMessages.Count * CREATE_MESSAGE_ROW_HEIGHT;
+                ui.Label(
+                    ">",
+                    Widgets.Rect(feedX, cursorY, 12, 18),
+                    UiMetrics.MenuSmallFont,
+                    UiTheme.Accent,
+                    Anchors.Left | Anchors.Center
+                );
+                if ((int)(_createTime * 2) % 2 == 0)
+                {
+                    using (ui.Element())
+                    {
+                        ui.Color = UiTheme.Accent;
+                        ui.Constraints = Widgets.RectConstraints(
+                            Widgets.Rect(feedX + 14, cursorY + 3, 8, 12)
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    private void AddCreateMessage()
+    {
+        Result<LocalizedTags> localizedTags = _localizedTagDatabase.Get(CultureInfo.CurrentCulture.TwoLetterISOLanguageName);
+        IReadOnlyList<string>? tags = localizedTags.Success
+            ? localizedTags.Value.GetValues(CREATE_MESSAGE_TAG)
+            : null;
+
+        if (tags != null && tags.Count > 0)
+        {
+            string message = SelectDifferent(tags, _lastCreateMessage);
+            _createMessages.Add(message);
+            _createMessageTimes.Add(_createTime);
+            if (_createMessages.Count > MAX_CREATE_MESSAGES)
+            {
+                _createMessages.RemoveAt(0);
+                _createMessageTimes.RemoveAt(0);
             }
 
+            _lastCreateMessage = message;
         }
+
+        _nextCreateMessageTime = _createTime + CREATE_MESSAGE_INTERVAL_SECONDS;
+    }
+
+    private string SelectDifferent(IReadOnlyList<string> values, string last)
+    {
+        if (values.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        string selected = _randomizer.Select(values);
+        if (values.Count == 1 || selected != last)
+        {
+            return selected;
+        }
+
+        int index = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] == selected)
+            {
+                index = i;
+                break;
+            }
+        }
+
+        return values[(index + 1) % values.Count];
+    }
+
+    private static Vector4 Fade(Vector4 color, float alpha)
+    {
+        return new Vector4(color.X, color.Y, color.Z, color.W * alpha);
     }
 
     private void TryCreate()
@@ -436,6 +565,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         string seedValue = _seedTextBox.Text.ToString();
         string seed = string.IsNullOrWhiteSpace(seedValue) ? Random.Shared.NextInt64().ToString() : seedValue;
         _createError = null;
+        _createTime = 0;
+        _nextCreateMessageTime = 0;
+        _lastCreateMessage = string.Empty;
+        _createMessages.Clear();
+        _createMessageTimes.Clear();
         _createTask = Task.Run(() => _gameSaveService.CreateSaveAsync(new GameOptions(saveName, seed)));
     }
 
