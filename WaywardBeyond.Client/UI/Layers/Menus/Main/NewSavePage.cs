@@ -165,13 +165,45 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             }
 
             string currentName = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
-            bool duplicateName = _gameSaveService.GetSaves().Any(save => save.Name == currentName);
-            bool canInitialize = !string.IsNullOrWhiteSpace(currentName) && !duplicateName;
-            if (ui.ActionButton(
-                    "Button_Initialize",
-                    _localization.GetString("ui.button.initialize")!,
-                    _initializeButton with { Rect = layout.PrimaryButton, Enabled = canInitialize }
-                ))
+            bool nameMissing = string.IsNullOrWhiteSpace(currentName);
+            bool duplicateName = !nameMissing && _gameSaveService.GetSaves().Any(save => save.Name == currentName);
+            bool canInitialize = !nameMissing && !duplicateName;
+            bool seedMissing = string.IsNullOrWhiteSpace(_seedTextBox.Text.ToString());
+
+            string? footerMessage = _createError;
+            var footerColor = UiTheme.Danger;
+            if (footerMessage == null)
+            {
+                if (nameMissing)
+                {
+                    footerMessage = _localization.GetString("ui.notification.name.required");
+                }
+                else if (duplicateName)
+                {
+                    footerMessage = _localization.GetString("ui.notification.name.taken");
+                }
+                else if (seedMissing)
+                {
+                    footerMessage = _localization.GetString("ui.menu.randomSeedWarning");
+                    footerColor = UiTheme.Warning;
+                }
+            }
+
+            bool initializeClicked = ui.ActionButton(
+                "Button_Initialize",
+                _localization.GetString("ui.button.initialize")!,
+                _initializeButton with { Rect = layout.PrimaryButton, Enabled = canInitialize }
+            );
+
+            ui.FooterStatus(
+                layout.Footer,
+                layout.ReturnButton,
+                layout.PrimaryButton,
+                footerMessage,
+                footerColor
+            );
+
+            if (initializeClicked)
             {
                 TryCreate();
             }
@@ -240,7 +272,18 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     Width = new Fixed(inputWidth),
                     Height = new Fixed(UiMetrics.ControlHeight),
                 };
-                ui.TextBox("TextBox_SaveName", ref _saveNameTextBox, new FontOptions { Size = UiMetrics.MenuBodyFont }, _inputService, _soundEffectService);
+                ui.TextBox(
+                    "TextBox_SaveName",
+                    ref _saveNameTextBox,
+                    new FontOptions { Size = UiMetrics.MenuBodyFont },
+                    _inputService,
+                    out Widgets.Interactions nameInteractions
+                );
+                nameInteractions.WithTextInputAudio(_soundEffectService);
+                if (nameInteractions.Has(Widgets.Interactions.Input))
+                {
+                    _createError = null;
+                }
             }
 
             if (ui.IconButton(
@@ -250,6 +293,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
             {
+                _createError = null;
                 RandomizeName();
             }
 
@@ -270,7 +314,18 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     Width = new Fixed(inputWidth),
                     Height = new Fixed(UiMetrics.ControlHeight),
                 };
-                ui.TextBox("TextBox_SaveSeed", ref _seedTextBox, new FontOptions { Size = UiMetrics.MenuBodyFont }, _inputService, _soundEffectService);
+                ui.TextBox(
+                    "TextBox_SaveSeed",
+                    ref _seedTextBox,
+                    new FontOptions { Size = UiMetrics.MenuBodyFont },
+                    _inputService,
+                    out Widgets.Interactions seedInteractions
+                );
+                seedInteractions.WithTextInputAudio(_soundEffectService);
+                if (seedInteractions.Has(Widgets.Interactions.Input))
+                {
+                    _createError = null;
+                }
             }
 
             if (ui.IconButton(
@@ -280,27 +335,9 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     new Widgets.IconButtonOptions(SoundEffectService: _soundEffectService)
                 ))
             {
+                _createError = null;
                 _seedTextBox.Text.Clear();
                 _seedTextBox.Text.Append(Random.Shared.NextInt64());
-            }
-
-            int errorY = 148 + formOffset;
-            string saveName = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
-            string? error = _createError;
-            if (error == null && !string.IsNullOrWhiteSpace(saveName) && _gameSaveService.GetSaves().Any(save => save.Name == saveName))
-            {
-                error = _localization.GetString("ui.notification.name.taken");
-            }
-
-            if (error != null)
-            {
-                ui.Label(
-                    error,
-                    Widgets.Rect(x, errorY, rect.Size.X - padding * 2, 18),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.Danger,
-                    Anchors.Left | Anchors.Center
-                );
             }
         }
     }

@@ -34,6 +34,7 @@
 "ui.menu.unspentPoints" = "Unspent Points"
 "ui.menu.unspentPointsBody" = "You still have {0} S.P.A.C.E.R. points available. Create the colonist anyway?"
 "ui.menu.unspentPointsWarning" = "S.P.A.C.E.R. points remaining: {0}"
+"ui.menu.randomSeedWarning" = "A random seed will be used."
 "ui.menu.removeFavorite" = "Remove Favorite?"
 "ui.menu.removeFavoriteBody" = "Remove {0} from your favorites?"
 
