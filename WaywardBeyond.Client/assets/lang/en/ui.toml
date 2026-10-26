@@ -199,7 +199,7 @@
 "ui.level.type" = "Type"
 "ui.level.type.procedural" = "Procedural"
 "ui.level.type.asteroids" = "Asteroids"
-"ui.menu.creatingSector" = "Creating sector..."
+"ui.menu.creatingSector" = "Preparing sector"
 "ui.menu.createFailed" = "Failed to create the sector."
 "ui.field.galaxyName" = "Galaxy name"
 "ui.field.worldSeed" = "Level seed"

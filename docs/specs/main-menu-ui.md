@@ -49,6 +49,17 @@ the first group. A dotted divider separates them from Save & exit.
 - The gap around the divider is 12 pixels.
 - Continue has the cyan menu chevron.
 
+## Sector initialization
+
+While a sector is preparing, the progress panel shows the stable `Preparing
+sector` line and a rolling terminal feed from the `game_create` tag set.
+
+- The feed keeps five lines.
+- A new line appears every 3.5 seconds.
+- New lines fade in over 0.3 seconds.
+- The oldest line drops when the feed is full.
+- A cyan prompt and cursor mark the live line.
+
 ## Form validation
 
 Create Character and New Game show one form status centered in the footer.
@@ -162,7 +173,7 @@ Do not add fake menu controls.
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:21`
 - Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:14`
 - Continue: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
-- New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:17`
+- New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:22`
 - Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:24`
 - Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:23`
 - Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:22`
