@@ -80,6 +80,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
 | `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar. |
 | `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
+| `FooterStatus` | `Widgets.FooterStatus.cs:13` | Centered footer status between two action buttons. |
 | `MenuChevron` | `Widgets.MenuChevron.cs:12` | Cyan menu selection chevron. |
 | `ModalPanel` | `Widgets.MenuPanel.cs:24` | Borderless panel for modal dialogs. |
 | `MenuPanel` | `Widgets.MenuPanel.cs:40` | Shared menu panel with inner hairline, corner caps, and optional title. |
