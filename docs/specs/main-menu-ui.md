@@ -61,6 +61,13 @@ Create Character:
 - Duplicate name: `Name is already taken`.
 - Unspent points: `S.P.A.C.E.R. points remaining: {0}`.
 
+New Game:
+
+- Creation failed: `Failed to create the sector.`
+- Missing name: `Name is required`.
+- Duplicate name: `Name is already taken`.
+- Missing seed: `A random seed will be used.`
+
 ## Visual rules
 
 - `DefaultUIRenderer` sets `UIBuilder.DefaultFontID` to `UiTheme.FontUI`
