@@ -43,6 +43,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     private readonly ModalMenu _modalMenu;
     private readonly ConfirmModal _confirmModal;
     private readonly SoundEffectService _soundEffectService;
+    private readonly ClientRpcHost _rpcHost;
 
     private readonly Widgets.ActionButtonOptions _returnButton;
     private readonly Widgets.ActionButtonOptions _launchButton;
@@ -62,6 +63,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         in SoundEffectService soundEffectService,
         in ILocalization localization,
         in ICharacterStorage characterStorage,
+        in ClientRpcHost rpcHost,
         in ModalMenu modalMenu,
         in ConfirmModal confirmModal
     ) {
@@ -74,6 +76,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         _soundEffectService = soundEffectService;
         _localization = localization;
         _characterStorage = characterStorage;
+        _rpcHost = rpcHost;
         _modalMenu = modalMenu;
         _confirmModal = confirmModal;
 
@@ -127,9 +130,16 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 DrawTelemetry(ui, layout.Right);
             }
 
-            if (ui.ActionButton("Button_Back", _localization.GetString("ui.button.return")!, _returnButton with { Rect = layout.ReturnButton }))
+            bool remote = _rpcHost.IsRemote;
+            if (ui.ActionButton(
+                    "Button_Back",
+                    remote
+                        ? _localization.GetString("ui.button.servers")!
+                        : _localization.GetString("ui.button.return")!,
+                    _returnButton with { Rect = layout.ReturnButton }
+                ))
             {
-                menu.GoToPage(MenuPage.Home);
+                menu.GoToPage(remote ? MenuPage.Multiplayer : MenuPage.Home);
             }
 
             GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
