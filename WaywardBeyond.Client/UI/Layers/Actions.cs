@@ -55,7 +55,7 @@ internal sealed class Actions(
                         Anchors = Anchors.Center,
                     };
 
-                    state.Render(ui, DateTime.Now, hasBackground: true);
+                    state.Render(ui, DateTime.Now, hasBackground: false);
                 }
 
                 break;
