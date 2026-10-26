@@ -5,12 +5,8 @@ data sources.
 
 ## Visuals
 
-`LoadScreen` covers the screen while `GameState.Loading`. It draws:
-
-- the base `ScreenBackground`;
-- the `ui/menu/background` starfield material when it loads;
-- a `UiTheme.Scrim` overlay;
-- a centered 760 by 74 pixel content block.
+`LoadScreen` covers the screen while `GameState.Loading`. It draws a full-screen
+`UiTheme.ScrimHeavy` overlay and a centered 760 by 74 pixel content block.
 
 The content block holds:
 
@@ -26,7 +22,8 @@ percentage.
 The hint styles bracketed key names in the accent color. For example,
 `[F5]` renders with a cyan key name.
 
-The content fades in over 0.3 seconds. The background and scrim appear at once.
+The content fades in over 0.3 seconds. Each new status or hint also fades in
+over 0.3 seconds. The overlay appears at once.
 
 ## Copy timing
 
@@ -51,13 +48,12 @@ If a tag set is missing, the line is blank.
 ## Source
 
 - Layer: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:18`
-- Visibility and reset: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:51`
-- Render: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:69`
-- Copy timing: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:143`
-- Signal line: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:165`
-- Hint markup: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:235`
-- Word count: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:269`
-- Background material: `WaywardBeyond.Client/assets/materials/ui/menu/background.toml`
+- Visibility and reset: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:52`
+- Render: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:72`
+- Copy timing: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:146`
+- Signal line: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:170`
+- Hint markup: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:244`
+- Word count: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:278`
 
 ## Tests
 

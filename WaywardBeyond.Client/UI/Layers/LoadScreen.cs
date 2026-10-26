@@ -16,8 +16,7 @@ namespace WaywardBeyond.Client.UI.Layers;
 
 /// <summary>Draws the full-screen loading state.</summary>
 internal sealed class LoadScreen(
-    in IAssetDatabase<LocalizedTags> localizedTagDatabase,
-    in IAssetDatabase<Material> materialDatabase
+    in IAssetDatabase<LocalizedTags> localizedTagDatabase
 ) : IUILayer
 {
     private const float WORDS_PER_MINUTE = 150;
@@ -42,10 +41,12 @@ internal sealed class LoadScreen(
 
     private string _status = string.Empty;
     private string _lastStatus = string.Empty;
+    private double _statusStartTime;
     private double _statusEndTime;
 
     private string _hint = string.Empty;
     private string _lastHint = string.Empty;
+    private double _hintStartTime;
     private double _hintEndTime;
 
     public bool IsVisible()
@@ -56,9 +57,11 @@ internal sealed class LoadScreen(
             _currentTime = 0;
             _status = string.Empty;
             _lastStatus = string.Empty;
+            _statusStartTime = 0;
             _statusEndTime = 0;
             _hint = string.Empty;
             _lastHint = string.Empty;
+            _hintStartTime = 0;
             _hintEndTime = HINT_START_DELAY_SECONDS;
         }
 
@@ -71,7 +74,17 @@ internal sealed class LoadScreen(
         _currentTime += delta;
         UpdateCopy();
         
-        float fade = Math.Clamp((float)(_currentTime / FADE_IN_SECONDS), 0f, 1f);
+        float contentFade = Math.Clamp((float)(_currentTime / FADE_IN_SECONDS), 0f, 1f);
+        float statusFade = Math.Clamp(
+            (float)((_currentTime - _statusStartTime) / FADE_IN_SECONDS),
+            0f,
+            1f
+        );
+        float hintFade = Math.Clamp(
+            (float)((_currentTime - _hintStartTime) / FADE_IN_SECONDS),
+            0f,
+            1f
+        );
         
         using (ui.Element())
         {
@@ -111,17 +124,17 @@ internal sealed class LoadScreen(
                     _status,
                     Widgets.Rect(0, 0, CONTENT_WIDTH, 30),
                     UiMetrics.BodyFont,
-                    Fade(UiTheme.Text, fade),
+                    Fade(UiTheme.Text, contentFade * statusFade),
                     Anchors.Center
                 );
                 
-                DrawSignal(ui, fade);
+                DrawSignal(ui, contentFade);
                 
                 ui.Label(
                     FormatHint(_hint),
                     Widgets.Rect(0, 50, CONTENT_WIDTH, 24),
                     UiMetrics.SmallFont,
-                    Fade(UiTheme.TextMuted, fade),
+                    Fade(UiTheme.TextMuted, contentFade * hintFade),
                     Anchors.Center
                 );
             }
@@ -139,6 +152,7 @@ internal sealed class LoadScreen(
                 ? RandomFromTags(localizedTags.Value, _lastStatus, "game_load", "character_load")
                 : string.Empty;
             _lastStatus = _status;
+            _statusStartTime = _currentTime;
             _statusEndTime = _currentTime + STATUS_DWELL_SECONDS + CountWords(_status) * SECONDS_PER_WORD;
         }
 
@@ -148,6 +162,7 @@ internal sealed class LoadScreen(
             IReadOnlyList<string>? tags = localizedTags.Success ? localizedTags.Value.GetValues("game_hints") : null;
             _hint = tags != null ? SelectDifferent(tags, _lastHint) : string.Empty;
             _lastHint = _hint;
+            _hintStartTime = _currentTime;
             _hintEndTime = _currentTime + HINT_DWELL_SECONDS + CountWords(_hint) * SECONDS_PER_WORD;
         }
     }
