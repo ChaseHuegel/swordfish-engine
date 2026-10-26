@@ -94,6 +94,10 @@ message NotificationMessage
     string[] Args = 2;
     string? ID = 3;
     float? Amount = 4;
+    string? Subtext = 5;
+    string[]? SubtextArgs = 6;
+    int? Segments = 7;
+    uint? Color = 8;
 }
 
 message SkillStateUpdateMessage
