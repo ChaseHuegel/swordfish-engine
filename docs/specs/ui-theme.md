@@ -81,7 +81,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar. |
 | `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
 | `MenuChevron` | `Widgets.MenuChevron.cs:12` | Cyan menu selection chevron. |
-| `ModalPanel` | `Widgets.MenuPanel.cs:24` | Single-outline panel for modal dialogs. |
+| `ModalPanel` | `Widgets.MenuPanel.cs:24` | Borderless panel for modal dialogs. |
 | `MenuPanel` | `Widgets.MenuPanel.cs:40` | Shared menu panel with inner hairline, corner caps, and optional title. |
 | `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
 | `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with one orange border and a cyan left caret. |
