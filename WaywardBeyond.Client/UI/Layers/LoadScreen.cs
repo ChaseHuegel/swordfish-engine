@@ -31,7 +31,8 @@ internal sealed class LoadScreen(
     private const int SIGNAL_WIDTH = 160;
     private const int SIGNAL_HEIGHT = 1;
     private const int SIGNAL_SEGMENT_WIDTH = 48;
-    private const float SIGNAL_SPEED = 1f;
+    private const int SIGNAL_TRAVEL = SIGNAL_WIDTH + SIGNAL_SEGMENT_WIDTH * 2;
+    private const float SIGNAL_PERIOD_SECONDS = 2f;
 
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase = localizedTagDatabase;
     private readonly Randomizer _randomizer = new();
@@ -161,9 +162,14 @@ internal sealed class LoadScreen(
             ui.Constraints = Widgets.RectConstraints(
                 Widgets.Rect(lineX, 38, SIGNAL_WIDTH, SIGNAL_HEIGHT)
             );
+            ui.ClipConstraints = new Constraints
+            {
+                Width = new Fixed(SIGNAL_WIDTH),
+                Height = new Fixed(SIGNAL_HEIGHT),
+            };
 
-            float progress = (float)(_currentTime * SIGNAL_SPEED % 1d);
-            int segmentX = (int)((SIGNAL_WIDTH - SIGNAL_SEGMENT_WIDTH) * progress);
+            float progress = (float)(_currentTime / SIGNAL_PERIOD_SECONDS % 1d);
+            int segmentX = (int)(progress * SIGNAL_TRAVEL) - SIGNAL_SEGMENT_WIDTH;
 
             using (ui.Element())
             {
