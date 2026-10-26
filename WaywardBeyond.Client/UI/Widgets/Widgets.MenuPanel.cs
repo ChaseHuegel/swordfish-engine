@@ -26,11 +26,7 @@ internal static partial class Widgets
         return ui.Panel(
             rect,
             UiTheme.PanelBackground,
-            new BorderStyle
-            {
-                Thickness = UiMetrics.PanelBorderThickness,
-                Color = UiTheme.Border,
-            },
+            border: default,
             MenuPanelCaps(),
             innerBorder: false
         );
