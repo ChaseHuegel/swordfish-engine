@@ -16,7 +16,12 @@ namespace WaywardBeyond.Client.UI.Layers;
 internal sealed class Bars(in NotificationService notificationService)
 {
     private const int BAR_WIDTH = 512;
+    private const int PADDING_X = 12;
+    private const int PADDING_Y = 8;
+    private const int INNER_WIDTH = BAR_WIDTH - PADDING_X * 2;
+    private const int HEADER_HEIGHT = 18;
     private const int TRACK_HEIGHT = 6;
+    private const int SEGMENT_GAP = 2;
 
     private readonly NotificationService _notificationService = notificationService;
     private readonly HashSet<string> _seenNotificationIDs = [];
@@ -59,63 +64,108 @@ internal sealed class Bars(in NotificationService notificationService)
                     continue;
                 }
 
-                float alpha = state.GetAlpha(now);
-                var fade = new Vector4(1f, 1f, 1f, alpha);
+                RenderBar(ui, in state.Notification, state.GetAlpha(now));
+            }
+        }
 
-                using (ui.Element())
+        return Result.FromSuccess();
+    }
+
+    private static void RenderBar(UIBuilder<Material> ui, in Notification notification, float alpha)
+    {
+        var fade = new Vector4(1f, 1f, 1f, alpha);
+        Vector4 fillColor = notification.Color ?? UiTheme.Accent;
+
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.Spacing = 6;
+            ui.Padding = new Padding(left: PADDING_X, top: PADDING_Y, right: PADDING_X, bottom: PADDING_Y);
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Color = UiTheme.PanelBackground * fade;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Fixed(BAR_WIDTH),
+            };
+
+            using (ui.Element())
+            {
+                ui.Passthrough = true;
+                ui.LayoutDirection = LayoutDirection.None;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(INNER_WIDTH),
+                    Height = new Fixed(HEADER_HEIGHT),
+                };
+
+                using (ui.Text(notification.Text, UiMetrics.SmallFont))
                 {
                     ui.Passthrough = true;
-                    ui.Spacing = 6;
-                    ui.Padding = new Padding(left: 12, top: 8, right: 12, bottom: 8);
-                    ui.LayoutDirection = LayoutDirection.Vertical;
-                    ui.Color = UiTheme.PanelBackground * fade;
-                    ui.Border = new BorderStyle
-                    {
-                        Thickness = UiMetrics.PanelBorderThickness,
-                        Color = UiTheme.BorderInner
-                    };
+                    ui.Color = UiTheme.Text * fade;
                     ui.Constraints = new Constraints
                     {
-                        Anchors = Anchors.Center,
-                        Width = new Fixed(BAR_WIDTH),
+                        Anchors = Anchors.Left | Anchors.Center,
                     };
+                }
 
-                    using (ui.Text(state.Notification.Text, UiMetrics.SmallFont))
+                if (!string.IsNullOrEmpty(notification.Subtext))
+                {
+                    using (ui.Text(notification.Subtext, UiMetrics.SmallFont))
                     {
                         ui.Passthrough = true;
                         ui.Color = UiTheme.Text * fade;
                         ui.Constraints = new Constraints
                         {
-                            Anchors = Anchors.Left,
+                            Anchors = Anchors.Right | Anchors.Center,
                         };
                     }
+                }
+            }
 
-                    using (ui.Element())
+            using (ui.Element())
+            {
+                ui.Passthrough = true;
+                ui.LayoutDirection = LayoutDirection.None;
+                ui.Color = UiTheme.Track * fade;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(INNER_WIDTH),
+                    Height = new Fixed(TRACK_HEIGHT),
+                };
+
+                using (ui.Element())
+                {
+                    ui.Passthrough = true;
+                    ui.Color = fillColor * fade;
+                    ui.Constraints = new Constraints
                     {
-                        ui.Passthrough = true;
-                        ui.LayoutDirection = LayoutDirection.None;
-                        ui.Color = UiTheme.Track * fade;
-                        ui.Constraints = new Constraints
-                        {
-                            Width = new Relative(1f),
-                            Height = new Fixed(TRACK_HEIGHT),
-                        };
+                        Width = new Relative(Math.Clamp(notification.Amount, 0f, 1f)),
+                        Height = new Relative(1f),
+                    };
+                }
 
+                if (notification.Segments is > 1)
+                {
+                    int segments = notification.Segments.Value;
+                    for (var segmentIndex = 1; segmentIndex < segments; segmentIndex++)
+                    {
+                        int dividerX = INNER_WIDTH * segmentIndex / segments - SEGMENT_GAP / 2;
                         using (ui.Element())
                         {
                             ui.Passthrough = true;
-                            ui.Color = UiTheme.Accent * fade;
+                            ui.Color = UiTheme.PanelBackground * fade;
                             ui.Constraints = new Constraints
                             {
-                                Width = new Relative(Math.Clamp(state.Notification.Amount, 0f, 1f)),
-                                Height = new Relative(1f),
+                                X = new Fixed(dividerX),
+                                Y = new Fixed(0),
+                                Width = new Fixed(SEGMENT_GAP),
+                                Height = new Fixed(TRACK_HEIGHT),
                             };
                         }
                     }
                 }
             }
         }
-
-        return Result.FromSuccess();
     }
 }
