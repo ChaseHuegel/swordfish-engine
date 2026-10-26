@@ -50,6 +50,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
     private readonly ClientRpcHost _rpcHost;
     private readonly ProfileSettings _profileSettings;
+    private readonly NetworkingConfig _networkingConfig;
 
     public GameSaveManager(
         in ILogger<GameSaveManager> logger,
@@ -62,7 +63,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in ClientCleanupSystem cleanupSystem,
         in ClientRpcHost rpcHost,
         in DataStore dataStore,
-        in ProfileSettings profileSettings
+        in ProfileSettings profileSettings,
+        in NetworkingConfig networkingConfig
     ) {
         _logger = logger;
         _gameSaveService = gameSaveService;
@@ -74,6 +76,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _rpcHost = rpcHost;
         _dataStore = dataStore;
         _profileSettings = profileSettings;
+        _networkingConfig = networkingConfig;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -130,12 +133,22 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 return Task.CompletedTask;
             }
 
-            //  A local (host-mode) session becomes the continue marker: Continue branches on this.
             if (_rpcHost.IsLocal)
             {
                 _profileSettings.LastServerMode.Set(LastServerMode.Local);
-                _profileSettings.Save();
+                _profileSettings.LastServerHost.Set(string.Empty);
+                _profileSettings.LastServerPort.Set(0);
             }
+            else
+            {
+                _profileSettings.LastServerMode.Set(LastServerMode.Remote);
+                _profileSettings.LastServerHost.Set(_networkingConfig.RemoteHost.Get());
+                _profileSettings.LastServerPort.Set(_networkingConfig.RemotePort.Get());
+            }
+
+            _profileSettings.LastSaveGuid.Set(save.Level.Guid);
+            _profileSettings.LastCharacterUuid.Set(character.Value.Uuid.ToString());
+            _profileSettings.Save();
 
             WaywardBeyond.GameState.Set(GameState.Loading);
             _joinSystem.RequestJoin(character.Value, save.Level.Guid);

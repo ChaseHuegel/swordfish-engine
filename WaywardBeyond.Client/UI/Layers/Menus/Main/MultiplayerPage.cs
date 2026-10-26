@@ -678,8 +678,6 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _networkingConfig.RemoteHost.Set(host);
         _networkingConfig.RemotePort.Set(port);
         _networkingConfig.Save();
-        _profileSettings.LastServerMode.Set(LastServerMode.Remote);
-        _profileSettings.Save();
 
         _ = _gameSaveService.RefreshLevelsAsync();
         menu?.GoToPage(MenuPage.SelectSave);

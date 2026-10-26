@@ -43,14 +43,10 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     private readonly ModalMenu _modalMenu;
     private readonly ConfirmModal _confirmModal;
     private readonly SoundEffectService _soundEffectService;
-    private readonly ClientRpcHost _rpcHost;
-    private readonly NetworkingConfig _networkingConfig;
-    private readonly ProfileSettings _profileSettings;
 
     private readonly Widgets.ActionButtonOptions _returnButton;
     private readonly Widgets.ActionButtonOptions _launchButton;
 
-    private bool _remoteConnectTried;
     private long _lastRenderMs;
     private long _lastRefreshMs;
     private int _scrollY;
@@ -67,10 +63,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         in ILocalization localization,
         in ICharacterStorage characterStorage,
         in ModalMenu modalMenu,
-        in ConfirmModal confirmModal,
-        in ClientRpcHost rpcHost,
-        in NetworkingConfig networkingConfig,
-        in ProfileSettings profileSettings
+        in ConfirmModal confirmModal
     ) {
         _gameSaveManager = gameSaveManager;
         _gameSaveService = gameSaveService;
@@ -83,9 +76,6 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         _characterStorage = characterStorage;
         _modalMenu = modalMenu;
         _confirmModal = confirmModal;
-        _rpcHost = rpcHost;
-        _networkingConfig = networkingConfig;
-        _profileSettings = profileSettings;
 
         _returnButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _launchButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
@@ -93,7 +83,6 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        EnsureRemoteConnection();
         RefreshSaveListIfDue();
         _gameSaveManager.ActiveSave ??= _gameSaveManager.GetMostRecentSave();
 
@@ -481,22 +470,5 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
         _lastRefreshMs = now;
         _ = _gameSaveService.RefreshLevelsAsync();
-    }
-
-    private void EnsureRemoteConnection()
-    {
-        if (_profileSettings.LastServerMode.Get() != LastServerMode.Remote
-            || _rpcHost.IsRemote
-            || _remoteConnectTried)
-        {
-            return;
-        }
-
-        _remoteConnectTried = true;
-        Result result = _rpcHost.ConnectRemote(_networkingConfig.RemoteHost.Get(), _networkingConfig.RemotePort.Get());
-        if (result.Success)
-        {
-            _ = _gameSaveService.RefreshLevelsAsync();
-        }
     }
 }
