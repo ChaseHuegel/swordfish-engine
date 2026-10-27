@@ -116,6 +116,7 @@ internal sealed class CharacterSaveManager(
     {
         return characterStorage.GetAllCharacters()
             .OrderByDescending(c => c.Playtime.LastPlayedMs)
+            .Select<Character, Character?>(c => c)
             .FirstOrDefault();
     }
 }
