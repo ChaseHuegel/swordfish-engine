@@ -470,11 +470,12 @@ internal sealed class Inventory : IUILayer
                     };
 
                     bool hovering = ui.Hovering($"inventorySlot{inventorySlot}");
+                    bool targeting = hovering || (_dragging && IsCursorOverSlot(ui, inventorySlot));
                     bool clicked = ui.Clicked($"inventorySlot{inventorySlot}");
-                    bool rightClicked = hovering && context.RightPressed;
+                    bool rightClicked = targeting && context.RightPressed;
                     bool held = hovering && context.LeftHeld;
 
-                    if (!slotIsSelected && hovering)
+                    if (!slotIsSelected && targeting)
                     {
                         _selectedSlot = inventorySlot;
                         slotIsSelected = true;
@@ -492,7 +493,7 @@ internal sealed class Inventory : IUILayer
                         DrawSlotNumber(ui, slotIndex, isEquippedHotbar, isHovered);
                     }
 
-                    ApplyDragGestures(in context, inventorySlot, hovering, rightClicked);
+                    ApplyDragGestures(in context, inventorySlot, targeting, rightClicked);
 
                     if (itemStack.Count == 0 || itemStack.ID == null)
                     {
@@ -511,6 +512,16 @@ internal sealed class Inventory : IUILayer
                 }
             }
         }
+    }
+
+    /// <summary>Checks the cursor against a slot even when the drag source owns hover input.</summary>
+    private static bool IsCursorOverSlot(UIBuilder<Material> ui, int inventorySlot)
+    {
+        IntVector2 cursor = ui.GetRelativeCursorPosition($"inventorySlot{inventorySlot}");
+        return cursor.X >= 0
+            && cursor.Y >= 0
+            && cursor.X < SLOT_SIZE
+            && cursor.Y < SLOT_SIZE;
     }
 
     /// <summary>Draws the item icon of a slot and returns it for the drag preview.</summary>
