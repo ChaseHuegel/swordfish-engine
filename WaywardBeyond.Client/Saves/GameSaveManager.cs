@@ -146,7 +146,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 _profileSettings.LastServerPort.Set(_networkingConfig.RemotePort.Get());
             }
 
-            _profileSettings.LastSaveGuid.Set(save.Level.Guid);
+            RememberSession(save);
             _profileSettings.LastCharacterUuid.Set(character.Value.Uuid.ToString());
             _profileSettings.Save();
 
@@ -195,6 +195,10 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         };
         _gameSaveService.UpdateMetadata(save.Level.Guid, metadata);
 
+        //  Keep the Continue card current with the advanced playtime.
+        RememberSession(new GameSave(save.Name, save.Level with { Playtime = metadata.Playtime }));
+        _profileSettings.Save();
+
         _characterSaveManager.Save(_dataStore);
     }
     
@@ -221,6 +225,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         try
         {
+            if (save.Level.Guid == _profileSettings.LastSaveGuid.Get())
+            {
+                ForgetSession();
+            }
+
             _gameSaveService.Delete(save);
         }
         catch (Exception ex)
@@ -238,6 +247,29 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         }
         
         return saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs).FirstOrDefault();
+    }
+
+    /// <summary>Records the last played save for Continue, including the card facts the menu needs before the listing loads.</summary>
+    private void RememberSession(in GameSave save)
+    {
+        _profileSettings.LastSaveGuid.Set(save.Level.Guid);
+        _profileSettings.LastSaveName.Set(save.Name);
+        _profileSettings.LastSaveSeed.Set(save.Level.Seed);
+        _profileSettings.LastSaveGameMode.Set(save.Level.DefaultGameMode);
+        _profileSettings.LastSaveLastPlayedMs.Set(save.Level.Playtime.LastPlayedMs);
+        _profileSettings.LastSaveAgeMs.Set(save.Level.Playtime.AgeMs);
+    }
+
+    /// <summary>Clears the recorded last session when its save no longer exists.</summary>
+    private void ForgetSession()
+    {
+        _profileSettings.LastSaveGuid.Set(string.Empty);
+        _profileSettings.LastSaveName.Set(string.Empty);
+        _profileSettings.LastSaveSeed.Set(0);
+        _profileSettings.LastSaveGameMode.Set(GameMode.Creative);
+        _profileSettings.LastSaveLastPlayedMs.Set(0);
+        _profileSettings.LastSaveAgeMs.Set(0);
+        _profileSettings.Save();
     }
 
     private void OnWindowClosed()

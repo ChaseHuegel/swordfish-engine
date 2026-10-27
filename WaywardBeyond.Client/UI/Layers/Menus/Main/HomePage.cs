@@ -86,7 +86,6 @@ internal sealed class HomePage(
         }
 
         GameSave[] saves = _gameSaveService.GetSaves();
-        bool hasLastSession = _continueService.HasLastSession;
         LastServerMode lastMode = _profileSettings.LastServerMode.Get();
 
         GameSave? continueSave = null;
@@ -111,6 +110,27 @@ internal sealed class HomePage(
                 break;
             }
         }
+
+        //  Prefer the live listing, and fall back to the recorded summary when it does not hold the last save.
+        ContinueDetails continueDetails = continueSave != null
+            ? new ContinueDetails(
+                continueSave.Value.Name,
+                continueSave.Value.Level.DefaultGameMode,
+                continueSave.Value.Level.Seed,
+                continueSave.Value.Level.Playtime.LastPlayedMs,
+                continueSave.Value.Level.Playtime.AgeMs
+            )
+            : new ContinueDetails(
+                _profileSettings.LastSaveName.Get(),
+                _profileSettings.LastSaveGameMode.Get(),
+                _profileSettings.LastSaveSeed.Get(),
+                _profileSettings.LastSaveLastPlayedMs.Get(),
+                _profileSettings.LastSaveAgeMs.Get()
+            );
+
+        bool hasLastSession = _continueService.HasLastSession
+            && continueCharacter != null
+            && !string.IsNullOrWhiteSpace(continueDetails.Name);
 
         string? continueDestination = null;
         if (lastMode == LastServerMode.Remote)
@@ -195,11 +215,11 @@ internal sealed class HomePage(
                 _entry.Quit();
             }
 
-            if (continueHovered && hasLastSession && continueSave != null && continueCharacter != null)
+            if (continueHovered && hasLastSession && continueCharacter != null)
             {
                 DrawContinueCard(
                     ui,
-                    continueSave.Value,
+                    continueDetails,
                     continueCharacter.Value,
                     lastMode == LastServerMode.Remote,
                     continueDestination,
@@ -228,7 +248,7 @@ internal sealed class HomePage(
 
     private void DrawContinueCard(
         UIBuilder<Material> ui,
-        in GameSave save,
+        ContinueDetails details,
         in Character character,
         bool remote,
         string? destination,
@@ -274,7 +294,7 @@ internal sealed class HomePage(
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
-                save.Name,
+                details.Name,
                 Widgets.Rect(padding, 28, width - padding * 2, 20),
                 UiMetrics.MenuBodyFont,
                 UiTheme.Text,
@@ -292,10 +312,10 @@ internal sealed class HomePage(
                 );
             }
 
-            string lastPlayed = save.Level.Playtime.LastPlayedMs > 0
-                ? DateTimeOffset.FromUnixTimeMilliseconds(save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("d")
+            string lastPlayed = details.LastPlayedMs > 0
+                ? DateTimeOffset.FromUnixTimeMilliseconds(details.LastPlayedMs).ToLocalTime().ToString("d")
                 : _localization.GetString("ui.label.never")!;
-            TimeSpan age = TimeSpan.FromMilliseconds(save.Level.Playtime.AgeMs);
+            TimeSpan age = TimeSpan.FromMilliseconds(details.AgeMs);
 
             DrawContinueDetail(
                 ui,
@@ -304,7 +324,7 @@ internal sealed class HomePage(
                 width,
                 labelWidth,
                 _localization.GetString("ui.menu.mode")!,
-                save.Level.DefaultGameMode.ToString()
+                details.Mode.ToString()
             );
             DrawContinueDetail(
                 ui,
@@ -313,7 +333,7 @@ internal sealed class HomePage(
                 width,
                 labelWidth,
                 _localization.GetString("ui.menu.seed")!,
-                save.Level.Seed.ToString()
+                details.Seed.ToString()
             );
             DrawContinueDetail(
                 ui,
@@ -395,4 +415,13 @@ internal sealed class HomePage(
             Anchors.Left | Anchors.Center
         );
     }
+
+    /// <summary>The archive facts the Continue card shows, from the live listing or the recorded summary.</summary>
+    private readonly record struct ContinueDetails(
+        string Name,
+        GameMode Mode,
+        int Seed,
+        long LastPlayedMs,
+        long AgeMs
+    );
 }

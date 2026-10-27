@@ -33,10 +33,9 @@ internal sealed class ContinueService(
     private const string LOAD_KEY = "ui.continue.loadFailed";
 
     private readonly ConcurrentQueue<Failure> _failures = new();
-    private readonly ILogger<ContinueService> _logger = logger;
     private int _running;
 
-    /// <summary>True when a last played save and character are recorded.</summary>
+    /// <summary>True when a last played save and character are recorded. This does not check that either still exists.</summary>
     public bool HasLastSession =>
         !string.IsNullOrWhiteSpace(profileSettings.LastSaveGuid.Get())
         && !string.IsNullOrWhiteSpace(profileSettings.LastCharacterUuid.Get());
@@ -136,7 +135,7 @@ internal sealed class ContinueService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to resume the last session.");
+            logger.LogError(ex, "Failed to resume the last session.");
             Fail(LOAD_KEY);
         }
         finally
