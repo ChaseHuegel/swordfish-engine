@@ -247,10 +247,9 @@
 "ui.field.charisma.desc" = "Social presence and negotiation."
 "ui.field.education.desc" = "Technical knowledge and research."
 "ui.field.resolve.desc" = "Mental resilience and endurance."
-"ui.credits.manifest" = "Manifest of Origin"
-"ui.credits.header" = "#8DA0B8 A production by\n#F2994AFF BITFISH LLC"
-"ui.credits.body" = "#4BE3E3 Development & architecture\n#F0F3F6 CHASE M. HUEGEL\n\n#4BE3E3 Core simulation engine\n#F0F3F6 SWORDFISH CUSTOM ENGINE\n\n#4BE3E3 Audio & visual contributions\n#F0F3F6 Original soundtrack & pixel art design"
-"ui.credits.thanks" = "#8DA0B8 Special thanks to our early playtesters\n#F0F3F6 & the open-source community"
+"ui.credits.title" = "Manifest of Origin"
+"ui.credits.body" = "#8DA0B8 Produced by\n#F2994AFF bitfish\n\n#4BE3E3 Development, Art, & Design\n#F0F3F6 Chase \"Seven\" Huegel\n\n#4BE3E3 Music & Sound Effects\n#F0F3F6 Austin Huegel\n\n#4BE3E3 Built with\n#F0F3F6 Swordfish"
+"ui.credits.thanks" = "#8DA0B8 Special thanks to my #F0F3F6 early playtesters #8DA0B8 and the #F0F3F6 open-source community!"
 
 # Menu layout and form copy
 "ui.menu.activeColonist" = "Active colonist"
