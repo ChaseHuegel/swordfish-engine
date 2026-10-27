@@ -123,7 +123,7 @@ internal sealed class FakeWindowContext : IWindowContext
     }
 
     /// <inheritdoc/>
-    public void ApplyDisplaySettings(WindowMode mode, bool borderless, int width, int height) { }
+    public void ApplyDisplaySettings(WindowMode mode, bool borderless, int? width = null, int? height = null) { }
 
     public void Close() { }
 
