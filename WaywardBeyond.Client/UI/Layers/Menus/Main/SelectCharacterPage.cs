@@ -123,20 +123,29 @@ internal sealed class SelectCharacterPage(
             return;
         }
 
-        DrawTabs(ui);
-        Constraints pane = new()
+        using (ui.Column(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            }
+        ))
         {
-            Width = new Fill(),
-            Height = new Fill(),
-        };
+            DrawTabs(ui);
+            Constraints pane = new()
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
 
-        if (_narrowTab == 0)
-        {
-            DrawManifest(ui, pane, menu);
-            return;
+            if (_narrowTab == 0)
+            {
+                DrawManifest(ui, pane, menu);
+                return;
+            }
+
+            DrawDossier(ui, pane, showAssignment: false);
         }
-
-        DrawDossier(ui, pane, showAssignment: false);
     }
 
     /// <summary>Draws the page footer and runs the action that the player picked.</summary>

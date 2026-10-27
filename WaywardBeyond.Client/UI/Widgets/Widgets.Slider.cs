@@ -67,7 +67,11 @@ internal static partial class Widgets
                 {
                     ElementBounds bounds = ui.GetElementBounds();
                     trackWidth = bounds.Rect.Size.X;
-                    changed = UpdateSliderFromCursor(ui, bounds, min, max, step, ref newValue);
+                    if (UpdateSliderFromCursor(ui, bounds, min, max, step, ref newValue))
+                    {
+                        changed = true;
+                    }
+
                     DrawSliderTrackBody(ui, trackWidth, newValue, min, max, enabled);
                 }
             }

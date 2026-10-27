@@ -51,6 +51,7 @@ uses `UiTheme.Danger`.
 - Panels start 12 pixels below the top of the page.
 - Two-pane pages stay side-by-side down to a 900 pixel page width.
 - Below 900 pixels, the same pages use a tab strip and one full-width pane.
+  The tab strip sits directly on the pane top.
 - Settings keeps its own `SettingsLayout`. Do not replace it.
 
 Pages render inside the `TitleMenu` content host. The title texture above the

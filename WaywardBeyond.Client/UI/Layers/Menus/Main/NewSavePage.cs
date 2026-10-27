@@ -204,20 +204,29 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             return;
         }
 
-        DrawTabs(ui);
-        Constraints pane = new()
+        using (ui.Column(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            }
+        ))
         {
-            Width = new Fill(),
-            Height = new Fill(),
-        };
+            DrawTabs(ui);
+            Constraints pane = new()
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
 
-        if (_narrowTab == 0)
-        {
-            DrawInitialization(ui, pane);
-            return;
+            if (_narrowTab == 0)
+            {
+                DrawInitialization(ui, pane);
+                return;
+            }
+
+            DrawDossier(ui, pane);
         }
-
-        DrawDossier(ui, pane);
     }
 
     /// <summary>Draws the narrow-layout tabs.</summary>

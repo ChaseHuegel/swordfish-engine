@@ -155,20 +155,29 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 DrawConnectionBanner(ui, menu);
             }
 
-            DrawTabs(ui);
-
-            int contentWidth = layout.PageWidth - PANEL_PADDING * 2 - 4;
-            using (ui.MenuPanel(
+            using (ui.Column(
                 new Constraints
                 {
                     Width = new Fill(),
                     Height = new Fill(),
-                },
-                _localization.GetRequired("ui.menu.serverList"),
-                padding: PANEL_PADDING
+                }
             ))
             {
-                DrawServerTable(ui, contentWidth);
+                DrawTabs(ui);
+
+                int contentWidth = layout.PageWidth - PANEL_PADDING * 2 - 4;
+                using (ui.MenuPanel(
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    },
+                    _localization.GetRequired("ui.menu.serverList"),
+                    padding: PANEL_PADDING
+                ))
+                {
+                    DrawServerTable(ui, contentWidth);
+                }
             }
 
             using (ui.MenuPanel(

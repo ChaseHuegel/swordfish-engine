@@ -8,23 +8,29 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
-    /// <summary>Draws a light horizontal dotted divider.</summary>
+    /// <summary>Draws a light horizontal dotted divider inside a fixed rectangle.</summary>
     public static void DottedDivider(this UIBuilder<Material> ui, IntRect rect)
     {
         const int dotWidth = 2;
         const int dotGap = 4;
-        for (var offset = 0; offset < rect.Size.X - dotWidth; offset += dotWidth + dotGap)
+
+        using (ui.Element())
         {
-            using (ui.Element())
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = RectConstraints(rect);
+
+            for (var offset = 0; offset < rect.Size.X - dotWidth; offset += dotWidth + dotGap)
             {
-                ui.Color = UiTheme.Border;
-                ui.Constraints = new Constraints
+                using (ui.Element())
                 {
-                    X = new Fixed(rect.Left + offset),
-                    Y = new Fixed(rect.Top),
-                    Width = new Fixed(dotWidth),
-                    Height = new Fixed(rect.Size.Y),
-                };
+                    ui.Color = UiTheme.Border;
+                    ui.Constraints = new Constraints
+                    {
+                        X = new Fixed(offset),
+                        Width = new Fixed(dotWidth),
+                        Height = new Fixed(rect.Size.Y),
+                    };
+                }
             }
         }
     }

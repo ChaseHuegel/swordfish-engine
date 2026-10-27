@@ -22,8 +22,8 @@ The page width is `min(window width - 80, 1280)`. The page height is
 `TitleMenu`.
 
 The tray and pane show when the window is at least 900 pixels wide. Below
-900 pixels, the tray becomes a tab strip above the pane. The tab strip uses the
-short category names. The tray is a fixed list. A larger category set needs the
+900 pixels, the tray becomes a tab strip above the pane. The tab strip sits
+directly on the pane top and uses the short category names. The tray is a fixed list. A larger category set needs the
 overflow work in
 [settings category overflow](/docs/issues/0091-settings-tray-overflow.md).
 

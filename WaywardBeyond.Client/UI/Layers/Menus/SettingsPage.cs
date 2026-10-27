@@ -109,8 +109,7 @@ internal sealed class SettingsPage<TIdentifier>(
                     {
                         Width = new Fill(),
                         Height = new Fill(),
-                    },
-                    spacing: SettingsLayout.PAGE_GAP
+                    }
                 ))
                 {
                     if (renderer.DrawTabs(_categories, ref _categoryIndex))

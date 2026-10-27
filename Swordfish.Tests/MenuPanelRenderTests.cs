@@ -90,6 +90,33 @@ public class MenuPanelRenderTests
     }
 
     [Fact]
+    public void DottedDividerKeepsAllDotsOnOneBaseline()
+    {
+        var ui = new UIBuilder<Material>(200, 50, new StubTextEngine(), new UIController());
+
+        using (ui.Column(
+            new Constraints
+            {
+                Width = new Fixed(100),
+                Height = new Fixed(10),
+            }
+        ))
+        {
+            ui.DottedDivider(Widgets.Rect(0, 0, 100, 1));
+        }
+
+        List<RenderCommand<Material>> commands = ui.Build(0f);
+        List<RenderCommand<Material>> dots = commands
+            .Where(command => command.Color == UiTheme.Border
+                && command.Rect.Size.X == 2
+                && command.Rect.Size.Y == 1)
+            .ToList();
+
+        Assert.NotEmpty(dots);
+        Assert.All(dots, dot => Assert.Equal(dots[0].Rect.Top, dot.Rect.Top));
+    }
+
+    [Fact]
     public void ModalPanelHasNoBorder()
     {
         var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
