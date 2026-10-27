@@ -143,11 +143,6 @@ internal sealed class HomePage(
         int buttonHeight = UiMetrics.MENU_BUTTON_HEIGHT;
         var y = 0;
 
-        if (continueState.HasLastSession)
-        {
-            ui.MenuChevron(buttonX - 8, y + (buttonHeight - 6) / 2);
-        }
-
         IntRect continueRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
         var continueOptions = _continueButton with { Enabled = continueState.HasLastSession };
         bool continueClicked = ui.ActionButton(

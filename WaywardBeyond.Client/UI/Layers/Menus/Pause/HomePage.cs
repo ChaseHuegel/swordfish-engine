@@ -69,7 +69,6 @@ internal sealed class HomePage(
             };
 
             var y = 0;
-            ui.MenuChevron(buttonX - 8, y + (buttonHeight - 6) / 2);
 
             IntRect continueRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
             string continueLabel = _localization.GetRequired("ui.button.continue");

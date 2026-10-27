@@ -78,9 +78,6 @@
       <Compile Update="UI\Widgets\Widgets.DottedDivider.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets\Widgets.MenuChevron.cs">
-        <DependentUpon>Widgets.cs</DependentUpon>
-      </Compile>
       <Compile Update="UI\Widgets\Widgets.FooterStatus.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
