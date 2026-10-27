@@ -248,7 +248,7 @@
 "ui.field.education.desc" = "Technical knowledge and research."
 "ui.field.resolve.desc" = "Mental resilience and endurance."
 "ui.credits.title" = "Manifest of Origin"
-"ui.credits.body" = "#8DA0B8 Produced by\n#F2994AFF bitfish\n\n#4BE3E3 Development, Art, & Design\n#F0F3F6 Chase \"Seven\" Huegel\n\n#4BE3E3 Music & Sound Effects\n#F0F3F6 Austin Huegel\n\n#4BE3E3 Built with\n#F0F3F6 Swordfish"
+"ui.credits.body" = "#8DA0B8 Produced by\n#F2994AFF bitfish\n\n#4BE3E3 Development, Art, & Design\n#F0F3F6 Chase \"Seven\" Huegel\n\n#4BE3E3 Music & Sound Effects\n#F0F3F6 Austin Huegel\n\n#8DA0B8 Built with #F0F3F6 Swordfish"
 "ui.credits.thanks" = "#8DA0B8 Special thanks to my #F0F3F6 early playtesters #8DA0B8 and the #F0F3F6 open-source community!"
 
 # Menu layout and form copy
