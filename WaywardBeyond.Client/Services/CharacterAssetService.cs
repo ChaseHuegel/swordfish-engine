@@ -123,7 +123,6 @@ internal sealed class CharacterAssetService
 
     private static T Resolve<T>(string bodyId, Dictionary<string, T> cache, System.Func<string, T> build)
     {
-        string resolved = bodyId;
         if (!cache.TryGetValue(bodyId, out T? value))
         {
             value = build(bodyId);
