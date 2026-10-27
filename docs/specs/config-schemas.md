@@ -186,6 +186,11 @@ Schema: `WaywardBeyond.Client/Configuration/ProfileSettings.cs`.
 | `LastServerHost` | string | `""` | remote host of the last played session |
 | `LastServerPort` | int | `0` | remote port of the last played session |
 | `LastSaveGuid` | string | `""` | level GUID of the last played save |
+| `LastSaveName` | string | `""` | display name of the last played save, for the Continue card before the listing loads |
+| `LastSaveSeed` | int | `0` | seed of the last played save, for the Continue card before the listing loads |
+| `LastSaveGameMode` | enum | `Creative` | game mode of the last played save, for the Continue card before the listing loads |
+| `LastSaveLastPlayedMs` | long | `0` | last played stamp of the last played save, for the Continue card before the listing loads |
+| `LastSaveAgeMs` | long | `0` | accumulated playtime of the last played save, for the Continue card before the listing loads |
 | `LastCharacterUuid` | string | `""` | character UUID of the last played colonist |
 | `UserId` | string | `""` | stable local user id; generated on first use and sent as the connection hello permission claim |
 | `SavedServers` | `SavedServer[]` | `[]` | saved connect targets, each `{ Name, Host, Port }`; deduped by host:port, capped at 32 |
