@@ -240,14 +240,13 @@ internal sealed class SelectCharacterPage(
                                     Anchors.Left | Anchors.Center
                                 );
 
-                                bool canDelete = characters.Count > 1;
                                 if (contentUi.IconButton(
                                         $"Button_DeleteCharacter_{character.Uuid}",
                                         Widgets.Rect(contentWidth - 42, 8, 28, 28),
                                         MenuGlyphs.Trash,
                                         new Widgets.IconButtonOptions(
                                             Danger: true,
-                                            Enabled: canDelete,
+                                            Enabled: true,
                                             SoundEffectService: _soundEffectService
                                         )
                                     ))
