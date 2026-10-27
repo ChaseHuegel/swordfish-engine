@@ -60,7 +60,7 @@ internal sealed class CreditsPage(
                 layout.Right.Size.Y
             );
 
-            using (ui.MenuPanel(panel, _localization.GetString("ui.credits.manifest")!))
+            using (ui.MenuPanel(panel, _localization.GetString("ui.credits.title")!))
             {
                 int padding = 40;
                 int contentWidth = Math.Min(760, panel.Size.X - padding * 2);
@@ -70,7 +70,6 @@ internal sealed class CreditsPage(
                 int bodyFontSize = contentWidth < 500
                     ? UiMetrics.MenuSmallFont
                     : UiMetrics.MenuBodyFont;
-                string[] header = _localization.GetString("ui.credits.header")!.Split('\n', 2);
                 string bodyText = _localization.GetString("ui.credits.body")!;
                 string thanksText = _localization.GetString("ui.credits.thanks")!;
 
@@ -79,7 +78,7 @@ internal sealed class CreditsPage(
                 int bodyHeight = ui.TextEngine.Layout(bodyFont, bodyText, contentWidth).Constraints.PreferredHeight;
                 int thanksHeight = ui.TextEngine.Layout(thanksFont, thanksText, contentWidth).Constraints.PreferredHeight;
                 int contentHeight = 62 + bodyHeight + 8 + 1 + 16 + thanksHeight + 12;
-                int contentTop = Math.Max(0, (viewportHeight - contentHeight) / 2);
+                int contentTop = 10;
 
                 ui.ScrollArea(
                     Widgets.Rect(0, viewportY, panel.Size.X, viewportHeight),
@@ -90,23 +89,6 @@ internal sealed class CreditsPage(
                     _ =>
                     {
                         int y = contentTop;
-
-                        ui.Label(
-                            header[0],
-                            Widgets.Rect(0, y, panel.Size.X, 18),
-                            UiMetrics.MenuSmallFont,
-                            UiTheme.TextMuted,
-                            Anchors.Center
-                        );
-                        ui.Label(
-                            header.Length > 1 ? header[1] : string.Empty,
-                            Widgets.Rect(0, y + 22, panel.Size.X, 30),
-                            UiMetrics.MenuTitleFont,
-                            UiTheme.Primary,
-                            Anchors.Center
-                        );
-
-                        y += 62;
                         ui.Paragraph(
                             bodyText,
                             Widgets.Rect(contentX, y, contentWidth, bodyHeight),
