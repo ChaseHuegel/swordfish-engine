@@ -67,6 +67,9 @@ public sealed class ReefContext : IDisposable
     {
         _window.Resize -= OnWindowResize;
         _window.Update -= OnWindowUpdate;
+        _input.KeyPressed -= OnKeyPressed;
+        _input.KeyReleased -= OnKeyReleased;
+        _input.CharInput -= OnCharInput;
     }
     
     private void OnWindowResize(Vector2D<int> size)
@@ -95,7 +98,7 @@ public sealed class ReefContext : IDisposable
             mouseButtons |= UIController.MouseButtons.Middle;
         }
 
-        _controller.UpdateMouse((int)cursorPos.X, (int)cursorPos.Y, mouseButtons);
+        _controller.UpdateMouse((int)cursorPos.X, (int)cursorPos.Y, mouseButtons, scrollDeltaY: _input.GetMouseScroll());
         
         lock (_inputBuffer)
         {
