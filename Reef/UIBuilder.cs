@@ -308,7 +308,6 @@ public sealed class UIBuilder<TRendererData>
 
     public float GetElementScrollDelta(string id)
     {
-        _currentElement.ID = id;
         return _controller.GetElementScrollDelta(id);
     }
 
@@ -316,7 +315,6 @@ public sealed class UIBuilder<TRendererData>
 
     public Vector2 GetElementScrollDelta2D(string id)
     {
-        _currentElement.ID = id;
         return _controller.GetElementScrollDelta2D(id);
     }
 
@@ -324,7 +322,6 @@ public sealed class UIBuilder<TRendererData>
 
     public IntVector2 GetRelativeCursorPosition(string id)
     {
-        _currentElement.ID = id;
         return _controller.GetRelativeCursorPosition(id);
     }
 

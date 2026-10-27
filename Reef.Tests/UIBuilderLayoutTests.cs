@@ -345,6 +345,39 @@ public class UIBuilderLayoutTests
         Assert.Equal(60, commands[1].Rect.Size.Y);
     }
 
+    [Fact]
+    public void ExplicitElementQueriesDoNotChangeTheCurrentElementID()
+    {
+        UIBuilder<PixelTexture> ui = CreateBuilder(200, 200);
+
+        using (ui.Element("parent"))
+        {
+            ui.Constraints = new UI.Constraints
+            {
+                Width = new Fixed(100),
+                Height = new Fixed(100),
+            };
+
+            ui.GetElementScrollDelta("other");
+            ui.GetElementScrollDelta2D("other");
+            ui.GetRelativeCursorPosition("other");
+
+            using (ui.Element("child"))
+            {
+                ui.Constraints = new UI.Constraints
+                {
+                    Width = new Fixed(10),
+                    Height = new Fixed(10),
+                };
+            }
+        }
+
+        List<RenderCommand<PixelTexture>> commands = ui.Build(delta: 0f);
+
+        Assert.Equal("parent", commands[0].ID);
+        Assert.Equal("child", commands[1].ID);
+    }
+
     private static UIBuilder<PixelTexture> CreateBuilder(int width, int height)
     {
         return new UIBuilder<PixelTexture>(width, height, CreateTextEngine(), new UIController());
