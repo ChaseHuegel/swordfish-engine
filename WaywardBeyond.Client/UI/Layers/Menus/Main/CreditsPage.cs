@@ -67,8 +67,7 @@ internal sealed class CreditsPage(
             }
 
             string returnLabel = _localization.GetRequired("ui.button.return");
-            var returnOptions = _returnButton with { Rect = layout.ReturnButton };
-            if (ui.ActionButton("Button_Back", returnLabel, returnOptions))
+            if (ui.ActionButton("Button_Back", layout.ReturnButton, returnLabel, _returnButton))
             {
                 menu.GoToPage(MenuPage.Home);
             }

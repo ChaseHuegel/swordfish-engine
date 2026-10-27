@@ -53,7 +53,44 @@ internal sealed class ConnectingModal(
     /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        ui.ModalFrame(PANEL_WIDTH, PANEL_HEIGHT, frame => DrawBody(frame, menu));
+        int padding = UiMetrics.MODAL_PADDING;
+        int contentWidth = PANEL_WIDTH - padding * 2;
+
+        using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
+        {
+            ui.Label(
+                _title ?? _localization.GetString("ui.menu.connecting") ?? "Connecting to Server",
+                Widgets.Rect(padding, 22, contentWidth, 30),
+                UiMetrics.MENU_TITLE_FONT,
+                UiTheme.Text,
+                Anchors.Center
+            );
+
+            ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
+
+            ui.Label(
+                _target ?? _localization.GetString("ui.menu.connectingStatus") ?? "Establishing uplink with remote host...",
+                Widgets.Rect(padding, 80, contentWidth, 22),
+                UiMetrics.MENU_BODY_FONT,
+                UiTheme.TextMuted,
+                Anchors.Center
+            );
+
+            DrawSignal(ui);
+
+            int buttonWidth = UiMetrics.MODAL_BUTTON_WIDTH;
+            IntRect cancelRect = Widgets.Rect(
+                (PANEL_WIDTH - buttonWidth) / 2,
+                PANEL_HEIGHT - 68,
+                buttonWidth,
+                UiMetrics.ICON_BUTTON_SIZE
+            );
+            string cancelLabel = _localization.GetString("ui.button.cancel") ?? "Cancel";
+            if (ui.ActionButton("Button_CancelConnect", cancelRect, cancelLabel, _cancelButton))
+            {
+                Cancel(menu);
+            }
+        }
 
         return Result.FromSuccess();
     }
@@ -74,46 +111,6 @@ internal sealed class ConnectingModal(
         if (menu?.GetCurrentPage() == Modal)
         {
             menu.GoBack();
-        }
-    }
-
-    /// <summary>Draws the status labels, signal scanner, and cancel button inside the modal panel.</summary>
-    private void DrawBody(UIBuilder<Material> ui, Menu<Modal> menu)
-    {
-        int padding = UiMetrics.MODAL_PADDING;
-        int contentWidth = PANEL_WIDTH - padding * 2;
-
-        ui.Label(
-            _title ?? _localization.GetString("ui.menu.connecting") ?? "Connecting to Server",
-            Widgets.Rect(padding, 22, contentWidth, 30),
-            UiMetrics.MENU_TITLE_FONT,
-            UiTheme.Text,
-            Anchors.Center
-        );
-
-        ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
-
-        ui.Label(
-            _target ?? _localization.GetString("ui.menu.connectingStatus") ?? "Establishing uplink with remote host...",
-            Widgets.Rect(padding, 80, contentWidth, 22),
-            UiMetrics.MENU_BODY_FONT,
-            UiTheme.TextMuted,
-            Anchors.Center
-        );
-
-        DrawSignal(ui);
-
-        int buttonWidth = UiMetrics.MODAL_BUTTON_WIDTH;
-        int buttonX = (PANEL_WIDTH - buttonWidth) / 2;
-        int buttonY = PANEL_HEIGHT - 68;
-        Widgets.ActionButtonOptions cancelOptions = _cancelButton with
-        {
-            Rect = Widgets.Rect(buttonX, buttonY, buttonWidth, UiMetrics.ICON_BUTTON_SIZE),
-        };
-
-        if (ui.ActionButton("Button_CancelConnect", _localization.GetString("ui.button.cancel") ?? "Cancel", cancelOptions))
-        {
-            Cancel(menu);
         }
     }
 

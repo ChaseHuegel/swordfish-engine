@@ -75,7 +75,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | Widget | Source | Purpose |
 |---|---|---|
 | `Panel` | `Widgets.Panel.cs:14` | Clipped panel with border, caps, and optional inner hairline. |
-| `ActionButton` | `Widgets.ActionButton.cs:34` | Fixed or intrinsic text action button. |
+| `ActionButton` | `Widgets.ActionButton.cs:15` | Text action button with a fixed rect, or an intrinsic size. |
 | `IconButton` | `Widgets.IconButton.cs:12` | Borderless icon action with hover/pressed fills. |
 | `PingIndicator` | `Widgets.Ping.cs:45` | Colored signal icon and ping value. |
 | `Toggle` | `Widgets.Toggle.cs:16` | Two-cell on/off control. |
@@ -84,9 +84,8 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
 | `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar. |
-| `ModalFrame` | `Widgets.ModalFrame.cs:14` | Scrim plus a centered panel; runs a body inside it. |
+| `ModalDialog` | `Widgets.ModalDialog.cs:39` | Centered dialog scope holding the scrim, center container, and modal panel. |
 | `MenuTextBox` | `Widgets.MenuTextBox.cs:13` | Clipped menu text box that returns its interactions. |
-| `MenuFooter` | `MenuLayout.cs:114` | Draws a page footer and reports the clicked action. |
 | `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
 | `FooterStatus` | `Widgets.FooterStatus.cs:13` | Centered footer status between two action buttons. |
 | `MenuChevron` | `Widgets.MenuChevron.cs:12` | Cyan menu selection chevron. |
@@ -104,7 +103,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 the return type of `Toggle`, `SegmentedControl`, `Stepper`, and `Slider`. Read
 `Changed` before `Value`, so a control never needs an `out` value.
 
-`Widgets.ActionButton.cs:166` defines `ActionButtonOptions`. Use the factories:
+`Widgets.ActionButton.cs:250` defines `ActionButtonOptions`. Use the factories:
 
 - `Menu` for a full menu button. Width is `UiMetrics.MenuButtonMinWidth`, height
   is `UiMetrics.MenuButtonHeight`.
@@ -116,8 +115,10 @@ button factories. Icon buttons are borderless and transparent at rest, then use 
 hover/pressed fill and icon-color change. Danger icons use the danger palette.
 Keep the full square hit target and let the glyph center in it.
 
-A text button gets a fixed rect through the `ActionButton` overload. A button
-without a fixed rect uses its `MinWidth`, `Height`, and padding to size itself.
+A text button takes its rect as an argument, so callers pass `layout.ReturnButton`
+and friends directly. A button without a rect uses its `MinWidth`, `Height`, and
+padding to size itself. Pass `ActionButtonOptions` and the rect together rather
+than building `options with { Rect = ... }` at the call site.
 
 Set `Selected` to true for a current list row. Set `Anchors` for placement in a
 parent layout. Pass a `SoundEffectService` to play the standard click sound.

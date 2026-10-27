@@ -30,6 +30,31 @@ internal static partial class Widgets
         ));
     }
 
+    /// <summary>Creates a fixed-position action button with options and returns true when clicked.</summary>
+    public static bool ActionButton(
+        this UIBuilder<Material> ui,
+        string id,
+        IntRect rect,
+        string text,
+        ActionButtonOptions options
+    )
+    {
+        return ui.ActionButton(id, text, options with { Rect = rect }, out _);
+    }
+
+    /// <summary>Creates a fixed-position action button with options and reports hover state.</summary>
+    public static bool ActionButton(
+        this UIBuilder<Material> ui,
+        string id,
+        IntRect rect,
+        string text,
+        ActionButtonOptions options,
+        out bool hovering
+    )
+    {
+        return ui.ActionButton(id, text, options with { Rect = rect }, out hovering);
+    }
+
     /// <summary>Creates an action button and returns true when clicked.</summary>
     public static bool ActionButton(
         this UIBuilder<Material> ui,
@@ -131,11 +156,11 @@ internal static partial class Widgets
             ? new Padding(0)
             : new Padding(options.PaddingX, options.PaddingY, options.PaddingX, options.PaddingY);
 
-        IntRect? buttonRect = options.Rect;
-        if (buttonRect != null)
+        if (options.Rect.HasValue)
         {
-            ui.Constraints = RectConstraints(buttonRect.Value);
-            ui.ClipConstraints = RectConstraints(buttonRect.Value);
+            IntRect rect = options.Rect.Value;
+            ui.Constraints = RectConstraints(rect);
+            ui.ClipConstraints = RectConstraints(rect);
         }
         else
         {
@@ -157,14 +182,14 @@ internal static partial class Widgets
             ui.Constraints = constraints;
         }
 
-        if (buttonRect != null && options.Variant == ButtonVariant.Primary && enabled)
+        if (options.Rect.HasValue && options.Variant == ButtonVariant.Primary && enabled)
         {
-            DrawInnerBorder(ui, buttonRect.Value, UiTheme.PrimaryDark);
+            DrawInnerBorder(ui, options.Rect.Value, UiTheme.PrimaryDark);
         }
         else if (options.DoubleBorder && enabled && style.BorderThickness > 0)
         {
-            int width = buttonRect?.Size.X ?? options.MinWidth;
-            int height = buttonRect?.Size.Y ?? options.Height;
+            int width = options.Rect?.Size.X ?? options.MinWidth;
+            int height = options.Rect?.Size.Y ?? options.Height;
             if (width > 0 && height > 0)
             {
                 Vector4 color = options.Variant switch

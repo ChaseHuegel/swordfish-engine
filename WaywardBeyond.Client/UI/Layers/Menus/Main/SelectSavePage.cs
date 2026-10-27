@@ -145,27 +145,18 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     private void DrawFooter(UIBuilder<Material> ui, in MenuLayout layout, Menu<MenuPage> menu)
     {
         bool remote = _rpcHost.IsRemote;
-        GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
-        var back = new MenuLayout.MenuFooterButton(
-            "Button_Back",
-            remote
-                ? _localization.GetRequired("ui.button.servers")
-                : _localization.GetRequired("ui.button.return"),
-            _returnButton
-        );
-        var primary = new MenuLayout.MenuFooterButton(
-            "Button_SelectSave",
-            _localization.GetRequired("ui.button.next"),
-            _launchButton with { Enabled = activeSave != null }
-        );
-
-        MenuLayout.MenuFooterResult footer = layout.DrawFooter(ui, null, back, primary);
-        if (footer.BackClicked)
+        string returnLabel = remote
+            ? _localization.GetRequired("ui.button.servers")
+            : _localization.GetRequired("ui.button.return");
+        if (ui.ActionButton("Button_Back", layout.ReturnButton, returnLabel, _returnButton))
         {
             menu.GoToPage(remote ? MenuPage.Multiplayer : MenuPage.Home);
         }
 
-        if (footer.PrimaryClicked)
+        GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
+        string nextLabel = _localization.GetRequired("ui.button.next");
+        var nextOptions = _launchButton with { Enabled = activeSave != null };
+        if (ui.ActionButton("Button_SelectSave", layout.PrimaryButton, nextLabel, nextOptions))
         {
             IReadOnlyList<Character> characters = _characterStorage.GetAllCharacters();
             menu.GoToPage(characters.Count > 0 ? MenuPage.SelectCharacter : MenuPage.NewCharacter);

@@ -189,33 +189,26 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         bool canCreate = !nameMissing && !nameTaken;
         FooterStatus status = ResolveFooterStatus(nameMissing, nameTaken);
 
-        var back = new MenuLayout.MenuFooterButton(
-            "Button_Back",
-            _localization.GetRequired("ui.button.back"),
-            _backButton
-        );
-        var create = new MenuLayout.MenuFooterButton(
-            "Button_CreateCharacter",
-            _localization.GetRequired("ui.button.createCharacter"),
-            _createButton with { Enabled = canCreate }
-        );
-
-        MenuLayout.MenuFooterResult footer = layout.DrawFooter(
-            ui,
-            status.Message,
-            back,
-            create,
-            status.Color
-        );
-        if (footer.BackClicked)
+        string backLabel = _localization.GetRequired("ui.button.back");
+        if (ui.ActionButton("Button_Back", layout.ReturnButton, backLabel, _backButton))
         {
             menu.GoToPage(MenuPage.SelectCharacter);
         }
 
-        if (footer.PrimaryClicked)
+        string createLabel = _localization.GetRequired("ui.button.createCharacter");
+        var createOptions = _createButton with { Enabled = canCreate };
+        if (ui.ActionButton("Button_CreateCharacter", layout.PrimaryButton, createLabel, createOptions))
         {
             RequestCreate(menu);
         }
+
+        ui.FooterStatus(
+            layout.Footer,
+            layout.ReturnButton,
+            layout.PrimaryButton,
+            status.Message,
+            status.Color
+        );
     }
 
     /// <summary>Gets the footer message and its color for the current name and unspent spacer points.</summary>
@@ -295,10 +288,10 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             "TextBox_CharacterName",
             ref _nameTextBox,
             textBoxRect,
-            UiMetrics.MENU_BODY_FONT,
-            _inputService
+            new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
+            _inputService,
+            _soundEffectService
         );
-        nameInteractions.WithTextInputAudio(_soundEffectService);
 
         IntRect randomRect = Widgets.Rect(
             nameGroupX + INPUT_WIDTH + 8,

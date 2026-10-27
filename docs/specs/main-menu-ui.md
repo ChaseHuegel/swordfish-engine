@@ -30,10 +30,16 @@ multiplayer server hub. New Game creates a sector before it opens Crew Manifest.
 computes a centered page with left and right panel rects, a tab strip, a footer,
 and Return/Primary footer buttons.
 
-`MenuLayout.DrawFooter` draws the two footer buttons and the status between
-them. A page passes a `MenuFooterButton` per action and branches on the
-returned `MenuFooterResult`, so no page repeats the footer block. The status
-colour defaults to `UiTheme.Danger`. A warning status passes `UiTheme.Warning`.
+Footer buttons use the `ActionButton` overload that takes the rect as an
+argument, so a page never builds a `with { Rect = ... }` value:
+
+```csharp
+if (ui.ActionButton("Button_Back", layout.ReturnButton, label, _returnButton))
+```
+
+`Widgets.FooterStatus` draws the status between `layout.ReturnButton` and
+`layout.PrimaryButton`. Each page passes its own colour, so a warning status
+uses `UiTheme.Warning` and an error uses `UiTheme.Danger`.
 
 - The design base is 1280 by 720.
 - The page shrinks with the window and has a 480 pixel minimum width.
@@ -96,6 +102,8 @@ New Game:
 - `UiTheme` supplies the palette. Do not add raw colors to menu pages.
 - `MenuPanel` draws the shared settings-style panel: no outer border, an
   inner hairline, and corner caps.
+- `ModalDialog` provides the standard centered modal layout: full-screen scrim,
+  centered size constraints, and a borderless `ModalPanel`.
 - `ModalPanel` draws no border for dialogs. It keeps the corner caps and has
   no inner hairline.
 - `Panel` remains the primitive for special sub-panels.

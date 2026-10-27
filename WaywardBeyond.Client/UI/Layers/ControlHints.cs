@@ -99,7 +99,7 @@ internal sealed class ControlHints : IUILayer
 
             if (_inventory.IsVisible())
             {
-                DrawInventoryHints(ui);
+                RenderInventoryHints(ui);
                 return Result.FromSuccess();
             }
 
@@ -108,11 +108,11 @@ internal sealed class ControlHints : IUILayer
 
             if (holdingPlaceable)
             {
-                DrawPlaceableHints(ui);
+                RenderPlaceableHints(ui);
             }
             else
             {
-                DrawIdleHints(ui);
+                RenderIdleHints(ui);
             }
         }
 
@@ -120,7 +120,7 @@ internal sealed class ControlHints : IUILayer
     }
 
     /// <summary>Draws the hints that belong to the open inventory.</summary>
-    private void DrawInventoryHints(UIBuilder<Material> ui)
+    private void RenderInventoryHints(UIBuilder<Material> ui)
     {
         RenderHintPill(ui, in _inventoryMoveHint);
         RenderHintPill(ui, in _inventorySplitHint);
@@ -130,7 +130,7 @@ internal sealed class ControlHints : IUILayer
     }
 
     /// <summary>Draws the hints for a placeable item in the main hand.</summary>
-    private void DrawPlaceableHints(UIBuilder<Material> ui)
+    private void RenderPlaceableHints(UIBuilder<Material> ui)
     {
         if (_shapeSelector.Available)
         {
@@ -150,7 +150,7 @@ internal sealed class ControlHints : IUILayer
     }
 
     /// <summary>Draws the hints for a main hand that holds no placeable item.</summary>
-    private void DrawIdleHints(UIBuilder<Material> ui)
+    private void RenderIdleHints(UIBuilder<Material> ui)
     {
         RenderHintPill(ui, in _breakBrickHint);
         RenderHintPill(ui, in _pickBrickHint);
@@ -185,7 +185,7 @@ internal sealed class ControlHints : IUILayer
 
             if (!string.IsNullOrEmpty(hint.Key))
             {
-                DrawKeycap(ui, hint.Key);
+                RenderKeyBadge(ui, hint.Key);
             }
 
             using (ui.Text(hint.Action, UiMetrics.TINY_FONT))
@@ -201,7 +201,7 @@ internal sealed class ControlHints : IUILayer
     }
 
     /// <summary>Draws the keycap chip of a hint pill.</summary>
-    private static void DrawKeycap(UIBuilder<Material> ui, string key)
+    private static void RenderKeyBadge(UIBuilder<Material> ui, string key)
     {
         using (ui.Element())
         {

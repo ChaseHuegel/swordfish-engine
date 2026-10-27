@@ -9,7 +9,6 @@ using Reef.Text;
 using Reef.UI;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
-using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
@@ -25,15 +24,6 @@ internal static partial class Widgets
     /// </summary>
     [GeneratedRegex(@"\S+")]
     private static partial Regex WordRegex();
-
-    /// <summary>
-    ///     Creates a text box that can be typed into, with audio cues.
-    /// </summary>
-    /// <returns>True if the text box was submitted; otherwise false.</returns>
-    public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService, SoundEffectService soundEffectService)
-    {
-        return ui.TextBox(id, ref state, fontOptions, inputService, out Interactions interactions) && interactions.WithTextInputAudio(soundEffectService);
-    }
 
     /// <summary>
     ///     Creates a text box that can be typed into.

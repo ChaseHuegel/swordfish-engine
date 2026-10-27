@@ -87,7 +87,7 @@
       <Compile Update="UI\Widgets\Widgets.MenuPanel.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets\Widgets.ModalFrame.cs">
+      <Compile Update="UI\Widgets\Widgets.ModalDialog.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
       <Compile Update="UI\Widgets\Widgets.MenuTextBox.cs">

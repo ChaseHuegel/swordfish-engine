@@ -101,126 +101,104 @@ internal class FeedbackModal : IMenuPage<Modal>
     {
         int panelWidth = Math.Clamp(ui.Width - 160, 520, 860);
         int panelHeight = Math.Clamp(ui.Height - 160, 460, 620);
-
-        ui.ModalFrame(
-            panelWidth,
-            panelHeight,
-            UiTheme.ScrimHeavy,
-            frame => DrawBody(frame, menu, panelWidth, panelHeight)
-        );
-
-        return Result.FromSuccess();
-    }
-
-    /// <summary>Draws the feedback fields, helper text, and actions inside the modal panel.</summary>
-    private void DrawBody(UIBuilder<Material> ui, Menu<Modal> menu, int panelWidth, int panelHeight)
-    {
         int padding = UiMetrics.MODAL_PADDING;
         int contentWidth = panelWidth - padding * 2;
         int descriptionHeight = Math.Clamp(panelHeight - 300, 140, 320);
 
-        ui.Label(
-            _localization.GetRequired("ui.menu.feedback"),
-            Widgets.Rect(padding, 22, contentWidth, 30),
-            UiMetrics.MENU_TITLE_FONT,
-            UiTheme.Text,
-            Anchors.Center
-        );
-        ui.Divider(
-            Widgets.Rect(padding, 62, contentWidth, 1),
-            UiTheme.Border
-        );
-
-        ui.Label(
-            _localization.GetRequired("ui.feedback.message"),
-            Widgets.Rect(padding, 78, contentWidth, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
-        using (ui.Element())
+        using (ui.ModalDialog(panelWidth, panelHeight, UiTheme.ScrimHeavy))
         {
-            ui.Constraints = Widgets.RectConstraints(
-                Widgets.Rect(padding, 102, contentWidth, descriptionHeight)
+            ui.Label(
+                _localization.GetRequired("ui.menu.feedback"),
+                Widgets.Rect(padding, 22, contentWidth, 30),
+                UiMetrics.MENU_TITLE_FONT,
+                UiTheme.Text,
+                Anchors.Center
             );
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(contentWidth),
-                Height = new Fixed(descriptionHeight),
-            };
-            ui.TextBox(
-                id: "TextBox_Message",
-                state: ref _descriptionTextBox,
+            ui.Divider(
+                Widgets.Rect(padding, 62, contentWidth, 1),
+                UiTheme.Border
+            );
+
+            ui.Label(
+                _localization.GetRequired("ui.feedback.message"),
+                Widgets.Rect(padding, 78, contentWidth, 18),
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Text,
+                Anchors.Left | Anchors.Center
+            );
+            ui.MenuTextBox(
+                "TextBox_Message",
+                ref _descriptionTextBox,
+                Widgets.Rect(padding, 102, contentWidth, descriptionHeight),
                 _fieldFontOptions,
                 _inputService,
                 _soundEffectService
             );
-        }
 
-        int contactY = 102 + descriptionHeight + 18;
-        ui.Label(
-            _localization.GetRequired("ui.feedback.contact"),
-            Widgets.Rect(padding, contactY, contentWidth, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
-        using (ui.Element())
-        {
-            ui.Constraints = Widgets.RectConstraints(
-                Widgets.Rect(padding, contactY + 20, contentWidth, UiMetrics.CONTROL_HEIGHT)
+            int contactY = 102 + descriptionHeight + 18;
+            ui.Label(
+                _localization.GetRequired("ui.feedback.contact"),
+                Widgets.Rect(padding, contactY, contentWidth, 18),
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Text,
+                Anchors.Left | Anchors.Center
             );
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(contentWidth),
-                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
-            };
-            ui.TextBox(
-                id: "TextBox_Contact",
-                state: ref _contactTextBox,
+            ui.MenuTextBox(
+                "TextBox_Contact",
+                ref _contactTextBox,
+                Widgets.Rect(padding, contactY + 20, contentWidth, UiMetrics.CONTROL_HEIGHT),
                 _fieldFontOptions,
                 _inputService,
                 _soundEffectService
             );
+
+            ui.Paragraph(
+                _localization.GetRequired("ui.feedback.helper"),
+                Widgets.Rect(
+                    padding,
+                    contactY + 58,
+                    contentWidth,
+                    18
+                ),
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.TextMuted
+            );
+
+            DrawFooter(ui, menu, padding, panelWidth, panelHeight);
         }
 
-        ui.Paragraph(
-            _localization.GetRequired("ui.feedback.helper"),
-            Widgets.Rect(
-                padding,
-                contactY + 58,
-                contentWidth,
-                18
-            ),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted
-        );
-
-        DrawFooter(ui, menu, padding, panelWidth, panelHeight);
+        return Result.FromSuccess();
     }
 
     /// <summary>Draws the back and submit actions along the panel footer.</summary>
     private void DrawFooter(UIBuilder<Material> ui, Menu<Modal> menu, int padding, int panelWidth, int panelHeight)
     {
         int buttonY = panelHeight - 60;
-        Widgets.ActionButtonOptions backOptions = _backButton with
-        {
-            Rect = Widgets.Rect(padding, buttonY, 160, UiMetrics.ICON_BUTTON_SIZE),
-        };
-
-        if (ui.ActionButton("Button_Back", _localization.GetRequired("ui.button.back"), backOptions))
+        IntRect backRect = Widgets.Rect(padding, buttonY, 160, UiMetrics.ICON_BUTTON_SIZE);
+        if (ui.ActionButton(
+                "Button_Back",
+                backRect,
+                _localization.GetRequired("ui.button.back"),
+                _backButton
+            ))
         {
             menu.GoBack();
         }
 
         bool canSubmit = _descriptionTextBox.Text.Length > 0;
-        Widgets.ActionButtonOptions submitOptions = _submitButton with
-        {
-            Rect = Widgets.Rect(panelWidth - padding - 200, buttonY, 200, UiMetrics.ICON_BUTTON_SIZE),
-            Enabled = canSubmit,
-        };
-
-        if (ui.ActionButton("Button_Submit", _localization.GetRequired("ui.button.submit"), submitOptions))
+        IntRect submitRect = Widgets.Rect(
+            panelWidth - padding - 200,
+            buttonY,
+            200,
+            UiMetrics.ICON_BUTTON_SIZE
+        );
+        var submitOptions = _submitButton with { Enabled = canSubmit };
+        if (ui.ActionButton(
+                "Button_Submit",
+                submitRect,
+                _localization.GetRequired("ui.button.submit"),
+                submitOptions
+            ))
         {
             Submit(menu, ui.Time);
         }

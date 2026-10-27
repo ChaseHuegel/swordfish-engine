@@ -93,8 +93,8 @@ internal sealed class Bars(in NotificationService notificationService)
                     Width = new Fixed(BAR_WIDTH),
                 };
 
-                DrawBarHeader(ui, in notification, fade);
-                DrawBarTrack(ui, in notification, fade, fillColor);
+                RenderHeader(ui, in notification, fade);
+                RenderTrack(ui, in notification, fade, fillColor);
             }
 
             using (ui.Element())
@@ -110,7 +110,7 @@ internal sealed class Bars(in NotificationService notificationService)
     }
 
     /// <summary>Draws a bar's title and its optional subtext.</summary>
-    private static void DrawBarHeader(UIBuilder<Material> ui, in Notification notification, in Vector4 fade)
+    private static void RenderHeader(UIBuilder<Material> ui, in Notification notification, in Vector4 fade)
     {
         using (ui.Element())
         {
@@ -148,7 +148,7 @@ internal sealed class Bars(in NotificationService notificationService)
     }
 
     /// <summary>Draws a bar's track, its fill, and its segment dividers.</summary>
-    private static void DrawBarTrack(UIBuilder<Material> ui, in Notification notification, in Vector4 fade, Vector4 fillColor)
+    private static void RenderTrack(UIBuilder<Material> ui, in Notification notification, in Vector4 fade, Vector4 fillColor)
     {
         using (ui.Element())
         {
@@ -172,16 +172,15 @@ internal sealed class Bars(in NotificationService notificationService)
                 };
             }
 
-            int segmentCount = notification.Segments ?? 0;
-            if (segmentCount > 1)
+            if (notification.Segments > 1)
             {
-                DrawSegmentDividers(ui, segmentCount, fade);
+                RenderSegmentDividers(ui, notification.Segments.Value, fade);
             }
         }
     }
 
     /// <summary>Draws the dividers that split a segmented track.</summary>
-    private static void DrawSegmentDividers(UIBuilder<Material> ui, int segmentCount, in Vector4 fade)
+    private static void RenderSegmentDividers(UIBuilder<Material> ui, int segmentCount, in Vector4 fade)
     {
         for (var segmentIndex = 1; segmentIndex < segmentCount; segmentIndex++)
         {

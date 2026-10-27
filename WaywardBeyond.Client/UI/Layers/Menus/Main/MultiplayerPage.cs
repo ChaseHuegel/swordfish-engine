@@ -187,28 +187,27 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             DrawServerTable(ui, tableRect);
             DrawDirectConnect(ui, directRect, menu);
 
-            int count = _favoritesTab ? _savedServers.Count : _discoveredServers.Count;
-            var back = new MenuLayout.MenuFooterButton(
-                "Button_Back",
-                _localization.GetRequired("ui.button.return"),
-                _returnButton
-            );
-            var primary = new MenuLayout.MenuFooterButton(
-                "Button_JoinServer",
-                _localization.GetRequired("ui.button.joinServer"),
-                _joinButton with { Enabled = count > 0 }
-            );
-
-            MenuLayout.MenuFooterResult footer = layout.DrawFooter(ui, _errorMessage, back, primary);
-            if (footer.BackClicked)
+            string returnLabel = _localization.GetRequired("ui.button.return");
+            if (ui.ActionButton("Button_Back", layout.ReturnButton, returnLabel, _returnButton))
             {
                 menu.GoToPage(MenuPage.Home);
             }
 
-            if (footer.PrimaryClicked)
+            int count = _favoritesTab ? _savedServers.Count : _discoveredServers.Count;
+            string joinLabel = _localization.GetRequired("ui.button.joinServer");
+            var joinOptions = _joinButton with { Enabled = count > 0 };
+            if (ui.ActionButton("Button_JoinServer", layout.PrimaryButton, joinLabel, joinOptions))
             {
                 JoinSelected(menu);
             }
+
+            ui.FooterStatus(
+                layout.Footer,
+                layout.ReturnButton,
+                layout.PrimaryButton,
+                _errorMessage,
+                UiTheme.Danger
+            );
         }
 
         return Result.FromSuccess();
@@ -307,37 +306,33 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             Anchors.Left | Anchors.Center
         );
 
-        Widgets.ActionButtonOptions disconnectOptions = _disconnectButton with
-        {
-            Rect = Widgets.Rect(
-                disconnectX,
-                top + 4,
-                disconnectWidth,
-                UiMetrics.COMPACT_BUTTON_HEIGHT
-            ),
-        };
+        IntRect disconnectRect = Widgets.Rect(
+            disconnectX,
+            top + 4,
+            disconnectWidth,
+            UiMetrics.COMPACT_BUTTON_HEIGHT
+        );
         if (ui.ActionButton(
                 "Button_Disconnect",
+                disconnectRect,
                 _localization.GetRequired("ui.button.disconnect"),
-                disconnectOptions
+                _disconnectButton
             ))
         {
             DisconnectServer();
         }
 
-        Widgets.ActionButtonOptions viewSavesOptions = _viewSavesButton with
-        {
-            Rect = Widgets.Rect(
-                viewX,
-                top + 4,
-                viewWidth,
-                UiMetrics.COMPACT_BUTTON_HEIGHT
-            ),
-        };
+        IntRect viewSavesRect = Widgets.Rect(
+            viewX,
+            top + 4,
+            viewWidth,
+            UiMetrics.COMPACT_BUTTON_HEIGHT
+        );
         if (ui.ActionButton(
                 "Button_ViewSaves",
+                viewSavesRect,
                 _localization.GetRequired("ui.button.viewSaves"),
-                viewSavesOptions
+                _viewSavesButton
             ))
         {
             menu.GoToPage(MenuPage.SelectSave);
@@ -742,7 +737,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 "TextBox_Host",
                 ref _hostTextBox,
                 Widgets.Rect(hostX, rowY, hostWidth, UiMetrics.CONTROL_HEIGHT),
-                UiMetrics.MENU_SMALL_FONT,
+                new FontOptions { Size = UiMetrics.MENU_SMALL_FONT },
                 _inputService
             );
             HandleTextBoxInteractions(in hostInteractions, menu);
@@ -751,7 +746,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 "TextBox_Port",
                 ref _portTextBox,
                 Widgets.Rect(portX, rowY, portWidth, UiMetrics.CONTROL_HEIGHT),
-                UiMetrics.MENU_SMALL_FONT,
+                new FontOptions { Size = UiMetrics.MENU_SMALL_FONT },
                 _inputService
             );
             HandleTextBoxInteractions(in portInteractions, menu);

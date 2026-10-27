@@ -231,33 +231,26 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         bool seedMissing = string.IsNullOrWhiteSpace(_seedTextBox.Text.ToString());
         FooterStatus status = ResolveFooterStatus(nameMissing, duplicateName, seedMissing);
 
-        var cancel = new MenuLayout.MenuFooterButton(
-            "Button_Cancel",
-            _localization.GetRequired("ui.settings.cancel"),
-            _cancelButton
-        );
-        var initialize = new MenuLayout.MenuFooterButton(
-            "Button_Initialize",
-            _localization.GetRequired("ui.button.initialize"),
-            _initializeButton with { Enabled = canInitialize }
-        );
-
-        MenuLayout.MenuFooterResult footer = layout.DrawFooter(
-            ui,
-            status.Message,
-            cancel,
-            initialize,
-            status.Color
-        );
-        if (footer.BackClicked)
+        string cancelLabel = _localization.GetRequired("ui.settings.cancel");
+        if (ui.ActionButton("Button_Cancel", layout.ReturnButton, cancelLabel, _cancelButton))
         {
             menu.GoToPage(MenuPage.Home);
         }
 
-        if (footer.PrimaryClicked)
+        string initializeLabel = _localization.GetRequired("ui.button.initialize");
+        var initializeOptions = _initializeButton with { Enabled = canInitialize };
+        if (ui.ActionButton("Button_Initialize", layout.PrimaryButton, initializeLabel, initializeOptions))
         {
             TryCreate();
         }
+
+        ui.FooterStatus(
+            layout.Footer,
+            layout.ReturnButton,
+            layout.PrimaryButton,
+            status.Message,
+            status.Color
+        );
     }
 
     /// <summary>Gets the footer message and its color for the current name and seed.</summary>
@@ -340,10 +333,10 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             "TextBox_SaveName",
             ref _saveNameTextBox,
             textBoxRect,
-            UiMetrics.MENU_BODY_FONT,
-            _inputService
+            new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
+            _inputService,
+            _soundEffectService
         );
-        nameInteractions.WithTextInputAudio(_soundEffectService);
         if (nameInteractions.Has(Widgets.Interactions.Input))
         {
             _createError = null;
@@ -371,10 +364,10 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             "TextBox_SaveSeed",
             ref _seedTextBox,
             textBoxRect,
-            UiMetrics.MENU_BODY_FONT,
-            _inputService
+            new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
+            _inputService,
+            _soundEffectService
         );
-        seedInteractions.WithTextInputAudio(_soundEffectService);
         if (seedInteractions.Has(Widgets.Interactions.Input))
         {
             _createError = null;

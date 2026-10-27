@@ -90,7 +90,7 @@ internal sealed class HomePage(
 
         ContinueState continueState = BuildContinueState();
         int pageWidth = Math.Clamp(ui.Width - 80, 360, MAX_PAGE_WIDTH);
-        var singleplayerClicked = false;
+        MenuColumnResult buttons = default;
 
         using (ui.Element())
         {
@@ -108,16 +108,8 @@ internal sealed class HomePage(
             };
 
             int buttonX = (pageWidth - UiMetrics.MENU_BUTTON_MIN_WIDTH) / 2;
-            var y = 0;
-
-            if (continueState.HasLastSession)
-            {
-                ui.MenuChevron(buttonX - 8, y + (UiMetrics.MENU_BUTTON_HEIGHT - 6) / 2);
-            }
-
-            DrawMenuButtons(ui, buttonX, ref y, menu, continueState, out bool continueHovered, out singleplayerClicked);
-
-            if (continueHovered && continueState.HasLastSession && continueState.LastCharacter != null)
+            buttons = DrawMenuButtons(ui, buttonX, menu, continueState);
+            if (buttons.ContinueHovered && continueState.HasLastSession && continueState.LastCharacter != null)
             {
                 IntRect cardRect = ContinueCardRect(buttonX, pageWidth, continueState.Remote);
                 DrawContinueCard(
@@ -131,7 +123,7 @@ internal sealed class HomePage(
             }
         }
 
-        if (singleplayerClicked)
+        if (buttons.SingleplayerClicked)
         {
             StartSingleplayer(menu);
         }
@@ -139,87 +131,98 @@ internal sealed class HomePage(
         return Result.FromSuccess();
     }
 
-    /// <summary>Draws the home menu buttons and reports the states the page reacts to.</summary>
-    private void DrawMenuButtons(
+    /// <summary>Draws the Continue chevron and the home menu buttons, and reports what the page must react to.</summary>
+    private MenuColumnResult DrawMenuButtons(
         UIBuilder<Material> ui,
         int buttonX,
-        ref int y,
         Menu<MenuPage> menu,
-        in ContinueState continueState,
-        out bool continueHovered,
-        out bool singleplayerClicked
+        in ContinueState continueState
     )
     {
-        singleplayerClicked = false;
+        int buttonWidth = UiMetrics.MENU_BUTTON_MIN_WIDTH;
+        int buttonHeight = UiMetrics.MENU_BUTTON_HEIGHT;
+        var y = 0;
 
-        Widgets.ActionButtonOptions continueOptions = _continueButton with
+        if (continueState.HasLastSession)
         {
-            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
-            Enabled = continueState.HasLastSession,
-        };
+            ui.MenuChevron(buttonX - 8, y + (buttonHeight - 6) / 2);
+        }
 
-        if (ui.ActionButton("Button_Continue", _localization.GetRequired("ui.button.continue"), continueOptions, out continueHovered))
+        IntRect continueRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+        var continueOptions = _continueButton with { Enabled = continueState.HasLastSession };
+        bool continueClicked = ui.ActionButton(
+            "Button_Continue",
+            continueRect,
+            _localization.GetRequired("ui.button.continue"),
+            continueOptions,
+            out bool continueHovered
+        );
+        if (continueClicked)
         {
             _continueService.Start();
         }
 
-        y += UiMetrics.MENU_BUTTON_HEIGHT + BUTTON_GAP;
-        Widgets.ActionButtonOptions singleplayerOptions = _newGameButton with
-        {
-            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
-        };
+        y += buttonHeight + BUTTON_GAP;
+        IntRect singleplayerRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+        bool singleplayerClicked = ui.ActionButton(
+            "Button_Singleplayer",
+            singleplayerRect,
+            _localization.GetRequired("ui.button.singleplayer"),
+            _newGameButton
+        );
 
-        if (ui.ActionButton("Button_Singleplayer", _localization.GetRequired("ui.button.singleplayer"), singleplayerOptions))
-        {
-            singleplayerClicked = true;
-        }
-
-        y += UiMetrics.MENU_BUTTON_HEIGHT + BUTTON_GAP;
-        Widgets.ActionButtonOptions multiplayerOptions = _multiplayerButton with
-        {
-            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
-        };
-
-        if (ui.ActionButton("Button_Multiplayer", _localization.GetRequired("ui.button.multiplayer"), multiplayerOptions))
+        y += buttonHeight + BUTTON_GAP;
+        IntRect multiplayerRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+        if (ui.ActionButton(
+                "Button_Multiplayer",
+                multiplayerRect,
+                _localization.GetRequired("ui.button.multiplayer"),
+                _multiplayerButton
+            ))
         {
             menu.GoToPage(MenuPage.Multiplayer);
         }
 
-        y += UiMetrics.MENU_BUTTON_HEIGHT + DIVIDER_GAP;
-        ui.DottedDivider(Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, DIVIDER_HEIGHT));
+        y += buttonHeight + DIVIDER_GAP;
+        ui.DottedDivider(Widgets.Rect(buttonX, y, buttonWidth, DIVIDER_HEIGHT));
         y += DIVIDER_HEIGHT + DIVIDER_GAP;
 
-        Widgets.ActionButtonOptions settingsOptions = _optionsButton with
-        {
-            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
-        };
-
-        if (ui.ActionButton("Button_Settings", _localization.GetRequired("ui.button.settings"), settingsOptions))
+        IntRect settingsRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+        if (ui.ActionButton(
+                "Button_Settings",
+                settingsRect,
+                _localization.GetRequired("ui.button.settings"),
+                _optionsButton
+            ))
         {
             menu.GoToPage(MenuPage.Settings);
         }
 
-        y += UiMetrics.MENU_BUTTON_HEIGHT + BUTTON_GAP;
-        Widgets.ActionButtonOptions creditsOptions = _creditsButton with
-        {
-            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
-        };
-
-        if (ui.ActionButton("Button_Credits", _localization.GetRequired("ui.menu.credits"), creditsOptions))
+        y += buttonHeight + BUTTON_GAP;
+        IntRect creditsRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+        if (ui.ActionButton(
+                "Button_Credits",
+                creditsRect,
+                _localization.GetRequired("ui.menu.credits"),
+                _creditsButton
+            ))
         {
             menu.GoToPage(MenuPage.Credits);
         }
 
-        y += UiMetrics.MENU_BUTTON_HEIGHT + BUTTON_GAP;
-        Widgets.ActionButtonOptions quitOptions = _exitButton with
-        {
-            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
-        };
-
-        if (ui.ActionButton("Button_Quit", _localization.GetRequired("ui.button.quit"), quitOptions))
+        y += buttonHeight + BUTTON_GAP;
+        IntRect quitRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+        if (ui.ActionButton(
+                "Button_Quit",
+                quitRect,
+                _localization.GetRequired("ui.button.quit"),
+                _exitButton
+            ))
         {
             _entry.Quit();
         }
+
+        return new MenuColumnResult(continueHovered, singleplayerClicked);
     }
 
     /// <summary>Builds the Continue button state from the save listing and the recorded profile summary.</summary>
@@ -515,6 +518,10 @@ internal sealed class HomePage(
     }
 
     /// <summary>The Continue button state, resolved from the save listing and the recorded profile summary.</summary>
+    /// <summary>The menu button states the page reacts to after drawing the column.</summary>
+    private readonly record struct MenuColumnResult(bool ContinueHovered, bool SingleplayerClicked);
+
+    /// <summary>The Continue button state, resolved from the save listing and the profile summary.</summary>
     private readonly record struct ContinueState(
         ContinueDetails Details,
         bool HasLastSession,
@@ -524,6 +531,7 @@ internal sealed class HomePage(
     );
 
     /// <summary>The archive facts the Continue card shows, from the live listing or the recorded summary.</summary>
+    /// <summary>The card facts the Continue hover card draws.</summary>
     private readonly record struct ContinueDetails(
         string Name,
         GameMode Mode,

@@ -37,7 +37,38 @@ internal sealed class MessageModal(
     /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        ui.ModalFrame(PANEL_WIDTH, PANEL_HEIGHT, frame => DrawBody(frame, menu));
+        int padding = UiMetrics.MODAL_PADDING;
+        int contentWidth = PANEL_WIDTH - padding * 2;
+
+        using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
+        {
+            ui.Label(
+                _title,
+                Widgets.Rect(padding, 22, contentWidth, 30),
+                UiMetrics.MENU_TITLE_FONT,
+                UiTheme.Text,
+                Anchors.Center
+            );
+            ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
+            ui.Paragraph(
+                _body,
+                Widgets.Rect(padding, 86, contentWidth, 56),
+                UiMetrics.MENU_BODY_FONT,
+                UiTheme.TextMuted
+            );
+
+            IntRect okRect = Widgets.Rect(
+                PANEL_WIDTH - padding - UiMetrics.MODAL_BUTTON_WIDTH,
+                PANEL_HEIGHT - 68,
+                UiMetrics.MODAL_BUTTON_WIDTH,
+                UiMetrics.ICON_BUTTON_SIZE
+            );
+            string okLabel = _localization.GetRequired("ui.button.ok");
+            if (ui.ActionButton("Button_Ok", okRect, okLabel, _okButton))
+            {
+                menu.GoBack();
+            }
+        }
 
         return Result.FromSuccess();
     }
@@ -47,43 +78,6 @@ internal sealed class MessageModal(
     {
         _title = title;
         _body = body;
-        return new Modal(id: "core.message");
-    }
-
-    /// <summary>Draws the title, body, and Ok button inside the modal panel.</summary>
-    private void DrawBody(UIBuilder<Material> ui, Menu<Modal> menu)
-    {
-        int padding = UiMetrics.MODAL_PADDING;
-        int contentWidth = PANEL_WIDTH - padding * 2;
-
-        ui.Label(
-            _title,
-            Widgets.Rect(padding, 22, contentWidth, 30),
-            UiMetrics.MENU_TITLE_FONT,
-            UiTheme.Text,
-            Anchors.Center
-        );
-        ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
-        ui.Paragraph(
-            _body,
-            Widgets.Rect(padding, 86, contentWidth, 56),
-            UiMetrics.MENU_BODY_FONT,
-            UiTheme.TextMuted
-        );
-
-        Widgets.ActionButtonOptions okOptions = _okButton with
-        {
-            Rect = Widgets.Rect(
-                PANEL_WIDTH - padding - UiMetrics.MODAL_BUTTON_WIDTH,
-                PANEL_HEIGHT - 68,
-                UiMetrics.MODAL_BUTTON_WIDTH,
-                UiMetrics.ICON_BUTTON_SIZE
-            ),
-        };
-
-        if (ui.ActionButton("Button_Ok", _localization.GetRequired("ui.button.ok"), okOptions))
-        {
-            menu.GoBack();
-        }
+        return Modal;
     }
 }

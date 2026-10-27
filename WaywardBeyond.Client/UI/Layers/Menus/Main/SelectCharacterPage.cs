@@ -121,25 +121,16 @@ internal sealed class SelectCharacterPage(
     /// <summary>Draws the page footer and runs the action that the player picked.</summary>
     private void DrawFooter(UIBuilder<Material> ui, in MenuLayout layout, Menu<MenuPage> menu)
     {
-        bool canLaunch = _characterSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave != null;
-        var back = new MenuLayout.MenuFooterButton(
-            "Button_Back",
-            _localization.GetRequired("ui.button.return"),
-            _returnButton
-        );
-        var primary = new MenuLayout.MenuFooterButton(
-            "Button_LoadSave",
-            _localization.GetRequired("ui.button.loadSave"),
-            _launchButton with { Enabled = canLaunch }
-        );
-
-        MenuLayout.MenuFooterResult footer = layout.DrawFooter(ui, null, back, primary);
-        if (footer.BackClicked)
+        string backLabel = _localization.GetRequired("ui.button.return");
+        if (ui.ActionButton("Button_Back", layout.ReturnButton, backLabel, _returnButton))
         {
             menu.GoToPage(MenuPage.Home);
         }
 
-        if (footer.PrimaryClicked)
+        bool canLaunch = _characterSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave != null;
+        string loadLabel = _localization.GetRequired("ui.button.loadSave");
+        var loadOptions = _launchButton with { Enabled = canLaunch };
+        if (ui.ActionButton("Button_LoadSave", layout.PrimaryButton, loadLabel, loadOptions))
         {
             Task.Run(_gameSaveManager.Load);
         }
