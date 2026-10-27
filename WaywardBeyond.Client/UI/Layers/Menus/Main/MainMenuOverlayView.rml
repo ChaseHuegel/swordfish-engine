@@ -1,0 +1,38 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      Class="MainMenuOverlayView"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Element layout="none" width="100%" height="100%" padding="20" passthrough="true">
+        <Button id="Button_Feedback"
+                param:variant="secondary"
+                param:compact="true"
+                param:doubleBorder="false"
+                onclick="OnFeedback"
+                width="fit"
+                height="32"
+                anchor="Bottom Left">
+            <Text class="wb-button-label wb-button-label-compact" text="@L('ui.button.feedback.send')" anchor="Center" />
+        </Button>
+
+        <Element layout="horizontal"
+                 width="fit"
+                 height="fit"
+                 spacing="8"
+                 anchor="Bottom Right">
+            <IconButton id="Button_Discord"
+                        param:glyph="discord"
+                        param:brand="true"
+                        param:size="40"
+                        param:glyphSize="32"
+                        onclick="OnDiscord" />
+            <IconButton id="Button_Steam"
+                        param:glyph="steam"
+                        param:brand="true"
+                        param:size="40"
+                        param:glyphSize="32"
+                        onclick="OnSteam" />
+        </Element>
+    </Element>
+</Reef>

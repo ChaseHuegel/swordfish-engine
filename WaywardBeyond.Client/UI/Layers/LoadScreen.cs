@@ -1,15 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Numerics;
-using System.Text;
 using Reef;
-using Reef.Constraints;
-using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.UI.Layers;
@@ -19,19 +14,13 @@ internal sealed class LoadScreen(
     in IAssetDatabase<LocalizedTags> localizedTagDatabase
 ) : IUILayer
 {
+    private readonly LoadScreenView _view = new();
+
     private const float WORDS_PER_MINUTE = 150;
     private const float SECONDS_PER_WORD = 60f / WORDS_PER_MINUTE;
     private const float STATUS_DWELL_SECONDS = 2f;
     private const float HINT_DWELL_SECONDS = 4f;
     private const float HINT_START_DELAY_SECONDS = 1f;
-    private const float FADE_IN_SECONDS = 0.3f;
-    private const int CONTENT_WIDTH = 760;
-    private const int CONTENT_HEIGHT = 74;
-    private const int SIGNAL_WIDTH = 160;
-    private const int SIGNAL_HEIGHT = 1;
-    private const int SIGNAL_SEGMENT_WIDTH = 48;
-    private const int SIGNAL_TRAVEL = SIGNAL_WIDTH + SIGNAL_SEGMENT_WIDTH * 2;
-    private const float SIGNAL_PERIOD_SECONDS = 2f;
 
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase = localizedTagDatabase;
     private readonly Randomizer _randomizer = new();
@@ -74,71 +63,10 @@ internal sealed class LoadScreen(
         _currentTime += delta;
         UpdateCopy();
 
-        float contentFade = Math.Clamp((float)(_currentTime / FADE_IN_SECONDS), 0f, 1f);
-        float statusFade = Math.Clamp(
-            (float)((_currentTime - _statusStartTime) / FADE_IN_SECONDS),
-            0f,
-            1f
+        _view.Render(
+            ui,
+            new LoadScreenState(_status, _hint, _currentTime, _statusStartTime, _hintStartTime)
         );
-        float hintFade = Math.Clamp(
-            (float)((_currentTime - _hintStartTime) / FADE_IN_SECONDS),
-            0f,
-            1f
-        );
-
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            };
-
-            using (ui.Element())
-            {
-                ui.Color = UiTheme.ScrimHeavy;
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                };
-            }
-
-            using (ui.Element())
-            {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(CONTENT_WIDTH),
-                    Height = new Fixed(CONTENT_HEIGHT),
-                };
-                ui.ClipConstraints = new Constraints
-                {
-                    Width = new Fixed(CONTENT_WIDTH),
-                    Height = new Fixed(CONTENT_HEIGHT),
-                };
-
-                ui.Label(
-                    _status,
-                    Widgets.Rect(0, 0, CONTENT_WIDTH, 30),
-                    UiMetrics.BODY_FONT,
-                    Fade(UiTheme.Text, contentFade * statusFade),
-                    Anchors.Center
-                );
-
-                DrawSignal(ui, contentFade);
-
-                ui.Label(
-                    FormatHint(_hint),
-                    Widgets.Rect(0, 50, CONTENT_WIDTH, 24),
-                    UiMetrics.SMALL_FONT,
-                    Fade(UiTheme.TextMuted, contentFade * hintFade),
-                    Anchors.Center
-                );
-            }
-        }
 
         return Result.FromSuccess();
     }
@@ -164,39 +92,6 @@ internal sealed class LoadScreen(
             _lastHint = _hint;
             _hintStartTime = _currentTime;
             _hintEndTime = _currentTime + HINT_DWELL_SECONDS + CountWords(_hint) * SECONDS_PER_WORD;
-        }
-    }
-
-    private void DrawSignal(UIBuilder<Material> ui, float fade)
-    {
-        int lineX = (CONTENT_WIDTH - SIGNAL_WIDTH) / 2;
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = Fade(UiTheme.Border, fade);
-            ui.Constraints = Widgets.RectConstraints(
-                Widgets.Rect(lineX, 38, SIGNAL_WIDTH, SIGNAL_HEIGHT)
-            );
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(SIGNAL_WIDTH),
-                Height = new Fixed(SIGNAL_HEIGHT),
-            };
-
-            float progress = (float)(_currentTime / SIGNAL_PERIOD_SECONDS % 1d);
-            int segmentX = (int)(progress * SIGNAL_TRAVEL) - SIGNAL_SEGMENT_WIDTH;
-
-            using (ui.Element())
-            {
-                ui.Color = Fade(UiTheme.Accent, fade);
-                ui.Constraints = new Constraints
-                {
-                    X = new Fixed(segmentX),
-                    Y = new Fixed(0),
-                    Width = new Fixed(SIGNAL_SEGMENT_WIDTH),
-                    Height = new Fixed(SIGNAL_HEIGHT),
-                };
-            }
         }
     }
 
@@ -239,40 +134,6 @@ internal sealed class LoadScreen(
         }
 
         return values[(index + 1) % values.Count];
-    }
-
-    private static string FormatHint(string hint)
-    {
-        if (hint.IndexOf('[') < 0)
-        {
-            return hint;
-        }
-
-        var builder = new StringBuilder(hint.Length + 16);
-        var inKey = false;
-        for (var i = 0; i < hint.Length; i++)
-        {
-            char c = hint[i];
-            if (c == '[' && !inKey)
-            {
-                builder.Append(UiTheme.AccentRichText + " ");
-                inKey = true;
-            }
-
-            builder.Append(c);
-            if (c == ']' && inKey)
-            {
-                builder.Append("#R ");
-                inKey = false;
-            }
-        }
-
-        return builder.ToString();
-    }
-
-    private static Vector4 Fade(Vector4 color, float alpha)
-    {
-        return new Vector4(color.X, color.Y, color.Z, color.W * alpha);
     }
 
     private static int CountWords(in string text)

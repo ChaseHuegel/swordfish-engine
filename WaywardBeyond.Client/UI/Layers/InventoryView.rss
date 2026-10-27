@@ -1,0 +1,58 @@
+.wb-inventory-panel {
+    --extends: wb-panel;
+    padding: 2px;
+}
+
+.wb-inventory-panel-inner {
+    --extends: wb-panel-inner;
+    padding: 16px;
+}
+
+.wb-inventory-footer {
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+    layout: horizontal;
+    gap: 8px;
+    padding: 12px 8px;
+}
+
+.wb-inventory-primary-bar {
+    color: var(--wb-primary);
+}
+
+.wb-inventory-footer-text {
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.wb-inventory-footer-empty {
+    --extends: wb-inventory-footer-text;
+    color: var(--wb-text-dim);
+}
+
+.wb-inventory-footer-unknown {
+    --extends: wb-inventory-footer-text;
+    color: var(--wb-text-muted);
+}
+
+.wb-inventory-footer-name {
+    --extends: wb-inventory-footer-text;
+    color: var(--wb-primary-bright);
+}
+
+.wb-inventory-badge {
+    color: var(--wb-accent-dark);
+    border: 1px var(--wb-border-hover);
+    layout: horizontal;
+    gap: 2px;
+    padding: 6px 0;
+}
+
+.wb-inventory-badge-label {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}

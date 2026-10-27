@@ -53,13 +53,15 @@ internal sealed class FakeInputService : IInputService
 
     public Vector2 CursorPosition { get; set; }
 
+    public float Scroll { get; set; }
+
     public bool IsMouseHeld(MouseButton mouseButton) => HeldButtons.Contains(mouseButton);
 
     public bool IsMousePressed(MouseButton mouseButton) => false;
 
     public bool IsMouseReleased(MouseButton mouseButton) => false;
 
-    public float GetMouseScroll() => 0f;
+    public float GetMouseScroll() => Scroll;
 
     public bool IsKeyHeld(Key key) => HeldKeys.Contains(key);
 

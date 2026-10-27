@@ -11,17 +11,54 @@ internal sealed class ChoiceEntry<T>(
     Action<T> set,
     Func<T> defaultValue,
     IReadOnlyList<T> options,
-    Func<T, string> optionLabel,
+    Func<T, string> optionKey,
     Func<bool>? isEnabled = null
 ) : SettingsEntry<T>(id, labelKey, get, set, defaultValue, isEnabled)
 {
     public IReadOnlyList<T> Options { get; } = options;
 
-    public string GetOptionLabel(T value) => optionLabel(value);
+    public string GetOptionKey(T value) => optionKey(value);
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer)
+    public override SettingsRowState Snapshot()
     {
-        renderer.DrawChoice(this);
+        var keys = new string[Options.Count];
+        for (var i = 0; i < Options.Count; i++)
+        {
+            keys[i] = optionKey(Options[i]);
+        }
+
+        return SettingsRowState.Choice(
+            Id,
+            LabelKey,
+            CanEdit,
+            keys,
+            Math.Max(0, IndexOf(Value))
+        );
+    }
+
+    /// <inheritdoc/>
+    public override bool TrySetOptionIndex(int index)
+    {
+        if (index < 0 || index >= Options.Count)
+        {
+            return false;
+        }
+
+        SetValue(Options[index]);
+        return true;
+    }
+
+    private int IndexOf(T value)
+    {
+        for (var i = 0; i < Options.Count; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(Options[i], value))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }

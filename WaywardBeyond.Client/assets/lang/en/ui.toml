@@ -76,8 +76,6 @@
 "ui.field.character.name.placeholder" = "Enter name"
 "ui.field.character.species" = "Species"
 "ui.field.character.gender" = "Gender"
-"ui.label.character.active" = "Active colonist"
-"ui.label.character.none" = "No active colonist"
 "ui.label.character.assignment" = "Assignment"
 "ui.label.character.ready" = "Ready for launch"
 "ui.label.character.level" = "Level"

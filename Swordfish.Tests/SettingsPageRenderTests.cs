@@ -1,3 +1,4 @@
+using System;
 #nullable enable
 using System.Collections.Generic;
 using System.Numerics;
@@ -12,7 +13,6 @@ using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Settings;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 using Xunit;
 
@@ -25,16 +25,18 @@ public class SettingsPageRenderTests
     {
         const int windowWidth = 1920;
         const int windowHeight = 1080;
-        SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
+        int pageWidth = Math.Max(320, Math.Min(windowWidth - 80, 1280));
+        int pageHeight = Math.Max(280, Math.Min(windowHeight - 240, 840));
         List<RenderCommand<Material>> commands = RenderSettingsPage(windowWidth, windowHeight);
 
         IntRect pageRect = FindRequired(commands, "SettingsPage").Rect;
-        Assert.Equal((windowWidth - layout.PageWidth) / 2, pageRect.Left);
-        Assert.Equal((windowHeight - layout.PageHeight) / 2, pageRect.Top);
-        Assert.Equal(layout.PageWidth, pageRect.Size.X);
-        Assert.Equal(layout.PageHeight, pageRect.Size.Y);
+        Assert.Equal((windowWidth - pageWidth) / 2, pageRect.Left);
+        Assert.Equal((windowHeight - pageHeight) / 2, pageRect.Top);
+        Assert.Equal(pageWidth, pageRect.Size.X);
+        Assert.Equal(pageHeight, pageRect.Size.Y);
 
-        int paneLeft = pageRect.Left + layout.TrayWidth + SettingsLayout.PANEL_GAP;
+        IntRect tray = FindRequired(commands, "Settings.Tray").Rect;
+        int paneLeft = tray.Right + 16;
         int paneRight = pageRect.Right;
 
         string[] controlIds =
@@ -66,6 +68,43 @@ public class SettingsPageRenderTests
     }
 
     [Fact]
+    public void RowAndTrayLabelsAreVerticallyCentered()
+    {
+        List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);
+
+        RenderCommand<Material> rowLabel = FindText(commands, "ui.settings.option.vsync");
+        RenderCommand<Material> trayLabel = FindText(commands, "ui.settings.category.audio");
+        RenderCommand<Material> title = FindText(commands, "ui.settings.category.display");
+
+        Assert.Equal(VerticalAlignment.Center, rowLabel.FontOptions.VerticalAlignment);
+        Assert.Equal(VerticalAlignment.Center, trayLabel.FontOptions.VerticalAlignment);
+        Assert.Equal(VerticalAlignment.Center, title.FontOptions.VerticalAlignment);
+    }
+
+    [Fact]
+    public void SliderButtonsCenterVerticallyInRow()
+    {
+        List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);
+
+        IntRect track = FindRequired(commands, "Settings.Fov.track").Rect;
+        IntRect minus = FindRequired(commands, "Settings.Fov.minus").Rect;
+        IntRect plus = FindRequired(commands, "Settings.Fov.plus").Rect;
+
+        Assert.Equal(track.Top + track.Size.Y / 2, minus.Top + minus.Size.Y / 2);
+        Assert.Equal(track.Top + track.Size.Y / 2, plus.Top + plus.Size.Y / 2);
+    }
+
+    [Fact]
+    public void LabelsResolveThroughLocalizationAtRenderTime()
+    {
+        List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080, new StubLocalization("<", ">"));
+
+        Assert.Contains(commands, command => command.Text == "<ui.settings.option.vsync>");
+        Assert.Contains(commands, command => command.Text == "<ui.settings.category.audio>");
+        Assert.DoesNotContain(commands, command => command.Text == "ui.settings.option.vsync");
+    }
+
+    [Fact]
     public void ResetRowUsesDangerStyling()
     {
         List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);
@@ -73,7 +112,7 @@ public class SettingsPageRenderTests
         RenderCommand<Material> reset = FindRequired(commands, "Settings.Reset.display");
 
         Assert.Equal(1, reset.Border.Thickness);
-        Assert.Equal(UiTheme.Danger, reset.Border.Color);
+        Assert.Equal(new Vector4(224f / 255f, 79f / 255f, 122f / 255f, 1f), reset.Border.Color);
     }
 
     [Fact]
@@ -81,8 +120,6 @@ public class SettingsPageRenderTests
     {
         const int windowWidth = 800;
         const int windowHeight = 600;
-        SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
-        Assert.True(layout.UseTabs);
         List<RenderCommand<Material>> commands = RenderSettingsPage(windowWidth, windowHeight);
 
         Assert.True(
@@ -98,7 +135,10 @@ public class SettingsPageRenderTests
         Assert.Contains(commands, command => command.ID == "Settings.Cancel");
     }
 
-    private static List<RenderCommand<Material>> RenderSettingsPage(int width, int height)
+    private static List<RenderCommand<Material>> RenderSettingsPage(
+        int width,
+        int height,
+        ILocalization? localization = null)
     {
         //  The config manager and sound service are only touched on apply or click,
         //  which these render-only tests never do.
@@ -114,7 +154,7 @@ public class SettingsPageRenderTests
             soundEffectService: null!,
             windowContext: new FakeWindowContext(),
             inputService: new FakeInputService(),
-            localization: new StubLocalization()
+            localization: localization ?? new StubLocalization()
         );
 
         page.OnEnter();
@@ -122,6 +162,19 @@ public class SettingsPageRenderTests
         var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), new UIController());
         page.RenderPage(delta: 0d, ui, menu: null!);
         return ui.Build(delta: 0d);
+    }
+
+    private static RenderCommand<Material> FindText(List<RenderCommand<Material>> commands, string text)
+    {
+        for (var i = 0; i < commands.Count; i++)
+        {
+            if (commands[i].Text == text)
+            {
+                return commands[i];
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No render command found for text \"{text}\".");
     }
 
     private static RenderCommand<Material> FindRequired(List<RenderCommand<Material>> commands, string id)
@@ -145,13 +198,13 @@ public class SettingsPageRenderTests
             && inner.Bottom <= outer.Bottom;
     }
 
-    private sealed class StubLocalization : ILocalization
+    private sealed class StubLocalization(string prefix = "", string suffix = "") : ILocalization
     {
-        public string? GetString(string value) => value;
+        public string? GetString(string value) => prefix + value + suffix;
 
-        public string? GetString(string value, string cultureName) => value;
+        public string? GetString(string value, string cultureName) => prefix + value + suffix;
 
-        public string? GetString(string value, System.Globalization.CultureInfo cultureInfo) => value;
+        public string? GetString(string value, System.Globalization.CultureInfo cultureInfo) => prefix + value + suffix;
     }
 
     private sealed class StubTextEngine : ITextEngine

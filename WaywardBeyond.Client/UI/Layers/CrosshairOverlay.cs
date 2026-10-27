@@ -1,17 +1,16 @@
 ﻿using Microsoft.Extensions.Logging;
 using Reef;
-using Reef.Constraints;
-using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
 internal class CrosshairOverlay : IUILayer
 {
+    private readonly CrosshairView _view = new();
+
     private readonly GameplayConfig _gameplayConfig;
     private readonly Material? _crosshairMaterial;
     
@@ -41,16 +40,8 @@ internal class CrosshairOverlay : IUILayer
             return Result.FromSuccess();
         }
         
-        using (ui.Image(_crosshairMaterial))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed((int)(ui.Width * 0.01f)),
-                Height = new Fixed((int)(ui.Width * 0.01f)),
-            };
-        }
-        
+        _view.Render(ui, new CrosshairState(_crosshairMaterial));
+
         return Result.FromSuccess();
     }
 }

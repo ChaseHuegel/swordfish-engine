@@ -1,0 +1,163 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      Class="SelectSaveView"
+      Context="SelectSaveState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Page param:maxWidth="1160" param:maxHeight="560">
+        <Element layout="vertical" width="fill" height="fill" padding="0 12 0 0" spacing="12">
+
+            <Element class="wb-split" class:wb-split-narrow="@(!UsesStandardLayout(ui.Width))" width="fill" height="fill">
+                <Element visible="@(!UsesStandardLayout(ui.Width))" layout="horizontal" width="fill" height="40" spacing="8">
+                    <Tab id="ArchivesTab" param:selected="@(context.Tab == 0)" onclick="OnSelectTab(0)" width="fill" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.level.list')" width="fill" height="fill" />
+                    </Tab>
+                    <Tab id="TelemetryTab" param:selected="@(context.Tab == 1)" onclick="OnSelectTab(1)" width="fill" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.level.detail')" width="fill" height="fill" />
+                    </Tab>
+                </Element>
+                <Panel class="wb-split-third" class:wb-split-fill="@(!UsesStandardLayout(ui.Width))" visible="@(UsesStandardLayout(ui.Width) || context.Tab == 0)" height="fill">
+                    <Content name="header">
+                        <Text text="@L('ui.panel.level.list')" class="wb-panel-header" width="fill" height="18" />
+                    </Content>
+                    <Element layout="vertical" width="fill" height="fill">
+                        <EmptyState visible="@(context.Saves.Count == 0)">
+                            <Text text="@L('ui.label.none')"
+                                  class="wb-text-body wb-text-dim"
+                                  width="fill"
+                                  height="fill"
+                                  text-align="center"
+                                  vertical-align="middle" />
+                        </EmptyState>
+                        <ScrollArea id="SelectSave.Archives"
+                                    context="@Scroll"
+                                    visible="@(context.Saves.Count &gt; 0)"
+                                    width="fill"
+                                    height="fill">
+                            <Element id="SelectSave.ArchivesContent" layout="vertical" width="fill" height="fit" spacing="8">
+                                <ForEach in="@context.Saves" as="save">
+                                    <Card param:selected="@save.Selected"
+                                             id="Button_SelectSave_{save.Name}"
+                                             onclick="OnSelectSave(save.Guid)"
+                                             width="fill"
+                                             height="52">
+                                        <Element layout="horizontal"
+                                                 width="fill"
+                                                 height="fill"
+                                                 padding="8 4 8 4"
+                                                 spacing="8">
+                                            <Element layout="vertical" width="fill" height="fill" spacing="2">
+                                                <Element layout="horizontal" width="fill" height="22" spacing="8">
+                                                    <Text text="@save.Name"
+                                                          class="wb-text-body"
+                                                          class:wb-text-accent="@save.Selected"
+                                                          width="fill"
+                                                          height="fill" />
+                                                    <Text text="@ModeTag(save.Mode)"
+                                                          class="wb-save-mode"
+                                                          class:wb-text-dim="@save.Creative"
+                                                          width="75"
+                                                          height="fill"
+                                                          text-align="right" />
+                                                </Element>
+                                                <Text text="@LastPlayedLine(save.LastPlayedMs)"
+                                                      class="wb-save-meta"
+                                                      width="fill"
+                                                      height="16" />
+                                            </Element>
+                                            <IconButton id="Button_DeleteSave_{save.Name}"
+                                                        anchor="Center"
+                                                        param:glyph="trash"
+                                                        param:tone="danger"
+                                                        param:size="28"
+                                                        param:glyphSize="20"
+                                                        onclick="OnDeleteSave(save.Guid)" />
+                                        </Element>
+                                    </Card>
+                                </ForEach>
+                            </Element>
+                        </ScrollArea>
+
+                        <Element visible="@context.CanCreateSave" height="8" />
+                        <Button id="Button_NewSave"
+                                visible="@context.CanCreateSave"
+                                param:variant="subtle"
+                                param:doubleBorder="false"
+                                onclick="OnNewSave"
+                                width="fill"
+                                height="32">
+                            <Text class="wb-button-label" text="@('+ ' + L('ui.button.level.new'))" anchor="Center" />
+                        </Button>
+                    </Element>
+                </Panel>
+                <Panel class="wb-split-fill" visible="@(UsesStandardLayout(ui.Width) || context.Tab == 1)" height="fill">
+                    <Content name="header">
+                        <Text text="@L('ui.panel.level.detail')" class="wb-panel-header" width="fill" height="18" />
+                    </Content>
+                    <Text visible="@(!context.HasActive)"
+                          text="@L('ui.label.none')"
+                          class="wb-text-body wb-text-dim"
+                          width="fill"
+                          height="fill"
+                          text-align="center"
+                          vertical-align="middle" />
+                    <Element visible="@context.HasActive" layout="vertical" width="fill" height="fill">
+                        <Text text="@context.Detail.Name" class="wb-text-title" width="fill" height="28" />
+                        <Element height="8" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="16" />
+
+                        <Element layout="horizontal" width="fill" height="22">
+                            <Text text="@L('ui.label.level.mode')" class="wb-text-small wb-text-muted" width="120" height="fill" />
+                            <Text text="@ModeName(context.Detail.Mode)" class="wb-text-value" width="fill" height="fill" />
+                        </Element>
+                        <Element height="6" />
+                        <Element layout="horizontal" width="fill" height="22">
+                            <Text text="@L('ui.label.level.seed')" class="wb-text-small wb-text-muted" width="120" height="fill" />
+                            <Text text="@context.Detail.Seed" class="wb-text-value" width="fill" height="fill" />
+                        </Element>
+                        <Element height="6" />
+                        <Element layout="horizontal" width="fill" height="22">
+                            <Text text="@L('ui.label.timePlayed')" class="wb-text-small wb-text-muted" width="120" height="fill" />
+                            <Text text="@TimePlayedText(context.Detail.AgeMs)" class="wb-text-value" width="fill" height="fill" />
+                        </Element>
+                        <Element height="6" />
+                        <Element layout="horizontal" width="fill" height="22">
+                            <Text text="@L('ui.label.lastPlayed')" class="wb-text-small wb-text-muted" width="120" height="fill" />
+                            <Text text="@LastPlayedText(context.Detail.LastPlayedMs)" class="wb-text-value" width="fill" height="fill" />
+                        </Element>
+                    </Element>
+                </Panel>
+            </Element>
+
+            <PageFooter width="fill" height="52">
+                <Content name="back">
+                    <Button id="Button_Back"
+                        param:variant="secondary"
+                        onclick="OnBack"
+                        anchor="Center"
+                        width="170"
+                        height="40">
+                        <Text class="wb-button-label"
+                            text="@(context.Remote ? L('ui.button.server.list') : L('ui.button.back'))"
+                            anchor="Center" />
+                    </Button>
+                </Content>
+                <Content name="primary">
+                    <Button id="Button_SelectSave"
+                        param:variant="primary"
+                        param:enabled="@context.HasActive"
+                        disabled="@(!context.HasActive)"
+                        onclick="OnNext"
+                        anchor="Center"
+                        width="220"
+                        height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.level.select')" anchor="Center" />
+                    </Button>
+                </Content>
+            </PageFooter>
+        </Element>
+    </Page>
+</Reef>

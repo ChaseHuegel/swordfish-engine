@@ -1,0 +1,29 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      Class="ConfirmModalView"
+      Context="ConfirmModalState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
+
+    <Element class="wb-scrim" layout="none" width="100%" height="100%">
+        <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
+            <Modal param:size="compact">
+                <Content name="header">
+                    <Text text="@context.Title" class="wb-modal-title" width="fill" height="30" />
+                </Content>
+
+                <Text text="@context.Body" class="wb-modal-body" width="fill" height="fill" wrap="true"  vertical-align="top" />
+
+                <Content name="actions">
+                    <Button id="Button_No" param:variant="secondary" onclick="OnCancel" width="180" height="40">
+                        <Text class="wb-button-label" text="@L(context.CancelKey)" anchor="Center" />
+                    </Button>
+                    <Element width="fill" />
+                    <Button id="Button_Yes" param:variant="danger" onclick="OnConfirm" width="180" height="40">
+                        <Text class="wb-button-label" text="@L(context.ConfirmKey)" anchor="Center" />
+                    </Button>
+                </Content>
+            </Modal>
+        </Element>
+    </Element>
+</Reef>

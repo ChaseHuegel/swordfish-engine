@@ -1,0 +1,15 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="StatLinesView"
+      Context="StatLinesState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI">
+
+    <ForEach in="@context.Lines" as="line">
+        <Text class="wb-stat-line"
+              class:wb-text-danger="@line.Danger"
+              class:wb-text-warning="@line.Warning"
+              text="@line.Text"
+              wrap="false" />
+    </ForEach>
+</Reef>

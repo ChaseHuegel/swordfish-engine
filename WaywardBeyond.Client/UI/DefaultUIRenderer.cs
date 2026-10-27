@@ -29,7 +29,7 @@ internal class DefaultUIRenderer : IAutoActivate
         _reefContext = reefContext;
         _uiSettings = uiSettings;
         _layers = layers;
-        _reefContext.Builder.DefaultFontID = UiTheme.FONT_UI;
+        _reefContext.Builder.DefaultFontID = WbPalette.FontUi;
 
         var toggleShortcut = new Shortcut
         {

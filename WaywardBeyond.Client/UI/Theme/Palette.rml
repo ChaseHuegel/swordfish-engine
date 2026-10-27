@@ -1,0 +1,4 @@
+<Reef xmlns="Reef"
+      Class="WbPalette"
+      Palette="wb"
+      Namespace="WaywardBeyond.Client.UI.Theme" />

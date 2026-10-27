@@ -1,0 +1,50 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="Stepper"
+      Access="internal"
+      Parameters="StepperParameters"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-stepper"
+             class:wb-stepper-enabled="@param.Enabled"
+             layout="none"
+             padding="1"
+             clip="true">
+        <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
+            <Element class="wb-stepper-arrow"
+                     class:wb-stepper-arrow-enabled="@(param.Enabled &amp;&amp; param.CanDecrease)"
+                     id="@(param.Id + '.previous')"
+                     disabled="@(!param.Enabled || !param.CanDecrease)"
+                     onclick="@param.OnStep(param.Id, -1)"
+                     width="32"
+                     height="fill">
+                <Text text="&lt;"
+                      class="wb-stepper-arrow-glyph"
+                      anchor="Center"
+                      width="fill"
+                      height="fit" />
+            </Element>
+            <Element class="wb-stepper-sep" width="1" height="fill" />
+            <Text text="@param.Value"
+                  class="wb-stepper-value"
+                  class:wb-stepper-value-enabled="@param.Enabled"
+                  anchor="Center"
+                  width="fill"
+                  height="fit" />
+            <Element class="wb-stepper-sep" width="1" height="fill" />
+            <Element class="wb-stepper-arrow"
+                     class:wb-stepper-arrow-enabled="@(param.Enabled &amp;&amp; param.CanIncrease)"
+                     id="@(param.Id + '.next')"
+                     disabled="@(!param.Enabled || !param.CanIncrease)"
+                     onclick="@param.OnStep(param.Id, 1)"
+                     width="32"
+                     height="fill">
+                <Text text="&gt;"
+                      class="wb-stepper-arrow-glyph"
+                      anchor="Center"
+                      width="fill"
+                      height="fit" />
+            </Element>
+        </Element>
+    </Element>
+</Reef>

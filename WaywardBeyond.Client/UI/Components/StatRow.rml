@@ -1,0 +1,10 @@
+<Reef xmlns="Reef"
+      Class="StatRow"
+      Access="internal"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element layout="horizontal" width="fit" height="18">
+        <Content name="label" />
+        <Content name="value" />
+    </Element>
+</Reef>

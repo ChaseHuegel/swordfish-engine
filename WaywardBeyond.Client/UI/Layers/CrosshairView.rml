@@ -1,0 +1,11 @@
+<Reef xmlns="Reef"
+      Class="CrosshairView"
+      Context="CrosshairState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Image source="@context.Material"
+           anchor="Center"
+           width="@(ui.Width / 100)"
+           height="@(ui.Width / 100)" />
+</Reef>

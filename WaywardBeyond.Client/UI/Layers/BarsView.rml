@@ -1,0 +1,49 @@
+<Reef xmlns="Reef"
+      Class="BarsView"
+      Context="BarsState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Element passthrough="true"
+             anchor="Center"
+             layout="vertical"
+             spacing="8">
+        <ForEach in="@context.Bars" as="bar">
+            <Element layout="vertical">
+                <Element passthrough="true"
+                         class="wb-bar"
+                         layout="vertical"
+                         spacing="6"
+                         color="@PanelColor(bar.Alpha)"
+                         anchor="Center">
+                    <Element passthrough="true"
+                             class="wb-bar-row"
+                             layout="none">
+                        <Text text="@bar.Text"
+                              class="wb-bar-text"
+                              color="@TextColor(bar.Alpha)"
+                              anchor="Left Center"
+                              wrap="false" />
+                        <If condition="@bar.HasSubtext">
+                            <Text text="@bar.Subtext"
+                                  class="wb-bar-text"
+                                  color="@TextColor(bar.Alpha)"
+                                  anchor="Right Center"
+                                  wrap="false" />
+                        </If>
+                    </Element>
+                    <ProgressBar context="@Track(bar)">
+                        <ForEach in="@DividerPositions(bar.SegmentCount)" as="divider">
+                            <Element class="wb-bar-divider"
+                                     color="@PanelColor(bar.Alpha)"
+                                     x="@divider" />
+                        </ForEach>
+                    </ProgressBar>
+                </Element>
+
+                <Element class="wb-bar-border"
+                         color="@BorderColor(bar.Alpha)" />
+            </Element>
+        </ForEach>
+    </Element>
+</Reef>

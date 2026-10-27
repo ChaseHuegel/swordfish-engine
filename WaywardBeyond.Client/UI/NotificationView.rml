@@ -1,0 +1,29 @@
+<Reef xmlns="Reef"
+      Class="NotificationView"
+      Context="NotificationViewState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI">
+
+    <If condition="@context.HasBackground">
+        <Element passthrough="true"
+                 layout="horizontal"
+                 spacing="10"
+                 padding="0 0 8 0"
+                 color="@PanelColor(context.Alpha)">
+            <Element passthrough="true"
+                     color="@AccentColor(context.Alpha)"
+                     width="3"
+                     height="fill" />
+            <Text text="@context.Text"
+                  color="@TextColor(context.Alpha)"
+                  font-size="16"
+                  wrap="false" />
+        </Element>
+    </If>
+    <Else>
+        <Text text="@context.Text"
+              color="@TextColor(context.Alpha)"
+              font-size="16"
+              wrap="false" />
+    </Else>
+</Reef>

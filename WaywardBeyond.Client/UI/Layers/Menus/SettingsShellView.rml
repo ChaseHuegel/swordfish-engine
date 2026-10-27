@@ -1,0 +1,131 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      Class="SettingsShellView"
+      Context="SettingsShellState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus">
+
+    <Page param:maxWidth="1280" param:maxHeight="840" param:minWidth="320" param:minHeight="280" param:insetX="40">
+        <Element id="SettingsPage"
+                 layout="vertical"
+                 width="fill"
+                 height="fill"
+                 clip="true"
+                 padding="0 12 0 0"
+                 spacing="12">
+
+            <Element visible="@(UsesCompactLayout(ui.Width))" layout="horizontal" width="fill" height="fill" spacing="16">
+                <Element id="Settings.Tray"
+                         class="wb-panel"
+                         layout="none"
+                         width="24%"
+                         min-width="220"
+                         max-width="300"
+                         height="fill"
+                         padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
+                        <Text text="@L('ui.settings.panel.categories')" class="wb-text-small" width="fill" height="20" text-align="center" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+
+                        <ForEach in="@context.Categories" as="category" index="i">
+                            <Element class="wb-settings-tray-item"
+                                     class:wb-settings-tray-item-selected="@(i == context.CategoryIndex)"
+                                     id="Settings.Category.{category.Id}"
+                                     layout="none"
+                                     clip="true"
+                                     onclick="OnSelectCategory(i)"
+                                     width="fill"
+                                     height="40">
+                                <Element class="wb-settings-tray-caret"
+                                         visible="@(i == context.CategoryIndex)"
+                                         x="2"
+                                         y="6"
+                                         width="3"
+                                         height="28" />
+                                <Element layout="none" width="fill" height="fill" padding="16 0 6 0">
+                                    <Text text="@L(category.LabelKey)" class="wb-settings-tray-label" width="fill" height="fill" />
+                                </Element>
+                            </Element>
+                            <Element height="4" />
+                        </ForEach>
+                    </Element>
+                </Element>
+
+                <Element class="wb-panel" layout="none" width="fill" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="24">
+                        <Text text="@L(context.TitleKey)" class="wb-pane-title" width="fill" height="28" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+                        <ScrollArea id="Settings.Rows" context="@Scroll" width="fill" height="fill">
+                            <SettingsRows id="Settings.RowsContent" context="@RowsState" />
+                        </ScrollArea>
+                    </Element>
+                </Element>
+            </Element>
+
+            <Element visible="@(!UsesCompactLayout(ui.Width))" layout="vertical" width="fill" height="fill" spacing="0">
+                <Element layout="horizontal" width="fill" height="40" spacing="8">
+                    <ForEach in="@context.Categories" as="category" index="i">
+                        <Tab param:selected="@(i == context.CategoryIndex)"
+                             id="Settings.Tab.{category.Id}"
+                             onclick="OnSelectCategory(i)"
+                             width="fill"
+                             height="fill">
+                            <Text class="wb-tab-label" text="@L(category.LabelKey)" width="fill" height="fill" />
+                        </Tab>
+                    </ForEach>
+                </Element>
+
+                <Element class="wb-panel" layout="none" width="fill" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="24">
+                        <Text text="@L(context.TitleKey)" class="wb-pane-title" width="fill" height="28" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+                        <ScrollArea id="Settings.RowsTabs" context="@Scroll" width="fill" height="fill">
+                            <SettingsRows id="Settings.RowsTabsContent" context="@RowsState" />
+                        </ScrollArea>
+                    </Element>
+                </Element>
+            </Element>
+
+            <PageFooter width="fill" height="48">
+                <Content name="back">
+                    <Button id="Settings.Cancel"
+                        param:variant="secondary"
+                        onclick="OnCancel"
+                        anchor="Center"
+                        width="140"
+                        height="40">
+                        <Text class="wb-button-label" text="@L(context.CancelLabelKey)" anchor="Center" />
+                    </Button>
+                </Content>
+                <Content name="status">
+                    <Text visible="@(context.StatusKey != '')"
+                        text="@L(context.StatusKey)"
+                        class="wb-status-message"
+                        class:wb-text-primary-solid="@context.Dirty"
+                        class:wb-text-success="@(!context.Dirty)"
+                        width="fill"
+                        height="fill"
+                        text-align="center"
+                        vertical-align="middle" />
+                </Content>
+                <Content name="primary">
+                    <Button id="Settings.Apply"
+                        param:variant="primary"
+                        param:enabled="@context.Dirty"
+                        disabled="@(!context.Dirty)"
+                        onclick="OnApply"
+                        anchor="Center"
+                        width="220"
+                        height="40">
+                        <Text class="wb-button-label" text="@L('ui.settings.action.apply')" anchor="Center" />
+                    </Button>
+                </Content>
+            </PageFooter>
+        </Element>
+    </Page>
+</Reef>

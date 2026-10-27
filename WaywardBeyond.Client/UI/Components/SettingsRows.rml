@@ -1,0 +1,92 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      Class="SettingsRows"
+      Access="internal"
+      Context="SettingsRowsState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+
+    <Element layout="vertical" width="fill" height="fit">
+        <ForEach in="@context.Rows" as="row">
+            <If condition="@row.IsSection">
+                <Text text="@context.Label(row)" class="wb-section-title" width="fill" height="35" />
+                <Element class="wb-divider-inner" width="fill" height="1" />
+            </If>
+
+            <ElseIf condition="@row.IsChoice">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@context.Label(row)"
+                          wrap="false"
+                          class="wb-row-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <SegmentedControl param:id="@row.Id"
+                                      param:options="@context.LocalizeAll(row.OptionKeys)"
+                                      param:selected="@row.Index"
+                                      param:enabled="@row.Enabled"
+                                      param:onSelect="@context.OnChoice"
+                                      width="33.334%" min-width="220" max-width="340"
+                                      height="32"
+                                      anchor="Center" />
+                </Element>
+            </ElseIf>
+
+            <ElseIf condition="@row.IsStepper">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@context.Label(row)"
+                          wrap="false"
+                          class="wb-row-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <Stepper param:value="@context.StepperText(row)"
+                             param:enabled="@row.Enabled"
+                             param:canDecrease="@row.CanDecrease"
+                             param:canIncrease="@row.CanIncrease"
+                             param:id="@row.Id"
+                             param:onStep="@context.OnStep"
+                             width="33.334%"
+                             min-width="220"
+                             max-width="340"
+                             height="32"
+                             anchor="Center" />
+                </Element>
+            </ElseIf>
+
+            <ElseIf condition="@row.IsSlider">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@context.Label(row)"
+                          wrap="false"
+                          class="wb-row-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <Slider param:id="@row.Id"
+                            param:fill="@row.Fill"
+                            param:display="@row.Display"
+                            param:enabled="@row.Enabled"
+                            param:onStep="@context.OnStep"
+                            param:onDrag="@context.OnDrag"
+                            width="33.334%" min-width="220" max-width="340"
+                            height="32"
+                            anchor="Center" />
+                </Element>
+            </ElseIf>
+
+            <ElseIf condition="@row.IsReset">
+                <Element class="wb-divider-inner" width="fill" height="1" />
+                <Element height="4" />
+                <Button id="{row.Id}"
+                        param:variant="danger"
+                        onclick="@context.OnReset(row.Id)"
+                        width="fill"
+                        height="36">
+                    <Text class="wb-button-label" text="@context.Text('ui.settings.action.reset')" anchor="Center" />
+                </Button>
+                <Element height="3" />
+            </ElseIf>
+        </ForEach>
+    </Element>
+</Reef>

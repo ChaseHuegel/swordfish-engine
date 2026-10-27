@@ -1,0 +1,21 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="Page"
+      Access="internal"
+      Parameters="PageParameters"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-column"
+             class:wb-page-top="@param.TopInset"
+             width="@(ui.Width - param.InsetX * 2)"
+             height="@(ui.Height - param.InsetY * 2)"
+             min-width="@param.MinWidth"
+             max-width="@param.MaxWidth"
+             min-height="@param.MinHeight"
+             max-height="@param.MaxHeight"
+             spacing="12"
+             anchor="Center"
+             clip="true">
+        <Content />
+    </Element>
+</Reef>

@@ -1,0 +1,12 @@
+<Reef xmlns="Reef"
+      Class="HintPill"
+      Access="internal"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-hint-pill">
+        <Content name="key" />
+        <Element class="wb-hint-text">
+            <Content />
+        </Element>
+    </Element>
+</Reef>

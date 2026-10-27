@@ -1,0 +1,13 @@
+<Reef xmlns="Reef"
+      Class="InfoBox"
+      Access="internal"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-info-box" layout="vertical" clip="true" padding="10">
+        <Content name="title" />
+        <Element height="4" />
+        <Element class="wb-divider" width="fill" height="1" />
+        <Element height="6" />
+        <Content />
+    </Element>
+</Reef>

@@ -1,0 +1,26 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="Modal"
+      Access="internal"
+      Parameters="ModalParameters"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-modal"
+             class:wb-modal-size="@(!param.Auto)"
+             class:wb-modal-size-connecting="@param.Connecting"
+             class:wb-modal-size-compact="@param.Compact"
+             class:wb-modal-size-form="@param.Form"
+             class:wb-modal-size-feedback="@param.Feedback"
+             class:wb-modal-size-playtest="@param.Playtest"
+             layout="vertical"
+             clip="true">
+        <Content name="header" />
+        <Element height="8" />
+        <Element class="wb-divider" width="fill" height="1" />
+        <Element height="16" />
+        <Content />
+        <Element class="wb-modal-actions" layout="horizontal" width="fill" height="40">
+            <Content name="actions" />
+        </Element>
+    </Element>
+</Reef>

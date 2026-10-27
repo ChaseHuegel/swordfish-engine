@@ -42,7 +42,8 @@ internal static class DisplaySettingsCategory
                     set: value => draft.DisplayMode = value,
                     defaultValue: () => SettingsDefaults.DISPLAY_MODE,
                     options: _displayModes,
-                    format: value => FormatDisplayMode(localization, value)
+                    format: value => value.ToString(),
+                    valueKey: DisplayModeKey
                 ),
                 new StepperEntry<SettingsResolution>(
                     id: "Settings.Resolution",
@@ -100,7 +101,7 @@ internal static class DisplaySettingsCategory
                     set: value => draft.AntiAliasingMode = value,
                     defaultValue: () => SettingsDefaults.ANTI_ALIASING_MODE,
                     options: _antiAliasingOptions,
-                    optionLabel: value => FormatAntiAliasing(localization, value)
+                    optionKey: value => AntiAliasingKey(value)
                 ),
                 new StepperEntry<ShadowQuality>(
                     id: "Settings.ShadowQuality",
@@ -109,7 +110,8 @@ internal static class DisplaySettingsCategory
                     set: value => draft.ShadowQuality = value,
                     defaultValue: () => SettingsDefaults.SHADOW_QUALITY,
                     options: SettingsDefaults.GetShadowQualities(draft.ShadowQuality),
-                    format: value => FormatShadowQuality(localization, value)
+                    format: value => value.ToString(),
+                    valueKey: ShadowQualityKey
                 ),
                 new ToggleEntry(
                     id: "Settings.AmbientOcclusion",
@@ -196,17 +198,17 @@ internal static class DisplaySettingsCategory
         return options;
     }
 
-    private static string FormatDisplayMode(ILocalization localization, SettingsDisplayMode mode)
+    private static string DisplayModeKey(SettingsDisplayMode mode)
     {
         return mode switch
         {
-            SettingsDisplayMode.Windowed => L(localization, "ui.settings.value.windowed"),
-            SettingsDisplayMode.BorderlessWindow => L(localization, "ui.settings.value.borderlessWindow"),
-            SettingsDisplayMode.Maximized => L(localization, "ui.settings.value.maximized"),
-            SettingsDisplayMode.BorderlessMaximized => L(localization, "ui.settings.value.borderlessMaximized"),
-            SettingsDisplayMode.Fullscreen => L(localization, "ui.settings.value.fullscreen"),
-            SettingsDisplayMode.BorderlessFullscreen => L(localization, "ui.settings.value.borderlessFullscreen"),
-            _ => mode.ToString(),
+            SettingsDisplayMode.Windowed => "ui.settings.value.windowed",
+            SettingsDisplayMode.BorderlessWindow => "ui.settings.value.borderlessWindow",
+            SettingsDisplayMode.Maximized => "ui.settings.value.maximized",
+            SettingsDisplayMode.BorderlessMaximized => "ui.settings.value.borderlessMaximized",
+            SettingsDisplayMode.Fullscreen => "ui.settings.value.fullscreen",
+            SettingsDisplayMode.BorderlessFullscreen => "ui.settings.value.borderlessFullscreen",
+            _ => string.Empty,
         };
     }
 
@@ -238,24 +240,24 @@ internal static class DisplaySettingsCategory
         return $"{MathF.Round(value)} {meters}";
     }
 
-    private static string FormatAntiAliasing(ILocalization localization, AntiAliasing antiAliasing)
+    private static string AntiAliasingKey(AntiAliasing antiAliasing)
     {
         return antiAliasing == AntiAliasing.MSAA
-            ? L(localization, "ui.settings.value.msaa")
-            : L(localization, "ui.settings.value.off");
+            ? "ui.settings.value.msaa"
+            : "ui.settings.value.off";
     }
 
-    private static string FormatShadowQuality(ILocalization localization, ShadowQuality quality)
+    private static string ShadowQualityKey(ShadowQuality quality)
     {
         return quality switch
         {
-            ShadowQuality.Off => L(localization, "ui.settings.value.off"),
-            ShadowQuality.Low => L(localization, "ui.settings.value.low"),
-            ShadowQuality.Medium => L(localization, "ui.settings.value.medium"),
-            ShadowQuality.High => L(localization, "ui.settings.value.high"),
-            ShadowQuality.Ultra => L(localization, "ui.settings.value.ultra"),
-            ShadowQuality.Custom => L(localization, "ui.settings.value.custom"),
-            _ => quality.ToString(),
+            ShadowQuality.Off => "ui.settings.value.off",
+            ShadowQuality.Low => "ui.settings.value.low",
+            ShadowQuality.Medium => "ui.settings.value.medium",
+            ShadowQuality.High => "ui.settings.value.high",
+            ShadowQuality.Ultra => "ui.settings.value.ultra",
+            ShadowQuality.Custom => "ui.settings.value.custom",
+            _ => string.Empty,
         };
     }
 

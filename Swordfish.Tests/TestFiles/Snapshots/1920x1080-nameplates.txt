@@ -1,0 +1,4 @@
+0 id=nameplate_1 rect=188,106,24,14 clip=188,106,24,14 color=0,0,0,0.502 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:0 text=-
+1 id=- rect=188,106,24,14 clip=188,106,24,14 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Ada
+2 id=nameplate_2 rect=300,162,40,18 clip=300,162,40,18 color=0,0,0,0.502 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:0 text=-
+3 id=- rect=300,162,40,18 clip=300,162,40,18 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Chase

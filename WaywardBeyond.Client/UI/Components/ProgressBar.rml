@@ -1,0 +1,11 @@
+<Reef xmlns="Reef"
+      Class="ProgressBar"
+      Access="internal"
+      Context="ProgressBarState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-progress-track" layout="none" width="fill" height="6" clip="true">
+        <Element width="@context.FillWidth" height="fill" color="@context.FillColor" />
+        <Content />
+    </Element>
+</Reef>
