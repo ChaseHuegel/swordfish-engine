@@ -61,6 +61,10 @@ input first. The reverse interaction loop is at `Reef/UIBuilder.cs:399`.
 Children are pushed in reverse at `Reef/UIBuilder.cs:994` so they paint in
 declaration order.
 
+An active drag keeps its held state after the cursor leaves the source. It does
+not consume hover from other elements, so a drag target can highlight while the
+source still receives `Held`.
+
 ## Style
 
 `Reef/UI/Style.cs:5` holds:
