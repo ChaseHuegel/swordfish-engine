@@ -98,15 +98,8 @@ public class SilkWindowContext : IWindowContext
                 ShortcutModifiers.None,
                 Key.F11,
                 Shortcut.DefaultEnabled,
-                () =>
-                {
-                    ApplyDisplaySettings(
-                        WindowSettings.Mode != WindowMode.Maximized ? WindowMode.Maximized : WindowMode.Windowed,
-                        borderless: false,
-                        width: int.MaxValue,
-                        height: int.MaxValue
-                    );
-                })
+                ToggleMaximized
+            )
         );
 
         ShortcutService.RegisterShortcut(new Shortcut(
@@ -115,15 +108,7 @@ public class SilkWindowContext : IWindowContext
                 ShortcutModifiers.Alt,
                 Key.Enter,
                 Shortcut.DefaultEnabled,
-                () =>
-                {
-                    ApplyDisplaySettings(
-                        WindowSettings.Mode != WindowMode.Maximized ? WindowMode.Maximized : WindowMode.Windowed,
-                        borderless: false,
-                        width: int.MaxValue,
-                        height: int.MaxValue
-                    );
-                }
+                ToggleFullscreen
             )
         );
 
@@ -208,13 +193,16 @@ public class SilkWindowContext : IWindowContext
     }
 
     /// <inheritdoc/>
-    public void ApplyDisplaySettings(WindowMode mode, bool borderless, int width, int height)
+    public void ApplyDisplaySettings(WindowMode mode, bool borderless, int? width = null, int? height = null)
     {
+        int targetWidth = width ?? WindowSettings.Width.Get() ?? Window.Size.X;
+        int targetHeight = height ?? WindowSettings.Height.Get() ?? Window.Size.Y;
+
         if (Window.Monitor != null)
         {
             Vector2D<int> monitorSize = Window.Monitor.VideoMode.Resolution ?? Window.Monitor.Bounds.Size;
-            width = Math.Clamp(width, 320, monitorSize.X);
-            height = Math.Clamp(height, 240, monitorSize.Y);
+            targetWidth = Math.Clamp(targetWidth, 320, monitorSize.X);
+            targetHeight = Math.Clamp(targetHeight, 240, monitorSize.Y);
         }
 
         _suppressWindowEvents = true;
@@ -222,8 +210,8 @@ public class SilkWindowContext : IWindowContext
         {
             if (mode == WindowMode.Windowed)
             {
-                WindowSettings.Width.Set(width);
-                WindowSettings.Height.Set(height);
+                WindowSettings.Width.Set(targetWidth);
+                WindowSettings.Height.Set(targetHeight);
             }
 
             if (mode != WindowMode.Fullscreen || !borderless)
@@ -237,7 +225,7 @@ public class SilkWindowContext : IWindowContext
 
             if (mode == WindowMode.Windowed)
             {
-                ApplySize(width, height);
+                ApplySize(targetWidth, targetHeight);
                 Window.Center();
 
                 WindowSettings.X.Set(Window.Position.X);
@@ -255,14 +243,34 @@ public class SilkWindowContext : IWindowContext
             "Applied display settings. Requested mode={mode}, borderless={borderless}, size={width}x{height}. Actual state={state}, border={border}, size={actualWidth}x{actualHeight}, position={position}.",
             mode,
             borderless,
-            width,
-            height,
+            targetWidth,
+            targetHeight,
             Window.WindowState,
             Window.WindowBorder,
             Window.Size.X,
             Window.Size.Y,
             Window.Position
         );
+    }
+
+    /// <summary>Toggles the window between maximized and windowed.</summary>
+    private void ToggleMaximized()
+    {
+        WindowMode mode = WindowSettings.Mode.Get() == WindowMode.Maximized
+            ? WindowMode.Windowed
+            : WindowMode.Maximized;
+
+        ApplyDisplaySettings(mode, borderless: false);
+    }
+
+    /// <summary>Toggles the window between fullscreen and maximized.</summary>
+    private void ToggleFullscreen()
+    {
+        WindowMode mode = WindowSettings.Mode.Get() == WindowMode.Fullscreen
+            ? WindowMode.Maximized
+            : WindowMode.Fullscreen;
+
+        ApplyDisplaySettings(mode, borderless: false);
     }
 
     public void Close()
