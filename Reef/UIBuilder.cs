@@ -77,6 +77,18 @@ public sealed class UIBuilder<TRendererData>
         set => _currentElement.FontOptions = value;
     }
 
+    public HorizontalAlignment HorizontalAlignment
+    {
+        get => _currentElement.FontOptions.HorizontalAlignment;
+        set => _currentElement.FontOptions.HorizontalAlignment = value;
+    }
+
+    public VerticalAlignment VerticalAlignment
+    {
+        get => _currentElement.FontOptions.VerticalAlignment;
+        set => _currentElement.FontOptions.VerticalAlignment = value;
+    }
+
     public CornerRadius CornerRadius
     {
         get => _currentElement.Style.CornerRadius;
@@ -151,6 +163,15 @@ public sealed class UIBuilder<TRendererData>
         set => _currentElement.Passthrough = value;
     }
 
+    public bool Overlay
+    {
+        get => _currentElement.Overlay;
+        set => _currentElement.Overlay = value;
+    }
+
+    public bool IsMouseCaptured => _controller.IsMouseCaptured;
+    public bool IsKeyboardCaptured => _controller.IsKeyboardCaptured;
+
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
 
@@ -162,10 +183,13 @@ public sealed class UIBuilder<TRendererData>
     private bool _hasOpenElement;
     private Element<TRendererData> _currentElement;
     private readonly Stack<Element<TRendererData>> _openElements = new();
+    private readonly Stack<ElementNode> _traversalStack = new();
     private readonly Stack<ElementNode> _childStack = new();
+    private readonly List<ElementNode> _postOrderNodes = [];
+    private readonly List<ElementNode> _overlayNodes = [];
     private readonly List<Element<TRendererData>> _closedRootElements = [];
-    
-    private readonly char[] _whiteSpaceChars = [' ', '\t', '\n'];
+    private readonly Stack<List<Element<TRendererData>>> _childListPool = new();
+    private readonly List<List<Element<TRendererData>>> _activeChildLists = [];
 
     public UIBuilder(int width, int height, ITextEngine textEngine, UIController controller)
     {
@@ -180,7 +204,14 @@ public sealed class UIBuilder<TRendererData>
     }
 
     public Scope Element() => OpenElement(new Element<TRendererData>());
-    public Scope Element(Element<TRendererData> element) => OpenElement(element);
+    public Scope Element(Element<TRendererData> element)
+    {
+        element.Children = null;
+        element.TextLayout = null;
+        element.ContentSize = default;
+        return OpenElement(element);
+    }
+
     public Scope Element(string id) => OpenElement(new Element<TRendererData> { ID = id });
 
     public Scope Text(string value) => Text(value, new FontOptions { Size = 16 });
@@ -220,22 +251,22 @@ public sealed class UIBuilder<TRendererData>
         return OpenElement(element);
     }
     
-    public bool Clicked(string id)
+    public bool Clicked(string id, UIController.MouseButtons button = UIController.MouseButtons.Left)
     {
         _currentElement.ID = id;
-        return _controller.IsClicked(id);
+        return _controller.IsClicked(id, button);
     }
     
-    public bool Released(string id)
+    public bool Released(string id, UIController.MouseButtons button = UIController.MouseButtons.Left)
     {
         _currentElement.ID = id;
-        return _controller.IsReleased(id);
+        return _controller.IsReleased(id, button);
     }
     
-    public bool Held(string id)
+    public bool Held(string id, UIController.MouseButtons button = UIController.MouseButtons.Left)
     {
         _currentElement.ID = id;
-        return _controller.IsHeld(id);
+        return _controller.IsHeld(id, button);
     }
 
     public bool Hovering(string id)
@@ -244,21 +275,83 @@ public sealed class UIBuilder<TRendererData>
         return _controller.IsHovering(id);
     }
 
+    public bool Entered(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.IsEntering(id);
+    }
+
+    public bool Exited(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.IsExiting(id);
+    }
+
+    public bool Scrolled(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.IsScrolled(id);
+    }
+
+    public IntVector2 GetCursorPosition() => _controller.GetCursorPosition();
+    public IntVector2 GetCursorDelta() => _controller.GetCursorDelta();
+
+    public float GetScrollDelta() => _controller.GetScrollDelta();
+    public Vector2 GetScrollDelta2D() => _controller.GetScrollDelta2D();
+
+    public float GetElementScrollDelta(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.GetElementScrollDelta(id);
+    }
+
+    public float GetElementScrollDelta() => _controller.GetElementScrollDelta(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to query element scroll delta"));
+
+    public Vector2 GetElementScrollDelta2D(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.GetElementScrollDelta2D(id);
+    }
+
+    public Vector2 GetElementScrollDelta2D() => _controller.GetElementScrollDelta2D(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to query element scroll delta"));
+
+    public IntVector2 GetRelativeCursorPosition(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.GetRelativeCursorPosition(id);
+    }
+
     public IntVector2 GetRelativeCursorPosition() => _controller.GetRelativeCursorPosition(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to detect the cursor"));
     
-    public bool Clicked() => _controller.IsClicked(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be clicked"));
-    public bool Released() => _controller.IsReleased(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be released"));
-    public bool Held() => _controller.IsHeld(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be held"));
+    public bool Clicked(UIController.MouseButtons button = UIController.MouseButtons.Left) => _controller.IsClicked(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be clicked"), button);
+    public bool Released(UIController.MouseButtons button = UIController.MouseButtons.Left) => _controller.IsReleased(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be released"), button);
+    public bool Held(UIController.MouseButtons button = UIController.MouseButtons.Left) => _controller.IsHeld(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be held"), button);
 
     public bool Hovering() => _controller.IsHovering(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be hovered"));
     public bool Entered() => _controller.IsEntering(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be entered"));
     public bool Exited() => _controller.IsExiting(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be exited"));
+    public bool Scrolled() => _controller.IsScrolled(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be scrolled"));
+
+    public bool Focused(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.IsFocused(id);
+    }
 
     public bool Focused() => _controller.IsFocused(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be focused"));
+
+    public void Focus(string id)
+    {
+        _currentElement.ID = id;
+        _controller.Focus(id);
+    }
+
     public void Focus() => _controller.Focus(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be focused"));
     public void Unfocus() => _controller.Unfocus();
     
     public bool IsPressed(UIController.Key key) => _controller.IsPressed(key);
+    public bool IsReleased(UIController.Key key) => _controller.IsReleased(key);
+    public bool IsHeld(UIController.Key key) => _controller.IsHeld(key);
     
     public IReadOnlyCollection<UIController.Input> GetInputBuffer() => _controller.GetInputBuffer();
     
@@ -270,8 +363,15 @@ public sealed class UIBuilder<TRendererData>
     public bool RightReleased() => _controller.IsRightReleased();
     public bool RightHeld() => _controller.IsRightHeld();
 
+    public bool MiddlePressed() => _controller.IsMiddlePressed();
+    public bool MiddleReleased() => _controller.IsMiddleReleased();
+    public bool MiddleHeld() => _controller.IsMiddleHeld();
+
     public TextLayout GetTextLayout(string id) => _controller.GetTextLayout(id);
     public TextLayout GetTextLayout() => _controller.GetTextLayout(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to get a previous text layout."));
+
+    public ElementBounds GetElementBounds(string id) => _controller.GetElementBounds(id);
+    public ElementBounds GetElementBounds() => _controller.GetElementBounds(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to get previous element bounds."));
     
     public List<RenderCommand<TRendererData>> Build(double delta)
     {
@@ -284,25 +384,41 @@ public sealed class UIBuilder<TRendererData>
             CloseElement();
         }
         
-        var stack = new Stack<ElementNode>();
-
-        //  Perform a top-down sizing pass to process filling and shrinking elements
-        FillShrinkAndWrapElements(stack);
+        //  Perform sizing passes to resolve relative, fill, shrink, and wrapped text dimensions
+        FillShrinkAndWrapElements();
 
         //  Create render commands out of all elements,
         //  performing a top-down positioning pass in the process.
-        List<RenderCommand<TRendererData>> commands = PositionAndRenderElements(stack);
+        List<RenderCommand<TRendererData>> commands = PositionAndRenderElements();
         
         //  Process interactions in reverse render order to ensure top-most elements consume input first.
         for (int i = commands.Count - 1; i >= 0; i--)
         {
             RenderCommand<TRendererData> command = commands[i];
-            if (command.ID != null && !command.Passthrough)
+            if (command.ID == null)
             {
-                _controller.UpdateInteraction(command.ID, command.Rect, command.ClipRect);
+                continue;
+            }
+
+            if (command.Passthrough)
+            {
+                _controller.UpdateElementBounds(command.ID, command.Rect, command.ClipRect, command.ContentSize);
+            }
+            else
+            {
+                _controller.UpdateInteraction(command.ID, command.Rect, command.ClipRect, command.ContentSize, command.Scrollable);
             }
         }
         _controller.EndUpdate();
+
+        //  Return pooled child lists
+        for (var i = 0; i < _activeChildLists.Count; i++)
+        {
+            List<Element<TRendererData>> list = _activeChildLists[i];
+            list.Clear();
+            _childListPool.Push(list);
+        }
+        _activeChildLists.Clear();
 
         //  Reset state
         _hasOpenElement = false;
@@ -325,41 +441,21 @@ public sealed class UIBuilder<TRendererData>
         _currentElement = element;
         return new Scope(this);
     }
+
+    private List<Element<TRendererData>> RentChildList()
+    {
+        List<Element<TRendererData>> list = _childListPool.Count > 0 ? _childListPool.Pop() : [];
+        _activeChildLists.Add(list);
+        return list;
+    }
     
     /// <summary>
     ///     Closes the currently open element to complete it,
-    ///     performing a bottom-up sizing pass in the process.
+    ///     performing an initial bottom-up sizing pass in the process.
     /// </summary>
     private void CloseElement()
     {
         Element<TRendererData> element = _currentElement;
-        
-        //  Calculate non-wrapped text constraints
-        if (element.Text != null)
-        {
-            int firstWordLength = element.Text.IndexOfAny(_whiteSpaceChars);
-            if (firstWordLength < 0)
-            {
-                firstWordLength = element.Text.Length;
-            }
-            
-            TextConstraints firstWordConstraints = TextEngine.Measure(element.FontOptions, element.Text, start: 0, firstWordLength);
-
-            TextLayout textLayout = TextEngine.Layout(element.FontOptions, element.Text);
-            TextConstraints fullTextConstraints = textLayout.Constraints;
-
-            var textConstraints = new UI.Constraints
-            {
-                Anchors = element.Constraints.Anchors,
-                X = element.Constraints.X,
-                Y = element.Constraints.Y,
-                Width = element.Constraints.Width ?? new Fixed(fullTextConstraints.PreferredWidth),
-                Height = element.Constraints.Height ?? new Fixed(fullTextConstraints.PreferredHeight),
-                MinWidth = element.Constraints.MinWidth != 0 ? element.Constraints.MinWidth : firstWordConstraints.MinWidth,
-                MinHeight = element.Constraints.MinHeight != 0 ? element.Constraints.MinHeight : firstWordConstraints.MinHeight,
-            };
-            element.Constraints = textConstraints;
-        }
 
         //  Attempt to get the parent, if any, off the stack
         Element<TRendererData> parent = default;
@@ -368,126 +464,191 @@ public sealed class UIBuilder<TRendererData>
         {
             parent = _openElements.Pop();
         }
-        
-        //  Apply size constraints
-        int maxWidth = _hasOpenElement && parent.Rect.Size.X != 0 ? parent.Rect.Size.X : Width;
-        int maxHeight = _hasOpenElement && parent.Rect.Size.Y != 0 ? parent.Rect.Size.Y : Height;
-        
-        if (_hasOpenElement)
+
+        //  Aggregate child dimensions now that all children and element properties are finalized
+        ComputeChildrenMetrics(in element, out int childrenWidth, out int childrenHeight, out int childrenMinWidth, out int childrenMinHeight);
+
+        //  Calculate non-wrapped text constraints
+        if (element.Text != null)
         {
-            maxWidth = Math.Max(0, maxWidth - parent.Style.Padding.Left - parent.Style.Padding.Right);
-            maxHeight = Math.Max(0, maxHeight - parent.Style.Padding.Top - parent.Style.Padding.Bottom);
+            RichText parsed = RichText.Parse(element.Text, 0, element.Text.Length);
+            ReadOnlySpan<char> parsedSpan = parsed.Text.AsSpan();
+            var wordStart = 0;
+            while (wordStart < parsedSpan.Length && (parsedSpan[wordStart] == ' ' || parsedSpan[wordStart] == '\t' || parsedSpan[wordStart] == '\n'))
+            {
+                wordStart++;
+            }
+
+            int wordEnd = wordStart;
+            while (wordEnd < parsedSpan.Length && parsedSpan[wordEnd] != ' ' && parsedSpan[wordEnd] != '\t' && parsedSpan[wordEnd] != '\n')
+            {
+                wordEnd++;
+            }
+
+            int firstWordStart = wordEnd > wordStart ? wordStart : 0;
+            int firstWordLength = wordEnd > wordStart ? wordEnd - wordStart : parsedSpan.Length;
+            
+            TextConstraints firstWordConstraints = TextEngine.Measure(element.FontOptions, parsed.Text, firstWordStart, firstWordLength);
+            TextLayout textLayout = TextEngine.Layout(element.FontOptions, element.Text);
+            TextConstraints fullTextConstraints = textLayout.Constraints;
+
+            element.TextLayout = textLayout;
+            childrenWidth = Math.Max(childrenWidth, fullTextConstraints.PreferredWidth);
+            childrenHeight = Math.Max(childrenHeight, fullTextConstraints.PreferredHeight);
+            childrenMinWidth = Math.Max(childrenMinWidth, firstWordConstraints.MinWidth);
+            childrenMinHeight = Math.Max(childrenMinHeight, firstWordConstraints.MinHeight);
         }
-        
+
+        element.ContentSize = new IntVector2(childrenWidth, childrenHeight);
+
+        Padding padding = element.Style.Padding;
+        int padX = padding.Left + padding.Right;
+        int padY = padding.Top + padding.Bottom;
+
+        IConstraint? widthConstraint = element.Constraints.Width;
         int width;
-        if (element.Constraints.Width is Relative && _hasOpenElement)
+        if (widthConstraint == null || widthConstraint is Fit or Shrink)
         {
-            width = element.Rect.Size.X; // Defer until the top-down pass
+            width = childrenWidth + padX;
+        }
+        else if (widthConstraint is Fill)
+        {
+            width = !_hasOpenElement ? Width : 0;
+        }
+        else if (widthConstraint is Relative)
+        {
+            width = !_hasOpenElement ? widthConstraint.Calculate(Width) : 0;
         }
         else
         {
-            width = element.Constraints.Width?.Calculate(maxWidth) ?? element.Rect.Size.X;
+            width = widthConstraint.Calculate(Width);
         }
 
+        IConstraint? heightConstraint = element.Constraints.Height;
         int height;
-        if (element.Constraints.Height is Relative && _hasOpenElement)
+        if (heightConstraint == null || heightConstraint is Fit or Shrink)
         {
-            height = element.Rect.Size.Y; // Defer until the top-down pass
+            height = childrenHeight + padY;
+        }
+        else if (heightConstraint is Fill)
+        {
+            height = !_hasOpenElement ? Height : 0;
+        }
+        else if (heightConstraint is Relative)
+        {
+            height = !_hasOpenElement ? heightConstraint.Calculate(Height) : 0;
         }
         else
         {
-            height = element.Constraints.Height?.Calculate(maxHeight) ?? element.Rect.Size.Y;
+            height = heightConstraint.Calculate(Height);
         }
 
-        var size = new IntVector2(width, height);
-        
-        element.Rect = new IntRect(element.Rect.Position, size);
-        
         //  Set min width and height if they are unassigned
         if (element.Constraints.MinWidth == 0)
         {
-            element.Constraints.MinWidth = width;
+            if (widthConstraint is Shrink)
+            {
+                element.Constraints.MinWidth = element.Viewport.HorizontalScroll ? padX : childrenMinWidth + padX;
+            }
+            else if (widthConstraint == null || widthConstraint is Fit)
+            {
+                if (element.Text != null)
+                {
+                    element.Constraints.MinWidth = childrenMinWidth + padX;
+                }
+                else if (element.Viewport.HorizontalScroll)
+                {
+                    element.Constraints.MinWidth = padX;
+                }
+                else if (childrenMinWidth > 0)
+                {
+                    element.Constraints.MinWidth = childrenMinWidth + padX;
+                }
+                else
+                {
+                    element.Constraints.MinWidth = width;
+                }
+            }
+            else if (widthConstraint is Fill)
+            {
+                element.Constraints.MinWidth = element.Viewport.HorizontalScroll ? padX : (childrenMinWidth > 0 ? childrenMinWidth + padX : 0);
+            }
+            else
+            {
+                element.Constraints.MinWidth = width;
+            }
+        }
+        else if (widthConstraint == null || widthConstraint is Fit or Shrink or Fill)
+        {
+            element.Constraints.MinWidth = Math.Max(element.Constraints.MinWidth, padX);
         }
 
         if (element.Constraints.MinHeight == 0)
         {
-            element.Constraints.MinHeight = height;
-        }
-
-        //  Apply padding
-        Padding padding = element.Style.Padding;
-        width = element.Constraints.Width is Fixed or Relative ? element.Rect.Size.X : element.Rect.Size.X + padding.Left + padding.Right;
-        height = element.Constraints.Height is Fixed or Relative ? element.Rect.Size.Y : element.Rect.Size.Y + padding.Top + padding.Bottom;
-        
-        //  Calculate spacing
-        int childCount = element.Children?.Count ?? 0;
-        int totalSpacing = childCount > 1 ? (childCount - 1) * element.Layout.Spacing : 0;
-
-        //  Apply spacing of children to the element
-        switch (element.Layout.Direction)
-        {
-            case LayoutDirection.Horizontal when element.Constraints.Width is not Fixed and not Relative:
-                width += totalSpacing;
-                break;
-            case LayoutDirection.Vertical when element.Constraints.Height is not Fixed and not Relative:
-                height += totalSpacing;
-                break;
-        }
-
-        //  Account for padding and spacing in the element's minimum size
-        //  so it can't be shrunk below its content and its own padding and spacing.
-        if (element.Constraints.Width is not Fixed and not Relative)
-        {
-            element.Constraints.MinWidth += padding.Left + padding.Right;
-
-            if (element.Layout.Direction == LayoutDirection.Horizontal)
+            if (heightConstraint is Shrink)
             {
-                element.Constraints.MinWidth += totalSpacing;
+                element.Constraints.MinHeight = element.Viewport.VerticalScroll ? padY : childrenMinHeight + padY;
+            }
+            else if (heightConstraint == null || heightConstraint is Fit)
+            {
+                if (element.Text != null)
+                {
+                    element.Constraints.MinHeight = childrenMinHeight + padY;
+                }
+                else if (element.Viewport.VerticalScroll)
+                {
+                    element.Constraints.MinHeight = padY;
+                }
+                else if (childrenMinHeight > 0)
+                {
+                    element.Constraints.MinHeight = childrenMinHeight + padY;
+                }
+                else
+                {
+                    element.Constraints.MinHeight = height;
+                }
+            }
+            else if (heightConstraint is Fill)
+            {
+                element.Constraints.MinHeight = element.Viewport.VerticalScroll ? padY : (childrenMinHeight > 0 ? childrenMinHeight + padY : 0);
+            }
+            else
+            {
+                element.Constraints.MinHeight = height;
             }
         }
-
-        if (element.Constraints.Height is not Fixed and not Relative)
+        else if (heightConstraint == null || heightConstraint is Fit or Shrink or Fill)
         {
-            element.Constraints.MinHeight += padding.Top + padding.Bottom;
-
-            if (element.Layout.Direction == LayoutDirection.Vertical)
-            {
-                element.Constraints.MinHeight += totalSpacing;
-            }
-        }
-        
-        size = new IntVector2(width, height);
-        element.Rect = new IntRect(element.Rect.Position, size);
-        
-        //  Resize parent to fit its children
-        switch (parent.Layout.Direction)
-        {
-            case LayoutDirection.Horizontal:
-                width = parent.Rect.Size.X + element.Rect.Size.X;
-                height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
-                parent.Constraints.MinWidth += element.Constraints.MinWidth;
-                parent.Constraints.MinHeight = Math.Max(element.Constraints.MinHeight, parent.Constraints.MinHeight);
-                break;
-            case LayoutDirection.Vertical:
-                width = Math.Max(parent.Rect.Size.X, element.Rect.Size.X);
-                height = parent.Rect.Size.Y + element.Rect.Size.Y;
-                parent.Constraints.MinWidth = Math.Max(element.Constraints.MinWidth, parent.Constraints.MinWidth);
-                parent.Constraints.MinHeight += element.Constraints.MinHeight;
-                break;
-            case LayoutDirection.None:
-                width = Math.Max(parent.Rect.Size.X, element.Rect.Size.X);
-                height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
-                parent.Constraints.MinWidth = Math.Max(element.Constraints.MinWidth, parent.Constraints.MinWidth);
-                parent.Constraints.MinHeight = Math.Max(element.Constraints.MinHeight, parent.Constraints.MinHeight);
-                break;
+            element.Constraints.MinHeight = Math.Max(element.Constraints.MinHeight, padY);
         }
 
-        size = new IntVector2(width, height);
-        parent.Rect = new IntRect(parent.Rect.Position, size);
+        if (element.Constraints.MaxWidth > 0)
+        {
+            element.Constraints.MinWidth = Math.Min(element.Constraints.MinWidth, element.Constraints.MaxWidth);
+            width = Math.Min(width, element.Constraints.MaxWidth);
+        }
+
+        if (element.Constraints.MaxHeight > 0)
+        {
+            element.Constraints.MinHeight = Math.Min(element.Constraints.MinHeight, element.Constraints.MaxHeight);
+            height = Math.Min(height, element.Constraints.MaxHeight);
+        }
+
+        if (!_hasOpenElement || widthConstraint is not Fill and not Relative)
+        {
+            width = Math.Max(width, element.Constraints.MinWidth);
+        }
+
+        if (!_hasOpenElement || heightConstraint is not Fill and not Relative)
+        {
+            height = Math.Max(height, element.Constraints.MinHeight);
+        }
+
+        element.Rect = new IntRect(element.Rect.Position, new IntVector2(width, height));
 
         if (_hasOpenElement)
         {
-            parent.Children ??= [];
+            parent.Children ??= RentChildList();
             parent.Children.Add(element);
             _currentElement = parent;
         }
@@ -497,512 +658,728 @@ public sealed class UIBuilder<TRendererData>
             _currentElement = default;
         }
     }
-    
-    private List<RenderCommand<TRendererData>> PositionAndRenderElements(Stack<ElementNode> stack)
+
+    private static void ComputeChildrenMetrics(
+        in Element<TRendererData> element,
+        out int childrenWidth,
+        out int childrenHeight,
+        out int childrenMinWidth,
+        out int childrenMinHeight
+    )
     {
-        List<RenderCommand<TRendererData>> commands = [];
-        for (var i = 0; i < _closedRootElements.Count; i++)
+        childrenWidth = 0;
+        childrenHeight = 0;
+        childrenMinWidth = 0;
+        childrenMinHeight = 0;
+
+        if (element.Children == null || element.Children.Count == 0)
         {
-            stack.Clear();
-            Element<TRendererData> root = _closedRootElements[i];
-            stack.Push(new ElementNode(root));
-        
-            while (stack.Count > 0)
+            return;
+        }
+
+        int childCount = element.Children.Count;
+        int totalSpacing = childCount > 1 ? (childCount - 1) * element.Layout.Spacing : 0;
+
+        for (var i = 0; i < childCount; i++)
+        {
+            Element<TRendererData> child = element.Children[i];
+            switch (element.Layout.Direction)
             {
-                ElementNode frame = stack.Pop();
-                Element<TRendererData> element = frame.Element;
-        
-                //  Apply position constraints
-                int availableWidth = Width;
-                int availableHeight = Height;
-                if (frame.Parent != null)
-                {
-                    availableWidth = frame.Parent.Value.Rect.Size.X - frame.Parent.Value.Style.Padding.Left - frame.Parent.Value.Style.Padding.Right;
-                    availableHeight = frame.Parent.Value.Rect.Size.Y - frame.Parent.Value.Style.Padding.Top - frame.Parent.Value.Style.Padding.Bottom;
-                }
-                
-                int x = element.Constraints.X?.Calculate(availableWidth) ?? 0;
-                int y = element.Constraints.Y?.Calculate(availableHeight) ?? 0;
-                
-                //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
-                Anchors anchors = element.Constraints.Anchors;
-                LayoutDirection parentLayoutDirection = frame.Parent?.Layout.Direction ?? LayoutDirection.None;
-                
-                bool anchorLocal = (anchors & Anchors.Local) == Anchors.Local;
-                int layoutOffsetX = anchorLocal ? 0 : availableWidth;
-                int layoutOffsetY = anchorLocal ? 0 : availableHeight;
-
-                //  Horizontal anchoring when not in a horizontal layout
-                if (parentLayoutDirection != LayoutDirection.Horizontal)
-                {
-                    if ((anchors & Anchors.Right) == Anchors.Right)
-                    {
-                        x += layoutOffsetX - element.Rect.Size.X;
-                    }
-                    else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
-                    {
-                        x += (layoutOffsetX - element.Rect.Size.X) / 2;
-                    }
-                }
-            
-                //  Vertical anchoring when not in a vertical layout
-                if (parentLayoutDirection != LayoutDirection.Vertical)
-                {
-                    if ((anchors & Anchors.Bottom) == Anchors.Bottom)
-                    {
-                        y += layoutOffsetY - element.Rect.Size.Y;
-                    }
-                    else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
-                    {
-                        y += (layoutOffsetY - element.Rect.Size.Y) / 2;
-                    }
-                }
-                
-                //  Apply layout offsets
-                if (frame.Parent != null)
-                {
-                    x += frame.Parent.Value.Rect.Position.X + frame.LeftOffset;
-                    y += frame.Parent.Value.Rect.Position.Y + frame.TopOffset;
-                }
-                
-                var position = new IntVector2(x, y);
-                element.Rect = new IntRect(position, element.Rect.Size);
-                
-                // Save any changes made to the element
-                if (frame.Parent == null)
-                {
-                    _closedRootElements[i] = element;
-                }
-                else if (frame.Parent.Value.Children != null)
-                {
-                    frame.Parent.Value.Children[frame.ChildIndex] = element;
-                }
-
-                //  Don't issue render commands or continue processing any
-                //  elements entirely outside its parent's bounds
-                if (frame.Parent != null && !frame.Parent.Value.Rect.Intersects(element.Rect))
-                {
-                    continue;
-                }
-
-                IntRect clipRect;
-                //  Clip children by their parent
-                if (frame.Parent != null)
-                {
-                    clipRect = frame.Parent.Value.Viewport.ClipRect ?? frame.Parent.Value.Rect;
-                }
-                //  Otherwise the element isn't clipped
-                else
-                {
-                    clipRect = element.Rect;
-                }
-
-                //  If this element has its own clipping, calculate an intersected clip rect
-                if (element.Viewport.ClipConstraints != null)
-                {
-                    UI.Constraints clipConstraints = element.Viewport.ClipConstraints.Value;
-                    int clipWidth = clipConstraints.Width?.Calculate(element.Rect.Size.X) ?? element.Rect.Size.X;
-                    int clipHeight = clipConstraints.Height?.Calculate(element.Rect.Size.Y) ?? element.Rect.Size.Y;
-                    var clipSize = new IntVector2(clipWidth, clipHeight);
-        
-                    var explicitRect = new IntRect(element.Rect.Position, clipSize);
-
-                    //  Intersect with the parent's clip rect
-                    int clipX = Math.Max(explicitRect.Position.X, clipRect.Position.X);
-                    int clipY = Math.Max(explicitRect.Position.Y, clipRect.Position.Y);
-                    int right = Math.Min(explicitRect.Position.X + explicitRect.Size.X, clipRect.Position.X + clipRect.Size.X);
-                    int bottom = Math.Min(explicitRect.Position.Y + explicitRect.Size.Y, clipRect.Position.Y + clipRect.Size.Y);
-
-                    int width = Math.Max(0, right - clipX);
-                    int height = Math.Max(0, bottom - clipY);
-
-                    element.Viewport.ClipRect = new IntRect(new IntVector2(clipX, clipY), new IntVector2(width, height));
-                    
-                    //  Update the clip rect that will be used for rendering this element
-                    clipRect = element.Viewport.ClipRect.Value;
-                }
-                //  Otherwise inherit the parent's clip rect
-                else
-                {
-                    element.Viewport.ClipRect = clipRect;
-                }
-
-                Vector4 color = element.Style.Color;
-                Vector4 backgroundColor = element.Style.BackgroundColor;
-                if (element.Debug || _globalDebug)
-                {
-                    Random? rand = null;
-
-                    if (element.Style.Color.W == 0d)
-                    {
-                        rand ??= new Random(element.ID?.GetHashCode() ?? element.Rect.GetHashCode());
-                        color = new Vector4(rand.NextSingle(), rand.NextSingle(), rand.NextSingle(), 0.25f);
-                    }
-                    
-                    if (element.Style.BackgroundColor.W == 0d)
-                    {
-                        rand ??= new Random(element.ID?.GetHashCode() ?? element.Rect.GetHashCode());
-                        backgroundColor = new Vector4(rand.NextSingle(), rand.NextSingle(), rand.NextSingle(), 0.25f);
-                    }
-                }
-                
-                var command = new RenderCommand<TRendererData>
-                (
-                    element.ID,
-                    element.Rect,
-                    clipRect,
-                    color,
-                    backgroundColor,
-                    element.Style.CornerRadius,
-                    element.Style.Border,
-                    element.Style.CornerCaps,
-                    element.FontOptions,
-                    element.Text,
-                    element.Passthrough,
-                    element.TextureData
-                );
-                commands.Add(command);
-                
-                // Push any children to be processed
-                if (element.Children == null)
-                {
-                    continue;
-                }
-
-                int leftOffset = element.Style.Padding.Left;
-                int topOffset = element.Style.Padding.Top;
-                
-                //  Apply viewport offset
-                leftOffset += element.Viewport.Offset.X;
-                topOffset += element.Viewport.Offset.Y;
-
-                _childStack.Clear();
-                
-                for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
-                {
-                    Element<TRendererData> child = element.Children[childIndex];
-                    
-                    //  Propagate the debug flag to children
-                    child.Debug |= element.Debug;
-                    
-                    _childStack.Push(new ElementNode(child, element, childIndex)
-                    {
-                        LeftOffset = leftOffset,
-                        TopOffset = topOffset,
-                    });
-                    
-                    //  Apply layout offsets
-                    switch (element.Layout.Direction)
-                    {
-                        case LayoutDirection.Horizontal:
-                            leftOffset += child.Rect.Size.X + element.Layout.Spacing;
-                            break;
-                        case LayoutDirection.Vertical:
-                            topOffset += child.Rect.Size.Y + element.Layout.Spacing;
-                            break;
-                        case LayoutDirection.None:
-                            //  Do nothing
-                            break;
-                    }
-                }
-
-                //  Push children in reverse so the first child is positioned first
-                //  and later siblings paint over earlier siblings.
-                while (_childStack.Count > 0)
-                {
-                    stack.Push(_childStack.Pop());
-                }
+                case LayoutDirection.Horizontal:
+                    childrenWidth += child.Rect.Size.X;
+                    childrenHeight = Math.Max(childrenHeight, child.Rect.Size.Y);
+                    childrenMinWidth += child.Constraints.MinWidth;
+                    childrenMinHeight = Math.Max(childrenMinHeight, child.Constraints.MinHeight);
+                    break;
+                case LayoutDirection.Vertical:
+                    childrenWidth = Math.Max(childrenWidth, child.Rect.Size.X);
+                    childrenHeight += child.Rect.Size.Y;
+                    childrenMinWidth = Math.Max(childrenMinWidth, child.Constraints.MinWidth);
+                    childrenMinHeight += child.Constraints.MinHeight;
+                    break;
+                case LayoutDirection.None:
+                    childrenWidth = Math.Max(childrenWidth, child.Rect.Size.X);
+                    childrenHeight = Math.Max(childrenHeight, child.Rect.Size.Y);
+                    childrenMinWidth = Math.Max(childrenMinWidth, child.Constraints.MinWidth);
+                    childrenMinHeight = Math.Max(childrenMinHeight, child.Constraints.MinHeight);
+                    break;
             }
         }
+
+        switch (element.Layout.Direction)
+        {
+            case LayoutDirection.Horizontal:
+                childrenWidth += totalSpacing;
+                childrenMinWidth += totalSpacing;
+                break;
+            case LayoutDirection.Vertical:
+                childrenHeight += totalSpacing;
+                childrenMinHeight += totalSpacing;
+                break;
+        }
+    }
+
+    private static int ClampWidth(in Element<TRendererData> element, int width)
+    {
+        width = Math.Max(width, element.Constraints.MinWidth);
+        if (element.Constraints.MaxWidth > 0)
+        {
+            width = Math.Min(width, element.Constraints.MaxWidth);
+        }
+
+        return Math.Max(0, width);
+    }
+
+    private static int ClampHeight(in Element<TRendererData> element, int height)
+    {
+        height = Math.Max(height, element.Constraints.MinHeight);
+        if (element.Constraints.MaxHeight > 0)
+        {
+            height = Math.Min(height, element.Constraints.MaxHeight);
+        }
+
+        return Math.Max(0, height);
+    }
+    
+    private List<RenderCommand<TRendererData>> PositionAndRenderElements()
+    {
+        List<RenderCommand<TRendererData>> commands = [];
+        _overlayNodes.Clear();
+
+        for (var i = 0; i < _closedRootElements.Count; i++)
+        {
+            _traversalStack.Clear();
+            Element<TRendererData> root = _closedRootElements[i];
+            _traversalStack.Push(new ElementNode(root, parent: null, childIndex: i));
+            PositionAndRenderSubtree(commands, isOverlayPass: false);
+        }
+
+        //  Process any deferred overlay subtrees on top of normal elements
+        for (var i = 0; i < _overlayNodes.Count; i++)
+        {
+            _traversalStack.Clear();
+            _traversalStack.Push(_overlayNodes[i]);
+            PositionAndRenderSubtree(commands, isOverlayPass: true);
+        }
+        _overlayNodes.Clear();
         
         return commands;
     }
-    
-    private void FillShrinkAndWrapElements(Stack<ElementNode> stack) 
+
+    private void PositionAndRenderSubtree(List<RenderCommand<TRendererData>> commands, bool isOverlayPass)
     {
+        while (_traversalStack.Count > 0)
+        {
+            ElementNode frame = _traversalStack.Pop();
+            Element<TRendererData> element = frame.Element;
+
+            if (element.Overlay && !isOverlayPass)
+            {
+                _overlayNodes.Add(frame);
+                continue;
+            }
+    
+            //  Apply position constraints
+            int availableWidth = Width;
+            int availableHeight = Height;
+            if (frame.Parent != null)
+            {
+                availableWidth = frame.Parent.Value.Rect.Size.X - frame.Parent.Value.Style.Padding.Left - frame.Parent.Value.Style.Padding.Right;
+                availableHeight = frame.Parent.Value.Rect.Size.Y - frame.Parent.Value.Style.Padding.Top - frame.Parent.Value.Style.Padding.Bottom;
+            }
+            
+            int x = element.Constraints.X?.Calculate(availableWidth) ?? 0;
+            int y = element.Constraints.Y?.Calculate(availableHeight) ?? 0;
+            
+            //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
+            Anchors anchors = element.Constraints.Anchors;
+            LayoutDirection parentLayoutDirection = frame.Parent?.Layout.Direction ?? LayoutDirection.None;
+            
+            bool anchorLocal = (anchors & Anchors.Local) == Anchors.Local;
+            int layoutOffsetX = anchorLocal ? 0 : availableWidth;
+            int layoutOffsetY = anchorLocal ? 0 : availableHeight;
+
+            //  Horizontal anchoring when not in a horizontal layout
+            if (parentLayoutDirection != LayoutDirection.Horizontal)
+            {
+                if ((anchors & Anchors.Right) == Anchors.Right)
+                {
+                    x += layoutOffsetX - element.Rect.Size.X;
+                }
+                else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
+                {
+                    x += (layoutOffsetX - element.Rect.Size.X) / 2;
+                }
+            }
+        
+            //  Vertical anchoring when not in a vertical layout
+            if (parentLayoutDirection != LayoutDirection.Vertical)
+            {
+                if ((anchors & Anchors.Bottom) == Anchors.Bottom)
+                {
+                    y += layoutOffsetY - element.Rect.Size.Y;
+                }
+                else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
+                {
+                    y += (layoutOffsetY - element.Rect.Size.Y) / 2;
+                }
+            }
+            
+            //  Apply layout offsets
+            if (frame.Parent != null)
+            {
+                x += frame.Parent.Value.Rect.Position.X + frame.LeftOffset;
+                y += frame.Parent.Value.Rect.Position.Y + frame.TopOffset;
+            }
+            
+            var position = new IntVector2(x, y);
+            element.Rect = new IntRect(position, element.Rect.Size);
+            
+            //  Save any changes made to the element
+            if (frame.Parent == null)
+            {
+                if (frame.ChildIndex >= 0 && frame.ChildIndex < _closedRootElements.Count)
+                {
+                    _closedRootElements[frame.ChildIndex] = element;
+                }
+            }
+            else if (frame.Parent.Value.Children != null && frame.ChildIndex >= 0 && frame.ChildIndex < frame.Parent.Value.Children.Count)
+            {
+                frame.Parent.Value.Children[frame.ChildIndex] = element;
+            }
+
+            //  Don't issue render commands or continue processing any non-overlay
+            //  elements entirely outside their parent's effective clip bounds
+            if (!element.Overlay && frame.Parent != null)
+            {
+                IntRect parentBounds = frame.Parent.Value.Viewport.ClipRect ?? frame.Parent.Value.Rect;
+                if (!parentBounds.Intersects(element.Rect))
+                {
+                    continue;
+                }
+            }
+
+            IntRect clipRect;
+            //  Overlays escape ancestor clipping and start unclipped in the viewport
+            if (element.Overlay || frame.Parent == null)
+            {
+                clipRect = element.Rect;
+            }
+            //  Clip children by their parent
+            else
+            {
+                clipRect = frame.Parent.Value.Viewport.ClipRect ?? frame.Parent.Value.Rect;
+            }
+
+            //  If this element has its own clipping, calculate an intersected clip rect
+            if (element.Viewport.ClipConstraints != null)
+            {
+                UI.Constraints clipConstraints = element.Viewport.ClipConstraints.Value;
+                int clipOffsetX = clipConstraints.X?.Calculate(element.Rect.Size.X) ?? 0;
+                int clipOffsetY = clipConstraints.Y?.Calculate(element.Rect.Size.Y) ?? 0;
+                int clipWidth = clipConstraints.Width?.Calculate(element.Rect.Size.X) ?? element.Rect.Size.X;
+                int clipHeight = clipConstraints.Height?.Calculate(element.Rect.Size.Y) ?? element.Rect.Size.Y;
+                var clipPos = new IntVector2(element.Rect.Position.X + clipOffsetX, element.Rect.Position.Y + clipOffsetY);
+                var clipSize = new IntVector2(clipWidth, clipHeight);
+    
+                var explicitRect = new IntRect(clipPos, clipSize);
+
+                //  Intersect with the parent's clip rect
+                int clipX = Math.Max(explicitRect.Position.X, clipRect.Position.X);
+                int clipY = Math.Max(explicitRect.Position.Y, clipRect.Position.Y);
+                int right = Math.Min(explicitRect.Position.X + explicitRect.Size.X, clipRect.Position.X + clipRect.Size.X);
+                int bottom = Math.Min(explicitRect.Position.Y + explicitRect.Size.Y, clipRect.Position.Y + clipRect.Size.Y);
+
+                int width = Math.Max(0, right - clipX);
+                int height = Math.Max(0, bottom - clipY);
+
+                element.Viewport.ClipRect = new IntRect(new IntVector2(clipX, clipY), new IntVector2(width, height));
+                
+                //  Update the clip rect that will be used for rendering this element
+                clipRect = element.Viewport.ClipRect.Value;
+            }
+            //  Otherwise inherit the parent's clip rect
+            else
+            {
+                element.Viewport.ClipRect = clipRect;
+            }
+
+            Vector4 color = element.Style.Color;
+            Vector4 backgroundColor = element.Style.BackgroundColor;
+            if (element.Debug || _globalDebug)
+            {
+                Random? rand = null;
+
+                if (element.Style.Color.W == 0d)
+                {
+                    rand ??= new Random(element.ID?.GetHashCode() ?? element.Rect.GetHashCode());
+                    color = new Vector4(rand.NextSingle(), rand.NextSingle(), rand.NextSingle(), 0.25f);
+                }
+                
+                if (element.Style.BackgroundColor.W == 0d)
+                {
+                    rand ??= new Random(element.ID?.GetHashCode() ?? element.Rect.GetHashCode());
+                    backgroundColor = new Vector4(rand.NextSingle(), rand.NextSingle(), rand.NextSingle(), 0.25f);
+                }
+            }
+            
+            bool scrollable = element.Viewport.VerticalScroll || element.Viewport.HorizontalScroll;
+            var command = new RenderCommand<TRendererData>
+            (
+                element.ID,
+                element.Rect,
+                clipRect,
+                color,
+                backgroundColor,
+                element.Style.CornerRadius,
+                element.Style.Border,
+                element.Style.CornerCaps,
+                element.FontOptions,
+                element.Text,
+                element.Passthrough,
+                element.TextureData,
+                element.TextLayout,
+                element.ContentSize,
+                scrollable
+            );
+            commands.Add(command);
+            
+            //  Push any children to be processed
+            if (element.Children == null)
+            {
+                continue;
+            }
+
+            int leftOffset = element.Style.Padding.Left;
+            int topOffset = element.Style.Padding.Top;
+            
+            //  Apply viewport offset
+            leftOffset += element.Viewport.Offset.X;
+            topOffset += element.Viewport.Offset.Y;
+
+            _childStack.Clear();
+            
+            for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
+            {
+                Element<TRendererData> child = element.Children[childIndex];
+                
+                //  Propagate the debug flag to children
+                child.Debug |= element.Debug;
+                
+                _childStack.Push(new ElementNode(child, element, childIndex)
+                {
+                    LeftOffset = leftOffset,
+                    TopOffset = topOffset,
+                });
+                
+                //  Apply layout offsets
+                switch (element.Layout.Direction)
+                {
+                    case LayoutDirection.Horizontal:
+                        leftOffset += child.Rect.Size.X + element.Layout.Spacing;
+                        break;
+                    case LayoutDirection.Vertical:
+                        topOffset += child.Rect.Size.Y + element.Layout.Spacing;
+                        break;
+                    case LayoutDirection.None:
+                        //  Do nothing
+                        break;
+                }
+            }
+
+            //  Push children in reverse so the first child is positioned first
+            //  and later siblings paint over earlier siblings.
+            while (_childStack.Count > 0)
+            {
+                _traversalStack.Push(_childStack.Pop());
+            }
+        }
+    }
+    
+    private void FillShrinkAndWrapElements() 
+    {
+        //  Pass 1 (Top-Down): Resolve relative widths, horizontal fill, horizontal shrink, and text wrapping.
+        _postOrderNodes.Clear();
         for (var i = 0; i < _closedRootElements.Count; i++)
         {
-            stack.Clear();
-            stack.Push(new ElementNode(_closedRootElements[i]));
-        
-            while (stack.Count > 0)
+            _traversalStack.Clear();
+            Element<TRendererData> root = _closedRootElements[i];
+            if (root.Text != null)
             {
-                ElementNode frame = stack.Pop();
+                WrapElementText(ref root, Width);
+                _closedRootElements[i] = root;
+            }
+
+            _traversalStack.Push(new ElementNode(root, parent: null, childIndex: i));
+        
+            while (_traversalStack.Count > 0)
+            {
+                ElementNode frame = _traversalStack.Pop();
                 Element<TRendererData> element = frame.Element;
         
-                //  Resolve relative constraints now that the parent's size is known
-                if (frame.Parent != null && element.Children != null)
+                if (element.Children != null && element.Children.Count > 0)
                 {
-                    int availableWidth = element.Rect.Size.X - element.Style.Padding.Left - element.Style.Padding.Right;
-                    int availableHeight = element.Rect.Size.Y - element.Style.Padding.Top - element.Style.Padding.Bottom;
+                    int availableWidth = Math.Max(0, element.Rect.Size.X - element.Style.Padding.Left - element.Style.Padding.Right);
                     
+                    //  Resolve relative widths on children
                     for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
                     {
                         Element<TRendererData> child = element.Children[childIndex];
-
-                        int childWidth = child.Constraints.Width is Relative relWidth ? relWidth.Calculate(availableWidth) : child.Rect.Size.X;
-                        int childHeight = child.Constraints.Height is Relative relHeight ? relHeight.Calculate(availableHeight) : child.Rect.Size.Y;
-
-                        if (childWidth != child.Rect.Size.X || childHeight != child.Rect.Size.Y)
+                        if (child.Constraints.Width is Relative relWidth)
                         {
-                            var size = new IntVector2(childWidth, childHeight);
-                            child.Rect = new IntRect(child.Rect.Position, size);
+                            int childWidth = ClampWidth(in child, relWidth.Calculate(availableWidth));
+                            child.Rect = new IntRect(child.Rect.Position, new IntVector2(childWidth, child.Rect.Size.Y));
+                            if (child.Constraints.MinWidth == 0)
+                            {
+                                child.Constraints.MinWidth = childWidth;
+                            }
                             element.Children[childIndex] = child;
                         }
                     }
-                }
-                
-                FillChildren(ref element);
-                ShrinkChildren(ref element);
-                WrapTextChildren(ref element);
 
-                bool isWidthFixed = element.Constraints.Width is Fixed or Relative;
-                bool isHeightFixed = element.Constraints.Height is Fixed or Relative;
-                bool canResizeWidth = !isWidthFixed && element.Layout.Direction != LayoutDirection.Vertical; 
-                bool canResizeHeight = !isHeightFixed && element.Layout.Direction != LayoutDirection.Horizontal; 
-                if (element.Children != null && (canResizeWidth || canResizeHeight))
-                {
-                    int width = element.Rect.Size.X;
-                    int height = element.Rect.Size.Y;
-                    
-                    for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
-                    {
-                        Element<TRendererData> child = element.Children[childIndex];
-
-                        switch (element.Layout.Direction)
-                        {
-                            case LayoutDirection.Horizontal when canResizeWidth:
-                                height = Math.Max(height, child.Rect.Size.Y);
-                                break;
-                            case LayoutDirection.Vertical when canResizeHeight:
-                                width = Math.Max(width, child.Rect.Size.X);
-                                break;
-                            case LayoutDirection.None:
-                                if (canResizeWidth)
-                                {
-                                    width = Math.Max(width, child.Rect.Size.X);
-                                }
-                                
-                                if (canResizeHeight)
-                                {
-                                    height = Math.Max(height, child.Rect.Size.Y);
-                                }
-                                break;
-                        }
-                    }
-                    
-                    var parentSize = new IntVector2(width, height);
-                    element.Rect = new IntRect(element.Rect.Position, parentSize);
+                    FillChildrenWidth(ref element);
+                    ShrinkChildrenWidth(ref element);
+                    WrapTextChildren(ref element);
                 }
 
-                // Save any changes made to the element
-                if (frame.Parent == null)
-                {
-                    _closedRootElements[i] = element;
-                }
-                else if (frame.Parent.Value.Children != null)
-                {
-                    frame.Parent.Value.Children[frame.ChildIndex] = element;
-                }
-        
+                SaveElement(in frame, in element);
+                _postOrderNodes.Add(new ElementNode(element, frame.Parent, frame.ChildIndex));
+
                 if (element.Children == null)
                 {
                     continue;
                 }
 
-                // Push any children to be processed
-                for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
+                for (int childIndex = element.Children.Count - 1; childIndex >= 0; childIndex--)
                 {
                     Element<TRendererData> child = element.Children[childIndex];
-                    stack.Push(new ElementNode(child, element, childIndex));
+                    _traversalStack.Push(new ElementNode(child, element, childIndex));
+                }
+            }
+        }
+
+        //  Pass 2 (Bottom-Up): Reconcile auto-sized parent dimensions and ContentSize after text wrapping.
+        for (int n = _postOrderNodes.Count - 1; n >= 0; n--)
+        {
+            ElementNode frame = _postOrderNodes[n];
+            Element<TRendererData> element = GetLatestElement(in frame);
+            if (element.Children == null || element.Children.Count == 0)
+            {
+                continue;
+            }
+
+            ComputeChildrenMetrics(in element, out int childrenWidth, out int childrenHeight, out int childrenMinWidth, out int childrenMinHeight);
+            element.ContentSize = new IntVector2(childrenWidth, childrenHeight);
+
+            Padding pad = element.Style.Padding;
+            int padX = pad.Left + pad.Right;
+            int padY = pad.Top + pad.Bottom;
+
+            int width = element.Rect.Size.X;
+            int height = element.Rect.Size.Y;
+
+            IConstraint? widthConstraint = element.Constraints.Width;
+            if ((widthConstraint == null || widthConstraint is Fit or Shrink) && !element.Viewport.HorizontalScroll)
+            {
+                int targetWidth = ClampWidth(in element, childrenWidth + padX);
+                if (frame.Parent != null && !frame.Parent.Value.Viewport.HorizontalScroll)
+                {
+                    //  Do not re-expand past a width constraint already imposed by the parent in Pass 1.
+                    targetWidth = Math.Min(targetWidth, Math.Max(width, childrenMinWidth + padX));
+                }
+                width = targetWidth;
+            }
+
+            IConstraint? heightConstraint = element.Constraints.Height;
+            if ((heightConstraint == null || heightConstraint is Fit or Shrink) && !element.Viewport.VerticalScroll)
+            {
+                if (heightConstraint == null || heightConstraint is Fit)
+                {
+                    element.Constraints.MinHeight = Math.Max(element.Constraints.MinHeight, childrenMinHeight + padY);
+                }
+                height = ClampHeight(in element, childrenHeight + padY);
+            }
+
+            element.Rect = new IntRect(element.Rect.Position, new IntVector2(width, height));
+            SaveElement(in frame, in element);
+        }
+
+        //  Pass 3 (Top-Down): Resolve relative heights, vertical fill, vertical shrink, and align text layouts.
+        for (var i = 0; i < _closedRootElements.Count; i++)
+        {
+            _traversalStack.Clear();
+            _traversalStack.Push(new ElementNode(_closedRootElements[i], parent: null, childIndex: i));
+
+            while (_traversalStack.Count > 0)
+            {
+                ElementNode frame = _traversalStack.Pop();
+                Element<TRendererData> element = frame.Element;
+
+                if (element.Children != null && element.Children.Count > 0)
+                {
+                    int availableHeight = Math.Max(0, element.Rect.Size.Y - element.Style.Padding.Top - element.Style.Padding.Bottom);
+
+                    //  Resolve relative heights on children
+                    for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
+                    {
+                        Element<TRendererData> child = element.Children[childIndex];
+                        if (child.Constraints.Height is Relative relHeight)
+                        {
+                            int childHeight = ClampHeight(in child, relHeight.Calculate(availableHeight));
+                            child.Rect = new IntRect(child.Rect.Position, new IntVector2(child.Rect.Size.X, childHeight));
+                            if (child.Constraints.MinHeight == 0)
+                            {
+                                child.Constraints.MinHeight = childHeight;
+                            }
+                            element.Children[childIndex] = child;
+                        }
+                    }
+
+                    FillChildrenHeight(ref element);
+                    ShrinkChildrenHeight(ref element);
+
+                    //  Update ContentSize after final child sizing
+                    ComputeChildrenMetrics(in element, out int childrenWidth, out int childrenHeight, out _, out _);
+                    element.ContentSize = new IntVector2(childrenWidth, childrenHeight);
+
+                    //  If cross-axis children grew, ensure auto-sized container encompasses them
+                    Padding pad = element.Style.Padding;
+                    bool canResizeWidth = (element.Constraints.Width == null || element.Constraints.Width is Fit) && !element.Viewport.HorizontalScroll && element.Layout.Direction != LayoutDirection.Horizontal;
+                    bool canResizeHeight = (element.Constraints.Height == null || element.Constraints.Height is Fit) && !element.Viewport.VerticalScroll && element.Layout.Direction != LayoutDirection.Vertical;
+                    if (canResizeWidth || canResizeHeight)
+                    {
+                        int width = canResizeWidth ? ClampWidth(in element, Math.Max(element.Rect.Size.X, childrenWidth + pad.Left + pad.Right)) : element.Rect.Size.X;
+                        int height = canResizeHeight ? ClampHeight(in element, Math.Max(element.Rect.Size.Y, childrenHeight + pad.Top + pad.Bottom)) : element.Rect.Size.Y;
+                        element.Rect = new IntRect(element.Rect.Position, new IntVector2(width, height));
+                    }
+                }
+
+                FinalizeTextLayout(ref element);
+                SaveElement(in frame, in element);
+
+                if (element.Children == null)
+                {
+                    continue;
+                }
+
+                for (int childIndex = element.Children.Count - 1; childIndex >= 0; childIndex--)
+                {
+                    Element<TRendererData> child = element.Children[childIndex];
+                    _traversalStack.Push(new ElementNode(child, element, childIndex));
                 }
             }
         }
     }
 
-    private void FillChildren(ref Element<TRendererData> parent)
+    private Element<TRendererData> GetLatestElement(in ElementNode frame)
     {
-        int availableWidth = parent.Rect.Size.X;
-        int availableHeight = parent.Rect.Size.Y;
-        
-        availableWidth -= parent.Style.Padding.Left + parent.Style.Padding.Right;
-        availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
-
-        if (parent.Layout.Direction == LayoutDirection.None)
+        if (frame.Parent == null)
         {
-            if (parent.Children == null)
-            {
-                return;
-            }
-            
+            return _closedRootElements[frame.ChildIndex];
+        }
+
+        return frame.Parent.Value.Children![frame.ChildIndex];
+    }
+
+    private void SaveElement(in ElementNode frame, in Element<TRendererData> element)
+    {
+        if (frame.Parent == null)
+        {
+            _closedRootElements[frame.ChildIndex] = element;
+        }
+        else if (frame.Parent.Value.Children != null)
+        {
+            frame.Parent.Value.Children[frame.ChildIndex] = element;
+        }
+    }
+
+    private void FillChildrenWidth(ref Element<TRendererData> parent)
+    {
+        if (parent.Children == null || parent.Children.Count == 0)
+        {
+            return;
+        }
+
+        int availableWidth = Math.Max(0, parent.Rect.Size.X - parent.Style.Padding.Left - parent.Style.Padding.Right);
+
+        if (parent.Layout.Direction != LayoutDirection.Horizontal)
+        {
             for (var i = 0; i < parent.Children.Count; i++)
             {
                 Element<TRendererData> child = parent.Children[i];
-                bool fillHorizontal = child.Constraints.Width is Fill;
-                bool fillVertical = child.Constraints.Height is Fill;
-
-                if (!fillHorizontal && !fillVertical)
+                if (child.Constraints.Width is not Fill)
                 {
                     continue;
                 }
 
-                int width = fillHorizontal ? availableWidth : child.Rect.Size.X;
-                int height = fillVertical ? availableHeight : child.Rect.Size.Y;
-
-                var size = new IntVector2(width, height);
-                child.Rect = new IntRect(child.Rect.Position, size);
+                int width = ClampWidth(in child, availableWidth);
+                child.Rect = new IntRect(child.Rect.Position, new IntVector2(width, child.Rect.Size.Y));
                 parent.Children[i] = child;
             }
-            
+
             return;
         }
 
         var numHorizontalFillChildren = 0;
-        var numVerticalFillChildren = 0;
-        
-        //  Calculate available space and fill children entirely along the non-layout axis
-        for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
+        for (var i = 0; i < parent.Children.Count; i++)
         {
             Element<TRendererData> child = parent.Children[i];
-
-            //  Count children against available space based on layout direction
-            switch (parent.Layout.Direction)
-            {
-                case LayoutDirection.Horizontal:
-                    availableWidth -= child.Rect.Size.X;
-
-                    //  Fill the container's height entirely
-                    if (child.Constraints.Height is Fill)
-                    {
-                        var size = new IntVector2(child.Rect.Size.X, availableHeight);
-                        child.Rect = new IntRect(child.Rect.Position, size);
-                        parent.Children[i] = child;
-                    }
-                    break;
-                case LayoutDirection.Vertical:
-                    availableHeight -= child.Rect.Size.Y;
-
-                    //  Fill the container's width entirely
-                    if (child.Constraints.Width is Fill)
-                    {
-                        var size = new IntVector2(availableWidth, child.Rect.Size.Y);
-                        child.Rect = new IntRect(child.Rect.Position, size);
-                        parent.Children[i] = child;
-                    }
-                    break;
-            }
-            
-            //  Count children with fill constraints
             if (child.Constraints.Width is Fill)
             {
+                int initialWidth = ClampWidth(in child, child.Constraints.MinWidth);
+                child.Rect = new IntRect(child.Rect.Position, new IntVector2(initialWidth, child.Rect.Size.Y));
+                parent.Children[i] = child;
+                availableWidth -= initialWidth;
                 numHorizontalFillChildren++;
             }
-            
-            if (child.Constraints.Height is Fill)
+            else
             {
-                numVerticalFillChildren++;
+                availableWidth -= child.Rect.Size.X;
             }
         }
-        
-        //  Move on if no children have fill constraints along the layout axis
-        switch (parent.Layout.Direction)
+
+        if (numHorizontalFillChildren == 0)
         {
-            case LayoutDirection.Horizontal when numHorizontalFillChildren == 0:
-                return;
-            case LayoutDirection.Vertical when numVerticalFillChildren == 0:
-                return;
+            return;
         }
 
-        int childCount = parent.Children?.Count ?? 0;
+        int childCount = parent.Children.Count;
         int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
-        
-        //  Count child spacing against available space based on layout direction
-        switch (parent.Layout.Direction)
-        {
-            case LayoutDirection.Horizontal:
-                availableWidth -= totalSpacing;
-                break;
-            case LayoutDirection.Vertical:
-                availableHeight -= totalSpacing;
-                break;
-        }
-        
-        //  Distribute available space among fill children,
-        //  beginning with the smallest children along the layout axis.
-        switch (parent.Layout.Direction)
-        {
-            case LayoutDirection.Horizontal:
-                DistributeFillChildren(parent, ref availableWidth, numHorizontalFillChildren, fillMainAxis: true);
-                break;
-            case LayoutDirection.Vertical:
-                DistributeFillChildren(parent, ref availableHeight, numVerticalFillChildren, fillMainAxis: false);
-                break;
-        }
+        availableWidth -= totalSpacing;
+
+        DistributeFillChildren(parent, ref availableWidth, fillHorizontal: true);
     }
 
-    private void DistributeFillChildren(Element<TRendererData> parent, ref int available, int numFillChildren, bool fillMainAxis)
+    private void FillChildrenHeight(ref Element<TRendererData> parent)
     {
-        //  Continue distributing available space until none is left
-        while (available > 0 && parent.Children != null)
+        if (parent.Children == null || parent.Children.Count == 0)
         {
-            int smallest = -1;
-            var secondSmallest = int.MaxValue;
-            int toAdd = available;
+            return;
+        }
 
-            //  Determine how much space should be added to the smallest children
+        int availableHeight = Math.Max(0, parent.Rect.Size.Y - parent.Style.Padding.Top - parent.Style.Padding.Bottom);
+
+        if (parent.Layout.Direction != LayoutDirection.Vertical)
+        {
             for (var i = 0; i < parent.Children.Count; i++)
             {
                 Element<TRendererData> child = parent.Children[i];
-                
-                IConstraint? constraint = fillMainAxis ? child.Constraints.Width : child.Constraints.Height;
+                if (child.Constraints.Height is not Fill)
+                {
+                    continue;
+                }
+
+                int height = ClampHeight(in child, availableHeight);
+                child.Rect = new IntRect(child.Rect.Position, new IntVector2(child.Rect.Size.X, height));
+                parent.Children[i] = child;
+            }
+
+            return;
+        }
+
+        var numVerticalFillChildren = 0;
+        for (var i = 0; i < parent.Children.Count; i++)
+        {
+            Element<TRendererData> child = parent.Children[i];
+            if (child.Constraints.Height is Fill)
+            {
+                int initialHeight = ClampHeight(in child, child.Constraints.MinHeight);
+                child.Rect = new IntRect(child.Rect.Position, new IntVector2(child.Rect.Size.X, initialHeight));
+                parent.Children[i] = child;
+                availableHeight -= initialHeight;
+                numVerticalFillChildren++;
+            }
+            else
+            {
+                availableHeight -= child.Rect.Size.Y;
+            }
+        }
+
+        if (numVerticalFillChildren == 0)
+        {
+            return;
+        }
+
+        int childCount = parent.Children.Count;
+        int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+        availableHeight -= totalSpacing;
+
+        DistributeFillChildren(parent, ref availableHeight, fillHorizontal: false);
+    }
+
+    private static void DistributeFillChildren(Element<TRendererData> parent, ref int available, bool fillHorizontal)
+    {
+        while (available > 0 && parent.Children != null)
+        {
+            var smallest = int.MaxValue;
+            var secondSmallest = int.MaxValue;
+            var smallestCount = 0;
+
+            for (var i = 0; i < parent.Children.Count; i++)
+            {
+                Element<TRendererData> child = parent.Children[i];
+                IConstraint? constraint = fillHorizontal ? child.Constraints.Width : child.Constraints.Height;
                 if (constraint is not Fill)
                 {
                     continue;
                 }
 
-                int size = fillMainAxis ? child.Rect.Size.X : child.Rect.Size.Y;
-
-                //  Find the smallest size
-                if (smallest == -1)
+                int size = fillHorizontal ? child.Rect.Size.X : child.Rect.Size.Y;
+                int maxSize = fillHorizontal ? child.Constraints.MaxWidth : child.Constraints.MaxHeight;
+                if (maxSize > 0 && size >= maxSize)
                 {
-                    smallest = size;
+                    continue;
                 }
 
                 if (size < smallest)
                 {
                     secondSmallest = smallest;
                     smallest = size;
+                    smallestCount = 1;
                 }
-                else if (size > smallest)
+                else if (size == smallest)
                 {
-                    secondSmallest = Math.Min(secondSmallest, size);
-                    toAdd = secondSmallest - smallest;
+                    smallestCount++;
+                }
+                else if (size < secondSmallest)
+                {
+                    secondSmallest = size;
                 }
             }
 
-            //  Ensure the space to distribute doesn't reach 0, or the loop could never complete.
-            toAdd = Math.Min(toAdd, available / numFillChildren);
+            if (smallestCount == 0)
+            {
+                break;
+            }
+
+            int toAdd = secondSmallest < int.MaxValue ? secondSmallest - smallest : available;
+            toAdd = Math.Min(toAdd, available / smallestCount);
             toAdd = Math.Max(toAdd, 1);
 
-            //  Distribute available space among the smallest children
-            for (var i = 0; i < parent.Children.Count; i++)
+            for (var i = 0; i < parent.Children.Count && available > 0; i++)
             {
                 Element<TRendererData> child = parent.Children[i];
-                
-                IConstraint? constraint = fillMainAxis ? child.Constraints.Width : child.Constraints.Height;
+                IConstraint? constraint = fillHorizontal ? child.Constraints.Width : child.Constraints.Height;
                 if (constraint is not Fill)
                 {
                     continue;
                 }
 
-                int size = fillMainAxis ? child.Rect.Size.X : child.Rect.Size.Y;
-                if (size != smallest)
+                int size = fillHorizontal ? child.Rect.Size.X : child.Rect.Size.Y;
+                int maxSize = fillHorizontal ? child.Constraints.MaxWidth : child.Constraints.MaxHeight;
+                if (size != smallest || (maxSize > 0 && size >= maxSize))
                 {
                     continue;
                 }
-                
-                size += toAdd;
-                if (fillMainAxis)
+
+                int step = Math.Min(toAdd, available);
+                if (maxSize > 0)
+                {
+                    step = Math.Min(step, maxSize - size);
+                }
+
+                size += step;
+                if (fillHorizontal)
                 {
                     child.Rect = new IntRect(child.Rect.Position, new IntVector2(size, child.Rect.Size.Y));
                 }
@@ -1012,288 +1389,320 @@ public sealed class UIBuilder<TRendererData>
                 }
                 parent.Children[i] = child;
 
-                //  Consume distributed available space
-                available -= toAdd;
+                available -= step;
+            }
+        }
+    }
+
+    private void ShrinkChildrenWidth(ref Element<TRendererData> parent)
+    {
+        if (parent.Children == null || parent.Children.Count == 0 || parent.Viewport.HorizontalScroll)
+        {
+            return;
+        }
+
+        int contentWidth = Math.Max(0, parent.Rect.Size.X - parent.Style.Padding.Left - parent.Style.Padding.Right);
+
+        //  Cross-axis shrinking: clamp each overflowing shrinkable child directly to contentWidth
+        if (parent.Layout.Direction != LayoutDirection.Horizontal)
+        {
+            for (var i = 0; i < parent.Children.Count; i++)
+            {
+                Element<TRendererData> child = parent.Children[i];
+                if (child.Rect.Size.X > contentWidth && child.Constraints.MinWidth < child.Rect.Size.X)
+                {
+                    int newWidth = Math.Max(contentWidth, child.Constraints.MinWidth);
+                    child.Rect = new IntRect(child.Rect.Position, new IntVector2(newWidth, child.Rect.Size.Y));
+                    parent.Children[i] = child;
+                }
+            }
+
+            return;
+        }
+
+        int childCount = parent.Children.Count;
+        int usedWidth = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+        for (var i = 0; i < childCount; i++)
+        {
+            usedWidth += parent.Children[i].Rect.Size.X;
+        }
+
+        int deficit = usedWidth - contentWidth;
+        while (deficit > 0)
+        {
+            int largest = -1;
+            var secondLargest = 0;
+            var largestCount = 0;
+
+            for (var i = 0; i < childCount; i++)
+            {
+                Element<TRendererData> child = parent.Children[i];
+                int size = child.Rect.Size.X;
+                if (child.Constraints.MinWidth >= size)
+                {
+                    continue;
+                }
+
+                if (size > largest)
+                {
+                    secondLargest = largest > 0 ? largest : 0;
+                    largest = size;
+                    largestCount = 1;
+                }
+                else if (size == largest)
+                {
+                    largestCount++;
+                }
+                else if (size > secondLargest)
+                {
+                    secondLargest = size;
+                }
+            }
+
+            if (largestCount == 0 || largest < 0)
+            {
+                break;
+            }
+
+            int maxStep = secondLargest > 0 ? largest - secondLargest : deficit;
+            int toRemove = Math.Min(maxStep, deficit / largestCount);
+            toRemove = Math.Max(toRemove, 1);
+
+            for (var i = 0; i < childCount && deficit > 0; i++)
+            {
+                Element<TRendererData> child = parent.Children[i];
+                int oldWidth = child.Rect.Size.X;
+                if (oldWidth != largest || child.Constraints.MinWidth >= oldWidth)
+                {
+                    continue;
+                }
+
+                int step = Math.Min(toRemove, deficit);
+                int newWidth = Math.Max(oldWidth - step, child.Constraints.MinWidth);
+                int removed = oldWidth - newWidth;
+
+                child.Rect = new IntRect(child.Rect.Position, new IntVector2(newWidth, child.Rect.Size.Y));
+                parent.Children[i] = child;
+                deficit -= removed;
+            }
+        }
+    }
+
+    private void ShrinkChildrenHeight(ref Element<TRendererData> parent)
+    {
+        if (parent.Children == null || parent.Children.Count == 0 || parent.Viewport.VerticalScroll)
+        {
+            return;
+        }
+
+        int contentHeight = Math.Max(0, parent.Rect.Size.Y - parent.Style.Padding.Top - parent.Style.Padding.Bottom);
+
+        //  Cross-axis shrinking: clamp each overflowing shrinkable child directly to contentHeight
+        if (parent.Layout.Direction != LayoutDirection.Vertical)
+        {
+            for (var i = 0; i < parent.Children.Count; i++)
+            {
+                Element<TRendererData> child = parent.Children[i];
+                if (child.Rect.Size.Y > contentHeight && child.Constraints.MinHeight < child.Rect.Size.Y)
+                {
+                    int newHeight = Math.Max(contentHeight, child.Constraints.MinHeight);
+                    child.Rect = new IntRect(child.Rect.Position, new IntVector2(child.Rect.Size.X, newHeight));
+                    parent.Children[i] = child;
+                }
+            }
+
+            return;
+        }
+
+        int childCount = parent.Children.Count;
+        int usedHeight = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+        for (var i = 0; i < childCount; i++)
+        {
+            usedHeight += parent.Children[i].Rect.Size.Y;
+        }
+
+        int deficit = usedHeight - contentHeight;
+        while (deficit > 0)
+        {
+            int largest = -1;
+            var secondLargest = 0;
+            var largestCount = 0;
+
+            for (var i = 0; i < childCount; i++)
+            {
+                Element<TRendererData> child = parent.Children[i];
+                int size = child.Rect.Size.Y;
+                if (child.Constraints.MinHeight >= size)
+                {
+                    continue;
+                }
+
+                if (size > largest)
+                {
+                    secondLargest = largest > 0 ? largest : 0;
+                    largest = size;
+                    largestCount = 1;
+                }
+                else if (size == largest)
+                {
+                    largestCount++;
+                }
+                else if (size > secondLargest)
+                {
+                    secondLargest = size;
+                }
+            }
+
+            if (largestCount == 0 || largest < 0)
+            {
+                break;
+            }
+
+            int maxStep = secondLargest > 0 ? largest - secondLargest : deficit;
+            int toRemove = Math.Min(maxStep, deficit / largestCount);
+            toRemove = Math.Max(toRemove, 1);
+
+            for (var i = 0; i < childCount && deficit > 0; i++)
+            {
+                Element<TRendererData> child = parent.Children[i];
+                int oldHeight = child.Rect.Size.Y;
+                if (oldHeight != largest || child.Constraints.MinHeight >= oldHeight)
+                {
+                    continue;
+                }
+
+                int step = Math.Min(toRemove, deficit);
+                int newHeight = Math.Max(oldHeight - step, child.Constraints.MinHeight);
+                int removed = oldHeight - newHeight;
+
+                child.Rect = new IntRect(child.Rect.Position, new IntVector2(child.Rect.Size.X, newHeight));
+                parent.Children[i] = child;
+                deficit -= removed;
             }
         }
     }
 
     private void WrapTextChildren(ref Element<TRendererData> parent)
     {
-        int contentWidth = Math.Max(0, parent.Rect.Size.X - parent.Style.Padding.Left - parent.Style.Padding.Right);
+        if (parent.Children == null)
+        {
+            return;
+        }
 
-        for (var i = 0; i < parent.Children?.Count; i++)
+        int contentWidth = Math.Max(0, parent.Rect.Size.X - parent.Style.Padding.Left - parent.Style.Padding.Right);
+        int maxChildWidth = parent.Viewport.HorizontalScroll ? int.MaxValue : contentWidth;
+
+        for (var i = 0; i < parent.Children.Count; i++)
         {
             Element<TRendererData> child = parent.Children[i];
             if (child.Text == null)
             {
-                if (child.ID != null)
-                {
-                    _controller.UpdateTextLayout(child.ID, layout: default);
-                }
-                
                 continue;
             }
             
-            //  Wrap text to fit within its own width and the parent's content width
-            int maxWidth = Math.Min(child.Rect.Size.X, contentWidth);
-            TextLayout textLayout = TextEngine.Layout(child.FontOptions, child.Text, maxWidth);
-            
-            if (child.ID != null)
-            {
-                _controller.UpdateTextLayout(child.ID, textLayout);
-            }
-            
-            var size = new IntVector2(textLayout.Constraints.MinWidth, textLayout.Constraints.PreferredHeight);
-            child.Rect = new IntRect(child.Rect.Position, size);
-            
+            WrapElementText(ref child, maxChildWidth);
             parent.Children[i] = child;
         }
     }
-    
-    private void ShrinkChildren(ref Element<TRendererData> parent)
+
+    private void WrapElementText(ref Element<TRendererData> element, int availableParentWidth)
     {
-        int contentWidth = Math.Max(0, parent.Rect.Size.X - parent.Style.Padding.Left - parent.Style.Padding.Right);
-        int contentHeight = Math.Max(0, parent.Rect.Size.Y - parent.Style.Padding.Top - parent.Style.Padding.Bottom);
-        var usedWidth = 0;
-        var usedHeight = 0;
-
-        var numHorizontalShrinkChildren = 0;
-        var numVerticalShrinkChildren = 0;
-        
-        //  Calculate used space and shrinkable children
-        for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
-        {
-            Element<TRendererData> child = parent.Children[i];
-
-            switch (parent.Layout.Direction)
-            {
-                case LayoutDirection.Horizontal:
-                    usedWidth += child.Rect.Size.X;
-                    usedHeight = Math.Max(usedHeight, child.Rect.Size.Y);
-                    break;
-                case LayoutDirection.Vertical:
-                    usedWidth = Math.Max(usedWidth, child.Rect.Size.X);
-                    usedHeight += child.Rect.Size.Y;
-                    break;
-                case LayoutDirection.None:
-                    usedWidth = Math.Max(usedWidth, child.Rect.Size.X);
-                    usedHeight = Math.Max(usedHeight, child.Rect.Size.Y);
-                    break;
-            }
-
-            //  Count children that can shrink
-            if (child.Constraints.MinWidth != child.Rect.Size.X)
-            {
-                numHorizontalShrinkChildren++;
-            }
-            
-            if (child.Constraints.MinHeight != child.Rect.Size.Y)
-            {
-                numVerticalShrinkChildren++;
-            }
-        }
-        
-        int childCount = parent.Children?.Count ?? 0;
-        int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
-        
-        switch (parent.Layout.Direction)
-        {
-            case LayoutDirection.Horizontal:
-                usedWidth += totalSpacing;
-                break;
-            case LayoutDirection.Vertical:
-                usedHeight += totalSpacing;
-                break;
-        }
-
-        int availableWidth = contentWidth - usedWidth;
-        int availableHeight = contentHeight - usedHeight;
-
-        //  Move on if no children have shrink constraints
-        if (numHorizontalShrinkChildren == 0 && numVerticalShrinkChildren == 0)
+        if (element.Text == null)
         {
             return;
         }
-        
-        //  Continue distributing available space until none is left
-        while ((availableWidth < 0 || availableHeight < 0) && parent.Children != null)
+
+        Padding pad = element.Style.Padding;
+        int padX = pad.Left + pad.Right;
+        int padY = pad.Top + pad.Bottom;
+
+        int maxOuterWidth = Math.Min(element.Rect.Size.X, availableParentWidth);
+        if (element.Constraints.MaxWidth > 0)
         {
-            int largestWidth = -1;
-            var secondLargestWidth = 0;
-            int widthToAdd = availableWidth;
-            
-            int largestHeight = -1;
-            var secondLargestHeight = 0;
-            int heightToAdd = availableHeight;
+            maxOuterWidth = Math.Min(maxOuterWidth, element.Constraints.MaxWidth);
+        }
 
-            //  Determine how much space should be added to the largest children.
-            //  Each axis only considers children that can actually shrink along that axis,
-            //  otherwise the loop could get stuck unable to make progress on the deficit.
-            for (var i = 0; i < parent.Children.Count; i++)
+        int maxTextWidth = Math.Max(0, maxOuterWidth - padX);
+        TextLayout textLayout = TextEngine.Layout(element.FontOptions, element.Text, maxTextWidth);
+        element.TextLayout = textLayout;
+        element.ContentSize = new IntVector2(textLayout.Constraints.PreferredWidth, textLayout.Constraints.PreferredHeight);
+
+        int width = element.Rect.Size.X;
+        IConstraint? widthConstraint = element.Constraints.Width;
+        if (widthConstraint == null || widthConstraint is Fit or Shrink)
+        {
+            width = ClampWidth(in element, textLayout.Constraints.MinWidth + padX);
+        }
+
+        int wrappedHeight = textLayout.Constraints.PreferredHeight + padY;
+        int height = element.Rect.Size.Y;
+        IConstraint? heightConstraint = element.Constraints.Height;
+        if (heightConstraint == null || heightConstraint is Fit)
+        {
+            element.Constraints.MinHeight = Math.Max(element.Constraints.MinHeight, wrappedHeight);
+            height = ClampHeight(in element, wrappedHeight);
+        }
+        else if (heightConstraint is Shrink)
+        {
+            height = ClampHeight(in element, wrappedHeight);
+        }
+
+        element.Rect = new IntRect(element.Rect.Position, new IntVector2(width, height));
+    }
+
+    private void FinalizeTextLayout(ref Element<TRendererData> element)
+    {
+        if (element.Text == null)
+        {
+            if (element.ID != null)
             {
-                Element<TRendererData> child = parent.Children[i];
-
-                bool shrinkHorizontal = child.Constraints.MinWidth != child.Rect.Size.X;
-                bool shrinkVertical = child.Constraints.MinHeight != child.Rect.Size.Y;
-                if (!shrinkHorizontal && !shrinkVertical)
-                {
-                    continue;
-                }
-
-                //  Find the largest on each axis
-                if (shrinkHorizontal)
-                {
-                    if (largestWidth == -1)
-                    {
-                        largestWidth = child.Rect.Size.X;
-                    }
-                    else if (child.Rect.Size.X > largestWidth)
-                    {
-                        secondLargestWidth = largestWidth;
-                        largestWidth = child.Rect.Size.X;
-                    }
-                    else if (child.Rect.Size.X < largestWidth)
-                    {
-                        secondLargestWidth = Math.Max(secondLargestWidth, child.Rect.Size.X);
-                        widthToAdd = secondLargestWidth - largestWidth;
-                    }
-                }
-
-                if (shrinkVertical)
-                {
-                    if (largestHeight == -1)
-                    {
-                        largestHeight = child.Rect.Size.Y;
-                    }
-                    else if (child.Rect.Size.Y > largestHeight)
-                    {
-                        secondLargestHeight = largestHeight;
-                        largestHeight = child.Rect.Size.Y;
-                    }
-                    else if (child.Rect.Size.Y < largestHeight)
-                    {
-                        secondLargestHeight = Math.Max(secondLargestHeight, child.Rect.Size.Y);
-                        heightToAdd = secondLargestHeight - largestHeight;
-                    }
-                }
+                _controller.UpdateTextLayout(element.ID, TextLayout.Empty);
             }
 
-            //  Ensure the space to distribute doesn't reach 0, or the loop could never complete.
-            if (availableWidth < 0 && numHorizontalShrinkChildren > 0 && largestWidth >= 0)
-            {
-                widthToAdd = Math.Max(widthToAdd, availableWidth / numHorizontalShrinkChildren);
-                widthToAdd = Math.Min(widthToAdd, -1);
-            }
-            else
-            {
-                availableWidth = 0;
-            }
-            
-            if (availableHeight < 0 && numVerticalShrinkChildren > 0 && largestHeight >= 0)
-            {
-                heightToAdd = Math.Max(heightToAdd, availableHeight / numVerticalShrinkChildren);
-                heightToAdd = Math.Min(heightToAdd, -1);
-            }
-            else
-            {
-                availableHeight = 0;
-            }
-            
-            //  Distribute available space among children.
-            //  Along the layout axis, available space is distributed beginning with the largest children.
-            //  Opposite the layout axis, available space is consumed entirely.
-            for (var i = 0; i < parent.Children.Count; i++)
-            {
-                Element<TRendererData> child = parent.Children[i];
-                
-                bool matchesLargestWidth = child.Rect.Size.X == largestWidth;
-                bool matchesLargestHeight = child.Rect.Size.Y == largestHeight;
-                if (!matchesLargestWidth && !matchesLargestHeight)
-                {
-                    continue;
-                }
-                
-                bool shrinkHorizontal = child.Constraints.MinWidth != child.Rect.Size.X;
-                bool shrinkVertical = child.Constraints.MinHeight != child.Rect.Size.Y;
-                if (!shrinkHorizontal && !shrinkVertical)
-                {
-                    continue;
-                }
-                
-                //  Distribute available space evenly
-                int oldWidth = child.Rect.Size.X;
-                int oldHeight = child.Rect.Size.Y;
-                int width = oldWidth;
-                int height = oldHeight;
-                switch (parent.Layout.Direction)
-                {
-                    case LayoutDirection.Horizontal:
-                        if (shrinkHorizontal && matchesLargestWidth)
-                        {
-                            width = Math.Max(oldWidth + widthToAdd, child.Constraints.MinWidth);
-                        }
+            return;
+        }
 
-                        if (shrinkVertical && matchesLargestHeight)
-                        {
-                            height = Math.Max(oldHeight + availableHeight, child.Constraints.MinHeight);
-                        }
-                        break;
-                    case LayoutDirection.Vertical:
-                        if (shrinkHorizontal && matchesLargestWidth)
-                        {
-                            width = Math.Max(oldWidth + availableWidth, child.Constraints.MinWidth);
-                        }
+        TextLayout layout = element.TextLayout ?? TextEngine.Layout(element.FontOptions, element.Text, element.Rect.Size.X);
+        Padding pad = element.Style.Padding;
+        int innerWidth = Math.Max(0, element.Rect.Size.X - pad.Left - pad.Right);
+        int innerHeight = Math.Max(0, element.Rect.Size.Y - pad.Top - pad.Bottom);
 
-                        if (shrinkVertical && matchesLargestHeight)
-                        {
-                            height = Math.Max(oldHeight + heightToAdd, child.Constraints.MinHeight);
-                        }
-                        break;
-                    default:
-                        if (shrinkHorizontal && matchesLargestWidth)
-                        {
-                            width = Math.Max(oldWidth + widthToAdd, child.Constraints.MinWidth);
-                        }
+        int offsetX = pad.Left + element.FontOptions.HorizontalAlignment switch
+        {
+            HorizontalAlignment.Center => (innerWidth - layout.Constraints.PreferredWidth) / 2,
+            HorizontalAlignment.Right => innerWidth - layout.Constraints.PreferredWidth,
+            _ => 0,
+        };
 
-                        if (shrinkVertical && matchesLargestHeight)
-                        {
-                            height = Math.Max(oldHeight + heightToAdd, child.Constraints.MinHeight);
-                        }
-                        break;
-                }
+        int offsetY = pad.Top + element.FontOptions.VerticalAlignment switch
+        {
+            VerticalAlignment.Center => (innerHeight - layout.Constraints.PreferredHeight) / 2,
+            VerticalAlignment.Bottom => innerHeight - layout.Constraints.PreferredHeight,
+            _ => 0,
+        };
 
-                //  Update the child
-                var size = new IntVector2(width, height);
-                child.Rect = new IntRect(child.Rect.Position, size);
-                parent.Children[i] = child;
-                
-                //  Consume distributed available space on the axis of the layout
-                switch (parent.Layout.Direction)
-                {
-                    case LayoutDirection.Horizontal:
-                        availableWidth += oldWidth - width;
-                        break;
-                    case LayoutDirection.Vertical:
-                        availableHeight += oldHeight - height;
-                        break;
-                    case LayoutDirection.None:
-                        availableWidth += oldWidth - width;
-                        availableHeight += oldHeight - height;
-                        break;
-                }
-            }
-            
-            //  Consume all available space opposite the axis of the layout.
-            switch (parent.Layout.Direction)
+        if (offsetX != 0 || offsetY != 0)
+        {
+            var offsetGlyphs = new GlyphLayout[layout.Glyphs.Length];
+            for (var i = 0; i < layout.Glyphs.Length; i++)
             {
-                case LayoutDirection.Horizontal:
-                    availableHeight = 0;
-                    break;
-                case LayoutDirection.Vertical:
-                    availableWidth = 0;
-                    break;
+                GlyphLayout glyph = layout.Glyphs[i];
+                var movedBbox = new IntRect(
+                    glyph.BBOX.Left + offsetX,
+                    glyph.BBOX.Top + offsetY,
+                    glyph.BBOX.Right + offsetX,
+                    glyph.BBOX.Bottom + offsetY
+                );
+                offsetGlyphs[i] = new GlyphLayout(movedBbox, glyph.UV, glyph.Color, glyph.IsWhitespace);
             }
+
+            layout = new TextLayout(layout.Constraints, offsetGlyphs, layout.Lines, layout.LineHeight);
+            element.TextLayout = layout;
+        }
+
+        if (element.ID != null)
+        {
+            _controller.UpdateTextLayout(element.ID, layout);
         }
     }
     
