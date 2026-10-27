@@ -36,7 +36,8 @@ calls `container.RegisterDataServices()` and
 
 The client module (`WaywardBeyond.Client/Injector.cs`) registers client-only
 services and the embedding's content choices. It calls
-`container.RegisterTags()` because `LoadScreen` and `NameGenerator` read
+`container.RegisterDataServices()` and `container.RegisterTags()` because menu
+pages use `SeedPhraseService` and `LoadScreen` and `NameGenerator` read
 localized tags. The dedicated launcher registers no services. It applies CLI
 overrides after the engine builds
 (`WaywardBeyond.Server.Launcher/Program.cs`).
@@ -47,7 +48,7 @@ overrides after the engine builds
 |---|---|---|
 | `WaywardBeyond.Networking` | `RegisterNetworking()` | `NetworkRegistry` and the built-in wire components |
 | `WaywardBeyond.Config` | `RegisterNetworkingConfig()` | `network.toml` config, its sub-config views, and validation |
-| `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services such as `Migrator` |
+| `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`) |
 | `WaywardBeyond.Data` (localization) | `LocalizationComposition.RegisterTags()` | localized tag database and parser |
 | `WaywardBeyond.Server` | `RegisterHost()`, `RegisterServer()` | host wire-up, server composition |
 | `WaywardBeyond.Bricks` | `Injector` | brick database, registry, parser |

@@ -37,6 +37,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     private readonly ConfirmModal _confirmModal;
     private readonly SoundEffectService _soundEffectService;
     private readonly ClientRpcHost _rpcHost;
+    private readonly SeedPhraseService _seedPhraseService;
 
     private readonly Widgets.ActionButtonOptions _returnButton;
     private readonly Widgets.ActionButtonOptions _launchButton;
@@ -55,7 +56,8 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         in ICharacterStorage characterStorage,
         in ClientRpcHost rpcHost,
         in ModalMenu modalMenu,
-        in ConfirmModal confirmModal
+        in ConfirmModal confirmModal,
+        in SeedPhraseService seedPhraseService
     )
     {
         _gameSaveManager = gameSaveManager;
@@ -67,6 +69,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         _rpcHost = rpcHost;
         _modalMenu = modalMenu;
         _confirmModal = confirmModal;
+        _seedPhraseService = seedPhraseService;
 
         _returnButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _launchButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
@@ -549,7 +552,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         ui.Spacer(height: 16);
 
         DrawTelemetryRow(ui, _localization.GetRequired("ui.label.level.mode"), save.Level.DefaultGameMode.ToString());
-        DrawTelemetryRow(ui, _localization.GetRequired("ui.label.level.seed"), save.Level.Seed.ToString());
+        DrawTelemetryRow(ui, _localization.GetRequired("ui.label.level.seed"), _seedPhraseService.SeedToPhrase(save.Level.Seed));
 
         TimeSpan age = TimeSpan.FromMilliseconds(save.Level.Playtime.AgeMs);
         DrawTelemetryRow(

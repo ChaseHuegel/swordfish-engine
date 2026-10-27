@@ -29,7 +29,7 @@ message Level
 {
     Version Version = 0;
     
-    int Seed = 1;
+    long Seed = 1;
     
     Playtime Playtime = 2;
     

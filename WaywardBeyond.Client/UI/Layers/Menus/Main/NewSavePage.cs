@@ -41,6 +41,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly ILocalization _localization;
     private readonly NameGenerator _nameGenerator;
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase;
+    private readonly SeedPhraseService _seedPhraseService;
     private readonly Randomizer _randomizer = new();
     private readonly List<string> _createMessages = [];
     private readonly List<double> _createMessageTimes = [];
@@ -64,7 +65,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         in SoundEffectService soundEffectService,
         in ILocalization localization,
         in NameGenerator nameGenerator,
-        in IAssetDatabase<LocalizedTags> localizedTagDatabase
+        in IAssetDatabase<LocalizedTags> localizedTagDatabase,
+        in SeedPhraseService seedPhraseService
     ) {
         _gameSaveService = gameSaveService;
         _gameSaveManager = gameSaveManager;
@@ -73,6 +75,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _localization = localization;
         _nameGenerator = nameGenerator;
         _localizedTagDatabase = localizedTagDatabase;
+        _seedPhraseService = seedPhraseService;
 
         _cancelButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _initializeButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
@@ -90,7 +93,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
         var saveSeedTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.level.seed.placeholder"),
-            MaxCharacters: 20,
+            MaxCharacters: 40,
             Constraints: new Constraints
             {
                 Width = new Fill(),
@@ -486,7 +489,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             {
                 _createError = null;
                 _seedTextBox.Text.Clear();
-                _seedTextBox.Text.Append(Random.Shared.NextInt64());
+                _seedTextBox.Text.Append(_seedPhraseService.SeedToPhrase(Random.Shared.NextInt64()));
             }
         }
     }
@@ -783,7 +786,9 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         }
 
         string seedValue = _seedTextBox.Text.ToString();
-        string seed = string.IsNullOrWhiteSpace(seedValue) ? Random.Shared.NextInt64().ToString() : seedValue;
+        string seed = string.IsNullOrWhiteSpace(seedValue)
+            ? _seedPhraseService.SeedToPhrase(Random.Shared.NextInt64())
+            : seedValue;
         _createError = null;
         _createTime = 0;
         _nextCreateMessageTime = 0;

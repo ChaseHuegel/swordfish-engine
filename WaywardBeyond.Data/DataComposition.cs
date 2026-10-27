@@ -1,4 +1,5 @@
 using DryIoc;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Data.Migrations;
 
 namespace WaywardBeyond.Data;
@@ -15,6 +16,8 @@ public static class DataComposition
     /// </summary>
     public static void RegisterDataServices(this IContainer container)
     {
+        container.RegisterTags();
         container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.Register<SeedPhraseService>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
     }
 }
