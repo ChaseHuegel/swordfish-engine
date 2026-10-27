@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -77,8 +77,8 @@ public sealed class PixelRenderer
             //  Render a textured rect
             if (renderCommand.RendererData != null)
             {
-                var u = (int)RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.RendererData.Width - 1);
-                var v = (int)RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.RendererData.Height - 1);
+                var u = Math.Clamp((int)RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.RendererData.Width), 0, renderCommand.RendererData.Width - 1);
+                var v = Math.Clamp((int)RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.RendererData.Height), 0, renderCommand.RendererData.Height - 1);
                 Vector4 sample = renderCommand.RendererData.GetPixel(u, v);
                 sample = MultiplyBlend(sample, color);
                 //  Blend in any texture background color
@@ -104,7 +104,7 @@ public sealed class PixelRenderer
         }
 
         //  Render text
-        TextLayout textLayout = _textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
+        TextLayout textLayout = renderCommand.TextLayout ?? _textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
         
         string? fontID = renderCommand.FontOptions.ID;
         if (fontID == null || !_fonts.TryGetValue(fontID, out PixelFontSDF font))
@@ -115,6 +115,10 @@ public sealed class PixelRenderer
         for (var i = 0; i < textLayout.Glyphs.Length; i++)
         {
             GlyphLayout glyph = textLayout.Glyphs[i];
+            if (glyph.IsWhitespace)
+            {
+                continue;
+            }
                 
             var bbox = new IntRect(
                 renderCommand.Rect.Left + glyph.BBOX.Left,
@@ -205,6 +209,8 @@ public sealed class PixelRenderer
     {
         CornerRadius radius = renderCommand.CornerRadius;
         IntRect rect = renderCommand.Rect;
+        int rightEdge = rect.Right - 1;
+        int bottomEdge = rect.Bottom - 1;
 
         if (x < rect.Left + radius.TopLeft && y < rect.Top + radius.TopLeft)
         {
@@ -213,24 +219,24 @@ public sealed class PixelRenderer
             return dx * dx + dy * dy > radius.TopLeft * radius.TopLeft;
         }
 
-        if (x > rect.Right - radius.TopRight && y < rect.Top + radius.TopRight)
+        if (x > rightEdge - radius.TopRight && y < rect.Top + radius.TopRight)
         {
-            int dx = x - (rect.Right - radius.TopRight);
+            int dx = x - (rightEdge - radius.TopRight);
             int dy = y - (rect.Top + radius.TopRight);
             return dx * dx + dy * dy > radius.TopRight * radius.TopRight;
         }
 
-        if (x > rect.Right - radius.BottomRight && y > rect.Bottom - radius.BottomRight)
+        if (x > rightEdge - radius.BottomRight && y > bottomEdge - radius.BottomRight)
         {
-            int dx = x - (rect.Right - radius.BottomRight);
-            int dy = y - (rect.Bottom - radius.BottomRight);
+            int dx = x - (rightEdge - radius.BottomRight);
+            int dy = y - (bottomEdge - radius.BottomRight);
             return dx * dx + dy * dy > radius.BottomRight * radius.BottomRight;
         }
 
-        if (x < rect.Left + radius.BottomLeft && y > rect.Bottom - radius.BottomLeft)
+        if (x < rect.Left + radius.BottomLeft && y > bottomEdge - radius.BottomLeft)
         {
             int dx = x - (rect.Left + radius.BottomLeft);
-            int dy = y - (rect.Bottom - radius.BottomLeft);
+            int dy = y - (bottomEdge - radius.BottomLeft);
             return dx * dx + dy * dy > radius.BottomLeft * radius.BottomLeft;
         }
 

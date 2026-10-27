@@ -88,7 +88,8 @@ public static class RichTextColor
         consumed = 0;
 
         //  8-digit hex (with alpha) is preferred over 6-digit hex.
-        foreach (int digitCount in new[] { 8, 6 })
+        ReadOnlySpan<int> digitCounts = [8, 6];
+        foreach (int digitCount in digitCounts)
         {
             if (end - valueStart < digitCount)
             {
@@ -144,7 +145,7 @@ public static class RichTextColor
 
         int runLength = runEnd - valueStart;
         int maxLength = Math.Min(runLength, MAX_NAME_LENGTH);
-        for (var length = maxLength; length >= 1; length--)
+        for (var length = maxLength; length >= 3; length--)
         {
             string candidate = text.Substring(valueStart, length);
             if (_palette.TryGetValue(candidate, out uint rgb))

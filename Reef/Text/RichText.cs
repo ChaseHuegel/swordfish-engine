@@ -17,10 +17,22 @@ public readonly struct RichText(string text, Vector4?[] color)
     public readonly Vector4?[] Color = color;
 
     /// <summary>
-    ///     Strips "#" color control sequences out of a text window and records a color per remaining character.
+    ///     Strips "#" color control sequences and carriage returns out of a text window and records a color per remaining character.
     /// </summary>
     public static RichText Parse(string text, int start, int length)
     {
+        if (length <= 0)
+        {
+            return Empty;
+        }
+
+        ReadOnlySpan<char> span = text.AsSpan(start, length);
+        if (span.IndexOfAny('#', '\r') < 0)
+        {
+            string slice = start == 0 && length == text.Length ? text : text.Substring(start, length);
+            return new RichText(slice, new Vector4?[length]);
+        }
+
         int end = start + length;
         var builder = new StringBuilder(length);
         var colors = new List<Vector4?>(length);
@@ -30,6 +42,12 @@ public readonly struct RichText(string text, Vector4?[] color)
         while (index < end)
         {
             char c = text[index];
+
+            if (c == '\r')
+            {
+                index++;
+                continue;
+            }
 
             //  "##" is a literal hash.
             if (c == '#' && index + 1 < end && text[index + 1] == '#')

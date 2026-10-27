@@ -114,7 +114,7 @@ public sealed class TextEngine : ITextEngine
         var processStartInfo = new ProcessStartInfo
         {
             FileName = processPath,
-            Arguments = $"-font \"{fontInfo.Path}\" -imageout \"{imageDestination}\" -json \"{jsonDestination}\" -chars \"[0x0000, 0xffff]\"",
+            Arguments = $"-font \"{fontInfo.Path}\" -imageout \"{imageDestination}\" -json \"{jsonDestination}\" -chars \"[0x{fontInfo.MinUnicode:x4}, 0x{fontInfo.MaxUnicode:x4}]\"",
             UseShellExecute = false,
             CreateNoWindow = true,
         };
