@@ -12,7 +12,7 @@ public class PingDisplayTests
     {
         Widgets.PingDisplay display = Widgets.ResolvePing(null);
 
-        Assert.Equal(MenuGlyphs.Signal, display.Glyph);
+        Assert.Equal(MenuGlyphs.SIGNAL, display.Glyph);
         Assert.Equal("-", display.Text);
         Assert.Equal(UiTheme.TextDim, display.Color);
     }
@@ -38,7 +38,7 @@ public class PingDisplayTests
             _ => UiTheme.Danger,
         };
 
-        Assert.Equal(MenuGlyphs.Signal, display.Glyph);
+        Assert.Equal(MenuGlyphs.SIGNAL, display.Glyph);
         Assert.Equal(expected, display.Color);
         Assert.Equal($"{ping} ms", display.Text);
     }
@@ -48,7 +48,7 @@ public class PingDisplayTests
     {
         Widgets.PingDisplay display = Widgets.ResolvePing(250);
 
-        Assert.Equal(MenuGlyphs.XMark, display.Glyph);
+        Assert.Equal(MenuGlyphs.X_MARK, display.Glyph);
         Assert.Equal("-", display.Text);
         Assert.Equal(UiTheme.Danger, display.Color);
     }

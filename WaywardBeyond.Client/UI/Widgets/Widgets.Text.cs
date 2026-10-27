@@ -31,7 +31,7 @@ internal static partial class Widgets
             {
                 var fontOptions = new FontOptions
                 {
-                    ID = fontId ?? UiTheme.FontUI,
+                    ID = fontId ?? UiTheme.FONT_UI,
                     Size = fontSize,
                     NoWrap = true,
                 };
@@ -74,7 +74,7 @@ internal static partial class Widgets
             {
                 ui.FontOptions = new FontOptions
                 {
-                    ID = UiTheme.FontUI,
+                    ID = UiTheme.FONT_UI,
                     Size = fontSize,
                 };
                 ui.Color = color;

@@ -14,7 +14,7 @@ internal sealed class ModalMenu : Menu<Modal>
     private readonly InteractionState _interactionState;
 
     private InteractionState.InteractionBlocker? _interactionBlocker;
-    
+
     public ModalMenu(
         in ILogger<Menu<Modal>> logger,
         in ReefContext reefContext,
@@ -24,7 +24,7 @@ internal sealed class ModalMenu : Menu<Modal>
     ) : base(logger, reefContext, pages)
     {
         _interactionState = interactionState;
-        
+
         Shortcut closeShortcut = new(
             name: "Close modal",
             category: "Modals",
@@ -40,9 +40,8 @@ internal sealed class ModalMenu : Menu<Modal>
     {
         //  If there isn't a previous page, then there are active modals pushed.
         bool active = GetPreviousPage().Success;
-        
-        //  ! HACK
-        //  ! Relying on IsVisible being called each frame to manage state
+
+        //  The blocker is acquired and released here because IsVisible is polled once per frame.
         if (WaywardBeyond.IsPlaying())
         {
             if (active && _interactionBlocker == null)
@@ -58,7 +57,7 @@ internal sealed class ModalMenu : Menu<Modal>
 
         return active;
     }
-    
+
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         using (ui.Element(id: "Blocker_Modal"))
@@ -68,7 +67,7 @@ internal sealed class ModalMenu : Menu<Modal>
                 Width = new Relative(1f),
                 Height = new Relative(1f),
             };
-            
+
             return base.RenderUI(delta, ui);
         }
     }

@@ -101,7 +101,7 @@ public class ConnectingModalTests
 
     private sealed class StubTextEngine : ITextEngine
     {
-        private static readonly TextLayout CachedLayout = new(
+        private static readonly TextLayout _cachedLayout = new(
             new TextConstraints(32, 32, 32, 32),
             [],
             ["OK"],
@@ -118,10 +118,10 @@ public class ConnectingModalTests
 
         public TextConstraints Measure(FontOptions fontOptions, string text) => new(32, 32, 32, 32);
         public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length) => new(32, 32, 32, 32);
-        public TextLayout Layout(FontOptions fontOptions, string text) => CachedLayout;
-        public TextLayout Layout(FontOptions fontOptions, string text, int maxWidth) => CachedLayout;
-        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length) => CachedLayout;
-        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth) => CachedLayout;
+        public TextLayout Layout(FontOptions fontOptions, string text) => _cachedLayout;
+        public TextLayout Layout(FontOptions fontOptions, string text, int maxWidth) => _cachedLayout;
+        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length) => _cachedLayout;
+        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth) => _cachedLayout;
         public string[] Wrap(FontOptions fontOptions, string text, int maxWidth) => ["OK"];
         public string[] Wrap(FontOptions fontOptions, string text, int start, int length, int maxWidth) => ["OK"];
     }

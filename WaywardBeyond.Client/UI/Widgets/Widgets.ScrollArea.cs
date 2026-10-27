@@ -25,7 +25,7 @@ internal static partial class Widgets
         float wheel = inputService.GetMouseScroll();
         if (wheel != 0f)
         {
-            scrollY -= (int)MathF.Round(wheel * UiMetrics.ScrollStep);
+            scrollY -= (int)MathF.Round(wheel * UiMetrics.SCROLL_STEP);
         }
 
         scrollY = Math.Clamp(scrollY, 0, maxScroll);

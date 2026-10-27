@@ -30,6 +30,11 @@ multiplayer server hub. New Game creates a sector before it opens Crew Manifest.
 computes a centered page with left and right panel rects, a tab strip, a footer,
 and Return/Primary footer buttons.
 
+`MenuLayout.DrawFooter` draws the two footer buttons and the status between
+them. A page passes a `MenuFooterButton` per action and branches on the
+returned `MenuFooterResult`, so no page repeats the footer block. The status
+colour defaults to `UiTheme.Danger`. A warning status passes `UiTheme.Warning`.
+
 - The design base is 1280 by 720.
 - The page shrinks with the window and has a 480 pixel minimum width.
 - Menu pages have no page-level title. Panel titles and tabs identify the page.
@@ -122,7 +127,9 @@ New Game:
 
 The mockup uses galaxy terminology. The game stores levels and characters.
 
-- Galactic Archives is the level/save list from `GameSaveService`.
+- Galactic Archives is the level/save list from `GameSaveService`. It scrolls
+  through `Widgets.ScrollArea`, so it shows the same scrollbar as the crew
+  manifest when the list overflows.
 - Sector Telemetry is `Level` data plus the active `Character` when present.
 - Crew Manifest is `ICharacterStorage`.
 - Body Preset is the real `Character.Body` ID list from
@@ -196,14 +203,14 @@ Do not add fake menu controls.
 - Continue: `WaywardBeyond.Client/Saves/ContinueService.cs:18`
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:13`
 - Connecting modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConnectingModal.cs:14`
-- Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:14`
-- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
-- New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:22`
-- Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:24`
-- Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:23`
-- Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:22`
-- Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:14`
-- Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:19`
+- Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:15`
+- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:25`
+- New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:23`
+- Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:23`
+- Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:25`
+- Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:24`
+- Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:15`
+- Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:20`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
 - Localization: `WaywardBeyond.Client/assets/lang/en/ui.toml`
 

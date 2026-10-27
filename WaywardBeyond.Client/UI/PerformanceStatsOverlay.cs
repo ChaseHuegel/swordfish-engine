@@ -10,7 +10,7 @@ namespace WaywardBeyond.Client.UI;
 public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSContext ecs) : IDebugOverlay
 {
     private const int SAMPLE_LENGTH = 60 * 2;
-    
+
     private readonly IWindowContext _windowContext = windowContext;
     private readonly IECSContext _ecs = ecs;
     private readonly Sampler _fpsSampler = new(SAMPLE_LENGTH);
@@ -24,15 +24,15 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
         double fps = 1000d / (_windowContext.RenderDelta.Get() * 1000d);
         _fpsSampler.Record(fps);
         Sample fpsSample = _fpsSampler.GetSnapshot();
-        
+
         double ups = 1000d / (_windowContext.UpdateDelta.Get() * 1000d);
         _updateSampler.Record(ups);
         Sample upsSample = _updateSampler.GetSnapshot();
-        
+
         double tps = 1000d / (_ecs.Delta.Get() * 1000d);
         _tickSampler.Record(tps);
         Sample tpsSample = _tickSampler.GetSnapshot();
-        
+
         using (ui.Text($"FPS M:{fpsSample.Median:F0} / A:{fpsSample.Average:F0} / L:{fpsSample.Lowest:F0} / H:{fpsSample.Highest:F0}"))
         {
             if (fpsSample.Median < 30)
@@ -44,7 +44,7 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
                 ui.Color = UiTheme.Warning;
             }
         }
-        
+
         using (ui.Text($"UPS M:{upsSample.Median:F0} / A:{upsSample.Average:F0} / L:{upsSample.Lowest:F0} / H:{upsSample.Highest:F0}"))
         {
             if (upsSample.Median < 30)
@@ -56,7 +56,7 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
                 ui.Color = UiTheme.Warning;
             }
         }
-        
+
         using (ui.Text($"TPS M:{tpsSample.Median:F0} / A:{tpsSample.Average:F0} / L:{tpsSample.Lowest:F0} / H:{tpsSample.Highest:F0}"))
         {
             if (tpsSample.Median < 30)

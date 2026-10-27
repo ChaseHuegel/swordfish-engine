@@ -19,6 +19,19 @@ internal static partial class Widgets
         Action<UIBuilder<Material>> drawContent
     )
     {
+        return ui.SelectableCard(id, rect, in options, drawContent, static (contentUi, draw) => draw(contentUi));
+    }
+
+    /// <summary>Creates a clickable card and draws its content from an explicit state value.</summary>
+    public static bool SelectableCard<TState>(
+        this UIBuilder<Material> ui,
+        string id,
+        IntRect rect,
+        in SelectableCardOptions options,
+        TState state,
+        Action<UIBuilder<Material>, TState> drawContent
+    )
+    {
         bool clicked;
         bool hovering;
 
@@ -27,7 +40,7 @@ internal static partial class Widgets
             using (ui.Element())
             {
                 DrawSelectableCard(ui, rect, options, enabled: false, hovering: false, pressed: false);
-                drawContent(ui);
+                drawContent(ui, state);
             }
 
             return false;
@@ -38,7 +51,7 @@ internal static partial class Widgets
             clicked = ui.Clicked();
             hovering = ui.Hovering();
             DrawSelectableCard(ui, rect, options, enabled: true, hovering, clicked);
-            drawContent(ui);
+            drawContent(ui, state);
         }
 
         if (clicked && options.SoundEffectService != null)
@@ -68,7 +81,7 @@ internal static partial class Widgets
                     : UiTheme.PanelInner;
         ui.Border = new BorderStyle
         {
-            Thickness = UiMetrics.PanelBorderThickness,
+            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
             Color = !enabled
                 ? UiTheme.BorderInner
                 : options.Selected

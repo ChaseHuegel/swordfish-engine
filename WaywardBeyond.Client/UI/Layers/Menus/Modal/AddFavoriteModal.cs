@@ -1,11 +1,12 @@
-using System;
-using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using System;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
 
@@ -20,6 +21,12 @@ internal sealed class AddFavoriteModal(
 {
     public static Modal Modal { get; } = new(id: "core.addFavorite");
 
+    /// <summary>The panel width in pixels.</summary>
+    private const int PANEL_WIDTH = 520;
+
+    /// <summary>The panel height in pixels.</summary>
+    private const int PANEL_HEIGHT = 300;
+
     private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
 
@@ -32,8 +39,8 @@ internal sealed class AddFavoriteModal(
         soundEffectService
     );
 
-    private TextBoxState _hostTextBox = CreateHostTextBox(localization.GetString("ui.field.host")!);
-    private TextBoxState _portTextBox = CreatePortTextBox(localization.GetString("ui.field.port")!);
+    private TextBoxState _hostTextBox = CreateHostTextBox(localization.GetRequired("ui.field.host"));
+    private TextBoxState _portTextBox = CreatePortTextBox(localization.GetRequired("ui.field.port"));
     private Action<string, int>? _submit;
     private string? _errorMessage;
 
@@ -42,156 +49,7 @@ internal sealed class AddFavoriteModal(
     /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        const int panelWidth = 520;
-        const int panelHeight = 300;
-
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.Scrim;
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-
-            using (ui.Element())
-            {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-                ui.ClipConstraints = new Constraints
-                {
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-
-                using (ui.ModalPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
-                {
-                    int padding = 28;
-                    int contentWidth = panelWidth - padding * 2;
-
-                    ui.Label(
-                        _localization.GetString("ui.menu.addFavorite")!,
-                        Widgets.Rect(padding, 22, contentWidth, 30),
-                        UiMetrics.MenuTitleFont,
-                        UiTheme.Text,
-                        Anchors.Center
-                    );
-                    ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
-
-                    ui.Label(
-                        _localization.GetString("ui.field.host")!,
-                        Widgets.Rect(padding, 78, contentWidth, 18),
-                        UiMetrics.MenuSmallFont,
-                        UiTheme.Text,
-                        Anchors.Left | Anchors.Center
-                    );
-                    using (ui.Element())
-                    {
-                        ui.Constraints = Widgets.RectConstraints(
-                            Widgets.Rect(padding, 98, contentWidth, UiMetrics.ControlHeight)
-                        );
-                        ui.ClipConstraints = new Constraints
-                        {
-                            Width = new Fixed(contentWidth),
-                            Height = new Fixed(UiMetrics.ControlHeight),
-                        };
-                        ui.TextBox(
-                            "TextBox_FavoriteHost",
-                            ref _hostTextBox,
-                            new FontOptions { Size = UiMetrics.MenuBodyFont },
-                            _inputService,
-                            out Widgets.Interactions hostInteractions
-                        );
-                        if (hostInteractions.Has(Widgets.Interactions.Input))
-                        {
-                            _errorMessage = null;
-                        }
-
-                        if (hostInteractions.Has(Widgets.Interactions.Submit))
-                        {
-                            Submit(menu);
-                        }
-                    }
-
-                    ui.Label(
-                        _localization.GetString("ui.field.port")!,
-                        Widgets.Rect(padding, 142, contentWidth, 18),
-                        UiMetrics.MenuSmallFont,
-                        UiTheme.Text,
-                        Anchors.Left | Anchors.Center
-                    );
-                    using (ui.Element())
-                    {
-                        ui.Constraints = Widgets.RectConstraints(
-                            Widgets.Rect(padding, 162, 96, UiMetrics.ControlHeight)
-                        );
-                        ui.ClipConstraints = new Constraints
-                        {
-                            Width = new Fixed(96),
-                            Height = new Fixed(UiMetrics.ControlHeight),
-                        };
-                        ui.TextBox(
-                            "TextBox_FavoritePort",
-                            ref _portTextBox,
-                            new FontOptions { Size = UiMetrics.MenuBodyFont },
-                            _inputService,
-                            out Widgets.Interactions portInteractions
-                        );
-                        if (portInteractions.Has(Widgets.Interactions.Input))
-                        {
-                            _errorMessage = null;
-                        }
-
-                        if (portInteractions.Has(Widgets.Interactions.Submit))
-                        {
-                            Submit(menu);
-                        }
-                    }
-
-                    if (_errorMessage != null)
-                    {
-                        ui.Label(
-                            _errorMessage,
-                            Widgets.Rect(padding, 204, contentWidth, 18),
-                            UiMetrics.MenuSmallFont,
-                            UiTheme.Danger,
-                            Anchors.Left | Anchors.Center
-                        );
-                    }
-
-                    int buttonY = panelHeight - 68;
-                    if (ui.ActionButton(
-                            "Button_CancelFavorite",
-                            _localization.GetString("ui.button.cancel")!,
-                            _cancelButton with
-                            {
-                                Rect = Widgets.Rect(padding, buttonY, 180, UiMetrics.IconButtonSize),
-                            }
-                        ))
-                    {
-                        menu.GoBack();
-                    }
-
-                    if (ui.ActionButton(
-                            "Button_SubmitFavorite",
-                            _localization.GetString("ui.button.submit")!,
-                            _submitButton with
-                            {
-                                Rect = Widgets.Rect(panelWidth - padding - 180, buttonY, 180, UiMetrics.IconButtonSize),
-                            }
-                        ))
-                    {
-                        Submit(menu);
-                    }
-                }
-            }
-        }
+        ui.ModalFrame(PANEL_WIDTH, PANEL_HEIGHT, frame => DrawBody(frame, menu));
 
         return Result.FromSuccess();
     }
@@ -216,7 +74,106 @@ internal sealed class AddFavoriteModal(
             _portTextBox.Text.Append(defaultPort);
         }
 
-        return new Modal(id: "core.addFavorite");
+        return Modal;
+    }
+
+    /// <summary>Draws the host and port fields, the validation error, and the action buttons.</summary>
+    private void DrawBody(UIBuilder<Material> ui, Menu<Modal> menu)
+    {
+        int padding = UiMetrics.MODAL_PADDING;
+        int contentWidth = PANEL_WIDTH - padding * 2;
+
+        ui.Label(
+            _localization.GetRequired("ui.menu.addFavorite"),
+            Widgets.Rect(padding, 22, contentWidth, 30),
+            UiMetrics.MENU_TITLE_FONT,
+            UiTheme.Text,
+            Anchors.Center
+        );
+        ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
+
+        ui.Label(
+            _localization.GetRequired("ui.field.host"),
+            Widgets.Rect(padding, 78, contentWidth, 18),
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.Text,
+            Anchors.Left | Anchors.Center
+        );
+        Widgets.Interactions hostInteractions = ui.MenuTextBox(
+            "TextBox_FavoriteHost",
+            ref _hostTextBox,
+            Widgets.Rect(padding, 98, contentWidth, UiMetrics.CONTROL_HEIGHT),
+            UiMetrics.MENU_BODY_FONT,
+            _inputService
+        );
+        HandleTextBoxInteractions(hostInteractions, menu);
+
+        ui.Label(
+            _localization.GetRequired("ui.field.port"),
+            Widgets.Rect(padding, 142, contentWidth, 18),
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.Text,
+            Anchors.Left | Anchors.Center
+        );
+        Widgets.Interactions portInteractions = ui.MenuTextBox(
+            "TextBox_FavoritePort",
+            ref _portTextBox,
+            Widgets.Rect(padding, 162, 96, UiMetrics.CONTROL_HEIGHT),
+            UiMetrics.MENU_BODY_FONT,
+            _inputService
+        );
+        HandleTextBoxInteractions(portInteractions, menu);
+
+        if (_errorMessage != null)
+        {
+            ui.Label(
+                _errorMessage,
+                Widgets.Rect(padding, 204, contentWidth, 18),
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Danger,
+                Anchors.Left | Anchors.Center
+            );
+        }
+
+        int buttonY = PANEL_HEIGHT - 68;
+        Widgets.ActionButtonOptions cancelOptions = _cancelButton with
+        {
+            Rect = Widgets.Rect(padding, buttonY, UiMetrics.MODAL_BUTTON_WIDTH, UiMetrics.ICON_BUTTON_SIZE),
+        };
+
+        if (ui.ActionButton("Button_CancelFavorite", _localization.GetRequired("ui.button.cancel"), cancelOptions))
+        {
+            menu.GoBack();
+        }
+
+        Widgets.ActionButtonOptions submitOptions = _submitButton with
+        {
+            Rect = Widgets.Rect(
+                PANEL_WIDTH - padding - UiMetrics.MODAL_BUTTON_WIDTH,
+                buttonY,
+                UiMetrics.MODAL_BUTTON_WIDTH,
+                UiMetrics.ICON_BUTTON_SIZE
+            ),
+        };
+
+        if (ui.ActionButton("Button_SubmitFavorite", _localization.GetRequired("ui.button.submit"), submitOptions))
+        {
+            Submit(menu);
+        }
+    }
+
+    /// <summary>Applies the text box interactions shared by the host and port fields.</summary>
+    private void HandleTextBoxInteractions(in Widgets.Interactions interactions, Menu<Modal> menu)
+    {
+        if (interactions.Has(Widgets.Interactions.Input))
+        {
+            _errorMessage = null;
+        }
+
+        if (interactions.Has(Widgets.Interactions.Submit))
+        {
+            Submit(menu);
+        }
     }
 
     private void Submit(Menu<Modal> menu)

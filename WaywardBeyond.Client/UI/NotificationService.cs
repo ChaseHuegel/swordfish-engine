@@ -46,29 +46,29 @@ internal sealed class NotificationService : IDisposable
 
     /// <summary>Returns the currently active notifications ordered newest first.</summary>
     public IReadOnlyList<NotificationState> GetActiveNotifications() => _activeStates;
-    
+
     private void OnWindowUpdate(double delta)
     {
         DateTime now = DateTime.Now;
-        
+
         //  Collect notifications that have been pushed
         while (_pushedStates.TryDequeue(out NotificationState pushedNotification))
         {
             _activeStates.Insert(0, pushedNotification);
         }
-        
+
         //  Remove expired notifications
         while (_activeStates.Count > 0)
         {
             int lastIndex = _activeStates.Count - 1;
             NotificationState state = _activeStates[lastIndex];
-            
+
             TimeSpan elapsed = now - state.CreatedAt;
             if (elapsed.TotalMilliseconds < state.GetLifetime())
             {
                 break;
             }
-            
+
             _activeStates.RemoveAt(lastIndex);
         }
     }

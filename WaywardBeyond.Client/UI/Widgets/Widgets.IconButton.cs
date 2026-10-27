@@ -39,8 +39,8 @@ internal static partial class Widgets
     public readonly record struct IconButtonOptions(
         bool Danger = false,
         bool Enabled = true,
-        string FontId = UiTheme.FontIcons,
-        int FontSize = UiMetrics.IconFont,
+        string FontId = UiTheme.FONT_ICONS,
+        int FontSize = UiMetrics.ICON_FONT,
         SoundEffectService? SoundEffectService = null
     );
 }

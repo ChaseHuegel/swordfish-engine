@@ -67,7 +67,7 @@ internal sealed class ChatLayer : IUILayer
 
     private readonly FontOptions _fieldFontOptions = new()
     {
-        Size = UiMetrics.SmallFont,
+        Size = UiMetrics.SMALL_FONT,
     };
 
     private TextBoxState _textBox;
@@ -107,7 +107,8 @@ internal sealed class ChatLayer : IUILayer
                     Y = new Fixed((INPUT_BAR_HEIGHT - TEXT_BOX_HEIGHT) / 2),
                     Width = new Fixed(TEXT_BOX_WIDTH),
                     Height = new Fixed(TEXT_BOX_HEIGHT),
-                }
+                },
+                Chrome: false
             )
         );
 
@@ -168,56 +169,7 @@ internal sealed class ChatLayer : IUILayer
 
         int contentHeight = MeasureContentHeight(ui, history.Length);
         int maxScroll = Math.Max(0, contentHeight - HISTORY_VIEWPORT_HEIGHT);
-
-        //  Closed chat sticks to the newest message and ignores the wheel. Open chat starts stuck;
-        //  the wheel breaks the stick, and scrolling back to the bottom re-sticks it.
-        int scrollDelta = 0;
-        if (open)
-        {
-            scrollDelta = (int)_inputService.GetMouseScroll() * LINE_HEIGHT;
-        }
-
-        if (!open)
-        {
-            _stuckToBottom = true;
-            _scrollY = -maxScroll;
-        }
-        else if (_stuckToBottom)
-        {
-            if (scrollDelta != 0)
-            {
-                _stuckToBottom = false;
-                _scrollY = Math.Clamp(_scrollY + scrollDelta, -maxScroll, 0);
-                if (_scrollY == -maxScroll)
-                {
-                    _stuckToBottom = true;
-                }
-            }
-            else
-            {
-                //  Staying stuck always re-pins, so new messages cannot leave the scroller behind.
-                _scrollY = -maxScroll;
-            }
-        }
-        else
-        {
-            _scrollY = Math.Clamp(_scrollY + scrollDelta, -maxScroll, 0);
-            if (_scrollY == -maxScroll)
-            {
-                _stuckToBottom = true;
-            }
-        }
-
-        int viewportOffsetY;
-        if (contentHeight < HISTORY_VIEWPORT_HEIGHT)
-        {
-            //  When there are only a few messages, push them to the bottom of the fixed viewport.
-            viewportOffsetY = HISTORY_VIEWPORT_HEIGHT - contentHeight;
-        }
-        else
-        {
-            viewportOffsetY = _scrollY;
-        }
+        int viewportOffsetY = UpdateScroll(open, contentHeight, maxScroll);
 
         using (ui.Element())
         {
@@ -250,17 +202,68 @@ internal sealed class ChatLayer : IUILayer
         }
     }
 
+    /// <summary>Updates the scroll state and returns the content offset for this frame.</summary>
+    private int UpdateScroll(bool open, int contentHeight, int maxScroll)
+    {
+        //  Closed chat sticks to the newest message and ignores the wheel. Open chat starts stuck;
+        //  the wheel breaks the stick, and scrolling back to the bottom re-sticks it.
+        int scrollDelta = 0;
+        if (open)
+        {
+            scrollDelta = (int)_inputService.GetMouseScroll() * LINE_HEIGHT;
+        }
+
+        if (!open)
+        {
+            _stuckToBottom = true;
+            _scrollY = -maxScroll;
+        }
+        else if (_stuckToBottom)
+        {
+            if (scrollDelta == 0)
+            {
+                //  Staying stuck always re-pins, so new messages cannot leave the scroller behind.
+                _scrollY = -maxScroll;
+            }
+            else
+            {
+                _stuckToBottom = false;
+                _scrollY = Math.Clamp(_scrollY + scrollDelta, -maxScroll, 0);
+                if (_scrollY == -maxScroll)
+                {
+                    _stuckToBottom = true;
+                }
+            }
+        }
+        else
+        {
+            _scrollY = Math.Clamp(_scrollY + scrollDelta, -maxScroll, 0);
+            if (_scrollY == -maxScroll)
+            {
+                _stuckToBottom = true;
+            }
+        }
+
+        if (contentHeight < HISTORY_VIEWPORT_HEIGHT)
+        {
+            //  When there are only a few messages, push them to the bottom of the fixed viewport.
+            return HISTORY_VIEWPORT_HEIGHT - contentHeight;
+        }
+
+        return _scrollY;
+    }
+
     private void RenderOpenPanelChrome(UIBuilder<Material> ui)
     {
         var border = new BorderStyle
         {
-            Thickness = UiMetrics.PanelBorderThickness,
+            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
             Color = UiTheme.Border,
         };
         var caps = new CornerCapStyle
         {
-            Length = UiMetrics.PanelCapLength,
-            Thickness = UiMetrics.PanelCapThickness,
+            Length = UiMetrics.PANEL_CAP_LENGTH,
+            Thickness = UiMetrics.PANEL_CAP_THICKNESS,
             Color = UiTheme.Accent,
         };
 
@@ -285,7 +288,7 @@ internal sealed class ChatLayer : IUILayer
                 ui.Label(
                     _headerLabel,
                     Widgets.Rect(18, 0, 360, headerInnerHeight),
-                    UiMetrics.TinyFont,
+                    UiMetrics.TINY_FONT,
                     UiTheme.TextMuted,
                     Anchors.Left | Anchors.Center
                 );
@@ -293,7 +296,7 @@ internal sealed class ChatLayer : IUILayer
                 ui.Label(
                     _closeHintLabel,
                     Widgets.Rect(headerInnerWidth - 160, 0, 152, headerInnerHeight),
-                    UiMetrics.TinyFont,
+                    UiMetrics.TINY_FONT,
                     UiTheme.TextDim,
                     Anchors.Right | Anchors.Center
                 );
@@ -369,7 +372,7 @@ internal sealed class ChatLayer : IUILayer
             ui.Color = UiTheme.AccentDark;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Accent,
             };
             ui.Constraints = Widgets.RectConstraints(Widgets.Rect(INPUT_BAR_X, INPUT_BAR_Y, INPUT_BAR_WIDTH, INPUT_BAR_HEIGHT));
@@ -382,7 +385,7 @@ internal sealed class ChatLayer : IUILayer
             ui.Label(
                 ">",
                 Widgets.Rect(8, 0, 14, INPUT_BAR_HEIGHT),
-                UiMetrics.SmallFont,
+                UiMetrics.SMALL_FONT,
                 UiTheme.Accent,
                 Anchors.Left | Anchors.Center
             );
@@ -392,15 +395,14 @@ internal sealed class ChatLayer : IUILayer
                 ref _textBox,
                 _fieldFontOptions,
                 _inputService,
-                out Widgets.Interactions interactions,
-                drawChrome: false
+                out Widgets.Interactions interactions
             );
             HandleInteractions(interactions);
 
             ui.Label(
                 _sendHintLabel,
                 Widgets.Rect(INPUT_BAR_WIDTH - SEND_HINT_WIDTH - 8, 0, SEND_HINT_WIDTH, INPUT_BAR_HEIGHT),
-                UiMetrics.TinyFont,
+                UiMetrics.TINY_FONT,
                 UiTheme.AccentBright,
                 Anchors.Right | Anchors.Center
             );
@@ -466,7 +468,7 @@ internal sealed class ChatLayer : IUILayer
                 {
                     ui.ID = $"ChatMessage_{index}";
                     ui.Passthrough = true;
-                    ui.FontSize = UiMetrics.SmallFont;
+                    ui.FontSize = UiMetrics.SMALL_FONT;
                     ui.Color = UiTheme.Text * fade;
                 }
             }

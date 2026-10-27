@@ -198,7 +198,6 @@
 
 # Main menu suite
 "ui.button.initialize" = "Initialize"
-"ui.button.delete" = "Delete"
 "ui.button.joinServer" = "Join Server"
 "ui.button.disconnect" = "Disconnect"
 "ui.button.viewSaves" = "View Saves"
@@ -219,9 +218,7 @@
 "ui.menu.chartNewGalaxy" = "Chart new galaxy"
 "ui.menu.sectorInitialization" = "Sector Initialization"
 "ui.menu.sectorDossier" = "Sector Dossier"
-"ui.menu.generation" = "Generation"
 "ui.level.type" = "Type"
-"ui.level.type.procedural" = "Procedural"
 "ui.level.type.asteroids" = "Asteroids"
 "ui.menu.creatingSector" = "Preparing sector"
 "ui.menu.createFailed" = "Failed to create the sector."
@@ -256,7 +253,6 @@
 
 # Menu layout and form copy
 "ui.menu.activeColonist" = "Active colonist"
-"ui.menu.archiveInfoBody" = "Launch to enter this sector with the active colonist. The selected colonist and archive are saved together."
 "ui.menu.readyForLaunch" = "Ready for launch"
 "ui.menu.assignment" = "Assignment"
 "ui.menu.sectorInitHint" = "Enter search parameters to locate a sector, Spacer."

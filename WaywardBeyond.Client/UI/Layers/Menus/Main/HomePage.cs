@@ -44,6 +44,14 @@ internal sealed class HomePage(
     private const int BUTTON_GAP = 8;
     private const int DIVIDER_HEIGHT = 1;
     private const int DIVIDER_GAP = 8;
+    private const int CONTINUE_CARD_GAP = 24;
+    private const int CONTINUE_CARD_MARGIN = 28;
+    private const int CONTINUE_CARD_MIN_WIDTH = 200;
+    private const int CONTINUE_CARD_METADATA_TOP = 52;
+    private const int CONTINUE_CARD_METADATA_TOP_REMOTE = 74;
+    private const int CONTINUE_CARD_METADATA_HEIGHT = 4 * 18 + 8;
+    private const int CONTINUE_CARD_DIVIDER_GAP = 12;
+    private const int CONTINUE_CARD_CHARACTER_HEIGHT = 64 + 8;
 
     private readonly Entry _entry = entry;
     private readonly ILocalization _localization = localization;
@@ -58,19 +66,14 @@ internal sealed class HomePage(
     private readonly MessageModal _messageModal = messageModal;
     private readonly ModalMenu _modalMenu = modalMenu;
 
-    private readonly Widgets.ActionButtonOptions _continueButton = MenuButton(ButtonVariant.Primary, soundEffectService);
-    private readonly Widgets.ActionButtonOptions _newGameButton = MenuButton(ButtonVariant.Secondary, soundEffectService);
-    private readonly Widgets.ActionButtonOptions _multiplayerButton = MenuButton(ButtonVariant.Secondary, soundEffectService);
-    private readonly Widgets.ActionButtonOptions _optionsButton = MenuButton(ButtonVariant.Secondary, soundEffectService);
-    private readonly Widgets.ActionButtonOptions _creditsButton = MenuButton(ButtonVariant.Secondary, soundEffectService);
-    private readonly Widgets.ActionButtonOptions _exitButton = MenuButton(ButtonVariant.Secondary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _continueButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _newGameButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _multiplayerButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _optionsButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _creditsButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
+    private readonly Widgets.ActionButtonOptions _exitButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
 
     private bool _hasShownNotice;
-
-    private static Widgets.ActionButtonOptions MenuButton(ButtonVariant variant, SoundEffectService soundEffectService)
-    {
-        return Widgets.ActionButtonOptions.Menu(variant, soundEffectService);
-    }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
@@ -85,72 +88,7 @@ internal sealed class HomePage(
             _modalMenu.GoToPage(_messageModal.Create(failure.Title, failure.Body));
         }
 
-        GameSave[] saves = _gameSaveService.GetSaves();
-        LastServerMode lastMode = _profileSettings.LastServerMode.Get();
-
-        GameSave? continueSave = null;
-        string lastSaveGuid = _profileSettings.LastSaveGuid.Get();
-        for (var i = 0; i < saves.Length; i++)
-        {
-            if (saves[i].Level.Guid == lastSaveGuid)
-            {
-                continueSave = saves[i];
-                break;
-            }
-        }
-
-        Character? continueCharacter = null;
-        string lastCharacterUuid = _profileSettings.LastCharacterUuid.Get();
-        IReadOnlyList<Character> characters = _characterStorage.GetAllCharacters();
-        for (var i = 0; i < characters.Count; i++)
-        {
-            if (characters[i].Uuid.ToString() == lastCharacterUuid)
-            {
-                continueCharacter = characters[i];
-                break;
-            }
-        }
-
-        //  Prefer the live listing, and fall back to the recorded summary when it does not hold the last save.
-        ContinueDetails continueDetails = continueSave != null
-            ? new ContinueDetails(
-                continueSave.Value.Name,
-                continueSave.Value.Level.DefaultGameMode,
-                continueSave.Value.Level.Seed,
-                continueSave.Value.Level.Playtime.LastPlayedMs,
-                continueSave.Value.Level.Playtime.AgeMs
-            )
-            : new ContinueDetails(
-                _profileSettings.LastSaveName.Get(),
-                _profileSettings.LastSaveGameMode.Get(),
-                _profileSettings.LastSaveSeed.Get(),
-                _profileSettings.LastSaveLastPlayedMs.Get(),
-                _profileSettings.LastSaveAgeMs.Get()
-            );
-
-        bool hasLastSession = _continueService.HasLastSession
-            && continueCharacter != null
-            && !string.IsNullOrWhiteSpace(continueDetails.Name);
-
-        string? continueDestination = null;
-        if (lastMode == LastServerMode.Remote)
-        {
-            string host = _profileSettings.LastServerHost.Get();
-            int port = _profileSettings.LastServerPort.Get();
-            string? name = null;
-            List<SavedServer> savedServers = _profileSettings.SavedServers.Get();
-            for (var i = 0; i < savedServers.Count; i++)
-            {
-                if (savedServers[i].Host == host && savedServers[i].Port == port)
-                {
-                    name = savedServers[i].Name;
-                    break;
-                }
-            }
-
-            continueDestination = !string.IsNullOrWhiteSpace(name) ? name : $"{host}:{port}";
-        }
-
+        ContinueState continueState = BuildContinueState();
         int pageWidth = Math.Clamp(ui.Width - 80, 360, MAX_PAGE_WIDTH);
         var singleplayerClicked = false;
 
@@ -169,63 +107,26 @@ internal sealed class HomePage(
                 Height = new Fixed(PAGE_HEIGHT),
             };
 
-            int buttonX = (pageWidth - UiMetrics.MenuButtonMinWidth) / 2;
+            int buttonX = (pageWidth - UiMetrics.MENU_BUTTON_MIN_WIDTH) / 2;
             var y = 0;
 
-            if (hasLastSession)
+            if (continueState.HasLastSession)
             {
-                ui.MenuChevron(buttonX - 8, y + (UiMetrics.MenuButtonHeight - 6) / 2);
+                ui.MenuChevron(buttonX - 8, y + (UiMetrics.MENU_BUTTON_HEIGHT - 6) / 2);
             }
 
-            if (ui.ActionButton("Button_Continue", _localization.GetString("ui.button.continue")!, _continueButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = hasLastSession }, out bool continueHovered))
-            {
-                _continueService.Start();
-            }
+            DrawMenuButtons(ui, buttonX, ref y, menu, continueState, out bool continueHovered, out singleplayerClicked);
 
-            y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Singleplayer", _localization.GetString("ui.button.singleplayer")!, _newGameButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
+            if (continueHovered && continueState.HasLastSession && continueState.LastCharacter != null)
             {
-                singleplayerClicked = true;
-            }
-
-            y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Multiplayer", _localization.GetString("ui.button.multiplayer")!, _multiplayerButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
-            {
-                menu.GoToPage(MenuPage.Multiplayer);
-            }
-
-            y += UiMetrics.MenuButtonHeight + DIVIDER_GAP;
-            ui.DottedDivider(Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, DIVIDER_HEIGHT));
-            y += DIVIDER_HEIGHT + DIVIDER_GAP;
-
-            if (ui.ActionButton("Button_Settings", _localization.GetString("ui.button.settings")!, _optionsButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
-            {
-                menu.GoToPage(MenuPage.Settings);
-            }
-
-            y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Credits", _localization.GetString("ui.menu.credits")!, _creditsButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
-            {
-                menu.GoToPage(MenuPage.Credits);
-            }
-
-            y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Quit", _localization.GetString("ui.button.quit")!, _exitButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
-            {
-                _entry.Quit();
-            }
-
-            if (continueHovered && hasLastSession && continueCharacter != null)
-            {
+                IntRect cardRect = ContinueCardRect(buttonX, pageWidth, continueState.Remote);
                 DrawContinueCard(
                     ui,
-                    continueDetails,
-                    continueCharacter.Value,
-                    lastMode == LastServerMode.Remote,
-                    continueDestination,
-                    buttonX + UiMetrics.MenuButtonMinWidth + 24,
-                    0,
-                    pageWidth - buttonX - UiMetrics.MenuButtonMinWidth - 28
+                    continueState.Details,
+                    continueState.LastCharacter.Value,
+                    continueState.Remote,
+                    continueState.Destination,
+                    cardRect
                 );
             }
         }
@@ -236,6 +137,202 @@ internal sealed class HomePage(
         }
 
         return Result.FromSuccess();
+    }
+
+    /// <summary>Draws the home menu buttons and reports the states the page reacts to.</summary>
+    private void DrawMenuButtons(
+        UIBuilder<Material> ui,
+        int buttonX,
+        ref int y,
+        Menu<MenuPage> menu,
+        in ContinueState continueState,
+        out bool continueHovered,
+        out bool singleplayerClicked
+    )
+    {
+        singleplayerClicked = false;
+
+        Widgets.ActionButtonOptions continueOptions = _continueButton with
+        {
+            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
+            Enabled = continueState.HasLastSession,
+        };
+
+        if (ui.ActionButton("Button_Continue", _localization.GetRequired("ui.button.continue"), continueOptions, out continueHovered))
+        {
+            _continueService.Start();
+        }
+
+        y += UiMetrics.MENU_BUTTON_HEIGHT + BUTTON_GAP;
+        Widgets.ActionButtonOptions singleplayerOptions = _newGameButton with
+        {
+            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
+        };
+
+        if (ui.ActionButton("Button_Singleplayer", _localization.GetRequired("ui.button.singleplayer"), singleplayerOptions))
+        {
+            singleplayerClicked = true;
+        }
+
+        y += UiMetrics.MENU_BUTTON_HEIGHT + BUTTON_GAP;
+        Widgets.ActionButtonOptions multiplayerOptions = _multiplayerButton with
+        {
+            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
+        };
+
+        if (ui.ActionButton("Button_Multiplayer", _localization.GetRequired("ui.button.multiplayer"), multiplayerOptions))
+        {
+            menu.GoToPage(MenuPage.Multiplayer);
+        }
+
+        y += UiMetrics.MENU_BUTTON_HEIGHT + DIVIDER_GAP;
+        ui.DottedDivider(Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, DIVIDER_HEIGHT));
+        y += DIVIDER_HEIGHT + DIVIDER_GAP;
+
+        Widgets.ActionButtonOptions settingsOptions = _optionsButton with
+        {
+            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
+        };
+
+        if (ui.ActionButton("Button_Settings", _localization.GetRequired("ui.button.settings"), settingsOptions))
+        {
+            menu.GoToPage(MenuPage.Settings);
+        }
+
+        y += UiMetrics.MENU_BUTTON_HEIGHT + BUTTON_GAP;
+        Widgets.ActionButtonOptions creditsOptions = _creditsButton with
+        {
+            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
+        };
+
+        if (ui.ActionButton("Button_Credits", _localization.GetRequired("ui.menu.credits"), creditsOptions))
+        {
+            menu.GoToPage(MenuPage.Credits);
+        }
+
+        y += UiMetrics.MENU_BUTTON_HEIGHT + BUTTON_GAP;
+        Widgets.ActionButtonOptions quitOptions = _exitButton with
+        {
+            Rect = Widgets.Rect(buttonX, y, UiMetrics.MENU_BUTTON_MIN_WIDTH, UiMetrics.MENU_BUTTON_HEIGHT),
+        };
+
+        if (ui.ActionButton("Button_Quit", _localization.GetRequired("ui.button.quit"), quitOptions))
+        {
+            _entry.Quit();
+        }
+    }
+
+    /// <summary>Builds the Continue button state from the save listing and the recorded profile summary.</summary>
+    private ContinueState BuildContinueState()
+    {
+        GameSave? lastSave = FindLastSave();
+        Character? lastCharacter = FindLastCharacter();
+
+        //  Prefer the live listing, and fall back to the recorded summary when it does not hold the last save.
+        ContinueDetails details = lastSave != null
+            ? DescribeSave(lastSave.Value)
+            : DescribeProfile();
+
+        bool hasLastSession = _continueService.HasLastSession
+            && lastCharacter != null
+            && !string.IsNullOrWhiteSpace(details.Name);
+
+        bool remote = _profileSettings.LastServerMode.Get() == LastServerMode.Remote;
+        string? destination = remote ? ResolveRemoteDestination() : null;
+
+        return new ContinueState(details, hasLastSession, lastCharacter, remote, destination);
+    }
+
+    /// <summary>Finds the save the profile last opened.</summary>
+    private GameSave? FindLastSave()
+    {
+        string lastSaveGuid = _profileSettings.LastSaveGuid.Get();
+        GameSave[] saves = _gameSaveService.GetSaves();
+        for (var i = 0; i < saves.Length; i++)
+        {
+            if (saves[i].Level.Guid == lastSaveGuid)
+            {
+                return saves[i];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Finds the character the profile last played.</summary>
+    private Character? FindLastCharacter()
+    {
+        string lastCharacterUuid = _profileSettings.LastCharacterUuid.Get();
+        IReadOnlyList<Character> characters = _characterStorage.GetAllCharacters();
+        for (var i = 0; i < characters.Count; i++)
+        {
+            if (characters[i].Uuid.ToString() == lastCharacterUuid)
+            {
+                return characters[i];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Describes the last save from the live save listing.</summary>
+    private static ContinueDetails DescribeSave(in GameSave save)
+    {
+        return new ContinueDetails(
+            save.Name,
+            save.Level.DefaultGameMode,
+            save.Level.Seed,
+            save.Level.Playtime.LastPlayedMs,
+            save.Level.Playtime.AgeMs
+        );
+    }
+
+    /// <summary>Describes the last save from the recorded profile summary.</summary>
+    private ContinueDetails DescribeProfile()
+    {
+        return new ContinueDetails(
+            _profileSettings.LastSaveName.Get(),
+            _profileSettings.LastSaveGameMode.Get(),
+            _profileSettings.LastSaveSeed.Get(),
+            _profileSettings.LastSaveLastPlayedMs.Get(),
+            _profileSettings.LastSaveAgeMs.Get()
+        );
+    }
+
+    /// <summary>Gets the label the Continue card shows for the last remote server.</summary>
+    private string ResolveRemoteDestination()
+    {
+        string host = _profileSettings.LastServerHost.Get();
+        int port = _profileSettings.LastServerPort.Get();
+        string? name = null;
+        List<SavedServer> savedServers = _profileSettings.SavedServers.Get();
+        for (var i = 0; i < savedServers.Count; i++)
+        {
+            if (savedServers[i].Host == host && savedServers[i].Port == port)
+            {
+                name = savedServers[i].Name;
+                break;
+            }
+        }
+
+        return !string.IsNullOrWhiteSpace(name) ? name : $"{host}:{port}";
+    }
+
+    /// <summary>Computes the rectangle the Continue card occupies beside the menu column.</summary>
+    private static IntRect ContinueCardRect(int buttonX, int pageWidth, bool remote)
+    {
+        int metadataY = remote ? CONTINUE_CARD_METADATA_TOP_REMOTE : CONTINUE_CARD_METADATA_TOP;
+        int height = metadataY
+            + CONTINUE_CARD_METADATA_HEIGHT
+            + CONTINUE_CARD_DIVIDER_GAP
+            + CONTINUE_CARD_CHARACTER_HEIGHT;
+
+        return Widgets.Rect(
+            buttonX + UiMetrics.MENU_BUTTON_MIN_WIDTH + CONTINUE_CARD_GAP,
+            0,
+            pageWidth - buttonX - UiMetrics.MENU_BUTTON_MIN_WIDTH - CONTINUE_CARD_MARGIN,
+            height
+        );
     }
 
     private void StartSingleplayer(Menu<MenuPage> menu)
@@ -252,51 +349,50 @@ internal sealed class HomePage(
         in Character character,
         bool remote,
         string? destination,
-        int x,
-        int y,
-        int width
-    ) {
-        if (width < 200)
+        IntRect rect
+    )
+    {
+        if (rect.Size.X < CONTINUE_CARD_MIN_WIDTH)
         {
             return;
         }
 
         const int padding = 12;
         const int labelWidth = 100;
-        int metadataY = remote ? 74 : 52;
-        int dividerY = metadataY + 4 * 18 + 8;
-        int characterY = dividerY + 12;
-        int height = characterY + 64 + 8;
+        int width = rect.Size.X;
+        int metadataY = remote ? CONTINUE_CARD_METADATA_TOP_REMOTE : CONTINUE_CARD_METADATA_TOP;
+        int dividerY = metadataY + CONTINUE_CARD_METADATA_HEIGHT;
+        int characterY = dividerY + CONTINUE_CARD_DIVIDER_GAP;
 
-        using (ui.MenuPanel(Widgets.Rect(x, y, width, height)))
+        using (ui.MenuPanel(rect))
         {
             int typeX = padding;
             if (remote)
             {
                 ui.Label(
-                    MenuGlyphs.Server,
+                    MenuGlyphs.SERVER,
                     Widgets.Rect(padding, 8, 16, 16),
-                    UiMetrics.MenuSmallFont,
+                    UiMetrics.MENU_SMALL_FONT,
                     UiTheme.Accent,
                     Anchors.Center,
-                    UiTheme.FontIcons
+                    UiTheme.FONT_ICONS
                 );
                 typeX += 18;
             }
 
             ui.Label(
                 remote
-                    ? _localization.GetString("ui.button.multiplayer")!
-                    : _localization.GetString("ui.button.singleplayer")!,
+                    ? _localization.GetRequired("ui.button.multiplayer")
+                    : _localization.GetRequired("ui.button.singleplayer"),
                 Widgets.Rect(typeX, 8, width - typeX - padding, 16),
-                UiMetrics.MenuSmallFont,
+                UiMetrics.MENU_SMALL_FONT,
                 remote ? UiTheme.Accent : UiTheme.TextMuted,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
                 details.Name,
                 Widgets.Rect(padding, 28, width - padding * 2, 20),
-                UiMetrics.MenuBodyFont,
+                UiMetrics.MENU_BODY_FONT,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
@@ -306,7 +402,7 @@ internal sealed class HomePage(
                 ui.Label(
                     destination,
                     Widgets.Rect(padding, 50, width - padding * 2, 16),
-                    UiMetrics.MenuSmallFont,
+                    UiMetrics.MENU_SMALL_FONT,
                     UiTheme.TextMuted,
                     Anchors.Left | Anchors.Center
                 );
@@ -314,7 +410,7 @@ internal sealed class HomePage(
 
             string lastPlayed = details.LastPlayedMs > 0
                 ? DateTimeOffset.FromUnixTimeMilliseconds(details.LastPlayedMs).ToLocalTime().ToString("d")
-                : _localization.GetString("ui.label.never")!;
+                : _localization.GetRequired("ui.label.never");
             TimeSpan age = TimeSpan.FromMilliseconds(details.AgeMs);
 
             DrawContinueDetail(
@@ -323,7 +419,7 @@ internal sealed class HomePage(
                 metadataY,
                 width,
                 labelWidth,
-                _localization.GetString("ui.menu.mode")!,
+                _localization.GetRequired("ui.menu.mode"),
                 details.Mode.ToString()
             );
             DrawContinueDetail(
@@ -332,7 +428,7 @@ internal sealed class HomePage(
                 metadataY + 18,
                 width,
                 labelWidth,
-                _localization.GetString("ui.menu.seed")!,
+                _localization.GetRequired("ui.menu.seed"),
                 details.Seed.ToString()
             );
             DrawContinueDetail(
@@ -341,7 +437,7 @@ internal sealed class HomePage(
                 metadataY + 36,
                 width,
                 labelWidth,
-                _localization.GetString("ui.label.lastPlayed")!,
+                _localization.GetRequired("ui.label.lastPlayed"),
                 lastPlayed
             );
             DrawContinueDetail(
@@ -350,7 +446,7 @@ internal sealed class HomePage(
                 metadataY + 54,
                 width,
                 labelWidth,
-                _localization.GetString("ui.label.timePlayed")!,
+                _localization.GetRequired("ui.label.timePlayed"),
                 _localization.GetLongString(age)
             );
 
@@ -376,14 +472,14 @@ internal sealed class HomePage(
             ui.Label(
                 character.Name,
                 Widgets.Rect(textX, characterY, width - textX - padding, 18),
-                UiMetrics.MenuSmallFont,
+                UiMetrics.MENU_SMALL_FONT,
                 UiTheme.AccentBright,
                 Anchors.Left | Anchors.Center
             );
             ui.Label(
-                $"{_localization.GetString("ui.menu.level")!} {level}",
+                $"{_localization.GetRequired("ui.menu.level")} {level}",
                 Widgets.Rect(textX, characterY + 20, width - textX - padding, 18),
-                UiMetrics.MenuSmallFont,
+                UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
@@ -403,18 +499,27 @@ internal sealed class HomePage(
         ui.Label(
             label,
             Widgets.Rect(padding, y, labelWidth, 16),
-            UiMetrics.MenuLabelFont,
+            UiMetrics.MENU_LABEL_FONT,
             UiTheme.TextMuted,
             Anchors.Left | Anchors.Center
         );
         ui.Label(
             value,
             Widgets.Rect(padding + labelWidth, y, width - padding * 2 - labelWidth, 16),
-            UiMetrics.MenuLabelFont,
+            UiMetrics.MENU_LABEL_FONT,
             UiTheme.TextSoft,
             Anchors.Left | Anchors.Center
         );
     }
+
+    /// <summary>The Continue button state, resolved from the save listing and the recorded profile summary.</summary>
+    private readonly record struct ContinueState(
+        ContinueDetails Details,
+        bool HasLastSession,
+        Character? LastCharacter,
+        bool Remote,
+        string? Destination
+    );
 
     /// <summary>The archive facts the Continue card shows, from the live listing or the recorded summary.</summary>
     private readonly record struct ContinueDetails(

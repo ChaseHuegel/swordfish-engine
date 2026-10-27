@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
@@ -18,7 +18,7 @@ internal class DebugOverlayRenderer : IUILayer
     private readonly DebugSettings _debugSettings;
     private readonly Swordfish.Settings.DebugSettings _engineDebugSettings;
     private readonly IDebugOverlay[] _overlays;
-    
+
     public DebugOverlayRenderer(
         ILogger<DebugOverlayRenderer> logger,
         ReefContext reefContext,
@@ -42,7 +42,7 @@ internal class DebugOverlayRenderer : IUILayer
             Action = OnToggleDebug,
         };
         shortcutService.RegisterShortcut(toggleShortcut);
-        
+
         var toggleUIDebugShortcut = new Shortcut
         {
             Name = "Toggle UI debug",
@@ -79,14 +79,14 @@ internal class DebugOverlayRenderer : IUILayer
                 {
                     continue;
                 }
-                
+
                 try
                 {
                     using (ui.Element())
                     {
                         ui.Color = UiTheme.ScrimSoft;
                         ui.LayoutDirection = LayoutDirection.Vertical;
-                        
+
                         Result result = overlay.RenderDebugOverlay(delta, _reefContext.Builder);
                         if (!result)
                         {
@@ -100,16 +100,16 @@ internal class DebugOverlayRenderer : IUILayer
                 }
             }
         }
-        
+
         return Result.FromSuccess();
     }
-    
+
     private void OnToggleDebug()
     {
         _debugSettings.OverlayVisible.Set(!_debugSettings.OverlayVisible);
         _engineDebugSettings.UI.Set(false);
     }
-    
+
     private void OnToggleUIDebug()
     {
         _engineDebugSettings.UI.Set(!_engineDebugSettings.UI);

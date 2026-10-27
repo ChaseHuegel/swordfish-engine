@@ -12,8 +12,8 @@ public class UiThemeResolverTests
 
         Assert.Equal(UiTheme.Primary, style.Border);
         Assert.Equal(UiTheme.PrimaryBright, style.Text);
-        Assert.Equal(UiMetrics.PanelBorderThickness, style.BorderThickness);
-        Assert.Equal(UiMetrics.SelectionCapLength, style.Caps.Length);
+        Assert.Equal(UiMetrics.PANEL_BORDER_THICKNESS, style.BorderThickness);
+        Assert.Equal(UiMetrics.SELECTION_CAP_LENGTH, style.Caps.Length);
     }
 
     [Fact]

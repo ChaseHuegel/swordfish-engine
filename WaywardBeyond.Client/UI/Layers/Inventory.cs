@@ -36,6 +36,29 @@ internal sealed class Inventory : IUILayer
 
     private static readonly string[] _slotNumbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
+    /// <summary>The geometry of the modal inventory frame, in panel space.</summary>
+    private readonly record struct PanelLayout(
+        int Width,
+        int Height,
+        int GridWidth,
+        int RowCount,
+        int DividerY,
+        int HotbarY,
+        int FooterY
+    );
+
+    /// <summary>The inputs that every slot of one row shares.</summary>
+    private readonly record struct SlotRowContext(
+        int RowIndex,
+        int RowY,
+        int ActiveSlot,
+        bool LeftHeld,
+        bool RightPressed,
+        bool ShiftHeld,
+        float Scroll,
+        InventoryComponent Inventory
+    );
+
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly IBrickDatabase _brickDatabase;
     private readonly ItemIconDatabase _itemIcons;
@@ -158,7 +181,6 @@ internal sealed class Inventory : IUILayer
 
         InventoryComponent inventory = inventoryResult.Value;
         int activeSlot = activeSlotResult.Value;
-        var slotIsSelected = false;
         int rowCount = inventory.Contents.Length / SLOTS_PER_ROW;
 
         bool leftHeld = ui.LeftHeld();
@@ -168,45 +190,43 @@ internal sealed class Inventory : IUILayer
 
         Material? draggedSlotIcon = null;
         string? draggedSlotText = null;
+        var slotIsSelected = false;
 
         ItemData dragItemStack = GetSlotStack(in inventory, _draggingSlot);
         ItemData selectedItemStack = GetSlotStack(in inventory, _selectedSlot);
-        bool isDragSlotEmpty = dragItemStack.Count <= 0;
+        ResolveDragRelease(leftHeld, in dragItemStack, in selectedItemStack);
 
-        if (_dragging && (!leftHeld || isDragSlotEmpty))
+        PanelLayout layout = CreatePanelLayout(rowCount);
+        var slotRow = new SlotRowContext(
+            RowIndex: 0,
+            RowY: 0,
+            ActiveSlot: activeSlot,
+            LeftHeld: leftHeld,
+            RightPressed: rightPressed,
+            ShiftHeld: shiftHeld,
+            Scroll: scroll,
+            Inventory: inventory
+        );
+
+        DrawBackdrop(ui);
+        DrawPanel(ui, in layout, slotRow, ref slotIsSelected, ref draggedSlotIcon, ref draggedSlotText);
+
+        if (!slotIsSelected)
         {
-            _dragging = false;
-
-            if (!isDragSlotEmpty && _selectedSlot >= 0)
-            {
-                //  Same item: fill the selected stack from the dragged stack (partial, client-computed).
-                //  Otherwise: whole-stack move, which the resolver stacks-or-swaps deterministically.
-                if (dragItemStack.ID == selectedItemStack.ID)
-                {
-                    int available = selectedItemStack.MaxSize - selectedItemStack.Count;
-                    ApplyMove(new SlotMoveOp
-                    {
-                        Mode = SlotMoveOpMode.Exact,
-                        FromSlot = _draggingSlot,
-                        ToSlot = _selectedSlot,
-                        Count = (uint)Math.Max(0, available),
-                    });
-                }
-                else
-                {
-                    ApplyMove(new SlotMoveOp
-                    {
-                        Mode = SlotMoveOpMode.Exact,
-                        FromSlot = _draggingSlot,
-                        ToSlot = _selectedSlot,
-                        Count = null,
-                    });
-                }
-            }
+            _selectedSlot = -1;
         }
 
+        DrawDragPreview(ui, draggedSlotIcon, draggedSlotText);
+
+        return Result.FromSuccess();
+    }
+
+    /// <summary>Computes the modal frame geometry from the cargo row count.</summary>
+    private static PanelLayout CreatePanelLayout(int rowCount)
+    {
         int cargoRowCount = Math.Max(0, rowCount - 1);
         int gridWidth = SLOTS_PER_ROW * SLOT_SIZE + (SLOTS_PER_ROW - 1) * SLOT_GAP;
+
         int cargoHeight = 0;
         if (cargoRowCount > 0)
         {
@@ -219,7 +239,60 @@ internal sealed class Inventory : IUILayer
         int panelWidth = gridWidth + PANEL_PADDING_X * 2;
         int panelHeight = footerY + FOOTER_HEIGHT + 16;
 
-        //  Full-screen backdrop scrim
+        return new PanelLayout(
+            Width: panelWidth,
+            Height: panelHeight,
+            GridWidth: gridWidth,
+            RowCount: rowCount,
+            DividerY: dividerY,
+            HotbarY: hotbarY,
+            FooterY: footerY
+        );
+    }
+
+    /// <summary>Completes a released drag by moving the dragged stack onto the selected slot.</summary>
+    private void ResolveDragRelease(bool leftHeld, in ItemData dragItemStack, in ItemData selectedItemStack)
+    {
+        bool isDragSlotEmpty = dragItemStack.Count <= 0;
+        if (!_dragging || (leftHeld && !isDragSlotEmpty))
+        {
+            return;
+        }
+
+        _dragging = false;
+
+        if (isDragSlotEmpty || _selectedSlot < 0)
+        {
+            return;
+        }
+
+        //  Same item: fill the selected stack from the dragged stack (partial, client-computed).
+        //  Otherwise: whole-stack move, which the resolver stacks-or-swaps deterministically.
+        if (dragItemStack.ID == selectedItemStack.ID)
+        {
+            int available = selectedItemStack.MaxSize - selectedItemStack.Count;
+            ApplyMove(new SlotMoveOp
+            {
+                Mode = SlotMoveOpMode.Exact,
+                FromSlot = _draggingSlot,
+                ToSlot = _selectedSlot,
+                Count = (uint)Math.Max(0, available),
+            });
+            return;
+        }
+
+        ApplyMove(new SlotMoveOp
+        {
+            Mode = SlotMoveOpMode.Exact,
+            FromSlot = _draggingSlot,
+            ToSlot = _selectedSlot,
+            Count = null,
+        });
+    }
+
+    /// <summary>Draws the full-screen backdrop scrim behind the modal frame.</summary>
+    private static void DrawBackdrop(UIBuilder<Material> ui)
+    {
         using (ui.Element())
         {
             ui.Passthrough = true;
@@ -231,135 +304,148 @@ internal sealed class Inventory : IUILayer
                 Height = new Relative(1f),
             };
         }
+    }
 
-        //  Centered modal inventory frame
+    /// <summary>Draws the centered modal frame with its slot rows, divider, and inspection footer.</summary>
+    private void DrawPanel(
+        UIBuilder<Material> ui,
+        in PanelLayout layout,
+        SlotRowContext slotRow,
+        ref bool slotIsSelected,
+        ref Material? draggedSlotIcon,
+        ref string? draggedSlotText
+    )
+    {
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
-                Width = new Fixed(panelWidth),
-                Height = new Fixed(panelHeight),
+                Width = new Fixed(layout.Width),
+                Height = new Fixed(layout.Height),
             };
 
-            using (ui.MenuPanel(Widgets.Rect(0, 0, panelWidth, panelHeight), _titleLabel))
+            using (ui.MenuPanel(Widgets.Rect(0, 0, layout.Width, layout.Height), _titleLabel))
             {
-                //  Render general cargo rows (rows 1..rowCount-1) at the top
-                for (var rowIndex = 1; rowIndex < rowCount; rowIndex++)
-                {
-                    int rowY = HEADER_HEIGHT + (rowIndex - 1) * (SLOT_SIZE + SLOT_GAP);
-                    RenderSlotRow(
-                        ui,
-                        in inventory,
-                        rowIndex,
-                        rowY,
-                        activeSlot,
-                        leftHeld,
-                        rightPressed,
-                        shiftHeld,
-                        scroll,
-                        ref slotIsSelected,
-                        ref draggedSlotIcon,
-                        ref draggedSlotText
-                    );
-                }
+                DrawCargoRows(ui, in layout, slotRow, ref slotIsSelected, ref draggedSlotIcon, ref draggedSlotText);
 
                 //  Dotted divider separating cargo storage from the equipped hotbar row
-                ui.DottedDivider(Widgets.Rect(PANEL_PADDING_X, dividerY, gridWidth, 1));
+                ui.DottedDivider(Widgets.Rect(PANEL_PADDING_X, layout.DividerY, layout.GridWidth, 1));
 
-                //  Render the active hotbar row (row 0) at the bottom so it mirrors the HUD position
-                if (rowCount > 0)
-                {
-                    RenderSlotRow(
-                        ui,
-                        in inventory,
-                        rowIndex: 0,
-                        hotbarY,
-                        activeSlot,
-                        leftHeld,
-                        rightPressed,
-                        shiftHeld,
-                        scroll,
-                        ref slotIsSelected,
-                        ref draggedSlotIcon,
-                        ref draggedSlotText
-                    );
-                }
-
-                //  Hovered item inspection footer
-                ItemData hoveredStack = GetSlotStack(in inventory, _selectedSlot);
-                RenderInspectionFooter(ui, Widgets.Rect(PANEL_PADDING_X, footerY, gridWidth, FOOTER_HEIGHT), in hoveredStack);
+                DrawHotbarRow(ui, in layout, slotRow, ref slotIsSelected, ref draggedSlotIcon, ref draggedSlotText);
+                DrawFooter(ui, in layout, slotRow);
             }
         }
-
-        if (!slotIsSelected)
-        {
-            _selectedSlot = -1;
-        }
-
-        if (_dragging && draggedSlotText != null && draggedSlotIcon != null)
-        {
-            Vector2 cursorPosition = _inputService.CursorPosition;
-
-            using (ui.Element())
-            {
-                ui.Passthrough = true;
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Local,
-                    X = new Fixed((int)cursorPosition.X),
-                    Y = new Fixed((int)cursorPosition.Y),
-                    Width = new Fixed(SLOT_SIZE),
-                    Height = new Fixed(SLOT_SIZE),
-                };
-
-                using (ui.Image(draggedSlotIcon))
-                {
-                    ui.Passthrough = true;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    };
-                }
-
-                using (ui.Text(draggedSlotText, UiMetrics.TinyFont))
-                {
-                    ui.Passthrough = true;
-                    ui.Color = UiTheme.Text;
-                    ui.BackgroundColor = UiTheme.ScrimSoft;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Bottom | Anchors.Right,
-                    };
-                }
-            }
-        }
-
-        return Result.FromSuccess();
     }
 
-    private void RenderSlotRow(
+    /// <summary>Draws the general cargo rows above the divider.</summary>
+    private void DrawCargoRows(
         UIBuilder<Material> ui,
-        in InventoryComponent inventory,
-        int rowIndex,
-        int rowY,
-        int activeSlot,
-        bool leftHeld,
-        bool rightPressed,
-        bool shiftHeld,
-        float scroll,
+        in PanelLayout layout,
+        SlotRowContext slotRow,
         ref bool slotIsSelected,
         ref Material? draggedSlotIcon,
         ref string? draggedSlotText
     )
     {
+        for (var rowIndex = 1; rowIndex < layout.RowCount; rowIndex++)
+        {
+            int rowY = HEADER_HEIGHT + (rowIndex - 1) * (SLOT_SIZE + SLOT_GAP);
+            SlotRowContext rowContext = slotRow with { RowIndex = rowIndex, RowY = rowY };
+            RenderSlotRow(ui, in rowContext, ref slotIsSelected, ref draggedSlotIcon, ref draggedSlotText);
+        }
+    }
+
+    /// <summary>Draws the active hotbar row at the bottom so it mirrors the HUD position.</summary>
+    private void DrawHotbarRow(
+        UIBuilder<Material> ui,
+        in PanelLayout layout,
+        SlotRowContext slotRow,
+        ref bool slotIsSelected,
+        ref Material? draggedSlotIcon,
+        ref string? draggedSlotText
+    )
+    {
+        if (layout.RowCount <= 0)
+        {
+            return;
+        }
+
+        SlotRowContext rowContext = slotRow with { RowIndex = 0, RowY = layout.HotbarY };
+        RenderSlotRow(ui, in rowContext, ref slotIsSelected, ref draggedSlotIcon, ref draggedSlotText);
+    }
+
+    /// <summary>Draws the inspection footer for the hovered slot.</summary>
+    private void DrawFooter(UIBuilder<Material> ui, in PanelLayout layout, SlotRowContext slotRow)
+    {
+        InventoryComponent inventory = slotRow.Inventory;
+        ItemData hoveredStack = GetSlotStack(in inventory, _selectedSlot);
+        IntRect rect = Widgets.Rect(PANEL_PADDING_X, layout.FooterY, layout.GridWidth, FOOTER_HEIGHT);
+        RenderInspectionFooter(ui, rect, in hoveredStack);
+    }
+
+    /// <summary>Draws the dragged stack preview under the cursor.</summary>
+    private void DrawDragPreview(UIBuilder<Material> ui, Material? draggedSlotIcon, string? draggedSlotText)
+    {
+        if (!_dragging || draggedSlotText == null || draggedSlotIcon == null)
+        {
+            return;
+        }
+
+        Vector2 cursorPosition = _inputService.CursorPosition;
+
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Local,
+                X = new Fixed((int)cursorPosition.X),
+                Y = new Fixed((int)cursorPosition.Y),
+                Width = new Fixed(SLOT_SIZE),
+                Height = new Fixed(SLOT_SIZE),
+            };
+
+            using (ui.Image(draggedSlotIcon))
+            {
+                ui.Passthrough = true;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+            }
+
+            using (ui.Text(draggedSlotText, UiMetrics.TINY_FONT))
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.Text;
+                ui.BackgroundColor = UiTheme.ScrimSoft;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Bottom | Anchors.Right,
+                };
+            }
+        }
+    }
+
+    /// <summary>Draws one row of slots and processes the interaction of each slot.</summary>
+    private void RenderSlotRow(
+        UIBuilder<Material> ui,
+        in SlotRowContext context,
+        ref bool slotIsSelected,
+        ref Material? draggedSlotIcon,
+        ref string? draggedSlotText
+    )
+    {
+        InventoryComponent inventory = context.Inventory;
+
         for (var slotIndex = 0; slotIndex < SLOTS_PER_ROW; slotIndex++)
         {
-            int inventorySlot = rowIndex * SLOTS_PER_ROW + slotIndex;
+            int inventorySlot = context.RowIndex * SLOTS_PER_ROW + slotIndex;
             ItemData itemStack = GetSlotStack(in inventory, inventorySlot);
             int slotX = PANEL_PADDING_X + slotIndex * (SLOT_SIZE + SLOT_GAP);
 
@@ -367,12 +453,12 @@ internal sealed class Inventory : IUILayer
             {
                 ui.LayoutDirection = LayoutDirection.None;
                 ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
-                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(slotX, rowY, SLOT_SIZE, SLOT_SIZE));
+                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(slotX, context.RowY, SLOT_SIZE, SLOT_SIZE));
 
                 bool hovering = ui.Hovering($"inventorySlot{inventorySlot}");
                 bool clicked = ui.Clicked($"inventorySlot{inventorySlot}");
-                bool rightClicked = hovering && rightPressed;
-                bool held = hovering && leftHeld;
+                bool rightClicked = hovering && context.RightPressed;
+                bool held = hovering && context.LeftHeld;
 
                 if (!slotIsSelected && hovering)
                 {
@@ -382,102 +468,24 @@ internal sealed class Inventory : IUILayer
 
                 bool isDraggingSource = _dragging && inventorySlot == _draggingSlot;
                 bool isHovered = inventorySlot == _selectedSlot;
-                bool isEquippedHotbar = inventorySlot < SLOTS_PER_ROW && inventorySlot == activeSlot;
+                bool isEquippedHotbar = inventorySlot < SLOTS_PER_ROW && inventorySlot == context.ActiveSlot;
 
                 ApplySlotChrome(ui, isDraggingSource, isHovered, isEquippedHotbar);
-
-                Material? icon = null;
-                if (itemStack.Count > 0 && itemStack.ID != null)
-                {
-                    Material slotIcon = _itemIcons.Get(itemStack.ID);
-                    icon = slotIcon;
-                    using (ui.Image(slotIcon))
-                    {
-                        ui.Passthrough = true;
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                            Width = new Fill(),
-                            Height = new Fill(),
-                        };
-                    }
-                }
+                Material? icon = DrawSlotIcon(ui, in itemStack);
 
                 if (inventorySlot < SLOTS_PER_ROW)
                 {
-                    using (ui.Text(_slotNumbers[slotIndex], UiMetrics.TinyFont))
-                    {
-                        ui.Passthrough = true;
-                        if (isEquippedHotbar)
-                        {
-                            ui.Color = UiTheme.PrimaryBright;
-                        }
-                        else if (isHovered)
-                        {
-                            ui.Color = UiTheme.AccentBright;
-                        }
-                        else
-                        {
-                            ui.Color = UiTheme.TextDim;
-                        }
-                    }
+                    DrawSlotNumber(ui, slotIndex, isEquippedHotbar, isHovered);
                 }
 
-                //  Right-clicking a slot while dragging an item drops 1 count
-                if (_dragging && rightClicked)
-                {
-                    ApplyMove(new SlotMoveOp
-                    {
-                        Mode = SlotMoveOpMode.Exact,
-                        FromSlot = _draggingSlot,
-                        ToSlot = inventorySlot,
-                        Count = 1,
-                    });
-                }
-
-                //  Scrolling while dragging an item will add/remove items by 1
-                if (_dragging && hovering && scroll != 0f)
-                {
-                    int sourceSlot;
-                    int destinationSlot;
-                    if (scroll > 0f)
-                    {
-                        sourceSlot = _draggingSlot;
-                        destinationSlot = inventorySlot;
-                    }
-                    else
-                    {
-                        sourceSlot = inventorySlot;
-                        destinationSlot = _draggingSlot;
-                    }
-
-                    var amount = (int)Math.Abs(scroll);
-
-                    ApplyMove(new SlotMoveOp
-                    {
-                        Mode = SlotMoveOpMode.Exact,
-                        FromSlot = sourceSlot,
-                        ToSlot = destinationSlot,
-                        Count = (uint)amount,
-                    });
-                }
+                ApplyDragGestures(in context, inventorySlot, hovering, rightClicked);
 
                 if (itemStack.Count == 0 || itemStack.ID == null)
                 {
                     continue;
                 }
 
-                var text = itemStack.Count.ToString();
-                using (ui.Text(text, UiMetrics.TinyFont))
-                {
-                    ui.Passthrough = true;
-                    ui.Color = UiTheme.Text;
-                    ui.BackgroundColor = UiTheme.ScrimSoft;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Bottom | Anchors.Right,
-                    };
-                }
+                string text = DrawCountBadge(ui, in itemStack);
 
                 if (_dragging && _draggingSlot == inventorySlot)
                 {
@@ -485,49 +493,178 @@ internal sealed class Inventory : IUILayer
                     draggedSlotText = text;
                 }
 
-                if (shiftHeld)
-                {
-                    //  Shift + click and shift + hold left click quick moves items via the
-                    //  server-resolved AutoStack op.
-                    if (clicked || held)
-                    {
-                        ApplyMove(new SlotMoveOp
-                        {
-                            Mode = SlotMoveOpMode.AutoStack,
-                            FromSlot = inventorySlot,
-                            ToSlot = -1,
-                            Count = null,
-                        });
-                    }
-                }
-                else
-                {
-                    //  Right-clicking a slot splits the stack: move half to the first
-                    //  empty slot (client-computed target, server revalidated).
-                    if (!_dragging && rightClicked)
-                    {
-                        int splitTarget = InventoryResolver.FindFirstEmptySlot(in inventory);
-                        if (splitTarget >= 0)
-                        {
-                            ApplyMove(new SlotMoveOp
-                            {
-                                Mode = SlotMoveOpMode.Exact,
-                                FromSlot = inventorySlot,
-                                ToSlot = splitTarget,
-                                Count = (uint)Math.Max(1, itemStack.Count / 2),
-                            });
-                        }
-                    }
-
-                    //  Start dragging this slot
-                    if (!_dragging && held)
-                    {
-                        _dragging = true;
-                        _draggingSlot = inventorySlot;
-                    }
-                }
+                ApplyClickInteraction(in context, inventorySlot, clicked, held, rightClicked, in itemStack);
             }
         }
+    }
+
+    /// <summary>Draws the item icon of a slot and returns it for the drag preview.</summary>
+    private Material? DrawSlotIcon(UIBuilder<Material> ui, in ItemData itemStack)
+    {
+        if (itemStack.Count <= 0 || itemStack.ID == null)
+        {
+            return null;
+        }
+
+        Material slotIcon = _itemIcons.Get(itemStack.ID);
+        using (ui.Image(slotIcon))
+        {
+            ui.Passthrough = true;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+        }
+
+        return slotIcon;
+    }
+
+    /// <summary>Draws the hotbar slot number tinted by the slot state.</summary>
+    private static void DrawSlotNumber(UIBuilder<Material> ui, int slotIndex, bool isEquippedHotbar, bool isHovered)
+    {
+        using (ui.Text(_slotNumbers[slotIndex], UiMetrics.TINY_FONT))
+        {
+            ui.Passthrough = true;
+            if (isEquippedHotbar)
+            {
+                ui.Color = UiTheme.PrimaryBright;
+            }
+            else if (isHovered)
+            {
+                ui.Color = UiTheme.AccentBright;
+            }
+            else
+            {
+                ui.Color = UiTheme.TextDim;
+            }
+        }
+    }
+
+    /// <summary>Draws the stack count badge of a slot and returns its text.</summary>
+    private static string DrawCountBadge(UIBuilder<Material> ui, in ItemData itemStack)
+    {
+        string text = itemStack.Count.ToString();
+        using (ui.Text(text, UiMetrics.TINY_FONT))
+        {
+            ui.Passthrough = true;
+            ui.Color = UiTheme.Text;
+            ui.BackgroundColor = UiTheme.ScrimSoft;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Bottom | Anchors.Right,
+            };
+        }
+
+        return text;
+    }
+
+    /// <summary>Applies the right-click and scroll gestures that change a dragged stack.</summary>
+    private void ApplyDragGestures(in SlotRowContext context, int inventorySlot, bool hovering, bool rightClicked)
+    {
+        if (!_dragging)
+        {
+            return;
+        }
+
+        //  Right-clicking a slot while dragging an item drops 1 count
+        if (rightClicked)
+        {
+            ApplyMove(new SlotMoveOp
+            {
+                Mode = SlotMoveOpMode.Exact,
+                FromSlot = _draggingSlot,
+                ToSlot = inventorySlot,
+                Count = 1,
+            });
+        }
+
+        //  Scrolling while dragging an item will add/remove items by 1
+        if (!hovering || context.Scroll == 0f)
+        {
+            return;
+        }
+
+        int sourceSlot = _draggingSlot;
+        int destinationSlot = inventorySlot;
+        if (context.Scroll < 0f)
+        {
+            sourceSlot = inventorySlot;
+            destinationSlot = _draggingSlot;
+        }
+
+        var amount = (int)Math.Abs(context.Scroll);
+        ApplyMove(new SlotMoveOp
+        {
+            Mode = SlotMoveOpMode.Exact,
+            FromSlot = sourceSlot,
+            ToSlot = destinationSlot,
+            Count = (uint)amount,
+        });
+    }
+
+    /// <summary>Applies the click gestures that move, split, or pick up a stack.</summary>
+    private void ApplyClickInteraction(
+        in SlotRowContext context,
+        int inventorySlot,
+        bool clicked,
+        bool held,
+        bool rightClicked,
+        in ItemData itemStack
+    )
+    {
+        if (context.ShiftHeld)
+        {
+            //  Shift + click and shift + hold left click quick moves items via the
+            //  server-resolved AutoStack op.
+            if (!clicked && !held)
+            {
+                return;
+            }
+
+            ApplyMove(new SlotMoveOp
+            {
+                Mode = SlotMoveOpMode.AutoStack,
+                FromSlot = inventorySlot,
+                ToSlot = -1,
+                Count = null,
+            });
+            return;
+        }
+
+        //  Right-clicking a slot splits the stack: move half to the first
+        //  empty slot (client-computed target, server revalidated).
+        if (!_dragging && rightClicked)
+        {
+            ApplySplitMove(in context, inventorySlot, in itemStack);
+        }
+
+        //  Start dragging this slot
+        if (!_dragging && held)
+        {
+            _dragging = true;
+            _draggingSlot = inventorySlot;
+        }
+    }
+
+    /// <summary>Moves half of a stack into the first empty slot.</summary>
+    private void ApplySplitMove(in SlotRowContext context, int inventorySlot, in ItemData itemStack)
+    {
+        InventoryComponent inventory = context.Inventory;
+        int splitTarget = InventoryResolver.FindFirstEmptySlot(in inventory);
+        if (splitTarget < 0)
+        {
+            return;
+        }
+
+        ApplyMove(new SlotMoveOp
+        {
+            Mode = SlotMoveOpMode.Exact,
+            FromSlot = inventorySlot,
+            ToSlot = splitTarget,
+            Count = (uint)Math.Max(1, itemStack.Count / 2),
+        });
     }
 
     private static ItemData GetSlotStack(in InventoryComponent inventory, int slotIndex)
@@ -547,7 +684,7 @@ internal sealed class Inventory : IUILayer
             ui.Color = UiTheme.AccentDark;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Accent,
             };
             ui.CornerCaps = default;
@@ -559,13 +696,13 @@ internal sealed class Inventory : IUILayer
             ui.Color = UiTheme.ButtonHover;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Accent,
             };
             ui.CornerCaps = new CornerCapStyle
             {
-                Length = UiMetrics.SelectionCapLength,
-                Thickness = UiMetrics.SelectionCapThickness,
+                Length = UiMetrics.SELECTION_CAP_LENGTH,
+                Thickness = UiMetrics.SELECTION_CAP_THICKNESS,
                 Color = UiTheme.AccentBright,
             };
             return;
@@ -576,13 +713,13 @@ internal sealed class Inventory : IUILayer
             ui.Color = UiTheme.SelectionBackground;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Primary,
             };
             ui.CornerCaps = new CornerCapStyle
             {
-                Length = UiMetrics.SelectionCapLength,
-                Thickness = UiMetrics.SelectionCapThickness,
+                Length = UiMetrics.SELECTION_CAP_LENGTH,
+                Thickness = UiMetrics.SELECTION_CAP_THICKNESS,
                 Color = UiTheme.PrimaryBright,
             };
             return;
@@ -591,12 +728,13 @@ internal sealed class Inventory : IUILayer
         ui.Color = UiTheme.ControlBackground;
         ui.Border = new BorderStyle
         {
-            Thickness = UiMetrics.PanelBorderThickness,
+            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
             Color = UiTheme.Border,
         };
         ui.CornerCaps = default;
     }
 
+    /// <summary>Draws the hovered item name and its capability badges.</summary>
     private void RenderInspectionFooter(UIBuilder<Material> ui, IntRect rect, in ItemData itemStack)
     {
         using (ui.Element())
@@ -606,7 +744,7 @@ internal sealed class Inventory : IUILayer
             ui.Color = UiTheme.PanelInner;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Border,
             };
             ui.Constraints = Widgets.RectConstraints(rect);
@@ -614,12 +752,7 @@ internal sealed class Inventory : IUILayer
 
             if (itemStack.Count <= 0 || itemStack.ID == null)
             {
-                ui.Label(
-                    _emptySlotLabel,
-                    Widgets.Rect(12, 0, rect.Size.X - 24, rect.Size.Y),
-                    UiMetrics.SmallFont,
-                    UiTheme.TextDim
-                );
+                DrawFooterLabel(ui, rect, _emptySlotLabel, UiTheme.TextDim);
                 return;
             }
 
@@ -627,12 +760,7 @@ internal sealed class Inventory : IUILayer
             if (!itemResult.Success)
             {
                 string fallbackName = _localization.GetString(itemStack.ID) ?? itemStack.ID;
-                ui.Label(
-                    fallbackName,
-                    Widgets.Rect(12, 0, rect.Size.X - 24, rect.Size.Y),
-                    UiMetrics.SmallFont,
-                    UiTheme.TextMuted
-                );
+                DrawFooterLabel(ui, rect, fallbackName, UiTheme.TextMuted);
                 return;
             }
 
@@ -641,12 +769,8 @@ internal sealed class Inventory : IUILayer
 
             //  Left primary accent bar and localized item name
             ui.Divider(Widgets.Rect(8, 8, 2, rect.Size.Y - 16), UiTheme.Primary);
-            ui.Label(
-                itemName,
-                Widgets.Rect(16, 0, rect.Size.X - 32, rect.Size.Y),
-                UiMetrics.SmallFont,
-                UiTheme.PrimaryBright
-            );
+            IntRect nameRect = Widgets.Rect(16, 0, rect.Size.X - 32, rect.Size.Y);
+            ui.Label(itemName, nameRect, UiMetrics.SMALL_FONT, UiTheme.PrimaryBright);
 
             //  Right-aligned Font Awesome capability badges for placeable bricks
             if (item.Placeable == null)
@@ -669,15 +793,24 @@ internal sealed class Inventory : IUILayer
 
             if (orientable)
             {
-                RenderCapabilityBadge(ui, Widgets.Rect(badgeX, badgeY, BADGE_WIDTH, BADGE_HEIGHT), MenuGlyphs.Rotate, _orientableLabel);
+                IntRect badgeRect = Widgets.Rect(badgeX, badgeY, BADGE_WIDTH, BADGE_HEIGHT);
+                RenderCapabilityBadge(ui, badgeRect, MenuGlyphs.ROTATE, _orientableLabel);
                 badgeX -= BADGE_WIDTH + BADGE_GAP;
             }
 
             if (shapeable)
             {
-                RenderCapabilityBadge(ui, Widgets.Rect(badgeX, badgeY, BADGE_WIDTH, BADGE_HEIGHT), MenuGlyphs.Shapes, _shapeableLabel);
+                IntRect badgeRect = Widgets.Rect(badgeX, badgeY, BADGE_WIDTH, BADGE_HEIGHT);
+                RenderCapabilityBadge(ui, badgeRect, MenuGlyphs.SHAPES, _shapeableLabel);
             }
         }
+    }
+
+    /// <summary>Draws a single footer label inside the inspection rect.</summary>
+    private static void DrawFooterLabel(UIBuilder<Material> ui, IntRect rect, string text, Vector4 color)
+    {
+        IntRect labelRect = Widgets.Rect(12, 0, rect.Size.X - 24, rect.Size.Y);
+        ui.Label(text, labelRect, UiMetrics.SMALL_FONT, color);
     }
 
     private static void RenderCapabilityBadge(UIBuilder<Material> ui, IntRect rect, string iconGlyph, string label)
@@ -689,7 +822,7 @@ internal sealed class Inventory : IUILayer
             ui.Color = UiTheme.AccentDark;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.BorderHover,
             };
             ui.Constraints = Widgets.RectConstraints(rect);
@@ -698,15 +831,15 @@ internal sealed class Inventory : IUILayer
             ui.Label(
                 iconGlyph,
                 Widgets.Rect(6, 0, 20, rect.Size.Y),
-                UiMetrics.SmallFont,
+                UiMetrics.SMALL_FONT,
                 UiTheme.AccentBright,
                 Anchors.Center,
-                UiTheme.FontIcons
+                UiTheme.FONT_ICONS
             );
             ui.Label(
                 label,
                 Widgets.Rect(28, 0, rect.Size.X - 32, rect.Size.Y),
-                UiMetrics.TinyFont,
+                UiMetrics.TINY_FONT,
                 UiTheme.Text
             );
         }

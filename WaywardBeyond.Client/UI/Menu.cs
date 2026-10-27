@@ -20,7 +20,7 @@ internal abstract class Menu<TIdentifier> : IUILayer
     private readonly object _pageLock = new();
     private TIdentifier _currentPage;
     private readonly Stack<TIdentifier> _pageHistory =[];
-    
+
     public Menu(ILogger<Menu<TIdentifier>> logger, ReefContext reefContext, IMenuPage<TIdentifier>[] pages)
     {
         _logger = logger;
@@ -32,13 +32,13 @@ internal abstract class Menu<TIdentifier> : IUILayer
             IMenuPage<TIdentifier> page = pages[i];
             _pages[page.ID] = page;
         }
-        
+
         _currentPage = _pages.Keys.First();
         EnterPage(_pages[_currentPage]);
     }
 
     public abstract bool IsVisible();
-    
+
     public TIdentifier GetCurrentPage()
     {
         lock (_pageLock)
@@ -55,7 +55,7 @@ internal abstract class Menu<TIdentifier> : IUILayer
             {
                 return Result<TIdentifier>.FromSuccess(page);
             }
-            
+
             return Result<TIdentifier>.FromFailure("There is no page in the history.");
         }
     }
@@ -86,7 +86,7 @@ internal abstract class Menu<TIdentifier> : IUILayer
         EnterPage(nextPage);
         return Result.FromSuccess();
     }
-    
+
     public Result GoBack()
     {
         IMenuPage<TIdentifier>? previousPage;
@@ -150,7 +150,7 @@ internal abstract class Menu<TIdentifier> : IUILayer
         {
             _logger.LogError(exception, "Caught an exception when rendering menu page \"{page}\".", page.GetType());
         }
-        
+
         return Result.FromSuccess();
     }
 }

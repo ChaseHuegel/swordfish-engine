@@ -8,7 +8,7 @@
 
 Playtest: the default name tag render distance should be 32, and players
 should be able to change it. Today the distance is a constant,
-`NameplateSystem.MAX_RENDER_DISTANCE = 20` (`NameplateSystem.cs:22`), with
+`NameplateSystem.MAX_RENDER_DISTANCE = 20` (`WaywardBeyond.Client/Systems/NameplateSystem.cs:17`), with
 no user control.
 
 ## Acceptance criteria

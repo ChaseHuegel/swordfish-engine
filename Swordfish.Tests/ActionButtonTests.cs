@@ -33,13 +33,13 @@ public class ActionButtonTests
         ui.ActionButton(
             "menu",
             "OK",
-            Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService: null!)
+            Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService: null)
         );
 
         RenderCommand<Material> button = Find(ui.Build(0f), "menu");
 
-        Assert.Equal(UiMetrics.MenuButtonMinWidth, button.Rect.Size.X);
-        Assert.Equal(UiMetrics.MenuButtonHeight, button.Rect.Size.Y);
+        Assert.Equal(UiMetrics.MENU_BUTTON_MIN_WIDTH, button.Rect.Size.X);
+        Assert.Equal(UiMetrics.MENU_BUTTON_HEIGHT, button.Rect.Size.Y);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class ActionButtonTests
 
     private sealed class StubTextEngine : ITextEngine
     {
-        private static readonly TextLayout CachedLayout = new(
+        private static readonly TextLayout _cachedLayout = new(
             new TextConstraints(32, 32, 32, 32),
             [],
             ["OK"],
@@ -91,13 +91,13 @@ public class ActionButtonTests
 
         public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length) => new(32, 32, 32, 32);
 
-        public TextLayout Layout(FontOptions fontOptions, string text) => CachedLayout;
+        public TextLayout Layout(FontOptions fontOptions, string text) => _cachedLayout;
 
-        public TextLayout Layout(FontOptions fontOptions, string text, int maxWidth) => CachedLayout;
+        public TextLayout Layout(FontOptions fontOptions, string text, int maxWidth) => _cachedLayout;
 
-        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length) => CachedLayout;
+        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length) => _cachedLayout;
 
-        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth) => CachedLayout;
+        public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth) => _cachedLayout;
 
         public string[] Wrap(FontOptions fontOptions, string text, int maxWidth) => ["OK"];
 

@@ -99,11 +99,7 @@ internal sealed class ControlHints : IUILayer
 
             if (_inventory.IsVisible())
             {
-                RenderHintPill(ui, in _inventoryMoveHint);
-                RenderHintPill(ui, in _inventorySplitHint);
-                RenderHintPill(ui, in _inventoryQuickMoveHint);
-                RenderHintPill(ui, in _inventoryHotbarHint);
-                RenderHintPill(ui, in _inventoryCloseHint);
+                DrawInventoryHints(ui);
                 return Result.FromSuccess();
             }
 
@@ -112,34 +108,57 @@ internal sealed class ControlHints : IUILayer
 
             if (holdingPlaceable)
             {
-                if (_shapeSelector.Available)
-                {
-                    RenderHintPill(ui, in _changeShapeHint);
-                }
-
-                if (_orientationSelector.Available)
-                {
-                    RenderHintPill(ui, in _changeOrientationHint);
-                }
-
-                RenderHintPill(ui, in _snapBrickHint);
-                RenderHintPill(ui, in _pickBrickHint);
-                RenderHintPill(ui, in _breakBrickHint);
-                RenderHintPill(ui, in _placeBrickHint);
-                RenderHintPill(ui, in _inventoryHint);
+                DrawPlaceableHints(ui);
             }
             else
             {
-                RenderHintPill(ui, in _breakBrickHint);
-                RenderHintPill(ui, in _pickBrickHint);
-                RenderHintPill(ui, in _rollHint);
-                RenderHintPill(ui, in _inventoryHint);
+                DrawIdleHints(ui);
             }
         }
 
         return Result.FromSuccess();
     }
 
+    /// <summary>Draws the hints that belong to the open inventory.</summary>
+    private void DrawInventoryHints(UIBuilder<Material> ui)
+    {
+        RenderHintPill(ui, in _inventoryMoveHint);
+        RenderHintPill(ui, in _inventorySplitHint);
+        RenderHintPill(ui, in _inventoryQuickMoveHint);
+        RenderHintPill(ui, in _inventoryHotbarHint);
+        RenderHintPill(ui, in _inventoryCloseHint);
+    }
+
+    /// <summary>Draws the hints for a placeable item in the main hand.</summary>
+    private void DrawPlaceableHints(UIBuilder<Material> ui)
+    {
+        if (_shapeSelector.Available)
+        {
+            RenderHintPill(ui, in _changeShapeHint);
+        }
+
+        if (_orientationSelector.Available)
+        {
+            RenderHintPill(ui, in _changeOrientationHint);
+        }
+
+        RenderHintPill(ui, in _snapBrickHint);
+        RenderHintPill(ui, in _pickBrickHint);
+        RenderHintPill(ui, in _breakBrickHint);
+        RenderHintPill(ui, in _placeBrickHint);
+        RenderHintPill(ui, in _inventoryHint);
+    }
+
+    /// <summary>Draws the hints for a main hand that holds no placeable item.</summary>
+    private void DrawIdleHints(UIBuilder<Material> ui)
+    {
+        RenderHintPill(ui, in _breakBrickHint);
+        RenderHintPill(ui, in _pickBrickHint);
+        RenderHintPill(ui, in _rollHint);
+        RenderHintPill(ui, in _inventoryHint);
+    }
+
+    /// <summary>Draws one hint pill with its optional keycap.</summary>
     private static void RenderHintPill(UIBuilder<Material> ui, in HintEntry hint)
     {
         if (string.IsNullOrEmpty(hint.Action))
@@ -156,7 +175,7 @@ internal sealed class ControlHints : IUILayer
             ui.Color = UiTheme.PanelBackground;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Border,
             };
             ui.Constraints = new Constraints
@@ -166,30 +185,10 @@ internal sealed class ControlHints : IUILayer
 
             if (!string.IsNullOrEmpty(hint.Key))
             {
-                using (ui.Element())
-                {
-                    ui.Passthrough = true;
-                    ui.Padding = new Padding(left: 6, top: 2, right: 6, bottom: 2);
-                    ui.Color = UiTheme.AccentDark;
-                    ui.Border = new BorderStyle
-                    {
-                        Thickness = UiMetrics.PanelBorderThickness,
-                        Color = UiTheme.BorderHover,
-                    };
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
-
-                    using (ui.Text(hint.Key, UiMetrics.TinyFont))
-                    {
-                        ui.Passthrough = true;
-                        ui.Color = UiTheme.AccentBright;
-                    }
-                }
+                DrawKeycap(ui, hint.Key);
             }
 
-            using (ui.Text(hint.Action, UiMetrics.TinyFont))
+            using (ui.Text(hint.Action, UiMetrics.TINY_FONT))
             {
                 ui.Passthrough = true;
                 ui.Color = UiTheme.Text;
@@ -197,6 +196,32 @@ internal sealed class ControlHints : IUILayer
                 {
                     Anchors = Anchors.Center,
                 };
+            }
+        }
+    }
+
+    /// <summary>Draws the keycap chip of a hint pill.</summary>
+    private static void DrawKeycap(UIBuilder<Material> ui, string key)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.Padding = new Padding(left: 6, top: 2, right: 6, bottom: 2);
+            ui.Color = UiTheme.AccentDark;
+            ui.Border = new BorderStyle
+            {
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
+                Color = UiTheme.BorderHover,
+            };
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            using (ui.Text(key, UiMetrics.TINY_FONT))
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.AccentBright;
             }
         }
     }

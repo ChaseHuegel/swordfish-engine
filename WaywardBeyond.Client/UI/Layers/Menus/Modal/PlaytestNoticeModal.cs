@@ -1,11 +1,11 @@
-using System;
-using System.Threading.Tasks;
-using Reef;
-using Reef.Constraints;
 using Reef.UI;
+using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using System.Threading.Tasks;
+using System;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
 
@@ -28,8 +28,8 @@ internal class PlaytestNoticeModal(
     );
 
     private readonly Widgets.IconButtonOptions _brandIconOptions = new(
-        FontId: UiTheme.FontBrands,
-        FontSize: UiMetrics.LargeIconFont,
+        FontId: UiTheme.FONT_BRANDS,
+        FontSize: UiMetrics.LARGE_ICON_FONT,
         SoundEffectService: soundEffectService
     );
 
@@ -40,92 +40,79 @@ internal class PlaytestNoticeModal(
         int panelWidth = Math.Clamp(ui.Width - 160, 520, 760);
         int panelHeight = Math.Clamp(ui.Height - 160, 460, 500);
 
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.ScrimHeavy;
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-
-            using (ui.Element())
-            {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-                ui.ClipConstraints = new Constraints
-                {
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-
-                using (ui.ModalPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
-                {
-                    int padding = 28;
-                    int contentWidth = panelWidth - padding * 2;
-
-                    ui.Label(
-                        _localization.GetString("ui.menu.playtest")!,
-                        Widgets.Rect(padding, 22, contentWidth, 30),
-                        UiMetrics.MenuTitleFont,
-                        UiTheme.Text,
-                        Anchors.Center
-                    );
-                    ui.Divider(
-                        Widgets.Rect(padding, 62, contentWidth, 1),
-                        UiTheme.Border
-                    );
-
-                    int footerTop = panelHeight - 68;
-                    ui.Paragraph(
-                        _localization.GetString("ui.text.playtest")!,
-                        Widgets.Rect(padding, 78, contentWidth, Math.Max(0, footerTop - 96)),
-                        UiMetrics.MenuBodyFont,
-                        UiTheme.Text
-                    );
-
-                    int buttonY = footerTop + 8;
-                    if (ui.IconButton(
-                            "Button_Community",
-                            Widgets.Rect(padding, buttonY, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize),
-                            MenuGlyphs.Discord,
-                            _brandIconOptions
-                        ))
-                    {
-                        Task.Run(_externalAppService.TryOpenDiscordAsync);
-                    }
-
-                    if (ui.IconButton(
-                            "Button_Wishlist",
-                            Widgets.Rect(padding + UiMetrics.IconButtonSize + 8, buttonY, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize),
-                            MenuGlyphs.Steam,
-                            _brandIconOptions
-                        ))
-                    {
-                        Task.Run(_externalAppService.TryOpenSteamAsync);
-                    }
-
-                    if (ui.ActionButton(
-                            "Button_Close",
-                            _localization.GetString("ui.button.ok")!,
-                            _closeButton with
-                            {
-                                Rect = Widgets.Rect(panelWidth - padding - 200, buttonY, 200, UiMetrics.IconButtonSize),
-                            }
-                        ))
-                    {
-                        menu.GoBack();
-                    }
-                }
-            }
-        }
+        ui.ModalFrame(
+            panelWidth,
+            panelHeight,
+            UiTheme.ScrimHeavy,
+            frame => DrawBody(frame, menu, panelWidth, panelHeight)
+        );
 
         return Result.FromSuccess();
+    }
+
+    /// <summary>Draws the notice text and footer actions inside the modal panel.</summary>
+    private void DrawBody(UIBuilder<Material> ui, Menu<Modal> menu, int panelWidth, int panelHeight)
+    {
+        int padding = UiMetrics.MODAL_PADDING;
+        int contentWidth = panelWidth - padding * 2;
+
+        ui.Label(
+            _localization.GetRequired("ui.menu.playtest"),
+            Widgets.Rect(padding, 22, contentWidth, 30),
+            UiMetrics.MENU_TITLE_FONT,
+            UiTheme.Text,
+            Anchors.Center
+        );
+        ui.Divider(
+            Widgets.Rect(padding, 62, contentWidth, 1),
+            UiTheme.Border
+        );
+
+        int footerTop = panelHeight - 68;
+        ui.Paragraph(
+            _localization.GetRequired("ui.text.playtest"),
+            Widgets.Rect(padding, 78, contentWidth, Math.Max(0, footerTop - 96)),
+            UiMetrics.MENU_BODY_FONT,
+            UiTheme.Text
+        );
+
+        int buttonY = footerTop + 8;
+        DrawFooter(ui, menu, padding, panelWidth, buttonY);
+    }
+
+    /// <summary>Draws the community, wishlist, and close actions along the panel footer.</summary>
+    private void DrawFooter(UIBuilder<Material> ui, Menu<Modal> menu, int padding, int panelWidth, int buttonY)
+    {
+        bool communityPressed = ui.IconButton(
+            "Button_Community",
+            Widgets.Rect(padding, buttonY, UiMetrics.ICON_BUTTON_SIZE, UiMetrics.ICON_BUTTON_SIZE),
+            MenuGlyphs.DISCORD,
+            _brandIconOptions
+        );
+        if (communityPressed)
+        {
+            Task.Run(_externalAppService.TryOpenDiscordAsync);
+        }
+
+        bool wishlistPressed = ui.IconButton(
+            "Button_Wishlist",
+            Widgets.Rect(padding + UiMetrics.ICON_BUTTON_SIZE + 8, buttonY, UiMetrics.ICON_BUTTON_SIZE, UiMetrics.ICON_BUTTON_SIZE),
+            MenuGlyphs.STEAM,
+            _brandIconOptions
+        );
+        if (wishlistPressed)
+        {
+            Task.Run(_externalAppService.TryOpenSteamAsync);
+        }
+
+        Widgets.ActionButtonOptions closeOptions = _closeButton with
+        {
+            Rect = Widgets.Rect(panelWidth - padding - 200, buttonY, 200, UiMetrics.ICON_BUTTON_SIZE),
+        };
+
+        if (ui.ActionButton("Button_Close", _localization.GetRequired("ui.button.ok"), closeOptions))
+        {
+            menu.GoBack();
+        }
     }
 }

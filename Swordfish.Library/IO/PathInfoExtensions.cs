@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -31,7 +31,7 @@ public static class PathInfoExtensions
                 builder.Append(path.Value.Substitute('.', '/', '\\'));
 
                 return assembly.GetManifestResourceStream(builder.ToString());
-            
+
             case "zip":
                 //  Walk back from the end until finding the archive file.
                 PathInfo zipPath = path;
@@ -39,7 +39,7 @@ public static class PathInfoExtensions
                 {
                     zipPath = zipPath.GetDirectory();
                 }
-                
+
                 int zipPathLength = zipPath.Value.Length;
                 if (zipPathLength == path.Value.Length)
                 {
@@ -53,7 +53,7 @@ public static class PathInfoExtensions
                 {
                     throw new FileNotFoundException("Zip entry not found.", path.Value);
                 }
-                
+
                 return new ZipArchiveEntryStream(zip, entry.Open());
         }
 
@@ -98,12 +98,12 @@ public static class PathInfoExtensions
             .Select(str => new PathInfo(str))
             .ToArray();
     }
-    
+
     public static PathInfo[] GetFolders(this PathInfo path, SearchOption searchOption)
     {
         return GetFolders(path, "*", searchOption);
     }
-    
+
     /// <summary>Lists the subdirectories under the directory this path names.</summary>
     public static PathInfo[] GetFolders(this PathInfo path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
@@ -116,7 +116,7 @@ public static class PathInfoExtensions
             .Select(str => new PathInfo(str))
             .ToArray();
     }
-    
+
     public static bool TryOpenInDefaultApp(this PathInfo pathInfo)
     {
         var processStartInfo = new ProcessStartInfo

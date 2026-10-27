@@ -26,7 +26,7 @@ internal static partial class Widgets
             ui.Color = selected ? UiTheme.PanelSolid : UiTheme.PanelInner;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = selected ? UiTheme.Accent : UiTheme.Border,
             };
             ui.Constraints = RectConstraints(rect);
@@ -50,7 +50,7 @@ internal static partial class Widgets
             ui.Label(
                 label,
                 Rect(0, 0, rect.Size.X, rect.Size.Y),
-                UiMetrics.MenuSmallFont,
+                UiMetrics.MENU_SMALL_FONT,
                 selected ? UiTheme.AccentBright : hovering ? UiTheme.Text : UiTheme.TextMuted,
                 Anchors.Center
             );

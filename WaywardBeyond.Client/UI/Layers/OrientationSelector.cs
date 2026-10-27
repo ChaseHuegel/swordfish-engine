@@ -139,20 +139,8 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
 
             using (ui.Element(orientationSelectorElement.ID))
             {
-                var vector = new Vector2(0f, ELEMENT_OFFSET);
-                var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, angleBetweenElements * i);
-                vector = Vector2.Transform(vector, rotation);
-
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = UiTheme.Transparent;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    X = new Fixed((int)vector.X),
-                    Y = new Fixed((int)vector.Y),
-                    Width = new Fixed(RADIAL_HITBOX_SIZE),
-                    Height = new Fixed(RADIAL_HITBOX_SIZE),
-                };
+                Vector2 offset = GetRadialOffset(angleBetweenElements, i);
+                DrawNodeHitbox(ui, offset);
 
                 bool isSelected = _interactionState.SelectedOrientation.Get().Equals(orientation);
                 if (!updatedSelection && ui.Hovering())
@@ -162,77 +150,89 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
                     isSelected = true;
                 }
 
-                using (ui.Element())
-                {
-                    ui.Passthrough = true;
-                    ui.LayoutDirection = LayoutDirection.None;
-                    if (isSelected)
-                    {
-                        ui.Color = UiTheme.SelectionBackground;
-                        ui.Border = new BorderStyle
-                        {
-                            Thickness = UiMetrics.PanelBorderThickness,
-                            Color = UiTheme.Primary,
-                        };
-                        ui.CornerCaps = new CornerCapStyle
-                        {
-                            Length = UiMetrics.SelectionCapLength,
-                            Thickness = UiMetrics.SelectionCapThickness,
-                            Color = UiTheme.PrimaryBright,
-                        };
-                    }
-                    else
-                    {
-                        ui.Color = UiTheme.PanelBackground;
-                        ui.Border = new BorderStyle
-                        {
-                            Thickness = UiMetrics.PanelBorderThickness,
-                            Color = UiTheme.Border,
-                        };
-                        ui.CornerCaps = new CornerCapStyle
-                        {
-                            Length = UiMetrics.SelectionCapLength,
-                            Thickness = UiMetrics.SelectionCapThickness,
-                            Color = UiTheme.BorderHover,
-                        };
-                    }
-
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                        Width = new Fixed(RADIAL_NODE_SIZE),
-                        Height = new Fixed(RADIAL_NODE_SIZE),
-                    };
-
-                    using (ui.Image(orientationSelectorElement.Icon))
-                    {
-                        ui.Passthrough = true;
-                        if (isSelected)
-                        {
-                            ui.Color = UiTheme.PrimaryBright;
-                        }
-                        else
-                        {
-                            ui.Color = UiTheme.AccentBright;
-                        }
-
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                            Width = new Fixed(ICON_SIZE),
-                            Height = new Fixed(ICON_SIZE),
-                        };
-                    }
-                }
+                DrawNode(ui, orientationSelectorElement.Icon, isSelected);
             }
         }
 
-        Orientation activeOrientation = _interactionState.SelectedOrientation.Get();
-        string translationKey = "brick.orientation.up";
-        if (_orientationSelectorElements.TryGetValue(activeOrientation, out OrientationSelectorElement activeElement))
+        DrawSelectedOrientationLabel(ui);
+
+        return Result.FromSuccess();
+    }
+
+    /// <summary>Computes the position of a radial node on the selection circle.</summary>
+    private static Vector2 GetRadialOffset(float angleBetweenElements, int index)
+    {
+        var offset = new Vector2(0f, ELEMENT_OFFSET);
+        var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, angleBetweenElements * index);
+        return Vector2.Transform(offset, rotation);
+    }
+
+    /// <summary>Draws the hitbox of one radial node and places it at the given offset.</summary>
+    private static void DrawNodeHitbox(UIBuilder<Material> ui, Vector2 offset)
+    {
+        ui.LayoutDirection = LayoutDirection.None;
+        ui.Color = UiTheme.Transparent;
+        ui.Constraints = new Constraints
         {
-            translationKey = activeElement.TranslationKey;
+            Anchors = Anchors.Center,
+            X = new Fixed((int)offset.X),
+            Y = new Fixed((int)offset.Y),
+            Width = new Fixed(RADIAL_HITBOX_SIZE),
+            Height = new Fixed(RADIAL_HITBOX_SIZE),
+        };
+    }
+
+    /// <summary>Draws the node plate and icon of one orientation.</summary>
+    private static void DrawNode(UIBuilder<Material> ui, Material icon, bool isSelected)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.LayoutDirection = LayoutDirection.None;
+            ApplyNodeStyle(ui, isSelected);
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Fixed(RADIAL_NODE_SIZE),
+                Height = new Fixed(RADIAL_NODE_SIZE),
+            };
+
+            using (ui.Image(icon))
+            {
+                ui.Passthrough = true;
+                ui.Color = isSelected ? UiTheme.PrimaryBright : UiTheme.AccentBright;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                    Width = new Fixed(ICON_SIZE),
+                    Height = new Fixed(ICON_SIZE),
+                };
+            }
         }
+    }
+
+    /// <summary>Applies the fill, border, and corner caps of a radial node plate.</summary>
+    private static void ApplyNodeStyle(UIBuilder<Material> ui, bool selected)
+    {
+        ui.Color = selected ? UiTheme.SelectionBackground : UiTheme.PanelBackground;
+        ui.Border = new BorderStyle
+        {
+            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
+            Color = selected ? UiTheme.Primary : UiTheme.Border,
+        };
+        ui.CornerCaps = new CornerCapStyle
+        {
+            Length = UiMetrics.SELECTION_CAP_LENGTH,
+            Thickness = UiMetrics.SELECTION_CAP_THICKNESS,
+            Color = selected ? UiTheme.PrimaryBright : UiTheme.BorderHover,
+        };
+    }
+
+    /// <summary>Draws the centered label of the selected orientation.</summary>
+    private void DrawSelectedOrientationLabel(UIBuilder<Material> ui)
+    {
+        string translationKey = GetSelectedOrientationKey();
+        string orientationLabel = _localization.GetString(translationKey) ?? translationKey;
 
         using (ui.Element())
         {
@@ -242,13 +242,13 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
             ui.Color = UiTheme.PanelBackground;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Primary,
             };
             ui.CornerCaps = new CornerCapStyle
             {
-                Length = UiMetrics.SelectionCapLength,
-                Thickness = UiMetrics.SelectionCapThickness,
+                Length = UiMetrics.SELECTION_CAP_LENGTH,
+                Thickness = UiMetrics.SELECTION_CAP_THICKNESS,
                 Color = UiTheme.PrimaryBright,
             };
             ui.Constraints = new Constraints
@@ -256,7 +256,7 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
                 Anchors = Anchors.Center,
             };
 
-            using (ui.Text(_localization.GetString(translationKey) ?? translationKey, UiMetrics.SmallFont))
+            using (ui.Text(orientationLabel, UiMetrics.SMALL_FONT))
             {
                 ui.Passthrough = true;
                 ui.Color = UiTheme.PrimaryBright;
@@ -266,33 +266,44 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
                 };
             }
         }
-
-        return Result.FromSuccess();
     }
-    
+
+    /// <summary>Resolves the translation key of the selected orientation.</summary>
+    private string GetSelectedOrientationKey()
+    {
+        Orientation activeOrientation = _interactionState.SelectedOrientation.Get();
+        string translationKey = "brick.orientation.up";
+        if (_orientationSelectorElements.TryGetValue(activeOrientation, out OrientationSelectorElement activeElement))
+        {
+            translationKey = activeElement.TranslationKey;
+        }
+
+        return translationKey;
+    }
+
     private void OnChangeOrientationPressed()
     {
         if (!IsMainHandOrientable() || !_interactionState.TryBlockInteractionExclusive(out _interactionBlocker))
         {
             return;
         }
-        
+
         _changingOrientation = true;
     }
-    
+
     private void OnChangeOrientationReleased()
     {
         if (!_changingOrientation)
         {
             return;
         }
-        
+
         _interactionBlocker?.Dispose();
         _interactionBlocker = null;
         _changingOrientation = false;
     }
-    
-    private bool IsMainHandOrientable() 
+
+    private bool IsMainHandOrientable()
     {
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
         if (!mainHandResult.Success)
@@ -304,7 +315,7 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
         {
             return false;
         }
-        
+
         PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
         Result<Brick> brickInfoResult = _brickDatabase.Get(placeable.ID);
         if (!brickInfoResult.Success)

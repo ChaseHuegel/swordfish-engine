@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
@@ -73,7 +73,7 @@ internal sealed class LoadScreen(
     {
         _currentTime += delta;
         UpdateCopy();
-        
+
         float contentFade = Math.Clamp((float)(_currentTime / FADE_IN_SECONDS), 0f, 1f);
         float statusFade = Math.Clamp(
             (float)((_currentTime - _statusStartTime) / FADE_IN_SECONDS),
@@ -85,7 +85,7 @@ internal sealed class LoadScreen(
             0f,
             1f
         );
-        
+
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
@@ -94,7 +94,7 @@ internal sealed class LoadScreen(
                 Width = new Relative(1f),
                 Height = new Relative(1f),
             };
-            
+
             using (ui.Element())
             {
                 ui.Color = UiTheme.ScrimHeavy;
@@ -123,17 +123,17 @@ internal sealed class LoadScreen(
                 ui.Label(
                     _status,
                     Widgets.Rect(0, 0, CONTENT_WIDTH, 30),
-                    UiMetrics.BodyFont,
+                    UiMetrics.BODY_FONT,
                     Fade(UiTheme.Text, contentFade * statusFade),
                     Anchors.Center
                 );
-                
+
                 DrawSignal(ui, contentFade);
-                
+
                 ui.Label(
                     FormatHint(_hint),
                     Widgets.Rect(0, 50, CONTENT_WIDTH, 24),
-                    UiMetrics.SmallFont,
+                    UiMetrics.SMALL_FONT,
                     Fade(UiTheme.TextMuted, contentFade * hintFade),
                     Anchors.Center
                 );
@@ -255,7 +255,7 @@ internal sealed class LoadScreen(
             char c = hint[i];
             if (c == '[' && !inKey)
             {
-                builder.Append("#4BE3E3 ");
+                builder.Append(UiTheme.AccentRichText + " ");
                 inKey = true;
             }
 

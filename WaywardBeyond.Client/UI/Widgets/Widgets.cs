@@ -7,99 +7,81 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
-    private const string InterfaceAudioChannel = "interface";
-
     /// <summary>Gets the vertical correction for Font Awesome glyphs, which sit low in their line box.</summary>
     private static int IconVerticalOffset(in FontOptions font)
     {
-        if (font.ID != UiTheme.FontIcons && font.ID != UiTheme.FontBrands)
+        if (font.ID != UiTheme.FONT_ICONS && font.ID != UiTheme.FONT_BRANDS)
         {
             return 0;
         }
 
-        return (int)System.MathF.Round(font.Size * 0.125f);
+        return (int)MathF.Round(font.Size * 0.125f);
     }
-    
-    /// <summary>
-    ///     Plays standard button audio for interactions.
-    /// </summary>
-    /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonAudio(this Interactions interactions, SoundEffectService soundEffectService)
+
+    private const string INTERFACE_AUDIO_CHANNEL = "interface";
+    private const string EXIT_CLICK_SOUND = "sounds/menu sounds_exit click 1.wav";
+    private const string CLICK_SOUND = "sounds/misc effects_click 1.wav";
+    private const string TAP_INCREASE_SOUND = "sounds/misc effects_tap 2.wav";
+    private const string TAP_DECREASE_SOUND = "sounds/misc effects_tap 1.wav";
+
+    /// <summary>Plays the interface sound for one menu interaction.</summary>
+    public static void PlayInterfaceSound(this SoundEffectService soundEffectService, InterfaceSound sound)
+    {
+        string id = sound switch
+        {
+            InterfaceSound.Toggle or InterfaceSound.Input => CLICK_SOUND,
+            InterfaceSound.Increase => TAP_INCREASE_SOUND,
+            InterfaceSound.Decrease => TAP_DECREASE_SOUND,
+            _ => EXIT_CLICK_SOUND,
+        };
+
+        soundEffectService.Play(id, INTERFACE_AUDIO_CHANNEL);
+    }
+
+    /// <summary>Plays the interface sound when the interactions include a click, and reports the click.</summary>
+    public static bool WithButtonAudio(
+        this Interactions interactions,
+        SoundEffectService soundEffectService,
+        InterfaceSound sound = InterfaceSound.Click
+    )
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
-        
-        soundEffectService.Play(id: "sounds/menu sounds_exit click 1.wav", InterfaceAudioChannel);
+
+        soundEffectService.PlayInterfaceSound(sound);
         return true;
     }
-    
-    /// <summary>
-    ///     Plays toggle button audio for interactions.
-    /// </summary>
-    /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonToggleAudio(this Interactions interactions, SoundEffectService soundEffectService)
-    {
-        if ((interactions & Interactions.Click) != Interactions.Click)
-        {
-            return false;
-        }
-        
-        soundEffectService.Play(id: "sounds/misc effects_click 1.wav", InterfaceAudioChannel);
-        return true;
-    }
-    
-    /// <summary>
-    ///     Plays increase button audio for interactions.
-    /// </summary>
-    /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonIncreaseAudio(this Interactions interactions, SoundEffectService soundEffectService)
-    {
-        if ((interactions & Interactions.Click) != Interactions.Click)
-        {
-            return false;
-        }
-        
-        soundEffectService.Play(id: "sounds/misc effects_tap 2.wav", InterfaceAudioChannel);
-        return true;
-    }
-    
-    /// <summary>
-    ///     Plays decrease button audio for interactions.
-    /// </summary>
-    /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonDecreaseAudio(this Interactions interactions, SoundEffectService soundEffectService)
-    {
-        if ((interactions & Interactions.Click) != Interactions.Click)
-        {
-            return false;
-        }
-        
-        soundEffectService.Play(id: "sounds/misc effects_tap 1.wav", InterfaceAudioChannel);
-        return true;
-    }
-    
-    /// <summary>
-    ///     Plays standard text audio for interactions.
-    /// </summary>
-    /// <returns>True if submitted; otherwise false.</returns>
+
+    /// <summary>Plays the text input sounds, and reports whether the interactions include a submit.</summary>
     public static bool WithTextInputAudio(this Interactions interactions, SoundEffectService soundEffectService)
     {
         if ((interactions & Interactions.Input) == Interactions.Input)
         {
-            soundEffectService.Play(id: "sounds/misc effects_click 1.wav", InterfaceAudioChannel);
+            soundEffectService.PlayInterfaceSound(InterfaceSound.Input);
         }
-        
+
         if ((interactions & Interactions.Submit) != Interactions.Submit)
         {
             return false;
         }
-        
-        soundEffectService.Play(id: "sounds/menu sounds_exit click 1.wav", InterfaceAudioChannel);
+
+        soundEffectService.PlayInterfaceSound(InterfaceSound.Submit);
         return true;
     }
-    
+
+    /// <summary>Sound effects played by menu interactions.</summary>
+    public enum InterfaceSound
+    {
+        Click,
+        Toggle,
+        Increase,
+        Decrease,
+        Input,
+        Submit,
+    }
+
     /// <summary>
     ///     Checks if interactions has the specified value.
     /// </summary>
@@ -107,7 +89,7 @@ internal static partial class Widgets
     {
         return (interactions & value) == value;
     }
-    
+
     [Flags]
     public enum Interactions
     {

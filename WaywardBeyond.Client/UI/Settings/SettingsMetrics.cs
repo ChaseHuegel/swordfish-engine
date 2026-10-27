@@ -3,14 +3,14 @@ namespace WaywardBeyond.Client.UI.Settings;
 /// <summary>Fixed geometry specific to the settings page.</summary>
 internal static class SettingsMetrics
 {
-    public const int ResetRowHeight = 44;
+    public const int RESET_ROW_HEIGHT = 44;
 
-    public const int TrayHeaderHeight = 40;
-    public const int TrayItemHeight = 40;
-    public const int TrayItemGap = 4;
-    public const int TrayPadding = 20;
+    public const int TRAY_HEADER_HEIGHT = 40;
+    public const int TRAY_ITEM_HEIGHT = 40;
+    public const int TRAY_ITEM_GAP = 4;
+    public const int TRAY_PADDING = 20;
 
-    public const int FooterButtonHeight = 40;
-    public const int CancelButtonWidth = 140;
-    public const int ApplyButtonWidth = 220;
+    public const int FOOTER_BUTTON_HEIGHT = 40;
+    public const int CANCEL_BUTTON_WIDTH = 140;
+    public const int APPLY_BUTTON_WIDTH = 220;
 }

@@ -91,13 +91,13 @@ internal sealed class Hotbar
             ui.Color = UiTheme.PanelBackground;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Border,
             };
             ui.CornerCaps = new CornerCapStyle
             {
-                Length = UiMetrics.PanelCapLength,
-                Thickness = UiMetrics.PanelCapThickness,
+                Length = UiMetrics.PANEL_CAP_LENGTH,
+                Thickness = UiMetrics.PANEL_CAP_THICKNESS,
                 Color = UiTheme.BorderHover,
             };
             ui.Spacing = 6;
@@ -107,115 +107,128 @@ internal sealed class Hotbar
                 Anchors = Anchors.Center,
             };
 
-            for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
-            {
-                ItemData itemStack = default;
-                if (inventory.Contents != null && slotIndex < inventory.Contents.Length)
-                {
-                    itemStack = inventory.Contents[slotIndex];
-                }
-
-                bool isSelected = activeSlot == slotIndex;
-
-                using (ui.Element())
-                {
-                    ui.Passthrough = true;
-                    ui.LayoutDirection = LayoutDirection.None;
-                    ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
-                    if (isSelected)
-                    {
-                        ui.Color = UiTheme.SelectionBackground;
-                        ui.Border = new BorderStyle
-                        {
-                            Thickness = UiMetrics.PanelBorderThickness,
-                            Color = UiTheme.Primary,
-                        };
-                        ui.CornerCaps = new CornerCapStyle
-                        {
-                            Length = UiMetrics.SelectionCapLength,
-                            Thickness = UiMetrics.SelectionCapThickness,
-                            Color = UiTheme.PrimaryBright,
-                        };
-                    }
-                    else
-                    {
-                        ui.Color = UiTheme.ControlBackground;
-                        ui.Border = new BorderStyle
-                        {
-                            Thickness = UiMetrics.PanelBorderThickness,
-                            Color = UiTheme.Border,
-                        };
-                        ui.CornerCaps = default;
-                    }
-
-                    ui.Constraints = new Constraints
-                    {
-                        Width = new Fixed(48),
-                        Height = new Fixed(48),
-                    };
-
-                    if (itemStack.Count > 0 && itemStack.ID != null)
-                    {
-                        Material icon = _itemIcons.Get(itemStack.ID);
-                        using (ui.Image(icon))
-                        {
-                            ui.Passthrough = true;
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                                Width = new Relative(1f),
-                                Height = new Relative(1f),
-                            };
-                        }
-                    }
-
-                    using (ui.Text(_slotNumbers[slotIndex], UiMetrics.TinyFont))
-                    {
-                        ui.Passthrough = true;
-                        if (isSelected)
-                        {
-                            ui.Color = UiTheme.PrimaryBright;
-                        }
-                        else
-                        {
-                            ui.Color = UiTheme.TextDim;
-                        }
-                    }
-
-                    if (itemStack.Count == 0 || itemStack.ID == null)
-                    {
-                        continue;
-                    }
-
-                    using (ui.Text(itemStack.Count.ToString(), UiMetrics.TinyFont))
-                    {
-                        ui.Passthrough = true;
-                        ui.Color = UiTheme.Text;
-                        ui.BackgroundColor = UiTheme.ScrimSoft;
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Bottom | Anchors.Right,
-                        };
-                    }
-                }
-            }
+            DrawSlots(ui, in inventory, activeSlot);
         }
 
         return Result.FromSuccess();
     }
-    
+
+    /// <summary>Draws the nine item slots in order.</summary>
+    private void DrawSlots(UIBuilder<Material> ui, in InventoryComponent inventory, int activeSlot)
+    {
+        for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
+        {
+            ItemData itemStack = default;
+            if (inventory.Contents != null && slotIndex < inventory.Contents.Length)
+            {
+                itemStack = inventory.Contents[slotIndex];
+            }
+
+            DrawSlot(ui, in itemStack, slotIndex, activeSlot == slotIndex);
+        }
+    }
+
+    /// <summary>Draws one slot's frame, icon, number, and stack count.</summary>
+    private void DrawSlot(UIBuilder<Material> ui, in ItemData itemStack, int slotIndex, bool isSelected)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
+            ApplySlotStyle(ui, isSelected);
+            ui.Constraints = new Constraints
+            {
+                Width = new Fixed(48),
+                Height = new Fixed(48),
+            };
+
+            if (itemStack.Count > 0 && itemStack.ID != null)
+            {
+                DrawSlotIcon(ui, in itemStack);
+            }
+
+            using (ui.Text(_slotNumbers[slotIndex], UiMetrics.TINY_FONT))
+            {
+                ui.Passthrough = true;
+                ui.Color = isSelected ? UiTheme.PrimaryBright : UiTheme.TextDim;
+            }
+
+            if (itemStack.Count == 0 || itemStack.ID == null)
+            {
+                return;
+            }
+
+            using (ui.Text(itemStack.Count.ToString(), UiMetrics.TINY_FONT))
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.Text;
+                ui.BackgroundColor = UiTheme.ScrimSoft;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Bottom | Anchors.Right,
+                };
+            }
+        }
+    }
+
+    /// <summary>Draws the item icon that fills a slot.</summary>
+    private void DrawSlotIcon(UIBuilder<Material> ui, in ItemData itemStack)
+    {
+        Material icon = _itemIcons.Get(itemStack.ID!);
+        using (ui.Image(icon))
+        {
+            ui.Passthrough = true;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Relative(1f),
+                Height = new Relative(1f),
+            };
+        }
+    }
+
+    /// <summary>Applies the selected or unselected frame style to a slot.</summary>
+    private static void ApplySlotStyle(UIBuilder<Material> ui, bool isSelected)
+    {
+        if (isSelected)
+        {
+            ui.Color = UiTheme.SelectionBackground;
+            ui.Border = new BorderStyle
+            {
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
+                Color = UiTheme.Primary,
+            };
+            ui.CornerCaps = new CornerCapStyle
+            {
+                Length = UiMetrics.SELECTION_CAP_LENGTH,
+                Thickness = UiMetrics.SELECTION_CAP_THICKNESS,
+                Color = UiTheme.PrimaryBright,
+            };
+            return;
+        }
+
+        ui.Color = UiTheme.ControlBackground;
+        ui.Border = new BorderStyle
+        {
+            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
+            Color = UiTheme.Border,
+        };
+        ui.CornerCaps = default;
+    }
+
     private bool IsInputAllowed()
     {
         return WaywardBeyond.GameState == GameState.Playing && !_interactionState.IsInteractionBlocked();
     }
-    
+
     private void OnScrolled(object? sender, ScrolledEventArgs e)
     {
         if (!IsInputAllowed())
         {
             return;
         }
-        
+
         double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);
         scrollDelta = Math.Clamp(scrollDelta, -1f, 1f);
         int steps = (int)scrollDelta;
@@ -223,11 +236,11 @@ internal sealed class Hotbar
         {
             return;
         }
-        
+
         int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
         activeSlot -= steps;
         activeSlot = MathS.WrapInt(activeSlot, 0, SLOT_COUNT - 1);
-        
+
         SetActiveSlot(activeSlot);
     }
 
@@ -239,7 +252,7 @@ internal sealed class Hotbar
         {
             _interactionState.SelectedShape.Set(BrickShape.Block);
         }
-        
+
         if (!_controlSettings.RememberOrientation.Get())
         {
             _interactionState.SelectedOrientation.Set(Orientation.Identity);

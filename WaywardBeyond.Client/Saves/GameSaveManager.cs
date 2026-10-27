@@ -44,7 +44,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
     private readonly Lock _autosaveTimerLock = new();
     private Timer _autosaveTimer;
-    
+
     private readonly Lock _activeSaveLock = new();
     private GameSave? _activeSave;
 
@@ -87,11 +87,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             OnQuicksave
         );
         shortcutService.RegisterShortcut(saveShortcut);
-        
+
         //  Setup autosave on an interval, on close, and when pausing.
         windowContext.Closed += OnWindowClosed;
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
-        
+
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         int autosaveIntervalMs = gameplayConfig.AutosaveIntervalMs.Get();
         _autosaveTimer = new Timer(OnAutosave, state: null, autosaveIntervalMs, autosaveIntervalMs);
@@ -110,7 +110,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         _autosaveTimer.Dispose();
     }
-    
+
     public Task Load()
     {
         lock (_activeSaveLock)
@@ -156,7 +156,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
         return Task.CompletedTask;
     }
-    
+
     public Task Save()
     {
         SaveCharacter();
@@ -201,7 +201,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
         _characterSaveManager.Save(_dataStore);
     }
-    
+
     public void SaveAndExit()
     {
         if (WaywardBeyond.GameState >= GameState.Playing)
@@ -237,7 +237,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             _logger.LogError(ex, "Error trying to delete save \"{save}\"", save.Name);
         }
     }
-    
+
     internal GameSave? GetMostRecentSave()
     {
         GameSave[] saves = _gameSaveService.GetSaves();
@@ -245,7 +245,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         {
             return null;
         }
-        
+
         return saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs).FirstOrDefault();
     }
 
@@ -278,7 +278,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         {
             return;
         }
-        
+
         Save();
     }
 
@@ -286,7 +286,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         Task.Run(Save);
     }
-    
+
     private void OnAutosave(object? state)
     {
         if (!_gameplayConfig.Autosave.Get())
@@ -297,34 +297,34 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         //  Client autosave persists the character only. The server owns the level autosave cadence.
         SaveCharacter();
     }
-    
+
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
     {
         if (e.NewValue != GameState.Paused)
         {
             return;
         }
-        
+
         if (!_gameplayConfig.Autosave.Get())
         {
             return;
         }
-        
+
         Save();
     }
-    
+
     private void OnAutosaveIntervalChanged(object? sender, DataChangedEventArgs<int> e)
     {
         UpdateAutosaveTimer(e.NewValue);
     }
-    
+
     private void UpdateAutosaveTimer(int intervalMs)
     {
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         _autosaveTimer.Dispose();
         _autosaveTimer = new Timer(OnAutosave, state: null, intervalMs, intervalMs);
     }
-    
+
     private readonly struct GameLoadContext : IDisposable
     {
         private readonly CharacterSaveManager _characterSaveManager;
@@ -338,7 +338,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             _gameSaveManager = gameSaveManager;
             WaywardBeyond.GameState.Set(GameState.Loading);
         }
-        
+
         public void Dispose()
         {
             Character? character = _characterSaveManager.ActiveSave;

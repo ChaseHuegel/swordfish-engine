@@ -33,7 +33,7 @@ internal static partial class Widgets
 
         int thumbHeight = Math.Clamp(
             trackRect.Size.Y * viewportHeight / contentHeight,
-            UiMetrics.ScrollbarThumbMinHeight,
+            UiMetrics.SCROLLBAR_THUMB_MIN_HEIGHT,
             trackRect.Size.Y
         );
         int thumbY = trackRect.Top + (trackRect.Size.Y - thumbHeight) * Math.Clamp(scrollY, 0, maxScroll) / maxScroll;

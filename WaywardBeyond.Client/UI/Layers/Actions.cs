@@ -25,6 +25,8 @@ internal sealed class Actions(
     /// <summary>Renders the latest action notification and any visible action indicators.</summary>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        Result result;
+
         using (ui.Element())
         {
             ui.Passthrough = true;
@@ -36,53 +38,65 @@ internal sealed class Actions(
                 Width = new Fixed(ui.Width),
             };
 
-            //  Render the latest transient action notification in its own full-width row so text length
-            //  changes never perturb the horizontal alignment of the indicator icons below.
-            IReadOnlyList<NotificationState> activeStates = _notificationService.GetActiveNotifications();
-            for (var i = 0; i < activeStates.Count; i++)
+            DrawLatestAction(ui);
+            result = DrawIndicators(ui, delta);
+        }
+
+        return result;
+    }
+
+    /// <summary>Draws the newest action notification in its own full-width row.</summary>
+    private void DrawLatestAction(UIBuilder<Material> ui)
+    {
+        IReadOnlyList<NotificationState> activeStates = _notificationService.GetActiveNotifications();
+        for (var i = 0; i < activeStates.Count; i++)
+        {
+            NotificationState state = activeStates[i];
+            if (state.Notification.Type != NotificationType.Action)
             {
-                NotificationState state = activeStates[i];
-                if (state.Notification.Type != NotificationType.Action)
-                {
-                    continue;
-                }
-
-                using (ui.Element())
-                {
-                    ui.Passthrough = true;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
-
-                    state.Render(ui, DateTime.Now, hasBackground: false);
-                }
-
-                break;
+                continue;
             }
 
-            //  Render active indicator icons centered directly against the full viewport width
             using (ui.Element())
             {
                 ui.Passthrough = true;
-                ui.LayoutDirection = LayoutDirection.Horizontal;
-                ui.Spacing = 12;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
                 };
 
-                for (var i = 0; i < _actionIndicators.Length; i++)
+                state.Render(ui, DateTime.Now, hasBackground: false);
+            }
+
+            return;
+        }
+    }
+
+    /// <summary>Draws the visible action indicators centered against the viewport, and reports their result.</summary>
+    private Result DrawIndicators(UIBuilder<Material> ui, double delta)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.LayoutDirection = LayoutDirection.Horizontal;
+            ui.Spacing = 12;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            for (var i = 0; i < _actionIndicators.Length; i++)
+            {
+                IActionIndicator actionIndicator = _actionIndicators[i];
+                if (!actionIndicator.IsVisible())
                 {
-                    IActionIndicator actionIndicator = _actionIndicators[i];
-                    if (actionIndicator.IsVisible())
-                    {
-                        Result result = actionIndicator.RenderIndicator(delta, ui);
-                        if (!result)
-                        {
-                            return result;
-                        }
-                    }
+                    continue;
+                }
+
+                Result result = actionIndicator.RenderIndicator(delta, ui);
+                if (!result)
+                {
+                    return result;
                 }
             }
         }

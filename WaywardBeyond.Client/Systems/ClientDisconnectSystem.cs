@@ -1,11 +1,12 @@
-using System.Collections.Concurrent;
 using Swordfish.ECS;
 using Swordfish.Library.Globalization;
+using System.Collections.Concurrent;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.UI;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -56,7 +57,7 @@ internal sealed class ClientDisconnectSystem : IEntitySystem
         _host.ClearInbound();
         WaywardBeyond.GameState.Set(GameState.MainMenu);
 
-        _notificationService.Push(new Notification(_localization.GetString("notification.connection.lost")!, NotificationType.Toast));
+        _notificationService.Push(new Notification(_localization.GetRequired("notification.connection.lost"), NotificationType.Toast));
         _host.Disconnect();
     }
 

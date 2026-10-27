@@ -1,9 +1,9 @@
-using Reef;
-using Reef.Constraints;
 using Reef.UI;
+using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
 
@@ -16,6 +16,12 @@ internal sealed class MessageModal(
 ) : IMenuPage<Modal>
 {
     public static Modal Modal { get; } = new(id: "core.message");
+
+    /// <summary>The panel width in pixels.</summary>
+    private const int PANEL_WIDTH = 520;
+
+    /// <summary>The panel height in pixels.</summary>
+    private const int PANEL_HEIGHT = 250;
 
     private readonly ILocalization _localization = localization;
     private readonly Widgets.ActionButtonOptions _okButton = Widgets.ActionButtonOptions.Menu(
@@ -31,73 +37,7 @@ internal sealed class MessageModal(
     /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        const int panelWidth = 520;
-        const int panelHeight = 250;
-
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.Scrim;
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-
-            using (ui.Element())
-            {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-                ui.ClipConstraints = new Constraints
-                {
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-
-                using (ui.ModalPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
-                {
-                    int padding = 28;
-                    int contentWidth = panelWidth - padding * 2;
-
-                    ui.Label(
-                        _title,
-                        Widgets.Rect(padding, 22, contentWidth, 30),
-                        UiMetrics.MenuTitleFont,
-                        UiTheme.Text,
-                        Anchors.Center
-                    );
-                    ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
-                    ui.Paragraph(
-                        _body,
-                        Widgets.Rect(padding, 86, contentWidth, 56),
-                        UiMetrics.MenuBodyFont,
-                        UiTheme.TextMuted
-                    );
-
-                    if (ui.ActionButton(
-                            "Button_Ok",
-                            _localization.GetString("ui.button.ok")!,
-                            _okButton with
-                            {
-                                Rect = Widgets.Rect(
-                                    panelWidth - padding - 180,
-                                    panelHeight - 68,
-                                    180,
-                                    UiMetrics.IconButtonSize
-                                ),
-                            }
-                        ))
-                    {
-                        menu.GoBack();
-                    }
-                }
-            }
-        }
+        ui.ModalFrame(PANEL_WIDTH, PANEL_HEIGHT, frame => DrawBody(frame, menu));
 
         return Result.FromSuccess();
     }
@@ -108,5 +48,42 @@ internal sealed class MessageModal(
         _title = title;
         _body = body;
         return new Modal(id: "core.message");
+    }
+
+    /// <summary>Draws the title, body, and Ok button inside the modal panel.</summary>
+    private void DrawBody(UIBuilder<Material> ui, Menu<Modal> menu)
+    {
+        int padding = UiMetrics.MODAL_PADDING;
+        int contentWidth = PANEL_WIDTH - padding * 2;
+
+        ui.Label(
+            _title,
+            Widgets.Rect(padding, 22, contentWidth, 30),
+            UiMetrics.MENU_TITLE_FONT,
+            UiTheme.Text,
+            Anchors.Center
+        );
+        ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
+        ui.Paragraph(
+            _body,
+            Widgets.Rect(padding, 86, contentWidth, 56),
+            UiMetrics.MENU_BODY_FONT,
+            UiTheme.TextMuted
+        );
+
+        Widgets.ActionButtonOptions okOptions = _okButton with
+        {
+            Rect = Widgets.Rect(
+                PANEL_WIDTH - padding - UiMetrics.MODAL_BUTTON_WIDTH,
+                PANEL_HEIGHT - 68,
+                UiMetrics.MODAL_BUTTON_WIDTH,
+                UiMetrics.ICON_BUTTON_SIZE
+            ),
+        };
+
+        if (ui.ActionButton("Button_Ok", _localization.GetRequired("ui.button.ok"), okOptions))
+        {
+            menu.GoBack();
+        }
     }
 }

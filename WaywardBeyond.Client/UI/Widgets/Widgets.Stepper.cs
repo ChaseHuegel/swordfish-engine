@@ -10,19 +10,18 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
-    /// <summary>Creates a discrete stepper and returns true when the selected index changes.</summary>
-    public static bool Stepper<T>(
+    /// <summary>Creates a discrete stepper and reports whether the selected index changed.</summary>
+    public static ControlResult<int> Stepper<T>(
         this UIBuilder<Material> ui,
         string id,
         IntRect rect,
         IReadOnlyList<T> options,
         int index,
         Func<T, string> format,
-        bool enabled,
-        out int newIndex
+        bool enabled
     )
     {
-        newIndex = Math.Clamp(index, 0, Math.Max(0, options.Count - 1));
+        int newIndex = Math.Clamp(index, 0, Math.Max(0, options.Count - 1));
         var changed = false;
 
         using (ui.Element())
@@ -31,15 +30,15 @@ internal static partial class Widgets
             ui.Color = UiTheme.ControlBackground;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = enabled ? UiTheme.Border : UiTheme.BorderInner,
             };
             ui.Constraints = RectConstraints(rect);
             ui.ClipConstraints = RectConstraints(rect);
 
             IntRect localRect = Rect(0, 0, rect.Size.X, rect.Size.Y);
-            IntRect inner = Inset(localRect, UiMetrics.PanelBorderThickness);
-            int arrowWidth = Math.Min(UiMetrics.StepperArrowWidth, Math.Max(1, inner.Size.X / 3));
+            IntRect inner = Inset(localRect, UiMetrics.PANEL_BORDER_THICKNESS);
+            int arrowWidth = Math.Min(UiMetrics.STEPPER_ARROW_WIDTH, Math.Max(1, inner.Size.X / 3));
             var previousRect = new IntRect(inner.Left, inner.Top, inner.Left + arrowWidth, inner.Bottom);
             var nextRect = new IntRect(inner.Right - arrowWidth, inner.Top, inner.Right, inner.Bottom);
             var valueRect = new IntRect(previousRect.Right, inner.Top, nextRect.Left, inner.Bottom);
@@ -102,8 +101,8 @@ internal static partial class Widgets
                 {
                     ui.FontOptions = new FontOptions
                     {
-                        ID = UiTheme.FontUI,
-                        Size = UiMetrics.ControlFont,
+                        ID = UiTheme.FONT_UI,
+                        Size = UiMetrics.CONTROL_FONT,
                         NoWrap = true,
                     };
                     ui.Color = enabled ? UiTheme.Text : UiTheme.TextDim;
@@ -118,7 +117,7 @@ internal static partial class Widgets
             DrawStepperSeparator(ui, inner, nextRect.Left);
         }
 
-        return changed;
+        return new ControlResult<int>(changed, newIndex);
     }
 
     private static void DrawStepperArrow(
@@ -139,8 +138,8 @@ internal static partial class Widgets
         {
             ui.FontOptions = new FontOptions
             {
-                ID = UiTheme.FontUI,
-                Size = UiMetrics.ControlFont,
+                ID = UiTheme.FONT_UI,
+                Size = UiMetrics.CONTROL_FONT,
                 NoWrap = true,
             };
             ui.Color = style.Text;

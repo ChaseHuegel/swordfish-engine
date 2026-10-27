@@ -9,6 +9,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Settings;
 using WaywardBeyond.Client.UI.Theme;
@@ -99,7 +100,10 @@ public class SettingsPageRenderTests
 
     private static List<RenderCommand<Material>> RenderSettingsPage(int width, int height)
     {
-        var page = new MainMenuSettingsPage(
+        //  The config manager and sound service are only touched on apply or click,
+        //  which these render-only tests never do.
+        var page = new SettingsPage<MenuPage>(
+            MenuPage.Settings,
             configManager: null!,
             controlSettings: new ControlSettings(),
             windowSettings: new WindowSettings(),

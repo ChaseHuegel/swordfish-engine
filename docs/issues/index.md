@@ -71,5 +71,8 @@ is not part of this workflow.
 - [ ] [Switch fullscreen resolution](/docs/issues/0089-fullscreen-resolution.md) — resolution is disabled in fullscreen modes because the mode-change path is unverified
 - [ ] [Make the settings scrollbar draggable](/docs/issues/0090-settings-scrollbar-drag.md) — the scrollbar is an indicator and accepts no input
 - [ ] [Handle settings category overflow](/docs/issues/0091-settings-tray-overflow.md) — the fixed tray clips extra categories below the panel
+- [ ] [Show the menu spaceship](/docs/issues/0092-menu-spaceship.md) — the main menu background voxel ship is not wired up
+- [ ] [Add a window concept to the UI layers](/docs/issues/0093-ui-window-concept.md) — one global interaction blocker cannot separate closable windows from selectors
+- [ ] [Remove the feedback submit delay](/docs/issues/0094-feedback-submit-delay.md) — a fixed 100 ms delay stands in for "the modal has closed"
 
 ### Research

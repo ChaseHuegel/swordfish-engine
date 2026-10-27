@@ -1,9 +1,10 @@
-using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
@@ -24,7 +25,7 @@ internal sealed class HomePage(
     private const int DIVIDER_GAP = 12;
     private const int DIVIDER_HEIGHT = 1;
     private const int MENU_WIDTH = 300;
-    private const int MENU_HEIGHT = UiMetrics.MenuButtonHeight * 4
+    private const int MENU_HEIGHT = UiMetrics.MENU_BUTTON_HEIGHT * 4
         + BUTTON_GAP * 2
         + DIVIDER_GAP * 2
         + DIVIDER_HEIGHT;
@@ -48,9 +49,9 @@ internal sealed class HomePage(
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)
     {
-        int buttonX = (MENU_WIDTH - UiMetrics.MenuButtonMinWidth) / 2;
-        int buttonWidth = UiMetrics.MenuButtonMinWidth;
-        int buttonHeight = UiMetrics.MenuButtonHeight;
+        int buttonX = (MENU_WIDTH - UiMetrics.MENU_BUTTON_MIN_WIDTH) / 2;
+        int buttonWidth = UiMetrics.MENU_BUTTON_MIN_WIDTH;
+        int buttonHeight = UiMetrics.MENU_BUTTON_HEIGHT;
 
         using (ui.Element())
         {
@@ -69,40 +70,34 @@ internal sealed class HomePage(
 
             var y = 0;
             ui.MenuChevron(buttonX - 8, y + (buttonHeight - 6) / 2);
-            if (ui.ActionButton(
-                    "Button_Continue",
-                    _localization.GetString("ui.button.continue")!,
-                    _primaryButton with
-                    {
-                        Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
-                    }
-                ))
+            string continueLabel = _localization.GetRequired("ui.button.continue");
+            var continueOptions = _primaryButton with
+            {
+                Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
+            };
+            if (ui.ActionButton("Button_Continue", continueLabel, continueOptions))
             {
                 WaywardBeyond.Unpause();
             }
 
             y += buttonHeight + BUTTON_GAP;
-            if (ui.ActionButton(
-                    "Button_Settings",
-                    _localization.GetString("ui.button.settings")!,
-                    _secondaryButton with
-                    {
-                        Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
-                    }
-                ))
+            string settingsLabel = _localization.GetRequired("ui.button.settings");
+            var settingsOptions = _secondaryButton with
+            {
+                Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
+            };
+            if (ui.ActionButton("Button_Settings", settingsLabel, settingsOptions))
             {
                 menu.GoToPage(PausePage.Settings);
             }
 
             y += buttonHeight + BUTTON_GAP;
-            if (ui.ActionButton(
-                    "Button_Feedback",
-                    _localization.GetString("ui.button.feedback")!,
-                    _secondaryButton with
-                    {
-                        Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
-                    }
-                ))
+            string feedbackLabel = _localization.GetRequired("ui.button.feedback");
+            var feedbackOptions = _secondaryButton with
+            {
+                Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
+            };
+            if (ui.ActionButton("Button_Feedback", feedbackLabel, feedbackOptions))
             {
                 _modalMenu.GoToPage(FeedbackModal.Modal);
             }
@@ -111,14 +106,12 @@ internal sealed class HomePage(
             ui.DottedDivider(Widgets.Rect(buttonX, y, buttonWidth, DIVIDER_HEIGHT));
             y += DIVIDER_HEIGHT + DIVIDER_GAP;
 
-            if (ui.ActionButton(
-                    "Button_SaveAndExit",
-                    _localization.GetString("ui.button.saveAndExit")!,
-                    _dangerButton with
-                    {
-                        Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
-                    }
-                ))
+            string saveAndExitLabel = _localization.GetRequired("ui.button.saveAndExit");
+            var saveAndExitOptions = _dangerButton with
+            {
+                Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
+            };
+            if (ui.ActionButton("Button_SaveAndExit", saveAndExitLabel, saveAndExitOptions))
             {
                 _gameSaveManager.SaveAndExit();
             }

@@ -1,5 +1,10 @@
 using System;
+using System.Numerics;
 using Reef;
+using Reef.UI;
+using Swordfish.Graphics;
+using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus;
 
@@ -104,4 +109,32 @@ internal readonly record struct MenuLayout(
             primaryButton
         );
     }
+
+    /// <summary>Draws the shared page footer and reports which footer action the player chose.</summary>
+    public MenuFooterResult DrawFooter(
+        UIBuilder<Material> ui,
+        string? status,
+        in MenuFooterButton back,
+        in MenuFooterButton primary,
+        Vector4? statusColor = null
+    )
+    {
+        var result = new MenuFooterResult(
+            ui.ActionButton(back.ID, back.Label, back.Options with { Rect = ReturnButton }),
+            ui.ActionButton(primary.ID, primary.Label, primary.Options with { Rect = PrimaryButton })
+        );
+
+        ui.FooterStatus(Footer, ReturnButton, PrimaryButton, status, statusColor ?? UiTheme.Danger);
+        return result;
+    }
+
+    /// <summary>One footer button: its interaction id, its label, and its button options.</summary>
+    public readonly record struct MenuFooterButton(
+        string ID,
+        string Label,
+        Widgets.ActionButtonOptions Options
+    );
+
+    /// <summary>Which footer buttons the player activated this frame.</summary>
+    public readonly record struct MenuFooterResult(bool BackClicked, bool PrimaryClicked);
 }

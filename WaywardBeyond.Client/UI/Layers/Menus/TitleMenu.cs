@@ -62,7 +62,7 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
                     };
                 }
             }
-            
+
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
@@ -73,7 +73,7 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
             }
 
             var result = base.RenderUI(delta, ui);
-            
+
             using (ui.Element())
             {
                 ui.Constraints = new Constraints

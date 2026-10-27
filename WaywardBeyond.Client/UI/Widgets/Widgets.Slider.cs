@@ -10,8 +10,8 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
-    /// <summary>Creates a draggable slider and returns true when the value changes.</summary>
-    public static bool Slider(
+    /// <summary>Creates a draggable slider and reports whether the value changed.</summary>
+    public static ControlResult<float> Slider(
         this UIBuilder<Material> ui,
         string id,
         IntRect rect,
@@ -20,11 +20,10 @@ internal static partial class Widgets
         float max,
         float step,
         Func<float, string> format,
-        bool enabled,
-        out float newValue
+        bool enabled
     )
     {
-        newValue = value;
+        float newValue = value;
         var changed = false;
 
         using (ui.Element())
@@ -34,8 +33,8 @@ internal static partial class Widgets
             ui.Constraints = RectConstraints(rect);
             ui.ClipConstraints = RectConstraints(rect);
 
-            int buttonSize = UiMetrics.SliderButtonSize;
-            int valueWidth = UiMetrics.SliderValueWidth;
+            int buttonSize = UiMetrics.SLIDER_BUTTON_SIZE;
+            int valueWidth = UiMetrics.SLIDER_VALUE_WIDTH;
             int gap = 8;
             int buttonY = (rect.Size.Y - buttonSize) / 2;
 
@@ -46,9 +45,9 @@ internal static partial class Widgets
             int trackWidth = plusRect.Left - gap - trackX;
             IntRect trackRect = Rect(
                 trackX,
-                (rect.Size.Y - UiMetrics.SliderTrackHeight) / 2,
+                (rect.Size.Y - UiMetrics.SLIDER_TRACK_HEIGHT) / 2,
                 trackWidth,
-                UiMetrics.SliderTrackHeight
+                UiMetrics.SLIDER_TRACK_HEIGHT
             );
 
             if (ui.ActionButton($"{id}.minus", minusRect, "-", ButtonVariant.Secondary, enabled))
@@ -80,8 +79,8 @@ internal static partial class Widgets
                 {
                     ui.FontOptions = new FontOptions
                     {
-                        ID = UiTheme.FontUI,
-                        Size = UiMetrics.ControlFont,
+                        ID = UiTheme.FONT_UI,
+                        Size = UiMetrics.CONTROL_FONT,
                         NoWrap = true,
                     };
                     ui.Color = enabled ? UiTheme.Text : UiTheme.TextDim;
@@ -93,7 +92,7 @@ internal static partial class Widgets
             }
         }
 
-        return changed;
+        return new ControlResult<float>(changed, newValue);
     }
 
     private static bool DrawSliderTrack(
@@ -171,7 +170,7 @@ internal static partial class Widgets
         ui.Color = UiTheme.Track;
         ui.Border = new BorderStyle
         {
-            Thickness = UiMetrics.PanelBorderThickness,
+            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
             Color = enabled ? UiTheme.Border : UiTheme.BorderInner,
         };
         ui.Constraints = RectConstraints(rect);

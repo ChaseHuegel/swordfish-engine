@@ -14,31 +14,31 @@ internal static partial class Widgets
     {
         if (ping == null)
         {
-            return new PingDisplay(MenuGlyphs.Signal, "-", UiTheme.TextDim);
+            return new PingDisplay(MenuGlyphs.SIGNAL, "-", UiTheme.TextDim);
         }
 
         int value = ping.Value;
         if (value >= 250)
         {
-            return new PingDisplay(MenuGlyphs.XMark, "-", UiTheme.Danger);
+            return new PingDisplay(MenuGlyphs.X_MARK, "-", UiTheme.Danger);
         }
 
         if (value < 60)
         {
-            return new PingDisplay(MenuGlyphs.Signal, $"{value} ms", UiTheme.Success);
+            return new PingDisplay(MenuGlyphs.SIGNAL, $"{value} ms", UiTheme.Success);
         }
 
         if (value < 100)
         {
-            return new PingDisplay(MenuGlyphs.Signal, $"{value} ms", UiTheme.Warning);
+            return new PingDisplay(MenuGlyphs.SIGNAL, $"{value} ms", UiTheme.Warning);
         }
 
         if (value < 150)
         {
-            return new PingDisplay(MenuGlyphs.Signal, $"{value} ms", UiTheme.Primary);
+            return new PingDisplay(MenuGlyphs.SIGNAL, $"{value} ms", UiTheme.Primary);
         }
 
-        return new PingDisplay(MenuGlyphs.Signal, $"{value} ms", UiTheme.Danger);
+        return new PingDisplay(MenuGlyphs.SIGNAL, $"{value} ms", UiTheme.Danger);
     }
 
     /// <summary>Draws a ping icon and value in a fixed rectangle.</summary>
@@ -48,15 +48,15 @@ internal static partial class Widgets
         ui.Label(
             display.Glyph,
             Rect(rect.Left, rect.Top, 20, rect.Size.Y),
-            UiMetrics.MenuSmallFont,
+            UiMetrics.MENU_SMALL_FONT,
             display.Color,
             Anchors.Left | Anchors.Center,
-            UiTheme.FontIcons
+            UiTheme.FONT_ICONS
         );
         ui.Label(
             display.Text,
             Rect(rect.Left + 24, rect.Top, Math.Max(0, rect.Size.X - 24), rect.Size.Y),
-            UiMetrics.MenuSmallFont,
+            UiMetrics.MENU_SMALL_FONT,
             display.Color,
             Anchors.Left | Anchors.Center
         );

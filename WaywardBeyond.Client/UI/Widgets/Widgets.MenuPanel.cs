@@ -14,8 +14,8 @@ internal static partial class Widgets
     {
         return new CornerCapStyle
         {
-            Length = UiMetrics.PanelCapLength,
-            Thickness = UiMetrics.PanelCapThickness,
+            Length = UiMetrics.PANEL_CAP_LENGTH,
+            Thickness = UiMetrics.PANEL_CAP_THICKNESS,
             Color = UiTheme.Border,
         };
     }
@@ -52,7 +52,7 @@ internal static partial class Widgets
             ui.Label(
                 title,
                 Rect(0, 12, rect.Size.X, 18),
-                UiMetrics.SmallFont,
+                UiMetrics.SMALL_FONT,
                 UiTheme.TextMuted,
                 Anchors.Center
             );

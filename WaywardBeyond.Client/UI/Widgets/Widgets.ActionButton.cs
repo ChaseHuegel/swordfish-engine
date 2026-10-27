@@ -108,11 +108,11 @@ internal static partial class Widgets
             style = new ControlStyle(
                 UiTheme.SelectionBackground,
                 UiTheme.Accent,
-                UiMetrics.PanelBorderThickness,
+                UiMetrics.PANEL_BORDER_THICKNESS,
                 new CornerCapStyle
                 {
-                    Length = UiMetrics.SelectionCapLength,
-                    Thickness = UiMetrics.SelectionCapThickness,
+                    Length = UiMetrics.SELECTION_CAP_LENGTH,
+                    Thickness = UiMetrics.SELECTION_CAP_THICKNESS,
                     Color = UiTheme.Accent,
                 },
                 UiTheme.AccentBright
@@ -131,10 +131,11 @@ internal static partial class Widgets
             ? new Padding(0)
             : new Padding(options.PaddingX, options.PaddingY, options.PaddingX, options.PaddingY);
 
-        if (options.Rect is { } rect)
+        IntRect? buttonRect = options.Rect;
+        if (buttonRect != null)
         {
-            ui.Constraints = RectConstraints(rect);
-            ui.ClipConstraints = RectConstraints(rect);
+            ui.Constraints = RectConstraints(buttonRect.Value);
+            ui.ClipConstraints = RectConstraints(buttonRect.Value);
         }
         else
         {
@@ -156,14 +157,14 @@ internal static partial class Widgets
             ui.Constraints = constraints;
         }
 
-        if (options.Rect is { } buttonRect && options.Variant == ButtonVariant.Primary && enabled)
+        if (buttonRect != null && options.Variant == ButtonVariant.Primary && enabled)
         {
-            DrawInnerBorder(ui, buttonRect, UiTheme.PrimaryDark);
+            DrawInnerBorder(ui, buttonRect.Value, UiTheme.PrimaryDark);
         }
         else if (options.DoubleBorder && enabled && style.BorderThickness > 0)
         {
-            int width = options.Rect?.Size.X ?? options.MinWidth;
-            int height = options.Rect?.Size.Y ?? options.Height;
+            int width = buttonRect?.Size.X ?? options.MinWidth;
+            int height = buttonRect?.Size.Y ?? options.Height;
             if (width > 0 && height > 0)
             {
                 Vector4 color = options.Variant switch
@@ -178,10 +179,10 @@ internal static partial class Widgets
 
         FontOptions font = options.Font ?? new FontOptions
         {
-            Size = options.Rect != null ? UiMetrics.ButtonFont : UiMetrics.MenuBodyFont,
+            Size = options.Rect != null ? UiMetrics.BUTTON_FONT : UiMetrics.MENU_BODY_FONT,
             NoWrap = true,
         };
-        font.ID ??= UiTheme.FontUI;
+        font.ID ??= UiTheme.FONT_UI;
         font.NoWrap = true;
 
         using (ui.Text(text))
@@ -211,7 +212,7 @@ internal static partial class Widgets
             ui.Color = UiTheme.Transparent;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = color,
             };
             IntRect inner = Rect(2, 2, Math.Max(0, rect.Size.X - 4), Math.Max(0, rect.Size.Y - 4));
@@ -240,17 +241,17 @@ internal static partial class Widgets
         /// <summary>Creates a full-size menu button.</summary>
         public static ActionButtonOptions Menu(
             ButtonVariant variant,
-            SoundEffectService soundEffectService,
+            SoundEffectService? soundEffectService,
             FontOptions? font = null
         )
         {
             return new ActionButtonOptions(
                 Variant: variant,
-                MinWidth: UiMetrics.MenuButtonMinWidth,
-                Height: UiMetrics.MenuButtonHeight,
-                PaddingX: UiMetrics.MenuButtonPaddingX,
-                PaddingY: UiMetrics.MenuButtonPaddingY,
-                Font: font ?? new FontOptions { ID = UiTheme.FontUI, Size = UiMetrics.MenuBodyFont, NoWrap = true },
+                MinWidth: UiMetrics.MENU_BUTTON_MIN_WIDTH,
+                Height: UiMetrics.MENU_BUTTON_HEIGHT,
+                PaddingX: UiMetrics.MENU_BUTTON_PADDING_X,
+                PaddingY: UiMetrics.MENU_BUTTON_PADDING_Y,
+                Font: font ?? new FontOptions { ID = UiTheme.FONT_UI, Size = UiMetrics.MENU_BODY_FONT, NoWrap = true },
                 ContentAnchors: Anchors.Center,
                 SoundEffectService: soundEffectService,
                 DoubleBorder: true
@@ -260,16 +261,16 @@ internal static partial class Widgets
         /// <summary>Creates a compact control button.</summary>
         public static ActionButtonOptions Compact(
             ButtonVariant variant,
-            SoundEffectService soundEffectService,
+            SoundEffectService? soundEffectService,
             FontOptions? font = null
         )
         {
             return new ActionButtonOptions(
                 Variant: variant,
-                Height: UiMetrics.CompactButtonHeight,
-                PaddingX: UiMetrics.CompactButtonPaddingX,
-                PaddingY: UiMetrics.CompactButtonPaddingY,
-                Font: font ?? new FontOptions { ID = UiTheme.FontUI, Size = UiMetrics.MenuSmallFont, NoWrap = true },
+                Height: UiMetrics.COMPACT_BUTTON_HEIGHT,
+                PaddingX: UiMetrics.COMPACT_BUTTON_PADDING_X,
+                PaddingY: UiMetrics.COMPACT_BUTTON_PADDING_Y,
+                Font: font ?? new FontOptions { ID = UiTheme.FONT_UI, Size = UiMetrics.MENU_SMALL_FONT, NoWrap = true },
                 ContentAnchors: Anchors.Center,
                 SoundEffectService: soundEffectService
             );
@@ -278,16 +279,16 @@ internal static partial class Widgets
         /// <summary>Creates a full-width list row button.</summary>
         public static ActionButtonOptions ListRow(
             ButtonVariant variant,
-            SoundEffectService soundEffectService,
+            SoundEffectService? soundEffectService,
             FontOptions? font = null
         )
         {
             return new ActionButtonOptions(
                 Variant: variant,
-                MinWidth: UiMetrics.ListRowMinWidth,
-                Height: UiMetrics.ListRowHeight,
-                PaddingX: UiMetrics.ListRowPaddingX,
-                Font: font ?? new FontOptions { ID = UiTheme.FontUI, Size = UiMetrics.MenuBodyFont, NoWrap = true },
+                MinWidth: UiMetrics.LIST_ROW_MIN_WIDTH,
+                Height: UiMetrics.LIST_ROW_HEIGHT,
+                PaddingX: UiMetrics.LIST_ROW_PADDING_X,
+                Font: font ?? new FontOptions { ID = UiTheme.FONT_UI, Size = UiMetrics.MENU_BODY_FONT, NoWrap = true },
                 ContentAnchors: Anchors.Left | Anchors.Center,
                 SoundEffectService: soundEffectService
             );

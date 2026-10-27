@@ -28,7 +28,7 @@ internal static class NotificationStateExtensions
                 ui.Padding = new Padding(left: 0, top: 0, right: 8, bottom: 0);
                 ui.Color = UiTheme.ScrimSoft * UiTheme.PanelInner * fade;
                 ui.Spacing = 10;
-            
+
                 //  Vertical cyan bar anchor on the left edge
                 using (ui.Element())
                 {
@@ -43,8 +43,8 @@ internal static class NotificationStateExtensions
                     };
                 }
             }
-            
-            using (ui.Text(state.Notification.Text, UiMetrics.SmallFont))
+
+            using (ui.Text(state.Notification.Text, UiMetrics.SMALL_FONT))
             {
                 ui.Passthrough = true;
                 ui.Color = UiTheme.Text * fade;

@@ -17,7 +17,7 @@ that time.
 `UiTheme` is at `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`. It holds the font
 IDs and semantic colors:
 
-- fonts: `FontUI` (`Salmon Mono 9 Regular`), `FontIcons`, and `FontBrands`.
+- fonts: `FONT_UI` (`Salmon Mono 9 Regular`), `FONT_ICONS`, and `FONT_BRANDS`.
 - surfaces: `PanelBackground`, `PanelSolid`, `PanelInner`, `InputBackground`,
   `InputFocus`, `ControlBackground`, `SelectionBackground`.
 - borders: `Border`, `BorderInner`, `BorderHover`.
@@ -32,15 +32,17 @@ IDs and semantic colors:
 Use semantic tokens, not component names, in new code. Do not add a new color
 literal to a page or a widget.
 
-`UIBuilder.DefaultFontID` at `Reef/UIBuilder.cs:155` applies `FontUI` to game
+`UIBuilder.DefaultFontID` at `Reef/UIBuilder.cs:155` applies `FONT_UI` to game
 text that does not specify a font. `DefaultUIRenderer` sets it once at startup.
 An explicit `FontOptions.ID` still wins. This keeps menus, HUD, chat, and debug
 overlays on the same pixel font.
 
 `UiMetrics` is at `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`. It holds font
 sizes, control heights, button sizes, spacing, border sizes, and scroll metrics.
-The menu suite adds `MenuTitleFont`, `MenuBodyFont`, `MenuSmallFont`,
-`MenuLabelFont`, and the shared panel cap sizes.
+The menu suite adds `MENU_TITLE_FONT`, `MENU_BODY_FONT`, `MENU_SMALL_FONT`,
+`MENU_LABEL_FONT`, and the shared panel cap sizes.
+
+Constants are `UPPER_SNAKE_CASE`, per [development](../development.md).
 
 `SettingsMetrics` is at
 `WaywardBeyond.Client/UI/Settings/SettingsMetrics.cs:4`. It holds only geometry
@@ -57,6 +59,11 @@ turns a variant and a state into a `ControlStyle`. The resolver covers button
 variants, segmented cells, and stepper arrows. It has no drawing code, so tests
 can call it directly.
 
+One `ButtonPalette` per variant holds the fill, border, and text colours for the
+normal, hover, pressed, and active states. `FromPalette` maps a state onto those
+colours, so a variant is added by adding data, not by copying a control-style
+block.
+
 `ButtonVariant` is at `WaywardBeyond.Client/UI/Theme/ButtonVariant.cs:4`. The
 variants are `Secondary`, `Primary`, `Subtle`, and `Danger`.
 
@@ -68,7 +75,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | Widget | Source | Purpose |
 |---|---|---|
 | `Panel` | `Widgets.Panel.cs:14` | Clipped panel with border, caps, and optional inner hairline. |
-| `ActionButton` | `Widgets.ActionButton.cs:31` | Fixed or intrinsic text action button. |
+| `ActionButton` | `Widgets.ActionButton.cs:34` | Fixed or intrinsic text action button. |
 | `IconButton` | `Widgets.IconButton.cs:12` | Borderless icon action with hover/pressed fills. |
 | `PingIndicator` | `Widgets.Ping.cs:45` | Colored signal icon and ping value. |
 | `Toggle` | `Widgets.Toggle.cs:16` | Two-cell on/off control. |
@@ -77,11 +84,14 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
 | `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar. |
+| `ModalFrame` | `Widgets.ModalFrame.cs:14` | Scrim plus a centered panel; runs a body inside it. |
+| `MenuTextBox` | `Widgets.MenuTextBox.cs:13` | Clipped menu text box that returns its interactions. |
+| `MenuFooter` | `MenuLayout.cs:114` | Draws a page footer and reports the clicked action. |
 | `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
 | `FooterStatus` | `Widgets.FooterStatus.cs:13` | Centered footer status between two action buttons. |
 | `MenuChevron` | `Widgets.MenuChevron.cs:12` | Cyan menu selection chevron. |
 | `ModalPanel` | `Widgets.MenuPanel.cs:24` | Borderless panel for modal dialogs. |
-| `MenuPanel` | `Widgets.MenuPanel.cs:40` | Shared menu panel with inner hairline, corner caps, and optional title. |
+| `MenuPanel` | `Widgets.MenuPanel.cs:36` | Shared menu panel with inner hairline, corner caps, and optional title. |
 | `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
 | `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with one orange border and a cyan left caret. |
 | `StatLabel` | `Widgets.StatLabel.cs:10` | Stat name with a colored first letter. |
@@ -89,6 +99,10 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Label` | `Widgets.Text.cs:13` | Fixed-rect single-line text. |
 | `Paragraph` | `Widgets.Text.cs:48` | Fixed-rect wrapped text. |
 | `Divider` | `Widgets.Text.cs:81` | One-pixel divider. |
+
+`ControlResult<T>` at `WaywardBeyond.Client/UI/Widgets/ControlResultOfT.cs:4` is
+the return type of `Toggle`, `SegmentedControl`, `Stepper`, and `Slider`. Read
+`Changed` before `Value`, so a control never needs an `out` value.
 
 `Widgets.ActionButton.cs:166` defines `ActionButtonOptions`. Use the factories:
 
@@ -114,9 +128,10 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   `Secondary` for normal actions, `Subtle` for Back, and `Danger` for
   destructive actions.
 - Lists use `ActionButtonOptions.ListRow`. Use `Selected` for the active item.
-- Text inputs use `Widgets.TextBox`. It reads theme colors for focus,
-  placeholder, selection, and caret, and accepts `drawChrome: false` when
-  embedded inside a custom-framed container such as the chat send bar.
+- Text inputs use `Widgets.MenuTextBox` inside a menu, or `Widgets.TextBox`
+  directly. Both read theme colors for focus, placeholder, selection, and caret.
+  A container that draws its own frame, such as the chat send bar, sets
+  `TextBoxState.Options.Chrome` to false.
 - HUD overlays (`Hotbar`, `Bars`, `Actions`, `ShapeSelector`,
   `OrientationSelector`, `ControlHints`, `ChatLayer`) use theme tokens, borders,
   and corner caps directly. `ChatLayer` uses `Widgets.Panel` and

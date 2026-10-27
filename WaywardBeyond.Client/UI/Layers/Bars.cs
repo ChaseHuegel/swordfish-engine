@@ -79,7 +79,7 @@ internal sealed class Bars(in NotificationService notificationService)
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
-            
+
             using (ui.Element())
             {
                 ui.Passthrough = true;
@@ -93,92 +93,109 @@ internal sealed class Bars(in NotificationService notificationService)
                     Width = new Fixed(BAR_WIDTH),
                 };
 
-                using (ui.Element())
-                {
-                    ui.Passthrough = true;
-                    ui.LayoutDirection = LayoutDirection.None;
-                    ui.Constraints = new Constraints
-                    {
-                        Width = new Fixed(INNER_WIDTH),
-                        Height = new Fixed(HEADER_HEIGHT),
-                    };
-
-                    using (ui.Text(notification.Text, UiMetrics.SmallFont))
-                    {
-                        ui.Passthrough = true;
-                        ui.Color = UiTheme.Text * fade;
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Left | Anchors.Center,
-                        };
-                    }
-
-                    if (!string.IsNullOrEmpty(notification.Subtext))
-                    {
-                        using (ui.Text(notification.Subtext, UiMetrics.SmallFont))
-                        {
-                            ui.Passthrough = true;
-                            ui.Color = UiTheme.Text * fade;
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Right | Anchors.Center,
-                            };
-                        }
-                    }
-                }
-
-                using (ui.Element())
-                {
-                    ui.Passthrough = true;
-                    ui.LayoutDirection = LayoutDirection.None;
-                    ui.Color = UiTheme.Track * fade;
-                    ui.Constraints = new Constraints
-                    {
-                        Width = new Fixed(INNER_WIDTH),
-                        Height = new Fixed(TRACK_HEIGHT),
-                    };
-
-                    using (ui.Element())
-                    {
-                        ui.Passthrough = true;
-                        ui.Color = fillColor * fade;
-                        ui.Constraints = new Constraints
-                        {
-                            Width = new Relative(Math.Clamp(notification.Amount, 0f, 1f)),
-                            Height = new Relative(1f),
-                        };
-                    }
-
-                    if (notification.Segments is > 1)
-                    {
-                        int segments = notification.Segments.Value;
-                        for (var segmentIndex = 1; segmentIndex < segments; segmentIndex++)
-                        {
-                            int dividerX = INNER_WIDTH * segmentIndex / segments - SEGMENT_GAP / 2;
-                            using (ui.Element())
-                            {
-                                ui.Passthrough = true;
-                                ui.Color = UiTheme.PanelBackground * fade;
-                                ui.Constraints = new Constraints
-                                {
-                                    X = new Fixed(dividerX),
-                                    Y = new Fixed(0),
-                                    Width = new Fixed(SEGMENT_GAP),
-                                    Height = new Fixed(TRACK_HEIGHT),
-                                };
-                            }
-                        }
-                    }
-                }
+                DrawBarHeader(ui, in notification, fade);
+                DrawBarTrack(ui, in notification, fade, fillColor);
             }
-            
+
             using (ui.Element())
             {
                 ui.Color = UiTheme.Border;
                 ui.Constraints = new Constraints
                 {
                     Width = new Fill(),
-                    Height = new Fixed(1)
+                    Height = new Fixed(1),
+                };
+            }
+        }
+    }
+
+    /// <summary>Draws a bar's title and its optional subtext.</summary>
+    private static void DrawBarHeader(UIBuilder<Material> ui, in Notification notification, in Vector4 fade)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new Constraints
+            {
+                Width = new Fixed(INNER_WIDTH),
+                Height = new Fixed(HEADER_HEIGHT),
+            };
+
+            using (ui.Text(notification.Text, UiMetrics.SMALL_FONT))
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.Text * fade;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Left | Anchors.Center,
+                };
+            }
+
+            if (!string.IsNullOrEmpty(notification.Subtext))
+            {
+                using (ui.Text(notification.Subtext, UiMetrics.SMALL_FONT))
+                {
+                    ui.Passthrough = true;
+                    ui.Color = UiTheme.Text * fade;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Right | Anchors.Center,
+                    };
+                }
+            }
+        }
+    }
+
+    /// <summary>Draws a bar's track, its fill, and its segment dividers.</summary>
+    private static void DrawBarTrack(UIBuilder<Material> ui, in Notification notification, in Vector4 fade, Vector4 fillColor)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Color = UiTheme.Track * fade;
+            ui.Constraints = new Constraints
+            {
+                Width = new Fixed(INNER_WIDTH),
+                Height = new Fixed(TRACK_HEIGHT),
+            };
+
+            using (ui.Element())
+            {
+                ui.Passthrough = true;
+                ui.Color = fillColor * fade;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Relative(Math.Clamp(notification.Amount, 0f, 1f)),
+                    Height = new Relative(1f),
+                };
+            }
+
+            int segmentCount = notification.Segments ?? 0;
+            if (segmentCount > 1)
+            {
+                DrawSegmentDividers(ui, segmentCount, fade);
+            }
+        }
+    }
+
+    /// <summary>Draws the dividers that split a segmented track.</summary>
+    private static void DrawSegmentDividers(UIBuilder<Material> ui, int segmentCount, in Vector4 fade)
+    {
+        for (var segmentIndex = 1; segmentIndex < segmentCount; segmentIndex++)
+        {
+            int dividerX = INNER_WIDTH * segmentIndex / segmentCount - SEGMENT_GAP / 2;
+            using (ui.Element())
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.PanelBackground * fade;
+                ui.Constraints = new Constraints
+                {
+                    X = new Fixed(dividerX),
+                    Y = new Fixed(0),
+                    Width = new Fixed(SEGMENT_GAP),
+                    Height = new Fixed(TRACK_HEIGHT),
                 };
             }
         }

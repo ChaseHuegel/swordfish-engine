@@ -35,7 +35,7 @@ internal static partial class Widgets
         ui.Label(
             message,
             Rect(left, footer.Top + 6, width, footer.Size.Y - 12),
-            UiMetrics.MenuSmallFont,
+            UiMetrics.MENU_SMALL_FONT,
             color,
             Anchors.Center
         );

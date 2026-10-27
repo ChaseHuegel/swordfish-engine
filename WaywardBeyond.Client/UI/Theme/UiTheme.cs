@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 
 namespace WaywardBeyond.Client.UI.Theme;
@@ -5,9 +6,9 @@ namespace WaywardBeyond.Client.UI.Theme;
 /// <summary>Semantic colors shared by all game UI.</summary>
 internal static class UiTheme
 {
-    public const string FontUI = "Salmon Mono 9 Regular";
-    public const string FontIcons = "Font Awesome 6 Free Solid";
-    public const string FontBrands = "Font Awesome 6 Free Brands";
+    public const string FONT_UI = "Salmon Mono 9 Regular";
+    public const string FONT_ICONS = "Font Awesome 6 Free Solid";
+    public const string FONT_BRANDS = "Font Awesome 6 Free Brands";
 
     public static readonly Vector4 PanelBackground = FromRgb(17, 23, 35, 240);
     public static readonly Vector4 PanelSolid = FromRgb(17, 23, 35);
@@ -45,6 +46,15 @@ internal static class UiTheme
     public static readonly Vector4 ScrimSoft = FromRgb(0, 0, 0, 128);
     public static readonly Vector4 ScrimHeavy = FromRgb(0, 0, 0, 242);
     public static readonly Vector4 Transparent = Vector4.Zero;
+
+    /// <summary>The accent color as a rich-text color tag, for text that uses inline markup.</summary>
+    public static readonly string AccentRichText = ToRichText(Accent);
+
+    /// <summary>Formats a color as a rich-text color tag.</summary>
+    public static string ToRichText(in Vector4 color)
+    {
+        return $"#{(byte)MathF.Round(color.X * 255f):X2}{(byte)MathF.Round(color.Y * 255f):X2}{(byte)MathF.Round(color.Z * 255f):X2}";
+    }
 
     private static Vector4 FromRgb(byte r, byte g, byte b, byte a = 255)
     {

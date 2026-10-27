@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
@@ -16,7 +16,7 @@ internal class DefaultUIRenderer : IAutoActivate
     private readonly ReefContext _reefContext;
     private readonly UISettings _uiSettings;
     private readonly IUILayer[] _layers;
-    
+
     public DefaultUIRenderer(
         ILogger<DefaultUIRenderer> logger,
         ReefContext reefContext,
@@ -29,8 +29,8 @@ internal class DefaultUIRenderer : IAutoActivate
         _reefContext = reefContext;
         _uiSettings = uiSettings;
         _layers = layers;
-        _reefContext.Builder.DefaultFontID = UiTheme.FontUI;
-        
+        _reefContext.Builder.DefaultFontID = UiTheme.FONT_UI;
+
         var toggleShortcut = new Shortcut
         {
             Name = "Toggle UI",
@@ -40,22 +40,22 @@ internal class DefaultUIRenderer : IAutoActivate
             Action = OnToggleUI,
         };
         shortcutService.RegisterShortcut(toggleShortcut);
-        
+
         windowContext.Update += OnWindowUpdate;
     }
-    
+
     private void OnToggleUI()
     {
         _uiSettings.Visible.Set(!_uiSettings.Visible);
     }
-    
+
     private void OnWindowUpdate(double delta)
     {
         if (!_uiSettings.Visible)
         {
             return;
         }
-        
+
         for (var i = 0; i < _layers.Length; i++)
         {
             IUILayer layer = _layers[i];
@@ -63,7 +63,7 @@ internal class DefaultUIRenderer : IAutoActivate
             {
                 continue;
             }
-            
+
             try
             {
                 Result result = layer.RenderUI(delta, _reefContext.Builder);

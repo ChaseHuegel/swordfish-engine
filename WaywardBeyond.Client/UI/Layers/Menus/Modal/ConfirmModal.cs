@@ -1,12 +1,12 @@
-using System;
-using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
-using Reef;
-using Reef.Constraints;
 using Reef.UI;
+using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using System.Collections.Concurrent;
+using System;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
 
@@ -15,6 +15,12 @@ namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectService soundEffectService, in ILocalization localization)
     : IMenuPage<Modal>
 {
+    /// <summary>The panel width in pixels.</summary>
+    private const int PANEL_WIDTH = 520;
+
+    /// <summary>The panel height in pixels.</summary>
+    private const int PANEL_HEIGHT = 250;
+
     private static Modal Modal { get; } = new(id: "core.confirm");
 
     private readonly ILogger<ConfirmModal> _logger = logger;
@@ -35,98 +41,7 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        const int panelWidth = 520;
-        const int panelHeight = 250;
-
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.Scrim;
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-
-            using (ui.Element())
-            {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-                ui.ClipConstraints = new Constraints
-                {
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-
-                using (ui.ModalPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
-                {
-                    int padding = 28;
-                    int contentWidth = panelWidth - padding * 2;
-                    ConfirmRequest request = CurrentRequest();
-
-                    ui.Label(
-                        request.Title,
-                        Widgets.Rect(padding, 22, contentWidth, 30),
-                        UiMetrics.MenuTitleFont,
-                        UiTheme.Text,
-                        Anchors.Center
-                    );
-                    ui.Divider(
-                        Widgets.Rect(padding, 62, contentWidth, 1),
-                        UiTheme.Border
-                    );
-                    ui.Paragraph(
-                        request.Body,
-                        Widgets.Rect(padding, 86, contentWidth, 56),
-                        UiMetrics.MenuBodyFont,
-                        UiTheme.TextMuted
-                    );
-
-                    int buttonY = panelHeight - 68;
-                    if (ui.ActionButton(
-                            "Button_No",
-                            request.CancelLabel,
-                            _secondaryButton with
-                            {
-                                Rect = Widgets.Rect(padding, buttonY, 180, UiMetrics.IconButtonSize),
-                            }
-                        ))
-                    {
-                        _requests.TryPop(out _);
-                        menu.GoBack();
-                    }
-
-                    if (ui.ActionButton(
-                            "Button_Yes",
-                            request.ConfirmLabel,
-                            _primaryButton with
-                            {
-                                Rect = Widgets.Rect(panelWidth - padding - 180, buttonY, 180, UiMetrics.IconButtonSize),
-                            }
-                        ))
-                    {
-                        if (_requests.TryPop(out ConfirmRequest confirmed))
-                        {
-                            try
-                            {
-                                confirmed.Action();
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Error raising a confirm modal action.");
-                            }
-                        }
-
-                        menu.GoBack();
-                    }
-                }
-            }
-        }
+        ui.ModalFrame(PANEL_WIDTH, PANEL_HEIGHT, frame => DrawBody(frame, menu));
 
         return Result.FromSuccess();
     }
@@ -142,12 +57,83 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
         _requests.Clear();
         _requests.Push(new ConfirmRequest(
             action,
-            title ?? _localization.GetString("ui.menu.confirm")!,
-            body ?? _localization.GetString("ui.menu.confirmBody")!,
-            confirmLabel ?? _localization.GetString("ui.button.yes")!,
-            cancelLabel ?? _localization.GetString("ui.button.no")!
+            title ?? _localization.GetRequired("ui.menu.confirm"),
+            body ?? _localization.GetRequired("ui.menu.confirmBody"),
+            confirmLabel ?? _localization.GetRequired("ui.button.yes"),
+            cancelLabel ?? _localization.GetRequired("ui.button.no")
         ));
         return new Modal(id: "core.confirm");
+    }
+
+    /// <summary>Draws the title, body, and action buttons inside the modal panel.</summary>
+    private void DrawBody(UIBuilder<Material> ui, Menu<Modal> menu)
+    {
+        int padding = UiMetrics.MODAL_PADDING;
+        int contentWidth = PANEL_WIDTH - padding * 2;
+        ConfirmRequest request = CurrentRequest();
+
+        ui.Label(
+            request.Title,
+            Widgets.Rect(padding, 22, contentWidth, 30),
+            UiMetrics.MENU_TITLE_FONT,
+            UiTheme.Text,
+            Anchors.Center
+        );
+        ui.Divider(
+            Widgets.Rect(padding, 62, contentWidth, 1),
+            UiTheme.Border
+        );
+        ui.Paragraph(
+            request.Body,
+            Widgets.Rect(padding, 86, contentWidth, 56),
+            UiMetrics.MENU_BODY_FONT,
+            UiTheme.TextMuted
+        );
+
+        int buttonY = PANEL_HEIGHT - 68;
+        Widgets.ActionButtonOptions cancelOptions = _secondaryButton with
+        {
+            Rect = Widgets.Rect(padding, buttonY, UiMetrics.MODAL_BUTTON_WIDTH, UiMetrics.ICON_BUTTON_SIZE),
+        };
+
+        if (ui.ActionButton("Button_No", request.CancelLabel, cancelOptions))
+        {
+            _requests.TryPop(out _);
+            menu.GoBack();
+        }
+
+        Widgets.ActionButtonOptions confirmOptions = _primaryButton with
+        {
+            Rect = Widgets.Rect(
+                PANEL_WIDTH - padding - UiMetrics.MODAL_BUTTON_WIDTH,
+                buttonY,
+                UiMetrics.MODAL_BUTTON_WIDTH,
+                UiMetrics.ICON_BUTTON_SIZE
+            ),
+        };
+
+        if (ui.ActionButton("Button_Yes", request.ConfirmLabel, confirmOptions))
+        {
+            Confirm(menu);
+        }
+    }
+
+    /// <summary>Runs the pending confirm action and closes the modal.</summary>
+    private void Confirm(Menu<Modal> menu)
+    {
+        if (_requests.TryPop(out ConfirmRequest confirmed))
+        {
+            try
+            {
+                confirmed.Action();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error raising a confirm modal action.");
+            }
+        }
+
+        menu.GoBack();
     }
 
     private ConfirmRequest CurrentRequest()
@@ -156,10 +142,10 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
             ? request
             : new ConfirmRequest(
                 static () => { },
-                _localization.GetString("ui.menu.confirm")!,
-                _localization.GetString("ui.menu.confirmBody")!,
-                _localization.GetString("ui.button.yes")!,
-                _localization.GetString("ui.button.no")!
+                _localization.GetRequired("ui.menu.confirm"),
+                _localization.GetRequired("ui.menu.confirmBody"),
+                _localization.GetRequired("ui.button.yes"),
+                _localization.GetRequired("ui.button.no")
             );
     }
 

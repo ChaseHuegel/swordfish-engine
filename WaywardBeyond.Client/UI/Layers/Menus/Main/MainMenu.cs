@@ -1,8 +1,7 @@
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
@@ -10,6 +9,8 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
+using System.Threading.Tasks;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Theme;
@@ -41,8 +42,8 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         _localization = localization;
         _modalMenu = modalMenu;
         _brandIconOptions = new Widgets.IconButtonOptions(
-            FontId: UiTheme.FontBrands,
-            FontSize: UiMetrics.LargeIconFont,
+            FontId: UiTheme.FONT_BRANDS,
+            FontSize: UiMetrics.LARGE_ICON_FONT,
             SoundEffectService: soundEffectService
         );
         _feedbackButton = Widgets.ActionButtonOptions.Compact(
@@ -52,23 +53,11 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         {
             Font = new FontOptions
             {
-                ID = UiTheme.FontUI,
-                Size = UiMetrics.MenuSmallFont,
+                ID = UiTheme.FONT_UI,
+                Size = UiMetrics.MENU_SMALL_FONT,
                 NoWrap = true,
             },
         };
-
-        //  TODO introduce the menu spaceship
-        // Result<VoxelEntityModel> blueprintResult = blueprintDatabase.Get("builtin/mainMenu");
-        // if (blueprintResult)
-        // {
-        //     VoxelEntityModel voxelEntityModel = blueprintResult.Value;
-        //     VoxelEntityBuilder.Create(voxelEntityModel.Uuid, voxelEntityModel.VoxelObject, new Vector3(5f, 0f, -20f), Quaternion.Identity, Vector3.One);
-        // }
-        // else
-        // {
-        //     logger.LogError(blueprintResult, "Failed to load the background blueprint, it will not be displayed.");
-        // }
 
         Shortcut backShortcut = new(
             name: "Go back",
@@ -94,7 +83,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         {
             return base.RenderUI(delta, ui);
         }
-        
+
         using (ui.Element())
         {
             ui.Padding = new Padding(20);
@@ -103,7 +92,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
                 Anchors = Anchors.Bottom | Anchors.Left,
             };
 
-            if (ui.ActionButton("Button_Feedback", _localization.GetString("ui.menu.feedback")!, _feedbackButton))
+            if (ui.ActionButton("Button_Feedback", _localization.GetRequired("ui.menu.feedback"), _feedbackButton))
             {
                 _modalMenu.GoToPage(FeedbackModal.Modal);
             }
@@ -120,12 +109,12 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
                 Height = new Fixed(80),
             };
 
-            if (ui.IconButton("Button_Discord", Widgets.Rect(0, 0, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize), MenuGlyphs.Discord, _brandIconOptions))
+            if (ui.IconButton("Button_Discord", Widgets.Rect(0, 0, UiMetrics.ICON_BUTTON_SIZE, UiMetrics.ICON_BUTTON_SIZE), MenuGlyphs.DISCORD, _brandIconOptions))
             {
                 Task.Run(_externalAppService.TryOpenDiscordAsync);
             }
 
-            if (ui.IconButton("Button_Steam", Widgets.Rect(UiMetrics.IconButtonSize + 8, 0, UiMetrics.IconButtonSize, UiMetrics.IconButtonSize), MenuGlyphs.Steam, _brandIconOptions))
+            if (ui.IconButton("Button_Steam", Widgets.Rect(UiMetrics.ICON_BUTTON_SIZE + 8, 0, UiMetrics.ICON_BUTTON_SIZE, UiMetrics.ICON_BUTTON_SIZE), MenuGlyphs.STEAM, _brandIconOptions))
             {
                 Task.Run(_externalAppService.TryOpenSteamAsync);
             }

@@ -36,10 +36,10 @@ internal static partial class Widgets
                 ui.Color = UiTheme.Transparent;
                 ui.Border = new BorderStyle
                 {
-                    Thickness = UiMetrics.PanelInnerBorderThickness,
+                    Thickness = UiMetrics.PANEL_INNER_BORDER_THICKNESS,
                     Color = UiTheme.BorderInner,
                 };
-                int inset = UiMetrics.PanelInnerInset;
+                int inset = UiMetrics.PANEL_INNER_INSET;
                 IntRect inner = Rect(inset, inset, Math.Max(0, rect.Size.X - inset * 2), Math.Max(0, rect.Size.Y - inset * 2));
                 ui.Constraints = RectConstraints(inner);
                 ui.ClipConstraints = RectConstraints(inner);

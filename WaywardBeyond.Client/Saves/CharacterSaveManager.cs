@@ -29,7 +29,7 @@ internal sealed class CharacterSaveManager(
         {
             return Result<Character>.FromFailure("No character selected");
         }
-        
+
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         Character character = ActiveSave.Value with
         {
@@ -38,9 +38,9 @@ internal sealed class CharacterSaveManager(
                 LastPlayedMs = nowUtcMs
             },
         };
-        
+
         ActiveSave = character;
-        
+
         return Result<Character>.FromSuccess(character);
     }
 
@@ -105,7 +105,7 @@ internal sealed class CharacterSaveManager(
             logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Id}): {Message}", character.Name, character.Uuid, saveResult.Message);
         }
     }
-    
+
     public void Delete(Character character)
     {
         if (!characterStorage.DeleteCharacter(character.Uuid))
@@ -120,7 +120,7 @@ internal sealed class CharacterSaveManager(
             profileSettings.Save();
         }
     }
-    
+
     internal Character? GetMostRecentSave()
     {
         return characterStorage.GetAllCharacters()

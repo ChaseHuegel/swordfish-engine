@@ -1,11 +1,20 @@
-using System;
-using System.Text;
 using Swordfish.Library.Globalization;
+using System.Text;
+using System;
+using WaywardBeyond.Client.Extensions;
 
 namespace WaywardBeyond.Client.Extensions;
 
 public static class LocalizationExtensions
 {
+    /// <summary>Gets a localized string, and throws when the key is missing.</summary>
+    /// <exception cref="InvalidOperationException">The key is not present in the active language.</exception>
+    public static string GetRequired(this ILocalization localization, string key)
+    {
+        return localization.GetString(key)
+            ?? throw new InvalidOperationException($"The localization key \"{key}\" is missing.");
+    }
+
     public static string GetLongString(this ILocalization localization, TimeSpan timeSpan)
     {
         string result;
@@ -16,7 +25,7 @@ public static class LocalizationExtensions
             {
                 timePlayedBuilder.Append((int)timeSpan.TotalHours);
                 timePlayedBuilder.Append(' ');
-                timePlayedBuilder.Append(localization.GetString("ui.word.hours")!);
+                timePlayedBuilder.Append(localization.GetRequired("ui.word.hours"));
             }
 
             if (timeSpan.Minutes >= 1)
@@ -28,7 +37,7 @@ public static class LocalizationExtensions
                         
                 timePlayedBuilder.Append(timeSpan.Minutes);
                 timePlayedBuilder.Append(' ');
-                timePlayedBuilder.Append(localization.GetString("ui.word.minutes")!);
+                timePlayedBuilder.Append(localization.GetRequired("ui.word.minutes"));
             }
 
             if (timeSpan.Seconds >= 1)
@@ -40,14 +49,14 @@ public static class LocalizationExtensions
                         
                 timePlayedBuilder.Append(timeSpan.Seconds);
                 timePlayedBuilder.Append(' ');
-                timePlayedBuilder.Append(localization.GetString("ui.word.seconds")!);
+                timePlayedBuilder.Append(localization.GetRequired("ui.word.seconds"));
             }
 
             result = timePlayedBuilder.ToString();
         }
         else
         {
-            result = localization.GetString("ui.text.none")!;
+            result = localization.GetRequired("ui.text.none");
         }
 
         return result;

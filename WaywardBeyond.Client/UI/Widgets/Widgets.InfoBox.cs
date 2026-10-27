@@ -25,7 +25,7 @@ internal static partial class Widgets
             ui.Color = UiTheme.PanelInner;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PanelBorderThickness,
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Border,
             };
             ui.Constraints = RectConstraints(rect);
@@ -34,7 +34,7 @@ internal static partial class Widgets
             ui.Label(
                 title,
                 Rect(10, 4, Math.Max(0, rect.Size.X - 20), 16),
-                UiMetrics.InfoBoxTitleFont,
+                UiMetrics.INFO_BOX_TITLE_FONT,
                 UiTheme.Text,
                 Anchors.Left | Anchors.Center
             );
@@ -47,7 +47,7 @@ internal static partial class Widgets
             ui.Paragraph(
                 bodyText,
                 Rect(10, 27, Math.Max(0, rect.Size.X - 20), Math.Max(0, rect.Size.Y - 35)),
-                bodyFontSize > 0 ? bodyFontSize : UiMetrics.MenuSmallFont,
+                bodyFontSize > 0 ? bodyFontSize : UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text
             );
         }

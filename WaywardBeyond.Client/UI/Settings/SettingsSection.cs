@@ -8,7 +8,7 @@ internal sealed class SettingsSection(string labelKey) : SettingsRow
     public string LabelKey { get; } = labelKey;
 
     /// <inheritdoc/>
-    public override int Height => UiMetrics.SectionHeight;
+    public override int Height => UiMetrics.SECTION_HEIGHT;
 
     /// <inheritdoc/>
     public override void Render(SettingsRenderer renderer, int y)

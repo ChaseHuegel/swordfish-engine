@@ -72,13 +72,13 @@ public class SilkWindowContext : IWindowContext
 
         renderSettings.Framerate.Changed += OnFramerateChanged;
         ApplyFramerate(renderSettings.Framerate);
-        
+
         windowSettings.AlwaysOnTop.Changed += OnAlwaysOnTopChanged;
         ApplyAlwaysOnTop(windowSettings.AlwaysOnTop);
-        
+
         windowSettings.Title.Changed += OnTitleChanged;
         ApplyTitle(windowSettings.Title);
-        
+
         windowSettings.X.Changed += OnXChanged;
         windowSettings.Y.Changed += OnYChanged;
         ApplyPosition(windowSettings.X, windowSettings.Y);
@@ -86,7 +86,7 @@ public class SilkWindowContext : IWindowContext
         windowSettings.Width.Changed += OnWidthChanged;
         windowSettings.Height.Changed += OnHeightChanged;
         ApplySize(windowSettings.Width, windowSettings.Height);
-        
+
         windowSettings.Borderless.Changed += OnBorderlessChanged;
         windowSettings.AllowResize.Changed += OnAllowResizeChanged;
         windowSettings.Mode.Changed += OnModeChanged;
@@ -220,7 +220,7 @@ public class SilkWindowContext : IWindowContext
             }
 
             WindowSettings.Mode.Set(mode);
-            
+
             ApplyWindowStyle(mode, borderless, WindowSettings.AllowResize.Get());
 
             if (mode == WindowMode.Windowed)
@@ -231,7 +231,7 @@ public class SilkWindowContext : IWindowContext
                 WindowSettings.X.Set(Window.Position.X);
                 WindowSettings.Y.Set(Window.Position.Y);
             }
-            
+
             WindowSettings.Save();
         }
         finally
@@ -327,7 +327,7 @@ public class SilkWindowContext : IWindowContext
             Unfocused?.Invoke();
         }
     }
-    
+
     private void OnVSyncChanged(object? sender, DataChangedEventArgs<bool> e)
     {
         ApplyVSync(e.NewValue);
@@ -366,7 +366,7 @@ public class SilkWindowContext : IWindowContext
 
         ApplyPosition(WindowSettings.X, y: e.NewValue);
     }
-    
+
     private void OnWidthChanged(object? sender, DataChangedEventArgs<int?> e)
     {
         if (_suppressWindowEvents)
@@ -386,7 +386,7 @@ public class SilkWindowContext : IWindowContext
 
         ApplySize(WindowSettings.Width, height: e.NewValue);
     }
-    
+
     private void OnBorderlessChanged(object? sender, DataChangedEventArgs<bool> e)
     {
         if (_suppressWindowEvents)
@@ -398,14 +398,14 @@ public class SilkWindowContext : IWindowContext
         bool allowResize = WindowSettings.AllowResize.Get();
         ApplyWindowStyle(mode, borderless: e.NewValue, allowResize);
     }
-    
+
     private void OnAllowResizeChanged(object? sender, DataChangedEventArgs<bool> e)
     {
         WindowMode mode = WindowSettings.Mode.Get();
         bool borderless = WindowSettings.Borderless.Get();
         ApplyWindowStyle(mode, borderless, allowResize: e.NewValue);
     }
-    
+
     private void OnModeChanged(object? sender, DataChangedEventArgs<WindowMode> e)
     {
         if (_suppressWindowEvents)
@@ -417,19 +417,19 @@ public class SilkWindowContext : IWindowContext
         bool allowResize = WindowSettings.AllowResize.Get();
         ApplyWindowStyle(mode: e.NewValue, borderless, allowResize);
     }
-    
+
     private void ApplyVSync(bool vsync)
     {
         Window.VSync = vsync;
         RenderSettings.Save();
     }
-    
+
     private void ApplyFramerate(int framerate)
     {
         Window.FramesPerSecond = framerate;
         RenderSettings.Save();
     }
-    
+
     private void ApplyAlwaysOnTop(bool alwaysOnTop)
     {
         Window.TopMost = alwaysOnTop;
@@ -444,7 +444,7 @@ public class SilkWindowContext : IWindowContext
 
         Window.Title = title;
     }
-    
+
     private void ApplyPosition(int? x, int? y)
     {
         if (x != null && y != null)
@@ -457,7 +457,7 @@ public class SilkWindowContext : IWindowContext
             Window.Center();
         }
     }
-    
+
     private void ApplySize(int? width, int? height)
     {
         if (width == null || height == null)
@@ -468,8 +468,8 @@ public class SilkWindowContext : IWindowContext
         Window.Size = new Vector2D<int>(width.Value, height.Value);
         WindowSettings.Save();
     }
-    
-    private void ApplyWindowStyle(WindowMode mode, bool borderless, bool allowResize) 
+
+    private void ApplyWindowStyle(WindowMode mode, bool borderless, bool allowResize)
     {
         //  Borderless fullscreen must be handled specially
         if (mode == WindowMode.Fullscreen && borderless && Window.Monitor != null)
@@ -483,7 +483,7 @@ public class SilkWindowContext : IWindowContext
         else
         {
             Window.WindowState = WindowState.Normal;
-            
+
             if (borderless)
             {
                 Window.WindowBorder = WindowBorder.Hidden;
@@ -496,7 +496,7 @@ public class SilkWindowContext : IWindowContext
             {
                 Window.WindowBorder = WindowBorder.Fixed;
             }
-            
+
             Window.WindowState = mode switch
             {
                 WindowMode.Windowed => WindowState.Normal,
