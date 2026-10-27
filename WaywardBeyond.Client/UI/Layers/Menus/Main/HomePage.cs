@@ -170,47 +170,57 @@ internal sealed class HomePage(
             };
 
             int buttonX = (pageWidth - UiMetrics.MenuButtonMinWidth) / 2;
+            int buttonWidth = UiMetrics.MenuButtonMinWidth;
+            int buttonHeight = UiMetrics.MenuButtonHeight;
             var y = 0;
 
-            if (hasLastSession)
-            {
-                ui.MenuChevron(buttonX - 8, y + (UiMetrics.MenuButtonHeight - 6) / 2);
-            }
-
-            if (ui.ActionButton("Button_Continue", _localization.GetString("ui.button.continue")!, _continueButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight), Enabled = hasLastSession }, out bool continueHovered))
+            IntRect continueRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string continueLabel = _localization.GetString("ui.button.continue")!;
+            var continueOptions = _continueButton with { Enabled = hasLastSession };
+            if (ui.ActionButton("Button_Continue", continueRect, continueLabel, continueOptions, out bool continueHovered))
             {
                 _continueService.Start();
             }
 
-            y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Singleplayer", _localization.GetString("ui.button.singleplayer")!, _newGameButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
+            y += buttonHeight + BUTTON_GAP;
+            IntRect singleplayerRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string singleplayerLabel = _localization.GetString("ui.button.singleplayer")!;
+            if (ui.ActionButton("Button_Singleplayer", singleplayerRect, singleplayerLabel, _newGameButton))
             {
                 singleplayerClicked = true;
             }
 
-            y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Multiplayer", _localization.GetString("ui.button.multiplayer")!, _multiplayerButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
+            y += buttonHeight + BUTTON_GAP;
+            IntRect multiplayerRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string multiplayerLabel = _localization.GetString("ui.button.multiplayer")!;
+            if (ui.ActionButton("Button_Multiplayer", multiplayerRect, multiplayerLabel, _multiplayerButton))
             {
                 menu.GoToPage(MenuPage.Multiplayer);
             }
 
-            y += UiMetrics.MenuButtonHeight + DIVIDER_GAP;
-            ui.DottedDivider(Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, DIVIDER_HEIGHT));
+            y += buttonHeight + DIVIDER_GAP;
+            ui.DottedDivider(Widgets.Rect(buttonX, y, buttonWidth, DIVIDER_HEIGHT));
             y += DIVIDER_HEIGHT + DIVIDER_GAP;
 
-            if (ui.ActionButton("Button_Settings", _localization.GetString("ui.button.settings")!, _optionsButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
+            IntRect settingsRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string settingsLabel = _localization.GetString("ui.button.settings")!;
+            if (ui.ActionButton("Button_Settings", settingsRect, settingsLabel, _optionsButton))
             {
                 menu.GoToPage(MenuPage.Settings);
             }
 
-            y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Credits", _localization.GetString("ui.menu.credits")!, _creditsButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
+            y += buttonHeight + BUTTON_GAP;
+            IntRect creditsRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string creditsLabel = _localization.GetString("ui.menu.credits")!;
+            if (ui.ActionButton("Button_Credits", creditsRect, creditsLabel, _creditsButton))
             {
                 menu.GoToPage(MenuPage.Credits);
             }
 
-            y += UiMetrics.MenuButtonHeight + BUTTON_GAP;
-            if (ui.ActionButton("Button_Quit", _localization.GetString("ui.button.quit")!, _exitButton with { Rect = Widgets.Rect(buttonX, y, UiMetrics.MenuButtonMinWidth, UiMetrics.MenuButtonHeight) }))
+            y += buttonHeight + BUTTON_GAP;
+            IntRect quitRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string quitLabel = _localization.GetString("ui.button.quit")!;
+            if (ui.ActionButton("Button_Quit", quitRect, quitLabel, _exitButton))
             {
                 _entry.Quit();
             }

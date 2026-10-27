@@ -175,11 +175,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 DrawDossier(ui, layout.Right);
             }
 
-            if (ui.ActionButton(
-                    "Button_Cancel",
-                    _localization.GetString("ui.settings.cancel")!,
-                    _cancelButton with { Rect = layout.ReturnButton }
-                ))
+            string cancelLabel = _localization.GetString("ui.settings.cancel")!;
+            if (ui.ActionButton("Button_Cancel", layout.ReturnButton, cancelLabel, _cancelButton))
             {
                 menu.GoToPage(MenuPage.Home);
             }
@@ -209,10 +206,13 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 }
             }
 
+            string initLabel = _localization.GetString("ui.button.initialize")!;
+            var initOptions = _initializeButton with { Enabled = canInitialize };
             bool initializeClicked = ui.ActionButton(
                 "Button_Initialize",
-                _localization.GetString("ui.button.initialize")!,
-                _initializeButton with { Rect = layout.PrimaryButton, Enabled = canInitialize }
+                layout.PrimaryButton,
+                initLabel,
+                initOptions
             );
 
             ui.FooterStatus(

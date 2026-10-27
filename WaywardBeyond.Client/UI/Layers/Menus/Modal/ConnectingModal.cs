@@ -50,101 +50,69 @@ internal sealed class ConnectingModal(
         const int panelWidth = 520;
         const int panelHeight = 240;
 
-        using (ui.Element())
+        using (ui.ModalDialog(panelWidth, panelHeight))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.Scrim;
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
+            int padding = 28;
+            int contentWidth = panelWidth - padding * 2;
 
+            ui.Label(
+                _title ?? _localization.GetString("ui.menu.connecting") ?? "Connecting to Server",
+                Widgets.Rect(padding, 22, contentWidth, 30),
+                UiMetrics.MenuTitleFont,
+                UiTheme.Text,
+                Anchors.Center
+            );
+
+            ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
+
+            ui.Label(
+                _target ?? _localization.GetString("ui.menu.connectingStatus") ?? "Establishing uplink with remote host...",
+                Widgets.Rect(padding, 80, contentWidth, 22),
+                UiMetrics.MenuBodyFont,
+                UiTheme.TextMuted,
+                Anchors.Center
+            );
+
+            int signalX = (panelWidth - SIGNAL_WIDTH) / 2;
+            int signalY = 120;
             using (ui.Element())
             {
                 ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
+                ui.Color = UiTheme.Border;
+                ui.Constraints = Widgets.RectConstraints(
+                    Widgets.Rect(signalX, signalY, SIGNAL_WIDTH, SIGNAL_HEIGHT)
+                );
                 ui.ClipConstraints = new Constraints
                 {
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
+                    Width = new Fixed(SIGNAL_WIDTH),
+                    Height = new Fixed(SIGNAL_HEIGHT),
                 };
 
-                using (ui.ModalPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
+                float progress = (float)(ui.Time / SIGNAL_PERIOD_SECONDS % 1d);
+                int segmentX = (int)(progress * SIGNAL_TRAVEL) - SIGNAL_SEGMENT_WIDTH;
+
+                using (ui.Element())
                 {
-                    int padding = 28;
-                    int contentWidth = panelWidth - padding * 2;
-
-                    ui.Label(
-                        _title ?? _localization.GetString("ui.menu.connecting") ?? "Connecting to Server",
-                        Widgets.Rect(padding, 22, contentWidth, 30),
-                        UiMetrics.MenuTitleFont,
-                        UiTheme.Text,
-                        Anchors.Center
-                    );
-
-                    ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
-
-                    ui.Label(
-                        _target ?? _localization.GetString("ui.menu.connectingStatus") ?? "Establishing uplink with remote host...",
-                        Widgets.Rect(padding, 80, contentWidth, 22),
-                        UiMetrics.MenuBodyFont,
-                        UiTheme.TextMuted,
-                        Anchors.Center
-                    );
-
-                    int signalX = (panelWidth - SIGNAL_WIDTH) / 2;
-                    int signalY = 120;
-                    using (ui.Element())
+                    ui.Color = UiTheme.Accent;
+                    ui.Constraints = new Constraints
                     {
-                        ui.LayoutDirection = LayoutDirection.None;
-                        ui.Color = UiTheme.Border;
-                        ui.Constraints = Widgets.RectConstraints(
-                            Widgets.Rect(signalX, signalY, SIGNAL_WIDTH, SIGNAL_HEIGHT)
-                        );
-                        ui.ClipConstraints = new Constraints
-                        {
-                            Width = new Fixed(SIGNAL_WIDTH),
-                            Height = new Fixed(SIGNAL_HEIGHT),
-                        };
-
-                        float progress = (float)(ui.Time / SIGNAL_PERIOD_SECONDS % 1d);
-                        int segmentX = (int)(progress * SIGNAL_TRAVEL) - SIGNAL_SEGMENT_WIDTH;
-
-                        using (ui.Element())
-                        {
-                            ui.Color = UiTheme.Accent;
-                            ui.Constraints = new Constraints
-                            {
-                                X = new Fixed(segmentX),
-                                Y = new Fixed(0),
-                                Width = new Fixed(SIGNAL_SEGMENT_WIDTH),
-                                Height = new Fixed(SIGNAL_HEIGHT),
-                            };
-                        }
-                    }
-
-                    int buttonWidth = 180;
-                    int buttonX = (panelWidth - buttonWidth) / 2;
-                    int buttonY = panelHeight - 68;
-
-                    if (ui.ActionButton(
-                            "Button_CancelConnect",
-                            _localization.GetString("ui.button.cancel") ?? "Cancel",
-                            _cancelButton with
-                            {
-                                Rect = Widgets.Rect(buttonX, buttonY, buttonWidth, UiMetrics.IconButtonSize),
-                            }
-                        ))
-                    {
-                        Cancel(menu);
-                    }
+                        X = new Fixed(segmentX),
+                        Y = new Fixed(0),
+                        Width = new Fixed(SIGNAL_SEGMENT_WIDTH),
+                        Height = new Fixed(SIGNAL_HEIGHT),
+                    };
                 }
+            }
+
+            int buttonWidth = 180;
+            int buttonX = (panelWidth - buttonWidth) / 2;
+            int buttonY = panelHeight - 68;
+            IntRect buttonRect = Widgets.Rect(buttonX, buttonY, buttonWidth, UiMetrics.IconButtonSize);
+            string buttonLabel = _localization.GetString("ui.button.cancel") ?? "Cancel";
+
+            if (ui.ActionButton("Button_CancelConnect", buttonRect, buttonLabel, _cancelButton))
+            {
+                Cancel(menu);
             }
         }
 

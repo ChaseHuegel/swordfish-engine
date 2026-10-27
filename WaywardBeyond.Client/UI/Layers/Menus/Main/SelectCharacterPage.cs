@@ -108,21 +108,16 @@ internal sealed class SelectCharacterPage(
                 DrawDossier(ui, layout.Right, menu);
             }
 
-            if (ui.ActionButton(
-                    "Button_Back",
-                    _localization.GetString("ui.button.return")!,
-                    _returnButton with { Rect = layout.ReturnButton }
-                ))
+            string returnLabel = _localization.GetString("ui.button.return")!;
+            if (ui.ActionButton("Button_Back", layout.ReturnButton, returnLabel, _returnButton))
             {
                 menu.GoToPage(MenuPage.Home);
             }
 
             bool canLaunch = _characterSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave != null;
-            if (ui.ActionButton(
-                    "Button_LoadSave",
-                    _localization.GetString("ui.button.loadSave")!,
-                    _launchButton with { Rect = layout.PrimaryButton, Enabled = canLaunch }
-                ))
+            string loadLabel = _localization.GetString("ui.button.loadSave")!;
+            var launchOptions = _launchButton with { Enabled = canLaunch };
+            if (ui.ActionButton("Button_LoadSave", layout.PrimaryButton, loadLabel, launchOptions))
             {
                 Task.Run(_gameSaveManager.Load);
             }
@@ -252,13 +247,8 @@ internal sealed class SelectCharacterPage(
                                     ))
                                 {
                                     _characterSaveManager.ActiveSave = character;
-                                    _modalMenu.GoToPage(_confirmModal.Create(DeleteCharacter));
-                                }
-
-                                void DeleteCharacter()
-                                {
-                                    _characterSaveManager.Delete(character);
-                                    _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
+                                    Character targetCharacter = character;
+                                    _modalMenu.GoToPage(_confirmModal.Create(() => DeleteCharacter(targetCharacter)));
                                 }
                             }
                         );
@@ -433,5 +423,11 @@ internal sealed class SelectCharacterPage(
             UiTheme.Text,
             Anchors.Right | Anchors.Center
         );
+    }
+
+    private void DeleteCharacter(Character character)
+    {
+        _characterSaveManager.Delete(character);
+        _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
     }
 }

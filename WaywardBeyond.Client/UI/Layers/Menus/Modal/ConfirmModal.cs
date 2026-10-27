@@ -38,93 +38,54 @@ internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectServi
         const int panelWidth = 520;
         const int panelHeight = 250;
 
-        using (ui.Element())
+        using (ui.ModalDialog(panelWidth, panelHeight))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.Scrim;
-            ui.Constraints = new Constraints
+            int padding = 28;
+            int contentWidth = panelWidth - padding * 2;
+            ConfirmRequest request = CurrentRequest();
+
+            ui.Label(
+                request.Title,
+                Widgets.Rect(padding, 22, contentWidth, 30),
+                UiMetrics.MenuTitleFont,
+                UiTheme.Text,
+                Anchors.Center
+            );
+            ui.Divider(
+                Widgets.Rect(padding, 62, contentWidth, 1),
+                UiTheme.Border
+            );
+            ui.Paragraph(
+                request.Body,
+                Widgets.Rect(padding, 86, contentWidth, 56),
+                UiMetrics.MenuBodyFont,
+                UiTheme.TextMuted
+            );
+
+            int buttonY = panelHeight - 68;
+            IntRect cancelRect = Widgets.Rect(padding, buttonY, 180, UiMetrics.IconButtonSize);
+            if (ui.ActionButton("Button_No", cancelRect, request.CancelLabel, _secondaryButton))
             {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
+                _requests.TryPop(out _);
+                menu.GoBack();
+            }
 
-            using (ui.Element())
+            IntRect confirmRect = Widgets.Rect(panelWidth - padding - 180, buttonY, 180, UiMetrics.IconButtonSize);
+            if (ui.ActionButton("Button_Yes", confirmRect, request.ConfirmLabel, _primaryButton))
             {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
+                if (_requests.TryPop(out ConfirmRequest confirmed))
                 {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-                ui.ClipConstraints = new Constraints
-                {
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
-
-                using (ui.ModalPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
-                {
-                    int padding = 28;
-                    int contentWidth = panelWidth - padding * 2;
-                    ConfirmRequest request = CurrentRequest();
-
-                    ui.Label(
-                        request.Title,
-                        Widgets.Rect(padding, 22, contentWidth, 30),
-                        UiMetrics.MenuTitleFont,
-                        UiTheme.Text,
-                        Anchors.Center
-                    );
-                    ui.Divider(
-                        Widgets.Rect(padding, 62, contentWidth, 1),
-                        UiTheme.Border
-                    );
-                    ui.Paragraph(
-                        request.Body,
-                        Widgets.Rect(padding, 86, contentWidth, 56),
-                        UiMetrics.MenuBodyFont,
-                        UiTheme.TextMuted
-                    );
-
-                    int buttonY = panelHeight - 68;
-                    if (ui.ActionButton(
-                            "Button_No",
-                            request.CancelLabel,
-                            _secondaryButton with
-                            {
-                                Rect = Widgets.Rect(padding, buttonY, 180, UiMetrics.IconButtonSize),
-                            }
-                        ))
+                    try
                     {
-                        _requests.TryPop(out _);
-                        menu.GoBack();
+                        confirmed.Action();
                     }
-
-                    if (ui.ActionButton(
-                            "Button_Yes",
-                            request.ConfirmLabel,
-                            _primaryButton with
-                            {
-                                Rect = Widgets.Rect(panelWidth - padding - 180, buttonY, 180, UiMetrics.IconButtonSize),
-                            }
-                        ))
+                    catch (Exception ex)
                     {
-                        if (_requests.TryPop(out ConfirmRequest confirmed))
-                        {
-                            try
-                            {
-                                confirmed.Action();
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Error raising a confirm modal action.");
-                            }
-                        }
-
-                        menu.GoBack();
+                        _logger.LogError(ex, "Error raising a confirm modal action.");
                     }
                 }
+
+                menu.GoBack();
             }
         }
 

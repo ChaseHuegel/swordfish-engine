@@ -68,41 +68,26 @@ internal sealed class HomePage(
             };
 
             var y = 0;
-            ui.MenuChevron(buttonX - 8, y + (buttonHeight - 6) / 2);
-            if (ui.ActionButton(
-                    "Button_Continue",
-                    _localization.GetString("ui.button.continue")!,
-                    _primaryButton with
-                    {
-                        Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
-                    }
-                ))
+
+            IntRect continueRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string continueLabel = _localization.GetString("ui.button.continue")!;
+            if (ui.ActionButton("Button_Continue", continueRect, continueLabel, _primaryButton))
             {
                 WaywardBeyond.Unpause();
             }
 
             y += buttonHeight + BUTTON_GAP;
-            if (ui.ActionButton(
-                    "Button_Settings",
-                    _localization.GetString("ui.button.settings")!,
-                    _secondaryButton with
-                    {
-                        Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
-                    }
-                ))
+            IntRect settingsRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string settingsLabel = _localization.GetString("ui.button.settings")!;
+            if (ui.ActionButton("Button_Settings", settingsRect, settingsLabel, _secondaryButton))
             {
                 menu.GoToPage(PausePage.Settings);
             }
 
             y += buttonHeight + BUTTON_GAP;
-            if (ui.ActionButton(
-                    "Button_Feedback",
-                    _localization.GetString("ui.button.feedback")!,
-                    _secondaryButton with
-                    {
-                        Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
-                    }
-                ))
+            IntRect feedbackRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string feedbackLabel = _localization.GetString("ui.button.feedback")!;
+            if (ui.ActionButton("Button_Feedback", feedbackRect, feedbackLabel, _secondaryButton))
             {
                 _modalMenu.GoToPage(FeedbackModal.Modal);
             }
@@ -111,14 +96,9 @@ internal sealed class HomePage(
             ui.DottedDivider(Widgets.Rect(buttonX, y, buttonWidth, DIVIDER_HEIGHT));
             y += DIVIDER_HEIGHT + DIVIDER_GAP;
 
-            if (ui.ActionButton(
-                    "Button_SaveAndExit",
-                    _localization.GetString("ui.button.saveAndExit")!,
-                    _dangerButton with
-                    {
-                        Rect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight),
-                    }
-                ))
+            IntRect exitRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
+            string exitLabel = _localization.GetString("ui.button.saveAndExit")!;
+            if (ui.ActionButton("Button_SaveAndExit", exitRect, exitLabel, _dangerButton))
             {
                 _gameSaveManager.SaveAndExit();
             }

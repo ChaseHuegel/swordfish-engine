@@ -131,23 +131,18 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             }
 
             bool remote = _rpcHost.IsRemote;
-            if (ui.ActionButton(
-                    "Button_Back",
-                    remote
-                        ? _localization.GetString("ui.button.servers")!
-                        : _localization.GetString("ui.button.return")!,
-                    _returnButton with { Rect = layout.ReturnButton }
-                ))
+            string returnLabel = remote
+                ? _localization.GetString("ui.button.servers")!
+                : _localization.GetString("ui.button.return")!;
+            if (ui.ActionButton("Button_Back", layout.ReturnButton, returnLabel, _returnButton))
             {
                 menu.GoToPage(remote ? MenuPage.Multiplayer : MenuPage.Home);
             }
 
             GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
-            if (ui.ActionButton(
-                    "Button_SelectSave",
-                    _localization.GetString("ui.button.next")!,
-                    _launchButton with { Rect = layout.PrimaryButton, Enabled = activeSave != null }
-                ))
+            string nextLabel = _localization.GetString("ui.button.next")!;
+            var nextOptions = _launchButton with { Enabled = activeSave != null };
+            if (ui.ActionButton("Button_SelectSave", layout.PrimaryButton, nextLabel, nextOptions))
             {
                 IEnumerable<Character> characters = _characterStorage.GetAllCharacters();
                 menu.GoToPage(characters.Any() ? MenuPage.SelectCharacter : MenuPage.NewCharacter);
@@ -256,14 +251,8 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                                 ))
                             {
                                 _gameSaveManager.ActiveSave = save;
-                                _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
-                            }
-
-                            void DeleteSave()
-                            {
-                                _gameSaveManager.Delete(save);
-                                _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
-                                _scrollY = 0;
+                                GameSave targetSave = save;
+                                _modalMenu.GoToPage(_confirmModal.Create(() => DeleteSave(targetSave)));
                             }
                         }
                     );
@@ -447,5 +436,12 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
         _lastRefreshMs = now;
         _ = _gameSaveService.RefreshLevelsAsync();
+    }
+
+    private void DeleteSave(GameSave save)
+    {
+        _gameSaveManager.Delete(save);
+        _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
+        _scrollY = 0;
     }
 }

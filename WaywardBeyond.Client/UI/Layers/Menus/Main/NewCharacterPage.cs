@@ -141,11 +141,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 DrawEvaluation(ui, layout.Right);
             }
 
-            if (ui.ActionButton(
-                    "Button_Back",
-                    _localization.GetString("ui.button.back")!,
-                    _backButton with { Rect = layout.ReturnButton }
-                ))
+            string backLabel = _localization.GetString("ui.button.back")!;
+            if (ui.ActionButton("Button_Back", layout.ReturnButton, backLabel, _backButton))
             {
                 menu.GoToPage(MenuPage.SelectCharacter);
             }
@@ -175,10 +172,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 footerColor = UiTheme.Warning;
             }
 
+            string createLabel = _localization.GetString("ui.button.createCharacter")!;
+            var createOptions = _createButton with { Enabled = canCreate };
             bool createClicked = ui.ActionButton(
                 "Button_CreateCharacter",
-                _localization.GetString("ui.button.createCharacter")!,
-                _createButton with { Rect = layout.PrimaryButton, Enabled = canCreate }
+                layout.PrimaryButton,
+                createLabel,
+                createOptions
             );
 
             ui.FooterStatus(

@@ -91,6 +91,8 @@ New Game:
 - `UiTheme` supplies the palette. Do not add raw colors to menu pages.
 - `MenuPanel` draws the shared settings-style panel: no outer border, an
   inner hairline, and corner caps.
+- `ModalDialog` provides the standard centered modal layout: full-screen scrim,
+  centered size constraints, and borderless `ModalPanel`.
 - `ModalPanel` draws no border for dialogs. It keeps the corner caps and has
   no inner hairline.
 - `Panel` remains the primitive for special sub-panels.

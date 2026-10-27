@@ -181,21 +181,16 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             DrawServerTable(ui, tableRect);
             DrawDirectConnect(ui, directRect, menu);
 
-            if (ui.ActionButton(
-                    "Button_Back",
-                    _localization.GetString("ui.button.return")!,
-                    _returnButton with { Rect = layout.ReturnButton }
-                ))
+            string returnLabel = _localization.GetString("ui.button.return")!;
+            if (ui.ActionButton("Button_Back", layout.ReturnButton, returnLabel, _returnButton))
             {
                 menu.GoToPage(MenuPage.Home);
             }
 
             int count = _favoritesTab ? _savedServers.Count : _discoveredServers.Count;
-            if (ui.ActionButton(
-                    "Button_JoinServer",
-                    _localization.GetString("ui.button.joinServer")!,
-                    _joinButton with { Rect = layout.PrimaryButton, Enabled = count > 0 }
-                ))
+            string joinLabel = _localization.GetString("ui.button.joinServer")!;
+            var joinOptions = _joinButton with { Enabled = count > 0 };
+            if (ui.ActionButton("Button_JoinServer", layout.PrimaryButton, joinLabel, joinOptions))
             {
                 JoinSelected(menu);
             }
@@ -298,36 +293,26 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             Anchors.Left | Anchors.Center
         );
 
-        if (ui.ActionButton(
-                "Button_Disconnect",
-                _localization.GetString("ui.button.disconnect")!,
-                _disconnectButton with
-                {
-                    Rect = Widgets.Rect(
-                        disconnectX,
-                        top + 4,
-                        disconnectWidth,
-                        UiMetrics.CompactButtonHeight
-                    ),
-                }
-            ))
+        IntRect disconnectRect = Widgets.Rect(
+            disconnectX,
+            top + 4,
+            disconnectWidth,
+            UiMetrics.CompactButtonHeight
+        );
+        string disconnectLabel = _localization.GetString("ui.button.disconnect")!;
+        if (ui.ActionButton("Button_Disconnect", disconnectRect, disconnectLabel, _disconnectButton))
         {
             DisconnectServer();
         }
 
-        if (ui.ActionButton(
-                "Button_ViewSaves",
-                _localization.GetString("ui.button.viewSaves")!,
-                _viewSavesButton with
-                {
-                    Rect = Widgets.Rect(
-                        viewX,
-                        top + 4,
-                        viewWidth,
-                        UiMetrics.CompactButtonHeight
-                    ),
-                }
-            ))
+        IntRect viewRect = Widgets.Rect(
+            viewX,
+            top + 4,
+            viewWidth,
+            UiMetrics.CompactButtonHeight
+        );
+        string viewLabel = _localization.GetString("ui.button.viewSaves")!;
+        if (ui.ActionButton("Button_ViewSaves", viewRect, viewLabel, _viewSavesButton))
         {
             menu.GoToPage(MenuPage.SelectSave);
         }

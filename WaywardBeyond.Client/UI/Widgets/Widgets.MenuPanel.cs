@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -9,6 +10,59 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
+    /// <summary>Represents an active modal dialog layout scope encompassing scrim, center container, and modal panel.</summary>
+    public ref struct ModalScope(
+        UIBuilder<Material>.Scope scrim,
+        UIBuilder<Material>.Scope center,
+        UIBuilder<Material>.Scope panel
+    ) {
+        private UIBuilder<Material>.Scope _scrim = scrim;
+        private UIBuilder<Material>.Scope _center = center;
+        private UIBuilder<Material>.Scope _panel = panel;
+
+        public void Dispose()
+        {
+            _panel.Dispose();
+            _center.Dispose();
+            _scrim.Dispose();
+        }
+    }
+
+    /// <summary>Creates a centered modal dialog with scrim background, centered container, and modal panel.</summary>
+    public static ModalScope ModalDialog(
+        this UIBuilder<Material> ui,
+        int width,
+        int height,
+        Vector4? scrimColor = null
+    ) {
+        UIBuilder<Material>.Scope scrim = ui.Element();
+        ui.LayoutDirection = LayoutDirection.None;
+        ui.Color = scrimColor ?? UiTheme.Scrim;
+        ui.Constraints = new Constraints
+        {
+            Width = new Fill(),
+            Height = new Fill(),
+        };
+
+        UIBuilder<Material>.Scope center = ui.Element();
+        ui.LayoutDirection = LayoutDirection.None;
+        ui.Constraints = new Constraints
+        {
+            Anchors = Anchors.Center,
+            Width = new Fixed(width),
+            Height = new Fixed(height),
+        };
+        ui.ClipConstraints = new Constraints
+        {
+            Width = new Fixed(width),
+            Height = new Fixed(height),
+        };
+
+        UIBuilder<Material>.Scope panel = ui.ModalPanel(Rect(0, 0, width, height));
+
+        return new ModalScope(scrim, center, panel);
+    }
+
     /// <summary>Returns the shared menu panel corner caps.</summary>
     public static CornerCapStyle MenuPanelCaps()
     {

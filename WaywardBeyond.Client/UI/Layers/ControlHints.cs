@@ -166,27 +166,7 @@ internal sealed class ControlHints : IUILayer
 
             if (!string.IsNullOrEmpty(hint.Key))
             {
-                using (ui.Element())
-                {
-                    ui.Passthrough = true;
-                    ui.Padding = new Padding(left: 6, top: 2, right: 6, bottom: 2);
-                    ui.Color = UiTheme.AccentDark;
-                    ui.Border = new BorderStyle
-                    {
-                        Thickness = UiMetrics.PanelBorderThickness,
-                        Color = UiTheme.BorderHover,
-                    };
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
-
-                    using (ui.Text(hint.Key, UiMetrics.TinyFont))
-                    {
-                        ui.Passthrough = true;
-                        ui.Color = UiTheme.AccentBright;
-                    }
-                }
+                RenderKeyBadge(ui, hint.Key);
             }
 
             using (ui.Text(hint.Action, UiMetrics.TinyFont))
@@ -197,6 +177,31 @@ internal sealed class ControlHints : IUILayer
                 {
                     Anchors = Anchors.Center,
                 };
+            }
+        }
+    }
+
+    private static void RenderKeyBadge(UIBuilder<Material> ui, string key)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.Padding = new Padding(left: 6, top: 2, right: 6, bottom: 2);
+            ui.Color = UiTheme.AccentDark;
+            ui.Border = new BorderStyle
+            {
+                Thickness = UiMetrics.PanelBorderThickness,
+                Color = UiTheme.BorderHover,
+            };
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            using (ui.Text(key, UiMetrics.TinyFont))
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.AccentBright;
             }
         }
     }

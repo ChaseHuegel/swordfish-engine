@@ -100,141 +100,103 @@ internal class FeedbackModal : IMenuPage<Modal>
         int panelWidth = Math.Clamp(ui.Width - 160, 520, 860);
         int panelHeight = Math.Clamp(ui.Height - 160, 460, 620);
 
-        using (ui.Element())
+        using (ui.ModalDialog(panelWidth, panelHeight, UiTheme.ScrimHeavy))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.ScrimHeavy;
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
+            int padding = 28;
+            int contentWidth = panelWidth - padding * 2;
+            int descriptionHeight = Math.Clamp(panelHeight - 300, 140, 320);
 
+            ui.Label(
+                _localization.GetString("ui.menu.feedback")!,
+                Widgets.Rect(padding, 22, contentWidth, 30),
+                UiMetrics.MenuTitleFont,
+                UiTheme.Text,
+                Anchors.Center
+            );
+            ui.Divider(
+                Widgets.Rect(padding, 62, contentWidth, 1),
+                UiTheme.Border
+            );
+
+            ui.Label(
+                _localization.GetString("ui.feedback.message")!,
+                Widgets.Rect(padding, 78, contentWidth, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.Text,
+                Anchors.Left | Anchors.Center
+            );
             using (ui.Element())
             {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
-                };
+                ui.Constraints = Widgets.RectConstraints(
+                    Widgets.Rect(padding, 102, contentWidth, descriptionHeight)
+                );
                 ui.ClipConstraints = new Constraints
                 {
-                    Width = new Fixed(panelWidth),
-                    Height = new Fixed(panelHeight),
+                    Width = new Fixed(contentWidth),
+                    Height = new Fixed(descriptionHeight),
                 };
+                ui.TextBox(
+                    id: "TextBox_Message",
+                    state: ref _descriptionTextBox,
+                    _fieldFontOptions,
+                    _inputService,
+                    _soundEffectService
+                );
+            }
 
-                using (ui.ModalPanel(Widgets.Rect(0, 0, panelWidth, panelHeight)))
+            int contactY = 102 + descriptionHeight + 18;
+            ui.Label(
+                _localization.GetString("ui.feedback.contact")!,
+                Widgets.Rect(padding, contactY, contentWidth, 18),
+                UiMetrics.MenuSmallFont,
+                UiTheme.Text,
+                Anchors.Left | Anchors.Center
+            );
+            using (ui.Element())
+            {
+                ui.Constraints = Widgets.RectConstraints(
+                    Widgets.Rect(padding, contactY + 20, contentWidth, UiMetrics.ControlHeight)
+                );
+                ui.ClipConstraints = new Constraints
                 {
-                    int padding = 28;
-                    int contentWidth = panelWidth - padding * 2;
-                    int descriptionHeight = Math.Clamp(panelHeight - 300, 140, 320);
+                    Width = new Fixed(contentWidth),
+                    Height = new Fixed(UiMetrics.ControlHeight),
+                };
+                ui.TextBox(
+                    id: "TextBox_Contact",
+                    state: ref _contactTextBox,
+                    _fieldFontOptions,
+                    _inputService,
+                    _soundEffectService
+                );
+            }
 
-                    ui.Label(
-                        _localization.GetString("ui.menu.feedback")!,
-                        Widgets.Rect(padding, 22, contentWidth, 30),
-                        UiMetrics.MenuTitleFont,
-                        UiTheme.Text,
-                        Anchors.Center
-                    );
-                    ui.Divider(
-                        Widgets.Rect(padding, 62, contentWidth, 1),
-                        UiTheme.Border
-                    );
+            ui.Paragraph(
+                _localization.GetString("ui.feedback.helper")!,
+                Widgets.Rect(
+                    padding,
+                    contactY + 58,
+                    contentWidth,
+                    18
+                ),
+                UiMetrics.MenuSmallFont,
+                UiTheme.TextMuted
+            );
 
-                    ui.Label(
-                        _localization.GetString("ui.feedback.message")!,
-                        Widgets.Rect(padding, 78, contentWidth, 18),
-                        UiMetrics.MenuSmallFont,
-                        UiTheme.Text,
-                        Anchors.Left | Anchors.Center
-                    );
-                    using (ui.Element())
-                    {
-                        ui.Constraints = Widgets.RectConstraints(
-                            Widgets.Rect(padding, 102, contentWidth, descriptionHeight)
-                        );
-                        ui.ClipConstraints = new Constraints
-                        {
-                            Width = new Fixed(contentWidth),
-                            Height = new Fixed(descriptionHeight),
-                        };
-                        ui.TextBox(
-                            id: "TextBox_Message",
-                            state: ref _descriptionTextBox,
-                            _fieldFontOptions,
-                            _inputService,
-                            _soundEffectService
-                        );
-                    }
+            int buttonY = panelHeight - 60;
+            IntRect backRect = Widgets.Rect(padding, buttonY, 160, UiMetrics.IconButtonSize);
+            string backLabel = _localization.GetString("ui.button.back")!;
+            if (ui.ActionButton("Button_Back", backRect, backLabel, _backButton))
+            {
+                menu.GoBack();
+            }
 
-                    int contactY = 102 + descriptionHeight + 18;
-                    ui.Label(
-                        _localization.GetString("ui.feedback.contact")!,
-                        Widgets.Rect(padding, contactY, contentWidth, 18),
-                        UiMetrics.MenuSmallFont,
-                        UiTheme.Text,
-                        Anchors.Left | Anchors.Center
-                    );
-                    using (ui.Element())
-                    {
-                        ui.Constraints = Widgets.RectConstraints(
-                            Widgets.Rect(padding, contactY + 20, contentWidth, UiMetrics.ControlHeight)
-                        );
-                        ui.ClipConstraints = new Constraints
-                        {
-                            Width = new Fixed(contentWidth),
-                            Height = new Fixed(UiMetrics.ControlHeight),
-                        };
-                        ui.TextBox(
-                            id: "TextBox_Contact",
-                            state: ref _contactTextBox,
-                            _fieldFontOptions,
-                            _inputService,
-                            _soundEffectService
-                        );
-                    }
-
-                    ui.Paragraph(
-                        _localization.GetString("ui.feedback.helper")!,
-                        Widgets.Rect(
-                            padding,
-                            contactY + 58,
-                            contentWidth,
-                            18
-                        ),
-                        UiMetrics.MenuSmallFont,
-                        UiTheme.TextMuted
-                    );
-
-                    int buttonY = panelHeight - 60;
-                    if (ui.ActionButton(
-                            "Button_Back",
-                            _localization.GetString("ui.button.back")!,
-                            _backButton with
-                            {
-                                Rect = Widgets.Rect(padding, buttonY, 160, UiMetrics.IconButtonSize),
-                            }
-                        ))
-                    {
-                        menu.GoBack();
-                    }
-
-                    bool canSubmit = _descriptionTextBox.Text.Length > 0;
-                    if (ui.ActionButton(
-                            "Button_Submit",
-                            _localization.GetString("ui.button.submit")!,
-                            _submitButton with
-                            {
-                                Rect = Widgets.Rect(panelWidth - padding - 200, buttonY, 200, UiMetrics.IconButtonSize),
-                                Enabled = canSubmit,
-                            }
-                        ))
-                    {
-                        Submit(menu, ui.Time);
-                    }
-                }
+            bool canSubmit = _descriptionTextBox.Text.Length > 0;
+            IntRect submitRect = Widgets.Rect(panelWidth - padding - 200, buttonY, 200, UiMetrics.IconButtonSize);
+            string submitLabel = _localization.GetString("ui.button.submit")!;
+            if (ui.ActionButton("Button_Submit", submitRect, submitLabel, _submitButton with { Enabled = canSubmit }))
+            {
+                Submit(menu, ui.Time);
             }
         }
 
@@ -262,45 +224,52 @@ internal class FeedbackModal : IMenuPage<Modal>
 
         async Task SubmitAsync()
         {
-            //  ! HACK !
-            //  ! Brief delay to allow time for the menu to have closed
-            await Task.Delay(100);
-
-            LogEventArgs[] logHistory = _logListener.GetHistory();
-
-            await using var logStream = new MemoryStream();
-            await using var logStreamWriter = new StreamWriter(logStream);
-            foreach (LogEventArgs logEntry in logHistory)
+            try
             {
-                await logStreamWriter.WriteLineAsync($"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
+                // Delay briefly to allow the menu layer to finish closing before taking screenshot
+                await Task.Delay(100);
+
+                LogEventArgs[] logHistory = _logListener.GetHistory();
+
+                await using var logStream = new MemoryStream();
+                await using var logStreamWriter = new StreamWriter(logStream);
+                foreach (LogEventArgs logEntry in logHistory)
+                {
+                    await logStreamWriter.WriteLineAsync($"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
+                }
+
+                await logStreamWriter.FlushAsync();
+                logStream.Position = 0;
+
+                Texture screenshotTexture = _renderer.Screenshot();
+
+                await using var screenshotStream = new MemoryStream();
+                using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(
+                    screenshotTexture.Pixels,
+                    screenshotTexture.Width,
+                    screenshotTexture.Height
+                );
+                await image.SaveAsPngAsync(screenshotStream);
+                screenshotStream.Position = 0;
+
+                await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);
+                await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
+
+                Result<Guid> result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
+                if (result.Success)
+                {
+                    _logger.LogInformation($"Feedback submitted ({result.Value}).");
+                    _notificationService.Push(new Notification("Feedback submitted. Thank you, spacer!"));
+                }
+                else
+                {
+                    _logger.LogError(result.Exception, result.Message);
+                    _notificationService.Push(new Notification("Feedback submission failed, please try again."));
+                }
             }
-
-            await logStreamWriter.FlushAsync();
-            logStream.Position = 0;
-
-            Texture screenshotTexture = _renderer.Screenshot();
-
-            await using var screenshotStream = new MemoryStream();
-            using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(
-                screenshotTexture.Pixels,
-                screenshotTexture.Width,
-                screenshotTexture.Height
-            );
-            await image.SaveAsPngAsync(screenshotStream);
-            screenshotStream.Position = 0;
-
-            await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);
-            await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
-
-            Result<Guid> result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
-            if (result.Success)
+            catch (Exception ex)
             {
-                _logger.LogInformation($"Feedback submitted ({result.Value}).");
-                _notificationService.Push(new Notification("Feedback submitted. Thank you, spacer!"));
-            }
-            else
-            {
-                _logger.LogError(result.Exception, result.Message);
+                _logger.LogError(ex, "Unexpected error during feedback submission.");
                 _notificationService.Push(new Notification("Feedback submission failed, please try again."));
             }
         }

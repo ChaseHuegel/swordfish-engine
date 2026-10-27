@@ -68,7 +68,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | Widget | Source | Purpose |
 |---|---|---|
 | `Panel` | `Widgets.Panel.cs:14` | Clipped panel with border, caps, and optional inner hairline. |
-| `ActionButton` | `Widgets.ActionButton.cs:31` | Fixed or intrinsic text action button. |
+| `ActionButton` | `Widgets.ActionButton.cs:15` | Fixed or intrinsic text action button. |
 | `IconButton` | `Widgets.IconButton.cs:12` | Borderless icon action with hover/pressed fills. |
 | `PingIndicator` | `Widgets.Ping.cs:45` | Colored signal icon and ping value. |
 | `Toggle` | `Widgets.Toggle.cs:16` | Two-cell on/off control. |
@@ -80,8 +80,9 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
 | `FooterStatus` | `Widgets.FooterStatus.cs:13` | Centered footer status between two action buttons. |
 | `MenuChevron` | `Widgets.MenuChevron.cs:12` | Cyan menu selection chevron. |
-| `ModalPanel` | `Widgets.MenuPanel.cs:24` | Borderless panel for modal dialogs. |
-| `MenuPanel` | `Widgets.MenuPanel.cs:40` | Shared menu panel with inner hairline, corner caps, and optional title. |
+| `ModalDialog` | `Widgets.MenuPanel.cs:40` | Centered dialog scope with scrim and modal panel. |
+| `ModalPanel` | `Widgets.MenuPanel.cs:87` | Borderless panel for modal dialogs. |
+| `MenuPanel` | `Widgets.MenuPanel.cs:99` | Shared menu panel with inner hairline, corner caps, and optional title. |
 | `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
 | `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with one orange border and a cyan left caret. |
 | `StatLabel` | `Widgets.StatLabel.cs:10` | Stat name with a colored first letter. |
@@ -90,7 +91,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Paragraph` | `Widgets.Text.cs:48` | Fixed-rect wrapped text. |
 | `Divider` | `Widgets.Text.cs:81` | One-pixel divider. |
 
-`Widgets.ActionButton.cs:166` defines `ActionButtonOptions`. Use the factories:
+`Widgets.ActionButton.cs:250` defines `ActionButtonOptions`. Use the factories:
 
 - `Menu` for a full menu button. Width is `UiMetrics.MenuButtonMinWidth`, height
   is `UiMetrics.MenuButtonHeight`.
