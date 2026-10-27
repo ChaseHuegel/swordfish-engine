@@ -26,7 +26,11 @@ public interface IWindowContext
     IReadOnlyList<Vector2> GetVideoModes();
 
     /// <summary>Applies a display mode, border, and window size as one window update.</summary>
-    void ApplyDisplaySettings(WindowMode mode, bool borderless, int width, int height);
+    /// <param name="mode">The window mode to apply.</param>
+    /// <param name="borderless">Whether the window suppresses its border.</param>
+    /// <param name="width">The windowed width, or null to keep the saved windowed width.</param>
+    /// <param name="height">The windowed height, or null to keep the saved windowed height.</param>
+    void ApplyDisplaySettings(WindowMode mode, bool borderless, int? width = null, int? height = null);
 
     void Close();
     void SetIcon(Texture icon);
