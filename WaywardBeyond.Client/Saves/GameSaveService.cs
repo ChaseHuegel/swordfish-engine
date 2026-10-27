@@ -88,7 +88,26 @@ internal sealed class GameSaveService(
                 saves[i] = new GameSave(level.Name, level);
             }
 
+            SortByLastPlayed(saves);
             return saves;
+        }
+    }
+
+    /// <summary>Sorts saves newest first and preserves the listing order for equal timestamps.</summary>
+    internal static void SortByLastPlayed(GameSave[] saves)
+    {
+        for (var i = 1; i < saves.Length; i++)
+        {
+            GameSave current = saves[i];
+            long lastPlayed = current.Level.Playtime.LastPlayedMs;
+            var j = i - 1;
+            while (j >= 0 && saves[j].Level.Playtime.LastPlayedMs < lastPlayed)
+            {
+                saves[j + 1] = saves[j];
+                j--;
+            }
+
+            saves[j + 1] = current;
         }
     }
 

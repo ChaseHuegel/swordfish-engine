@@ -139,9 +139,9 @@ New Game:
 
 The mockup uses galaxy terminology. The game stores levels and characters.
 
-- Galactic Archives is the level/save list from `GameSaveService`. It scrolls
-  through `Widgets.ScrollArea`, so it shows the same scrollbar as the crew
-  manifest when the list overflows.
+- Galactic Archives is the level/save list from `GameSaveService`. The listing is
+  ordered by last played, newest first. It scrolls through `Widgets.ScrollArea`,
+  so it shows the same scrollbar as the crew manifest when the list overflows.
 - Sector Telemetry is `Level` data plus the active `Character` when present.
 - Crew Manifest is `ICharacterStorage`.
 - Body Preset is the real `Character.Body` ID list from
