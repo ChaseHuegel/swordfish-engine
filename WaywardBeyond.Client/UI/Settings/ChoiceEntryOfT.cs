@@ -20,8 +20,8 @@ internal sealed class ChoiceEntry<T>(
     public string GetOptionLabel(T value) => optionLabel(value);
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer, int y)
+    public override void Render(SettingsRenderer renderer)
     {
-        renderer.DrawChoice(this, y);
+        renderer.DrawChoice(this);
     }
 }

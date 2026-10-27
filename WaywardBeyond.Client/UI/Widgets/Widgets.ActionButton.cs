@@ -151,16 +151,24 @@ internal static partial class Widgets
             Thickness = style.BorderThickness,
             Color = style.Border,
         };
+        bool drawInnerBorder = enabled
+            && style.BorderThickness > 0
+            && (options.DoubleBorder || options.Variant == ButtonVariant.Primary);
         ui.CornerCaps = style.Caps;
-        ui.Padding = options.DoubleBorder
-            ? new Padding(0)
+        ui.Padding = drawInnerBorder
+            ? new Padding(2)
             : new Padding(options.PaddingX, options.PaddingY, options.PaddingX, options.PaddingY);
 
         if (options.Rect.HasValue)
         {
             IntRect rect = options.Rect.Value;
             ui.Constraints = RectConstraints(rect);
-            ui.ClipConstraints = RectConstraints(rect);
+        }
+        else if (options.Layout is { } layout)
+        {
+            layout.Width ??= options.MinWidth > 0 ? new Fixed(options.MinWidth) : null;
+            layout.Height ??= options.Height > 0 ? new Fixed(options.Height) : null;
+            ui.Constraints = layout;
         }
         else
         {
@@ -182,29 +190,22 @@ internal static partial class Widgets
             ui.Constraints = constraints;
         }
 
-        if (options.Rect.HasValue && options.Variant == ButtonVariant.Primary && enabled)
+        ui.ClipConstraints = ClipToBounds();
+
+        if (drawInnerBorder)
         {
-            DrawInnerBorder(ui, options.Rect.Value, UiTheme.PrimaryDark);
-        }
-        else if (options.DoubleBorder && enabled && style.BorderThickness > 0)
-        {
-            int width = options.Rect?.Size.X ?? options.MinWidth;
-            int height = options.Rect?.Size.Y ?? options.Height;
-            if (width > 0 && height > 0)
+            Vector4 color = options.Variant switch
             {
-                Vector4 color = options.Variant switch
-                {
-                    ButtonVariant.Primary => UiTheme.PrimaryDark,
-                    ButtonVariant.Danger => UiTheme.DangerDark,
-                    _ => UiTheme.BorderInner,
-                };
-                DrawInnerBorder(ui, Rect(0, 0, width, height), color);
-            }
+                ButtonVariant.Primary => UiTheme.PrimaryDark,
+                ButtonVariant.Danger => UiTheme.DangerDark,
+                _ => UiTheme.BorderInner,
+            };
+            DrawInnerBorder(ui, color);
         }
 
         FontOptions font = options.Font ?? new FontOptions
         {
-            Size = options.Rect != null ? UiMetrics.BUTTON_FONT : UiMetrics.MENU_BODY_FONT,
+            Size = options.Rect != null || options.Layout != null ? UiMetrics.BUTTON_FONT : UiMetrics.MENU_BODY_FONT,
             NoWrap = true,
         };
         font.ID ??= UiTheme.FONT_UI;
@@ -229,7 +230,7 @@ internal static partial class Widgets
         }
     }
 
-    private static void DrawInnerBorder(UIBuilder<Material> ui, IntRect rect, Vector4 color)
+    private static void DrawInnerBorder(UIBuilder<Material> ui, Vector4 color)
     {
         using (ui.Element())
         {
@@ -240,9 +241,11 @@ internal static partial class Widgets
                 Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = color,
             };
-            IntRect inner = Rect(2, 2, Math.Max(0, rect.Size.X - 4), Math.Max(0, rect.Size.Y - 4));
-            ui.Constraints = RectConstraints(inner);
-            ui.ClipConstraints = RectConstraints(inner);
+            ui.Constraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
         }
     }
 
@@ -259,6 +262,7 @@ internal static partial class Widgets
         Anchors Anchors = default,
         SoundEffectService? SoundEffectService = null,
         IntRect? Rect = null,
+        Reef.UI.Constraints? Layout = null,
         bool Selected = false,
         bool DoubleBorder = false
     )

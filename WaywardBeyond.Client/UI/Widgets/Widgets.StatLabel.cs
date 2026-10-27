@@ -28,4 +28,27 @@ internal static partial class Widgets
             focused ? UiTheme.Text : UiTheme.TextMuted
         );
     }
+
+    /// <summary>Draws a stat name with its first letter emphasized in the current layout.</summary>
+    public static void StatLabel(
+        this UIBuilder<Material> ui,
+        string label,
+        int fontSize,
+        bool focused,
+        Reef.UI.Constraints constraints
+    )
+    {
+        if (string.IsNullOrEmpty(label))
+        {
+            return;
+        }
+
+        string markup = $"#{(focused ? "orange" : "cyan")}{label[0]}#R{label[1..]}";
+        ui.Label(
+            markup,
+            fontSize,
+            focused ? UiTheme.Text : UiTheme.TextMuted,
+            constraints
+        );
+    }
 }

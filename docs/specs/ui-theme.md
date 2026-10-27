@@ -75,50 +75,55 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | Widget | Source | Purpose |
 |---|---|---|
 | `Panel` | `Widgets.Panel.cs:14` | Clipped panel with border, caps, and optional inner hairline. |
-| `ActionButton` | `Widgets.ActionButton.cs:15` | Text action button with a fixed rect, or an intrinsic size. |
+| `ActionButton` | `Widgets.ActionButton.cs:15` | Text action button with layout constraints, a fixed rect, or an intrinsic size. |
 | `IconButton` | `Widgets.IconButton.cs:12` | Borderless icon action with hover/pressed fills. |
 | `PingIndicator` | `Widgets.Ping.cs:45` | Colored signal icon and ping value. |
 | `Toggle` | `Widgets.Toggle.cs:16` | Two-cell on/off control. |
 | `SegmentedControl` | `Widgets.Toggle.cs:39` | Radio-like choice row. |
 | `Stepper` | `Widgets.Stepper.cs:14` | Discrete value control. |
 | `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
-| `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
-| `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar. |
-| `ModalDialog` | `Widgets.ModalDialog.cs:39` | Centered dialog scope holding the scrim, center container, and modal panel. |
+| `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator that fills the layout or a fixed rect. |
+| `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar and routed wheel input. |
+| `ModalDialog` | `Widgets.ModalDialog.cs:31` | Centered dialog scope holding the scrim, center container, and modal panel. |
 | `MenuTextBox` | `Widgets.MenuTextBox.cs:13` | Clipped menu text box that returns its interactions. |
 | `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
 | `FooterStatus` | `Widgets.FooterStatus.cs:13` | Centered footer status between two action buttons. |
-| `MenuChevron` | `Widgets.MenuChevron.cs:12` | Cyan menu selection chevron. |
-| `ModalPanel` | `Widgets.MenuPanel.cs:24` | Borderless panel for modal dialogs. |
-| `MenuPanel` | `Widgets.MenuPanel.cs:36` | Shared menu panel with inner hairline, corner caps, and optional title. |
-| `InfoBox` | `Widgets.InfoBox.cs:13` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
+| `ModalPanel` | `Widgets.MenuPanel.cs:39` | Borderless panel for modal dialogs. |
+| `MenuPanel` | `Widgets.MenuPanel.cs:60` | Shared menu panel with inner hairline, corner caps, and optional title. |
+| `InfoBox` | `Widgets.InfoBox.cs:12` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
 | `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with one orange border and a cyan left caret. |
 | `StatLabel` | `Widgets.StatLabel.cs:10` | Stat name with a colored first letter. |
 | `Tab` | `Widgets.Tab.cs:12` | Attached tab with selected state. |
-| `Label` | `Widgets.Text.cs:13` | Fixed-rect single-line text. |
-| `Paragraph` | `Widgets.Text.cs:48` | Fixed-rect wrapped text. |
-| `Divider` | `Widgets.Text.cs:81` | One-pixel divider. |
+| `Label` | `Widgets.Text.cs:13` | Single-line text in the current layout or a fixed rect. |
+| `Paragraph` | `Widgets.Text.cs:57` | Wrapped text in the current layout or a fixed rect. |
+| `Divider` | `Widgets.Text.cs:90` | One-pixel divider. |
+| `Row` / `Column` | `Widgets.Layout.cs:76` | Horizontal or vertical stack with spacing. |
+| `Spacer` / `Filler` | `Widgets.Layout.cs:106` | Fixed or remaining-space filler. |
+| `Page` | `Widgets.Layout.cs:52` | Centered page with a fixed maximum size and a clip. |
 
 `ControlResult<T>` at `WaywardBeyond.Client/UI/Widgets/ControlResultOfT.cs:4` is
 the return type of `Toggle`, `SegmentedControl`, `Stepper`, and `Slider`. Read
 `Changed` before `Value`, so a control never needs an `out` value.
 
-`Widgets.ActionButton.cs:250` defines `ActionButtonOptions`. Use the factories:
+`Widgets.ActionButton.cs:253` defines `ActionButtonOptions`. Use the factories:
 
 - `Menu` for a full menu button. Width is `UiMetrics.MenuButtonMinWidth`, height
   is `UiMetrics.MenuButtonHeight`.
 - `Compact` for a small action button.
 - `ListRow` for a full-width list row. Content aligns left.
 
+Set `Layout` to use the button in a row or a column. The layout width and height
+override the factory defaults. `MenuLayoutExtensions.FooterButton` supplies the
+shared footer slot.
+
 Icon-only actions use `Widgets.IconButton` with `IconButtonOptions`, not the text
 button factories. Icon buttons are borderless and transparent at rest, then use a
 hover/pressed fill and icon-color change. Danger icons use the danger palette.
 Keep the full square hit target and let the glyph center in it.
 
-A text button takes its rect as an argument, so callers pass `layout.ReturnButton`
-and friends directly. A button without a rect uses its `MinWidth`, `Height`, and
-padding to size itself. Pass `ActionButtonOptions` and the rect together rather
-than building `options with { Rect = ... }` at the call site.
+A text button can take a fixed rect, layout constraints, or an intrinsic size.
+Prefer `Layout` for pages. Pass `ActionButtonOptions` as one value rather than
+building a partial options value at the call site.
 
 Set `Selected` to true for a current list row. Set `Anchors` for placement in a
 parent layout. Pass a `SoundEffectService` to play the standard click sound.
@@ -148,9 +153,9 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 - Glyphs: `WaywardBeyond.Client/UI/MenuGlyphs.cs:4`
 - Resolver: `WaywardBeyond.Client/UI/Theme/UiThemeResolver.cs:6`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
-- Menu layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`
-- Settings layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:7`
-- Settings renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:16`
+- Menu layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:10`
+- Settings layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:6`
+- Settings renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:14`
 
 ## Tests
 
@@ -158,7 +163,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   states, disabled styles, segmented cells, and stepper arrows.
 - `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic button
   sizing plus Font Awesome glyph centering.
-- `Swordfish.Tests/MenuLayoutTests.cs` covers wide, narrow, and footer geometry.
+- `Swordfish.Tests/MenuLayoutTests.cs` covers wide and narrow page geometry and
+  the shared footer button slot.
 - `Swordfish.Tests/PingDisplayTests.cs` covers ping bands and unknown/unreachable states.
 - `Swordfish.Tests/MenuPanelRenderTests.cs` checks that menu panels have no outer
   border and that selected cards use one border plus a cyan caret.

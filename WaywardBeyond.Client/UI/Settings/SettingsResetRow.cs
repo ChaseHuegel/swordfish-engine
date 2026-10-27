@@ -11,8 +11,8 @@ internal sealed class SettingsResetRow(string id, Action reset) : SettingsRow
     public override int Height => SettingsMetrics.RESET_ROW_HEIGHT;
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer, int y)
+    public override void Render(SettingsRenderer renderer)
     {
-        renderer.DrawResetRow(Id, y, reset);
+        renderer.DrawResetRow(Id, reset);
     }
 }

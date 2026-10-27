@@ -25,8 +25,8 @@ internal sealed class SliderEntry(
     public string Format(float value) => format(value);
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer, int y)
+    public override void Render(SettingsRenderer renderer)
     {
-        renderer.DrawSlider(this, y);
+        renderer.DrawSlider(this);
     }
 }

@@ -360,7 +360,7 @@ internal sealed class ChatLayer : IUILayer
         {
             ui.Color = UiTheme.Track;
             ui.Constraints = Widgets.RectConstraints(scrollbarRect);
-            ui.ClipConstraints = Widgets.RectConstraints(scrollbarRect);
+            ui.ClipConstraints = Widgets.ClipConstraints(scrollbarRect);
         }
     }
 

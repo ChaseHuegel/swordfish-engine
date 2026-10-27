@@ -1,33 +1,30 @@
 using System;
 using Reef;
+using Reef.Constraints;
+using Reef.UI;
+using Swordfish.Graphics;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus;
 
-/// <summary>Fixed-metric geometry for one menu page at one window size.</summary>
+/// <summary>Responsive geometry for one menu page at one window size.</summary>
 internal readonly record struct MenuLayout(
     int PageWidth,
     int PageHeight,
     bool UseTabs,
-    IntRect Left,
-    IntRect Right,
-    IntRect Tabs,
-    IntRect Footer,
-    IntRect ReturnButton,
-    IntRect PrimaryButton
+    float LeftRatio
 )
 {
-    private const int PAGE_GAP = 12;
-    private const int PANEL_GAP = 20;
-    private const int FOOTER_HEIGHT = 52;
-    private const int TABS_HEIGHT = 40;
-    private const int MIN_PAGE_WIDTH = 480;
-    private const int MIN_PAGE_HEIGHT = 360;
-    private const int MAX_PAGE_HEIGHT = 560;
-    private const int NARROW_BREAKPOINT = 900;
-    private const int MIN_LEFT_WIDTH = 280;
-    private const int MIN_RIGHT_WIDTH = 320;
-    private const int RETURN_WIDTH = 170;
-    private const int PRIMARY_WIDTH = 220;
+    public const int PAGE_GAP = 12;
+    public const int PANEL_GAP = 20;
+    public const int FOOTER_HEIGHT = 52;
+    public const int TABS_HEIGHT = 40;
+    public const int FOOTER_BUTTON_HEIGHT = 40;
+    public const int RETURN_BUTTON_WIDTH = 170;
+    public const int PRIMARY_BUTTON_WIDTH = 220;
+    public const int MIN_PAGE_WIDTH = 480;
+    public const int MIN_PAGE_HEIGHT = 360;
+    public const int MAX_PAGE_HEIGHT = 560;
+    public const int NARROW_BREAKPOINT = 900;
 
     /// <summary>Computes the menu geometry for a window size.</summary>
     public static MenuLayout Compute(
@@ -43,65 +40,42 @@ internal readonly record struct MenuLayout(
         int pageHeight = Math.Max(MIN_PAGE_HEIGHT, Math.Min(windowHeight - 240, maxPageHeight));
         bool useTabs = twoColumn && pageWidth < NARROW_BREAKPOINT;
 
-        var footer = new IntRect(
-            new IntVector2(0, pageHeight - FOOTER_HEIGHT),
-            new IntVector2(pageWidth, FOOTER_HEIGHT)
-        );
-
-        int panelY = PAGE_GAP;
-        int panelBottom = footer.Top - PAGE_GAP;
-        int panelHeight = Math.Max(0, panelBottom - panelY);
-
-        IntRect left;
-        IntRect right;
-        IntRect tabs;
-
-        if (useTabs)
-        {
-            left = default;
-            tabs = new IntRect(new IntVector2(0, panelY), new IntVector2(pageWidth, TABS_HEIGHT));
-            int paneY = tabs.Bottom;
-            right = new IntRect(
-                new IntVector2(0, paneY),
-                new IntVector2(pageWidth, Math.Max(0, panelBottom - paneY))
-            );
-        }
-        else if (twoColumn)
-        {
-            tabs = default;
-            int leftWidth = Math.Clamp((int)(pageWidth * leftRatio), MIN_LEFT_WIDTH, pageWidth - MIN_RIGHT_WIDTH);
-            left = new IntRect(new IntVector2(0, panelY), new IntVector2(leftWidth, panelHeight));
-            right = new IntRect(
-                new IntVector2(leftWidth + PANEL_GAP, panelY),
-                new IntVector2(pageWidth - leftWidth - PANEL_GAP, panelHeight)
-            );
-        }
-        else
-        {
-            tabs = default;
-            left = default;
-            right = new IntRect(new IntVector2(0, panelY), new IntVector2(pageWidth, panelHeight));
-        }
-
-        var returnButton = new IntRect(
-            new IntVector2(0, footer.Top + 6),
-            new IntVector2(RETURN_WIDTH, FOOTER_HEIGHT - 12)
-        );
-        var primaryButton = new IntRect(
-            new IntVector2(pageWidth - PRIMARY_WIDTH, footer.Top + 6),
-            new IntVector2(PRIMARY_WIDTH, FOOTER_HEIGHT - 12)
-        );
-
         return new MenuLayout(
             pageWidth,
             pageHeight,
             useTabs,
-            left,
-            right,
-            tabs,
-            footer,
-            returnButton,
-            primaryButton
+            leftRatio
         );
+    }
+}
+
+/// <summary>Layout helpers shared by the menu pages.</summary>
+internal static class MenuLayoutExtensions
+{
+    /// <summary>Opens a centered page for the layout.</summary>
+    public static UIBuilder<Material>.Scope Page(
+        this UIBuilder<Material> ui,
+        in MenuLayout layout,
+        string? id = null
+    )
+    {
+        return ui.Page(layout.PageWidth, layout.PageHeight, id);
+    }
+
+    /// <summary>Adds the shared footer size to an action button.</summary>
+    public static Widgets.ActionButtonOptions FooterButton(
+        this Widgets.ActionButtonOptions options,
+        int width
+    )
+    {
+        return options with
+        {
+            Layout = new Constraints
+            {
+                Width = new Fixed(width),
+                Height = new Fixed(MenuLayout.FOOTER_BUTTON_HEIGHT),
+                Anchors = Anchors.Center,
+            },
+        };
     }
 }

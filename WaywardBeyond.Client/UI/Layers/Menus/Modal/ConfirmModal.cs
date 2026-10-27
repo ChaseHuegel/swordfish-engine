@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Reef.Constraints;
 using Reef.UI;
 using Reef;
 using Swordfish.Graphics;
@@ -44,52 +45,87 @@ internal class ConfirmModal(
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        int padding = UiMetrics.MODAL_PADDING;
-        int contentWidth = PANEL_WIDTH - padding * 2;
         ConfirmRequest request = CurrentRequest();
 
         using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
         {
             ui.Label(
                 request.Title,
-                Widgets.Rect(padding, 22, contentWidth, 30),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
-                Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(30),
+                },
+                HorizontalAlignment.Center
             );
+            ui.Spacer(height: 8);
             ui.Divider(
-                Widgets.Rect(padding, 62, contentWidth, 1),
-                UiTheme.Border
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
             );
+            ui.Spacer(height: 16);
             ui.Paragraph(
                 request.Body,
-                Widgets.Rect(padding, 86, contentWidth, 56),
                 UiMetrics.MENU_BODY_FONT,
-                UiTheme.TextMuted
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
             );
 
-            int buttonY = PANEL_HEIGHT - 68;
-            IntRect cancelRect = Widgets.Rect(
-                padding,
-                buttonY,
-                UiMetrics.MODAL_BUTTON_WIDTH,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            if (ui.ActionButton("Button_No", cancelRect, request.CancelLabel, _secondaryButton))
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                },
+                spacing: 12
+            ))
             {
-                _requests.TryPop(out _);
-                menu.GoBack();
-            }
+                if (ui.ActionButton(
+                    "Button_No",
+                    request.CancelLabel,
+                    _secondaryButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(UiMetrics.MODAL_BUTTON_WIDTH),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    _requests.TryPop(out _);
+                    menu.GoBack();
+                }
 
-            IntRect confirmRect = Widgets.Rect(
-                PANEL_WIDTH - padding - UiMetrics.MODAL_BUTTON_WIDTH,
-                buttonY,
-                UiMetrics.MODAL_BUTTON_WIDTH,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            if (ui.ActionButton("Button_Yes", confirmRect, request.ConfirmLabel, _primaryButton))
-            {
-                Confirm(menu);
+                ui.Filler();
+
+                if (ui.ActionButton(
+                    "Button_Yes",
+                    request.ConfirmLabel,
+                    _primaryButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(UiMetrics.MODAL_BUTTON_WIDTH),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    Confirm(menu);
+                }
             }
         }
 

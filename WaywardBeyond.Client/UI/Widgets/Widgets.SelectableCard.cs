@@ -22,11 +22,42 @@ internal static partial class Widgets
         return ui.SelectableCard(id, rect, in options, drawContent, static (contentUi, draw) => draw(contentUi));
     }
 
+    /// <summary>Creates a clickable card in the current layout.</summary>
+    public static bool SelectableCard(
+        this UIBuilder<Material> ui,
+        string id,
+        Constraints constraints,
+        SelectableCardOptions options,
+        Action<UIBuilder<Material>> drawContent
+    )
+    {
+        return ui.SelectableCard(id, constraints, options, drawContent, static (contentUi, draw) => draw(contentUi));
+    }
+
     /// <summary>Creates a clickable card and draws its content from an explicit state value.</summary>
     public static bool SelectableCard<TState>(
         this UIBuilder<Material> ui,
         string id,
         IntRect rect,
+        in SelectableCardOptions options,
+        TState state,
+        Action<UIBuilder<Material>, TState> drawContent
+    )
+    {
+        return ui.SelectableCard(
+            id,
+            RectConstraints(rect),
+            options,
+            state,
+            drawContent
+        );
+    }
+
+    /// <summary>Creates a clickable card in the current layout and draws its content from an explicit state value.</summary>
+    public static bool SelectableCard<TState>(
+        this UIBuilder<Material> ui,
+        string id,
+        Constraints constraints,
         in SelectableCardOptions options,
         TState state,
         Action<UIBuilder<Material>, TState> drawContent
@@ -39,7 +70,7 @@ internal static partial class Widgets
         {
             using (ui.Element())
             {
-                DrawSelectableCard(ui, rect, options, enabled: false, hovering: false, pressed: false);
+                DrawSelectableCard(ui, constraints, options, enabled: false, hovering: false, pressed: false);
                 drawContent(ui, state);
             }
 
@@ -50,7 +81,7 @@ internal static partial class Widgets
         {
             clicked = ui.Clicked();
             hovering = ui.Hovering();
-            DrawSelectableCard(ui, rect, options, enabled: true, hovering, clicked);
+            DrawSelectableCard(ui, constraints, options, enabled: true, hovering, clicked);
             drawContent(ui, state);
         }
 
@@ -64,7 +95,7 @@ internal static partial class Widgets
 
     private static void DrawSelectableCard(
         UIBuilder<Material> ui,
-        IntRect rect,
+        Constraints constraints,
         SelectableCardOptions options,
         bool enabled,
         bool hovering,
@@ -91,8 +122,9 @@ internal static partial class Widgets
                         : UiTheme.Border,
         };
         ui.CornerCaps = default;
-        ui.Constraints = RectConstraints(rect);
-        ui.ClipConstraints = RectConstraints(rect);
+        ui.Constraints = constraints;
+        ui.Padding = new Padding(left: 0, top: 6, right: 0, bottom: 6);
+        ui.ClipConstraints = ClipToBounds();
 
         if (options.Selected)
         {
@@ -103,9 +135,8 @@ internal static partial class Widgets
                 ui.Constraints = new Constraints
                 {
                     X = new Fixed(2),
-                    Y = new Fixed(6),
                     Width = new Fixed(3),
-                    Height = new Fixed(Math.Max(0, rect.Size.Y - 12)),
+                    Height = new Fill(),
                 };
             }
         }

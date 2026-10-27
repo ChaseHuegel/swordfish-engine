@@ -1,4 +1,5 @@
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Services;
@@ -20,18 +21,42 @@ internal static partial class Widgets
         return ui.ActionButton(
             id,
             glyph,
-            new ActionButtonOptions(
-                Variant: options.Danger ? ButtonVariant.IconDanger : ButtonVariant.Icon,
-                Enabled: options.Enabled,
-                Rect: rect,
-                Font: new FontOptions
-                {
-                    ID = options.FontId,
-                    Size = options.FontSize,
-                    NoWrap = true,
-                },
-                SoundEffectService: options.SoundEffectService
-            )
+            CreateIconButtonOptions(options, RectConstraints(rect))
+        );
+    }
+
+    /// <summary>Creates a borderless icon button in the current layout.</summary>
+    public static bool IconButton(
+        this UIBuilder<Material> ui,
+        string id,
+        string glyph,
+        IconButtonOptions options,
+        Constraints constraints
+    )
+    {
+        return ui.ActionButton(
+            id,
+            glyph,
+            CreateIconButtonOptions(options, constraints)
+        );
+    }
+
+    private static ActionButtonOptions CreateIconButtonOptions(
+        IconButtonOptions options,
+        Constraints constraints
+    )
+    {
+        return new ActionButtonOptions(
+            Variant: options.Danger ? ButtonVariant.IconDanger : ButtonVariant.Icon,
+            Enabled: options.Enabled,
+            Layout: constraints,
+            Font: new FontOptions
+            {
+                ID = options.FontId,
+                Size = options.FontSize,
+                NoWrap = true,
+            },
+            SoundEffectService: options.SoundEffectService
         );
     }
 

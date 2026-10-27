@@ -23,115 +23,87 @@ internal static partial class Widgets
         bool enabled
     )
     {
+        return ui.Slider(id, RectConstraints(rect), value, min, max, step, format, enabled);
+    }
+
+    /// <summary>Creates a draggable slider in the current layout and reports whether the value changed.</summary>
+    public static ControlResult<float> Slider(
+        this UIBuilder<Material> ui,
+        string id,
+        Constraints constraints,
+        float value,
+        float min,
+        float max,
+        float step,
+        Func<float, string> format,
+        bool enabled
+    )
+    {
         float newValue = value;
         var changed = false;
 
-        using (ui.Element())
+        using (ui.Row(constraints, spacing: 8))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.Transparent;
-            ui.Constraints = RectConstraints(rect);
-            ui.ClipConstraints = RectConstraints(rect);
-
-            int buttonSize = UiMetrics.SLIDER_BUTTON_SIZE;
-            int valueWidth = UiMetrics.SLIDER_VALUE_WIDTH;
-            int gap = 8;
-            int buttonY = (rect.Size.Y - buttonSize) / 2;
-
-            IntRect minusRect = Rect(0, buttonY, buttonSize, buttonSize);
-            IntRect valueRect = Rect(rect.Size.X - valueWidth, 0, valueWidth, rect.Size.Y);
-            IntRect plusRect = Rect(valueRect.Left - gap - buttonSize, buttonY, buttonSize, buttonSize);
-            int trackX = minusRect.Right + gap;
-            int trackWidth = plusRect.Left - gap - trackX;
-            IntRect trackRect = Rect(
-                trackX,
-                (rect.Size.Y - UiMetrics.SLIDER_TRACK_HEIGHT) / 2,
-                trackWidth,
-                UiMetrics.SLIDER_TRACK_HEIGHT
+            var buttonOptions = new ActionButtonOptions(
+                Variant: ButtonVariant.Secondary,
+                Layout: new Constraints
+                {
+                    Width = new Fixed(UiMetrics.SLIDER_BUTTON_SIZE),
+                    Height = new Fixed(UiMetrics.SLIDER_BUTTON_SIZE),
+                },
+                Anchors: Anchors.Center
             );
 
-            if (ui.ActionButton($"{id}.minus", minusRect, "-", ButtonVariant.Secondary, enabled))
+            if (ui.ActionButton($"{id}.minus", "-", buttonOptions with { Enabled = enabled }))
             {
                 newValue = SnapSliderValue(newValue - step, min, max, step);
                 changed = true;
             }
 
-            if (ui.ActionButton($"{id}.plus", plusRect, "+", ButtonVariant.Secondary, enabled))
+            int trackWidth = 0;
+            if (enabled)
+            {
+                using (ui.Element($"{id}.track"))
+                {
+                    ElementBounds bounds = ui.GetElementBounds();
+                    trackWidth = bounds.Rect.Size.X;
+                    changed = UpdateSliderFromCursor(ui, bounds, min, max, step, ref newValue);
+                    DrawSliderTrackBody(ui, trackWidth, newValue, min, max, enabled);
+                }
+            }
+            else
+            {
+                using (ui.Element())
+                {
+                    DrawSliderTrackBody(ui, trackWidth, newValue, min, max, enabled);
+                }
+            }
+
+            if (ui.ActionButton($"{id}.plus", "+", buttonOptions with { Enabled = enabled }))
             {
                 newValue = SnapSliderValue(newValue + step, min, max, step);
                 changed = true;
             }
 
-            if (trackWidth > 10 && DrawSliderTrack(ui, enabled ? $"{id}.track" : null, trackRect, newValue, min, max, step, enabled, out float trackValue))
-            {
-                newValue = trackValue;
-                changed = true;
-            }
-
-            using (ui.Element())
-            {
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = UiTheme.Transparent;
-                ui.Constraints = RectConstraints(valueRect);
-                ui.ClipConstraints = RectConstraints(valueRect);
-
-                using (ui.Text(format(newValue)))
+            ui.Label(
+                format(newValue),
+                UiMetrics.CONTROL_FONT,
+                enabled ? UiTheme.Text : UiTheme.TextDim,
+                new Constraints
                 {
-                    ui.FontOptions = new FontOptions
-                    {
-                        ID = UiTheme.FONT_UI,
-                        Size = UiMetrics.CONTROL_FONT,
-                        NoWrap = true,
-                    };
-                    ui.Color = enabled ? UiTheme.Text : UiTheme.TextDim;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Right | Anchors.Center,
-                    };
-                }
-            }
+                    Width = new Fixed(UiMetrics.SLIDER_VALUE_WIDTH),
+                    Height = new Fill(),
+                },
+                HorizontalAlignment.Right
+            );
         }
 
         return new ControlResult<float>(changed, newValue);
     }
 
-    private static bool DrawSliderTrack(
-        UIBuilder<Material> ui,
-        string? id,
-        IntRect rect,
-        float value,
-        float min,
-        float max,
-        float step,
-        bool enabled,
-        out float newValue
-    )
-    {
-        newValue = value;
-        var changed = false;
-
-        if (enabled)
-        {
-            using (ui.Element(id!))
-            {
-                changed = UpdateSliderFromCursor(ui, rect, min, max, step, ref newValue);
-                DrawSliderTrackBody(ui, rect, newValue, min, max, enabled);
-            }
-        }
-        else
-        {
-            using (ui.Element())
-            {
-                DrawSliderTrackBody(ui, rect, newValue, min, max, enabled);
-            }
-        }
-
-        return changed;
-    }
-
     private static bool UpdateSliderFromCursor(
         UIBuilder<Material> ui,
-        IntRect rect,
+        ElementBounds bounds,
         float min,
         float max,
         float step,
@@ -143,9 +115,14 @@ internal static partial class Widgets
             return false;
         }
 
-        int innerWidth = Math.Max(1, rect.Size.X - 2);
+        int trackWidth = bounds.Rect.Size.X;
+        if (trackWidth <= 2)
+        {
+            return false;
+        }
+
         IntVector2 cursor = ui.GetRelativeCursorPosition();
-        float ratio = Math.Clamp((cursor.X - 1f) / innerWidth, 0f, 1f);
+        float ratio = Math.Clamp((cursor.X - 1f) / (trackWidth - 2), 0f, 1f);
         float snapped = SnapSliderValue(min + ratio * (max - min), min, max, step);
 
         if (Math.Abs(snapped - value) < 0.0001f)
@@ -159,7 +136,7 @@ internal static partial class Widgets
 
     private static void DrawSliderTrackBody(
         UIBuilder<Material> ui,
-        IntRect rect,
+        int trackWidth,
         float value,
         float min,
         float max,
@@ -167,28 +144,30 @@ internal static partial class Widgets
     )
     {
         ui.LayoutDirection = LayoutDirection.None;
+        ui.Padding = new Padding(UiMetrics.PANEL_BORDER_THICKNESS);
         ui.Color = UiTheme.Track;
         ui.Border = new BorderStyle
         {
             Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
             Color = enabled ? UiTheme.Border : UiTheme.BorderInner,
         };
-        ui.Constraints = RectConstraints(rect);
-        ui.ClipConstraints = RectConstraints(rect);
+        ui.Constraints = new Constraints
+        {
+            Width = new Fill(),
+            Height = new Fixed(UiMetrics.SLIDER_TRACK_HEIGHT),
+            Anchors = Anchors.Center,
+        };
+        ui.ClipConstraints = ClipToBounds();
 
-        int innerWidth = Math.Max(1, rect.Size.X - 2);
         float ratio = max > min ? Math.Clamp((value - min) / (max - min), 0f, 1f) : 0f;
-        int fillWidth = (int)MathF.Round(ratio * innerWidth);
 
         using (ui.Element())
         {
             ui.Color = enabled ? UiTheme.TrackFill : UiTheme.BorderInner;
             ui.Constraints = new Constraints
             {
-                X = new Fixed(1),
-                Y = new Fixed(1),
-                Width = new Fixed(fillWidth),
-                Height = new Fixed(Math.Max(0, rect.Size.Y - 2)),
+                Width = new Relative(ratio),
+                Height = new Fill(),
             };
         }
 
@@ -199,24 +178,27 @@ internal static partial class Widgets
                 ui.Color = UiTheme.Track * new Vector4(0.5f);
                 ui.Constraints = new Constraints
                 {
-                    X = new Fixed(1 + innerWidth * i / 10),
-                    Y = new Fixed(1),
+                    X = new Relative(i / 10f),
                     Width = new Fixed(2),
-                    Height = new Fixed(Math.Max(0, rect.Size.Y - 2)),
+                    Height = new Fill(),
                 };
             }
         }
 
+        float thumbRatio = ratio;
+        if (trackWidth > 4)
+        {
+            thumbRatio = Math.Min(thumbRatio, (trackWidth - 4f) / (trackWidth - 2f));
+        }
+
         using (ui.Element())
         {
-            int thumbX = 1 + Math.Clamp(fillWidth - 1, 0, Math.Max(0, innerWidth - 3));
             ui.Color = enabled ? UiTheme.Thumb : UiTheme.TextDim;
             ui.Constraints = new Constraints
             {
-                X = new Fixed(thumbX),
-                Y = new Fixed(1),
+                X = new Relative(thumbRatio),
                 Width = new Fixed(3),
-                Height = new Fixed(Math.Max(0, rect.Size.Y - 2)),
+                Height = new Fill(),
             };
         }
     }

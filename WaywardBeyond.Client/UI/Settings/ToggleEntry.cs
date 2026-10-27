@@ -13,8 +13,8 @@ internal sealed class ToggleEntry(
 ) : SettingsEntry<bool>(id, labelKey, get, set, defaultValue, isEnabled)
 {
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer, int y)
+    public override void Render(SettingsRenderer renderer)
     {
-        renderer.DrawToggle(this, y);
+        renderer.DrawToggle(this);
     }
 }

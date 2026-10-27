@@ -34,10 +34,8 @@ public class SettingsPageRenderTests
         Assert.Equal(layout.PageWidth, pageRect.Size.X);
         Assert.Equal(layout.PageHeight, pageRect.Size.Y);
 
-        var listRect = new IntRect(
-            new IntVector2(pageRect.Left + layout.List.Left, pageRect.Top + layout.List.Top),
-            layout.List.Size
-        );
+        int paneLeft = pageRect.Left + layout.TrayWidth + SettingsLayout.PANEL_GAP;
+        int paneRight = pageRect.Right;
 
         string[] controlIds =
         [
@@ -60,7 +58,10 @@ public class SettingsPageRenderTests
         for (var i = 1; i < controlIds.Length - 1; i++)
         {
             IntRect rect = FindRequired(commands, controlIds[i]).Rect;
-            Assert.True(Contains(listRect, rect), $"{controlIds[i]} escaped the list.");
+            Assert.True(
+                rect.Left >= paneLeft && rect.Right <= paneRight,
+                $"{controlIds[i]} escaped the pane."
+            );
         }
     }
 
@@ -82,7 +83,6 @@ public class SettingsPageRenderTests
         const int windowHeight = 600;
         SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
         Assert.True(layout.UseTabs);
-        Assert.Equal(64, layout.Pane.Top);
         List<RenderCommand<Material>> commands = RenderSettingsPage(windowWidth, windowHeight);
 
         Assert.True(

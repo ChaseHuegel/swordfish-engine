@@ -1,3 +1,4 @@
+using Reef.Constraints;
 using Reef.UI;
 using Reef;
 using Swordfish.Graphics;
@@ -37,36 +38,65 @@ internal sealed class MessageModal(
     /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        int padding = UiMetrics.MODAL_PADDING;
-        int contentWidth = PANEL_WIDTH - padding * 2;
-
         using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
         {
             ui.Label(
                 _title,
-                Widgets.Rect(padding, 22, contentWidth, 30),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
-                Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(30),
+                },
+                HorizontalAlignment.Center
             );
-            ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
+            ui.Spacer(height: 8);
+            ui.Divider(
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
+            );
+            ui.Spacer(height: 16);
             ui.Paragraph(
                 _body,
-                Widgets.Rect(padding, 86, contentWidth, 56),
                 UiMetrics.MENU_BODY_FONT,
-                UiTheme.TextMuted
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
             );
 
-            IntRect okRect = Widgets.Rect(
-                PANEL_WIDTH - padding - UiMetrics.MODAL_BUTTON_WIDTH,
-                PANEL_HEIGHT - 68,
-                UiMetrics.MODAL_BUTTON_WIDTH,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            string okLabel = _localization.GetRequired("ui.button.ok");
-            if (ui.ActionButton("Button_Ok", okRect, okLabel, _okButton))
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                }
+            ))
             {
-                menu.GoBack();
+                ui.Filler();
+                if (ui.ActionButton(
+                    "Button_Ok",
+                    _localization.GetRequired("ui.button.ok"),
+                    _okButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(UiMetrics.MODAL_BUTTON_WIDTH),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    menu.GoBack();
+                }
             }
         }
 

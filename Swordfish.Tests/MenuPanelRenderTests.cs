@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Reef;
 using Reef.Text;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.UI;
@@ -129,6 +130,38 @@ public class MenuPanelRenderTests
             command => command.Rect.Size.X == 96 && command.Rect.Size.Y == 36
         );
         Assert.DoesNotContain(commands, command => command.Color == UiTheme.Accent);
+    }
+
+    [Fact]
+    public void SelectableCardFillsItsLayoutSlot()
+    {
+        var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
+
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fixed(100),
+                Height = new Fixed(40),
+            }
+        ))
+        {
+            ui.SelectableCard(
+                "card",
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                new Widgets.SelectableCardOptions(Selected: true),
+                _ => { }
+            );
+        }
+
+        List<RenderCommand<Material>> commands = ui.Build(0f);
+        RenderCommand<Material> card = commands.Single(command => command.ID == "card");
+
+        Assert.Equal(100, card.Rect.Size.X);
+        Assert.Equal(40, card.Rect.Size.Y);
     }
 
     [Fact]

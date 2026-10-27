@@ -21,9 +21,6 @@ public class SettingsLayoutTests
         Assert.True(layout.PageHeight > 0);
         Assert.True(layout.PageWidth <= windowWidth);
         Assert.True(layout.PageHeight <= windowHeight);
-        Assert.True(layout.Footer.Bottom <= layout.PageHeight);
-        Assert.True(layout.Pane.Size.X > 0);
-        Assert.True(layout.Pane.Size.Y > 0);
         Assert.True(layout.LabelWidth > 0);
         Assert.True(layout.ControlWidth > 0);
     }
@@ -32,17 +29,14 @@ public class SettingsLayoutTests
     [InlineData(1920, 1080)]
     [InlineData(1280, 720)]
     [InlineData(900, 720)]
-    public void WideLayoutUsesNonOverlappingTrayAndPane(int windowWidth, int windowHeight)
+    public void WideLayoutUsesATrayAndPane(int windowWidth, int windowHeight)
     {
         SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
 
         Assert.False(layout.UseTabs);
-        Assert.Equal(12, layout.Tray.Top);
-        Assert.True(layout.Tray.Right <= layout.Pane.Left);
-        Assert.True(layout.Tray.Right <= layout.PageWidth);
-        Assert.True(layout.Pane.Right <= layout.PageWidth);
-        Assert.True(layout.Tray.Bottom <= layout.Footer.Top);
-        Assert.True(layout.Pane.Bottom <= layout.Footer.Top);
+        Assert.True(layout.TrayWidth >= 220);
+        Assert.True(layout.TrayWidth + SettingsLayout.PANEL_GAP < layout.PageWidth);
+        Assert.True(layout.LabelWidth + layout.ControlWidth < layout.PageWidth);
     }
 
     [Theory]
@@ -53,9 +47,7 @@ public class SettingsLayoutTests
         SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
 
         Assert.True(layout.UseTabs);
-        Assert.Equal(0, layout.Tray.Size.X);
-        Assert.True(layout.Tabs.Bottom <= layout.Pane.Top);
-        Assert.True(layout.Pane.Right <= layout.PageWidth);
+        Assert.Equal(0, layout.TrayWidth);
     }
 
     [Theory]

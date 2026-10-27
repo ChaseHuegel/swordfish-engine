@@ -36,13 +36,6 @@ internal sealed class SettingsPage<TIdentifier>(
 {
     public TIdentifier ID { get; } = id;
 
-    private readonly CornerCapStyle _panelCaps = new()
-    {
-        Length = UiMetrics.PANEL_CAP_LENGTH,
-        Thickness = UiMetrics.PANEL_CAP_THICKNESS,
-        Color = UiTheme.Border,
-    };
-
     private readonly ConfigManager _configManager = configManager;
     private readonly ControlSettings _controlSettings = controlSettings;
     private readonly WindowSettings _windowSettings = windowSettings;
@@ -104,42 +97,78 @@ internal sealed class SettingsPage<TIdentifier>(
         SettingsRenderer renderer = _renderer;
         renderer.SetLayout(ui, layout);
 
-        using (ui.Element("SettingsPage"))
+        using (ui.Page(layout.PageWidth, layout.PageHeight, "SettingsPage"))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
+            ui.Padding = new Padding(left: 0, top: SettingsLayout.PAGE_GAP, right: 0, bottom: 0);
+            ui.Spacing = SettingsLayout.PAGE_GAP;
 
             if (layout.UseTabs)
             {
-                if (renderer.DrawTabs(_categories, ref _categoryIndex))
+                using (ui.Column(
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    },
+                    spacing: SettingsLayout.PAGE_GAP
+                ))
                 {
-                    _scrollY = 0;
+                    if (renderer.DrawTabs(_categories, ref _categoryIndex))
+                    {
+                        _scrollY = 0;
+                    }
+
+                    using (ui.MenuPanel(
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        },
+                        padding: SettingsLayout.PANE_PADDING
+                    ))
+                    {
+                        renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
+                    }
                 }
             }
             else
             {
-                using (ui.Panel(layout.Tray, UiTheme.PanelBackground, border: default, _panelCaps))
-                {
-                    if (renderer.DrawTray(_categories, ref _categoryIndex))
+                using (ui.Row(
+                    new Constraints
                     {
-                        _scrollY = 0;
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    },
+                    spacing: SettingsLayout.PANEL_GAP
+                ))
+                {
+                    using (ui.MenuPanel(
+                        new Constraints
+                        {
+                            Width = new Fixed(layout.TrayWidth),
+                            Height = new Fill(),
+                        },
+                        padding: SettingsMetrics.TRAY_PADDING
+                    ))
+                    {
+                        if (renderer.DrawTray(_categories, ref _categoryIndex))
+                        {
+                            _scrollY = 0;
+                        }
+                    }
+
+                    using (ui.MenuPanel(
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        },
+                        padding: SettingsLayout.PANE_PADDING
+                    ))
+                    {
+                        renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
                     }
                 }
-            }
-
-            using (ui.Panel(layout.Pane, UiTheme.PanelBackground, border: default, _panelCaps))
-            {
-                renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
             }
 
             bool dirty = IsDirty();

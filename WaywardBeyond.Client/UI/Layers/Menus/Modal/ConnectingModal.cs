@@ -53,42 +53,74 @@ internal sealed class ConnectingModal(
     /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        int padding = UiMetrics.MODAL_PADDING;
-        int contentWidth = PANEL_WIDTH - padding * 2;
-
         using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
         {
             ui.Label(
                 _title ?? _localization.GetString("ui.menu.connecting") ?? "Connecting to Server",
-                Widgets.Rect(padding, 22, contentWidth, 30),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
-                Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(30),
+                },
+                HorizontalAlignment.Center
             );
 
-            ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
+            ui.Spacer(height: 8);
+            ui.Divider(
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
+            );
+            ui.Spacer(height: 16);
 
             ui.Label(
                 _target ?? _localization.GetString("ui.menu.connectingStatus") ?? "Establishing uplink with remote host...",
-                Widgets.Rect(padding, 80, contentWidth, 22),
                 UiMetrics.MENU_BODY_FONT,
                 UiTheme.TextMuted,
-                Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(22),
+                },
+                HorizontalAlignment.Center
             );
 
+            ui.Spacer(height: 16);
             DrawSignal(ui);
+            ui.Filler();
 
-            int buttonWidth = UiMetrics.MODAL_BUTTON_WIDTH;
-            IntRect cancelRect = Widgets.Rect(
-                (PANEL_WIDTH - buttonWidth) / 2,
-                PANEL_HEIGHT - 68,
-                buttonWidth,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            string cancelLabel = _localization.GetString("ui.button.cancel") ?? "Cancel";
-            if (ui.ActionButton("Button_CancelConnect", cancelRect, cancelLabel, _cancelButton))
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                }
+            ))
             {
-                Cancel(menu);
+                ui.Filler();
+                string cancelLabel = _localization.GetString("ui.button.cancel") ?? "Cancel";
+                if (ui.ActionButton(
+                    "Button_CancelConnect",
+                    cancelLabel,
+                    _cancelButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(UiMetrics.MODAL_BUTTON_WIDTH),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    Cancel(menu);
+                }
+                ui.Filler();
             }
         }
 
@@ -117,20 +149,17 @@ internal sealed class ConnectingModal(
     /// <summary>Draws the animated signal segment sweeping across the scanner track.</summary>
     private static void DrawSignal(UIBuilder<Material> ui)
     {
-        int signalX = (PANEL_WIDTH - SIGNAL_WIDTH) / 2;
-        int signalY = 120;
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
             ui.Color = UiTheme.Border;
-            ui.Constraints = Widgets.RectConstraints(
-                Widgets.Rect(signalX, signalY, SIGNAL_WIDTH, SIGNAL_HEIGHT)
-            );
-            ui.ClipConstraints = new Constraints
+            ui.Constraints = new Constraints
             {
+                Anchors = Anchors.Center,
                 Width = new Fixed(SIGNAL_WIDTH),
                 Height = new Fixed(SIGNAL_HEIGHT),
             };
+            ui.ClipConstraints = Widgets.ClipToBounds();
 
             float progress = (float)(ui.Time / SIGNAL_PERIOD_SECONDS % 1d);
             int segmentX = (int)(progress * SIGNAL_TRAVEL) - SIGNAL_SEGMENT_WIDTH;

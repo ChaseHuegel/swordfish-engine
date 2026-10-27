@@ -33,8 +33,8 @@ internal sealed class StepperEntry<T>(
     }
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer, int y)
+    public override void Render(SettingsRenderer renderer)
     {
-        renderer.DrawStepper(this, y);
+        renderer.DrawStepper(this);
     }
 }

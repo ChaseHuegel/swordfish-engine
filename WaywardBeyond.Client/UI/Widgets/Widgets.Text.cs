@@ -25,7 +25,7 @@ internal static partial class Widgets
             ui.LayoutDirection = LayoutDirection.None;
             ui.Color = UiTheme.Transparent;
             ui.Constraints = RectConstraints(rect);
-            ui.ClipConstraints = RectConstraints(rect);
+            ui.ClipConstraints = ClipConstraints(rect);
 
             using (ui.Text(text))
             {
@@ -68,7 +68,7 @@ internal static partial class Widgets
             ui.LayoutDirection = LayoutDirection.None;
             ui.Color = UiTheme.Transparent;
             ui.Constraints = RectConstraints(rect);
-            ui.ClipConstraints = RectConstraints(rect);
+            ui.ClipConstraints = ClipConstraints(rect);
 
             using (ui.Text(text))
             {
@@ -93,6 +93,16 @@ internal static partial class Widgets
         {
             ui.Color = color;
             ui.Constraints = RectConstraints(rect);
+        }
+    }
+
+    /// <summary>Draws a one-pixel divider in the current layout.</summary>
+    public static void Divider(this UIBuilder<Material> ui, Vector4 color, Constraints constraints)
+    {
+        using (ui.Element())
+        {
+            ui.Color = color;
+            ui.Constraints = constraints;
         }
     }
 }

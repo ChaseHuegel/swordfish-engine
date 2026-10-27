@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.UI.Theme;
@@ -60,6 +61,36 @@ internal static partial class Widgets
             display.Color,
             Anchors.Left | Anchors.Center
         );
+    }
+
+    /// <summary>Draws a ping icon and value in the current layout.</summary>
+    public static void PingIndicator(this UIBuilder<Material> ui, Constraints constraints, int? ping)
+    {
+        PingDisplay display = ResolvePing(ping);
+        using (ui.Row(constraints, spacing: 4))
+        {
+            ui.Label(
+                display.Glyph,
+                UiMetrics.MENU_SMALL_FONT,
+                display.Color,
+                new Constraints
+                {
+                    Width = new Fixed(20),
+                    Height = new Fill(),
+                },
+                fontId: UiTheme.FONT_ICONS
+            );
+            ui.Label(
+                display.Text,
+                UiMetrics.MENU_SMALL_FONT,
+                display.Color,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+        }
     }
 
     /// <summary>One resolved ping indicator state.</summary>

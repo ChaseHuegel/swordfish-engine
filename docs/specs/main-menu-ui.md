@@ -26,20 +26,24 @@ multiplayer server hub. New Game creates a sector before it opens Crew Manifest.
 
 ## Layout
 
-`MenuLayout` is at `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`. It
-computes a centered page with left and right panel rects, a tab strip, a footer,
-and Return/Primary footer buttons.
+`MenuLayout` is at `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:10`. It
+computes the responsive page size, the narrow breakpoint, and the left-pane
+ratio. It does not compute panel or button rects.
 
-Footer buttons use the `ActionButton` overload that takes the rect as an
-argument, so a page never builds a `with { Rect = ... }` value:
+Each page builds its body with `Row`, `Column`, and `Filler`. Wide two-pane pages
+use a row. Narrow pages use a tab strip above one pane. A footer is a fixed
+height row with the Return button, the status, and the Primary button.
+
+Footer buttons use the shared slot from `MenuLayoutExtensions.FooterButton`:
 
 ```csharp
-if (ui.ActionButton("Button_Back", layout.ReturnButton, label, _returnButton))
+Widgets.ActionButtonOptions options = _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH);
+if (ui.ActionButton("Button_Back", label, options))
 ```
 
-`Widgets.FooterStatus` draws the status between `layout.ReturnButton` and
-`layout.PrimaryButton`. Each page passes its own colour, so a warning status
-uses `UiTheme.Warning` and an error uses `UiTheme.Danger`.
+`Widgets.FooterStatus` draws the status between the footer buttons. Each page
+passes its own colour, so a warning status uses `UiTheme.Warning` and an error
+uses `UiTheme.Danger`.
 
 - The design base is 1280 by 720.
 - The page shrinks with the window and has a 480 pixel minimum width.
@@ -54,14 +58,13 @@ content stays unchanged.
 
 ## Pause menu
 
-The pause home page is a centered 300 by 221 pixel block below the title image.
-It has four buttons in one column. Continue, Settings, and Send feedback form
-the first group. A dotted divider separates them from Save & exit.
+The pause home page is a centered column below the title image. It sizes to its
+content. It has four buttons. Continue, Settings, and Send feedback form the
+first group. A dotted divider separates them from Save & exit.
 
 - Buttons are 264 by 44 pixels.
 - The gap between buttons is 10 pixels.
 - The gap around the divider is 12 pixels.
-- Continue has the cyan menu chevron.
 
 ## Sector initialization
 
@@ -70,11 +73,11 @@ sector` line and a rolling terminal feed from the `game_create` tag set.
 
 - The header and feed are left-aligned at the top of the panel.
 - The feed keeps five lines.
-- A new line appears every 3.5 seconds.
+- A new line appears every 2 seconds.
 - New lines fade in over 0.3 seconds.
 - The oldest line drops when the feed is full.
 - A cyan prompt and cursor mark the live line.
-- A divider closes the feed region at its fixed bottom.
+- A divider closes the feed region at the bottom of its column.
 
 ## Form validation
 
@@ -206,7 +209,7 @@ Do not add fake menu controls.
 ## Source
 
 - Flow: `WaywardBeyond.Client/UI/Layers/Menus/Main/MenuPage.cs:3`
-- Layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:7`
+- Layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:10`
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
 - Continue: `WaywardBeyond.Client/Saves/ContinueService.cs:18`
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:13`
@@ -224,7 +227,8 @@ Do not add fake menu controls.
 
 ## Tests
 
-- `Swordfish.Tests/MenuLayoutTests.cs` covers wide and narrow geometry.
+- `Swordfish.Tests/MenuLayoutTests.cs` covers wide and narrow page geometry and
+  the shared footer button slot.
 - `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic buttons.
 - `Swordfish.Tests/UiThemeResolverTests.cs` covers menu control states.
 - `Swordfish.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.

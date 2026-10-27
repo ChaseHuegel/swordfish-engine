@@ -9,6 +9,21 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
+    /// <summary>Holds the background and content scopes of one menu panel.</summary>
+    public readonly ref struct MenuPanelScope(
+        UIBuilder<Material>.Scope background,
+        UIBuilder<Material>.Scope? content
+    ) : IDisposable {
+        private readonly UIBuilder<Material>.Scope _background = background;
+        private readonly UIBuilder<Material>.Scope? _content = content;
+
+        public void Dispose()
+        {
+            _content?.Dispose();
+            _background.Dispose();
+        }
+    }
+
     /// <summary>Returns the shared menu panel corner caps.</summary>
     public static CornerCapStyle MenuPanelCaps()
     {
@@ -21,47 +36,105 @@ internal static partial class Widgets
     }
 
     /// <summary>Creates a single-outline panel for modal dialogs.</summary>
-    public static UIBuilder<Material>.Scope ModalPanel(this UIBuilder<Material> ui, IntRect rect)
+    public static MenuPanelScope ModalPanel(
+        this UIBuilder<Material> ui,
+        Constraints constraints,
+        int padding = UiMetrics.MODAL_PADDING
+    )
     {
-        return ui.Panel(
-            rect,
-            UiTheme.PanelBackground,
-            border: default,
-            MenuPanelCaps(),
+        return ui.MenuPanel(
+            constraints,
+            title: null,
+            padding,
             innerBorder: false
         );
     }
 
+    /// <summary>Creates a single-outline panel for modal dialogs at a fixed rectangle.</summary>
+    public static MenuPanelScope ModalPanel(this UIBuilder<Material> ui, IntRect rect)
+    {
+        return ui.ModalPanel(RectConstraints(rect));
+    }
+
     /// <summary>Creates a menu panel with the shared inner hairline and corner caps.</summary>
-    public static UIBuilder<Material>.Scope MenuPanel(
+    public static MenuPanelScope MenuPanel(
         this UIBuilder<Material> ui,
-        IntRect rect,
-        string? title = null
+        Constraints constraints,
+        string? title = null,
+        int padding = 12,
+        bool innerBorder = true
     )
     {
-        UIBuilder<Material>.Scope scope = ui.Panel(
-            rect,
-            UiTheme.PanelBackground,
-            border: default,
-            MenuPanelCaps()
-        );
+        UIBuilder<Material>.Scope background = ui.Element();
+        ui.LayoutDirection = LayoutDirection.None;
+        ui.Color = UiTheme.PanelBackground;
         ui.Border = default;
+        ui.CornerCaps = MenuPanelCaps();
+        ui.Constraints = constraints;
+
+        if (!innerBorder && string.IsNullOrEmpty(title))
+        {
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Padding = new Padding(padding);
+            ui.ClipConstraints = ClipToBounds();
+            return new MenuPanelScope(background, content: null);
+        }
+
+        ui.Padding = innerBorder ? new Padding(UiMetrics.PANEL_INNER_INSET) : new Padding(0);
+
+        UIBuilder<Material>.Scope content = ui.Element();
+        ui.LayoutDirection = LayoutDirection.Vertical;
+        ui.Padding = new Padding(padding);
+        ui.Color = UiTheme.Transparent;
+        ui.Border = innerBorder
+            ? new BorderStyle
+            {
+                Thickness = UiMetrics.PANEL_INNER_BORDER_THICKNESS,
+                Color = UiTheme.BorderInner,
+            }
+            : default;
+        ui.Constraints = new Constraints
+        {
+            Width = new Fill(),
+            Height = new Fill(),
+        };
+        ui.ClipConstraints = ClipToBounds();
 
         if (!string.IsNullOrEmpty(title))
         {
             ui.Label(
                 title,
-                Rect(0, 12, rect.Size.X, 18),
                 UiMetrics.SMALL_FONT,
                 UiTheme.TextMuted,
-                Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(18),
+                },
+                HorizontalAlignment.Center
             );
+            ui.Spacer(height: 4);
             ui.Divider(
-                Rect(12, 32, Math.Max(0, rect.Size.X - 24), 1),
-                UiTheme.BorderInner
+                UiTheme.BorderInner,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
             );
+            ui.Spacer(height: 8);
         }
 
-        return scope;
+        return new MenuPanelScope(background, content);
+    }
+
+    /// <summary>Creates a menu panel with the shared inner hairline and corner caps at a fixed rectangle.</summary>
+    public static MenuPanelScope MenuPanel(
+        this UIBuilder<Material> ui,
+        IntRect rect,
+        string? title = null
+    )
+    {
+        return ui.MenuPanel(RectConstraints(rect), title);
     }
 }

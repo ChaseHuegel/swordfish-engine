@@ -1,11 +1,11 @@
+using System;
+using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using System;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
@@ -39,37 +39,43 @@ internal sealed class CreditsPage(
             maxPageHeight: 720
         );
 
-        using (ui.Element())
+        using (ui.Page(layout))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
+            ui.Padding = new Padding(left: 0, top: MenuLayout.PAGE_GAP, right: 0, bottom: 0);
+            ui.Spacing = MenuLayout.PAGE_GAP;
 
-            IntRect panel = Widgets.Rect(
-                0,
-                layout.Right.Top,
-                layout.PageWidth,
-                layout.Right.Size.Y
-            );
-
-            using (ui.MenuPanel(panel, _localization.GetRequired("ui.credits.title")))
+            using (ui.MenuPanel(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                _localization.GetRequired("ui.credits.title"),
+                padding: 24
+            ))
             {
-                DrawPanelBody(ui, in panel);
+                DrawPanelBody(ui, layout.PageWidth);
             }
 
-            string returnLabel = _localization.GetRequired("ui.button.return");
-            if (ui.ActionButton("Button_Back", layout.ReturnButton, returnLabel, _returnButton))
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(MenuLayout.FOOTER_HEIGHT),
+                },
+                spacing: 12
+            ))
             {
-                menu.GoToPage(MenuPage.Home);
+                if (ui.ActionButton(
+                    "Button_Back",
+                    _localization.GetRequired("ui.button.return"),
+                    _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
+                ))
+                {
+                    menu.GoToPage(MenuPage.Home);
+                }
+
+                ui.Filler();
             }
         }
 
@@ -77,13 +83,9 @@ internal sealed class CreditsPage(
     }
 
     /// <summary>Draws the scrollable credits text inside the menu panel.</summary>
-    private void DrawPanelBody(UIBuilder<Material> ui, in IntRect panel)
+    private void DrawPanelBody(UIBuilder<Material> ui, int pageWidth)
     {
-        int padding = 40;
-        int contentWidth = Math.Min(760, panel.Size.X - padding * 2);
-        int contentX = (panel.Size.X - contentWidth) / 2;
-        int viewportY = 38;
-        int viewportHeight = Math.Max(1, panel.Size.Y - viewportY - 12);
+        int contentWidth = Math.Min(760, pageWidth - 80);
         int bodyFontSize = contentWidth < 500
             ? UiMetrics.MENU_SMALL_FONT
             : UiMetrics.MENU_BODY_FONT;
@@ -94,34 +96,54 @@ internal sealed class CreditsPage(
         var thanksFont = new FontOptions { ID = UiTheme.FONT_UI, Size = UiMetrics.MENU_SMALL_FONT };
         int bodyHeight = ui.TextEngine.Layout(bodyFont, bodyText, contentWidth).Constraints.PreferredHeight;
         int thanksHeight = ui.TextEngine.Layout(thanksFont, thanksText, contentWidth).Constraints.PreferredHeight;
-        int contentHeight = 62 + bodyHeight + 8 + 1 + 16 + thanksHeight + 12;
-        int contentTop = 10;
+        int contentHeight = bodyHeight + 8 + 1 + 16 + thanksHeight;
 
         ui.ScrollArea(
-            Widgets.Rect(0, viewportY, panel.Size.X, viewportHeight),
+            "Credits.Content",
             contentHeight,
             ref _scrollY,
             _inputService,
-            Widgets.Rect(panel.Size.X - 18, viewportY, 6, viewportHeight),
             _ =>
             {
-                int y = contentTop;
-                ui.Paragraph(
-                    bodyText,
-                    Widgets.Rect(contentX, y, contentWidth, bodyHeight),
-                    bodyFontSize,
-                    UiTheme.Text
-                );
-
-                y += bodyHeight + 8;
-                ui.Divider(Widgets.Rect(contentX, y, contentWidth, 1), UiTheme.Border);
-                y += 16;
-                ui.Paragraph(
-                    thanksText,
-                    Widgets.Rect(contentX, y, contentWidth, thanksHeight),
-                    UiMetrics.MENU_SMALL_FONT,
-                    UiTheme.Text
-                );
+                using (ui.Column(
+                    new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                        Width = new Fixed(contentWidth),
+                    }
+                ))
+                {
+                    ui.Paragraph(
+                        bodyText,
+                        bodyFontSize,
+                        UiTheme.Text,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fixed(bodyHeight),
+                        }
+                    );
+                    ui.Spacer(height: 8);
+                    ui.Divider(
+                        UiTheme.Border,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fixed(1),
+                        }
+                    );
+                    ui.Spacer(height: 16);
+                    ui.Paragraph(
+                        thanksText,
+                        UiMetrics.MENU_SMALL_FONT,
+                        UiTheme.Text,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fixed(thanksHeight),
+                        }
+                    );
+                }
             }
         );
     }

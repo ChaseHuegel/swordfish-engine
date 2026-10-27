@@ -49,47 +49,74 @@ internal sealed class AddFavoriteModal(
     /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        int padding = UiMetrics.MODAL_PADDING;
-        int contentWidth = PANEL_WIDTH - padding * 2;
-
         using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
         {
             ui.Label(
                 _localization.GetRequired("ui.menu.addFavorite"),
-                Widgets.Rect(padding, 22, contentWidth, 30),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
-                Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(30),
+                },
+                HorizontalAlignment.Center
             );
-            ui.Divider(Widgets.Rect(padding, 62, contentWidth, 1), UiTheme.Border);
+            ui.Spacer(height: 8);
+            ui.Divider(
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
+            );
+            ui.Spacer(height: 16);
 
             ui.Label(
                 _localization.GetRequired("ui.field.host"),
-                Widgets.Rect(padding, 78, contentWidth, 18),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(18),
+                }
             );
+            ui.Spacer(height: 4);
             Widgets.Interactions hostInteractions = ui.MenuTextBox(
                 "TextBox_FavoriteHost",
                 ref _hostTextBox,
-                Widgets.Rect(padding, 98, contentWidth, UiMetrics.CONTROL_HEIGHT),
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                },
                 new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
                 _inputService
             );
             HandleTextBoxInteractions(hostInteractions, menu);
 
+            ui.Spacer(height: 12);
             ui.Label(
                 _localization.GetRequired("ui.field.port"),
-                Widgets.Rect(padding, 142, contentWidth, 18),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(18),
+                }
             );
+            ui.Spacer(height: 4);
             Widgets.Interactions portInteractions = ui.MenuTextBox(
                 "TextBox_FavoritePort",
                 ref _portTextBox,
-                Widgets.Rect(padding, 162, 96, UiMetrics.CONTROL_HEIGHT),
+                new Constraints
+                {
+                    Width = new Fixed(96),
+                    Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                },
                 new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
                 _inputService
             );
@@ -97,38 +124,65 @@ internal sealed class AddFavoriteModal(
 
             if (_errorMessage != null)
             {
+                ui.Spacer(height: 8);
                 ui.Label(
                     _errorMessage,
-                    Widgets.Rect(padding, 204, contentWidth, 18),
                     UiMetrics.MENU_SMALL_FONT,
                     UiTheme.Danger,
-                    Anchors.Left | Anchors.Center
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fixed(18),
+                    }
                 );
             }
 
-            int buttonY = PANEL_HEIGHT - 68;
-            IntRect cancelRect = Widgets.Rect(
-                padding,
-                buttonY,
-                UiMetrics.MODAL_BUTTON_WIDTH,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            string cancelLabel = _localization.GetRequired("ui.button.cancel");
-            if (ui.ActionButton("Button_CancelFavorite", cancelRect, cancelLabel, _cancelButton))
-            {
-                menu.GoBack();
-            }
+            ui.Filler();
 
-            IntRect submitRect = Widgets.Rect(
-                PANEL_WIDTH - padding - UiMetrics.MODAL_BUTTON_WIDTH,
-                buttonY,
-                UiMetrics.MODAL_BUTTON_WIDTH,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            string submitLabel = _localization.GetRequired("ui.button.submit");
-            if (ui.ActionButton("Button_SubmitFavorite", submitRect, submitLabel, _submitButton))
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                },
+                spacing: 12
+            ))
             {
-                Submit(menu);
+                if (ui.ActionButton(
+                    "Button_CancelFavorite",
+                    _localization.GetRequired("ui.button.cancel"),
+                    _cancelButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(UiMetrics.MODAL_BUTTON_WIDTH),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    menu.GoBack();
+                }
+
+                ui.Filler();
+
+                if (ui.ActionButton(
+                    "Button_SubmitFavorite",
+                    _localization.GetRequired("ui.button.submit"),
+                    _submitButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(UiMetrics.MODAL_BUTTON_WIDTH),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    Submit(menu);
+                }
             }
         }
 

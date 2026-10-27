@@ -37,9 +37,7 @@ internal sealed class SelectCharacterPage(
 
     private const int CARD_HEIGHT = 44;
     private const int CARD_GAP = 8;
-    private const int PANEL_PADDING = 12;
     private const int NEW_BUTTON_HEIGHT = 32;
-    private const int DOSSIER_PREVIEW_Y = 140;
 
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
     private readonly ICharacterStorage _characterStorage = characterStorage;
@@ -76,23 +74,13 @@ internal sealed class SelectCharacterPage(
             leftRatio: 0.37f
         );
 
-        using (ui.Element())
+        using (ui.Page(layout))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
+            ui.Padding = new Padding(left: 0, top: MenuLayout.PAGE_GAP, right: 0, bottom: 0);
+            ui.Spacing = MenuLayout.PAGE_GAP;
 
             DrawPanels(ui, layout, menu);
-            DrawFooter(ui, layout, menu);
+            DrawFooter(ui, menu);
         }
 
         return Result.FromSuccess();
@@ -103,70 +91,136 @@ internal sealed class SelectCharacterPage(
     {
         if (!layout.UseTabs)
         {
-            DrawManifest(ui, layout.Left, menu);
-            DrawDossier(ui, layout.Right);
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                spacing: MenuLayout.PANEL_GAP
+            ))
+            {
+                DrawManifest(
+                    ui,
+                    new Constraints
+                    {
+                        Width = new Relative(layout.LeftRatio),
+                        Height = new Fill(),
+                    },
+                    menu
+                );
+                DrawDossier(
+                    ui,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    },
+                    showAssignment: layout.PageHeight >= 480
+                );
+            }
+
             return;
         }
 
-        DrawTabs(ui, layout);
+        DrawTabs(ui);
+        Constraints pane = new()
+        {
+            Width = new Fill(),
+            Height = new Fill(),
+        };
+
         if (_narrowTab == 0)
         {
-            DrawManifest(ui, layout.Right, menu);
+            DrawManifest(ui, pane, menu);
             return;
         }
 
-        DrawDossier(ui, layout.Right);
+        DrawDossier(ui, pane, showAssignment: false);
     }
 
     /// <summary>Draws the page footer and runs the action that the player picked.</summary>
-    private void DrawFooter(UIBuilder<Material> ui, in MenuLayout layout, Menu<MenuPage> menu)
+    private void DrawFooter(UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        string backLabel = _localization.GetRequired("ui.button.return");
-        if (ui.ActionButton("Button_Back", layout.ReturnButton, backLabel, _returnButton))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.FOOTER_HEIGHT),
+            },
+            spacing: 12
+        ))
         {
-            menu.GoToPage(MenuPage.Home);
-        }
+            if (ui.ActionButton(
+                "Button_Back",
+                _localization.GetRequired("ui.button.return"),
+                _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
+            ))
+            {
+                menu.GoToPage(MenuPage.Home);
+            }
 
-        bool canLaunch = _characterSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave != null;
-        string loadLabel = _localization.GetRequired("ui.button.loadSave");
-        var loadOptions = _launchButton with { Enabled = canLaunch };
-        if (ui.ActionButton("Button_LoadSave", layout.PrimaryButton, loadLabel, loadOptions))
-        {
-            Task.Run(_gameSaveManager.Load);
+            ui.Filler();
+
+            bool canLaunch = _characterSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave != null;
+            Widgets.ActionButtonOptions loadOptions = _launchButton
+                .FooterButton(MenuLayout.PRIMARY_BUTTON_WIDTH) with
+            {
+                Enabled = canLaunch,
+            };
+            if (ui.ActionButton(
+                "Button_LoadSave",
+                _localization.GetRequired("ui.button.loadSave"),
+                loadOptions
+            ))
+            {
+                Task.Run(_gameSaveManager.Load);
+            }
         }
     }
 
-    private void DrawTabs(UIBuilder<Material> ui, in MenuLayout layout)
+    private void DrawTabs(UIBuilder<Material> ui)
     {
-        int tabWidth = layout.PageWidth / 2;
-        IntRect manifestRect = Widgets.Rect(0, layout.Tabs.Top, tabWidth - 4, layout.Tabs.Size.Y);
-        bool manifestClicked = ui.Tab(
-            "ManifestTab",
-            manifestRect,
-            _localization.GetRequired("ui.menu.crewManifest"),
-            selected: _narrowTab == 0
-        );
-        if (manifestClicked)
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.TABS_HEIGHT),
+            },
+            spacing: 8
+        ))
         {
-            _narrowTab = 0;
-        }
+            var tabConstraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
 
-        IntRect dossierRect = Widgets.Rect(tabWidth + 4, layout.Tabs.Top, tabWidth - 4, layout.Tabs.Size.Y);
-        bool dossierClicked = ui.Tab(
-            "DossierTab",
-            dossierRect,
-            _localization.GetRequired("ui.menu.colonistDossier"),
-            selected: _narrowTab == 1
-        );
-        if (dossierClicked)
-        {
-            _narrowTab = 1;
+            if (ui.Tab(
+                "ManifestTab",
+                _localization.GetRequired("ui.menu.crewManifest"),
+                selected: _narrowTab == 0,
+                tabConstraints
+            ))
+            {
+                _narrowTab = 0;
+            }
+
+            if (ui.Tab(
+                "DossierTab",
+                _localization.GetRequired("ui.menu.colonistDossier"),
+                selected: _narrowTab == 1,
+                tabConstraints
+            ))
+            {
+                _narrowTab = 1;
+            }
         }
     }
 
-    private void DrawManifest(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
+    private void DrawManifest(UIBuilder<Material> ui, Constraints constraints, Menu<MenuPage> menu)
     {
-        using (ui.MenuPanel(rect, _localization.GetRequired("ui.menu.crewManifest")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.crewManifest")))
         {
             RefreshCharacters();
 
@@ -175,25 +229,443 @@ internal sealed class SelectCharacterPage(
                 _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
             }
 
-            int contentWidth = Math.Max(1, rect.Size.X - PANEL_PADDING * 2);
-            int listY = 38;
-
-            if (_characters.Count > 0)
+            using (ui.Column(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            ))
             {
-                DrawCharacterList(ui, rect, contentWidth, listY);
+                if (_characters.Count > 0)
+                {
+                    DrawCharacterList(ui);
+                }
+                else
+                {
+                    ui.Label(
+                        _localization.GetRequired("ui.text.none"),
+                        UiMetrics.MENU_BODY_FONT,
+                        UiTheme.TextDim,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        },
+                        HorizontalAlignment.Center
+                    );
+                }
+
+                ui.Spacer(height: 8);
+                DrawNewCharacterButton(ui, menu);
             }
-            else
+        }
+    }
+
+    /// <summary>Draws the scrolling list of crew manifest rows.</summary>
+    private void DrawCharacterList(UIBuilder<Material> ui)
+    {
+        int contentHeight = _characters.Count * CARD_HEIGHT
+            + Math.Max(0, _characters.Count - 1) * CARD_GAP;
+        Action<UIBuilder<Material>> body = contentUi => DrawCharacterCards(contentUi);
+
+        ui.ScrollArea(
+            "SelectCharacter.Manifest",
+            contentHeight,
+            ref _scrollY,
+            _inputService,
+            body
+        );
+    }
+
+    /// <summary>Draws every crew manifest row inside the scroll area.</summary>
+    private void DrawCharacterCards(UIBuilder<Material> ui)
+    {
+        Action<Character> deleteCharacter = DeleteCharacter;
+
+        for (var i = 0; i < _characters.Count; i++)
+        {
+            if (i > 0)
+            {
+                ui.Spacer(height: CARD_GAP);
+            }
+
+            DrawCharacterCard(ui, _characters[i], deleteCharacter);
+        }
+    }
+
+    /// <summary>Draws one crew manifest row and applies its selection.</summary>
+    private void DrawCharacterCard(
+        UIBuilder<Material> ui,
+        Character character,
+        Action<Character> deleteCharacter
+    )
+    {
+        bool selected = _characterSaveManager.ActiveSave != null &&
+            _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid;
+        var options = new Widgets.SelectableCardOptions(selected, SoundEffectService: _soundEffectService);
+        var context = new CharacterCardContext(
+            character,
+            selected,
+            _modalMenu,
+            _confirmModal,
+            _characterSaveManager,
+            _characterAssetService,
+            _soundEffectService,
+            deleteCharacter
+        );
+
+        bool clicked = ui.SelectableCard(
+            $"Button_SelectCharacter_{character.Uuid}",
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(CARD_HEIGHT),
+            },
+            in options,
+            context,
+            static (contentUi, state) => DrawCharacterCardContent(contentUi, state)
+        );
+
+        if (clicked)
+        {
+            _characterSaveManager.ActiveSave = character;
+        }
+    }
+
+    /// <summary>Draws the portrait, the name, and the delete control of one crew manifest row.</summary>
+    private static void DrawCharacterCardContent(UIBuilder<Material> contentUi, CharacterCardContext context)
+    {
+        using (contentUi.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            },
+            spacing: 8
+        ))
+        {
+            contentUi.Padding = new Padding(left: 8, top: 0, right: 8, bottom: 0);
+
+            Material appearance = context.CharacterAssetService.GetAppearanceMaterial(context.Character);
+            using (contentUi.Image(appearance))
+            {
+                contentUi.Constraints = new Constraints
+                {
+                    Width = new Fixed(32),
+                    Height = new Fixed(32),
+                    Anchors = Anchors.Center,
+                };
+            }
+
+            contentUi.Label(
+                context.Character.Name,
+                UiMetrics.MENU_BODY_FONT,
+                context.Selected ? UiTheme.AccentBright : UiTheme.Text,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+
+            DrawCharacterDeleteButton(contentUi, context);
+        }
+    }
+
+    /// <summary>Draws the delete control of one crew manifest row and opens its confirmation.</summary>
+    private static void DrawCharacterDeleteButton(UIBuilder<Material> contentUi, CharacterCardContext context)
+    {
+        string id = $"Button_DeleteCharacter_{context.Character.Uuid}";
+        var options = new Widgets.IconButtonOptions(
+            Danger: true,
+            Enabled: true,
+            SoundEffectService: context.SoundEffectService
+        );
+        bool clicked = contentUi.IconButton(
+            id,
+            MenuGlyphs.TRASH,
+            options,
+            new Constraints
+            {
+                Width = new Fixed(28),
+                Height = new Fixed(28),
+                Anchors = Anchors.Center,
+            }
+        );
+        if (!clicked)
+        {
+            return;
+        }
+
+        Character character = context.Character;
+        Action<Character> deleteCharacter = context.DeleteCharacter;
+        context.CharacterSaveManager.ActiveSave = character;
+        context.ModalMenu.GoToPage(context.ConfirmModal.Create(() => deleteCharacter(character)));
+    }
+
+    /// <summary>Deletes one character and selects the most recent remaining save.</summary>
+    private void DeleteCharacter(Character character)
+    {
+        _characterSaveManager.Delete(character);
+        _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
+    }
+
+    /// <summary>Draws the button that opens the new character page.</summary>
+    private void DrawNewCharacterButton(UIBuilder<Material> ui, Menu<MenuPage> menu)
+    {
+        var options = new Widgets.ActionButtonOptions(
+            Variant: ButtonVariant.Subtle,
+            Layout: new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(NEW_BUTTON_HEIGHT),
+            }
+        );
+        bool clicked = ui.ActionButton(
+            "Button_NewCharacter",
+            "+ " + _localization.GetRequired("ui.button.newCharacter"),
+            options
+        );
+        if (clicked)
+        {
+            menu.GoToPage(MenuPage.NewCharacter);
+        }
+    }
+
+    private void DrawDossier(UIBuilder<Material> ui, Constraints constraints, bool showAssignment)
+    {
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.colonistDossier")))
+        {
+            Character? activeCharacter = _characterSaveManager.ActiveSave;
+            if (activeCharacter == null)
             {
                 ui.Label(
                     _localization.GetRequired("ui.text.none"),
-                    Widgets.Rect(PANEL_PADDING, listY + 12, contentWidth, 20),
                     UiMetrics.MENU_BODY_FONT,
                     UiTheme.TextDim,
-                    Anchors.Center
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    },
+                    HorizontalAlignment.Center
                 );
+                return;
             }
 
-            DrawNewCharacterButton(ui, rect, contentWidth, menu);
+            Character character = activeCharacter.Value;
+            DrawDossierHeader(ui, character);
+            ui.Spacer(height: 16);
+            DrawDossierPreview(ui, character);
+
+            if (showAssignment)
+            {
+                DrawDossierAssignment(ui);
+            }
+
+            DrawDossierSummary(ui);
+        }
+    }
+
+    /// <summary>Draws the name, level, and playtime readouts of the dossier.</summary>
+    private void DrawDossierHeader(UIBuilder<Material> ui, in Character character)
+    {
+        ui.Label(
+            character.Name,
+            UiMetrics.MENU_TITLE_FONT,
+            UiTheme.Text,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(26),
+            },
+            HorizontalAlignment.Center
+        );
+
+        int level = character.GetTotalSkillLevel(_skillDatabase);
+        ui.Label(
+            $"{_localization.GetRequired("ui.menu.level")} {level}",
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.AccentBright,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(18),
+            },
+            HorizontalAlignment.Center
+        );
+
+        string lastPlayed = character.Playtime.LastPlayedMs > 0
+            ? DateTimeOffset.FromUnixTimeMilliseconds(character.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
+            : _localization.GetRequired("ui.label.never");
+        ui.Label(
+            $"{_localization.GetRequired("ui.label.lastPlayed")}: {lastPlayed}",
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.TextMuted,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(18),
+            },
+            HorizontalAlignment.Center
+        );
+
+        TimeSpan age = TimeSpan.FromMilliseconds(character.Playtime.AgeMs);
+        ui.Label(
+            $"{_localization.GetRequired("ui.label.timePlayed")}: {_localization.GetLongString(age)}",
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.TextMuted,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(18),
+            },
+            HorizontalAlignment.Center
+        );
+    }
+
+    /// <summary>Draws the portrait and the six primary stats of the dossier.</summary>
+    private void DrawDossierPreview(UIBuilder<Material> ui, in Character character)
+    {
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(128),
+            },
+            spacing: 20
+        ))
+        {
+            Material appearance = _characterAssetService.GetAppearanceMaterial(character);
+            using (ui.Image(appearance))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(128),
+                    Height = new Fixed(128),
+                };
+            }
+
+            using (ui.Column(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            ))
+            {
+                DrawStats(ui, character);
+            }
+        }
+    }
+
+    /// <summary>Draws the six primary stat rows of the dossier.</summary>
+    private void DrawStats(UIBuilder<Material> ui, in Character character)
+    {
+        DrawStat(ui, _localization.GetRequired("ui.field.strength"), character.Strength);
+        DrawStat(ui, _localization.GetRequired("ui.field.precision"), character.Precision);
+        DrawStat(ui, _localization.GetRequired("ui.field.awareness"), character.Awareness);
+        DrawStat(ui, _localization.GetRequired("ui.field.charisma"), character.Charisma);
+        DrawStat(ui, _localization.GetRequired("ui.field.education"), character.Education);
+        DrawStat(ui, _localization.GetRequired("ui.field.resolve"), character.Resolve);
+    }
+
+    /// <summary>Draws the assignment block that tall dossier panels show.</summary>
+    private void DrawDossierAssignment(UIBuilder<Material> ui)
+    {
+        ui.Spacer(height: 16);
+        ui.Divider(
+            UiTheme.Border,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(1),
+            }
+        );
+        ui.Spacer(height: 8);
+        ui.Label(
+            _localization.GetRequired("ui.menu.assignment"),
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.TextMuted,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(18),
+            }
+        );
+        ui.Label(
+            _gameSaveManager.ActiveSave?.Name ?? _localization.GetRequired("ui.text.none"),
+            UiMetrics.MENU_BODY_FONT,
+            UiTheme.Text,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(22),
+            }
+        );
+    }
+
+    /// <summary>Draws the launch summary at the bottom of the dossier.</summary>
+    private void DrawDossierSummary(UIBuilder<Material> ui)
+    {
+        ui.Filler();
+        ui.Divider(
+            UiTheme.Border,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(1),
+            }
+        );
+        ui.Spacer(height: 8);
+        ui.Label(
+            _localization.GetRequired("ui.menu.readyForLaunch"),
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.Success,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(20),
+            }
+        );
+    }
+
+    private static void DrawStat(
+        UIBuilder<Material> ui,
+        string label,
+        int value
+    )
+    {
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(18),
+            }
+        ))
+        {
+            ui.StatLabel(
+                label,
+                UiMetrics.MENU_SMALL_FONT,
+                focused: false,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+            ui.Label(
+                value.ToString(),
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Text,
+                new Constraints
+                {
+                    Width = new Fixed(28),
+                    Height = new Fill(),
+                },
+                HorizontalAlignment.Right
+            );
         }
     }
 
@@ -219,322 +691,10 @@ internal sealed class SelectCharacterPage(
         }
     }
 
-    /// <summary>Draws the scrolling list of crew manifest rows.</summary>
-    private void DrawCharacterList(UIBuilder<Material> ui, IntRect rect, int contentWidth, int listY)
-    {
-        int listHeight = Math.Max(0, rect.Size.Y - listY - NEW_BUTTON_HEIGHT - PANEL_PADDING - 8);
-        IntRect listRect = Widgets.Rect(PANEL_PADDING, listY, contentWidth, listHeight);
-        IntRect scrollbarRect = Widgets.Rect(rect.Size.X - PANEL_PADDING - 6, listY, 6, listHeight);
-        int contentHeight = _characters.Count * (CARD_HEIGHT + CARD_GAP);
-        Action<UIBuilder<Material>> body = contentUi => DrawCharacterCards(contentUi, contentWidth);
-
-        ui.ScrollArea(listRect, contentHeight, ref _scrollY, _inputService, scrollbarRect, body);
-    }
-
-    /// <summary>Draws every crew manifest row inside the scroll area.</summary>
-    private void DrawCharacterCards(UIBuilder<Material> ui, int contentWidth)
-    {
-        Action<Character> deleteCharacter = DeleteCharacter;
-
-        for (var i = 0; i < _characters.Count; i++)
-        {
-            DrawCharacterCard(ui, _characters[i], i, contentWidth, deleteCharacter);
-        }
-    }
-
-    /// <summary>Draws one crew manifest row and applies its selection.</summary>
-    private void DrawCharacterCard(
-        UIBuilder<Material> ui,
-        Character character,
-        int index,
-        int contentWidth,
-        Action<Character> deleteCharacter
-    )
-    {
-        bool selected = _characterSaveManager.ActiveSave != null &&
-            _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid;
-        int cardY = index * (CARD_HEIGHT + CARD_GAP);
-        IntRect cardRect = Widgets.Rect(0, cardY, contentWidth - 8, CARD_HEIGHT);
-        var options = new Widgets.SelectableCardOptions(selected, SoundEffectService: _soundEffectService);
-        var context = new CharacterCardContext(
-            character,
-            selected,
-            contentWidth,
-            _modalMenu,
-            _confirmModal,
-            _characterSaveManager,
-            _characterAssetService,
-            _soundEffectService,
-            deleteCharacter
-        );
-
-        bool clicked = ui.SelectableCard(
-            $"Button_SelectCharacter_{character.Uuid}",
-            cardRect,
-            in options,
-            context,
-            static (contentUi, state) => DrawCharacterCardContent(contentUi, state)
-        );
-
-        if (clicked)
-        {
-            _characterSaveManager.ActiveSave = character;
-        }
-    }
-
-    /// <summary>Draws the portrait, the name, and the delete control of one crew manifest row.</summary>
-    private static void DrawCharacterCardContent(UIBuilder<Material> contentUi, CharacterCardContext context)
-    {
-        Material appearance = context.CharacterAssetService.GetAppearanceMaterial(context.Character);
-        using (contentUi.Image(appearance))
-        {
-            contentUi.Constraints = new Constraints
-            {
-                X = new Fixed(6),
-                Y = new Fixed(6),
-                Width = new Fixed(32),
-                Height = new Fixed(32),
-            };
-        }
-
-        contentUi.Label(
-            context.Character.Name,
-            Widgets.Rect(44, 0, Math.Max(1, context.ContentWidth - 90), CARD_HEIGHT),
-            UiMetrics.MENU_BODY_FONT,
-            context.Selected ? UiTheme.AccentBright : UiTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
-
-        DrawCharacterDeleteButton(contentUi, context);
-    }
-
-    /// <summary>Draws the delete control of one crew manifest row and opens its confirmation.</summary>
-    private static void DrawCharacterDeleteButton(UIBuilder<Material> contentUi, CharacterCardContext context)
-    {
-        string id = $"Button_DeleteCharacter_{context.Character.Uuid}";
-        IntRect rect = Widgets.Rect(context.ContentWidth - 42, 8, 28, 28);
-        var options = new Widgets.IconButtonOptions(
-            Danger: true,
-            Enabled: true,
-            SoundEffectService: context.SoundEffectService
-        );
-        bool clicked = contentUi.IconButton(id, rect, MenuGlyphs.TRASH, options);
-        if (!clicked)
-        {
-            return;
-        }
-
-        Character character = context.Character;
-        Action<Character> deleteCharacter = context.DeleteCharacter;
-        context.CharacterSaveManager.ActiveSave = character;
-        context.ModalMenu.GoToPage(context.ConfirmModal.Create(() => deleteCharacter(character)));
-    }
-
-    /// <summary>Deletes one character and selects the most recent remaining save.</summary>
-    private void DeleteCharacter(Character character)
-    {
-        _characterSaveManager.Delete(character);
-        _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
-    }
-
-    /// <summary>Draws the button that opens the new character page.</summary>
-    private void DrawNewCharacterButton(
-        UIBuilder<Material> ui,
-        IntRect rect,
-        int contentWidth,
-        Menu<MenuPage> menu
-    )
-    {
-        IntRect newButtonRect = Widgets.Rect(
-            PANEL_PADDING,
-            rect.Size.Y - NEW_BUTTON_HEIGHT - PANEL_PADDING,
-            contentWidth,
-            NEW_BUTTON_HEIGHT
-        );
-        bool clicked = ui.ActionButton(
-            "Button_NewCharacter",
-            newButtonRect,
-            "+ " + _localization.GetRequired("ui.button.newCharacter"),
-            ButtonVariant.Subtle
-        );
-        if (clicked)
-        {
-            menu.GoToPage(MenuPage.NewCharacter);
-        }
-    }
-
-    private void DrawDossier(UIBuilder<Material> ui, IntRect rect)
-    {
-        using (ui.MenuPanel(rect, _localization.GetRequired("ui.menu.colonistDossier")))
-        {
-            Character? activeCharacter = _characterSaveManager.ActiveSave;
-            if (activeCharacter == null)
-            {
-                ui.Label(
-                    _localization.GetRequired("ui.text.none"),
-                    Widgets.Rect(0, 44, rect.Size.X, 24),
-                    UiMetrics.MENU_BODY_FONT,
-                    UiTheme.TextDim,
-                    Anchors.Center
-                );
-                return;
-            }
-
-            int padding = 16;
-            Character character = activeCharacter.Value;
-
-            DrawDossierHeader(ui, character, rect, padding);
-            DrawDossierPreview(ui, character, padding);
-            DrawDossierAssignment(ui, rect, padding);
-            DrawDossierSummary(ui, rect, padding);
-        }
-    }
-
-    /// <summary>Draws the name, level, and playtime readouts of the dossier.</summary>
-    private void DrawDossierHeader(UIBuilder<Material> ui, in Character character, IntRect rect, int padding)
-    {
-        ui.Label(
-            character.Name,
-            Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 26),
-            UiMetrics.MENU_TITLE_FONT,
-            UiTheme.Text,
-            Anchors.Center
-        );
-
-        int level = character.GetTotalSkillLevel(_skillDatabase);
-        ui.Label(
-            $"{_localization.GetRequired("ui.menu.level")} {level}",
-            Widgets.Rect(padding, 66, rect.Size.X - padding * 2, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.AccentBright,
-            Anchors.Center
-        );
-
-        string lastPlayed = character.Playtime.LastPlayedMs > 0
-            ? DateTimeOffset.FromUnixTimeMilliseconds(character.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
-            : _localization.GetRequired("ui.label.never");
-        ui.Label(
-            $"{_localization.GetRequired("ui.label.lastPlayed")}: {lastPlayed}",
-            Widgets.Rect(padding, 88, rect.Size.X - padding * 2, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Center
-        );
-
-        TimeSpan age = TimeSpan.FromMilliseconds(character.Playtime.AgeMs);
-        ui.Label(
-            $"{_localization.GetRequired("ui.label.timePlayed")}: {_localization.GetLongString(age)}",
-            Widgets.Rect(padding, 106, rect.Size.X - padding * 2, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Center
-        );
-    }
-
-    /// <summary>Draws the portrait and the six primary stats of the dossier.</summary>
-    private void DrawDossierPreview(UIBuilder<Material> ui, in Character character, int padding)
-    {
-        Material appearance = _characterAssetService.GetAppearanceMaterial(character);
-        using (ui.Image(appearance))
-        {
-            ui.Constraints = new Constraints
-            {
-                X = new Fixed(padding),
-                Y = new Fixed(DOSSIER_PREVIEW_Y),
-                Width = new Fixed(128),
-                Height = new Fixed(128),
-            };
-        }
-
-        int statsX = padding + 148;
-        DrawStats(ui, character, statsX);
-    }
-
-    /// <summary>Draws the six primary stat rows of the dossier.</summary>
-    private void DrawStats(UIBuilder<Material> ui, in Character character, int x)
-    {
-        DrawStat(ui, _localization.GetRequired("ui.field.strength"), character.Strength, x, DOSSIER_PREVIEW_Y);
-        DrawStat(ui, _localization.GetRequired("ui.field.precision"), character.Precision, x, DOSSIER_PREVIEW_Y + 24);
-        DrawStat(ui, _localization.GetRequired("ui.field.awareness"), character.Awareness, x, DOSSIER_PREVIEW_Y + 48);
-        DrawStat(ui, _localization.GetRequired("ui.field.charisma"), character.Charisma, x, DOSSIER_PREVIEW_Y + 72);
-        DrawStat(ui, _localization.GetRequired("ui.field.education"), character.Education, x, DOSSIER_PREVIEW_Y + 96);
-        DrawStat(ui, _localization.GetRequired("ui.field.resolve"), character.Resolve, x, DOSSIER_PREVIEW_Y + 120);
-    }
-
-    /// <summary>Draws the assignment block that tall dossier panels show.</summary>
-    private void DrawDossierAssignment(UIBuilder<Material> ui, IntRect rect, int padding)
-    {
-        if (rect.Size.Y <= 440)
-        {
-            return;
-        }
-
-        ui.Divider(
-            Widgets.Rect(padding, 296, rect.Size.X - padding * 2, 1),
-            UiTheme.Border
-        );
-        ui.Label(
-            _localization.GetRequired("ui.menu.assignment"),
-            Widgets.Rect(padding, 308, rect.Size.X - padding * 2, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
-        );
-        ui.Label(
-            _gameSaveManager.ActiveSave?.Name ?? _localization.GetRequired("ui.text.none"),
-            Widgets.Rect(padding, 328, rect.Size.X - padding * 2, 22),
-            UiMetrics.MENU_BODY_FONT,
-            UiTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
-    }
-
-    /// <summary>Draws the launch summary at the bottom of the dossier.</summary>
-    private void DrawDossierSummary(UIBuilder<Material> ui, IntRect rect, int padding)
-    {
-        int statsBottom = DOSSIER_PREVIEW_Y + 5 * 24 + 18;
-        int summaryY = Math.Max(statsBottom + 16, rect.Size.Y - 64);
-        ui.Divider(
-            Widgets.Rect(padding, summaryY, rect.Size.X - padding * 2, 1),
-            UiTheme.Border
-        );
-        ui.Label(
-            _localization.GetRequired("ui.menu.readyForLaunch"),
-            Widgets.Rect(padding, summaryY + 12, rect.Size.X - padding * 2, 20),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Success,
-            Anchors.Left | Anchors.Center
-        );
-    }
-
-    private static void DrawStat(
-        UIBuilder<Material> ui,
-        string label,
-        int value,
-        int x,
-        int y
-    )
-    {
-        ui.StatLabel(
-            label,
-            Widgets.Rect(x, y, 130, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            focused: false
-        );
-        ui.Label(
-            value.ToString(),
-            Widgets.Rect(x + 140, y, 28, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Text,
-            Anchors.Right | Anchors.Center
-        );
-    }
-
     /// <summary>Everything one crew manifest row needs to draw itself.</summary>
     private readonly record struct CharacterCardContext(
         Character Character,
         bool Selected,
-        int ContentWidth,
         ModalMenu ModalMenu,
         ConfirmModal ConfirmModal,
         CharacterSaveManager CharacterSaveManager,

@@ -8,13 +8,25 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
-    /// <summary>Creates one tab and returns true when clicked.</summary>
+    /// <summary>Creates one tab at a fixed rectangle and returns true when clicked.</summary>
     public static bool Tab(
         this UIBuilder<Material> ui,
         string id,
         IntRect rect,
         string label,
         bool selected
+    )
+    {
+        return ui.Tab(id, label, selected, RectConstraints(rect));
+    }
+
+    /// <summary>Creates one tab in the current layout and returns true when clicked.</summary>
+    public static bool Tab(
+        this UIBuilder<Material> ui,
+        string id,
+        string label,
+        bool selected,
+        Constraints constraints
     )
     {
         using (ui.Element(id))
@@ -29,19 +41,18 @@ internal static partial class Widgets
                 Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = selected ? UiTheme.Accent : UiTheme.Border,
             };
-            ui.Constraints = RectConstraints(rect);
-            ui.ClipConstraints = RectConstraints(rect);
+            ui.Constraints = constraints;
+            ui.ClipConstraints = ClipToBounds();
 
-            if (selected && rect.Size.Y > 2)
+            if (selected)
             {
                 using (ui.Element())
                 {
                     ui.Color = UiTheme.PanelSolid;
                     ui.Constraints = new Constraints
                     {
-                        X = new Fixed(1),
-                        Y = new Fixed(rect.Size.Y - 2),
-                        Width = new Fixed(System.Math.Max(0, rect.Size.X - 2)),
+                        Anchors = Anchors.Bottom,
+                        Width = new Fill(),
                         Height = new Fixed(2),
                     };
                 }
@@ -49,10 +60,14 @@ internal static partial class Widgets
 
             ui.Label(
                 label,
-                Rect(0, 0, rect.Size.X, rect.Size.Y),
                 UiMetrics.MENU_SMALL_FONT,
                 selected ? UiTheme.AccentBright : hovering ? UiTheme.Text : UiTheme.TextMuted,
-                Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                HorizontalAlignment.Center
             );
 
             return clicked;

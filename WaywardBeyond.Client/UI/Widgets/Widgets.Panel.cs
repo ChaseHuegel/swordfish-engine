@@ -26,7 +26,7 @@ internal static partial class Widgets
         ui.Border = border;
         ui.CornerCaps = caps;
         ui.Constraints = RectConstraints(rect);
-        ui.ClipConstraints = RectConstraints(rect);
+        ui.ClipConstraints = ClipConstraints(rect);
 
         if (innerBorder)
         {
@@ -42,7 +42,7 @@ internal static partial class Widgets
                 int inset = UiMetrics.PANEL_INNER_INSET;
                 IntRect inner = Rect(inset, inset, Math.Max(0, rect.Size.X - inset * 2), Math.Max(0, rect.Size.Y - inset * 2));
                 ui.Constraints = RectConstraints(inner);
-                ui.ClipConstraints = RectConstraints(inner);
+                ui.ClipConstraints = ClipConstraints(inner);
             }
         }
 

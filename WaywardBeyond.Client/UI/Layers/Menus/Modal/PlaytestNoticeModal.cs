@@ -1,3 +1,4 @@
+using Reef.Constraints;
 using Reef.UI;
 using Reef;
 using Swordfish.Graphics;
@@ -40,64 +41,96 @@ internal class PlaytestNoticeModal(
     {
         int panelWidth = Math.Clamp(ui.Width - 160, 520, 760);
         int panelHeight = Math.Clamp(ui.Height - 160, 460, 500);
-        int padding = UiMetrics.MODAL_PADDING;
-        int contentWidth = panelWidth - padding * 2;
 
         using (ui.ModalDialog(panelWidth, panelHeight, UiTheme.ScrimHeavy))
         {
             ui.Label(
                 _localization.GetRequired("ui.menu.playtest"),
-                Widgets.Rect(padding, 22, contentWidth, 30),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
-                Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(30),
+                },
+                HorizontalAlignment.Center
             );
+            ui.Spacer(height: 8);
             ui.Divider(
-                Widgets.Rect(padding, 62, contentWidth, 1),
-                UiTheme.Border
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
             );
-
-            int footerTop = panelHeight - 68;
+            ui.Spacer(height: 16);
             ui.Paragraph(
                 _localization.GetRequired("ui.text.playtest"),
-                Widgets.Rect(padding, 78, contentWidth, Math.Max(0, footerTop - 96)),
                 UiMetrics.MENU_BODY_FONT,
-                UiTheme.Text
+                UiTheme.Text,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
             );
 
-            int buttonY = footerTop + 8;
-            IntRect communityRect = Widgets.Rect(
-                padding,
-                buttonY,
-                UiMetrics.ICON_BUTTON_SIZE,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            if (ui.IconButton("Button_Community", communityRect, MenuGlyphs.DISCORD, _brandIconOptions))
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                },
+                spacing: 8
+            ))
             {
-                Task.Run(_externalAppService.TryOpenDiscordAsync);
-            }
+                if (ui.IconButton(
+                    "Button_Community",
+                    MenuGlyphs.DISCORD,
+                    _brandIconOptions,
+                    new Constraints
+                    {
+                        Width = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                        Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                    }
+                ))
+                {
+                    Task.Run(_externalAppService.TryOpenDiscordAsync);
+                }
 
-            IntRect wishlistRect = Widgets.Rect(
-                padding + UiMetrics.ICON_BUTTON_SIZE + 8,
-                buttonY,
-                UiMetrics.ICON_BUTTON_SIZE,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            if (ui.IconButton("Button_Wishlist", wishlistRect, MenuGlyphs.STEAM, _brandIconOptions))
-            {
-                Task.Run(_externalAppService.TryOpenSteamAsync);
-            }
+                if (ui.IconButton(
+                    "Button_Wishlist",
+                    MenuGlyphs.STEAM,
+                    _brandIconOptions,
+                    new Constraints
+                    {
+                        Width = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                        Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                    }
+                ))
+                {
+                    Task.Run(_externalAppService.TryOpenSteamAsync);
+                }
 
-            IntRect closeRect = Widgets.Rect(
-                panelWidth - padding - 200,
-                buttonY,
-                200,
-                UiMetrics.ICON_BUTTON_SIZE
-            );
-            string closeLabel = _localization.GetRequired("ui.button.ok");
-            if (ui.ActionButton("Button_Close", closeRect, closeLabel, _closeButton))
-            {
-                menu.GoBack();
+                ui.Filler();
+
+                if (ui.ActionButton(
+                    "Button_Close",
+                    _localization.GetRequired("ui.button.ok"),
+                    _closeButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(200),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    menu.GoBack();
+                }
             }
         }
 

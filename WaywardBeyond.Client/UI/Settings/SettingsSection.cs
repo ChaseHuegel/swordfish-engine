@@ -11,8 +11,8 @@ internal sealed class SettingsSection(string labelKey) : SettingsRow
     public override int Height => UiMetrics.SECTION_HEIGHT;
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer, int y)
+    public override void Render(SettingsRenderer renderer)
     {
-        renderer.DrawSection(LabelKey, y);
+        renderer.DrawSection(LabelKey);
     }
 }

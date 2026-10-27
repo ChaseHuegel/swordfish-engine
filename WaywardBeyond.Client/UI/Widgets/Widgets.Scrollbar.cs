@@ -9,6 +9,59 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
+    /// <summary>Draws a non-interactive scrollbar that fills the current layout.</summary>
+    public static void Scrollbar(
+        this UIBuilder<Material> ui,
+        int contentHeight,
+        int viewportHeight,
+        int scrollY,
+        int maxScroll,
+        int width
+    )
+    {
+        if (contentHeight <= 0)
+        {
+            return;
+        }
+
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Color = UiTheme.Track;
+            ui.Constraints = new Constraints
+            {
+                Width = new Fixed(width),
+                Height = new Fill(),
+            };
+            ui.ClipConstraints = ClipToBounds();
+
+            if (maxScroll <= 0 || viewportHeight <= 0)
+            {
+                return;
+            }
+
+            float visibleRatio = Math.Clamp((float)viewportHeight / contentHeight, 0f, 1f);
+            float minRatio = Math.Min(
+                1f,
+                UiMetrics.SCROLLBAR_THUMB_MIN_HEIGHT / (float)viewportHeight
+            );
+            float thumbRatio = Math.Max(visibleRatio, minRatio);
+            float travel = Math.Max(0f, 1f - thumbRatio);
+            float progress = Math.Clamp(scrollY / (float)maxScroll, 0f, 1f);
+
+            using (ui.Element())
+            {
+                ui.Color = UiTheme.BorderHover;
+                ui.Constraints = new Constraints
+                {
+                    Y = new Relative(progress * travel),
+                    Width = new Fill(),
+                    Height = new Relative(thumbRatio),
+                };
+            }
+        }
+    }
+
     /// <summary>Draws a non-interactive scrollbar for a clipped list.</summary>
     public static void Scrollbar(
         this UIBuilder<Material> ui,
@@ -28,7 +81,7 @@ internal static partial class Widgets
         {
             ui.Color = UiTheme.Track;
             ui.Constraints = RectConstraints(trackRect);
-            ui.ClipConstraints = RectConstraints(trackRect);
+            ui.ClipConstraints = ClipConstraints(trackRect);
         }
 
         int thumbHeight = Math.Clamp(

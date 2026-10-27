@@ -1,4 +1,3 @@
-using System;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -9,7 +8,7 @@ namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
-    /// <summary>Draws a titled information box with wrapped body text.</summary>
+    /// <summary>Draws a titled information box with wrapped body text inside a fixed rectangle.</summary>
     public static void InfoBox(
         this UIBuilder<Material> ui,
         IntRect rect,
@@ -19,26 +18,52 @@ internal static partial class Widgets
         int bodyFontSize = 0
     )
     {
+        ui.InfoBox(RectConstraints(rect), title, body, highlightPrefix, bodyFontSize);
+    }
+
+    /// <summary>Draws a titled information box with wrapped body text in the current layout.</summary>
+    public static void InfoBox(
+        this UIBuilder<Material> ui,
+        Constraints constraints,
+        string title,
+        string body,
+        string? highlightPrefix = null,
+        int bodyFontSize = 0
+    )
+    {
         using (ui.Element())
         {
-            ui.LayoutDirection = LayoutDirection.None;
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Padding = new Padding(10);
             ui.Color = UiTheme.PanelInner;
             ui.Border = new BorderStyle
             {
                 Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Border,
             };
-            ui.Constraints = RectConstraints(rect);
-            ui.ClipConstraints = RectConstraints(rect);
+            ui.Constraints = constraints;
+            ui.ClipConstraints = ClipToBounds();
 
             ui.Label(
                 title,
-                Rect(10, 4, Math.Max(0, rect.Size.X - 20), 16),
                 UiMetrics.INFO_BOX_TITLE_FONT,
                 UiTheme.Text,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(16),
+                }
             );
-            ui.Divider(Rect(10, 21, Math.Max(0, rect.Size.X - 20), 1), UiTheme.Border);
+            ui.Spacer(height: 4);
+            ui.Divider(
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
+            );
+            ui.Spacer(height: 6);
 
             string bodyText = highlightPrefix != null
                 ? $"#F2994AFF {highlightPrefix} #R {body}"
@@ -46,9 +71,13 @@ internal static partial class Widgets
 
             ui.Paragraph(
                 bodyText,
-                Rect(10, 27, Math.Max(0, rect.Size.X - 20), Math.Max(0, rect.Size.Y - 35)),
                 bodyFontSize > 0 ? bodyFontSize : UiMetrics.MENU_SMALL_FONT,
-                UiTheme.Text
+                UiTheme.Text,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
             );
         }
     }

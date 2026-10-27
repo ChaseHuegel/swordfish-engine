@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 using Reef;
 using Reef.Constraints;
@@ -14,11 +13,11 @@ internal static partial class Widgets
     public ref struct ModalScope(
         UIBuilder<Material>.Scope scrim,
         UIBuilder<Material>.Scope center,
-        UIBuilder<Material>.Scope panel
+        MenuPanelScope panel
     ) {
         private UIBuilder<Material>.Scope _scrim = scrim;
         private UIBuilder<Material>.Scope _center = center;
-        private UIBuilder<Material>.Scope _panel = panel;
+        private MenuPanelScope _panel = panel;
 
         public void Dispose()
         {
@@ -52,13 +51,15 @@ internal static partial class Widgets
             Width = new Fixed(width),
             Height = new Fixed(height),
         };
-        ui.ClipConstraints = new Constraints
-        {
-            Width = new Fixed(width),
-            Height = new Fixed(height),
-        };
+        ui.ClipConstraints = ClipToBounds();
 
-        UIBuilder<Material>.Scope panel = ui.ModalPanel(Rect(0, 0, width, height));
+        MenuPanelScope panel = ui.ModalPanel(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            }
+        );
 
         return new ModalScope(scrim, center, panel);
     }

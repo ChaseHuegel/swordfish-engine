@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Reef;
+using Reef.Constraints;
 using Reef.Text;
 using Reef.UI;
 using Swordfish.Graphics;
@@ -40,6 +41,36 @@ public class ActionButtonTests
 
         Assert.Equal(UiMetrics.MENU_BUTTON_MIN_WIDTH, button.Rect.Size.X);
         Assert.Equal(UiMetrics.MENU_BUTTON_HEIGHT, button.Rect.Size.Y);
+    }
+
+    [Fact]
+    public void LayoutActionButtonFillsItsSlot()
+    {
+        UIBuilder<Material> ui = CreateBuilder();
+
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fixed(300),
+                Height = new Fixed(40),
+            }
+        ))
+        {
+            var options = new Widgets.ActionButtonOptions(
+                Variant: ButtonVariant.Secondary,
+                Layout: new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+            ui.ActionButton("layout", "OK", options);
+        }
+
+        RenderCommand<Material> button = Find(ui.Build(0f), "layout");
+
+        Assert.Equal(300, button.Rect.Size.X);
+        Assert.Equal(40, button.Rect.Size.Y);
     }
 
     [Fact]

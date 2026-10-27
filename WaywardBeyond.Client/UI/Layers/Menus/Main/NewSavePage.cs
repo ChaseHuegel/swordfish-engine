@@ -81,8 +81,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '"', '<', '>', '|'],
             Constraints: new Constraints
             {
-                Width = new Fixed(300),
-                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                Width = new Fill(),
+                Height = new Fill(),
             }
         );
         _saveNameTextBox = new TextBoxState(initialValue: string.Empty, options: saveNameTextBoxOptions);
@@ -92,8 +92,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             MaxCharacters: 20,
             Constraints: new Constraints
             {
-                Width = new Fixed(300),
-                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                Width = new Fill(),
+                Height = new Fill(),
             }
         );
         _seedTextBox = new TextBoxState(initialValue: string.Empty, saveSeedTextBoxOptions);
@@ -121,23 +121,13 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             leftRatio: 0.5f
         );
 
-        using (ui.Element())
+        using (ui.Page(layout))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
+            ui.Padding = new Padding(left: 0, top: MenuLayout.PAGE_GAP, right: 0, bottom: 0);
+            ui.Spacing = MenuLayout.PAGE_GAP;
 
             DrawPanes(ui, layout);
-            DrawFooter(ui, layout, menu);
+            DrawFooter(ui, menu);
         }
 
         return Result.FromSuccess();
@@ -184,45 +174,94 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     {
         if (!layout.UseTabs)
         {
-            DrawInitialization(ui, layout.Left);
-            DrawDossier(ui, layout.Right);
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                spacing: MenuLayout.PANEL_GAP
+            ))
+            {
+                DrawInitialization(
+                    ui,
+                    new Constraints
+                    {
+                        Width = new Relative(layout.LeftRatio),
+                        Height = new Fill(),
+                    }
+                );
+                DrawDossier(
+                    ui,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    }
+                );
+            }
+
             return;
         }
 
-        DrawTabs(ui, layout);
+        DrawTabs(ui);
+        Constraints pane = new()
+        {
+            Width = new Fill(),
+            Height = new Fill(),
+        };
+
         if (_narrowTab == 0)
         {
-            DrawInitialization(ui, layout.Right);
+            DrawInitialization(ui, pane);
             return;
         }
 
-        DrawDossier(ui, layout.Right);
+        DrawDossier(ui, pane);
     }
 
     /// <summary>Draws the narrow-layout tabs.</summary>
-    private void DrawTabs(UIBuilder<Material> ui, in MenuLayout layout)
+    private void DrawTabs(UIBuilder<Material> ui)
     {
-        int tabWidth = layout.PageWidth / 2;
-
-        IntRect initializationRect = Widgets.Rect(0, layout.Tabs.Top, tabWidth - 4, layout.Tabs.Size.Y);
-        bool initializationSelected = _narrowTab == 0;
-        string initializationLabel = _localization.GetRequired("ui.menu.sectorInitialization");
-        if (ui.Tab("InitializationTab", initializationRect, initializationLabel, initializationSelected))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.TABS_HEIGHT),
+            },
+            spacing: 8
+        ))
         {
-            _narrowTab = 0;
-        }
+            var tabConstraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
 
-        IntRect dossierRect = Widgets.Rect(tabWidth + 4, layout.Tabs.Top, tabWidth - 4, layout.Tabs.Size.Y);
-        bool dossierSelected = _narrowTab == 1;
-        string dossierLabel = _localization.GetRequired("ui.menu.sectorDossier");
-        if (ui.Tab("DossierTab", dossierRect, dossierLabel, dossierSelected))
-        {
-            _narrowTab = 1;
+            if (ui.Tab(
+                "InitializationTab",
+                _localization.GetRequired("ui.menu.sectorInitialization"),
+                selected: _narrowTab == 0,
+                tabConstraints
+            ))
+            {
+                _narrowTab = 0;
+            }
+
+            if (ui.Tab(
+                "DossierTab",
+                _localization.GetRequired("ui.menu.sectorDossier"),
+                selected: _narrowTab == 1,
+                tabConstraints
+            ))
+            {
+                _narrowTab = 1;
+            }
         }
     }
 
     /// <summary>Draws the page footer, then starts the save creation when asked.</summary>
-    private void DrawFooter(UIBuilder<Material> ui, in MenuLayout layout, Menu<MenuPage> menu)
+    private void DrawFooter(UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         string currentName = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
         bool nameMissing = string.IsNullOrWhiteSpace(currentName);
@@ -231,26 +270,40 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         bool seedMissing = string.IsNullOrWhiteSpace(_seedTextBox.Text.ToString());
         FooterStatus status = ResolveFooterStatus(nameMissing, duplicateName, seedMissing);
 
-        string cancelLabel = _localization.GetRequired("ui.settings.cancel");
-        if (ui.ActionButton("Button_Cancel", layout.ReturnButton, cancelLabel, _cancelButton))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.FOOTER_HEIGHT),
+            },
+            spacing: 12
+        ))
         {
-            menu.GoToPage(MenuPage.Home);
-        }
+            if (ui.ActionButton(
+                "Button_Cancel",
+                _localization.GetRequired("ui.settings.cancel"),
+                _cancelButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
+            ))
+            {
+                menu.GoToPage(MenuPage.Home);
+            }
 
-        string initializeLabel = _localization.GetRequired("ui.button.initialize");
-        var initializeOptions = _initializeButton with { Enabled = canInitialize };
-        if (ui.ActionButton("Button_Initialize", layout.PrimaryButton, initializeLabel, initializeOptions))
-        {
-            TryCreate();
-        }
+            ui.FooterStatus(status.Message, status.Color);
 
-        ui.FooterStatus(
-            layout.Footer,
-            layout.ReturnButton,
-            layout.PrimaryButton,
-            status.Message,
-            status.Color
-        );
+            Widgets.ActionButtonOptions initializeOptions = _initializeButton
+                .FooterButton(MenuLayout.PRIMARY_BUTTON_WIDTH) with
+            {
+                Enabled = canInitialize,
+            };
+            if (ui.ActionButton(
+                "Button_Initialize",
+                _localization.GetRequired("ui.button.initialize"),
+                initializeOptions
+            ))
+            {
+                TryCreate();
+            }
+        }
     }
 
     /// <summary>Gets the footer message and its color for the current name and seed.</summary>
@@ -286,114 +339,153 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly record struct FooterStatus(string? Message, Vector4 Color);
 
     /// <summary>Draws the sector initialization panel.</summary>
-    private void DrawInitialization(UIBuilder<Material> ui, IntRect rect)
+    private void DrawInitialization(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(rect, _localization.GetRequired("ui.menu.sectorInitialization")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.sectorInitialization"), padding: 20))
         {
-            const int padding = 20;
-            int formOffset = Math.Min(60, Math.Max(0, (rect.Size.Y - 190) / 2 - 38));
-            int inputY = 54 + formOffset;
-            int seedY = 100 + formOffset;
-
             ui.Label(
                 _localization.GetRequired("ui.menu.sectorInitHint"),
-                Widgets.Rect(padding, 50, rect.Size.X - padding * 2, 18),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(18),
+                }
             );
+            ui.Spacer(height: 16);
 
             ui.Label(
                 _localization.GetRequired("ui.field.galaxyName"),
-                Widgets.Rect(padding, 38 + formOffset, 160, 16),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(16),
+                }
             );
+            ui.Spacer(height: 4);
+            DrawSaveNameField(ui);
 
-            DrawSaveNameField(ui, padding, inputY);
-
+            ui.Spacer(height: 16);
             ui.Label(
                 _localization.GetRequired("ui.field.worldSeed"),
-                Widgets.Rect(padding, 96 + formOffset, 160, 16),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(16),
+                }
             );
-
-            DrawSeedField(ui, padding, seedY);
+            ui.Spacer(height: 4);
+            DrawSeedField(ui);
         }
     }
 
     /// <summary>Draws the sector name field and its randomize button.</summary>
-    private void DrawSaveNameField(UIBuilder<Material> ui, int x, int inputY)
+    private void DrawSaveNameField(UIBuilder<Material> ui)
     {
-        IntRect textBoxRect = Widgets.Rect(x, inputY, INPUT_WIDTH, UiMetrics.CONTROL_HEIGHT);
-        Widgets.Interactions nameInteractions = ui.MenuTextBox(
-            "TextBox_SaveName",
-            ref _saveNameTextBox,
-            textBoxRect,
-            new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
-            _inputService,
-            _soundEffectService
-        );
-        if (nameInteractions.Has(Widgets.Interactions.Input))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fixed(INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+            },
+            spacing: 8
+        ))
         {
-            _createError = null;
-        }
+            Widgets.Interactions nameInteractions = ui.MenuTextBox(
+                "TextBox_SaveName",
+                ref _saveNameTextBox,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
+                _inputService,
+                _soundEffectService
+            );
+            if (nameInteractions.Has(Widgets.Interactions.Input))
+            {
+                _createError = null;
+            }
 
-        IntRect randomRect = Widgets.Rect(
-            x + INPUT_WIDTH + 8,
-            inputY,
-            UiMetrics.SMALL_ICON_BUTTON_SIZE,
-            UiMetrics.SMALL_ICON_BUTTON_SIZE
-        );
-        Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
-        if (ui.IconButton("Button_RandomSaveName", randomRect, MenuGlyphs.DICE, randomOptions))
-        {
-            _createError = null;
-            RandomizeName();
+            Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
+            if (ui.IconButton(
+                "Button_RandomSaveName",
+                MenuGlyphs.DICE,
+                randomOptions,
+                new Constraints
+                {
+                    Width = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                    Height = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                    Anchors = Anchors.Center,
+                }
+            ))
+            {
+                _createError = null;
+                RandomizeName();
+            }
         }
     }
 
     /// <summary>Draws the world seed field and its randomize button.</summary>
-    private void DrawSeedField(UIBuilder<Material> ui, int x, int seedY)
+    private void DrawSeedField(UIBuilder<Material> ui)
     {
-        IntRect textBoxRect = Widgets.Rect(x, seedY + 12, INPUT_WIDTH, UiMetrics.CONTROL_HEIGHT);
-        Widgets.Interactions seedInteractions = ui.MenuTextBox(
-            "TextBox_SaveSeed",
-            ref _seedTextBox,
-            textBoxRect,
-            new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
-            _inputService,
-            _soundEffectService
-        );
-        if (seedInteractions.Has(Widgets.Interactions.Input))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fixed(INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+            },
+            spacing: 8
+        ))
         {
-            _createError = null;
-        }
+            Widgets.Interactions seedInteractions = ui.MenuTextBox(
+                "TextBox_SaveSeed",
+                ref _seedTextBox,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
+                _inputService,
+                _soundEffectService
+            );
+            if (seedInteractions.Has(Widgets.Interactions.Input))
+            {
+                _createError = null;
+            }
 
-        IntRect randomRect = Widgets.Rect(
-            x + INPUT_WIDTH + 8,
-            seedY + 12,
-            UiMetrics.SMALL_ICON_BUTTON_SIZE,
-            UiMetrics.SMALL_ICON_BUTTON_SIZE
-        );
-        Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
-        if (ui.IconButton("Button_RandomSeed", randomRect, MenuGlyphs.DICE, randomOptions))
-        {
-            _createError = null;
-            _seedTextBox.Text.Clear();
-            _seedTextBox.Text.Append(Random.Shared.NextInt64());
+            Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
+            if (ui.IconButton(
+                "Button_RandomSeed",
+                MenuGlyphs.DICE,
+                randomOptions,
+                new Constraints
+                {
+                    Width = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                    Height = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                    Anchors = Anchors.Center,
+                }
+            ))
+            {
+                _createError = null;
+                _seedTextBox.Text.Clear();
+                _seedTextBox.Text.Append(Random.Shared.NextInt64());
+            }
         }
     }
 
     /// <summary>Draws the sector dossier panel.</summary>
-    private void DrawDossier(UIBuilder<Material> ui, IntRect rect)
+    private void DrawDossier(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(rect, _localization.GetRequired("ui.menu.sectorDossier")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.sectorDossier"), padding: 20))
         {
-            int padding = 20;
             string name = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -402,36 +494,54 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
             ui.Label(
                 name,
-                Widgets.Rect(padding, 42, rect.Size.X - padding * 2, 26),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(26),
+                }
             );
+            ui.Spacer(height: 8);
             ui.Label(
                 $"{_localization.GetRequired("ui.menu.mode")}: CREATIVE",
-                Widgets.Rect(padding, 76, rect.Size.X - padding * 2, 18),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(18),
+                }
             );
             ui.Label(
                 $"{_localization.GetRequired("ui.menu.seed")}: {(_seedTextBox.Text.Length > 0 ? _seedTextBox.Text.ToString() : _localization.GetString("ui.field.random"))}",
-                Widgets.Rect(padding, 96, rect.Size.X - padding * 2, 18),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(18),
+                }
             );
             ui.Label(
                 $"{_localization.GetRequired("ui.level.type")}: {_localization.GetRequired("ui.level.type.asteroids")}",
-                Widgets.Rect(padding, 116, rect.Size.X - padding * 2, 18),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(18),
+                }
             );
 
+            ui.Spacer(height: 16);
             ui.Divider(
-                Widgets.Rect(padding, 150, rect.Size.X - padding * 2, 1),
-                UiTheme.Border
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
             );
         }
     }
@@ -451,102 +561,148 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             twoColumn: false
         );
 
-        const int titleY = 48;
-        int feedWidth = Math.Min(480, layout.PageWidth - 80);
-        int feedX = (layout.PageWidth - feedWidth) / 2;
-        int feedY = titleY + 40;
-        int feedBottom = feedY + (MAX_CREATE_MESSAGES + 1) * CREATE_MESSAGE_ROW_HEIGHT;
-
-        using (ui.Element())
+        using (ui.Page(layout))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
+            using (ui.MenuPanel(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                _localization.GetRequired("ui.menu.sectorInitialization"),
+                padding: 40
+            ))
             {
-                Anchors = Anchors.Center,
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
-
-            using (ui.MenuPanel(layout.Right, _localization.GetRequired("ui.menu.sectorInitialization")))
-            {
-                DrawCreateFeed(ui, feedX, titleY, feedY, feedWidth, feedBottom);
+                DrawCreateFeed(ui, layout.PageWidth);
             }
         }
     }
 
     /// <summary>Draws the creation log, its cursor, and the closing divider.</summary>
-    private void DrawCreateFeed(UIBuilder<Material> ui, int feedX, int titleY, int feedY, int feedWidth, int feedBottom)
+    private void DrawCreateFeed(UIBuilder<Material> ui, int pageWidth)
     {
-        ui.Label(
-            _localization.GetRequired("ui.menu.creatingSector"),
-            Widgets.Rect(feedX, titleY, feedWidth, 24),
-            UiMetrics.MENU_BODY_FONT,
-            UiTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
+        int feedWidth = Math.Min(480, pageWidth - 80);
 
-        for (var i = 0; i < _createMessages.Count; i++)
+        using (ui.Column(
+            new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Fixed(feedWidth),
+                Height = new Fill(),
+            }
+        ))
         {
-            DrawCreateMessage(ui, i, feedX, feedY, feedWidth);
+            ui.Label(
+                _localization.GetRequired("ui.menu.creatingSector"),
+                UiMetrics.MENU_BODY_FONT,
+                UiTheme.Text,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(24),
+                }
+            );
+            ui.Spacer(height: 8);
+
+            for (var i = 0; i < _createMessages.Count; i++)
+            {
+                DrawCreateMessage(ui, i);
+            }
+
+            DrawCreateCursor(ui);
+            ui.Filler();
+            ui.Divider(
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
+            );
         }
-
-        DrawCreateCursor(ui, feedX, feedY);
-
-        ui.Divider(
-            Widgets.Rect(feedX, feedBottom, feedWidth, 1),
-            UiTheme.Border
-        );
     }
 
     /// <summary>Draws one fading line of the creation log.</summary>
-    private void DrawCreateMessage(UIBuilder<Material> ui, int index, int feedX, int feedY, int feedWidth)
+    private void DrawCreateMessage(UIBuilder<Material> ui, int index)
     {
         float fade = Math.Clamp(
             (float)((_createTime - _createMessageTimes[index]) / CREATE_MESSAGE_FADE_SECONDS),
             0f,
             1f
         );
-        int lineY = feedY + index * CREATE_MESSAGE_ROW_HEIGHT;
 
-        ui.Label(
-            ">",
-            Widgets.Rect(feedX, lineY, 12, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            Fade(UiTheme.Accent, fade),
-            Anchors.Left | Anchors.Center
-        );
-        ui.Label(
-            _createMessages[index],
-            Widgets.Rect(feedX + 14, lineY, feedWidth - 14, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            Fade(UiTheme.TextMuted, fade),
-            Anchors.Left | Anchors.Center
-        );
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(CREATE_MESSAGE_ROW_HEIGHT),
+            },
+            spacing: 2
+        ))
+        {
+            ui.Label(
+                ">",
+                UiMetrics.MENU_SMALL_FONT,
+                Fade(UiTheme.Accent, fade),
+                new Constraints
+                {
+                    Width = new Fixed(12),
+                    Height = new Fill(),
+                }
+            );
+            ui.Label(
+                _createMessages[index],
+                UiMetrics.MENU_SMALL_FONT,
+                Fade(UiTheme.TextMuted, fade),
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+        }
     }
 
     /// <summary>Draws the log prompt and its blinking cursor below the last message.</summary>
-    private void DrawCreateCursor(UIBuilder<Material> ui, int feedX, int feedY)
+    private void DrawCreateCursor(UIBuilder<Material> ui)
     {
-        int cursorY = feedY + _createMessages.Count * CREATE_MESSAGE_ROW_HEIGHT;
-        ui.Label(
-            ">",
-            Widgets.Rect(feedX, cursorY, 12, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Accent,
-            Anchors.Left | Anchors.Center
-        );
-
-        if ((int)(_createTime * 2) % 2 != 0)
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(CREATE_MESSAGE_ROW_HEIGHT),
+            },
+            spacing: 2
+        ))
         {
-            return;
-        }
-
-        using (ui.Element())
-        {
-            ui.Color = UiTheme.Accent;
-            ui.Constraints = Widgets.RectConstraints(
-                Widgets.Rect(feedX + 14, cursorY + 3, 8, 12)
+            ui.Label(
+                ">",
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Accent,
+                new Constraints
+                {
+                    Width = new Fixed(12),
+                    Height = new Fill(),
+                }
             );
+
+            if ((int)(_createTime * 2) % 2 == 0)
+            {
+                using (ui.Element())
+                {
+                    ui.Color = UiTheme.Accent;
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Fixed(8),
+                        Height = new Fixed(12),
+                        Anchors = Anchors.Center,
+                    };
+                }
+            }
+            else
+            {
+                ui.Filler();
+            }
         }
     }
 

@@ -98,23 +98,30 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
             }
         }
 
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Padding = new Padding(20);
-            ui.Constraints = new Constraints
+        using (ui.Row(
+            new Constraints
             {
                 Anchors = Anchors.Bottom | Anchors.Right,
-                Width = new Fixed(128),
-                Height = new Fixed(80),
+                X = new Fixed(-20),
+                Y = new Fixed(-20),
+                Width = new Fixed(UiMetrics.ICON_BUTTON_SIZE * 2 + 8),
+                Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+            },
+            spacing: 8
+        ))
+        {
+            var iconConstraints = new Constraints
+            {
+                Width = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
             };
 
-            if (ui.IconButton("Button_Discord", Widgets.Rect(0, 0, UiMetrics.ICON_BUTTON_SIZE, UiMetrics.ICON_BUTTON_SIZE), MenuGlyphs.DISCORD, _brandIconOptions))
+            if (ui.IconButton("Button_Discord", MenuGlyphs.DISCORD, _brandIconOptions, iconConstraints))
             {
                 Task.Run(_externalAppService.TryOpenDiscordAsync);
             }
 
-            if (ui.IconButton("Button_Steam", Widgets.Rect(UiMetrics.ICON_BUTTON_SIZE + 8, 0, UiMetrics.ICON_BUTTON_SIZE, UiMetrics.ICON_BUTTON_SIZE), MenuGlyphs.STEAM, _brandIconOptions))
+            if (ui.IconButton("Button_Steam", MenuGlyphs.STEAM, _brandIconOptions, iconConstraints))
             {
                 Task.Run(_externalAppService.TryOpenSteamAsync);
             }

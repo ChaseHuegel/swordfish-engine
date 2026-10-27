@@ -5,16 +5,17 @@ behavior.
 
 ## Layout
 
-The page uses fixed metrics. It does not rely on nested `Fill` or `Relative`
-constraints inside the page.
+The page uses responsive constraints, not fixed child positions. `SettingsLayout`
+provides the page size, the breakpoint, the tray width, and the label and control
+column widths. The page builds the rest with rows, columns, fillers, and panels.
 
 `SettingsLayout.Compute` is at
-`WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:37`. It produces:
+`WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:30`. It produces:
 
 - a centered page of at most 1280 by 840 pixels;
 - a tray and a pane, or a horizontal tab strip and a full-width pane;
 - a 48 pixel footer;
-- a pane list rect and a scrollbar rect.
+- label and control column widths for the current pane width.
 
 The page width is `min(window width - 80, 1280)`. The page height is
 `min(window height - 240, 840)`. The page leaves room for the title image in
@@ -22,23 +23,22 @@ The page width is `min(window width - 80, 1280)`. The page height is
 
 The tray and pane show when the window is at least 900 pixels wide. Below
 900 pixels, the tray becomes a tab strip above the pane. The tab strip uses the
-short category names. The tray is a fixed list. A larger category set needs
-the overflow work in
+short category names. The tray is a fixed list. A larger category set needs the
+overflow work in
 [settings category overflow](/docs/issues/0091-settings-tray-overflow.md).
 
 The pane list scrolls with the mouse wheel through `Widgets.ScrollArea`. The
-scrollbar is an indicator and does not accept dragging. The list clips its
-rows.
+scrollbar is an indicator and does not accept dragging. The list clips its rows.
 
 ## Rows and controls
 
 A category contains section headers, entries, and one reset row. The row height
-is 44 pixels. A section header is 36 pixels. The label column and control
-column are fixed by `SettingsLayout`.
+is 44 pixels. A section header is 36 pixels. Each row is a horizontal layout.
+The label takes the remaining width and the control uses the metric column.
 
-The label uses `NoWrap` and clips to the label column. The control column holds
-one of these widgets. Each returns `ControlResult<T>`, so a row reads
-`.Changed` and `.Value` instead of taking an `out` value:
+The label uses `NoWrap` and clips to the row. The control column holds one of
+these widgets. Each returns `ControlResult<T>`, so a row reads `.Changed` and
+`.Value` instead of taking an `out` value:
 
 - Category rows use the shared selected-row treatment: one orange border and a
   cyan left caret.
@@ -50,8 +50,8 @@ one of these widgets. Each returns `ControlResult<T>`, so a row reads
 - The category reset row uses the danger button variant.
 
 The widgets live in the game widget library. They use the shared theme and
-metrics from [ui-theme](ui-theme.md). They use the Reef border, corner cap, and
-no-wrap text support.
+metrics from [ui-theme](ui-theme.md). They use the Reef border, corner cap,
+layout constraint, and no-wrap text support.
 
 Disabled rows stay visible and dim. A setting can disable another row. For
 example, V-Sync disables the frame limit, and Autosave disables the interval.
@@ -113,7 +113,7 @@ dim the resolution row and use the monitor resolution. See
 The page applies display changes through
 `IWindowContext.ApplyDisplaySettings`. See [window-display](window-display.md).
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:232` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:261` keeps the display
 mode and resolution rows in sync when a shortcut or a manual resize changes the
 window while the page is open.
 
@@ -149,8 +149,8 @@ existing spacer layout.
 - Categories: `WaywardBeyond.Client/UI/Settings/DisplaySettingsCategory.cs:12`,
   `AudioSettingsCategory.cs:7`, `GameplaySettingsCategory.cs:7`,
   `ControlSettingsCategory.cs:8`
-- Layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:7`
-- Renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:16`
+- Layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:6`
+- Renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:14`
 - Draft: `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:11`
 - Defaults: `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`
 - Theme: `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`
@@ -163,10 +163,10 @@ existing spacer layout.
 
 ## Tests
 
-- `Swordfish.Tests/SettingsLayoutTests.cs` covers page geometry, the 900 pixel
+- `Swordfish.Tests/SettingsLayoutTests.cs` covers page fit, the 900 pixel
   breakpoint, display mode mapping, and resolution availability.
 - `Swordfish.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, and
   option lists.
 - `Swordfish.Tests/SettingsPageRenderTests.cs` builds the real page and checks
-  that the page centers and that controls stay inside the list.
+  that the page centers and that controls stay inside the pane.
 - `Swordfish.Tests/UiThemeResolverTests.cs` covers control styles and states.

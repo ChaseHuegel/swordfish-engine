@@ -90,36 +90,64 @@ internal sealed class HomePage(
 
         ContinueState continueState = BuildContinueState();
         int pageWidth = Math.Clamp(ui.Width - 80, 360, MAX_PAGE_WIDTH);
-        MenuColumnResult buttons = default;
+        int buttonOffset = (pageWidth - UiMetrics.MENU_BUTTON_MIN_WIDTH) / 2;
+        MenuColumnResult buttons;
 
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
+        using (ui.Row(
+            new Constraints
             {
                 Anchors = Anchors.Center,
                 Width = new Fixed(pageWidth),
-                Height = new Fixed(PAGE_HEIGHT),
-            };
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(pageWidth),
-                Height = new Fixed(PAGE_HEIGHT),
-            };
+            }
+        ))
+        {
+            ui.Spacer(width: buttonOffset);
 
-            int buttonX = (pageWidth - UiMetrics.MENU_BUTTON_MIN_WIDTH) / 2;
-            buttons = DrawMenuButtons(ui, buttonX, menu, continueState);
-            if (buttons.ContinueHovered && continueState.HasLastSession && continueState.LastCharacter != null)
+            buttons = DrawMenuButtons(ui, menu, continueState);
+
+            using (ui.Element())
             {
-                IntRect cardRect = ContinueCardRect(buttonX, pageWidth, continueState.Remote);
-                DrawContinueCard(
-                    ui,
-                    continueState.Details,
-                    continueState.LastCharacter.Value,
-                    continueState.Remote,
-                    continueState.Destination,
-                    cardRect
-                );
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                };
+
+                if (buttons.ContinueHovered && continueState.HasLastSession && continueState.LastCharacter != null)
+                {
+                    int cardHeight = ContinueCardHeight(continueState.Remote);
+                    int cardWidth = (pageWidth - UiMetrics.MENU_BUTTON_MIN_WIDTH) / 2 - CONTINUE_CARD_GAP - CONTINUE_CARD_MARGIN;
+                    if (cardWidth >= CONTINUE_CARD_MIN_WIDTH)
+                    {
+                        using (ui.Element())
+                        {
+                            ui.LayoutDirection = LayoutDirection.None;
+                            ui.Padding = new Padding(
+                                left: CONTINUE_CARD_GAP,
+                                top: 0,
+                                right: CONTINUE_CARD_MARGIN,
+                                bottom: 0
+                            );
+                            ui.Constraints = new Constraints
+                            {
+                                Width = new Fill(),
+                                Height = new Fixed(cardHeight),
+                            };
+
+                            DrawContinueCard(
+                                ui,
+                                continueState.Details,
+                                continueState.LastCharacter.Value,
+                                continueState.Remote,
+                                continueState.Destination,
+                                new Constraints
+                                {
+                                    Width = new Fill(),
+                                    Height = new Fixed(cardHeight),
+                                }
+                            );
+                        }
+                    }
+                }
             }
         }
 
@@ -134,90 +162,107 @@ internal sealed class HomePage(
     /// <summary>Draws the Continue chevron and the home menu buttons, and reports what the page must react to.</summary>
     private MenuColumnResult DrawMenuButtons(
         UIBuilder<Material> ui,
-        int buttonX,
         Menu<MenuPage> menu,
         in ContinueState continueState
     )
     {
-        int buttonWidth = UiMetrics.MENU_BUTTON_MIN_WIDTH;
-        int buttonHeight = UiMetrics.MENU_BUTTON_HEIGHT;
-        var y = 0;
-
-        IntRect continueRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
-        var continueOptions = _continueButton with { Enabled = continueState.HasLastSession };
-        bool continueClicked = ui.ActionButton(
-            "Button_Continue",
-            continueRect,
-            _localization.GetRequired("ui.button.continue"),
-            continueOptions,
-            out bool continueHovered
-        );
-        if (continueClicked)
+        using (ui.Column(
+            new Constraints
+            {
+                Width = new Fixed(UiMetrics.MENU_BUTTON_MIN_WIDTH),
+            }
+        ))
         {
-            _continueService.Start();
+            var continueOptions = _continueButton with
+            {
+                Enabled = continueState.HasLastSession,
+                Layout = ButtonSlot(),
+            };
+            bool continueClicked = ui.ActionButton(
+                "Button_Continue",
+                _localization.GetRequired("ui.button.continue"),
+                continueOptions,
+                out bool continueHovered
+            );
+            if (continueClicked)
+            {
+                _continueService.Start();
+            }
+
+            ui.Spacer(height: BUTTON_GAP);
+
+            bool singleplayerClicked = ui.ActionButton(
+                "Button_Singleplayer",
+                _localization.GetRequired("ui.button.singleplayer"),
+                _newGameButton with { Layout = ButtonSlot() }
+            );
+
+            ui.Spacer(height: BUTTON_GAP);
+
+            if (ui.ActionButton(
+                    "Button_Multiplayer",
+                    _localization.GetRequired("ui.button.multiplayer"),
+                    _multiplayerButton with { Layout = ButtonSlot() }
+                ))
+            {
+                menu.GoToPage(MenuPage.Multiplayer);
+            }
+
+            ui.Spacer(height: DIVIDER_GAP);
+            ui.DottedDivider(Widgets.Rect(0, 0, UiMetrics.MENU_BUTTON_MIN_WIDTH, DIVIDER_HEIGHT));
+            ui.Spacer(height: DIVIDER_GAP);
+
+            if (ui.ActionButton(
+                    "Button_Settings",
+                    _localization.GetRequired("ui.button.settings"),
+                    _optionsButton with { Layout = ButtonSlot() }
+                ))
+            {
+                menu.GoToPage(MenuPage.Settings);
+            }
+
+            ui.Spacer(height: BUTTON_GAP);
+
+            if (ui.ActionButton(
+                    "Button_Credits",
+                    _localization.GetRequired("ui.menu.credits"),
+                    _creditsButton with { Layout = ButtonSlot() }
+                ))
+            {
+                menu.GoToPage(MenuPage.Credits);
+            }
+
+            ui.Spacer(height: BUTTON_GAP);
+
+            if (ui.ActionButton(
+                    "Button_Quit",
+                    _localization.GetRequired("ui.button.quit"),
+                    _exitButton with { Layout = ButtonSlot() }
+                ))
+            {
+                _entry.Quit();
+            }
+
+            return new MenuColumnResult(continueHovered, singleplayerClicked);
         }
+    }
 
-        y += buttonHeight + BUTTON_GAP;
-        IntRect singleplayerRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
-        bool singleplayerClicked = ui.ActionButton(
-            "Button_Singleplayer",
-            singleplayerRect,
-            _localization.GetRequired("ui.button.singleplayer"),
-            _newGameButton
-        );
-
-        y += buttonHeight + BUTTON_GAP;
-        IntRect multiplayerRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
-        if (ui.ActionButton(
-                "Button_Multiplayer",
-                multiplayerRect,
-                _localization.GetRequired("ui.button.multiplayer"),
-                _multiplayerButton
-            ))
+    private static Constraints ButtonSlot()
+    {
+        return new Constraints
         {
-            menu.GoToPage(MenuPage.Multiplayer);
-        }
+            Width = new Fill(),
+            Height = new Fixed(UiMetrics.MENU_BUTTON_HEIGHT),
+        };
+    }
 
-        y += buttonHeight + DIVIDER_GAP;
-        ui.DottedDivider(Widgets.Rect(buttonX, y, buttonWidth, DIVIDER_HEIGHT));
-        y += DIVIDER_HEIGHT + DIVIDER_GAP;
-
-        IntRect settingsRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
-        if (ui.ActionButton(
-                "Button_Settings",
-                settingsRect,
-                _localization.GetRequired("ui.button.settings"),
-                _optionsButton
-            ))
-        {
-            menu.GoToPage(MenuPage.Settings);
-        }
-
-        y += buttonHeight + BUTTON_GAP;
-        IntRect creditsRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
-        if (ui.ActionButton(
-                "Button_Credits",
-                creditsRect,
-                _localization.GetRequired("ui.menu.credits"),
-                _creditsButton
-            ))
-        {
-            menu.GoToPage(MenuPage.Credits);
-        }
-
-        y += buttonHeight + BUTTON_GAP;
-        IntRect quitRect = Widgets.Rect(buttonX, y, buttonWidth, buttonHeight);
-        if (ui.ActionButton(
-                "Button_Quit",
-                quitRect,
-                _localization.GetRequired("ui.button.quit"),
-                _exitButton
-            ))
-        {
-            _entry.Quit();
-        }
-
-        return new MenuColumnResult(continueHovered, singleplayerClicked);
+    private static int ContinueCardHeight(bool remote)
+    {
+        int metadataY = remote ? CONTINUE_CARD_METADATA_TOP_REMOTE : CONTINUE_CARD_METADATA_TOP;
+        return metadataY
+            + CONTINUE_CARD_METADATA_HEIGHT
+            + CONTINUE_CARD_DIVIDER_GAP
+            + CONTINUE_CARD_CHARACTER_HEIGHT;
     }
 
     /// <summary>Builds the Continue button state from the save listing and the recorded profile summary.</summary>
@@ -318,23 +363,6 @@ internal sealed class HomePage(
         return !string.IsNullOrWhiteSpace(name) ? name : $"{host}:{port}";
     }
 
-    /// <summary>Computes the rectangle the Continue card occupies beside the menu column.</summary>
-    private static IntRect ContinueCardRect(int buttonX, int pageWidth, bool remote)
-    {
-        int metadataY = remote ? CONTINUE_CARD_METADATA_TOP_REMOTE : CONTINUE_CARD_METADATA_TOP;
-        int height = metadataY
-            + CONTINUE_CARD_METADATA_HEIGHT
-            + CONTINUE_CARD_DIVIDER_GAP
-            + CONTINUE_CARD_CHARACTER_HEIGHT;
-
-        return Widgets.Rect(
-            buttonX + UiMetrics.MENU_BUTTON_MIN_WIDTH + CONTINUE_CARD_GAP,
-            0,
-            pageWidth - buttonX - UiMetrics.MENU_BUTTON_MIN_WIDTH - CONTINUE_CARD_MARGIN,
-            height
-        );
-    }
-
     private void StartSingleplayer(Menu<MenuPage> menu)
     {
         _rpcHost.Disconnect();
@@ -349,167 +377,192 @@ internal sealed class HomePage(
         in Character character,
         bool remote,
         string? destination,
-        IntRect rect
+        Constraints constraints
     )
     {
-        if (rect.Size.X < CONTINUE_CARD_MIN_WIDTH)
-        {
-            return;
-        }
-
-        const int padding = 12;
         const int labelWidth = 100;
-        int width = rect.Size.X;
-        int metadataY = remote ? CONTINUE_CARD_METADATA_TOP_REMOTE : CONTINUE_CARD_METADATA_TOP;
-        int dividerY = metadataY + CONTINUE_CARD_METADATA_HEIGHT;
-        int characterY = dividerY + CONTINUE_CARD_DIVIDER_GAP;
-
-        using (ui.MenuPanel(rect))
+        using (ui.MenuPanel(constraints))
         {
-            int typeX = padding;
-            if (remote)
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(16),
+                },
+                spacing: 6
+            ))
             {
+                if (remote)
+                {
+                    ui.Label(
+                        MenuGlyphs.SERVER,
+                        UiMetrics.MENU_SMALL_FONT,
+                        UiTheme.Accent,
+                        new Constraints
+                        {
+                            Width = new Fixed(16),
+                            Height = new Fill(),
+                        },
+                        fontId: UiTheme.FONT_ICONS
+                    );
+                }
+
                 ui.Label(
-                    MenuGlyphs.SERVER,
-                    Widgets.Rect(padding, 8, 16, 16),
+                    remote
+                        ? _localization.GetRequired("ui.button.multiplayer")
+                        : _localization.GetRequired("ui.button.singleplayer"),
                     UiMetrics.MENU_SMALL_FONT,
-                    UiTheme.Accent,
-                    Anchors.Center,
-                    UiTheme.FONT_ICONS
+                    remote ? UiTheme.Accent : UiTheme.TextMuted,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    }
                 );
-                typeX += 18;
             }
 
             ui.Label(
-                remote
-                    ? _localization.GetRequired("ui.button.multiplayer")
-                    : _localization.GetRequired("ui.button.singleplayer"),
-                Widgets.Rect(typeX, 8, width - typeX - padding, 16),
-                UiMetrics.MENU_SMALL_FONT,
-                remote ? UiTheme.Accent : UiTheme.TextMuted,
-                Anchors.Left | Anchors.Center
-            );
-            ui.Label(
                 details.Name,
-                Widgets.Rect(padding, 28, width - padding * 2, 20),
                 UiMetrics.MENU_BODY_FONT,
                 UiTheme.Text,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(20),
+                }
             );
 
             if (remote && !string.IsNullOrWhiteSpace(destination))
             {
                 ui.Label(
                     destination,
-                    Widgets.Rect(padding, 50, width - padding * 2, 16),
                     UiMetrics.MENU_SMALL_FONT,
                     UiTheme.TextMuted,
-                    Anchors.Left | Anchors.Center
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fixed(16),
+                    }
                 );
             }
+
+            ui.Spacer(height: 4);
 
             string lastPlayed = details.LastPlayedMs > 0
                 ? DateTimeOffset.FromUnixTimeMilliseconds(details.LastPlayedMs).ToLocalTime().ToString("d")
                 : _localization.GetRequired("ui.label.never");
             TimeSpan age = TimeSpan.FromMilliseconds(details.AgeMs);
 
+            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.menu.mode"), details.Mode.ToString());
+            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.menu.seed"), details.Seed.ToString());
+            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.label.lastPlayed"), lastPlayed);
             DrawContinueDetail(
                 ui,
-                padding,
-                metadataY,
-                width,
-                labelWidth,
-                _localization.GetRequired("ui.menu.mode"),
-                details.Mode.ToString()
-            );
-            DrawContinueDetail(
-                ui,
-                padding,
-                metadataY + 18,
-                width,
-                labelWidth,
-                _localization.GetRequired("ui.menu.seed"),
-                details.Seed.ToString()
-            );
-            DrawContinueDetail(
-                ui,
-                padding,
-                metadataY + 36,
-                width,
-                labelWidth,
-                _localization.GetRequired("ui.label.lastPlayed"),
-                lastPlayed
-            );
-            DrawContinueDetail(
-                ui,
-                padding,
-                metadataY + 54,
-                width,
                 labelWidth,
                 _localization.GetRequired("ui.label.timePlayed"),
                 _localization.GetLongString(age)
             );
 
+            ui.Filler();
             ui.Divider(
-                Widgets.Rect(padding, dividerY, width - padding * 2, 1),
-                UiTheme.BorderInner
-            );
-
-            Material appearance = _characterAssetService.GetAppearanceMaterial(character);
-            using (ui.Image(appearance))
-            {
-                ui.Constraints = new Constraints
+                UiTheme.BorderInner,
+                new Constraints
                 {
-                    X = new Fixed(padding),
-                    Y = new Fixed(characterY),
-                    Width = new Fixed(64),
-                    Height = new Fixed(64),
-                };
-            }
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
+            );
+            ui.Spacer(height: 8);
 
-            int textX = padding + 76;
-            int level = character.GetTotalSkillLevel(_skillDatabase);
-            ui.Label(
-                character.Name,
-                Widgets.Rect(textX, characterY, width - textX - padding, 18),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.AccentBright,
-                Anchors.Left | Anchors.Center
-            );
-            ui.Label(
-                $"{_localization.GetRequired("ui.menu.level")} {level}",
-                Widgets.Rect(textX, characterY + 20, width - textX - padding, 18),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.Text,
-                Anchors.Left | Anchors.Center
-            );
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(64),
+                },
+                spacing: 12
+            ))
+            {
+                Material appearance = _characterAssetService.GetAppearanceMaterial(character);
+                using (ui.Image(appearance))
+                {
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Fixed(64),
+                        Height = new Fixed(64),
+                    };
+                }
+
+                using (ui.Column(
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    }
+                ))
+                {
+                    int level = character.GetTotalSkillLevel(_skillDatabase);
+                    ui.Label(
+                        character.Name,
+                        UiMetrics.MENU_SMALL_FONT,
+                        UiTheme.AccentBright,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fixed(18),
+                        }
+                    );
+                    ui.Label(
+                        $"{_localization.GetRequired("ui.menu.level")} {level}",
+                        UiMetrics.MENU_SMALL_FONT,
+                        UiTheme.Text,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fixed(18),
+                        }
+                    );
+                }
+            }
         }
     }
 
     private static void DrawContinueDetail(
         UIBuilder<Material> ui,
-        int padding,
-        int y,
-        int width,
         int labelWidth,
         string label,
         string value
     )
     {
-        ui.Label(
-            label,
-            Widgets.Rect(padding, y, labelWidth, 16),
-            UiMetrics.MENU_LABEL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
-        );
-        ui.Label(
-            value,
-            Widgets.Rect(padding + labelWidth, y, width - padding * 2 - labelWidth, 16),
-            UiMetrics.MENU_LABEL_FONT,
-            UiTheme.TextSoft,
-            Anchors.Left | Anchors.Center
-        );
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(18),
+            }
+        ))
+        {
+            ui.Label(
+                label,
+                UiMetrics.MENU_LABEL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fixed(labelWidth),
+                    Height = new Fill(),
+                }
+            );
+            ui.Label(
+                value,
+                UiMetrics.MENU_LABEL_FONT,
+                UiTheme.TextSoft,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+        }
     }
 
     /// <summary>The Continue button state, resolved from the save listing and the recorded profile summary.</summary>

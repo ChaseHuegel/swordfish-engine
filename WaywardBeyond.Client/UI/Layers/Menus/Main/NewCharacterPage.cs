@@ -30,8 +30,6 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private const int PANEL_PADDING = 20;
     private const int INPUT_WIDTH = 300;
     private const int BODY_BOX_SIZE = 208;
-    private const int BODY_BOX_Y = 96;
-    private const int BODY_IMAGE_SIZE = 192;
 
     private static readonly char[] _characterNameTrimChars = [' ', '\t', '.', '\n', '\r'];
 
@@ -98,8 +96,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '<', '>', '|'],
             Constraints: new Constraints
             {
-                Width = new Fixed(300),
-                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                Width = new Fill(),
+                Height = new Fill(),
             }
         );
         _nameTextBox = new TextBoxState(initialValue: string.Empty, options: nameTextBoxOptions);
@@ -115,23 +113,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             leftRatio: 0.5f
         );
 
-        using (ui.Element())
+        using (ui.Page(layout))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
+            ui.Padding = new Padding(left: 0, top: MenuLayout.PAGE_GAP, right: 0, bottom: 0);
+            ui.Spacing = MenuLayout.PAGE_GAP;
 
             DrawPanes(ui, layout);
-            DrawFooter(ui, layout, menu);
+            DrawFooter(ui, menu);
         }
 
         return Result.FromSuccess();
@@ -142,45 +130,94 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     {
         if (!layout.UseTabs)
         {
-            DrawIdentity(ui, layout.Left);
-            DrawEvaluation(ui, layout.Right);
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                spacing: MenuLayout.PANEL_GAP
+            ))
+            {
+                DrawIdentity(
+                    ui,
+                    new Constraints
+                    {
+                        Width = new Relative(layout.LeftRatio),
+                        Height = new Fill(),
+                    }
+                );
+                DrawEvaluation(
+                    ui,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    }
+                );
+            }
+
             return;
         }
 
-        DrawTabs(ui, layout);
+        DrawTabs(ui);
+        Constraints pane = new()
+        {
+            Width = new Fill(),
+            Height = new Fill(),
+        };
+
         if (_narrowTab == 0)
         {
-            DrawIdentity(ui, layout.Right);
+            DrawIdentity(ui, pane);
             return;
         }
 
-        DrawEvaluation(ui, layout.Right);
+        DrawEvaluation(ui, pane);
     }
 
     /// <summary>Draws the narrow-layout tabs.</summary>
-    private void DrawTabs(UIBuilder<Material> ui, in MenuLayout layout)
+    private void DrawTabs(UIBuilder<Material> ui)
     {
-        int tabWidth = layout.PageWidth / 2;
-
-        IntRect identityRect = Widgets.Rect(0, layout.Tabs.Top, tabWidth - 4, layout.Tabs.Size.Y);
-        bool identitySelected = _narrowTab == 0;
-        string identityLabel = _localization.GetRequired("ui.menu.colonistIdentity");
-        if (ui.Tab("IdentityTab", identityRect, identityLabel, identitySelected))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.TABS_HEIGHT),
+            },
+            spacing: 8
+        ))
         {
-            _narrowTab = 0;
-        }
+            var tabConstraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
 
-        IntRect evaluationRect = Widgets.Rect(tabWidth + 4, layout.Tabs.Top, tabWidth - 4, layout.Tabs.Size.Y);
-        bool evaluationSelected = _narrowTab == 1;
-        string evaluationLabel = _localization.GetRequired("ui.menu.spacerEvaluation");
-        if (ui.Tab("EvaluationTab", evaluationRect, evaluationLabel, evaluationSelected))
-        {
-            _narrowTab = 1;
+            if (ui.Tab(
+                "IdentityTab",
+                _localization.GetRequired("ui.menu.colonistIdentity"),
+                selected: _narrowTab == 0,
+                tabConstraints
+            ))
+            {
+                _narrowTab = 0;
+            }
+
+            if (ui.Tab(
+                "EvaluationTab",
+                _localization.GetRequired("ui.menu.spacerEvaluation"),
+                selected: _narrowTab == 1,
+                tabConstraints
+            ))
+            {
+                _narrowTab = 1;
+            }
         }
     }
 
     /// <summary>Draws the page footer, then opens the created character or leaves the page.</summary>
-    private void DrawFooter(UIBuilder<Material> ui, in MenuLayout layout, Menu<MenuPage> menu)
+    private void DrawFooter(UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         string currentName = CurrentName();
         bool nameMissing = string.IsNullOrWhiteSpace(currentName);
@@ -189,26 +226,40 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         bool canCreate = !nameMissing && !nameTaken;
         FooterStatus status = ResolveFooterStatus(nameMissing, nameTaken);
 
-        string backLabel = _localization.GetRequired("ui.button.back");
-        if (ui.ActionButton("Button_Back", layout.ReturnButton, backLabel, _backButton))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.FOOTER_HEIGHT),
+            },
+            spacing: 12
+        ))
         {
-            menu.GoToPage(MenuPage.SelectCharacter);
-        }
+            if (ui.ActionButton(
+                "Button_Back",
+                _localization.GetRequired("ui.button.back"),
+                _backButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
+            ))
+            {
+                menu.GoToPage(MenuPage.SelectCharacter);
+            }
 
-        string createLabel = _localization.GetRequired("ui.button.createCharacter");
-        var createOptions = _createButton with { Enabled = canCreate };
-        if (ui.ActionButton("Button_CreateCharacter", layout.PrimaryButton, createLabel, createOptions))
-        {
-            RequestCreate(menu);
-        }
+            ui.FooterStatus(status.Message, status.Color);
 
-        ui.FooterStatus(
-            layout.Footer,
-            layout.ReturnButton,
-            layout.PrimaryButton,
-            status.Message,
-            status.Color
-        );
+            Widgets.ActionButtonOptions createOptions = _createButton
+                .FooterButton(MenuLayout.PRIMARY_BUTTON_WIDTH) with
+            {
+                Enabled = canCreate,
+            };
+            if (ui.ActionButton(
+                "Button_CreateCharacter",
+                _localization.GetRequired("ui.button.createCharacter"),
+                createOptions
+            ))
+            {
+                RequestCreate(menu);
+            }
+        }
     }
 
     /// <summary>Gets the footer message and its color for the current name and unspent spacer points.</summary>
@@ -260,242 +311,329 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     }
 
     /// <summary>Draws the identity panel.</summary>
-    private void DrawIdentity(UIBuilder<Material> ui, IntRect rect)
+    private void DrawIdentity(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(rect, _localization.GetRequired("ui.menu.colonistIdentity")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.colonistIdentity"), padding: PANEL_PADDING))
         {
-            DrawNameField(ui, rect);
-            DrawBodyPreview(ui, rect);
+            DrawNameField(ui);
+            ui.Spacer(height: 24);
+            DrawBodyPreview(ui);
         }
     }
 
     /// <summary>Draws the character name field and its randomize button.</summary>
-    private void DrawNameField(UIBuilder<Material> ui, IntRect rect)
+    private void DrawNameField(UIBuilder<Material> ui)
     {
         int nameGroupWidth = INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE;
-        int nameGroupX = (rect.Size.X - nameGroupWidth) / 2;
 
         ui.Label(
             _localization.GetRequired("ui.field.characterNameLabel"),
-            Widgets.Rect(nameGroupX, 38, nameGroupWidth, 16),
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.Text,
-            Anchors.Left | Anchors.Center
+            new Constraints
+            {
+                Width = new Fixed(nameGroupWidth),
+                Height = new Fixed(16),
+                Anchors = Anchors.Center,
+            }
         );
+        ui.Spacer(height: 4);
 
-        IntRect textBoxRect = Widgets.Rect(nameGroupX, 54, INPUT_WIDTH, UiMetrics.CONTROL_HEIGHT);
-        Widgets.Interactions nameInteractions = ui.MenuTextBox(
-            "TextBox_CharacterName",
-            ref _nameTextBox,
-            textBoxRect,
-            new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
-            _inputService,
-            _soundEffectService
-        );
-
-        IntRect randomRect = Widgets.Rect(
-            nameGroupX + INPUT_WIDTH + 8,
-            54,
-            UiMetrics.SMALL_ICON_BUTTON_SIZE,
-            UiMetrics.SMALL_ICON_BUTTON_SIZE
-        );
-        Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
-        if (ui.IconButton("Button_RandomName", randomRect, MenuGlyphs.DICE, randomOptions))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fixed(nameGroupWidth),
+                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                Anchors = Anchors.Center,
+            },
+            spacing: 8
+        ))
         {
-            RandomizeName();
+            Widgets.Interactions nameInteractions = ui.MenuTextBox(
+                "TextBox_CharacterName",
+                ref _nameTextBox,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
+                _inputService,
+                _soundEffectService
+            );
+            Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
+            if (ui.IconButton(
+                "Button_RandomName",
+                MenuGlyphs.DICE,
+                randomOptions,
+                new Constraints
+                {
+                    Width = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                    Height = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                    Anchors = Anchors.Center,
+                }
+            ) && !nameInteractions.Has(Widgets.Interactions.Input))
+            {
+                RandomizeName();
+            }
         }
     }
 
     /// <summary>Draws the body preview box, its cycle buttons, and the preset labels.</summary>
-    private void DrawBodyPreview(UIBuilder<Material> ui, IntRect rect)
+    private void DrawBodyPreview(UIBuilder<Material> ui)
     {
-        int boxX = (rect.Size.X - BODY_BOX_SIZE) / 2;
-        IntRect boxRect = Widgets.Rect(boxX, BODY_BOX_Y, BODY_BOX_SIZE, BODY_BOX_SIZE);
+        const int groupWidth = 32 + 8 + BODY_BOX_SIZE + 8 + 32 + 8 + 32;
 
-        DrawBodyImage(ui, boxRect);
-
-        int buttonY = boxRect.Top + boxRect.Size.Y / 2 - 16;
-        IntRect previousRect = Widgets.Rect(boxX - 40, buttonY, 32, 32);
-        Widgets.IconButtonOptions previousOptions = new(SoundEffectService: _soundEffectService);
-        if (ui.IconButton("Button_PreviousCharacter", previousRect, MenuGlyphs.CHEVRON_LEFT, previousOptions))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fixed(groupWidth),
+                Height = new Fixed(BODY_BOX_SIZE),
+                Anchors = Anchors.Center,
+            },
+            spacing: 8
+        ))
         {
-            CycleBody(-1);
+            Widgets.IconButtonOptions previousOptions = new(SoundEffectService: _soundEffectService);
+            if (ui.IconButton(
+                "Button_PreviousCharacter",
+                MenuGlyphs.CHEVRON_LEFT,
+                previousOptions,
+                new Constraints
+                {
+                    Width = new Fixed(32),
+                    Height = new Fixed(32),
+                    Anchors = Anchors.Center,
+                }
+            ))
+            {
+                CycleBody(-1);
+            }
+
+            DrawBodyImage(ui);
+
+            Widgets.IconButtonOptions nextOptions = new(SoundEffectService: _soundEffectService);
+            if (ui.IconButton(
+                "Button_NextCharacter",
+                MenuGlyphs.CHEVRON_RIGHT,
+                nextOptions,
+                new Constraints
+                {
+                    Width = new Fixed(32),
+                    Height = new Fixed(32),
+                    Anchors = Anchors.Center,
+                }
+            ))
+            {
+                CycleBody(1);
+            }
+
+            Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
+            if (ui.IconButton(
+                "Button_RandomCharacter",
+                MenuGlyphs.DICE,
+                randomOptions,
+                new Constraints
+                {
+                    Width = new Fixed(32),
+                    Height = new Fixed(32),
+                    Anchors = Anchors.Center,
+                }
+            ) && _characterAssetService.GetAppearancesCount() > 0)
+            {
+                _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
+            }
         }
 
-        IntRect nextRect = Widgets.Rect(boxRect.Right + 8, buttonY, 32, 32);
-        Widgets.IconButtonOptions nextOptions = new(SoundEffectService: _soundEffectService);
-        if (ui.IconButton("Button_NextCharacter", nextRect, MenuGlyphs.CHEVRON_RIGHT, nextOptions))
-        {
-            CycleBody(1);
-        }
-
-        IntRect randomRect = Widgets.Rect(boxRect.Right + 48, buttonY, 32, 32);
-        Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
-        if (ui.IconButton("Button_RandomCharacter", randomRect, MenuGlyphs.DICE, randomOptions)
-            && _characterAssetService.GetAppearancesCount() > 0)
-        {
-            _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
-        }
-
+        ui.Spacer(height: 14);
         ui.Label(
             _localization.GetRequired("ui.field.bodyPreset"),
-            Widgets.Rect(PANEL_PADDING, boxRect.Bottom + 14, rect.Size.X - PANEL_PADDING * 2, 18),
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.TextMuted,
-            Anchors.Center
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(18),
+            },
+            HorizontalAlignment.Center
         );
         ui.Label(
             FormatBodyId(_characterAssetService.GetBodyId(_characterMaterialIndex)),
-            Widgets.Rect(PANEL_PADDING, boxRect.Bottom + 34, rect.Size.X - PANEL_PADDING * 2, 24),
             UiMetrics.MENU_BODY_FONT,
             UiTheme.AccentBright,
-            Anchors.Center
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(24),
+            },
+            HorizontalAlignment.Center
         );
     }
 
     /// <summary>Draws the body preview frame and the current appearance inside it.</summary>
-    private void DrawBodyImage(UIBuilder<Material> ui, IntRect box)
+    private void DrawBodyImage(UIBuilder<Material> ui)
     {
         using (ui.Element())
         {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Padding = new Padding(8);
             ui.Color = UiTheme.PanelInner;
             ui.Border = new BorderStyle
             {
                 Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
                 Color = UiTheme.Border,
             };
-            ui.Constraints = Widgets.RectConstraints(box);
-        }
-
-        Material appearance = _characterAssetService.GetAppearanceMaterial(
-            _characterAssetService.GetBodyId(_characterMaterialIndex)
-        );
-        using (ui.Image(appearance))
-        {
             ui.Constraints = new Constraints
             {
-                X = new Fixed(box.Left + (box.Size.X - BODY_IMAGE_SIZE) / 2),
-                Y = new Fixed(box.Top + 8),
-                Width = new Fixed(BODY_IMAGE_SIZE),
-                Height = new Fixed(BODY_IMAGE_SIZE),
+                Width = new Fixed(BODY_BOX_SIZE),
+                Height = new Fixed(BODY_BOX_SIZE),
             };
+            ui.ClipConstraints = Widgets.ClipToBounds();
+
+            Material appearance = _characterAssetService.GetAppearanceMaterial(
+                _characterAssetService.GetBodyId(_characterMaterialIndex)
+            );
+            using (ui.Image(appearance))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+            }
         }
     }
 
     /// <summary>Draws the spacer evaluation panel.</summary>
-    private void DrawEvaluation(UIBuilder<Material> ui, IntRect rect)
+    private void DrawEvaluation(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(rect, _localization.GetRequired("ui.menu.spacerEvaluation")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.spacerEvaluation"), padding: 16))
         {
-            int padding = 16;
-
             ui.Paragraph(
                 _localization.GetRequired("ui.field.spacer.description"),
-                Widgets.Rect(padding, 38, rect.Size.X - padding * 2, 60),
                 UiMetrics.MENU_SMALL_FONT,
-                UiTheme.TextMuted
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fit(),
+                }
             );
 
-            ui.Label(
-                _localization.GetRequired("ui.field.spacer.points"),
-                Widgets.Rect(padding, 104, rect.Size.X - padding * 2 - 48, 20),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.Text,
-                Anchors.Left | Anchors.Center
-            );
-            ui.Label(
-                _spacerPoints.ToString(),
-                Widgets.Rect(rect.Size.X - padding - 76, 104, 36, 20),
-                UiMetrics.MENU_BODY_FONT,
-                UiTheme.Primary,
-                Anchors.Right | Anchors.Center
-            );
+            ui.Spacer(height: 12);
 
-            IntRect randomRect = Widgets.Rect(rect.Size.X - padding - 32, 98, 32, 32);
-            Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
-            if (ui.IconButton("Button_RandomPoints", randomRect, MenuGlyphs.DICE, randomOptions))
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(32),
+                },
+                spacing: 8
+            ))
             {
-                RandomizePoints();
+                ui.Label(
+                    _localization.GetRequired("ui.field.spacer.points"),
+                    UiMetrics.MENU_SMALL_FONT,
+                    UiTheme.Text,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    }
+                );
+                ui.Label(
+                    _spacerPoints.ToString(),
+                    UiMetrics.MENU_BODY_FONT,
+                    UiTheme.Primary,
+                    new Constraints
+                    {
+                        Width = new Fixed(36),
+                        Height = new Fill(),
+                    },
+                    HorizontalAlignment.Right
+                );
+
+                Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
+                if (ui.IconButton(
+                    "Button_RandomPoints",
+                    MenuGlyphs.DICE,
+                    randomOptions,
+                    new Constraints
+                    {
+                        Width = new Fixed(32),
+                        Height = new Fixed(32),
+                    }
+                ))
+                {
+                    RandomizePoints();
+                }
             }
 
-            DrawStatRows(ui, rect, padding);
-            DrawFocusedStatInfo(ui, rect, padding);
+            ui.Spacer(height: 8);
+            DrawStatRows(ui);
+            ui.Spacer(height: 12);
+
+            string[] descriptions =
+            [
+                _localization.GetRequired("ui.field.strength.desc"),
+                _localization.GetRequired("ui.field.precision.desc"),
+                _localization.GetRequired("ui.field.awareness.desc"),
+                _localization.GetRequired("ui.field.charisma.desc"),
+                _localization.GetRequired("ui.field.education.desc"),
+                _localization.GetRequired("ui.field.resolve.desc"),
+            ];
+            string[] names =
+            [
+                _localization.GetRequired("ui.field.strength"),
+                _localization.GetRequired("ui.field.precision"),
+                _localization.GetRequired("ui.field.awareness"),
+                _localization.GetRequired("ui.field.charisma"),
+                _localization.GetRequired("ui.field.education"),
+                _localization.GetRequired("ui.field.resolve"),
+            ];
+
+            ui.InfoBox(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                    MaxHeight = 96,
+                },
+                _localization.GetRequired("ui.menu.info"),
+                descriptions[_focusedStat],
+                names[_focusedStat] + ":"
+            );
         }
     }
 
     /// <summary>Draws the six spacer stat rows.</summary>
-    private void DrawStatRows(UIBuilder<Material> ui, IntRect rect, int padding)
+    private void DrawStatRows(UIBuilder<Material> ui)
     {
-        const int rowY = 132;
-
-        DrawStatRow(ui, rect, 0, _localization.GetRequired("ui.field.strength"), _strength, padding, rowY);
-        DrawStatRow(ui, rect, 1, _localization.GetRequired("ui.field.precision"), _precision, padding, rowY + 28);
-        DrawStatRow(ui, rect, 2, _localization.GetRequired("ui.field.awareness"), _awareness, padding, rowY + 56);
-        DrawStatRow(ui, rect, 3, _localization.GetRequired("ui.field.charisma"), _charisma, padding, rowY + 84);
-        DrawStatRow(ui, rect, 4, _localization.GetRequired("ui.field.education"), _education, padding, rowY + 112);
-        DrawStatRow(ui, rect, 5, _localization.GetRequired("ui.field.resolve"), _resolve, padding, rowY + 140);
-    }
-
-    /// <summary>Draws the description box for the focused stat when the panel is tall enough.</summary>
-    private void DrawFocusedStatInfo(UIBuilder<Material> ui, IntRect rect, int padding)
-    {
-        string[] descriptions =
-        [
-            _localization.GetRequired("ui.field.strength.desc"),
-            _localization.GetRequired("ui.field.precision.desc"),
-            _localization.GetRequired("ui.field.awareness.desc"),
-            _localization.GetRequired("ui.field.charisma.desc"),
-            _localization.GetRequired("ui.field.education.desc"),
-            _localization.GetRequired("ui.field.resolve.desc"),
-        ];
-        string[] names =
-        [
-            _localization.GetRequired("ui.field.strength"),
-            _localization.GetRequired("ui.field.precision"),
-            _localization.GetRequired("ui.field.awareness"),
-            _localization.GetRequired("ui.field.charisma"),
-            _localization.GetRequired("ui.field.education"),
-            _localization.GetRequired("ui.field.resolve"),
-        ];
-
-        int infoY = Math.Max(292, rect.Size.Y - 112);
-        int infoHeight = Math.Max(0, Math.Min(96, rect.Size.Y - infoY - 8));
-        if (infoHeight < 64)
-        {
-            return;
-        }
-
-        IntRect infoRect = Widgets.Rect(padding, infoY, rect.Size.X - padding * 2, infoHeight);
-        ui.InfoBox(
-            infoRect,
-            _localization.GetRequired("ui.menu.info"),
-            descriptions[_focusedStat],
-            names[_focusedStat] + ":"
-        );
+        DrawStatRow(ui, 0, _localization.GetRequired("ui.field.strength"), _strength);
+        DrawStatRow(ui, 1, _localization.GetRequired("ui.field.precision"), _precision);
+        DrawStatRow(ui, 2, _localization.GetRequired("ui.field.awareness"), _awareness);
+        DrawStatRow(ui, 3, _localization.GetRequired("ui.field.charisma"), _charisma);
+        DrawStatRow(ui, 4, _localization.GetRequired("ui.field.education"), _education);
+        DrawStatRow(ui, 5, _localization.GetRequired("ui.field.resolve"), _resolve);
     }
 
     private void DrawStatRow(
         UIBuilder<Material> ui,
-        IntRect rect,
         int index,
         string label,
-        int value,
-        int padding,
-        int y
+        int value
     )
     {
-        int rowWidth = rect.Size.X - padding * 2;
-        using (ui.Element($"StatRow_{index}"))
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.Transparent;
-            ui.Constraints = Widgets.RectConstraints(Widgets.Rect(padding - 6, y - 3, rowWidth + 12, 28));
-            ui.ClipConstraints = new Constraints
+        using (ui.Row(
+            new Constraints
             {
-                Width = new Fixed(rowWidth + 12),
+                Width = new Fill(),
                 Height = new Fixed(28),
-            };
-
+            },
+            spacing: 4,
+            id: $"StatRow_{index}"
+        ))
+        {
             bool focused = _focusedStat == index;
             bool hovering = ui.Hovering();
             if (hovering)
@@ -506,21 +644,41 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             ui.StatLabel(
                 label,
-                Widgets.Rect(6, 3, rowWidth - 112, 18),
                 UiMetrics.MENU_BODY_FONT,
-                focused
+                focused,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
             );
             ui.Label(
                 value.ToString(),
-                Widgets.Rect(rowWidth - 98, 3, 28, 18),
                 UiMetrics.MENU_BODY_FONT,
                 UiTheme.Text,
-                Anchors.Right | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fixed(28),
+                    Height = new Fill(),
+                },
+                HorizontalAlignment.Right
             );
 
             bool canDecrease = value > MIN_STAT;
-            IntRect minusRect = Widgets.Rect(rowWidth - 62, 1, 24, 24);
-            if (ui.ActionButton($"StatMinus_{index}", minusRect, "-", ButtonVariant.Secondary, canDecrease))
+            var buttonOptions = new Widgets.ActionButtonOptions(
+                Variant: ButtonVariant.Secondary,
+                Layout: new Constraints
+                {
+                    Width = new Fixed(24),
+                    Height = new Fixed(24),
+                    Anchors = Anchors.Center,
+                }
+            );
+            if (ui.ActionButton(
+                $"StatMinus_{index}",
+                "-",
+                buttonOptions with { Enabled = canDecrease }
+            ))
             {
                 _focusedStat = index;
                 SetStat(index, value - 1);
@@ -528,8 +686,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             }
 
             bool canIncrease = _spacerPoints > 0 && value < MAX_STAT;
-            IntRect plusRect = Widgets.Rect(rowWidth - 30, 1, 24, 24);
-            if (ui.ActionButton($"StatPlus_{index}", plusRect, "+", ButtonVariant.Secondary, canIncrease))
+            if (ui.ActionButton(
+                $"StatPlus_{index}",
+                "+",
+                buttonOptions with { Enabled = canIncrease }
+            ))
             {
                 _focusedStat = index;
                 SetStat(index, value + 1);

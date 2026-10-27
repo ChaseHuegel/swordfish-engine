@@ -30,7 +30,6 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private const int PANEL_PADDING = 12;
     private const int TABS_HEIGHT = 40;
     private const int BANNER_HEIGHT = 40;
-    private const int BANNER_GAP = 8;
     private const int DIRECT_HEIGHT = 60;
     private const int ADD_BUTTON_HEIGHT = 32;
 
@@ -146,196 +145,236 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             twoColumn: false
         );
 
-        using (ui.Element())
+        using (ui.Page(layout))
         {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(layout.PageWidth),
-                Height = new Fixed(layout.PageHeight),
-            };
+            ui.Padding = new Padding(left: 0, top: MenuLayout.PAGE_GAP, right: 0, bottom: 0);
+            ui.Spacing = MenuLayout.PAGE_GAP;
 
-            int tabsTop = layout.Right.Top;
             if (_rpcHost.IsRemote)
             {
-                DrawConnectionBanner(ui, layout, menu, tabsTop);
-                tabsTop += BANNER_HEIGHT + BANNER_GAP;
+                DrawConnectionBanner(ui, menu);
             }
 
-            DrawTabs(ui, layout, tabsTop);
+            DrawTabs(ui);
 
-            IntRect directRect = Widgets.Rect(
-                0,
-                layout.Right.Bottom - DIRECT_HEIGHT,
-                layout.PageWidth,
-                DIRECT_HEIGHT
-            );
-            int tableTop = tabsTop + TABS_HEIGHT;
-            IntRect tableRect = Widgets.Rect(
-                0,
-                tableTop,
-                layout.PageWidth,
-                Math.Max(0, directRect.Top - tableTop - 12)
-            );
-
-            DrawServerTable(ui, tableRect);
-            DrawDirectConnect(ui, directRect, menu);
-
-            string returnLabel = _localization.GetRequired("ui.button.return");
-            if (ui.ActionButton("Button_Back", layout.ReturnButton, returnLabel, _returnButton))
+            int contentWidth = layout.PageWidth - PANEL_PADDING * 2 - 4;
+            using (ui.MenuPanel(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                _localization.GetRequired("ui.menu.serverList"),
+                padding: PANEL_PADDING
+            ))
             {
-                menu.GoToPage(MenuPage.Home);
+                DrawServerTable(ui, contentWidth);
             }
 
-            int count = _favoritesTab ? _savedServers.Count : _discoveredServers.Count;
-            string joinLabel = _localization.GetRequired("ui.button.joinServer");
-            var joinOptions = _joinButton with { Enabled = count > 0 };
-            if (ui.ActionButton("Button_JoinServer", layout.PrimaryButton, joinLabel, joinOptions))
+            using (ui.MenuPanel(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(DIRECT_HEIGHT),
+                },
+                padding: 8
+            ))
             {
-                JoinSelected(menu);
+                DrawDirectConnect(ui, menu);
             }
 
-            ui.FooterStatus(
-                layout.Footer,
-                layout.ReturnButton,
-                layout.PrimaryButton,
-                _errorMessage,
-                UiTheme.Danger
-            );
+            DrawFooter(ui, menu);
         }
 
         return Result.FromSuccess();
     }
 
-    /// <summary>Draws the favorites and LAN discovery tabs.</summary>
-    private void DrawTabs(UIBuilder<Material> ui, in MenuLayout layout, int top)
+    /// <summary>Draws the page footer and starts a join when asked.</summary>
+    private void DrawFooter(UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        int width = Math.Min(180, layout.PageWidth / 2 - 4);
-
-        IntRect favoritesRect = Widgets.Rect(0, top, width, TABS_HEIGHT);
-        bool favoritesClicked = ui.Tab(
-            "FavoritesTab",
-            favoritesRect,
-            _localization.GetRequired("ui.menu.favorites"),
-            _favoritesTab
-        );
-        if (favoritesClicked)
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.FOOTER_HEIGHT),
+            },
+            spacing: 12
+        ))
         {
-            _favoritesTab = true;
-            _errorMessage = null;
-            _scrollY = 0;
+            if (ui.ActionButton(
+                "Button_Back",
+                _localization.GetRequired("ui.button.return"),
+                _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
+            ))
+            {
+                menu.GoToPage(MenuPage.Home);
+            }
+
+            ui.FooterStatus(_errorMessage, UiTheme.Danger);
+
+            int count = _favoritesTab ? _savedServers.Count : _discoveredServers.Count;
+            Widgets.ActionButtonOptions joinOptions = _joinButton
+                .FooterButton(MenuLayout.PRIMARY_BUTTON_WIDTH) with
+            {
+                Enabled = count > 0,
+            };
+            if (ui.ActionButton(
+                "Button_JoinServer",
+                _localization.GetRequired("ui.button.joinServer"),
+                joinOptions
+            ))
+            {
+                JoinSelected(menu);
+            }
         }
+    }
 
-        IntRect lanRect = Widgets.Rect(width + 4, top, width, TABS_HEIGHT);
-        bool lanClicked = ui.Tab(
-            "LanDiscoveryTab",
-            lanRect,
-            _localization.GetRequired("ui.menu.lanDiscovery"),
-            !_favoritesTab
-        );
-        if (lanClicked)
+    /// <summary>Draws the favorites and LAN discovery tabs.</summary>
+    private void DrawTabs(UIBuilder<Material> ui)
+    {
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(TABS_HEIGHT),
+            },
+            spacing: 4
+        ))
         {
-            _favoritesTab = false;
-            _errorMessage = null;
-            _scrollY = 0;
+            var tabConstraints = new Constraints
+            {
+                Width = new Fixed(180),
+                Height = new Fill(),
+            };
+
+            if (ui.Tab(
+                "FavoritesTab",
+                _localization.GetRequired("ui.menu.favorites"),
+                _favoritesTab,
+                tabConstraints
+            ))
+            {
+                _favoritesTab = true;
+                _errorMessage = null;
+                _scrollY = 0;
+            }
+
+            if (ui.Tab(
+                "LanDiscoveryTab",
+                _localization.GetRequired("ui.menu.lanDiscovery"),
+                !_favoritesTab,
+                tabConstraints
+            ))
+            {
+                _favoritesTab = false;
+                _errorMessage = null;
+                _scrollY = 0;
+            }
         }
     }
 
     /// <summary>Draws the banner that names the connected server.</summary>
-    private void DrawConnectionBanner(
-        UIBuilder<Material> ui,
-        in MenuLayout layout,
-        Menu<MenuPage> menu,
-        int top
-    )
+    private void DrawConnectionBanner(UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        int width = layout.PageWidth;
-        using (ui.Element())
-        {
-            ui.Color = UiTheme.PanelBackground;
-            ui.Constraints = Widgets.RectConstraints(Widgets.Rect(0, top, width, BANNER_HEIGHT));
-        }
-        ui.Divider(
-            Widgets.Rect(0, top + BANNER_HEIGHT - 1, width, 1),
-            UiTheme.BorderInner
-        );
-
-        string host = _networkingConfig.RemoteHost.Get();
-        int port = _networkingConfig.RemotePort.Get();
-        string? savedName = null;
-        for (var i = 0; i < _savedServers.Count; i++)
-        {
-            if (_savedServers[i].Host == host && _savedServers[i].Port == port)
+        using (ui.Column(
+            new Constraints
             {
-                savedName = _savedServers[i].Name;
-                break;
+                Width = new Fill(),
+                Height = new Fixed(BANNER_HEIGHT),
             }
-        }
-
-        string server = !string.IsNullOrWhiteSpace(savedName) ? savedName : $"{host}:{port}";
-        const int disconnectWidth = 120;
-        const int viewWidth = 120;
-        const int gap = 8;
-        int viewX = width - PANEL_PADDING - viewWidth;
-        int disconnectX = viewX - gap - disconnectWidth;
-
-        ui.Label(
-            MenuGlyphs.SERVER,
-            Widgets.Rect(PANEL_PADDING, top, 16, BANNER_HEIGHT),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Accent,
-            Anchors.Center,
-            UiTheme.FONT_ICONS
-        );
-        ui.Label(
-            $"{_localization.GetRequired("ui.menu.connectedTo")} {server}",
-            Widgets.Rect(
-                PANEL_PADDING + 20,
-                top,
-                Math.Max(0, disconnectX - PANEL_PADDING - 32),
-                BANNER_HEIGHT
-            ),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
-
-        IntRect disconnectRect = Widgets.Rect(
-            disconnectX,
-            top + 4,
-            disconnectWidth,
-            UiMetrics.COMPACT_BUTTON_HEIGHT
-        );
-        if (ui.ActionButton(
-                "Button_Disconnect",
-                disconnectRect,
-                _localization.GetRequired("ui.button.disconnect"),
-                _disconnectButton
-            ))
+        ))
         {
-            DisconnectServer();
-        }
-
-        IntRect viewSavesRect = Widgets.Rect(
-            viewX,
-            top + 4,
-            viewWidth,
-            UiMetrics.COMPACT_BUTTON_HEIGHT
-        );
-        if (ui.ActionButton(
-                "Button_ViewSaves",
-                viewSavesRect,
-                _localization.GetRequired("ui.button.viewSaves"),
-                _viewSavesButton
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                spacing: 8
             ))
-        {
-            menu.GoToPage(MenuPage.SelectSave);
+            {
+                ui.Padding = new Padding(left: PANEL_PADDING, right: PANEL_PADDING, top: 0, bottom: 0);
+                ui.Color = UiTheme.PanelBackground;
+
+                string host = _networkingConfig.RemoteHost.Get();
+                int port = _networkingConfig.RemotePort.Get();
+                string? savedName = null;
+                for (var i = 0; i < _savedServers.Count; i++)
+                {
+                    if (_savedServers[i].Host == host && _savedServers[i].Port == port)
+                    {
+                        savedName = _savedServers[i].Name;
+                        break;
+                    }
+                }
+
+                string server = !string.IsNullOrWhiteSpace(savedName) ? savedName : $"{host}:{port}";
+
+                ui.Label(
+                    MenuGlyphs.SERVER,
+                    UiMetrics.MENU_SMALL_FONT,
+                    UiTheme.Accent,
+                    new Constraints
+                    {
+                        Width = new Fixed(16),
+                        Height = new Fill(),
+                    },
+                    fontId: UiTheme.FONT_ICONS
+                );
+                ui.Label(
+                    $"{_localization.GetRequired("ui.menu.connectedTo")} {server}",
+                    UiMetrics.MENU_SMALL_FONT,
+                    UiTheme.Text,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    }
+                );
+
+                if (ui.ActionButton(
+                    "Button_Disconnect",
+                    _localization.GetRequired("ui.button.disconnect"),
+                    _disconnectButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(120),
+                            Height = new Fixed(UiMetrics.COMPACT_BUTTON_HEIGHT),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    DisconnectServer();
+                }
+
+                if (ui.ActionButton(
+                    "Button_ViewSaves",
+                    _localization.GetRequired("ui.button.viewSaves"),
+                    _viewSavesButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(120),
+                            Height = new Fixed(UiMetrics.COMPACT_BUTTON_HEIGHT),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    menu.GoToPage(MenuPage.SelectSave);
+                }
+            }
+
+            ui.Divider(
+                UiTheme.BorderInner,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
+            );
         }
     }
 
@@ -350,121 +389,141 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     }
 
     /// <summary>Draws the server list panel.</summary>
-    private void DrawServerTable(UIBuilder<Material> ui, IntRect rect)
+    private void DrawServerTable(UIBuilder<Material> ui, int contentWidth)
     {
-        using (ui.MenuPanel(rect, _localization.GetRequired("ui.menu.serverList")))
+        const int actionWidth = 32;
+        int tableWidth = contentWidth - actionWidth;
+        int nameWidth = Math.Max(110, (int)(tableWidth * 0.30f));
+        int addressWidth = Math.Max(130, (int)(tableWidth * 0.38f));
+        int playersWidth = Math.Max(50, (int)(tableWidth * 0.12f));
+        int pingWidth = Math.Max(80, tableWidth - nameWidth - addressWidth - playersWidth);
+
+        if (!_favoritesTab)
         {
-            int contentWidth = rect.Size.X - PANEL_PADDING * 2;
-            const int actionWidth = 32;
-            int tableWidth = contentWidth - actionWidth;
-            int nameWidth = Math.Max(110, (int)(tableWidth * 0.30f));
-            int addressWidth = Math.Max(130, (int)(tableWidth * 0.38f));
-            int playersWidth = Math.Max(50, (int)(tableWidth * 0.12f));
-            int pingWidth = Math.Max(80, tableWidth - nameWidth - addressWidth - playersWidth);
-            const int listY = 62;
-            int listBottom = rect.Size.Y - PANEL_PADDING - (_favoritesTab ? ADD_BUTTON_HEIGHT + 8 : 0);
-            int listHeight = Math.Max(0, listBottom - listY);
-
-            DrawServerTableHeader(ui, rect, nameWidth, addressWidth, playersWidth, pingWidth);
-            DrawScanButton(ui, rect);
-
-            int count = _favoritesTab ? _savedServers.Count : _discoveredServers.Count;
-            if (count == 0)
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(24),
+                },
+                spacing: 8
+            ))
             {
-                DrawServerTableEmptyState(ui, contentWidth, listY);
-            }
-            else
-            {
-                IntRect listRect = Widgets.Rect(PANEL_PADDING, listY, contentWidth, listHeight);
-                IntRect scrollbarRect = Widgets.Rect(
-                    rect.Size.X - PANEL_PADDING - 6,
-                    listY,
-                    6,
-                    listHeight
-                );
-                int contentHeight = count * (ROW_HEIGHT + ROW_GAP);
-                ui.ScrollArea(
-                    listRect,
-                    contentHeight,
-                    ref _scrollY,
-                    _inputService,
-                    scrollbarRect,
-                    body => DrawServerRows(
-                        body,
-                        contentWidth,
-                        nameWidth,
-                        addressWidth,
-                        playersWidth,
-                        pingWidth,
-                        count
-                    )
-                );
+                ui.Filler();
+                DrawScanButton(ui);
             }
 
-            DrawAddFavoriteButton(ui, rect, contentWidth);
+            ui.Spacer(height: 4);
+        }
+
+        DrawServerTableHeader(ui, nameWidth, addressWidth, playersWidth, pingWidth);
+        ui.Divider(
+            UiTheme.Border,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(1),
+            }
+        );
+        ui.Spacer(height: 6);
+
+        int count = _favoritesTab ? _savedServers.Count : _discoveredServers.Count;
+        if (count == 0)
+        {
+            DrawServerTableEmptyState(ui);
+        }
+        else
+        {
+            DrawServerRows(ui, nameWidth, addressWidth, playersWidth, pingWidth, count);
+        }
+
+        DrawAddFavoriteButton(ui);
+
+        if (count == 0)
+        {
+            ui.Filler();
         }
     }
 
-    /// <summary>Draws the server table column headers and the divider under them.</summary>
+    /// <summary>Draws the server table column headers.</summary>
     private void DrawServerTableHeader(
         UIBuilder<Material> ui,
-        IntRect rect,
         int nameWidth,
         int addressWidth,
         int playersWidth,
         int pingWidth
     )
     {
-        int contentWidth = rect.Size.X - PANEL_PADDING * 2;
-        const int headerY = 38;
-
-        ui.Label(
-            _localization.GetRequired("ui.menu.serverName"),
-            Widgets.Rect(PANEL_PADDING + 32, headerY, nameWidth - 32, 16),
-            UiMetrics.MENU_LABEL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
-        );
-        ui.Label(
-            _localization.GetRequired("ui.menu.address"),
-            Widgets.Rect(PANEL_PADDING + nameWidth, headerY, addressWidth, 16),
-            UiMetrics.MENU_LABEL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
-        );
-        ui.Label(
-            _localization.GetRequired("ui.menu.players"),
-            Widgets.Rect(PANEL_PADDING + nameWidth + addressWidth, headerY, playersWidth, 16),
-            UiMetrics.MENU_LABEL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
-        );
-        ui.Label(
-            _localization.GetRequired("ui.menu.ping"),
-            Widgets.Rect(PANEL_PADDING + nameWidth + addressWidth + playersWidth, headerY, pingWidth, 16),
-            UiMetrics.MENU_LABEL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
-        );
-        ui.Divider(Widgets.Rect(PANEL_PADDING, 56, contentWidth, 1), UiTheme.Border);
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(16),
+            }
+        ))
+        {
+            ui.Spacer(width: 32);
+            ui.Label(
+                _localization.GetRequired("ui.menu.serverName"),
+                UiMetrics.MENU_LABEL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fixed(Math.Max(1, nameWidth - 32)),
+                    Height = new Fill(),
+                }
+            );
+            ui.Label(
+                _localization.GetRequired("ui.menu.address"),
+                UiMetrics.MENU_LABEL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fixed(addressWidth),
+                    Height = new Fill(),
+                }
+            );
+            ui.Label(
+                _localization.GetRequired("ui.menu.players"),
+                UiMetrics.MENU_LABEL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fixed(playersWidth),
+                    Height = new Fill(),
+                }
+            );
+            ui.Label(
+                _localization.GetRequired("ui.menu.ping"),
+                UiMetrics.MENU_LABEL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fixed(pingWidth),
+                    Height = new Fill(),
+                }
+            );
+        }
     }
 
     /// <summary>Draws the LAN scan button on the discovery tab and restarts the scan.</summary>
-    private void DrawScanButton(UIBuilder<Material> ui, IntRect rect)
+    private void DrawScanButton(UIBuilder<Material> ui)
     {
-        if (_favoritesTab)
-        {
-            return;
-        }
-
-        IntRect scanRect = Widgets.Rect(rect.Size.X - PANEL_PADDING - 80, 6, 80, 22);
+        var options = new Widgets.ActionButtonOptions(
+            Variant: ButtonVariant.Secondary,
+            Enabled: !_scanning,
+            Layout: new Constraints
+            {
+                Width = new Fixed(80),
+                Height = new Fixed(22),
+                Anchors = Anchors.Center,
+            },
+            SoundEffectService: _soundEffectService
+        );
         bool clicked = ui.ActionButton(
             "Button_Scan",
-            scanRect,
             _localization.GetRequired("ui.button.scanShort"),
-            ButtonVariant.Secondary,
-            !_scanning,
-            soundEffectService: _soundEffectService
+            options
         );
         if (!clicked)
         {
@@ -479,7 +538,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     }
 
     /// <summary>Draws the label shown when the active tab has no servers.</summary>
-    private void DrawServerTableEmptyState(UIBuilder<Material> ui, int contentWidth, int listY)
+    private void DrawServerTableEmptyState(UIBuilder<Material> ui)
     {
         string message = _favoritesTab
             ? _localization.GetRequired("ui.text.none")
@@ -488,17 +547,19 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 : _discoverMessage ?? _localization.GetRequired("ui.notification.discover.none");
         ui.Label(
             message,
-            Widgets.Rect(PANEL_PADDING, listY + 12, contentWidth, 20),
             UiMetrics.MENU_BODY_FONT,
             _favoritesTab ? UiTheme.TextDim : UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(28),
+            }
         );
     }
 
     /// <summary>Draws every server row inside the scroll viewport.</summary>
     private void DrawServerRows(
         UIBuilder<Material> ui,
-        int contentWidth,
         int nameWidth,
         int addressWidth,
         int playersWidth,
@@ -506,29 +567,54 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         int count
     )
     {
+        int contentHeight = count * ROW_HEIGHT + Math.Max(0, count - 1) * ROW_GAP;
+        var context = new ServerRowContext(
+            this,
+            _favoritesTab,
+            nameWidth,
+            addressWidth,
+            playersWidth,
+            pingWidth,
+            _soundEffectService
+        );
+
+        ui.ScrollArea(
+            "Multiplayer.Servers",
+            contentHeight,
+            ref _scrollY,
+            _inputService,
+            body => DrawServerRowList(body, in context, count)
+        );
+    }
+
+    private static void DrawServerRowList(
+        UIBuilder<Material> ui,
+        in ServerRowContext context,
+        int count
+    )
+    {
         for (var index = 0; index < count; index++)
         {
-            bool selected = _favoritesTab ? index == _selectedFavorite : index == _selectedLan;
-            int rowY = index * (ROW_HEIGHT + ROW_GAP);
-            IntRect rowRect = Widgets.Rect(0, rowY, contentWidth, ROW_HEIGHT);
+            if (index > 0)
+            {
+                ui.Spacer(height: ROW_GAP);
+            }
+
+            bool selected = context.Favorites
+                ? index == context.Page._selectedFavorite
+                : index == context.Page._selectedLan;
             var options = new Widgets.SelectableCardOptions(selected);
-            var context = new ServerRowContext(
-                this,
-                _favoritesTab,
-                index,
-                nameWidth,
-                addressWidth,
-                playersWidth,
-                pingWidth,
-                contentWidth,
-                _soundEffectService
-            );
+            var rowContext = context with { Index = index };
 
             bool clicked = ui.SelectableCard(
-                _favoritesTab ? $"SavedServer_{index}" : $"Server_{index}",
-                rowRect,
+                context.Favorites ? $"SavedServer_{index}" : $"Server_{index}",
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(ROW_HEIGHT),
+                },
                 in options,
-                context,
+                rowContext,
                 static (contentUi, row) => DrawServerRowContent(contentUi, in row)
             );
             if (!clicked)
@@ -536,16 +622,16 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 continue;
             }
 
-            if (_favoritesTab)
+            if (context.Favorites)
             {
-                _selectedFavorite = index;
+                context.Page._selectedFavorite = index;
             }
             else
             {
-                _selectedLan = index;
+                context.Page._selectedLan = index;
             }
 
-            _errorMessage = null;
+            context.Page._errorMessage = null;
         }
     }
 
@@ -578,12 +664,21 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             ping: null
         );
 
-        IntRect actionRect = Widgets.Rect(context.ContentWidth - 30, 3, 24, 24);
         var options = new Widgets.IconButtonOptions(
             Danger: true,
             SoundEffectService: context.SoundEffectService
         );
-        if (contentUi.IconButton($"RemoveSavedServer_{context.Index}", actionRect, MenuGlyphs.TRASH, options))
+        if (contentUi.IconButton(
+            $"RemoveSavedServer_{context.Index}",
+            MenuGlyphs.TRASH,
+            options,
+            new Constraints
+            {
+                Width = new Fixed(24),
+                Height = new Fixed(24),
+                Anchors = Anchors.Center,
+            }
+        ))
         {
             page.ConfirmRemoveFavorite(context.Index, server.Name);
         }
@@ -606,9 +701,18 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             ping: null
         );
 
-        IntRect actionRect = Widgets.Rect(context.ContentWidth - 30, 3, 24, 24);
         var options = new Widgets.IconButtonOptions(SoundEffectService: context.SoundEffectService);
-        if (contentUi.IconButton($"FavoriteServer_{context.Index}", actionRect, MenuGlyphs.STAR, options))
+        if (contentUi.IconButton(
+            $"FavoriteServer_{context.Index}",
+            MenuGlyphs.STAR,
+            options,
+            new Constraints
+            {
+                Width = new Fixed(24),
+                Height = new Fixed(24),
+                Anchors = Anchors.Center,
+            }
+        ))
         {
             page.AddFavorite(new SavedServer
             {
@@ -623,31 +727,35 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly record struct ServerRowContext(
         MultiplayerPage Page,
         bool Favorites,
-        int Index,
         int NameWidth,
         int AddressWidth,
         int PlayersWidth,
         int PingWidth,
-        int ContentWidth,
         SoundEffectService SoundEffectService
-    );
+    )
+    {
+        public int Index { get; init; }
+    }
 
     /// <summary>Draws the add-favorite button on the favorites tab.</summary>
-    private void DrawAddFavoriteButton(UIBuilder<Material> ui, IntRect rect, int contentWidth)
+    private void DrawAddFavoriteButton(UIBuilder<Material> ui)
     {
         if (!_favoritesTab)
         {
             return;
         }
 
-        string label = "+ " + _localization.GetRequired("ui.button.addFavorite");
-        IntRect buttonRect = Widgets.Rect(
-            PANEL_PADDING,
-            rect.Size.Y - PANEL_PADDING - ADD_BUTTON_HEIGHT,
-            contentWidth,
-            ADD_BUTTON_HEIGHT
+        ui.Spacer(height: 8);
+        var options = new Widgets.ActionButtonOptions(
+            Variant: ButtonVariant.Subtle,
+            Layout: new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(ADD_BUTTON_HEIGHT),
+            }
         );
-        if (!ui.ActionButton("Button_AddFavorite", buttonRect, label, ButtonVariant.Subtle))
+        string label = "+ " + _localization.GetRequired("ui.button.addFavorite");
+        if (!ui.ActionButton("Button_AddFavorite", label, options))
         {
             return;
         }
@@ -671,72 +779,102 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         int? ping
     )
     {
-        ui.Label(
-            _favoritesTab ? MenuGlyphs.GALAXY : MenuGlyphs.SERVER,
-            Widgets.Rect(8, 6, 20, 18),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Accent,
-            Anchors.Center,
-            UiTheme.FONT_ICONS
-        );
-        ui.Label(
-            name,
-            Widgets.Rect(32, 0, nameWidth - 36, ROW_HEIGHT),
-            UiMetrics.MENU_BODY_FONT,
-            UiTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
-        ui.Label(
-            address,
-            Widgets.Rect(nameWidth, 0, addressWidth - 8, ROW_HEIGHT),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            Anchors.Left | Anchors.Center
-        );
-        ui.Label(
-            players,
-            Widgets.Rect(nameWidth + addressWidth, 0, playersWidth - 8, ROW_HEIGHT),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Text,
-            Anchors.Left | Anchors.Center
-        );
-        ui.PingIndicator(
-            Widgets.Rect(nameWidth + addressWidth + playersWidth, 0, pingWidth - 8, ROW_HEIGHT),
-            ping
-        );
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            },
+            spacing: 4
+        ))
+        {
+            ui.Padding = new Padding(left: 8, right: 8, top: 0, bottom: 0);
+
+            ui.Label(
+                _favoritesTab ? MenuGlyphs.GALAXY : MenuGlyphs.SERVER,
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Accent,
+                new Constraints
+                {
+                    Width = new Fixed(20),
+                    Height = new Fill(),
+                },
+                HorizontalAlignment.Center,
+                fontId: UiTheme.FONT_ICONS
+            );
+            ui.Label(
+                name,
+                UiMetrics.MENU_BODY_FONT,
+                UiTheme.Text,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+            ui.Label(
+                address,
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fixed(Math.Max(1, addressWidth - 8)),
+                    Height = new Fill(),
+                }
+            );
+            ui.Label(
+                players,
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Text,
+                new Constraints
+                {
+                    Width = new Fixed(Math.Max(1, playersWidth - 8)),
+                    Height = new Fill(),
+                }
+            );
+            ui.PingIndicator(
+                new Constraints
+                {
+                    Width = new Fixed(Math.Max(1, pingWidth - 8)),
+                    Height = new Fill(),
+                },
+                ping
+            );
+        }
     }
 
     /// <summary>Draws the direct connect panel.</summary>
-    private void DrawDirectConnect(UIBuilder<Material> ui, IntRect rect, Menu<MenuPage> menu)
+    private void DrawDirectConnect(UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        using (ui.MenuPanel(rect))
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            },
+            spacing: 8
+        ))
         {
-            const int labelWidth = 124;
-            const int portWidth = 64;
-            const int connectWidth = 92;
-            const int gap = 8;
-            const int rowY = 14;
-            int hostX = PANEL_PADDING + labelWidth + gap;
-            int hostWidth = Math.Clamp(
-                rect.Size.X - hostX - portWidth - connectWidth - gap * 2 - PANEL_PADDING,
-                120,
-                320
-            );
-            int portX = hostX + hostWidth + gap;
-            int connectX = portX + portWidth + gap;
-
             ui.Label(
                 _localization.GetRequired("ui.menu.directConnect"),
-                Widgets.Rect(PANEL_PADDING, rowY, labelWidth, UiMetrics.CONTROL_HEIGHT),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
-                Anchors.Left | Anchors.Center
+                new Constraints
+                {
+                    Width = new Fixed(124),
+                    Height = new Fill(),
+                }
             );
 
             Widgets.Interactions hostInteractions = ui.MenuTextBox(
                 "TextBox_Host",
                 ref _hostTextBox,
-                Widgets.Rect(hostX, rowY, hostWidth, UiMetrics.CONTROL_HEIGHT),
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                    MaxWidth = 320,
+                },
                 new FontOptions { Size = UiMetrics.MENU_SMALL_FONT },
                 _inputService
             );
@@ -745,26 +883,31 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             Widgets.Interactions portInteractions = ui.MenuTextBox(
                 "TextBox_Port",
                 ref _portTextBox,
-                Widgets.Rect(portX, rowY, portWidth, UiMetrics.CONTROL_HEIGHT),
+                new Constraints
+                {
+                    Width = new Fixed(64),
+                    Height = new Fill(),
+                },
                 new FontOptions { Size = UiMetrics.MENU_SMALL_FONT },
                 _inputService
             );
             HandleTextBoxInteractions(in portInteractions, menu);
 
-            IntRect connectRect = Widgets.Rect(
-                connectX,
-                rowY,
-                connectWidth,
-                UiMetrics.CONTROL_HEIGHT
+            var connectOptions = new Widgets.ActionButtonOptions(
+                Variant: ButtonVariant.Primary,
+                Layout: new Constraints
+                {
+                    Width = new Fixed(92),
+                    Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                    Anchors = Anchors.Center,
+                },
+                SoundEffectService: _soundEffectService
             );
-            bool connectClicked = ui.ActionButton(
+            if (ui.ActionButton(
                 "Button_Connect",
-                connectRect,
                 _localization.GetRequired("ui.button.connect"),
-                ButtonVariant.Primary,
-                soundEffectService: _soundEffectService
-            );
-            if (connectClicked)
+                connectOptions
+            ))
             {
                 TryConnect(menu);
             }

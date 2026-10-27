@@ -21,14 +21,33 @@ internal static partial class Widgets
         SoundEffectService? soundEffectService = null
     )
     {
+        return ui.MenuTextBox(
+            id,
+            ref state,
+            RectConstraints(rect),
+            fontOptions,
+            inputService,
+            soundEffectService
+        );
+    }
+
+    /// <summary>Draws a clipped menu text box in the current layout and returns its interactions.</summary>
+    /// <param name="soundEffectService">Plays the typing and submit sounds when provided.</param>
+    public static Interactions MenuTextBox(
+        this UIBuilder<Material> ui,
+        string id,
+        ref TextBoxState state,
+        Constraints constraints,
+        FontOptions fontOptions,
+        IInputService inputService,
+        SoundEffectService? soundEffectService = null
+    )
+    {
         using (ui.Element())
         {
-            ui.Constraints = RectConstraints(rect);
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Fixed(rect.Size.X),
-                Height = new Fixed(rect.Size.Y),
-            };
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = constraints;
+            ui.ClipConstraints = ClipToBounds();
             ui.TextBox(id, ref state, fontOptions, inputService, out Interactions interactions);
             if (soundEffectService != null)
             {
