@@ -168,6 +168,9 @@ public sealed class UIBuilder<TRendererData>
         get => _currentElement.Overlay;
         set => _currentElement.Overlay = value;
     }
+    
+    /// <summary>Gets or sets the font ID applied to text that does not specify one.</summary>
+    public string? DefaultFontID { get; set; }
 
     public bool IsMouseCaptured => _controller.IsMouseCaptured;
     public bool IsKeyboardCaptured => _controller.IsKeyboardCaptured;
@@ -224,6 +227,10 @@ public sealed class UIBuilder<TRendererData>
 
     public Scope Text(string value, FontOptions fontOptions)
     {
+        FontOptions effectiveFontOptions = fontOptions.ID == null
+            ? fontOptions with { ID = DefaultFontID }
+            : fontOptions;
+        
         var element = new Element<TRendererData>
         {
             Text = value,
@@ -231,7 +238,7 @@ public sealed class UIBuilder<TRendererData>
             {
                 Color = Vector4.One,
             },
-            FontOptions = fontOptions,
+            FontOptions = effectiveFontOptions,
         };
         
         return OpenElement(element);
