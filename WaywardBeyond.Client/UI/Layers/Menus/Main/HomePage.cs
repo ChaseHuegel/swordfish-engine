@@ -237,7 +237,7 @@ internal sealed class HomePage(
             && lastCharacter != null
             && !string.IsNullOrWhiteSpace(details.Name);
 
-        bool remote = _profileSettings.LastServerMode.Get() == LastServerMode.Remote;
+        bool remote = _profileSettings.LastSession.Server.Get().Mode == ServerMode.Remote;
         string? destination = remote ? ResolveRemoteDestination() : null;
 
         return new ContinueState(details, hasLastSession, lastCharacter, remote, destination);
@@ -246,7 +246,7 @@ internal sealed class HomePage(
     /// <summary>Finds the save the profile last opened.</summary>
     private GameSave? FindLastSave()
     {
-        string lastSaveGuid = _profileSettings.LastSaveGuid.Get();
+        string lastSaveGuid = _profileSettings.LastSession.Save.Get().Guid;
         GameSave[] saves = _gameSaveService.GetSaves();
         for (var i = 0; i < saves.Length; i++)
         {
@@ -262,7 +262,7 @@ internal sealed class HomePage(
     /// <summary>Finds the character the profile last played.</summary>
     private Character? FindLastCharacter()
     {
-        string lastCharacterUuid = _profileSettings.LastCharacterUuid.Get();
+        string lastCharacterUuid = _profileSettings.LastSession.CharacterUuid.Get();
         IReadOnlyList<Character> characters = _characterStorage.GetAllCharacters();
         for (var i = 0; i < characters.Count; i++)
         {
@@ -290,20 +290,22 @@ internal sealed class HomePage(
     /// <summary>Describes the last save from the recorded profile summary.</summary>
     private ContinueDetails DescribeProfile()
     {
+        SessionSave save = _profileSettings.LastSession.Save.Get();
         return new ContinueDetails(
-            _profileSettings.LastSaveName.Get(),
-            _profileSettings.LastSaveGameMode.Get(),
-            _profileSettings.LastSaveSeed.Get(),
-            _profileSettings.LastSaveLastPlayedMs.Get(),
-            _profileSettings.LastSaveAgeMs.Get()
+            save.Name,
+            save.GameMode,
+            save.Seed,
+            save.LastPlayedMs,
+            save.AgeMs
         );
     }
 
     /// <summary>Gets the label the Continue card shows for the last remote server.</summary>
     private string ResolveRemoteDestination()
     {
-        string host = _profileSettings.LastServerHost.Get();
-        int port = _profileSettings.LastServerPort.Get();
+        SessionServer server = _profileSettings.LastSession.Server.Get();
+        string host = server.Host;
+        int port = server.Port;
         string? name = null;
         List<SavedServer> savedServers = _profileSettings.SavedServers.Get();
         for (var i = 0; i < savedServers.Count; i++)

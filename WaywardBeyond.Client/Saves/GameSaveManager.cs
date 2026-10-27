@@ -133,21 +133,16 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 return Task.CompletedTask;
             }
 
-            if (_rpcHost.IsLocal)
+            bool local = _rpcHost.IsLocal;
+            _profileSettings.LastSession.Server.Set(new SessionServer
             {
-                _profileSettings.LastServerMode.Set(LastServerMode.Local);
-                _profileSettings.LastServerHost.Set(string.Empty);
-                _profileSettings.LastServerPort.Set(0);
-            }
-            else
-            {
-                _profileSettings.LastServerMode.Set(LastServerMode.Remote);
-                _profileSettings.LastServerHost.Set(_networkingConfig.RemoteHost.Get());
-                _profileSettings.LastServerPort.Set(_networkingConfig.RemotePort.Get());
-            }
+                Mode = local ? ServerMode.Local : ServerMode.Remote,
+                Host = local ? string.Empty : _networkingConfig.RemoteHost.Get(),
+                Port = local ? 0 : _networkingConfig.RemotePort.Get(),
+            });
 
-            RememberSession(save);
-            _profileSettings.LastCharacterUuid.Set(character.Value.Uuid.ToString());
+            _profileSettings.LastSession.Save.Set(ToSessionSave(save));
+            _profileSettings.LastSession.CharacterUuid.Set(character.Value.Uuid.ToString());
             _profileSettings.Save();
 
             WaywardBeyond.GameState.Set(GameState.Loading);
@@ -196,7 +191,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _gameSaveService.UpdateMetadata(save.Level.Guid, metadata);
 
         //  Keep the Continue card current with the advanced playtime.
-        RememberSession(new GameSave(save.Name, save.Level with { Playtime = metadata.Playtime }));
+        var advanced = new GameSave(save.Name, save.Level with { Playtime = metadata.Playtime });
+        _profileSettings.LastSession.Save.Set(ToSessionSave(advanced));
         _profileSettings.Save();
 
         _characterSaveManager.Save(_dataStore);
@@ -225,7 +221,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         try
         {
-            if (save.Level.Guid == _profileSettings.LastSaveGuid.Get())
+            if (save.Level.Guid == _profileSettings.LastSession.Save.Get().Guid)
             {
                 ForgetSession();
             }
@@ -249,27 +245,25 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         return saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs).FirstOrDefault();
     }
 
-    /// <summary>Records the last played save for Continue, including the card facts the menu needs before the listing loads.</summary>
-    private void RememberSession(in GameSave save)
-    {
-        _profileSettings.LastSaveGuid.Set(save.Level.Guid);
-        _profileSettings.LastSaveName.Set(save.Name);
-        _profileSettings.LastSaveSeed.Set(save.Level.Seed);
-        _profileSettings.LastSaveGameMode.Set(save.Level.DefaultGameMode);
-        _profileSettings.LastSaveLastPlayedMs.Set(save.Level.Playtime.LastPlayedMs);
-        _profileSettings.LastSaveAgeMs.Set(save.Level.Playtime.AgeMs);
-    }
-
     /// <summary>Clears the recorded last session when its save no longer exists.</summary>
     private void ForgetSession()
     {
-        _profileSettings.LastSaveGuid.Set(string.Empty);
-        _profileSettings.LastSaveName.Set(string.Empty);
-        _profileSettings.LastSaveSeed.Set(0);
-        _profileSettings.LastSaveGameMode.Set(GameMode.Creative);
-        _profileSettings.LastSaveLastPlayedMs.Set(0);
-        _profileSettings.LastSaveAgeMs.Set(0);
+        _profileSettings.LastSession.Save.Set(new SessionSave());
         _profileSettings.Save();
+    }
+
+    /// <summary>Copies the card facts from a save into the profile summary.</summary>
+    private static SessionSave ToSessionSave(in GameSave save)
+    {
+        return new SessionSave
+        {
+            Guid = save.Level.Guid,
+            Name = save.Name,
+            Seed = save.Level.Seed,
+            GameMode = save.Level.DefaultGameMode,
+            LastPlayedMs = save.Level.Playtime.LastPlayedMs,
+            AgeMs = save.Level.Playtime.AgeMs,
+        };
     }
 
     private void OnWindowClosed()

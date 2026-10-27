@@ -154,7 +154,7 @@ endpoint**: the multiplayer page writes the entered address/port to them on
 every connect attempt and persists them (`network.toml`, `SettingsManager`
 save path), and the page prefill reads them back on launch. Singleplayer never
 writes them, so they cannot encode how a session was joined — the mode marker
-lives in `profile.toml` (`LastServerMode`).
+lives in `profile.toml` (`LastSession.Server.Mode`).
 
 `NetworkingConfig` groups its keys into the nested `[Server]`, `[Discovery]`,
 `[Transport]`, and `[Protocol]` tables. The full key list lives in
@@ -182,18 +182,29 @@ Schema: `WaywardBeyond.Client/Configuration/ProfileSettings.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
-| `LastServerMode` | enum | `Local` | how the last played session was joined (`Local` \| `Remote`); Continue branches on this |
-| `LastServerHost` | string | `""` | remote host of the last played session |
-| `LastServerPort` | int | `0` | remote port of the last played session |
-| `LastSaveGuid` | string | `""` | level GUID of the last played save |
-| `LastSaveName` | string | `""` | display name of the last played save, for the Continue card before the listing loads |
-| `LastSaveSeed` | int | `0` | seed of the last played save, for the Continue card before the listing loads |
-| `LastSaveGameMode` | enum | `Creative` | game mode of the last played save, for the Continue card before the listing loads |
-| `LastSaveLastPlayedMs` | long | `0` | last played stamp of the last played save, for the Continue card before the listing loads |
-| `LastSaveAgeMs` | long | `0` | accumulated playtime of the last played save, for the Continue card before the listing loads |
-| `LastCharacterUuid` | string | `""` | character UUID of the last played colonist |
 | `UserId` | string | `""` | stable local user id; generated on first use and sent as the connection hello permission claim |
 | `SavedServers` | `SavedServer[]` | `[]` | saved connect targets, each `{ Name, Host, Port }`; deduped by host:port, capped at 32 |
+
+The last played session is one group, so Continue reads and clears one place:
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `LastSession.CharacterUuid` | string | `""` | character UUID of the last played colonist |
+| `LastSession.Server.Mode` | enum | `Local` | how the session was joined (`Local` \| `Remote`); Continue branches on this |
+| `LastSession.Server.Host` | string | `""` | remote host, empty for a local session |
+| `LastSession.Server.Port` | int | `0` | remote port, zero for a local session |
+| `LastSession.Save.Guid` | string | `""` | level GUID; empty means no session is recorded |
+| `LastSession.Save.Name` | string | `""` | display name, for the Continue card before the listing loads |
+| `LastSession.Save.Seed` | int | `0` | level seed, for the Continue card before the listing loads |
+| `LastSession.Save.GameMode` | enum | `Creative` | level game mode, for the Continue card before the listing loads |
+| `LastSession.Save.LastPlayedMs` | long | `0` | last played stamp, for the Continue card before the listing loads |
+| `LastSession.Save.AgeMs` | long | `0` | accumulated playtime, for the Continue card before the listing loads |
+
+`SessionServer` and `SessionSave` are bound through `RegisterDataBinding`, so
+they write as plain values. A `DataBinding<T>` without a registered mapper
+writes its private backing field instead: `Mode = { _data = "Remote" }`. Add a
+`RegisterDataBinding<T>` line next to `ProfileSettings` for every new binding
+type.
 
 ## How configs load
 

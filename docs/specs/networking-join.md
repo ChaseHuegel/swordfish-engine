@@ -139,10 +139,11 @@ in-world save call in the world tick. See [persistence](persistence.md) and
 
 ### Continue and the multiplayer page
 
-- **Continue** resumes the last played session from `ProfileSettings`. A `Remote`
-  marker connects to `LastServerHost` and `LastServerPort`. A `Local` marker uses
-  the restored loopback. The service then finds `LastSaveGuid` and
-  `LastCharacterUuid`, assigns both active selections, and starts the join. A
+- **Continue** resumes the last played session from `ProfileSettings.LastSession`.
+  A `Remote` server mode connects to `LastSession.Server.Host` and `Port`. A
+  `Local` mode uses the restored loopback. The service then finds
+  `LastSession.Save.Guid` and `LastSession.CharacterUuid`, assigns both active
+  selections, and starts the join. A
   failure returns to the main menu with a Continue Failed modal. The menu enables
   Continue only when the recorded colonist still exists and the card can draw.
   Deleting the last played save or colonist clears the recorded session.

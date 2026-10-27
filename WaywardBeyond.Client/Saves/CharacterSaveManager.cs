@@ -114,9 +114,9 @@ internal sealed class CharacterSaveManager(
             return;
         }
 
-        if (character.Uuid.ToString() == profileSettings.LastCharacterUuid.Get())
+        if (character.Uuid.ToString() == profileSettings.LastSession.CharacterUuid.Get())
         {
-            profileSettings.LastCharacterUuid.Set(string.Empty);
+            profileSettings.LastSession.CharacterUuid.Set(string.Empty);
             profileSettings.Save();
         }
     }

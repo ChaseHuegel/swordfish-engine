@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
@@ -168,6 +169,9 @@ public class Injector : IDryIocInjector
         container.RegisterConfig<DebugSettings>(file: "debug.toml");
         container.RegisterConfig<UISettings>(file: "ui.toml");
         container.RegisterConfig<GameplayConfig>(file: "gameplay.toml");
+        container.RegisterDataBinding<SessionServer>();
+        container.RegisterDataBinding<SessionSave>();
+        container.RegisterDataBinding<List<SavedServer>>();
         container.RegisterConfig<ProfileSettings>(file: "profile.toml");
         container.RegisterConfig<ChatConfig>(file: "chat.toml");
     }

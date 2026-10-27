@@ -37,8 +37,8 @@ internal sealed class ContinueService(
 
     /// <summary>True when a last played save and character are recorded. This does not check that either still exists.</summary>
     public bool HasLastSession =>
-        !string.IsNullOrWhiteSpace(profileSettings.LastSaveGuid.Get())
-        && !string.IsNullOrWhiteSpace(profileSettings.LastCharacterUuid.Get());
+        profileSettings.LastSession.Save.Get().IsRecorded
+        && !string.IsNullOrWhiteSpace(profileSettings.LastSession.CharacterUuid.Get());
 
     /// <summary>Starts one Continue attempt. Repeated calls are ignored while one is running.</summary>
     public void Start()
@@ -63,15 +63,15 @@ internal sealed class ContinueService(
         {
             WaywardBeyond.GameState.Set(GameState.Loading);
 
-            LastServerMode mode = profileSettings.LastServerMode.Get();
-            if (mode == LastServerMode.Local)
+            SessionServer server = profileSettings.LastSession.Server.Get();
+            if (server.Mode == ServerMode.Local)
             {
                 rpcHost.Disconnect();
             }
             else
             {
-                string host = profileSettings.LastServerHost.Get();
-                int port = profileSettings.LastServerPort.Get();
+                string host = server.Host;
+                int port = server.Port;
                 Result result = rpcHost.ConnectRemote(host, port);
                 if (!result)
                 {
@@ -93,7 +93,7 @@ internal sealed class ContinueService(
                 return;
             }
 
-            string saveGuid = profileSettings.LastSaveGuid.Get();
+            string saveGuid = profileSettings.LastSession.Save.Get().Guid;
             GameSave? save = null;
             GameSave[] saves = gameSaveService.GetSaves();
             for (var i = 0; i < saves.Length; i++)
@@ -111,7 +111,7 @@ internal sealed class ContinueService(
                 return;
             }
 
-            string characterUuid = profileSettings.LastCharacterUuid.Get();
+            string characterUuid = profileSettings.LastSession.CharacterUuid.Get();
             Character? character = null;
             IReadOnlyList<Character> characters = characterStorage.GetAllCharacters();
             for (var i = 0; i < characters.Count; i++)

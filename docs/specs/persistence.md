@@ -116,8 +116,9 @@ carries `CanCreateSave`, which `GameSaveService.CanCreateSave` exposes so
 played" and "time played" in the `level_metadata` table, merged over the server's
 level metadata in `GameSaveService.GetSaves()`. Character save is handled by
 `CharacterSaveManager` + `SqliteCharacterStorage`. The client also records the
-last played archive's card facts in `profile.toml`, so the main menu can show the
-Continue card before the listing loads. Deleting the recorded save or colonist
+last played archive's card facts in the `[LastSession.Save]` table of
+`profile.toml`, so the main menu can show the Continue card before the listing
+loads. Deleting the recorded save or colonist
 clears those markers.
 
 `LevelsClient` is a thin async wrapper over `GameServerApiClient`. Calls are
