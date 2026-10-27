@@ -20,4 +20,7 @@ internal readonly struct Modal(in string id) : IEquatable<Modal>
     {
         return ID.GetHashCode();
     }
+
+    public static bool operator ==(Modal left, Modal right) => left.Equals(right);
+    public static bool operator !=(Modal left, Modal right) => !left.Equals(right);
 }

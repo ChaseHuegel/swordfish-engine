@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -44,6 +45,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly ModalMenu _modalMenu;
     private readonly ConfirmModal _confirmModal;
     private readonly AddFavoriteModal _addFavoriteModal;
+    private readonly ConnectingModal _connectingModal;
 
     private readonly Widgets.ActionButtonOptions _returnButton;
     private readonly Widgets.ActionButtonOptions _joinButton;
@@ -74,7 +76,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         in ILocalization localization,
         in ModalMenu modalMenu,
         in ConfirmModal confirmModal,
-        in AddFavoriteModal addFavoriteModal
+        in AddFavoriteModal addFavoriteModal,
+        in ConnectingModal connectingModal
     ) {
         _rpcHost = rpcHost;
         _gameSaveService = gameSaveService;
@@ -88,6 +91,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _modalMenu = modalMenu;
         _confirmModal = confirmModal;
         _addFavoriteModal = addFavoriteModal;
+        _connectingModal = connectingModal;
 
         _returnButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _joinButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
@@ -713,6 +717,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private void JoinSelected(Menu<MenuPage> menu)
     {
+        string? serverName;
         if (_favoritesTab)
         {
             if (_selectedFavorite < 0 || _selectedFavorite >= _savedServers.Count)
@@ -723,6 +728,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             SavedServer server = _savedServers[_selectedFavorite];
             _hostTextBox.Text.Clear().Append(server.Host);
             _portTextBox.Text.Clear().Append(server.Port.ToString());
+            serverName = server.Name;
         }
         else
         {
@@ -734,9 +740,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             DiscoveredServer server = _discoveredServers[_selectedLan];
             _hostTextBox.Text.Clear().Append(server.Host);
             _portTextBox.Text.Clear().Append(server.Port.ToString());
+            serverName = server.Name;
         }
 
-        TryConnect(menu);
+        TryConnect(menu, serverName);
     }
 
     private async Task ScanServersAsync()
@@ -768,7 +775,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         }
     }
 
-    private void TryConnect(Menu<MenuPage>? menu)
+    private void TryConnect(Menu<MenuPage>? menu, string? serverName = null)
     {
         string host = _hostTextBox.Text.ToString().Trim();
         string portText = _portTextBox.Text.ToString().Trim();
@@ -784,24 +791,60 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             _errorMessage = _localization.GetString("ui.notification.connect.portInvalid");
             return;
         }
+
+        var cts = new CancellationTokenSource();
+        string targetText = !string.IsNullOrWhiteSpace(serverName) && serverName != host
+            ? $"{serverName} ({host}:{port})"
+            : $"{host}:{port}";
+
+        string targetLabel = string.Format(
+            _localization.GetString("ui.menu.connectingTarget") ?? "Connecting to {0}",
+            targetText
+        );
+
+        _modalMenu.GoToPage(_connectingModal.Create(
+            onCancel: cts.Cancel,
+            target: targetLabel
+        ));
         
-        Task.Run(TryConnectAsync);
+        Task.Run(TryConnectAsync, cts.Token);
         async Task TryConnectAsync()
         {
-            Result result = _rpcHost.ConnectRemote(host, port);
-            if (!result.Success)
+            try
             {
-                _errorMessage = _localization.GetString("ui.notification.connect.failed");
-                return;
+                Result result = _rpcHost.ConnectRemote(host, port);
+                if (cts.IsCancellationRequested)
+                {
+                    if (result.Success)
+                    {
+                        _rpcHost.Disconnect();
+                    }
+                    return;
+                }
+
+                if (!result.Success)
+                {
+                    _errorMessage = _localization.GetString("ui.notification.connect.failed");
+                    return;
+                }
+
+                _errorMessage = null;
+                _networkingConfig.RemoteHost.Set(host);
+                _networkingConfig.RemotePort.Set(port);
+                _networkingConfig.Save();
+
+                await _gameSaveService.RefreshLevelsAsync();
+
+                if (!cts.IsCancellationRequested)
+                {
+                    menu?.GoToPage(MenuPage.SelectSave);
+                }
             }
-
-            _errorMessage = null;
-            _networkingConfig.RemoteHost.Set(host);
-            _networkingConfig.RemotePort.Set(port);
-            _networkingConfig.Save();
-
-            await _gameSaveService.RefreshLevelsAsync();
-            menu?.GoToPage(MenuPage.SelectSave);
+            finally
+            {
+                _connectingModal.Close(_modalMenu);
+                cts.Dispose();
+            }
         }
     }
 
