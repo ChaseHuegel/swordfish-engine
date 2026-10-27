@@ -531,7 +531,7 @@ public sealed class UIController
             interactingButtons |= MouseButtons.Middle;
         }
 
-        if (hovering || interactingButtons != MouseButtons.None)
+        if (hovering)
         {
             _interactionConsumed = true;
         }

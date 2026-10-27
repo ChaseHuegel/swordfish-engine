@@ -50,7 +50,7 @@ public class UIControllerInteractionTests
     }
 
     [Fact]
-    public void ActiveDragConsumesHoverWhenCursorLeavesElementBounds()
+    public void ActiveDragKeepsHeldStateWithoutBlockingHoverElsewhere()
     {
         var controller = new UIController();
         var ui = new UIBuilder<PixelTexture>(100, 100, new StubTextEngine(), controller);
@@ -76,7 +76,33 @@ public class UIControllerInteractionTests
         ui.Build(delta: 0.1f);
 
         Assert.True(sliderHeld);
-        Assert.False(backgroundHovered);
+        Assert.True(backgroundHovered);
+    }
+
+    [Fact]
+    public void ActiveDragDoesNotConsumeHoverFromAnEarlierSibling()
+    {
+        var controller = new UIController();
+        var ui = new UIBuilder<PixelTexture>(100, 100, new StubTextEngine(), controller);
+
+        controller.UpdateMouse(50, 10, UIController.MouseButtons.None);
+        RenderDragSourceAndTarget(ui, out _, out _);
+        ui.Build(delta: 0f);
+
+        controller.UpdateMouse(50, 10, UIController.MouseButtons.Left);
+        RenderDragSourceAndTarget(ui, out _, out _);
+        ui.Build(delta: 0.1f);
+
+        controller.UpdateMouse(10, 10, UIController.MouseButtons.Left);
+        RenderDragSourceAndTarget(ui, out _, out _);
+        ui.Build(delta: 0.1f);
+
+        controller.UpdateMouse(10, 10, UIController.MouseButtons.Left);
+        RenderDragSourceAndTarget(ui, out bool sourceHeld, out bool targetHovered);
+        ui.Build(delta: 0.1f);
+
+        Assert.True(sourceHeld);
+        Assert.True(targetHovered);
     }
 
     [Fact]
@@ -199,6 +225,34 @@ public class UIControllerInteractionTests
                 Height = new Fixed(30),
             };
             sliderHeld = ui.Held();
+        }
+    }
+
+    private static void RenderDragSourceAndTarget(
+        UIBuilder<PixelTexture> ui,
+        out bool sourceHeld,
+        out bool targetHovered
+    )
+    {
+        using (ui.Element("target"))
+        {
+            ui.Constraints = new UI.Constraints
+            {
+                Width = new Fixed(30),
+                Height = new Fixed(30),
+            };
+            targetHovered = ui.Hovering();
+        }
+
+        using (ui.Element("source"))
+        {
+            ui.Constraints = new UI.Constraints
+            {
+                X = new Fixed(40),
+                Width = new Fixed(30),
+                Height = new Fixed(30),
+            };
+            sourceHeld = ui.Held();
         }
     }
 
