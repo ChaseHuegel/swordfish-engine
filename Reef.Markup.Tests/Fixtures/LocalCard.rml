@@ -1,0 +1,9 @@
+<Reef xmlns="Reef"
+      Class="LocalCard"
+      Context="PlayerInfo"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" class="local-card" padding="6" spacing="2">
+        <Text text="@context.Name" size="14" />
+        <Text text="Local {context.Score}" size="11" />
+    </Element>
+</Reef>

@@ -1,0 +1,17 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="StyleView"
+      Context="StyleContext"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="320" padding="8" spacing="6" background="#050505">
+        <Element id="panel" class="panel" disabled="@context.Disabled" class:accent="@context.Accent" width="120" height="60">
+            <Text text="Panel" />
+        </Element>
+        <Element id="radius" class="radius-test" width="100" height="60"
+                 corner-radius="4 8 12 16" border="2 #00ff00" corner-caps="10 2 #ff00ff" />
+        <Element id="inline" class="base panel" background="#ff0000" width="100" height="40" />
+        <Element id="order" class="order-a order-b" width="20" height="20" />
+        <Element id="dynamic" class="panel" class:accent="@context.Accent" width="20" height="20" />
+    </Element>
+</Reef>

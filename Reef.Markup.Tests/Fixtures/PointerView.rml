@@ -1,0 +1,14 @@
+<Reef xmlns="Reef"
+      Class="PointerView"
+      Context="PointerContext"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="300" padding="8" spacing="4" background="#101010">
+        <Element id="left" onclick="OnLeft" width="80" height="28" background="#202020"><Text text="Left" /></Element>
+        <Element id="right" onrightclick="OnRight" width="80" height="28" background="#202020"><Text text="Right" /></Element>
+        <Element id="middle" onmiddleclick="OnMiddle" width="80" height="28" background="#202020"><Text text="Middle" /></Element>
+        <Element id="held" onheld="OnHeld" width="80" height="28" background="#202020"><Text text="Held" /></Element>
+        <Element id="right_filter" button="right" onclick="OnRightFilter" width="80" height="28" background="#202020"><Text text="Filter" /></Element>
+        <Element id="disabled" disabled="@context.Disabled" onclick="OnDisabled" width="80" height="28" background="#202020"><Text text="Disabled" /></Element>
+    </Element>
+</Reef>
