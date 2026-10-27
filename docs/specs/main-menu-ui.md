@@ -135,6 +135,10 @@ The mockup uses galaxy terminology. The game stores levels and characters.
 - Direct Connect is a left-aligned toolbar with host, port, and Connect.
   Connection errors render centered in the footer between Return and Join
   Server, so the page does not shift.
+- Active connection attempts display an input-blocking connecting modal
+  (`ConnectingModal.cs`) with an animated scanning signal indicator. The
+  player can cancel the attempt with the Cancel button or the Escape key.
+  Completion or failure dismisses the modal automatically.
 - The Favorites list has an Add Favorite action at the bottom. It opens a modal
   with address, port, Cancel, and Submit.
 - LAN rows have a star action that saves the discovered server.
@@ -185,6 +189,7 @@ Do not add fake menu controls.
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
 - Continue: `WaywardBeyond.Client/Saves/ContinueService.cs:18`
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:13`
+- Connecting modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConnectingModal.cs:14`
 - Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:14`
 - Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:26`
 - New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:22`
@@ -201,4 +206,5 @@ Do not add fake menu controls.
 - `Swordfish.Tests/MenuLayoutTests.cs` covers wide and narrow geometry.
 - `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic buttons.
 - `Swordfish.Tests/UiThemeResolverTests.cs` covers menu control states.
+- `Swordfish.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.

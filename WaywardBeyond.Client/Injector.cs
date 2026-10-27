@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
@@ -248,6 +248,8 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IMenuPage<Modal>, AddFavoriteModal>();
         container.Register<MessageModal>(Reuse.Singleton);
         container.RegisterMapping<IMenuPage<Modal>, MessageModal>();
+        container.Register<ConnectingModal>(Reuse.Singleton);
+        container.RegisterMapping<IMenuPage<Modal>, ConnectingModal>();
         container.Register<ContinueService>(Reuse.Singleton);
     }
     
