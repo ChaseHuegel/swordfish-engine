@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Components;
@@ -13,7 +14,8 @@ namespace WaywardBeyond.Client.Saves;
 internal sealed class CharacterSaveManager(
     ILogger<CharacterSaveManager> logger,
     ICharacterStorage characterStorage,
-    ActiveCharacterSave activeCharacterSave
+    ActiveCharacterSave activeCharacterSave,
+    ProfileSettings profileSettings
 ) {
     public Character? ActiveSave
     {
@@ -109,6 +111,13 @@ internal sealed class CharacterSaveManager(
         if (!characterStorage.DeleteCharacter(character.Uuid))
         {
             logger.LogError("Failed to delete character {Name} ({Id})", character.Name, character.Uuid);
+            return;
+        }
+
+        if (character.Uuid.ToString() == profileSettings.LastCharacterUuid.Get())
+        {
+            profileSettings.LastCharacterUuid.Set(string.Empty);
+            profileSettings.Save();
         }
     }
     

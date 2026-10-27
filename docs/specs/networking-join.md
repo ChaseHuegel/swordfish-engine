@@ -143,7 +143,9 @@ in-world save call in the world tick. See [persistence](persistence.md) and
   marker connects to `LastServerHost` and `LastServerPort`. A `Local` marker uses
   the restored loopback. The service then finds `LastSaveGuid` and
   `LastCharacterUuid`, assigns both active selections, and starts the join. A
-  failure returns to the main menu with a Continue Failed modal.
+  failure returns to the main menu with a Continue Failed modal. The menu enables
+  Continue only when the recorded colonist still exists and the card can draw.
+  Deleting the last played save or colonist clears the recorded session.
 - **Saved servers** are capped at 32 and deduped by host:port. They use the same
   `ConnectRemote` and join path.
 - **Keyboard submit** in the address or port field uses the same connect path as

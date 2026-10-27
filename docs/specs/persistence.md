@@ -115,7 +115,10 @@ carries `CanCreateSave`, which `GameSaveService.CanCreateSave` exposes so
 `waywardbeyond.level.create` key. The client tracks its own per-save "last
 played" and "time played" in the `level_metadata` table, merged over the server's
 level metadata in `GameSaveService.GetSaves()`. Character save is handled by
-`CharacterSaveManager` + `SqliteCharacterStorage`.
+`CharacterSaveManager` + `SqliteCharacterStorage`. The client also records the
+last played archive's card facts in `profile.toml`, so the main menu can show the
+Continue card before the listing loads. Deleting the recorded save or colonist
+clears those markers.
 
 `LevelsClient` is a thin async wrapper over `GameServerApiClient`. Calls are
 correlated by nsd-rpc, so there is no FIFO queue or waiter table. A dropped

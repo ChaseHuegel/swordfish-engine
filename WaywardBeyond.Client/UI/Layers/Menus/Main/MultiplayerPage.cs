@@ -813,7 +813,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private void AddFavorite(SavedServer entry)
     {
         _savedServers.RemoveAll(saved => saved.Host == entry.Host && saved.Port == entry.Port);
-        if (_savedServers.Count >= ProfileSettings.MaxSavedServers)
+        if (_savedServers.Count >= ProfileSettings.MAX_SAVED_SERVERS)
         {
             _savedServers.RemoveAt(_savedServers.Count - 1);
         }

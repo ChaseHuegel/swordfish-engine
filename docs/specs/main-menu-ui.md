@@ -149,9 +149,15 @@ Continue shows a hover card with the last played archive, its session type, its
 mode, seed, last played time, time played, and the last colonist's combined
 skill level. The type is `Singleplayer` or `Multiplayer`. A multiplayer card
 adds one destination line with the saved server name, or the endpoint when no
-name matches. The card only appears when the current cache contains the last
-save and character. The combined level is the sum of every recorded skill's
-resolved level.
+name matches. The card draws from the current save cache when it holds the last
+save, and falls back to the summary recorded in `profile.toml` otherwise. The
+combined level is the sum of every recorded skill's resolved level.
+
+Continue is enabled only when a last session is recorded, the recorded colonist
+still exists, and the card has an archive name. The chevron, the enabled state,
+and the card use that one result, so a disabled button never draws a card and an
+enabled button always does. Deleting the last played save or colonist clears the
+recorded session.
 
 ## Credits
 
