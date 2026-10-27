@@ -30,13 +30,12 @@ internal sealed class ControlHints : IUILayer
     private readonly IECSContext _ecsContext;
     private readonly GameplayConfig _gameplayConfig;
 
+    private readonly HintEntry _feedbackHint;
+
     private readonly HintEntry _changeShapeHint;
     private readonly HintEntry _changeOrientationHint;
     private readonly HintEntry _snapBrickHint;
     private readonly HintEntry _pickBrickHint;
-    private readonly HintEntry _breakBrickHint;
-    private readonly HintEntry _placeBrickHint;
-    private readonly HintEntry _rollHint;
     private readonly HintEntry _inventoryHint;
 
     private readonly HintEntry _inventoryMoveHint;
@@ -63,13 +62,12 @@ internal sealed class ControlHints : IUILayer
         _ecsContext = ecsContext;
         _gameplayConfig = gameplayConfig;
 
+        _feedbackHint = ParseHint(localization.GetString("ui.hint.feedback"));
+        
         _changeShapeHint = ParseHint(localization.GetString("ui.hint.changeShape"));
         _changeOrientationHint = ParseHint(localization.GetString("ui.hint.changeOrientation"));
         _snapBrickHint = ParseHint(localization.GetString("ui.hint.snapBrick"));
         _pickBrickHint = ParseHint(localization.GetString("ui.hint.pickBrick"));
-        _breakBrickHint = ParseHint(localization.GetString("ui.hint.breakBrick"));
-        _placeBrickHint = ParseHint(localization.GetString("ui.hint.placeBrick"));
-        _rollHint = ParseHint(localization.GetString("ui.hint.movement.roll"));
         _inventoryHint = ParseHint(localization.GetString("ui.hint.inventory"));
 
         _inventoryMoveHint = ParseHint(localization.GetString("ui.hint.inventory.move"));
@@ -127,6 +125,7 @@ internal sealed class ControlHints : IUILayer
         RenderHintPill(ui, in _inventoryQuickMoveHint);
         RenderHintPill(ui, in _inventoryHotbarHint);
         RenderHintPill(ui, in _inventoryCloseHint);
+        RenderHintPill(ui, in _feedbackHint);
     }
 
     /// <summary>Draws the hints for a placeable item in the main hand.</summary>
@@ -144,18 +143,15 @@ internal sealed class ControlHints : IUILayer
 
         RenderHintPill(ui, in _snapBrickHint);
         RenderHintPill(ui, in _pickBrickHint);
-        RenderHintPill(ui, in _breakBrickHint);
-        RenderHintPill(ui, in _placeBrickHint);
         RenderHintPill(ui, in _inventoryHint);
+        RenderHintPill(ui, in _feedbackHint);
     }
 
     /// <summary>Draws the hints for a main hand that holds no placeable item.</summary>
     private void RenderIdleHints(UIBuilder<Material> ui)
     {
-        RenderHintPill(ui, in _breakBrickHint);
-        RenderHintPill(ui, in _pickBrickHint);
-        RenderHintPill(ui, in _rollHint);
         RenderHintPill(ui, in _inventoryHint);
+        RenderHintPill(ui, in _feedbackHint);
     }
 
     /// <summary>Draws one hint pill with its optional keycap.</summary>
