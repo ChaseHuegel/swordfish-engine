@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Generic;
 using Swordfish.Library.Configuration;
 using Swordfish.Library.Types;
+using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Client.Configuration;
 
@@ -12,10 +12,10 @@ namespace WaywardBeyond.Client.Configuration;
 public sealed class ProfileSettings : Config<ProfileSettings>
 {
     /// <summary>Maximum saved-server entries; the list cannot grow unbounded in the config file.</summary>
-    public const int MaxSavedServers = 32;
+    public const int MAX_SAVED_SERVERS = 32;
 
     /// <summary>How the last played session was joined; Continue branches on this.</summary>
-    public DataBinding<Configuration.LastServerMode> LastServerMode { get; private set; } = new(Configuration.LastServerMode.Local);
+    public DataBinding<LastServerMode> LastServerMode { get; private set; } = new(Configuration.LastServerMode.Local);
 
     /// <summary>The remote host used by the last played session.</summary>
     public DataBinding<string> LastServerHost { get; private set; } = new(string.Empty);
@@ -25,6 +25,21 @@ public sealed class ProfileSettings : Config<ProfileSettings>
 
     /// <summary>The level GUID of the last played save.</summary>
     public DataBinding<string> LastSaveGuid { get; private set; } = new(string.Empty);
+
+    /// <summary>The display name of the last played save, used by the Continue card before the listing loads.</summary>
+    public DataBinding<string> LastSaveName { get; private set; } = new(string.Empty);
+
+    /// <summary>The seed of the last played save, used by the Continue card before the listing loads.</summary>
+    public DataBinding<int> LastSaveSeed { get; private set; } = new();
+
+    /// <summary>The game mode of the last played save, used by the Continue card before the listing loads.</summary>
+    public DataBinding<GameMode> LastSaveGameMode { get; private set; } = new(GameMode.Creative);
+
+    /// <summary>The last played stamp of the last played save, used by the Continue card before the listing loads.</summary>
+    public DataBinding<long> LastSaveLastPlayedMs { get; private set; } = new();
+
+    /// <summary>The accumulated playtime of the last played save, used by the Continue card before the listing loads.</summary>
+    public DataBinding<long> LastSaveAgeMs { get; private set; } = new();
 
     /// <summary>The UUID of the last played character.</summary>
     public DataBinding<string> LastCharacterUuid { get; private set; } = new(string.Empty);
