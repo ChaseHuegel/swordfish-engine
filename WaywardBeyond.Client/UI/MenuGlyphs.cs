@@ -7,7 +7,6 @@ internal static class MenuGlyphs
     public const string TRASH = "\uf2ed";
     public const string CREW = "\uf0c0";
     public const string SERVER = "\uf233";
-    public const string GALAXY = "\uf186";
     public const string CHEVRON_LEFT = "\uf053";
     public const string CHEVRON_RIGHT = "\uf054";
     public const string STAR = "\uf005";

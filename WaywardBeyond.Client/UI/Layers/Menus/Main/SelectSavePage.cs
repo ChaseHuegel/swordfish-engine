@@ -362,7 +362,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         }
     }
 
-    /// <summary>Draws the glyph, the name, and the delete control of one galaxy archive row.</summary>
+    /// <summary>Draws the name and the delete control of one galaxy archive row.</summary>
     private static void DrawSaveCardContent(UIBuilder<Material> contentUi, SaveCardContext context)
     {
         using (contentUi.Row(
@@ -376,18 +376,6 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         {
             contentUi.Padding = new Padding(left: 8, top: 0, right: 8, bottom: 0);
 
-            contentUi.Label(
-                MenuGlyphs.GALAXY,
-                20,
-                context.Selected ? UiTheme.AccentBright : UiTheme.Accent,
-                new Constraints
-                {
-                    Width = new Fixed(24),
-                    Height = new Fill(),
-                },
-                HorizontalAlignment.Center,
-                fontId: UiTheme.FONT_ICONS
-            );
             contentUi.Label(
                 context.Save.Name,
                 UiMetrics.MENU_BODY_FONT,

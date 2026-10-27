@@ -800,7 +800,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             ui.Padding = new Padding(left: 8, right: 8, top: 0, bottom: 0);
 
             ui.Label(
-                _favoritesTab ? MenuGlyphs.GALAXY : MenuGlyphs.SERVER,
+                MenuGlyphs.SERVER,
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Accent,
                 new Constraints
