@@ -772,7 +772,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     {
         string host = _hostTextBox.Text.ToString().Trim();
         string portText = _portTextBox.Text.ToString().Trim();
-
+        
         if (string.IsNullOrWhiteSpace(host))
         {
             _errorMessage = _localization.GetString("ui.notification.connect.hostRequired");
@@ -784,21 +784,25 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             _errorMessage = _localization.GetString("ui.notification.connect.portInvalid");
             return;
         }
-
-        Result result = _rpcHost.ConnectRemote(host, port);
-        if (!result.Success)
+        
+        Task.Run(TryConnectAsync);
+        async Task TryConnectAsync()
         {
-            _errorMessage = _localization.GetString("ui.notification.connect.failed");
-            return;
+            Result result = _rpcHost.ConnectRemote(host, port);
+            if (!result.Success)
+            {
+                _errorMessage = _localization.GetString("ui.notification.connect.failed");
+                return;
+            }
+
+            _errorMessage = null;
+            _networkingConfig.RemoteHost.Set(host);
+            _networkingConfig.RemotePort.Set(port);
+            _networkingConfig.Save();
+
+            await _gameSaveService.RefreshLevelsAsync();
+            menu?.GoToPage(MenuPage.SelectSave);
         }
-
-        _errorMessage = null;
-        _networkingConfig.RemoteHost.Set(host);
-        _networkingConfig.RemotePort.Set(port);
-        _networkingConfig.Save();
-
-        _ = _gameSaveService.RefreshLevelsAsync();
-        menu?.GoToPage(MenuPage.SelectSave);
     }
 
     private void AddFavoriteFromForm(string host, int port)
