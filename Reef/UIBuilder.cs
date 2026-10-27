@@ -196,10 +196,9 @@ public sealed class UIBuilder<TRendererData>
 
     public Scope Text(string value, FontOptions fontOptions)
     {
-        if (fontOptions.ID == null)
-        {
-            fontOptions.ID = DefaultFontID;
-        }
+        FontOptions effectiveFont = fontOptions.ID == null
+            ? fontOptions with { ID = DefaultFontID }
+            : fontOptions;
 
         var element = new Element<TRendererData>
         {
@@ -208,7 +207,7 @@ public sealed class UIBuilder<TRendererData>
             {
                 Color = Vector4.One,
             },
-            FontOptions = fontOptions,
+            FontOptions = effectiveFont,
         };
         
         return OpenElement(element);
