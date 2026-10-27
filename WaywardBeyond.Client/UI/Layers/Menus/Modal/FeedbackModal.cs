@@ -84,7 +84,12 @@ internal class FeedbackModal : IMenuPage<Modal>
         var descriptionTextBoxOptions = new TextBoxState.Options(
             SubmitBehavior: TextBoxState.SubmitBehavior.NewLine,
             Placeholder: localization.GetString("ui.field.feedback.description"),
-            MaxCharacters: 500
+            MaxCharacters: 500,
+            Constraints: new Constraints
+            {
+                Width = new Relative(1f),
+                Height = new Relative(1f),
+            }
         );
 
         _descriptionTextBox = new TextBoxState(initialValue: string.Empty, descriptionTextBoxOptions);
@@ -145,14 +150,24 @@ internal class FeedbackModal : IMenuPage<Modal>
                         UiTheme.Text,
                         Anchors.Left | Anchors.Center
                     );
-                    ui.TextArea(
-                        id: "TextBox_Message",
-                        Widgets.Rect(padding, 102, contentWidth, descriptionHeight),
-                        ref _descriptionTextBox,
-                        _fieldFontOptions,
-                        _inputService,
-                        _soundEffectService
-                    );
+                    using (ui.Element())
+                    {
+                        ui.Constraints = Widgets.RectConstraints(
+                            Widgets.Rect(padding, 102, contentWidth, descriptionHeight)
+                        );
+                        ui.ClipConstraints = new Constraints
+                        {
+                            Width = new Fixed(contentWidth),
+                            Height = new Fixed(descriptionHeight),
+                        };
+                        ui.TextBox(
+                            id: "TextBox_Message",
+                            state: ref _descriptionTextBox,
+                            _fieldFontOptions,
+                            _inputService,
+                            _soundEffectService
+                        );
+                    }
 
                     int contactY = 102 + descriptionHeight + 18;
                     ui.Label(
