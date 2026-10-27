@@ -78,93 +78,108 @@ internal sealed class Bars(in NotificationService notificationService)
 
         using (ui.Element())
         {
-            ui.Passthrough = true;
-            ui.Spacing = 6;
-            ui.Padding = new Padding(left: PADDING_X, top: PADDING_Y, right: PADDING_X, bottom: PADDING_Y);
             ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Color = UiTheme.PanelBackground * fade;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(BAR_WIDTH),
-            };
-
+            
             using (ui.Element())
             {
                 ui.Passthrough = true;
-                ui.LayoutDirection = LayoutDirection.None;
+                ui.Spacing = 6;
+                ui.Padding = new Padding(left: PADDING_X, top: PADDING_Y, right: PADDING_X, bottom: PADDING_Y);
+                ui.LayoutDirection = LayoutDirection.Vertical;
+                ui.Color = UiTheme.PanelBackground * fade;
                 ui.Constraints = new Constraints
                 {
-                    Width = new Fixed(INNER_WIDTH),
-                    Height = new Fixed(HEADER_HEIGHT),
-                };
-
-                using (ui.Text(notification.Text, UiMetrics.SmallFont))
-                {
-                    ui.Passthrough = true;
-                    ui.Color = UiTheme.Text * fade;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Left | Anchors.Center,
-                    };
-                }
-
-                if (!string.IsNullOrEmpty(notification.Subtext))
-                {
-                    using (ui.Text(notification.Subtext, UiMetrics.SmallFont))
-                    {
-                        ui.Passthrough = true;
-                        ui.Color = UiTheme.Text * fade;
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Right | Anchors.Center,
-                        };
-                    }
-                }
-            }
-
-            using (ui.Element())
-            {
-                ui.Passthrough = true;
-                ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = UiTheme.Track * fade;
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fixed(INNER_WIDTH),
-                    Height = new Fixed(TRACK_HEIGHT),
+                    Anchors = Anchors.Center,
+                    Width = new Fixed(BAR_WIDTH),
                 };
 
                 using (ui.Element())
                 {
                     ui.Passthrough = true;
-                    ui.Color = fillColor * fade;
+                    ui.LayoutDirection = LayoutDirection.None;
                     ui.Constraints = new Constraints
                     {
-                        Width = new Relative(Math.Clamp(notification.Amount, 0f, 1f)),
-                        Height = new Relative(1f),
+                        Width = new Fixed(INNER_WIDTH),
+                        Height = new Fixed(HEADER_HEIGHT),
                     };
-                }
 
-                if (notification.Segments is > 1)
-                {
-                    int segments = notification.Segments.Value;
-                    for (var segmentIndex = 1; segmentIndex < segments; segmentIndex++)
+                    using (ui.Text(notification.Text, UiMetrics.SmallFont))
                     {
-                        int dividerX = INNER_WIDTH * segmentIndex / segments - SEGMENT_GAP / 2;
-                        using (ui.Element())
+                        ui.Passthrough = true;
+                        ui.Color = UiTheme.Text * fade;
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Left | Anchors.Center,
+                        };
+                    }
+
+                    if (!string.IsNullOrEmpty(notification.Subtext))
+                    {
+                        using (ui.Text(notification.Subtext, UiMetrics.SmallFont))
                         {
                             ui.Passthrough = true;
-                            ui.Color = UiTheme.PanelBackground * fade;
+                            ui.Color = UiTheme.Text * fade;
                             ui.Constraints = new Constraints
                             {
-                                X = new Fixed(dividerX),
-                                Y = new Fixed(0),
-                                Width = new Fixed(SEGMENT_GAP),
-                                Height = new Fixed(TRACK_HEIGHT),
+                                Anchors = Anchors.Right | Anchors.Center,
                             };
                         }
                     }
                 }
+
+                using (ui.Element())
+                {
+                    ui.Passthrough = true;
+                    ui.LayoutDirection = LayoutDirection.None;
+                    ui.Color = UiTheme.Track * fade;
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Fixed(INNER_WIDTH),
+                        Height = new Fixed(TRACK_HEIGHT),
+                    };
+
+                    using (ui.Element())
+                    {
+                        ui.Passthrough = true;
+                        ui.Color = fillColor * fade;
+                        ui.Constraints = new Constraints
+                        {
+                            Width = new Relative(Math.Clamp(notification.Amount, 0f, 1f)),
+                            Height = new Relative(1f),
+                        };
+                    }
+
+                    if (notification.Segments is > 1)
+                    {
+                        int segments = notification.Segments.Value;
+                        for (var segmentIndex = 1; segmentIndex < segments; segmentIndex++)
+                        {
+                            int dividerX = INNER_WIDTH * segmentIndex / segments - SEGMENT_GAP / 2;
+                            using (ui.Element())
+                            {
+                                ui.Passthrough = true;
+                                ui.Color = UiTheme.PanelBackground * fade;
+                                ui.Constraints = new Constraints
+                                {
+                                    X = new Fixed(dividerX),
+                                    Y = new Fixed(0),
+                                    Width = new Fixed(SEGMENT_GAP),
+                                    Height = new Fixed(TRACK_HEIGHT),
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            
+            using (ui.Element())
+            {
+                ui.Color = UiTheme.Border;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1)
+                };
             }
         }
     }
