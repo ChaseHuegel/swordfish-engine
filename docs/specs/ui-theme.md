@@ -77,7 +77,6 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator. |
 | `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar. |
-| `TextArea` | `Widgets.TextArea.cs:22` | Framed multi-line text box that scrolls with the wheel and follows the caret. |
 | `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
 | `FooterStatus` | `Widgets.FooterStatus.cs:13` | Centered footer status between two action buttons. |
 | `MenuChevron` | `Widgets.MenuChevron.cs:12` | Cyan menu selection chevron. |
@@ -118,9 +117,6 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 - Text inputs use `Widgets.TextBox`. It reads theme colors for focus,
   placeholder, selection, and caret, and accepts `drawChrome: false` when
   embedded inside a custom-framed container such as the chat send bar.
-- Multi-line inputs that can overflow use `Widgets.TextArea`. It keeps the
-  scroll offset in `TextBoxState.ScrollY`, reserves a scrollbar gutter, and
-  scrolls to the caret line after each edit or caret move.
 - HUD overlays (`Hotbar`, `Bars`, `Actions`, `ShapeSelector`,
   `OrientationSelector`, `ControlHints`, `ChatLayer`) use theme tokens, borders,
   and corner caps directly. `ChatLayer` uses `Widgets.Panel` and

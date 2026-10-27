@@ -45,8 +45,7 @@ internal static partial class Widgets
         FontOptions fontOptions,
         IInputService inputService,
         out Interactions interactions,
-        bool drawChrome = true,
-        Constraints? constraints = null
+        bool drawChrome = true
     )
     {
         fontOptions.ID ??= ui.DefaultFontID;
@@ -55,12 +54,11 @@ internal static partial class Widgets
         {
             ui.LayoutDirection = LayoutDirection.None;
             ui.Padding = new Padding(left: 0, top: 0, right: 0, bottom: 0);
-
-            Constraints? resolvedConstraints = constraints ?? state.Settings.Constraints;
-            if (resolvedConstraints != null)
+            
+            if (state.Settings.Constraints != null)
             {
-                ui.Constraints = resolvedConstraints.Value;
-                ui.ClipConstraints = resolvedConstraints.Value;
+                ui.Constraints = state.Settings.Constraints.Value;
+                ui.ClipConstraints = state.Settings.Constraints.Value;
             }
 
             bool clicked = ui.Clicked();
@@ -69,7 +67,6 @@ internal static partial class Widgets
             bool entered = ui.Entered();
             bool exited = ui.Exited();
             bool focused = ui.Focused();
-            state.Focused = focused;
 
             if (drawChrome)
             {
