@@ -144,8 +144,8 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
             GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
             if (ui.ActionButton(
-                    "Button_Embark",
-                    _localization.GetString("ui.button.loadSave")!,
+                    "Button_SelectSave",
+                    _localization.GetString("ui.button.next")!,
                     _launchButton with { Rect = layout.PrimaryButton, Enabled = activeSave != null }
                 ))
             {
@@ -428,39 +428,6 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 ui.Divider(
                     Widgets.Rect(padding, 280, rect.Size.X - padding * 2, 1),
                     UiTheme.Border
-                );
-                ui.Label(
-                    _localization.GetString("ui.menu.sectorStatus")!,
-                    Widgets.Rect(padding, 292, rect.Size.X - padding * 2, 18),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.TextMuted,
-                    Anchors.Left | Anchors.Center
-                );
-                ui.Label(
-                    _localization.GetString("ui.menu.readyForLaunch")!,
-                    Widgets.Rect(padding, 312, rect.Size.X - padding * 2, 20),
-                    UiMetrics.MenuBodyFont,
-                    UiTheme.Success,
-                    Anchors.Left | Anchors.Center
-                );
-            }
-
-            if (rect.Size.Y > 430)
-            {
-                ui.InfoBox(
-                    Widgets.Rect(padding, rect.Size.Y - 96, rect.Size.X - padding * 2, 80),
-                    _localization.GetString("ui.menu.info")!,
-                    _localization.GetString("ui.menu.archiveInfoBody")!
-                );
-            }
-            else if (rect.Size.Y > 300)
-            {
-                ui.Label(
-                    _localization.GetString("ui.menu.readyForLaunch")!,
-                    Widgets.Rect(padding, rect.Size.Y - 36, rect.Size.X - padding * 2, 18),
-                    UiMetrics.MenuSmallFont,
-                    UiTheme.Success,
-                    Anchors.Left | Anchors.Center
                 );
             }
         }
