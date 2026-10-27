@@ -2,6 +2,9 @@ using Reef.Constraints;
 
 namespace Reef.UI;
 
+/// <summary>
+///     Position, size, and min/max bounds constraints for an element.
+/// </summary>
 public struct Constraints
 {
     public Anchors Anchors;
@@ -13,4 +16,6 @@ public struct Constraints
     
     public int MinWidth;
     public int MinHeight;
+    public int MaxWidth;
+    public int MaxHeight;
 }

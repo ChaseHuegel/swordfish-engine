@@ -144,11 +144,15 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
             if (command.Text != null)
             {
                 //  Build text vertices
-                TextLayout textLayout = _reefContext.TextEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
+                TextLayout textLayout = command.TextLayout ?? _reefContext.TextEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
 
                 for (var n = 0; n < textLayout.Glyphs.Length; n++)
                 {
                     GlyphLayout glyph = textLayout.Glyphs[n];
+                    if (glyph.IsWhitespace)
+                    {
+                        continue;
+                    }
                 
                     var bbox = new IntRect(
                         command.Rect.Left + glyph.BBOX.Left,

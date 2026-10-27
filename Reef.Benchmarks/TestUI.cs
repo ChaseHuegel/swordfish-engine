@@ -23,8 +23,7 @@ internal static class TestUI
             ui.Constraints = new UI.Constraints
             {
                 Anchors = Anchors.Center | Anchors.Right,
-                X = new Relative(0.98f),
-                Y = new Relative(0.5f),
+                X = new Relative(-0.02f),
                 Width = new Fixed(200),
                 Height = new Fixed(600),
             };
@@ -105,8 +104,7 @@ internal static class TestUI
             ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
             ui.Constraints = new UI.Constraints
             {
-                Anchors = Anchors.Center,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center | Anchors.Top,
                 Y = new Relative(0.1f),
                 Width = new Fixed(128),
                 Height = new Fixed(128),
@@ -118,8 +116,6 @@ internal static class TestUI
                 ui.Constraints = new UI.Constraints
                 {
                     Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
-                    Y = new Relative(0.5f),
                 };
             }
         }
@@ -187,8 +183,6 @@ internal static class TestUI
             ui.Constraints = new UI.Constraints
             {
                 Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
                 Width = new Fixed(500),
             };
             
@@ -223,8 +217,6 @@ internal static class TestUI
                     ui.Constraints = new UI.Constraints
                     {
                         Anchors = Anchors.Center,
-                        X = new Relative(0.5f),
-                        Y = new Relative(0.5f),
                     };
                 }
 
@@ -260,8 +252,7 @@ internal static class TestUI
             ui.Constraints = new UI.Constraints
             {
                 Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Y = new Relative(-0.01f),
             };
         
             for (var i = 0; i < 6; i++)
@@ -285,8 +276,6 @@ internal static class TestUI
                         ui.Constraints = new UI.Constraints
                         {
                             Anchors = Anchors.Bottom | Anchors.Right,
-                            X = new Relative(1f),
-                            Y = new Relative(1f),
                             Width = new Fixed(20),
                             Height = new Fixed(20),
                         };

@@ -1,8 +1,12 @@
 using System.Numerics;
+using Reef.Text;
 using Reef.UI;
 
 namespace Reef;
 
+/// <summary>
+///     Describes a positioned and clipped UI primitive to be drawn by a renderer.
+/// </summary>
 public readonly struct RenderCommand<TRendererData>(
     string? id,
     IntRect rect,
@@ -15,8 +19,12 @@ public readonly struct RenderCommand<TRendererData>(
     FontOptions fontOptions,
     string? text,
     bool passthrough,
-    TRendererData? rendererData
-) {
+    TRendererData? rendererData,
+    TextLayout? textLayout = null,
+    IntVector2 contentSize = default,
+    bool scrollable = false
+)
+{
     public readonly string? ID = id;
     public readonly IntRect Rect = rect;
     public readonly IntRect ClipRect = clipRect;
@@ -28,6 +36,9 @@ public readonly struct RenderCommand<TRendererData>(
     public readonly FontOptions FontOptions = fontOptions;
     public readonly string? Text = text;
     public readonly TRendererData? RendererData = rendererData;
+    public readonly TextLayout? TextLayout = textLayout;
     
     internal readonly bool Passthrough = passthrough;
+    internal readonly IntVector2 ContentSize = contentSize;
+    internal readonly bool Scrollable = scrollable;
 }
