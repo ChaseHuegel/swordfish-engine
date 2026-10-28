@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +30,8 @@ using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Voxels;
+
+using WaywardBeyond.Client.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -66,6 +68,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly Line[] _debugLines;
     private readonly DebugSettings _debugSettings;
     private readonly SoundEffectService _soundEffectService;
+    private readonly VoxelLightingService _voxelLightingService;
     private readonly EventInvoker<PlaceEvent> _placeEvent;
     private readonly EventInvoker<BreakEvent> _breakEvent;
     private readonly SnapshotAckTracker _snapshotAck;
@@ -99,6 +102,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in IAssetDatabase<Mesh> meshDatabase,
         in IShortcutService shortcutService,
         in SoundEffectService soundEffectService,
+        in VoxelLightingService voxelLightingService,
         in EventInvoker<PlaceEvent> placeEvent,
         in EventInvoker<BreakEvent> breakEvent,
     in SnapshotAckTracker snapshotAck
@@ -116,6 +120,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _meshDatabase = meshDatabase;
         _debugSettings = debugSettings;
         _soundEffectService = soundEffectService;
+        _voxelLightingService = voxelLightingService;
         _placeEvent = placeEvent;
         _breakEvent = breakEvent;
         _snapshotAck = snapshotAck;
@@ -399,6 +404,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         //  Predict the authoritative outcome onto the presentation-only voxel container. The reconcile
         //  system confirms, snaps, or reverts this against the server's authoritative VoxelEditMessage.
         voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, predicted);
+        _voxelLightingService.UpdateLighting(voxelObject, voxelComponent.Registry, coordinate.X, coordinate.Y, coordinate.Z, in original, ref predicted);
 
         //  Publish the edit by marking the voxel component dirty; the VoxelEntityRebuildSystem observes
         //  this flag and fulfills the mesh/collider rebuild on the ECS thread.

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using WaywardBeyond.Data;
@@ -79,6 +79,15 @@ public sealed class VoxelObject
     
     /// <summary>Number of resident chunks, for sizing containers without touching internals.</summary>
     public int ChunkCount => _chunks.Count;
+
+    /// <summary>The edge length of a chunk in voxels.</summary>
+    public byte ChunkSize => _chunkSize;
+
+    /// <summary>Tries to get resident chunk data at the given chunk offset.</summary>
+    public bool TryGetChunk(Short3 offset, out ChunkData chunkData) => _chunks.TryGetValue(offset, out chunkData);
+
+    /// <summary>Calculates the chunk offset containing the given world voxel coordinates.</summary>
+    public Short3 ToChunkOffset(int x, int y, int z) => new((short)(x >> _chunkShift), (short)(y >> _chunkShift), (short)(z >> _chunkShift));
     
     public void Set(int x, int y, int z, Voxel voxel)
     {
@@ -116,6 +125,44 @@ public sealed class VoxelObject
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         var chunkVoxel = new ChunkVoxel(chunkData, ref chunkData.Data.Voxels[index]);
         chunkVoxel.Set(voxel);
+    }
+
+    /// <summary>Updates the light level of the voxel at the given world coordinates.</summary>
+    public void SetLight(int x, int y, int z, int lightLevel)
+    {
+        var chunkX = (short)(x >> _chunkShift);
+        var chunkY = (short)(y >> _chunkShift);
+        var chunkZ = (short)(z >> _chunkShift);
+        var chunkOffset = new Short3(chunkX, chunkY, chunkZ);
+        
+        if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
+        {
+            return;
+        }
+        
+        if (x < 0)
+        {
+            x += _chunkSize * Math.Abs((int)chunkX);
+        }
+
+        if (y < 0)
+        {
+            y += _chunkSize * Math.Abs((int)chunkY);
+        }
+
+        if (z < 0)
+        {
+            z += _chunkSize * Math.Abs((int)chunkZ);
+        }
+        
+        int localX = x & _chunkMask;
+        int localY = y & _chunkMask;
+        int localZ = z & _chunkMask;
+        
+        int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
+        ref Voxel current = ref chunkData.Data.Voxels[index];
+        ShapeLight shapeLight = current.GetShapeLight();
+        current.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel);
     }
 
     public Voxel Get(int x, int y, int z)

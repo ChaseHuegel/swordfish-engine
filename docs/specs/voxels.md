@@ -11,12 +11,14 @@ container. It owns a `Dictionary<Short3, ChunkData>` keyed by chunk offset. It
 creates a chunk on the first write that lands in it.
 
 - `Set(x, y, z, voxel)` writes one cell and creates the chunk when absent
-  (`VoxelObject.cs:83`).
-- `Get(x, y, z)` returns one cell by value (`VoxelObject.cs:121`).
+  (`VoxelObject.cs:92`).
+- `SetLight(x, y, z, lightLevel)` updates the light level of a resident cell
+  without modifying palette counts (`VoxelObject.cs:131`).
+- `Get(x, y, z)` returns one cell by value (`VoxelObject.cs:168`).
 - `Sample(x, y, z)` returns the cell and its six neighbours
-  (`VoxelObject.cs:161`).
+  (`VoxelObject.cs:208`).
 - `GetChunkInfos()` returns a copy of every resident chunk. The caller owns the
-  voxel arrays (`VoxelObject.cs:263`).
+  voxel arrays (`VoxelObject.cs:310`).
 
 A chunk holds `chunkSize³` voxels. `chunkSize` is a power of two and the
 constructor rejects any chunk whose `Size`, voxel count, or array does not match
@@ -93,6 +95,28 @@ cannot contribute (`VoxelPalette.cs:50`). `VoxelExtensions.Set` updates the coun
 on every write.
 
 Id 0 is the empty voxel. `Only(0)` is true for a chunk that holds no content.
+
+## Chunk remeshing and dirty tracking
+
+Client structures mesh each resident chunk into child entities
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:75`). Each chunk
+child entity holds its own `MeshRendererComponent` and `VoxelChunkComponent`
+(`WaywardBeyond.Client/Components/VoxelChunkComponent.cs`).
+
+`VoxelChunkRegistry` (`WaywardBeyond.Client/Voxels/VoxelChunkRegistry.cs`)
+tracks dirty chunk coordinates and active chunk child entities.
+
+A voxel edit marks its resident chunk dirty. An edit on a chunk boundary also
+marks the orthogonal neighbor chunk dirty.
+
+`VoxelLightingService`
+(`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs`) runs
+dual-queue BFS flood-fill lighting across resident chunks. The service marks
+every modified cell and its chunk dirty.
+
+`VoxelEntityBuilder.RebuildDirtyChunks`
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:140-170`) rebuilds
+only dirty chunks. Untouched chunks keep their existing mesh renderers.
 
 ## Tests
 

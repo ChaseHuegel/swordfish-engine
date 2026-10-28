@@ -4,10 +4,13 @@ using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Graphics;
+using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Graphics;
+using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Data;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Building;
@@ -29,16 +32,15 @@ internal sealed class VoxelEntityBuilder(
     private static HashSet<int> UpdatedEntities => _updatedEntities ??= [];
 
     private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
-    
     private readonly Material _maskedMaterial = new(shader, textureArrays.ToArray());
-
     private readonly Material _transparentMaterial = new(shader, textureArrays.ToArray())
     {
         Transparent = true,
     };
 
-    private readonly RenderOptions _renderOptions = new()
+    private readonly RenderOptions _opaqueRenderOptions = new()
     {
+        AlphaMode = AlphaMode.Opaque,
         DoubleFaced = false,
         Wireframe = false,
         CastShadows = true,
@@ -67,29 +69,33 @@ internal sealed class VoxelEntityBuilder(
     {
         int entity = store.Alloc(uuid);
         store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
-        int transparencyPtr = store.Alloc();
-        store.AddOrUpdate(transparencyPtr, new IdentifierComponent(name: null, tag: "game"));
-        int maskedPtr = store.Alloc();
-        store.AddOrUpdate(maskedPtr, new IdentifierComponent(name: null, tag: "game"));
         
         var transform = new TransformComponent(position, orientation, scale);
-        var voxelComponent = new VoxelComponent(voxelObject, store.GetUuid(transparencyPtr), store.GetUuid(maskedPtr));
+        var registry = new VoxelChunkRegistry();
+        var voxelComponent = new VoxelComponent(voxelObject, registry);
         
         store.AddOrUpdate(entity, transform);
         store.AddOrUpdate(entity, voxelComponent);
         store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
         store.AddOrUpdate(entity, new MeshRendererCleanup());
-        
-        store.AddOrUpdate(transparencyPtr, transform);
-        store.AddOrUpdate(transparencyPtr, new ChildComponent(store.GetUuid(entity)));
-        
-        store.AddOrUpdate(maskedPtr, transform);
-        store.AddOrUpdate(maskedPtr, new ChildComponent(store.GetUuid(entity)));
 
-        VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelObject);
-        UpdateEntity(store, entity, voxelComponent, data);
+        _voxelObjectBuilder.InitializeLighting(voxelObject);
+
+        Uuid parentUuid = store.GetUuid(entity);
+        foreach (ChunkData chunk in voxelObject)
+        {
+            if (chunk.Palette.Only(0))
+            {
+                continue;
+            }
+
+            BuildAndAttachChunk(store, entity, parentUuid, voxelComponent, chunk);
+        }
+
+        CompoundShape collisionShape = _voxelObjectBuilder.BuildCollision(voxelObject);
+        store.AddOrUpdate(entity, new ColliderComponent(collisionShape));
         
-        //  Clear the component dirty flag so the first-build isn't mistaken for a pending edit rebuild.
+        // Clear the component dirty flag so the first-build isn't mistaken for a pending edit rebuild.
         store.ClearDirty<VoxelComponent>(entity);
 
         return new Entity(entity, store);
@@ -103,115 +109,301 @@ internal sealed class VoxelEntityBuilder(
             return;
         }
         
-        if (!store.TryGet(entity, out MeshRendererComponent opaqueRendererComponent) ||
-            !store.TryGet(voxelComponent.TransparencyPtr, out MeshRendererComponent transparentRendererComponent) ||
-            !store.TryGet(voxelComponent.MaskedPtr, out MeshRendererComponent maskedRendererComponent))
-        {
-            _logger.LogWarning("Tried to rebuild entity {Entity} but it is missing a MeshRendererComponent.",
-                entity);
-            return;
-        }
-        
         if (!store.TryGet(entity, out MeshRendererCleanup meshRendererCleanup))
         {
             _logger.LogWarning("Tried to rebuild entity {Entity} but it is missing MeshRendererCleanup.", entity);
             return;
         }
-        
-        VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelComponent.VoxelObject);
-        UpdateEntity(store, entity, voxelComponent, data);
-        
-        //  Cleanup existing renderers
-        if (opaqueRendererComponent.MeshRenderer != null)
+
+        VoxelChunkRegistry registry = voxelComponent.Registry;
+        Uuid parentUuid = store.GetUuid(entity);
+
+        if (registry.DirtyChunks.Count == 0)
         {
-            meshRendererCleanup.MeshRenderers.Add(opaqueRendererComponent.MeshRenderer);
+            RebuildAllChunks(store, entity, parentUuid, voxelComponent, meshRendererCleanup);
+            return;
         }
-        if (transparentRendererComponent.MeshRenderer != null)
+
+        RebuildDirtyChunks(store, entity, parentUuid, voxelComponent, meshRendererCleanup);
+    }
+
+    private void RebuildAllChunks(
+        DataStore store,
+        int parentEntity,
+        Uuid parentUuid,
+        VoxelComponent voxelComponent,
+        MeshRendererCleanup meshRendererCleanup
+    )
+    {
+        VoxelChunkRegistry registry = voxelComponent.Registry;
+        VoxelObject voxelObject = voxelComponent.VoxelObject;
+
+        foreach (ChunkData chunk in voxelObject)
         {
-            meshRendererCleanup.MeshRenderers.Add(transparentRendererComponent.MeshRenderer);
+            if (chunk.Palette.Only(0))
+            {
+                RemoveChunkRenderers(store, chunk.Coords, registry, meshRendererCleanup);
+                ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunk.Coords, []);
+                continue;
+            }
+
+            UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup);
         }
-        if (maskedRendererComponent.MeshRenderer != null)
+
+        CompoundShape collisionShape = _voxelObjectBuilder.BuildCollision(voxelObject);
+        store.AddOrUpdate(parentEntity, new ColliderComponent(collisionShape));
+    }
+
+    private void RebuildDirtyChunks(
+        DataStore store,
+        int parentEntity,
+        Uuid parentUuid,
+        VoxelComponent voxelComponent,
+        MeshRendererCleanup meshRendererCleanup
+    )
+    {
+        VoxelChunkRegistry registry = voxelComponent.Registry;
+        VoxelObject voxelObject = voxelComponent.VoxelObject;
+
+        var dirtyList = new List<Short3>(registry.DirtyChunks);
+        registry.DirtyChunks.Clear();
+
+        for (var i = 0; i < dirtyList.Count; i++)
         {
-            meshRendererCleanup.MeshRenderers.Add(maskedRendererComponent.MeshRenderer);
+            Short3 chunkOffset = dirtyList[i];
+
+            if (!voxelObject.TryGetChunk(chunkOffset, out ChunkData chunk) || chunk.Palette.Only(0))
+            {
+                RemoveChunkRenderers(store, chunkOffset, registry, meshRendererCleanup);
+                ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, []);
+                continue;
+            }
+
+            UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup);
+        }
+
+        CompoundShape collisionShape = _voxelObjectBuilder.BuildCollision(voxelObject);
+        store.AddOrUpdate(parentEntity, new ColliderComponent(collisionShape));
+    }
+
+    private void BuildAndAttachChunk(
+        DataStore store,
+        int parentEntity,
+        Uuid parentUuid,
+        VoxelComponent voxelComponent,
+        ChunkData chunk
+    )
+    {
+        VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(chunk);
+        VoxelChunkRegistry registry = voxelComponent.Registry;
+        Short3 chunkOffset = chunk.Coords;
+
+        if (data.OpaqueMesh != null)
+        {
+            int opaqueEntity = store.Alloc();
+            store.AddOrUpdate(opaqueEntity, new IdentifierComponent(name: null, tag: "game"));
+            store.AddOrUpdate(opaqueEntity, new TransformComponent());
+            store.AddOrUpdate(opaqueEntity, new ChildComponent(parentUuid));
+            store.AddOrUpdate(opaqueEntity, new VoxelChunkComponent(chunkOffset, AlphaMode.Opaque));
+            store.AddOrUpdate(opaqueEntity, new MeshRendererComponent(new MeshRenderer(data.OpaqueMesh, _opaqueMaterial, _opaqueRenderOptions)));
+            registry.OpaqueEntities[chunkOffset] = opaqueEntity;
+        }
+
+        if (data.MaskedMesh != null)
+        {
+            int maskedEntity = store.Alloc();
+            store.AddOrUpdate(maskedEntity, new IdentifierComponent(name: null, tag: "game"));
+            store.AddOrUpdate(maskedEntity, new TransformComponent());
+            store.AddOrUpdate(maskedEntity, new ChildComponent(parentUuid));
+            store.AddOrUpdate(maskedEntity, new VoxelChunkComponent(chunkOffset, AlphaMode.Masked));
+            store.AddOrUpdate(maskedEntity, new MeshRendererComponent(new MeshRenderer(data.MaskedMesh, _maskedMaterial, _maskedRenderOptions)));
+            registry.MaskedEntities[chunkOffset] = maskedEntity;
+        }
+
+        if (data.TransparentMesh != null)
+        {
+            int transparentEntity = store.Alloc();
+            store.AddOrUpdate(transparentEntity, new IdentifierComponent(name: null, tag: "game"));
+            store.AddOrUpdate(transparentEntity, new TransformComponent());
+            store.AddOrUpdate(transparentEntity, new ChildComponent(parentUuid));
+            store.AddOrUpdate(transparentEntity, new VoxelChunkComponent(chunkOffset, AlphaMode.Blend));
+            store.AddOrUpdate(transparentEntity, new MeshRendererComponent(new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions)));
+            registry.TransparentEntities[chunkOffset] = transparentEntity;
+        }
+
+        ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, data.VoxelEntities);
+    }
+
+    private void UpdateChunkRenderers(
+        DataStore store,
+        int parentEntity,
+        Uuid parentUuid,
+        VoxelComponent voxelComponent,
+        ChunkData chunk,
+        MeshRendererCleanup meshRendererCleanup
+    )
+    {
+        VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(chunk);
+        VoxelChunkRegistry registry = voxelComponent.Registry;
+        Short3 chunkOffset = chunk.Coords;
+
+        UpdateRendererBucket(store, parentUuid, chunkOffset, data.OpaqueMesh, _opaqueMaterial, _opaqueRenderOptions, AlphaMode.Opaque, registry.OpaqueEntities, meshRendererCleanup);
+        UpdateRendererBucket(store, parentUuid, chunkOffset, data.MaskedMesh, _maskedMaterial, _maskedRenderOptions, AlphaMode.Masked, registry.MaskedEntities, meshRendererCleanup);
+        UpdateRendererBucket(store, parentUuid, chunkOffset, data.TransparentMesh, _transparentMaterial, _transparentRenderOptions, AlphaMode.Blend, registry.TransparentEntities, meshRendererCleanup);
+
+        ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, data.VoxelEntities);
+    }
+
+    private void UpdateRendererBucket(
+        DataStore store,
+        Uuid parentUuid,
+        Short3 chunkOffset,
+        Mesh? mesh,
+        Material material,
+        RenderOptions renderOptions,
+        AlphaMode alphaMode,
+        Dictionary<Short3, int> bucket,
+        MeshRendererCleanup meshRendererCleanup
+    )
+    {
+        if (mesh != null)
+        {
+            if (bucket.TryGetValue(chunkOffset, out int entity))
+            {
+                if (store.TryGet(entity, out MeshRendererComponent oldComp) && oldComp.MeshRenderer != null)
+                {
+                    meshRendererCleanup.MeshRenderers.Add(oldComp.MeshRenderer);
+                }
+                store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
+            }
+            else
+            {
+                entity = store.Alloc();
+                store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
+                store.AddOrUpdate(entity, new TransformComponent());
+                store.AddOrUpdate(entity, new ChildComponent(parentUuid));
+                store.AddOrUpdate(entity, new VoxelChunkComponent(chunkOffset, alphaMode));
+                store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
+                bucket[chunkOffset] = entity;
+            }
+        }
+        else if (bucket.Remove(chunkOffset, out int entity))
+        {
+            if (store.TryGet(entity, out MeshRendererComponent oldComp) && oldComp.MeshRenderer != null)
+            {
+                meshRendererCleanup.MeshRenderers.Add(oldComp.MeshRenderer);
+            }
+            store.Free(entity);
         }
     }
-    
-    private void UpdateEntity(DataStore store, int entity, VoxelComponent voxelComponent, VoxelObjectBuilder.Data data)
+
+    private static void RemoveChunkRenderers(
+        DataStore store,
+        Short3 chunkOffset,
+        VoxelChunkRegistry registry,
+        MeshRendererCleanup meshRendererCleanup
+    )
     {
-        var renderer = new MeshRenderer(data.OpaqueMesh, _opaqueMaterial, _renderOptions);
-        store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
-        store.AddOrUpdate(entity, new ColliderComponent(data.CollisionShape));
+        RemoveBucket(store, chunkOffset, registry.OpaqueEntities, meshRendererCleanup);
+        RemoveBucket(store, chunkOffset, registry.MaskedEntities, meshRendererCleanup);
+        RemoveBucket(store, chunkOffset, registry.TransparentEntities, meshRendererCleanup);
+    }
 
-        renderer = new MeshRenderer(data.MaskedMesh, _maskedMaterial, _maskedRenderOptions);
-        if (store.TryGet(voxelComponent.MaskedPtr, out int maskedEntity))
+    private static void RemoveBucket(
+        DataStore store,
+        Short3 chunkOffset,
+        Dictionary<Short3, int> bucket,
+        MeshRendererCleanup meshRendererCleanup
+    )
+    {
+        if (bucket.Remove(chunkOffset, out int entity))
         {
-            store.AddOrUpdate(maskedEntity, new MeshRendererComponent(renderer));
+            if (store.TryGet(entity, out MeshRendererComponent comp) && comp.MeshRenderer != null)
+            {
+                meshRendererCleanup.MeshRenderers.Add(comp.MeshRenderer);
+            }
+            store.Free(entity);
         }
+    }
 
-        renderer = new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions);
-        if (store.TryGet(voxelComponent.TransparencyPtr, out int transparencyEntity))
-        {
-            store.AddOrUpdate(transparencyEntity, new MeshRendererComponent(renderer));
-        }
-        
+    private void ReconcileVoxelEntities(
+        DataStore store,
+        int parentEntity,
+        Uuid parentUuid,
+        VoxelComponent voxelComponent,
+        Short3 chunkOffset,
+        List<VoxelInfo> chunkVoxelEntities
+    )
+    {
         HashSet<int> updatedEntities = UpdatedEntities;
         updatedEntities.Clear();
 
-        //  Update any existing entities and cleanup old ones
+        byte chunkSize = voxelComponent.VoxelObject.ChunkSize;
+        int chunkShift = int.TrailingZeroCount(chunkSize);
+
         store.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
-        void ForEachVoxelEntity(float delta, DataStore store, int voxelEntity, in VoxelIdentifierComponent voxelIdentifier, in ChildComponent child)
+        void ForEachVoxelEntity(float delta, DataStore s, int voxelEntity, in VoxelIdentifierComponent voxelIdentifier, in ChildComponent child)
         {
-            if (child.Parent != store.GetUuid(entity))
+            if (child.Parent != parentUuid)
             {
                 return;
             }
-            
-            //  If this voxel entity still exists, update it.
-            for (var i = 0; i < data.VoxelEntities.Count; i++)
+
+            var entityChunk = new Short3(
+                (short)(voxelIdentifier.X >> chunkShift),
+                (short)(voxelIdentifier.Y >> chunkShift),
+                (short)(voxelIdentifier.Z >> chunkShift)
+            );
+
+            if (entityChunk != chunkOffset)
             {
-                VoxelInfo voxelInfo = data.VoxelEntities[i];
+                return;
+            }
+
+            for (var i = 0; i < chunkVoxelEntities.Count; i++)
+            {
+                VoxelInfo voxelInfo = chunkVoxelEntities[i];
                 if (voxelInfo.X != voxelIdentifier.X || voxelInfo.Y != voxelIdentifier.Y || voxelInfo.Z != voxelIdentifier.Z)
                 {
                     continue;
                 }
-                
+
                 for (var n = 0; n < _decorators.Length; n++)
                 {
-                    _decorators[n].Process(store, parent: entity, voxelEntity, voxelComponent, voxelInfo);
+                    _decorators[n].Process(store, parent: parentEntity, voxelEntity, voxelComponent, voxelInfo);
                 }
-                
+
                 updatedEntities.Add(i);
                 return;
             }
-            
-            //  Else this entity isn't associated with a voxel anymore, free it.
+
             store.Free(voxelEntity);
         }
-        
-        //  Init any new entities
-        for (var i = 0; i < data.VoxelEntities.Count; i++)
+
+        for (var i = 0; i < chunkVoxelEntities.Count; i++)
         {
             if (updatedEntities.Contains(i))
             {
                 continue;
             }
-            
-            VoxelInfo voxelInfo = data.VoxelEntities[i];
-            
+
+            VoxelInfo voxelInfo = chunkVoxelEntities[i];
+
             int voxelEntity = store.Alloc();
             store.AddOrUpdate(voxelEntity, new IdentifierComponent(name: null, tag: "game"));
             store.AddOrUpdate(voxelEntity, new VoxelIdentifierComponent(voxelInfo.X, voxelInfo.Y, voxelInfo.Z));
             store.AddOrUpdate(voxelEntity, new TransformComponent());
-            store.AddOrUpdate(voxelEntity, new ChildComponent(store.GetUuid(entity))
+            store.AddOrUpdate(voxelEntity, new ChildComponent(parentUuid)
             {
                 LocalPosition = new Vector3(voxelInfo.X, voxelInfo.Y, voxelInfo.Z),
             });
-            
+
             for (var n = 0; n < _decorators.Length; n++)
             {
-                _decorators[n].Process(store, parent: entity, voxelEntity, voxelComponent, voxelInfo);
+                _decorators[n].Process(store, parent: parentEntity, voxelEntity, voxelComponent, voxelInfo);
             }
         }
+
         updatedEntities.Clear();
     }
 }

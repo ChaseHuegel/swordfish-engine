@@ -1,8 +1,9 @@
-﻿using Swordfish.ECS;
+using Swordfish.ECS;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Voxels;
@@ -31,19 +32,22 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     private readonly IBrickRegistry _brickRegistry;
     private readonly SoundEffectService _soundEffectService;
     private readonly IBrickDatabase _brickDatabase;
+    private readonly VoxelLightingService _voxelLightingService;
 
     public ClientVoxelReconcileSystem(
         in ClientInbound inbound,
         in SnapshotAckTracker snapshotAck,
         IBrickRegistry brickRegistry,
         in SoundEffectService soundEffectService,
-        in IBrickDatabase brickDatabase
+        in IBrickDatabase brickDatabase,
+        in VoxelLightingService voxelLightingService
     ) {
         _inbound = inbound;
         _snapshotAck = snapshotAck;
         _brickRegistry = brickRegistry;
         _soundEffectService = soundEffectService;
         _brickDatabase = brickDatabase;
+        _voxelLightingService = voxelLightingService;
     }
 
     public void Tick(float delta, DataStore store)
@@ -232,7 +236,10 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             return;
         }
 
-        voxelComponent.VoxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, voxel);
+        Voxel original = voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
+        Voxel updated = voxel;
+        voxelComponent.VoxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, updated);
+        _voxelLightingService.UpdateLighting(voxelComponent.VoxelObject, voxelComponent.Registry, coordinate.X, coordinate.Y, coordinate.Z, in original, ref updated);
 
         //  Publish the edit by marking the voxel component dirty; the VoxelEntityRebuildSystem observes
         //  this flag and fulfills the mesh/collider rebuild on the ECS thread.

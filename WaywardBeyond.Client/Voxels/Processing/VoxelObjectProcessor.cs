@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using WaywardBeyond.Voxels;
 using WaywardBeyond.Data;
 
@@ -49,6 +49,15 @@ internal sealed class VoxelObjectProcessor
         passes += PrePass(voxelObject);
         passes += MainPass(voxelObject);
         passes += PostPass(voxelObject);
+        return passes;
+    }
+
+    /// <summary>Runs pre-passes and main passes to initialize lighting across the <see cref="VoxelObject"/>.</summary>
+    public int ProcessLighting(VoxelObject voxelObject)
+    {
+        var passes = 0;
+        passes += PrePass(voxelObject);
+        passes += MainPass(voxelObject);
         return passes;
     }
 
