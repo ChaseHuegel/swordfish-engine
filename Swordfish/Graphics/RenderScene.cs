@@ -9,6 +9,8 @@ internal record struct RenderScene(
     in Matrix4x4 View,
     in Matrix4x4 Projection,
     in EntityModel[] EntityModels,
+    in BatchEntityModel[] BatchEntityModels,
     in LockedList<GLRenderTarget> RenderTargets,
-    in LockedList<GLRectRenderTarget> RectRenderTargets
+    in LockedList<GLRectRenderTarget> RectRenderTargets,
+    in Frustum? CameraFrustum
 );

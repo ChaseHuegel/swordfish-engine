@@ -286,7 +286,8 @@ public class SilkWindowContext : IWindowContext
 
     private void OnClose()
     {
-        _gl.Dispose();
+        //  The container deletes GL resources after this event. Disposing the
+        //  binding here removes the function pointers before those deletions.
         Closed?.Invoke();
     }
 

@@ -6,8 +6,8 @@ internal sealed class BufferObject<TData> : GLHandle
     where TData : unmanaged
 {
     private readonly GL _gl;
-    public readonly int Length;
-    public int ByteCapacity { get; private set; }
+    public int Length { get; private set; }
+    public int ByteCount { get; private set; }
     private readonly BufferTargetARB _bufferType;
     private readonly BufferUsageARB _usage;
 
@@ -18,14 +18,14 @@ internal sealed class BufferObject<TData> : GLHandle
     {
         _gl = gl;
         Length = data.Length;
-        ByteCapacity = data.Length * sizeof(TData);
+        ByteCount = checked(data.Length * sizeof(TData));
         _bufferType = bufferType;
         _usage = usage;
 
         using Scope _ = Use();
         fixed (void* dataPtr = data)
         {
-            nuint bufferSize = new((uint)ByteCapacity);
+            nuint bufferSize = new((uint)ByteCount);
             _gl.BufferData(_bufferType, bufferSize, dataPtr, _usage);
         }
 
@@ -38,12 +38,13 @@ internal sealed class BufferObject<TData> : GLHandle
     public unsafe void UpdateData(ReadOnlySpan<TData> data)
     {
         Bind();
+        Length = data.Length;
         fixed (void* dataPtr = data)
         {
-            int requiredBytes = data.Length * sizeof(TData);
-            if (requiredBytes > ByteCapacity)
+            int requiredBytes = checked(data.Length * sizeof(TData));
+            if (requiredBytes > ByteCount)
             {
-                ByteCapacity = requiredBytes;
+                ByteCount = requiredBytes;
                 _gl.BufferData(_bufferType, (nuint)requiredBytes, dataPtr, _usage);
             }
             else
@@ -54,13 +55,32 @@ internal sealed class BufferObject<TData> : GLHandle
         Unbind();
     }
 
-    public unsafe void UpdateData(Span<TData> data) => UpdateData((ReadOnlySpan<TData>)data);
+    public void UpdateData(Span<TData> data) => UpdateData((ReadOnlySpan<TData>)data);
+
+    /// <summary>Uploads data at a byte offset without resizing the buffer.</summary>
+    public unsafe void UpdateRangeData(int byteOffset, ReadOnlySpan<TData> data)
+    {
+        if (data.Length == 0)
+        {
+            return;
+        }
+
+        Bind();
+        fixed (void* dataPtr = data)
+        {
+            _gl.BufferSubData(_bufferType, (nint)byteOffset, (nuint)(data.Length * sizeof(TData)), dataPtr);
+        }
+        Unbind();
+    }
+
+    public void UploadOrResize(ReadOnlySpan<TData> data) => UpdateData(data);
     
     public unsafe void Resize(int size)
     {
         Bind();
-        ByteCapacity = size * sizeof(TData);
-        _gl.BufferData(_bufferType, (nuint)ByteCapacity, data: null, _usage);
+        Length = size;
+        ByteCount = checked(size * sizeof(TData));
+        _gl.BufferData(_bufferType, (nuint)ByteCount, data: null, _usage);
         Unbind();
     }
 

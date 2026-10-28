@@ -1,39 +1,36 @@
 using System.Numerics;
 using Swordfish.Graphics.SilkNET.OpenGL;
-using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 namespace Swordfish.Graphics;
 
-internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
+internal abstract class RenderPipeline<TRenderStage>(TRenderStage[] renderStages) : IRenderPipeline
     where TRenderStage : IRenderStage
 {
-    private readonly TRenderStage[] _renderStages;
-    
-    public RenderPipeline(TRenderStage[] renderStages)
-    {
-        _renderStages = renderStages;
-    }
-    
-    public abstract void PreRender(double delta, RenderScene renderScene);
+    protected abstract int PreRender(double delta, RenderScene renderScene);
 
-    public abstract void PostRender(double delta, RenderScene renderScene);
+    protected abstract void PostRender(double delta, RenderScene renderScene);
 
     public int Render(double delta, RenderScene renderScene)
     {
-        PreRender(delta, renderScene);
-        int drawCalls = Draw(delta, renderScene);
+        int drawCalls = PreRender(delta, renderScene);
+        drawCalls += Draw(delta, renderScene, preRenderStages: !PreRenderStagesInPreRender);
         PostRender(delta, renderScene);
         return drawCalls;
     }
+
+    protected virtual bool PreRenderStagesInPreRender => false;
     
-    protected int Draw(double delta, RenderScene renderScene, bool isDepthPass = false)
+    protected int Draw(double delta, RenderScene renderScene, bool isDepthPass = false, bool preRenderStages = true)
     {
-        PreRenderStages(delta, renderScene, isDepthPass);
+        if (preRenderStages)
+        {
+            PreRenderStages(delta, renderScene, isDepthPass);
+        }
 
         var drawCalls = 0;
-        for (var i = 0; i < _renderStages.Length; i++)
+        for (var i = 0; i < renderStages.Length; i++)
         {
-            drawCalls += _renderStages[i].Render(delta, renderScene, ShaderActivationCallback, isDepthPass);
+            drawCalls += renderStages[i].Render(delta, renderScene, ShaderActivationCallback, isDepthPass);
         }
 
         return drawCalls;
@@ -41,9 +38,9 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
 
     protected void PreRenderStages(double delta, RenderScene renderScene, bool isDepthPass = false)
     {
-        for (var i = 0; i < _renderStages.Length; i++)
+        for (var i = 0; i < renderStages.Length; i++)
         {
-            _renderStages[i].PreRender(delta, renderScene, isDepthPass);
+            renderStages[i].PreRender(delta, renderScene, isDepthPass);
         }
     }
 
@@ -55,9 +52,9 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
         ShaderProgram depthCutoutArrayShader
     ) {
         var drawCalls = 0;
-        for (var i = 0; i < _renderStages.Length; i++)
+        for (var i = 0; i < renderStages.Length; i++)
         {
-            drawCalls += _renderStages[i].RenderShadowPass(view, projection, depthShader, depthCutoutShader, depthCutoutArrayShader);
+            drawCalls += renderStages[i].RenderShadowPass(view, projection, depthShader, depthCutoutShader, depthCutoutArrayShader);
         }
 
         return drawCalls;

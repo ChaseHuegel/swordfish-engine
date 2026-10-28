@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using Swordfish.Types;

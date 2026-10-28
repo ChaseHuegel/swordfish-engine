@@ -46,9 +46,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private int _numTiles;
     private uint[] _emptyTileCounts;
     
-    private readonly TexImage2D _preDepthTex;
-    private readonly FramebufferObject _preDepthFBO;
-    
     private readonly TexImage2D _depthTex;
     private readonly FramebufferObject _depthFBO;
     
@@ -79,6 +76,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     private readonly DoubleList<GPULight> _lightsBuffer = new();
     private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
+
+    protected override bool PreRenderStagesInPreRender => true;
     
     private uint _csmFBO;
     private TexImage3D? _csmTexture;
@@ -188,6 +187,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _cubemapShader = cubemapShader.CreateProgram(glContext);
         _blurShader = blurShader.CreateProgram(glContext);
         _bloomShader = bloomShader.CreateProgram(glContext);
+
+        for (var i = 0; i < renderStages.Length; i++)
+        {
+            renderStages[i].SetDepthShaders(_depthShader, _depthCutoutShader, _depthCutoutArrayShader);
+        }
         
         _screenWidth = (uint)windowContext.Resolution.X;
         _screenHeight = (uint)windowContext.Resolution.Y;
@@ -198,9 +202,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTilesY = (int)(_screenHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
         _numTiles = _numTilesX * _numTilesY;
         _emptyTileCounts = new uint[_numTiles];
-        
-        _preDepthTex = new TexImage2D(_gl, name: "prepass_depth", pixels: null, _screenWidth, _screenHeight, TextureFormat.Depth24f, TextureParams.ClampNearest);
-        _preDepthFBO = new FramebufferObject(_gl, name: "prepass_depth", _preDepthTex, FramebufferAttachment.DepthAttachment);
         
         _depthTex = new TexImage2D(_gl, name: "depth", pixels: null, _screenWidth, _screenHeight, TextureFormat.Depth24f, TextureParams.ClampNearest);
         _depthFBO = new FramebufferObject(_gl, name: "depth", _depthTex, FramebufferAttachment.DepthAttachment);
@@ -288,7 +289,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTiles = _numTilesX * _numTilesY;
         _emptyTileCounts = new uint[_numTiles];
 
-        _preDepthFBO.Resize(_screenWidth, _screenHeight);
         _depthFBO.Resize(_screenWidth, _screenHeight);
         _ssaoFBO.Resize(_screenWidth, _screenHeight);
         _blurFBO.Resize(_screenWidth, _screenHeight);
@@ -303,8 +303,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
     }
 
-    public override void PreRender(double delta, RenderScene renderScene)
+    protected override int PreRender(double delta, RenderScene renderScene)
     {
+        var drawCalls = 0;
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
 
@@ -329,32 +330,34 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         PreRenderStages(delta, renderScene, isDepthPass: true);
 
         // Render dynamic shadows
-        RenderShadows(renderScene, near, far, lights);
+        drawCalls += RenderShadows(renderScene, near, far, lights);
+
+        // Depth full pass
+        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
+        using (_depthFBO.Use())
+        using (_depthShader.Use())
+        {
+            _depthShader.SetUniform("view", renderScene.View);
+            _depthShader.SetUniform("projection", renderScene.Projection);
+            _depthShader.SetUniform("near", near);
+            _depthShader.SetUniform("far", far);
+
+            _gl.DepthMask(true);
+            _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
+            _gl.Enable(GLEnum.DepthTest);
+
+            drawCalls += Draw(delta, renderScene, isDepthPass: true, preRenderStages: false);
+        }
+        _glDebug.TryLogError();
 
         if (_renderSettings.SAO.Enabled.Get())
         {
-            // Depth pre-pass
             _gl.Viewport(0, 0, _screenHalfWidth, _screenHalfHeight);
-            using (_preDepthFBO.Use())
-            using (_depthShader.Use())
-            {
-                _depthShader.SetUniform("view", renderScene.View);
-                _depthShader.SetUniform("projection", renderScene.Projection);
-                _depthShader.SetUniform("near", near);
-                _depthShader.SetUniform("far", far);
-            
-                _gl.DepthMask(true);
-                _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
-                _gl.Enable(GLEnum.DepthTest);
 
-                Draw(delta, renderScene, isDepthPass: true);
-            }
-            _glDebug.TryLogError();
-            
-            // SSAO pass
+            // SSAO pass. Reuses the full depth buffer.
             using (_ssaoFBO.Use())
             using (_ssaoShader.Use())
-            using (_preDepthTex.Activate(TextureUnit.Texture0))
+            using (_depthTex.Activate(TextureUnit.Texture0))
             {
                 _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
                 _ssaoShader.SetUniform("uInvProj", inverseProjection);
@@ -368,6 +371,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                 _screenVAO.Bind();
                 _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
                 _screenVAO.Unbind();
+                drawCalls++;
             }
 
             _glDebug.TryLogError();
@@ -390,28 +394,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                     _screenVAO.Bind();
                     _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
                     _screenVAO.Unbind();
+                    drawCalls++;
                 }
             }
             _glDebug.TryLogError();
-        }
 
-        // Depth full pass
-        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
-        using (_depthFBO.Use())
-        using (_depthShader.Use())
-        {
-            _depthShader.SetUniform("view", renderScene.View);
-            _depthShader.SetUniform("projection", renderScene.Projection);
-            _depthShader.SetUniform("near", near);
-            _depthShader.SetUniform("far", far);
-            
-            _gl.DepthMask(true);
-            _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
-            _gl.Enable(GLEnum.DepthTest);
-
-            Draw(delta, renderScene, isDepthPass: false);
+            _gl.Viewport(0, 0, _screenWidth, _screenHeight);
         }
-        _glDebug.TryLogError();
 
         //  Reset to the back buffer
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
@@ -500,9 +489,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         //  Reset draw buffers
         _gl.DrawBuffers(_drawBuffers);
         _glDebug.TryLogError();
+
+        return drawCalls;
     }
 
-    public override void PostRender(double delta, RenderScene renderScene)
+    protected override void PostRender(double delta, RenderScene renderScene)
     {
         _glDebug.TryLogError();
 
@@ -577,8 +568,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         }
     }
 
-    private void RenderShadows(RenderScene renderScene, float near, float far, GPULight[] lights)
+    private int RenderShadows(RenderScene renderScene, float near, float far, GPULight[] lights)
     {
+        var drawCalls = 0;
         if (!_renderSettings.Shadows.Enabled.Get())
         {
             _cascadeCount = 0;
@@ -587,7 +579,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             {
                 lights[i].ShadowParams = new Vector4(-1f, 0f, 0f, 0f);
             }
-            return;
+            return drawCalls;
         }
 
         // Directional Shadows (Cascaded Shadow Maps)
@@ -637,7 +629,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                 _gl.Viewport(0, 0, resolution, resolution);
                 _gl.Clear(ClearBufferMask.DepthBufferBit);
 
-                DrawShadowPass(cascadeView, cascadeProj, _depthShader, _depthCutoutShader, _depthCutoutArrayShader);
+                drawCalls += DrawShadowPass(cascadeView, cascadeProj, _depthShader, _depthCutoutShader, _depthCutoutArrayShader);
             }
         }
         else
@@ -763,7 +755,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                         _gl.Viewport(0, 0, pointRes, pointRes);
                         _gl.Clear(ClearBufferMask.DepthBufferBit);
 
-                        DrawShadowPass(faceViews[f], pointProj, _depthShader, _depthCutoutShader, _depthCutoutArrayShader);
+                        drawCalls += DrawShadowPass(faceViews[f], pointProj, _depthShader, _depthCutoutShader, _depthCutoutArrayShader);
                     }
 
                     lights[lightIdx].ShadowParams = new Vector4(k, _renderSettings.Shadows.DepthBias.Get(), 0f, 0f);
@@ -782,6 +774,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         // Restore backbuffer and screen viewport
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
+
+        return drawCalls;
     }
 
     private void EnsureCSM(uint resolution, int cascadeCount, ShadowFilterMode filterMode)
@@ -844,7 +838,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _ssaoTex.Activate(TextureUnit.Texture5);
         shader.SetUniform("uAO", 5);
 
-        _preDepthTex.Activate(TextureUnit.Texture6);
+        _depthTex.Activate(TextureUnit.Texture6);
         shader.SetUniform("uPreDepth", 6);
         
         _depthTex.Activate(TextureUnit.Texture7);

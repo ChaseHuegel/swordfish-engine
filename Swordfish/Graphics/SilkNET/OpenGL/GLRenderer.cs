@@ -1,7 +1,6 @@
 using System.Numerics;
 using Shoal.DependencyInjection;
 using Silk.NET.OpenGL;
-using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
 
@@ -85,13 +84,17 @@ internal sealed class GLRenderer : IRenderer, IDisposable, IAutoActivate
 
     private void OnWindowRender(double delta)
     {
-        RenderScene renderScene = _renderContext.GetSceneContext();
-        
-        for (var i = 0; i < renderScene.EntityModels.Length; i++)
+        while (_renderContext.TryDequeueUnbound(out UnboundRenderer unbound))
         {
-            EntityModel entityModel = renderScene.EntityModels[i];
-            _renderContext.Bind(entityModel.MeshRenderer, entityModel.Entity);
+            _renderContext.Bind(unbound.Renderer, unbound.Entity);
         }
+
+        while (_renderContext.TryDequeueUnboundBatch(out UnboundBatchRenderer unboundBatch))
+        {
+            _renderContext.Bind(unboundBatch.Renderer, unboundBatch.Entity);
+        }
+
+        RenderScene renderScene = _renderContext.GetSceneContext();
 
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         

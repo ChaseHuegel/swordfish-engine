@@ -2,6 +2,7 @@ using DryIoc;
 using JoltPhysicsSharp;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
+using Silk.NET.Core.Contexts;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -33,21 +34,33 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
     private readonly IWindow _window = window;
     private readonly SynchronizationContext _mainThreadContext = mainThreadContext;
 
+    internal GL? GraphicsApi { get; private set; }
+    internal IGLContext? GLContext { get; private set; }
+
+    internal void DisposeGraphics()
+    {
+        GraphicsApi?.Dispose();
+        GraphicsApi = null;
+    }
+
     public void Register(IContainer container)
     {
         IInputContext inputContext = _window.CreateInput();
         GL gl = _window.CreateOpenGL();
+        GraphicsApi = gl;
+        GLContext = _window.GLContext;
         
-        container.RegisterInstance<GL>(gl);
+        container.RegisterInstance<GL>(gl, setup: Setup.With(preventDisposal: true));
         container.Register<GLContext>(Reuse.Singleton);
         container.Register<GLDebug>(Reuse.Singleton);
         container.RegisterMapping<IDisposable, GLDebug>();
         container.RegisterMapping<IAutoActivate, GLDebug>();
         
-        container.RegisterInstance<IWindow>(_window);
+        container.RegisterInstance<IWindow>(_window, setup: Setup.With(preventDisposal: true));
         container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         
         container.RegisterMany<GLRenderer>(Reuse.Singleton);
+        container.Register<IEntitySystem, ChildSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<GLRenderContext>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, GLRenderContext>();
         container.RegisterMapping<IAutoActivate, GLRenderContext>();
@@ -59,6 +72,9 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMapping<IWorldSpaceRenderStage, GLInstancedRenderer>();
         container.RegisterMapping<IRenderStage, GLInstancedRenderer>();
+        container.Register<GLMeshBatchRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IWorldSpaceRenderStage, GLMeshBatchRenderer>();
+        container.RegisterMapping<IRenderStage, GLMeshBatchRenderer>();
         container.Register<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMapping<ILineRenderer, GLLineRenderer>();
         container.RegisterMapping<IWorldSpaceRenderStage, GLLineRenderer>();
@@ -81,7 +97,6 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterInstance<SynchronizationContext>(_mainThreadContext);
         
         container.RegisterMany<ECSContext>(Reuse.Singleton);
-        container.Register<IEntitySystem, ChildSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
         container.Register<IEntitySystem, RectRendererSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
