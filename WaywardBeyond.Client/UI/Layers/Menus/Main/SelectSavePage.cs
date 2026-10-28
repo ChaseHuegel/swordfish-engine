@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -7,18 +8,14 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Theme;
-using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
-using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
@@ -26,16 +23,13 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectSave;
 
-    private const int CARD_HEIGHT = 40;
+    private const int CARD_HEIGHT = 52;
     private const int CARD_GAP = 8;
     private const int NEW_BUTTON_HEIGHT = 32;
     private const int REFRESH_INTERVAL_MS = 1000;
 
     private readonly GameSaveManager _gameSaveManager;
     private readonly GameSaveService _gameSaveService;
-    private readonly CharacterSaveManager _characterSaveManager;
-    private readonly CharacterAssetService _characterAssetService;
-    private readonly ISkillDatabase _skillDatabase;
     private readonly IInputService _inputService;
     private readonly ILocalization _localization;
     private readonly ICharacterStorage _characterStorage;
@@ -55,9 +49,6 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     public SelectSavePage(
         in GameSaveManager gameSaveManager,
         in GameSaveService gameSaveService,
-        in CharacterSaveManager characterSaveManager,
-        in CharacterAssetService characterAssetService,
-        in ISkillDatabase skillDatabase,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
@@ -69,9 +60,6 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     {
         _gameSaveManager = gameSaveManager;
         _gameSaveService = gameSaveService;
-        _characterSaveManager = characterSaveManager;
-        _characterAssetService = characterAssetService;
-        _skillDatabase = skillDatabase;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
@@ -363,7 +351,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         }
     }
 
-    /// <summary>Draws the name and the delete control of one galaxy archive row.</summary>
+    /// <summary>Draws the name, the mode, the playtime, and the delete control of one galaxy archive row.</summary>
     private static void DrawSaveCardContent(UIBuilder<Material> contentUi, SaveCardContext context)
     {
         using (contentUi.Row(
@@ -375,18 +363,70 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             spacing: 8
         ))
         {
-            contentUi.Padding = new Padding(left: 8, top: 0, right: 8, bottom: 0);
+            contentUi.Padding = new Padding(left: 8, top: 4, right: 8, bottom: 4);
 
-            contentUi.Label(
-                context.Save.Name,
-                UiMetrics.MENU_BODY_FONT,
-                context.Selected ? UiTheme.AccentBright : UiTheme.Text,
+            using (contentUi.Column(
                 new Constraints
                 {
                     Width = new Fill(),
                     Height = new Fill(),
+                },
+                spacing: 2
+            ))
+            {
+                using (contentUi.Row(
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fixed(22),
+                    },
+                    spacing: 8
+                ))
+                {
+                    contentUi.Label(
+                        context.Save.Name,
+                        UiMetrics.MENU_BODY_FONT,
+                        context.Selected ? UiTheme.AccentBright : UiTheme.Text,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        }
+                    );
+
+                    Vector4 modeColor = context.Save.Level.DefaultGameMode == GameMode.Creative
+                        ? UiTheme.TextDim
+                        : UiTheme.Primary;
+                    contentUi.Label(
+                        context.Save.Level.DefaultGameMode.ToString().ToUpperInvariant(),
+                        UiMetrics.MENU_LABEL_FONT,
+                        modeColor,
+                        new Constraints
+                        {
+                            Width = new Fixed(75),
+                            Height = new Fill(),
+                        },
+                        HorizontalAlignment.Right
+                    );
                 }
-            );
+
+                string lastPlayed = context.Save.Level.Playtime.LastPlayedMs > 0
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(context.Save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
+                    : context.Localization.GetRequired("ui.label.never");
+                TimeSpan age = TimeSpan.FromMilliseconds(context.Save.Level.Playtime.AgeMs);
+                string subtitle = $"{context.Localization.GetRequired("ui.label.lastPlayed")}: {lastPlayed}";
+
+                contentUi.Label(
+                    subtitle,
+                    UiMetrics.MENU_LABEL_FONT,
+                    UiTheme.TextMuted,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fixed(16),
+                    }
+                );
+            }
 
             DrawSaveDeleteButton(contentUi, context);
         }
@@ -480,7 +520,6 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             }
 
             DrawTelemetryReadouts(ui, activeSave.Value);
-            DrawTelemetryColonist(ui);
         }
     }
 
@@ -494,157 +533,72 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             new Constraints
             {
                 Width = new Fill(),
-                Height = new Fixed(26),
-            }
-        );
-        ui.Label(
-            $"{_localization.GetRequired("ui.label.level.mode")}: {save.Level.DefaultGameMode}",
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            }
-        );
-        ui.Label(
-            $"{_localization.GetRequired("ui.label.level.seed")}: {save.Level.Seed}",
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
+                Height = new Fixed(28),
             }
         );
 
-        string lastPlayed = save.Level.Playtime.LastPlayedMs > 0
-            ? DateTimeOffset.FromUnixTimeMilliseconds(save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
-            : _localization.GetRequired("ui.label.never");
-        ui.Label(
-            $"{_localization.GetRequired("ui.label.lastPlayed")}: {lastPlayed}",
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            }
-        );
-
-        TimeSpan age = TimeSpan.FromMilliseconds(save.Level.Playtime.AgeMs);
-        ui.Label(
-            $"{_localization.GetRequired("ui.label.timePlayed")}: {_localization.GetLongString(age)}",
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            }
-        );
-    }
-
-    /// <summary>Draws the active colonist block of the telemetry panel.</summary>
-    private void DrawTelemetryColonist(UIBuilder<Material> ui)
-    {
-        ui.Spacer(height: 12);
+        ui.Spacer(height: 8);
         ui.Divider(
-            UiTheme.Border,
+            UiTheme.BorderInner,
             new Constraints
             {
                 Width = new Fill(),
                 Height = new Fixed(1),
             }
         );
-        ui.Spacer(height: 8);
-        ui.Label(
-            _localization.GetRequired("ui.label.character.active"),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            }
+        ui.Spacer(height: 16);
+
+        DrawTelemetryRow(ui, _localization.GetRequired("ui.label.level.mode"), save.Level.DefaultGameMode.ToString());
+        DrawTelemetryRow(ui, _localization.GetRequired("ui.label.level.seed"), save.Level.Seed.ToString());
+
+        TimeSpan age = TimeSpan.FromMilliseconds(save.Level.Playtime.AgeMs);
+        DrawTelemetryRow(
+            ui,
+            _localization.GetRequired("ui.label.timePlayed"),
+            _localization.GetLongString(age)
         );
 
-        Character? character = _characterSaveManager.ActiveSave ?? _characterSaveManager.GetMostRecentSave();
-        if (character == null)
-        {
-            ui.Label(
-                _localization.GetRequired("ui.label.character.none"),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.TextDim,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(20),
-                }
-            );
-            return;
-        }
-
-        ui.Spacer(height: 12);
-        DrawTelemetryPortrait(ui, character.Value);
+        string lastPlayed = save.Level.Playtime.LastPlayedMs > 0
+            ? DateTimeOffset.FromUnixTimeMilliseconds(save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
+            : _localization.GetRequired("ui.label.never");
+        DrawTelemetryRow(ui, _localization.GetRequired("ui.label.lastPlayed"), lastPlayed);
     }
 
-    /// <summary>Draws the colonist portrait, name, and level of the telemetry panel.</summary>
-    private void DrawTelemetryPortrait(UIBuilder<Material> ui, in Character character)
+    /// <summary>Draws one key-value row of the telemetry panel.</summary>
+    private static void DrawTelemetryRow(UIBuilder<Material> ui, string label, string value)
     {
         using (ui.Row(
             new Constraints
             {
                 Width = new Fill(),
-                Height = new Fixed(96),
-            },
-            spacing: 16
+                Height = new Fixed(22),
+            }
         ))
         {
-            Material appearance = _characterAssetService.GetAppearanceMaterial(character);
-            using (ui.Image(appearance))
-            {
-                ui.Constraints = new Constraints
+            ui.Label(
+                label,
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
                 {
-                    Width = new Fixed(96),
-                    Height = new Fixed(96),
-                };
-            }
+                    Width = new Fixed(120),
+                    Height = new Fill(),
+                }
+            );
 
-            using (ui.Column(
+            ui.Label(
+                value,
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Text,
                 new Constraints
                 {
                     Width = new Fill(),
                     Height = new Fill(),
                 }
-            ))
-            {
-                ui.Label(
-                    character.Name,
-                    UiMetrics.MENU_BODY_FONT,
-                    UiTheme.AccentBright,
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fixed(22),
-                    }
-                );
-                int level = character.GetTotalSkillLevel(_skillDatabase);
-                ui.Label(
-                    _localization.GetCharacterLevelLine(
-                        level,
-                        _characterAssetService.GetSpecies(character.Body)
-                    ),
-                    UiMetrics.MENU_SMALL_FONT,
-                    UiTheme.Text,
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fixed(18),
-                    }
-                );
-            }
+            );
         }
+
+        ui.Spacer(height: 6);
     }
 
     private void RefreshSaveListIfDue()

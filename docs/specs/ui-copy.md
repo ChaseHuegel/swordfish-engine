@@ -149,7 +149,7 @@ the surface renders. Run the sweep by hand.
 - Toasts: `WaywardBeyond.Client/assets/lang/en/notification.toml:1`
 - Lookup: `WaywardBeyond.Client/Extensions/LocalizationExtensions.cs:12`
 - Home: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
-- Level list: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:25`
+- Level list: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:22`
 - Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:24`
 - Character list: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:23`
 - Character form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:26`

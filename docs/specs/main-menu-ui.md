@@ -142,9 +142,11 @@ Level form:
 A save is a galaxy. The game stores levels and characters.
 
 - Galactic archives is the level list from `GameSaveService`. The listing is
-  ordered by last played, newest first. It scrolls through `Widgets.ScrollArea`,
-  so it shows the same scrollbar as the crew manifest when the list overflows.
-- Galaxy telemetry is `Level` data plus the active `Character` when present.
+  ordered by last played, newest first. Each row shows the galaxy name, game
+  mode, last played timestamp, and total playtime. It scrolls through
+  `Widgets.ScrollArea`, so it shows the same scrollbar as the crew manifest when
+  the list overflows.
+- Galaxy telemetry is `Level` data (mode, seed, playtime, and last played).
 - Crew manifest is `ICharacterStorage`.
 - Species and gender are the real body selectors. Each one is a stepper over
   the shipped body definitions, and the pair resolves to the `Character.Body`
@@ -222,7 +224,7 @@ Do not add fake menu controls.
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:14`
 - Connecting modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConnectingModal.cs:15`
 - Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:15`
-- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:25`
+- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:22`
 - Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:24`
 - Crew manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:23`
 - Character form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:26`
