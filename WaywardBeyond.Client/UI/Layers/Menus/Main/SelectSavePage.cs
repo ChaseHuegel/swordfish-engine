@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Reef;
 using Reef.Constraints;
@@ -9,291 +8,599 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
-using WaywardBeyond.Config;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
-internal sealed class SelectSavePage(
-    in GameSaveManager gameSaveManager,
-    in GameSaveService gameSaveService,
-    in IInputService inputService,
-    in SoundEffectService soundEffectService,
-    in ILocalization localization,
-    in ICharacterStorage characterStorage,
-    in ModalMenu modalMenu,
-    in ConfirmModal confirmModal,
-    in ClientRpcHost rpcHost,
-    in NetworkingConfig networkingConfig,
-    in ProfileSettings profileSettings
-) : IMenuPage<MenuPage>
+internal sealed class SelectSavePage : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectSave;
-    
-    private readonly GameSaveManager _gameSaveManager = gameSaveManager;
-    private readonly GameSaveService _gameSaveService = gameSaveService;
-    private readonly IInputService _inputService = inputService;
-    private readonly ILocalization _localization = localization;
-    private readonly ICharacterStorage _characterStorage = characterStorage;
-    private readonly ModalMenu _modalMenu = modalMenu;
-    private readonly ConfirmModal _confirmModal = confirmModal;
-    private readonly ClientRpcHost _rpcHost = rpcHost;
-    private readonly NetworkingConfig _networkingConfig = networkingConfig;
-    private readonly ProfileSettings _profileSettings = profileSettings;
 
-    private const int RefreshIntervalMs = 1000;
+    private const int CARD_HEIGHT = 52;
+    private const int CARD_GAP = 8;
+    private const int NEW_BUTTON_HEIGHT = 32;
+    private const int REFRESH_INTERVAL_MS = 1000;
 
-    private bool _remoteConnectTried;
+    private readonly GameSaveManager _gameSaveManager;
+    private readonly GameSaveService _gameSaveService;
+    private readonly IInputService _inputService;
+    private readonly ILocalization _localization;
+    private readonly ICharacterStorage _characterStorage;
+    private readonly ModalMenu _modalMenu;
+    private readonly ConfirmModal _confirmModal;
+    private readonly SoundEffectService _soundEffectService;
+    private readonly ClientRpcHost _rpcHost;
+
+    private readonly Widgets.ActionButtonOptions _returnButton;
+    private readonly Widgets.ActionButtonOptions _launchButton;
+
     private long _lastRenderMs;
     private long _lastRefreshMs;
-
-    private readonly Widgets.ButtonOptions _menuButtonOptions = new(
-        new FontOptions 
-        {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-
-    private readonly Widgets.ButtonOptions _buttonOptions = new(
-        new FontOptions
-        {
-            Size = 20,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-    
-    private readonly Widgets.ButtonOptions _iconOptions = new(
-        new FontOptions {
-            ID = "Font Awesome 6 Free Solid",
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-        
-    private readonly Widgets.ButtonOptions _smallIconOptions = new(
-        new FontOptions {
-            ID = "Font Awesome 6 Free Solid",
-            Size = 20,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
-    
     private int _scrollY;
+    private int _narrowTab;
+
+    public SelectSavePage(
+        in GameSaveManager gameSaveManager,
+        in GameSaveService gameSaveService,
+        in IInputService inputService,
+        in SoundEffectService soundEffectService,
+        in ILocalization localization,
+        in ICharacterStorage characterStorage,
+        in ClientRpcHost rpcHost,
+        in ModalMenu modalMenu,
+        in ConfirmModal confirmModal
+    )
+    {
+        _gameSaveManager = gameSaveManager;
+        _gameSaveService = gameSaveService;
+        _inputService = inputService;
+        _soundEffectService = soundEffectService;
+        _localization = localization;
+        _characterStorage = characterStorage;
+        _rpcHost = rpcHost;
+        _modalMenu = modalMenu;
+        _confirmModal = confirmModal;
+
+        _returnButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
+        _launchButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
+    }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        EnsureRemoteConnection();
         RefreshSaveListIfDue();
+        _gameSaveManager.ActiveSave ??= _gameSaveManager.GetMostRecentSave();
 
-        using (ui.Element())
+        MenuLayout layout = MenuLayout.Compute(
+            ui.Width,
+            ui.Height,
+            maxPageWidth: 1160,
+            twoColumn: true,
+            leftRatio: 0.37f
+        );
+
+        using (ui.Page(layout))
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
+            ui.Padding = new Padding(left: 0, top: MenuLayout.PAGE_GAP, right: 0, bottom: 0);
+            ui.Spacing = MenuLayout.PAGE_GAP;
 
-            using (ui.Text(_localization.GetString("ui.menu.saves")!))
-            {
-                ui.FontSize = 24;
-            }
+            DrawPanels(ui, layout, menu);
+            DrawFooter(ui, menu);
         }
 
-        using (ui.Element("saves"))
+        return Result.FromSuccess();
+    }
+
+    /// <summary>Draws the tab strip and the panels that the current layout shows.</summary>
+    private void DrawPanels(UIBuilder<Material> ui, in MenuLayout layout, Menu<MenuPage> menu)
+    {
+        if (!layout.UseTabs)
         {
-            ui.VerticalScroll = true;
-
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Height = new Fixed(196),
-            };
-
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            };
-            
-            if (_gameSaveManager.ActiveSave == null)
-            {
-                _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
-            }
-
-            GameSave[] saves = _gameSaveService.GetSaves();
-            if (saves.Length == 0)
-            {
-                using (ui.Text(_localization.GetString("ui.text.none")!))
+            using (ui.Row(
+                new Constraints
                 {
-                    ui.FontOptions = _buttonOptions.FontOptions;
-                    ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
-                }
-            }
-            else
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                spacing: MenuLayout.PANEL_GAP
+            ))
             {
-                float scroll = _inputService.GetMouseScroll();
-                _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
-                ui.ScrollY = _scrollY * 30;
-
-                using (ui.Element())
-                {
-                    ui.Spacing = 20;
-                    
-                    using (ui.Element())
+                DrawArchives(
+                    ui,
+                    new Constraints
                     {
-                        ui.LayoutDirection = LayoutDirection.Vertical;
-                        ui.Spacing = 12;
-                        
-                        foreach (GameSave save in saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs))
-                        {
-                            using (ui.TextButton(id: $"Button_DeleteSave_{save.Name}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
-                            {
-                                if (interactions.Has(Widgets.Interactions.Click))
-                                {
-                                    _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
-
-                                    void DeleteSave()
-                                    {
-                                        _gameSaveManager.Delete(save);
-                                        _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
-                                    }
-                                }
-                            }
-                        }
+                        Width = new Relative(layout.LeftRatio),
+                        Height = new Fill(),
+                    },
+                    menu
+                );
+                DrawTelemetry(
+                    ui,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
                     }
-                    
-                    using (ui.Element())
-                    {
-                        ui.LayoutDirection = LayoutDirection.Vertical;
-                        
-                        foreach (GameSave save in saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs))
-                        {
-                            using (ui.TextButton(id: $"Button_SelectSave_{save.Name}", text: save.Name, _buttonOptions, out Widgets.Interactions interactions))
-                            {
-                                if (_gameSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave.Value.Name == save.Name)
-                                {
-                                    ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
-                                }
-
-                                if (interactions.Has(Widgets.Interactions.Click))
-                                {
-                                    _gameSaveManager.ActiveSave = save;
-                                }
-                            }
-                        }
-                    }
-                }
+                );
             }
+
+            return;
         }
-        
-        if (_gameSaveManager.ActiveSave != null)
-        {
-            GameSave activeSave = _gameSaveManager.ActiveSave.Value;
-            
-            using (ui.Element())
-            {
-                ui.Spacing = 8;
-                ui.Padding = new Padding(16);
-                ui.LayoutDirection = LayoutDirection.Vertical;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-                
-                using (ui.Element())
-                {
-                    ui.Spacing = 8;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
 
-                    string lastPlayedStr = activeSave.Level.Playtime.LastPlayedMs > 0
-                        ? DateTimeOffset.FromUnixTimeMilliseconds(activeSave.Level.Playtime.LastPlayedMs).ToLocalTime().ToString(format: "g")
-                        : _localization.GetString("ui.label.never")!;
-                    
-                    using (ui.Text($"{_localization.GetString("ui.label.lastPlayed")!} #BFBFBFFF {lastPlayedStr}")) { }
-                }
-
-                TimeSpan age = TimeSpan.FromMilliseconds(activeSave.Level.Playtime.AgeMs);
-                string timePlayedStr = _localization.GetLongString(age);
-                using (ui.Element())
-                {
-                    ui.Spacing = 8;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                    };
-                    
-                    using (ui.Text($"{_localization.GetString("ui.label.timePlayed")!} #BFBFBFFF {timePlayedStr}")) { }
-                }
-            }
-            
-            using (ui.TextButton(id: "Button_Next", text: _localization.GetString("ui.button.next")!, _menuButtonOptions, out Widgets.Interactions interactions))
+        using (ui.Column(
+            new Constraints
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-            
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    IEnumerable<Character> characters = _characterStorage.GetAllCharacters();
-                    menu.GoToPage(characters.Any() ? MenuPage.Characters : MenuPage.NewCharacter);
-                }
+                Width = new Fill(),
+                Height = new Fill(),
             }
-        }
-        
-        using (ui.Element())
+        ))
         {
-            ui.Constraints = new Constraints
+            DrawTabs(ui);
+            Constraints pane = new()
             {
                 Width = new Fill(),
                 Height = new Fill(),
             };
+
+            if (_narrowTab == 0)
+            {
+                DrawArchives(ui, pane, menu);
+                return;
+            }
+
+            DrawTelemetry(ui, pane);
         }
+    }
 
-        using (ui.Element())
+    /// <summary>Draws the page footer and runs the action that the player picked.</summary>
+    private void DrawFooter(UIBuilder<Material> ui, Menu<MenuPage> menu)
+    {
+        bool remote = _rpcHost.IsRemote;
+        string returnLabel = remote
+            ? _localization.GetRequired("ui.button.server.list")
+            : _localization.GetRequired("ui.button.back");
+
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.FOOTER_HEIGHT),
+            },
+            spacing: 12
+        ))
         {
-            ui.Constraints = new Constraints
+            if (ui.ActionButton(
+                "Button_Back",
+                returnLabel,
+                _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
+            ))
             {
-                Anchors = Anchors.Center,
-            };
-            
-            using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _menuButtonOptions, out Widgets.Interactions interactions))
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
+                menu.GoToPage(remote ? MenuPage.Multiplayer : MenuPage.Home);
+            }
 
-                if (interactions.Has(Widgets.Interactions.Click))
+            ui.Filler();
+
+            GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
+            Widgets.ActionButtonOptions nextOptions = _launchButton
+                .FooterButton(MenuLayout.PRIMARY_BUTTON_WIDTH) with
+            {
+                Enabled = activeSave != null,
+            };
+            if (ui.ActionButton(
+                "Button_SelectSave",
+                _localization.GetRequired("ui.button.level.select"),
+                nextOptions
+            ))
+            {
+                IReadOnlyList<Character> characters = _characterStorage.GetAllCharacters();
+                menu.GoToPage(characters.Count > 0 ? MenuPage.SelectCharacter : MenuPage.NewCharacter);
+            }
+        }
+    }
+
+    private void DrawTabs(UIBuilder<Material> ui)
+    {
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(MenuLayout.TABS_HEIGHT),
+            },
+            spacing: 8
+        ))
+        {
+            var tabConstraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+
+            if (ui.Tab(
+                "ArchivesTab",
+                _localization.GetRequired("ui.panel.level.list"),
+                selected: _narrowTab == 0,
+                tabConstraints
+            ))
+            {
+                _narrowTab = 0;
+            }
+
+            if (ui.Tab(
+                "TelemetryTab",
+                _localization.GetRequired("ui.panel.level.detail"),
+                selected: _narrowTab == 1,
+                tabConstraints
+            ))
+            {
+                _narrowTab = 1;
+            }
+        }
+    }
+
+    private void DrawArchives(UIBuilder<Material> ui, Constraints constraints, Menu<MenuPage> menu)
+    {
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.list")))
+        {
+            GameSave[] saves = _gameSaveService.GetSaves();
+
+            using (ui.Column(
+                new Constraints
                 {
-                    menu.GoBack();
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            ))
+            {
+                if (saves.Length == 0)
+                {
+                    ui.Label(
+                        _localization.GetRequired("ui.label.none"),
+                        UiMetrics.MENU_BODY_FONT,
+                        UiTheme.TextDim,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        },
+                        HorizontalAlignment.Center
+                    );
+                }
+                else
+                {
+                    DrawArchiveList(ui, saves);
+                }
+
+                if (_gameSaveService.CanCreateSave)
+                {
+                    ui.Spacer(height: 8);
+                    DrawNewSaveButton(ui, menu);
                 }
             }
         }
-        
-        return Result.FromSuccess();
     }
 
-    /// <summary>
-    /// Pulls the save listing so the page reflects the server's current levels. <see cref="RenderPage"/>
-    /// only runs while this page is current, so a gap since the last render means the page was just
-    /// (re)entered and must refresh at once. While the page stays open it re-pulls on the throttle, which
-    /// is what surfaces levels another client created.
-    /// </summary>
+    /// <summary>Draws the scrolling list of galaxy archive rows.</summary>
+    private void DrawArchiveList(UIBuilder<Material> ui, GameSave[] saves)
+    {
+        int contentHeight = saves.Length * CARD_HEIGHT + Math.Max(0, saves.Length - 1) * CARD_GAP;
+        Action<UIBuilder<Material>> body = contentUi => DrawSaveCards(contentUi, saves);
+
+        ui.ScrollArea(
+            "SelectSave.Archives",
+            contentHeight,
+            ref _scrollY,
+            _inputService,
+            body
+        );
+    }
+
+    /// <summary>Draws every galaxy archive row inside the scroll area.</summary>
+    private void DrawSaveCards(UIBuilder<Material> ui, GameSave[] saves)
+    {
+        Action<GameSave> deleteSave = DeleteSave;
+
+        for (var i = 0; i < saves.Length; i++)
+        {
+            if (i > 0)
+            {
+                ui.Spacer(height: CARD_GAP);
+            }
+
+            DrawSaveCard(ui, saves[i], deleteSave);
+        }
+    }
+
+    /// <summary>Draws one galaxy archive row and applies its selection.</summary>
+    private void DrawSaveCard(UIBuilder<Material> ui, GameSave save, Action<GameSave> deleteSave)
+    {
+        bool selected = _gameSaveManager.ActiveSave != null &&
+            _gameSaveManager.ActiveSave.Value.Level.Guid == save.Level.Guid;
+        var options = new Widgets.SelectableCardOptions(selected, SoundEffectService: _soundEffectService);
+        var context = new SaveCardContext(
+            save,
+            selected,
+            _gameSaveManager,
+            _modalMenu,
+            _confirmModal,
+            _soundEffectService,
+            _localization,
+            deleteSave
+        );
+
+        bool clicked = ui.SelectableCard(
+            $"Button_SelectSave_{save.Name}",
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(CARD_HEIGHT),
+            },
+            in options,
+            context,
+            static (contentUi, state) => DrawSaveCardContent(contentUi, state)
+        );
+
+        if (clicked)
+        {
+            _gameSaveManager.ActiveSave = save;
+        }
+    }
+
+    /// <summary>Draws the name, the mode, the playtime, and the delete control of one galaxy archive row.</summary>
+    private static void DrawSaveCardContent(UIBuilder<Material> contentUi, SaveCardContext context)
+    {
+        using (contentUi.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            },
+            spacing: 8
+        ))
+        {
+            contentUi.Padding = new Padding(left: 8, top: 4, right: 8, bottom: 4);
+
+            using (contentUi.Column(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                spacing: 2
+            ))
+            {
+                using (contentUi.Row(
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fixed(22),
+                    },
+                    spacing: 8
+                ))
+                {
+                    contentUi.Label(
+                        context.Save.Name,
+                        UiMetrics.MENU_BODY_FONT,
+                        context.Selected ? UiTheme.AccentBright : UiTheme.Text,
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        }
+                    );
+
+                    Vector4 modeColor = context.Save.Level.DefaultGameMode == GameMode.Creative
+                        ? UiTheme.TextDim
+                        : UiTheme.Primary;
+                    contentUi.Label(
+                        context.Save.Level.DefaultGameMode.ToString().ToUpperInvariant(),
+                        UiMetrics.MENU_LABEL_FONT,
+                        modeColor,
+                        new Constraints
+                        {
+                            Width = new Fixed(75),
+                            Height = new Fill(),
+                        },
+                        HorizontalAlignment.Right
+                    );
+                }
+
+                string lastPlayed = context.Save.Level.Playtime.LastPlayedMs > 0
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(context.Save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
+                    : context.Localization.GetRequired("ui.label.never");
+                TimeSpan age = TimeSpan.FromMilliseconds(context.Save.Level.Playtime.AgeMs);
+                string subtitle = $"{context.Localization.GetRequired("ui.label.lastPlayed")}: {lastPlayed}";
+
+                contentUi.Label(
+                    subtitle,
+                    UiMetrics.MENU_LABEL_FONT,
+                    UiTheme.TextMuted,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fixed(16),
+                    }
+                );
+            }
+
+            DrawSaveDeleteButton(contentUi, context);
+        }
+    }
+
+    /// <summary>Draws the delete control of one galaxy archive row and opens its confirmation.</summary>
+    private static void DrawSaveDeleteButton(UIBuilder<Material> contentUi, SaveCardContext context)
+    {
+        string id = $"Button_DeleteSave_{context.Save.Name}";
+        var options = new Widgets.IconButtonOptions(
+            Danger: true,
+            SoundEffectService: context.SoundEffectService
+        );
+        bool clicked = contentUi.IconButton(
+            id,
+            MenuGlyphs.TRASH,
+            options,
+            new Constraints
+            {
+                Width = new Fixed(28),
+                Height = new Fixed(28),
+                Anchors = Anchors.Center,
+            }
+        );
+        if (!clicked)
+        {
+            return;
+        }
+
+        GameSave save = context.Save;
+        Action<GameSave> deleteSave = context.DeleteSave;
+        context.GameSaveManager.ActiveSave = save;
+        context.ModalMenu.GoToPage(context.ConfirmModal.Create(
+            () => deleteSave(save),
+            context.Localization.GetRequired("ui.dialog.level.delete"),
+            context.Localization.GetRequired("ui.dialog.level.delete.body"),
+            context.Localization.GetRequired("ui.button.level.delete"),
+            context.Localization.GetRequired("ui.button.cancel")
+        ));
+    }
+
+    /// <summary>Deletes one galaxy archive, selects the most recent remaining save, and resets the list scroll.</summary>
+    private void DeleteSave(GameSave save)
+    {
+        _gameSaveManager.Delete(save);
+        _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
+        _scrollY = 0;
+    }
+
+    /// <summary>Draws the button that opens the new galaxy page.</summary>
+    private void DrawNewSaveButton(UIBuilder<Material> ui, Menu<MenuPage> menu)
+    {
+        var options = new Widgets.ActionButtonOptions(
+            Variant: ButtonVariant.Subtle,
+            Layout: new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(NEW_BUTTON_HEIGHT),
+            }
+        );
+        bool clicked = ui.ActionButton(
+            "Button_NewSave",
+            "+ " + _localization.GetRequired("ui.button.level.new"),
+            options
+        );
+        if (clicked)
+        {
+            menu.GoToPage(MenuPage.NewSave);
+        }
+    }
+
+    private void DrawTelemetry(UIBuilder<Material> ui, Constraints constraints)
+    {
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.detail")))
+        {
+            GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
+            if (activeSave == null)
+            {
+                ui.Label(
+                    _localization.GetRequired("ui.label.none"),
+                    UiMetrics.MENU_BODY_FONT,
+                    UiTheme.TextDim,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    },
+                    HorizontalAlignment.Center
+                );
+                return;
+            }
+
+            DrawTelemetryReadouts(ui, activeSave.Value);
+        }
+    }
+
+    /// <summary>Draws the name, the mode, the seed, and the playtime readouts of the telemetry panel.</summary>
+    private void DrawTelemetryReadouts(UIBuilder<Material> ui, in GameSave save)
+    {
+        ui.Label(
+            save.Name,
+            UiMetrics.MENU_TITLE_FONT,
+            UiTheme.Text,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(28),
+            }
+        );
+
+        ui.Spacer(height: 8);
+        ui.Divider(
+            UiTheme.BorderInner,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(1),
+            }
+        );
+        ui.Spacer(height: 16);
+
+        DrawTelemetryRow(ui, _localization.GetRequired("ui.label.level.mode"), save.Level.DefaultGameMode.ToString());
+        DrawTelemetryRow(ui, _localization.GetRequired("ui.label.level.seed"), save.Level.Seed.ToString());
+
+        TimeSpan age = TimeSpan.FromMilliseconds(save.Level.Playtime.AgeMs);
+        DrawTelemetryRow(
+            ui,
+            _localization.GetRequired("ui.label.timePlayed"),
+            _localization.GetLongString(age)
+        );
+
+        string lastPlayed = save.Level.Playtime.LastPlayedMs > 0
+            ? DateTimeOffset.FromUnixTimeMilliseconds(save.Level.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
+            : _localization.GetRequired("ui.label.never");
+        DrawTelemetryRow(ui, _localization.GetRequired("ui.label.lastPlayed"), lastPlayed);
+    }
+
+    /// <summary>Draws one key-value row of the telemetry panel.</summary>
+    private static void DrawTelemetryRow(UIBuilder<Material> ui, string label, string value)
+    {
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(22),
+            }
+        ))
+        {
+            ui.Label(
+                label,
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fixed(120),
+                    Height = new Fill(),
+                }
+            );
+
+            ui.Label(
+                value,
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Text,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+        }
+
+        ui.Spacer(height: 6);
+    }
+
     private void RefreshSaveListIfDue()
     {
         long now = Environment.TickCount64;
@@ -301,7 +608,7 @@ internal sealed class SelectSavePage(
         bool entered = now - _lastRenderMs > 250;
         _lastRenderMs = now;
 
-        if (!entered && now - _lastRefreshMs < RefreshIntervalMs)
+        if (!entered && now - _lastRefreshMs < REFRESH_INTERVAL_MS)
         {
             return;
         }
@@ -310,25 +617,15 @@ internal sealed class SelectSavePage(
         _ = _gameSaveService.RefreshLevelsAsync();
     }
 
-    /// <summary>
-    /// Continue branch: when the last session was remote and no transport is active, connect to the
-    /// persisted endpoint so the save list and join flow target that server. A local session needs no
-    /// action - the in-process host server is already running.
-    /// </summary>
-    private void EnsureRemoteConnection()
-    {
-        if (_profileSettings.LastServerMode.Get() != LastServerMode.Remote
-            || _rpcHost.IsRemote
-            || _remoteConnectTried)
-        {
-            return;
-        }
-
-        _remoteConnectTried = true;
-        Result result = _rpcHost.ConnectRemote(_networkingConfig.RemoteHost.Get(), _networkingConfig.RemotePort.Get());
-        if (result.Success)
-        {
-            _ = _gameSaveService.RefreshLevelsAsync();
-        }
-    }
+    /// <summary>Everything one galaxy archive row needs to draw itself.</summary>
+    private readonly record struct SaveCardContext(
+        GameSave Save,
+        bool Selected,
+        GameSaveManager GameSaveManager,
+        ModalMenu ModalMenu,
+        ConfirmModal ConfirmModal,
+        SoundEffectService SoundEffectService,
+        ILocalization Localization,
+        Action<GameSave> DeleteSave
+    );
 }

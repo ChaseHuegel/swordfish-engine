@@ -1,5 +1,7 @@
 [[Bodies]]
-ID = "wb:bot2_m"
+ID      = "wb:bot2_m"
+Species = "bot2"
+Gender  = "Male"
 
 [Bodies.States.standing]
 front = ["characters/bot2_m_standing.png"]

@@ -35,6 +35,13 @@ change touches a subject, run the docs pass (see `development.md`).
 | Voxel container: chunk addressing, sampling, out-of-bounds, palette counts | [specs/voxels](specs/voxels.md) |
 | Native resource lifetime: GPU handle and Jolt shape disposal | [specs/resource-lifetime](specs/resource-lifetime.md) |
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |
+| Reef element layout, styling, borders, no-wrap text, clipping | [specs/reef-ui](specs/reef-ui.md) |
+| Game UI theme tokens, metrics, style resolution, and shared widgets | [specs/ui-theme](specs/ui-theme.md) |
+| Main menu flow, menu layout, data mapping, and visual rules | [specs/main-menu-ui](specs/main-menu-ui.md) |
+| UI copy style, catalog conventions, key grammar, vocabulary, and string mappings | [specs/ui-copy](specs/ui-copy.md) |
+| Full-screen loading layer, visual rules, copy timing, data sources | [specs/loading-screen](specs/loading-screen.md) |
+| Window video modes and batched display changes | [specs/window-display](specs/window-display.md) |
+| Settings page layout, controls, draft, and apply behavior | [specs/settings-ui](specs/settings-ui.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
 | Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
 | Config schemas: `manifest.toml`, `modules.toml` | [specs/config-schemas](specs/config-schemas.md) |

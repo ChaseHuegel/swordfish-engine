@@ -1,125 +1,193 @@
 using System;
-using System.Collections.Concurrent;
-using System.Numerics;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
-using Reef;
+using Reef.Constraints;
 using Reef.UI;
+using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
-internal class ConfirmModal(in ILogger<ConfirmModal> logger, in SoundEffectService soundEffectService, in ILocalization localization)
-    : IMenuPage<Modal>
+/// <summary>Asks the player to confirm one destructive action.</summary>
+internal class ConfirmModal(
+    in ILogger<ConfirmModal> logger,
+    in SoundEffectService soundEffectService,
+    in ILocalization localization
+) : IMenuPage<Modal>
 {
-    private static Modal Modal { get; } = new(id: "core.confirm");
+    public static Modal Modal { get; } = new(id: "core.confirm");
+
+    /// <summary>The panel width in pixels.</summary>
+    private const int PANEL_WIDTH = 520;
+
+    /// <summary>The panel height in pixels.</summary>
+    private const int PANEL_HEIGHT = 250;
 
     private readonly ILogger<ConfirmModal> _logger = logger;
     private readonly ILocalization _localization = localization;
-    
-    private readonly ConcurrentStack<Action> _actions = new();
+    private readonly Stack<ConfirmRequest> _requests = new();
 
-    private readonly Widgets.ButtonOptions _menuButtonOptions = new(
-        new FontOptions {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
+    private readonly Widgets.ActionButtonOptions _secondaryButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Secondary,
+        soundEffectService
+    );
+    private readonly Widgets.ActionButtonOptions _primaryButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Danger,
+        soundEffectService
     );
 
     public Modal ID => Modal;
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        ui.Constraints = new Constraints
+        ConfirmRequest request = CurrentRequest();
+
+        using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
         {
-            Anchors = Anchors.Center,
-        };
-        
-        using (ui.Element())
-        {
-            ui.Color = new Vector4(0f, 0f, 0f, 0.75f);
-            
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            
-            ui.Padding = new Padding
-            {
-                Left = 20,
-                Top = 20,
-                Right = 20,
-                Bottom = 20,
-            };
-            
-            using (ui.Element())
-            {
-                using (ui.Text(_localization.GetString("ui.menu.confirm")!))
+            ui.Label(
+                request.Title,
+                UiMetrics.MENU_TITLE_FONT,
+                UiTheme.Text,
+                new Constraints
                 {
-                    ui.FontSize = 24;
+                    Width = new Fill(),
+                    Height = new Fixed(30),
+                },
+                HorizontalAlignment.Center
+            );
+            ui.Spacer(height: 8);
+            ui.Divider(
+                UiTheme.Border,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                }
+            );
+            ui.Spacer(height: 16);
+            ui.Paragraph(
+                request.Body,
+                UiMetrics.MENU_BODY_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+
+            using (ui.Row(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                },
+                spacing: 12
+            ))
+            {
+                if (ui.ActionButton(
+                    "Button_No",
+                    request.CancelLabel,
+                    _secondaryButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(UiMetrics.MODAL_BUTTON_WIDTH),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    _requests.TryPop(out _);
+                    menu.GoBack();
+                }
+
+                ui.Filler();
+
+                if (ui.ActionButton(
+                    "Button_Yes",
+                    request.ConfirmLabel,
+                    _primaryButton with
+                    {
+                        Layout = new Constraints
+                        {
+                            Width = new Fixed(UiMetrics.MODAL_BUTTON_WIDTH),
+                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
+                            Anchors = Anchors.Center,
+                        },
+                    }
+                ))
+                {
+                    Confirm(menu);
                 }
             }
-
-            using (ui.Element())
-            {
-                ui.Spacing = 40;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-                
-                using (ui.Element())
-                {
-                    using (ui.TextButton(id: "Button_No", text: _localization.GetString("ui.button.no")!, _menuButtonOptions, out Widgets.Interactions interactions))
-                    {
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                        };
-
-                        if (interactions.Has(Widgets.Interactions.Click))
-                        {
-                            _actions.TryPop(out _);
-                            menu.GoBack();
-                        }
-                    }
-                }
-
-                using (ui.Element())
-                {
-                    using (ui.TextButton(id: "Button_Yes", text: _localization.GetString("ui.button.yes")!, _menuButtonOptions, out Widgets.Interactions interactions))
-                    {
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                        };
-
-                        if (interactions.Has(Widgets.Interactions.Click))
-                        {
-                            if (_actions.TryPop(out Action? action))
-                            {
-                                try
-                                {
-                                    action();
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogError(ex, "Error raising a confirm modal action.");
-                                }
-                            }
-                            
-                            menu.GoBack();
-                        }
-                    }
-                }
-            }
-            
-            return Result.FromSuccess();
         }
+
+        return Result.FromSuccess();
     }
-    
-    public Modal Create(Action action)
+
+    public Modal Create(
+        Action action,
+        string? title = null,
+        string? body = null,
+        string? confirmLabel = null,
+        string? cancelLabel = null
+    )
     {
-        _actions.Push(action);
-        return new Modal(id: "core.confirm");
+        _requests.Clear();
+        _requests.Push(new ConfirmRequest(
+            action,
+            title ?? _localization.GetRequired("ui.dialog.confirm"),
+            body ?? _localization.GetRequired("ui.dialog.confirm.body"),
+            confirmLabel ?? _localization.GetRequired("ui.button.confirm"),
+            cancelLabel ?? _localization.GetRequired("ui.button.cancel")
+        ));
+        return Modal;
     }
+
+    /// <summary>Runs the pending confirm action and closes the modal.</summary>
+    private void Confirm(Menu<Modal> menu)
+    {
+        if (_requests.TryPop(out ConfirmRequest confirmed))
+        {
+            try
+            {
+                confirmed.Action();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error raising a confirm modal action.");
+            }
+        }
+
+        menu.GoBack();
+    }
+
+    private ConfirmRequest CurrentRequest()
+    {
+        return _requests.TryPeek(out ConfirmRequest request)
+            ? request
+            : new ConfirmRequest(
+                static () => { },
+                _localization.GetRequired("ui.dialog.confirm"),
+                _localization.GetRequired("ui.dialog.confirm.body"),
+                _localization.GetRequired("ui.button.confirm"),
+                _localization.GetRequired("ui.button.cancel")
+            );
+    }
+
+    /// <summary>One pending confirmation, with its labels already resolved.</summary>
+    private readonly record struct ConfirmRequest(
+        Action Action,
+        string Title,
+        string Body,
+        string ConfirmLabel,
+        string CancelLabel
+    );
 }

@@ -8,6 +8,12 @@ internal struct BodyDefinition()
     /// <summary>The unique ID of the body.</summary>
     public string? ID;
 
+    /// <summary>The species categorization of the body.</summary>
+    public string? Species;
+
+    /// <summary>The gender categorization of the body.</summary>
+    public Gender Gender;
+
     /// <summary>
     ///     Maps schemaless states by tag to schemaless textures by tag.
     ///     All tags are case-insensitive.

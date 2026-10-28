@@ -15,7 +15,7 @@ internal class LocalizedFormatter(
     
     public string GetString(string key, params object?[] args)
     {
-        string localizedText = _localization.GetString(key);
-        return _smartFormatter.Format(localizedText, args);
+        string? localizedText = _localization.GetString(key);
+        return localizedText == null ? key : _smartFormatter.Format(localizedText, args);
     }
 }

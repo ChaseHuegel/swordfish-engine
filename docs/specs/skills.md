@@ -78,10 +78,14 @@ Servers push `NotificationMessage`s (see
 [networking-messages](networking-messages.md)). The message carries a
 localization **key** and positional args; servers never localize. The client's
 `ClientNotificationSystem` resolves any arg that names a localization key through
-its own locale files before formatting. `notification.skill.bar` renders the XP
-progress bar; `notification.skill.levelUp` renders the level-up toast. The bar
+its own locale files before formatting. `notification.skill.bar` renders the
+left-aligned skill name and level on the XP progress bar, and
+`notification.skill.bar.subtext` renders the right-aligned gained XP and
+percentage; `notification.skill.levelUp` renders the level-up toast. The bar
 amount is the XP earned into the current level divided by the next level's
-increment; a max-level skill renders a full bar.
+increment; a max-level skill renders a full bar. Skill XP bars set `Segments`
+to 10 and leave `Color` null so `Bars.cs` uses the default `UiTheme.Accent`
+fill.
 
 ## Source of truth
 

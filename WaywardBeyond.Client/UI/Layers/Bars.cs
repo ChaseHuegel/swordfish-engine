@@ -1,96 +1,202 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
-using System.Globalization;
-using System.Linq;
+using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.Util;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Client.Extensions;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
-internal class Bars(in NotificationService notificationService)
+/// <summary>Renders top-center progress bar notifications such as skill XP telemetry.</summary>
+internal sealed class Bars(in NotificationService notificationService)
 {
-    private readonly NotificationService _notificationService = notificationService;
-    private readonly Vector4 _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
-    private readonly Vector4 _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
-    private readonly Vector4 _selectedColor = Color.FromArgb(int.Parse("FF8AEBF1", NumberStyles.HexNumber)).ToVector4();
-    
-    public bool IsVisible()
-    {
-        return true;
-    }
+    private const int BAR_WIDTH = 512;
+    private const int PADDING_X = 12;
+    private const int PADDING_Y = 8;
+    private const int INNER_WIDTH = BAR_WIDTH - PADDING_X * 2;
+    private const int HEADER_HEIGHT = 18;
+    private const int TRACK_HEIGHT = 6;
+    private const int SEGMENT_GAP = 2;
 
+    private readonly NotificationService _notificationService = notificationService;
+    private readonly HashSet<string> _seenNotificationIDs = [];
+
+    /// <summary>Returns whether the progress bars container is visible.</summary>
+    public bool IsVisible() => true;
+
+    /// <summary>Renders active bar notifications deduplicated by notification ID.</summary>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        IReadOnlyList<NotificationState> activeStates = _notificationService.GetActiveNotifications();
+        if (activeStates.Count == 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        _seenNotificationIDs.Clear();
+        DateTime now = DateTime.Now;
+
         using (ui.Element())
         {
-            ui.Spacing = 20;
+            ui.Passthrough = true;
+            ui.Spacing = 8;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
             };
-            
-            //  Render the bar notifications
-            using (ui.Element())
+
+            for (var i = 0; i < activeStates.Count; i++)
             {
-                ui.Spacing = 10;
-                ui.LayoutDirection = LayoutDirection.Vertical;
-                ui.Constraints = new Constraints
+                NotificationState state = activeStates[i];
+                if (state.Notification.Type != NotificationType.Bar)
                 {
-                    Anchors = Anchors.Center,
-                };
-
-                IEnumerable<NotificationState> notificationStates = _notificationService.GetActiveNotifications(NotificationType.Bar)
-                    .DistinctBy(state => state.Notification.ID);
-                
-                foreach (NotificationState state in notificationStates)
-                {
-                    using (ui.Element())
-                    {
-                        ui.Spacing = 4;
-                        ui.LayoutDirection = LayoutDirection.Vertical;
-
-                        using (ui.Text(state.Notification.Text))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Anchors = Anchors.Center,
-                            };
-                        }
-
-                        using (ui.Element())
-                        {
-                            ui.LayoutDirection = LayoutDirection.None;
-                            ui.Color = _backgroundColor;
-                            ui.Padding = new Padding(4);
-                            ui.Constraints = new Constraints
-                            {
-                                Width = new Fixed(512),
-                                Height = new Fixed(16),
-                            };
-                            
-                            using (ui.Element())
-                            {
-                                ui.Color = _selectedColor;
-                                ui.Constraints = new Constraints
-                                {
-                                    Width = new Relative(state.Notification.Amount),
-                                    Height = new Relative(1f),
-                                };
-                            }
-                        }
-                    }
+                    continue;
                 }
+
+                if (!_seenNotificationIDs.Add(state.Notification.ID))
+                {
+                    continue;
+                }
+
+                RenderBar(ui, in state.Notification, state.GetAlpha(now));
             }
         }
 
         return Result.FromSuccess();
+    }
+
+    private static void RenderBar(UIBuilder<Material> ui, in Notification notification, float alpha)
+    {
+        var fade = new Vector4(1f, 1f, 1f, alpha);
+        Vector4 fillColor = notification.Color ?? UiTheme.Accent;
+
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.Vertical;
+
+            using (ui.Element())
+            {
+                ui.Passthrough = true;
+                ui.Spacing = 6;
+                ui.Padding = new Padding(left: PADDING_X, top: PADDING_Y, right: PADDING_X, bottom: PADDING_Y);
+                ui.LayoutDirection = LayoutDirection.Vertical;
+                ui.Color = UiTheme.PanelBackground * fade;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                    Width = new Fixed(BAR_WIDTH),
+                };
+
+                RenderHeader(ui, in notification, fade);
+                RenderTrack(ui, in notification, fade, fillColor);
+            }
+
+            using (ui.Element())
+            {
+                ui.Color = UiTheme.Border;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fixed(1),
+                };
+            }
+        }
+    }
+
+    /// <summary>Draws a bar's title and its optional subtext.</summary>
+    private static void RenderHeader(UIBuilder<Material> ui, in Notification notification, in Vector4 fade)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new Constraints
+            {
+                Width = new Fixed(INNER_WIDTH),
+                Height = new Fixed(HEADER_HEIGHT),
+            };
+
+            using (ui.Text(notification.Text, UiMetrics.SMALL_FONT))
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.Text * fade;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Left | Anchors.Center,
+                };
+            }
+
+            if (!string.IsNullOrEmpty(notification.Subtext))
+            {
+                using (ui.Text(notification.Subtext, UiMetrics.SMALL_FONT))
+                {
+                    ui.Passthrough = true;
+                    ui.Color = UiTheme.Text * fade;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Right | Anchors.Center,
+                    };
+                }
+            }
+        }
+    }
+
+    /// <summary>Draws a bar's track, its fill, and its segment dividers.</summary>
+    private static void RenderTrack(UIBuilder<Material> ui, in Notification notification, in Vector4 fade, Vector4 fillColor)
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = true;
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Color = UiTheme.Track * fade;
+            ui.Constraints = new Constraints
+            {
+                Width = new Fixed(INNER_WIDTH),
+                Height = new Fixed(TRACK_HEIGHT),
+            };
+
+            using (ui.Element())
+            {
+                ui.Passthrough = true;
+                ui.Color = fillColor * fade;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Relative(Math.Clamp(notification.Amount, 0f, 1f)),
+                    Height = new Relative(1f),
+                };
+            }
+
+            if (notification.Segments > 1)
+            {
+                RenderSegmentDividers(ui, notification.Segments.Value, fade);
+            }
+        }
+    }
+
+    /// <summary>Draws the dividers that split a segmented track.</summary>
+    private static void RenderSegmentDividers(UIBuilder<Material> ui, int segmentCount, in Vector4 fade)
+    {
+        for (var segmentIndex = 1; segmentIndex < segmentCount; segmentIndex++)
+        {
+            int dividerX = INNER_WIDTH * segmentIndex / segmentCount - SEGMENT_GAP / 2;
+            using (ui.Element())
+            {
+                ui.Passthrough = true;
+                ui.Color = UiTheme.PanelBackground * fade;
+                ui.Constraints = new Constraints
+                {
+                    X = new Fixed(dividerX),
+                    Y = new Fixed(0),
+                    Width = new Fixed(SEGMENT_GAP),
+                    Height = new Fixed(TRACK_HEIGHT),
+                };
+            }
+        }
     }
 }

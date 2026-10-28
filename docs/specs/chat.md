@@ -69,9 +69,9 @@ The chat tunables live in `chat.toml`. See
 `WaywardBeyond.Client/UI/Layers/ChatLayer.cs` is the chat overlay. It is
 an `IUILayer` registered by the client module.
 
-One box renders in both states: a scroll viewport over the send box's
-reserved slot. Opening or closing changes only the send box's presence and
-the scroll behavior; the box never shifts.
+One fixed-geometry box renders in both states: a 200-pixel scroll viewport at a
+fixed offset above the send bar's slot. Opening or closing changes only the
+outer chrome and the scroll behavior; the messages never shift.
 
 The Enter key opens the chat box. Escape closes it. While the box is open,
 gameplay interaction is blocked through `InteractionState` (the cursor is
@@ -79,9 +79,10 @@ free), and the send box stays focused even when the user clicks elsewhere.
 Enter with non-empty text sends and closes the box. Escape or Enter with
 empty text closes without sending.
 
-Each message wraps to the overlay width. Its full wrapped height counts toward
-the scroll extent. The scroll viewport caps at 200 pixels and shrinks to the
-content, so the newest messages hug its bottom edge. Closed chat sticks to the
+Each message wraps to the viewport width. Its full wrapped height counts toward
+the scroll extent. The scroll viewport is always 200 pixels tall. When the
+content height is shorter than 200 pixels, a positive vertical viewport offset
+pins the messages to the bottom edge of the viewport. Closed chat sticks to the
 newest message and ignores the wheel. Open chat starts stuck to the newest
 message; the wheel breaks the stick to read older messages, and scrolling back
 to the bottom re-sticks it. A stuck scroller follows new arrivals.
@@ -94,8 +95,13 @@ renders nothing once every message has faded. Open chat shows every message
 at full alpha. `ChatService` stamps the arrival time when the client receives
 the message; the overlay itself never resets a message's clock.
 
-The overlay and the send box share one translucent background. The send box has a fixed
-height, so it anchors to the overlay bottom even when it is empty.
+The open overlay renders a fixed-height `Widgets.Panel` with `UiTheme.BorderHover`
+corner caps, a `SUBSPACE COMMS // LOCAL` header bar with an `[ESC] CLOSE` hint, a
+`Widgets.Scrollbar` rail beside the 200-pixel history viewport, and a
+send bar (`>` prompt, chromeless `Widgets.TextBox`, and `[ENTER]`
+hint). Closed chat renders individual translucent message pills with a 2-pixel
+vertical cyan bar anchor on the left edge and `[SenderName]` in
+`UiTheme.Accent`.
 
 The chat box focuses programmatically when it opens (`UIBuilder.Focus`). The
 Enter key that opens the box is consumed by the box's first frame, so it does

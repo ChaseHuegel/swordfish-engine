@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Components;
@@ -13,7 +14,8 @@ namespace WaywardBeyond.Client.Saves;
 internal sealed class CharacterSaveManager(
     ILogger<CharacterSaveManager> logger,
     ICharacterStorage characterStorage,
-    ActiveCharacterSave activeCharacterSave
+    ActiveCharacterSave activeCharacterSave,
+    ProfileSettings profileSettings
 ) {
     public Character? ActiveSave
     {
@@ -27,7 +29,7 @@ internal sealed class CharacterSaveManager(
         {
             return Result<Character>.FromFailure("No character selected");
         }
-        
+
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         Character character = ActiveSave.Value with
         {
@@ -36,9 +38,9 @@ internal sealed class CharacterSaveManager(
                 LastPlayedMs = nowUtcMs
             },
         };
-        
+
         ActiveSave = character;
-        
+
         return Result<Character>.FromSuccess(character);
     }
 
@@ -103,19 +105,27 @@ internal sealed class CharacterSaveManager(
             logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Id}): {Message}", character.Name, character.Uuid, saveResult.Message);
         }
     }
-    
+
     public void Delete(Character character)
     {
         if (!characterStorage.DeleteCharacter(character.Uuid))
         {
             logger.LogError("Failed to delete character {Name} ({Id})", character.Name, character.Uuid);
+            return;
+        }
+
+        if (character.Uuid.ToString() == profileSettings.LastSession.CharacterUuid.Get())
+        {
+            profileSettings.LastSession.CharacterUuid.Set(string.Empty);
+            profileSettings.Save();
         }
     }
-    
+
     internal Character? GetMostRecentSave()
     {
         return characterStorage.GetAllCharacters()
             .OrderByDescending(c => c.Playtime.LastPlayedMs)
+            .Select<Character, Character?>(c => c)
             .FirstOrDefault();
     }
 }

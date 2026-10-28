@@ -1,10 +1,10 @@
 using System;
-using System.Numerics;
 using NsdRpc;
 using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Client.Networking;
 
 namespace WaywardBeyond.Client.UI;
@@ -42,7 +42,7 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
         {
             using (ui.Text("NET: offline"))
             {
-                ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                ui.Color = UiTheme.Danger;
             }
             return Result.FromSuccess();
         }
@@ -85,7 +85,7 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
         {
             using (ui.Text("No server signal"))
             {
-                ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                ui.Color = UiTheme.Danger;
             }
         }
         else

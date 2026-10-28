@@ -44,12 +44,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
     private readonly Lock _autosaveTimerLock = new();
     private Timer _autosaveTimer;
-    
+
     private readonly Lock _activeSaveLock = new();
     private GameSave? _activeSave;
 
     private readonly ClientRpcHost _rpcHost;
     private readonly ProfileSettings _profileSettings;
+    private readonly NetworkingConfig _networkingConfig;
 
     public GameSaveManager(
         in ILogger<GameSaveManager> logger,
@@ -62,7 +63,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in ClientCleanupSystem cleanupSystem,
         in ClientRpcHost rpcHost,
         in DataStore dataStore,
-        in ProfileSettings profileSettings
+        in ProfileSettings profileSettings,
+        in NetworkingConfig networkingConfig
     ) {
         _logger = logger;
         _gameSaveService = gameSaveService;
@@ -74,6 +76,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _rpcHost = rpcHost;
         _dataStore = dataStore;
         _profileSettings = profileSettings;
+        _networkingConfig = networkingConfig;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -84,11 +87,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             OnQuicksave
         );
         shortcutService.RegisterShortcut(saveShortcut);
-        
+
         //  Setup autosave on an interval, on close, and when pausing.
         windowContext.Closed += OnWindowClosed;
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
-        
+
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         int autosaveIntervalMs = gameplayConfig.AutosaveIntervalMs.Get();
         _autosaveTimer = new Timer(OnAutosave, state: null, autosaveIntervalMs, autosaveIntervalMs);
@@ -107,7 +110,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         _autosaveTimer.Dispose();
     }
-    
+
     public Task Load()
     {
         lock (_activeSaveLock)
@@ -130,12 +133,17 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 return Task.CompletedTask;
             }
 
-            //  A local (host-mode) session becomes the continue marker: Continue branches on this.
-            if (_rpcHost.IsLocal)
+            bool local = _rpcHost.IsLocal;
+            _profileSettings.LastSession.Server.Set(new SessionServer
             {
-                _profileSettings.LastServerMode.Set(LastServerMode.Local);
-                _profileSettings.Save();
-            }
+                Mode = local ? ServerMode.Local : ServerMode.Remote,
+                Host = local ? string.Empty : _networkingConfig.RemoteHost.Get(),
+                Port = local ? 0 : _networkingConfig.RemotePort.Get(),
+            });
+
+            _profileSettings.LastSession.Save.Set(ToSessionSave(save));
+            _profileSettings.LastSession.CharacterUuid.Set(character.Value.Uuid.ToString());
+            _profileSettings.Save();
 
             WaywardBeyond.GameState.Set(GameState.Loading);
             _joinSystem.RequestJoin(character.Value, save.Level.Guid);
@@ -143,7 +151,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
         return Task.CompletedTask;
     }
-    
+
     public Task Save()
     {
         SaveCharacter();
@@ -182,9 +190,14 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         };
         _gameSaveService.UpdateMetadata(save.Level.Guid, metadata);
 
+        //  Keep the Continue card current with the advanced playtime.
+        var advanced = new GameSave(save.Name, save.Level with { Playtime = metadata.Playtime });
+        _profileSettings.LastSession.Save.Set(ToSessionSave(advanced));
+        _profileSettings.Save();
+
         _characterSaveManager.Save(_dataStore);
     }
-    
+
     public void SaveAndExit()
     {
         if (WaywardBeyond.GameState >= GameState.Playing)
@@ -208,6 +221,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         try
         {
+            if (save.Level.Guid == _profileSettings.LastSession.Save.Get().Guid)
+            {
+                ForgetSession();
+            }
+
             _gameSaveService.Delete(save);
         }
         catch (Exception ex)
@@ -215,7 +233,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             _logger.LogError(ex, "Error trying to delete save \"{save}\"", save.Name);
         }
     }
-    
+
     internal GameSave? GetMostRecentSave()
     {
         GameSave[] saves = _gameSaveService.GetSaves();
@@ -223,8 +241,29 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         {
             return null;
         }
-        
+
         return saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs).FirstOrDefault();
+    }
+
+    /// <summary>Clears the recorded last session when its save no longer exists.</summary>
+    private void ForgetSession()
+    {
+        _profileSettings.LastSession.Save.Set(new SessionSave());
+        _profileSettings.Save();
+    }
+
+    /// <summary>Copies the card facts from a save into the profile summary.</summary>
+    private static SessionSave ToSessionSave(in GameSave save)
+    {
+        return new SessionSave
+        {
+            Guid = save.Level.Guid,
+            Name = save.Name,
+            Seed = save.Level.Seed,
+            GameMode = save.Level.DefaultGameMode,
+            LastPlayedMs = save.Level.Playtime.LastPlayedMs,
+            AgeMs = save.Level.Playtime.AgeMs,
+        };
     }
 
     private void OnWindowClosed()
@@ -233,7 +272,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         {
             return;
         }
-        
+
         Save();
     }
 
@@ -241,7 +280,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         Task.Run(Save);
     }
-    
+
     private void OnAutosave(object? state)
     {
         if (!_gameplayConfig.Autosave.Get())
@@ -252,34 +291,34 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         //  Client autosave persists the character only. The server owns the level autosave cadence.
         SaveCharacter();
     }
-    
+
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
     {
         if (e.NewValue != GameState.Paused)
         {
             return;
         }
-        
+
         if (!_gameplayConfig.Autosave.Get())
         {
             return;
         }
-        
+
         Save();
     }
-    
+
     private void OnAutosaveIntervalChanged(object? sender, DataChangedEventArgs<int> e)
     {
         UpdateAutosaveTimer(e.NewValue);
     }
-    
+
     private void UpdateAutosaveTimer(int intervalMs)
     {
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         _autosaveTimer.Dispose();
         _autosaveTimer = new Timer(OnAutosave, state: null, intervalMs, intervalMs);
     }
-    
+
     private readonly struct GameLoadContext : IDisposable
     {
         private readonly CharacterSaveManager _characterSaveManager;
@@ -293,7 +332,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             _gameSaveManager = gameSaveManager;
             WaywardBeyond.GameState.Set(GameState.Loading);
         }
-        
+
         public void Dispose()
         {
             Character? character = _characterSaveManager.ActiveSave;

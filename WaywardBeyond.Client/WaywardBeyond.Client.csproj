@@ -29,22 +29,74 @@
         <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <ProjectReference Include="..\WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
-        <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <PackageReference Include="HardwareInformation" Version="5.0.2" />
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="UI\Widgets.NumberControl.cs">
+      <Compile Update="UI\Widgets\Widgets.TextBox.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.Checkbox.cs">
+      <Compile Update="UI\Widgets\Widgets.Panel.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.TextButton.cs">
+      <Compile Update="UI\Widgets\Widgets.ActionButton.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
-      <Compile Update="UI\Widgets.TextBox.cs">
+      <Compile Update="UI\Widgets\Widgets.IconButton.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Ping.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Toggle.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Stepper.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Slider.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Scrollbar.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Layout.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Text.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.StatLabel.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.ScrollArea.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.DottedDivider.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.FooterStatus.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.MenuPanel.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.ModalDialog.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.MenuTextBox.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.InfoBox.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.SelectableCard.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets\Widgets.Tab.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
     </ItemGroup>

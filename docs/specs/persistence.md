@@ -86,8 +86,8 @@ unchanged (`PlayClock.Advance`).
 
 `ServerSaveSystem` (`WaywardBeyond.Server/Systems/ServerSaveSystem.cs`) queues a level
 flush every `GameplayConfig.AutosaveIntervalMs` while a world has sessions. It
-broadcasts `notification.save.saving` when the capture is queued, then
-`notification.save.saved` or `notification.save.saving.failed` when the
+broadcasts `notification.level.saving` when the capture is queued, then
+`notification.level.saved` or `notification.level.saveFailed` when the
 background write finishes. A world with no sessions does not autosave; the
 unload path flushes it.
 
@@ -103,17 +103,23 @@ deletes the level directory on the catalog worker. The call returns
 ## Client facade
 
 `GameSaveService` (`WaywardBeyond.Client/Saves/`) is a thin client facade: a
-cached save listing from `ListLevelsRequest`, with `CreateSave`/`Delete`/
+cached save listing from `ListLevelsRequest`, with `CreateSaveAsync`/`Delete`/
 `TriggerServerSave` routed to the server via `LevelsClient`
-(`WaywardBeyond.Client/Networking/LevelsClient.cs`). `SelectSavePage` pulls the
-listing when it opens and re-pulls it every second while it stays visible, so a
-level another client creates appears without leaving the page. The listing
-response also carries `CanCreateSave`, which `GameSaveService.CanCreateSave`
-exposes so `HomePage` hides "Create save" when the server denies the
+(`WaywardBeyond.Client/Networking/LevelsClient.cs`). `CreateSaveAsync` returns
+the created `GameSave` after the listing refreshes, so `NewSavePage` can set the
+active save and open the crew manifest. `SelectSavePage` pulls the listing when
+it opens and re-pulls it every second while it stays visible, so a level another
+client creates appears without leaving the page. The listing response also
+carries `CanCreateSave`, which `GameSaveService.CanCreateSave` exposes so
+`SelectSavePage` hides Chart new galaxy when the server denies the
 `waywardbeyond.level.create` key. The client tracks its own per-save "last
 played" and "time played" in the `level_metadata` table, merged over the server's
 level metadata in `GameSaveService.GetSaves()`. Character save is handled by
-`CharacterSaveManager` + `SqliteCharacterStorage`.
+`CharacterSaveManager` + `SqliteCharacterStorage`. The client also records the
+last played archive's card facts in the `[LastSession.Save]` table of
+`profile.toml`, so the main menu can show the Continue card before the listing
+loads. Deleting the recorded save or colonist
+clears those markers.
 
 `LevelsClient` is a thin async wrapper over `GameServerApiClient`. Calls are
 correlated by nsd-rpc, so there is no FIFO queue or waiter table. A dropped

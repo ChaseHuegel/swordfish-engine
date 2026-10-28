@@ -12,7 +12,7 @@ namespace WaywardBeyond.Client.Services;
 
 /// <summary>
 /// Resolves a body's stable string ID (the <see cref="Character.Body"/> / <c>BodyViewComponent.Body</c>)
-/// into renderable client materials. Fronts (standing) drive the UI preview and face-forward material;
+/// into renderable client materials and its species ID. Fronts (standing) drive the UI preview and face-forward material;
 /// floating materials drive the directional remote-player billboard. An ID that is not a loaded body falls
 /// back to the first loaded body so older or malformed saves still render.
 /// </summary>
@@ -37,16 +37,17 @@ internal sealed class CharacterAssetService
         _worldShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("textured.glsl"));
     }
 
-    public int GetAppearancesCount()
+    /// <summary>Returns the body ID for a species and gender, falling back to the default body when the pair is unknown.</summary>
+    public string GetBodyId(string species, Gender gender)
     {
-        return _bodyDatabase.Count;
+        return _bodyDatabase.GetBody(species, gender)?.ID ?? _bodyDatabase.DefaultId ?? string.Empty;
     }
 
-    /// <summary>Returns the stable string ID of the body at the provided cycle index, or the default body when out of range.</summary>
-    public string GetBodyId(int index)
+    /// <summary>Returns the species ID for a body ID, falling back to the default body for an unknown ID.</summary>
+    public string GetSpecies(string bodyId)
     {
-        string? id = _bodyDatabase.Ids.Count > index ? _bodyDatabase.Ids[index] : null;
-        return id ?? _bodyDatabase.DefaultId ?? string.Empty;
+        Result<Body> body = _bodyDatabase.Get(ResolveId(bodyId));
+        return body ? body.Value.Species : string.Empty;
     }
 
     /// <summary>Returns the standing (UI preview) material for a body ID, falling back to the default body for an unknown ID.</summary>
@@ -123,7 +124,6 @@ internal sealed class CharacterAssetService
 
     private static T Resolve<T>(string bodyId, Dictionary<string, T> cache, System.Func<string, T> build)
     {
-        string resolved = bodyId;
         if (!cache.TryGetValue(bodyId, out T? value))
         {
             value = build(bodyId);

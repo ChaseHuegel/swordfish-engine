@@ -5,7 +5,7 @@ namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 internal readonly struct Modal(in string id) : IEquatable<Modal>
 {
     public readonly string ID = id;
-    
+
     public bool Equals(Modal other)
     {
         return ID == other.ID;
@@ -20,4 +20,7 @@ internal readonly struct Modal(in string id) : IEquatable<Modal>
     {
         return ID.GetHashCode();
     }
+
+    public static bool operator ==(Modal left, Modal right) => left.Equals(right);
+    public static bool operator !=(Modal left, Modal right) => !left.Equals(right);
 }

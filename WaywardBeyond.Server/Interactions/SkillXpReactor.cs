@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
@@ -72,7 +73,7 @@ public sealed class SkillXpReactor(
                 GainedXP = gainedXP.Value,
             });
 
-            SendXpBar(context.ClientId, skill, currentLevel);
+            SendXpBar(context.ClientId, skill, currentLevel, gainedXP.Value);
 
             if (previousLevel.Level != currentLevel.Level)
             {
@@ -92,18 +93,36 @@ public sealed class SkillXpReactor(
     }
 
     /// <summary>Displays the XP progress bar for a granted skill. The client formats the message itself.</summary>
-    private void SendXpBar(Uuid clientId, Skill skill, LevelInfo currentLevel)
+    private void SendXpBar(Uuid clientId, Skill skill, LevelInfo currentLevel, int gainedXP)
     {
-        int nextLevelXP = skill.Levels.TryGetValue(currentLevel.Level + 1, out int next) ? next : 0;
-        float amount = nextLevelXP > 0 ? (float)currentLevel.XPIntoLevel / nextLevelXP : 1f;
+        int nextLevelXP = 0;
+        if (skill.Levels.TryGetValue(currentLevel.Level + 1, out int next))
+        {
+            nextLevelXP = next;
+        }
+
+        float amount;
+        if (nextLevelXP > 0)
+        {
+            amount = (float)currentLevel.XPIntoLevel / nextLevelXP;
+        }
+        else
+        {
+            amount = 1f;
+        }
+
+        int percent = (int)MathF.Round(Math.Clamp(amount, 0f, 1f) * 100f);
 
         SendOrLog(clientId, new NotificationMessage
         {
             Type = NotificationType.Bar,
             Key = "notification.skill.bar",
             Args = [skill.Name, currentLevel.Level.ToString()],
+            Subtext = "notification.skill.bar.subtext",
+            SubtextArgs = [gainedXP.ToString(), percent.ToString()],
             ID = skill.ID,
             Amount = amount,
+            Segments = 10,
         });
     }
 

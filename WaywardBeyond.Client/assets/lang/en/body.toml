@@ -1,0 +1,15 @@
+"Language" = "en"
+
+[Translations]
+"body.species.human" = "Human"
+"body.species.bot" = "Drone"
+"body.species.bot2" = "Android"
+"body.species.bot3" = "Shlorbian"
+"body.species.alien" = "Gorbulan"
+"body.species.alien2" = "Stellari"
+"body.species.alien3" = "Grey"
+"body.species.alien4" = "The Borb"
+
+"body.gender.male" = "Male"
+"body.gender.female" = "Female"
+"body.gender.neutral" = "Neutral"

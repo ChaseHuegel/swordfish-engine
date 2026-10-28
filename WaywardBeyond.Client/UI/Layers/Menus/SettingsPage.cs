@@ -1,18 +1,26 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
-using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Settings;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus;
 
-internal abstract class SettingsPage<TIdentifier>(
+/// <summary>Draws and applies one settings page for one menu.</summary>
+internal sealed class SettingsPage<TIdentifier>(
+    TIdentifier id,
     in ConfigManager configManager,
     in ControlSettings controlSettings,
     in WindowSettings windowSettings,
@@ -21,9 +29,13 @@ internal abstract class SettingsPage<TIdentifier>(
     in GameplayConfig gameplayConfig,
     in UISettings uiSettings,
     in SoundEffectService soundEffectService,
+    in IWindowContext windowContext,
+    in IInputService inputService,
     in ILocalization localization
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
 {
+    public TIdentifier ID { get; } = id;
+
     private readonly ConfigManager _configManager = configManager;
     private readonly ControlSettings _controlSettings = controlSettings;
     private readonly WindowSettings _windowSettings = windowSettings;
@@ -32,341 +44,313 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly GameplayConfig _gameplayConfig = gameplayConfig;
     private readonly UISettings _uiSettings = uiSettings;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
+    private readonly IWindowContext _windowContext = windowContext;
+    private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
 
-    private readonly Widgets.ButtonOptions _buttonOptions = new(
-        new FontOptions {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
-    );
+    private readonly SettingsRenderer _renderer = new(localization, soundEffectService, inputService);
+    private SettingsDraft? _draft;
+    private SettingsCategory[]? _categories;
+    private int _categoryIndex;
+    private int _scrollY;
+    private string? _status;
+    private double _statusUntil;
 
-    public abstract TIdentifier ID { get; }
+    /// <inheritdoc/>
+    public void OnEnter()
+    {
+        _draft = SettingsDraft.FromConfigs(
+            _controlSettings,
+            _windowSettings,
+            _renderSettings,
+            _volumeSettings,
+            _gameplayConfig,
+            _uiSettings,
+            _windowContext
+        );
+        _categories = BuildCategories();
+        _categoryIndex = 0;
+        _scrollY = 0;
+        _status = null;
+        _statusUntil = 0d;
+    }
 
+    /// <inheritdoc/>
+    public void OnExit()
+    {
+        _draft = null;
+        _categories = null;
+        _status = null;
+    }
+
+    /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<TIdentifier> menu)
     {
-        using (ui.Element())
+        if (_draft == null || _categories == null)
         {
-            ui.Constraints = new Constraints
+            return Result.FromFailure("The settings page is not prepared.");
+        }
+
+        RefreshExternalDisplaySettings();
+
+        SettingsLayout layout = SettingsLayout.Compute(ui.Width, ui.Height);
+        SettingsRenderer renderer = _renderer;
+        renderer.SetLayout(ui, layout);
+
+        using (ui.Page(layout.PageWidth, layout.PageHeight, "SettingsPage"))
+        {
+            ui.Padding = new Padding(left: 0, top: SettingsLayout.PAGE_GAP, right: 0, bottom: 0);
+            ui.Spacing = SettingsLayout.PAGE_GAP;
+
+            if (layout.UseTabs)
             {
-                Anchors = Anchors.Center,
-            };
-        
-            using (ui.Text(_localization.GetString("ui.menu.controls")!))
-            {
-                ui.FontSize = 24;
+                using (ui.Column(
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    }
+                ))
+                {
+                    if (renderer.DrawTabs(_categories, ref _categoryIndex))
+                    {
+                        _scrollY = 0;
+                    }
+
+                    using (ui.MenuPanel(
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        },
+                        padding: SettingsLayout.PANE_PADDING
+                    ))
+                    {
+                        renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
+                    }
+                }
             }
-        }
-        
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
+            else
             {
-                Anchors = Anchors.Center,
-                Width = new Fixed(300),
-            };
-            
-            bool rememberShape = ui.Checkbox(id: "Checkbox_RememberShape", text: _localization.GetString("ui.setting.rememberShape")!, isChecked: _controlSettings.RememberShape, _soundEffectService);
-            _controlSettings.RememberShape.Set(rememberShape);
-            
-            bool rememberOrientation = ui.Checkbox(id: "Checkbox_RememberOrientation", text: _localization.GetString("ui.setting.rememberOrientation")!, isChecked: _controlSettings.RememberOrientation, _soundEffectService);
-            _controlSettings.RememberOrientation.Set(rememberOrientation);
-            
-            ui.NumberControl(
-                id: "Control_LookSensitivity",
-                text: _localization.GetString("ui.setting.mouseSensitivity")!,
-                _controlSettings.LookSensitivity,
-                constraints: new Int2(1, 10),
-                display: new Int2(1, 10),
-                steps: 9,
-                _soundEffectService,
-                OnLookSensitivityChanged
-            );
-        }
-                
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
+                using (ui.Row(
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    },
+                    spacing: SettingsLayout.PANEL_GAP
+                ))
+                {
+                    using (ui.MenuPanel(
+                        new Constraints
+                        {
+                            Width = new Fixed(layout.TrayWidth),
+                            Height = new Fill(),
+                        },
+                        padding: SettingsMetrics.TRAY_PADDING
+                    ))
+                    {
+                        if (renderer.DrawTray(_categories, ref _categoryIndex))
+                        {
+                            _scrollY = 0;
+                        }
+                    }
 
-            using (ui.Text(_localization.GetString("ui.menu.gameplay")!))
-            {
-                ui.FontSize = 24;
+                    using (ui.MenuPanel(
+                        new Constraints
+                        {
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        },
+                        padding: SettingsLayout.PANE_PADDING
+                    ))
+                    {
+                        renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
+                    }
+                }
             }
-        }
 
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(300),
-            };
-            
-            bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplayConfig.ControlHints, _soundEffectService);
-            _gameplayConfig.ControlHints.Set(controlHints);
-            
-            bool crosshair = ui.Checkbox(id: "Checkbox_Crosshair", text: _localization.GetString("ui.setting.crosshair")!, isChecked: _gameplayConfig.Crosshair, _soundEffectService);
-            _gameplayConfig.Crosshair.Set(crosshair);
-            
-            bool autosave = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplayConfig.Autosave, _soundEffectService);
-            _gameplayConfig.Autosave.Set(autosave);
+            bool dirty = IsDirty();
+            string? status = _status != null && ui.Time < _statusUntil ? _status : null;
+            renderer.DrawFooter(dirty, status, out bool cancelClicked, out bool applyClicked);
 
-            if (autosave)
+            if (cancelClicked)
             {
-                ui.NumberControl(
-                    id: "Control_AutosaveMinutes",
-                    text: _localization.GetString("ui.setting.autosave.interval.minutes")!,
-                    _gameplayConfig.AutosaveIntervalMs,
-                    constraints: new Int2(1000 * 60, 1000 * 60 * 60), //  1 minute to 1 hour
-                    display: new Int2(1, 60),
-                    steps: 59,
-                    _soundEffectService,
-                    OnAutosaveIntervalChanged
-                );
-            }
-            
-            ui.NumberControl(
-                id: "Control_FOV",
-                text: _localization.GetString("ui.setting.fov")!,
-                _renderSettings.FOV,
-                constraints: new Int2(60, 120),
-                display: new Int2(60, 120),
-                steps: 12,
-                _soundEffectService,
-                OnFOVChanged
-            );
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-        
-            using (ui.Text(_localization.GetString("ui.menu.volume")!))
-            {
-                ui.FontSize = 24;
-            }
-        }
-        
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(300),
-            };
-            
-            ui.NumberControl(
-                id: "Control_Volume_Master",
-                text: _localization.GetString("ui.setting.volume.master")!,
-                _volumeSettings.Master,
-                constraints: new Float2(0f, 1f),
-                display: new Int2(0, 100),
-                steps: 20,
-                _soundEffectService,
-                OnMasterVolumeChanged
-            );
-        
-            ui.NumberControl(
-                id: "Control_Volume_Interface",
-                text: _localization.GetString("ui.setting.volume.interface")!,
-                _volumeSettings.Interface,
-                constraints: new Float2(0f, 1f),
-                display: new Int2(0, 100),
-                steps: 20,
-                _soundEffectService,
-                OnInterfaceVolumeChanged
-            );
-        
-            ui.NumberControl(
-                id: "Control_Volume_Effects",
-                text: _localization.GetString("ui.setting.volume.effects")!,
-                _volumeSettings.Effects,
-                constraints: new Float2(0f, 1f),
-                display: new Int2(0, 100),
-                steps: 20,
-                _soundEffectService,
-                OnEffectsVolumeChanged
-            );
-            
-            ui.NumberControl(
-                id: "Control_Volume_Music",
-                text: _localization.GetString("ui.setting.volume.music")!,
-                _volumeSettings.Music,
-                constraints: new Float2(0f, 1f),
-                display: new Int2(0, 100),
-                steps: 20,
-                _soundEffectService,
-                OnMusicVolumeChanged
-            );
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-
-            using (ui.Text(_localization.GetString("ui.menu.display")!))
-            {
-                ui.FontSize = 24;
-            }
-        }
-
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed(300),
-            };
-
-            bool value = ui.Checkbox(id: "Checkbox_VSync", text: _localization.GetString("ui.setting.vsync")!, isChecked: _renderSettings.VSync, _soundEffectService);
-            _renderSettings.VSync.Set(value);
-
-            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: _localization.GetString("ui.setting.fullscreen")!, isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _soundEffectService);
-            _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
-
-            value = ui.Checkbox(id: "Checkbox_Borderless", text: _localization.GetString("ui.setting.borderless")!, isChecked: _windowSettings.Borderless, _soundEffectService);
-            _windowSettings.Borderless.Set(value);
-
-            value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _soundEffectService);
-            _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
-            
-            value = ui.Checkbox(id: "Checkbox_SAO", text: _localization.GetString("ui.setting.sao")!, isChecked: _renderSettings.SAO.Enabled, _soundEffectService);
-            _renderSettings.SAO.Enabled.Set(value);
-            
-            value = ui.Checkbox(id: "Checkbox_Bloom", text: _localization.GetString("ui.setting.bloom")!, isChecked: _renderSettings.Bloom.Enabled, _soundEffectService);
-            _renderSettings.Bloom.Enabled.Set(value);
-            
-            ui.NumberControl(
-                id: "Control_RenderDistance",
-                text: _localization.GetString("ui.setting.renderDistance")!,
-                _renderSettings.FarPlane,
-                constraints: new Float2(500, 5_000),
-                display: new Int2(1, 10),
-                steps: 9,
-                _soundEffectService,
-                OnRenderDistanceChanged
-            );
-
-            ui.NumberControl(
-                id: "Control_NameplateDistance",
-                text: _localization.GetString("ui.setting.nameplateDistance")!,
-                _uiSettings.NameplateDistance.Get(),
-                constraints: new Int2(0, 64),
-                display: new Int2(0, 64),
-                steps: 8,
-                _soundEffectService,
-                OnNameplateDistanceChanged
-            );
-        }
-
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
-        
-        using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonOptions, out Widgets.Interactions interactions))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                _configManager.ApplySettings();
+                Widgets.Interactions.Click.WithButtonAudio(_soundEffectService);
                 menu.GoBack();
             }
+            else if (applyClicked)
+            {
+                ApplySettings(ui.Time);
+            }
         }
-        
+
         return Result.FromSuccess();
     }
 
-    private void OnFOVChanged(int oldValue, int newValue, int change)
+    private void ApplySettings(double time)
     {
-        _renderSettings.FOV.Set(newValue);
-    }
-    
-    private void OnLookSensitivityChanged(int oldValue, int newValue, int change)
-    {
-        _controlSettings.LookSensitivity.Set(newValue);
+        SettingsDraft draft = _draft ?? throw new InvalidOperationException("The settings draft is not initialized.");
+
+        bool displayChanged = IsEntryDirty("Settings.DisplayMode") || IsEntryDirty("Settings.Resolution");
+        if (displayChanged)
+        {
+            _windowContext.ApplyDisplaySettings(
+                draft.DisplayMode.ToWindowMode(),
+                draft.DisplayMode.IsBorderless(),
+                draft.Resolution.Width,
+                draft.Resolution.Height
+            );
+        }
+
+        _renderSettings.VSync.Set(draft.VSync);
+        _renderSettings.Framerate.Set(draft.FrameLimit);
+        _renderSettings.FOV.Set(draft.Fov);
+        _renderSettings.FarPlane.Set(draft.ViewDistance);
+        _renderSettings.AntiAliasing.Set(draft.AntiAliasingMode);
+        _renderSettings.SAO.Enabled.Set(draft.AmbientOcclusion);
+        _renderSettings.SAO.Samples.Set(draft.AoSamples);
+        _renderSettings.Bloom.Enabled.Set(draft.Bloom);
+        _renderSettings.Bloom.Passes.Set(draft.BloomPasses);
+
+        _volumeSettings.Master.Set(draft.MasterVolume);
+        _volumeSettings.Music.Set(draft.MusicVolume);
+        _volumeSettings.Effects.Set(draft.EffectsVolume);
+        _volumeSettings.Interface.Set(draft.InterfaceVolume);
+
+        _gameplayConfig.Autosave.Set(draft.Autosave);
+        _gameplayConfig.AutosaveIntervalMs.Set(draft.AutosaveIntervalMinutes * 60000);
+        _gameplayConfig.ControlHints.Set(draft.ControlHints);
+        _gameplayConfig.Crosshair.Set(draft.Crosshair);
+
+        _uiSettings.NameplateDistance.Set(draft.NameTagDistance);
+
+        _controlSettings.LookSensitivity.Set(draft.MouseSensitivity);
+        _controlSettings.RememberShape.Set(draft.RememberShape);
+        _controlSettings.RememberOrientation.Set(draft.RememberOrientation);
+
+        _configManager.ApplySettings();
+
+        if (_categories != null)
+        {
+            for (var i = 0; i < _categories.Length; i++)
+            {
+                _categories[i].CaptureBaselines();
+            }
+        }
+
+        _status = L("ui.settings.status.saved");
+        _statusUntil = time + 2d;
+        Widgets.Interactions.Click.WithButtonAudio(_soundEffectService);
     }
 
-    private void OnMasterVolumeChanged(float oldValue, float newValue, float change)
+    private SettingsCategory[] BuildCategories()
     {
-        _volumeSettings.Master.Set(newValue);
+        SettingsDraft draft = _draft ?? throw new InvalidOperationException("The settings draft is not initialized.");
+
+        return
+        [
+            DisplaySettingsCategory.Build(draft, _windowContext, _localization, () => ResetCategory("display")),
+            AudioSettingsCategory.Build(draft, _localization, () => ResetCategory("audio")),
+            GameplaySettingsCategory.Build(draft, _localization, () => ResetCategory("gameplay")),
+            ControlSettingsCategory.Build(draft, _localization, () => ResetCategory("controls")),
+        ];
     }
 
-    private void OnInterfaceVolumeChanged(float oldValue, float newValue, float change)
+    private void RefreshExternalDisplaySettings()
     {
-        _volumeSettings.Interface.Set(newValue);
-    }
-    
-    private void OnEffectsVolumeChanged(float oldValue, float newValue, float change)
-    {
-        _volumeSettings.Effects.Set(newValue);
-    }
-    
-    private void OnMusicVolumeChanged(float oldValue, float newValue, float change)
-    {
-        _volumeSettings.Music.Set(newValue);
-    }
-    
-    private void OnAutosaveIntervalChanged(int oldValue, int newValue, int change)
-    {
-        _gameplayConfig.AutosaveIntervalMs.Set(newValue);
-    }
-    
-    private void OnRenderDistanceChanged(float oldValue, float newValue, float change)
-    {
-        _renderSettings.FarPlane.Set(newValue);
+        if (_draft == null)
+        {
+            return;
+        }
+
+        SettingsEntry? displayModeEntry = FindEntry("Settings.DisplayMode");
+        SettingsDisplayMode currentMode = SettingsDisplayModeExtensions.FromWindowSettings(
+            _windowSettings.Mode.Get(),
+            _windowSettings.Borderless.Get()
+        );
+
+        if (displayModeEntry != null && !displayModeEntry.IsDirty && _draft.DisplayMode != currentMode)
+        {
+            _draft.DisplayMode = currentMode;
+            displayModeEntry.CaptureBaseline();
+        }
+
+        SettingsEntry? resolutionEntry = FindEntry("Settings.Resolution");
+        SettingsResolution currentResolution = SettingsDraft.GetWindowResolution(_windowSettings, _windowContext);
+
+        if (resolutionEntry != null && !resolutionEntry.IsDirty && _draft.Resolution != currentResolution)
+        {
+            _draft.Resolution = currentResolution;
+            resolutionEntry.CaptureBaseline();
+        }
     }
 
-    private void OnNameplateDistanceChanged(int oldValue, int newValue, int change)
+    private SettingsEntry? FindEntry(string id)
     {
-        _uiSettings.NameplateDistance.Set(newValue);
+        if (_categories == null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            SettingsEntry[] entries = _categories[i].Entries;
+            for (var n = 0; n < entries.Length; n++)
+            {
+                if (entries[n].Id == id)
+                {
+                    return entries[n];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private bool IsEntryDirty(string id)
+    {
+        SettingsEntry? entry = FindEntry(id);
+        return entry != null && entry.IsDirty;
+    }
+
+    private bool IsDirty()
+    {
+        if (_categories == null)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            if (_categories[i].IsDirty)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ResetCategory(string categoryId)
+    {
+        if (_categories == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            if (_categories[i].Id == categoryId)
+            {
+                _categories[i].ResetToDefaults();
+                return;
+            }
+        }
+    }
+
+    private string L(string key)
+    {
+        return _localization.GetString(key) ?? key;
     }
 }

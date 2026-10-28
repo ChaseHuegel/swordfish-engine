@@ -100,6 +100,8 @@ See [networking-replication](networking-replication.md),
 ## Smells
 
 - A method with a boolean flag that selects between two behaviors.
+- A method body nested past five indentation levels, or a multi-line argument
+  inside a condition. See the nesting rules in [development](../development.md).
 - A `Manager`, `Helper`, or `Util` type that owns unrelated work.
 - A getter with side effects.
 - A catch that swallows without logging.

@@ -4,9 +4,11 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Pause;
 
@@ -19,80 +21,92 @@ internal sealed class HomePage(
 {
     public PausePage ID => PausePage.Home;
 
+    private const int BUTTON_GAP = 10;
+    private const int DIVIDER_GAP = 12;
+    private const int DIVIDER_HEIGHT = 1;
+    private const int MENU_WIDTH = UiMetrics.MENU_BUTTON_MIN_WIDTH;
+
     private readonly ILocalization _localization = localization;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
     private readonly ModalMenu _modalMenu = modalMenu;
 
-    private readonly Widgets.ButtonOptions _buttonOptions = new(
-        new FontOptions {
-            Size = 32,
-        },
-        new Widgets.AudioOptions(soundEffectService)
+    private readonly Widgets.ActionButtonOptions _primaryButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Primary,
+        soundEffectService
+    );
+    private readonly Widgets.ActionButtonOptions _secondaryButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Secondary,
+        soundEffectService
+    );
+    private readonly Widgets.ActionButtonOptions _dangerButton = Widgets.ActionButtonOptions.Menu(
+        ButtonVariant.Danger,
+        soundEffectService
     );
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)
     {
-        using (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonOptions, out Widgets.Interactions interactions))
-        {
-            ui.Constraints = new Constraints
+        using (ui.Column(
+            new Constraints
             {
                 Anchors = Anchors.Center,
-            };
-
-            if (interactions.Has(Widgets.Interactions.Click))
+                Width = new Fixed(MENU_WIDTH),
+            }
+        ))
+        {
+            if (ui.ActionButton(
+                "Button_Continue",
+                _localization.GetRequired("ui.button.pause.continue"),
+                _primaryButton with { Layout = ButtonSlot() }
+            ))
             {
                 WaywardBeyond.Unpause();
             }
-        }
 
-        using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
+            ui.Spacer(height: BUTTON_GAP);
 
-            if (interactions.Has(Widgets.Interactions.Click))
+            if (ui.ActionButton(
+                "Button_Settings",
+                _localization.GetRequired("ui.button.settings"),
+                _secondaryButton with { Layout = ButtonSlot() }
+            ))
             {
                 menu.GoToPage(PausePage.Settings);
             }
-        }
-        
-        using (ui.TextButton(id: "Button_Feedback", text: _localization.GetString("ui.button.feedback")!, _buttonOptions, out Widgets.Interactions interactions))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-            
-            if (interactions.Has(Widgets.Interactions.Click))
+
+            ui.Spacer(height: BUTTON_GAP);
+
+            if (ui.ActionButton(
+                "Button_Feedback",
+                _localization.GetRequired("ui.button.feedback.send"),
+                _secondaryButton with { Layout = ButtonSlot() }
+            ))
             {
                 _modalMenu.GoToPage(FeedbackModal.Modal);
             }
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-        }
 
-        using (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonOptions, out Widgets.Interactions interactions))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
+            ui.Spacer(height: DIVIDER_GAP);
+            ui.DottedDivider(Widgets.Rect(0, 0, MENU_WIDTH, DIVIDER_HEIGHT));
+            ui.Spacer(height: DIVIDER_GAP);
 
-            if (interactions.Has(Widgets.Interactions.Click))
+            if (ui.ActionButton(
+                "Button_SaveAndExit",
+                _localization.GetRequired("ui.button.pause.saveExit"),
+                _dangerButton with { Layout = ButtonSlot() }
+            ))
             {
                 _gameSaveManager.SaveAndExit();
             }
         }
-        
+
         return Result.FromSuccess();
+    }
+
+    private static Constraints ButtonSlot()
+    {
+        return new Constraints
+        {
+            Width = new Fill(),
+            Height = new Fixed(UiMetrics.MENU_BUTTON_HEIGHT),
+        };
     }
 }

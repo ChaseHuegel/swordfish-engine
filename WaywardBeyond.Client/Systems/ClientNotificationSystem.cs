@@ -1,3 +1,4 @@
+using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.Globalization;
@@ -7,7 +8,6 @@ using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -81,16 +81,60 @@ internal sealed class ClientNotificationSystem : IEntitySystem
         }
 
         string text = _localizedFormatter.GetString(message.Key, ResolveArgs(message.Args));
-        var type = message.Type;
+        NotificationType type = message.Type;
 
         //  Bar notifications need their dedupe id and progress; other types never carry them.
         if (type == NotificationType.Bar && message.ID != null && message.Amount != null)
         {
-            _notificationService.Push(new Notification(message.ID, text, message.Amount.Value));
+            string? subtext = ResolveSubtext(message.Subtext, message.SubtextArgs);
+            Vector4? color = null;
+            if (message.Color.HasValue)
+            {
+                color = UnpackColor(message.Color.Value);
+            }
+
+            _notificationService.Push(new Notification(
+                message.ID,
+                text,
+                message.Amount.Value,
+                subtext,
+                message.Segments,
+                color
+            ));
             return;
         }
 
         _notificationService.Push(new Notification(text, type));
+    }
+
+    private string? ResolveSubtext(string? subtextKeyOrValue, string[]? subtextArgs)
+    {
+        if (string.IsNullOrEmpty(subtextKeyOrValue))
+        {
+            return null;
+        }
+
+        string[] resolvedArgs = ResolveArgs(subtextArgs);
+        if (_localization.GetString(subtextKeyOrValue) != null)
+        {
+            return _localizedFormatter.GetString(subtextKeyOrValue, resolvedArgs);
+        }
+
+        if (resolvedArgs.Length > 0)
+        {
+            return string.Format(subtextKeyOrValue, resolvedArgs);
+        }
+
+        return subtextKeyOrValue;
+    }
+
+    private static Vector4 UnpackColor(uint rgba)
+    {
+        float r = ((rgba >> 24) & 0xFF) / 255f;
+        float g = ((rgba >> 16) & 0xFF) / 255f;
+        float b = ((rgba >> 8) & 0xFF) / 255f;
+        float a = (rgba & 0xFF) / 255f;
+        return new Vector4(r, g, b, a);
     }
 
     /// <summary>

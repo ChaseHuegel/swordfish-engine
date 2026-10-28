@@ -153,7 +153,7 @@ declares the `default` and `admin` groups. Mods ship defaults under their own
 `ServerSaveSystem` requires `GamePermissions.LEVEL_SAVE`
 (`waywardbeyond.level.save`) for a client `SaveLevelAsync` call. A denied call
 returns `RpcResult.Failure(GameRpcErrors.PERMISSION_DENIED, ...)` and sends a
-targeted `notification.save.denied` toast. The server logs the denial at
+targeted `notification.level.saveDenied` toast. The server logs the denial at
 information level. The server autosave does not need the permission. The stock
 remote client never sends the call unless the menu offers it. This check
 protects against a modified client.
@@ -166,10 +166,11 @@ protects against a modified client.
 remote peer is allowed only after its claim arrives and the key is granted. A
 denied call returns `RpcResult.Failure(GameRpcErrors.PERMISSION_DENIED, ...)`
 and logs at information level. It creates no data. The stock client hides the
-"Create save" option when it lacks the key, so the check protects against a
-modified client. The server also reports the same verdict in
+"Chart new galaxy" option when it lacks the key, so the check protects against
+a modified client. The server also reports the same verdict in
 `ListLevelsResponse.CanCreateSave`, which the client caches in
-`GameSaveService.CanCreateSave` and uses to gate the menu button (`HomePage`).
+`GameSaveService.CanCreateSave` and uses to gate the Chart new galaxy button
+(`SelectSavePage`).
 
 ### Delete authorization
 

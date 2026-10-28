@@ -1,4 +1,3 @@
-using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
@@ -8,13 +7,14 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Pause;
 
 internal sealed class PauseMenu : TitleMenu<PausePage>
 {
     private readonly InteractionState _interactionState;
-    
+
     public PauseMenu(
         in ILogger<Menu<PausePage>> logger,
         in IAssetDatabase<Material> materialDatabase,
@@ -25,7 +25,7 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
     ) : base(logger, materialDatabase, reefContext, pages)
     {
         _interactionState = interactionState;
-        
+
         Shortcut pauseShortcut = new(
             name: "Toggle paused",
             category: "General",
@@ -35,7 +35,7 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
             action: OnPauseToggled
         );
         shortcutService.RegisterShortcut(pauseShortcut);
-        
+
         Shortcut backShortcut = new(
             name: "Go back",
             category: "Pause",
@@ -57,25 +57,23 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
         //  Tint the screen
         using (ui.Element())
         {
-            ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
+            ui.Color = UiTheme.ScrimSoft;
             ui.Constraints = new Constraints
             {
                 Width = new Relative(1f),
                 Height = new Relative(1f),
             };
         }
-        
+
         return base.RenderUI(delta, ui);
     }
-    
+
     private void OnPauseToggled()
     {
         switch (WaywardBeyond.GameState.Get())
         {
-            //  TODO #356 Interaction blockers aren't sufficient, some UI layers should be blocked and others should not
-            //       Need to introduce a concept of "windows" which are closeable
-            //       This `when` condition is here to not pause when pressing ESC to close the inventory,
-            //       however pausing is also blocked by Shape and Orientation selectors but really shouldn't be.
+            //  A single interaction blocker cannot tell a closable window from a selector, so the
+            //  playing state is special-cased to avoid pausing while the inventory closes.
             case GameState.Playing when IsVisible() || !_interactionState.IsInteractionBlocked():
                 WaywardBeyond.Pause();
                 return;

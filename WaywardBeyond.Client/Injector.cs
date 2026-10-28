@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
@@ -25,6 +26,7 @@ using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers;
+using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Layers.Menus.Pause;
@@ -36,7 +38,6 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
-using WaywardBeyond.Gameplay.Interactions;
 
 namespace WaywardBeyond.Client;
 
@@ -56,39 +57,39 @@ public class Injector : IDryIocInjector
         RegisterShortcuts(container);
         RegisterEvents(container);
         RegisterNetworking(container);
-        
+
         container.Register<PlayerData>(Reuse.Singleton);
-        
+
         container.Register<LocalizedFormatter>(Reuse.Singleton);
-        
+
         container.Register<ExternalAppService>(Reuse.Singleton);
-        
+
         container.Register<SoundEffectService>(Reuse.Singleton);
-        
+
         container.Register<CharacterAssetService>(Reuse.Singleton);
-        
+
         container.Register<NotificationService>(Reuse.Singleton);
-        
+
         container.RegisterDelegate(factory: () => new Randomizer());
         container.Register<NameGenerator>(Reuse.Singleton);
-        
+
         container.Register<MusicSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, MusicSystem>();
         container.RegisterMapping<IDebugOverlay, MusicSystem>();
-        
+
         container.Register<CharacterSaveManager>(Reuse.Singleton);
         container.Register<ActiveCharacterSave>(Reuse.Singleton);
         container.Register<ICharacterStorage, SqliteCharacterStorage>(Reuse.Singleton);
         container.Register<ILevelMetadataStorage, SqliteLevelMetadataStorage>(Reuse.Singleton);
-        
+
         container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
-        
+
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();
 
         container.Register<ProfileUserClaimProvider>(Reuse.Singleton);
-        
+
         container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();
     }
@@ -151,7 +152,7 @@ public class Injector : IDryIocInjector
         var steamUri = new Uri("https://gist.githubusercontent.com/ChaseHuegel/c3b57b884e2c675fcbffdba869d2f05d/raw/wb-steam");
         var webhooks = new Webhooks(feedbackSourceUri, discordUri, steamUri);
         container.RegisterInstance(webhooks);
-        
+
         container.Register<WebhookService>();
         container.Register<FeedbackWebhook>();
     }
@@ -160,23 +161,48 @@ public class Injector : IDryIocInjector
     {
         container.Register<ConfigManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, ConfigManager>();
-        
+
         container.RegisterConfig<ControlSettings>(file: "control.toml");
         container.RegisterConfig<VolumeSettings>(file: "volume.toml");
         container.RegisterConfig<DebugSettings>(file: "debug.toml");
         container.RegisterConfig<UISettings>(file: "ui.toml");
         container.RegisterConfig<GameplayConfig>(file: "gameplay.toml");
+        container.RegisterDataBinding<SessionServer>();
+        container.RegisterDataBinding<SessionSave>();
+        container.RegisterDataBinding<List<SavedServer>>();
         container.RegisterConfig<ProfileSettings>(file: "profile.toml");
         container.RegisterConfig<ChatConfig>(file: "chat.toml");
+    }
+
+    private static SettingsPage<TIdentifier> CreateSettingsPage<TIdentifier>(
+        IResolverContext context,
+        TIdentifier id
+    )
+        where TIdentifier : notnull
+    {
+        return new SettingsPage<TIdentifier>(
+            id,
+            context.Resolve<ConfigManager>(),
+            context.Resolve<ControlSettings>(),
+            context.Resolve<Swordfish.Settings.WindowSettings>(),
+            context.Resolve<Swordfish.Settings.RenderSettings>(),
+            context.Resolve<VolumeSettings>(),
+            context.Resolve<GameplayConfig>(),
+            context.Resolve<UISettings>(),
+            context.Resolve<SoundEffectService>(),
+            context.Resolve<IWindowContext>(),
+            context.Resolve<IInputService>(),
+            context.Resolve<Swordfish.Library.Globalization.ILocalization>()
+        );
     }
 
     private static void RegisterUI(IContainer container)
     {
         container.Register<DefaultUIRenderer>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, DefaultUIRenderer>();
-        
+
         container.Register<IUILayer, CrosshairOverlay>(Reuse.Singleton);
-        
+
         container.Register<ShapeSelector>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ShapeSelector>();
         container.RegisterMapping<IActionIndicator, ShapeSelector>();
@@ -194,46 +220,52 @@ public class Injector : IDryIocInjector
         container.Register<Hotbar>(Reuse.Singleton);
         container.Register<Actions>(Reuse.Singleton);
         container.Register<Bars>(Reuse.Singleton);
-        
+
         container.Register<HUD>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, HUD>();
 
         container.Register<MainMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, MainMenu>();
         container.Register<IMenuPage<MenuPage>, UI.Layers.Menus.Main.HomePage>();
-        container.Register<IMenuPage<MenuPage>, MainMenuSettingsPage>();
+        container.RegisterDelegate<IMenuPage<MenuPage>>(
+            context => CreateSettingsPage(context, MenuPage.Settings),
+            Reuse.Singleton
+        );
         container.Register<IMenuPage<MenuPage>, SelectSavePage>();
         container.Register<IMenuPage<MenuPage>, NewSavePage>();
-        container.Register<IMenuPage<MenuPage>, CharactersPage>();
         container.Register<IMenuPage<MenuPage>, SelectCharacterPage>();
         container.Register<IMenuPage<MenuPage>, NewCharacterPage>();
         container.Register<IMenuPage<MenuPage>, MultiplayerPage>();
-        
+        container.Register<IMenuPage<MenuPage>, CreditsPage>();
+
         container.Register<PauseMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, PauseMenu>();
         container.Register<IMenuPage<PausePage>, UI.Layers.Menus.Pause.HomePage>();
-        container.Register<IMenuPage<PausePage>, PauseMenuSettingsPage>();
-        
+        container.RegisterDelegate<IMenuPage<PausePage>>(
+            context => CreateSettingsPage(context, PausePage.Settings),
+            Reuse.Singleton
+        );
+
         container.Register<IUILayer, LoadScreen>(Reuse.Singleton);
         container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);
-        
+
         container.Register<Inventory>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Inventory>();
-        
+
         container.Register<ControlHints>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ControlHints>();
-        
+
         container.Register<ToastNotificationLayer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ToastNotificationLayer>();
-                
+
         container.Register<InteractionNotificationLayer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, InteractionNotificationLayer>();
-        
+
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
         container.Register<IDebugOverlay, PerformanceStatsOverlay>();
         container.Register<IDebugOverlay, NetworkStatsOverlay>();
-        
+
         container.Register<ChatLayer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ChatLayer>();
 
@@ -244,12 +276,19 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<Modal>, PlaytestNoticeModal>();
         container.Register<ConfirmModal>(Reuse.Singleton);
         container.RegisterMapping<IMenuPage<Modal>, ConfirmModal>();
+        container.Register<AddFavoriteModal>(Reuse.Singleton);
+        container.RegisterMapping<IMenuPage<Modal>, AddFavoriteModal>();
+        container.Register<MessageModal>(Reuse.Singleton);
+        container.RegisterMapping<IMenuPage<Modal>, MessageModal>();
+        container.Register<ConnectingModal>(Reuse.Singleton);
+        container.RegisterMapping<IMenuPage<Modal>, ConnectingModal>();
+        container.Register<ContinueService>(Reuse.Singleton);
     }
-    
+
     private static void RegisterInput(IContainer container)
     {
         container.Register<InteractionState>(Reuse.Singleton);
-        
+
         container.Register<PlayerInteractionService>(Reuse.Singleton);
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
         container.RegisterMapping<IEntitySystem, PlayerInteractionService>();
@@ -258,7 +297,7 @@ public class Injector : IDryIocInjector
         container.Register<ClientPlayerMotionProcessor>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientPlayerMotionProcessor>();
     }
-    
+
     private static void RegisterDatabases(IContainer container)
     {
         //  The client reads localized tags for naming and the load screen, so it owns that registration.
@@ -266,15 +305,15 @@ public class Injector : IDryIocInjector
 
         container.Register<ItemIconDatabase>(Reuse.Singleton);
 
-        
+
         container.Register<BlueprintDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
     }
-    
+
     private static void RegisterParsers(IContainer container)
     {
         container.RegisterTomlParser<ItemDefinitions>();
-        
+
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
         container.RegisterMany<VoxelEntityModelParser>();
     }
@@ -293,7 +332,7 @@ public class Injector : IDryIocInjector
         container.Register<AudioChannelSystem>(reuse: Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, AudioChannelSystem>();
     }
-    
+
     private static void RegisterVoxels(IContainer container)
     {
         //  TODO this was thrown together for testing and needs cleaned up
@@ -301,26 +340,26 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<PBRTextureArrays>(context => context.Resolve<IFileParseService>().Parse<PBRTextureArrays>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
-        
+
         container.Register<VoxelEntityBuilder>(Reuse.Transient);
         container.Register<IVoxelEntityDecorator, LightEntityDecorator>(Reuse.Transient);
         container.Register<IVoxelEntityDecorator, ThrusterEntityDecorator>(Reuse.Transient);
-        
+
         container.Register<VoxelObjectBuilder>(Reuse.Singleton);
-        
+
         container.Register<VoxelObjectProcessor>(Reuse.Scoped);
-        
+
         container.Register<DepthState>(Reuse.Scoped);
         container.Register<LightingState>(Reuse.Scoped);
         container.Register<MeshState>(Reuse.Scoped);
         container.Register<CollisionState>(Reuse.Scoped);
         container.Register<EntityState>(Reuse.Scoped);
-        
+
         container.Register<VoxelObjectProcessor.IPass, AmbientLightPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.IPass, LightPropagationPass>(Reuse.Scoped);
-        
+
         container.Register<VoxelObjectProcessor.IVoxelPass, LightSeedPrePass>(Reuse.Scoped);
-        
+
         container.Register<VoxelObjectProcessor.ISamplePass, DepthPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, LightPropagationPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);

@@ -104,6 +104,38 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 - With `ImplicitUsings` enabled, omit redundant `using` directives. With it
   off (e.g. `Swordfish.Library`), list them explicitly.
 
+### Expressions & nesting
+
+Deep nesting hides control flow and collapses a stack trace onto one line.
+Keep the shape of the code readable.
+
+- **Five levels is the limit.** Everything past four indents (16 spaces) in a
+  method body is a signal to extract a private `Draw*`/`Read*` helper.
+- **Never pass a multi-line argument to a condition.** An object initializer or
+  a `with` expression inside an `if (...)` hides the test. Bind it to a local
+  first:
+
+  ```csharp
+  Widgets.ActionButtonOptions options = _returnButton with { Rect = layout.ReturnButton };
+  if (ui.ActionButton("Button_Back", label, options))
+  ```
+
+- **A lambda passed to a widget stays short.** Past ~10 lines, move the body to
+  a named method and pass explicit state, so the lambda can be `static` and
+  allocate nothing per row:
+
+  ```csharp
+  ui.SelectableCard(id, rect, options, context, static (contentUi, row) => DrawRow(contentUi, in row));
+  ```
+
+- **Extract per region, not per statement.** A page method draws one region
+  (tabs, table, footer). `SettingsRenderer` and `PixelRenderer` are the
+  reference shape.
+- **Pass a parameter object instead of a parameter list.** More than ~5
+  arguments, or a run of `ref`/`out` flags, means a small `readonly record
+  struct` context.
+- **Prefer early-return guards** over wrapping the rest of a method in an `if`.
+
 ### Language features
 
 - **`this.`** — never qualify, even for disambiguation. Use a different parameter name.
@@ -407,3 +439,7 @@ Attribute the docs pass to the same change that caused it. Stale docs are a bug.
 
 All new doc prose uses **Simplified Technical English**: one name per thing,
 active voice, short sentences, no semicolons, no contractions.
+
+Player-facing UI copy follows the Material style guide and a fixed language key
+grammar. See [specs/ui-copy](specs/ui-copy.md) before you add or rename a
+localized string.

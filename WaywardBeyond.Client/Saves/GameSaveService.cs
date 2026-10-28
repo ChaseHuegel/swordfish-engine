@@ -37,6 +37,7 @@ internal sealed class GameSaveService(
     private Dictionary<string, LevelMetadata> _clientMeta = new();
     private bool _metaLoaded;
     private bool _canCreateSave;
+    private int _listingGeneration;
 
     /// <summary>True when the server reports that this client may create saves.</summary>
     public bool CanCreateSave
@@ -47,6 +48,17 @@ internal sealed class GameSaveService(
             {
                 return _canCreateSave;
             }
+        }
+    }
+
+    /// <summary>Clears the cached listing while the active server changes.</summary>
+    public void ClearListing()
+    {
+        lock (_savesGate)
+        {
+            _levels = [];
+            _canCreateSave = false;
+            _listingGeneration++;
         }
     }
 
@@ -76,7 +88,26 @@ internal sealed class GameSaveService(
                 saves[i] = new GameSave(level.Name, level);
             }
 
+            SortByLastPlayed(saves);
             return saves;
+        }
+    }
+
+    /// <summary>Sorts saves newest first and preserves the listing order for equal timestamps.</summary>
+    internal static void SortByLastPlayed(GameSave[] saves)
+    {
+        for (var i = 1; i < saves.Length; i++)
+        {
+            GameSave current = saves[i];
+            long lastPlayed = current.Level.Playtime.LastPlayedMs;
+            var j = i - 1;
+            while (j >= 0 && saves[j].Level.Playtime.LastPlayedMs < lastPlayed)
+            {
+                saves[j + 1] = saves[j];
+                j--;
+            }
+
+            saves[j + 1] = current;
         }
     }
 
@@ -128,12 +159,23 @@ internal sealed class GameSaveService(
     /// </summary>
     public async Task RefreshLevelsAsync()
     {
+        int generation;
+        lock (_savesGate)
+        {
+            generation = _listingGeneration;
+        }
+
         try
         {
             LevelListing listing = await _levelsClient.GetLevelsAsync();
 
             lock (_savesGate)
             {
+                if (generation != _listingGeneration)
+                {
+                    return;
+                }
+
                 _levels = listing.Levels;
                 _canCreateSave = listing.CanCreateSave;
                 if (!_metaLoaded)
@@ -149,10 +191,25 @@ internal sealed class GameSaveService(
         }
     }
 
-    public void CreateSave(GameOptions options)
+    public async Task<GameSave?> CreateSaveAsync(GameOptions options)
     {
-        _notificationService.Push(_localizedFormatter.GetString("notification.save.creating", options.Name));
-        _ = CreateLevelAsync(options.Name, options.Seed);
+        _notificationService.Push(_localizedFormatter.GetString("notification.level.creating", options.Name));
+        bool success = await CreateLevelAsync(options.Name, options.Seed);
+        if (!success)
+        {
+            return null;
+        }
+
+        GameSave[] saves = GetSaves();
+        for (var i = 0; i < saves.Length; i++)
+        {
+            if (saves[i].Name == options.Name)
+            {
+                return saves[i];
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -170,15 +227,17 @@ internal sealed class GameSaveService(
         _levelsClient.SendLeaveGame();
     }
 
-    private async Task CreateLevelAsync(string name, string seed)
+    private async Task<bool> CreateLevelAsync(string name, string seed)
     {
         bool success = await _levelsClient.CreateLevelAsync(name, seed, GameMode.Creative);
         await RefreshLevelsAsync();
 
         _notificationService.Push(_localizedFormatter.GetString(
-            success ? "notification.save.created" : "notification.save.creating.failed",
+            success ? "notification.level.created" : "notification.level.createFailed",
             name
         ));
+
+        return success;
     }
 
     public void Delete(GameSave save)
@@ -199,7 +258,7 @@ internal sealed class GameSaveService(
         await RefreshLevelsAsync();
 
         _notificationService.Push(_localizedFormatter.GetString(
-            success ? "notification.save.deleted" : "notification.save.deleting.failed",
+            success ? "notification.level.deleted" : "notification.level.deleteFailed",
             name
         ));
     }

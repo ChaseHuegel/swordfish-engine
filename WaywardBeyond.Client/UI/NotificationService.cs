@@ -1,16 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Extensions.Logging;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Extensions;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.UI;
 
-internal class NotificationService : IDisposable
+/// <summary>Manages active in-game notifications across frames.</summary>
+internal sealed class NotificationService : IDisposable
 {
     private readonly ILogger<NotificationService> _logger;
     private readonly IWindowContext _windowContext;
@@ -18,19 +17,23 @@ internal class NotificationService : IDisposable
     private readonly ConcurrentQueue<NotificationState> _pushedStates = [];
     private readonly List<NotificationState> _activeStates = [];
 
-    public NotificationService(in ILogger<NotificationService> logger, in IWindowContext windowContext) {
+    /// <summary>Initializes a new instance of the <see cref="NotificationService"/> class.</summary>
+    public NotificationService(in ILogger<NotificationService> logger, in IWindowContext windowContext)
+    {
         _logger = logger;
         _windowContext = windowContext;
 
         windowContext.Update += OnWindowUpdate;
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         _windowContext.Update -= OnWindowUpdate;
     }
 
-    public void Push(Notification notification)
+    /// <summary>Enqueues a notification for display.</summary>
+    public void Push(in Notification notification)
     {
         var state = new NotificationState(notification, DateTime.Now);
         _pushedStates.Enqueue(state);
@@ -41,33 +44,31 @@ internal class NotificationService : IDisposable
         }
     }
 
-    public IEnumerable<NotificationState> GetActiveNotifications(NotificationType type)
-    {
-        return _activeStates.Where(state => state.Notification.Type == type);
-    }
-    
+    /// <summary>Returns the currently active notifications ordered newest first.</summary>
+    public IReadOnlyList<NotificationState> GetActiveNotifications() => _activeStates;
+
     private void OnWindowUpdate(double delta)
     {
         DateTime now = DateTime.Now;
-        
+
         //  Collect notifications that have been pushed
         while (_pushedStates.TryDequeue(out NotificationState pushedNotification))
         {
             _activeStates.Insert(0, pushedNotification);
         }
-        
+
         //  Remove expired notifications
         while (_activeStates.Count > 0)
         {
             int lastIndex = _activeStates.Count - 1;
             NotificationState state = _activeStates[lastIndex];
-            
+
             TimeSpan elapsed = now - state.CreatedAt;
             if (elapsed.TotalMilliseconds < state.GetLifetime())
             {
                 break;
             }
-            
+
             _activeStates.RemoveAt(lastIndex);
         }
     }

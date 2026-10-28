@@ -9,31 +9,52 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
 /// <summary>
-/// The chat overlay. One box renders in both states: a scroll viewport over the send box's reserved
-/// slot. Pressing Enter opens a text box that blocks gameplay interaction (the cursor is freed so it
-/// can work the box), Enter sends non-empty text and closes the box, and Escape or an empty Enter
-/// closes it without sending. Closed chat sticks to the newest message and ignores the wheel. Open
-/// chat starts stuck, the wheel breaks the stick, and scrolling back to the bottom re-sticks it.
-/// While open, the send box keeps focus even when the user clicks elsewhere, and every message shows
-/// at full alpha. When closed, each message fades on its own clock: full alpha for
+/// The chat overlay. One fixed-geometry box renders in both states: a 200px scroll viewport over the
+/// send box's reserved slot. Pressing Enter opens a text box that blocks gameplay interaction (the
+/// cursor is freed so it can work the box), Enter sends non-empty text and closes the box, and Escape
+/// or an empty Enter closes it without sending. Closed chat sticks to the newest message and ignores
+/// the wheel. Open chat starts stuck, the wheel breaks the stick, and scrolling back to the bottom
+/// re-sticks it. While open, the send box keeps focus even when the user clicks elsewhere, and every
+/// message shows at full alpha. When closed, each message fades on its own clock: full alpha for
 /// <see cref="ChatConfig.StaleMs"/> after arrival, then a one-second fade.
 /// </summary>
 internal sealed class ChatLayer : IUILayer
 {
     private const string TEXT_BOX_ID = "TextBox_Chat";
     private const int WIDTH = 600;
-    private const int FONT_SIZE = 16;
-    private const int LINE_HEIGHT = 22;
-    private const int SPACING = 0;
-    private const int TEXT_BOX_HEIGHT = 26;
+    private const int HEADER_HEIGHT = 28;
     private const int HISTORY_VIEWPORT_HEIGHT = 200;
+    private const int VIEWPORT_X = 6;
+    private const int VIEWPORT_Y = HEADER_HEIGHT + 4;
+    private const int VIEWPORT_WIDTH = WIDTH - 20;
+    private const int SCROLLBAR_X = WIDTH - 10;
+    private const int SCROLLBAR_WIDTH = 4;
+    private const int INPUT_BAR_X = 6;
+    private const int INPUT_BAR_Y = VIEWPORT_Y + HISTORY_VIEWPORT_HEIGHT + 4;
+    private const int INPUT_BAR_WIDTH = WIDTH - 12;
+    private const int INPUT_BAR_HEIGHT = 28;
+    private const int PANEL_HEIGHT = INPUT_BAR_Y + INPUT_BAR_HEIGHT + 6;
+    private const int PROMPT_WIDTH = 22;
+    private const int SEND_HINT_WIDTH = 68;
+    private const int TEXT_BOX_WIDTH = INPUT_BAR_WIDTH - PROMPT_WIDTH - SEND_HINT_WIDTH - 8;
+    private const int TEXT_BOX_HEIGHT = 18;
+    private const int LINE_HEIGHT = 22;
+    private const int DEFAULT_TEXT_HEIGHT = 16;
+    private const int MESSAGE_SPACING = 3;
+    private const int MESSAGE_BAR_WIDTH = 2;
+    private const int MESSAGE_TEXT_LEFT_PADDING = 10;
+    private const int MESSAGE_PADDING_X = 8;
+    private const int MESSAGE_PADDING_Y = 3;
+    private const float CLOSED_MESSAGE_BG_ALPHA = 0.78f;
     private const int MAX_INPUT_CHARACTERS = 512;
     private const double FADE_DURATION = 1d;
 
@@ -41,20 +62,23 @@ internal sealed class ChatLayer : IUILayer
     private readonly InteractionState _interactionState;
     private readonly ChatService _chat;
     private readonly ChatConfig _config;
+    private readonly string _headerLabel;
+    private readonly string _closeHintLabel;
+    private readonly string _sendHintLabel;
 
     private readonly FontOptions _fieldFontOptions = new()
     {
-        Size = FONT_SIZE
+        Size = UiMetrics.SMALL_FONT,
     };
-    
+
     private TextBoxState _textBox;
     private bool _open;
     private bool _skipNextSubmit;
     private bool _stuckToBottom = true;
-    private int _contentHeight;
     private int _scrollY;
     private InteractionState.InteractionBlocker? _interactionBlocker;
 
+    /// <summary>Initializes a new instance of the <see cref="ChatLayer"/> class.</summary>
     public ChatLayer(
         in IShortcutService shortcutService,
         in IInputService inputService,
@@ -62,23 +86,30 @@ internal sealed class ChatLayer : IUILayer
         in ChatService chat,
         in ChatConfig config,
         in ILocalization localization
-    ) {
+    )
+    {
         _inputService = inputService;
         _interactionState = interactionState;
         _chat = chat;
         _config = config;
+        _headerLabel = localization.GetRequired("ui.label.chat.header");
+        _closeHintLabel = localization.GetRequired("ui.hint.chat.close");
+        _sendHintLabel = localization.GetRequired("ui.hint.chat.send");
 
         _textBox = new TextBoxState(
             initialValue: string.Empty,
             new TextBoxState.Options(
-                Placeholder: localization.GetString("ui.field.chat"),
+                Placeholder: localization.GetString("ui.field.chat.input"),
                 MaxCharacters: MAX_INPUT_CHARACTERS,
                 DisallowedCharacters: ['\t'],
                 Constraints: new Constraints
                 {
-                    Width = new Fixed(WIDTH),
+                    X = new Fixed(PROMPT_WIDTH),
+                    Y = new Fixed((INPUT_BAR_HEIGHT - TEXT_BOX_HEIGHT) / 2),
+                    Width = new Fixed(TEXT_BOX_WIDTH),
                     Height = new Fixed(TEXT_BOX_HEIGHT),
-                }
+                },
+                Chrome: false
             )
         );
 
@@ -103,11 +134,13 @@ internal sealed class ChatLayer : IUILayer
         shortcutService.RegisterShortcut(closeShortcut);
     }
 
+    /// <inheritdoc/>
     public bool IsVisible()
     {
         return WaywardBeyond.GameState == GameState.Playing;
     }
 
+    /// <inheritdoc/>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         if (_open)
@@ -115,6 +148,7 @@ internal sealed class ChatLayer : IUILayer
             //  The send box keeps focus for the whole session; clicking elsewhere must not strand it unfocused.
             using (ui.Element(id: TEXT_BOX_ID))
             {
+                ui.Passthrough = true;
                 ui.Focus();
             }
         }
@@ -125,16 +159,61 @@ internal sealed class ChatLayer : IUILayer
 
     private void RenderChat(UIBuilder<Material> ui, in ChatLine[] history, bool open)
     {
-        //  The viewport caps at HISTORY_VIEWPORT_HEIGHT and shrinks to the content, so the newest
-        //  messages hug its bottom edge in both states. The scroll extent uses the measured row
-        //  heights from the last frame; line heights are font metrics, not a constant.
-        int contentHeight = _contentHeight > 0 ? _contentHeight : history.Length * LINE_HEIGHT;
-        int viewportHeight = Math.Min(Math.Max(contentHeight, 0), HISTORY_VIEWPORT_HEIGHT);
-        int maxScroll = Math.Max(0, contentHeight - viewportHeight);
+        //  Each message fades on its own clock; the closed overlay renders nothing once its newest
+        //  message has fully faded. Messages fade in arrival order, so faded ones are an oldest prefix.
+        long now = Stopwatch.GetTimestamp();
+        double timeoutSeconds = Math.Max(0, _config.StaleMs.Get()) / 1000d;
+        if (!open && (history.Length == 0 || GetMessageAlpha(now - history[^1].ReceivedAt, timeoutSeconds) <= 0f))
+        {
+            return;
+        }
 
+        int contentHeight = MeasureContentHeight(ui, history.Length);
+        int maxScroll = Math.Max(0, contentHeight - HISTORY_VIEWPORT_HEIGHT);
+        int viewportOffsetY = UpdateScroll(open, contentHeight, maxScroll);
+
+        using (ui.Element())
+        {
+            ui.Passthrough = !open;
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Left | Anchors.Bottom,
+                X = new Fixed(20),
+                Y = new Fixed(-40),
+                Width = new Fixed(WIDTH),
+                Height = new Fixed(PANEL_HEIGHT),
+            };
+
+            if (open)
+            {
+                RenderOpenPanelChrome(ui);
+            }
+
+            if (history.Length > 0)
+            {
+                RenderHistoryViewport(ui, history, open, now, timeoutSeconds, viewportOffsetY);
+            }
+
+            if (open)
+            {
+                RenderScrollbar(ui, contentHeight, maxScroll);
+                RenderInputBar(ui);
+            }
+        }
+    }
+
+    /// <summary>Updates the scroll state and returns the content offset for this frame.</summary>
+    private int UpdateScroll(bool open, int contentHeight, int maxScroll)
+    {
         //  Closed chat sticks to the newest message and ignores the wheel. Open chat starts stuck;
         //  the wheel breaks the stick, and scrolling back to the bottom re-sticks it.
-        int scrollDelta = open ? (int)_inputService.GetMouseScroll() * LINE_HEIGHT : 0;
+        int scrollDelta = 0;
+        if (open)
+        {
+            scrollDelta = (int)_inputService.GetMouseScroll() * LINE_HEIGHT;
+        }
+
         if (!open)
         {
             _stuckToBottom = true;
@@ -142,7 +221,12 @@ internal sealed class ChatLayer : IUILayer
         }
         else if (_stuckToBottom)
         {
-            if (scrollDelta != 0)
+            if (scrollDelta == 0)
+            {
+                //  Staying stuck always re-pins, so new messages cannot leave the scroller behind.
+                _scrollY = -maxScroll;
+            }
+            else
             {
                 _stuckToBottom = false;
                 _scrollY = Math.Clamp(_scrollY + scrollDelta, -maxScroll, 0);
@@ -150,11 +234,6 @@ internal sealed class ChatLayer : IUILayer
                 {
                     _stuckToBottom = true;
                 }
-            }
-            else
-            {
-                //  Staying stuck always re-pins, so new messages cannot leave the scroller behind.
-                _scrollY = -maxScroll;
             }
         }
         else
@@ -166,110 +245,283 @@ internal sealed class ChatLayer : IUILayer
             }
         }
 
-        //  Each message fades on its own clock; the overlay renders nothing once its newest message
-        //  has fully faded. Messages fade in arrival order, so the faded ones are always an oldest prefix.
-        long now = Stopwatch.GetTimestamp();
-        double timeoutSeconds = Math.Max(0, _config.StaleMs.Get()) / 1000d;
-        if (!open && (history.Length == 0 || GetMessageAlpha(now - history[^1].ReceivedAt, timeoutSeconds) <= 0f))
+        if (contentHeight < HISTORY_VIEWPORT_HEIGHT)
         {
+            //  When there are only a few messages, push them to the bottom of the fixed viewport.
+            return HISTORY_VIEWPORT_HEIGHT - contentHeight;
+        }
+
+        return _scrollY;
+    }
+
+    private void RenderOpenPanelChrome(UIBuilder<Material> ui)
+    {
+        var border = new BorderStyle
+        {
+            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
+            Color = UiTheme.Border,
+        };
+        var caps = new CornerCapStyle
+        {
+            Length = UiMetrics.PANEL_CAP_LENGTH,
+            Thickness = UiMetrics.PANEL_CAP_THICKNESS,
+            Color = UiTheme.BorderHover,
+        };
+
+        using (ui.Panel(Widgets.Rect(0, 0, WIDTH, PANEL_HEIGHT), UiTheme.PanelBackground, border, caps, innerBorder: true))
+        {
+            int headerInnerWidth = WIDTH - 6;
+            int headerInnerHeight = HEADER_HEIGHT - 3;
+
+            using (ui.Element())
+            {
+                ui.Padding = new Padding(10, 0, 10, 10);
+                ui.Color = UiTheme.PanelInner;
+                ui.Constraints = Widgets.RectConstraints(Widgets.Rect(3, 3, headerInnerWidth, headerInnerHeight));
+
+                using (ui.Text(_headerLabel))
+                {
+                    ui.Color = UiTheme.TextMuted;
+                    ui.FontOptions = new FontOptions
+                    {
+                        Size = UiMetrics.TINY_FONT
+                    };
+                }
+
+                ui.Filler();
+                
+                using (ui.Text(_closeHintLabel))
+                {
+                    ui.Color = UiTheme.TextDim;
+                    ui.FontOptions = new FontOptions
+                    {
+                        Size = UiMetrics.TINY_FONT
+                    };
+                }
+            }
+
+            ui.Divider(Widgets.Rect(3, HEADER_HEIGHT, headerInnerWidth, 1), UiTheme.BorderInner);
+        }
+    }
+
+    private void RenderHistoryViewport(
+        UIBuilder<Material> ui,
+        in ChatLine[] history,
+        bool open,
+        long now,
+        double timeoutSeconds,
+        int viewportOffsetY
+    )
+    {
+        using (ui.Element())
+        {
+            ui.Passthrough = !open;
+            ui.VerticalScroll = true;
+            ui.ScrollY = viewportOffsetY;
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Spacing = MESSAGE_SPACING;
+            ui.Constraints = Widgets.RectConstraints(Widgets.Rect(VIEWPORT_X, VIEWPORT_Y, VIEWPORT_WIDTH, HISTORY_VIEWPORT_HEIGHT));
+            ui.ClipConstraints = new Constraints
+            {
+                Width = new Fixed(VIEWPORT_WIDTH),
+                Height = new Fixed(HISTORY_VIEWPORT_HEIGHT),
+            };
+
+            for (var index = 0; index < history.Length; index++)
+            {
+                float alpha;
+                if (open)
+                {
+                    alpha = 1f;
+                }
+                else
+                {
+                    alpha = GetMessageAlpha(now - history[index].ReceivedAt, timeoutSeconds);
+                }
+
+                int rowHeight = GetMessageRowHeight(ui, index);
+                RenderMessage(ui, history[index].Message, alpha, open, index, rowHeight);
+            }
+        }
+    }
+
+    private void RenderScrollbar(UIBuilder<Material> ui, int contentHeight, int maxScroll)
+    {
+        IntRect scrollbarRect = Widgets.Rect(SCROLLBAR_X, VIEWPORT_Y, SCROLLBAR_WIDTH, HISTORY_VIEWPORT_HEIGHT);
+        if (maxScroll > 0)
+        {
+            ui.Scrollbar(scrollbarRect, contentHeight, HISTORY_VIEWPORT_HEIGHT, -_scrollY);
             return;
         }
 
         using (ui.Element())
         {
-            ui.Passthrough = !open;
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Spacing = SPACING;
-            ui.Constraints = new Constraints
+            ui.Color = UiTheme.Track;
+            ui.Constraints = Widgets.RectConstraints(scrollbarRect);
+            ui.ClipConstraints = Widgets.ClipConstraints(scrollbarRect);
+        }
+    }
+
+    private void RenderInputBar(UIBuilder<Material> ui)
+    {
+        using (ui.Element())
+        {
+            ui.Padding = new Padding(10, 0, 10, 10);
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Color = UiTheme.InputFocus;
+            ui.Border = new BorderStyle
             {
-                Anchors = Anchors.Left | Anchors.Bottom,
-                X = new Fixed(20),
-                Y = new Fixed(-40),
-                Width = new Fixed(WIDTH),
+                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
+                Color = UiTheme.BorderHover,
             };
-
-            if (history.Length > 0 && viewportHeight > 0)
+            ui.Constraints = Widgets.RectConstraints(Widgets.Rect(INPUT_BAR_X, INPUT_BAR_Y, INPUT_BAR_WIDTH, INPUT_BAR_HEIGHT));
+            ui.ClipConstraints = new Constraints
             {
-                using (ui.Element())
-                {
-                    ui.VerticalScroll = true;
-                    ui.ScrollY = _scrollY;
-                    ui.LayoutDirection = LayoutDirection.Vertical;
-                    ui.Spacing = SPACING;
-                    ui.ClipConstraints = new Constraints
-                    {
-                        Width = new Relative(1f),
-                        Height = new Relative(1f),
-                    };
-                    ui.Constraints = new Constraints
-                    {
-                        Width = new Fixed(WIDTH),
-                        Height = new Fixed(viewportHeight),
-                    };
-
-                    if (open)
-                    {
-                        ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.1f);
-                    }
-
-                    for (var index = 0; index < history.Length; index++)
-                    {
-                        float alpha = open ? 1f : GetMessageAlpha(now - history[index].ReceivedAt, timeoutSeconds);
-                        RenderMessage(ui, history[index].Message, alpha, !open, index);
-                    }
-
-                    //  Measure the rows this frame renders so next frame's scroll extent matches the real
-                    //  row heights. Text layouts commit at Build, so this reads the previous frame's sizes.
-                    int height = 0;
-                    for (var index = 0; index < history.Length; index++)
-                    {
-                        TextLayout layout = ui.GetTextLayout($"ChatMessage_{index}");
-                        height += layout.Constraints.PreferredHeight + SPACING;
-                    }
-
-                    _contentHeight = height;
-                }
-            }
-
-            if (open)
+                Width = new Fixed(INPUT_BAR_WIDTH),
+                Height = new Fixed(INPUT_BAR_HEIGHT),
+            };
+            
+            using (ui.Element())
             {
-                ui.TextBox(TEXT_BOX_ID, ref _textBox, _fieldFontOptions, _inputService, out Widgets.Interactions interactions);
+                ui.TextBox(
+                    TEXT_BOX_ID,
+                    ref _textBox,
+                    _fieldFontOptions,
+                    _inputService,
+                    out Widgets.Interactions interactions
+                );
                 HandleInteractions(interactions);
             }
-            else
+        
+            using (ui.Element())
             {
-                //  Reserve the send box's height so the overlay does not shift when it opens or closes.
-                using (ui.Element())
+                ui.Constraints = new Constraints
                 {
-                    ui.Passthrough = true;
-                    ui.Constraints = new Constraints
+                    Y = new Fixed(5),
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+                
+                using (ui.Text(">"))
+                {
+                    ui.Color = UiTheme.Accent;
+                    ui.FontOptions = new FontOptions
                     {
-                        Width = new Fixed(WIDTH),
-                        Height = new Fixed(TEXT_BOX_HEIGHT),
+                        Size = UiMetrics.SMALL_FONT
+                    };
+                }
+            
+                ui.Filler();
+            
+                using (ui.Text(_sendHintLabel))
+                {
+                    ui.Color = UiTheme.TextMuted;
+                    ui.FontOptions = new FontOptions
+                    {
+                        Size = UiMetrics.TINY_FONT
                     };
                 }
             }
         }
     }
 
-    private void RenderMessage(UIBuilder<Material> ui, in ChatMessage message, float alpha, bool renderBackground, int index = -1)
+    private static void RenderMessage(
+        UIBuilder<Material> ui,
+        in ChatMessage message,
+        float alpha,
+        bool open,
+        int index,
+        int rowHeight
+    )
     {
-        using (ui.Text($"#8AEBF1 {message.SenderName}: #R {message.Value}"))
+        var fade = new Vector4(1f, 1f, 1f, alpha);
+
+        using (ui.Element())
         {
             ui.Passthrough = true;
-            ui.FontSize = FONT_SIZE;
-            ui.Color = new Vector4(1f, 1f, 1f, alpha);
-            
-            if (renderBackground)
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new Constraints
             {
-                ui.BackgroundColor = new Vector4(0.5f, 0.5f, 0.5f, 0.1f * alpha);
+                Width = new Fixed(VIEWPORT_WIDTH),
+                Height = new Fixed(rowHeight),
+            };
+
+            if (!open && alpha > 0f)
+            {
+                ui.Color = UiTheme.PanelInner * new Vector4(1f, 1f, 1f, CLOSED_MESSAGE_BG_ALPHA * alpha);
+
+                //  Vertical cyan bar anchor on the left edge of inactive chat messages
+                using (ui.Element())
+                {
+                    ui.Passthrough = true;
+                    ui.Color = UiTheme.Accent * fade;
+                    ui.Constraints = new Constraints
+                    {
+                        X = new Fixed(0),
+                        Y = new Fixed(0),
+                        Width = new Fixed(MESSAGE_BAR_WIDTH),
+                        Height = new Fixed(rowHeight),
+                    };
+                }
             }
 
-            if (index >= 0)
+            using (ui.Element())
             {
-                ui.ID = $"ChatMessage_{index}";
+                ui.Passthrough = true;
+                ui.Padding = new Padding(
+                    left: MESSAGE_TEXT_LEFT_PADDING,
+                    top: MESSAGE_PADDING_Y,
+                    right: MESSAGE_PADDING_X,
+                    bottom: MESSAGE_PADDING_Y
+                );
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(VIEWPORT_WIDTH),
+                    Height = new Fixed(rowHeight),
+                };
+
+                using (ui.Text($"{UiTheme.AccentBrightRichText} {message.SenderName}: #R {message.Value}"))
+                {
+                    ui.ID = $"ChatMessage_{index}";
+                    ui.Passthrough = true;
+                    ui.FontSize = UiMetrics.SMALL_FONT;
+                    ui.Color = UiTheme.Text * fade;
+                }
             }
         }
+    }
+
+    private static int MeasureContentHeight(UIBuilder<Material> ui, int messageCount)
+    {
+        if (messageCount <= 0)
+        {
+            return 0;
+        }
+
+        int totalHeight = 0;
+        for (var index = 0; index < messageCount; index++)
+        {
+            totalHeight += GetMessageRowHeight(ui, index);
+        }
+
+        totalHeight += (messageCount - 1) * MESSAGE_SPACING;
+        return totalHeight;
+    }
+
+    private static int GetMessageRowHeight(UIBuilder<Material> ui, int index)
+    {
+        TextLayout layout = ui.GetTextLayout($"ChatMessage_{index}");
+        int textHeight;
+        if (layout.Constraints.PreferredHeight > 0)
+        {
+            textHeight = layout.Constraints.PreferredHeight;
+        }
+        else
+        {
+            textHeight = DEFAULT_TEXT_HEIGHT;
+        }
+
+        return textHeight + MESSAGE_PADDING_Y * 2;
     }
 
     private void HandleInteractions(Widgets.Interactions interactions)
