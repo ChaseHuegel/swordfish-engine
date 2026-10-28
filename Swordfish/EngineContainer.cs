@@ -1,4 +1,4 @@
-﻿using DryIoc;
+using DryIoc;
 using JoltPhysicsSharp;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
@@ -120,5 +120,6 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         
         container.RegisterDataBinding<AntiAliasing>();
         container.RegisterDataBinding<WindowMode>();
+        container.RegisterDataBinding<ShadowFilterMode>();
     }
 }

@@ -28,15 +28,36 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
     
     protected int Draw(double delta, RenderScene renderScene, bool isDepthPass = false)
     {
-        for (var i = 0; i < _renderStages.Length; i++)
-        {
-            _renderStages[i].PreRender(delta, renderScene, isDepthPass);
-        }
+        PreRenderStages(delta, renderScene, isDepthPass);
 
         var drawCalls = 0;
         for (var i = 0; i < _renderStages.Length; i++)
         {
             drawCalls += _renderStages[i].Render(delta, renderScene, ShaderActivationCallback, isDepthPass);
+        }
+
+        return drawCalls;
+    }
+
+    protected void PreRenderStages(double delta, RenderScene renderScene, bool isDepthPass = false)
+    {
+        for (var i = 0; i < _renderStages.Length; i++)
+        {
+            _renderStages[i].PreRender(delta, renderScene, isDepthPass);
+        }
+    }
+
+    protected int DrawShadowPass(
+        Matrix4x4 view,
+        Matrix4x4 projection,
+        ShaderProgram depthShader,
+        ShaderProgram depthCutoutShader,
+        ShaderProgram depthCutoutArrayShader
+    ) {
+        var drawCalls = 0;
+        for (var i = 0; i < _renderStages.Length; i++)
+        {
+            drawCalls += _renderStages[i].RenderShadowPass(view, projection, depthShader, depthCutoutShader, depthCutoutArrayShader);
         }
 
         return drawCalls;

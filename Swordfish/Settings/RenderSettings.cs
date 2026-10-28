@@ -19,6 +19,7 @@ public sealed class RenderSettings : Config<RenderSettings>
     
     public SAOSettings SAO { get; private set; } = new();
     public BloomSettings Bloom { get; private set; } = new();
+    public ShadowSettings Shadows { get; private set; } = new();
     
     [TomlNonSerialized]
     public DataBinding<bool> Wireframe { get; private set; } = new();

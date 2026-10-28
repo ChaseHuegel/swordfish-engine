@@ -26,6 +26,25 @@ public static class MatrixExtensions
         return new Vector3(matrix.M41, matrix.M42, matrix.M43);
     }
 
+    /// <summary>Extracts the camera world position from a view matrix.</summary>
+    public static Vector3 GetCameraPosition(this Matrix4x4 viewMatrix)
+    {
+        if (Matrix4x4.Invert(viewMatrix, out Matrix4x4 invView))
+        {
+            return invView.Translation;
+        }
+
+        return Vector3.Zero;
+    }
+
+    /// <summary>Extracts the camera forward direction in world space from a view matrix.</summary>
+    public static Vector3 GetCameraForward(this Matrix4x4 viewMatrix)
+    {
+        var zAxis = new Vector3(viewMatrix.M13, viewMatrix.M23, viewMatrix.M33);
+        float lenSq = zAxis.LengthSquared();
+        return lenSq > 1e-6f ? -Vector3.Normalize(zAxis) : -Vector3.UnitZ;
+    }
+
     public static float GetProjectionFov(this Matrix4x4 matrix)
     {
         float fovRadians = 2.0f * (float)Math.Atan(1.0f / matrix.M11);

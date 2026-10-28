@@ -1,4 +1,5 @@
 using System;
+using Tomlet.Attributes;
 
 namespace Swordfish.Library.Types;
 
@@ -6,6 +7,7 @@ public class DataBinding<T>
 {
     private T _data;
 
+    [TomlNonSerialized]
     public EventHandler<DataChangedEventArgs<T>> Changed;
 
     public static implicit operator T(DataBinding<T> binding) => binding.Get();
