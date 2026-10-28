@@ -79,7 +79,13 @@ internal sealed class PlayerViewModelSystem(
             }
 
             //  Create a mesh renderer for the new view model
-            var meshRenderer = new MeshRenderer(mesh, material);
+            var renderOptions = new RenderOptions
+            {
+                CastShadows = false,
+                ReceiveShadows = true
+            };
+            
+            var meshRenderer = new MeshRenderer(mesh, material, renderOptions);
             Owner._viewModelEntity.Value.AddOrUpdate(new MeshRendererComponent(meshRenderer));
             Owner._viewModelEntity.Value.AddOrUpdate(new ChildComponent(store.GetUuid(entity))
             {

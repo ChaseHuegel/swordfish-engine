@@ -10,6 +10,7 @@ uniform sampler2DArray texture4;
 
 uniform float uBloomThreshold = 1.5;
 uniform float uBloomSoftness = 0.5;
+uniform float uAlphaCutoff = 0.0;
 
 vec3 GetNormal()
 {
@@ -31,6 +32,11 @@ vec3 GetNormal()
 vec4 fragment()
 {
     vec4 albedo = texture(texture0, TextureCoord);
+    if (albedo.a < uAlphaCutoff)
+    {
+        discard;
+    }
+
     Metallic = texture(texture1, TextureCoord).r;
     Roughness = 1.0 - texture(texture2, TextureCoord).r;
     Normal = GetNormal();

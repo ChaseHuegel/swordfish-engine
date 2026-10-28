@@ -76,7 +76,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | Field | Type | Notes |
 |---|---|---|
 | `ID` | string | unique, namespaced brick id (e.g. `wb:rock`) |
-| `Transparent` | bool | |
+| `Alpha` | `BrickAlpha` enum | `Opaque` (default), `Masked`, `Blend` (`WaywardBeyond.Bricks/BrickAlpha.cs`) |
 | `Passable` | bool | |
 | `Mesh` | string? | |
 | `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
@@ -202,7 +202,7 @@ hosted in `WaywardBeyond.Data/Localization/`.
 ## Source of truth
 
 - `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
-- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
+- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures,BrickAlpha}.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`

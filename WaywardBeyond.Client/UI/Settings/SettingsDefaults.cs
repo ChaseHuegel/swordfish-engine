@@ -12,6 +12,7 @@ internal static class SettingsDefaults
     public const int FOV = 90;
     public const float VIEW_DISTANCE = 1000f;
     public const AntiAliasing ANTI_ALIASING_MODE = AntiAliasing.MSAA;
+    public const ShadowQuality SHADOW_QUALITY = ShadowQuality.Medium;
     public const bool AMBIENT_OCCLUSION = true;
     public const int AO_SAMPLES = 8;
     public const bool BLOOM = true;
@@ -42,6 +43,14 @@ internal static class SettingsDefaults
     private static readonly int[] _autosaveIntervals = [1, 2, 5, 10, 15, 20, 30, 45, 60];
     private static readonly int[] _aoSamplesOptions = [4, 8, 16];
     private static readonly int[] _bloomPassesOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    private static readonly ShadowQuality[] _shadowQualities =
+    [
+        ShadowQuality.Off,
+        ShadowQuality.Low,
+        ShadowQuality.Medium,
+        ShadowQuality.High,
+        ShadowQuality.Ultra,
+    ];
 
     /// <summary>Gets a frame limit list that includes the current value.</summary>
     public static IReadOnlyList<int> GetFrameLimits(int current)
@@ -53,6 +62,12 @@ internal static class SettingsDefaults
     public static IReadOnlyList<float> GetViewDistances(float current)
     {
         return WithValue(_viewDistances, current);
+    }
+
+    /// <summary>Gets a shadow quality list that includes the current value.</summary>
+    public static IReadOnlyList<ShadowQuality> GetShadowQualities(ShadowQuality current)
+    {
+        return WithValue(_shadowQualities, current);
     }
 
     /// <summary>Gets an autosave interval list that includes the current value.</summary>

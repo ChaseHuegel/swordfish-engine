@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
@@ -18,6 +18,7 @@ internal sealed class MeshPostPass(
 ) : VoxelObjectProcessor.ISamplePass
 {
     private readonly CubeMeshBuilder _opaqueCubeMeshBuilder = new(textureArrays.Albedo, meshState.Opaque);
+    private readonly CubeMeshBuilder _maskedCubeMeshBuilder = new(textureArrays.Albedo, meshState.Masked);
     private readonly CubeMeshBuilder _transparentCubeMeshBuilder = new(textureArrays.Albedo, meshState.Transparent);
     private readonly Mesh _slope = meshDatabase.Get("slope.obj").Value;
     private readonly Mesh _stair = meshDatabase.Get("stair.obj").Value;
@@ -63,40 +64,66 @@ internal sealed class MeshPostPass(
         ShapeLight shapeLight = sample.Center.ShapeLight;
         var offset = new Vector3(sample.ChunkOffset.X, sample.ChunkOffset.Y, sample.ChunkOffset.Z);
         
+        MeshState.MeshData targetMesh = GetMeshData(brickInfo.Alpha);
+        ref readonly CubeMeshBuilder cubeMeshBuilder = ref GetCubeMeshBuilder(brickInfo.Alpha);
+
         switch (shapeLight.Shape)
         {
             case BrickShape.Slab:
-                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _slab, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _slab, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Stair:
-                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _stair, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _stair, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Slope:
-                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _slope, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _slope, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Column:
-                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _column, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _column, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Plate:
-                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _plate, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _plate, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Custom:
                 Mesh? customMesh = ResolveMesh(in brickInfo);
                 if (customMesh == null)
                 {
-                    AddCube(brickInfo.Transparent ? ref _transparentCubeMeshBuilder : ref _opaqueCubeMeshBuilder, sample.Coords, offset, orientation, sample, brickInfo, culledAbove, culledBelow, culledAhead, culledBehind, culledRight, culledLeft);
+                    AddCube(cubeMeshBuilder, sample.Coords, offset, orientation, sample, brickInfo, culledAbove, culledBelow, culledAhead, culledBehind, culledRight, culledLeft);
                     break;
                 }
 
-                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, customMesh, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, sample.Coords, offset, brickInfo, customMesh, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Block:
             default:
-                AddCube(brickInfo.Transparent ? ref _transparentCubeMeshBuilder : ref _opaqueCubeMeshBuilder, sample.Coords, offset, orientation, sample, brickInfo, culledAbove, culledBelow, culledAhead, culledBehind, culledRight, culledLeft);
+                AddCube(cubeMeshBuilder, sample.Coords, offset, orientation, sample, brickInfo, culledAbove, culledBelow, culledAhead, culledBehind, culledRight, culledLeft);
                 break;
         }
     }
     
+    private MeshState.MeshData GetMeshData(BrickAlpha alpha)
+    {
+        return alpha switch
+        {
+            BrickAlpha.Masked => meshState.Masked,
+            BrickAlpha.Blend => meshState.Transparent,
+            _ => meshState.Opaque,
+        };
+    }
+
+    private ref readonly CubeMeshBuilder GetCubeMeshBuilder(BrickAlpha alpha)
+    {
+        switch (alpha)
+        {
+            case BrickAlpha.Masked:
+                return ref _maskedCubeMeshBuilder;
+            case BrickAlpha.Blend:
+                return ref _transparentCubeMeshBuilder;
+            default:
+                return ref _opaqueCubeMeshBuilder;
+        }
+    }
+
     private bool IsCulledBy(in Voxel target, in Voxel neighbor)
     {
         if (neighbor.ID == 0)

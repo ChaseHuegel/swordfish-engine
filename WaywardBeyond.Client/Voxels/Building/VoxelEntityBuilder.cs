@@ -30,6 +30,8 @@ internal sealed class VoxelEntityBuilder(
 
     private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
     
+    private readonly Material _maskedMaterial = new(shader, textureArrays.ToArray());
+
     private readonly Material _transparentMaterial = new(shader, textureArrays.ToArray())
     {
         Transparent = true,
@@ -39,12 +41,26 @@ internal sealed class VoxelEntityBuilder(
     {
         DoubleFaced = false,
         Wireframe = false,
+        CastShadows = true,
+        ReceiveShadows = true,
+    };
+
+    private readonly RenderOptions _maskedRenderOptions = new()
+    {
+        AlphaMode = AlphaMode.Masked,
+        DoubleFaced = true,
+        Wireframe = false,
+        CastShadows = true,
+        ReceiveShadows = true,
     };
     
     private readonly RenderOptions _transparentRenderOptions = new()
     {
+        AlphaMode = AlphaMode.Blend,
         DoubleFaced = true,
         Wireframe = false,
+        CastShadows = false,
+        ReceiveShadows = true,
     };
 
     public Entity Create(DataStore store, Uuid uuid, VoxelObject voxelObject, Vector3 position, Quaternion orientation, Vector3 scale)
@@ -53,9 +69,11 @@ internal sealed class VoxelEntityBuilder(
         store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
         int transparencyPtr = store.Alloc();
         store.AddOrUpdate(transparencyPtr, new IdentifierComponent(name: null, tag: "game"));
+        int maskedPtr = store.Alloc();
+        store.AddOrUpdate(maskedPtr, new IdentifierComponent(name: null, tag: "game"));
         
         var transform = new TransformComponent(position, orientation, scale);
-        var voxelComponent = new VoxelComponent(voxelObject, store.GetUuid(transparencyPtr));
+        var voxelComponent = new VoxelComponent(voxelObject, store.GetUuid(transparencyPtr), store.GetUuid(maskedPtr));
         
         store.AddOrUpdate(entity, transform);
         store.AddOrUpdate(entity, voxelComponent);
@@ -65,6 +83,9 @@ internal sealed class VoxelEntityBuilder(
         store.AddOrUpdate(transparencyPtr, transform);
         store.AddOrUpdate(transparencyPtr, new ChildComponent(store.GetUuid(entity)));
         
+        store.AddOrUpdate(maskedPtr, transform);
+        store.AddOrUpdate(maskedPtr, new ChildComponent(store.GetUuid(entity)));
+
         VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelObject);
         UpdateEntity(store, entity, voxelComponent, data);
         
@@ -83,7 +104,8 @@ internal sealed class VoxelEntityBuilder(
         }
         
         if (!store.TryGet(entity, out MeshRendererComponent opaqueRendererComponent) ||
-            !store.TryGet(voxelComponent.TransparencyPtr, out MeshRendererComponent transparentRendererComponent))
+            !store.TryGet(voxelComponent.TransparencyPtr, out MeshRendererComponent transparentRendererComponent) ||
+            !store.TryGet(voxelComponent.MaskedPtr, out MeshRendererComponent maskedRendererComponent))
         {
             _logger.LogWarning("Tried to rebuild entity {Entity} but it is missing a MeshRendererComponent.",
                 entity);
@@ -100,8 +122,18 @@ internal sealed class VoxelEntityBuilder(
         UpdateEntity(store, entity, voxelComponent, data);
         
         //  Cleanup existing renderers
-        meshRendererCleanup.MeshRenderers.Add(opaqueRendererComponent.MeshRenderer);
-        meshRendererCleanup.MeshRenderers.Add(transparentRendererComponent.MeshRenderer);
+        if (opaqueRendererComponent.MeshRenderer != null)
+        {
+            meshRendererCleanup.MeshRenderers.Add(opaqueRendererComponent.MeshRenderer);
+        }
+        if (transparentRendererComponent.MeshRenderer != null)
+        {
+            meshRendererCleanup.MeshRenderers.Add(transparentRendererComponent.MeshRenderer);
+        }
+        if (maskedRendererComponent.MeshRenderer != null)
+        {
+            meshRendererCleanup.MeshRenderers.Add(maskedRendererComponent.MeshRenderer);
+        }
     }
     
     private void UpdateEntity(DataStore store, int entity, VoxelComponent voxelComponent, VoxelObjectBuilder.Data data)
@@ -109,7 +141,13 @@ internal sealed class VoxelEntityBuilder(
         var renderer = new MeshRenderer(data.OpaqueMesh, _opaqueMaterial, _renderOptions);
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
         store.AddOrUpdate(entity, new ColliderComponent(data.CollisionShape));
-        
+
+        renderer = new MeshRenderer(data.MaskedMesh, _maskedMaterial, _maskedRenderOptions);
+        if (store.TryGet(voxelComponent.MaskedPtr, out int maskedEntity))
+        {
+            store.AddOrUpdate(maskedEntity, new MeshRendererComponent(renderer));
+        }
+
         renderer = new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions);
         if (store.TryGet(voxelComponent.TransparencyPtr, out int transparencyEntity))
         {

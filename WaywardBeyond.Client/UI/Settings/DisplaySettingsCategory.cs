@@ -102,6 +102,15 @@ internal static class DisplaySettingsCategory
                     options: _antiAliasingOptions,
                     optionLabel: value => FormatAntiAliasing(localization, value)
                 ),
+                new StepperEntry<ShadowQuality>(
+                    id: "Settings.ShadowQuality",
+                    labelKey: "ui.settings.option.shadowQuality",
+                    get: () => draft.ShadowQuality,
+                    set: value => draft.ShadowQuality = value,
+                    defaultValue: () => SettingsDefaults.SHADOW_QUALITY,
+                    options: SettingsDefaults.GetShadowQualities(draft.ShadowQuality),
+                    format: value => FormatShadowQuality(localization, value)
+                ),
                 new ToggleEntry(
                     id: "Settings.AmbientOcclusion",
                     labelKey: "ui.settings.option.ambientOcclusion",
@@ -234,6 +243,20 @@ internal static class DisplaySettingsCategory
         return antiAliasing == AntiAliasing.MSAA
             ? L(localization, "ui.settings.value.msaa")
             : L(localization, "ui.settings.value.off");
+    }
+
+    private static string FormatShadowQuality(ILocalization localization, ShadowQuality quality)
+    {
+        return quality switch
+        {
+            ShadowQuality.Off => L(localization, "ui.settings.value.off"),
+            ShadowQuality.Low => L(localization, "ui.settings.value.low"),
+            ShadowQuality.Medium => L(localization, "ui.settings.value.medium"),
+            ShadowQuality.High => L(localization, "ui.settings.value.high"),
+            ShadowQuality.Ultra => L(localization, "ui.settings.value.ultra"),
+            ShadowQuality.Custom => L(localization, "ui.settings.value.custom"),
+            _ => quality.ToString(),
+        };
     }
 
     private static string FormatSamples(int value)

@@ -18,7 +18,7 @@ public sealed class Brick
     /// <summary>All brick tags are case-insensitive.</summary>
     public readonly IReadOnlySet<string> Tags;
 
-    public readonly bool Transparent;
+    public readonly BrickAlpha Alpha;
     public readonly bool Passable;
     public readonly string? MeshID;
     public readonly BrickShape Shape;
@@ -33,7 +33,7 @@ public sealed class Brick
 
     public Brick(
         in string id,
-        in bool transparent,
+        in BrickAlpha alpha,
         in bool passable,
         in string? meshID,
         in BrickShape shape,
@@ -41,7 +41,7 @@ public sealed class Brick
         in string[]? tags
     ) {
         ID = id;
-        Transparent = transparent;
+        Alpha = alpha;
         Passable = passable;
         MeshID = meshID;
         Shape = shape;

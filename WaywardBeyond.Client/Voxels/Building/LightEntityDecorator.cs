@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Swordfish.ECS;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Voxels.Models;
@@ -16,7 +16,8 @@ internal class LightEntityDecorator : IVoxelEntityDecorator
             return;
         }
         
-        var light = new LightComponent(radius: shapeLight.LightLevel, color: new Vector3(0.25f), size: 2.5f);
+        bool castShadows = shapeLight.LightLevel >= 14;
+        var light = new LightComponent(radius: shapeLight.LightLevel, color: new Vector3(0.25f), size: 2.4f, castShadows: castShadows);
         store.AddOrUpdate(entity, light);
     }
 }

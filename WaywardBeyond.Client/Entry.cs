@@ -1,14 +1,13 @@
-using System;
 using System.Drawing;
 using System.Numerics;
 using HardwareInformation;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
-using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
@@ -27,10 +26,19 @@ internal sealed class Entry : IAutoActivate
         in RenderSettings renderSettings,
         in IFileParseService fileParseService,
         in IShortcutService shortcutService,
-        in ModalMenu modalMenu
+        in ModalMenu modalMenu,
+        in DataStore dataStore
     ) {
         _windowContext = windowContext;
         _modalMenu = modalMenu;
+
+        int sun = dataStore.Alloc();
+        dataStore.AddOrUpdate(sun, new DirectionalLightComponent(
+            direction: Vector3.Normalize(new Vector3(-0.35f, -0.85f, -0.4f)),
+            color: new Vector3(1.0f, 0.95f, 0.9f),
+            intensity: 1.2f,
+            castShadows: true
+        ));
 
         windowSettings.Title.Set("Wayward Beyond");
         logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version.Name);

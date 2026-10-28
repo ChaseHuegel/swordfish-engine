@@ -4,7 +4,7 @@ namespace WaywardBeyond.Bricks;
 internal struct BrickDefinition()
 {
     public string ID;
-    public bool Transparent;
+    public BrickAlpha Alpha = BrickAlpha.Opaque;
     public bool Passable;
     public string? Mesh;
     public BrickShape Shape;

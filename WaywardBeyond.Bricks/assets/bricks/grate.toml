@@ -1,7 +1,7 @@
 [[Bricks]]
 ID          = "wb:grate"
 Shape       = "any"
-Transparent = true
+Alpha       = "Masked"
 Tags        = [
     "metal",
 ]

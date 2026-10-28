@@ -70,7 +70,7 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         {
             //  Create a billboard entity if it doesn't exist
             int entity = store.Alloc();
-            var meshRenderer = new MeshRenderer(_mesh, directions[activeIndex], new RenderOptions { DoubleFaced = true });
+            var meshRenderer = new MeshRenderer(_mesh, directions[activeIndex], new RenderOptions { DoubleFaced = true, CastShadows = false, ReceiveShadows = false });
             store.AddOrUpdate(entity, new MeshRendererComponent(meshRenderer));
 
             state = new BillboardState(entity, meshRenderer, directions, activeIndex);
@@ -80,7 +80,7 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         {
             //  Update the billboard's renderer if its material set or selected sector changed
             state.Renderer.Dispose();
-            state.Renderer = new MeshRenderer(_mesh, directions[activeIndex], new RenderOptions { DoubleFaced = true });
+            state.Renderer = new MeshRenderer(_mesh, directions[activeIndex], new RenderOptions { DoubleFaced = true, CastShadows = false, ReceiveShadows = false });
             state.Directions = directions;
             state.ActiveIndex = activeIndex;
             store.AddOrUpdate(state.Entity, new MeshRendererComponent(state.Renderer));
