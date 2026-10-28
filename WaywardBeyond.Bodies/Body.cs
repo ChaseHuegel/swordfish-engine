@@ -4,11 +4,14 @@ using System.Collections.Generic;
 namespace WaywardBeyond.Bodies;
 
 /// <summary>An asset for displaying a character's body.</summary>
-public sealed class Body(in string id, in Dictionary<string, string[]> states)
+public sealed class Body(in string id, in Gender gender, in Dictionary<string, string[]> states)
 {
     /// <inheritdoc cref="BodyDefinition.ID"/>
     public readonly string ID = id;
-    
+
+    /// <inheritdoc cref="BodyDefinition.Gender"/>
+    public readonly Gender Gender = gender;
+
     /// <inheritdoc cref="BodyDefinition.States"/>
     private readonly Dictionary<string, string[]> _states = new(states, StringComparer.InvariantCultureIgnoreCase);
 

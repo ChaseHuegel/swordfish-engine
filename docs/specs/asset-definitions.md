@@ -156,14 +156,24 @@ Each body is a `[[Bodies]]` table carrying a stable namespaced string ID
 ... , free-form for future sets) to texture paths. Direction display order is
 canonical, not the asset order: `front` is index 0, then `back`/`left`/`right`
 (`BodyDatabase._orderedDirections`, `BodyDatabase.cs:14`). An unknown body ID
-falls back to the first loaded body at resolution
+falls back to the first loaded body at resolution.
 
-Each body defines its own lineage and gender via a distinct ID. The current set
-is `wb:human_m`, `wb:human_f`, `wb:bot` (industrial drone), `wb:bot2_m` /
-`wb:bot2_f` (anthropoid android), and the alien lineages `wb:alien_m` /
-`wb:alien_f`, plus `wb:alien2_{m,f}` (purple, cylinder head), `wb:alien3_{m,f}`
-(grey), and `wb:alien4_{m,f}` (orange, cyclopean). Each gender carries its own
-ID so name themes and preview sprites key cleanly.
+Each body declares a `Species` and a `Gender`. A `Species` groups its body
+variants, so `human` groups `wb:human_m` and `wb:human_f`. The database lists
+the species in natural order (`BodyDatabase.Species`, `BodyDatabase.cs:40`),
+reports the genders a species declares (`BodyDatabase.GetGenders`,
+`BodyDatabase.cs:43`), and resolves a species and gender pair to one body
+(`BodyDatabase.GetBody`, `BodyDatabase.cs:49`). A gender the species does not
+declare falls back to the first variant of the species. An unknown species
+resolves to no body, so the client falls back to the default body ID. A body
+without a `Species` uses its `ID` as the species. A body without a `Gender`
+loads as `Neutral`.
+
+The current set is `wb:human_m`, `wb:human_f`, `wb:bot` (industrial drone),
+`wb:bot2_m` / `wb:bot2_f` (anthropoid android), and the alien lineages
+`wb:alien_m` / `wb:alien_f`, plus `wb:alien2_{m,f}` (purple, cylinder head),
+`wb:alien3_{m,f}` (grey), and `wb:alien4_{m,f}` (orange, cyclopean). Each gender
+carries its own ID so name themes and preview sprites key cleanly.
 
 Character-name generation keys its localized tags and formats by the same body
 ID. `NameGenerator.Generate(key)` resolves `names.{title,first,last,subtitle,nickname}.{key}`
@@ -175,6 +185,8 @@ Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 | Field | Type | Notes |
 |---|---|---|
 | `ID` | string | namespaced body asset ID (e.g. `wb:human_m`) |
+| `Species` | string | species grouping of the body (e.g. `human`, `bot`) |
+| `Gender` | `Gender` | gender categorization (`Neutral`, `Male`, `Female`) |
 | `[Bodies.States.<state>]` | map: direction tag → texture path list | state tag free-form (`standing`, `floating`, ...) |
 
 ## Localization
@@ -191,7 +203,7 @@ hosted in `WaywardBeyond.Data/Localization/`.
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
-- `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,BodyDatabase}.cs`
+- `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
 - Parser registration: `WaywardBeyond.Skills/Injector.cs:16`,
@@ -201,4 +213,6 @@ hosted in `WaywardBeyond.Data/Localization/`.
 
 `Swordfish.Tests/SkillDatabaseTests.cs` loads the shipped skill and brick tomls
 and pins the schema, the tag expansion, and the level curve. See
-[skills](skills.md).
+[skills](skills.md). `Swordfish.Tests/BodyDatabaseTests.cs` loads the shipped
+body definitions and pins the species order, the gender groups, and the
+species and gender resolution.

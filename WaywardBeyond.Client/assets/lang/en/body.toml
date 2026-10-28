@@ -1,0 +1,14 @@
+"Language" = "en"
+
+[Translations]
+"body.species.human" = "Human"
+"body.species.bot" = "Drone"
+"body.species.bot2" = "Android"
+"body.species.alien" = "Alien"
+"body.species.alien2" = "Alien II"
+"body.species.alien3" = "Alien III"
+"body.species.alien4" = "Alien IV"
+
+"body.gender.male" = "Male"
+"body.gender.female" = "Female"
+"body.gender.neutral" = "Neutral"

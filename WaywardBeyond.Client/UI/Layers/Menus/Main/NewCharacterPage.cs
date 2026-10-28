@@ -7,12 +7,13 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using System;
+using WaywardBeyond.Bodies;
 using WaywardBeyond.Client.Extensions;
-using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
@@ -29,7 +30,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private const int MAX_STAT = 8;
     private const int PANEL_PADDING = 20;
     private const int INPUT_WIDTH = 300;
-    private const int BODY_BOX_SIZE = 208;
+    private const int BODY_BOX_SIZE = 192;
+    private const int FIELD_GROUP_WIDTH = INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE;
+    private const int SELECTOR_LABEL_WIDTH = 76;
 
     private static readonly char[] _characterNameTrimChars = [' ', '\t', '.', '\n', '\r'];
 
@@ -41,6 +44,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
+    private readonly IBodyDatabase _bodyDatabase;
     private readonly CharacterAssetService _characterAssetService;
     private readonly NameGenerator _nameGenerator;
     private readonly NotificationService _notificationService;
@@ -51,7 +55,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly Widgets.ActionButtonOptions _createButton;
     private readonly Randomizer _randomizer = new();
 
-    private int _characterMaterialIndex;
+    private int _speciesIndex;
+    private Gender _gender = Gender.Male;
+    private Gender _rememberedGender = Gender.Male;
     private TextBoxState _nameTextBox;
     private int _spacerPoints = DEFAULT_SPACER_POINTS;
     private int _focusedStat;
@@ -70,6 +76,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
+        in IBodyDatabase bodyDatabase,
         in CharacterAssetService characterAssetService,
         in NameGenerator nameGenerator,
         in NotificationService notificationService,
@@ -82,6 +89,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
+        _bodyDatabase = bodyDatabase;
         _characterAssetService = characterAssetService;
         _nameGenerator = nameGenerator;
         _notificationService = notificationService;
@@ -325,7 +333,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.colonistIdentity"), padding: PANEL_PADDING))
         {
             DrawNameField(ui);
-            ui.Spacer(height: 24);
+            ui.Spacer(height: 16);
             DrawBodyPreview(ui);
         }
     }
@@ -333,15 +341,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     /// <summary>Draws the character name field and its randomize button.</summary>
     private void DrawNameField(UIBuilder<Material> ui)
     {
-        int nameGroupWidth = INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE;
-
         ui.Label(
             _localization.GetRequired("ui.field.characterNameLabel"),
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.Text,
             new Constraints
             {
-                Width = new Fixed(nameGroupWidth),
+                Width = new Fixed(FIELD_GROUP_WIDTH),
                 Height = new Fixed(16),
                 Anchors = Anchors.Center,
             }
@@ -351,7 +357,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         using (ui.Row(
             new Constraints
             {
-                Width = new Fixed(nameGroupWidth),
+                Width = new Fixed(FIELD_GROUP_WIDTH),
                 Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
                 Anchors = Anchors.Center,
             },
@@ -388,95 +394,12 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         }
     }
 
-    /// <summary>Draws the body preview box, its cycle buttons, and the preset labels.</summary>
+    /// <summary>Draws the body preview box and the species and gender selectors.</summary>
     private void DrawBodyPreview(UIBuilder<Material> ui)
     {
-        const int groupWidth = 32 + 8 + BODY_BOX_SIZE + 8 + 32 + 8 + 32;
-
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fixed(groupWidth),
-                Height = new Fixed(BODY_BOX_SIZE),
-                Anchors = Anchors.Center,
-            },
-            spacing: 8
-        ))
-        {
-            Widgets.IconButtonOptions previousOptions = new(SoundEffectService: _soundEffectService);
-            if (ui.IconButton(
-                "Button_PreviousCharacter",
-                MenuGlyphs.CHEVRON_LEFT,
-                previousOptions,
-                new Constraints
-                {
-                    Width = new Fixed(32),
-                    Height = new Fixed(32),
-                    Anchors = Anchors.Center,
-                }
-            ))
-            {
-                CycleBody(-1);
-            }
-
-            DrawBodyImage(ui);
-
-            Widgets.IconButtonOptions nextOptions = new(SoundEffectService: _soundEffectService);
-            if (ui.IconButton(
-                "Button_NextCharacter",
-                MenuGlyphs.CHEVRON_RIGHT,
-                nextOptions,
-                new Constraints
-                {
-                    Width = new Fixed(32),
-                    Height = new Fixed(32),
-                    Anchors = Anchors.Center,
-                }
-            ))
-            {
-                CycleBody(1);
-            }
-
-            Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
-            if (ui.IconButton(
-                "Button_RandomCharacter",
-                MenuGlyphs.DICE,
-                randomOptions,
-                new Constraints
-                {
-                    Width = new Fixed(32),
-                    Height = new Fixed(32),
-                    Anchors = Anchors.Center,
-                }
-            ) && _characterAssetService.GetAppearancesCount() > 0)
-            {
-                _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
-            }
-        }
-
-        ui.Spacer(height: 14);
-        ui.Label(
-            _localization.GetRequired("ui.field.bodyPreset"),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            },
-            HorizontalAlignment.Center
-        );
-        ui.Label(
-            FormatBodyId(_characterAssetService.GetBodyId(_characterMaterialIndex)),
-            UiMetrics.MENU_BODY_FONT,
-            UiTheme.AccentBright,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(24),
-            },
-            HorizontalAlignment.Center
-        );
+        DrawBodyImage(ui);
+        ui.Spacer(height: 12);
+        DrawBodySelectors(ui);
     }
 
     /// <summary>Draws the body preview frame and the current appearance inside it.</summary>
@@ -496,12 +419,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             {
                 Width = new Fixed(BODY_BOX_SIZE),
                 Height = new Fixed(BODY_BOX_SIZE),
+                Anchors = Anchors.Center,
             };
             ui.ClipConstraints = Widgets.ClipToBounds();
 
-            Material appearance = _characterAssetService.GetAppearanceMaterial(
-                _characterAssetService.GetBodyId(_characterMaterialIndex)
-            );
+            Material appearance = _characterAssetService.GetAppearanceMaterial(CurrentBodyId());
             using (ui.Image(appearance))
             {
                 ui.Constraints = new Constraints
@@ -509,6 +431,126 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     Width = new Fill(),
                     Height = new Fill(),
                 };
+            }
+        }
+    }
+
+    /// <summary>Draws the species and gender selector rows beneath the preview.</summary>
+    private void DrawBodySelectors(UIBuilder<Material> ui)
+    {
+        EnsureValidSelection();
+
+        IReadOnlyList<string> speciesList = _bodyDatabase.Species;
+        if (speciesList.Count == 0)
+        {
+            return;
+        }
+
+        DrawSelectorRow(
+            ui,
+            "SpeciesSelector",
+            _localization.GetRequired("ui.field.species"),
+            speciesList,
+            _speciesIndex,
+            FormatSpeciesName,
+            index =>
+            {
+                _speciesIndex = index;
+                EnsureValidSelection();
+            },
+            RandomizeSpecies
+        );
+
+        ui.Spacer(height: 8);
+
+        //  The species row may have changed the selection in this frame.
+        IReadOnlyList<Gender> genders = _bodyDatabase.GetGenders(CurrentSpecies());
+        DrawSelectorRow(
+            ui,
+            "GenderSelector",
+            _localization.GetRequired("ui.field.gender"),
+            genders,
+            IndexOfGender(genders, _gender),
+            FormatGenderName,
+            index => SetGender(genders[index]),
+            RandomizeGender
+        );
+    }
+
+    /// <summary>Draws one labeled selector row with a discrete stepper and a randomize button.</summary>
+    private void DrawSelectorRow<T>(
+        UIBuilder<Material> ui,
+        string id,
+        string label,
+        IReadOnlyList<T> options,
+        int index,
+        Func<T, string> format,
+        Action<int> onChanged,
+        Action onRandomize
+    )
+    {
+        bool enabled = options.Count > 1;
+
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fixed(FIELD_GROUP_WIDTH),
+                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                Anchors = Anchors.Center,
+            },
+            spacing: 8
+        ))
+        {
+            ui.Label(
+                label,
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fixed(SELECTOR_LABEL_WIDTH),
+                    Height = new Fill(),
+                }
+            );
+
+            ControlResult<int> result = ui.Stepper(
+                id,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                options,
+                index,
+                format,
+                enabled
+            );
+
+            if (result.Changed)
+            {
+                onChanged(result.Value);
+                Widgets.Interactions.Click.WithButtonAudio(
+                    _soundEffectService,
+                    result.Value > index ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease
+                );
+            }
+
+            Widgets.IconButtonOptions randomOptions = new(
+                SoundEffectService: _soundEffectService,
+                Enabled: enabled
+            );
+            if (ui.IconButton(
+                $"{id}_Random",
+                MenuGlyphs.DICE,
+                randomOptions,
+                new Constraints
+                {
+                    Width = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                    Height = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                    Anchors = Anchors.Center,
+                }
+            ))
+            {
+                onRandomize();
             }
         }
     }
@@ -789,7 +831,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             _charisma,
             _education,
             _resolve,
-            _Body: _characterAssetService.GetBodyId(_characterMaterialIndex),
+            _Body: CurrentBodyId(),
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,
             _Statistics: null,
@@ -821,17 +863,6 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         );
     }
 
-    private void CycleBody(int direction)
-    {
-        int count = _characterAssetService.GetAppearancesCount();
-        if (count == 0)
-        {
-            return;
-        }
-
-        _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + direction, 0, count - 1);
-    }
-
     private void RandomizeName()
     {
         NameGenerator.Options options = new(
@@ -843,7 +874,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         );
 
         string generatedName = _nameGenerator.Generate(
-            key: _characterAssetService.GetBodyId(_characterMaterialIndex),
+            key: CurrentBodyId(),
             options
         );
         _nameTextBox.Text.Clear();
@@ -894,7 +925,10 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
     private void ResetState()
     {
-        _characterMaterialIndex = 0;
+        _speciesIndex = 0;
+        _gender = Gender.Male;
+        _rememberedGender = Gender.Male;
+        EnsureValidSelection();
         _nameTextBox.Text.Clear();
         ResetAttributes();
     }
@@ -911,9 +945,124 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _focusedStat = 0;
     }
 
-    private static string FormatBodyId(string id)
+    /// <summary>Gets the body ID for the current species and gender.</summary>
+    private string CurrentBodyId()
     {
-        string[] parts = id.Split('_', StringSplitOptions.RemoveEmptyEntries);
-        return string.Join(' ', parts.Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
+        return _characterAssetService.GetBodyId(CurrentSpecies(), _gender);
+    }
+
+    /// <summary>Clamps the species index and keeps the gender valid for the current species.</summary>
+    private void EnsureValidSelection()
+    {
+        IReadOnlyList<string> speciesList = _bodyDatabase.Species;
+        if (speciesList.Count == 0)
+        {
+            _speciesIndex = 0;
+            return;
+        }
+
+        _speciesIndex = Math.Clamp(_speciesIndex, 0, speciesList.Count - 1);
+        IReadOnlyList<Gender> genders = _bodyDatabase.GetGenders(speciesList[_speciesIndex]);
+        if (genders.Contains(_gender))
+        {
+            return;
+        }
+
+        if (genders.Contains(_rememberedGender))
+        {
+            _gender = _rememberedGender;
+        }
+        else
+        {
+            _gender = genders.Count > 0 ? genders[0] : Gender.Neutral;
+        }
+    }
+
+    /// <summary>Selects a gender and remembers it while it is not neutral.</summary>
+    private void SetGender(Gender gender)
+    {
+        _gender = gender;
+        if (gender != Gender.Neutral)
+        {
+            _rememberedGender = gender;
+        }
+    }
+
+    /// <summary>Picks a different species at random, then keeps the gender valid.</summary>
+    private void RandomizeSpecies()
+    {
+        IReadOnlyList<string> speciesList = _bodyDatabase.Species;
+        if (speciesList.Count <= 1)
+        {
+            return;
+        }
+
+        int nextIndex;
+        do
+        {
+            nextIndex = _randomizer.NextInt(0, speciesList.Count);
+        } while (nextIndex == _speciesIndex);
+
+        _speciesIndex = nextIndex;
+        EnsureValidSelection();
+    }
+
+    /// <summary>Picks a different gender for the current species at random.</summary>
+    private void RandomizeGender()
+    {
+        IReadOnlyList<Gender> genders = _bodyDatabase.GetGenders(CurrentSpecies());
+        if (genders.Count <= 1)
+        {
+            return;
+        }
+
+        int currentIndex = IndexOfGender(genders, _gender);
+        int nextIndex;
+        do
+        {
+            nextIndex = _randomizer.NextInt(0, genders.Count);
+        } while (nextIndex == currentIndex);
+
+        SetGender(genders[nextIndex]);
+    }
+
+    /// <summary>Gets the current species ID, or an empty string when no body is loaded.</summary>
+    private string CurrentSpecies()
+    {
+        IReadOnlyList<string> speciesList = _bodyDatabase.Species;
+        return speciesList.Count > _speciesIndex ? speciesList[_speciesIndex] : string.Empty;
+    }
+
+    /// <summary>Gets the localized species name, falling back to the raw species ID.</summary>
+    private string FormatSpeciesName(string species)
+    {
+        string key = $"body.species.{species}";
+        string name = _localization.GetString(key) ?? key;
+        return name == key ? species : name;
+    }
+
+    /// <summary>Gets the localized gender name.</summary>
+    private string FormatGenderName(Gender gender)
+    {
+        return gender switch
+        {
+            Gender.Male => _localization.GetRequired("body.gender.male"),
+            Gender.Female => _localization.GetRequired("body.gender.female"),
+            _ => _localization.GetRequired("body.gender.neutral"),
+        };
+    }
+
+    /// <summary>Gets the position of a gender in a list, or 0 when it is absent.</summary>
+    private static int IndexOfGender(IReadOnlyList<Gender> genders, Gender gender)
+    {
+        for (var i = 0; i < genders.Count; i++)
+        {
+            if (genders[i] == gender)
+            {
+                return i;
+            }
+        }
+
+        return 0;
     }
 }

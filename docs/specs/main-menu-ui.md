@@ -121,8 +121,8 @@ New Game:
 - `Tab` covers narrow pane switching, Favorites/LAN Discovery, and attached
   section tabs.
 - `InfoBox` covers the sector and stat descriptions.
-- Create Character centers the name field and dice. The body arrows and
-  randomize dice form one control cluster.
+- Create Character centers the name field, its dice, and the body selector
+  group. Each selector row holds a muted label, a discrete stepper, and a dice.
 - Create Character asks for confirmation when S.P.A.C.E.R points remain. The
   player can still create the colonist.
 - Stat rows color the first letter only. Focused rows use orange, unfocused
@@ -144,9 +144,10 @@ The mockup uses galaxy terminology. The game stores levels and characters.
   so it shows the same scrollbar as the crew manifest when the list overflows.
 - Sector Telemetry is `Level` data plus the active `Character` when present.
 - Crew Manifest is `ICharacterStorage`.
-- Body Preset is the real `Character.Body` ID list from
-  `CharacterAssetService`. It replaces the mockup's separate species, gender,
-  and suit selectors.
+- Species and gender are the real body selectors. Each one is a stepper over
+  the shipped body definitions, and the pair resolves to the `Character.Body`
+  ID through `CharacterAssetService.GetBodyId`. The mockup's suit selector
+  stays out because no asset backs it.
 - Favorites is `ProfileSettings.SavedServers`.
 - LAN Discovery is `LanDiscoveryService`.
 - The server table shows name, address, players, and ping. Ping currently renders
@@ -219,12 +220,13 @@ Do not add fake menu controls.
 - Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:25`
 - New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:23`
 - Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:23`
-- Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:25`
+- Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:27`
 - Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:24`
 - Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:15`
 - Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:20`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
-- Localization: `WaywardBeyond.Client/assets/lang/en/ui.toml`
+- Localization: `WaywardBeyond.Client/assets/lang/en/ui.toml`,
+  `WaywardBeyond.Client/assets/lang/en/body.toml`
 
 ## Tests
 

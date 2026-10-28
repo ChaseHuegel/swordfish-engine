@@ -37,16 +37,10 @@ internal sealed class CharacterAssetService
         _worldShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("textured.glsl"));
     }
 
-    public int GetAppearancesCount()
+    /// <summary>Returns the body ID for a species and gender, falling back to the default body when the pair is unknown.</summary>
+    public string GetBodyId(string species, Gender gender)
     {
-        return _bodyDatabase.Count;
-    }
-
-    /// <summary>Returns the stable string ID of the body at the provided cycle index, or the default body when out of range.</summary>
-    public string GetBodyId(int index)
-    {
-        string? id = _bodyDatabase.Ids.Count > index ? _bodyDatabase.Ids[index] : null;
-        return id ?? _bodyDatabase.DefaultId ?? string.Empty;
+        return _bodyDatabase.GetBody(species, gender)?.ID ?? _bodyDatabase.DefaultId ?? string.Empty;
     }
 
     /// <summary>Returns the standing (UI preview) material for a body ID, falling back to the default body for an unknown ID.</summary>

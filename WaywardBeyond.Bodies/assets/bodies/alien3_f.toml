@@ -1,5 +1,7 @@
 [[Bodies]]
-ID = "wb:alien3_f"
+ID      = "wb:alien3_f"
+Species = "alien3"
+Gender  = "Female"
 
 [Bodies.States.standing]
 front = ["characters/alien3_f_standing.png"]
