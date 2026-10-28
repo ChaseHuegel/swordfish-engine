@@ -206,6 +206,34 @@ writes its private backing field instead: `Mode = { _data = "Remote" }`. Add a
 `RegisterDataBinding<T>` line next to `ProfileSettings` for every new binding
 type.
 
+## `render.toml` (per app)
+
+Runtime rendering settings, registered via `RegisterConfig<RenderSettings>`.
+Schema: `Swordfish/Settings/RenderSettings.cs`.
+Sub-tables configure ambient occlusion, bloom, and dynamic shadows.
+See [rendering-shadows](rendering-shadows.md).
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `AntiAliasing` | enum | `MSAA` | anti-aliasing mode (`None` \| `MSAA`) |
+| `Framerate` | int | `0` | target framerate limit; 0 removes the cap |
+| `VSync` | bool | `false` | vertical synchronization |
+| `FOV` | int | `90` | camera field of view in degrees |
+| `NearPlane` | float | `0.1` | camera near clipping distance |
+| `FarPlane` | float | `1000.0` | camera far clipping distance |
+| `SAO.Enabled` | bool | `true` | enables Scalable Ambient Obscurance |
+| `SAO.Samples` | int | `8` | sample count for SAO obscurance passes |
+| `Bloom.Enabled` | bool | `false` | enables bloom post-processing |
+| `Shadows.Enabled` | bool | `true` | enables dynamic shadow mapping passes |
+| `Shadows.Quality` | enum | `Medium` | preset quality (`Off`, `Low`, `Medium`, `High`, `Ultra`) |
+| `Shadows.FilterMode` | enum | `Soft` | filtering method (`Sharp` \| `Soft`) |
+| `Shadows.Resolution` | int | `1024` | directional shadow map cascade resolution |
+| `Shadows.MaxDistance` | float | `128.0` | maximum distance from camera for shadow coverage |
+| `Shadows.CascadeCount` | int | `3` | number of directional split cascades (1-4) |
+| `Shadows.MaxPointShadows` | int | `2` | maximum shadowed point lights near the camera |
+| `Shadows.NormalBias` | float | `0.02` | normal offset bias to eliminate shadow acne |
+| `Shadows.DepthBias` | float | `0.005` | slope-scaled depth bias for depth comparisons |
+
 ## How configs load
 
 TOML parsing via Tomlet. See `Shoal/Modularity/ModuleOptions.cs`,

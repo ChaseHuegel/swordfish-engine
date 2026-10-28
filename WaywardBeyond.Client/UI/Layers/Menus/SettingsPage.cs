@@ -208,6 +208,7 @@ internal sealed class SettingsPage<TIdentifier>(
         _renderSettings.FOV.Set(draft.Fov);
         _renderSettings.FarPlane.Set(draft.ViewDistance);
         _renderSettings.AntiAliasing.Set(draft.AntiAliasingMode);
+        draft.ShadowQuality.Apply(_renderSettings);
         _renderSettings.SAO.Enabled.Set(draft.AmbientOcclusion);
         _renderSettings.SAO.Samples.Set(draft.AoSamples);
         _renderSettings.Bloom.Enabled.Set(draft.Bloom);

@@ -17,6 +17,7 @@ internal sealed class SettingsDraft
     public int Fov;
     public float ViewDistance;
     public AntiAliasing AntiAliasingMode;
+    public ShadowQuality ShadowQuality;
     public bool AmbientOcclusion;
     public int AoSamples;
     public bool Bloom;
@@ -57,6 +58,7 @@ internal sealed class SettingsDraft
             Fov = renderSettings.FOV.Get(),
             ViewDistance = renderSettings.FarPlane.Get(),
             AntiAliasingMode = renderSettings.AntiAliasing.Get(),
+            ShadowQuality = ShadowQualityExtensions.FromSettings(renderSettings.Shadows),
             AmbientOcclusion = renderSettings.SAO.Enabled.Get(),
             AoSamples = renderSettings.SAO.Samples.Get(),
             Bloom = renderSettings.Bloom.Enabled.Get(),
@@ -88,6 +90,7 @@ internal sealed class SettingsDraft
             Fov = SettingsDefaults.FOV,
             ViewDistance = SettingsDefaults.VIEW_DISTANCE,
             AntiAliasingMode = SettingsDefaults.ANTI_ALIASING_MODE,
+            ShadowQuality = SettingsDefaults.SHADOW_QUALITY,
             AmbientOcclusion = SettingsDefaults.AMBIENT_OCCLUSION,
             AoSamples = SettingsDefaults.AO_SAMPLES,
             Bloom = SettingsDefaults.BLOOM,

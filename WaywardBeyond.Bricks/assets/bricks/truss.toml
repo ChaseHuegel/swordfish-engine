@@ -1,7 +1,7 @@
 [[Bricks]]
 ID          = "wb:truss"
 Shape       = "any"
-Transparent = true
+Alpha       = "Masked"
 Tags        = [
     "metal",
 ]

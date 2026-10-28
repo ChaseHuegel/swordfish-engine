@@ -217,7 +217,7 @@ public class InteractionResolverTests
     {
         return new Brick(
             id,
-            transparent: false,
+            alpha: BrickAlpha.Opaque,
             passable: false,
             meshID: null,
             shape: BrickShape.Any,

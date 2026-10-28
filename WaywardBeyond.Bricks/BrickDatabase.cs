@@ -51,7 +51,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         }
 
         Brick? brick = GetOrNull(voxel.ID);
-        return brick != null && !brick.Passable && !brick.Transparent;
+        return brick != null && !brick.Passable && brick.Alpha == BrickAlpha.Opaque;
     }
 
     /// <inheritdoc/>
@@ -82,7 +82,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     /// <inheritdoc/>
     protected override Result<Brick> LoadAsset(string id, BrickDefinition assetInfo)
     {
-        var brick = new Brick(id, assetInfo.Transparent, assetInfo.Passable, assetInfo.Mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags);
+        var brick = new Brick(id, assetInfo.Alpha, assetInfo.Passable, assetInfo.Mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags);
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
     }

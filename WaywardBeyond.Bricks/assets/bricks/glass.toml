@@ -1,7 +1,7 @@
 [[Bricks]]
 ID          = "wb:glass"
 Shape       = "any"
-Transparent = true
+Alpha       = "Blend"
 Tags        = [
     "metal",
     "buildable",
