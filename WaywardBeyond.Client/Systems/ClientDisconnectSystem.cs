@@ -6,7 +6,6 @@ using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 

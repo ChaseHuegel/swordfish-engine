@@ -8,7 +8,6 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
-using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Configuration;
@@ -39,7 +38,6 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
-using WaywardBeyond.Gameplay.Interactions;
 
 namespace WaywardBeyond.Client;
 
