@@ -480,7 +480,7 @@ internal sealed class ChatLayer : IUILayer
                     Height = new Fixed(rowHeight),
                 };
 
-                using (ui.Text($"{UiTheme.AccentRichText} [{message.SenderName}] #R {message.Value}"))
+                using (ui.Text($"{UiTheme.AccentBrightRichText} {message.SenderName}: #R {message.Value}"))
                 {
                     ui.ID = $"ChatMessage_{index}";
                     ui.Passthrough = true;

@@ -48,7 +48,7 @@ internal static class UiTheme
     public static readonly Vector4 Transparent = Vector4.Zero;
 
     /// <summary>The accent color as a rich-text color tag, for text that uses inline markup.</summary>
-    public static readonly string AccentRichText = ToRichText(Accent);
+    public static readonly string AccentBrightRichText = ToRichText(AccentBright);
 
     /// <summary>Formats a color as a rich-text color tag.</summary>
     public static string ToRichText(in Vector4 color)
