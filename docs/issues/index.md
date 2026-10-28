@@ -64,7 +64,7 @@ is not part of this workflow.
 - [ ] [Harden the voxel module](/docs/issues/0081-voxels-tech-debt.md) — unmasked `ShapeLight` nibbles, a heavyweight transitive `Data` dependency, and an undocumented angle unit
 - [ ] [Unify the game data version](/docs/issues/0084-unify-data-version.md) — the server catalog hardcodes a `Data.Version` that duplicates `WaywardBeyond.Version` and can drift
 - [ ] [nsd-rpc notification proxies swallow the send result](/docs/issues/0085-notification-proxy-send-result.md) — the generated proxy discards `RpcPeer.Notify`, so the server bypasses it to detect a rejected send
-- [ ] [Reduce the cost of a voxel edit rebuild](/docs/issues/0086-incremental-voxel-rebuild.md) — every edit remeshes the whole structure, collides every solid voxel, and draws unseen structures
+- [x] [Reduce the cost of a voxel edit rebuild](/docs/issues/0086-incremental-voxel-rebuild.md) — every edit remeshes the whole structure, collides every solid voxel, and draws unseen structures
 - [ ] [Add keybinding rebinding](/docs/issues/0086-keybinding-rebinding.md) — shortcuts have no capture, rebind, enumeration, or persisted override path
 - [ ] [Scale the UI for high-density windows](/docs/issues/0087-ui-scaling.md) — Reef draws raw pixels, so fixed metrics stay small at 4K
 - [ ] [Add keyboard and gamepad menu navigation](/docs/issues/0088-menu-keyboard-navigation.md) — menus are mouse-only and have no focus model
@@ -75,5 +75,7 @@ is not part of this workflow.
 - [ ] [Add a window concept to the UI layers](/docs/issues/0093-ui-window-concept.md) — one global interaction blocker cannot separate closable windows from selectors
 - [ ] [Remove the feedback submit delay](/docs/issues/0094-feedback-submit-delay.md) — a fixed 100 ms delay stands in for "the modal has closed"
 - [ ] [Allow output device selection](/docs/issues/0095-output-device-selection.md) — the engine has no public device list or preference API, and the audio settings page cannot choose an output device
+- [ ] [Use one physics body with per-chunk compound children](/docs/issues/0096-per-chunk-compound-collision.md) — every edit copies all chunk shapes and rebuilds the whole Jolt compound
+- [ ] [Separate voxel light from geometry](/docs/issues/0097-voxel-light-geometry-split.md) — a light change remeshes and recollides every chunk it touches
 
 ### Research

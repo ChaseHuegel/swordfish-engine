@@ -18,6 +18,7 @@ internal sealed class ConfigManager : IAutoActivate
     private readonly LevelGeneratorConfig _levelGeneratorConfig;
     private readonly ChatConfig _chatConfig;
     private readonly ChatConfig _storageConfig;
+    private readonly VoxelSettings _voxelSettings;
 
     public ConfigManager(
         in IWindowContext windowContext,
@@ -31,7 +32,8 @@ internal sealed class ConfigManager : IAutoActivate
         in UISettings uiSettings,
         in LevelGeneratorConfig levelGeneratorConfig,
         in ChatConfig chatConfig,
-        in ChatConfig storageConfig
+        in ChatConfig storageConfig,
+        in VoxelSettings voxelSettings
     ) {
         _controlSettings = controlSettings;
         _windowSettings = windowSettings;
@@ -44,6 +46,7 @@ internal sealed class ConfigManager : IAutoActivate
         _levelGeneratorConfig = levelGeneratorConfig;
         _chatConfig = chatConfig;
         _storageConfig = storageConfig;
+        _voxelSettings = voxelSettings;
 
         windowContext.Closed += OnWindowClosed;
         ApplySettings();
@@ -62,6 +65,7 @@ internal sealed class ConfigManager : IAutoActivate
         _levelGeneratorConfig.Save();
         _chatConfig.Save();
         _storageConfig.Save();
+        _voxelSettings.Save();
     }
 
     private void OnWindowClosed()

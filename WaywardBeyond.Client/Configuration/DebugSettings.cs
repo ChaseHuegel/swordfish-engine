@@ -8,6 +8,10 @@ namespace WaywardBeyond.Client.Configuration;
 [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local")]
 public sealed class DebugSettings : Config<DebugSettings>
 {
+    /// <summary>Controls the debug overlay.</summary>
     [TomlNonSerialized]
     public DataBinding<bool> OverlayVisible { get; private set; } = new();
+
+    /// <summary>Controls the voxel chunk debug boxes. Only visible while the debug overlay is open.</summary>
+    public DataBinding<bool> VoxelGizmosVisible { get; private set; } = new();
 }

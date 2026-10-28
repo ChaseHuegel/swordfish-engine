@@ -14,8 +14,6 @@ dotnet test Swordfish.Tests                         # xunit engine tests
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
 dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
-dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
-dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
 ```
 
 - `Reef.Tests` is `net8.0`; it runs on Linux. On non-Windows platforms the
