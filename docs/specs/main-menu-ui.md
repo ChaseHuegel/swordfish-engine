@@ -163,7 +163,9 @@ A save is a galaxy. The game stores levels and characters.
   Completion or failure dismisses the modal automatically.
 - The Saved signals list has an Add signal action at the bottom. It opens a
   dialog with address, port, Cancel, and Add signal.
-- Local signal rows have a star action that saves the discovered signal.
+- Each signal row draws its action as the final column. Saved signal rows show a
+  remove action. Local signal rows show a star action that saves the discovered
+  signal.
 - When connected to a remote server, the signal list shows a connected banner
   with View archives and Sever uplink. Sever uplink restores the local loopback,
   clears the cached listing and active save, and stays on the signal list.

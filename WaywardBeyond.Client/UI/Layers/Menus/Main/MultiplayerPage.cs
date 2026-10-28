@@ -25,7 +25,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Multiplayer;
 
-    private const int ROW_HEIGHT = 30;
+    private const int ROW_HEIGHT = 48;
     private const int ROW_GAP = 3;
     private const int PANEL_PADDING = 12;
     private const int TABS_HEIGHT = 40;
@@ -443,7 +443,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         }
         else
         {
-            DrawServerRows(ui, nameWidth, addressWidth, playersWidth, pingWidth, count);
+            DrawServerRows(ui, addressWidth, playersWidth, pingWidth, count);
         }
 
         DrawAddFavoriteButton(ui);
@@ -569,7 +569,6 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     /// <summary>Draws every server row inside the scroll viewport.</summary>
     private void DrawServerRows(
         UIBuilder<Material> ui,
-        int nameWidth,
         int addressWidth,
         int playersWidth,
         int pingWidth,
@@ -580,7 +579,6 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         var context = new ServerRowContext(
             this,
             _favoritesTab,
-            nameWidth,
             addressWidth,
             playersWidth,
             pingWidth,
@@ -656,79 +654,101 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         DrawDiscoveredServerRowContent(contentUi, in context);
     }
 
-    /// <summary>Draws one saved-server row with its remove button.</summary>
+    /// <summary>Draws one saved-server row with its remove button as the final column.</summary>
     private static void DrawSavedServerRowContent(UIBuilder<Material> contentUi, in ServerRowContext context)
     {
         MultiplayerPage page = context.Page;
         SavedServer server = page._savedServers[context.Index];
-        page.DrawServerRow(
-            contentUi,
-            context.NameWidth,
-            context.AddressWidth,
-            context.PlayersWidth,
-            context.PingWidth,
-            server.Name,
-            $"{server.Host}:{server.Port}",
-            "-",
-            ping: null
-        );
 
-        var options = new Widgets.IconButtonOptions(
-            Danger: true,
-            SoundEffectService: context.SoundEffectService
-        );
-        if (contentUi.IconButton(
-            $"RemoveSavedServer_{context.Index}",
-            MenuGlyphs.TRASH,
-            options,
+        using (contentUi.Row(
             new Constraints
             {
-                Width = new Fixed(24),
-                Height = new Fixed(24),
-                Anchors = Anchors.Center,
-            }
+                Width = new Fill(),
+                Height = new Fill(),
+            },
+            spacing: 4
         ))
         {
-            page.ConfirmRemoveFavorite(context.Index, server.Name);
+            contentUi.Padding = new Padding(left: 8, right: 8, top: 0, bottom: 0);
+            page.DrawServerRowCells(
+                contentUi,
+                context.AddressWidth,
+                context.PlayersWidth,
+                context.PingWidth,
+                server.Name,
+                $"{server.Host}:{server.Port}",
+                "-",
+                ping: null
+            );
+
+            var options = new Widgets.IconButtonOptions(
+                Danger: true,
+                SoundEffectService: context.SoundEffectService
+            );
+            if (contentUi.IconButton(
+                $"RemoveSavedServer_{context.Index}",
+                MenuGlyphs.TRASH,
+                options,
+                new Constraints
+                {
+                    Width = new Fixed(24),
+                    Height = new Fixed(24),
+                    Anchors = Anchors.Center,
+                }
+            ))
+            {
+                page.ConfirmRemoveFavorite(context.Index, server.Name);
+            }
         }
     }
 
-    /// <summary>Draws one discovered-server row with its favorite button.</summary>
+    /// <summary>Draws one discovered-server row with its favorite button as the final column.</summary>
     private static void DrawDiscoveredServerRowContent(UIBuilder<Material> contentUi, in ServerRowContext context)
     {
         MultiplayerPage page = context.Page;
         DiscoveredServer server = page._discoveredServers[context.Index];
-        page.DrawServerRow(
-            contentUi,
-            context.NameWidth,
-            context.AddressWidth,
-            context.PlayersWidth,
-            context.PingWidth,
-            server.Name,
-            $"{server.Host}:{server.Port}",
-            server.Players.ToString(),
-            ping: null
-        );
 
-        var options = new Widgets.IconButtonOptions(SoundEffectService: context.SoundEffectService);
-        if (contentUi.IconButton(
-            $"FavoriteServer_{context.Index}",
-            MenuGlyphs.STAR,
-            options,
+        using (contentUi.Row(
             new Constraints
             {
-                Width = new Fixed(24),
-                Height = new Fixed(24),
-                Anchors = Anchors.Center,
-            }
+                Width = new Fill(),
+                Height = new Fill(),
+            },
+            spacing: 4
         ))
         {
-            page.AddFavorite(new SavedServer
+            contentUi.Padding = new Padding(left: 8, right: 8, top: 0, bottom: 0);
+            page.DrawServerRowCells(
+                contentUi,
+                context.AddressWidth,
+                context.PlayersWidth,
+                context.PingWidth,
+                server.Name,
+                $"{server.Host}:{server.Port}",
+                server.Players.ToString(),
+                ping: null
+            );
+
+            var options = new Widgets.IconButtonOptions(SoundEffectService: context.SoundEffectService);
+            if (contentUi.IconButton(
+                $"FavoriteServer_{context.Index}",
+                MenuGlyphs.STAR,
+                options,
+                new Constraints
+                {
+                    Width = new Fixed(24),
+                    Height = new Fixed(24),
+                    Anchors = Anchors.Center,
+                }
+            ))
             {
-                Name = string.IsNullOrWhiteSpace(server.Name) ? server.Host : server.Name,
-                Host = server.Host,
-                Port = server.Port,
-            });
+                page.AddFavorite(new SavedServer
+                {
+                    Name = string.IsNullOrWhiteSpace(server.Name) ? server.Host : server.Name,
+                    Host = server.Host,
+                    Port = server.Port,
+                });
+            }
         }
     }
 
@@ -736,7 +756,6 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly record struct ServerRowContext(
         MultiplayerPage Page,
         bool Favorites,
-        int NameWidth,
         int AddressWidth,
         int PlayersWidth,
         int PingWidth,
@@ -776,9 +795,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     }
 
     /// <summary>Draws the labels and ping indicator of one server row.</summary>
-    private void DrawServerRow(
+    private void DrawServerRowCells(
         UIBuilder<Material> ui,
-        int nameWidth,
         int addressWidth,
         int playersWidth,
         int pingWidth,
@@ -788,68 +806,56 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         int? ping
     )
     {
-        using (ui.Row(
+        ui.Label(
+            MenuGlyphs.SERVER,
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.Accent,
+            new Constraints
+            {
+                Width = new Fixed(20),
+                Height = new Fill(),
+            },
+            HorizontalAlignment.Center,
+            fontId: UiTheme.FONT_ICONS
+        );
+        ui.Label(
+            name,
+            UiMetrics.MENU_BODY_FONT,
+            UiTheme.Text,
             new Constraints
             {
                 Width = new Fill(),
                 Height = new Fill(),
+            }
+        );
+        ui.Label(
+            address,
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.TextMuted,
+            new Constraints
+            {
+                Width = new Fixed(Math.Max(1, addressWidth - 8)),
+                Height = new Fill(),
+            }
+        );
+        ui.Label(
+            players,
+            UiMetrics.MENU_SMALL_FONT,
+            UiTheme.Text,
+            new Constraints
+            {
+                Width = new Fixed(Math.Max(1, playersWidth - 8)),
+                Height = new Fill(),
+            }
+        );
+        ui.PingIndicator(
+            new Constraints
+            {
+                Width = new Fixed(Math.Max(1, pingWidth - 8)),
+                Height = new Fill(),
             },
-            spacing: 4
-        ))
-        {
-            ui.Padding = new Padding(left: 8, right: 8, top: 0, bottom: 0);
-
-            ui.Label(
-                MenuGlyphs.SERVER,
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.Accent,
-                new Constraints
-                {
-                    Width = new Fixed(20),
-                    Height = new Fill(),
-                },
-                HorizontalAlignment.Center,
-                fontId: UiTheme.FONT_ICONS
-            );
-            ui.Label(
-                name,
-                UiMetrics.MENU_BODY_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                }
-            );
-            ui.Label(
-                address,
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.TextMuted,
-                new Constraints
-                {
-                    Width = new Fixed(Math.Max(1, addressWidth - 8)),
-                    Height = new Fill(),
-                }
-            );
-            ui.Label(
-                players,
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fixed(Math.Max(1, playersWidth - 8)),
-                    Height = new Fill(),
-                }
-            );
-            ui.PingIndicator(
-                new Constraints
-                {
-                    Width = new Fixed(Math.Max(1, pingWidth - 8)),
-                    Height = new Fill(),
-                },
-                ping
-            );
-        }
+            ping
+        );
     }
 
     /// <summary>Draws the direct connect panel.</summary>
