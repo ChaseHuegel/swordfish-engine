@@ -7,6 +7,7 @@ internal sealed class BufferObject<TData> : GLHandle
 {
     private readonly GL _gl;
     public readonly int Length;
+    public int ByteCapacity { get; private set; }
     private readonly BufferTargetARB _bufferType;
     private readonly BufferUsageARB _usage;
 
@@ -17,13 +18,14 @@ internal sealed class BufferObject<TData> : GLHandle
     {
         _gl = gl;
         Length = data.Length;
+        ByteCapacity = data.Length * sizeof(TData);
         _bufferType = bufferType;
         _usage = usage;
 
         using Scope _ = Use();
         fixed (void* dataPtr = data)
         {
-            nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
+            nuint bufferSize = new((uint)ByteCapacity);
             _gl.BufferData(_bufferType, bufferSize, dataPtr, _usage);
         }
 
@@ -33,22 +35,32 @@ internal sealed class BufferObject<TData> : GLHandle
         }
     }
 
-    public unsafe void UpdateData(Span<TData> data)
+    public unsafe void UpdateData(ReadOnlySpan<TData> data)
     {
         Bind();
         fixed (void* dataPtr = data)
         {
-            nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
-            _gl.BufferData(_bufferType, bufferSize, dataPtr, _usage);
+            int requiredBytes = data.Length * sizeof(TData);
+            if (requiredBytes > ByteCapacity)
+            {
+                ByteCapacity = requiredBytes;
+                _gl.BufferData(_bufferType, (nuint)requiredBytes, dataPtr, _usage);
+            }
+            else
+            {
+                _gl.BufferSubData(_bufferType, 0, (nuint)requiredBytes, dataPtr);
+            }
         }
         Unbind();
     }
+
+    public unsafe void UpdateData(Span<TData> data) => UpdateData((ReadOnlySpan<TData>)data);
     
     public unsafe void Resize(int size)
     {
         Bind();
-        nuint bufferSize = new((uint)(size * sizeof(TData)));
-        _gl.BufferData(_bufferType, bufferSize, data: null, _usage);
+        ByteCapacity = size * sizeof(TData);
+        _gl.BufferData(_bufferType, (nuint)ByteCapacity, data: null, _usage);
         Unbind();
     }
 

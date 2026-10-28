@@ -148,6 +148,17 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
         }
     }
 
+    public unsafe void SetUniform(string uniform, ReadOnlySpan<Matrix4x4> values)
+    {
+        if (TryGetUniform(uniform, out int location))
+        {
+            fixed (Matrix4x4* ptr = values)
+            {
+                _gl.UniformMatrix4(location, (uint)values.Length, false, (float*)ptr);
+            }
+        }
+    }
+
     private bool TryGetUniform(string uniform, out int location)
     {
         if (!_uniformLocations.TryGetValue(uniform, out location))

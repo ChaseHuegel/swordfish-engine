@@ -9,7 +9,7 @@ public sealed class MeshRenderer : IHandle
     /// <inheritdoc/>
     public bool IsDisposed { get; private set; }
 
-    public RenderOptions RenderOptions { get; set; }
+    public RenderOptions RenderOptions { get; set; } = new();
 
     public Mesh Mesh { get; }
 
