@@ -207,7 +207,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         {
             CompoundShape compoundShape = collider.CompoundShape.Value;
             var compoundShapeSettings = new MutableCompoundShapeSettings();
-            var childShapes = new List<JoltShape>(compoundShape.Shapes.Length);
+            var uniqueShapes = new Dictionary<Shape, JoltShape>();
 
             try
             {
@@ -215,12 +215,16 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 {
                     Shape childShape = compoundShape.Shapes[i];
 
-                    if (!TryGetJoltShape(childShape, scale, out JoltShape childJoltShape))
+                    if (!uniqueShapes.TryGetValue(childShape, out JoltShape? childJoltShape))
                     {
-                        continue;
+                        if (!TryGetJoltShape(childShape, scale, out childJoltShape))
+                        {
+                            continue;
+                        }
+
+                        uniqueShapes[childShape] = childJoltShape;
                     }
 
-                    childShapes.Add(childJoltShape);
                     compoundShapeSettings.AddShape(compoundShape.Positions[i] * scale, compoundShape.Orientations[i], childJoltShape);
                 }
 
@@ -230,9 +234,9 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             finally
             {
                 compoundShapeSettings.Dispose();
-                for (var i = 0; i < childShapes.Count; i++)
+                foreach (JoltShape shape in uniqueShapes.Values)
                 {
-                    childShapes[i].Dispose();
+                    shape.Dispose();
                 }
             }
         }
@@ -242,7 +246,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             return TryGetJoltShape(collider.Shape.Value, scale, out joltShape);
         }
 
-        joltShape = default!;
+        joltShape = null!;
         return false;
     }
 

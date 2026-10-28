@@ -55,17 +55,15 @@ internal static class ShadowCascadeMath
         }
     }
 
-    /// <summary>Calculates a texel-snapped orthographic light view-projection matrix for a cascade frustum slice.</summary>
-    public static void CalculateCascadeMatrix(
+    /// <summary>Calculates the world-space bounding sphere of a camera frustum slice.</summary>
+    public static void CalculateCascadeSphere(
         Matrix4x4 cameraView,
         float fovRadians,
         float aspectRatio,
         float cascadeNear,
         float cascadeFar,
-        Vector3 lightDirection,
-        uint resolution,
-        out Matrix4x4 cascadeView,
-        out Matrix4x4 cascadeProj
+        out Vector3 center,
+        out float radius
     ) {
         if (!Matrix4x4.Invert(cameraView, out Matrix4x4 invCameraView))
         {
@@ -91,8 +89,7 @@ internal static class ShadowCascadeMath
             new( farW,  -farH, -cascadeFar),
         };
 
-        // Transform corners to world space
-        var center = Vector3.Zero;
+        center = Vector3.Zero;
         for (var i = 0; i < 8; i++)
         {
             frustumCorners[i] = Vector3.Transform(frustumCorners[i], invCameraView);
@@ -100,7 +97,6 @@ internal static class ShadowCascadeMath
         }
         center /= 8.0f;
 
-        // Bounding sphere radius
         var maxDistSq = 0.0f;
         for (var i = 0; i < 8; i++)
         {
@@ -110,33 +106,93 @@ internal static class ShadowCascadeMath
                 maxDistSq = distSq;
             }
         }
-        float radius = MathF.Ceiling(MathF.Sqrt(maxDistSq) * 16.0f) / 16.0f;
+        radius = MathF.Ceiling(MathF.Sqrt(maxDistSq) * 16.0f) / 16.0f;
+        if (!float.IsFinite(center.X) || !float.IsFinite(center.Y) || !float.IsFinite(center.Z))
+        {
+            center = Vector3.Zero;
+        }
 
-        Vector3 normLightDir = Vector3.Normalize(lightDirection);
-        if (normLightDir == Vector3.Zero)
+        if (!float.IsFinite(radius) || radius <= 0.0f)
+        {
+            radius = 1.0f;
+        }
+    }
+
+    /// <summary>Calculates a texel-snapped orthographic light view-projection matrix for a cascade frustum slice.</summary>
+    public static void CalculateCascadeMatrix(
+        Matrix4x4 cameraView,
+        float fovRadians,
+        float aspectRatio,
+        float cascadeNear,
+        float cascadeFar,
+        Vector3 lightDirection,
+        uint resolution,
+        out Matrix4x4 cascadeView,
+        out Matrix4x4 cascadeProj
+    ) {
+        CalculateCascadeSphere(
+            cameraView,
+            fovRadians,
+            aspectRatio,
+            cascadeNear,
+            cascadeFar,
+            out Vector3 center,
+            out float radius
+        );
+
+        Vector3 normLightDir = lightDirection.LengthSquared() > 1e-8f
+            ? Vector3.Normalize(lightDirection)
+            : -Vector3.UnitY;
+        if (!float.IsFinite(normLightDir.X) || !float.IsFinite(normLightDir.Y) || !float.IsFinite(normLightDir.Z))
         {
             normLightDir = -Vector3.UnitY;
         }
 
         Vector3 up = MathF.Abs(normLightDir.Y) > 0.99f ? Vector3.UnitZ : Vector3.UnitY;
-        Vector3 eye = center - (normLightDir * radius * 2.0f);
-        cascadeView = Matrix4x4.CreateLookAt(eye, center, up);
+        Vector3 right = Vector3.Normalize(Vector3.Cross(normLightDir, up));
+        if (!float.IsFinite(right.X) || !float.IsFinite(right.Y) || !float.IsFinite(right.Z) || right.LengthSquared() < 1e-8f)
+        {
+            right = Vector3.UnitX;
+        }
 
-        // Derive AABB in light space
-        Vector3 centerLight = Vector3.Transform(center, cascadeView);
-        float minX = centerLight.X - radius;
-        float maxX = centerLight.X + radius;
-        float minY = centerLight.Y - radius;
-        float maxY = centerLight.Y + radius;
+        up = Vector3.Normalize(Vector3.Cross(right, normLightDir));
+        if (!float.IsFinite(up.X) || !float.IsFinite(up.Y) || !float.IsFinite(up.Z) || up.LengthSquared() < 1e-8f)
+        {
+            up = Vector3.UnitY;
+        }
+
+        //  Snap the cascade center on the light-space texel grid. The light view
+        //  must use the snapped center, or the shadow grid moves with the camera.
+        float resolutionF = Math.Max(1f, resolution);
+        float texelSize = (2.0f * radius) / Math.Max(1f, resolutionF - 2.0f);
+        if (!float.IsFinite(texelSize) || texelSize <= 0.0f)
+        {
+            texelSize = 0.01f;
+        }
+
+        float paddedRadius = radius + texelSize;
+        float centerRight = Vector3.Dot(center, right);
+        float centerUp = Vector3.Dot(center, up);
+        float snappedRight = MathF.Round(centerRight / texelSize) * texelSize;
+        float snappedUp = MathF.Round(centerUp / texelSize) * texelSize;
+        Vector3 snappedCenter = center
+            + ((snappedRight - centerRight) * right)
+            + ((snappedUp - centerUp) * up);
+        if (!float.IsFinite(snappedCenter.X) || !float.IsFinite(snappedCenter.Y) || !float.IsFinite(snappedCenter.Z))
+        {
+            snappedCenter = center;
+        }
+
+        float lightDistance = paddedRadius * 2.0f;
+        Vector3 eye = snappedCenter - (normLightDir * lightDistance);
+        cascadeView = Matrix4x4.CreateLookAt(eye, snappedCenter, up);
+
+        float minX = -paddedRadius;
+        float maxX = paddedRadius;
+        float minY = -paddedRadius;
+        float maxY = paddedRadius;
         float minZ = 0.0f;
-        float maxZ = radius * 4.0f;
-
-        // Texel snapping
-        float worldUnitsPerTexel = (2.0f * radius) / Math.Max(1u, resolution);
-        minX = MathF.Floor(minX / worldUnitsPerTexel) * worldUnitsPerTexel;
-        maxX = MathF.Floor(maxX / worldUnitsPerTexel) * worldUnitsPerTexel;
-        minY = MathF.Floor(minY / worldUnitsPerTexel) * worldUnitsPerTexel;
-        maxY = MathF.Floor(maxY / worldUnitsPerTexel) * worldUnitsPerTexel;
+        float maxZ = paddedRadius * 4.0f;
 
         cascadeProj = CreateOrthographicOpenGL(minX, maxX, minY, maxY, minZ, maxZ);
     }
