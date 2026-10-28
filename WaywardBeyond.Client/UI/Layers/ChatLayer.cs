@@ -50,7 +50,7 @@ internal sealed class ChatLayer : IUILayer
     private const int LINE_HEIGHT = 22;
     private const int DEFAULT_TEXT_HEIGHT = 16;
     private const int MESSAGE_SPACING = 3;
-    private const int MESSAGE_BAR_WIDTH = 3;
+    private const int MESSAGE_BAR_WIDTH = 2;
     private const int MESSAGE_TEXT_LEFT_PADDING = 10;
     private const int MESSAGE_PADDING_X = 8;
     private const int MESSAGE_PADDING_Y = 3;
@@ -265,7 +265,7 @@ internal sealed class ChatLayer : IUILayer
         {
             Length = UiMetrics.PANEL_CAP_LENGTH,
             Thickness = UiMetrics.PANEL_CAP_THICKNESS,
-            Color = UiTheme.Accent,
+            Color = UiTheme.BorderHover,
         };
 
         using (ui.Panel(Widgets.Rect(0, 0, WIDTH, PANEL_HEIGHT), UiTheme.PanelBackground, border, caps, innerBorder: true))
@@ -279,16 +279,9 @@ internal sealed class ChatLayer : IUILayer
                 ui.Color = UiTheme.PanelInner;
                 ui.Constraints = Widgets.RectConstraints(Widgets.Rect(3, 3, headerInnerWidth, headerInnerHeight));
 
-                //  Left cyan accent pip
-                using (ui.Element())
-                {
-                    ui.Color = UiTheme.Accent;
-                    ui.Constraints = Widgets.RectConstraints(Widgets.Rect(8, 8, 4, 9));
-                }
-
                 ui.Label(
                     _headerLabel,
-                    Widgets.Rect(18, 0, 360, headerInnerHeight),
+                    Widgets.Rect(10, 0, 360, headerInnerHeight),
                     UiMetrics.TINY_FONT,
                     UiTheme.TextMuted,
                     Anchors.Left | Anchors.Center
@@ -370,11 +363,11 @@ internal sealed class ChatLayer : IUILayer
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
-            ui.Color = UiTheme.AccentDark;
+            ui.Color = UiTheme.InputFocus;
             ui.Border = new BorderStyle
             {
                 Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                Color = UiTheme.Accent,
+                Color = UiTheme.BorderHover,
             };
             ui.Constraints = Widgets.RectConstraints(Widgets.Rect(INPUT_BAR_X, INPUT_BAR_Y, INPUT_BAR_WIDTH, INPUT_BAR_HEIGHT));
             ui.ClipConstraints = new Constraints
@@ -404,7 +397,7 @@ internal sealed class ChatLayer : IUILayer
                 _sendHintLabel,
                 Widgets.Rect(INPUT_BAR_WIDTH - SEND_HINT_WIDTH - 8, 0, SEND_HINT_WIDTH, INPUT_BAR_HEIGHT),
                 UiMetrics.TINY_FONT,
-                UiTheme.AccentBright,
+                UiTheme.TextMuted,
                 Anchors.Right | Anchors.Center
             );
         }
@@ -465,7 +458,7 @@ internal sealed class ChatLayer : IUILayer
                     Height = new Fixed(rowHeight),
                 };
 
-                using (ui.Text($"#A5F3FC [{message.SenderName}] #R {message.Value}"))
+                using (ui.Text($"{UiTheme.AccentRichText} [{message.SenderName}] #R {message.Value}"))
                 {
                     ui.ID = $"ChatMessage_{index}";
                     ui.Passthrough = true;

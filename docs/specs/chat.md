@@ -95,13 +95,13 @@ renders nothing once every message has faded. Open chat shows every message
 at full alpha. `ChatService` stamps the arrival time when the client receives
 the message; the overlay itself never resets a message's clock.
 
-The open overlay renders a fixed-height `Widgets.Panel` with cyan corner caps,
-a `SUBSPACE COMMS // LOCAL` header bar with an `[ESC] CLOSE` hint, a
+The open overlay renders a fixed-height `Widgets.Panel` with `UiTheme.BorderHover`
+corner caps, a `SUBSPACE COMMS // LOCAL` header bar with an `[ESC] CLOSE` hint, a
 `Widgets.Scrollbar` rail beside the 200-pixel history viewport, and a
-cyan-framed send bar (`>` prompt, chromeless `Widgets.TextBox`, and `[ENTER]`
-hint). Closed chat renders individual translucent message pills with a 3-pixel
+send bar (`>` prompt, chromeless `Widgets.TextBox`, and `[ENTER]`
+hint). Closed chat renders individual translucent message pills with a 2-pixel
 vertical cyan bar anchor on the left edge and `[SenderName]` in
-`UiTheme.AccentBright`.
+`UiTheme.Accent`.
 
 The chat box focuses programmatically when it opens (`UIBuilder.Focus`). The
 Enter key that opens the box is consumed by the box's first frame, so it does
