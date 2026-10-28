@@ -1,134 +1,168 @@
-# UI localization and copy
+# UI copy and localization
 
-One subject: the localization conventions, thematic vocabulary, and string
-mappings for game UI elements.
+One subject: the player-facing copy rules, the localization catalogs, and the
+language key grammar.
 
-The primary localization catalog is at
-`WaywardBeyond.Client/assets/lang/en/ui.toml:1`.
+## Catalogs
 
-## Principles
+- `WaywardBeyond.Client/assets/lang/en/ui.toml:1` holds every `ui.*` key.
+- `WaywardBeyond.Client/assets/lang/en/notification.toml:1` holds every
+  `notification.*` key. These are the toasts and the in-game event notices.
+- One prefix per file. Do not add a `ui.*` key to `notification.toml`.
+- Keys resolve by literal name through `ILocalization`. `GetRequired` throws
+  when a key is missing, so a rename must cover every call site.
+  See `WaywardBeyond.Client/Extensions/LocalizationExtensions.cs:12`.
+- The other language files (`item.toml`, `brick.toml`, `body.toml`,
+  `skills.toml`, `naming.toml`, `tags/*.toml`) are data-driven. This spec does
+  not cover them.
 
-UI copy balances functional clarity with immersive diegetic theme.
+## Writing rules
 
-- **Functional clarity for technical controls.** Main menu navigation
-  (`Singleplayer`, `Multiplayer`, `Settings`, `Exit Game`) and engine settings
-  must remain direct and standard. Do not obscure graphics, audio, or display
-  controls with lore names.
-- **Diegetic theme for game flows.** World creation, character creation, and
-  session lobbies use the language of space colonization, telemetry, and
-  telecommunications.
-- **Casing consistency.** Use Title Case for button actions, modal titles, and
-  tab headers. Use sentence case for descriptions, hints, and helper text.
-- **No dead keys.** Remove unused legacy strings from previous menu
-  iterations.
+The copy follows the Material style guide. Immersion never outranks clarity.
 
-## Vocabulary rules
+1. Use sentence case for all UI text: buttons, tabs, panel titles, dialog
+   titles, labels, settings rows, and values.
+2. Allow three exceptions. Acronyms and proper nouns (`S.P.A.C.E.R.`, `HUD`,
+   `FPS`, `MSAA`, `AO`, `OK`). Terminal-style text (the chat header, key hints,
+   `<none>`, the creation and load feeds). Creative surfaces (credits, playtest
+   notice).
+3. Do not end a single sentence with a period. Put periods between sentences.
+   Keep the final period only when the value holds two sentences or more.
+4. Do not use exclamation marks.
+5. Do not add a trailing ellipsis. Use one only for truncated text.
+6. Use one noun per concept. See the vocabulary table.
+7. Keep first-level surfaces standard. The home menu, the settings page, the
+   generic buttons, and the error messages stay direct.
+8. Do not put player-facing copy in code. Read it from the catalog. Prefer
+   `GetRequired` over a fallback literal.
 
-| Domain | Standard term | Thematic term | Context |
-|---|---|---|---|
-| Servers / Hosts | Server | Signal | Server list rows, network endpoints |
-| Server Directory | Server List | Subspace Signals | Multiplayer server hub |
-| LAN Discovery | LAN Discovery | Local Signals | Local subnet network discovery |
-| Direct Connect | Direct Connect | Direct Uplink | Manual IP/port entry |
-| Connecting | Connect / Join | Uplink / Establish Uplink | Connection initiation |
-| Disconnect | Disconnect | Sever Uplink | Disconnecting from a host |
-| Favorites | Favorite | Saved Signal | Pinned / bookmarked endpoints |
-| Character Creation | Create character | Register colonist | S.P.A.C.E.R. personnel enrolment |
-| Character Action | Create | Register | Form submission CTA |
-| Character Body | Body preset | Colonist Frame | Physical frame selection |
-| Level / Save | Level / Save | Sector | World instances |
-| World Seed | Level seed | Sector Seed | Procedural generation seed |
-| World Name | Enter name | Sector designation | World identifier input |
+| Avoid | Prefer |
+|---|---|
+| `Are you sure?` | `Delete galaxy?` |
+| `Failed to create the sector.` | `Could not chart the galaxy` |
+| `Connecting to Server` | `Establishing uplink` |
+| `Save & Exit` | `Save & exit` |
+| `Apply Changes` | `Apply changes` |
+| `Enter name...` | `Enter name` |
+| `Feedback submission failed, please try again.` | `Could not send feedback. Try again.` |
 
-## String mapping specification
+## Key grammar
 
-### Multiplayer and signals
+A key is `ui.<type>.<subject>.<leaf>`.
 
-The multiplayer hub at
-`WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:1` uses signal and
-uplink terminology.
+- `type` is the surface kind: `button`, `panel`, `dialog`, `field`, `label`,
+  `message`, `text`, `hint`, `word`, `unit`, `settings`.
+- `subject` is the data concept from the code, never the themed word: `level`,
+  `character`, `body`, `server`, `session`, `chat`, `inventory`, `feedback`,
+  `credits`, `playtest`.
+- `leaf` is the action or the surface facet: `create`, `delete`, `join`,
+  `scan`, `placeholder`, `empty`, `body`.
+- Omit the subject for a global control: `ui.button.back`, `ui.button.cancel`.
+- A tab reuses the `panel` key of the pane it selects.
+- Use lower camel case only for one code term: `ui.settings.option.frameLimit`.
+- The value carries the theme. The key never does.
+- A `notification.*` key uses the same grammar without the `ui.` prefix, for
+  example `notification.level.saved`.
 
-| Key | Current value | New value |
+| Avoid | Prefer |
+|---|---|
+| `ui.button.createGalaxy` | `ui.button.level.new` |
+| `ui.menu.sectorTelemetry` | `ui.panel.level.detail` |
+| `ui.field.host` | `ui.field.server.host` |
+| `ui.notification.discover.none` | `ui.message.server.discover.empty` |
+| `ui.menu.unspentPointsWarning` | `ui.message.character.unspentPoints` |
+
+## Vocabulary
+
+| Concept | Term | Scope |
 |---|---|---|
-| `ui.menu.lanDiscovery` | `LAN Discovery` | `Local Signals` |
-| `ui.menu.serverList` | `Server List` | `Subspace Signals` |
-| `ui.menu.directConnect` | `Direct Connect` | `Direct Uplink` |
-| `ui.field.host` | `Server address` | `Address` |
-| `ui.button.scan` | `Scan for LAN servers` | `Scan for local signals` |
-| `ui.button.scanShort` | `Scan` | `Scan` |
-| `ui.button.connect` | `Connect` | `Uplink` |
-| `ui.button.joinServer` | `Join Server` | `Establish Uplink` |
-| `ui.button.addFavorite` | `Add favorite` | `Add Signal` |
-| `ui.menu.addFavorite` | `Add Favorite` | `Add Signal` |
-| `ui.menu.favorites` | `Favorites` | `Saved Signals` |
-| `ui.menu.removeFavorite` | `Remove Favorite?` | `Drop Signal?` |
-| `ui.menu.removeFavoriteBody` | `Remove {0} from your favorites?` | `Drop {0} from saved signals?` |
-| `ui.menu.connecting` | `Connecting to Server` | `Establishing Uplink` |
-| `ui.menu.connectingTarget` | `Connecting to {0}` | `Uplinking to {0}` |
-| `ui.notification.connect.failed` | `Failed to connect to the server` | `Failed to establish uplink` |
-| `ui.notification.connect.hostRequired` | `Enter a server address` | `Enter a signal address` |
-| `ui.notification.discover.scanning` | `Scanning for LAN servers...` | `Scanning for local signals...` |
-| `ui.notification.discover.unavailable` | `LAN discovery is unavailable` | `Signal discovery is unavailable` |
-| `ui.notification.discover.none` | `No servers found` | `No local signals detected` |
-| `ui.button.servers` | `Servers` | `Signals` |
-| `ui.button.disconnect` | `Disconnect` | `Sever Uplink` |
-| `ui.menu.connectedTo` | `Connected to` | `Uplinked to` |
-| `ui.continue.connectFailed` | `Could not connect to the last server.` | `Could not uplink to the last host.` |
+| A save and its generated world | galaxy | Level list, level form, deletion, toasts |
+| A server or host | signal | Server list, connection copy |
+| Server list | Subspace signals | Multiplayer panel title |
+| LAN discovery | Local signals | Discovery tab |
+| Direct connect | Direct uplink | Manual address entry |
+| Connect | Uplink / Establish uplink | Connection action |
+| Disconnect | Sever uplink | Drop the connection |
+| A saved server | Saved signal | Favorites tab |
+| A character | colonist | Character flow, character toasts |
+| Create a character | Register colonist | Entry action. The submit action is `Register` |
+| The colonist's combined skill level | level | `ui.label.character.level`. Never reuse a world term here |
+| The world preset type | type | Level form dossier |
 
-### Colonist personnel flow
+A save is a galaxy. One save holds one generated world. Do not call a save a
+level, a sector, or a map in player-facing copy.
 
-Character management at
-`WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:1` and
-`WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:1` uses official
-colonization registration terminology.
+## Confirm dialogs
 
-| Key | Current value | New value |
-|---|---|---|
-| `ui.button.newCharacter` | `Create character` | `Register colonist` |
-| `ui.button.createCharacter` | `Create` | `Register` |
-| `ui.field.characterNameLabel` | `Character name` | `Colonist name` |
-| `ui.field.bodyPreset` | `Body preset` | `Colonist Frame` |
-| `ui.menu.unspentPoints` | `Unspent Points` | `Unallocated S.P.A.C.E.R. Points` |
-| `ui.menu.unspentPointsBody` | `You still have {0} S.P.A.C.E.R. points available. Create the colonist anyway?` | `You still have {0} S.P.A.C.E.R. points available. Register the colonist anyway?` |
+The title names the action. The body states the result and the irreversibility.
+The confirm label repeats the verb. The cancel label reads `Cancel`. Do not use
+`Are you sure?` or `Yes` and `No`.
 
-### Sectors and world creation
+| Key | Value |
+|---|---|
+| `ui.dialog.level.delete` | Delete galaxy? |
+| `ui.dialog.level.delete.body` | The galaxy and everything in it is removed. This cannot be undone. |
+| `ui.dialog.character.delete` | Delete colonist? |
+| `ui.dialog.character.delete.body` | The colonist and their progress are removed. This cannot be undone. |
+| `ui.dialog.server.remove` | Drop signal? |
+| `ui.dialog.server.remove.body` | {0} is removed from your saved signals. You can add it again at any time. |
 
-Save selection and generation at
-`WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:1` and
-`WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:1`.
+`ui.dialog.confirm` and `ui.dialog.confirm.body` are the generic fallback. Pass
+explicit copy for a new destructive action.
 
-| Key | Current value | New value |
-|---|---|---|
-| `ui.field.worldSeed` | `Level seed` | `Sector Seed` |
-| `ui.field.saveName` | `Enter name...` | `Sector designation...` |
-| `ui.button.next` | `Next` | `Select Sector` |
+## Immersion boundary
 
-### Modals and pause menu
+- Standard copy: home menu, settings, generic buttons, validation, errors.
+- Themed copy: level flow, character flow, multiplayer hub, HUD flavor.
+- Terminal copy: chat header, key hints, the creation and load feeds.
 
-General prompts and pause screen at
-`WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:1` and
-`WaywardBeyond.Client/UI/Layers/Menus/Modal/ConfirmModal.cs:1`.
+An immersive term must be a close synonym. If a player must learn the term to
+use the control, the term is wrong.
 
-| Key | Current value | New value |
-|---|---|---|
-| `ui.button.saveAndExit` | `Save & exit` | `Save & Exit` |
-| `ui.menu.confirm` | `Are you sure?` | `Confirm Directive` |
-| `ui.menu.confirmBody` | `This action cannot be undone.` | `Warning: This action cannot be undone.` |
+## Dead keys
 
-### Deprecated keys to remove
+No key may be unreferenced. Check both directions before you finish:
 
-The following keys are unreferenced in code and must be deleted from
-`WaywardBeyond.Client/assets/lang/en/ui.toml:1`:
+1. Every catalog key appears as a literal in code.
+2. Every `"ui.…"` and `"notification.…"` literal in code exists in a catalog.
 
-- `ui.menu.saves`
-- `ui.menu.createSave`
-- `ui.button.newGame`
-- `ui.button.selectCharacter`
-- `ui.menu.characters`
-- `ui.savedServer.saved`
-- `ui.label.spacer.s`
-- `ui.label.spacer.p`
-- `ui.label.spacer.a`
-- `ui.label.spacer.c`
-- `ui.label.spacer.e`
-- `ui.label.spacer.r`
+```bash
+comm -23 \
+  <(grep -rhoE '"(ui|notification)\.[A-Za-z0-9._]+"' --include=*.cs . \
+    | tr -d '"' | grep -vE '^ui\.(toml|bmp)$' | LC_ALL=C sort -u) \
+  <(grep -hoE '^"(ui|notification)\.[^"]+"' \
+    WaywardBeyond.Client/assets/lang/en/ui.toml \
+    WaywardBeyond.Client/assets/lang/en/notification.toml \
+    | tr -d '"' | LC_ALL=C sort -u)
+```
+
+The first `comm` lists a used key that is not defined. Swap the inputs
+(`comm -13`) to list a defined key that is not used. Ignore strings that name a
+file, such as `ui.toml`.
+
+The build does not read the catalogs. Nothing fails when a key is missing until
+the surface renders. Run the sweep by hand.
+
+## Source
+
+- Catalog: `WaywardBeyond.Client/assets/lang/en/ui.toml:1`
+- Toasts: `WaywardBeyond.Client/assets/lang/en/notification.toml:1`
+- Lookup: `WaywardBeyond.Client/Extensions/LocalizationExtensions.cs:12`
+- Home: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
+- Level list: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:25`
+- Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:24`
+- Character list: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:23`
+- Character form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:26`
+- Server hub: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:24`
+- Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:15`
+- Confirm: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConfirmModal.cs:17`
+- Add signal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/AddFavoriteModal.cs:16`
+- Connecting: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConnectingModal.cs:15`
+- Chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:20`
+- Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:15`
+
+## Tests
+
+No test pins the catalog. `dotnet build` does not read `ui.toml`.
+`Swordfish.Tests/LocalizationTests.cs` covers string formatting only. The key
+sweep stays manual.

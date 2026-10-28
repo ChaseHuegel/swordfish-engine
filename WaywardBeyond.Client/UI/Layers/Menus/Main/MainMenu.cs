@@ -92,7 +92,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
                 Anchors = Anchors.Bottom | Anchors.Left,
             };
 
-            if (ui.ActionButton("Button_Feedback", _localization.GetRequired("ui.menu.feedback"), _feedbackButton))
+            if (ui.ActionButton("Button_Feedback", _localization.GetRequired("ui.button.feedback.send"), _feedbackButton))
             {
                 _modalMenu.GoToPage(FeedbackModal.Modal);
             }

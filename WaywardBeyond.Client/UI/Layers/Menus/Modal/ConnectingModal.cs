@@ -5,6 +5,7 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
 
@@ -56,7 +57,7 @@ internal sealed class ConnectingModal(
         using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
         {
             ui.Label(
-                _title ?? _localization.GetString("ui.menu.connecting") ?? "Connecting to Server",
+                _title ?? _localization.GetRequired("ui.dialog.server.connecting"),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -79,7 +80,7 @@ internal sealed class ConnectingModal(
             ui.Spacer(height: 16);
 
             ui.Label(
-                _target ?? _localization.GetString("ui.menu.connectingStatus") ?? "Establishing uplink with remote host...",
+                _target ?? _localization.GetRequired("ui.message.server.connecting"),
                 UiMetrics.MENU_BODY_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -103,7 +104,7 @@ internal sealed class ConnectingModal(
             ))
             {
                 ui.Filler();
-                string cancelLabel = _localization.GetString("ui.button.cancel") ?? "Cancel";
+                string cancelLabel = _localization.GetRequired("ui.button.cancel");
                 if (ui.ActionButton(
                     "Button_CancelConnect",
                     cancelLabel,

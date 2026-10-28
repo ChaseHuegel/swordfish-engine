@@ -45,7 +45,7 @@ internal class PlaytestNoticeModal(
         using (ui.ModalDialog(panelWidth, panelHeight, UiTheme.ScrimHeavy))
         {
             ui.Label(
-                _localization.GetRequired("ui.menu.playtest"),
+                _localization.GetRequired("ui.dialog.playtest"),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -66,7 +66,7 @@ internal class PlaytestNoticeModal(
             );
             ui.Spacer(height: 16);
             ui.Paragraph(
-                _localization.GetRequired("ui.text.playtest"),
+                _localization.GetRequired("ui.dialog.playtest.body"),
                 UiMetrics.MENU_BODY_FONT,
                 UiTheme.Text,
                 new Constraints

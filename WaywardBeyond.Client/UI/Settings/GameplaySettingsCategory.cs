@@ -16,14 +16,14 @@ internal static class GameplaySettingsCategory
                 new SettingsSection("ui.settings.section.autosave"),
                 new ToggleEntry(
                     id: "Settings.Autosave",
-                    labelKey: "ui.settings.autosave",
+                    labelKey: "ui.settings.option.autosave",
                     get: () => draft.Autosave,
                     set: value => draft.Autosave = value,
                     defaultValue: () => SettingsDefaults.AUTOSAVE
                 ),
                 new StepperEntry<int>(
                     id: "Settings.AutosaveInterval",
-                    labelKey: "ui.settings.autosaveInterval",
+                    labelKey: "ui.settings.option.autosaveInterval",
                     get: () => draft.AutosaveIntervalMinutes,
                     set: value => draft.AutosaveIntervalMinutes = value,
                     defaultValue: () => SettingsDefaults.AUTOSAVE_INTERVAL_MINUTES,
@@ -34,21 +34,21 @@ internal static class GameplaySettingsCategory
                 new SettingsSection("ui.settings.section.hud"),
                 new ToggleEntry(
                     id: "Settings.ControlHints",
-                    labelKey: "ui.settings.controlHints",
+                    labelKey: "ui.settings.option.controlHints",
                     get: () => draft.ControlHints,
                     set: value => draft.ControlHints = value,
                     defaultValue: () => SettingsDefaults.CONTROL_HINTS
                 ),
                 new ToggleEntry(
                     id: "Settings.Crosshair",
-                    labelKey: "ui.settings.crosshair",
+                    labelKey: "ui.settings.option.crosshair",
                     get: () => draft.Crosshair,
                     set: value => draft.Crosshair = value,
                     defaultValue: () => SettingsDefaults.CROSSHAIR
                 ),
                 new SliderEntry(
                     id: "Settings.NameTagDistance",
-                    labelKey: "ui.settings.nameTagDistance",
+                    labelKey: "ui.settings.option.nameTagDistance",
                     get: () => draft.NameTagDistance,
                     set: value => draft.NameTagDistance = (int)MathF.Round(value),
                     defaultValue: () => SettingsDefaults.NAME_TAG_DISTANCE,
@@ -64,7 +64,7 @@ internal static class GameplaySettingsCategory
 
     private static string FormatMinutes(ILocalization localization, int value)
     {
-        string unit = L(localization, "ui.unit.minutes");
+        string unit = L(localization, "ui.word.minutes");
         return $"{value} {unit}";
     }
 
@@ -72,7 +72,7 @@ internal static class GameplaySettingsCategory
     {
         if (value <= 0f)
         {
-            return L(localization, "ui.settings.disabled");
+            return L(localization, "ui.settings.value.off");
         }
 
         string unit = L(localization, "ui.unit.meters");

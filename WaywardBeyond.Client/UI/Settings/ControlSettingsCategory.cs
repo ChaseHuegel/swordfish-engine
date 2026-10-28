@@ -17,7 +17,7 @@ internal static class ControlSettingsCategory
                 new SettingsSection("ui.settings.section.mouse"),
                 new SliderEntry(
                     id: "Settings.MouseSensitivity",
-                    labelKey: "ui.settings.mouseSensitivity",
+                    labelKey: "ui.settings.option.mouseSensitivity",
                     get: () => draft.MouseSensitivity,
                     set: value => draft.MouseSensitivity = (int)MathF.Round(value),
                     defaultValue: () => SettingsDefaults.MOUSE_SENSITIVITY,
@@ -29,14 +29,14 @@ internal static class ControlSettingsCategory
                 new SettingsSection("ui.settings.section.placement"),
                 new ToggleEntry(
                     id: "Settings.RememberShape",
-                    labelKey: "ui.settings.rememberShape",
+                    labelKey: "ui.settings.option.rememberShape",
                     get: () => draft.RememberShape,
                     set: value => draft.RememberShape = value,
                     defaultValue: () => SettingsDefaults.REMEMBER_SHAPE
                 ),
                 new ToggleEntry(
                     id: "Settings.RememberOrientation",
-                    labelKey: "ui.settings.rememberOrientation",
+                    labelKey: "ui.settings.option.rememberOrientation",
                     get: () => draft.RememberOrientation,
                     set: value => draft.RememberOrientation = value,
                     defaultValue: () => SettingsDefaults.REMEMBER_ORIENTATION

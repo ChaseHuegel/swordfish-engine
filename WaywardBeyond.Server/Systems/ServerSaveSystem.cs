@@ -103,7 +103,7 @@ public sealed class ServerSaveSystem(
             var denied = new NotificationMessage
             {
                 Type = NotificationType.Toast,
-                Key = "notification.save.denied",
+                Key = "notification.level.saveDenied",
                 Args = [],
             };
 
@@ -131,7 +131,7 @@ public sealed class ServerSaveSystem(
         }
 
         saveService.QueueSave(store);
-        BroadcastNotification("notification.save.saving");
+        BroadcastNotification("notification.level.saving");
     }
 
     /// <summary>Broadcasts the outcome of every finished database write.</summary>
@@ -139,7 +139,7 @@ public sealed class ServerSaveSystem(
     {
         while (saveService.TryDequeueCompletion(out bool success))
         {
-            BroadcastNotification(success ? "notification.save.saved" : "notification.save.saving.failed");
+            BroadcastNotification(success ? "notification.level.saved" : "notification.level.saveFailed");
         }
     }
 

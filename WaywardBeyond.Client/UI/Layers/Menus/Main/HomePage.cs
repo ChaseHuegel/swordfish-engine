@@ -180,7 +180,7 @@ internal sealed class HomePage(
             };
             bool continueClicked = ui.ActionButton(
                 "Button_Continue",
-                _localization.GetRequired("ui.button.continue"),
+                _localization.GetRequired("ui.button.home.continue"),
                 continueOptions,
                 out bool continueHovered
             );
@@ -193,7 +193,7 @@ internal sealed class HomePage(
 
             bool singleplayerClicked = ui.ActionButton(
                 "Button_Singleplayer",
-                _localization.GetRequired("ui.button.singleplayer"),
+                _localization.GetRequired("ui.button.home.singleplayer"),
                 _newGameButton with { Layout = ButtonSlot() }
             );
 
@@ -201,7 +201,7 @@ internal sealed class HomePage(
 
             if (ui.ActionButton(
                     "Button_Multiplayer",
-                    _localization.GetRequired("ui.button.multiplayer"),
+                    _localization.GetRequired("ui.button.home.multiplayer"),
                     _multiplayerButton with { Layout = ButtonSlot() }
                 ))
             {
@@ -225,7 +225,7 @@ internal sealed class HomePage(
 
             if (ui.ActionButton(
                     "Button_Credits",
-                    _localization.GetRequired("ui.menu.credits"),
+                    _localization.GetRequired("ui.button.home.credits"),
                     _creditsButton with { Layout = ButtonSlot() }
                 ))
             {
@@ -236,7 +236,7 @@ internal sealed class HomePage(
 
             if (ui.ActionButton(
                     "Button_Quit",
-                    _localization.GetRequired("ui.button.quit"),
+                    _localization.GetRequired("ui.button.home.quit"),
                     _exitButton with { Layout = ButtonSlot() }
                 ))
             {
@@ -409,8 +409,8 @@ internal sealed class HomePage(
 
                 ui.Label(
                     remote
-                        ? _localization.GetRequired("ui.button.multiplayer")
-                        : _localization.GetRequired("ui.button.singleplayer"),
+                        ? _localization.GetRequired("ui.label.session.multiplayer")
+                        : _localization.GetRequired("ui.label.session.singleplayer"),
                     UiMetrics.MENU_SMALL_FONT,
                     remote ? UiTheme.Accent : UiTheme.TextMuted,
                     new Constraints
@@ -453,8 +453,8 @@ internal sealed class HomePage(
                 : _localization.GetRequired("ui.label.never");
             TimeSpan age = TimeSpan.FromMilliseconds(details.AgeMs);
 
-            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.menu.mode"), details.Mode.ToString());
-            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.menu.seed"), details.Seed.ToString());
+            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.label.level.mode"), details.Mode.ToString());
+            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.label.level.seed"), details.Seed.ToString());
             DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.label.lastPlayed"), lastPlayed);
             DrawContinueDetail(
                 ui,
@@ -513,7 +513,7 @@ internal sealed class HomePage(
                         }
                     );
                     ui.Label(
-                        $"{_localization.GetRequired("ui.menu.level")} {level}",
+                        $"{_localization.GetRequired("ui.label.character.level")} {level}",
                         UiMetrics.MENU_SMALL_FONT,
                         UiTheme.Text,
                         new Constraints

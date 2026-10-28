@@ -39,8 +39,8 @@ internal sealed class AddFavoriteModal(
         soundEffectService
     );
 
-    private TextBoxState _hostTextBox = CreateHostTextBox(localization.GetRequired("ui.field.host"));
-    private TextBoxState _portTextBox = CreatePortTextBox(localization.GetRequired("ui.field.port"));
+    private TextBoxState _hostTextBox = CreateHostTextBox(localization.GetRequired("ui.field.server.host"));
+    private TextBoxState _portTextBox = CreatePortTextBox(localization.GetRequired("ui.field.server.port"));
     private Action<string, int>? _submit;
     private string? _errorMessage;
 
@@ -52,7 +52,7 @@ internal sealed class AddFavoriteModal(
         using (ui.ModalDialog(PANEL_WIDTH, PANEL_HEIGHT))
         {
             ui.Label(
-                _localization.GetRequired("ui.menu.addFavorite"),
+                _localization.GetRequired("ui.dialog.server.add"),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -74,7 +74,7 @@ internal sealed class AddFavoriteModal(
             ui.Spacer(height: 16);
 
             ui.Label(
-                _localization.GetRequired("ui.field.host"),
+                _localization.GetRequired("ui.field.server.host"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -99,7 +99,7 @@ internal sealed class AddFavoriteModal(
 
             ui.Spacer(height: 12);
             ui.Label(
-                _localization.GetRequired("ui.field.port"),
+                _localization.GetRequired("ui.field.server.port"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -169,7 +169,7 @@ internal sealed class AddFavoriteModal(
 
                 if (ui.ActionButton(
                     "Button_SubmitFavorite",
-                    _localization.GetRequired("ui.button.submit"),
+                    _localization.GetRequired("ui.button.server.add"),
                     _submitButton with
                     {
                         Layout = new Constraints
@@ -231,13 +231,13 @@ internal sealed class AddFavoriteModal(
         string host = _hostTextBox.Text.ToString().Trim();
         if (string.IsNullOrWhiteSpace(host))
         {
-            _errorMessage = _localization.GetString("ui.notification.connect.hostRequired");
+            _errorMessage = _localization.GetString("ui.message.server.connect.required");
             return;
         }
 
         if (!int.TryParse(_portTextBox.Text.ToString().Trim(), out int port) || port < 1 || port > 65535)
         {
-            _errorMessage = _localization.GetString("ui.notification.connect.portInvalid");
+            _errorMessage = _localization.GetString("ui.message.server.connect.invalidPort");
             return;
         }
 

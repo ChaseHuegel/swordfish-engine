@@ -56,7 +56,7 @@ public static class LocalizationExtensions
         }
         else
         {
-            result = localization.GetRequired("ui.text.none");
+            result = localization.GetRequired("ui.label.none");
         }
 
         return result;

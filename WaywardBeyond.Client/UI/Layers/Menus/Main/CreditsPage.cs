@@ -50,7 +50,7 @@ internal sealed class CreditsPage(
                     Width = new Fill(),
                     Height = new Fill(),
                 },
-                _localization.GetRequired("ui.credits.title"),
+                _localization.GetRequired("ui.panel.credits"),
                 padding: 24
             ))
             {
@@ -68,7 +68,7 @@ internal sealed class CreditsPage(
             {
                 if (ui.ActionButton(
                     "Button_Back",
-                    _localization.GetRequired("ui.button.return"),
+                    _localization.GetRequired("ui.button.back"),
                     _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
                 ))
                 {
@@ -89,8 +89,8 @@ internal sealed class CreditsPage(
         int bodyFontSize = contentWidth < 500
             ? UiMetrics.MENU_SMALL_FONT
             : UiMetrics.MENU_BODY_FONT;
-        string bodyText = _localization.GetRequired("ui.credits.body");
-        string thanksText = _localization.GetRequired("ui.credits.thanks");
+        string bodyText = _localization.GetRequired("ui.text.credits.body");
+        string thanksText = _localization.GetRequired("ui.text.credits.thanks");
 
         var bodyFont = new FontOptions { ID = UiTheme.FONT_UI, Size = bodyFontSize };
         var thanksFont = new FontOptions { ID = UiTheme.FONT_UI, Size = UiMetrics.MENU_SMALL_FONT };

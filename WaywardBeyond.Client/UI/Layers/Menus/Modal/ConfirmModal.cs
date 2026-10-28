@@ -143,10 +143,10 @@ internal class ConfirmModal(
         _requests.Clear();
         _requests.Push(new ConfirmRequest(
             action,
-            title ?? _localization.GetRequired("ui.menu.confirm"),
-            body ?? _localization.GetRequired("ui.menu.confirmBody"),
-            confirmLabel ?? _localization.GetRequired("ui.button.yes"),
-            cancelLabel ?? _localization.GetRequired("ui.button.no")
+            title ?? _localization.GetRequired("ui.dialog.confirm"),
+            body ?? _localization.GetRequired("ui.dialog.confirm.body"),
+            confirmLabel ?? _localization.GetRequired("ui.button.confirm"),
+            cancelLabel ?? _localization.GetRequired("ui.button.cancel")
         ));
         return Modal;
     }
@@ -175,10 +175,10 @@ internal class ConfirmModal(
             ? request
             : new ConfirmRequest(
                 static () => { },
-                _localization.GetRequired("ui.menu.confirm"),
-                _localization.GetRequired("ui.menu.confirmBody"),
-                _localization.GetRequired("ui.button.yes"),
-                _localization.GetRequired("ui.button.no")
+                _localization.GetRequired("ui.dialog.confirm"),
+                _localization.GetRequired("ui.dialog.confirm.body"),
+                _localization.GetRequired("ui.button.confirm"),
+                _localization.GetRequired("ui.button.cancel")
             );
     }
 

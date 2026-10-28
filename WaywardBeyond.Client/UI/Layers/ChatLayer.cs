@@ -9,6 +9,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
@@ -91,14 +92,14 @@ internal sealed class ChatLayer : IUILayer
         _interactionState = interactionState;
         _chat = chat;
         _config = config;
-        _headerLabel = localization.GetString("ui.chat.header") ?? "SUBSPACE COMMS // LOCAL";
-        _closeHintLabel = localization.GetString("ui.chat.closeHint") ?? "[ESC] CLOSE";
-        _sendHintLabel = localization.GetString("ui.chat.sendHint") ?? "[ENTER]";
+        _headerLabel = localization.GetRequired("ui.label.chat.header");
+        _closeHintLabel = localization.GetRequired("ui.hint.chat.close");
+        _sendHintLabel = localization.GetRequired("ui.hint.chat.send");
 
         _textBox = new TextBoxState(
             initialValue: string.Empty,
             new TextBoxState.Options(
-                Placeholder: localization.GetString("ui.field.chat"),
+                Placeholder: localization.GetString("ui.field.chat.input"),
                 MaxCharacters: MAX_INPUT_CHARACTERS,
                 DisallowedCharacters: ['\t'],
                 Constraints: new Constraints

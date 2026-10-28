@@ -16,6 +16,7 @@ using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
+using WaywardBeyond.Data;
 using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
@@ -76,7 +77,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _cancelButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _initializeButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
         var saveNameTextBoxOptions = new TextBoxState.Options(
-            Placeholder: localization.GetString("ui.field.saveName"),
+            Placeholder: localization.GetString("ui.field.level.name.placeholder"),
             MaxCharacters: 20,
             DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '"', '<', '>', '|'],
             Constraints: new Constraints
@@ -88,7 +89,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _saveNameTextBox = new TextBoxState(initialValue: string.Empty, options: saveNameTextBoxOptions);
 
         var saveSeedTextBoxOptions = new TextBoxState.Options(
-            Placeholder: localization.GetString("ui.field.saveSeed"),
+            Placeholder: localization.GetString("ui.field.level.seed.placeholder"),
             MaxCharacters: 20,
             Constraints: new Constraints
             {
@@ -150,7 +151,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         if (createTask.IsFaulted)
         {
             _createTask = null;
-            _createError = _localization.GetString("ui.menu.createFailed") ?? "Failed to create the sector.";
+            _createError = _localization.GetRequired("ui.message.level.createFailed");
             return Result.FromSuccess();
         }
 
@@ -158,7 +159,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _createTask = null;
         if (created == null)
         {
-            _createError = _localization.GetString("ui.menu.createFailed") ?? "Failed to create the sector.";
+            _createError = _localization.GetRequired("ui.message.level.createFailed");
             return Result.FromSuccess();
         }
 
@@ -249,7 +250,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
             if (ui.Tab(
                 "InitializationTab",
-                _localization.GetRequired("ui.menu.sectorInitialization"),
+                _localization.GetRequired("ui.panel.level.form"),
                 selected: _narrowTab == 0,
                 tabConstraints
             ))
@@ -259,7 +260,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
             if (ui.Tab(
                 "DossierTab",
-                _localization.GetRequired("ui.menu.sectorDossier"),
+                _localization.GetRequired("ui.panel.level.form.dossier"),
                 selected: _narrowTab == 1,
                 tabConstraints
             ))
@@ -290,7 +291,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         {
             if (ui.ActionButton(
                 "Button_Cancel",
-                _localization.GetRequired("ui.settings.cancel"),
+                _localization.GetRequired("ui.button.cancel"),
                 _cancelButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
             ))
             {
@@ -306,7 +307,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             };
             if (ui.ActionButton(
                 "Button_Initialize",
-                _localization.GetRequired("ui.button.initialize"),
+                _localization.GetRequired("ui.button.level.create"),
                 initializeOptions
             ))
             {
@@ -325,12 +326,12 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
         if (nameMissing)
         {
-            return new FooterStatus(_localization.GetString("ui.notification.name.required"), UiTheme.Danger);
+            return new FooterStatus(_localization.GetString("ui.message.name.required"), UiTheme.Danger);
         }
 
         if (duplicateName)
         {
-            return new FooterStatus(_localization.GetString("ui.notification.name.taken"), UiTheme.Danger);
+            return new FooterStatus(_localization.GetString("ui.message.name.taken"), UiTheme.Danger);
         }
 
         if (!seedMissing)
@@ -339,7 +340,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         }
 
         return new FooterStatus(
-            _localization.GetString("ui.menu.randomSeedWarning"),
+            _localization.GetString("ui.message.level.randomSeed"),
             UiTheme.Warning
         );
     }
@@ -350,10 +351,10 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     /// <summary>Draws the sector initialization panel.</summary>
     private void DrawInitialization(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.sectorInitialization"), padding: 20))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.form"), padding: 20))
         {
             ui.Label(
-                _localization.GetRequired("ui.menu.sectorInitHint"),
+                _localization.GetRequired("ui.text.level.form.hint"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -365,7 +366,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             ui.Spacer(height: 16);
 
             ui.Label(
-                _localization.GetRequired("ui.field.galaxyName"),
+                _localization.GetRequired("ui.field.level.name"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -379,7 +380,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
             ui.Spacer(height: 16);
             ui.Label(
-                _localization.GetRequired("ui.field.worldSeed"),
+                _localization.GetRequired("ui.field.level.seed"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -493,12 +494,12 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     /// <summary>Draws the sector dossier panel.</summary>
     private void DrawDossier(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.sectorDossier"), padding: 20))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.form.dossier"), padding: 20))
         {
             string name = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
             if (string.IsNullOrWhiteSpace(name))
             {
-                name = _localization.GetRequired("ui.field.untitledSector");
+                name = _localization.GetRequired("ui.label.level.untitled");
             }
 
             ui.Label(
@@ -513,7 +514,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             );
             ui.Spacer(height: 8);
             ui.Label(
-                $"{_localization.GetRequired("ui.menu.mode")}: CREATIVE",
+                $"{_localization.GetRequired("ui.label.level.mode")}: {GameMode.Creative}",
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -523,7 +524,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 }
             );
             ui.Label(
-                $"{_localization.GetRequired("ui.menu.seed")}: {(_seedTextBox.Text.Length > 0 ? _seedTextBox.Text.ToString() : _localization.GetString("ui.field.random"))}",
+                $"{_localization.GetRequired("ui.label.level.seed")}: {(_seedTextBox.Text.Length > 0 ? _seedTextBox.Text.ToString() : _localization.GetString("ui.label.level.seed.random"))}",
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -533,7 +534,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 }
             );
             ui.Label(
-                $"{_localization.GetRequired("ui.level.type")}: {_localization.GetRequired("ui.level.type.asteroids")}",
+                $"{_localization.GetRequired("ui.label.level.type")}: {_localization.GetRequired("ui.label.level.type.asteroids")}",
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -578,7 +579,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     Width = new Fill(),
                     Height = new Fill(),
                 },
-                _localization.GetRequired("ui.menu.sectorInitialization"),
+                _localization.GetRequired("ui.panel.level.form"),
                 padding: 40
             ))
             {
@@ -602,7 +603,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         ))
         {
             ui.Label(
-                _localization.GetRequired("ui.menu.creatingSector"),
+                _localization.GetRequired("ui.label.level.creating"),
                 UiMetrics.MENU_BODY_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -776,8 +777,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         if (string.IsNullOrWhiteSpace(saveName) || _gameSaveService.GetSaves().Any(save => save.Name == saveName))
         {
             _createError = string.IsNullOrWhiteSpace(saveName)
-                ? _localization.GetString("ui.notification.name.required") ?? "Enter a name."
-                : _localization.GetString("ui.notification.name.taken") ?? "That name is already used.";
+                ? _localization.GetRequired("ui.message.name.required")
+                : _localization.GetRequired("ui.message.name.taken");
             return;
         }
 

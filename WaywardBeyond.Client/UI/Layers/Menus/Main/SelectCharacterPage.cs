@@ -162,7 +162,7 @@ internal sealed class SelectCharacterPage(
         {
             if (ui.ActionButton(
                 "Button_Back",
-                _localization.GetRequired("ui.button.return"),
+                _localization.GetRequired("ui.button.back"),
                 _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
             ))
             {
@@ -179,7 +179,7 @@ internal sealed class SelectCharacterPage(
             };
             if (ui.ActionButton(
                 "Button_LoadSave",
-                _localization.GetRequired("ui.button.loadSave"),
+                _localization.GetRequired("ui.button.level.launch"),
                 loadOptions
             ))
             {
@@ -207,7 +207,7 @@ internal sealed class SelectCharacterPage(
 
             if (ui.Tab(
                 "ManifestTab",
-                _localization.GetRequired("ui.menu.crewManifest"),
+                _localization.GetRequired("ui.panel.character.list"),
                 selected: _narrowTab == 0,
                 tabConstraints
             ))
@@ -217,7 +217,7 @@ internal sealed class SelectCharacterPage(
 
             if (ui.Tab(
                 "DossierTab",
-                _localization.GetRequired("ui.menu.colonistDossier"),
+                _localization.GetRequired("ui.panel.character.detail"),
                 selected: _narrowTab == 1,
                 tabConstraints
             ))
@@ -229,7 +229,7 @@ internal sealed class SelectCharacterPage(
 
     private void DrawManifest(UIBuilder<Material> ui, Constraints constraints, Menu<MenuPage> menu)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.crewManifest")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.list")))
         {
             RefreshCharacters();
 
@@ -253,7 +253,7 @@ internal sealed class SelectCharacterPage(
                 else
                 {
                     ui.Label(
-                        _localization.GetRequired("ui.text.none"),
+                        _localization.GetRequired("ui.label.none"),
                         UiMetrics.MENU_BODY_FONT,
                         UiTheme.TextDim,
                         new Constraints
@@ -321,6 +321,7 @@ internal sealed class SelectCharacterPage(
             _characterSaveManager,
             _characterAssetService,
             _soundEffectService,
+            _localization,
             deleteCharacter
         );
 
@@ -410,7 +411,13 @@ internal sealed class SelectCharacterPage(
         Character character = context.Character;
         Action<Character> deleteCharacter = context.DeleteCharacter;
         context.CharacterSaveManager.ActiveSave = character;
-        context.ModalMenu.GoToPage(context.ConfirmModal.Create(() => deleteCharacter(character)));
+        context.ModalMenu.GoToPage(context.ConfirmModal.Create(
+            () => deleteCharacter(character),
+            context.Localization.GetRequired("ui.dialog.character.delete"),
+            context.Localization.GetRequired("ui.dialog.character.delete.body"),
+            context.Localization.GetRequired("ui.button.character.delete"),
+            context.Localization.GetRequired("ui.button.cancel")
+        ));
     }
 
     /// <summary>Deletes one character and selects the most recent remaining save.</summary>
@@ -433,7 +440,7 @@ internal sealed class SelectCharacterPage(
         );
         bool clicked = ui.ActionButton(
             "Button_NewCharacter",
-            "+ " + _localization.GetRequired("ui.button.newCharacter"),
+            "+ " + _localization.GetRequired("ui.button.character.new"),
             options
         );
         if (clicked)
@@ -444,13 +451,13 @@ internal sealed class SelectCharacterPage(
 
     private void DrawDossier(UIBuilder<Material> ui, Constraints constraints, bool showAssignment)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.colonistDossier")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.detail")))
         {
             Character? activeCharacter = _characterSaveManager.ActiveSave;
             if (activeCharacter == null)
             {
                 ui.Label(
-                    _localization.GetRequired("ui.text.none"),
+                    _localization.GetRequired("ui.label.none"),
                     UiMetrics.MENU_BODY_FONT,
                     UiTheme.TextDim,
                     new Constraints
@@ -494,7 +501,7 @@ internal sealed class SelectCharacterPage(
 
         int level = character.GetTotalSkillLevel(_skillDatabase);
         ui.Label(
-            $"{_localization.GetRequired("ui.menu.level")} {level}",
+            $"{_localization.GetRequired("ui.label.character.level")} {level}",
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.AccentBright,
             new Constraints
@@ -572,12 +579,12 @@ internal sealed class SelectCharacterPage(
     /// <summary>Draws the six primary stat rows of the dossier.</summary>
     private void DrawStats(UIBuilder<Material> ui, in Character character)
     {
-        DrawStat(ui, _localization.GetRequired("ui.field.strength"), character.Strength);
-        DrawStat(ui, _localization.GetRequired("ui.field.precision"), character.Precision);
-        DrawStat(ui, _localization.GetRequired("ui.field.awareness"), character.Awareness);
-        DrawStat(ui, _localization.GetRequired("ui.field.charisma"), character.Charisma);
-        DrawStat(ui, _localization.GetRequired("ui.field.education"), character.Education);
-        DrawStat(ui, _localization.GetRequired("ui.field.resolve"), character.Resolve);
+        DrawStat(ui, _localization.GetRequired("ui.label.character.strength"), character.Strength);
+        DrawStat(ui, _localization.GetRequired("ui.label.character.precision"), character.Precision);
+        DrawStat(ui, _localization.GetRequired("ui.label.character.awareness"), character.Awareness);
+        DrawStat(ui, _localization.GetRequired("ui.label.character.charisma"), character.Charisma);
+        DrawStat(ui, _localization.GetRequired("ui.label.character.education"), character.Education);
+        DrawStat(ui, _localization.GetRequired("ui.label.character.resolve"), character.Resolve);
     }
 
     /// <summary>Draws the assignment block that tall dossier panels show.</summary>
@@ -594,7 +601,7 @@ internal sealed class SelectCharacterPage(
         );
         ui.Spacer(height: 8);
         ui.Label(
-            _localization.GetRequired("ui.menu.assignment"),
+            _localization.GetRequired("ui.label.character.assignment"),
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.TextMuted,
             new Constraints
@@ -604,7 +611,7 @@ internal sealed class SelectCharacterPage(
             }
         );
         ui.Label(
-            _gameSaveManager.ActiveSave?.Name ?? _localization.GetRequired("ui.text.none"),
+            _gameSaveManager.ActiveSave?.Name ?? _localization.GetRequired("ui.label.none"),
             UiMetrics.MENU_BODY_FONT,
             UiTheme.Text,
             new Constraints
@@ -629,7 +636,7 @@ internal sealed class SelectCharacterPage(
         );
         ui.Spacer(height: 8);
         ui.Label(
-            _localization.GetRequired("ui.menu.readyForLaunch"),
+            _localization.GetRequired("ui.label.character.ready"),
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.Success,
             new Constraints
@@ -709,6 +716,7 @@ internal sealed class SelectCharacterPage(
         CharacterSaveManager CharacterSaveManager,
         CharacterAssetService CharacterAssetService,
         SoundEffectService SoundEffectService,
+        ILocalization Localization,
         Action<Character> DeleteCharacter
     );
 }

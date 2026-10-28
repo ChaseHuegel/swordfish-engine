@@ -16,7 +16,7 @@ internal static class AudioSettingsCategory
                 new SettingsSection("ui.settings.section.mix"),
                 BuildVolumeSlider(
                     "Settings.MasterVolume",
-                    "ui.settings.masterVolume",
+                    "ui.settings.option.masterVolume",
                     () => draft.MasterVolume,
                     value => draft.MasterVolume = value,
                     SettingsDefaults.MASTER_VOLUME,
@@ -24,7 +24,7 @@ internal static class AudioSettingsCategory
                 ),
                 BuildVolumeSlider(
                     "Settings.MusicVolume",
-                    "ui.settings.musicVolume",
+                    "ui.settings.option.musicVolume",
                     () => draft.MusicVolume,
                     value => draft.MusicVolume = value,
                     SettingsDefaults.MUSIC_VOLUME,
@@ -32,7 +32,7 @@ internal static class AudioSettingsCategory
                 ),
                 BuildVolumeSlider(
                     "Settings.EffectsVolume",
-                    "ui.settings.effectsVolume",
+                    "ui.settings.option.effectsVolume",
                     () => draft.EffectsVolume,
                     value => draft.EffectsVolume = value,
                     SettingsDefaults.EFFECTS_VOLUME,
@@ -40,7 +40,7 @@ internal static class AudioSettingsCategory
                 ),
                 BuildVolumeSlider(
                     "Settings.InterfaceVolume",
-                    "ui.settings.interfaceVolume",
+                    "ui.settings.option.interfaceVolume",
                     () => draft.InterfaceVolume,
                     value => draft.InterfaceVolume = value,
                     SettingsDefaults.INTERFACE_VOLUME,

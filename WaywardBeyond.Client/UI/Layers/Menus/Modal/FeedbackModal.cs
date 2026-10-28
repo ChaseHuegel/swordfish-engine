@@ -72,7 +72,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         };
 
         var contactTextBoxOptions = new TextBoxState.Options(
-            Placeholder: localization.GetString("ui.field.feedback.contactValue"),
+            Placeholder: localization.GetString("ui.field.feedback.contact.placeholder"),
             MaxCharacters: 30,
             DisallowedCharacters: ['\t'],
             Constraints: new Constraints
@@ -85,7 +85,7 @@ internal class FeedbackModal : IMenuPage<Modal>
 
         var descriptionTextBoxOptions = new TextBoxState.Options(
             SubmitBehavior: TextBoxState.SubmitBehavior.NewLine,
-            Placeholder: localization.GetString("ui.field.feedback.description"),
+            Placeholder: localization.GetString("ui.field.feedback.message.placeholder"),
             MaxCharacters: 500,
             Constraints: new Constraints
             {
@@ -106,7 +106,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         using (ui.ModalDialog(panelWidth, panelHeight, UiTheme.ScrimHeavy))
         {
             ui.Label(
-                _localization.GetRequired("ui.menu.feedback"),
+                _localization.GetRequired("ui.dialog.feedback"),
                 UiMetrics.MENU_TITLE_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -128,7 +128,7 @@ internal class FeedbackModal : IMenuPage<Modal>
             ui.Spacer(height: 16);
 
             ui.Label(
-                _localization.GetRequired("ui.feedback.message"),
+                _localization.GetRequired("ui.field.feedback.message"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -153,7 +153,7 @@ internal class FeedbackModal : IMenuPage<Modal>
 
             ui.Spacer(height: 12);
             ui.Label(
-                _localization.GetRequired("ui.feedback.contact"),
+                _localization.GetRequired("ui.field.feedback.contact"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -178,7 +178,7 @@ internal class FeedbackModal : IMenuPage<Modal>
 
             ui.Spacer(height: 8);
             ui.Paragraph(
-                _localization.GetRequired("ui.feedback.helper"),
+                _localization.GetRequired("ui.text.feedback.helper"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -238,7 +238,7 @@ internal class FeedbackModal : IMenuPage<Modal>
             };
             if (ui.ActionButton(
                 "Button_Submit",
-                _localization.GetRequired("ui.button.submit"),
+                _localization.GetRequired("ui.button.send"),
                 submitOptions
             ))
             {
@@ -253,7 +253,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         if (timeSinceLastSubmission <= 15)
         {
             var notification = new Notification(
-                _localization.GetRequired("ui.notification.tooSoon"),
+                _localization.GetRequired("ui.message.feedback.tooSoon"),
                 NotificationType.Interaction
             );
             _notificationService.Push(notification);
@@ -301,12 +301,12 @@ internal class FeedbackModal : IMenuPage<Modal>
             if (result.Success)
             {
                 _logger.LogInformation($"Feedback submitted ({result.Value}).");
-                _notificationService.Push(new Notification("Feedback submitted. Thank you, spacer!"));
+                _notificationService.Push(new Notification(_localization.GetRequired("ui.message.feedback.sent")));
             }
             else
             {
                 _logger.LogError(result.Exception, result.Message);
-                _notificationService.Push(new Notification("Feedback submission failed, please try again."));
+                _notificationService.Push(new Notification(_localization.GetRequired("ui.message.feedback.failed")));
             }
         }
     }

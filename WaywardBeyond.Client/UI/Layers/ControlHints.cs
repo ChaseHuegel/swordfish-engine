@@ -62,13 +62,13 @@ internal sealed class ControlHints : IUILayer
         _ecsContext = ecsContext;
         _gameplayConfig = gameplayConfig;
 
-        _feedbackHint = ParseHint(localization.GetString("ui.hint.feedback"));
+        _feedbackHint = ParseHint(localization.GetString("ui.hint.feedback.send"));
         
-        _changeShapeHint = ParseHint(localization.GetString("ui.hint.changeShape"));
-        _changeOrientationHint = ParseHint(localization.GetString("ui.hint.changeOrientation"));
-        _snapBrickHint = ParseHint(localization.GetString("ui.hint.snapBrick"));
-        _pickBrickHint = ParseHint(localization.GetString("ui.hint.pickBrick"));
-        _inventoryHint = ParseHint(localization.GetString("ui.hint.inventory"));
+        _changeShapeHint = ParseHint(localization.GetString("ui.hint.brick.changeShape"));
+        _changeOrientationHint = ParseHint(localization.GetString("ui.hint.brick.changeOrientation"));
+        _snapBrickHint = ParseHint(localization.GetString("ui.hint.brick.snap"));
+        _pickBrickHint = ParseHint(localization.GetString("ui.hint.brick.pick"));
+        _inventoryHint = ParseHint(localization.GetString("ui.hint.inventory.toggle"));
 
         _inventoryMoveHint = ParseHint(localization.GetString("ui.hint.inventory.move"));
         _inventorySplitHint = ParseHint(localization.GetString("ui.hint.inventory.split"));

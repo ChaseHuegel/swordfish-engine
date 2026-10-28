@@ -105,7 +105,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _hostTextBox = new TextBoxState(
             initialValue: networkingConfig.RemoteHost.Get(),
             new TextBoxState.Options(
-                Placeholder: localization.GetString("ui.field.host"),
+                Placeholder: localization.GetString("ui.field.server.host"),
                 MaxCharacters: 253,
                 Constraints: new Constraints
                 {
@@ -119,7 +119,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _portTextBox = new TextBoxState(
             initialValue: defaultPort.ToString(),
             new TextBoxState.Options(
-                Placeholder: localization.GetString("ui.field.port"),
+                Placeholder: localization.GetString("ui.field.server.port"),
                 MaxCharacters: 5,
                 DisallowedCharacters: [' ', '\t', '\n', '\r'],
                 Constraints: new Constraints
@@ -172,7 +172,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                         Width = new Fill(),
                         Height = new Fill(),
                     },
-                    _localization.GetRequired("ui.menu.serverList"),
+                    _localization.GetRequired("ui.panel.server.list"),
                     padding: PANEL_PADDING
                 ))
                 {
@@ -212,7 +212,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         {
             if (ui.ActionButton(
                 "Button_Back",
-                _localization.GetRequired("ui.button.return"),
+                _localization.GetRequired("ui.button.back"),
                 _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
             ))
             {
@@ -229,7 +229,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             };
             if (ui.ActionButton(
                 "Button_JoinServer",
-                _localization.GetRequired("ui.button.joinServer"),
+                _localization.GetRequired("ui.button.server.join"),
                 joinOptions
             ))
             {
@@ -258,7 +258,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             if (ui.Tab(
                 "FavoritesTab",
-                _localization.GetRequired("ui.menu.favorites"),
+                _localization.GetRequired("ui.panel.server.saved"),
                 _favoritesTab,
                 tabConstraints
             ))
@@ -270,7 +270,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             if (ui.Tab(
                 "LanDiscoveryTab",
-                _localization.GetRequired("ui.menu.lanDiscovery"),
+                _localization.GetRequired("ui.panel.server.local"),
                 !_favoritesTab,
                 tabConstraints
             ))
@@ -331,7 +331,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                     fontId: UiTheme.FONT_ICONS
                 );
                 ui.Label(
-                    $"{_localization.GetRequired("ui.menu.connectedTo")} {server}",
+                    $"{_localization.GetRequired("ui.label.server.connected")} {server}",
                     UiMetrics.MENU_SMALL_FONT,
                     UiTheme.Text,
                     new Constraints
@@ -343,12 +343,12 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
                 if (ui.ActionButton(
                     "Button_Disconnect",
-                    _localization.GetRequired("ui.button.disconnect"),
+                    _localization.GetRequired("ui.button.server.disconnect"),
                     _disconnectButton with
                     {
                         Layout = new Constraints
                         {
-                            Width = new Fixed(120),
+                            Width = new Fixed(140),
                             Height = new Fixed(UiMetrics.COMPACT_BUTTON_HEIGHT),
                             Anchors = Anchors.Center,
                         },
@@ -360,12 +360,12 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
                 if (ui.ActionButton(
                     "Button_ViewSaves",
-                    _localization.GetRequired("ui.button.viewSaves"),
+                    _localization.GetRequired("ui.button.level.list"),
                     _viewSavesButton with
                     {
                         Layout = new Constraints
                         {
-                            Width = new Fixed(120),
+                            Width = new Fixed(140),
                             Height = new Fixed(UiMetrics.COMPACT_BUTTON_HEIGHT),
                             Anchors = Anchors.Center,
                         },
@@ -473,7 +473,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         {
             ui.Spacer(width: 32);
             ui.Label(
-                _localization.GetRequired("ui.menu.serverName"),
+                _localization.GetRequired("ui.label.server.name"),
                 UiMetrics.MENU_LABEL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -483,7 +483,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 }
             );
             ui.Label(
-                _localization.GetRequired("ui.menu.address"),
+                _localization.GetRequired("ui.label.server.address"),
                 UiMetrics.MENU_LABEL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -493,7 +493,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 }
             );
             ui.Label(
-                _localization.GetRequired("ui.menu.players"),
+                _localization.GetRequired("ui.label.server.players"),
                 UiMetrics.MENU_LABEL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -503,7 +503,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 }
             );
             ui.Label(
-                _localization.GetRequired("ui.menu.ping"),
+                _localization.GetRequired("ui.label.server.ping"),
                 UiMetrics.MENU_LABEL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -531,7 +531,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         );
         bool clicked = ui.ActionButton(
             "Button_Scan",
-            _localization.GetRequired("ui.button.scanShort"),
+            _localization.GetRequired("ui.button.server.scan"),
             options
         );
         if (!clicked)
@@ -550,10 +550,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private void DrawServerTableEmptyState(UIBuilder<Material> ui)
     {
         string message = _favoritesTab
-            ? _localization.GetRequired("ui.text.none")
+            ? _localization.GetRequired("ui.label.none")
             : _scanning
-                ? _localization.GetRequired("ui.notification.discover.scanning")
-                : _discoverMessage ?? _localization.GetRequired("ui.notification.discover.none");
+                ? _localization.GetRequired("ui.message.server.discover.scanning")
+                : _discoverMessage ?? _localization.GetRequired("ui.message.server.discover.empty");
         ui.Label(
             message,
             UiMetrics.MENU_BODY_FONT,
@@ -763,7 +763,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 Height = new Fixed(ADD_BUTTON_HEIGHT),
             }
         );
-        string label = "+ " + _localization.GetRequired("ui.button.addFavorite");
+        string label = "+ " + _localization.GetRequired("ui.button.server.add");
         if (!ui.ActionButton("Button_AddFavorite", label, options))
         {
             return;
@@ -865,7 +865,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         ))
         {
             ui.Label(
-                _localization.GetRequired("ui.menu.directConnect"),
+                _localization.GetRequired("ui.label.server.direct"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.Text,
                 new Constraints
@@ -914,7 +914,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             );
             if (ui.ActionButton(
                 "Button_Connect",
-                _localization.GetRequired("ui.button.connect"),
+                _localization.GetRequired("ui.button.server.connect"),
                 connectOptions
             ))
             {
@@ -991,11 +991,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             _scanning = false;
             if (_discovery.DiscoveryUnavailable)
             {
-                _discoverMessage = _localization.GetString("ui.notification.discover.unavailable");
+                _discoverMessage = _localization.GetString("ui.message.server.discover.unavailable");
             }
             else if (found.Count == 0)
             {
-                _discoverMessage = _localization.GetString("ui.notification.discover.none");
+                _discoverMessage = _localization.GetString("ui.message.server.discover.empty");
             }
         }
     }
@@ -1008,13 +1008,13 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
         if (string.IsNullOrWhiteSpace(host))
         {
-            _errorMessage = _localization.GetString("ui.notification.connect.hostRequired");
+            _errorMessage = _localization.GetString("ui.message.server.connect.required");
             return;
         }
 
         if (!int.TryParse(portText, out int port) || port < 1 || port > 65535)
         {
-            _errorMessage = _localization.GetString("ui.notification.connect.portInvalid");
+            _errorMessage = _localization.GetString("ui.message.server.connect.invalidPort");
             return;
         }
 
@@ -1024,7 +1024,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             : $"{host}:{port}";
 
         string targetLabel = string.Format(
-            _localization.GetString("ui.menu.connectingTarget") ?? "Connecting to {0}",
+            _localization.GetRequired("ui.message.server.connecting.target"),
             targetText
         );
 
@@ -1054,7 +1054,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             if (!result.Success)
             {
-                _errorMessage = _localization.GetString("ui.notification.connect.failed");
+                _errorMessage = _localization.GetString("ui.message.server.connect.failed");
                 return;
             }
 
@@ -1108,12 +1108,12 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     {
         _modalMenu.GoToPage(_confirmModal.Create(
             () => RemoveFavoriteAt(index),
-            _localization.GetRequired("ui.menu.removeFavorite"),
+            _localization.GetRequired("ui.dialog.server.remove"),
             string.Format(
-                _localization.GetRequired("ui.menu.removeFavoriteBody"),
+                _localization.GetRequired("ui.dialog.server.remove.body"),
                 name
             ),
-            _localization.GetRequired("ui.button.remove"),
+            _localization.GetRequired("ui.button.server.remove"),
             _localization.GetRequired("ui.button.cancel")
         ));
     }

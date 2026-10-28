@@ -37,7 +37,7 @@ internal static class DisplaySettingsCategory
                 new SettingsSection("ui.settings.section.window"),
                 new StepperEntry<SettingsDisplayMode>(
                     id: "Settings.DisplayMode",
-                    labelKey: "ui.settings.displayMode",
+                    labelKey: "ui.settings.option.displayMode",
                     get: () => draft.DisplayMode,
                     set: value => draft.DisplayMode = value,
                     defaultValue: () => SettingsDefaults.DISPLAY_MODE,
@@ -46,7 +46,7 @@ internal static class DisplaySettingsCategory
                 ),
                 new StepperEntry<SettingsResolution>(
                     id: "Settings.Resolution",
-                    labelKey: "ui.settings.resolution",
+                    labelKey: "ui.settings.option.resolution",
                     get: () => draft.Resolution,
                     set: value => draft.Resolution = value,
                     defaultValue: () => SettingsDraft.GetNativeResolution(windowContext),
@@ -56,14 +56,14 @@ internal static class DisplaySettingsCategory
                 ),
                 new ToggleEntry(
                     id: "Settings.VSync",
-                    labelKey: "ui.settings.vsync",
+                    labelKey: "ui.settings.option.vsync",
                     get: () => draft.VSync,
                     set: value => draft.VSync = value,
                     defaultValue: () => SettingsDefaults.V_SYNC
                 ),
                 new StepperEntry<int>(
                     id: "Settings.FrameLimit",
-                    labelKey: "ui.settings.frameLimit",
+                    labelKey: "ui.settings.option.frameLimit",
                     get: () => draft.FrameLimit,
                     set: value => draft.FrameLimit = value,
                     defaultValue: () => SettingsDefaults.FRAME_LIMIT,
@@ -74,7 +74,7 @@ internal static class DisplaySettingsCategory
                 new SettingsSection("ui.settings.section.view"),
                 new SliderEntry(
                     id: "Settings.Fov",
-                    labelKey: "ui.settings.fov",
+                    labelKey: "ui.settings.option.fov",
                     get: () => draft.Fov,
                     set: value => draft.Fov = (int)MathF.Round(value),
                     defaultValue: () => SettingsDefaults.FOV,
@@ -85,7 +85,7 @@ internal static class DisplaySettingsCategory
                 ),
                 new StepperEntry<float>(
                     id: "Settings.ViewDistance",
-                    labelKey: "ui.settings.viewDistance",
+                    labelKey: "ui.settings.option.viewDistance",
                     get: () => draft.ViewDistance,
                     set: value => draft.ViewDistance = value,
                     defaultValue: () => SettingsDefaults.VIEW_DISTANCE,
@@ -95,7 +95,7 @@ internal static class DisplaySettingsCategory
                 new SettingsSection("ui.settings.section.quality"),
                 new ChoiceEntry<AntiAliasing>(
                     id: "Settings.AntiAliasing",
-                    labelKey: "ui.settings.antiAliasing",
+                    labelKey: "ui.settings.option.antiAliasing",
                     get: () => draft.AntiAliasingMode,
                     set: value => draft.AntiAliasingMode = value,
                     defaultValue: () => SettingsDefaults.ANTI_ALIASING_MODE,
@@ -104,14 +104,14 @@ internal static class DisplaySettingsCategory
                 ),
                 new ToggleEntry(
                     id: "Settings.AmbientOcclusion",
-                    labelKey: "ui.settings.ambientOcclusion",
+                    labelKey: "ui.settings.option.ambientOcclusion",
                     get: () => draft.AmbientOcclusion,
                     set: value => draft.AmbientOcclusion = value,
                     defaultValue: () => SettingsDefaults.AMBIENT_OCCLUSION
                 ),
                 new StepperEntry<int>(
                     id: "Settings.AoSamples",
-                    labelKey: "ui.settings.aoSamples",
+                    labelKey: "ui.settings.option.aoSamples",
                     get: () => draft.AoSamples,
                     set: value => draft.AoSamples = value,
                     defaultValue: () => SettingsDefaults.AO_SAMPLES,
@@ -121,14 +121,14 @@ internal static class DisplaySettingsCategory
                 ),
                 new ToggleEntry(
                     id: "Settings.Bloom",
-                    labelKey: "ui.settings.bloom",
+                    labelKey: "ui.settings.option.bloom",
                     get: () => draft.Bloom,
                     set: value => draft.Bloom = value,
                     defaultValue: () => SettingsDefaults.BLOOM
                 ),
                 new StepperEntry<int>(
                     id: "Settings.BloomPasses",
-                    labelKey: "ui.settings.bloomPasses",
+                    labelKey: "ui.settings.option.bloomPasses",
                     get: () => draft.BloomPasses,
                     set: value => draft.BloomPasses = value,
                     defaultValue: () => SettingsDefaults.BLOOM_PASSES,
@@ -191,12 +191,12 @@ internal static class DisplaySettingsCategory
     {
         return mode switch
         {
-            SettingsDisplayMode.Windowed => L(localization, "ui.settings.displayMode.windowed"),
-            SettingsDisplayMode.BorderlessWindow => L(localization, "ui.settings.displayMode.borderlessWindow"),
-            SettingsDisplayMode.Maximized => L(localization, "ui.settings.displayMode.maximized"),
-            SettingsDisplayMode.BorderlessMaximized => L(localization, "ui.settings.displayMode.borderlessMaximized"),
-            SettingsDisplayMode.Fullscreen => L(localization, "ui.settings.displayMode.fullscreen"),
-            SettingsDisplayMode.BorderlessFullscreen => L(localization, "ui.settings.displayMode.borderlessFullscreen"),
+            SettingsDisplayMode.Windowed => L(localization, "ui.settings.value.windowed"),
+            SettingsDisplayMode.BorderlessWindow => L(localization, "ui.settings.value.borderlessWindow"),
+            SettingsDisplayMode.Maximized => L(localization, "ui.settings.value.maximized"),
+            SettingsDisplayMode.BorderlessMaximized => L(localization, "ui.settings.value.borderlessMaximized"),
+            SettingsDisplayMode.Fullscreen => L(localization, "ui.settings.value.fullscreen"),
+            SettingsDisplayMode.BorderlessFullscreen => L(localization, "ui.settings.value.borderlessFullscreen"),
             _ => mode.ToString(),
         };
     }
@@ -205,7 +205,7 @@ internal static class DisplaySettingsCategory
     {
         if (value == 0)
         {
-            return L(localization, "ui.settings.unlimited");
+            return L(localization, "ui.settings.value.unlimited");
         }
 
         string unit = L(localization, "ui.unit.fps");
@@ -232,8 +232,8 @@ internal static class DisplaySettingsCategory
     private static string FormatAntiAliasing(ILocalization localization, AntiAliasing antiAliasing)
     {
         return antiAliasing == AntiAliasing.MSAA
-            ? L(localization, "ui.settings.antiAliasing.msaa")
-            : L(localization, "ui.settings.antiAliasing.off");
+            ? L(localization, "ui.settings.value.msaa")
+            : L(localization, "ui.settings.value.off");
     }
 
     private static string FormatSamples(int value)

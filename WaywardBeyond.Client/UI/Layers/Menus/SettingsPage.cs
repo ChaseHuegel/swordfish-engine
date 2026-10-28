@@ -239,7 +239,7 @@ internal sealed class SettingsPage<TIdentifier>(
             }
         }
 
-        _status = L("ui.settings.saved");
+        _status = L("ui.settings.status.saved");
         _statusUntil = time + 2d;
         Widgets.Interactions.Click.WithButtonAudio(_soundEffectService);
     }

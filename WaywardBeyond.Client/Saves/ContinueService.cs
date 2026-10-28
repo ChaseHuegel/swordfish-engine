@@ -26,11 +26,11 @@ internal sealed class ContinueService(
     ILocalization localization,
     ILogger<ContinueService> logger
 ) {
-    private const string TITLE_KEY = "ui.continue.failedTitle";
-    private const string CONNECT_KEY = "ui.continue.connectFailed";
-    private const string SAVE_KEY = "ui.continue.saveMissing";
-    private const string CHARACTER_KEY = "ui.continue.characterMissing";
-    private const string LOAD_KEY = "ui.continue.loadFailed";
+    private const string TITLE_KEY = "ui.dialog.continue.failed";
+    private const string CONNECT_KEY = "ui.message.continue.connectFailed";
+    private const string SAVE_KEY = "ui.message.continue.levelMissing";
+    private const string CHARACTER_KEY = "ui.message.continue.characterMissing";
+    private const string LOAD_KEY = "ui.message.continue.loadFailed";
 
     private readonly ConcurrentQueue<Failure> _failures = new();
     private int _running;

@@ -8,21 +8,22 @@ One subject: the main menu suite layout, flow, data mapping, and visual rules.
 
 | Page | Opens | Primary action |
 |---|---|---|
-| Home | Main menu | Continue, Singleplayer, Multiplayer, Settings, Credits, Exit Game |
-| SelectSave | Singleplayer or Multiplayer | Launch selected archive, or create a colonist when none exist |
-| NewSave | SelectSave | Initialize a sector, then open Crew Manifest |
-| SelectCharacter | SelectSave or NewSave | Launch the selected colonist |
-| NewCharacter | Crew Manifest or empty Singleplayer | Create a colonist, then return to Crew Manifest |
-| Multiplayer | Home | Join a favorite or LAN server |
+| Home | Main menu | Continue, Singleplayer, Multiplayer, Settings, Credits, Exit game |
+| SelectSave | Singleplayer or Multiplayer | Select the galaxy, or register a colonist when none exist |
+| NewSave | SelectSave | Chart a galaxy, then open the crew manifest |
+| SelectCharacter | SelectSave or NewSave | Embark the selected colonist |
+| NewCharacter | Crew manifest or empty Singleplayer | Register a colonist, then return to the crew manifest |
+| Multiplayer | Home | Establish an uplink to a saved or local signal |
 | Settings | Home or Pause | Keep the existing draft/apply behavior |
-| Credits | Home | Return |
+| Credits | Home | Go back |
 
 The old `CharactersPage` is gone. Continue resumes the last played server, save,
 and colonist directly. Singleplayer switches the RPC host to the local loopback,
 clears the cached save listing and active save, then opens the save list
 immediately. The local listing populates through the normal refresh. A local save
-list returns with `Return`. A remote save list returns with `Servers` to the
-multiplayer server hub. New Game creates a sector before it opens Crew Manifest.
+list goes back with `Back`. A remote save list goes back with `Signals` to the
+multiplayer server hub. Chart new galaxy opens the level form before the crew
+manifest.
 
 ## Layout
 
@@ -32,7 +33,7 @@ ratio. It does not compute panel or button rects.
 
 Each page builds its body with `Row`, `Column`, and `Filler`. Wide two-pane pages
 use a row. Narrow pages use a tab strip above one pane. A footer is a fixed
-height row with the Return button, the status, and the Primary button.
+height row with the Back button, the status, and the Primary button.
 
 Footer buttons use the shared slot from `MenuLayoutExtensions.FooterButton`:
 
@@ -67,10 +68,10 @@ first group. A dotted divider separates them from Save & exit.
 - The gap between buttons is 10 pixels.
 - The gap around the divider is 12 pixels.
 
-## Sector initialization
+## Charting a galaxy
 
-While a sector is preparing, the progress panel shows the stable `Preparing
-sector` line and a rolling terminal feed from the `game_create` tag set.
+While a galaxy is charting, the progress panel shows the stable `Charting
+galaxy` line and a rolling terminal feed from the `game_create` tag set.
 
 - The header and feed are left-aligned at the top of the panel.
 - The feed keeps five lines.
@@ -82,22 +83,22 @@ sector` line and a rolling terminal feed from the `game_create` tag set.
 
 ## Form validation
 
-Create Character and New Game show one form status centered in the footer.
-Errors use `UiTheme.Danger`. Warnings use `UiTheme.Warning`. Required field
-errors take priority over optional field warnings.
+The character form and the level form show one form status centered in the
+footer. Errors use `UiTheme.Danger`. Warnings use `UiTheme.Warning`. Required
+field errors take priority over optional field warnings.
 
-Create Character:
+Character form:
 
 - Missing name: `Name is required`.
 - Duplicate name: `Name is already taken`.
 - Unspent points: `S.P.A.C.E.R. points remaining: {0}`.
 
-New Game:
+Level form:
 
-- Creation failed: `Failed to create the sector.`
+- Creation failed: `Could not chart the galaxy`.
 - Missing name: `Name is required`.
 - Duplicate name: `Name is already taken`.
-- Missing seed: `A random seed will be used.`
+- Missing seed: `A random seed will be used`.
 
 ## Visual rules
 
@@ -118,91 +119,89 @@ New Game:
   a full square hit target and adds only hover/pressed fills.
 - `SelectableCard` covers archive cards, crew cards, and server rows. Selected
   rows use one orange border and a cyan left caret bar, not a double outline.
-- `Tab` covers narrow pane switching, Favorites/LAN Discovery, and attached
+- `Tab` covers narrow pane switching, Saved signals/Local signals, and attached
   section tabs.
-- `InfoBox` covers the sector and stat descriptions.
-- Create Character centers the name field, its dice, and the body selector
+- `InfoBox` covers the galaxy and stat descriptions.
+- The character form centers the name field, its dice, and the body selector
   group. Each selector row holds a muted label, a discrete stepper, and a dice.
-- Create Character asks for confirmation when S.P.A.C.E.R points remain. The
-  player can still create the colonist.
+- The character form asks for confirmation when S.P.A.C.E.R points remain. The
+  player can still register the colonist.
 - Stat rows color the first letter only. Focused rows use orange, unfocused
   rows use cyan. The separate short-name box is gone.
 - The S.P.A.C.E.R description sits under the evaluation header. The S.P.A.C.E.R
   total is not shown.
 - The selected colonist dossier shows the combined skill level under the name.
-- Archive, crew, and saved-server delete actions are trash icons on their list
-  rows. A saved-server delete opens a confirmation.
-- Primary proceed actions live in the footer: Launch, Initialize, Create, and
-  Join Server.
+- Archive, crew, and saved-signal delete actions are trash icons on their list
+  rows. A saved-signal delete opens a confirmation.
+- Primary proceed actions live in the footer: Embark, Chart, Register, and
+  Establish uplink.
 
 ## Data mapping
 
-The mockup uses galaxy terminology. The game stores levels and characters.
+A save is a galaxy. The game stores levels and characters.
 
-- Galactic Archives is the level/save list from `GameSaveService`. The listing is
+- Galactic archives is the level list from `GameSaveService`. The listing is
   ordered by last played, newest first. It scrolls through `Widgets.ScrollArea`,
   so it shows the same scrollbar as the crew manifest when the list overflows.
-- Sector Telemetry is `Level` data plus the active `Character` when present.
-- Crew Manifest is `ICharacterStorage`.
+- Galaxy telemetry is `Level` data plus the active `Character` when present.
+- Crew manifest is `ICharacterStorage`.
 - Species and gender are the real body selectors. Each one is a stepper over
   the shipped body definitions, and the pair resolves to the `Character.Body`
   ID through `CharacterAssetService.GetBodyId`. The mockup's suit selector
   stays out because no asset backs it.
-- Favorites is `ProfileSettings.SavedServers`.
-- LAN Discovery is `LanDiscoveryService`.
+- Saved signals is `ProfileSettings.SavedServers`.
+- Local signals is `LanDiscoveryService`.
 - The server table shows name, address, players, and ping. Ping currently renders
   the unknown state (`-`) until the transport exposes a reading.
-- Direct Connect is a left-aligned toolbar with host, port, and Connect.
-  Connection errors render centered in the footer between Return and Join
-  Server, so the page does not shift.
+- Direct uplink is a left-aligned toolbar with address, port, and Uplink.
+  Connection errors render centered in the footer between Back and Establish
+  uplink, so the page does not shift.
 - Active connection attempts display an input-blocking connecting modal
   (`ConnectingModal.cs`) with an animated scanning signal indicator. The
   player can cancel the attempt with the Cancel button or the Escape key.
   Completion or failure dismisses the modal automatically.
-- The Favorites list has an Add Favorite action at the bottom. It opens a modal
-  with address, port, Cancel, and Submit.
-- LAN rows have a star action that saves the discovered server.
-- When connected to a remote server, the server list shows a connected banner
-  with View Saves and Disconnect. Disconnect restores the local loopback, clears
-  the cached listing and active save, and stays on the server list.
+- The Saved signals list has an Add signal action at the bottom. It opens a
+  dialog with address, port, Cancel, and Add signal.
+- Local signal rows have a star action that saves the discovered signal.
+- When connected to a remote server, the signal list shows a connected banner
+  with View archives and Sever uplink. Sever uplink restores the local loopback,
+  clears the cached listing and active save, and stays on the signal list.
 - Ping uses Font Awesome `signal` with color bands: green below 60 ms, yellow
   below 100 ms, orange below 150 ms, red below 250 ms. At 250 ms or more it
   switches to a red `xmark`. Unknown is a dim `signal` plus `-`.
 
-Continue shows a hover card with the last played archive, its session type, its
+Continue shows a hover card with the last played galaxy, its session type, its
 mode, seed, last played time, time played, and the last colonist's combined
 skill level. The type is `Singleplayer` or `Multiplayer`. A multiplayer card
-adds one destination line with the saved server name, or the endpoint when no
+adds one destination line with the saved signal name, or the endpoint when no
 name matches. The card draws from the current save cache when it holds the last
 save, and falls back to the summary recorded in `profile.toml` otherwise. The
 combined level is the sum of every recorded skill's resolved level.
 
 Continue is enabled only when a last session is recorded, the recorded colonist
-still exists, and the card has an archive name. The chevron, the enabled state,
+still exists, and the card has a galaxy name. The chevron, the enabled state,
 and the card use that one result, so a disabled button never draws a card and an
-enabled button always does. Deleting the last played save or colonist clears the
-recorded session.
+enabled button always does. Deleting the last played galaxy or colonist clears
+the recorded session.
 
 ## Credits
 
 The credits page reads three entries from `ui.toml`:
 
-- `ui.credits.header` holds the kicker and the studio name on two lines.
-- `ui.credits.body` holds the three production sections.
-- `ui.credits.thanks` holds the playtester thanks.
+- `ui.panel.credits` is the panel title.
+- `ui.text.credits.body` holds the production sections.
+- `ui.text.credits.thanks` holds the playtester thanks.
 
-The renderer splits the header on the newline so the kicker uses the small font
-and the studio name uses the title font. The body and thanks render as
-paragraphs and size to their measured text height. Markup supplies the colors.
-Credits uses a 720 pixel maximum page height. The whole block scrolls inside the
-panel with a scrollbar when needed.
+The body and thanks render as paragraphs and size to their measured text height.
+Markup supplies the colors. Credits uses a 720 pixel maximum page height. The
+whole block scrolls inside the panel with a scrollbar when needed.
 
 ## Omitted controls
 
 Do not add fake menu controls.
 
 - Sandbox rules have no per-save engine support.
-- Game Mode selection is omitted. Level creation and character creation still
+- Game Mode selection is omitted. Level creation and colonist registration still
   use Creative mode.
 - Keybindings stay deferred by issue 0086.
 - Server ping and description columns have no backing data.
@@ -214,19 +213,18 @@ Do not add fake menu controls.
 - Layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:10`
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
 - Continue: `WaywardBeyond.Client/Saves/ContinueService.cs:18`
-- Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:13`
-- Connecting modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConnectingModal.cs:14`
+- Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:14`
+- Connecting modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConnectingModal.cs:15`
 - Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:15`
 - Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:25`
-- New Game: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:23`
-- Crew Manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:23`
-- Create Character: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:27`
+- Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:24`
+- Crew manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:23`
+- Character form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:26`
 - Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:24`
 - Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:15`
 - Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:20`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
-- Localization: `WaywardBeyond.Client/assets/lang/en/ui.toml`,
-  `WaywardBeyond.Client/assets/lang/en/body.toml`
+- Copy: [specs/ui-copy](ui-copy.md)
 
 ## Tests
 

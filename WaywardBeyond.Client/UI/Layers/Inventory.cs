@@ -10,6 +10,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
@@ -97,10 +98,10 @@ internal sealed class Inventory : IUILayer
         _inputService = inputService;
         _localization = localization;
 
-        _titleLabel = localization.GetString("ui.inventory.title") ?? "Inventory";
-        _emptySlotLabel = localization.GetString("ui.inventory.emptySlot") ?? "Empty slot";
-        _shapeableLabel = localization.GetString("ui.inventory.shapeable") ?? "Shapeable";
-        _orientableLabel = localization.GetString("ui.inventory.orientable") ?? "Rotatable";
+        _titleLabel = localization.GetRequired("ui.label.inventory.title");
+        _emptySlotLabel = localization.GetRequired("ui.label.inventory.empty");
+        _shapeableLabel = localization.GetRequired("ui.label.inventory.shapeable");
+        _orientableLabel = localization.GetRequired("ui.label.inventory.orientable");
 
         var toggleShortcut = new Shortcut
         {

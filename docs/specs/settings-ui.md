@@ -80,15 +80,16 @@ so no builder dereferences the page.
 It copies every editable config value when the page opens.
 
 Each entry keeps its baseline value. The page compares the draft against the
-baselines to decide whether changes exist. `Apply Changes` commits the draft,
-saves the configs, and captures new baselines. The footer action reads `Return`
+baselines to decide whether changes exist. `Apply changes` commits the draft,
+saves the configs, and captures new baselines. The footer action reads `Back`
 when there are no pending changes and `Cancel` when there are. Both leave the
 page, and `Cancel` discards the draft. `Reset section to defaults` restores one
 category.
 
 The recommended defaults are in `SettingsDefaults` at
-`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`. Display Mode defaults
-to Borderless Window. Resolution defaults to the native monitor resolution.
+`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`. Display mode defaults
+to `SettingsDisplayMode.BorderlessWindow`. Resolution defaults to the native
+monitor resolution.
 
 ## Display modes
 
@@ -121,7 +122,7 @@ window while the page is open.
 
 The page exposes only options that the engine supports:
 
-- Display & Video: display mode, resolution, V-Sync, frame limit, field of
+- Display & Video: display mode, resolution, V-sync, frame limit, field of
   view, view distance, anti-aliasing, ambient occlusion, AO samples, bloom, and
   bloom passes.
 - Audio: master, music, effects, and interface volume.

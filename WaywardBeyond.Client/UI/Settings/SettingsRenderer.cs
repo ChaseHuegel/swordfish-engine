@@ -38,7 +38,7 @@ internal sealed class SettingsRenderer(
     public bool DrawTray(SettingsCategory[] categories, ref int categoryIndex)
     {
         Ui.Label(
-            L("ui.settings.categories"),
+            L("ui.settings.panel.categories"),
             UiMetrics.SMALL_FONT,
             UiTheme.TextMuted,
             new Constraints
@@ -151,11 +151,11 @@ internal sealed class SettingsRenderer(
             };
             cancelClicked = Ui.ActionButton(
                 "Settings.Cancel",
-                dirty ? L("ui.settings.cancel") : L("ui.button.return"),
+                dirty ? L("ui.button.cancel") : L("ui.button.back"),
                 cancelOptions
             );
 
-            string? message = dirty ? L("ui.settings.unsaved") : status;
+            string? message = dirty ? L("ui.settings.status.unsaved") : status;
             if (message != null)
             {
                 Ui.Label(
@@ -190,7 +190,7 @@ internal sealed class SettingsRenderer(
             };
             applyClicked = Ui.ActionButton(
                 "Settings.Apply",
-                L("ui.settings.apply"),
+                L("ui.settings.action.apply"),
                 applyOptions
             );
         }
@@ -268,8 +268,8 @@ internal sealed class SettingsRenderer(
                 entry.Id,
                 ControlConstraints(),
                 entry.Value,
-                L("ui.settings.on"),
-                L("ui.settings.off"),
+                L("ui.settings.value.on"),
+                L("ui.settings.value.off"),
                 entry.CanEdit
             );
 
@@ -380,7 +380,7 @@ internal sealed class SettingsRenderer(
                 Height = new Fixed(SettingsMetrics.RESET_ROW_HEIGHT - 8),
             }
         );
-        if (Ui.ActionButton(id, L("ui.settings.resetSection"), options))
+        if (Ui.ActionButton(id, L("ui.settings.action.reset"), options))
         {
             reset();
             Play();

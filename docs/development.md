@@ -439,3 +439,7 @@ Attribute the docs pass to the same change that caused it. Stale docs are a bug.
 
 All new doc prose uses **Simplified Technical English**: one name per thing,
 active voice, short sentences, no semicolons, no contractions.
+
+Player-facing UI copy follows the Material style guide and a fixed language key
+grammar. See [specs/ui-copy](specs/ui-copy.md) before you add or rename a
+localized string.

@@ -175,8 +175,8 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
     {
         bool remote = _rpcHost.IsRemote;
         string returnLabel = remote
-            ? _localization.GetRequired("ui.button.servers")
-            : _localization.GetRequired("ui.button.return");
+            ? _localization.GetRequired("ui.button.server.list")
+            : _localization.GetRequired("ui.button.back");
 
         using (ui.Row(
             new Constraints
@@ -206,7 +206,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             };
             if (ui.ActionButton(
                 "Button_SelectSave",
-                _localization.GetRequired("ui.button.next"),
+                _localization.GetRequired("ui.button.level.select"),
                 nextOptions
             ))
             {
@@ -235,7 +235,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
             if (ui.Tab(
                 "ArchivesTab",
-                _localization.GetRequired("ui.menu.galacticArchives"),
+                _localization.GetRequired("ui.panel.level.list"),
                 selected: _narrowTab == 0,
                 tabConstraints
             ))
@@ -245,7 +245,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
             if (ui.Tab(
                 "TelemetryTab",
-                _localization.GetRequired("ui.menu.sectorTelemetry"),
+                _localization.GetRequired("ui.panel.level.detail"),
                 selected: _narrowTab == 1,
                 tabConstraints
             ))
@@ -257,7 +257,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
     private void DrawArchives(UIBuilder<Material> ui, Constraints constraints, Menu<MenuPage> menu)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.galacticArchives")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.list")))
         {
             GameSave[] saves = _gameSaveService.GetSaves();
 
@@ -272,7 +272,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 if (saves.Length == 0)
                 {
                     ui.Label(
-                        _localization.GetRequired("ui.text.none"),
+                        _localization.GetRequired("ui.label.none"),
                         UiMetrics.MENU_BODY_FONT,
                         UiTheme.TextDim,
                         new Constraints
@@ -341,6 +341,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             _modalMenu,
             _confirmModal,
             _soundEffectService,
+            _localization,
             deleteSave
         );
 
@@ -418,7 +419,13 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         GameSave save = context.Save;
         Action<GameSave> deleteSave = context.DeleteSave;
         context.GameSaveManager.ActiveSave = save;
-        context.ModalMenu.GoToPage(context.ConfirmModal.Create(() => deleteSave(save)));
+        context.ModalMenu.GoToPage(context.ConfirmModal.Create(
+            () => deleteSave(save),
+            context.Localization.GetRequired("ui.dialog.level.delete"),
+            context.Localization.GetRequired("ui.dialog.level.delete.body"),
+            context.Localization.GetRequired("ui.button.level.delete"),
+            context.Localization.GetRequired("ui.button.cancel")
+        ));
     }
 
     /// <summary>Deletes one galaxy archive, selects the most recent remaining save, and resets the list scroll.</summary>
@@ -442,7 +449,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         );
         bool clicked = ui.ActionButton(
             "Button_NewSave",
-            "+ " + _localization.GetRequired("ui.menu.chartNewGalaxy"),
+            "+ " + _localization.GetRequired("ui.button.level.new"),
             options
         );
         if (clicked)
@@ -453,13 +460,13 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
     private void DrawTelemetry(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.sectorTelemetry")))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.detail")))
         {
             GameSave? activeSave = _gameSaveManager.ActiveSave ?? _gameSaveManager.GetMostRecentSave();
             if (activeSave == null)
             {
                 ui.Label(
-                    _localization.GetRequired("ui.text.none"),
+                    _localization.GetRequired("ui.label.none"),
                     UiMetrics.MENU_BODY_FONT,
                     UiTheme.TextDim,
                     new Constraints
@@ -491,7 +498,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             }
         );
         ui.Label(
-            $"{_localization.GetRequired("ui.menu.mode")}: {save.Level.DefaultGameMode}",
+            $"{_localization.GetRequired("ui.label.level.mode")}: {save.Level.DefaultGameMode}",
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.TextMuted,
             new Constraints
@@ -501,7 +508,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             }
         );
         ui.Label(
-            $"{_localization.GetRequired("ui.menu.seed")}: {save.Level.Seed}",
+            $"{_localization.GetRequired("ui.label.level.seed")}: {save.Level.Seed}",
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.TextMuted,
             new Constraints
@@ -552,7 +559,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         );
         ui.Spacer(height: 8);
         ui.Label(
-            _localization.GetRequired("ui.menu.activeColonist"),
+            _localization.GetRequired("ui.label.character.active"),
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.TextMuted,
             new Constraints
@@ -566,7 +573,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         if (character == null)
         {
             ui.Label(
-                _localization.GetRequired("ui.menu.noColonist"),
+                _localization.GetRequired("ui.label.character.none"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextDim,
                 new Constraints
@@ -624,7 +631,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 );
                 int level = character.GetTotalSkillLevel(_skillDatabase);
                 ui.Label(
-                    $"{_localization.GetRequired("ui.menu.level")} {level}",
+                    $"{_localization.GetRequired("ui.label.character.level")} {level}",
                     UiMetrics.MENU_SMALL_FONT,
                     UiTheme.Text,
                     new Constraints
@@ -661,6 +668,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         ModalMenu ModalMenu,
         ConfirmModal ConfirmModal,
         SoundEffectService SoundEffectService,
+        ILocalization Localization,
         Action<GameSave> DeleteSave
     );
 }

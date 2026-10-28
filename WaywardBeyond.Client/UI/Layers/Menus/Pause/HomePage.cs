@@ -55,7 +55,7 @@ internal sealed class HomePage(
         {
             if (ui.ActionButton(
                 "Button_Continue",
-                _localization.GetRequired("ui.button.continue"),
+                _localization.GetRequired("ui.button.pause.continue"),
                 _primaryButton with { Layout = ButtonSlot() }
             ))
             {
@@ -77,7 +77,7 @@ internal sealed class HomePage(
 
             if (ui.ActionButton(
                 "Button_Feedback",
-                _localization.GetRequired("ui.button.feedback"),
+                _localization.GetRequired("ui.button.feedback.send"),
                 _secondaryButton with { Layout = ButtonSlot() }
             ))
             {
@@ -90,7 +90,7 @@ internal sealed class HomePage(
 
             if (ui.ActionButton(
                 "Button_SaveAndExit",
-                _localization.GetRequired("ui.button.saveAndExit"),
+                _localization.GetRequired("ui.button.pause.saveExit"),
                 _dangerButton with { Layout = ButtonSlot() }
             ))
             {

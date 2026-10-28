@@ -99,7 +99,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _backButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _createButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
         var nameTextBoxOptions = new TextBoxState.Options(
-            Placeholder: localization.GetString("ui.field.characterName"),
+            Placeholder: localization.GetString("ui.field.character.name.placeholder"),
             MaxCharacters: 20,
             DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '<', '>', '|'],
             Constraints: new Constraints
@@ -213,7 +213,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             if (ui.Tab(
                 "IdentityTab",
-                _localization.GetRequired("ui.menu.colonistIdentity"),
+                _localization.GetRequired("ui.panel.character.form"),
                 selected: _narrowTab == 0,
                 tabConstraints
             ))
@@ -223,7 +223,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             if (ui.Tab(
                 "EvaluationTab",
-                _localization.GetRequired("ui.menu.spacerEvaluation"),
+                _localization.GetRequired("ui.panel.character.spacer"),
                 selected: _narrowTab == 1,
                 tabConstraints
             ))
@@ -270,7 +270,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             };
             if (ui.ActionButton(
                 "Button_CreateCharacter",
-                _localization.GetRequired("ui.button.createCharacter"),
+                _localization.GetRequired("ui.button.character.create"),
                 createOptions
             ))
             {
@@ -284,12 +284,12 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     {
         if (nameMissing)
         {
-            return new FooterStatus(_localization.GetString("ui.notification.name.required"), UiTheme.Danger);
+            return new FooterStatus(_localization.GetString("ui.message.name.required"), UiTheme.Danger);
         }
 
         if (nameTaken)
         {
-            return new FooterStatus(_localization.GetString("ui.notification.name.taken"), UiTheme.Danger);
+            return new FooterStatus(_localization.GetString("ui.message.name.taken"), UiTheme.Danger);
         }
 
         if (_spacerPoints == 0)
@@ -298,7 +298,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         }
 
         string message = string.Format(
-            _localization.GetRequired("ui.menu.unspentPointsWarning"),
+            _localization.GetRequired("ui.message.character.unspentPoints"),
             _spacerPoints
         );
 
@@ -317,12 +317,12 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             return;
         }
 
-        string title = _localization.GetRequired("ui.menu.unspentPoints");
+        string title = _localization.GetRequired("ui.dialog.character.unspent");
         string body = string.Format(
-            _localization.GetRequired("ui.menu.unspentPointsBody"),
+            _localization.GetRequired("ui.dialog.character.unspent.body"),
             _spacerPoints
         );
-        string createLabel = _localization.GetRequired("ui.button.createCharacter");
+        string createLabel = _localization.GetRequired("ui.button.character.create");
         string cancelLabel = _localization.GetRequired("ui.button.cancel");
         _modalMenu.GoToPage(_confirmModal.Create(() => TryCreate(menu), title, body, createLabel, cancelLabel));
     }
@@ -330,7 +330,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     /// <summary>Draws the identity panel.</summary>
     private void DrawIdentity(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.colonistIdentity"), padding: PANEL_PADDING))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.form"), padding: PANEL_PADDING))
         {
             DrawNameField(ui);
             ui.Spacer(height: 16);
@@ -342,7 +342,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private void DrawNameField(UIBuilder<Material> ui)
     {
         ui.Label(
-            _localization.GetRequired("ui.field.characterNameLabel"),
+            _localization.GetRequired("ui.field.character.name"),
             UiMetrics.MENU_SMALL_FONT,
             UiTheme.Text,
             new Constraints
@@ -449,7 +449,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         DrawSelectorRow(
             ui,
             "SpeciesSelector",
-            _localization.GetRequired("ui.field.species"),
+            _localization.GetRequired("ui.field.character.species"),
             speciesList,
             _speciesIndex,
             FormatSpeciesName,
@@ -468,7 +468,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         DrawSelectorRow(
             ui,
             "GenderSelector",
-            _localization.GetRequired("ui.field.gender"),
+            _localization.GetRequired("ui.field.character.gender"),
             genders,
             IndexOfGender(genders, _gender),
             FormatGenderName,
@@ -558,10 +558,10 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     /// <summary>Draws the spacer evaluation panel.</summary>
     private void DrawEvaluation(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.menu.spacerEvaluation"), padding: 16))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.spacer"), padding: 16))
         {
             ui.Paragraph(
-                _localization.GetRequired("ui.field.spacer.description"),
+                _localization.GetRequired("ui.text.character.spacer"),
                 UiMetrics.MENU_SMALL_FONT,
                 UiTheme.TextMuted,
                 new Constraints
@@ -583,7 +583,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             ))
             {
                 ui.Label(
-                    _localization.GetRequired("ui.field.spacer.points"),
+                    _localization.GetRequired("ui.label.character.spacer.points"),
                     UiMetrics.MENU_SMALL_FONT,
                     UiTheme.Text,
                     new Constraints
@@ -626,21 +626,21 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
             string[] descriptions =
             [
-                _localization.GetRequired("ui.field.strength.desc"),
-                _localization.GetRequired("ui.field.precision.desc"),
-                _localization.GetRequired("ui.field.awareness.desc"),
-                _localization.GetRequired("ui.field.charisma.desc"),
-                _localization.GetRequired("ui.field.education.desc"),
-                _localization.GetRequired("ui.field.resolve.desc"),
+                _localization.GetRequired("ui.text.character.strength"),
+                _localization.GetRequired("ui.text.character.precision"),
+                _localization.GetRequired("ui.text.character.awareness"),
+                _localization.GetRequired("ui.text.character.charisma"),
+                _localization.GetRequired("ui.text.character.education"),
+                _localization.GetRequired("ui.text.character.resolve"),
             ];
             string[] names =
             [
-                _localization.GetRequired("ui.field.strength"),
-                _localization.GetRequired("ui.field.precision"),
-                _localization.GetRequired("ui.field.awareness"),
-                _localization.GetRequired("ui.field.charisma"),
-                _localization.GetRequired("ui.field.education"),
-                _localization.GetRequired("ui.field.resolve"),
+                _localization.GetRequired("ui.label.character.strength"),
+                _localization.GetRequired("ui.label.character.precision"),
+                _localization.GetRequired("ui.label.character.awareness"),
+                _localization.GetRequired("ui.label.character.charisma"),
+                _localization.GetRequired("ui.label.character.education"),
+                _localization.GetRequired("ui.label.character.resolve"),
             ];
 
             ui.InfoBox(
@@ -650,7 +650,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     Height = new Fill(),
                     MaxHeight = 96,
                 },
-                _localization.GetRequired("ui.menu.info"),
+                _localization.GetRequired("ui.label.info"),
                 descriptions[_focusedStat],
                 names[_focusedStat] + ":"
             );
@@ -660,12 +660,12 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     /// <summary>Draws the six spacer stat rows.</summary>
     private void DrawStatRows(UIBuilder<Material> ui)
     {
-        DrawStatRow(ui, 0, _localization.GetRequired("ui.field.strength"), _strength);
-        DrawStatRow(ui, 1, _localization.GetRequired("ui.field.precision"), _precision);
-        DrawStatRow(ui, 2, _localization.GetRequired("ui.field.awareness"), _awareness);
-        DrawStatRow(ui, 3, _localization.GetRequired("ui.field.charisma"), _charisma);
-        DrawStatRow(ui, 4, _localization.GetRequired("ui.field.education"), _education);
-        DrawStatRow(ui, 5, _localization.GetRequired("ui.field.resolve"), _resolve);
+        DrawStatRow(ui, 0, _localization.GetRequired("ui.label.character.strength"), _strength);
+        DrawStatRow(ui, 1, _localization.GetRequired("ui.label.character.precision"), _precision);
+        DrawStatRow(ui, 2, _localization.GetRequired("ui.label.character.awareness"), _awareness);
+        DrawStatRow(ui, 3, _localization.GetRequired("ui.label.character.charisma"), _charisma);
+        DrawStatRow(ui, 4, _localization.GetRequired("ui.label.character.education"), _education);
+        DrawStatRow(ui, 5, _localization.GetRequired("ui.label.character.resolve"), _resolve);
     }
 
     private void DrawStatRow(
@@ -810,13 +810,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         string nameValue = CurrentName();
         if (string.IsNullOrWhiteSpace(nameValue))
         {
-            _notificationService.Push(new Notification(_localization.GetRequired("ui.notification.name.required")));
+            _notificationService.Push(new Notification(_localization.GetRequired("ui.message.name.required")));
             return;
         }
 
         if (_characterStorage.GetAllCharacters().Any(character => character.Name == nameValue))
         {
-            _notificationService.Push(new Notification(_localization.GetRequired("ui.notification.name.taken")));
+            _notificationService.Push(new Notification(_localization.GetRequired("ui.message.name.taken")));
             return;
         }
 
@@ -853,7 +853,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             return;
         }
 
-        _notificationService.Push(new Notification("Failed to create character!"));
+        _notificationService.Push(new Notification(_localization.GetRequired("notification.character.createFailed")));
         _logger.LogError(
             saveResult.Exception,
             "Failed to save character \"{name}\" ({id}): {message}",
