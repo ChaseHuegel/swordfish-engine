@@ -164,4 +164,51 @@ public class ShadowCascadeMathTests
         Assert.Equal(expectedForward.Y, tiltedForward.Y, precision: 4);
         Assert.Equal(expectedForward.Z, tiltedForward.Z, precision: 4);
     }
+
+    [Fact]
+    public void CalculateCascadeMatrix_DoesNotMoveForSubTexelCameraMotion()
+    {
+        Matrix4x4 viewA = Matrix4x4.CreateLookAt(new Vector3(0.0f, 2.0f, 5.0f), Vector3.Zero, Vector3.UnitY);
+        Matrix4x4 viewB = Matrix4x4.CreateLookAt(new Vector3(0.0001f, 2.0f, 5.0f), Vector3.Zero, Vector3.UnitY);
+        float fov = MathF.PI / 4.0f;
+        float aspect = 16.0f / 9.0f;
+        float near = 0.1f;
+        float far = 20.0f;
+        Vector3 lightDir = Vector3.Normalize(new Vector3(0.5f, -1.0f, 0.3f));
+        uint resolution = 1024;
+
+        ShadowCascadeMath.CalculateCascadeMatrix(
+            viewA, fov, aspect, near, far, lightDir, resolution,
+            out Matrix4x4 cascadeViewA, out Matrix4x4 cascadeProjA
+        );
+        ShadowCascadeMath.CalculateCascadeMatrix(
+            viewB, fov, aspect, near, far, lightDir, resolution,
+            out Matrix4x4 cascadeViewB, out Matrix4x4 cascadeProjB
+        );
+
+        AssertMatrixNear(cascadeViewA * cascadeProjA, cascadeViewB * cascadeProjB, tolerance: 1e-5f);
+    }
+
+    private static void AssertMatrixNear(Matrix4x4 expected, Matrix4x4 actual, float tolerance)
+    {
+        Assert.True(Vector4.Distance(
+            new Vector4(expected.M11, expected.M12, expected.M13, expected.M14),
+            new Vector4(actual.M11, actual.M12, actual.M13, actual.M14)
+        ) <= tolerance);
+
+        Assert.True(Vector4.Distance(
+            new Vector4(expected.M21, expected.M22, expected.M23, expected.M24),
+            new Vector4(actual.M21, actual.M22, actual.M23, actual.M24)
+        ) <= tolerance);
+
+        Assert.True(Vector4.Distance(
+            new Vector4(expected.M31, expected.M32, expected.M33, expected.M34),
+            new Vector4(actual.M31, actual.M32, actual.M33, actual.M34)
+        ) <= tolerance);
+
+        Assert.True(Vector4.Distance(
+            new Vector4(expected.M41, expected.M42, expected.M43, expected.M44),
+            new Vector4(actual.M41, actual.M42, actual.M43, actual.M44)
+        ) <= tolerance);
+    }
 }

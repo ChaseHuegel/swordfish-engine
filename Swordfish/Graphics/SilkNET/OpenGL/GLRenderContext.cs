@@ -20,8 +20,15 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly LockedList<GLRenderTarget> _renderTargets = [];
     private readonly LockedList<GLRectRenderTarget> _rectRenderTargets = [];
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
+    private readonly ConcurrentQueue<UnboundRenderer> _unboundRenderers = new();
+    private readonly ConcurrentQueue<UnboundBatchRenderer> _unboundBatchRenderers = new();
+    private readonly ConcurrentDictionary<MeshBatchRenderer, GLMeshBatch> _batchTargets = new();
+    private readonly ConcurrentQueue<EntityModel[]> _freeSceneBuffers = new();
     private readonly List<EntityModel> _renderableEntities = [];
+    private readonly List<BatchEntityModel> _batchRenderables = [];
+    private EntityModel[]? _lastSceneInstances;
 
+    private readonly GL _gl;
     private readonly GLContext _glContext;
     private readonly IWindowContext _windowContext;
     private readonly SynchronizationContext _synchronizationContext;
@@ -31,11 +38,13 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private float _windowAspectRatio;
 
     public GLRenderContext(
+        in GL gl,
         in GLContext glContext,
         in IWindowContext windowContext,
         in SynchronizationContext synchronizationContext,
         in RenderSettings renderSettings
     ) {
+        _gl = gl;
         _glContext = glContext;
         _windowContext = windowContext;
         _synchronizationContext = synchronizationContext;
@@ -48,6 +57,13 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public void Dispose()
     {
         _windowContext.Resized -= OnWindowResized;
+
+        foreach (GLMeshBatch target in _batchTargets.Values)
+        {
+            target.Dispose();
+        }
+
+        _batchTargets.Clear();
     }
 
     public void Bind(Shader shader) => BindShader(shader);
@@ -55,12 +71,29 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public void Bind(Mesh mesh) => BindMesh(mesh);
     public void Bind(Material material) => BindMaterial(material);
     public void Bind(MeshRenderer meshRenderer, Uuid entity) => BindMeshRenderer(meshRenderer, entity);
+    public void Bind(MeshBatchRenderer meshBatchRenderer, Uuid entity) => BindMeshBatchRenderer(meshBatchRenderer, entity);
     public void Bind(RectRenderer rectRenderer) => BindRectRenderer(rectRenderer);
+
+    bool IRenderContext.TryDequeueUnbound(out UnboundRenderer unbound) => _unboundRenderers.TryDequeue(out unbound);
+
+    bool IRenderContext.TryDequeueUnboundBatch(out UnboundBatchRenderer unbound) => _unboundBatchRenderers.TryDequeue(out unbound);
+
+    public bool TryGetBatchTarget(MeshBatchRenderer renderer, out GLMeshBatch? target)
+    {
+        return _batchTargets.TryGetValue(renderer, out target);
+    }
 
     public RenderScene GetSceneContext()
     {
         SceneData scene = Volatile.Read(ref _sceneData);
-        return new RenderScene(scene.View, scene.Projection, scene.Instances, _renderTargets, _rectRenderTargets);
+
+        if (_lastSceneInstances != null && _lastSceneInstances != scene.Instances && _lastSceneInstances.Length > 0)
+        {
+            _freeSceneBuffers.Enqueue(_lastSceneInstances);
+        }
+
+        _lastSceneInstances = scene.Instances;
+        return new RenderScene(scene.View, scene.Projection, scene.Instances, scene.BatchInstances, _renderTargets, _rectRenderTargets, scene.CameraFrustum);
     }
 
     private void OnHandleDisposed(object? sender, EventArgs _)
@@ -93,13 +126,35 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         cameraView = queryCameraAction.View;
         cameraProjection = queryCameraAction.Projection;
 
-        //  Collect all renderable entities
+        Frustum? frustum = queryCameraAction.Found ? Frustum.FromViewProjection(cameraView * cameraProjection) : null;
+
+        //  Collect all renderable entities. Culling is a view concern and runs in the render stages.
         var queryRenderableEntitiesAction = new ReadRenderableEntityAction(this);
         store.Query<TransformComponent, MeshRendererComponent, ReadRenderableEntityAction>(0f, ref queryRenderableEntitiesAction);
 
+        var queryBatchEntitiesAction = new ReadBatchEntityAction(this);
+        store.Query<TransformComponent, MeshBatchRendererComponent, ReadBatchEntityAction>(0f, ref queryBatchEntitiesAction);
+
         //  Write the scene data then reset for the next Tick
-        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, _renderableEntities.ToArray()));
+        EntityModel[] instances = RentSceneBuffer(_renderableEntities.Count);
+        _renderableEntities.CopyTo(instances);
+        BatchEntityModel[] batchInstances = _batchRenderables.Count == 0 ? [] : _batchRenderables.ToArray();
+        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, instances, batchInstances, frustum));
         _renderableEntities.Clear();
+        _batchRenderables.Clear();
+    }
+
+    private EntityModel[] RentSceneBuffer(int count)
+    {
+        while (_freeSceneBuffers.TryDequeue(out EntityModel[]? buffer))
+        {
+            if (buffer.Length >= count)
+            {
+                return buffer;
+            }
+        }
+
+        return count == 0 ? [] : new EntityModel[count];
     }
 
     private void OnWindowResized(Vector2 newSize)
@@ -265,12 +320,55 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
         _renderTargets.Add(renderTarget);
         meshRenderer.Disposed += OnMeshRendererDisposed;
+        meshRenderer.RenderTarget = renderTarget;
+        meshRenderer.IsBound = true;
         return;
 
         void OnMeshRendererDisposed(object? sender, EventArgs e)
         {
+            meshRenderer.RenderTarget = null;
+            meshRenderer.IsBound = false;
             _renderTargets.Remove(renderTarget);
             OnHandleDisposed(sender, e);
+        }
+    }
+
+    private void BindMeshBatchRenderer(MeshBatchRenderer renderer, Uuid entity)
+    {
+        if (renderer.IsDisposed || renderer.IsBound)
+        {
+            return;
+        }
+
+        var glMaterials = new GLMaterial[renderer.Materials.Length];
+        for (var i = 0; i < renderer.Materials.Length; i++)
+        {
+            glMaterials[i] = BindMaterial(renderer.Materials[i]);
+        }
+
+        var target = new GLMeshBatch(_gl, _glContext, renderer.MeshBatch, glMaterials);
+        if (!_batchTargets.TryAdd(renderer, target))
+        {
+            target.Dispose();
+            return;
+        }
+
+        renderer.IsBound = true;
+        renderer.Disposed += OnDisposed;
+        return;
+
+        void OnDisposed(object? sender, EventArgs e)
+        {
+            _synchronizationContext.Post(_ => DisposeBatchTarget(renderer), null);
+        }
+    }
+
+    private void DisposeBatchTarget(MeshBatchRenderer renderer)
+    {
+        if (_batchTargets.TryRemove(renderer, out GLMeshBatch? target))
+        {
+            target.Dispose();
+            renderer.IsBound = false;
         }
     }
 
@@ -280,7 +378,6 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             return;
         }
-
         var glMaterials = new GLMaterial[rectRenderer.Materials.Length];
         for (var i = 0; i < rectRenderer.Materials.Length; i++)
         {
@@ -325,13 +422,15 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         return Unsafe.As<BufferObject<Matrix4x4>>(handle);
     }
     
-    private sealed class SceneData(in Matrix4x4 view, in Matrix4x4 projection, in EntityModel[] instances)
+    private sealed class SceneData(in Matrix4x4 view, in Matrix4x4 projection, in EntityModel[] instances, in BatchEntityModel[] batchInstances, in Frustum? cameraFrustum)
     {
-        public static readonly SceneData Empty = new(Matrix4x4.Identity, Matrix4x4.Identity, []);
+        public static readonly SceneData Empty = new(Matrix4x4.Identity, Matrix4x4.Identity, [], [], null);
 
         public readonly Matrix4x4 View = view;
         public readonly Matrix4x4 Projection = projection;
         public readonly EntityModel[] Instances = instances;
+        public readonly BatchEntityModel[] BatchInstances = batchInstances;
+        public readonly Frustum? CameraFrustum = cameraFrustum;
     }
     
     private struct ReadCameraAction(in GLRenderContext owner, in Matrix4x4 view, in Matrix4x4 projection) : IForEachRef<CameraComponent, ViewFrustumComponent>
@@ -339,6 +438,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         private readonly GLRenderContext _owner = owner;
         public Matrix4x4 View = view;
         public Matrix4x4 Projection = projection;
+        public bool Found;
 
         public void Execute(float delta, DataStore store, int entity, ref Ref<CameraComponent> camera, ref Ref<ViewFrustumComponent> viewFrustum)
         {
@@ -347,6 +447,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
                 return;
             }
 
+            Found = true;
             viewFrustum.Write.FOV.Degrees = _owner._renderSettings.FOV.Get();
             viewFrustum.Write.NearPlane = _owner._renderSettings.NearPlane.Get();
             viewFrustum.Write.FarPlane = _owner._renderSettings.FarPlane.Get();
@@ -367,12 +468,47 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
         public void Execute(float delta, DataStore store, int entity, in TransformComponent transform, in MeshRendererComponent meshRendererComponent)
         {
-            if (meshRendererComponent.MeshRenderer == null)
+            MeshRenderer? meshRenderer = meshRendererComponent.MeshRenderer;
+            if (meshRenderer == null || meshRenderer.IsDisposed)
             {
                 return;
             }
 
-            _owner._renderableEntities.Add(new EntityModel(store.GetUuid(entity), transform.ToMatrix4X4(), meshRendererComponent.MeshRenderer));
+            if (!meshRenderer.IsBound)
+            {
+                _owner._unboundRenderers.Enqueue(new UnboundRenderer(store.GetUuid(entity), meshRenderer));
+            }
+
+            Matrix4x4 matrix = transform.ToMatrix4X4();
+            BoundingBox worldBounds = meshRenderer.Mesh.Bounds.Transform(matrix);
+
+            _owner._renderableEntities.Add(new EntityModel(
+                store.GetUuid(entity),
+                matrix,
+                meshRenderer,
+                worldBounds
+            ));
+        }
+    }
+
+    private readonly struct ReadBatchEntityAction(in GLRenderContext owner) : IForEach<TransformComponent, MeshBatchRendererComponent>
+    {
+        private readonly GLRenderContext _owner = owner;
+
+        public void Execute(float delta, DataStore store, int entity, in TransformComponent transform, in MeshBatchRendererComponent batchRendererComponent)
+        {
+            MeshBatchRenderer? renderer = batchRendererComponent.Renderer;
+            if (renderer == null || renderer.IsDisposed)
+            {
+                return;
+            }
+
+            if (!renderer.IsBound)
+            {
+                _owner._unboundBatchRenderers.Enqueue(new UnboundBatchRenderer(store.GetUuid(entity), renderer));
+            }
+
+            _owner._batchRenderables.Add(new BatchEntityModel(store.GetUuid(entity), transform.ToMatrix4X4(), renderer));
         }
     }
 }

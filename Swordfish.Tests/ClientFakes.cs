@@ -147,6 +147,18 @@ internal sealed class FakeRenderContext : IRenderContext
 
     RenderScene IRenderContext.GetSceneContext() => default;
 
+    bool IRenderContext.TryDequeueUnbound(out UnboundRenderer unbound)
+    {
+        unbound = default;
+        return false;
+    }
+
+    bool IRenderContext.TryDequeueUnboundBatch(out UnboundBatchRenderer unbound)
+    {
+        unbound = default;
+        return false;
+    }
+
     public void Bind(Shader shader) { }
 
     public void Bind(Texture texture) { }
@@ -154,6 +166,8 @@ internal sealed class FakeRenderContext : IRenderContext
     public void Bind(Mesh mesh) { }
 
     public void Bind(MeshRenderer meshRenderer, Uuid entity) { }
+
+    public void Bind(MeshBatchRenderer meshBatchRenderer, Uuid entity) { }
 
     public void Bind(RectRenderer rectRenderer) { }
 

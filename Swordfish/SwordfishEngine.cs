@@ -88,7 +88,19 @@ public class SwordfishEngine
         
         TransitionState(State.Closing, State.Closed);
 
-        _engine.Dispose();
+        try
+        {
+            //  The window loop unbinds the GL context. Make it current before the
+            //  container deletes its GL resources.
+            _engineContainer.GLContext?.MakeCurrent();
+            _engine.Dispose();
+        }
+        finally
+        {
+            _engineContainer.DisposeGraphics();
+            _mainWindow.Dispose();
+        }
+
         TransitionState(State.Closed, State.Stopped);
 
         return _exitCode;
