@@ -130,7 +130,8 @@ Level form:
   rows use cyan. The separate short-name box is gone.
 - The S.P.A.C.E.R description sits under the evaluation header. The S.P.A.C.E.R
   total is not shown.
-- The selected colonist dossier shows the combined skill level under the name.
+- The selected colonist dossier shows the combined skill level and species under
+  the name. See [specs/ui-copy](ui-copy.md) for the line format.
 - Archive, crew, and saved-signal delete actions are trash icons on their list
   rows. A saved-signal delete opens a confirmation.
 - Primary proceed actions live in the footer: Embark, Chart, Register, and
@@ -172,11 +173,12 @@ A save is a galaxy. The game stores levels and characters.
 
 Continue shows a hover card with the last played galaxy, its session type, its
 mode, seed, last played time, time played, and the last colonist's combined
-skill level. The type is `Singleplayer` or `Multiplayer`. A multiplayer card
-adds one destination line with the saved signal name, or the endpoint when no
-name matches. The card draws from the current save cache when it holds the last
-save, and falls back to the summary recorded in `profile.toml` otherwise. The
-combined level is the sum of every recorded skill's resolved level.
+skill level and species. The type is `Singleplayer` or `Multiplayer`. A
+multiplayer card adds one destination line with the saved signal name, or the
+endpoint when no name matches. The card draws from the current save cache when
+it holds the last save, and falls back to the summary recorded in `profile.toml`
+otherwise. The combined level is the sum of every recorded skill's resolved
+level.
 
 Continue is enabled only when a last session is recorded, the recorded colonist
 still exists, and the card has a galaxy name. The chevron, the enabled state,

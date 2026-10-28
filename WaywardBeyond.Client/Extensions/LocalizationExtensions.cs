@@ -15,6 +15,29 @@ public static class LocalizationExtensions
             ?? throw new InvalidOperationException($"The localization key \"{key}\" is missing.");
     }
 
+    /// <summary>Gets a localized species name, falling back to the raw species ID.</summary>
+    public static string GetSpeciesName(this ILocalization localization, string species)
+    {
+        if (string.IsNullOrEmpty(species))
+        {
+            return string.Empty;
+        }
+
+        string key = $"body.species.{species}";
+        string name = localization.GetString(key) ?? key;
+        return name == key ? species : name;
+    }
+
+    /// <summary>Formats the colonist level and species line, for example "Level 4 · Human".</summary>
+    public static string GetCharacterLevelLine(this ILocalization localization, int level, string species)
+    {
+        string levelLabel = localization.GetRequired("ui.label.character.level");
+        string speciesName = localization.GetSpeciesName(species);
+        return speciesName.Length == 0
+            ? $"{levelLabel} {level}"
+            : $"{levelLabel} {level} · {speciesName}";
+    }
+
     public static string GetLongString(this ILocalization localization, TimeSpan timeSpan)
     {
         string result;

@@ -12,7 +12,7 @@ namespace WaywardBeyond.Client.Services;
 
 /// <summary>
 /// Resolves a body's stable string ID (the <see cref="Character.Body"/> / <c>BodyViewComponent.Body</c>)
-/// into renderable client materials. Fronts (standing) drive the UI preview and face-forward material;
+/// into renderable client materials and its species ID. Fronts (standing) drive the UI preview and face-forward material;
 /// floating materials drive the directional remote-player billboard. An ID that is not a loaded body falls
 /// back to the first loaded body so older or malformed saves still render.
 /// </summary>
@@ -41,6 +41,13 @@ internal sealed class CharacterAssetService
     public string GetBodyId(string species, Gender gender)
     {
         return _bodyDatabase.GetBody(species, gender)?.ID ?? _bodyDatabase.DefaultId ?? string.Empty;
+    }
+
+    /// <summary>Returns the species ID for a body ID, falling back to the default body for an unknown ID.</summary>
+    public string GetSpecies(string bodyId)
+    {
+        Result<Body> body = _bodyDatabase.Get(ResolveId(bodyId));
+        return body ? body.Value.Species : string.Empty;
     }
 
     /// <summary>Returns the standing (UI preview) material for a body ID, falling back to the default body for an unknown ID.</summary>

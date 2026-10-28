@@ -216,5 +216,5 @@ hosted in `WaywardBeyond.Data/Localization/`.
 `Swordfish.Tests/SkillDatabaseTests.cs` loads the shipped skill and brick tomls
 and pins the schema, the tag expansion, and the level curve. See
 [skills](skills.md). `Swordfish.Tests/BodyDatabaseTests.cs` loads the shipped
-body definitions and pins the species order, the gender groups, and the
-species and gender resolution.
+body definitions and pins the species order, the gender groups, the species
+carried on each loaded body, and the species and gender resolution.

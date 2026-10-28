@@ -53,6 +53,16 @@ public class BodyDatabaseTests
     }
 
     [Fact]
+    public void ExposesSpeciesOnLoadedBodies()
+    {
+        BodyDatabase database = Load();
+
+        Assert.Equal("human", database.Get("wb:human_m").Value.Species);
+        Assert.Equal("human", database.Get("wb:human_f").Value.Species);
+        Assert.Equal("bot", database.Get("wb:bot").Value.Species);
+    }
+
+    [Fact]
     public void ResolvesBodyBySpeciesAndGender()
     {
         BodyDatabase database = Load();

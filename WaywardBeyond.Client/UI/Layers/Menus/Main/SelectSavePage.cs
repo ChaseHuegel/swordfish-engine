@@ -631,7 +631,10 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 );
                 int level = character.GetTotalSkillLevel(_skillDatabase);
                 ui.Label(
-                    $"{_localization.GetRequired("ui.label.character.level")} {level}",
+                    _localization.GetCharacterLevelLine(
+                        level,
+                        _characterAssetService.GetSpecies(character.Body)
+                    ),
                     UiMetrics.MENU_SMALL_FONT,
                     UiTheme.Text,
                     new Constraints

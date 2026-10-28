@@ -90,7 +90,7 @@ internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyD
         }
 
         string species = string.IsNullOrWhiteSpace(assetInfo.Species) ? id : assetInfo.Species;
-        var info = new Body(id, assetInfo.Gender, states);
+        var info = new Body(id, species, assetInfo.Gender, states);
         DefaultId ??= id;
 
         if (!_variantsBySpecies.TryGetValue(species, out List<Body>? variants))

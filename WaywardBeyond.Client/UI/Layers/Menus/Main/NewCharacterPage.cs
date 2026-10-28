@@ -452,7 +452,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             _localization.GetRequired("ui.field.character.species"),
             speciesList,
             _speciesIndex,
-            FormatSpeciesName,
+            _localization.GetSpeciesName,
             index =>
             {
                 _speciesIndex = index;
@@ -1031,14 +1031,6 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     {
         IReadOnlyList<string> speciesList = _bodyDatabase.Species;
         return speciesList.Count > _speciesIndex ? speciesList[_speciesIndex] : string.Empty;
-    }
-
-    /// <summary>Gets the localized species name, falling back to the raw species ID.</summary>
-    private string FormatSpeciesName(string species)
-    {
-        string key = $"body.species.{species}";
-        string name = _localization.GetString(key) ?? key;
-        return name == key ? species : name;
     }
 
     /// <summary>Gets the localized gender name.</summary>
