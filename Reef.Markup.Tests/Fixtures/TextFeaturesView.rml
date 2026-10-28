@@ -1,0 +1,18 @@
+<Reef xmlns="Reef"
+      Class="TextFeaturesView"
+      Context="TextContext"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="240" padding="6" spacing="2" background="#101010">
+        <Text text="Hello" />
+        <Text>Body</Text>
+        <Text text="Attr">Body ignored</Text>
+        <Text xml:space="preserve">  Spaced  </Text>
+        <Text text="Level {context.Level} - Gold: {context.Gold}" />
+        <Text text="Braced: {{escaped}} and {context.Value}" />
+        <Text text="#FF0000Red #RReset" />
+        <Text text="Right" text-align="right" vertical-align="center" width="100" height="40" wrap="false" />
+        <Text text="@context.LongText" width="80" />
+        <Text text="Font" font="salmon-mono-9-regular" size="12" />
+    </Element>
+</Reef>

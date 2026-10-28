@@ -40,6 +40,8 @@ change touches a subject, run the docs pass (see `development.md`).
 | Reef element layout, styling, borders, no-wrap text, clipping | [specs/reef-ui](specs/reef-ui.md) |
 | Reef markup language (.rml) and stylesheets (.rss) | [specs/reef-markup](specs/reef-markup.md) |
 | Reef markup generator architecture and implementation blueprint | [specs/reef-markup-blueprint](specs/reef-markup-blueprint.md) |
+| Reef markup implementation plan, locked decisions, and diagnostics | [specs/reef-markup-implementation-plan](specs/reef-markup-implementation-plan.md) |
+| Reef markup onboarding, examples, quick reference, and test traceability | [userdocs/reef](../userdocs/reef/README.md) |
 | Game UI theme tokens, metrics, style resolution, and shared widgets | [specs/ui-theme](specs/ui-theme.md) |
 | Main menu flow, menu layout, data mapping, and visual rules | [specs/main-menu-ui](specs/main-menu-ui.md) |
 | UI copy style, catalog conventions, key grammar, vocabulary, and string mappings | [specs/ui-copy](specs/ui-copy.md) |

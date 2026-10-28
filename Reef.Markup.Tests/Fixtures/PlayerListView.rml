@@ -1,0 +1,13 @@
+<Reef xmlns="Reef"
+      Class="PlayerListView"
+      Context="PlayerListContext"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="300" padding="8" spacing="4" background="#101010">
+        <ForEach in="@context.Players" as="player" index="i">
+            <Element>
+                <PlayerCard context="@player" id="player_{player.Id}" width="240" />
+            </Element>
+        </ForEach>
+    </Element>
+</Reef>

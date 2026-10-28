@@ -46,6 +46,8 @@ dotnet build --configuration Release
 dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser tests, cross-platform
+dotnet test Reef.Generator.Tests                    # xunit Reef markup generator tests, cross-platform
+dotnet test Reef.Markup.Tests                       # xunit Reef markup runtime and visual tests
 dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 pwsh ./Pack.ps1                                     # same as above
@@ -439,6 +441,9 @@ Attribute the docs pass to the same change that caused it. Stale docs are a bug.
 
 All new doc prose uses **Simplified Technical English**: one name per thing,
 active voice, short sentences, no semicolons, no contractions.
+
+Human onboarding docs live in `userdocs/reef/`. They follow the same writing
+style and link to the formal docs.
 
 Player-facing UI copy follows the Material style guide and a fixed language key
 grammar. See [specs/ui-copy](specs/ui-copy.md) before you add or rename a

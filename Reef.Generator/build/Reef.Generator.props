@@ -1,0 +1,10 @@
+<Project>
+
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/**/*.rml"
+                     Exclude="$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**" />
+    <AdditionalFiles Include="$(MSBuildProjectDirectory)/**/*.rss"
+                     Exclude="$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**" />
+  </ItemGroup>
+
+</Project>

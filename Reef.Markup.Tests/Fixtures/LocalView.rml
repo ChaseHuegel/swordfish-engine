@@ -1,0 +1,9 @@
+<Reef xmlns="Reef"
+      Class="LocalView"
+      Context="PlayerInfo"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="260" padding="8" spacing="4" background="#151515">
+        <LocalCard context="@context" width="240" class="local-highlight" />
+    </Element>
+</Reef>

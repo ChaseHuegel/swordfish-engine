@@ -1,0 +1,25 @@
+:root {
+    --gallery-surface: #0b1016;
+    --gallery-panel: #141a20;
+    --gallery-accent: #4fc3f7;
+}
+
+.gallery-button {
+    background: #2a2a2a;
+    border: 1 #555555;
+    corner-radius: 4;
+    padding: 4 8;
+}
+
+.gallery-button:hover {
+    background: #3a3a3a;
+}
+
+.gallery-button:active {
+    background: #1a1a1a;
+}
+
+.gallery-button:disabled {
+    background: #1a1a1a;
+    color: #666666;
+}

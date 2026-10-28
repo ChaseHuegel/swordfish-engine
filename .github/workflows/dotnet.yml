@@ -20,8 +20,14 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
-    # - name: Test
-    #   run: dotnet test --no-build --verbosity normal
+    - name: Test Reef
+      run: dotnet test Reef.Tests --no-build --verbosity normal
+    - name: Test Reef rich text
+      run: dotnet test Reef.Text.Tests --no-build --verbosity normal
+    - name: Test Reef markup generator
+      run: dotnet test Reef.Generator.Tests --no-build --verbosity normal
+    - name: Test Reef markup runtime
+      run: dotnet test Reef.Markup.Tests --no-build --verbosity normal
     - name: Publish
       run: dotnet publish -c Release -o ".output"
     - name: Upload build artifacts

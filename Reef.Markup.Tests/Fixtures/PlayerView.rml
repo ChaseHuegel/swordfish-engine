@@ -1,0 +1,12 @@
+<Reef xmlns="Reef"
+      Class="PlayerView"
+      Context="PlayerInfo"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+
+    <Element layout="vertical" width="260" padding="8" background="#101820" spacing="6">
+        <Text text="Player card" size="14" color="#ffffff" />
+        <PlayerCard context="@context" width="240" border="2 #ffffff" corner-radius="7" />
+    </Element>
+
+</Reef>

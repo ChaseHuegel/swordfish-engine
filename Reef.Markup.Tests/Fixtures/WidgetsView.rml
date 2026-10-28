@@ -1,0 +1,19 @@
+<Reef xmlns="Reef"
+      xmlns:wb="Reef.Markup.TestComponents"
+      Class="WidgetsView"
+      Context="WidgetState"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+
+    <Element layout="vertical" width="320" padding="8" spacing="6" background="#101418">
+        <wb:Checkbox id="mute" text="Mute" value="@context.Muted" bind="context.Muted" />
+        <wb:Checkbox id="decoupled" text="Decoupled" value="@context.Decoupled" onchange="OnDecoupledChanged" />
+        <wb:Toggle id="fullscreen" on-label="On" off-label="Off" value="@context.Fullscreen" bind="context.Fullscreen" />
+        <wb:Section id="section">
+            <Text text="Inside section" />
+        </wb:Section>
+        <wb:RefTextBox id="chat" bind="context.Chat" font-options="@context.FontOptions" />
+        <wb:WrappedLabel text="Wrapped" font-size="14" background="#203040" width="180" />
+    </Element>
+
+</Reef>

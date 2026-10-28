@@ -4,6 +4,9 @@ One subject: the Reef Markup Language (`.rml`) and Reef Style Sheet (`.rss`)
 specification. This document defines the grammar, tags, attributes, style rules,
 data bindings, input contracts, and code generation mappings for Reef UI.
 
+Status: implemented by `Reef.Generator`. The onboarding path starts at
+[userdocs/reef](../../userdocs/reef/README.md).
+
 ## Document structure
 
 Every markup document is an XML file ending with `.rml`. The root node is
@@ -82,6 +85,10 @@ Reef Markup strictly follows XML 1.0 grammar:
   syntax error `RF0001`.
 - **Self-closing tags**: Tags with no children must self-close (`<Text text="..." />`,
   `<Element height="8" />`).
+- **Attribute names**: XML 1.0 does not allow `@` in an attribute name. Use
+  `bind="context.IsFullscreen"`, not `@bind`. XML 1.0 also requires a declared
+  prefix for a namespaced attribute. Use
+  `xmlns:class="Reef.Class"` on the root before you use `class:active`.
 
 ## Tags
 
@@ -157,7 +164,9 @@ whitespace around body text are trimmed automatically unless preserved with XML
 - `text`: String literal, string interpolation, or binding expression.
   Rich text formatting uses Reef's native `#` color run grammar (for example
   `#FF0000Red #RReset`). Inline formatting tags like `<Span>` are not supported.
-- `size`: Font size in pixels. Defaults to `16`.
+- `size`: Font size in pixels. Defaults to `16`. On `<Element>` and
+  `<Image>`, the `size` attribute is the width/height shorthand. On `<Text>`,
+  `size` is always the font size. Use `width` and `height` for text dimensions.
 - `font`: Font asset identifier (`FontOptions.ID`). When omitted, `FontOptions.ID`
   is null and inherits `UIBuilder.DefaultFontID` at runtime.
 - `text-align` (or `align`): Horizontal text alignment within the element
@@ -360,6 +369,10 @@ To invoke another `.rml` component and pass data or styling:
 </ForEach>
 ```
 
+XSD 1.0 cannot validate this direct local component form while it enforces a
+single `<Empty>` tag. Wrap the component in `<Element>` when your editor uses
+the schema. The generator accepts both forms.
+
 - When the child component declares `Context="PlayerInfo"`, pass the instance
   via `context="@expression"`.
 - When the child component does not declare a `Context` (purely structural
@@ -367,12 +380,21 @@ To invoke another `.rml` component and pass data or styling:
 - The generator verifies at compile time that the expression passed to
   `context="..."` matches or converts to the child component's context type.
 - **Native styling on `.rml` components**: Generated `Render` methods accept
-  optional caller `Style?` and `Constraints?` parameters. The root element of
-  the child component automatically merges caller styles and constraints with
-  its internal styles. When inlined at compile time, caller styles merge directly
-  into the child root element without allocating wrapper scopes. For components
-  with multiple sibling roots, caller styles and constraints apply to the
-  primary (first) root element.
+  optional caller `StyleOverride?` and `ConstraintsOverride?` parameters. The
+  override types use nullable fields, so an unset field leaves the component
+  style in place. The root element of the child component merges caller styles
+  and constraints with its internal styles. When inlined at compile time,
+  caller styles merge directly into the child root element without allocating
+  wrapper scopes. For components with multiple sibling roots, caller styles and
+  constraints apply to the primary (first) root element.
+- **Component identity**: Generated `Render` methods accept an optional
+  `idPrefix` string. The generator uses this prefix for inner generated element
+  IDs. The call site passes a stable instance prefix, so two instances of the
+  same component do not collide.
+- **Cross-assembly components**: Generated component classes carry a
+  `ReefComponent` attribute. A consumer project can use the tag directly. The
+  component must have an accessible parameterless constructor, or the call site
+  must pass `instance="@expression"`.
 
 ## Layout and constraint attributes
 
@@ -446,8 +468,11 @@ Padding follows the .NET and XAML LTRB standard: **Left, Top, Right, Bottom**.
   values (`#fff`, `#ffffff80`), named colors, variables, or functions:
   `rgb(255, 255, 255)` and `rgba(255, 255, 255, 0.5)`. The generator parses
   colors into constant `Vector4` literals at compile time.
-- `background`: Element background color (`Style.BackgroundColor`). Accepts the
-  same formats as `color`.
+- `background`: Element background color (`Style.BackgroundColor`). On
+  `<Element>`, the generator also applies it to the element fill (`Style.Color`)
+  because the renderer uses the fill for plain elements. On `<Text>` and
+  `<Image>`, it sets `Style.BackgroundColor`. Accepts the same formats as
+  `color`.
 - `corner-radius`: Corner radius. Single integer (`4`), or four space-separated
   integers for `TopLeft TopRight BottomRight BottomLeft` (`4 4 0 0`).
 - `border`: Shorthand for width and color: `border="1 #444444"`.
@@ -573,15 +598,18 @@ and input events are suppressed automatically in the generated C# code.
 ### Dynamic class directives (`class:<name>`)
 
 To conditionally toggle style classes without duplicating elements in `<If>`
-blocks, use the `class:<name>="@condition"` directive:
+blocks, use the `class:<name>="@condition"` directive. XML 1.0 requires a
+declared prefix for the attribute:
 
 ```xml
+<Reef xmlns="Reef" xmlns:class="Reef.Class" Class="TabView">
 <Element class="tab"
         class:active="@context.IsTabActive('audio')"
         class:disabled="@context.IsTabLocked"
         onclick="SelectTab('audio')">
     <Text text="Audio" />
 </Element>
+</Reef>
 ```
 
 Emitted C#:
@@ -699,15 +727,15 @@ partial void OnSelectTab(string tabName);
 
 ### Two-way binding for editing and forms
 
-For editable controls (such as checkboxes, text boxes, and sliders), the `@bind`
+For editable controls (such as checkboxes, text boxes, and sliders), the `bind`
 attribute connects the widget to a mutable property or field on the context.
 
 ```xml
 <!-- Value-based two-way binding -->
-<Checkbox text="Fullscreen" @bind="context.IsFullscreen" />
+<wb:Checkbox id="cb_fullscreen" text="Fullscreen" bind="context.IsFullscreen" />
 
 <!-- State struct two-way binding passed by ref -->
-<wb:TextBox id="chat_input" @bind="context.ChatBoxState" />
+<wb:TextBox id="chat_input" bind="context.ChatBoxState" />
 ```
 
 #### Emitted C#
@@ -716,7 +744,7 @@ For value-returning widgets (`Checkbox`), the generator emits change detection
 and writeback:
 
 ```csharp
-bool newIsFullscreen = ui.Checkbox("cb_fullscreen", "Fullscreen", context.IsFullscreen);
+bool newIsFullscreen = Widgets.Checkbox(ui, id: "cb_fullscreen", text: "Fullscreen", value: context.IsFullscreen);
 if (newIsFullscreen != context.IsFullscreen)
 {
     context.IsFullscreen = newIsFullscreen;
@@ -737,9 +765,9 @@ If custom validation, clamping, or networking is required before applying an
 edit, decouple the binding into explicit `value` and `onchange` attributes:
 
 ```xml
-<Checkbox text="Mute Audio"
-          value="@context.IsMuted"
-          onchange="OnMuteToggled" />
+<wb:Checkbox id="cb_mute" text="Mute Audio"
+             value="@context.IsMuted"
+             onchange="OnMuteToggled" />
 ```
 
 ## Input and callbacks
@@ -815,7 +843,7 @@ The `hotkey` and `key` attributes support three value sources on interactive `<E
 ### Clipping and overlay
 
 - `clip="true"`: Clips children strictly to the element bounding box.
-- `clip="false"`: Disables clipping.
+- `clip="false"`: Disables self-clipping. Ancestor clipping still applies. Use `overlay="true"` to escape ancestor clipping.
 - `clip-width="200"`, `clip-height="100"`: Custom clip rectangle constraints.
 - `clip="200 100"`: Shorthand for clip width and height.
 - `overlay="true"`: Escapes parent clipping bounds, allowing child elements
@@ -870,9 +898,11 @@ When resolving element tags during compilation:
    the tag name (e.g. `<PlayerCard ... />`). Common UI constructs such as `Button`,
    `Vertical`, `Horizontal`, and `Stack` can be authored as local components or
    provided by a theme/component package.
-3. **External C# widgets**: Methods matching the tag name in imported XML namespaces
+3. **Referenced `.rml` components**: A generated component in a referenced
+   assembly that carries a `ReefComponent` attribute with the matching name.
+4. **External C# widgets**: Methods matching the tag name in imported XML namespaces
    (e.g. `<wb:TextButton ... />`).
-4. If no target matches, the compiler reports error `RF0015` (`Unknown element or component <TagName>`).
+5. If no target matches, the compiler reports error `RF0015` (`Unknown element or component <TagName>`).
 
 ### Styling external C# widgets
 
@@ -1022,7 +1052,7 @@ public partial class HudView
     protected partial Reef.UIController.Key GetKeyBinding(string action);
     partial void OnPauseClicked();
 
-    public void Render<TData>(UIBuilder<TData> ui, HudState context, Style? callerStyle = null, Constraints? callerConstraints = null)
+    public void Render<TData>(UIBuilder<TData> ui, HudState context, StyleOverride? callerStyle = null, ConstraintsOverride? callerConstraints = null, string? idPrefix = null)
     {
         using (ui.Element())
         {
@@ -1047,7 +1077,7 @@ public partial class HudView
                 ui.Padding = new Padding(12, 16, 12, 16);
                 ui.CornerRadius = new CornerRadius(4);
                 ui.BackgroundColor = new Vector4(0.078f, 0.078f, 0.078f, 1f);
-                ui.Border = new BorderStyle(1, new Vector4(0.2f, 0.2f, 0.2f, 1f));
+                ui.Border = new BorderStyle { Thickness = 1, Color = new Vector4(0.2f, 0.2f, 0.2f, 1f) };
 
                 string titleText = Localize("hud.title");
                 using (ui.Text(titleText, size: 18)) { }
@@ -1111,7 +1141,7 @@ public partial class HudView
                         ui.Padding = new Padding(12, 16, 12, 16);
                         ui.CornerRadius = new CornerRadius(4);
                         ui.BackgroundColor = new Vector4(0.078f, 0.078f, 0.078f, 1f);
-                        ui.Border = new BorderStyle(1, new Vector4(0.2f, 0.2f, 0.2f, 1f));
+                        ui.Border = new BorderStyle { Thickness = 1, Color = new Vector4(0.2f, 0.2f, 0.2f, 1f) };
 
                         using (ui.Text(item.Message)) { }
                     }
@@ -1143,3 +1173,10 @@ Reef markup is strictly a compile-time system:
 - `Reef/UI/Padding.cs`: Padding model (LTRB order).
 - `Reef/UI/CornerCapStyle.cs`: Sci-fi HUD bracket style.
 - `Reef/UI/Viewport.cs`: Scrolling and clipping model.
+- `Reef/UI/StyleOverride.cs`: Nullable caller style overrides.
+- `Reef/UI/ConstraintsOverride.cs`: Nullable caller constraint overrides.
+- `Reef/ReefComponentAttribute.cs`: Cross-assembly component metadata.
+- `Reef.Generator/`: Compile-time parser, analyzer, style resolver, and emitter.
+- `Reef.Generator.Tests/`: Parser, diagnostics, schema, and emission tests.
+- `Reef.Markup.Tests/`: Runtime, component, interaction, and visual tests.
+- `userdocs/reef/`: Onboarding, examples, quick reference, and traceability.

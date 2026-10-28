@@ -1,0 +1,16 @@
+<Reef xmlns="Reef"
+      Class="ModalDialog"
+      Context="ModalState"
+      Namespace="Reef.Markup.TestComponents">
+
+    <Element layout="vertical" class="modal" width="320" padding="12" spacing="8">
+        <Content name="header">
+            <Text text="Default Title" size="18" />
+        </Content>
+        <Content>
+            <Text text="Default body." />
+        </Content>
+        <Content name="actions" />
+    </Element>
+
+</Reef>

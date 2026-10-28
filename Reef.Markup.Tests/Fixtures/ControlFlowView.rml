@@ -1,0 +1,45 @@
+<Reef xmlns="Reef"
+      Class="ControlFlowView"
+      Context="FlowContext"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="320" padding="8" spacing="4" background="#101010">
+        <If condition="@context.Loading">
+            <Text text="Loading" />
+        </If>
+        <ElseIf condition="@context.Gold gt 100">
+            <Text text="Rich" />
+        </ElseIf>
+        <Else>
+            <Text text="Ready" />
+        </Else>
+
+        <ForEach in="@context.Items" as="item" index="i">
+            <Element id="item_{item.Id}" onclick="OnSelect(item.Id, i)" layout="horizontal" spacing="4">
+                <Text text="#{i}: {item.Name}" />
+            </Element>
+            <Empty>
+                <Text text="No items" />
+            </Empty>
+        </ForEach>
+
+        <ForEach in="@context.Groups" as="group">
+            <Element layout="vertical" spacing="2">
+                <Text text="Group {group.Id}" />
+                <ForEach in="@group.Items" as="item" index="j">
+                    <Element id="group_{group.Id}_{item.Id}">
+                        <Text text="{item.Name} {j}" />
+                    </Element>
+                </ForEach>
+            </Element>
+        </ForEach>
+
+        <Element visible="@context.ShowFooter" disabled="@context.Locked">
+            <Text text="Footer" />
+        </Element>
+
+        <Element id="hot" hotkey="Esc" onclick="OnHotkey">
+            <Text text="Hot" />
+        </Element>
+    </Element>
+</Reef>

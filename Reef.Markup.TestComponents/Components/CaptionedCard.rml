@@ -1,0 +1,9 @@
+<Reef xmlns="Reef"
+      Class="CaptionedCard"
+      Context="CaptionState"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.TestComponents">
+    <Element layout="vertical" width="200" padding="6" background="#202830">
+        <Text text="{context.Prefix} {context.Name}" size="14" color="#ffffff" />
+    </Element>
+</Reef>

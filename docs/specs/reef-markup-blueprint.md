@@ -228,11 +228,30 @@ lists and fail the build on severe issues:
 | `RF0008` | Error | Multiple `<Else>` or misordered `<ElseIf>` tags. |
 | `RF0009` | Error | Misplaced or duplicate `<Empty>` tag (declared outside `<ForEach>` or multiple). |
 | `RF0010` | Error | Interactive element inside `<ForEach>` missing explicit key-bound `id`. |
-| `RF0011` | Error | Invalid `@bind` expression (target is read-only, missing, or non-lvalue). |
+| `RF0011` | Error | Invalid `bind` expression (target is read-only, missing, or non-lvalue). |
 | `RF0012` | Error | Duplicate style variable across `.rss` files without `override`. |
 | `RF0013` | Error | Conflicting `override` declarations for style variable. |
 | `RF0014` | Error | Void or value-returning custom widget cannot contain child elements. |
 | `RF0015` | Error | Unknown element or component `<TagName>`. |
+| `RF0016` | Error | Invalid color value. |
+| `RF0017` | Error | Invalid dimension value. |
+| `RF0018` | Error | Invalid shorthand value. |
+| `RF0019` | Error | Unknown or invalid attribute. |
+| `RF0020` | Error | Invalid expression. |
+| `RF0021` | Error | Type mismatch. |
+| `RF0022` | Error | Unknown style property. |
+| `RF0023` | Error | Invalid enum value. |
+| `RF0024` | Warning | Duplicate element ID. |
+| `RF0025` | Error | Circular component reference. |
+| `RF0026` | Error | Missing required attribute. |
+| `RF0027` | Error | Invalid class directive. |
+| `RF0028` | Error | Invalid root, type, namespace, or identifier. |
+| `RF0029` | Error | Duplicate component class. |
+| `RF0030` | Error | Component slot or context mismatch. |
+| `RF0031` | Error | Unsupported construct. |
+| `RF0032` | Warning | Unknown style class. |
+| `RF0033` | Warning | Scroll configuration warning. |
+| `RF0099` | Error | Internal generator error. |
 
 ### Stage 5: Code emission (`CSharpEmitter`)
 
@@ -250,9 +269,9 @@ lists and fail the build on severe issues:
    - Dynamic key methods (e.g. `protected partial Reef.UIController.Key GetKeyBinding(string action);`).
 4. **Render method and component styling**:
    - When `RendererData` is defined on `<Reef>`, generates concrete signature
-     `public void Render(UIBuilder<ConcreteType> ui, <ContextType> context, Style? callerStyle = null, Constraints? callerConstraints = null)`.
+     `public void Render(UIBuilder<ConcreteType> ui, <ContextType> context, StyleOverride? callerStyle = null, ConstraintsOverride? callerConstraints = null, string? idPrefix = null)`.
    - When omitted, generates generic signature
-     `public void Render<TData>(UIBuilder<TData> ui, <ContextType> context, Style? callerStyle = null, Constraints? callerConstraints = null)`.
+     `public void Render<TData>(UIBuilder<TData> ui, <ContextType> context, StyleOverride? callerStyle = null, ConstraintsOverride? callerConstraints = null, string? idPrefix = null)`.
    - The root element automatically merges caller styles and constraints with
      its internal styles. View methods and event callbacks invoke companion
      partial methods directly on `this`.
@@ -281,7 +300,7 @@ lists and fail the build on severe issues:
      text elements.
    - Emits ternary expressions for active pseudo-states (`hovering ? ... : ...`).
    - Emits C# `if`/`else` for `<If>` blocks, `foreach` for `<ForEach>` blocks,
-     and change detection with writebacks for `@bind` expressions.
+     and change detection with writebacks for `bind` expressions.
 
 ## XML Schema (`reef.xsd`)
 
@@ -338,6 +357,24 @@ bundles `reef.xsd`:
 Consumer projects reference `reef.xsd` at the top of their `.rml` files via
 `xmlns="Reef"`.
 
+## Implemented deviations and additions
+
+The implementation keeps the pipeline in this blueprint. These decisions
+change the first draft:
+
+- Use `bind` for two-way binding. XML 1.0 does not allow `@bind`.
+- Dynamic class directives require `xmlns:class="Reef.Class"`.
+- Caller style and constraints use `StyleOverride` and `ConstraintsOverride`.
+  Both types use nullable fields.
+- Cross-assembly components use `ReefComponentAttribute`, slot delegates, and
+  an `idPrefix` parameter.
+- `Reef.Markup.TestComponents` supplies compiled components and widgets for
+  cross-assembly tests.
+- `Reef.Markup.Tests` compiles real fixtures and runs the visual gallery.
+- The XML schema lives in `Reef.Generator/Schemas/reef.xsd`.
+- Extra diagnostics cover invalid colors, dimensions, shorthands, attributes,
+  expressions, types, enums, IDs, components, slots, and unsupported constructs.
+
 ## Implementation roadmap
 
 The project implements in five sequential phases:
@@ -352,6 +389,9 @@ The project implements in five sequential phases:
   memory without native runtime or font atlas dependencies. Once created,
   `dotnet test Reef.Generator.Tests` will be an engine quality gate running
   cross-platform on Linux in CI.
+- Add `Reef.Markup.Tests/` for compiled fixtures, interaction, components, and
+  the `PixelRenderer` golden-image gallery. Add `Reef.Markup.TestComponents/`
+  for cross-assembly component and widget fixtures.
 
 ### Phase 2: Stylesheets (`.rss`) and state branching
 - Implement `RssLexer` and `RssParser`.
@@ -395,6 +435,8 @@ Reef markup integrates with modern .NET development workflows:
 ## Source of truth
 
 - Specification: [specs/reef-markup](reef-markup.md)
+- User onboarding: [userdocs/reef](../../userdocs/reef/README.md)
+- Implementation plan: [reef-markup-implementation-plan](reef-markup-implementation-plan.md)
 - Reef UI engine internals: [specs/reef-ui](reef-ui.md)
 - Generator entry: `Reef.Generator/ReefGenerator.cs`
 - Existing generator reference: `Swordfish.ECS.Generator/EcsComponentApiGenerator.cs`

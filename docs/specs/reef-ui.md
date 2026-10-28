@@ -78,6 +78,10 @@ source still receives `Held`.
 `CornerRadius` is applied by `Reef/PixelRenderer.cs`. The OpenGL renderer does
 not apply it.
 
+`Reef/UI/StyleOverride.cs` and `Reef/UI/ConstraintsOverride.cs` hold optional
+caller overrides for generated markup components. A null field leaves the
+component value in place.
+
 ### Border and corner caps
 
 `BorderStyle` is at `Reef/UI/BorderStyle.cs:6`. It has a thickness and a color.
@@ -141,6 +145,7 @@ check is in `Reef/UIController.cs:480`, and `UIBuilder` passes both rects at
 
 ## Tests
 
+- `Reef.Tests/StyleOverrideTests.cs` checks nullable override values.
 - `Reef.Tests/UIBuilderBorderTests.cs:15` checks border and cap pixels.
 - `Reef.Tests/UIBuilderBorderTests.cs:57` checks that zero styles change nothing.
 - `Reef.Tests/TextLayoutTests.cs:12` checks `NoWrap`.

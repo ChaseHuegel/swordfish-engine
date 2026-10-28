@@ -1,0 +1,24 @@
+<Reef xmlns="Reef"
+      Class="UiExpressionsView"
+      Context="UiContext"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="420" padding="8" spacing="2" background="#101010">
+        <Element id="anchor" width="20" height="20" background="#ffffff" />
+        <Text text="Time {ui.Time}" />
+        <Text text="Delta {ui.Delta}" />
+        <Text text="Size {ui.Width}x{ui.Height}" />
+        <Text text="Bounds {ui.GetElementBounds('anchor').Rect.Size.X}" />
+        <Text text="Scroll {ui.GetScrollDelta()}" />
+        <Text text="@Localize('ui.menu.title')" />
+        <Text text="@FormatProgress(context.Cooldown, ui.Delta)" />
+        <Text text="@context.CalculateScore(context.Streak, ui.Time)" />
+        <Image source="@context.Icon" color="@GetPulseColor(context.Rarity, ui.Time)" width="16" height="16" />
+        <Element id="key" hotkey="@GetKeyBinding('gameplay.interact')" onclick="OnInteract">
+            <Text text="Interact" />
+        </Element>
+        <Element visible="@ui.IsMouseCaptured">
+            <Text text="Captured" />
+        </Element>
+    </Element>
+</Reef>

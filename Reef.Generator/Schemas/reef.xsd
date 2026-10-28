@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="Reef"
+           targetNamespace="Reef"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="0.1.0">
+
+  <xs:annotation>
+    <xs:documentation>
+      XML Schema 1.0 for Reef Markup (.rml) documents. The root element is
+      Reef. Built-in tags validate strictly. Local components and prefixed
+      widgets use lax processing, so the schema accepts any unknown tag.
+    </xs:documentation>
+    <xs:documentation>
+      Dynamic class directives such as class:active use the Reef.Class
+      namespace. The attribute wildcard on each type accepts them, xml:space,
+      and xsi:schemaLocation.
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Root -->
+
+  <xs:element name="Reef" type="ReefType" />
+
+  <xs:complexType name="ReefType">
+    <xs:group ref="ExtensibleChildren" minOccurs="0" maxOccurs="unbounded" />
+    <xs:attributeGroup ref="RootAttributes" />
+    <xs:attributeGroup ref="ForeignAttributes" />
+  </xs:complexType>
+
+  <xs:attributeGroup name="RootAttributes">
+    <xs:attribute name="Class" type="IdentifierType" use="required" />
+    <xs:attribute name="Access" type="AccessType" use="optional" />
+    <xs:attribute name="Context" type="xs:string" use="optional" />
+    <xs:attribute name="RendererData" type="xs:string" use="optional" />
+    <xs:attribute name="Namespace" type="xs:string" use="optional" />
+  </xs:attributeGroup>
+
+  <!-- Built-in tags -->
+
+  <xs:element name="Element" type="ElementType" />
+  <xs:element name="Text" type="TextType" />
+  <xs:element name="Image" type="ImageType" />
+  <xs:element name="If" type="ConditionalType" />
+  <xs:element name="ElseIf" type="ConditionalType" />
+  <xs:element name="Else" type="ElseType" />
+  <xs:element name="ForEach" type="ForEachType" />
+  <xs:element name="Empty" type="EmptyType" />
+  <xs:element name="Content" type="ContentType" />
+
+  <xs:group name="BuiltInElements">
+    <xs:choice>
+      <xs:element ref="Element" />
+      <xs:element ref="Text" />
+      <xs:element ref="Image" />
+      <xs:element ref="If" />
+      <xs:element ref="ElseIf" />
+      <xs:element ref="Else" />
+      <xs:element ref="ForEach" />
+      <xs:element ref="Content" />
+    </xs:choice>
+  </xs:group>
+
+  <xs:group name="ExtensibleChildren">
+    <xs:choice>
+      <xs:any namespace="##any" processContents="lax" />
+    </xs:choice>
+  </xs:group>
+
+  <xs:group name="ForEachChildren">
+    <xs:choice>
+      <xs:group ref="BuiltInElements" />
+      <xs:any namespace="##other" processContents="lax" />
+    </xs:choice>
+  </xs:group>
+
+  <xs:complexType name="ElementType">
+    <xs:group ref="ExtensibleChildren" minOccurs="0" maxOccurs="unbounded" />
+    <xs:attributeGroup ref="StyleAttributes" />
+    <xs:attributeGroup ref="LayoutAttributes" />
+    <xs:attributeGroup ref="InteractionAttributes" />
+    <xs:attribute name="size" type="SizeType" use="optional" />
+    <xs:attributeGroup ref="ForeignAttributes" />
+  </xs:complexType>
+
+  <xs:complexType name="TextType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attributeGroup ref="StyleAttributes" />
+        <xs:attributeGroup ref="TypographyAttributes" />
+        <xs:attribute name="text" type="xs:string" use="optional" />
+        <xs:attribute name="size" type="FontSizeType" use="optional" />
+        <xs:attributeGroup ref="ForeignAttributes" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <xs:complexType name="ImageType">
+    <xs:group ref="ExtensibleChildren" minOccurs="0" maxOccurs="unbounded" />
+    <xs:attributeGroup ref="StyleAttributes" />
+    <xs:attribute name="source" type="xs:string" use="required" />
+    <xs:attribute name="size" type="SizeType" use="optional" />
+    <xs:attributeGroup ref="ForeignAttributes" />
+  </xs:complexType>
+
+  <xs:complexType name="ConditionalType">
+    <xs:group ref="ExtensibleChildren" minOccurs="0" maxOccurs="unbounded" />
+    <xs:attribute name="condition" type="xs:string" use="required" />
+    <xs:attributeGroup ref="ForeignAttributes" />
+  </xs:complexType>
+
+  <xs:complexType name="ElseType">
+    <xs:group ref="ExtensibleChildren" minOccurs="0" maxOccurs="unbounded" />
+    <xs:attributeGroup ref="ForeignAttributes" />
+  </xs:complexType>
+
+  <xs:complexType name="ForEachType">
+    <xs:annotation>
+      <xs:documentation>
+        A ForEach holds built-in UI tags and prefixed widgets. It accepts one
+        Empty tag. Wrap a local component in an Element tag.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:group ref="ForEachChildren" minOccurs="0" maxOccurs="unbounded" />
+      <xs:sequence minOccurs="0" maxOccurs="1">
+        <xs:element ref="Empty" />
+        <xs:group ref="ForEachChildren" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:sequence>
+    <xs:attribute name="in" type="xs:string" use="required" />
+    <xs:attribute name="as" type="IdentifierType" use="required" />
+    <xs:attribute name="index" type="IdentifierType" use="optional" />
+    <xs:attributeGroup ref="ForeignAttributes" />
+  </xs:complexType>
+
+  <xs:complexType name="EmptyType">
+    <xs:group ref="ExtensibleChildren" minOccurs="0" maxOccurs="unbounded" />
+    <xs:attributeGroup ref="ForeignAttributes" />
+  </xs:complexType>
+
+  <xs:complexType name="ContentType">
+    <xs:group ref="ExtensibleChildren" minOccurs="0" maxOccurs="unbounded" />
+    <xs:attribute name="name" type="xs:string" use="optional" />
+    <xs:attributeGroup ref="ForeignAttributes" />
+  </xs:complexType>
+
+  <!-- Attribute groups -->
+
+  <xs:attributeGroup name="StyleAttributes">
+    <xs:attribute name="class" type="xs:string" use="optional" />
+    <xs:attribute name="visible" type="BooleanExpressionType" use="optional" />
+    <xs:attribute name="color" type="ColorType" use="optional" />
+    <xs:attribute name="background" type="ColorType" use="optional" />
+    <xs:attribute name="padding" type="PaddingType" use="optional" />
+    <xs:attribute name="corner-radius" type="CornerRadiusType" use="optional" />
+    <xs:attribute name="border" type="BorderType" use="optional" />
+    <xs:attribute name="border-width" type="IntegerType" use="optional" />
+    <xs:attribute name="border-color" type="ColorType" use="optional" />
+    <xs:attribute name="corner-caps" type="CornerCapsType" use="optional" />
+    <xs:attribute name="corner-caps-length" type="IntegerType" use="optional" />
+    <xs:attribute name="corner-caps-thickness" type="IntegerType" use="optional" />
+    <xs:attribute name="corner-caps-color" type="ColorType" use="optional" />
+    <xs:attribute name="overlay" type="BooleanExpressionType" use="optional" />
+    <xs:attribute name="width" type="DimensionType" use="optional" />
+    <xs:attribute name="height" type="DimensionType" use="optional" />
+    <xs:attribute name="min-width" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="min-height" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="min-size" type="SizeBoundsType" use="optional" />
+    <xs:attribute name="max-width" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="max-height" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="max-size" type="SizeBoundsType" use="optional" />
+    <xs:attribute name="x" type="DimensionType" use="optional" />
+    <xs:attribute name="y" type="DimensionType" use="optional" />
+    <xs:attribute name="pos" type="PositionType" use="optional" />
+    <xs:attribute name="position" type="PositionType" use="optional" />
+    <xs:attribute name="anchor" type="AnchorType" use="optional" />
+    <xs:attribute name="anchors" type="AnchorType" use="optional" />
+  </xs:attributeGroup>
+
+  <xs:attributeGroup name="TypographyAttributes">
+    <xs:attribute name="font" type="xs:string" use="optional" />
+    <xs:attribute name="font-size" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="text-align" type="HorizontalAlignmentType" use="optional" />
+    <xs:attribute name="align" type="HorizontalAlignmentType" use="optional" />
+    <xs:attribute name="vertical-align" type="VerticalAlignmentType" use="optional" />
+    <xs:attribute name="valign" type="VerticalAlignmentType" use="optional" />
+    <xs:attribute name="wrap" type="BooleanExpressionType" use="optional" />
+  </xs:attributeGroup>
+
+  <xs:attributeGroup name="LayoutAttributes">
+    <xs:attribute name="layout" type="LayoutType" use="optional" />
+    <xs:attribute name="spacing" type="IntegerExpressionType" use="optional" />
+  </xs:attributeGroup>
+
+  <xs:attributeGroup name="InteractionAttributes">
+    <xs:attribute name="id" type="xs:string" use="optional" />
+    <xs:attribute name="onclick" type="xs:string" use="optional" />
+    <xs:attribute name="onrightclick" type="xs:string" use="optional" />
+    <xs:attribute name="onmiddleclick" type="xs:string" use="optional" />
+    <xs:attribute name="onheld" type="xs:string" use="optional" />
+    <xs:attribute name="button" type="MouseButtonType" use="optional" />
+    <xs:attribute name="hotkey" type="xs:string" use="optional" />
+    <xs:attribute name="key" type="xs:string" use="optional" />
+    <xs:attribute name="disabled" type="BooleanExpressionType" use="optional" />
+    <xs:attribute name="passthrough" type="BooleanExpressionType" use="optional" />
+    <xs:attribute name="scroll" type="ScrollType" use="optional" />
+    <xs:attribute name="scroll-x" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="scroll-y" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="onscroll" type="xs:string" use="optional" />
+    <xs:attribute name="clip" type="ClipType" use="optional" />
+    <xs:attribute name="clip-width" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="clip-height" type="IntegerExpressionType" use="optional" />
+  </xs:attributeGroup>
+
+  <xs:attributeGroup name="ForeignAttributes">
+    <xs:anyAttribute namespace="##other" processContents="lax" />
+  </xs:attributeGroup>
+
+  <!-- Simple types -->
+
+  <xs:simpleType name="AccessType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="public" />
+      <xs:enumeration value="internal" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="LayoutType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="vertical" />
+      <xs:enumeration value="horizontal" />
+      <xs:enumeration value="none" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="MouseButtonType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="left" />
+      <xs:enumeration value="right" />
+      <xs:enumeration value="middle" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ScrollType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="none" />
+      <xs:enumeration value="vertical" />
+      <xs:enumeration value="horizontal" />
+      <xs:enumeration value="both" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="HorizontalAlignmentType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="left" />
+      <xs:enumeration value="center" />
+      <xs:enumeration value="right" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="VerticalAlignmentType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="top" />
+      <xs:enumeration value="center" />
+      <xs:enumeration value="bottom" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="IdentifierType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z_][A-Za-z0-9_]*" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="IntegerType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="-?[0-9]+" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="IntegerExpressionType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(@.*)|(-?[0-9]+)" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="FontSizeType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(@.*)|(-?[0-9]+)" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="BooleanExpressionType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(true|false)|(@.*)" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="DimensionType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(@.*)|(-?[0-9]+(\.[0-9]+)?(px|%)?)|(fill|fit|shrink)" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="SizeType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(-?[0-9]+(\.[0-9]+)?(px|%)?|fill|fit|shrink)(\s+(-?[0-9]+(\.[0-9]+)?(px|%)?|fill|fit|shrink))?" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="SizeBoundsType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="-?[0-9]+(\s+-?[0-9]+)?" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="PaddingType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="-?[0-9]+(\s+-?[0-9]+)?(\s+-?[0-9]+\s+-?[0-9]+)?" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="CornerRadiusType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="-?[0-9]+(\s+-?[0-9]+\s+-?[0-9]+\s+-?[0-9]+)?" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="PositionType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(-?[0-9]+(\.[0-9]+)?(px|%)?|fill|fit|shrink)\s+(-?[0-9]+(\.[0-9]+)?(px|%)?|fill|fit|shrink)" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ColorType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(@.*)|(#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8}))|([A-Za-z]+)|(rgb\([^)]*\))|(rgba\([^)]*\))|(var\([^)]*\))" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="BorderType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(-?[0-9]+)(\s+(#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})|[A-Za-z]+|rgb\([^)]*\)|rgba\([^)]*\)|var\([^)]*\)))?|(#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})|[A-Za-z]+|rgb\([^)]*\)|rgba\([^)]*\)|var\([^)]*\))" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="CornerCapsType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(-?[0-9]+)(\s+-?[0-9]+)?(\s+(#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})|[A-Za-z]+|rgb\([^)]*\)|rgba\([^)]*\)|var\([^)]*\)))?|(#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})|[A-Za-z]+|rgb\([^)]*\)|rgba\([^)]*\)|var\([^)]*\))" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="AnchorType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="([Nn]one|[Tt]op|[Bb]ottom|[Ll]eft|[Rr]ight|[Cc]enter|[Ll]ocal)((\s|\|)([Nn]one|[Tt]op|[Bb]ottom|[Ll]eft|[Rr]ight|[Cc]enter|[Ll]ocal))*" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ClipType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(true|false)|(-?[0-9]+\s+-?[0-9]+)" />
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

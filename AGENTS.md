@@ -13,6 +13,8 @@ dotnet build                                        # Debug default; runs Needle
 dotnet test Swordfish.Tests                         # xunit engine tests
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
+dotnet test Reef.Generator.Tests                    # xunit Reef markup generator, cross-platform
+dotnet test Reef.Markup.Tests                       # xunit Reef markup runtime and visual gallery
 dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
@@ -22,6 +24,9 @@ dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
   MSDF atlas fixtures in `Reef.Tests/TestFiles/Fonts` must exist, because the
   `msdf-atlas-gen` tool is Windows-only.
 - `Reef.Text.Tests` is `net8.0`; it runs on Linux.
+- `Reef.Generator.Tests` is `net8.0`; it runs the Roslyn generator in memory.
+- `Reef.Markup.Tests` is `net8.0`; it renders the visual gallery with the
+  pre-generated font atlases.
 - `WaywardBeyond.Voxels.Tests` is `net9.0`; it references only the voxel module
   and the brick module, so it runs without the engine.
 - CI publishes release artifacts from `.github/workflows/waywardbeyond.yml`.
@@ -50,6 +55,10 @@ Every top-level path and what it is:
 | `Swordfish.Library/` | Shared types, serialization (Needlefish), DI abstractions |
 | `Reef/` | Renderer-agnostic IMGUI library (alpha) |
 | `Reef.Benchmarks/` | Reef BenchmarkDotNet benchmarks |
+| `Reef.Generator/` | Roslyn generator for `.rml` markup and `.rss` styles |
+| `Reef.Generator.Tests/` | Parser, diagnostics, XSD, binding, and emission tests |
+| `Reef.Markup.Tests/` | Runtime, interaction, component, and visual gallery tests |
+| `Reef.Markup.TestComponents/` | Shared component and widget fixtures for cross-assembly tests |
 | `Reef.Tests/` | Reef UI and render tests (cross-platform) |
 | `Reef.Text.Tests/` | Reef rich-text parser tests (cross-platform) |
 | `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database |
@@ -67,6 +76,7 @@ Every top-level path and what it is:
 | `WaywardBeyond.Server.Launcher/` | Game server launcher |
 | `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader, server skill state |
 | `docs/` | Self-documenting doc system (subject index in `docs/README.md`) |
+| `userdocs/` | Human onboarding docs, examples, and quick references |
 | `README.md`, `LICENSE` | Project docs |
 
 ## First stops
@@ -76,6 +86,7 @@ Route a goal to the right doc:
 | I want to… | Read |
 |---|---|
 | Know the conventions before writing code | [docs/development.md](docs/development.md) |
+| Learn Reef Markup | [userdocs/reef/README.md](userdocs/reef/README.md) |
 | Understand the module/process architecture | [docs/architecture.md](docs/architecture.md) |
 | Edit or add config schema | [docs/specs/config-schemas.md](docs/specs/config-schemas.md) |
 | Define game content | [docs/specs/asset-definitions.md](docs/specs/asset-definitions.md) |
@@ -120,8 +131,10 @@ Before you finish a change, run:
 2. `dotnet test Swordfish.Tests` — engine tests.
 3. `dotnet test Reef.Tests` — Reef UI and render tests, cross-platform.
 4. `dotnet test Reef.Text.Tests` — Reef rich-text parser tests, cross-platform.
-5. `dotnet test WaywardBeyond.Voxels.Tests` — shared voxel container tests.
-6. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
+5. `dotnet test Reef.Generator.Tests` — Reef markup generator tests.
+6. `dotnet test Reef.Markup.Tests` — Reef markup runtime and visual tests.
+7. `dotnet test WaywardBeyond.Voxels.Tests` — shared voxel container tests.
+8. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
    Fix blocking findings. Capture the rest as issues.
 
 Then run the mandatory **docs pass** (see the next section). Stale docs are a
