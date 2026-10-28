@@ -45,13 +45,18 @@ internal sealed class HomePage(
     private const int DIVIDER_HEIGHT = 1;
     private const int DIVIDER_GAP = 8;
     private const int CONTINUE_CARD_GAP = 24;
-    private const int CONTINUE_CARD_MARGIN = 28;
     private const int CONTINUE_CARD_MIN_WIDTH = 200;
-    private const int CONTINUE_CARD_METADATA_TOP = 52;
-    private const int CONTINUE_CARD_METADATA_TOP_REMOTE = 74;
+    private const int CONTINUE_CARD_HEADER_GAP = 4;
+    private const int CONTINUE_CARD_METADATA_TOP = 56;
+    private const int CONTINUE_CARD_METADATA_TOP_REMOTE = 78;
     private const int CONTINUE_CARD_METADATA_HEIGHT = 4 * 18 + 8;
+    private const int CONTINUE_CARD_LABEL_WIDTH = 100;
+    private const int CONTINUE_CARD_SESSION_ICON_WIDTH = 16;
+    private const int CONTINUE_CARD_SESSION_GAP = 6;
+    private const int CONTINUE_CARD_AVATAR_SIZE = 64;
+    private const int CONTINUE_CARD_AVATAR_GAP = 12;
     private const int CONTINUE_CARD_DIVIDER_GAP = 12;
-    private const int CONTINUE_CARD_CHARACTER_HEIGHT = 64 + 8;
+    private const int CONTINUE_CARD_CHARACTER_HEIGHT = CONTINUE_CARD_AVATAR_SIZE + 8;
 
     private readonly Entry _entry = entry;
     private readonly ILocalization _localization = localization;
@@ -105,48 +110,26 @@ internal sealed class HomePage(
 
             buttons = DrawMenuButtons(ui, menu, continueState);
 
-            using (ui.Element())
+            if (buttons.ContinueHovered && continueState.HasLastSession && continueState.LastCharacter != null)
             {
-                ui.Constraints = new Constraints
+                int availableWidth = pageWidth - buttonOffset - UiMetrics.MENU_BUTTON_MIN_WIDTH - CONTINUE_CARD_GAP;
+                if (availableWidth >= CONTINUE_CARD_MIN_WIDTH)
                 {
-                    Width = new Fill(),
-                };
+                    ui.Spacer(width: CONTINUE_CARD_GAP);
 
-                if (buttons.ContinueHovered && continueState.HasLastSession && continueState.LastCharacter != null)
-                {
-                    int cardHeight = ContinueCardHeight(continueState.Remote);
-                    int cardWidth = (pageWidth - UiMetrics.MENU_BUTTON_MIN_WIDTH) / 2 - CONTINUE_CARD_GAP - CONTINUE_CARD_MARGIN;
-                    if (cardWidth >= CONTINUE_CARD_MIN_WIDTH)
-                    {
-                        using (ui.Element())
+                    DrawContinueCard(
+                        ui,
+                        continueState.Details,
+                        continueState.LastCharacter.Value,
+                        continueState.Remote,
+                        continueState.Destination,
+                        new Constraints
                         {
-                            ui.LayoutDirection = LayoutDirection.None;
-                            ui.Padding = new Padding(
-                                left: CONTINUE_CARD_GAP,
-                                top: 0,
-                                right: CONTINUE_CARD_MARGIN,
-                                bottom: 0
-                            );
-                            ui.Constraints = new Constraints
-                            {
-                                Width = new Fill(),
-                                Height = new Fixed(cardHeight),
-                            };
-
-                            DrawContinueCard(
-                                ui,
-                                continueState.Details,
-                                continueState.LastCharacter.Value,
-                                continueState.Remote,
-                                continueState.Destination,
-                                new Constraints
-                                {
-                                    Width = new Fill(),
-                                    Height = new Fixed(cardHeight),
-                                }
-                            );
+                            MinWidth = CONTINUE_CARD_MIN_WIDTH,
+                            MaxWidth = availableWidth,
+                            Height = new Fixed(ContinueCardHeight(continueState.Remote)),
                         }
-                    }
+                    );
                 }
             }
         }
@@ -380,16 +363,14 @@ internal sealed class HomePage(
         Constraints constraints
     )
     {
-        const int labelWidth = 100;
         using (ui.MenuPanel(constraints))
         {
             using (ui.Row(
                 new Constraints
                 {
-                    Width = new Fill(),
                     Height = new Fixed(16),
                 },
-                spacing: 6
+                spacing: CONTINUE_CARD_SESSION_GAP
             ))
             {
                 if (remote)
@@ -400,7 +381,7 @@ internal sealed class HomePage(
                         UiTheme.Accent,
                         new Constraints
                         {
-                            Width = new Fixed(16),
+                            Width = new Fixed(CONTINUE_CARD_SESSION_ICON_WIDTH),
                             Height = new Fill(),
                         },
                         fontId: UiTheme.FONT_ICONS
@@ -415,11 +396,12 @@ internal sealed class HomePage(
                     remote ? UiTheme.Accent : UiTheme.TextMuted,
                     new Constraints
                     {
-                        Width = new Fill(),
                         Height = new Fill(),
                     }
                 );
             }
+
+            ui.Spacer(height: CONTINUE_CARD_HEADER_GAP);
 
             ui.Label(
                 details.Name,
@@ -427,7 +409,6 @@ internal sealed class HomePage(
                 UiTheme.Text,
                 new Constraints
                 {
-                    Width = new Fill(),
                     Height = new Fixed(20),
                 }
             );
@@ -440,7 +421,6 @@ internal sealed class HomePage(
                     UiTheme.TextMuted,
                     new Constraints
                     {
-                        Width = new Fill(),
                         Height = new Fixed(16),
                     }
                 );
@@ -453,12 +433,11 @@ internal sealed class HomePage(
                 : _localization.GetRequired("ui.label.never");
             TimeSpan age = TimeSpan.FromMilliseconds(details.AgeMs);
 
-            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.label.level.mode"), details.Mode.ToString());
-            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.label.level.seed"), details.Seed.ToString());
-            DrawContinueDetail(ui, labelWidth, _localization.GetRequired("ui.label.lastPlayed"), lastPlayed);
+            DrawContinueDetail(ui, _localization.GetRequired("ui.label.level.mode"), details.Mode.ToString());
+            DrawContinueDetail(ui, _localization.GetRequired("ui.label.level.seed"), details.Seed.ToString());
+            DrawContinueDetail(ui, _localization.GetRequired("ui.label.lastPlayed"), lastPlayed);
             DrawContinueDetail(
                 ui,
-                labelWidth,
                 _localization.GetRequired("ui.label.timePlayed"),
                 _localization.GetLongString(age)
             );
@@ -477,10 +456,9 @@ internal sealed class HomePage(
             using (ui.Row(
                 new Constraints
                 {
-                    Width = new Fill(),
-                    Height = new Fixed(64),
+                    Height = new Fixed(CONTINUE_CARD_AVATAR_SIZE),
                 },
-                spacing: 12
+                spacing: CONTINUE_CARD_AVATAR_GAP
             ))
             {
                 Material appearance = _characterAssetService.GetAppearanceMaterial(character);
@@ -488,15 +466,14 @@ internal sealed class HomePage(
                 {
                     ui.Constraints = new Constraints
                     {
-                        Width = new Fixed(64),
-                        Height = new Fixed(64),
+                        Width = new Fixed(CONTINUE_CARD_AVATAR_SIZE),
+                        Height = new Fixed(CONTINUE_CARD_AVATAR_SIZE),
                     };
                 }
 
                 using (ui.Column(
                     new Constraints
                     {
-                        Width = new Fill(),
                         Height = new Fill(),
                     }
                 ))
@@ -508,7 +485,6 @@ internal sealed class HomePage(
                         UiTheme.AccentBright,
                         new Constraints
                         {
-                            Width = new Fill(),
                             Height = new Fixed(18),
                         }
                     );
@@ -521,7 +497,6 @@ internal sealed class HomePage(
                         UiTheme.Text,
                         new Constraints
                         {
-                            Width = new Fill(),
                             Height = new Fixed(18),
                         }
                     );
@@ -532,7 +507,6 @@ internal sealed class HomePage(
 
     private static void DrawContinueDetail(
         UIBuilder<Material> ui,
-        int labelWidth,
         string label,
         string value
     )
@@ -540,7 +514,6 @@ internal sealed class HomePage(
         using (ui.Row(
             new Constraints
             {
-                Width = new Fill(),
                 Height = new Fixed(18),
             }
         ))
@@ -551,7 +524,7 @@ internal sealed class HomePage(
                 UiTheme.TextMuted,
                 new Constraints
                 {
-                    Width = new Fixed(labelWidth),
+                    Width = new Fixed(CONTINUE_CARD_LABEL_WIDTH),
                     Height = new Fill(),
                 }
             );
@@ -561,14 +534,12 @@ internal sealed class HomePage(
                 UiTheme.TextSoft,
                 new Constraints
                 {
-                    Width = new Fill(),
                     Height = new Fill(),
                 }
             );
         }
     }
 
-    /// <summary>The Continue button state, resolved from the save listing and the recorded profile summary.</summary>
     /// <summary>The menu button states the page reacts to after drawing the column.</summary>
     private readonly record struct MenuColumnResult(bool ContinueHovered, bool SingleplayerClicked);
 
@@ -581,7 +552,6 @@ internal sealed class HomePage(
         string? Destination
     );
 
-    /// <summary>The archive facts the Continue card shows, from the live listing or the recorded summary.</summary>
     /// <summary>The card facts the Continue hover card draws.</summary>
     private readonly record struct ContinueDetails(
         string Name,

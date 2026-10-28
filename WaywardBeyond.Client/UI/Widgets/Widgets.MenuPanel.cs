@@ -57,6 +57,7 @@ internal static partial class Widgets
     }
 
     /// <summary>Creates a menu panel with the shared inner hairline and corner caps.</summary>
+    /// <remarks>The content hugs its children when the panel width is not constrained.</remarks>
     public static MenuPanelScope MenuPanel(
         this UIBuilder<Material> ui,
         Constraints constraints,
@@ -80,6 +81,9 @@ internal static partial class Widgets
             return new MenuPanelScope(background, content: null);
         }
 
+        bool hugWidth = constraints.Width is null or Fit or Shrink;
+        int insetWidth = UiMetrics.PANEL_INNER_INSET * 2;
+
         ui.Padding = innerBorder ? new Padding(UiMetrics.PANEL_INNER_INSET) : new Padding(0);
 
         UIBuilder<Material>.Scope content = ui.Element();
@@ -95,8 +99,10 @@ internal static partial class Widgets
             : default;
         ui.Constraints = new Constraints
         {
-            Width = new Fill(),
+            Width = hugWidth ? null : new Fill(),
             Height = new Fill(),
+            MinWidth = hugWidth ? Math.Max(0, constraints.MinWidth - insetWidth) : 0,
+            MaxWidth = hugWidth ? Math.Max(0, constraints.MaxWidth - insetWidth) : 0,
         };
         ui.ClipConstraints = ClipToBounds();
 
@@ -108,7 +114,7 @@ internal static partial class Widgets
                 UiTheme.TextMuted,
                 new Constraints
                 {
-                    Width = new Fill(),
+                    Width = hugWidth ? null : new Fill(),
                     Height = new Fixed(18),
                 },
                 HorizontalAlignment.Center

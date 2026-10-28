@@ -29,6 +29,88 @@ public class MenuPanelRenderTests
     }
 
     [Fact]
+    public void AutoWidthMenuPanelHugsItsContent()
+    {
+        var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
+
+        using (ui.MenuPanel(new Constraints { Height = new Fixed(100) }))
+        {
+            ui.Label(
+                "label",
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Text,
+                new Constraints
+                {
+                    Height = new Fill(),
+                }
+            );
+        }
+
+        List<RenderCommand<Material>> commands = ui.Build(0f);
+
+        Assert.Equal(60, commands[0].Rect.Size.X);
+        Assert.Equal(56, commands[1].Rect.Size.X);
+    }
+
+    [Fact]
+    public void AutoWidthMenuPanelClampsToMaxWidth()
+    {
+        var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
+
+        using (ui.MenuPanel(
+            new Constraints
+            {
+                MaxWidth = 52,
+                Height = new Fixed(100),
+            }
+        ))
+        {
+            ui.Label(
+                "label",
+                UiMetrics.MENU_SMALL_FONT,
+                UiTheme.Text,
+                new Constraints
+                {
+                    Height = new Fill(),
+                }
+            );
+        }
+
+        List<RenderCommand<Material>> commands = ui.Build(0f);
+
+        Assert.Equal(52, commands[0].Rect.Size.X);
+        Assert.Equal(48, commands[1].Rect.Size.X);
+    }
+
+    [Fact]
+    public void FillWidthMenuPanelFillsItsParent()
+    {
+        var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());
+
+        using (ui.Row(
+            new Constraints
+            {
+                Width = new Fixed(200),
+                Height = new Fixed(100),
+            }
+        ))
+        {
+            using (ui.MenuPanel(
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            )) { }
+        }
+
+        List<RenderCommand<Material>> commands = ui.Build(0f);
+
+        Assert.Equal(200, commands[1].Rect.Size.X);
+        Assert.Equal(196, commands[2].Rect.Size.X);
+    }
+
+    [Fact]
     public void InfoBoxSeparatesColorTokenFromHighlight()
     {
         var ui = new UIBuilder<Material>(200, 200, new StubTextEngine(), new UIController());

@@ -89,7 +89,7 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
 | `FooterStatus` | `Widgets.FooterStatus.cs:13` | Centered footer status between two action buttons. |
 | `ModalPanel` | `Widgets.MenuPanel.cs:39` | Borderless panel for modal dialogs. |
-| `MenuPanel` | `Widgets.MenuPanel.cs:60` | Shared menu panel with inner hairline, corner caps, and optional title. |
+| `MenuPanel` | `Widgets.MenuPanel.cs:61` | Shared menu panel with inner hairline, corner caps, and optional title. Content hugs when the width is unconstrained. |
 | `InfoBox` | `Widgets.InfoBox.cs:12` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
 | `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with one orange border and a cyan left caret. |
 | `StatLabel` | `Widgets.StatLabel.cs:10` | Stat name with a colored first letter. |
@@ -167,7 +167,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   the shared footer button slot.
 - `Swordfish.Tests/PingDisplayTests.cs` covers ping bands and unknown/unreachable states.
 - `Swordfish.Tests/MenuPanelRenderTests.cs` checks that menu panels have no outer
-  border and that selected cards use one border plus a cyan caret.
+  border, that selected cards use one border plus a cyan caret, and that panels
+  with an unconstrained width hug their content up to `MaxWidth`.
 - `Swordfish.Tests/TextBoxZOrderTests.cs` checks selection and caret paint
   order with the theme colors, plus relative text-box sizing.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.
