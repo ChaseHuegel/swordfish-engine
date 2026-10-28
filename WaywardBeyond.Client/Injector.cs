@@ -125,9 +125,6 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientVoxelReconcileSystem>();
         container.Register<ChatService>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientChatSystem>();
-        //  Runs after the voxel-edit producers (PlayerInteractionService, ClientVoxelReconcileSystem) so
-        //  the dirty VoxelComponent flags it consumes reflect the current prediction/reconcile.
-        container.Register<IEntitySystem, VoxelEntityRebuildSystem>();
 
         container.Register<ClientJoinSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientJoinSystem>();
@@ -177,6 +174,7 @@ public class Injector : IDryIocInjector
         container.RegisterDataBinding<List<SavedServer>>();
         container.RegisterConfig<ProfileSettings>(file: "profile.toml");
         container.RegisterConfig<ChatConfig>(file: "chat.toml");
+        container.RegisterConfig<VoxelSettings>(file: "voxel.toml");
     }
 
     private static SettingsPage<TIdentifier> CreateSettingsPage<TIdentifier>(
@@ -298,6 +296,8 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
         container.RegisterMapping<IEntitySystem, PlayerInteractionService>();
         container.RegisterMapping<IDebugOverlay, PlayerInteractionService>();
+        //  Runs after the voxel-edit producers so the dirty flags it consumes reflect this tick.
+        container.Register<IEntitySystem, VoxelEntityRebuildSystem>();
 
         container.Register<ClientPlayerMotionProcessor>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientPlayerMotionProcessor>();
@@ -333,6 +333,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, RemotePlayerVisualSystem>();
         container.Register<IEntitySystem, BillboardSystem>();
         container.Register<IEntitySystem, NameplateSystem>();
+        container.Register<IEntitySystem, VoxelDebugGizmoSystem>(setup: Setup.With(allowDisposableTransient: true));
 
         container.Register<AudioChannelSystem>(reuse: Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, AudioChannelSystem>();
@@ -351,7 +352,7 @@ public class Injector : IDryIocInjector
         container.Register<IVoxelEntityDecorator, ThrusterEntityDecorator>(Reuse.Transient);
 
         container.Register<VoxelObjectBuilder>(Reuse.Singleton);
-
+        container.Register<VoxelLightingService>(Reuse.Singleton);
         container.Register<VoxelObjectProcessor>(Reuse.Scoped);
 
         container.Register<DepthState>(Reuse.Scoped);
@@ -367,8 +368,11 @@ public class Injector : IDryIocInjector
 
         container.Register<VoxelObjectProcessor.ISamplePass, DepthPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, LightPropagationPrePass>(Reuse.Scoped);
+        container.Register<MeshPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);
+        container.Register<CollisionPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
+        container.Register<VoxelEntityPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, VoxelEntityPostPass>(Reuse.Scoped);
     }
 }

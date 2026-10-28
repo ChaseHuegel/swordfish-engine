@@ -7,12 +7,13 @@ using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
-public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSContext ecs) : IDebugOverlay
+public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSContext ecs, in IRenderer renderer) : IDebugOverlay
 {
     private const int SAMPLE_LENGTH = 60 * 2;
 
     private readonly IWindowContext _windowContext = windowContext;
     private readonly IECSContext _ecs = ecs;
+    private readonly IRenderer _renderer = renderer;
     private readonly Sampler _fpsSampler = new(SAMPLE_LENGTH);
     private readonly Sampler _updateSampler = new(SAMPLE_LENGTH);
     private readonly Sampler _tickSampler = new(SAMPLE_LENGTH);
@@ -32,6 +33,8 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
         double tps = 1000d / (_ecs.Delta.Get() * 1000d);
         _tickSampler.Record(tps);
         Sample tpsSample = _tickSampler.GetSnapshot();
+
+        using (ui.Text($"Draw calls: {_renderer.DrawCalls.Get()}"));
 
         using (ui.Text($"FPS M:{fpsSample.Median:F0} / A:{fpsSample.Average:F0} / L:{fpsSample.Lowest:F0} / H:{fpsSample.Highest:F0}"))
         {

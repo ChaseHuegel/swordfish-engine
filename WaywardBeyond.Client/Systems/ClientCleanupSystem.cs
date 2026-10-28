@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Voxels.Building;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -54,9 +55,20 @@ internal sealed class ClientCleanupSystem : IEntitySystem
                 return;
             }
 
+            if (store.TryGet(entity, out VoxelComponent _))
+            {
+                VoxelEntityBuilder.FreeChunks(store, entity);
+            }
+
+            if (store.TryGet(entity, out MeshBatchRendererComponent batch) && batch.Renderer != null)
+            {
+                batch.Renderer.Dispose();
+                batch.Renderer.MeshBatch.Dispose();
+            }
+
             if (store.TryGet(entity, out MeshRendererCleanup cleanup))
             {
-                cleanup.DisposeMeshRenderers();
+                cleanup.DisposeAll();
             }
 
             if (store.TryGet(entity, out MeshRendererComponent mesh) && mesh.MeshRenderer != null)

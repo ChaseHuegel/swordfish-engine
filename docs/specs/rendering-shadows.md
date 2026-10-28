@@ -14,12 +14,33 @@ Dynamic shadows render directional cascaded shadow maps (CSM) and omnidirectiona
 6. The main forward lighting pass binds shadow textures and evaluates shadow factors in `pbr_plus.glsl`.
 7. Objects with `RenderOptions.ReceiveShadows = false` skip shadow attenuation.
 
+## Culling
+
+Camera culling is a view concern. `GLRenderContext.Tick` submits every live
+mesh renderer to the scene. The render stages cull per pass.
+
+- The camera pass tests each render target against `RenderScene.CameraFrustum`.
+- The shadow pass builds a frustum from the cascade or cube-face view and
+  projection. It tests every caster against that frustum.
+- The directional light frustum extends toward the light. A caster between the
+  light and the cascade remains in the shadow map.
+- A caster outside the camera view still casts a shadow inside the view.
+
+The point-shadow path draws six faces per light. A layered `gl_Layer` draw is not
+implemented yet. The per-face path remains the fallback.
+
+The batched mesh stage culls each range against the same per-pass frustum. A
+batch is one object, so a batch outside the view submits no range.
+
 ## Directional Light Shadows (CSM)
 
 Directional shadows use Cascaded Shadow Maps with 1 to 4 split cascades.
-`ShadowCascadeHelper` computes split distances using practical split scheme logarithmic and linear blending.
-Each cascade projects onto the camera sub-frustum with texel snapping to prevent edge shimmer during camera motion.
-The shader selects the cascade from view-space depth. It samples the 2D texture array with hardware depth comparison.
+`ShadowCascadeMath` computes the split distances and the cascade matrices.
+Each cascade fits the camera sub-frustum into a bounding sphere.
+The light view uses a texel-snapped cascade center. Snapping the center, not the
+projection bounds, keeps the shadow grid fixed when the camera moves.
+The shader selects the cascade from view-space depth. It samples the 2D texture
+array with hardware depth comparison.
 
 ## Point Light Shadows
 
@@ -69,16 +90,17 @@ In the lighting pass, shaded fragments compute the point light distance and samp
 - Alpha mode: `Swordfish/Graphics/AlphaMode.cs:4-9`
 - Directional light: `Swordfish/ECS/DirectionalLightComponent.cs:6-20`
 - Point light: `Swordfish/ECS/LightComponent.cs:6-20`
-- Cascade math: `Swordfish/Graphics/SilkNET/OpenGL/ShadowCascadeHelper.cs:6-143`
+- Cascade math: `Swordfish/Graphics/SilkNET/OpenGL/ShadowCascadeMath.cs:6-199`
 - Cubemap array texture: `Swordfish/Graphics/SilkNET/OpenGL/TexCubeArray.cs:6-94`
-- Shadow pass execution: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:576-785`
-- Depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLInstancedRenderer.cs:177-276`
+- Shadow pass execution: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:570-778`
+- Instanced depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLInstancedRenderer.cs:343-449`
+- Batch depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLMeshBatchRenderer.cs:100-159`
 - Shader evaluation: `Swordfish/assets/shaders/pbr_plus.glsl:132-227`
 - Client sun bootstrap: `WaywardBeyond.Client/Entry.cs:38-43`
 - Client UI controls: `WaywardBeyond.Client/UI/Settings/DisplaySettingsCategory.cs:105-113`
 
 ## Tests That Pin This
 
-- `Swordfish.Tests/ShadowCascadeHelperTests.cs:10-165`
+- `Swordfish.Tests/ShadowCascadeMathTests.cs:10-214`
 - `Swordfish.Tests/SettingsEntryTests.cs:49-98`
 - `Swordfish.Tests` full engine suite.

@@ -1,15 +1,20 @@
-﻿using System.Linq;
+using System.Linq;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
+/// <summary>
+/// Enqueues light-emitting voxels for full-build light propagation.
+/// </summary>
 internal sealed class LightPropagationPrePass(LightingState lightingState, IBrickDatabase brickDatabase) : VoxelObjectProcessor.ISamplePass
 {
     private readonly ushort[] _lightBrickIDs = brickDatabase.Get(info => info.LightSource).Select(info => info.DataID).ToArray();
     
+    /// <inheritdoc/>
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
     
+    /// <inheritdoc/>
     public bool ShouldProcessChunk(ChunkData chunkData)
     {
         //  Skip empty chunks
@@ -29,6 +34,7 @@ internal sealed class LightPropagationPrePass(LightingState lightingState, IBric
         return false;
     }
     
+    /// <inheritdoc/>
     public void Process(VoxelSample sample)
     {
         if (sample.Center.GetLightLevel() == 0)

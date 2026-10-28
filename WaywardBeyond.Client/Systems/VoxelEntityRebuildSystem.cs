@@ -11,14 +11,9 @@ namespace WaywardBeyond.Client.Systems;
 /// affected entity's renderers and clears the flag. Rebuild must run after the producers in the ECS tick
 /// order so the dirty flag it consumes reflects the latest edit.
 /// </summary>
-internal sealed class VoxelEntityRebuildSystem : IEntitySystem
+internal sealed class VoxelEntityRebuildSystem(in VoxelEntityBuilder voxelBuilder) : IEntitySystem
 {
-    private readonly VoxelEntityBuilder _voxelBuilder;
-
-    public VoxelEntityRebuildSystem(in VoxelEntityBuilder voxelBuilder)
-    {
-        _voxelBuilder = voxelBuilder;
-    }
+    private readonly VoxelEntityBuilder _voxelBuilder = voxelBuilder;
 
     private struct RebuildAction : IForEach<VoxelComponent>
     {
@@ -26,8 +21,10 @@ internal sealed class VoxelEntityRebuildSystem : IEntitySystem
 
         public void Execute(float delta, DataStore store, int entity, in VoxelComponent voxelComponent)
         {
-            Owner._voxelBuilder.Rebuild(store, entity);
-            store.ClearDirty<VoxelComponent>(entity);
+            if (Owner._voxelBuilder.Rebuild(store, entity))
+            {
+                store.ClearDirty<VoxelComponent>(entity);
+            }
         }
     }
 

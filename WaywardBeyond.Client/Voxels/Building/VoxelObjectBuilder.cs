@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Numerics;
 using DryIoc;
 using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
@@ -11,37 +13,194 @@ namespace WaywardBeyond.Client.Voxels.Building;
 public sealed class VoxelObjectBuilder(in IContainer container)
 {
     private readonly IContainer _container = container;
-    
-    public Data Build(VoxelObject voxelObject)
+
+    /// <summary>Opens one resolver scope for a sequence of chunk builds.</summary>
+    public ChunkBuildContext OpenChunkBuildContext()
+    {
+        return new ChunkBuildContext(_container.OpenScope());
+    }
+
+    /// <summary>Builds mesh data and voxel entities for a single chunk.</summary>
+    public ChunkMeshData BuildChunk(ChunkBuildContext context, ChunkData chunkData)
+    {
+        context.MeshState.Clear();
+        context.EntityState.Clear();
+
+        if (!chunkData.Palette.Only(0))
+        {
+            foreach (VoxelSample sample in chunkData.GetOccupiedSampler())
+            {
+                context.MeshPostPass.Process(sample);
+                context.VoxelEntityPostPass.Process(sample);
+            }
+        }
+
+        float half = chunkData.Data.Size * 0.5f;
+        var chunkBounds = new BoundingBox(
+            new Vector3(
+                chunkData.Coords.X * chunkData.Data.Size + half,
+                chunkData.Coords.Y * chunkData.Data.Size + half,
+                chunkData.Coords.Z * chunkData.Data.Size + half
+            ),
+            new Vector3(half + 1f),
+            (half + 1f) * MathF.Sqrt(3f)
+        );
+
+        ChunkMesh opaqueMesh = GenerateChunkMesh(context.MeshState.Opaque, chunkBounds);
+        ChunkMesh maskedMesh = GenerateChunkMesh(context.MeshState.Masked, chunkBounds);
+        ChunkMesh transparentMesh = GenerateChunkMesh(context.MeshState.Transparent, chunkBounds);
+
+        return new ChunkMeshData(opaqueMesh, maskedMesh, transparentMesh, context.EntityState.Voxels);
+    }
+
+    /// <summary>Builds surface collision data for a single chunk.</summary>
+    public ChunkCollisionData BuildChunkCollision(ChunkBuildContext context, ChunkData chunkData)
+    {
+        context.CollisionState.Clear();
+
+        if (!context.CollisionPostPass.ShouldProcessChunk(chunkData))
+        {
+            return new ChunkCollisionData([], [], []);
+        }
+
+        foreach (VoxelSample sample in chunkData.GetOccupiedSampler())
+        {
+            context.CollisionPostPass.Process(sample);
+        }
+
+        return new ChunkCollisionData(
+            shapes: [.. context.CollisionState.Shapes],
+            positions: [.. context.CollisionState.Positions],
+            orientations: [.. context.CollisionState.Orientations]
+        );
+    }
+
+    /// <summary>Holds one resolver scope and the passes shared across chunk builds.</summary>
+    public sealed class ChunkBuildContext : IDisposable
+    {
+        private readonly IResolverContext _scope;
+
+        internal readonly MeshPostPass MeshPostPass;
+        internal readonly VoxelEntityPostPass VoxelEntityPostPass;
+        internal readonly CollisionPostPass CollisionPostPass;
+        internal readonly MeshState MeshState;
+        internal readonly EntityState EntityState;
+        internal readonly CollisionState CollisionState;
+
+        internal ChunkBuildContext(IResolverContext scope)
+        {
+            _scope = scope;
+            MeshPostPass = scope.Resolve<MeshPostPass>();
+            VoxelEntityPostPass = scope.Resolve<VoxelEntityPostPass>();
+            CollisionPostPass = scope.Resolve<CollisionPostPass>();
+            MeshState = scope.Resolve<MeshState>();
+            EntityState = scope.Resolve<EntityState>();
+            CollisionState = scope.Resolve<CollisionState>();
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            _scope.Dispose();
+        }
+    }
+
+    /// <summary>Combines cached chunk collision shapes into a single compound shape.</summary>
+    public static CompoundShape CombineCollisions(IReadOnlyCollection<ChunkCollisionData> chunkColliders)
+    {
+        var totalShapes = 0;
+        foreach (ChunkCollisionData chunk in chunkColliders)
+        {
+            totalShapes += chunk.Shapes.Length;
+        }
+
+        var shapes = new Shape[totalShapes];
+        var positions = new Vector3[totalShapes];
+        var orientations = new Quaternion[totalShapes];
+
+        var offset = 0;
+        foreach (ChunkCollisionData chunk in chunkColliders)
+        {
+            int count = chunk.Shapes.Length;
+            if (count == 0)
+            {
+                continue;
+            }
+
+            Array.Copy(chunk.Shapes, 0, shapes, offset, count);
+            Array.Copy(chunk.Positions, 0, positions, offset, count);
+            Array.Copy(chunk.Orientations, 0, orientations, offset, count);
+            offset += count;
+        }
+
+        return new CompoundShape(shapes, positions, orientations);
+    }
+
+    /// <summary>Initializes ambient and direct lighting for the voxel object.</summary>
+    public void InitializeLighting(VoxelObject voxelObject, DepthState? depthState = null)
     {
         using IResolverContext? scope = _container.OpenScope();
+        if (depthState != null)
+        {
+            scope.Use(depthState);
+        }
+        
         var voxelObjectProcessor = scope.Resolve<VoxelObjectProcessor>();
-        voxelObjectProcessor.Process(voxelObject);
-        
-        var meshState = scope.Resolve<MeshState>();
-        Mesh opaqueMesh = GenerateMesh(meshState.Opaque);
-        Mesh maskedMesh = GenerateMesh(meshState.Masked);
-        Mesh transparentMesh = GenerateMesh(meshState.Transparent);
-        
-        var collisionState = scope.Resolve<CollisionState>();
-        var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Positions.ToArray(), collisionState.Orientations.ToArray());
-        
-        var entityState = scope.Resolve<EntityState>();
-        
-        return new Data(opaqueMesh, maskedMesh, transparentMesh, collisionShape, entityState.Voxels);
+        voxelObjectProcessor.ProcessLighting(voxelObject);
     }
-    
-    private static Mesh GenerateMesh(in MeshState.MeshData meshData)
+
+    private static ChunkMesh GenerateChunkMesh(in MeshState.MeshData meshData, in BoundingBox bounds)
     {
-        return new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
+        if (meshData.Triangles.Count == 0 || meshData.Vertices.Count == 0)
+        {
+            return default;
+        }
+
+        int count = meshData.Vertices.Count;
+        var vertexData = new float[count * MeshBatch.VERTEX_STRIDE];
+        for (var i = 0; i < count; i++)
+        {
+            Vector3 position = meshData.Vertices[i];
+            Vector4 color = meshData.Colors[i];
+            Vector3 uv = meshData.UV[i];
+            Vector3 normal = meshData.Normals[i];
+
+            int offset = i * MeshBatch.VERTEX_STRIDE;
+            vertexData[offset] = position.X;
+            vertexData[offset + 1] = position.Y;
+            vertexData[offset + 2] = position.Z;
+            vertexData[offset + 3] = color.X;
+            vertexData[offset + 4] = color.Y;
+            vertexData[offset + 5] = color.Z;
+            vertexData[offset + 6] = color.W;
+            vertexData[offset + 7] = uv.X;
+            vertexData[offset + 8] = uv.Y;
+            vertexData[offset + 9] = uv.Z;
+            vertexData[offset + 10] = normal.X;
+            vertexData[offset + 11] = normal.Y;
+            vertexData[offset + 12] = normal.Z;
+        }
+
+        return new ChunkMesh(vertexData, meshData.Triangles.ToArray(), bounds);
     }
-    
-    public readonly struct Data(in Mesh opaqueMesh, in Mesh maskedMesh, in Mesh transparentMesh, in CompoundShape collisionShape, in List<VoxelInfo> voxelEntities)
+
+    /// <summary>Holds opaque, masked, and transparent mesh ranges and entities for a single chunk.</summary>
+    public readonly struct ChunkMeshData(in ChunkMesh opaqueMesh, in ChunkMesh maskedMesh, in ChunkMesh transparentMesh, in List<VoxelInfo> voxelEntities)
     {
-        public readonly Mesh OpaqueMesh = opaqueMesh;
-        public readonly Mesh MaskedMesh = maskedMesh;
-        public readonly Mesh TransparentMesh = transparentMesh;
-        public readonly CompoundShape CollisionShape = collisionShape;
+        public readonly ChunkMesh OpaqueMesh = opaqueMesh;
+        public readonly ChunkMesh MaskedMesh = maskedMesh;
+        public readonly ChunkMesh TransparentMesh = transparentMesh;
         public readonly List<VoxelInfo> VoxelEntities = voxelEntities;
+    }
+
+    /// <summary>Holds packed vertex and index data for one chunk range.</summary>
+    public readonly struct ChunkMesh(in float[] vertexData, in uint[] indices, in BoundingBox bounds)
+    {
+        public readonly float[] VertexData = vertexData;
+        public readonly uint[] Indices = indices;
+        public readonly BoundingBox Bounds = bounds;
+
+        public bool IsEmpty => VertexData == null || VertexData.Length == 0 || Indices == null || Indices.Length == 0;
+        public int VertexCount => VertexData == null ? 0 : VertexData.Length / MeshBatch.VERTEX_STRIDE;
     }
 }

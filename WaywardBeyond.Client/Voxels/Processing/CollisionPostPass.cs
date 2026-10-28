@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using Swordfish.Library.Types.Shapes;
 using WaywardBeyond.Voxels;
@@ -30,7 +30,15 @@ internal sealed class CollisionPostPass(CollisionState collisionState) : VoxelOb
     
     public void Process(VoxelSample sample)
     {
-        if (sample.Center.ID == 0 || !sample.HasAny())
+        if (sample.Center.ID == 0)
+        {
+            return;
+        }
+
+        // Only include surface voxels that face at least one empty neighbor
+        if (sample.Left.ID != 0 && sample.Right.ID != 0 &&
+            sample.Above.ID != 0 && sample.Below.ID != 0 &&
+            sample.Ahead.ID != 0 && sample.Behind.ID != 0)
         {
             return;
         }
