@@ -275,25 +275,29 @@ internal sealed class ChatLayer : IUILayer
 
             using (ui.Element())
             {
-                ui.LayoutDirection = LayoutDirection.None;
+                ui.Padding = new Padding(10, 0, 10, 10);
                 ui.Color = UiTheme.PanelInner;
                 ui.Constraints = Widgets.RectConstraints(Widgets.Rect(3, 3, headerInnerWidth, headerInnerHeight));
 
-                ui.Label(
-                    _headerLabel,
-                    Widgets.Rect(10, 0, 360, headerInnerHeight),
-                    UiMetrics.TINY_FONT,
-                    UiTheme.TextMuted,
-                    Anchors.Left | Anchors.Center
-                );
+                using (ui.Text(_headerLabel))
+                {
+                    ui.Color = UiTheme.TextMuted;
+                    ui.FontOptions = new FontOptions
+                    {
+                        Size = UiMetrics.TINY_FONT
+                    };
+                }
 
-                ui.Label(
-                    _closeHintLabel,
-                    Widgets.Rect(headerInnerWidth - 160, 0, 152, headerInnerHeight),
-                    UiMetrics.TINY_FONT,
-                    UiTheme.TextDim,
-                    Anchors.Right | Anchors.Center
-                );
+                ui.Filler();
+                
+                using (ui.Text(_closeHintLabel))
+                {
+                    ui.Color = UiTheme.TextDim;
+                    ui.FontOptions = new FontOptions
+                    {
+                        Size = UiMetrics.TINY_FONT
+                    };
+                }
             }
 
             ui.Divider(Widgets.Rect(3, HEADER_HEIGHT, headerInnerWidth, 1), UiTheme.BorderInner);
@@ -362,6 +366,7 @@ internal sealed class ChatLayer : IUILayer
     {
         using (ui.Element())
         {
+            ui.Padding = new Padding(10, 0, 10, 10);
             ui.LayoutDirection = LayoutDirection.None;
             ui.Color = UiTheme.InputFocus;
             ui.Border = new BorderStyle
@@ -375,31 +380,48 @@ internal sealed class ChatLayer : IUILayer
                 Width = new Fixed(INPUT_BAR_WIDTH),
                 Height = new Fixed(INPUT_BAR_HEIGHT),
             };
-
-            ui.Label(
-                ">",
-                Widgets.Rect(8, 0, 14, INPUT_BAR_HEIGHT),
-                UiMetrics.SMALL_FONT,
-                UiTheme.Accent,
-                Anchors.Left | Anchors.Center
-            );
-
-            ui.TextBox(
-                TEXT_BOX_ID,
-                ref _textBox,
-                _fieldFontOptions,
-                _inputService,
-                out Widgets.Interactions interactions
-            );
-            HandleInteractions(interactions);
-
-            ui.Label(
-                _sendHintLabel,
-                Widgets.Rect(INPUT_BAR_WIDTH - SEND_HINT_WIDTH - 8, 0, SEND_HINT_WIDTH, INPUT_BAR_HEIGHT),
-                UiMetrics.TINY_FONT,
-                UiTheme.TextMuted,
-                Anchors.Right | Anchors.Center
-            );
+            
+            using (ui.Element())
+            {
+                ui.TextBox(
+                    TEXT_BOX_ID,
+                    ref _textBox,
+                    _fieldFontOptions,
+                    _inputService,
+                    out Widgets.Interactions interactions
+                );
+                HandleInteractions(interactions);
+            }
+        
+            using (ui.Element())
+            {
+                ui.Constraints = new Constraints
+                {
+                    Y = new Fixed(5),
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+                
+                using (ui.Text(">"))
+                {
+                    ui.Color = UiTheme.Accent;
+                    ui.FontOptions = new FontOptions
+                    {
+                        Size = UiMetrics.SMALL_FONT
+                    };
+                }
+            
+                ui.Filler();
+            
+                using (ui.Text(_sendHintLabel))
+                {
+                    ui.Color = UiTheme.TextMuted;
+                    ui.FontOptions = new FontOptions
+                    {
+                        Size = UiMetrics.TINY_FONT
+                    };
+                }
+            }
         }
     }
 
