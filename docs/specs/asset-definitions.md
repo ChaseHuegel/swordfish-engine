@@ -170,10 +170,12 @@ without a `Species` uses its `ID` as the species. A body without a `Gender`
 loads as `Neutral`.
 
 The current set is `wb:human_m`, `wb:human_f`, `wb:bot` (industrial drone),
-`wb:bot2_m` / `wb:bot2_f` (anthropoid android), and the alien lineages
-`wb:alien_m` / `wb:alien_f`, plus `wb:alien2_{m,f}` (purple, cylinder head),
-`wb:alien3_{m,f}` (grey), and `wb:alien4_{m,f}` (orange, cyclopean). Each gender
-carries its own ID so name themes and preview sprites key cleanly.
+`wb:bot2_m` / `wb:bot2_f` (anthropoid android), `wb:bot3` (chassis-bound
+amoeboid), and the alien lineages `wb:alien_m` / `wb:alien_f`, plus
+`wb:alien2_{m,f}` (purple, cylinder head), `wb:alien3_{m,f}` (grey), and
+`wb:alien4_{m,f}` (orange, cyclopean). Each gender carries its own ID so name
+themes and preview sprites key cleanly. Neutral species such as `bot` and
+`bot3` carry a single ID.
 
 Character-name generation keys its localized tags and formats by the same body
 ID. `NameGenerator.Generate(key)` resolves `names.{title,first,last,subtitle,nickname}.{key}`

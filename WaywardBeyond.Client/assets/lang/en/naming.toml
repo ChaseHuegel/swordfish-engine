@@ -8,6 +8,7 @@
 "formats.name.wb:bot" = "{Nickname} {Title}{First}-{Last} {Subtitle}"
 "formats.name.wb:bot2_m" = "{Title} {First} {Last}"
 "formats.name.wb:bot2_f" = "{Title} {First} {Last}"
+"formats.name.wb:bot3" = "{Title} {Last} {First}"
 "formats.name.wb:alien2_m" = "{Title} {First} {Last}"
 "formats.name.wb:alien2_f" = "{Title} {First} {Last}"
 "formats.name.wb:alien3_m" = "{Title} {First} {Last} {Subtitle}"

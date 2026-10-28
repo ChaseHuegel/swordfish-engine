@@ -19,7 +19,7 @@ public class BodyDatabaseTests
 
         string[] ids =
         [
-            "wb:human_m", "wb:human_f", "wb:bot", "wb:bot2_m", "wb:bot2_f",
+            "wb:human_m", "wb:human_f", "wb:bot", "wb:bot2_m", "wb:bot2_f", "wb:bot3",
             "wb:alien_m", "wb:alien_f", "wb:alien2_m", "wb:alien2_f",
             "wb:alien3_m", "wb:alien3_f", "wb:alien4_m", "wb:alien4_f",
         ];
@@ -36,7 +36,7 @@ public class BodyDatabaseTests
         BodyDatabase database = Load();
 
         Assert.Equal(
-            ["alien", "alien2", "alien3", "alien4", "bot", "bot2", "human"],
+            ["alien", "alien2", "alien3", "alien4", "bot", "bot2", "bot3", "human"],
             database.Species
         );
 
@@ -45,6 +45,9 @@ public class BodyDatabaseTests
 
         IReadOnlyList<Gender> botGenders = database.GetGenders("bot");
         Assert.Equal([Gender.Neutral], botGenders);
+
+        IReadOnlyList<Gender> bot3Genders = database.GetGenders("bot3");
+        Assert.Equal([Gender.Neutral], bot3Genders);
 
         Assert.Empty(database.GetGenders("unknown"));
     }
@@ -57,9 +60,11 @@ public class BodyDatabaseTests
         Assert.Equal("wb:human_m", database.GetBody("human", Gender.Male)?.ID);
         Assert.Equal("wb:human_f", database.GetBody("human", Gender.Female)?.ID);
         Assert.Equal("wb:bot", database.GetBody("bot", Gender.Neutral)?.ID);
+        Assert.Equal("wb:bot3", database.GetBody("bot3", Gender.Neutral)?.ID);
 
         //  A gender the species lacks falls back to its first variant.
         Assert.Equal("wb:bot", database.GetBody("bot", Gender.Male)?.ID);
+        Assert.Equal("wb:bot3", database.GetBody("bot3", Gender.Female)?.ID);
 
         Assert.Null(database.GetBody("unknown", Gender.Male));
     }
