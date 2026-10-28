@@ -1,0 +1,12 @@
+[[Bodies]]
+ID      = "wb:bot3"
+Species = "bot3"
+Gender  = "Neutral"
+
+[Bodies.States.standing]
+front = ["characters/bot3_floating.png"]
+back  = ["characters/bot3_floating_back.png"]
+
+[Bodies.States.floating]
+front = ["characters/bot3_floating.png"]
+back  = ["characters/bot3_floating_back.png"]
