@@ -12,6 +12,7 @@ struct Light
 {
     vec4 PosRadius; // view-space pos.xyz, radius in w
     vec4 ColorSize; // rgb, size in w
+    vec4 ShadowParams; // shadowIndex, bias, reserved, reserved
 };
 
 layout(std430, binding = 0) buffer LightBuffer
@@ -48,6 +49,24 @@ uniform sampler2D uDepth;
 
 uniform mat4 view;
 uniform mat4 projection;
+
+uniform float uReceiveShadows = 1.0;
+uniform int uShadowsEnabled = 0;
+uniform int uShadowFilterMode = 1; // 0 = Sharp, 1 = Soft
+uniform float uNormalBias = 0.02;
+uniform float uDepthBias = 0.005;
+
+uniform vec3 uDirectionalLightDir = vec3(0.0, -1.0, 0.0);
+uniform vec3 uDirectionalLightColor = vec3(1.0);
+uniform float uDirectionalLightIntensity = 0.0;
+uniform int uDirectionalLightCastShadows = 0;
+
+layout(binding = 8) uniform sampler2DArrayShadow uDirectionalShadowMap;
+uniform mat4 uCascadeViewProj[4];
+uniform vec4 uCascadeSplits;
+uniform int uCascadeCount = 0;
+
+layout(binding = 9) uniform samplerCubeArrayShadow uPointShadowMap;
 
 float DistributionGGX(vec3 Normal, vec3 H, float Roughness)
 {
@@ -110,6 +129,103 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo, float roughnes
     return lighting + proximityLighting;
 }
 
+float SampleDirectionalShadow(vec3 worldPos, vec3 normal)
+{
+    if (uShadowsEnabled == 0 || uReceiveShadows < 0.5 || uDirectionalLightCastShadows == 0 || uCascadeCount == 0)
+    {
+        return 1.0;
+    }
+
+    float viewDepth = abs((view * vec4(worldPos, 1.0)).z);
+
+    int cascadeIndex = uCascadeCount - 1;
+    if (viewDepth < uCascadeSplits.x)
+    {
+        cascadeIndex = 0;
+    }
+    else if (uCascadeCount > 1 && viewDepth < uCascadeSplits.y)
+    {
+        cascadeIndex = 1;
+    }
+    else if (uCascadeCount > 2 && viewDepth < uCascadeSplits.z)
+    {
+        cascadeIndex = 2;
+    }
+
+    vec3 biasedPos = worldPos + normal * uNormalBias;
+    vec4 clipPos = uCascadeViewProj[cascadeIndex] * vec4(biasedPos, 1.0);
+    vec3 projCoords = (clipPos.xyz / clipPos.w) * 0.5 + 0.5;
+
+    if (projCoords.z > 1.0 || projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0)
+    {
+        return 1.0;
+    }
+
+    float shadow = 0.0;
+    if (uShadowFilterMode == 0)
+    {
+        shadow = texture(uDirectionalShadowMap, vec4(projCoords.xy, float(cascadeIndex), projCoords.z - uDepthBias));
+    }
+    else
+    {
+        vec2 texelSize = 1.0 / vec2(textureSize(uDirectionalShadowMap, 0).xy);
+        const vec2 poissonDisk[4] = vec2[](
+            vec2(-0.38,  0.35),
+            vec2( 0.45,  0.22),
+            vec2(-0.25, -0.42),
+            vec2( 0.32, -0.38)
+        );
+        for (int i = 0; i < 4; ++i)
+        {
+            vec2 offset = poissonDisk[i] * texelSize * 1.5;
+            shadow += texture(uDirectionalShadowMap, vec4(projCoords.xy + offset, float(cascadeIndex), projCoords.z - uDepthBias));
+        }
+        shadow *= 0.25;
+    }
+
+    return shadow;
+}
+
+float SamplePointShadow(int slice, vec3 lightPos, float radius)
+{
+    if (uShadowsEnabled == 0 || uReceiveShadows < 0.5 || slice < 0)
+    {
+        return 1.0;
+    }
+
+    vec3 dir = vWorldPos - lightPos;
+    float dFace = max(abs(dir.x), max(abs(dir.y), abs(dir.z)));
+    if (dFace <= 0.1)
+    {
+        return 1.0;
+    }
+
+    float nearPlane = 0.1;
+    float farPlane = radius;
+    float fragDepth = (farPlane / (farPlane - nearPlane)) - ((farPlane * nearPlane) / ((farPlane - nearPlane) * dFace));
+
+    float refDepth = fragDepth - (uDepthBias * 2.0);
+
+    if (uShadowFilterMode == 1)
+    {
+        float shadow = 0.0;
+        vec3 normDir = normalize(dir);
+        const vec3 sampleOffsets[4] = vec3[](
+            vec3( 1.0,  1.0,  1.0) * 0.015,
+            vec3(-1.0, -1.0,  1.0) * 0.015,
+            vec3(-1.0,  1.0, -1.0) * 0.015,
+            vec3( 1.0, -1.0, -1.0) * 0.015
+        );
+        for (int i = 0; i < 4; ++i)
+        {
+            shadow += texture(uPointShadowMap, vec4(normDir + sampleOffsets[i], float(slice)), refDepth);
+        }
+        return shadow * 0.25;
+    }
+
+    return texture(uPointShadowMap, vec4(dir, float(slice)), refDepth);
+}
+
 vec4 shade(vec3 albedo)
 {
     ivec2 pix = ivec2(gl_FragCoord.xy);
@@ -125,6 +241,16 @@ vec4 shade(vec3 albedo)
     vec3 F0 = mix(vec3(0.04), albedo, Metallic);
 
     vec3 color = uAmbientLight;
+
+    if (uDirectionalLightIntensity > 0.0)
+    {
+        vec3 L = normalize(-uDirectionalLightDir);
+        float NdotL = max(dot(vNormal, L), 0.0);
+        float shadow = SampleDirectionalShadow(vWorldPos, vNormal);
+        vec3 directionalLighting = (albedo / PI) * uDirectionalLightColor * (uDirectionalLightIntensity * NdotL * shadow);
+        color += directionalLighting;
+    }
+
     for (uint i = 0u; i < count; ++i) {
         uint indexPos = base + i;
         if (indexPos >= indices.length())
@@ -135,7 +261,13 @@ vec4 shade(vec3 albedo)
         uint lightIndex = indices[base + i];
         if (lightIndex < lights.length()) {
             Light light = lights[lightIndex];
-            color += EvalLight(light, vNormal, V, F0, albedo, Roughness, Metallic);
+            vec3 lightContrib = EvalLight(light, vNormal, V, F0, albedo, Roughness, Metallic);
+            if (light.ShadowParams.x >= 0.0)
+            {
+                float pointShadow = SamplePointShadow(int(light.ShadowParams.x), light.PosRadius.xyz, light.PosRadius.w);
+                lightContrib *= pointShadow;
+            }
+            color += lightContrib;
         }
     }
 

@@ -1,6 +1,7 @@
 using Swordfish.Library.Configuration;
 using Swordfish.Library.Serialization.Toml.Mappers;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -71,5 +72,44 @@ public class ConfigSerializationTests
         Assert.Equal(144, loaded.Framerate.Get());
         Assert.False(loaded.VSync.Get());
         Assert.Equal("test", loaded.Name.Get());
+    }
+
+    [Fact]
+    public void RenderSettings_SerializesAndRoundTripsWithoutThrowing()
+    {
+        RegisterPrimitiveMappers();
+        new DataBindingTomlMapper<AntiAliasing>().Register();
+        new DataBindingTomlMapper<ShadowFilterMode>().Register();
+
+        var settings = new RenderSettings();
+        settings.Shadows.Resolution.Set(2048);
+        settings.Shadows.FilterMode.Set(ShadowFilterMode.Soft);
+        settings.Shadows.CascadeCount.Set(4);
+        settings.Shadows.MaxPointShadows.Set(4);
+        settings.VSync.Set(true);
+
+        string toml = settings.ToString();
+
+        Assert.False(string.IsNullOrWhiteSpace(toml));
+        Assert.Contains("Shadows", toml);
+
+        RenderSettings loaded = RenderSettings.FromString(toml);
+        Assert.True(loaded.Shadows.Enabled.Get());
+        Assert.Equal(ShadowFilterMode.Soft, loaded.Shadows.FilterMode.Get());
+        Assert.Equal(2048, loaded.Shadows.Resolution.Get());
+        Assert.Equal(4, loaded.Shadows.CascadeCount.Get());
+        Assert.Equal(4, loaded.Shadows.MaxPointShadows.Get());
+    }
+
+    [Fact]
+    public void DataBinding_EventIsNotSerializedByTomlet()
+    {
+        var binding = new DataBinding<string>("test");
+        binding.Changed += (sender, args) => { };
+
+        Tomlet.Models.TomlValue val = Tomlet.TomletMain.ValueFrom(binding);
+        Assert.NotNull(val);
+        Assert.IsType<Tomlet.Models.TomlString>(val);
+        Assert.Equal("test", ((Tomlet.Models.TomlString)val).Value);
     }
 }
