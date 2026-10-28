@@ -115,11 +115,11 @@ Create `HelloTheme.rss`:
 }
 
 .hello-button {
-    padding: 6 10;
+    padding: 6px 10px;
     background: #263238;
     color: #ffffff;
-    corner-radius: 3;
-    border: 1 #4fc3f7;
+    corner-radius: 3px;
+    border: 1px #4fc3f7;
 }
 
 .hello-button:hover {
@@ -132,6 +132,8 @@ Create `HelloTheme.rss`:
 ```
 
 All `.rss` files in the project share one variable table and one class table.
+Use `px` units for integer properties. Use `--extends` for class inheritance
+and `!important` for a variable override. These forms are valid CSS.
 
 ## Render the view
 

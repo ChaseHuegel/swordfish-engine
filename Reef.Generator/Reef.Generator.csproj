@@ -24,6 +24,7 @@
   <ItemGroup>
     <None Include="build/Reef.Generator.props" Pack="true" PackagePath="build/" />
     <None Include="Schemas/reef.xsd" Pack="true" PackagePath="schemas/" />
+    <None Include="Schemas/catalog.xml" Pack="true" PackagePath="schemas/" />
     <None Include="README.md" Pack="true" PackagePath="README.md" />
     <None Include="$(OutputPath)$(AssemblyName).dll"
           Pack="true"

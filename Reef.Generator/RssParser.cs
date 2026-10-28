@@ -131,6 +131,11 @@ internal sealed class RssParser
             }
 
             declaration.Value.AddRange(ReadValue());
+            if (StripImportant(declaration.Value))
+            {
+                declaration.IsOverride = true;
+            }
+
             _file.Variables.Add(declaration);
             if (!TryConsume(RssTokenKind.Semicolon) && Current.Kind != RssTokenKind.RBrace && Current.Kind != RssTokenKind.End)
             {
@@ -211,6 +216,43 @@ internal sealed class RssParser
                 break;
             }
 
+            if (Current.Kind == RssTokenKind.Variable)
+            {
+                RssToken custom = ConsumeToken();
+                if (!string.Equals(custom.Text, "--extends", StringComparison.Ordinal))
+                {
+                    AddError("Only the --extends custom property is supported in a style rule.", Current);
+                    RecoverDeclaration();
+                    continue;
+                }
+
+                SkipTrivia();
+                if (!TryConsume(RssTokenKind.Colon))
+                {
+                    AddError("Expected ':' after --extends.", Current);
+                    RecoverDeclaration();
+                    continue;
+                }
+
+                List<RssToken> parentValue = ReadValue();
+                if (!TryParseParentSelector(parentValue, out string? parentSelector))
+                {
+                    AddError("Expected a base class name for --extends.", Current);
+                }
+                else
+                {
+                    rule.ParentSelector = parentSelector;
+                }
+
+                if (!TryConsume(RssTokenKind.Semicolon) && Current.Kind != RssTokenKind.RBrace && Current.Kind != RssTokenKind.End)
+                {
+                    AddError("Expected ';' after --extends.", Current);
+                    RecoverDeclaration();
+                }
+
+                continue;
+            }
+
             if (Current.Kind != RssTokenKind.Identifier)
             {
                 AddError("Expected a style property name.", Current);
@@ -233,6 +275,7 @@ internal sealed class RssParser
                 Location = CreateLocation(property),
             };
             declaration.Value.AddRange(ReadValue());
+            StripImportant(declaration.Value);
             rule.Declarations.Add(declaration);
 
             if (!TryConsume(RssTokenKind.Semicolon) && Current.Kind != RssTokenKind.RBrace && Current.Kind != RssTokenKind.End)
@@ -316,6 +359,80 @@ internal sealed class RssParser
         }
 
         return value;
+    }
+
+    private static bool StripImportant(List<RssToken> value)
+    {
+        int last = value.Count - 1;
+        while (last >= 0 && value[last].Kind == RssTokenKind.Whitespace)
+        {
+            last--;
+        }
+
+        if (last < 0
+            || value[last].Kind != RssTokenKind.Identifier
+            || !string.Equals(value[last].Text, "important", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        int bang = last - 1;
+        while (bang >= 0 && value[bang].Kind == RssTokenKind.Whitespace)
+        {
+            bang--;
+        }
+
+        if (bang < 0 || value[bang].Kind != RssTokenKind.Bang)
+        {
+            return false;
+        }
+
+        value.RemoveRange(bang, value.Count - bang);
+        while (value.Count > 0 && value[value.Count - 1].Kind == RssTokenKind.Whitespace)
+        {
+            value.RemoveAt(value.Count - 1);
+        }
+
+        return true;
+    }
+
+    private static bool TryParseParentSelector(List<RssToken> value, out string? parentSelector)
+    {
+        parentSelector = null;
+        int index = 0;
+        while (index < value.Count && value[index].Kind == RssTokenKind.Whitespace)
+        {
+            index++;
+        }
+
+        if (index < value.Count && value[index].Kind == RssTokenKind.Dot)
+        {
+            index++;
+        }
+
+        while (index < value.Count && value[index].Kind == RssTokenKind.Whitespace)
+        {
+            index++;
+        }
+
+        if (index >= value.Count || value[index].Kind != RssTokenKind.Identifier)
+        {
+            return false;
+        }
+
+        parentSelector = value[index].Text;
+        index++;
+        while (index < value.Count)
+        {
+            if (value[index].Kind != RssTokenKind.Whitespace)
+            {
+                return false;
+            }
+
+            index++;
+        }
+
+        return true;
     }
 
     private void RecoverTopLevel()

@@ -19,6 +19,7 @@ internal enum RssTokenKind
     RBrace,
     Semicolon,
     Pipe,
+    Bang,
     Whitespace,
     End,
 }

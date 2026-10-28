@@ -1,5 +1,5 @@
 .close-button {
     background: #3a3a3a;
-    padding: 4 8;
-    corner-radius: 3;
+    padding: 4px 8px;
+    corner-radius: 3px;
 }

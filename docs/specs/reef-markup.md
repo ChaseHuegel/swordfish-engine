@@ -490,7 +490,10 @@ Padding follows the .NET and XAML LTRB standard: **Left, Top, Right, Bottom**.
 ### Stylesheet format (`.rss`)
 
 Styles live in external `.rss` files discovered automatically as
-`AdditionalFiles`.
+`AdditionalFiles`. New style sheets use CSS-compatible syntax: `--extends` for
+class inheritance, `!important` for variable overrides, and `px` units for
+integer properties. The generator also accepts the legacy `.sub : .base` and
+`override --name` forms.
 
 ```css
 :root {
@@ -498,21 +501,21 @@ Styles live in external `.rss` files discovered automatically as
     --accent: #3b82f6;
     --accent-hover: #60a5fa;
     --text-main: #ffffff;
-    --radius-sm: 4;
+    --radius-sm: 4px;
 }
 
 .panel {
     background: var(--bg-surface);
-    padding: 16;
+    padding: 16px;
     corner-radius: var(--radius-sm);
 }
 
 .btn {
-    padding: 8 16;
+    padding: 8px 16px;
     background: #2a2a2a;
     color: var(--text-main);
     corner-radius: var(--radius-sm);
-    border: 1 #444444;
+    border: 1px #444444;
 }
 
 .btn:hover {
@@ -524,9 +527,10 @@ Styles live in external `.rss` files discovered automatically as
 }
 
 /* Style inheritance: .btn-primary subclasses .btn */
-.btn-primary : .btn {
+.btn-primary {
+    --extends: .btn;
     background: var(--accent);
-    border: 1 #2563eb;
+    border: 1px #2563eb;
 }
 
 .btn-primary:hover {
@@ -541,9 +545,9 @@ Rulesets in `.rss` support four categories of properties:
 1. **Visual style**: `color`, `background`, `corner-radius`, `border`,
    `border-width`, `border-color`, `overlay`, `corner-caps`,
    `corner-caps-length`, `corner-caps-thickness`, `corner-caps-color`.
-2. **Typography**: `font-size` (`FontOptions.Size`), `font` or `font-family`
-   (`FontOptions.ID`), `text-align` (`left`, `center`, `right`), `vertical-align`
-   (`top`, `center`, `bottom`), `white-space` (`nowrap`, `normal`).
+2. **Typography**: `font-size` (`FontOptions.Size`), `font-family` (preferred
+   for CSS tools) or `font` (`FontOptions.ID`), `text-align` (`left`, `center`, `right`), `vertical-align`
+   (`top`, `middle`, `bottom`). The alias `center` is also accepted., `white-space` (`nowrap`, `normal`).
 3. **Dimensions and constraints**: `width`, `height`, `size`, `min-width`,
    `min-height`, `min-size`, `max-width`, `max-height`, `max-size`, `pos`,
    `x`, `y`, `anchor`, `anchors`.
@@ -556,7 +560,8 @@ single global variable table at compile time.
 
 To prevent silent collisions, defining the same variable name in multiple files
 produces compiler error `RF0012`. To intentionally override a variable
-inherited from a base theme or package, use the `override` keyword:
+inherited from a base theme or package, mark the declaration with
+`!important`:
 
 ```css
 /* CoreTheme.rss (imported package) */
@@ -567,15 +572,16 @@ inherited from a base theme or package, use the `override` keyword:
 /* GameTheme.rss (local project) */
 :root {
     /* Explicitly overrides the base theme variable */
-    override --color-primary: #ffaa00;
+    --color-primary: #ffaa00 !important;
 
     /* Local variable */
     --game-health-bar: #22c55e;
 }
 ```
 
-If two files both declare `override --name`, the generator halts with error
-`RF0013`.
+If two files both mark `--name` with `!important`, the generator halts with
+error `RF0013`. The legacy `override --name` form is still accepted. Use the
+`!important` form so CSS editors parse the file.
 
 ### Pseudo-state resolution
 
@@ -634,7 +640,7 @@ classes:
 Final property precedence resolves in this order:
 
 1. Stylesheet base rule (`.btn`)
-2. Stylesheet inherited rule (`.btn-primary : .btn`)
+2. Stylesheet inherited rule (`.btn-primary { --extends: .btn; }`)
 3. Sibling classes in attribute order (`class="a b"`: `b` overrides `a`)
 4. Dynamic class directives (`class:name="@condition"`, evaluated if true)
 5. Pseudo-state rule (`.btn:hover`, `:active`, `:disabled`)
@@ -952,16 +958,16 @@ When an external C# widget (`<wb:Widget>`) contains child elements in markup:
 
 .panel {
     background: var(--bg-dark);
-    padding: 12 16;
-    corner-radius: 4;
-    border: 1 #333333;
+    padding: 12px 16px;
+    corner-radius: 4px;
+    border: 1px #333333;
 }
 
 .action-btn {
-    padding: 6 12;
+    padding: 6px 12px;
     background: #222222;
     color: #ffffff;
-    corner-radius: 4;
+    corner-radius: 4px;
 }
 
 .action-btn:hover {

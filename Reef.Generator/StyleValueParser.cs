@@ -951,7 +951,8 @@ internal static class StyleValueParser
         {
             alignment = MarkupVerticalAlignment.Top;
         }
-        else if (string.Equals(values[0].Text, "center", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(values[0].Text, "center", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(values[0].Text, "middle", StringComparison.OrdinalIgnoreCase))
         {
             alignment = MarkupVerticalAlignment.Center;
         }

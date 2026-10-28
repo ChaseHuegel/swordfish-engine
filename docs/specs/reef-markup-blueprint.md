@@ -145,7 +145,7 @@ as diagnostic `RF0002` without crashing the generator.
 
 `RssParser` transforms tokens into an `RssRuleset`:
 1. `:root { --var: value; }` definitions become entries in a variable table.
-2. Selectors are parsed. Subclass syntax `.sub : .base` sets `ParentSelector`.
+2. Selectors are parsed. The CSS-compatible `--extends: .base;` declaration sets `ParentSelector`.
 3. Pseudo-classes (`:hover`, `:active`, `:focus`) attach to the current rule as
    conditional property overrides.
 
@@ -178,7 +178,7 @@ reading. Malformed XML during active typing is caught and emitted as diagnostic
 
 1. **Variable expansion**: Any `var(--name)` value replaces with its resolved
    `:root` value. Circular variables raise diagnostic `RF0002`.
-2. **Inheritance flattening**: For each rule `.sub : .base`, properties from
+2. **Inheritance flattening**: For each rule with `--extends: .base;`, properties from
    `.base` copy into `.sub` unless `.sub` explicitly overrides them. Circular
    inheritance raises diagnostic `RF0003`.
 3. **Element style matching**: When an AST node specifies `class="btn btn-primary"`:
@@ -395,7 +395,7 @@ The project implements in five sequential phases:
 
 ### Phase 2: Stylesheets (`.rss`) and state branching
 - Implement `RssLexer` and `RssParser`.
-- Add support for `:root` variables, style rules, and `.sub : .base` inheritance.
+- Add support for `:root` variables, style rules, and `--extends` inheritance.
 - Implement `StyleResolver` to flatten rules and compile `:hover`, `:active`,
   and `:focus` pseudo-states into ternary assignments.
 

@@ -69,6 +69,9 @@ internal sealed class RssLexer
                 case '|':
                     Add(RssTokenKind.Pipe, 1);
                     break;
+                case '!':
+                    Add(RssTokenKind.Bang, 1);
+                    break;
                 case '#':
                     LexHash();
                     break;

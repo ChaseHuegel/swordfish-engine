@@ -14,6 +14,7 @@ public class DocumentationTests
         Assert.True(File.Exists(Path.Combine(directory, "getting-started.md")));
         Assert.True(File.Exists(Path.Combine(directory, "examples.md")));
         Assert.True(File.Exists(Path.Combine(directory, "quick-reference.md")));
+        Assert.True(File.Exists(Path.Combine(directory, "rider-setup.md")));
         Assert.True(File.Exists(Path.Combine(directory, "spec-traceability.md")));
     }
 

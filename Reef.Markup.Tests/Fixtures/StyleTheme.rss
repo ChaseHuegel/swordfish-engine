@@ -8,17 +8,15 @@
 
 .base {
     background: var(--base);
-    padding: 4;
-    corner-radius: 4;
-}
-
-.panel : .base {
-    background: var(--panel);
-    border: 1 #606060;
+    padding: 4px;
+    corner-radius: 4px;
 }
 
 .panel {
-    padding: 8;
+    --extends: .base;
+    background: var(--panel);
+    border: 1px #606060;
+    padding: 8px;
 }
 
 .panel:hover {

@@ -14,6 +14,7 @@ A Roslyn source generator reads both file types during the build. The generator 
 | Set up the generator and write the first view | [getting-started](getting-started.md) |
 | Copy complete examples | [examples](examples.md) |
 | Look up a tag, attribute, style rule, or expression | [quick-reference](quick-reference.md) |
+| Set up Rider for `.rml` and `.rss` files | [rider-setup](rider-setup.md) |
 | See which test pins each specification rule | [spec-traceability](spec-traceability.md) |
 
 The formal language contract is in

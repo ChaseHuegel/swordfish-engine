@@ -69,7 +69,7 @@
 | `size` | Font size in pixels. Default 16. |
 | `font` | Font asset ID |
 | `text-align` / `align` | `left`, `center`, `right` |
-| `vertical-align` / `valign` | `top`, `center`, `bottom` |
+| `vertical-align` / `valign` | `top`, `middle`, `bottom` (CSS form) or `center` |
 | `wrap` | `true` or `false` |
 
 Text body content is also valid:
@@ -155,10 +155,14 @@ Named colors use the CSS color names. `transparent` is supported.
 `border-color`, `overlay`, `corner-caps`, `corner-caps-length`,
 `corner-caps-thickness`, `corner-caps-color`
 
+Use `px` units for integer values such as `padding: 8px 16px`,
+`corner-radius: 4px`, `border: 1px #444444`, and `font-size: 16px`. CSS editors
+then accept the file.
+
 ### Typography
 
-`font-size`, `font`, `font-family`, `text-align`, `vertical-align`,
-`white-space` (`normal`, `nowrap`)
+`font-size`, `font-family` (preferred for CSS tools), `font`, `text-align`,
+`vertical-align`, `white-space` (`normal`, `nowrap`)
 
 ### Dimensions and constraints
 
@@ -180,8 +184,9 @@ Named colors use the CSS color names. `transparent` is supported.
     background: #101820;
 }
 
-.panel : .base {
-    border: 1 #4fc3f7;
+.panel {
+    --extends: .base;
+    border: 1px #4fc3f7;
 }
 
 .panel:hover {
@@ -201,8 +206,9 @@ Named colors use the CSS color names. `transparent` is supported.
 }
 ```
 
-Inheritance uses `.sub : .base`. Pseudo states are `:hover`, `:active`,
-`:focus`, and `:disabled`.
+Inheritance uses `--extends: .base;`. Variable overrides use `!important`.
+The legacy `.sub : .base` and `override --name` forms are still accepted.
+Pseudo states are `:hover`, `:active`, `:focus`, and `:disabled`.
 
 ## Precedence
 

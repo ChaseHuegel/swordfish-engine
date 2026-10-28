@@ -48,15 +48,15 @@ public partial class HelloView;
 
 .panel {
     background: var(--surface);
-    border: 1 #2a3a4a;
-    corner-radius: 4;
+    border: 1px #2a3a4a;
+    corner-radius: 4px;
 }
 
 .action-button {
-    padding: 6 10;
+    padding: 6px 10px;
     background: #222222;
     color: #ffffff;
-    corner-radius: 3;
+    corner-radius: 3px;
 }
 
 .action-button:hover {
@@ -197,18 +197,19 @@ elements.
 ```css
 /* GameTheme.rss */
 :root {
-    override --accent: #ffaa00;
+    --accent: #ffaa00 !important;
     --game-health: #22c55e;
 }
 
 .health-bar {
     background: var(--game-health);
-    border: 1 var(--accent);
+    border: 1px var(--accent);
 }
 ```
 
-Only one file can define `--accent` without `override`. Only one file can use
-`override --accent`.
+Only one file can define `--accent` without `!important`. Only one file can
+mark `--accent` with `!important`. The legacy `override --accent` form is still
+accepted.
 
 ## Cross-assembly component
 

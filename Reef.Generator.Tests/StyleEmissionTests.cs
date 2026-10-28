@@ -57,6 +57,30 @@ public class StyleEmissionTests
     }
 
     [Fact]
+    public void ImportantOverridesVariableAcrossFiles()
+    {
+        MarkupCompilation result = MarkupTestHost.CompileFiles(
+        [
+            ("V.rml", """
+                <Reef xmlns="Reef" Class="V" Namespace="ReefMarkupTest">
+                    <Element class="a" width="10" height="10" />
+                </Reef>
+                """),
+            ("Base.rss", ":root { --accent: #ff0000; } .a { color: var(--accent); }"),
+            ("Game.rss", ":root { --accent: #0000ff !important; }"),
+        ], """
+            namespace ReefMarkupTest
+            {
+                public partial class V
+                {
+                }
+            }
+            """);
+        Assert.Empty(result.Errors);
+        Assert.Contains("new global::System.Numerics.Vector4(0f, 0f, 1f, 1f)", result.GeneratedText);
+    }
+
+    [Fact]
     public void ElementBackgroundMapsToFillAndTextBackgroundStaysBackground()
     {
         MarkupCompilation result = MarkupTestHost.Compile("""

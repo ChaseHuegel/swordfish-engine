@@ -6,8 +6,8 @@
 
 .player-card {
     background: var(--card-bg);
-    border: 1 var(--card-border);
-    corner-radius: 4;
+    border: 1px var(--card-border);
+    corner-radius: 4px;
 }
 
 .player-card:hover {
@@ -16,9 +16,9 @@
 
 .modal {
     background: #151a20;
-    border: 1 #4fc3f7;
-    corner-radius: 6;
-    corner-caps: 10 2 #4fc3f7;
+    border: 1px #4fc3f7;
+    corner-radius: 6px;
+    corner-caps: 10px 2px #4fc3f7;
 }
 
 .modal:hover {

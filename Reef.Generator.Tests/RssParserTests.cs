@@ -39,6 +39,26 @@ public class RssParserTests
     }
 
     [Fact]
+    public void CssCompatibleExtendsAndImportantParse()
+    {
+        RssFile file = Parse("""
+            :root {
+                --accent: #ffaa00 !important;
+            }
+
+            .panel {
+                --extends: .base;
+                background: var(--accent);
+            }
+            """);
+        Assert.Empty(file.Diagnostics);
+        Assert.Single(file.Variables);
+        Assert.True(file.Variables[0].IsOverride);
+        Assert.Single(file.Rules);
+        Assert.Equal("base", file.Rules[0].ParentSelector);
+    }
+
+    [Fact]
     public void OverrideAndDuplicateVariablesAreCaptured()
     {
         RssFile file = Parse("""
