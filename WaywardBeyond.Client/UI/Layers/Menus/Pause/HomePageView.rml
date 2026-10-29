@@ -1,0 +1,47 @@
+<Reef xmlns="Reef"
+      Class="HomePageView"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Pause">
+
+    <Element class="wb-column"
+             width="264"
+             anchor="Center"
+             spacing="10">
+
+        <Element id="Button_Continue"
+                 class="wb-button wb-button-primary"
+                 width="fill"
+                 height="44"
+                 onclick="OnContinue">
+            <Text class="wb-button-label" text="@L('ui.button.pause.continue')" width="fill" height="fill" />
+        </Element>
+
+        <Element id="Button_Settings"
+                 class="wb-button"
+                 width="fill"
+                 height="44"
+                 onclick="OnSettings">
+            <Text class="wb-button-label" text="@L('ui.button.settings')" width="fill" height="fill" />
+        </Element>
+
+        <Element id="Button_Feedback"
+                 class="wb-button"
+                 width="fill"
+                 height="44"
+                 onclick="OnFeedback">
+            <Text class="wb-button-label" text="@L('ui.button.feedback.send')" width="fill" height="fill" />
+        </Element>
+
+        <Element height="2" />
+        <DottedDivider width="fill" />
+        <Element height="2" />
+
+        <Element id="Button_SaveAndExit"
+                 class="wb-button wb-button-danger"
+                 width="fill"
+                 height="44"
+                 onclick="OnSaveAndExit">
+            <Text class="wb-button-label" text="@L('ui.button.pause.saveExit')" width="fill" height="fill" />
+        </Element>
+    </Element>
+</Reef>
