@@ -42,7 +42,7 @@
 "ui.panel.level.list" = "Galactic archives"
 "ui.panel.level.detail" = "Galaxy telemetry"
 "ui.panel.level.form" = "Chart a galaxy"
-"ui.panel.level.form.dossier" = "Galaxy dossier"
+"ui.panel.level.form.detail" = "Galaxy telemetry"
 "ui.button.level.new" = "Chart new galaxy"
 "ui.button.level.create" = "Chart"
 "ui.button.level.select" = "Select galaxy"
@@ -66,7 +66,7 @@
 
 # Character
 "ui.panel.character.list" = "Crew manifest"
-"ui.panel.character.detail" = "Colonist dossier"
+"ui.panel.character.detail" = "Colonist record"
 "ui.panel.character.form" = "Colonist identity"
 "ui.panel.character.spacer" = "S.P.A.C.E.R. evaluation"
 "ui.button.character.new" = "Register colonist"

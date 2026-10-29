@@ -109,7 +109,7 @@ internal sealed class SelectCharacterPage(
                     },
                     menu
                 );
-                DrawDossier(
+                DrawDetail(
                     ui,
                     new Constraints
                     {
@@ -144,7 +144,7 @@ internal sealed class SelectCharacterPage(
                 return;
             }
 
-            DrawDossier(ui, pane, showAssignment: false);
+            DrawDetail(ui, pane, showAssignment: false);
         }
     }
 
@@ -216,7 +216,7 @@ internal sealed class SelectCharacterPage(
             }
 
             if (ui.Tab(
-                "DossierTab",
+                "DetailTab",
                 _localization.GetRequired("ui.panel.character.detail"),
                 selected: _narrowTab == 1,
                 tabConstraints
@@ -449,7 +449,7 @@ internal sealed class SelectCharacterPage(
         }
     }
 
-    private void DrawDossier(UIBuilder<Material> ui, Constraints constraints, bool showAssignment)
+    private void DrawDetail(UIBuilder<Material> ui, Constraints constraints, bool showAssignment)
     {
         using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.detail")))
         {
@@ -471,21 +471,21 @@ internal sealed class SelectCharacterPage(
             }
 
             Character character = activeCharacter.Value;
-            DrawDossierHeader(ui, character);
+            DrawDetailHeader(ui, character);
             ui.Spacer(height: 16);
-            DrawDossierPreview(ui, character);
+            DrawDetailPreview(ui, character);
 
             if (showAssignment)
             {
-                DrawDossierAssignment(ui);
+                DrawDetailAssignment(ui);
             }
 
-            DrawDossierSummary(ui);
+            DrawDetailSummary(ui);
         }
     }
 
-    /// <summary>Draws the name, level, and playtime readouts of the dossier.</summary>
-    private void DrawDossierHeader(UIBuilder<Material> ui, in Character character)
+    /// <summary>Draws the name, level, and playtime readouts of the detail.</summary>
+    private void DrawDetailHeader(UIBuilder<Material> ui, in Character character)
     {
         ui.Label(
             character.Name,
@@ -544,8 +544,8 @@ internal sealed class SelectCharacterPage(
         );
     }
 
-    /// <summary>Draws the portrait and the six primary stats of the dossier.</summary>
-    private void DrawDossierPreview(UIBuilder<Material> ui, in Character character)
+    /// <summary>Draws the portrait and the six primary stats of the detail.</summary>
+    private void DrawDetailPreview(UIBuilder<Material> ui, in Character character)
     {
         using (ui.Row(
             new Constraints
@@ -579,7 +579,7 @@ internal sealed class SelectCharacterPage(
         }
     }
 
-    /// <summary>Draws the six primary stat rows of the dossier.</summary>
+    /// <summary>Draws the six primary stat rows of the detail.</summary>
     private void DrawStats(UIBuilder<Material> ui, in Character character)
     {
         DrawStat(ui, _localization.GetRequired("ui.label.character.strength"), character.Strength);
@@ -590,8 +590,8 @@ internal sealed class SelectCharacterPage(
         DrawStat(ui, _localization.GetRequired("ui.label.character.resolve"), character.Resolve);
     }
 
-    /// <summary>Draws the assignment block that tall dossier panels show.</summary>
-    private void DrawDossierAssignment(UIBuilder<Material> ui)
+    /// <summary>Draws the assignment block that tall detail panels show.</summary>
+    private void DrawDetailAssignment(UIBuilder<Material> ui)
     {
         ui.Spacer(height: 16);
         ui.Divider(
@@ -625,8 +625,8 @@ internal sealed class SelectCharacterPage(
         );
     }
 
-    /// <summary>Draws the launch summary at the bottom of the dossier.</summary>
-    private void DrawDossierSummary(UIBuilder<Material> ui)
+    /// <summary>Draws the launch summary at the bottom of the detail.</summary>
+    private void DrawDetailSummary(UIBuilder<Material> ui)
     {
         ui.Filler();
         ui.Divider(

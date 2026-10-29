@@ -173,7 +173,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         return Result.FromSuccess();
     }
 
-    /// <summary>Draws the initialization and dossier panes for the current width.</summary>
+    /// <summary>Draws the form and detail panes for the current width.</summary>
     private void DrawPanes(UIBuilder<Material> ui, in MenuLayout layout)
     {
         if (!layout.UseTabs)
@@ -187,7 +187,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 spacing: MenuLayout.PANEL_GAP
             ))
             {
-                DrawInitialization(
+                DrawForm(
                     ui,
                     new Constraints
                     {
@@ -195,7 +195,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                         Height = new Fill(),
                     }
                 );
-                DrawDossier(
+                DrawDetail(
                     ui,
                     new Constraints
                     {
@@ -225,11 +225,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
             if (_narrowTab == 0)
             {
-                DrawInitialization(ui, pane);
+                DrawForm(ui, pane);
                 return;
             }
 
-            DrawDossier(ui, pane);
+            DrawDetail(ui, pane);
         }
     }
 
@@ -252,7 +252,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             };
 
             if (ui.Tab(
-                "InitializationTab",
+                "FormTab",
                 _localization.GetRequired("ui.panel.level.form"),
                 selected: _narrowTab == 0,
                 tabConstraints
@@ -262,8 +262,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             }
 
             if (ui.Tab(
-                "DossierTab",
-                _localization.GetRequired("ui.panel.level.form.dossier"),
+                "DetailTab",
+                _localization.GetRequired("ui.panel.level.form.detail"),
                 selected: _narrowTab == 1,
                 tabConstraints
             ))
@@ -351,8 +351,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     /// <summary>A footer message and the color to draw it in.</summary>
     private readonly record struct FooterStatus(string? Message, Vector4 Color);
 
-    /// <summary>Draws the sector initialization panel.</summary>
-    private void DrawInitialization(UIBuilder<Material> ui, Constraints constraints)
+    /// <summary>Draws the sector form panel.</summary>
+    private void DrawForm(UIBuilder<Material> ui, Constraints constraints)
     {
         using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.form"), padding: 20))
         {
@@ -494,10 +494,10 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         }
     }
 
-    /// <summary>Draws the sector dossier panel.</summary>
-    private void DrawDossier(UIBuilder<Material> ui, Constraints constraints)
+    /// <summary>Draws the sector detail panel.</summary>
+    private void DrawDetail(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.form.dossier"), padding: 20))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.form.detail"), padding: 20))
         {
             string name = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
             if (string.IsNullOrWhiteSpace(name))
