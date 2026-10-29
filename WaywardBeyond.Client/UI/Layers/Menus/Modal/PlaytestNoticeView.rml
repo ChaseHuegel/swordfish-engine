@@ -1,69 +1,49 @@
 <Reef xmlns="Reef"
       Class="PlaytestNoticeView"
-      Context="PlaytestNoticeState"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
 
-    <Element id="PlaytestNoticeScrim"
-             layout="none"
-             width="100%"
-             height="100%"
-             class="playtest-scrim">
-
-        <Element layout="none" width="100%" height="100%" clip="true" class="playtest-center">
+    <Element id="PlaytestNoticeScrim" class="wb-scrim-heavy" layout="none" width="100%" height="100%">
+        <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
             <Element id="PlaytestNoticePanel"
                      layout="vertical"
-                     size="100% 100%"
-                     min-width="520"
-                     max-width="760"
-                     min-height="460"
-                     max-height="500"
-                     anchor="Center"
-                     clip="true"
-                     corner-caps="10 2 #2b384e"
-                     class="playtest-panel">
+                     class="wb-modal wb-modal-playtest"
+                     clip="true">
 
-                <Text text="@context.Title"
-                      class="playtest-title"
+                <Text text="@L('ui.dialog.playtest')"
+                      class="wb-modal-title"
                       width="fill"
-                      height="30"
-                      vertical-align="center" />
+                      height="30" />
 
                 <Element height="8" />
-
-                <Element class="playtest-divider" width="fill" height="1" />
-
+                <Element class="wb-divider" width="fill" height="1" />
                 <Element height="16" />
 
-                <Text text="@context.Body"
-                      class="playtest-body"
+                <Text text="@L('ui.dialog.playtest.body')"
+                      class="wb-modal-body"
                       width="fill"
                       height="fill"
                       wrap="true" />
 
-                <Element layout="horizontal"
-                         class="playtest-row"
-                         width="fill"
-                         height="40">
-
+                <Element layout="horizontal" class="wb-row" width="fill" height="40">
                     <Element id="Button_Community"
-                             class="playtest-brand-button"
+                             class="wb-icon-button"
                              onclick="OnDiscord"
                              width="40"
                              height="40">
-                        <Text text="@context.DiscordGlyph"
-                              class="playtest-brand-glyph"
+                        <Text text="@Glyph('discord')"
+                              class="wb-icon-brand"
                               width="fill"
                               height="fill" />
                     </Element>
 
                     <Element id="Button_Wishlist"
-                             class="playtest-brand-button"
+                             class="wb-icon-button"
                              onclick="OnSteam"
                              width="40"
                              height="40">
-                        <Text text="@context.SteamGlyph"
-                              class="playtest-brand-glyph"
+                        <Text text="@Glyph('steam')"
+                              class="wb-icon-brand"
                               width="fill"
                               height="fill" />
                     </Element>
@@ -71,14 +51,14 @@
                     <Element width="fill" />
 
                     <Element id="Button_Close"
-                             class="playtest-primary-button"
+                             class="wb-button wb-button-primary"
                              onclick="OnClose"
                              width="200"
                              height="40">
-                        <Text text="@context.Ok"
-                              class="playtest-primary-label"
+                        <Text text="@L('ui.button.ok')"
+                              class="wb-button-label"
                               width="fill"
-                              height="fill"/>
+                              height="fill" />
                     </Element>
                 </Element>
             </Element>

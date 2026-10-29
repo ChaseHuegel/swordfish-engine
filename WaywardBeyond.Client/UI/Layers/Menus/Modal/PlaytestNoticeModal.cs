@@ -3,9 +3,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using System.Threading.Tasks;
-using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Client.UI;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
@@ -14,10 +12,9 @@ internal class PlaytestNoticeModal : IMenuPage<Modal>
 {
     public static Modal Modal { get; } = new(id: "core.playtest");
 
-    private readonly ILocalization _localization;
     private readonly ExternalAppService _externalAppService;
     private readonly SoundEffectService _soundEffectService;
-    private readonly PlaytestNoticeView _view = new();
+    private readonly PlaytestNoticeView _view;
     private Menu<Modal>? _menu;
 
     public PlaytestNoticeModal(
@@ -27,8 +24,8 @@ internal class PlaytestNoticeModal : IMenuPage<Modal>
     )
     {
         _soundEffectService = soundEffectService;
-        _localization = localization;
         _externalAppService = externalAppService;
+        _view = new PlaytestNoticeView(localization);
 
         _view.CloseRequested = Close;
         _view.DiscordRequested = OpenDiscord;
@@ -41,13 +38,7 @@ internal class PlaytestNoticeModal : IMenuPage<Modal>
     {
         _menu = menu;
 
-        _view.Render(ui, new PlaytestNoticeState(
-            _localization.GetRequired("ui.dialog.playtest"),
-            _localization.GetRequired("ui.dialog.playtest.body"),
-            _localization.GetRequired("ui.button.ok"),
-            MenuGlyphs.DISCORD,
-            MenuGlyphs.STEAM
-        ));
+        _view.Render(ui);
 
         return Result.FromSuccess();
     }

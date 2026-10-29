@@ -4,6 +4,7 @@ using Reef;
 using Reef.Text;
 using Reef.UI;
 using Swordfish.Graphics;
+using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using Xunit;
@@ -16,15 +17,14 @@ public class PlaytestNoticeViewTests
     public void RendersFullModalFromMarkup()
     {
         var ui = new UIBuilder<Material>(800, 600, new StubTextEngine(), new UIController());
-        var view = new PlaytestNoticeView();
-        PlaytestNoticeState state = CreateState();
+        var view = new PlaytestNoticeView(new StubLocalization());
 
-        view.Render(ui, state);
+        view.Render(ui);
         List<RenderCommand<Material>> commands = ui.Build(0d);
 
-        Assert.Contains(commands, command => command.Text == state.Title);
-        Assert.Contains(commands, command => command.Text == state.Body);
-        Assert.Contains(commands, command => command.Text == state.Ok);
+        Assert.Contains(commands, command => command.Text == "In-development playtest");
+        Assert.Contains(commands, command => command.Text == "This is an evolving version.");
+        Assert.Contains(commands, command => command.Text == "OK");
         Assert.Contains(commands, command => command.ID == "Button_Community");
         Assert.Contains(commands, command => command.ID == "Button_Wishlist");
         Assert.Contains(commands, command => command.ID == "Button_Close");
@@ -53,7 +53,7 @@ public class PlaytestNoticeViewTests
         Assert.Equal(1, close.CornerCaps.Thickness);
         Assert.Equal(0.949f, close.CornerCaps.Color.X, 3);
 
-        RenderCommand<Material> ok = commands.Find(command => command.Text == state.Ok);
+        RenderCommand<Material> ok = commands.Find(command => command.Text == "OK");
         Assert.Equal(close.Rect.Position.X + 16, ok.Rect.Position.X);
         Assert.Equal(close.Rect.Position.Y + 8, ok.Rect.Position.Y);
         Assert.Equal(168, ok.Rect.Size.X);
@@ -68,9 +68,9 @@ public class PlaytestNoticeViewTests
     public void ModalUsesMaxSizeOnLargeWindow()
     {
         var ui = new UIBuilder<Material>(1920, 1080, new StubTextEngine(), new UIController());
-        var view = new PlaytestNoticeView();
+        var view = new PlaytestNoticeView(new StubLocalization());
 
-        view.Render(ui, CreateState());
+        view.Render(ui);
         List<RenderCommand<Material>> commands = ui.Build(0d);
 
         RenderCommand<Material> panel = FindRequired(commands, "PlaytestNoticePanel");
@@ -83,8 +83,7 @@ public class PlaytestNoticeViewTests
     {
         var controller = new UIController();
         var ui = new UIBuilder<Material>(800, 600, new StubTextEngine(), controller);
-        var view = new PlaytestNoticeView();
-        PlaytestNoticeState state = CreateState();
+        var view = new PlaytestNoticeView(new StubLocalization());
         var closeCount = 0;
         var discordCount = 0;
         var steamCount = 0;
@@ -92,34 +91,22 @@ public class PlaytestNoticeViewTests
         view.DiscordRequested = () => discordCount++;
         view.SteamRequested = () => steamCount++;
 
-        view.Render(ui, state);
+        view.Render(ui);
         ui.Build(0d);
 
-        Click(controller, ui, view, state, "Button_Close");
-        Click(controller, ui, view, state, "Button_Community");
-        Click(controller, ui, view, state, "Button_Wishlist");
+        Click(controller, ui, view, "Button_Close");
+        Click(controller, ui, view, "Button_Community");
+        Click(controller, ui, view, "Button_Wishlist");
 
         Assert.Equal(1, closeCount);
         Assert.Equal(1, discordCount);
         Assert.Equal(1, steamCount);
     }
 
-    private static PlaytestNoticeState CreateState()
-    {
-        return new PlaytestNoticeState(
-            "In-development playtest",
-            "This is an evolving version.",
-            "OK",
-            MenuGlyphs.DISCORD,
-            MenuGlyphs.STEAM
-        );
-    }
-
     private static void Click(
         UIController controller,
         UIBuilder<Material> ui,
         PlaytestNoticeView view,
-        PlaytestNoticeState state,
         string id)
     {
         ElementBounds bounds = ui.GetElementBounds(id);
@@ -127,16 +114,34 @@ public class PlaytestNoticeViewTests
         int y = bounds.Rect.Top + Math.Max(1, bounds.Rect.Size.Y / 2);
 
         controller.UpdateMouse(x, y, UIController.MouseButtons.None);
-        view.Render(ui, state);
+        view.Render(ui);
         ui.Build(0.1d);
 
         controller.UpdateMouse(x, y, UIController.MouseButtons.Left);
-        view.Render(ui, state);
+        view.Render(ui);
         ui.Build(0.1d);
 
         controller.UpdateMouse(x, y, UIController.MouseButtons.None);
-        view.Render(ui, state);
+        view.Render(ui);
         ui.Build(0.1d);
+    }
+
+    private sealed class StubLocalization : ILocalization
+    {
+        public string? GetString(string value)
+        {
+            return value switch
+            {
+                "ui.dialog.playtest" => "In-development playtest",
+                "ui.dialog.playtest.body" => "This is an evolving version.",
+                "ui.button.ok" => "OK",
+                _ => value,
+            };
+        }
+
+        public string? GetString(string value, string cultureName) => GetString(value);
+
+        public string? GetString(string value, System.Globalization.CultureInfo cultureInfo) => GetString(value);
     }
 
     private static RenderCommand<Material> FindRequired(
