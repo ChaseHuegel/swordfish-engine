@@ -155,6 +155,91 @@ public class ChunkBasedVoxelRemeshingTests
     }
 
     [Fact]
+    public void DeleteVoxelOnChunkBorder_ReceivesSkyLightAndPropagatesToNeighbors()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Place stone at chunk border (0, 8, 8)
+        lightingService.UpdateLighting(voxelObject, registry, 0, 8, 8, in air, ref stone);
+        registry.DirtyChunks.Clear();
+
+        // Delete stone at chunk border (0, 8, 8)
+        Voxel placedStone = voxelObject.Get(0, 8, 8);
+        lightingService.UpdateLighting(voxelObject, registry, 0, 8, 8, in placedStone, ref air);
+
+        Assert.Equal(15, voxelObject.Get(0, 8, 8).GetLightLevel());
+        Assert.Equal(14, voxelObject.Get(1, 8, 8).GetLightLevel());
+        Assert.Contains(new Short3(0, 0, 0), registry.DirtyChunks);
+        Assert.Contains(new Short3(-1, 0, 0), registry.DirtyChunks);
+    }
+
+    [Fact]
+    public void DeleteVoxelInsideEnclosedDarkCavity_RemainsDark()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Place a hollow 3x3x3 cube of stone centered at (8, 8, 8) with all air inside
+        // To keep it simple, place solid stone at (8, 8, 8) inside a resident chunk where all neighbors are 0
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref stone);
+        registry.DirtyChunks.Clear();
+
+        // Delete center stone voxel (8, 8, 8); all 6 neighbors in chunk (0, 0, 0) have light 0
+        Voxel placedStone = voxelObject.Get(8, 8, 8);
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in placedStone, ref air);
+
+        // Not adjacent to sky, neighbors are 0 -> should remain 0
+        Assert.Equal(0, voxelObject.Get(8, 8, 8).GetLightLevel());
+        Assert.Contains(new Short3(0, 0, 0), registry.DirtyChunks);
+    }
+
+    [Fact]
+    public void DeleteVoxelAdjacentToIndoorLight_ReceivesDecayedLight()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[10] = new Brick("lamp", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Place lamp at (8, 8, 8)
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref lamp);
+
+        // Place stone at (8, 8, 10), which is 2 blocks away. Air at (8, 8, 9) has light 14.
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 10, in air, ref stone);
+        registry.DirtyChunks.Clear();
+
+        // Delete stone at (8, 8, 10)
+        Voxel placedStone = voxelObject.Get(8, 8, 10);
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 10, in placedStone, ref air);
+
+        // (8, 8, 10) is internal, not adjacent to sky; neighbor at (8, 8, 9) has light 14 -> (8, 8, 10) receives 13
+        Assert.Equal(13, voxelObject.Get(8, 8, 10).GetLightLevel());
+        Assert.Equal(12, voxelObject.Get(8, 8, 11).GetLightLevel());
+    }
+
+    [Fact]
     public void SingleVoxelEdit_ExecutionTimeUnderOneMillisecond()
     {
         var brickDb = new TestBrickDatabase();

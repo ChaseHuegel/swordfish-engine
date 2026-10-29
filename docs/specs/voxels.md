@@ -111,9 +111,17 @@ A voxel edit marks its resident chunk dirty. An edit on a chunk boundary also
 marks the orthogonal neighbor chunk dirty.
 
 `VoxelLightingService`
-(`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs`) runs
+(`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs:30-184`) runs
 dual-queue BFS flood-fill lighting across resident chunks. The service marks
 every modified cell and its chunk dirty.
+
+When a solid culler voxel is deleted (`VoxelLightingService.cs:76-104`), the
+service checks all six orthogonal neighbors. Non-resident space represents
+ambient open sky with light level 15 (`VoxelObject.cs:14`). If any neighbor
+chunk is not resident, the deleted voxel receives sky light level 15 and
+propagates light to connected resident air cells. An internal deletion inside an
+enclosed structure decrements light by one from the brightest resident neighbor.
+Dark cavities with no lighting stay at light level 0.
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
 (`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:153-220`) rebuilds
@@ -145,3 +153,7 @@ per surface voxel.
 `WaywardBeyond.Voxels.Tests` pins addressing at chunk boundaries for sizes 8, 16,
 and 32. It also pins sampling parity, orientation masking, the snapshot copy, and
 palette counts.
+
+`Swordfish.Tests/ChunkBasedVoxelRemeshingTests.cs` pins dirty tracking, boundary
+chunk invalidation, single-voxel edit execution budgets, localized light
+propagation, border sky light restoration on deletion, and collision caching.

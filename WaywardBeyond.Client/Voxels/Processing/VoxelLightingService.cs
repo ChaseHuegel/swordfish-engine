@@ -76,6 +76,7 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
         else if (oldIsCuller && !newIsCuller)
         {
             int maxNeighborLight = 0;
+            var adjacentToSky = false;
             for (var i = 0; i < _directions.Length; i++)
             {
                 (int dx, int dy, int dz) = _directions[i];
@@ -85,6 +86,7 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                 Short3 neighborChunkOffset = voxelObject.ToChunkOffset(nx, ny, nz);
                 if (!voxelObject.TryGetChunk(neighborChunkOffset, out _))
                 {
+                    adjacentToSky = true;
                     continue;
                 }
 
@@ -92,9 +94,14 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                 maxNeighborLight = Math.Max(maxNeighborLight, neighbor.GetLightLevel());
             }
 
+            if (adjacentToSky)
+            {
+                maxNeighborLight = Math.Max(maxNeighborLight, 15);
+            }
+
             if (maxNeighborLight > 1)
             {
-                int nextLight = maxNeighborLight - 1;
+                int nextLight = adjacentToSky ? 15 : maxNeighborLight - 1;
                 updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, nextLight);
                 voxelObject.Set(x, y, z, updated);
                 _addQueue.Enqueue((x, y, z, nextLight));
