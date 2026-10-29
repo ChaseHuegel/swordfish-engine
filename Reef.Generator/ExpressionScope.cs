@@ -83,11 +83,14 @@ internal sealed class ExpressionScope
 
         if (companionType != null)
         {
-            foreach (ISymbol member in companionType.GetMembers())
+            for (INamedTypeSymbol? current = companionType; current != null; current = current.BaseType)
             {
-                if (member is IMethodSymbol method && method.MethodKind == MethodKind.Ordinary)
+                foreach (ISymbol member in current.GetMembers())
                 {
-                    ExistingMethodKeys.Add(BuildExistingMethodKey(method));
+                    if (member is IMethodSymbol method && method.MethodKind == MethodKind.Ordinary)
+                    {
+                        ExistingMethodKeys.Add(BuildExistingMethodKey(method));
+                    }
                 }
             }
         }
@@ -144,11 +147,14 @@ internal sealed class ExpressionScope
             return null;
         }
 
-        foreach (ISymbol member in CompanionType.GetMembers(name))
+        for (INamedTypeSymbol? current = CompanionType; current != null; current = current.BaseType)
         {
-            if (member is IMethodSymbol method && method.Parameters.Length == argumentCount)
+            foreach (ISymbol member in current.GetMembers(name))
             {
-                return method;
+                if (member is IMethodSymbol method && method.Parameters.Length == argumentCount)
+                {
+                    return method;
+                }
             }
         }
 
@@ -162,11 +168,14 @@ internal sealed class ExpressionScope
             return null;
         }
 
-        foreach (ISymbol member in CompanionType.GetMembers(name))
+        for (INamedTypeSymbol? current = CompanionType; current != null; current = current.BaseType)
         {
-            if (member is IMethodSymbol method)
+            foreach (ISymbol member in current.GetMembers(name))
             {
-                return method;
+                if (member is IMethodSymbol method)
+                {
+                    return method;
+                }
             }
         }
 
@@ -180,11 +189,14 @@ internal sealed class ExpressionScope
             return null;
         }
 
-        foreach (ISymbol member in CompanionType.GetMembers(name))
+        for (INamedTypeSymbol? current = CompanionType; current != null; current = current.BaseType)
         {
-            if (member is IPropertySymbol || member is IFieldSymbol || member is IMethodSymbol)
+            foreach (ISymbol member in current.GetMembers(name))
             {
-                return member;
+                if (member is IPropertySymbol || member is IFieldSymbol || member is IMethodSymbol)
+                {
+                    return member;
+                }
             }
         }
 
