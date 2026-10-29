@@ -104,7 +104,8 @@ child entity holds its own `MeshRendererComponent` and `VoxelChunkComponent`
 (`WaywardBeyond.Client/Components/VoxelChunkComponent.cs`).
 
 `VoxelChunkRegistry` (`WaywardBeyond.Client/Voxels/VoxelChunkRegistry.cs`)
-tracks dirty chunk coordinates and active chunk child entities.
+tracks dirty chunk coordinates, active chunk child entities, and cached chunk
+collision data.
 
 A voxel edit marks its resident chunk dirty. An edit on a chunk boundary also
 marks the orthogonal neighbor chunk dirty.
@@ -115,8 +116,29 @@ dual-queue BFS flood-fill lighting across resident chunks. The service marks
 every modified cell and its chunk dirty.
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:140-170`) rebuilds
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:153-220`) rebuilds
 only dirty chunks. Untouched chunks keep their existing mesh renderers.
+
+## Chunk collision caching
+
+`VoxelObjectBuilder.BuildChunkCollision`
+(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:60-77`) computes
+surface collision boxes for one chunk.
+
+`VoxelChunkRegistry.ChunkColliders` caches `ChunkCollisionData`
+(`WaywardBeyond.Client/Voxels/ChunkCollisionData.cs:10`) for each resident chunk.
+
+When a chunk becomes dirty, `VoxelEntityBuilder.RebuildDirtyChunks` resamples
+collision boxes only for that chunk. `VoxelObjectBuilder.CombineCollisions`
+(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:80-111`) merges
+the cached chunk boxes into one `CompoundShape`. The builder skips the collider
+update when dirty chunks produce no collision changes.
+
+`JoltPhysicsSystem.TryGetJoltShape`
+(`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:204-242`) deduplicates child shapes
+using `Shape` value equality (`Swordfish.Library/Types/Shapes/Shape.cs:12-85`).
+It creates only one native `BoxShape` per unique size, instead of allocating one
+per surface voxel.
 
 ## Tests
 

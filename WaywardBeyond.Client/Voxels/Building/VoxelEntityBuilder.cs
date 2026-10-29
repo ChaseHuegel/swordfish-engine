@@ -90,9 +90,15 @@ internal sealed class VoxelEntityBuilder(
             }
 
             BuildAndAttachChunk(store, entity, parentUuid, voxelComponent, chunk);
+
+            ChunkCollisionData chunkCollision = _voxelObjectBuilder.BuildChunkCollision(chunk);
+            if (!chunkCollision.IsEmpty)
+            {
+                voxelComponent.Registry.ChunkColliders[chunk.Coords] = chunkCollision;
+            }
         }
 
-        CompoundShape collisionShape = _voxelObjectBuilder.BuildCollision(voxelObject);
+        CompoundShape collisionShape = VoxelObjectBuilder.CombineCollisions(voxelComponent.Registry.ChunkColliders.Values);
         store.AddOrUpdate(entity, new ColliderComponent(collisionShape));
         
         // Clear the component dirty flag so the first-build isn't mistaken for a pending edit rebuild.
@@ -138,6 +144,7 @@ internal sealed class VoxelEntityBuilder(
         VoxelChunkRegistry registry = voxelComponent.Registry;
         VoxelObject voxelObject = voxelComponent.VoxelObject;
 
+        registry.ChunkColliders.Clear();
         foreach (ChunkData chunk in voxelObject)
         {
             if (chunk.Palette.Only(0))
@@ -148,9 +155,15 @@ internal sealed class VoxelEntityBuilder(
             }
 
             UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup);
+
+            ChunkCollisionData chunkCollision = _voxelObjectBuilder.BuildChunkCollision(chunk);
+            if (!chunkCollision.IsEmpty)
+            {
+                registry.ChunkColliders[chunk.Coords] = chunkCollision;
+            }
         }
 
-        CompoundShape collisionShape = _voxelObjectBuilder.BuildCollision(voxelObject);
+        CompoundShape collisionShape = VoxelObjectBuilder.CombineCollisions(registry.ChunkColliders.Values);
         store.AddOrUpdate(parentEntity, new ColliderComponent(collisionShape));
     }
 
@@ -165,9 +178,25 @@ internal sealed class VoxelEntityBuilder(
         VoxelChunkRegistry registry = voxelComponent.Registry;
         VoxelObject voxelObject = voxelComponent.VoxelObject;
 
+        if (registry.ChunkColliders.Count == 0 && voxelObject.ChunkCount > 0)
+        {
+            foreach (ChunkData residentChunk in voxelObject)
+            {
+                if (!residentChunk.Palette.Only(0))
+                {
+                    ChunkCollisionData c = _voxelObjectBuilder.BuildChunkCollision(residentChunk);
+                    if (!c.IsEmpty)
+                    {
+                        registry.ChunkColliders[residentChunk.Coords] = c;
+                    }
+                }
+            }
+        }
+
         var dirtyList = new List<Short3>(registry.DirtyChunks);
         registry.DirtyChunks.Clear();
 
+        var collisionChanged = false;
         for (var i = 0; i < dirtyList.Count; i++)
         {
             Short3 chunkOffset = dirtyList[i];
@@ -176,14 +205,35 @@ internal sealed class VoxelEntityBuilder(
             {
                 RemoveChunkRenderers(store, chunkOffset, registry, meshRendererCleanup);
                 ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, []);
+                if (registry.ChunkColliders.Remove(chunkOffset))
+                {
+                    collisionChanged = true;
+                }
                 continue;
             }
 
             UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup);
+
+            ChunkCollisionData newCollision = _voxelObjectBuilder.BuildChunkCollision(chunk);
+            if (newCollision.IsEmpty)
+            {
+                if (registry.ChunkColliders.Remove(chunkOffset))
+                {
+                    collisionChanged = true;
+                }
+            }
+            else
+            {
+                registry.ChunkColliders[chunkOffset] = newCollision;
+                collisionChanged = true;
+            }
         }
 
-        CompoundShape collisionShape = _voxelObjectBuilder.BuildCollision(voxelObject);
-        store.AddOrUpdate(parentEntity, new ColliderComponent(collisionShape));
+        if (collisionChanged)
+        {
+            CompoundShape collisionShape = VoxelObjectBuilder.CombineCollisions(registry.ChunkColliders.Values);
+            store.AddOrUpdate(parentEntity, new ColliderComponent(collisionShape));
+        }
     }
 
     private void BuildAndAttachChunk(

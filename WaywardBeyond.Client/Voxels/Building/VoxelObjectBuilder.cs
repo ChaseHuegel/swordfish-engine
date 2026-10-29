@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Numerics;
 using DryIoc;
 using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
@@ -56,27 +58,75 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         return new ChunkMeshData(opaqueMesh, maskedMesh, transparentMesh, entityState.Voxels);
     }
 
-    /// <summary>Builds a surface collision shape for the voxel object.</summary>
-    public CompoundShape BuildCollision(VoxelObject voxelObject)
+    /// <summary>Builds surface collision data for a single chunk.</summary>
+    public ChunkCollisionData BuildChunkCollision(ChunkData chunkData)
     {
         using IResolverContext? scope = _container.OpenScope();
         var collisionPass = scope.Resolve<CollisionPostPass>();
         var collisionState = scope.Resolve<CollisionState>();
 
-        foreach (ChunkData chunk in voxelObject)
+        if (!collisionPass.ShouldProcessChunk(chunkData))
         {
-            if (!collisionPass.ShouldProcessChunk(chunk))
+            return new ChunkCollisionData([], [], []);
+        }
+
+        foreach (VoxelSample sample in chunkData.GetSampler())
+        {
+            collisionPass.Process(sample);
+        }
+
+        return new ChunkCollisionData(
+            shapes: [.. collisionState.Shapes],
+            positions: [.. collisionState.Positions],
+            orientations: [.. collisionState.Orientations]
+        );
+    }
+
+    /// <summary>Combines cached chunk collision shapes into a single compound shape.</summary>
+    public static CompoundShape CombineCollisions(IReadOnlyCollection<ChunkCollisionData> chunkColliders)
+    {
+        var totalShapes = 0;
+        foreach (ChunkCollisionData chunk in chunkColliders)
+        {
+            totalShapes += chunk.Shapes.Length;
+        }
+
+        var shapes = new Shape[totalShapes];
+        var positions = new Vector3[totalShapes];
+        var orientations = new Quaternion[totalShapes];
+
+        var offset = 0;
+        foreach (ChunkCollisionData chunk in chunkColliders)
+        {
+            int count = chunk.Shapes.Length;
+            if (count == 0)
             {
                 continue;
             }
 
-            foreach (VoxelSample sample in chunk.GetSampler())
+            Array.Copy(chunk.Shapes, 0, shapes, offset, count);
+            Array.Copy(chunk.Positions, 0, positions, offset, count);
+            Array.Copy(chunk.Orientations, 0, orientations, offset, count);
+            offset += count;
+        }
+
+        return new CompoundShape(shapes, positions, orientations);
+    }
+
+    /// <summary>Builds a surface collision shape for the voxel object.</summary>
+    public CompoundShape BuildCollision(VoxelObject voxelObject)
+    {
+        var colliders = new List<ChunkCollisionData>(voxelObject.ChunkCount);
+        foreach (ChunkData chunk in voxelObject)
+        {
+            ChunkCollisionData chunkCollision = BuildChunkCollision(chunk);
+            if (!chunkCollision.IsEmpty)
             {
-                collisionPass.Process(sample);
+                colliders.Add(chunkCollision);
             }
         }
 
-        return new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Positions.ToArray(), collisionState.Orientations.ToArray());
+        return CombineCollisions(colliders);
     }
 
     /// <summary>Initializes ambient and direct lighting for the voxel object.</summary>

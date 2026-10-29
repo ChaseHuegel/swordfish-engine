@@ -11,6 +11,7 @@ public sealed class VoxelChunkRegistry
     public readonly Dictionary<Short3, int> OpaqueEntities = [];
     public readonly Dictionary<Short3, int> MaskedEntities = [];
     public readonly Dictionary<Short3, int> TransparentEntities = [];
+    public readonly Dictionary<Short3, ChunkCollisionData> ChunkColliders = [];
     public readonly HashSet<Short3> DirtyChunks = [];
 
     /// <summary>Marks the chunk containing the coordinates and any orthogonal border neighbors as dirty.</summary>

@@ -10,7 +10,7 @@
 Every voxel edit rebuilds the whole structure on each client. The rebuild
 queues the previous opaque and transparent `MeshRenderer` instances into
 `MeshRendererCleanup.MeshRenderers`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:97-102`).
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:277-354`).
 
 `CleanupMeshRendererSystem` never drains that bag. It returns while
 `MeshRendererComponent.Bound` is false

@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Numerics;
+using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
 using WaywardBeyond.Voxels;
@@ -181,5 +184,71 @@ public class ChunkBasedVoxelRemeshingTests
 
         double averageMsPerEdit = sw.Elapsed.TotalMilliseconds / iterations;
         Assert.True(averageMsPerEdit < 1.0, $"Average edit time {averageMsPerEdit:F4} ms exceeded 1.0 ms budget.");
+    }
+
+    [Fact]
+    public void Shape_EqualityAndHashCode_WorksAsExpected()
+    {
+        Shape box1 = new Box3(Vector3.One);
+        Shape box2 = new Box3(Vector3.One);
+        Shape box3 = new Box3(new Vector3(2, 2, 2));
+        Shape sphere = new Sphere(1.0f);
+
+        Assert.Equal(box1, box2);
+        Assert.True(box1 == box2);
+        Assert.Equal(box1.GetHashCode(), box2.GetHashCode());
+
+        Assert.NotEqual(box1, box3);
+        Assert.True(box1 != box3);
+
+        Assert.NotEqual(box1, sphere);
+        Assert.True(box1 != sphere);
+    }
+
+    [Fact]
+    public void ChunkCollision_CombineCollisions_ConcatenatesAllShapes()
+    {
+        var chunk1 = new ChunkCollisionData(
+            [new Box3(Vector3.One)],
+            [new Vector3(0, 0, 0)],
+            [Quaternion.Identity]
+        );
+
+        var chunk2 = new ChunkCollisionData(
+            [new Box3(Vector3.One), new Box3(Vector3.One)],
+            [new Vector3(16, 0, 0), new Vector3(17, 0, 0)],
+            [Quaternion.Identity, Quaternion.Identity]
+        );
+
+        CompoundShape combined = VoxelObjectBuilder.CombineCollisions([chunk1, chunk2]);
+
+        Assert.Equal(3, combined.Shapes.Length);
+        Assert.Equal(3, combined.Positions.Length);
+        Assert.Equal(3, combined.Orientations.Length);
+        Assert.Equal(new Vector3(0, 0, 0), combined.Positions[0]);
+        Assert.Equal(new Vector3(16, 0, 0), combined.Positions[1]);
+        Assert.Equal(new Vector3(17, 0, 0), combined.Positions[2]);
+    }
+
+    [Fact]
+    public void VoxelChunkRegistry_StoresAndRemovesChunkColliders()
+    {
+        var registry = new VoxelChunkRegistry();
+        var offset = new Short3(1, 0, 0);
+
+        Assert.Empty(registry.ChunkColliders);
+
+        var chunkCollision = new ChunkCollisionData(
+            [new Box3(Vector3.One)],
+            [new Vector3(16, 0, 0)],
+            [Quaternion.Identity]
+        );
+
+        registry.ChunkColliders[offset] = chunkCollision;
+        Assert.Single(registry.ChunkColliders);
+        Assert.True(registry.ChunkColliders.ContainsKey(offset));
+
+        registry.ChunkColliders.Remove(offset);
+        Assert.Empty(registry.ChunkColliders);
     }
 }
