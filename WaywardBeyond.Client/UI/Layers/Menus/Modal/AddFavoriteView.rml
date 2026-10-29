@@ -1,0 +1,59 @@
+<Reef xmlns="Reef"
+      xmlns:wb="WaywardBeyond.Client.UI.Controls"
+      Class="AddFavoriteView"
+      Context="AddFavoriteState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
+
+    <Element class="wb-scrim-heavy" layout="none" width="100%" height="100%">
+        <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
+            <Modal class="wb-modal-form">
+                <Content name="header">
+                    <Text text="@L('ui.dialog.server.add')" class="wb-modal-title" width="fill" height="30" />
+                </Content>
+
+                <Element class="wb-column" layout="vertical" width="fill" height="fill" spacing="12">
+                    <Element class="wb-field" layout="vertical" width="fill" spacing="4">
+                        <Text text="@L('ui.field.server.host')" class="wb-field-label" width="fill" height="18" />
+                        <wb:TextInput id="TextBox_FavoriteHost"
+                                      bind="context.Host"
+                                      input-service="@InputService"
+                                      placeholder="@L('ui.field.server.host')"
+                                      class="wb-field-frame"
+                                      width="fill"
+                                      height="32" />
+                    </Element>
+
+                    <Element class="wb-field" layout="vertical" width="fill" spacing="4">
+                        <Text text="@L('ui.field.server.port')" class="wb-field-label" width="fill" height="18" />
+                        <wb:TextInput id="TextBox_FavoritePort"
+                                      bind="context.Port"
+                                      input-service="@InputService"
+                                      placeholder="@L('ui.field.server.port')"
+                                      class="wb-field-frame"
+                                      width="96"
+                                      height="32" />
+                    </Element>
+
+                    <Text text="@L(context.ErrorKey)"
+                          class="wb-field-error"
+                          width="fill"
+                          height="18"
+                          visible="@context.HasError" />
+
+                    <Element width="fill" height="fill" />
+                </Element>
+
+                <Content name="actions">
+                    <Element id="Button_CancelFavorite" class="wb-button" onclick="OnCancel" width="180" height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.cancel')" width="fill" height="fill" />
+                    </Element>
+                    <Element width="fill" />
+                    <Element id="Button_SubmitFavorite" class="wb-button wb-button-primary" onclick="OnSubmit" width="180" height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.server.add')" width="fill" height="fill" />
+                    </Element>
+                </Content>
+            </Modal>
+        </Element>
+    </Element>
+</Reef>
