@@ -34,7 +34,8 @@ internal sealed class HomePage(
     in ProfileSettings profileSettings,
     in ContinueService continueService,
     in MessageModal messageModal,
-    in ModalMenu modalMenu
+    in ModalMenu modalMenu,
+    in SeedPhraseService seedPhraseService
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
@@ -70,6 +71,7 @@ internal sealed class HomePage(
     private readonly ContinueService _continueService = continueService;
     private readonly MessageModal _messageModal = messageModal;
     private readonly ModalMenu _modalMenu = modalMenu;
+    private readonly SeedPhraseService _seedPhraseService = seedPhraseService;
 
     private readonly Widgets.ActionButtonOptions _continueButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
     private readonly Widgets.ActionButtonOptions _newGameButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
@@ -434,7 +436,7 @@ internal sealed class HomePage(
             TimeSpan age = TimeSpan.FromMilliseconds(details.AgeMs);
 
             DrawContinueDetail(ui, _localization.GetRequired("ui.label.level.mode"), details.Mode.ToString());
-            DrawContinueDetail(ui, _localization.GetRequired("ui.label.level.seed"), details.Seed.ToString());
+            DrawContinueDetail(ui, _localization.GetRequired("ui.label.level.seed"), _seedPhraseService.SeedToPhrase(details.Seed));
             DrawContinueDetail(ui, _localization.GetRequired("ui.label.lastPlayed"), lastPlayed);
             DrawContinueDetail(
                 ui,
@@ -556,7 +558,7 @@ internal sealed class HomePage(
     private readonly record struct ContinueDetails(
         string Name,
         GameMode Mode,
-        int Seed,
+        long Seed,
         long LastPlayedMs,
         long AgeMs
     );

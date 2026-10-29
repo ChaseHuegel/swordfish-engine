@@ -21,6 +21,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Content Include="assets\**\*.*" CopyToOutputDirectory="Always" />
+    </ItemGroup>
+
+    <ItemGroup>
         <NsdFiles Include="Nsd/components.nsd" NeedlefishPartial="true" />
         <NsdFiles Include="Nsd/network.nsd" NeedlefishPartial="true" />
     </ItemGroup>

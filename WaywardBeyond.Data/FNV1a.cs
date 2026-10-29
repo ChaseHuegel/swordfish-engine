@@ -19,4 +19,20 @@ public static class FNV1a
 
         return hash;
     }
+
+    /// <summary>Computes a 64 bit hash of the provided string.</summary>
+    public static ulong ComputeHash64(string str)
+    {
+        const ulong fnvOffset = 14695981039346656037UL;
+        const ulong fnvPrime = 1099511628211UL;
+
+        ulong hash = fnvOffset;
+        for (var i = 0; i < str.Length; i++)
+        {
+            hash ^= str[i];
+            hash *= fnvPrime;
+        }
+
+        return hash;
+    }
 }

@@ -13,7 +13,7 @@ public sealed record SessionSave
     public string Name { get; set; } = string.Empty;
 
     /// <summary>The level seed.</summary>
-    public int Seed { get; set; }
+    public long Seed { get; set; }
 
     /// <summary>The level's default game mode.</summary>
     public GameMode GameMode { get; set; } = GameMode.Creative;

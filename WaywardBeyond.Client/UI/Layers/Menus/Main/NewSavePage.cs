@@ -41,6 +41,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly ILocalization _localization;
     private readonly NameGenerator _nameGenerator;
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase;
+    private readonly SeedPhraseService _seedPhraseService;
     private readonly Randomizer _randomizer = new();
     private readonly List<string> _createMessages = [];
     private readonly List<double> _createMessageTimes = [];
@@ -64,7 +65,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         in SoundEffectService soundEffectService,
         in ILocalization localization,
         in NameGenerator nameGenerator,
-        in IAssetDatabase<LocalizedTags> localizedTagDatabase
+        in IAssetDatabase<LocalizedTags> localizedTagDatabase,
+        in SeedPhraseService seedPhraseService
     ) {
         _gameSaveService = gameSaveService;
         _gameSaveManager = gameSaveManager;
@@ -73,6 +75,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _localization = localization;
         _nameGenerator = nameGenerator;
         _localizedTagDatabase = localizedTagDatabase;
+        _seedPhraseService = seedPhraseService;
 
         _cancelButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
         _initializeButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
@@ -90,7 +93,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
         var saveSeedTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.level.seed.placeholder"),
-            MaxCharacters: 20,
+            MaxCharacters: 40,
             Constraints: new Constraints
             {
                 Width = new Fill(),
@@ -170,7 +173,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         return Result.FromSuccess();
     }
 
-    /// <summary>Draws the initialization and dossier panes for the current width.</summary>
+    /// <summary>Draws the form and detail panes for the current width.</summary>
     private void DrawPanes(UIBuilder<Material> ui, in MenuLayout layout)
     {
         if (!layout.UseTabs)
@@ -184,7 +187,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 spacing: MenuLayout.PANEL_GAP
             ))
             {
-                DrawInitialization(
+                DrawForm(
                     ui,
                     new Constraints
                     {
@@ -192,7 +195,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                         Height = new Fill(),
                     }
                 );
-                DrawDossier(
+                DrawDetail(
                     ui,
                     new Constraints
                     {
@@ -222,11 +225,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
             if (_narrowTab == 0)
             {
-                DrawInitialization(ui, pane);
+                DrawForm(ui, pane);
                 return;
             }
 
-            DrawDossier(ui, pane);
+            DrawDetail(ui, pane);
         }
     }
 
@@ -249,7 +252,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             };
 
             if (ui.Tab(
-                "InitializationTab",
+                "FormTab",
                 _localization.GetRequired("ui.panel.level.form"),
                 selected: _narrowTab == 0,
                 tabConstraints
@@ -259,8 +262,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             }
 
             if (ui.Tab(
-                "DossierTab",
-                _localization.GetRequired("ui.panel.level.form.dossier"),
+                "DetailTab",
+                _localization.GetRequired("ui.panel.level.form.detail"),
                 selected: _narrowTab == 1,
                 tabConstraints
             ))
@@ -348,8 +351,8 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     /// <summary>A footer message and the color to draw it in.</summary>
     private readonly record struct FooterStatus(string? Message, Vector4 Color);
 
-    /// <summary>Draws the sector initialization panel.</summary>
-    private void DrawInitialization(UIBuilder<Material> ui, Constraints constraints)
+    /// <summary>Draws the sector form panel.</summary>
+    private void DrawForm(UIBuilder<Material> ui, Constraints constraints)
     {
         using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.form"), padding: 20))
         {
@@ -400,7 +403,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         using (ui.Row(
             new Constraints
             {
-                Width = new Fixed(INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                Width = new Fill(),
                 Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
             },
             spacing: 8
@@ -448,7 +451,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         using (ui.Row(
             new Constraints
             {
-                Width = new Fixed(INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                Width = new Fill(),
                 Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
             },
             spacing: 8
@@ -486,15 +489,15 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             {
                 _createError = null;
                 _seedTextBox.Text.Clear();
-                _seedTextBox.Text.Append(Random.Shared.NextInt64());
+                _seedTextBox.Text.Append(_seedPhraseService.SeedToPhrase(Random.Shared.NextInt64()));
             }
         }
     }
 
-    /// <summary>Draws the sector dossier panel.</summary>
-    private void DrawDossier(UIBuilder<Material> ui, Constraints constraints)
+    /// <summary>Draws the sector detail panel.</summary>
+    private void DrawDetail(UIBuilder<Material> ui, Constraints constraints)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.form.dossier"), padding: 20))
+        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.level.form.detail"), padding: 20))
         {
             string name = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
             if (string.IsNullOrWhiteSpace(name))
@@ -783,7 +786,9 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         }
 
         string seedValue = _seedTextBox.Text.ToString();
-        string seed = string.IsNullOrWhiteSpace(seedValue) ? Random.Shared.NextInt64().ToString() : seedValue;
+        string seed = string.IsNullOrWhiteSpace(seedValue)
+            ? _seedPhraseService.SeedToPhrase(Random.Shared.NextInt64())
+            : seedValue;
         _createError = null;
         _createTime = 0;
         _nextCreateMessageTime = 0;

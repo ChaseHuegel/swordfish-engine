@@ -176,10 +176,11 @@ A save is a galaxy. The game stores levels and characters.
   switches to a red `xmark`. Unknown is a dim `signal` plus `-`.
 
 Continue shows a hover card with the last played galaxy, its session type, its
-mode, seed, last played time, time played, and the last colonist's combined
-skill level and species. The card hugs its content width and stops at the page
-bound, so no line clips. A small gap separates the session type from the galaxy
-name. The type is `Singleplayer` or `Multiplayer`.
+mode, seed phrase (see [seed-phrases](seed-phrases.md)), last played time, time
+played, and the last colonist's combined skill level and species. The card hugs
+its content width and stops at the page bound, so no line clips. A small gap
+separates the session type from the galaxy name. The type is `Singleplayer` or
+`Multiplayer`.
 A multiplayer card adds one destination line with the saved signal name, or the
 endpoint when no name matches. The card draws from the current save cache when
 it holds the last save, and falls back to the summary recorded in `profile.toml`

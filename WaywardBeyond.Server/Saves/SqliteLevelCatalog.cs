@@ -25,7 +25,8 @@ public sealed class SqliteLevelCatalog(
     ILoggerFactory loggerFactory,
     in Migrator migrator,
     in GameplayConfig gameplayConfig,
-    in LevelGeneratorConfig levelGeneratorConfig
+    in LevelGeneratorConfig levelGeneratorConfig,
+    in SeedPhraseService seedPhraseService
 ) : ILevelCatalog
 {
     //  The game version stamped on every created level.
@@ -36,13 +37,16 @@ public sealed class SqliteLevelCatalog(
     private readonly GameplayConfig _gameplayConfig = gameplayConfig;
     private readonly LevelGeneratorConfig _levelGeneratorConfig = levelGeneratorConfig;
     private readonly Migrator _migrator = migrator;
+    private readonly SeedPhraseService _seedPhraseService = seedPhraseService;
 
     /// <inheritdoc/>
     public bool Create(string name, string seed, GameMode gameMode, out string levelGuid)
     {
         levelGuid = string.Empty;
 
-        int seedValue = LevelGenerator.HashSeed(seed);
+        long seedValue = string.IsNullOrWhiteSpace(seed)
+            ? _seedPhraseService.ResolveSeed(_seedPhraseService.SeedToPhrase(Random.Shared.NextInt64()))
+            : _seedPhraseService.ResolveSeed(seed);
         Guid guid = Guid.NewGuid();
         string guidText = guid.ToString();
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

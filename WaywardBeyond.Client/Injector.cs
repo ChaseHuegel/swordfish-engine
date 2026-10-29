@@ -35,6 +35,7 @@ using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Config;
+using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
@@ -46,6 +47,8 @@ public class Injector : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
+        container.RegisterDataServices();
+
         RegisterConfiguration(container);
         RegisterUI(container);
         RegisterInput(container);

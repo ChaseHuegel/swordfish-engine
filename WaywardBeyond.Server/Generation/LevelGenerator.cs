@@ -1,9 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Security.Cryptography;
-using System.Text;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
@@ -20,28 +18,15 @@ using AsteroidStructure = (Vector3 Position, int Radius);
 ///     entities nor meshes. The server runs it to author a new world, and the same seed derives
 ///     identical data, so a level can be regenerated.
 /// </summary>
-public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, LevelGeneratorConfig config)
+public sealed class LevelGenerator(in long seed, IBrickRegistry brickRegistry, LevelGeneratorConfig config)
 {
-    private readonly int _seed = seed;
-    private readonly Randomizer _randomizer = new(seed);
-    private readonly AsteroidGenerator _asteroidGenerator = new(brickRegistry, seed, config.Asteroid);
+    private readonly int _foldedSeed = FoldSeed(seed);
+    private readonly Randomizer _randomizer = new(FoldSeed(seed));
+    private readonly AsteroidGenerator _asteroidGenerator = new(brickRegistry, FoldSeed(seed), config.Asteroid);
 
     //  Placement is rejection-sampled: a dense radius or a tight volume can make every candidate
     //  intersect, so cap the work instead of spinning on the server thread.
     private const int MAX_PLACEMENT_ATTEMPTS_PER_ASTEROID = 100;
-
-    /// <summary>Hashes a seed string to the integer the generator and level metadata use.</summary>
-    public static int HashSeed(string seed)
-    {
-        if (int.TryParse(seed, out int seedValue))
-        {
-            return seedValue;
-        }
-
-        byte[] seedBytes = Encoding.UTF8.GetBytes(seed);
-        byte[] seedHash = SHA1.HashData(seedBytes);
-        return BitConverter.ToInt32(seedHash);
-    }
 
     /// <summary>Generates the level structures for the seed. Throws when placement cannot complete.</summary>
     public VoxelEntityData[] Generate()
@@ -99,6 +84,11 @@ public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, Le
     /// </summary>
     private Uuid GenerateUuid(int index)
     {
-        return Uuid.FromValue(((ulong)(uint)_seed << 32) | (uint)(index + 1));
+        return Uuid.FromValue(((ulong)(uint)_foldedSeed << 32) | (uint)(index + 1));
+    }
+
+    private static int FoldSeed(long seed)
+    {
+        return (int)(seed ^ (seed >>> 32));
     }
 }
