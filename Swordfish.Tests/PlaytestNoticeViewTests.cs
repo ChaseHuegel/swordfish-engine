@@ -52,6 +52,16 @@ public class PlaytestNoticeViewTests
         Assert.Equal(6, close.CornerCaps.Length);
         Assert.Equal(1, close.CornerCaps.Thickness);
         Assert.Equal(0.949f, close.CornerCaps.Color.X, 3);
+
+        RenderCommand<Material> ok = commands.Find(command => command.Text == state.Ok);
+        Assert.Equal(close.Rect.Position.X + 16, ok.Rect.Position.X);
+        Assert.Equal(close.Rect.Position.Y + 8, ok.Rect.Position.Y);
+        Assert.Equal(168, ok.Rect.Size.X);
+        Assert.Equal(24, ok.Rect.Size.Y);
+        Assert.Equal(close.Rect.Position.X + close.Rect.Size.X / 2, ok.Rect.Position.X + ok.Rect.Size.X / 2);
+        Assert.Equal(close.Rect.Position.Y + close.Rect.Size.Y / 2, ok.Rect.Position.Y + ok.Rect.Size.Y / 2);
+        Assert.Equal(HorizontalAlignment.Center, ok.FontOptions.HorizontalAlignment);
+        Assert.Equal(VerticalAlignment.Center, ok.FontOptions.VerticalAlignment);
     }
 
     [Fact]

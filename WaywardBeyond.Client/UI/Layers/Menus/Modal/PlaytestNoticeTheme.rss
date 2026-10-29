@@ -48,7 +48,7 @@
 
 .playtest-button-base {
     border-radius: 4px;
-    padding: 8px 16px;
+    padding: 16px 8px;
 }
 
 .playtest-brand-button {

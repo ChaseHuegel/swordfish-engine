@@ -77,7 +77,8 @@
                              height="40">
                         <Text text="@context.Ok"
                               class="playtest-primary-label"
-                              anchor="center"/>
+                              width="fill"
+                              height="fill"/>
                     </Element>
                 </Element>
             </Element>
