@@ -130,6 +130,34 @@ public class RssParserTests
     }
 
     [Fact]
+    public void CssAliasesMapToReefProperties()
+    {
+        StyleValueParser.TryParseStylesheet(
+            "border-radius",
+            StyleValueParser.TokenizeValue("4px"),
+            Location.None,
+            out List<MarkupAssignment> radius,
+            out _);
+        Assert.Equal(MarkupProperty.CornerRadius, radius[0].Property);
+
+        StyleValueParser.TryParseStylesheet(
+            "gap",
+            StyleValueParser.TokenizeValue("8px"),
+            Location.None,
+            out List<MarkupAssignment> gap,
+            out _);
+        Assert.Equal(MarkupProperty.Spacing, gap[0].Property);
+
+        StyleValueParser.TryParseStylesheet(
+            "background-color",
+            StyleValueParser.TokenizeValue("#ff0000"),
+            Location.None,
+            out List<MarkupAssignment> background,
+            out _);
+        Assert.Equal(MarkupProperty.BackgroundColor, background[0].Property);
+    }
+
+    [Fact]
     public void PaddingAndCornerRadiusShorthandsMapToEngineFields()
     {
         StyleValueParser.TryParseStylesheet(

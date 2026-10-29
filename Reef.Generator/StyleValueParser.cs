@@ -159,10 +159,12 @@ internal static class StyleValueParser
             case "color":
                 return AddColor(tokens, MarkupProperty.Color, location, out assignments, out error);
             case "background":
+            case "background-color":
                 return AddColor(tokens, MarkupProperty.BackgroundColor, location, out assignments, out error);
             case "padding":
                 return AddPadding(tokens, location, out assignments, out error);
             case "corner-radius":
+            case "border-radius":
                 return AddCornerRadius(tokens, location, out assignments, out error);
             case "border":
                 return AddBorder(tokens, location, out assignments, out error);
@@ -222,6 +224,7 @@ internal static class StyleValueParser
             case "layout":
                 return AddLayout(tokens, location, out assignments, out error);
             case "spacing":
+            case "gap":
                 return AddInt(tokens, MarkupProperty.Spacing, location, out assignments, out error);
             default:
                 error = "Style property is not supported.";

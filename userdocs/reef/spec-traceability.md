@@ -38,6 +38,7 @@ The formal specification is [reef-markup](../../docs/specs/reef-markup.md).
 | Position and anchors | `GalleryView.rml`, `LocalView.rml` |
 | Padding order | `RssParserTests.PaddingAndCornerRadiusShorthandsMapToEngineFields` |
 | Corner radius order | `RssParserTests.PaddingAndCornerRadiusShorthandsMapToEngineFields`, `StyleRuntimeTests.StylesInheritOrderAndInlineOverride` |
+| CSS property aliases | `RssParserTests.CssAliasesMapToReefProperties` |
 | Colors | `RssParserTests.ColorsParseAllSupportedForms`, `GalleryNormalRendersAndMatchesGolden` |
 | Border and corner caps | `StyleRuntimeTests.StylesInheritOrderAndInlineOverride`, `UIBuilderBorderTests` |
 | Variables and overrides | `RssParserTests.CommentsVariablesRulesAndPseudoStatesParse`, `SpecDiagnosticsTests.DuplicateVariableReportsRf0012`, `SpecDiagnosticsTests.DuplicateOverrideReportsRf0013` |

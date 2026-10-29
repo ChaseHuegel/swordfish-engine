@@ -151,9 +151,12 @@ Named colors use the CSS color names. `transparent` is supported.
 
 ### Visual
 
-`color`, `background`, `corner-radius`, `border`, `border-width`,
-`border-color`, `overlay`, `corner-caps`, `corner-caps-length`,
-`corner-caps-thickness`, `corner-caps-color`
+`color`, `background`, `background-color`, `corner-radius`, `border-radius`,
+`border`, `border-width`, `border-color`, `overlay`, `corner-caps`,
+`corner-caps-length`, `corner-caps-thickness`, `corner-caps-color`
+
+The aliases `background-color` and `border-radius` map to `background` and
+`corner-radius`.
 
 Use `px` units for integer values such as `padding: 8px 16px`,
 `corner-radius: 4px`, `border: 1px #444444`, and `font-size: 16px`. CSS editors
@@ -171,7 +174,9 @@ then accept the file.
 
 ### Layout
 
-`padding`, `spacing`, `layout`
+`padding`, `spacing`, `gap`, `layout`
+
+The alias `gap` maps to `spacing`.
 
 ## Style selectors
 

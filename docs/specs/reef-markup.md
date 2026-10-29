@@ -490,10 +490,10 @@ Padding follows the .NET and XAML LTRB standard: **Left, Top, Right, Bottom**.
 ### Stylesheet format (`.rss`)
 
 Styles live in external `.rss` files discovered automatically as
-`AdditionalFiles`. New style sheets use CSS-compatible syntax: `--extends` for
-class inheritance, `!important` for variable overrides, and `px` units for
-integer properties. The generator also accepts the legacy `.sub : .base` and
-`override --name` forms.
+`AdditionalFiles`. Style sheets use CSS-compatible syntax: `--extends` (or
+`--extend`) for class inheritance, `!important` for variable overrides, and `px`
+units for integer properties. The generator also accepts the legacy `.sub : .base`
+and `override --name` forms.
 
 ```css
 :root {
@@ -528,7 +528,7 @@ integer properties. The generator also accepts the legacy `.sub : .base` and
 
 /* Style inheritance: .btn-primary subclasses .btn */
 .btn-primary {
-    --extends: .btn;
+    --extends: btn;
     background: var(--accent);
     border: 1px #2563eb;
 }
@@ -536,22 +536,55 @@ integer properties. The generator also accepts the legacy `.sub : .base` and
 .btn-primary:hover {
     background: var(--accent-hover);
 }
+
+/* Multiple inheritance: .btn-danger-large subclasses .btn and .large */
+.btn-danger-large {
+    --extends: btn large;
+    background: #ef4444;
+}
 ```
+
+### Class inheritance and multiple base classes
+
+Classes inherit properties using the `--extends` (or `--extend`) custom
+property. Base classes are referenced as CSS identifiers without a leading dot
+(`btn` rather than `.btn`), avoiding CSS term inspection errors in IDEs and
+matching the `class="btn"` attribute convention in markup.
+
+Multiple base classes are supported via space-separated or comma-separated
+identifiers:
+
+```css
+.card-highlight {
+    --extends: card shadow animated;
+    border-color: var(--accent);
+}
+```
+
+Inheritance evaluates from left to right: earlier base classes are applied first,
+subsequent base classes override earlier ones, and properties declared directly
+in the child class take final precedence. Base pseudo-states (such as `:hover` or
+`:active`) are also inherited unless explicitly overridden in the child rule.
+Circular inheritance raises compiler error `RF0003`.
 
 ### Supported stylesheet properties
 
 Rulesets in `.rss` support four categories of properties:
 
-1. **Visual style**: `color`, `background`, `corner-radius`, `border`,
-   `border-width`, `border-color`, `overlay`, `corner-caps`,
-   `corner-caps-length`, `corner-caps-thickness`, `corner-caps-color`.
+1. **Visual style**: `color`, `background`, `background-color`,
+   `corner-radius`, `border-radius`, `border`, `border-width`, `border-color`,
+   `overlay`, `corner-caps`, `corner-caps-length`, `corner-caps-thickness`,
+   `corner-caps-color`.
 2. **Typography**: `font-size` (`FontOptions.Size`), `font-family` (preferred
    for CSS tools) or `font` (`FontOptions.ID`), `text-align` (`left`, `center`, `right`), `vertical-align`
-   (`top`, `middle`, `bottom`). The alias `center` is also accepted., `white-space` (`nowrap`, `normal`).
+   (`top`, `middle`, `bottom`). The alias `center` is also accepted. `white-space` (`nowrap`, `normal`).
 3. **Dimensions and constraints**: `width`, `height`, `size`, `min-width`,
    `min-height`, `min-size`, `max-width`, `max-height`, `max-size`, `pos`,
    `x`, `y`, `anchor`, `anchors`.
-4. **Layout**: `padding`, `spacing`, `layout` (`vertical`, `horizontal`, `none`).
+4. **Layout**: `padding`, `spacing`, `gap`, `layout` (`vertical`, `horizontal`, `none`).
+
+The aliases `background-color`, `border-radius`, and `gap` map to
+`BackgroundColor`, `CornerRadius`, and `Spacing`.
 
 ### Multi-file variables and overrides
 
@@ -640,7 +673,7 @@ classes:
 Final property precedence resolves in this order:
 
 1. Stylesheet base rule (`.btn`)
-2. Stylesheet inherited rule (`.btn-primary { --extends: .btn; }`)
+2. Stylesheet inherited rule (`.btn-primary { --extends: btn; }`)
 3. Sibling classes in attribute order (`class="a b"`: `b` overrides `a`)
 4. Dynamic class directives (`class:name="@condition"`, evaluated if true)
 5. Pseudo-state rule (`.btn:hover`, `:active`, `:disabled`)

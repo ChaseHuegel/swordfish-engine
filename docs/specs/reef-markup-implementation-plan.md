@@ -11,7 +11,7 @@ Status: implemented. The generator, runtime support types, test projects, and
 Implement the full `.rml` and `.rss` compile-time pipeline described in
 [reef-markup](reef-markup.md) and [reef-markup-blueprint](reef-markup-blueprint.md).
 
-The change is engine-only. Do not modify `WaywardBeyond.*` projects.
+The generator change is engine-only
 
 ## Locked decisions
 
