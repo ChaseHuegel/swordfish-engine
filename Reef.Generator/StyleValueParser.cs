@@ -66,6 +66,8 @@ internal static class StyleValueParser
         {
             case "color":
                 return AddColor(tokens, MarkupProperty.Color, location, out assignments, out error);
+            case "text-color":
+                return AddColor(tokens, MarkupProperty.TextColor, location, out assignments, out error);
             case "background":
                 return AddColor(tokens, MarkupProperty.BackgroundColor, location, out assignments, out error);
             case "padding":
@@ -78,6 +80,14 @@ internal static class StyleValueParser
                 return AddInt(tokens, MarkupProperty.BorderThickness, location, out assignments, out error);
             case "border-color":
                 return AddColor(tokens, MarkupProperty.BorderColor, location, out assignments, out error);
+            case "border-top":
+                return AddBorderSide(tokens, MarkupProperty.BorderTopThickness, MarkupProperty.BorderTopColor, location, out assignments, out error);
+            case "border-right":
+                return AddBorderSide(tokens, MarkupProperty.BorderRightThickness, MarkupProperty.BorderRightColor, location, out assignments, out error);
+            case "border-bottom":
+                return AddBorderSide(tokens, MarkupProperty.BorderBottomThickness, MarkupProperty.BorderBottomColor, location, out assignments, out error);
+            case "border-left":
+                return AddBorderSide(tokens, MarkupProperty.BorderLeftThickness, MarkupProperty.BorderLeftColor, location, out assignments, out error);
             case "corner-caps":
                 return AddCornerCaps(tokens, location, out assignments, out error);
             case "corner-caps-length":
@@ -158,6 +168,8 @@ internal static class StyleValueParser
         {
             case "color":
                 return AddColor(tokens, MarkupProperty.Color, location, out assignments, out error);
+            case "text-color":
+                return AddColor(tokens, MarkupProperty.TextColor, location, out assignments, out error);
             case "background":
             case "background-color":
                 return AddColor(tokens, MarkupProperty.BackgroundColor, location, out assignments, out error);
@@ -172,6 +184,14 @@ internal static class StyleValueParser
                 return AddInt(tokens, MarkupProperty.BorderThickness, location, out assignments, out error);
             case "border-color":
                 return AddColor(tokens, MarkupProperty.BorderColor, location, out assignments, out error);
+            case "border-top":
+                return AddBorderSide(tokens, MarkupProperty.BorderTopThickness, MarkupProperty.BorderTopColor, location, out assignments, out error);
+            case "border-right":
+                return AddBorderSide(tokens, MarkupProperty.BorderRightThickness, MarkupProperty.BorderRightColor, location, out assignments, out error);
+            case "border-bottom":
+                return AddBorderSide(tokens, MarkupProperty.BorderBottomThickness, MarkupProperty.BorderBottomColor, location, out assignments, out error);
+            case "border-left":
+                return AddBorderSide(tokens, MarkupProperty.BorderLeftThickness, MarkupProperty.BorderLeftColor, location, out assignments, out error);
             case "corner-caps":
                 return AddCornerCaps(tokens, location, out assignments, out error);
             case "corner-caps-length":
@@ -247,6 +267,9 @@ internal static class StyleValueParser
             case "color":
                 assignments.Add(new MarkupAssignment(MarkupProperty.Color, new MarkupExpression(raw, MarkupExpressionKind.Color), location));
                 return true;
+            case "text-color":
+                assignments.Add(new MarkupAssignment(MarkupProperty.TextColor, new MarkupExpression(raw, MarkupExpressionKind.Color), location));
+                return true;
             case "background":
                 assignments.Add(new MarkupAssignment(MarkupProperty.BackgroundColor, new MarkupExpression(raw, MarkupExpressionKind.Color), location));
                 return true;
@@ -297,6 +320,10 @@ internal static class StyleValueParser
             case "corner-radius":
             case "border":
             case "border-width":
+            case "border-top":
+            case "border-right":
+            case "border-bottom":
+            case "border-left":
             case "corner-caps":
             case "corner-caps-length":
             case "corner-caps-thickness":
@@ -600,6 +627,57 @@ internal static class StyleValueParser
 
         assignments.Add(new MarkupAssignment(MarkupProperty.BorderThickness, 1, location));
         assignments.Add(new MarkupAssignment(MarkupProperty.BorderColor, onlyColor, location));
+        return true;
+    }
+
+    private static bool AddBorderSide(
+        IReadOnlyList<RssToken> tokens,
+        MarkupProperty thicknessProperty,
+        MarkupProperty colorProperty,
+        Location location,
+        out List<MarkupAssignment> assignments,
+        out string error)
+    {
+        assignments = [];
+        error = string.Empty;
+        List<RssToken> values = NonTrivia(tokens);
+        if (values.Count == 0)
+        {
+            error = "Expected a border width and color.";
+            return false;
+        }
+
+        if (values[0].Kind == RssTokenKind.Number)
+        {
+            if (!TryParseInt(values[0].Text, out int thickness))
+            {
+                error = "Border width must be an integer.";
+                return false;
+            }
+
+            assignments.Add(new MarkupAssignment(thicknessProperty, thickness, location));
+            if (values.Count == 1)
+            {
+                return true;
+            }
+
+            var colorTokens = values.GetRange(1, values.Count - 1);
+            if (!ColorParser.TryParse(colorTokens, out Vector4 color, out error))
+            {
+                return false;
+            }
+
+            assignments.Add(new MarkupAssignment(colorProperty, color, location));
+            return true;
+        }
+
+        if (!ColorParser.TryParse(values, out Vector4 onlyColor, out error))
+        {
+            return false;
+        }
+
+        assignments.Add(new MarkupAssignment(thicknessProperty, 1, location));
+        assignments.Add(new MarkupAssignment(colorProperty, onlyColor, location));
         return true;
     }
 

@@ -26,6 +26,12 @@ internal sealed partial class DocumentState
         context.Writer.Close();
 
         value = NextLocal("__value");
+        context.Writer.Line("if (" + styleName + ".TextColor is { } " + value + ")");
+        context.Writer.Open();
+        context.Writer.Line(context.Builder + ".TextColor = " + value + ";");
+        context.Writer.Close();
+
+        value = NextLocal("__value");
         context.Writer.Line("if (" + styleName + ".BackgroundColor is { } " + value + ")");
         context.Writer.Open();
         if (!string.Equals(node.Tag, "Text", StringComparison.Ordinal)

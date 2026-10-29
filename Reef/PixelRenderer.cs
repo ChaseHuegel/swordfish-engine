@@ -135,17 +135,62 @@ public sealed class PixelRenderer
     {
         BorderStyle border = renderCommand.Border;
         IntRect rect = renderCommand.Rect;
-        int thickness = Math.Min(border.Thickness, Math.Min(rect.Size.X, rect.Size.Y) / 2);
+        int maxThickness = Math.Min(rect.Size.X, rect.Size.Y) / 2;
 
-        if (thickness <= 0 || border.Color.W <= 0f)
+        DrawTopBorder(renderCommand, border, rect, maxThickness);
+        DrawRightBorder(renderCommand, border, rect, maxThickness);
+        DrawBottomBorder(renderCommand, border, rect, maxThickness);
+        DrawLeftBorder(renderCommand, border, rect, maxThickness);
+    }
+
+    private void DrawTopBorder(RenderCommand<PixelTexture> command, in BorderStyle border, in IntRect rect, int maxThickness)
+    {
+        int thickness = Math.Min(ResolveThickness(border.TopThickness, border.Thickness), maxThickness);
+        Vector4 color = ResolveColor(border.TopColor, border.Color);
+        if (thickness > 0 && color.W > 0f)
         {
-            return;
+            DrawSolidRect(command, new IntRect(rect.Left, rect.Top, rect.Right, rect.Top + thickness), color);
         }
+    }
 
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top, rect.Right, rect.Top + thickness), border.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Bottom - thickness, rect.Right, rect.Bottom), border.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Bottom - thickness), border.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Bottom - thickness), border.Color);
+    private void DrawRightBorder(RenderCommand<PixelTexture> command, in BorderStyle border, in IntRect rect, int maxThickness)
+    {
+        int thickness = Math.Min(ResolveThickness(border.RightThickness, border.Thickness), maxThickness);
+        Vector4 color = ResolveColor(border.RightColor, border.Color);
+        if (thickness > 0 && color.W > 0f)
+        {
+            DrawSolidRect(command, new IntRect(rect.Right - thickness, rect.Top, rect.Right, rect.Bottom), color);
+        }
+    }
+
+    private void DrawBottomBorder(RenderCommand<PixelTexture> command, in BorderStyle border, in IntRect rect, int maxThickness)
+    {
+        int thickness = Math.Min(ResolveThickness(border.BottomThickness, border.Thickness), maxThickness);
+        Vector4 color = ResolveColor(border.BottomColor, border.Color);
+        if (thickness > 0 && color.W > 0f)
+        {
+            DrawSolidRect(command, new IntRect(rect.Left, rect.Bottom - thickness, rect.Right, rect.Bottom), color);
+        }
+    }
+
+    private void DrawLeftBorder(RenderCommand<PixelTexture> command, in BorderStyle border, in IntRect rect, int maxThickness)
+    {
+        int thickness = Math.Min(ResolveThickness(border.LeftThickness, border.Thickness), maxThickness);
+        Vector4 color = ResolveColor(border.LeftColor, border.Color);
+        if (thickness > 0 && color.W > 0f)
+        {
+            DrawSolidRect(command, new IntRect(rect.Left, rect.Top, rect.Left + thickness, rect.Bottom), color);
+        }
+    }
+
+    private static int ResolveThickness(int sideThickness, int fallback)
+    {
+        return sideThickness > 0 ? sideThickness : fallback;
+    }
+
+    private static Vector4 ResolveColor(Vector4 sideColor, Vector4 fallback)
+    {
+        return sideColor.W > 0f ? sideColor : fallback;
     }
 
     private void DrawCornerCaps(RenderCommand<PixelTexture> renderCommand)

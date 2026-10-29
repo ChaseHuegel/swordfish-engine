@@ -604,6 +604,16 @@ internal sealed partial class DocumentState
 
                     break;
                 }
+                case MarkupProperty.TextColor:
+                {
+                    string? code = EmitColor(assignment, context);
+                    if (code != null)
+                    {
+                        context.Writer.Line(name + ".TextColor = " + code + ";");
+                    }
+
+                    break;
+                }
                 case MarkupProperty.Padding:
                 {
                     int[] values = (int[])assignment.Value;
@@ -634,6 +644,34 @@ internal sealed partial class DocumentState
                     if (code != null)
                     {
                         context.Writer.Line(name + ".Border = (" + name + ".Border ?? new global::Reef.UI.BorderStyle()) with { Color = " + code + " };");
+                    }
+
+                    break;
+                }
+                case MarkupProperty.BorderTopThickness:
+                case MarkupProperty.BorderRightThickness:
+                case MarkupProperty.BorderBottomThickness:
+                case MarkupProperty.BorderLeftThickness:
+                {
+                    int? value = EmitInt(assignment, context);
+                    if (value != null)
+                    {
+                        string field = OverrideSideField(assignment.Property, "Thickness");
+                        context.Writer.Line(name + ".Border = (" + name + ".Border ?? new global::Reef.UI.BorderStyle()) with { " + field + " = " + value.Value + " };");
+                    }
+
+                    break;
+                }
+                case MarkupProperty.BorderTopColor:
+                case MarkupProperty.BorderRightColor:
+                case MarkupProperty.BorderBottomColor:
+                case MarkupProperty.BorderLeftColor:
+                {
+                    string? code = EmitColor(assignment, context);
+                    if (code != null)
+                    {
+                        string field = OverrideSideField(assignment.Property, "Color");
+                        context.Writer.Line(name + ".Border = (" + name + ".Border ?? new global::Reef.UI.BorderStyle()) with { " + field + " = " + code + " };");
                     }
 
                     break;
@@ -755,6 +793,15 @@ internal sealed partial class DocumentState
     {
         return property == MarkupProperty.Color
                || property == MarkupProperty.BackgroundColor
+               || property == MarkupProperty.TextColor
+               || property == MarkupProperty.BorderTopThickness
+               || property == MarkupProperty.BorderTopColor
+               || property == MarkupProperty.BorderRightThickness
+               || property == MarkupProperty.BorderRightColor
+               || property == MarkupProperty.BorderBottomThickness
+               || property == MarkupProperty.BorderBottomColor
+               || property == MarkupProperty.BorderLeftThickness
+               || property == MarkupProperty.BorderLeftColor
                || property == MarkupProperty.Padding
                || property == MarkupProperty.CornerRadius
                || property == MarkupProperty.BorderThickness
@@ -762,6 +809,17 @@ internal sealed partial class DocumentState
                || property == MarkupProperty.CornerCapsLength
                || property == MarkupProperty.CornerCapsThickness
                || property == MarkupProperty.CornerCapsColor;
+    }
+
+    private static string OverrideSideField(MarkupProperty property, string suffix)
+    {
+        return property switch
+        {
+            MarkupProperty.BorderTopThickness or MarkupProperty.BorderTopColor => "Top" + suffix,
+            MarkupProperty.BorderRightThickness or MarkupProperty.BorderRightColor => "Right" + suffix,
+            MarkupProperty.BorderBottomThickness or MarkupProperty.BorderBottomColor => "Bottom" + suffix,
+            _ => "Left" + suffix,
+        };
     }
 
     private static bool IsConstraintProperty(MarkupProperty property)

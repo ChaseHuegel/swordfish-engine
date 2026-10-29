@@ -720,6 +720,16 @@ internal sealed partial class DocumentState
 
                     break;
                 }
+                case MarkupProperty.TextColor:
+                {
+                    string? code = EmitColor(assignment, context);
+                    if (code != null)
+                    {
+                        context.Writer.Line(styleName + " = " + styleName + " with { TextColor = " + code + " };");
+                    }
+
+                    break;
+                }
                 case MarkupProperty.Padding:
                 {
                     int[] values = (int[])assignment.Value;
@@ -756,6 +766,34 @@ internal sealed partial class DocumentState
 
                     break;
                 }
+                case MarkupProperty.BorderTopThickness:
+                case MarkupProperty.BorderRightThickness:
+                case MarkupProperty.BorderBottomThickness:
+                case MarkupProperty.BorderLeftThickness:
+                {
+                    int? value = EmitInt(assignment, context);
+                    if (value != null)
+                    {
+                        string field = WidgetSideField(assignment.Property, "Thickness");
+                        context.Writer.Line(styleName + " = " + styleName + " with { Border = " + styleName + ".Border with { " + field + " = " + value.Value + " } };");
+                    }
+
+                    break;
+                }
+                case MarkupProperty.BorderTopColor:
+                case MarkupProperty.BorderRightColor:
+                case MarkupProperty.BorderBottomColor:
+                case MarkupProperty.BorderLeftColor:
+                {
+                    string? code = EmitColor(assignment, context);
+                    if (code != null)
+                    {
+                        string field = WidgetSideField(assignment.Property, "Color");
+                        context.Writer.Line(styleName + " = " + styleName + " with { Border = " + styleName + ".Border with { " + field + " = " + code + " } };");
+                    }
+
+                    break;
+                }
                 case MarkupProperty.CornerCapsLength:
                 {
                     int? value = EmitInt(assignment, context);
@@ -788,6 +826,17 @@ internal sealed partial class DocumentState
                 }
             }
         }
+    }
+
+    private static string WidgetSideField(MarkupProperty property, string suffix)
+    {
+        return property switch
+        {
+            MarkupProperty.BorderTopThickness or MarkupProperty.BorderTopColor => "Top" + suffix,
+            MarkupProperty.BorderRightThickness or MarkupProperty.BorderRightColor => "Right" + suffix,
+            MarkupProperty.BorderBottomThickness or MarkupProperty.BorderBottomColor => "Bottom" + suffix,
+            _ => "Left" + suffix,
+        };
     }
 
     private void ApplyAssignmentsToConstraints(StylePlan plan, EmitContext context, string constraintsName)
@@ -961,6 +1010,15 @@ internal sealed partial class DocumentState
     {
         return HasAny(plan, MarkupProperty.Color)
                || HasAny(plan, MarkupProperty.BackgroundColor)
+               || HasAny(plan, MarkupProperty.TextColor)
+               || HasAny(plan, MarkupProperty.BorderTopThickness)
+               || HasAny(plan, MarkupProperty.BorderTopColor)
+               || HasAny(plan, MarkupProperty.BorderRightThickness)
+               || HasAny(plan, MarkupProperty.BorderRightColor)
+               || HasAny(plan, MarkupProperty.BorderBottomThickness)
+               || HasAny(plan, MarkupProperty.BorderBottomColor)
+               || HasAny(plan, MarkupProperty.BorderLeftThickness)
+               || HasAny(plan, MarkupProperty.BorderLeftColor)
                || HasAny(plan, MarkupProperty.Padding)
                || HasAny(plan, MarkupProperty.CornerRadius)
                || HasAny(plan, MarkupProperty.BorderThickness)

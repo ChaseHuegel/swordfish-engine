@@ -900,6 +900,30 @@ internal sealed partial class DocumentState
                     }
                     break;
                 }
+                case MarkupProperty.BorderTopThickness:
+                case MarkupProperty.BorderRightThickness:
+                case MarkupProperty.BorderBottomThickness:
+                case MarkupProperty.BorderLeftThickness:
+                {
+                    int? value = EmitInt(assignment, context);
+                    if (value != null)
+                    {
+                        borderFields[SideField(assignment.Property, "Thickness")] = SideField(assignment.Property, "Thickness") + " = " + value.Value;
+                    }
+                    break;
+                }
+                case MarkupProperty.BorderTopColor:
+                case MarkupProperty.BorderRightColor:
+                case MarkupProperty.BorderBottomColor:
+                case MarkupProperty.BorderLeftColor:
+                {
+                    string? code = EmitColor(assignment, context);
+                    if (code != null)
+                    {
+                        borderFields[SideField(assignment.Property, "Color")] = SideField(assignment.Property, "Color") + " = " + code;
+                    }
+                    break;
+                }
                 case MarkupProperty.CornerCapsLength:
                 {
                     int? value = EmitInt(assignment, context);
@@ -1048,6 +1072,17 @@ internal sealed partial class DocumentState
         }
     }
 
+    private static string SideField(MarkupProperty property, string suffix)
+    {
+        return property switch
+        {
+            MarkupProperty.BorderTopThickness or MarkupProperty.BorderTopColor => "Top" + suffix,
+            MarkupProperty.BorderRightThickness or MarkupProperty.BorderRightColor => "Right" + suffix,
+            MarkupProperty.BorderBottomThickness or MarkupProperty.BorderBottomColor => "Bottom" + suffix,
+            _ => "Left" + suffix,
+        };
+    }
+
     private void ApplyDirectAssignment(MarkupAssignment assignment, RmlElementNode node, EmitContext context)
     {
         string builder = context.Builder;
@@ -1079,6 +1114,15 @@ internal sealed partial class DocumentState
                 }
 
                 context.Writer.Line(builder + ".BackgroundColor = " + code + ";");
+                break;
+            }
+            case MarkupProperty.TextColor:
+            {
+                string? code = EmitColor(assignment, context);
+                if (code != null)
+                {
+                    context.Writer.Line(builder + ".TextColor = " + code + ";");
+                }
                 break;
             }
             case MarkupProperty.Padding:

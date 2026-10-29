@@ -181,6 +181,27 @@ public class RssParserTests
     }
 
     [Fact]
+    public void TextColorAndSideBordersMapToStyleFields()
+    {
+        StyleValueParser.TryParseStylesheet(
+            "text-color",
+            StyleValueParser.TokenizeValue("#ff0000"),
+            Location.None,
+            out List<MarkupAssignment> textColor,
+            out _);
+        Assert.Equal(MarkupProperty.TextColor, textColor[0].Property);
+
+        StyleValueParser.TryParseStylesheet(
+            "border-bottom",
+            StyleValueParser.TokenizeValue("2px #00ff00"),
+            Location.None,
+            out List<MarkupAssignment> border,
+            out _);
+        Assert.Contains(border, assignment => assignment.Property == MarkupProperty.BorderBottomThickness);
+        Assert.Contains(border, assignment => assignment.Property == MarkupProperty.BorderBottomColor);
+    }
+
+    [Fact]
     public void PaddingAndCornerRadiusShorthandsMapToEngineFields()
     {
         StyleValueParser.TryParseStylesheet(

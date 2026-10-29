@@ -14,6 +14,9 @@ public struct StyleOverride
     /// <summary>Background color override.</summary>
     public Vector4? BackgroundColor;
 
+    /// <summary>Inherited text color override.</summary>
+    public Vector4? TextColor;
+
     /// <summary>Padding override.</summary>
     public Padding? Padding;
 

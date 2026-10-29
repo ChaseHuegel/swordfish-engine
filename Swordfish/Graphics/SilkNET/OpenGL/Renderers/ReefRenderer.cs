@@ -179,17 +179,62 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
     {
         BorderStyle border = command.Border;
         IntRect rect = command.Rect;
-        int thickness = Math.Min(border.Thickness, Math.Min(rect.Size.X, rect.Size.Y) / 2);
+        int maxThickness = Math.Min(rect.Size.X, rect.Size.Y) / 2;
 
-        if (thickness <= 0 || border.Color.W <= 0f)
+        AddTopBorder(instance, command, border, rect, maxThickness);
+        AddRightBorder(instance, command, border, rect, maxThickness);
+        AddBottomBorder(instance, command, border, rect, maxThickness);
+        AddLeftBorder(instance, command, border, rect, maxThickness);
+    }
+
+    private void AddTopBorder(InstanceVertexData instance, RenderCommand<Material> command, in BorderStyle border, in IntRect rect, int maxThickness)
+    {
+        int thickness = Math.Min(ResolveThickness(border.TopThickness, border.Thickness), maxThickness);
+        Vector4 color = ResolveColor(border.TopColor, border.Color);
+        if (thickness > 0 && color.W > 0f)
         {
-            return;
+            AddRect(instance, new IntRect(rect.Left, rect.Top, rect.Right, rect.Top + thickness), color, command.ClipRect);
         }
+    }
 
-        AddRect(instance, new IntRect(rect.Left, rect.Top, rect.Right, rect.Top + thickness), border.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Left, rect.Bottom - thickness, rect.Right, rect.Bottom), border.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Bottom - thickness), border.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Bottom - thickness), border.Color, command.ClipRect);
+    private void AddRightBorder(InstanceVertexData instance, RenderCommand<Material> command, in BorderStyle border, in IntRect rect, int maxThickness)
+    {
+        int thickness = Math.Min(ResolveThickness(border.RightThickness, border.Thickness), maxThickness);
+        Vector4 color = ResolveColor(border.RightColor, border.Color);
+        if (thickness > 0 && color.W > 0f)
+        {
+            AddRect(instance, new IntRect(rect.Right - thickness, rect.Top, rect.Right, rect.Bottom), color, command.ClipRect);
+        }
+    }
+
+    private void AddBottomBorder(InstanceVertexData instance, RenderCommand<Material> command, in BorderStyle border, in IntRect rect, int maxThickness)
+    {
+        int thickness = Math.Min(ResolveThickness(border.BottomThickness, border.Thickness), maxThickness);
+        Vector4 color = ResolveColor(border.BottomColor, border.Color);
+        if (thickness > 0 && color.W > 0f)
+        {
+            AddRect(instance, new IntRect(rect.Left, rect.Bottom - thickness, rect.Right, rect.Bottom), color, command.ClipRect);
+        }
+    }
+
+    private void AddLeftBorder(InstanceVertexData instance, RenderCommand<Material> command, in BorderStyle border, in IntRect rect, int maxThickness)
+    {
+        int thickness = Math.Min(ResolveThickness(border.LeftThickness, border.Thickness), maxThickness);
+        Vector4 color = ResolveColor(border.LeftColor, border.Color);
+        if (thickness > 0 && color.W > 0f)
+        {
+            AddRect(instance, new IntRect(rect.Left, rect.Top, rect.Left + thickness, rect.Bottom), color, command.ClipRect);
+        }
+    }
+
+    private static int ResolveThickness(int sideThickness, int fallback)
+    {
+        return sideThickness > 0 ? sideThickness : fallback;
+    }
+
+    private static Vector4 ResolveColor(Vector4 sideColor, Vector4 fallback)
+    {
+        return sideColor.W > 0f ? sideColor : fallback;
     }
 
     private void AddCornerCaps(InstanceVertexData instance, RenderCommand<Material> command)

@@ -35,6 +35,12 @@ public sealed class UIBuilder<TRendererData>
         set => _currentElement.Style.BackgroundColor = value;
     }
 
+    public Vector4 TextColor
+    {
+        get => _currentElement.Style.TextColor;
+        set => _currentElement.Style.TextColor = value;
+    }
+
     public UI.Constraints Constraints
     {
         get => _currentElement.Constraints;
@@ -231,16 +237,20 @@ public sealed class UIBuilder<TRendererData>
             ? fontOptions with { ID = DefaultFontID }
             : fontOptions;
         
+        Vector4 textColor = _hasOpenElement && _currentElement.Style.TextColor.W > 0f
+            ? _currentElement.Style.TextColor
+            : Vector4.One;
         var element = new Element<TRendererData>
         {
             Text = value,
             Style = new Style
             {
-                Color = Vector4.One,
+                Color = textColor,
+                TextColor = textColor,
             },
             FontOptions = effectiveFontOptions,
         };
-        
+
         return OpenElement(element);
     }
     
@@ -436,6 +446,11 @@ public sealed class UIBuilder<TRendererData>
     {
         if (_hasOpenElement)
         {
+            if (element.Style.TextColor.W <= 0f)
+            {
+                element.Style.TextColor = _currentElement.Style.TextColor;
+            }
+
             _openElements.Push(_currentElement);
             _currentElement = element;
             return new Scope(this);

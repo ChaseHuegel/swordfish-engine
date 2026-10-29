@@ -152,12 +152,17 @@
     <xs:attribute name="class" type="xs:string" use="optional" />
     <xs:attribute name="visible" type="BooleanExpressionType" use="optional" />
     <xs:attribute name="color" type="ColorType" use="optional" />
+    <xs:attribute name="text-color" type="ColorType" use="optional" />
     <xs:attribute name="background" type="ColorType" use="optional" />
     <xs:attribute name="padding" type="PaddingType" use="optional" />
     <xs:attribute name="corner-radius" type="CornerRadiusType" use="optional" />
     <xs:attribute name="border" type="BorderType" use="optional" />
     <xs:attribute name="border-width" type="IntegerType" use="optional" />
     <xs:attribute name="border-color" type="ColorType" use="optional" />
+    <xs:attribute name="border-top" type="BorderType" use="optional" />
+    <xs:attribute name="border-right" type="BorderType" use="optional" />
+    <xs:attribute name="border-bottom" type="BorderType" use="optional" />
+    <xs:attribute name="border-left" type="BorderType" use="optional" />
     <xs:attribute name="corner-caps" type="CornerCapsType" use="optional" />
     <xs:attribute name="corner-caps-length" type="IntegerType" use="optional" />
     <xs:attribute name="corner-caps-thickness" type="IntegerType" use="optional" />
@@ -192,6 +197,7 @@
   <xs:attributeGroup name="LayoutAttributes">
     <xs:attribute name="layout" type="LayoutType" use="optional" />
     <xs:attribute name="spacing" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="gap" type="IntegerExpressionType" use="optional" />
   </xs:attributeGroup>
 
   <xs:attributeGroup name="InteractionAttributes">
