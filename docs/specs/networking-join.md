@@ -52,11 +52,12 @@ save levels. Level data is streamed to the client during join.
    `RpcContext.TryStream`, and aborts on a rejected send. The final result is
    `RpcResult<LevelStreamComplete>`.
 
-4. **Build the view.** The client ECS tick drains `ClientInbound.LevelChunks`,
-   reassembles each entity with `FragmentAssembler`, and builds a view entity
-   (mesh plus a local prediction collider). A rejected part fails the join. It
-   enters `Playing` only after the stream response lands and every chunk
-   applied.
+4. **Build the view.** The client ECS tick drains `ClientInbound.LevelChunks`
+   and reassembles each entity with `FragmentAssembler`. The system dispatches
+   entity deserialization, meshing, collider building, and component assignment
+   to worker tasks (`Task.Run`). A rejected part fails the join. The client
+   enters `Playing` only after the stream response lands and all worker build
+   tasks finish.
 
 ## Worlds and routing
 

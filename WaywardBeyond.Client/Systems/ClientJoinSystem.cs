@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,8 +22,8 @@ namespace WaywardBeyond.Client.Systems;
 /// Runs the client side of the join handshake and world stream, driving
 /// <c>MainMenu → Loading → Playing</c>. The join is a correlated RPC call. On success the system seats
 /// the local player at the server-assigned spawn, resets session-scoped prediction state, starts the
-/// level stream call with the inbound queue as its chunk sink, reassembles each entity on the ECS
-/// thread, and enters <c>Playing</c> only after the stream response lands and every chunk applied.
+/// level stream call with the inbound queue as its chunk sink, offloads entity building to worker tasks,
+/// and enters <c>Playing</c> only after the stream response lands and every chunk applied.
 /// </summary>
 internal sealed class ClientJoinSystem : IEntitySystem
 {
@@ -39,6 +40,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
 
     private readonly ConcurrentQueue<JoinRequestData> _requests = new();
     private readonly FragmentAssembler _levelAssembler = new();
+    private readonly List<Task> _pendingBuilds = [];
 
     private JoinRequestData? _request;
     private Task<RpcResult<JoinAccept>>? _joinTask;
@@ -98,6 +100,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         _joinTask = null;
         _streamTask = null;
         _levelAssembler.Reset();
+        _pendingBuilds.Clear();
         while (_inbound.LevelChunks.TryDequeue(out _)) { }
         _timeout?.Dispose();
         _timeout = new CancellationTokenSource(Math.Max(1, _config.Protocol.JoinStreamTimeoutMs.Get()));
@@ -179,25 +182,47 @@ internal sealed class ClientJoinSystem : IEntitySystem
             return;
         }
 
+        PruneCompletedBuilds();
+
         if (_streamTask == null || !_streamTask.IsCompleted)
         {
             CheckTimeout();
             return;
         }
 
-        RpcResult<LevelStreamComplete> result = _streamTask.GetAwaiter().GetResult();
-        _streamTask = null;
-
-        //  The response follows every chunk on the ordered transport, but drain once more so a chunk
-        //  handed to the queue by the receive pump is never left behind.
-        DrainLevelChunks(store);
+        RpcResult<LevelStreamComplete> result;
+        try
+        {
+            result = _streamTask.GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _streamTask = null;
+            _logger.LogWarning(ex, "World stream faulted.");
+            FailJoin();
+            return;
+        }
 
         if (!result.IsSuccess)
         {
+            _streamTask = null;
             _logger.LogWarning("World stream failed: {message}.", result.ErrorMessage);
             FailJoin();
             return;
         }
+
+        //  The stream response follows every chunk on the ordered transport, but drain once more so a chunk
+        //  handed to the queue by the receive pump is never left behind.
+        DrainLevelChunks(store);
+        PruneCompletedBuilds();
+
+        if (_pendingBuilds.Count > 0)
+        {
+            CheckTimeout();
+            return;
+        }
+
+        _streamTask = null;
 
         if (_levelAssembler.IsActive)
         {
@@ -231,7 +256,25 @@ internal sealed class ClientJoinSystem : IEntitySystem
 
             if (state == FragmentState.Complete)
             {
-                BuildViewEntity(VoxelEntityData.Deserialize(payload), store);
+                byte[] completedPayload = payload;
+                CancellationToken token = _timeout?.Token ?? CancellationToken.None;
+                _pendingBuilds.Add(Task.Run(() =>
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        BuildViewEntity(VoxelEntityData.Deserialize(completedPayload), store);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to build streamed voxel entity.");
+                        throw;
+                    }
+                }, token));
                 continue;
             }
 
@@ -242,6 +285,27 @@ internal sealed class ClientJoinSystem : IEntitySystem
                 FailJoin();
                 return;
             }
+        }
+    }
+
+    private void PruneCompletedBuilds()
+    {
+        for (int i = _pendingBuilds.Count - 1; i >= 0; i--)
+        {
+            Task task = _pendingBuilds[i];
+            if (!task.IsCompleted)
+            {
+                continue;
+            }
+            
+            if (task.IsFaulted)
+            {
+                _logger.LogWarning("World stream failed: a worker build task faulted.");
+                FailJoin();
+                return;
+            }
+
+            _pendingBuilds.RemoveAt(i);
         }
     }
 
@@ -260,6 +324,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
     {
         _host.Api?.LeaveGame(new LeaveGameRequest());
         while (_inbound.LevelChunks.TryDequeue(out _)) { }
+        _timeout?.Cancel();
         ResetJoin();
         _disconnectSystem.RequestDisconnect();
     }
@@ -273,6 +338,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         _levelAssembler.Reset();
         _timeout?.Dispose();
         _timeout = null;
+        _pendingBuilds.Clear();
     }
 
     private void SeatPlayer(in JoinAccept accept, in Character character, DataStore store)
@@ -338,15 +404,9 @@ internal sealed class ClientJoinSystem : IEntitySystem
         );
     }
 
-    private readonly struct JoinRequestData
+    private readonly struct JoinRequestData(in Character character, string levelGuid)
     {
-        public readonly Character Character;
-        public readonly string LevelGuid;
-
-        public JoinRequestData(in Character character, string levelGuid)
-        {
-            Character = character;
-            LevelGuid = levelGuid;
-        }
+        public readonly Character Character = character;
+        public readonly string LevelGuid = levelGuid;
     }
 }

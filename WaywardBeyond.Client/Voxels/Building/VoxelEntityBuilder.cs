@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
@@ -24,7 +24,9 @@ internal sealed class VoxelEntityBuilder(
     private readonly IVoxelEntityDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = voxelObjectBuilder;
     
-    private readonly HashSet<int> _updatedEntities = [];
+    [ThreadStatic]
+    private static HashSet<int>? _updatedEntities;
+    private static HashSet<int> UpdatedEntities => _updatedEntities ??= [];
 
     private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
     
@@ -114,6 +116,9 @@ internal sealed class VoxelEntityBuilder(
             store.AddOrUpdate(transparencyEntity, new MeshRendererComponent(renderer));
         }
         
+        HashSet<int> updatedEntities = UpdatedEntities;
+        updatedEntities.Clear();
+
         //  Update any existing entities and cleanup old ones
         store.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
         void ForEachVoxelEntity(float delta, DataStore store, int voxelEntity, in VoxelIdentifierComponent voxelIdentifier, in ChildComponent child)
@@ -137,7 +142,7 @@ internal sealed class VoxelEntityBuilder(
                     _decorators[n].Process(store, parent: entity, voxelEntity, voxelComponent, voxelInfo);
                 }
                 
-                _updatedEntities.Add(i);
+                updatedEntities.Add(i);
                 return;
             }
             
@@ -148,7 +153,7 @@ internal sealed class VoxelEntityBuilder(
         //  Init any new entities
         for (var i = 0; i < data.VoxelEntities.Count; i++)
         {
-            if (_updatedEntities.Contains(i))
+            if (updatedEntities.Contains(i))
             {
                 continue;
             }
@@ -169,6 +174,6 @@ internal sealed class VoxelEntityBuilder(
                 _decorators[n].Process(store, parent: entity, voxelEntity, voxelComponent, voxelInfo);
             }
         }
-        _updatedEntities.Clear();
+        updatedEntities.Clear();
     }
 }

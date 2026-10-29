@@ -100,6 +100,47 @@ public class ClientRpcTests
         Assert.True(gameClient.IsConnected);
     }
 
+    [Fact]
+    public void ClientHandlersDirectlyRecordsServerHeartbeatStats()
+    {
+        var inbound = new ClientInbound();
+        var stats = new ServerStats();
+        var handlers = new ClientHandlers(inbound, stats);
+
+        var heartbeat = new WaywardBeyond.Data.Networking.ServerHeartbeatMessage
+        {
+            TPS = 30,
+            PlayerCount = 4,
+            TickNumber = 1234,
+        };
+
+        handlers.OnServerHeartbeat(heartbeat, default, default);
+
+        Assert.Equal(30u, stats.TPS);
+        Assert.Equal(4u, stats.PlayerCount);
+        Assert.Equal(1234u, stats.ServerTick);
+        Assert.False(stats.IsStale(2000));
+    }
+
+    [Fact]
+    public void ClientHeartbeatIntervalClampsBelowIdleTimeout()
+    {
+        var config = new NetworkingConfig();
+        config.Protocol.HeartbeatIntervalMs.Set(1000);
+        config.Transport.IdleTimeoutMs.Set(5000);
+
+        int interval = ClientHeartbeatService.GetServerHeartbeatInterval(config);
+        Assert.Equal(1000, interval);
+
+        config.Transport.IdleTimeoutMs.Set(1500);
+        interval = ClientHeartbeatService.GetServerHeartbeatInterval(config);
+        Assert.Equal(750, interval);
+
+        config.Transport.IdleTimeoutMs.Set(300);
+        interval = ClientHeartbeatService.GetServerHeartbeatInterval(config);
+        Assert.Equal(250, interval);
+    }
+
     private static async Task<RpcResult<ListLevelsResponse>> ListLevelsAsync(
         ClientRpcHost host,
         ServerHostCommands commands

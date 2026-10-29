@@ -111,7 +111,10 @@ Session heartbeats are RPC notifications, not transport keepalives.
 - The server sends `ServerHeartbeat` to bound peers from
   `ServerHeartbeatService`, and to unbound menu peers from
   `PendingConnectionHeartbeat`.
-- The client sends `ClientHeartbeat` from `ClientHeartbeatSystem`.
+- The client sends `ClientHeartbeat` from `ClientHeartbeatService` on a
+  timer-driven service, decoupled from the ECS tick loop.
+- Inbound `ServerHeartbeat` frames record `ServerStats` immediately on the
+  network receive thread.
 - Every inbound handler stamps `ServerPeer.LastInboundTicks`.
 - The heartbeat cadence is clamped below `IdleTimeoutMs`.
 - The server logs a warning when a client's reported sim tick falls behind by
@@ -237,6 +240,6 @@ disposal. A LAN listen failure exits non-zero.
 - `WaywardBeyond.Server/PendingConnectionHeartbeat.cs`
 - `WaywardBeyond.Server/LanHost.cs`
 - `WaywardBeyond.Server/SessionManager.cs`
-- `WaywardBeyond.Client/Networking/{ClientRpcHost,ClientInbound,ClientHandlers,LanDiscoveryService}.cs`
+- `WaywardBeyond.Client/Networking/{ClientRpcHost,ClientInbound,ClientHandlers,ClientHeartbeatService,LanDiscoveryService}.cs`
 - `WaywardBeyond.Config/{NetworkingConfig,NetworkingConfigExtensions,TransportConfig,ProtocolConfig,ServerConfig}.cs`
 - `WaywardBeyond.Server.Launcher/config/network.toml`

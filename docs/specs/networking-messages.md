@@ -182,7 +182,8 @@ reliable send queue with every other server event.
 and lag signal at `NetworkingConfig.Protocol.HeartbeatIntervalMs`. The server
 emits to every accepted connection from establishment: the per-world
 `ServerHeartbeatService` covers peers bound to a world, and the host-level
-`PendingConnectionHeartbeat` covers unbound menu peers. See
+`PendingConnectionHeartbeat` covers unbound menu peers. The client emits via
+`ClientHeartbeatService` on a background timer. See
 [transports](networking-transports.md#heartbeats).
 
 ```nsd
