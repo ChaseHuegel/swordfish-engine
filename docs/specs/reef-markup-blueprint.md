@@ -305,6 +305,10 @@ lists and fail the build on severe issues:
      styling `using (ui.Element())` scope.
    - Sizing and padding assignments use pre-calculated constants, including
      `MinWidth`, `MinHeight`, `MaxWidth`, and `MaxHeight`.
+   - Coalesces composite struct assignments (`Constraints`, `FontOptions`,
+     `CornerCaps`, `Border`) into single compound `with` expressions per style layer.
+     This eliminates redundant struct reads, stack copies, and getter/setter call
+     overhead in the per-frame render loop.
    - Emits `ui.Overlay = true;` when the element escapes parent clipping.
    - Emits `ui.HorizontalAlignment`, `ui.VerticalAlignment`, and `NoWrap` for
      text elements.

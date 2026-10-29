@@ -139,9 +139,8 @@ public class StyleEmissionTests
         // base2 overrides base1 color (#0000ff instead of #ff0000)
         Assert.Contains("ui.Color = new global::System.Numerics.Vector4(0f, 0f, 1f, 1f);", result.GeneratedText);
         Assert.DoesNotContain("ui.Color = new global::System.Numerics.Vector4(1f, 0f, 0f, 1f);", result.GeneratedText);
-        // child defines border
-        Assert.Contains("ui.Border = ui.Border with { Thickness = 1 };", result.GeneratedText);
-        Assert.Contains("ui.Border = ui.Border with { Color = new global::System.Numerics.Vector4(1f, 1f, 1f, 1f) };", result.GeneratedText);
+        // child defines border (coalesced)
+        Assert.Contains("ui.Border = ui.Border with { Thickness = 1, Color = new global::System.Numerics.Vector4(1f, 1f, 1f, 1f) };", result.GeneratedText);
     }
 
     [Fact]
@@ -170,5 +169,31 @@ public class StyleEmissionTests
         // GameTheme.rss overrides color (#00ff00 instead of #ff0000)
         Assert.Contains("ui.Color = new global::System.Numerics.Vector4(0f, 1f, 0f, 1f);", result.GeneratedText);
         Assert.DoesNotContain("ui.Color = new global::System.Numerics.Vector4(1f, 0f, 0f, 1f);", result.GeneratedText);
+    }
+
+    [Fact]
+    public void CompositeAssignmentsAreCoalescedIntoSingleWithExpressions()
+    {
+        MarkupCompilation result = MarkupTestHost.Compile("""
+            <Reef xmlns="Reef" Class="Notice">
+                <Element width="100%" height="100%" min-width="520" max-width="760" anchors="center">
+                    <Text text="Hello" font="'Salmon Mono 9 Regular'" size="24" align="center" valign="center" width="fill" height="30" />
+                </Element>
+            </Reef>
+            """, """
+            namespace ReefMarkupTest
+            {
+                public partial class Notice
+                {
+                }
+            }
+            """);
+        Assert.Empty(result.Errors);
+        // Element constraints are emitted in a single compound with expression
+        Assert.Contains("ui.Constraints = ui.Constraints with { Width = new global::Reef.UI.Relative(1f), Height = new global::Reef.UI.Relative(1f), MinWidth = 520, MaxWidth = 760, Anchors = global::Reef.UI.Anchors.Center };", result.GeneratedText);
+        // Text font options are coalesced together without interleaving
+        Assert.Contains("ui.FontOptions = ui.FontOptions with { ID = \"Salmon Mono 9 Regular\", Size = 24, HorizontalAlignment = global::Reef.UI.HorizontalAlignment.Center, VerticalAlignment = global::Reef.UI.VerticalAlignment.Center };", result.GeneratedText);
+        // Text constraints are coalesced together without interleaving
+        Assert.Contains("ui.Constraints = ui.Constraints with { Width = new global::Reef.Constraints.Fill(), Height = new global::Reef.Constraints.Fixed(30) };", result.GeneratedText);
     }
 }

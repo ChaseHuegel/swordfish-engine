@@ -555,6 +555,7 @@ internal sealed partial class DocumentState
             needsId = true;
         }
 
+        StyleLayer? inlineLayer = null;
         for (var i = 0; i < node.Attributes.Count; i++)
         {
             RmlAttribute attribute = node.Attributes[i];
@@ -599,9 +600,13 @@ internal sealed partial class DocumentState
 
             if (assignments.Count > 0)
             {
-                var layer = new StyleLayer(RssPseudoState.None, attribute.Location);
-                layer.Assignments.AddRange(assignments);
-                plan.Inline.Add(layer);
+                if (inlineLayer == null)
+                {
+                    inlineLayer = new StyleLayer(RssPseudoState.None, attribute.Location);
+                    plan.Inline.Add(inlineLayer);
+                }
+
+                inlineLayer.Assignments.AddRange(assignments);
             }
         }
 
@@ -819,6 +824,8 @@ internal sealed partial class DocumentState
 
     private void ApplyLayers(List<StyleLayer> layers, RssPseudoState state, RmlElementNode node, EmitContext context)
     {
+        var unconditionalAssignments = new List<MarkupAssignment>();
+
         for (var i = 0; i < layers.Count; i++)
         {
             StyleLayer layer = layers[i];
@@ -829,6 +836,12 @@ internal sealed partial class DocumentState
 
             if (layer.ConditionRaw != null)
             {
+                if (unconditionalAssignments.Count > 0)
+                {
+                    ApplyAssignments(unconditionalAssignments, node, context);
+                    unconditionalAssignments.Clear();
+                }
+
                 string? condition = EmitTypedExpression(
                     layer.ConditionRaw,
                     Compilation.GetSpecialType(SpecialType.System_Boolean),
@@ -846,19 +859,196 @@ internal sealed partial class DocumentState
                 continue;
             }
 
-            ApplyAssignments(layer.Assignments, node, context);
+            unconditionalAssignments.AddRange(layer.Assignments);
+        }
+
+        if (unconditionalAssignments.Count > 0)
+        {
+            ApplyAssignments(unconditionalAssignments, node, context);
         }
     }
 
     private void ApplyAssignments(List<MarkupAssignment> assignments, RmlElementNode node, EmitContext context)
     {
+        string builder = context.Builder;
+        var directAssignments = new List<MarkupAssignment>();
+        var borderFields = new Dictionary<string, string>(StringComparer.Ordinal);
+        var cornerCapsFields = new Dictionary<string, string>(StringComparer.Ordinal);
+        var fontFields = new Dictionary<string, string>(StringComparer.Ordinal);
+        var constraintFields = new Dictionary<string, string>(StringComparer.Ordinal);
+
         for (var i = 0; i < assignments.Count; i++)
         {
-            ApplyAssignment(assignments[i], node, context);
+            MarkupAssignment assignment = assignments[i];
+            switch (assignment.Property)
+            {
+                case MarkupProperty.BorderThickness:
+                {
+                    int? value = EmitInt(assignment, context);
+                    if (value != null)
+                    {
+                        borderFields["Thickness"] = "Thickness = " + value.Value;
+                    }
+                    break;
+                }
+                case MarkupProperty.BorderColor:
+                {
+                    string? code = EmitColor(assignment, context);
+                    if (code != null)
+                    {
+                        borderFields["Color"] = "Color = " + code;
+                    }
+                    break;
+                }
+                case MarkupProperty.CornerCapsLength:
+                {
+                    int? value = EmitInt(assignment, context);
+                    if (value != null)
+                    {
+                        cornerCapsFields["Length"] = "Length = " + value.Value;
+                    }
+                    break;
+                }
+                case MarkupProperty.CornerCapsThickness:
+                {
+                    int? value = EmitInt(assignment, context);
+                    if (value != null)
+                    {
+                        cornerCapsFields["Thickness"] = "Thickness = " + value.Value;
+                    }
+                    break;
+                }
+                case MarkupProperty.CornerCapsColor:
+                {
+                    string? code = EmitColor(assignment, context);
+                    if (code != null)
+                    {
+                        cornerCapsFields["Color"] = "Color = " + code;
+                    }
+                    break;
+                }
+                case MarkupProperty.FontSize:
+                {
+                    int? value = EmitInt(assignment, context);
+                    if (value != null)
+                    {
+                        fontFields["Size"] = "Size = " + value.Value;
+                    }
+                    break;
+                }
+                case MarkupProperty.FontID:
+                {
+                    string? code = EmitStringValue(assignment, context);
+                    if (code != null)
+                    {
+                        fontFields["ID"] = "ID = " + code;
+                    }
+                    break;
+                }
+                case MarkupProperty.HorizontalAlignment:
+                {
+                    MarkupHorizontalAlignment value = (MarkupHorizontalAlignment)assignment.Value;
+                    string enumValue = value switch
+                    {
+                        MarkupHorizontalAlignment.Center => "Center",
+                        MarkupHorizontalAlignment.Right => "Right",
+                        _ => "Left",
+                    };
+                    fontFields["HorizontalAlignment"] = "HorizontalAlignment = global::Reef.UI.HorizontalAlignment." + enumValue;
+                    break;
+                }
+                case MarkupProperty.VerticalAlignment:
+                {
+                    MarkupVerticalAlignment value = (MarkupVerticalAlignment)assignment.Value;
+                    string enumValue = value switch
+                    {
+                        MarkupVerticalAlignment.Center => "Center",
+                        MarkupVerticalAlignment.Bottom => "Bottom",
+                        _ => "Top",
+                    };
+                    fontFields["VerticalAlignment"] = "VerticalAlignment = global::Reef.UI.VerticalAlignment." + enumValue;
+                    break;
+                }
+                case MarkupProperty.NoWrap:
+                {
+                    bool? value = EmitBool(assignment, context);
+                    if (value != null)
+                    {
+                        fontFields["NoWrap"] = "NoWrap = " + (value.Value ? "true" : "false");
+                    }
+                    break;
+                }
+                case MarkupProperty.Width:
+                case MarkupProperty.Height:
+                case MarkupProperty.X:
+                case MarkupProperty.Y:
+                {
+                    string? code = EmitConstraint(assignment, context);
+                    if (code != null)
+                    {
+                        string property = assignment.Property switch
+                        {
+                            MarkupProperty.Width => "Width",
+                            MarkupProperty.Height => "Height",
+                            MarkupProperty.X => "X",
+                            _ => "Y",
+                        };
+                        constraintFields[property] = property + " = " + code;
+                    }
+                    break;
+                }
+                case MarkupProperty.MinWidth:
+                case MarkupProperty.MinHeight:
+                case MarkupProperty.MaxWidth:
+                case MarkupProperty.MaxHeight:
+                {
+                    int? value = EmitInt(assignment, context);
+                    if (value != null)
+                    {
+                        string property = assignment.Property.ToString();
+                        constraintFields[property] = property + " = " + value.Value;
+                    }
+                    break;
+                }
+                case MarkupProperty.Anchors:
+                {
+                    MarkupAnchors anchors = (MarkupAnchors)assignment.Value;
+                    constraintFields["Anchors"] = "Anchors = " + BuildAnchors(anchors);
+                    break;
+                }
+                default:
+                    directAssignments.Add(assignment);
+                    break;
+            }
+        }
+
+        for (var i = 0; i < directAssignments.Count; i++)
+        {
+            ApplyDirectAssignment(directAssignments[i], node, context);
+        }
+
+        if (borderFields.Count > 0)
+        {
+            context.Writer.Line(builder + ".Border = " + builder + ".Border with { " + string.Join(", ", borderFields.Values) + " };");
+        }
+
+        if (cornerCapsFields.Count > 0)
+        {
+            context.Writer.Line(builder + ".CornerCaps = " + builder + ".CornerCaps with { " + string.Join(", ", cornerCapsFields.Values) + " };");
+        }
+
+        if (fontFields.Count > 0)
+        {
+            context.Writer.Line(builder + ".FontOptions = " + builder + ".FontOptions with { " + string.Join(", ", fontFields.Values) + " };");
+        }
+
+        if (constraintFields.Count > 0)
+        {
+            context.Writer.Line(builder + ".Constraints = " + builder + ".Constraints with { " + string.Join(", ", constraintFields.Values) + " };");
         }
     }
 
-    private void ApplyAssignment(MarkupAssignment assignment, RmlElementNode node, EmitContext context)
+    private void ApplyDirectAssignment(MarkupAssignment assignment, RmlElementNode node, EmitContext context)
     {
         string builder = context.Builder;
         switch (assignment.Property)
@@ -907,57 +1097,6 @@ internal sealed partial class DocumentState
                     + ", topRight: " + values[1] + ", bottomLeft: " + values[2] + ", bottomRight: " + values[3] + ");");
                 break;
             }
-            case MarkupProperty.BorderThickness:
-            {
-                int? value = EmitInt(assignment, context);
-                if (value == null)
-                {
-                    return;
-                }
-
-                context.Writer.Line(builder + ".Border = " + builder + ".Border with { Thickness = " + value.Value + " };");
-                break;
-            }
-            case MarkupProperty.BorderColor:
-            {
-                string? code = EmitColor(assignment, context);
-                if (code != null)
-                {
-                    context.Writer.Line(builder + ".Border = " + builder + ".Border with { Color = " + code + " };");
-                }
-
-                break;
-            }
-            case MarkupProperty.CornerCapsLength:
-            {
-                int? value = EmitInt(assignment, context);
-                if (value != null)
-                {
-                    context.Writer.Line(builder + ".CornerCaps = " + builder + ".CornerCaps with { Length = " + value.Value + " };");
-                }
-
-                break;
-            }
-            case MarkupProperty.CornerCapsThickness:
-            {
-                int? value = EmitInt(assignment, context);
-                if (value != null)
-                {
-                    context.Writer.Line(builder + ".CornerCaps = " + builder + ".CornerCaps with { Thickness = " + value.Value + " };");
-                }
-
-                break;
-            }
-            case MarkupProperty.CornerCapsColor:
-            {
-                string? code = EmitColor(assignment, context);
-                if (code != null)
-                {
-                    context.Writer.Line(builder + ".CornerCaps = " + builder + ".CornerCaps with { Color = " + code + " };");
-                }
-
-                break;
-            }
             case MarkupProperty.Overlay:
             {
                 bool? value = EmitBool(assignment, context);
@@ -966,103 +1105,6 @@ internal sealed partial class DocumentState
                     context.Writer.Line(builder + ".Overlay = " + (value.Value ? "true" : "false") + ";");
                 }
 
-                break;
-            }
-            case MarkupProperty.FontSize:
-            {
-                int? value = EmitInt(assignment, context);
-                if (value != null)
-                {
-                    context.Writer.Line(builder + ".FontOptions = " + builder + ".FontOptions with { Size = " + value.Value + " };");
-                }
-
-                break;
-            }
-            case MarkupProperty.FontID:
-            {
-                string? code = EmitStringValue(assignment, context);
-                if (code != null)
-                {
-                    context.Writer.Line(builder + ".FontOptions = " + builder + ".FontOptions with { ID = " + code + " };");
-                }
-
-                break;
-            }
-            case MarkupProperty.HorizontalAlignment:
-            {
-                MarkupHorizontalAlignment value = (MarkupHorizontalAlignment)assignment.Value;
-                string enumValue = value switch
-                {
-                    MarkupHorizontalAlignment.Center => "Center",
-                    MarkupHorizontalAlignment.Right => "Right",
-                    _ => "Left",
-                };
-                context.Writer.Line(
-                    builder + ".FontOptions = " + builder + ".FontOptions with { HorizontalAlignment = global::Reef.UI.HorizontalAlignment." + enumValue + " };");
-                break;
-            }
-            case MarkupProperty.VerticalAlignment:
-            {
-                MarkupVerticalAlignment value = (MarkupVerticalAlignment)assignment.Value;
-                string enumValue = value switch
-                {
-                    MarkupVerticalAlignment.Center => "Center",
-                    MarkupVerticalAlignment.Bottom => "Bottom",
-                    _ => "Top",
-                };
-                context.Writer.Line(
-                    builder + ".FontOptions = " + builder + ".FontOptions with { VerticalAlignment = global::Reef.UI.VerticalAlignment." + enumValue + " };");
-                break;
-            }
-            case MarkupProperty.NoWrap:
-            {
-                bool? value = EmitBool(assignment, context);
-                if (value != null)
-                {
-                    context.Writer.Line(builder + ".FontOptions = " + builder + ".FontOptions with { NoWrap = " + (value.Value ? "true" : "false") + " };");
-                }
-
-                break;
-            }
-            case MarkupProperty.Width:
-            case MarkupProperty.Height:
-            case MarkupProperty.X:
-            case MarkupProperty.Y:
-            {
-                string? code = EmitConstraint(assignment, context);
-                if (code == null)
-                {
-                    return;
-                }
-
-                string property = assignment.Property switch
-                {
-                    MarkupProperty.Width => "Width",
-                    MarkupProperty.Height => "Height",
-                    MarkupProperty.X => "X",
-                    _ => "Y",
-                };
-                context.Writer.Line(builder + ".Constraints = " + builder + ".Constraints with { " + property + " = " + code + " };");
-                break;
-            }
-            case MarkupProperty.MinWidth:
-            case MarkupProperty.MinHeight:
-            case MarkupProperty.MaxWidth:
-            case MarkupProperty.MaxHeight:
-            {
-                int? value = EmitInt(assignment, context);
-                if (value != null)
-                {
-                    string property = assignment.Property.ToString();
-                    context.Writer.Line(builder + ".Constraints = " + builder + ".Constraints with { " + property + " = " + value.Value + " };");
-                }
-
-                break;
-            }
-            case MarkupProperty.Anchors:
-            {
-                MarkupAnchors anchors = (MarkupAnchors)assignment.Value;
-                context.Writer.Line(builder + ".Constraints = " + builder + ".Constraints with { Anchors = " + BuildAnchors(anchors) + " };");
                 break;
             }
             case MarkupProperty.Layout:

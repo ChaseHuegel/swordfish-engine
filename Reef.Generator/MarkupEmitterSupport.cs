@@ -72,35 +72,18 @@ internal sealed partial class DocumentState
 
     private static void WriteConstraintOverride(CodeWriter writer, string builder, string constraintsName)
     {
-        writer.Line("if (" + constraintsName + ".Anchors is { } anchors)");
-        writer.Open();
-        writer.Line(builder + ".Constraints = " + builder + ".Constraints with { Anchors = anchors };");
-        writer.Close();
-
-        WriteConstraintField(writer, builder, constraintsName, "X", "X");
-        WriteConstraintField(writer, builder, constraintsName, "Y", "Y");
-        WriteConstraintField(writer, builder, constraintsName, "Width", "Width");
-        WriteConstraintField(writer, builder, constraintsName, "Height", "Height");
-        WriteIntField(writer, builder, constraintsName, "MinWidth", "MinWidth");
-        WriteIntField(writer, builder, constraintsName, "MinHeight", "MinHeight");
-        WriteIntField(writer, builder, constraintsName, "MaxWidth", "MaxWidth");
-        WriteIntField(writer, builder, constraintsName, "MaxHeight", "MaxHeight");
-    }
-
-    private static void WriteConstraintField(CodeWriter writer, string builder, string source, string sourceName, string targetName)
-    {
-        writer.Line("if (" + source + "." + sourceName + " != null)");
-        writer.Open();
-        writer.Line(builder + ".Constraints = " + builder + ".Constraints with { " + targetName + " = " + source + "." + sourceName + " };");
-        writer.Close();
-    }
-
-    private static void WriteIntField(CodeWriter writer, string builder, string source, string sourceName, string targetName)
-    {
-        writer.Line("if (" + source + "." + sourceName + " is { } " + sourceName.ToLowerInvariant() + "Value)");
-        writer.Open();
-        writer.Line(builder + ".Constraints = " + builder + ".Constraints with { " + targetName + " = " + sourceName.ToLowerInvariant() + "Value };");
-        writer.Close();
+        string local = "__c";
+        writer.Line("global::Reef.UI.Constraints " + local + " = " + builder + ".Constraints;");
+        writer.Line("if (" + constraintsName + ".Anchors is { } anchors) " + local + ".Anchors = anchors;");
+        writer.Line("if (" + constraintsName + ".X != null) " + local + ".X = " + constraintsName + ".X;");
+        writer.Line("if (" + constraintsName + ".Y != null) " + local + ".Y = " + constraintsName + ".Y;");
+        writer.Line("if (" + constraintsName + ".Width != null) " + local + ".Width = " + constraintsName + ".Width;");
+        writer.Line("if (" + constraintsName + ".Height != null) " + local + ".Height = " + constraintsName + ".Height;");
+        writer.Line("if (" + constraintsName + ".MinWidth is { } minWidth) " + local + ".MinWidth = minWidth;");
+        writer.Line("if (" + constraintsName + ".MinHeight is { } minHeight) " + local + ".MinHeight = minHeight;");
+        writer.Line("if (" + constraintsName + ".MaxWidth is { } maxWidth) " + local + ".MaxWidth = maxWidth;");
+        writer.Line("if (" + constraintsName + ".MaxHeight is { } maxHeight) " + local + ".MaxHeight = maxHeight;");
+        writer.Line(builder + ".Constraints = " + local + ";");
     }
 
     private void EmitClip(RmlElementNode node, EmitContext context)

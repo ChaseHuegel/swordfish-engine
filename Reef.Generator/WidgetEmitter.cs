@@ -811,6 +811,7 @@ internal sealed partial class DocumentState
                 continue;
             }
 
+            var fields = new Dictionary<string, string>(StringComparer.Ordinal);
             for (var j = 0; j < layer.Assignments.Count; j++)
             {
                 MarkupAssignment assignment = layer.Assignments[j];
@@ -831,7 +832,7 @@ internal sealed partial class DocumentState
                         string? code = EmitConstraint(assignment, context);
                         if (code != null)
                         {
-                            context.Writer.Line(constraintsName + " = " + constraintsName + " with { " + property + " = " + code + " };");
+                            fields[property] = property + " = " + code;
                         }
 
                         break;
@@ -844,7 +845,7 @@ internal sealed partial class DocumentState
                         int? value = EmitInt(assignment, context);
                         if (value != null)
                         {
-                            context.Writer.Line(constraintsName + " = " + constraintsName + " with { " + assignment.Property + " = " + value.Value + " };");
+                            fields[assignment.Property.ToString()] = assignment.Property + " = " + value.Value;
                         }
 
                         break;
@@ -852,10 +853,15 @@ internal sealed partial class DocumentState
                     case MarkupProperty.Anchors:
                     {
                         MarkupAnchors anchors = (MarkupAnchors)assignment.Value;
-                        context.Writer.Line(constraintsName + " = " + constraintsName + " with { Anchors = " + BuildAnchors(anchors) + " };");
+                        fields["Anchors"] = "Anchors = " + BuildAnchors(anchors);
                         break;
                     }
                 }
+            }
+
+            if (fields.Count > 0)
+            {
+                context.Writer.Line(constraintsName + " = " + constraintsName + " with { " + string.Join(", ", fields.Values) + " };");
             }
         }
     }
@@ -881,6 +887,7 @@ internal sealed partial class DocumentState
                 continue;
             }
 
+            var fields = new Dictionary<string, string>(StringComparer.Ordinal);
             for (var j = 0; j < layer.Assignments.Count; j++)
             {
                 MarkupAssignment assignment = layer.Assignments[j];
@@ -891,7 +898,7 @@ internal sealed partial class DocumentState
                         int? value = EmitInt(assignment, context);
                         if (value != null)
                         {
-                            context.Writer.Line(fontName + " = " + fontName + " with { Size = " + value.Value + " };");
+                            fields["Size"] = "Size = " + value.Value;
                         }
 
                         break;
@@ -901,7 +908,7 @@ internal sealed partial class DocumentState
                         string? code = EmitStringValue(assignment, context);
                         if (code != null)
                         {
-                            context.Writer.Line(fontName + " = " + fontName + " with { ID = " + code + " };");
+                            fields["ID"] = "ID = " + code;
                         }
 
                         break;
@@ -915,7 +922,7 @@ internal sealed partial class DocumentState
                             MarkupHorizontalAlignment.Right => "Right",
                             _ => "Left",
                         };
-                        context.Writer.Line(fontName + " = " + fontName + " with { HorizontalAlignment = global::Reef.UI.HorizontalAlignment." + value + " };");
+                        fields["HorizontalAlignment"] = "HorizontalAlignment = global::Reef.UI.HorizontalAlignment." + value;
                         break;
                     }
                     case MarkupProperty.VerticalAlignment:
@@ -927,7 +934,7 @@ internal sealed partial class DocumentState
                             MarkupVerticalAlignment.Bottom => "Bottom",
                             _ => "Top",
                         };
-                        context.Writer.Line(fontName + " = " + fontName + " with { VerticalAlignment = global::Reef.UI.VerticalAlignment." + value + " };");
+                        fields["VerticalAlignment"] = "VerticalAlignment = global::Reef.UI.VerticalAlignment." + value;
                         break;
                     }
                     case MarkupProperty.NoWrap:
@@ -935,12 +942,17 @@ internal sealed partial class DocumentState
                         bool? value = EmitBool(assignment, context);
                         if (value != null)
                         {
-                            context.Writer.Line(fontName + " = " + fontName + " with { NoWrap = " + (value.Value ? "true" : "false") + " };");
+                            fields["NoWrap"] = "NoWrap = " + (value.Value ? "true" : "false");
                         }
 
                         break;
                     }
                 }
+            }
+
+            if (fields.Count > 0)
+            {
+                context.Writer.Line(fontName + " = " + fontName + " with { " + string.Join(", ", fields.Values) + " };");
             }
         }
     }
