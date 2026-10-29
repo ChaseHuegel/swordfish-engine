@@ -238,6 +238,11 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 
         Voxel original = voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
         Voxel updated = voxel;
+        if (original.ID == 0 && updated.ID == 0)
+        {
+            updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, original.GetLightLevel());
+        }
+
         voxelComponent.VoxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, updated);
         _voxelLightingService.UpdateLighting(voxelComponent.VoxelObject, voxelComponent.Registry, coordinate.X, coordinate.Y, coordinate.Z, in original, ref updated);
 
@@ -248,7 +253,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 
     private bool VoxelEquals(in Voxel predicted, in Voxel server, string? serverBrickId)
     {
-        if (predicted.ShapeLight != server.ShapeLight || predicted.Orientation != server.Orientation)
+        if (predicted.GetShapeLight().Shape != server.GetShapeLight().Shape || predicted.Orientation != server.Orientation)
         {
             return false;
         }

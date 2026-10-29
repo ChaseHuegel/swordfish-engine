@@ -127,6 +127,28 @@ Dark cavities with no lighting stay at light level 0.
 (`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:153-220`) rebuilds
 only dirty chunks. Untouched chunks keep their existing mesh renderers.
 
+`ClientVoxelReconcileSystem`
+(`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:232-265`) reconciles
+predicted edits against authoritative server echoes. `VoxelEquals` compares brick
+identity, shape, and orientation. It does not compare light level because server
+echoes do not compute presentation lighting. This avoids false misprediction
+snaps that would clear locally calculated air lighting to zero. `WriteVoxel` also
+preserves existing air light when writing an authoritative empty cell.
+
+## Voxel debug gizmos
+
+`VoxelDebugGizmoSystem`
+(`WaywardBeyond.Client/Systems/VoxelDebugGizmoSystem.cs:17-175`) renders bounding
+box lines when the debug overlay is active (`DebugSettings.OverlayVisible`).
+
+The system renders two bounding boxes:
+- Cyan lines around the nearest chunk in the nearest voxel object.
+- Yellow lines around the max extents of that voxel object based on its existing
+  chunks.
+
+The system preallocates line handles and reuses them each frame with zero heap
+allocations per tick.
+
 ## Chunk collision caching
 
 `VoxelObjectBuilder.BuildChunkCollision`
@@ -156,4 +178,5 @@ palette counts.
 
 `Swordfish.Tests/ChunkBasedVoxelRemeshingTests.cs` pins dirty tracking, boundary
 chunk invalidation, single-voxel edit execution budgets, localized light
-propagation, border sky light restoration on deletion, and collision caching.
+propagation, border sky light restoration on deletion, collision caching,
+debug bounding box gizmo tracking, and prediction lighting equality.

@@ -333,6 +333,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, RemotePlayerVisualSystem>();
         container.Register<IEntitySystem, BillboardSystem>();
         container.Register<IEntitySystem, NameplateSystem>();
+        container.Register<IEntitySystem, VoxelDebugGizmoSystem>(setup: Setup.With(allowDisposableTransient: true));
 
         container.Register<AudioChannelSystem>(reuse: Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, AudioChannelSystem>();

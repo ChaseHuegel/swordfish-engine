@@ -2,9 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
+using Swordfish.ECS;
+using Swordfish.Graphics;
+using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Library.Types;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Processing;
@@ -335,5 +342,148 @@ public class ChunkBasedVoxelRemeshingTests
 
         registry.ChunkColliders.Remove(offset);
         Assert.Empty(registry.ChunkColliders);
+    }
+
+    private sealed class FakeLineRenderer : ILineRenderer
+    {
+        public readonly List<Line> CreatedLines = [];
+
+        public Line CreateLine(bool alwaysOnTop = false)
+        {
+            var line = new Line(this, Vector3.Zero, Vector3.Zero, Vector4.Zero);
+            CreatedLines.Add(line);
+            return line;
+        }
+
+        public Line CreateLine(Vector3 start, Vector3 end, bool alwaysOnTop = false)
+        {
+            var line = new Line(this, start, end, Vector4.Zero);
+            CreatedLines.Add(line);
+            return line;
+        }
+
+        public Line CreateLine(Vector3 start, Vector3 end, Vector4 color, bool alwaysOnTop = false)
+        {
+            var line = new Line(this, start, end, color);
+            CreatedLines.Add(line);
+            return line;
+        }
+
+        public void DeleteLine(Line line)
+        {
+            CreatedLines.Remove(line);
+        }
+    }
+
+    [Fact]
+    public void VoxelDebugGizmoSystem_OverlayTogglesAndTracksNearestChunkAndExtents()
+    {
+        var store = new DataStore();
+        var debugSettings = new DebugSettings();
+        var fakeRenderContext = new FakeRenderContext(store);
+        var fakeLineRenderer = new FakeLineRenderer();
+
+        using var gizmoSystem = new VoxelDebugGizmoSystem(debugSettings, fakeRenderContext, fakeLineRenderer);
+        Assert.Equal(24, fakeLineRenderer.CreatedLines.Count);
+
+        // Initially disabled: all lines should have color zero
+        gizmoSystem.Tick(1f / 60f, store);
+        for (var i = 0; i < 24; i++)
+        {
+            Assert.Equal(Vector4.Zero, fakeLineRenderer.CreatedLines[i].Color);
+        }
+
+        // Add a voxel entity with two chunks: (0, 0, 0) and (1, 0, 0)
+        int voxelEntity = store.Alloc();
+        var voxelObject = new VoxelObject(16);
+        voxelObject.Set(0, 0, 0, new Voxel(1, 0, 0));
+        voxelObject.Set(16, 0, 0, new Voxel(1, 0, 0));
+        store.AddOrUpdate(voxelEntity, new VoxelComponent(voxelObject));
+        store.AddOrUpdate(voxelEntity, new TransformComponent(Vector3.Zero));
+
+        // Position camera closer to chunk (0, 0, 0)
+        CameraEntity camera = fakeRenderContext.MainCamera.Get();
+        fakeRenderContext.MainCamera.Set(new CameraEntity(
+            camera.Entity,
+            camera.ViewFrustum,
+            new TransformComponent(new Vector3(2f, 2f, 2f))
+        ));
+
+        // Enable overlay
+        debugSettings.OverlayVisible.Set(true);
+        gizmoSystem.Tick(1f / 60f, store);
+
+        // Nearest chunk lines should be active (Cyan)
+        for (var i = 0; i < 12; i++)
+        {
+            Assert.NotEqual(Vector4.Zero, fakeLineRenderer.CreatedLines[i].Color);
+        }
+
+        // Chunk lines should span chunk (0, 0, 0) bounds [-0.5, 15.5]
+        float minChunkX = float.MaxValue;
+        float maxChunkX = float.MinValue;
+        for (var i = 0; i < 12; i++)
+        {
+            Line line = fakeLineRenderer.CreatedLines[i];
+            minChunkX = Math.Min(minChunkX, Math.Min(line.Start.X, line.End.X));
+            maxChunkX = Math.Max(maxChunkX, Math.Max(line.Start.X, line.End.X));
+        }
+
+        Assert.Equal(-0.5f, minChunkX);
+        Assert.Equal(15.5f, maxChunkX);
+
+        // Extent lines should span total extents [-0.5, 31.5]
+        float minExtX = float.MaxValue;
+        float maxExtX = float.MinValue;
+        for (var i = 12; i < 24; i++)
+        {
+            Line line = fakeLineRenderer.CreatedLines[i];
+            minExtX = Math.Min(minExtX, Math.Min(line.Start.X, line.End.X));
+            maxExtX = Math.Max(maxExtX, Math.Max(line.Start.X, line.End.X));
+        }
+
+        Assert.Equal(-0.5f, minExtX);
+        Assert.Equal(31.5f, maxExtX);
+
+        // Move camera closer to chunk (1, 0, 0)
+        fakeRenderContext.MainCamera.Set(new CameraEntity(
+            camera.Entity,
+            camera.ViewFrustum,
+            new TransformComponent(new Vector3(20f, 2f, 2f))
+        ));
+        gizmoSystem.Tick(1f / 60f, store);
+
+        minChunkX = float.MaxValue;
+        maxChunkX = float.MinValue;
+        for (var i = 0; i < 12; i++)
+        {
+            Line line = fakeLineRenderer.CreatedLines[i];
+            minChunkX = Math.Min(minChunkX, Math.Min(line.Start.X, line.End.X));
+            maxChunkX = Math.Max(maxChunkX, Math.Max(line.Start.X, line.End.X));
+        }
+
+        Assert.Equal(15.5f, minChunkX);
+        Assert.Equal(31.5f, maxChunkX);
+
+        // Disable overlay: all lines hidden
+        debugSettings.OverlayVisible.Set(false);
+        gizmoSystem.Tick(1f / 60f, store);
+        for (var i = 0; i < 24; i++)
+        {
+            Assert.Equal(Vector4.Zero, fakeLineRenderer.CreatedLines[i].Color);
+        }
+    }
+
+    [Fact]
+    public void VoxelEquals_IgnoresLightLevelWhenComparingPredictedAir()
+    {
+        // Predicted voxel has shape Block and calculated light level 14
+        var predicted = new Voxel(0, new ShapeLight(BrickShape.Block, 14), 0);
+        // Server echo voxel has shape Block and authoritative light level 0
+        var server = new Voxel(0, new ShapeLight(BrickShape.Block, 0), 0);
+
+        Assert.Equal(predicted.GetShapeLight().Shape, server.GetShapeLight().Shape);
+        Assert.Equal(predicted.Orientation, server.Orientation);
+        Assert.Equal(predicted.ID, server.ID);
     }
 }
