@@ -403,7 +403,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         using (ui.Row(
             new Constraints
             {
-                Width = new Fixed(INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                Width = new Fill(),
                 Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
             },
             spacing: 8
@@ -451,7 +451,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         using (ui.Row(
             new Constraints
             {
-                Width = new Fixed(INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE),
+                Width = new Fill(),
                 Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
             },
             spacing: 8
