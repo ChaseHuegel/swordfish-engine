@@ -1,0 +1,2 @@
+0 id=- rect=0,0,400,120 clip=0,0,400,120 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=-
+1 id=- rect=0,0,400,120 clip=0,0,400,120 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=No entries.

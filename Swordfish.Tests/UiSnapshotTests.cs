@@ -77,7 +77,7 @@ public class UiSnapshotTests
         }
     }
 
-    private static void Compare(string name, int width, int height, Action<UIBuilder<Material>> render)
+    internal static void Compare(string name, int width, int height, Action<UIBuilder<Material>> render)
     {
         var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), new UIController());
         render(ui);
