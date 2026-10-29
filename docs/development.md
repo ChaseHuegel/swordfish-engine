@@ -294,6 +294,14 @@ These rules bind every path and bind hardest to hot paths.
 - Decide which is wrong first: the test or the code. Never edit a test to match
   a bug.
 
+### UI authoring
+
+Read [specs/ui-design-system](specs/ui-design-system.md) before changing game UI.
+Use `.rml` for structure and designer-facing copy. Use `.rss` for colors,
+typography, and layout classes. Keep page services and navigation in the page
+object. Keep view code-behind limited to localization, formatting, and event
+forwarding.
+
 ### Comments & docs
 
 Document the contract. Do not document the implementation.

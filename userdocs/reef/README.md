@@ -16,6 +16,7 @@ A Roslyn source generator reads both file types during the build. The generator 
 | Look up a tag, attribute, style rule, or expression | [quick-reference](quick-reference.md) |
 | Set up Rider for `.rml` and `.rss` files | [rider-setup](rider-setup.md) |
 | See which test pins each specification rule | [spec-traceability](spec-traceability.md) |
+| Follow the Wayward Beyond UI design rules | [ui-design-system](../../docs/specs/ui-design-system.md) |
 
 The formal language contract is in
 [reef-markup](../../docs/specs/reef-markup.md). The generator architecture is in

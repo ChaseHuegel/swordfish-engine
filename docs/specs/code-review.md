@@ -85,6 +85,16 @@ See [networking-replication](networking-replication.md),
 [networking-join](networking-join.md), and
 [networking-messages](networking-messages.md).
 
+## UI changes
+
+- Read [ui-design-system](ui-design-system.md).
+- Static UI copy lives in `.rml` through `L` keys.
+- Colors, fonts, spacing, and variants live in `.rss`.
+- Page layout is not computed in C#.
+- Context types carry no localized strings or colors.
+- A behavior widget accepts `Style` and `FontOptions`.
+- Visual tests and localization-key tests are updated.
+
 ## Documentation
 
 - A public, internal, or non-obvious type, member, or constructor lacks a

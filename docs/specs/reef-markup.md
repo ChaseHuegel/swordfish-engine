@@ -468,6 +468,8 @@ Padding follows the .NET and XAML LTRB standard: **Left, Top, Right, Bottom**.
   values (`#fff`, `#ffffff80`), named colors, variables, or functions:
   `rgb(255, 255, 255)` and `rgba(255, 255, 255, 0.5)`. The generator parses
   colors into constant `Vector4` literals at compile time.
+- `text-color`: Inherited text color for descendant `Text` elements that do
+  not set an explicit color. Use it for button, tab, and icon states.
 - `background`: Element background color (`Style.BackgroundColor`). On
   `<Element>`, the generator also applies it to the element fill (`Style.Color`)
   because the renderer uses the fill for plain elements. On `<Text>` and
@@ -478,6 +480,9 @@ Padding follows the .NET and XAML LTRB standard: **Left, Top, Right, Bottom**.
 - `border`: Shorthand for width and color: `border="1 #444444"`.
 - `border-width`: Integer pixel border width.
 - `border-color`: Border color.
+- `border-top`, `border-right`, `border-bottom`, `border-left`: Per-side border
+  shorthand. A zero thickness uses the shared border. A side color with zero
+  alpha uses the shared color.
 - `overlay`: Boolean (`true`, `false`). When `true`, allows an element to escape
   its parent's clipping bounds, painting over the parent or grandparent without
   being clipped (used for tooltips, dropdowns, context menus).
@@ -573,9 +578,10 @@ error `RF0034` (`Undefined base class in --extends inheritance`).
 
 Rulesets in `.rss` support four categories of properties:
 
-1. **Visual style**: `color`, `background`, `background-color`,
+1. **Visual style**: `color`, `text-color`, `background`, `background-color`,
    `corner-radius`, `border-radius`, `border`, `border-width`, `border-color`,
-   `overlay`, `corner-caps`, `corner-caps-length`, `corner-caps-thickness`,
+   `border-top`, `border-right`, `border-bottom`, `border-left`, `overlay`,
+   `corner-caps`, `corner-caps-length`, `corner-caps-thickness`,
    `corner-caps-color`.
 2. **Typography**: `font-size` (`FontOptions.Size`), `font-family` (preferred
    for CSS tools) or `font` (`FontOptions.ID`), `text-align` (`left`, `center`, `right`), `vertical-align`

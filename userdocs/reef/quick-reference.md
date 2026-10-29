@@ -151,12 +151,14 @@ Named colors use the CSS color names. `transparent` is supported.
 
 ### Visual
 
-`color`, `background`, `background-color`, `corner-radius`, `border-radius`,
-`border`, `border-width`, `border-color`, `overlay`, `corner-caps`,
+`color`, `text-color`, `background`, `background-color`, `corner-radius`,
+`border-radius`, `border`, `border-width`, `border-color`, `border-top`,
+`border-right`, `border-bottom`, `border-left`, `overlay`, `corner-caps`,
 `corner-caps-length`, `corner-caps-thickness`, `corner-caps-color`
 
 The aliases `background-color` and `border-radius` map to `background` and
-`corner-radius`.
+`corner-radius`. `text-color` inherits into descendant text. Use `border-bottom`
+and the other side borders for attached tabs and underlines.
 
 Use `px` units for integer values such as `padding: 8px 16px`,
 `corner-radius: 4px`, `border: 1px #444444`, and `font-size: 16px`. CSS editors

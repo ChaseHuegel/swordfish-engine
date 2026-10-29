@@ -3,6 +3,10 @@
 One subject: the shared game UI theme, metrics, style resolution, and widget
 library.
 
+Status: legacy. New UI uses [ui-design-system](ui-design-system.md),
+`UI/Theme/Theme.rss`, and `UI/Components/Components.rss`. This document covers
+the C# tokens and widgets that remain until the migration completes.
+
 ## Scope
 
 The theme and widgets live in `WaywardBeyond.Client`. Reef stays renderer

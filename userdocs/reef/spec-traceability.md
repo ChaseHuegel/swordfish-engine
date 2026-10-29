@@ -39,6 +39,9 @@ The formal specification is [reef-markup](../../docs/specs/reef-markup.md).
 | Padding order | `RssParserTests.PaddingAndCornerRadiusShorthandsMapToEngineFields` |
 | Corner radius order | `RssParserTests.PaddingAndCornerRadiusShorthandsMapToEngineFields`, `StyleRuntimeTests.StylesInheritOrderAndInlineOverride` |
 | CSS property aliases | `RssParserTests.CssAliasesMapToReefProperties` |
+| Inherited text color | `UIBuilderTextColorTests.TextInheritsAncestorTextColor` |
+| Per-side borders | `UIBuilderBorderTests.BottomOnlyBorderDoesNotDrawOtherSides` |
+| Text-color and side-border parsing | `RssParserTests.TextColorAndSideBordersMapToStyleFields` |
 | Colors | `RssParserTests.ColorsParseAllSupportedForms`, `GalleryNormalRendersAndMatchesGolden` |
 | Border and corner caps | `StyleRuntimeTests.StylesInheritOrderAndInlineOverride`, `UIBuilderBorderTests` |
 | Variables and overrides | `RssParserTests.CommentsVariablesRulesAndPseudoStatesParse`, `SpecDiagnosticsTests.DuplicateVariableReportsRf0012`, `SpecDiagnosticsTests.DuplicateOverrideReportsRf0013` |
