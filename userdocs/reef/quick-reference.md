@@ -97,6 +97,7 @@ The `text` attribute wins when both forms are present.
 |---|---|
 | `100` or `100px` | Fixed pixels |
 | `50%` or `0.5` | Relative to the parent |
+| `@context.Constraint` | An integer or `IConstraint` expression |
 | `fill` | Uses the remaining space |
 | `fit` | Fits the children |
 | `shrink` | Fits the children and allows compression |

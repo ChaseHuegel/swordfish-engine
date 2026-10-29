@@ -85,6 +85,10 @@ style rule.
 Lists use `.wb-list` and `ForEach`. Item structure belongs in a component such
 as `Card` or `SelectableRow`. A generic list template is not supported.
 
+The foundation also provides `ProgressBar`, `ScrollArea`, `ScrollBar`, and
+`ItemSlot`. Dynamic fill and thumb sizes use `IConstraint` properties on the
+component state.
+
 ## Text input
 
 `TextInput` is a game-local external widget. The editing surface needs direct

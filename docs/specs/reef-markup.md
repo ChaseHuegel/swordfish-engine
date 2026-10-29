@@ -420,6 +420,10 @@ Reef layout adheres to standard border-box semantics for constrained axes:
 - `fit`: Sizes to fit children bounds (`new Fit()`).
 - `shrink`: Shrinks when parent compresses (`new Shrink()`).
 
+An expression can return an integer or `IConstraint`. An integer maps to
+`Fixed`. An `IConstraint` value is emitted directly, so a model can expose
+dynamic fill or relative widths.
+
 Compound attribute `size` sets both axes:
 
 - `size="fill"` $\rightarrow$ `width="fill"` and `height="fill"`.
