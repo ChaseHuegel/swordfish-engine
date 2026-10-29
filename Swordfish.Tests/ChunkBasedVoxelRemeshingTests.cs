@@ -138,6 +138,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void LocalizedLightingRemoval_DrainsLightAndMarksDirty()
     {
         var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
         brickDb.Bricks[10] = new Brick("lamp", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
 
         var lightingService = new VoxelLightingService(brickDb);
@@ -145,13 +146,37 @@ public class ChunkBasedVoxelRemeshingTests
         var voxelObject = new VoxelObject(16);
 
         var original = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
         var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
 
-        // Place lamp
+        // Enclose a room with stone so it is not exposed to sky
+        for (int x = 6; x <= 10; x++)
+        {
+            for (int y = 6; y <= 10; y++)
+            {
+                voxelObject.Set(x, y, 6, stone);
+                voxelObject.Set(x, y, 10, stone);
+            }
+        }
+        for (int z = 6; z <= 10; z++)
+        {
+            for (int y = 6; y <= 10; y++)
+            {
+                voxelObject.Set(6, y, z, stone);
+                voxelObject.Set(10, y, z, stone);
+            }
+            for (int x = 6; x <= 10; x++)
+            {
+                voxelObject.Set(x, 6, z, stone);
+                voxelObject.Set(x, 10, z, stone);
+            }
+        }
+
+        // Place lamp inside room at (8, 8, 8)
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in original, ref lamp);
         registry.DirtyChunks.Clear();
 
-        // Break lamp
+        // Break lamp inside room
         var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
         Voxel placedLamp = voxelObject.Get(8, 8, 8);
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in placedLamp, ref air);
@@ -173,6 +198,13 @@ public class ChunkBasedVoxelRemeshingTests
 
         var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
         var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Build a tunnel collar around (1, 8, 8) so it only receives light from (0, 8, 8)
+        voxelObject.Set(1, 9, 8, stone);
+        voxelObject.Set(1, 7, 8, stone);
+        voxelObject.Set(1, 8, 9, stone);
+        voxelObject.Set(1, 8, 7, stone);
+        voxelObject.Set(2, 8, 8, stone);
 
         // Place stone at chunk border (0, 8, 8)
         lightingService.UpdateLighting(voxelObject, registry, 0, 8, 8, in air, ref stone);
@@ -201,16 +233,22 @@ public class ChunkBasedVoxelRemeshingTests
         var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
         var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
 
-        // Place a hollow 3x3x3 cube of stone centered at (8, 8, 8) with all air inside
-        // To keep it simple, place solid stone at (8, 8, 8) inside a resident chunk where all neighbors are 0
-        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref stone);
+        // Enclose (8, 8, 8) with stone on all 6 sides to form an enclosed dark cavity
+        voxelObject.Set(7, 8, 8, stone);
+        voxelObject.Set(9, 8, 8, stone);
+        voxelObject.Set(8, 7, 8, stone);
+        voxelObject.Set(8, 9, 8, stone);
+        voxelObject.Set(8, 8, 7, stone);
+        voxelObject.Set(8, 8, 9, stone);
+        voxelObject.Set(8, 8, 8, stone);
+
         registry.DirtyChunks.Clear();
 
-        // Delete center stone voxel (8, 8, 8); all 6 neighbors in chunk (0, 0, 0) have light 0
+        // Delete center stone voxel (8, 8, 8); all 6 directions hit surrounding stone walls
         Voxel placedStone = voxelObject.Get(8, 8, 8);
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in placedStone, ref air);
 
-        // Not adjacent to sky, neighbors are 0 -> should remain 0
+        // Not exposed to sky, neighbors are dark -> should remain 0
         Assert.Equal(0, voxelObject.Get(8, 8, 8).GetLightLevel());
         Assert.Contains(new Short3(0, 0, 0), registry.DirtyChunks);
     }
@@ -230,6 +268,29 @@ public class ChunkBasedVoxelRemeshingTests
         var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
         var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
 
+        // Enclose the space so it is an indoor room with no direct line of sight to sky
+        for (int x = 6; x <= 10; x++)
+        {
+            for (int y = 6; y <= 10; y++)
+            {
+                voxelObject.Set(x, y, 6, stone);
+                voxelObject.Set(x, y, 12, stone);
+            }
+        }
+        for (int z = 6; z <= 12; z++)
+        {
+            for (int y = 6; y <= 10; y++)
+            {
+                voxelObject.Set(6, y, z, stone);
+                voxelObject.Set(10, y, z, stone);
+            }
+            for (int x = 6; x <= 10; x++)
+            {
+                voxelObject.Set(x, 6, z, stone);
+                voxelObject.Set(x, 10, z, stone);
+            }
+        }
+
         // Place lamp at (8, 8, 8)
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref lamp);
 
@@ -241,9 +302,171 @@ public class ChunkBasedVoxelRemeshingTests
         Voxel placedStone = voxelObject.Get(8, 8, 10);
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 10, in placedStone, ref air);
 
-        // (8, 8, 10) is internal, not adjacent to sky; neighbor at (8, 8, 9) has light 14 -> (8, 8, 10) receives 13
+        // (8, 8, 10) is internal, not exposed to sky; neighbor at (8, 8, 9) has light 14 -> (8, 8, 10) receives 13
         Assert.Equal(13, voxelObject.Get(8, 8, 10).GetLightLevel());
         Assert.Equal(12, voxelObject.Get(8, 8, 11).GetLightLevel());
+    }
+
+    [Fact]
+    public void PlaceVoxelOutwardIntoSpace_SeedsAmbientSkyLightOnExposedAirNeighbors()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Place stone block 1 into space at (8, 8, 8)
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref stone);
+
+        // Exposed air neighbor at (8, 8, 9) should receive ambient sky light level 15
+        Assert.Equal(15, voxelObject.Get(8, 8, 9).GetLightLevel());
+        Assert.Equal(15, voxelObject.Get(8, 9, 8).GetLightLevel());
+
+        // Build outward into space: place stone block 2 at (8, 8, 9)
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 9, in air, ref stone);
+
+        // Exposed air neighbor at (8, 8, 10) should also receive ambient sky light level 15
+        Assert.Equal(15, voxelObject.Get(8, 8, 10).GetLightLevel());
+        Assert.Equal(15, voxelObject.Get(8, 9, 9).GetLightLevel());
+
+        // Build further outward: place stone block 3 at (8, 8, 10)
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 10, in air, ref stone);
+
+        // Newly exposed air neighbor at (8, 8, 11) retains full ambient sky light 15
+        Assert.Equal(15, voxelObject.Get(8, 8, 11).GetLightLevel());
+    }
+
+    [Fact]
+    public void MineHoleIntoAsteroidThenBlockOff_CavityBecomesDark()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Build a solid 5x5x5 stone asteroid: x from 6 to 10, y from 6 to 10, z from 6 to 10
+        for (int x = 6; x <= 10; x++)
+        {
+            for (int y = 6; y <= 10; y++)
+            {
+                for (int z = 6; z <= 10; z++)
+                {
+                    voxelObject.Set(x, y, z, stone);
+                }
+            }
+        }
+
+        registry.DepthState.Populate(voxelObject, brickDb);
+
+        // Seed ambient light outside asteroid at (5, 8, 8) with light 15
+        voxelObject.SetLight(5, 8, 8, 15);
+
+        // Mine a hole from outside into the asteroid at (6, 8, 8), (7, 8, 8), (8, 8, 8)
+        Voxel s6 = voxelObject.Get(6, 8, 8);
+        lightingService.UpdateLighting(voxelObject, registry, 6, 8, 8, in s6, ref air);
+
+        Voxel s7 = voxelObject.Get(7, 8, 8);
+        lightingService.UpdateLighting(voxelObject, registry, 7, 8, 8, in s7, ref air);
+
+        Voxel s8 = voxelObject.Get(8, 8, 8);
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in s8, ref air);
+
+        // Interior voxels receive decayed light from opening, not forced 15
+        Assert.True(voxelObject.Get(7, 8, 8).GetLightLevel() < 15);
+        Assert.True(voxelObject.Get(8, 8, 8).GetLightLevel() < voxelObject.Get(7, 8, 8).GetLightLevel());
+
+        // Now block off the hole by placing stone back at entrance (6, 8, 8)
+        Voxel entranceAir = voxelObject.Get(6, 8, 8);
+        lightingService.UpdateLighting(voxelObject, registry, 6, 8, 8, in entranceAir, ref stone);
+
+        // Interior cavity must become completely dark
+        Assert.Equal(0, voxelObject.Get(7, 8, 8).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(8, 8, 8).GetLightLevel());
+
+        // Exterior outside entrance retains ambient light 15
+        Assert.Equal(15, voxelObject.Get(5, 8, 8).GetLightLevel());
+    }
+
+    [Fact]
+    public void SealedRoom_PlacingBlockInsideDoesNotSeedLight()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Build a hollow 6x6x6 sealed room: x from 5 to 10, y from 5 to 10, z from 5 to 10
+        for (int x = 5; x <= 10; x++)
+        {
+            for (int y = 5; y <= 10; y++)
+            {
+                for (int z = 5; z <= 10; z++)
+                {
+                    bool isWall = x == 5 || x == 10 || y == 5 || y == 10 || z == 5 || z == 10;
+                    if (isWall)
+                    {
+                        voxelObject.Set(x, y, z, stone);
+                    }
+                }
+            }
+        }
+
+        registry.DepthState.Populate(voxelObject, brickDb);
+
+        // Place a block inside the sealed room at (7, 7, 7)
+        lightingService.UpdateLighting(voxelObject, registry, 7, 7, 7, in air, ref stone);
+
+        // Neighbors inside the sealed room must remain completely dark (0)
+        Assert.Equal(0, voxelObject.Get(7, 7, 8).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(7, 8, 7).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(8, 7, 7).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(7, 7, 6).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(7, 6, 7).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(6, 7, 7).GetLightLevel());
+    }
+
+    [Fact]
+    public void BuildOutwardAcrossChunkBoundary_EveryExposedFaceReceivesAmbient15()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Build outward starting at edge of chunk 0 (coords 14, 15) crossing into chunk 1 (coord 16)
+        for (int z = 14; z <= 18; z++)
+        {
+            lightingService.UpdateLighting(voxelObject, registry, 8, 8, z, in air, ref stone);
+
+            // Exposed neighbor in +Z must receive ambient sky light level 15
+            Assert.Equal(15, voxelObject.Get(8, 8, z + 1).GetLightLevel());
+
+            // Exposed orthogonal neighbors (+Y, -Y, +X, -X) must also receive ambient sky light level 15
+            Assert.Equal(15, voxelObject.Get(8, 9, z).GetLightLevel());
+            Assert.Equal(15, voxelObject.Get(8, 7, z).GetLightLevel());
+            Assert.Equal(15, voxelObject.Get(9, 8, z).GetLightLevel());
+            Assert.Equal(15, voxelObject.Get(7, 8, z).GetLightLevel());
+        }
     }
 
     [Fact]

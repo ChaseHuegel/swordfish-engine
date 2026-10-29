@@ -130,9 +130,14 @@ public sealed class VoxelObjectBuilder(in IContainer container)
     }
 
     /// <summary>Initializes ambient and direct lighting for the voxel object.</summary>
-    public void InitializeLighting(VoxelObject voxelObject)
+    public void InitializeLighting(VoxelObject voxelObject, DepthState? depthState = null)
     {
         using IResolverContext? scope = _container.OpenScope();
+        if (depthState != null)
+        {
+            scope.Use(depthState);
+        }
+        
         var voxelObjectProcessor = scope.Resolve<VoxelObjectProcessor>();
         voxelObjectProcessor.ProcessLighting(voxelObject);
     }

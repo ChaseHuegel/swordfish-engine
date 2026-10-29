@@ -53,18 +53,32 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
 
         if (newIsLight)
         {
+            EnsureDepthState(voxelObject, registry);
             updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, newBrightness);
             voxelObject.Set(x, y, z, updated);
             _addQueue.Enqueue((x, y, z, newBrightness));
+            DrainAddQueue(voxelObject, registry);
         }
         else if (oldIsLight)
         {
+            EnsureDepthState(voxelObject, registry);
             updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, 0);
             voxelObject.Set(x, y, z, updated);
             _removeQueue.Enqueue((x, y, z, oldBrightness));
+            DrainRemoveQueue(voxelObject, registry);
+
+            if (registry.DepthState.IsAmbientSource(x, y, z))
+            {
+                updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, 15);
+                voxelObject.Set(x, y, z, updated);
+                _addQueue.Enqueue((x, y, z, 15));
+            }
+
+            DrainAddQueue(voxelObject, registry);
         }
         else if (newIsCuller && !oldIsCuller)
         {
+            EnsureDepthState(voxelObject, registry);
             int oldLight = original.GetLightLevel();
             updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, 0);
             voxelObject.Set(x, y, z, updated);
@@ -72,11 +86,54 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
             {
                 _removeQueue.Enqueue((x, y, z, oldLight));
             }
+
+            DrainRemoveQueue(voxelObject, registry);
+
+            registry.DepthState.Add(x, y, z);
+
+            // Seed ambient light on any adjacent air cells exposed to open sky
+            for (var i = 0; i < _directions.Length; i++)
+            {
+                (int dx, int dy, int dz) = _directions[i];
+                int nx = x + dx;
+                int ny = y + dy;
+                int nz = z + dz;
+
+                Short3 neighborChunkOffset = voxelObject.ToChunkOffset(nx, ny, nz);
+                if (!voxelObject.TryGetChunk(neighborChunkOffset, out _))
+                {
+                    continue;
+                }
+
+                Voxel neighbor = voxelObject.Get(nx, ny, nz);
+                if (neighbor.ID != 0 || _brickDatabase.IsCuller(neighbor, neighbor.GetShapeLight().Shape))
+                {
+                    continue;
+                }
+
+                if (registry.DepthState.IsAmbientSource(nx, ny, nz))
+                {
+                    if (neighbor.GetLightLevel() < 15)
+                    {
+                        voxelObject.SetLight(nx, ny, nz, 15);
+                        registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
+                    }
+
+                    _addQueue.Enqueue((nx, ny, nz, 15));
+                }
+            }
+
+            DrainAddQueue(voxelObject, registry);
         }
         else if (oldIsCuller && !newIsCuller)
         {
+            EnsureDepthState(voxelObject, registry);
+            voxelObject.Set(x, y, z, updated);
+            registry.DepthState.Remove(voxelObject, _brickDatabase, x, y, z);
+
             int maxNeighborLight = 0;
             var adjacentToSky = false;
+
             for (var i = 0; i < _directions.Length; i++)
             {
                 (int dx, int dy, int dz) = _directions[i];
@@ -94,24 +151,93 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                 maxNeighborLight = Math.Max(maxNeighborLight, neighbor.GetLightLevel());
             }
 
-            if (adjacentToSky)
+            int finalLight = adjacentToSky ? 15 : Math.Max(0, maxNeighborLight - 1);
+            if (finalLight > 0)
             {
-                maxNeighborLight = Math.Max(maxNeighborLight, 15);
-            }
-
-            if (maxNeighborLight > 1)
-            {
-                int nextLight = adjacentToSky ? 15 : maxNeighborLight - 1;
-                updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, nextLight);
+                updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, finalLight);
                 voxelObject.Set(x, y, z, updated);
-                _addQueue.Enqueue((x, y, z, nextLight));
+                _addQueue.Enqueue((x, y, z, finalLight));
             }
-        }
 
-        DrainQueues(voxelObject, registry);
+            DrainAddQueue(voxelObject, registry);
+        }
+        else if (original.ID == 0 && updated.ID != 0)
+        {
+            EnsureDepthState(voxelObject, registry);
+            voxelObject.Set(x, y, z, updated);
+
+            int maxNeighborLight = 0;
+            var adjacentToSky = false;
+
+            for (var i = 0; i < _directions.Length; i++)
+            {
+                (int dx, int dy, int dz) = _directions[i];
+                int nx = x + dx;
+                int ny = y + dy;
+                int nz = z + dz;
+                Short3 neighborChunkOffset = voxelObject.ToChunkOffset(nx, ny, nz);
+                if (!voxelObject.TryGetChunk(neighborChunkOffset, out _))
+                {
+                    adjacentToSky = true;
+                    continue;
+                }
+
+                Voxel neighbor = voxelObject.Get(nx, ny, nz);
+                maxNeighborLight = Math.Max(maxNeighborLight, neighbor.GetLightLevel());
+            }
+
+            int finalLight = adjacentToSky ? 15 : Math.Max(0, maxNeighborLight - 1);
+            if (finalLight > 0)
+            {
+                updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, finalLight);
+                voxelObject.Set(x, y, z, updated);
+                _addQueue.Enqueue((x, y, z, finalLight));
+            }
+
+            for (var i = 0; i < _directions.Length; i++)
+            {
+                (int dx, int dy, int dz) = _directions[i];
+                int nx = x + dx;
+                int ny = y + dy;
+                int nz = z + dz;
+
+                Short3 neighborChunkOffset = voxelObject.ToChunkOffset(nx, ny, nz);
+                if (!voxelObject.TryGetChunk(neighborChunkOffset, out _))
+                {
+                    continue;
+                }
+
+                Voxel neighbor = voxelObject.Get(nx, ny, nz);
+                if (neighbor.ID != 0 || _brickDatabase.IsCuller(neighbor, neighbor.GetShapeLight().Shape))
+                {
+                    continue;
+                }
+
+                if (registry.DepthState.IsAmbientSource(nx, ny, nz))
+                {
+                    if (neighbor.GetLightLevel() < 15)
+                    {
+                        voxelObject.SetLight(nx, ny, nz, 15);
+                        registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
+                    }
+
+                    _addQueue.Enqueue((nx, ny, nz, 15));
+                }
+            }
+
+            DrainAddQueue(voxelObject, registry);
+        }
     }
 
-    private void DrainQueues(VoxelObject voxelObject, VoxelChunkRegistry registry)
+    private void EnsureDepthState(VoxelObject voxelObject, VoxelChunkRegistry registry)
+    {
+        if (registry.DepthState.XY.Count == 0 && voxelObject.ChunkCount > 0)
+        {
+            registry.DepthState.Populate(voxelObject, _brickDatabase);
+        }
+    }
+
+    private void DrainRemoveQueue(VoxelObject voxelObject, VoxelChunkRegistry registry)
     {
         while (_removeQueue.Count > 0)
         {
@@ -145,7 +271,10 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                 }
             }
         }
+    }
 
+    private void DrainAddQueue(VoxelObject voxelObject, VoxelChunkRegistry registry)
+    {
         while (_addQueue.Count > 0)
         {
             (int cx, int cy, int cz, int light) = _addQueue.Dequeue();

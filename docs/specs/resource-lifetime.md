@@ -44,7 +44,7 @@ This prevents the chunk mesh from flickering out of view during rebuilds.
 world entity (`WaywardBeyond.Client/Systems/ClientCleanupSystem.cs:57-60`).
 
 `MeshRendererCleanup.DisposeAll` owns the full drain loop
-(`WaywardBeyond.Client/Components/MeshRendererCleanup.cs:25-32`).
+(`WaywardBeyond.Client/Components/MeshRendererCleanup.cs:30-38`).
 
 ## Jolt shape wrappers
 

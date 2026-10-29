@@ -111,17 +111,31 @@ A voxel edit marks its resident chunk dirty. An edit on a chunk boundary also
 marks the orthogonal neighbor chunk dirty.
 
 `VoxelLightingService`
-(`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs:30-184`) runs
+(`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs:30-220`) runs
 dual-queue BFS flood-fill lighting across resident chunks. The service marks
 every modified cell and its chunk dirty.
 
-When a solid culler voxel is deleted (`VoxelLightingService.cs:76-104`), the
-service checks all six orthogonal neighbors. Non-resident space represents
-ambient open sky with light level 15 (`VoxelObject.cs:14`). If any neighbor
-chunk is not resident, the deleted voxel receives sky light level 15 and
-propagates light to connected resident air cells. An internal deletion inside an
-enclosed structure decrements light by one from the brightest resident neighbor.
-Dark cavities with no lighting stay at light level 0.
+`DepthState`
+(`WaywardBeyond.Client/Voxels/Processing/DepthState.cs:12-250`) tracks min and max
+depth bounds across XY, XZ, and ZY projection planes in `VoxelChunkRegistry`.
+An air cell is an ambient light source (`DepthState.IsAmbientSource`) when its
+coordinates lie immediately outside the solid boundary (`depth.Max + 1` or
+`depth.Min - 1`) along at least one axis. Interior air cells inside cavities lie
+between depth bounds and return false.
+
+When a solid culler voxel is placed (`VoxelLightingService.cs:79-130`), occluded
+light drains through `_removeQueue`. The service updates depth bounds via
+`DepthState.Add` and checks adjacent air cells: any air cell that is an exterior
+ambient source (`DepthState.IsAmbientSource`) receives ambient light level 15 and
+propagates light outward through `_addQueue`. Interior air cells inside cavities
+are not ambient sources and receive no ambient sky light.
+
+When a solid culler voxel is deleted (`VoxelLightingService.cs:131-170`), the
+service updates depth bounds via `DepthState.Remove`. The cell receives decayed
+light from the brightest resident neighbor (`maxNeighborLight - 1`), or light
+level 15 if adjacent to non-resident space. Light entering a cavity or tunnel
+decays with distance. When the entrance is blocked off, the decayed light drains
+to zero through `_removeQueue`, leaving enclosed interiors dark.
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
 (`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:153-220`) rebuilds

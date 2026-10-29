@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels;
@@ -13,6 +14,7 @@ public sealed class VoxelChunkRegistry
     public readonly Dictionary<Short3, int> TransparentEntities = [];
     public readonly Dictionary<Short3, ChunkCollisionData> ChunkColliders = [];
     public readonly HashSet<Short3> DirtyChunks = [];
+    public readonly DepthState DepthState = new();
 
     /// <summary>Marks the chunk containing the coordinates and any orthogonal border neighbors as dirty.</summary>
     public void MarkVoxelModified(int x, int y, int z, byte chunkSize)
