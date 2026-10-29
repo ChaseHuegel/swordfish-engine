@@ -91,4 +91,11 @@ public static class VectorExtensions
         Vector3 relative = Vector3.Normalize(end - start * dot);
         return (start * cos) + (relative * sin);
     }
+    
+    public static bool ApproximatelyEquals(this Vector3 left, Vector3 right, float epsilon = 0.00001f) {
+        return Math.Abs(left.X - right.X) < epsilon &&
+               Math.Abs(left.Y - right.Y) < epsilon &&
+               Math.Abs(left.Z - right.Z) < epsilon;
+    }
+
 }
