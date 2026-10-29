@@ -71,6 +71,10 @@ Use `Theme.rss` for tokens and `Components.rss` for classes.
 Use a component when the concept has structure, slots, clipping, or repeated
 composition.
 
+`Modal` is the modal panel. Wrap it with the `.wb-scrim-*` and
+`.wb-modal-center` classes. Caller constraints and classes apply to the panel,
+so each modal controls its own minimum and maximum size.
+
 Use a style class when the concept only selects layout, color, typography, or a
 state.
 

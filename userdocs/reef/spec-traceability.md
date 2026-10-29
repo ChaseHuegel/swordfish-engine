@@ -74,7 +74,7 @@ The formal specification is [reef-markup](../../docs/specs/reef-markup.md).
 
 | Specification area | Tests |
 |---|---|
-| External widgets | `WidgetGeneratorTests.ExternalWidgetReceivesStyleAndConstraints`, `WidgetRuntimeTests.WidgetsRenderAndBind` |
+| External widgets | `WidgetGeneratorTests.ExternalWidgetReceivesStyleAndConstraints`, `WidgetRuntimeTests.WidgetsRenderAndBind`, `AddFavoriteViewTests.RendersFieldsAndForwardsActions` |
 | Direct style parameters | `WidgetGeneratorTests.ExternalWidgetReceivesStyleAndConstraints` |
 | Wrapper fallback | `WidgetRuntimeTests.WidgetsRenderAndBind` |
 | Disposable widget children | `WidgetRuntimeTests.WidgetsRenderAndBind` |
