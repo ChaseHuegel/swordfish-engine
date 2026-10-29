@@ -30,22 +30,21 @@ leaves the draw list in the tick that disposes the renderer.
 
 A client voxel rebuild builds child chunk entities for opaque, masked, and
 transparent renderers. When a dirty chunk rebuilds or empties, it queues its
-previous renderers in `MeshRendererCleanup.MeshRenderers`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:264-358`).
+previous renderers into `MeshRendererCleanup.Pending`
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:258-360`).
 
-`CleanupMeshRendererSystem` drains the queue every tick. It disposes each
-renderer and its mesh
-(`WaywardBeyond.Client/Systems/CleanupMeshRendererSystem.cs:8-20`). The query
-does not depend on a live `MeshRendererComponent`, so a replaced renderer
-cannot block its own cleanup.
+`CleanupMeshRendererSystem` processes pending replacements every tick
+(`WaywardBeyond.Client/Systems/CleanupMeshRendererSystem.cs:8-22`). It disposes
+the previous renderer and its mesh only after the replacement renderer is bound
+(`MeshRenderer.IsBound`, `Swordfish/Graphics/MeshRenderer.cs:13`). If the replacement
+fails to bind or the chunk emptied, an age threshold disposes the renderer.
+This prevents the chunk mesh from flickering out of view during rebuilds.
 
-`ClientCleanupSystem` drains the same queue before it frees a world entity
-(`WaywardBeyond.Client/Systems/ClientCleanupSystem.cs:57-60`). The tick system
-may already have run for the frame, so teardown cannot rely on the next tick.
+`ClientCleanupSystem` drains all queued and pending renderers before it frees a
+world entity (`WaywardBeyond.Client/Systems/ClientCleanupSystem.cs:57-60`).
 
-`MeshRendererCleanup.DisposeMeshRenderers` owns the drain loop
-(`WaywardBeyond.Client/Components/MeshRendererCleanup.cs:12-19`). Both paths
-dispose queued renderers the same way.
+`MeshRendererCleanup.DisposeAll` owns the full drain loop
+(`WaywardBeyond.Client/Components/MeshRendererCleanup.cs:25-32`).
 
 ## Jolt shape wrappers
 

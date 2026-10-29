@@ -9,6 +9,7 @@ internal sealed class CleanupMeshRendererSystem : IEntitySystem
     {
         public void Execute(float delta, DataStore store, int entity, in MeshRendererCleanup meshRendererCleanup)
         {
+            meshRendererCleanup.ProcessPending();
             meshRendererCleanup.DisposeMeshRenderers();
         }
     }

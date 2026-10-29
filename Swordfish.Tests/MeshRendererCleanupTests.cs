@@ -59,4 +59,55 @@ public class MeshRendererCleanupTests
         Assert.True(currentMesh.IsDisposed);
         Assert.False(store.Has(typeof(MeshRendererCleanup), entity));
     }
+
+    [Fact]
+    public void PendingReplacementRetainedUntilNewRendererIsBound()
+    {
+        DataStore store = new();
+        Mesh oldMesh = new([], [], [], [], []);
+        Mesh newMesh = new([], [], [], [], []);
+        var oldRenderer = new MeshRenderer(oldMesh);
+        var newRenderer = new MeshRenderer(newMesh);
+        var cleanup = new MeshRendererCleanup();
+        cleanup.Pending.Enqueue(new MeshRendererCleanup.PendingEntry(oldRenderer, newRenderer));
+        store.AddOrUpdate(store.Alloc(), cleanup);
+
+        var system = new CleanupMeshRendererSystem();
+        system.Tick(0f, store);
+
+        Assert.False(oldRenderer.IsDisposed);
+        Assert.False(oldMesh.IsDisposed);
+
+        newRenderer.IsBound = true;
+        system.Tick(0f, store);
+
+        Assert.True(oldRenderer.IsDisposed);
+        Assert.True(oldMesh.IsDisposed);
+        Assert.True(cleanup.Pending.IsEmpty);
+    }
+
+    [Fact]
+    public void PendingReplacementDisposedAfterAgeThresholdWhenNeverBound()
+    {
+        DataStore store = new();
+        Mesh oldMesh = new([], [], [], [], []);
+        Mesh newMesh = new([], [], [], [], []);
+        var oldRenderer = new MeshRenderer(oldMesh);
+        var newRenderer = new MeshRenderer(newMesh);
+        var cleanup = new MeshRendererCleanup();
+        cleanup.Pending.Enqueue(new MeshRendererCleanup.PendingEntry(oldRenderer, newRenderer));
+        store.AddOrUpdate(store.Alloc(), cleanup);
+
+        var system = new CleanupMeshRendererSystem();
+        for (var i = 0; i < 4; i++)
+        {
+            system.Tick(0f, store);
+            Assert.False(oldRenderer.IsDisposed);
+        }
+
+        system.Tick(0f, store);
+        Assert.True(oldRenderer.IsDisposed);
+        Assert.True(oldMesh.IsDisposed);
+        Assert.True(cleanup.Pending.IsEmpty);
+    }
 }

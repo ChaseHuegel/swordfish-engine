@@ -318,13 +318,14 @@ internal sealed class VoxelEntityBuilder(
     {
         if (mesh != null)
         {
+            var newRenderer = new MeshRenderer(mesh, material, renderOptions);
             if (bucket.TryGetValue(chunkOffset, out int entity))
             {
                 if (store.TryGet(entity, out MeshRendererComponent oldComp) && oldComp.MeshRenderer != null)
                 {
-                    meshRendererCleanup.MeshRenderers.Add(oldComp.MeshRenderer);
+                    meshRendererCleanup.Pending.Enqueue(new MeshRendererCleanup.PendingEntry(oldComp.MeshRenderer, newRenderer));
                 }
-                store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
+                store.AddOrUpdate(entity, new MeshRendererComponent(newRenderer));
             }
             else
             {
@@ -333,7 +334,7 @@ internal sealed class VoxelEntityBuilder(
                 store.AddOrUpdate(entity, new TransformComponent());
                 store.AddOrUpdate(entity, new ChildComponent(parentUuid));
                 store.AddOrUpdate(entity, new VoxelChunkComponent(chunkOffset, alphaMode));
-                store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
+                store.AddOrUpdate(entity, new MeshRendererComponent(newRenderer));
                 bucket[chunkOffset] = entity;
             }
         }
@@ -341,7 +342,7 @@ internal sealed class VoxelEntityBuilder(
         {
             if (store.TryGet(entity, out MeshRendererComponent oldComp) && oldComp.MeshRenderer != null)
             {
-                meshRendererCleanup.MeshRenderers.Add(oldComp.MeshRenderer);
+                meshRendererCleanup.Pending.Enqueue(new MeshRendererCleanup.PendingEntry(oldComp.MeshRenderer, null));
             }
             store.Free(entity);
         }
@@ -370,7 +371,7 @@ internal sealed class VoxelEntityBuilder(
         {
             if (store.TryGet(entity, out MeshRendererComponent comp) && comp.MeshRenderer != null)
             {
-                meshRendererCleanup.MeshRenderers.Add(comp.MeshRenderer);
+                meshRendererCleanup.Pending.Enqueue(new MeshRendererCleanup.PendingEntry(comp.MeshRenderer, null));
             }
             store.Free(entity);
         }
