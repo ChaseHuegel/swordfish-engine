@@ -501,6 +501,47 @@
     vertical-align: middle;
 }
 
+.wb-progress-track {
+    background-color: var(--wb-control);
+    border: 1px var(--wb-border);
+}
+
+.wb-progress-fill {
+    background-color: var(--wb-accent);
+}
+
+.wb-slot {
+    background-color: var(--wb-control);
+    border: 1px var(--wb-border);
+    padding: 4px;
+}
+
+.wb-slot-selected {
+    background-color: #172336;
+    border-color: var(--wb-primary);
+    corner-caps: 6 1 #f2994a;
+}
+
+.wb-slot-equipped {
+    background-color: #172336;
+    border-color: var(--wb-primary);
+    corner-caps: 6 1 #ffd27d;
+}
+
+.wb-slot-number {
+    color: var(--wb-text-dim);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-slot-count {
+    background-color: var(--wb-scrim-soft);
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+    text-align: right;
+}
+
 .wb-scrollbar {
     background-color: var(--wb-control);
     width: 6px;

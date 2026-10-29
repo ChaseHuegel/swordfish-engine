@@ -1,0 +1,19 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="ItemSlot"
+      Access="internal"
+      Context="ItemSlotState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-slot"
+             class:wb-slot-selected="@context.Selected"
+             class:wb-slot-equipped="@context.Equipped"
+             layout="none"
+             clip="true">
+        <Image source="@context.Icon" width="fill" height="fill" />
+        <Text class="wb-slot-number" text="@context.Number" width="fill" height="fill" />
+        <If condition="@context.HasCount">
+            <Text class="wb-slot-count" text="@context.Count" anchor="Bottom Right" />
+        </If>
+    </Element>
+</Reef>

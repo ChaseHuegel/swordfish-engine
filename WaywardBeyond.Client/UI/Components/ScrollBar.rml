@@ -1,0 +1,13 @@
+<Reef xmlns="Reef"
+      Class="ScrollBar"
+      Access="internal"
+      Context="ScrollBarState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-scrollbar" layout="none" width="6" height="fill" clip="true">
+        <Element class="wb-scrollbar-thumb"
+                 width="fill"
+                 height="@context.ThumbHeight"
+                 y="@context.ThumbY" />
+    </Element>
+</Reef>

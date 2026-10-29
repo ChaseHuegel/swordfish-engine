@@ -4,6 +4,7 @@ using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.UI.Components;
+using WaywardBeyond.Client.UI.Components;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -91,6 +92,57 @@ public class ComponentSnapshotTests
             content_default: content => DrawText(content, "Body"),
             content_actions: content => DrawText(content, "Action")
         ));
+
+        Snapshot("component-progress-bar", ui => new ProgressBar().Render(
+            ui,
+            new ProgressBarState(0.5f),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(400),
+                Height = new Fixed(6),
+            }
+        ));
+
+        Snapshot("component-scroll-bar", ui => new ScrollBar().Render(
+            ui,
+            new ScrollBarState(0.25f, 0.5f),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(6),
+                Height = new Fixed(200),
+            }
+        ));
+
+        Snapshot("component-item-slot", ui =>
+        {
+            var texture = new Texture([], 1, 1, mipmaps: false);
+            var icon = new Material(null!, texture);
+            new ItemSlot().Render(
+                ui,
+                new ItemSlotState(icon, "1", "64", Selected: true),
+                callerConstraints: new ConstraintsOverride
+                {
+                    Width = new Fixed(48),
+                    Height = new Fixed(48),
+                }
+            );
+        });
+
+        Snapshot("component-scroll-area", ui =>
+        {
+            var state = new ScrollAreaState();
+            state.SetMetrics(viewportHeight: 100, contentHeight: 400);
+            new ScrollArea().Render(
+                ui,
+                state,
+                callerConstraints: new ConstraintsOverride
+                {
+                    Width = new Fixed(300),
+                    Height = new Fixed(100),
+                },
+                content_default: content => DrawText(content, "Item")
+            );
+        });
     }
 
     private static void Snapshot(string name, Action<UIBuilder<Material>> render)

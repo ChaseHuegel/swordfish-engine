@@ -1,0 +1,5 @@
+0 id=- rect=0,0,300,100 clip=0,0,300,100 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=0,0,286,100 clip=0,0,286,100 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=0,0,286,100 clip=0,0,286,100 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Item
+3 id=- rect=294,0,6,100 clip=294,0,6,100 color=0.0824,0.1137,0.1647,1 bg=0.0824,0.1137,0.1647,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+4 id=- rect=294,0,6,25 clip=294,0,6,100 color=0.2863,0.3647,0.4784,1 bg=0.2863,0.3647,0.4784,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
