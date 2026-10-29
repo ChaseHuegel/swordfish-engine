@@ -13,7 +13,7 @@
                 </Content>
 
                 <Element class="wb-column" layout="vertical" width="fill" height="fill" spacing="10">
-                    <Element class="wb-field" layout="vertical" width="fill" spacing="4">
+                    <Element class="wb-field" layout="vertical" width="fill" height="fill" spacing="4">
                         <Text text="@L('ui.field.feedback.message')" class="wb-field-label" width="fill" height="18" />
                         <wb:TextInput id="TextBox_Message"
                                       bind="context.Description"
@@ -38,7 +38,7 @@
                     <Text text="@L('ui.text.feedback.helper')"
                           class="wb-field-hint"
                           width="fill"
-                          height="fill"
+                          height="32"
                           wrap="true" />
                 </Element>
 
