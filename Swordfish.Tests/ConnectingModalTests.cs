@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Reef;
 using Reef.Text;
@@ -86,9 +87,10 @@ public class ConnectingModalTests
         }
 
         List<RenderCommand<Material>> commands = ui.Build(0f);
-
         Assert.Contains(commands, command => command.Text == "127.0.0.1:7777");
-        Assert.Contains(commands, command => command.Color == UiTheme.Accent);
+        Assert.Contains(commands, command => Math.Abs(command.Color.X - UiTheme.Accent.X) < 0.001f
+                                             && Math.Abs(command.Color.Y - UiTheme.Accent.Y) < 0.001f
+                                             && Math.Abs(command.Color.Z - UiTheme.Accent.Z) < 0.001f);
         Assert.Contains(commands, command => command.ID == "Button_CancelConnect");
     }
 

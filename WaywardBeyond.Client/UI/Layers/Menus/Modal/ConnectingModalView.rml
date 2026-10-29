@@ -1,0 +1,33 @@
+<Reef xmlns="Reef"
+      Class="ConnectingModalView"
+      Context="ConnectingModalState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
+
+    <Element class="wb-scrim-heavy" layout="none" width="100%" height="100%">
+        <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
+            <Modal class="wb-modal-connecting">
+                <Content name="header">
+                    <Text text="@context.Title" class="wb-modal-title" width="fill" height="30" />
+                </Content>
+
+                <Element class="wb-column" layout="vertical" width="fill" height="fill" spacing="16">
+                    <Text text="@context.Target" class="wb-modal-body" width="fill" height="22" text-align="center" />
+                    <Element layout="none" width="fill" height="fill" clip="true">
+                        <Element layout="none" width="280" height="2" anchor="Center" clip="true" class="wb-divider">
+                            <Element x="@SignalX(ui.Time)" width="56" height="2" class="wb-accent" />
+                        </Element>
+                    </Element>
+                </Element>
+
+                <Content name="actions">
+                    <Element width="fill" />
+                    <Element id="Button_CancelConnect" class="wb-button" onclick="OnCancel" width="180" height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.cancel')" width="fill" height="fill" />
+                    </Element>
+                    <Element width="fill" />
+                </Content>
+            </Modal>
+        </Element>
+    </Element>
+</Reef>
