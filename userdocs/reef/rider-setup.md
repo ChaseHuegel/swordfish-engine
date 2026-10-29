@@ -87,7 +87,7 @@ Use a custom property:
 }
 
 .panel {
-    --extends: .base;
+    --extends: base;
     padding: 8px;
 }
 ```

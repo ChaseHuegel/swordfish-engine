@@ -180,12 +180,17 @@ reading. Malformed XML during active typing is caught and emitted as diagnostic
 
 1. **Variable expansion**: Any `var(--name)` value replaces with its resolved
    `:root` value. Circular variables raise diagnostic `RF0002`.
-2. **Inheritance flattening**: For each rule declaring `--extends` (or
+2. **Cross-file ruleset cascading**: When multiple `.rss` files declare the
+   same class selector, declarations cascade in discovery order. Properties from
+   later rules augment and override earlier ones, matching standard CSS cascade
+   rules.
+3. **Inheritance flattening**: For each rule declaring `--extends` (or
    `--extend`), properties and pseudo-states from base classes are merged from
    left to right into `.sub` unless `.sub` explicitly overrides them. Multiple
-   base classes are flattened in declaration order. Circular inheritance raises
-   diagnostic `RF0003`.
-3. **Element style matching**: When an AST node specifies `class="btn btn-primary"`:
+   base classes are flattened in declaration order. If a base class is not
+   defined, the generator raises diagnostic `RF0034`. Circular inheritance
+   raises diagnostic `RF0003`.
+4. **Element style matching**: When an AST node specifies `class="btn btn-primary"`:
    - Rules are merged in order of appearance (left-to-right precedence).
    - Dynamic class directives (`class:name`) attach conditional property branches.
    - Any inline attributes on the tag override stylesheet values.
@@ -255,6 +260,7 @@ lists and fail the build on severe issues:
 | `RF0031` | Error | Unsupported construct. |
 | `RF0032` | Warning | Unknown style class. |
 | `RF0033` | Warning | Scroll configuration warning. |
+| `RF0034` | Error | Undefined base class in `--extends` inheritance. |
 | `RF0099` | Error | Internal generator error. |
 
 ### Stage 5: Code emission (`CSharpEmitter`)

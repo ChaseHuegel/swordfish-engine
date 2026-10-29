@@ -59,6 +59,29 @@ public class RssParserTests
     }
 
     [Fact]
+    public void MultipleBaseClassesAndBareIdentifiersParse()
+    {
+        RssFile file = Parse("""
+            .a {
+                --extends: base1 base2;
+            }
+
+            .b {
+                --extend: base1, base2, base3;
+            }
+
+            .c {
+                --extends: base;
+            }
+            """);
+        Assert.Empty(file.Diagnostics);
+        Assert.Equal(3, file.Rules.Count);
+        Assert.Equal(["base1", "base2"], file.Rules[0].ParentClasses);
+        Assert.Equal(["base1", "base2", "base3"], file.Rules[1].ParentClasses);
+        Assert.Equal(["base"], file.Rules[2].ParentClasses);
+    }
+
+    [Fact]
     public void OverrideAndDuplicateVariablesAreCaptured()
     {
         RssFile file = Parse("""

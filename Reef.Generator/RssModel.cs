@@ -73,7 +73,19 @@ internal sealed class RssVariable
 internal sealed class RssRule
 {
     public string Selector = string.Empty;
-    public string? ParentSelector;
+    public readonly List<string> ParentClasses = [];
+    public string? ParentSelector
+    {
+        get => ParentClasses.Count > 0 ? ParentClasses[0] : null;
+        set
+        {
+            ParentClasses.Clear();
+            if (!string.IsNullOrEmpty(value))
+            {
+                ParentClasses.Add(value!);
+            }
+        }
+    }
     public RssPseudoState Pseudo;
     public readonly List<RssDeclaration> Declarations = [];
     public Location Location = Location.None;

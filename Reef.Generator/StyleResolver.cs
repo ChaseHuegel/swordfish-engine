@@ -7,7 +7,19 @@ namespace Reef.Generator;
 internal sealed class RssParsedRule
 {
     public string Selector = string.Empty;
-    public string? ParentSelector;
+    public readonly List<string> ParentClasses = [];
+    public string? ParentSelector
+    {
+        get => ParentClasses.Count > 0 ? ParentClasses[0] : null;
+        set
+        {
+            ParentClasses.Clear();
+            if (!string.IsNullOrEmpty(value))
+            {
+                ParentClasses.Add(value!);
+            }
+        }
+    }
     public RssPseudoState Pseudo;
     public readonly List<MarkupAssignment> Assignments = [];
     public Location Location = Location.None;
@@ -133,10 +145,13 @@ internal sealed class StyleResolver
                 var parsed = new RssParsedRule
                 {
                     Selector = rule.Selector,
-                    ParentSelector = rule.ParentSelector,
                     Pseudo = rule.Pseudo,
                     Location = rule.Location,
                 };
+                for (var p = 0; p < rule.ParentClasses.Count; p++)
+                {
+                    parsed.ParentClasses.Add(rule.ParentClasses[p]);
+                }
 
                 for (var k = 0; k < rule.Declarations.Count; k++)
                 {
@@ -430,21 +445,27 @@ internal sealed class StyleResolver
             for (var i = 0; i < rules.Count; i++)
             {
                 RssParsedRule rule = rules[i];
-                if (rule.ParentSelector == null || !resolvedParents.Add(rule.ParentSelector))
+                for (var p = 0; p < rule.ParentClasses.Count; p++)
                 {
-                    continue;
-                }
+                    string parentClass = rule.ParentClasses[p];
+                    if (!resolvedParents.Add(parentClass))
+                    {
+                        continue;
+                    }
 
-                if (!_rulesByClass.ContainsKey(rule.ParentSelector))
-                {
-                    AddDiagnostic(
-                        DiagnosticDescriptors.StyleInheritance,
-                        rule.Location,
-                        "Style class '." + rule.ParentSelector + "' is not defined.");
-                }
-                else
-                {
-                    ResolveClass(rule.ParentSelector, state, visiting, result);
+                    if (!_rulesByClass.ContainsKey(parentClass))
+                    {
+                        AddDiagnostic(
+                            DiagnosticDescriptors.UndefinedBaseClass,
+                            rule.Location,
+                            parentClass);
+                    }
+                    else
+                    {
+                        var parentResult = new List<MarkupAssignment>();
+                        ResolveClass(parentClass, state, visiting, parentResult);
+                        MergeAssignments(result, parentResult);
+                    }
                 }
             }
 
@@ -453,12 +474,38 @@ internal sealed class StyleResolver
                 RssParsedRule rule = rules[i];
                 if (rule.Pseudo == state)
                 {
-                    result.AddRange(rule.Assignments);
+                    MergeAssignments(result, rule.Assignments);
                 }
             }
         }
 
         visiting.Remove(className);
+    }
+
+    private static void MergeAssignments(List<MarkupAssignment> target, List<MarkupAssignment> source)
+    {
+        for (var i = 0; i < source.Count; i++)
+        {
+            MarkupAssignment incoming = source[i];
+            int existingIndex = -1;
+            for (var j = 0; j < target.Count; j++)
+            {
+                if (target[j].Property == incoming.Property)
+                {
+                    existingIndex = j;
+                    break;
+                }
+            }
+
+            if (existingIndex >= 0)
+            {
+                target[existingIndex] = incoming;
+            }
+            else
+            {
+                target.Add(incoming);
+            }
+        }
     }
 
     private void AddDiagnostic(DiagnosticDescriptor descriptor, Location location, params object[] args)

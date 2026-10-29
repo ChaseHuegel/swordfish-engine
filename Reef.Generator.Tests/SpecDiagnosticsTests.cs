@@ -443,4 +443,14 @@ public class SpecDiagnosticsTests
             </Reef>
             """), "RF0033");
     }
+
+    [Fact]
+    public void RF0034_UndefinedBaseClass()
+    {
+        AssertDiagnostic(Compile("""
+            <Reef xmlns="Reef" Class="V">
+                <Element class="child" width="10" height="10" />
+            </Reef>
+            """, ".child { --extends: nonExistentBase; }"), "RF0034");
+    }
 }

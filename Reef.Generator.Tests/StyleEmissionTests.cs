@@ -100,4 +100,75 @@ public class StyleEmissionTests
         Assert.Contains("ui.Color = new global::System.Numerics.Vector4(1f, 0f, 0f, 1f);", result.GeneratedText);
         Assert.Contains("ui.BackgroundColor = new global::System.Numerics.Vector4(0f, 1f, 0f, 1f);", result.GeneratedText);
     }
+
+    [Fact]
+    public void MultipleBaseClassInheritanceFlattensInDeclarationOrder()
+    {
+        MarkupCompilation result = MarkupTestHost.Compile("""
+            <Reef xmlns="Reef" Class="V">
+                <Element class="child" />
+            </Reef>
+            """, """
+            namespace ReefMarkupTest
+            {
+                public partial class V
+                {
+                }
+            }
+            """, """
+            .base1 {
+                width: 100px;
+                color: #ff0000;
+            }
+
+            .base2 {
+                color: #0000ff;
+                height: 50px;
+            }
+
+            .child {
+                --extends: base1 base2;
+                border: 1px #ffffff;
+            }
+            """);
+        Assert.Empty(result.Errors);
+        // Inherits width from base1
+        Assert.Contains("Width = new global::Reef.Constraints.Fixed(100)", result.GeneratedText);
+        // Inherits height from base2
+        Assert.Contains("Height = new global::Reef.Constraints.Fixed(50)", result.GeneratedText);
+        // base2 overrides base1 color (#0000ff instead of #ff0000)
+        Assert.Contains("ui.Color = new global::System.Numerics.Vector4(0f, 0f, 1f, 1f);", result.GeneratedText);
+        Assert.DoesNotContain("ui.Color = new global::System.Numerics.Vector4(1f, 0f, 0f, 1f);", result.GeneratedText);
+        // child defines border
+        Assert.Contains("ui.Border = ui.Border with { Thickness = 1 };", result.GeneratedText);
+        Assert.Contains("ui.Border = ui.Border with { Color = new global::System.Numerics.Vector4(1f, 1f, 1f, 1f) };", result.GeneratedText);
+    }
+
+    [Fact]
+    public void MultiFileRulesetCascadesAndMergesInDiscoveryOrder()
+    {
+        MarkupCompilation result = MarkupTestHost.CompileFiles(
+        [
+            ("V.rml", """
+                <Reef xmlns="Reef" Class="V" Namespace="ReefMarkupTest">
+                    <Element class="card" />
+                </Reef>
+                """),
+            ("BaseTheme.rss", ".card { padding: 12px; color: #ff0000; }"),
+            ("GameTheme.rss", ".card { color: #00ff00; }"),
+        ], """
+            namespace ReefMarkupTest
+            {
+                public partial class V
+                {
+                }
+            }
+            """);
+        Assert.Empty(result.Errors);
+        // Inherits padding from BaseTheme.rss
+        Assert.Contains("ui.Padding = new global::Reef.UI.Padding(left: 12, top: 12, right: 12, bottom: 12);", result.GeneratedText);
+        // GameTheme.rss overrides color (#00ff00 instead of #ff0000)
+        Assert.Contains("ui.Color = new global::System.Numerics.Vector4(0f, 1f, 0f, 1f);", result.GeneratedText);
+        Assert.DoesNotContain("ui.Color = new global::System.Numerics.Vector4(1f, 0f, 0f, 1f);", result.GeneratedText);
+    }
 }

@@ -190,7 +190,7 @@ The alias `gap` maps to `spacing`.
 }
 
 .panel {
-    --extends: .base;
+    --extends: base;
     border: 1px #4fc3f7;
 }
 
@@ -211,7 +211,7 @@ The alias `gap` maps to `spacing`.
 }
 ```
 
-Inheritance uses `--extends: .base;`. Variable overrides use `!important`.
+Inheritance uses `--extends: base;` (multiple base classes are supported: `--extends: base1 base2;`). Variable overrides use `!important`.
 The legacy `.sub : .base` and `override --name` forms are still accepted.
 Pseudo states are `:hover`, `:active`, `:focus`, and `:disabled`.
 

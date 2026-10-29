@@ -219,7 +219,9 @@ internal sealed class RssParser
             if (Current.Kind == RssTokenKind.Variable)
             {
                 RssToken custom = ConsumeToken();
-                if (!string.Equals(custom.Text, "--extends", StringComparison.Ordinal))
+                bool isExtends = string.Equals(custom.Text, "--extends", StringComparison.Ordinal)
+                              || string.Equals(custom.Text, "--extend", StringComparison.Ordinal);
+                if (!isExtends)
                 {
                     AddError("Only the --extends custom property is supported in a style rule.", Current);
                     RecoverDeclaration();
@@ -235,13 +237,16 @@ internal sealed class RssParser
                 }
 
                 List<RssToken> parentValue = ReadValue();
-                if (!TryParseParentSelector(parentValue, out string? parentSelector))
+                if (!TryParseParentClasses(parentValue, out List<string> parentClasses) || parentClasses.Count == 0)
                 {
                     AddError("Expected a base class name for --extends.", Current);
                 }
                 else
                 {
-                    rule.ParentSelector = parentSelector;
+                    for (int p = 0; p < parentClasses.Count; p++)
+                    {
+                        rule.ParentClasses.Add(parentClasses[p]);
+                    }
                 }
 
                 if (!TryConsume(RssTokenKind.Semicolon) && Current.Kind != RssTokenKind.RBrace && Current.Kind != RssTokenKind.End)
@@ -396,43 +401,64 @@ internal sealed class RssParser
         return true;
     }
 
-    private static bool TryParseParentSelector(List<RssToken> value, out string? parentSelector)
+    private static bool TryParseParentClasses(List<RssToken> value, out List<string> parentClasses)
     {
-        parentSelector = null;
+        parentClasses = [];
         int index = 0;
-        while (index < value.Count && value[index].Kind == RssTokenKind.Whitespace)
-        {
-            index++;
-        }
-
-        if (index < value.Count && value[index].Kind == RssTokenKind.Dot)
-        {
-            index++;
-        }
-
-        while (index < value.Count && value[index].Kind == RssTokenKind.Whitespace)
-        {
-            index++;
-        }
-
-        if (index >= value.Count || value[index].Kind != RssTokenKind.Identifier)
-        {
-            return false;
-        }
-
-        parentSelector = value[index].Text;
-        index++;
         while (index < value.Count)
         {
-            if (value[index].Kind != RssTokenKind.Whitespace)
+            while (index < value.Count && (value[index].Kind == RssTokenKind.Whitespace || value[index].Kind == RssTokenKind.Comma))
+            {
+                index++;
+            }
+
+            if (index >= value.Count)
+            {
+                break;
+            }
+
+            if (value[index].Kind == RssTokenKind.Dot)
+            {
+                index++;
+            }
+
+            while (index < value.Count && value[index].Kind == RssTokenKind.Whitespace)
+            {
+                index++;
+            }
+
+            if (index >= value.Count || value[index].Kind != RssTokenKind.Identifier)
             {
                 return false;
             }
 
+            parentClasses.Add(value[index].Text);
             index++;
+
+            while (index < value.Count && value[index].Kind == RssTokenKind.Whitespace)
+            {
+                index++;
+            }
+
+            if (index < value.Count && value[index].Kind == RssTokenKind.Comma)
+            {
+                index++;
+            }
         }
 
-        return true;
+        return parentClasses.Count > 0;
+    }
+
+    private static bool TryParseParentSelector(List<RssToken> value, out string? parentSelector)
+    {
+        if (TryParseParentClasses(value, out List<string> classes) && classes.Count > 0)
+        {
+            parentSelector = classes[0];
+            return true;
+        }
+
+        parentSelector = null;
+        return false;
     }
 
     private void RecoverTopLevel()

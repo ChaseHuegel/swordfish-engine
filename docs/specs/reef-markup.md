@@ -565,7 +565,9 @@ Inheritance evaluates from left to right: earlier base classes are applied first
 subsequent base classes override earlier ones, and properties declared directly
 in the child class take final precedence. Base pseudo-states (such as `:hover` or
 `:active`) are also inherited unless explicitly overridden in the child rule.
-Circular inheritance raises compiler error `RF0003`.
+Circular inheritance raises compiler error `RF0003`. If a base class referenced
+in `--extends` does not exist in any loaded stylesheet, the compiler halts with
+error `RF0034` (`Undefined base class in --extends inheritance`).
 
 ### Supported stylesheet properties
 
@@ -615,6 +617,15 @@ inherited from a base theme or package, mark the declaration with
 If two files both mark `--name` with `!important`, the generator halts with
 error `RF0013`. The legacy `override --name` form is still accepted. Use the
 `!important` form so CSS editors parse the file.
+
+### Multi-file class cascading and merging
+
+When multiple `.rss` files declare the same class selector (such as a local game
+theme customizing a shared base theme's `.btn` class), the declarations cascade
+and merge in file discovery order. Properties declared in subsequent rules
+override properties from earlier rules, and newly declared properties augment
+the class. This allows project stylesheets to customize design system classes
+without repeating the entire ruleset.
 
 ### Pseudo-state resolution
 

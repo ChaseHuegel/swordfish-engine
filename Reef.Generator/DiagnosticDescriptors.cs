@@ -205,6 +205,12 @@ internal static class DiagnosticDescriptors
         "Element declares '{0}' without a scroll mode",
         DiagnosticSeverity.Warning);
 
+    public static readonly DiagnosticDescriptor UndefinedBaseClass = Create(
+        "RF0034",
+        "Undefined base class",
+        "Base style class '{0}' referenced in --extends is not defined",
+        DiagnosticSeverity.Error);
+
     public static readonly DiagnosticDescriptor InternalError = Create(
         "RF0099",
         "Reef markup generator error",
