@@ -68,6 +68,13 @@ internal static partial class Widgets
             bool exited = ui.Exited();
             bool focused = ui.Focused();
 
+            if (focused != state.Focused)
+            {
+                state.ControlModifier = false;
+                state.ShiftModifier = false;
+                state.SelectionStartIndex = state.CaretIndex;
+            }
+
             Vector4 textColor = style?.Color ?? (focused
                 ? palette?.TextFocused ?? UiTheme.Text
                 : palette?.Text ?? UiTheme.TextMuted);
@@ -172,8 +179,15 @@ internal static partial class Widgets
                     }
                     else if (input.Type != UIController.InputType.KeyPress)
                     {
-                        state.ControlModifier = state.ControlModifier && input != UIController.Key.Control;
-                        state.ShiftModifier = state.ShiftModifier && input != UIController.Key.Shift;
+                        if (input.Key == UIController.Key.Control)
+                        {
+                            state.ControlModifier = false;
+                        }
+                        else if (input.Key == UIController.Key.Shift)
+                        {
+                            state.ShiftModifier = false;
+                        }
+
                         continue;
                     }
                     else if (input == UIController.Key.Control)
