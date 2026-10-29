@@ -1,0 +1,62 @@
+<Reef xmlns="Reef"
+      xmlns:wb="WaywardBeyond.Client.UI.Controls"
+      Class="FeedbackView"
+      Context="FeedbackState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
+
+    <Element class="wb-scrim-heavy" layout="none" width="100%" height="100%">
+        <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
+            <Modal class="wb-modal-feedback">
+                <Content name="header">
+                    <Text text="@L('ui.dialog.feedback')" class="wb-modal-title" width="fill" height="30" />
+                </Content>
+
+                <Element class="wb-column" layout="vertical" width="fill" height="fill" spacing="10">
+                    <Element class="wb-field" layout="vertical" width="fill" spacing="4">
+                        <Text text="@L('ui.field.feedback.message')" class="wb-field-label" width="fill" height="18" />
+                        <wb:TextInput id="TextBox_Message"
+                                      bind="context.Description"
+                                      input-service="@InputService"
+                                      placeholder="@L('ui.field.feedback.message.placeholder')"
+                                      class="wb-field-frame"
+                                      width="fill"
+                                      height="fill" />
+                    </Element>
+
+                    <Element class="wb-field" layout="vertical" width="fill" spacing="4">
+                        <Text text="@L('ui.field.feedback.contact')" class="wb-field-label" width="fill" height="18" />
+                        <wb:TextInput id="TextBox_Contact"
+                                      bind="context.Contact"
+                                      input-service="@InputService"
+                                      placeholder="@L('ui.field.feedback.contact.placeholder')"
+                                      class="wb-field-frame"
+                                      width="fill"
+                                      height="32" />
+                    </Element>
+
+                    <Text text="@L('ui.text.feedback.helper')"
+                          class="wb-field-hint"
+                          width="fill"
+                          height="fill"
+                          wrap="true" />
+                </Element>
+
+                <Content name="actions">
+                    <Element id="Button_Back" class="wb-button" onclick="OnBack" width="160" height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.back')" width="fill" height="fill" />
+                    </Element>
+                    <Element width="fill" />
+                    <Element id="Button_Submit"
+                             class="wb-button wb-button-primary"
+                             onclick="OnSubmit"
+                             disabled="@(!context.CanSubmit)"
+                             width="200"
+                             height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.send')" width="fill" height="fill" />
+                    </Element>
+                </Content>
+            </Modal>
+        </Element>
+    </Element>
+</Reef>

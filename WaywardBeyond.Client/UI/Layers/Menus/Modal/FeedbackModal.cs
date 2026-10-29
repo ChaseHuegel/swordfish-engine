@@ -1,48 +1,39 @@
 using Microsoft.Extensions.Logging;
-using Reef.Constraints;
-using Reef.UI;
 using Reef;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using System;
 using System.IO;
 using System.Threading.Tasks;
-using System;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.IO;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
-internal class FeedbackModal : IMenuPage<Modal>
+/// <summary>Collects feedback with an optional screenshot and log history.</summary>
+internal sealed class FeedbackModal : IMenuPage<Modal>
 {
     public static Modal Modal { get; } = new(id: "core.feedback");
 
     private readonly ILogger<FeedbackModal> _logger;
-    private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
     private readonly FeedbackWebhook _feedbackWebhook;
     private readonly IRenderer _renderer;
     private readonly LogListener _logListener;
     private readonly NotificationService _notificationService;
-
-    private readonly Widgets.ActionButtonOptions _submitButton;
-    private readonly Widgets.ActionButtonOptions _backButton;
-    private readonly FontOptions _fieldFontOptions;
-
-    private TextBoxState _contactTextBox;
-    private TextBoxState _descriptionTextBox;
+    private readonly FeedbackView _view;
+    private readonly FeedbackState _state;
+    private Menu<Modal>? _menu;
+    private double _time;
     private double _lastSubmissionTime = double.MinValue;
-
-    public Modal ID => Modal;
 
     public FeedbackModal(
         in ILogger<FeedbackModal> logger,
@@ -56,200 +47,45 @@ internal class FeedbackModal : IMenuPage<Modal>
     )
     {
         _logger = logger;
-        _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
         _feedbackWebhook = feedbackWebhook;
         _renderer = renderer;
         _logListener = logListener;
         _notificationService = notificationService;
-
-        _submitButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
-        _backButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
-        _fieldFontOptions = new FontOptions
+        _state = CreateState();
+        _view = new FeedbackView(localization, inputService)
         {
-            Size = UiMetrics.MENU_BODY_FONT,
+            BackRequested = Back,
+            SubmitRequested = Submit
         };
-
-        var contactTextBoxOptions = new TextBoxState.Options(
-            Placeholder: localization.GetString("ui.field.feedback.contact.placeholder"),
-            MaxCharacters: 30,
-            DisallowedCharacters: ['\t'],
-            Constraints: new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            }
-        );
-        _contactTextBox = new TextBoxState(initialValue: string.Empty, options: contactTextBoxOptions);
-
-        var descriptionTextBoxOptions = new TextBoxState.Options(
-            SubmitBehavior: TextBoxState.SubmitBehavior.NewLine,
-            Placeholder: localization.GetString("ui.field.feedback.message.placeholder"),
-            MaxCharacters: 500,
-            Constraints: new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            }
-        );
-
-        _descriptionTextBox = new TextBoxState(initialValue: string.Empty, descriptionTextBoxOptions);
     }
 
+    public Modal ID => Modal;
+
+    /// <inheritdoc/>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        int panelWidth = Math.Clamp(ui.Width - 160, 520, 860);
-        int panelHeight = Math.Clamp(ui.Height - 160, 460, 620);
-        int descriptionHeight = Math.Clamp(panelHeight - 300, 140, 320);
-
-        using (ui.ModalDialog(panelWidth, panelHeight, UiTheme.ScrimHeavy))
-        {
-            ui.Label(
-                _localization.GetRequired("ui.dialog.feedback"),
-                UiMetrics.MENU_TITLE_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(30),
-                },
-                HorizontalAlignment.Center
-            );
-            ui.Spacer(height: 8);
-            ui.Divider(
-                UiTheme.Border,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(1),
-                }
-            );
-            ui.Spacer(height: 16);
-
-            ui.Label(
-                _localization.GetRequired("ui.field.feedback.message"),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(18),
-                }
-            );
-            ui.Spacer(height: 4);
-            ui.MenuTextBox(
-                "TextBox_Message",
-                ref _descriptionTextBox,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(descriptionHeight),
-                },
-                _fieldFontOptions,
-                _inputService,
-                _soundEffectService
-            );
-
-            ui.Spacer(height: 12);
-            ui.Label(
-                _localization.GetRequired("ui.field.feedback.contact"),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(18),
-                }
-            );
-            ui.Spacer(height: 4);
-            ui.MenuTextBox(
-                "TextBox_Contact",
-                ref _contactTextBox,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
-                },
-                _fieldFontOptions,
-                _inputService,
-                _soundEffectService
-            );
-
-            ui.Spacer(height: 8);
-            ui.Paragraph(
-                _localization.GetRequired("ui.text.feedback.helper"),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.TextMuted,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                }
-            );
-
-            DrawFooter(ui, menu);
-        }
-
+        _menu = menu;
+        _time = ui.Time;
+        _view.Render(ui, _state);
         return Result.FromSuccess();
     }
 
-    /// <summary>Draws the back and submit actions along the panel footer.</summary>
-    private void DrawFooter(UIBuilder<Material> ui, Menu<Modal> menu)
+    private void Back()
     {
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-            },
-            spacing: 12
-        ))
-        {
-            if (ui.ActionButton(
-                "Button_Back",
-                _localization.GetRequired("ui.button.back"),
-                _backButton with
-                {
-                    Layout = new Constraints
-                    {
-                        Width = new Fixed(160),
-                        Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                        Anchors = Anchors.Center,
-                    },
-                }
-            ))
-            {
-                menu.GoBack();
-            }
-
-            ui.Filler();
-
-            bool canSubmit = _descriptionTextBox.Text.Length > 0;
-            Widgets.ActionButtonOptions submitOptions = _submitButton with
-            {
-                Enabled = canSubmit,
-                Layout = new Constraints
-                {
-                    Width = new Fixed(200),
-                    Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                    Anchors = Anchors.Center,
-                },
-            };
-            if (ui.ActionButton(
-                "Button_Submit",
-                _localization.GetRequired("ui.button.send"),
-                submitOptions
-            ))
-            {
-                Submit(menu, ui.Time);
-            }
-        }
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _menu?.GoBack();
     }
 
-    private void Submit(Menu<Modal> menu, double time)
+    private void Submit()
     {
-        double timeSinceLastSubmission = time - _lastSubmissionTime;
+        if (!_state.CanSubmit)
+        {
+            return;
+        }
+
+        double timeSinceLastSubmission = _time - _lastSubmissionTime;
         if (timeSinceLastSubmission <= 15)
         {
             var notification = new Notification(
@@ -260,15 +96,15 @@ internal class FeedbackModal : IMenuPage<Modal>
             return;
         }
 
-        _lastSubmissionTime = time;
-        var contact = _contactTextBox.Text.ToString();
-        var description = _descriptionTextBox.Text.ToString();
-        menu.GoBack();
+        _lastSubmissionTime = _time;
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        var contact = _state.Contact.Text.ToString();
+        var description = _state.Description.Text.ToString();
+        _menu?.GoBack();
         Task.Run(SubmitAsync);
 
         async Task SubmitAsync()
         {
-            //  Let the modal close before the log snapshot is taken.
             await Task.Delay(100);
 
             LogEventArgs[] logHistory = _logListener.GetHistory();
@@ -309,5 +145,24 @@ internal class FeedbackModal : IMenuPage<Modal>
                 _notificationService.Push(new Notification(_localization.GetRequired("ui.message.feedback.failed")));
             }
         }
+    }
+
+    private static FeedbackState CreateState()
+    {
+        var contact = new TextBoxState(
+            initialValue: string.Empty,
+            new TextBoxState.Options(
+                MaxCharacters: 30,
+                DisallowedCharacters: ['\t']
+            )
+        );
+        var description = new TextBoxState(
+            initialValue: string.Empty,
+            new TextBoxState.Options(
+                SubmitBehavior: TextBoxState.SubmitBehavior.NewLine,
+                MaxCharacters: 500
+            )
+        );
+        return new FeedbackState(contact, description);
     }
 }
