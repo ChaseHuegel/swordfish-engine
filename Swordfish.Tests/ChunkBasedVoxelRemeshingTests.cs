@@ -911,4 +911,55 @@ public class ChunkBasedVoxelRemeshingTests
         Assert.Equal(0, voxelObject.Get(8, 8, 13).GetLightLevel());
         Assert.Equal(0, voxelObject.Get(8, 8, 12).GetLightLevel());
     }
+
+    [Fact]
+    public void WideTunnelWithAmbientExposure_PlacingVoxel_NeighborAtSameDepthStaysLit()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Build asteroid in chunk (0, 0, 0): x from 5 to 11, y from 6 to 10, z from 10 to 15
+        for (int x = 5; x <= 11; x++)
+        {
+            for (int y = 6; y <= 10; y++)
+            {
+                for (int z = 10; z <= 15; z++)
+                {
+                    voxelObject.Set(x, y, z, stone);
+                }
+            }
+        }
+
+        registry.DepthState.Populate(voxelObject, brickDb);
+
+        // Dig a 2-wide tunnel at x=7 and x=8 from z=15 down to 10:
+        for (int z = 15; z >= 10; z--)
+        {
+            Voxel current7 = voxelObject.Get(7, 8, z);
+            lightingService.UpdateLighting(voxelObject, registry, 7, 8, z, in current7, ref air);
+
+            Voxel current8 = voxelObject.Get(8, 8, z);
+            lightingService.UpdateLighting(voxelObject, registry, 8, 8, z, in current8, ref air);
+        }
+
+        // Both lanes are lit at z = 12:
+        int lightBefore7 = voxelObject.Get(7, 8, 12).GetLightLevel();
+        int lightBefore8 = voxelObject.Get(8, 8, 12).GetLightLevel();
+        Assert.True(lightBefore7 > 0);
+        Assert.True(lightBefore8 > 0);
+
+        // Now place a voxel at (7, 8, 12):
+        Voxel air7 = voxelObject.Get(7, 8, 12);
+        lightingService.UpdateLighting(voxelObject, registry, 7, 8, 12, in air7, ref stone);
+
+        // The adjacent tunnel neighbor at (8, 8, 12) must STILL be lit!
+        Assert.True(voxelObject.Get(8, 8, 12).GetLightLevel() > 0);
+    }
 }

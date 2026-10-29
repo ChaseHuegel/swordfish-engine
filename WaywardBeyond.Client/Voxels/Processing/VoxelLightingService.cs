@@ -64,6 +64,26 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
         if (newIsCuller && !oldIsCuller)
         {
             int oldLight = original.GetLightLevel();
+            if (oldLight == 0)
+            {
+                if (registry.DepthState.IsAmbientSource(x, y, z))
+                {
+                    oldLight = 15;
+                }
+                else
+                {
+                    for (var i = 0; i < _directions.Length; i++)
+                    {
+                        (int dx, int dy, int dz) = _directions[i];
+                        if (!voxelObject.TryGetChunk(voxelObject.ToChunkOffset(x + dx, y + dy, z + dz), out _))
+                        {
+                            oldLight = 15;
+                            break;
+                        }
+                    }
+                }
+            }
+
             updated.ShapeLight = new ShapeLight(updated.GetShapeLight().Shape, 0);
             voxelObject.Set(x, y, z, updated);
 
@@ -195,33 +215,69 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
 
                 Voxel neighbor = voxelObject.Get(nx, ny, nz);
                 int neighborLight = neighbor.GetLightLevel();
-
-                bool isSource = false;
-                if (neighborLight >= light)
+                if (neighborLight == 0)
                 {
-                    Result<Brick> brickResult = _brickDatabase.Get(neighbor.ID);
-                    if (brickResult.Success && brickResult.Value.LightSource && brickResult.Value.Brightness >= neighborLight)
-                    {
-                        isSource = true;
-                    }
-                    else if (neighborLight == 15 && registry.DepthState.IsAmbientSource(nx, ny, nz))
-                    {
-                        isSource = true;
-                    }
+                    continue;
                 }
 
-                if (neighborLight != 0 && (neighborLight < light || (neighborLight == light && !isSource)))
+                if (neighborLight < light)
                 {
                     voxelObject.SetLight(nx, ny, nz, 0);
                     registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
                     _removeQueue.Enqueue((nx, ny, nz, neighborLight));
                 }
-                else if (neighborLight >= light && isSource)
+                else if (neighborLight > light || light < 15)
                 {
                     _addQueue.Enqueue((nx, ny, nz, neighborLight));
                 }
+                else
+                {
+                    if (IsIndependentSkySource(voxelObject, registry, nx, ny, nz, in neighbor))
+                    {
+                        _addQueue.Enqueue((nx, ny, nz, neighborLight));
+                    }
+                    else
+                    {
+                        voxelObject.SetLight(nx, ny, nz, 0);
+                        registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
+                        _removeQueue.Enqueue((nx, ny, nz, neighborLight));
+                    }
+                }
             }
         }
+    }
+
+    private bool IsIndependentSkySource(
+        VoxelObject voxelObject,
+        VoxelChunkRegistry registry,
+        int x,
+        int y,
+        int z,
+        in Voxel voxel
+    )
+    {
+        Result<Brick> brickResult = _brickDatabase.Get(voxel.ID);
+        if (brickResult.Success && brickResult.Value.LightSource && brickResult.Value.Brightness >= 15)
+        {
+            return true;
+        }
+
+        if (registry.DepthState.IsAmbientSource(x, y, z))
+        {
+            return true;
+        }
+
+        for (var i = 0; i < _directions.Length; i++)
+        {
+            (int dx, int dy, int dz) = _directions[i];
+            Short3 neighborChunkOffset = voxelObject.ToChunkOffset(x + dx, y + dy, z + dz);
+            if (!voxelObject.TryGetChunk(neighborChunkOffset, out _))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void DrainAddQueue(VoxelObject voxelObject, VoxelChunkRegistry registry)
