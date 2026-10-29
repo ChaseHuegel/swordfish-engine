@@ -1,139 +1,72 @@
-using Reef.Constraints;
-using Reef.UI;
 using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using System.Threading.Tasks;
-using System;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Client.UI.Theme;
+using WaywardBeyond.Client.UI;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
 /// <summary>Shows the playtest notice with links to the community pages.</summary>
-internal class PlaytestNoticeModal(
-    in SoundEffectService soundEffectService,
-    in ILocalization localization,
-    in ExternalAppService externalAppService
-) : IMenuPage<Modal>
+internal class PlaytestNoticeModal : IMenuPage<Modal>
 {
     public static Modal Modal { get; } = new(id: "core.playtest");
 
-    private readonly ILocalization _localization = localization;
-    private readonly ExternalAppService _externalAppService = externalAppService;
+    private readonly ILocalization _localization;
+    private readonly ExternalAppService _externalAppService;
+    private readonly SoundEffectService _soundEffectService;
+    private readonly PlaytestNoticeView _view = new();
+    private Menu<Modal>? _menu;
 
-    private readonly Widgets.ActionButtonOptions _closeButton = Widgets.ActionButtonOptions.Menu(
-        ButtonVariant.Primary,
-        soundEffectService
-    );
+    public PlaytestNoticeModal(
+        in SoundEffectService soundEffectService,
+        in ILocalization localization,
+        in ExternalAppService externalAppService
+    )
+    {
+        _soundEffectService = soundEffectService;
+        _localization = localization;
+        _externalAppService = externalAppService;
 
-    private readonly Widgets.IconButtonOptions _brandIconOptions = new(
-        FontId: UiTheme.FONT_BRANDS,
-        FontSize: UiMetrics.LARGE_ICON_FONT,
-        SoundEffectService: soundEffectService
-    );
+        _view.CloseRequested = Close;
+        _view.DiscordRequested = OpenDiscord;
+        _view.SteamRequested = OpenSteam;
+    }
 
     public Modal ID => Modal;
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu)
     {
-        int panelWidth = Math.Clamp(ui.Width - 160, 520, 760);
-        int panelHeight = Math.Clamp(ui.Height - 160, 460, 500);
+        _menu = menu;
 
-        using (ui.ModalDialog(panelWidth, panelHeight, UiTheme.ScrimHeavy))
-        {
-            ui.Label(
-                _localization.GetRequired("ui.dialog.playtest"),
-                UiMetrics.MENU_TITLE_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(30),
-                },
-                HorizontalAlignment.Center
-            );
-            ui.Spacer(height: 8);
-            ui.Divider(
-                UiTheme.Border,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(1),
-                }
-            );
-            ui.Spacer(height: 16);
-            ui.Paragraph(
-                _localization.GetRequired("ui.dialog.playtest.body"),
-                UiMetrics.MENU_BODY_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                }
-            );
-
-            using (ui.Row(
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                },
-                spacing: 8
-            ))
-            {
-                if (ui.IconButton(
-                    "Button_Community",
-                    MenuGlyphs.DISCORD,
-                    _brandIconOptions,
-                    new Constraints
-                    {
-                        Width = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                        Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                    }
-                ))
-                {
-                    Task.Run(_externalAppService.TryOpenDiscordAsync);
-                }
-
-                if (ui.IconButton(
-                    "Button_Wishlist",
-                    MenuGlyphs.STEAM,
-                    _brandIconOptions,
-                    new Constraints
-                    {
-                        Width = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                        Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                    }
-                ))
-                {
-                    Task.Run(_externalAppService.TryOpenSteamAsync);
-                }
-
-                ui.Filler();
-
-                if (ui.ActionButton(
-                    "Button_Close",
-                    _localization.GetRequired("ui.button.ok"),
-                    _closeButton with
-                    {
-                        Layout = new Constraints
-                        {
-                            Width = new Fixed(200),
-                            Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                            Anchors = Anchors.Center,
-                        },
-                    }
-                ))
-                {
-                    menu.GoBack();
-                }
-            }
-        }
+        _view.Render(ui, new PlaytestNoticeState(
+            _localization.GetRequired("ui.dialog.playtest"),
+            _localization.GetRequired("ui.dialog.playtest.body"),
+            _localization.GetRequired("ui.button.ok"),
+            MenuGlyphs.DISCORD,
+            MenuGlyphs.STEAM
+        ));
 
         return Result.FromSuccess();
+    }
+
+    private void Close()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _menu?.GoBack();
+    }
+
+    private void OpenDiscord()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        Task.Run(_externalAppService.TryOpenDiscordAsync);
+    }
+
+    private void OpenSteam()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        Task.Run(_externalAppService.TryOpenSteamAsync);
     }
 }

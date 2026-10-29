@@ -1,0 +1,86 @@
+<Reef xmlns="Reef"
+      Class="PlaytestNoticeView"
+      Context="PlaytestNoticeState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
+
+    <Element id="PlaytestNoticeScrim"
+             layout="none"
+             width="100%"
+             height="100%"
+             class="playtest-scrim">
+
+        <Element layout="none" width="100%" height="100%" clip="true" class="playtest-center">
+            <Element id="PlaytestNoticePanel"
+                     layout="vertical"
+                     size="100% 100%"
+                     min-width="520"
+                     max-width="760"
+                     min-height="460"
+                     max-height="500"
+                     anchor="Center"
+                     clip="true"
+                     corner-caps="10 2 #2b384e"
+                     class="playtest-panel">
+
+                <Text text="@context.Title"
+                      class="playtest-title"
+                      width="fill"
+                      height="30"
+                      vertical-align="center" />
+
+                <Element height="8" />
+
+                <Element class="playtest-divider" width="fill" height="1" />
+
+                <Element height="16" />
+
+                <Text text="@context.Body"
+                      class="playtest-body"
+                      width="fill"
+                      height="fill"
+                      wrap="true" />
+
+                <Element layout="horizontal"
+                         class="playtest-row"
+                         width="fill"
+                         height="40">
+
+                    <Element id="Button_Community"
+                             class="playtest-brand-button"
+                             onclick="OnDiscord"
+                             width="40"
+                             height="40">
+                        <Text text="@context.DiscordGlyph"
+                              class="playtest-brand-glyph"
+                              width="fill"
+                              height="fill" />
+                    </Element>
+
+                    <Element id="Button_Wishlist"
+                             class="playtest-brand-button"
+                             onclick="OnSteam"
+                             width="40"
+                             height="40">
+                        <Text text="@context.SteamGlyph"
+                              class="playtest-brand-glyph"
+                              width="fill"
+                              height="fill" />
+                    </Element>
+
+                    <Element width="fill" />
+
+                    <Element id="Button_Close"
+                             class="playtest-primary-button"
+                             onclick="OnClose"
+                             width="200"
+                             height="40">
+                        <Text text="@context.Ok"
+                              class="playtest-primary-label"
+                              anchor="center"/>
+                    </Element>
+                </Element>
+            </Element>
+        </Element>
+    </Element>
+</Reef>
