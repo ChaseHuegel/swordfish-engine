@@ -1,0 +1,16 @@
+<Reef xmlns="Reef"
+      Class="Modal"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-modal" layout="vertical" clip="true">
+        <Content name="header" />
+        <Element height="8" />
+        <Element class="wb-divider" width="fill" height="1" />
+        <Element height="16" />
+        <Content />
+        <Element height="16" />
+        <Element class="wb-modal-actions" layout="horizontal" width="fill" height="40">
+            <Content name="actions" />
+        </Element>
+    </Element>
+</Reef>

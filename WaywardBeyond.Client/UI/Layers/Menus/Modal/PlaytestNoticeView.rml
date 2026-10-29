@@ -5,19 +5,13 @@
 
     <Element id="PlaytestNoticeScrim" class="wb-scrim-heavy" layout="none" width="100%" height="100%">
         <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
-            <Element id="PlaytestNoticePanel"
-                     layout="vertical"
-                     class="wb-modal wb-modal-playtest"
-                     clip="true">
-
-                <Text text="@L('ui.dialog.playtest')"
-                      class="wb-modal-title"
-                      width="fill"
-                      height="30" />
-
-                <Element height="8" />
-                <Element class="wb-divider" width="fill" height="1" />
-                <Element height="16" />
+            <Modal id="PlaytestNoticePanel" class="wb-modal-playtest">
+                <Content name="header">
+                    <Text text="@L('ui.dialog.playtest')"
+                          class="wb-modal-title"
+                          width="fill"
+                          height="30" />
+                </Content>
 
                 <Text text="@L('ui.dialog.playtest.body')"
                       class="wb-modal-body"
@@ -25,7 +19,7 @@
                       height="fill"
                       wrap="true" />
 
-                <Element layout="horizontal" class="wb-row" width="fill" height="40">
+                <Content name="actions">
                     <Element id="Button_Community"
                              class="wb-icon-button"
                              onclick="OnDiscord"
@@ -60,8 +54,8 @@
                               width="fill"
                               height="fill" />
                     </Element>
-                </Element>
-            </Element>
+                </Content>
+            </Modal>
         </Element>
     </Element>
 </Reef>

@@ -1,3 +1,7 @@
+.wb-accent {
+    background-color: var(--wb-accent);
+}
+
 .wb-scrim {
     background-color: var(--wb-scrim);
 }
@@ -175,6 +179,33 @@
     anchor: Center;
 }
 
+.wb-modal-form {
+    size: 100% 100%;
+    min-width: 520px;
+    max-width: 520px;
+    min-height: 300px;
+    max-height: 300px;
+    anchor: Center;
+}
+
+.wb-modal-feedback {
+    size: 100% 100%;
+    min-width: 520px;
+    max-width: 860px;
+    min-height: 460px;
+    max-height: 620px;
+    anchor: Center;
+}
+
+.wb-modal-connecting {
+    size: 100% 100%;
+    min-width: 520px;
+    max-width: 520px;
+    min-height: 240px;
+    max-height: 240px;
+    anchor: Center;
+}
+
 .wb-modal-title {
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
@@ -211,6 +242,10 @@
     --extends: wb-button-base;
     background-color: var(--wb-button);
     border: 1px var(--wb-border);
+}
+
+.wb-button-secondary {
+    --extends: wb-button;
 }
 
 .wb-button:hover {

@@ -6,19 +6,20 @@
 
     <Element class="wb-scrim-heavy" layout="none" width="100%" height="100%">
         <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
-            <Element class="wb-modal wb-modal-compact" layout="vertical" clip="true">
-                <Text text="@context.Title" class="wb-modal-title" width="fill" height="30" />
-                <Element height="8" />
-                <Element class="wb-divider" width="fill" height="1" />
-                <Element height="16" />
+            <Modal class="wb-modal-compact">
+                <Content name="header">
+                    <Text text="@context.Title" class="wb-modal-title" width="fill" height="30" />
+                </Content>
+
                 <Text text="@context.Body" class="wb-modal-body" width="fill" height="fill" wrap="true" />
-                <Element class="wb-row" layout="horizontal" width="fill" height="40">
+
+                <Content name="actions">
                     <Element width="fill" />
                     <Element id="Button_Ok" class="wb-button wb-button-primary" onclick="OnOk" width="180" height="40">
                         <Text class="wb-button-label" text="@L('ui.button.ok')" width="fill" height="fill" />
                     </Element>
-                </Element>
-            </Element>
+                </Content>
+            </Modal>
         </Element>
     </Element>
 </Reef>
