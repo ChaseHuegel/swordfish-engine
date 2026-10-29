@@ -1261,18 +1261,49 @@ internal sealed partial class DocumentState
 
         if (assignment.Value is MarkupExpression expression)
         {
-            string? code = EmitTypedExpression(
-                expression.Raw,
-                Compilation.GetSpecialType(SpecialType.System_Int32),
-                assignment.Location,
-                context.Scope);
-            if (code != null)
+            var binder = new ExpressionBinder(context.Scope);
+            if (!binder.TryBind(expression.Raw, null, assignment.Location, out BoundExpression bound)
+                || bound.Type == null)
             {
-                return "new global::Reef.Constraints.Fixed(" + code + ")";
+                return null;
             }
+
+            ITypeSymbol? constraintType = Compilation.GetTypeByMetadataName("Reef.Constraints.IConstraint");
+            if (constraintType != null && IsConstraintType(bound.Type, constraintType))
+            {
+                return bound.Code;
+            }
+
+            if (bound.Type.SpecialType == SpecialType.System_Int32)
+            {
+                return "new global::Reef.Constraints.Fixed(" + bound.Code + ")";
+            }
+
+            Report(
+                DiagnosticDescriptors.TypeMismatch,
+                assignment.Location,
+                "Expected an integer or Reef.Constraints.IConstraint.");
         }
 
         return null;
+    }
+
+    private static bool IsConstraintType(ITypeSymbol type, ITypeSymbol constraintType)
+    {
+        if (TypeNames.IsSameType(type, constraintType))
+        {
+            return true;
+        }
+
+        for (var i = 0; i < type.AllInterfaces.Length; i++)
+        {
+            if (TypeNames.IsSameType(type.AllInterfaces[i], constraintType))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string BuildConstraint(MarkupConstraint constraint)
