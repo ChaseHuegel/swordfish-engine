@@ -9,6 +9,9 @@ public sealed class MeshRenderer : IHandle
     /// <inheritdoc/>
     public bool IsDisposed { get; private set; }
 
+    /// <summary>True if this renderer has been bound to the render context.</summary>
+    public bool IsBound { get; internal set; }
+
     public RenderOptions RenderOptions { get; set; } = new();
 
     public Mesh Mesh { get; }

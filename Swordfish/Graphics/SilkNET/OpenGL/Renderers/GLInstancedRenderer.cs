@@ -128,6 +128,11 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in instances)
         {
+            if (instance.Value.Count == 0)
+            {
+                continue;
+            }
+
             GLRenderTarget target = instance.Key;
             List<Matrix4x4> list = instance.Value;
             if (list.Count == 0 || target.VertexArrayObject.ElementBufferObject.Length == 0)

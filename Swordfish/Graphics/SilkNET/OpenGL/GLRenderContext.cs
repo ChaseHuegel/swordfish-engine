@@ -265,6 +265,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
         _renderTargets.Add(renderTarget);
         meshRenderer.Disposed += OnMeshRendererDisposed;
+        meshRenderer.IsBound = true;
         return;
 
         void OnMeshRendererDisposed(object? sender, EventArgs e)
