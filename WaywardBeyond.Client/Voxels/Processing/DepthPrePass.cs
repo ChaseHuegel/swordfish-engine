@@ -3,15 +3,21 @@ using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
+/// <summary>
+/// Populates depth bounds from solid culler voxels during full builds.
+/// </summary>
 internal sealed class DepthPrePass(DepthState depthState, IBrickDatabase brickDatabase) : VoxelObjectProcessor.ISamplePass
 {
+    /// <inheritdoc/>
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
 
+    /// <inheritdoc/>
     public bool ShouldProcessChunk(ChunkData chunkData)
     {
         return !chunkData.Palette.Only(id: 0);
     }
 
+    /// <inheritdoc/>
     public void Process(VoxelSample sample)
     {
         if (sample.Center.ID == 0 || !brickDatabase.IsCuller(sample.Center, sample.Center.GetShapeLight().Shape))

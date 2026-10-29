@@ -1,12 +1,21 @@
 using System.Collections.Generic;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Data;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
-internal sealed class AmbientLightPass(LightingState lightingState, DepthState depthState) : VoxelObjectProcessor.IPass
+/// <summary>
+/// Seeds ambient sky light at exterior boundaries of a voxel structure.
+/// </summary>
+internal sealed class AmbientLightPass(
+    LightingState lightingState,
+    DepthState depthState,
+    IBrickDatabase brickDatabase
+) : VoxelObjectProcessor.IPass
 {
+    /// <inheritdoc/>
     public void Process(VoxelObject voxelObject)
     {
         // Seed ambient light at resident min and max voxels at each depth plane.
@@ -50,6 +59,16 @@ internal sealed class AmbientLightPass(LightingState lightingState, DepthState d
     private void SeedAmbient(VoxelObject voxelObject, int x, int y, int z, ref Voxel voxel)
     {
         if (!voxelObject.TryGetChunk(voxelObject.ToChunkOffset(x, y, z), out _))
+        {
+            return;
+        }
+
+        if (voxel.ID != 0 && brickDatabase.IsCuller(voxel, voxel.GetShapeLight().Shape))
+        {
+            return;
+        }
+
+        if (!depthState.IsAmbientSource(x, y, z))
         {
             return;
         }

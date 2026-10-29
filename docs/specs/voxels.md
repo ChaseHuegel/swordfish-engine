@@ -125,14 +125,16 @@ perpendicular projection axes. Interior air cells inside cavities and tunnels li
 between orthogonal depth bounds and return false.
 
 `DepthPrePass`
-(`WaywardBeyond.Client/Voxels/Processing/DepthPrePass.cs:6-28`) populates
+(`WaywardBeyond.Client/Voxels/Processing/DepthPrePass.cs:6-34`) populates
 `DepthState` during initial voxel entity construction. The pass filters out
 transparent and non-culling bricks so they do not expand depth bounds.
 
 `AmbientLightPass`
-(`WaywardBeyond.Client/Voxels/Processing/AmbientLightPass.cs:8-61`) seeds ambient
+(`WaywardBeyond.Client/Voxels/Processing/AmbientLightPass.cs:11-80`) seeds ambient
 light level 15 at resident min and max voxels on each depth plane and enqueues
-them for propagation.
+them for propagation. The pass verifies that target cells are exterior ambient
+sources (`DepthState.IsAmbientSource`) and not solid cullers before seeding ambient
+light.
 
 When a solid culler voxel is placed (`VoxelLightingService.cs:64-151`), occluded
 light drains through `_removeQueue`. If the placed block replaces open-sky space,
