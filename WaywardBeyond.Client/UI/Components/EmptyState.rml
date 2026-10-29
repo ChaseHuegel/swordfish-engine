@@ -1,0 +1,8 @@
+<Reef xmlns="Reef"
+      Class="EmptyState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-empty-state" width="fill" height="fill">
+        <Content />
+    </Element>
+</Reef>

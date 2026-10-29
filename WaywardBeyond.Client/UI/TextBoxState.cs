@@ -11,6 +11,12 @@ internal struct TextBoxState(in string initialValue, in TextBoxState.Options opt
     public bool ShiftModifier;
     public bool ControlModifier;
     public double LastInputTime;
+    public bool Changed;
+    public bool Submitted;
+    public bool Focused;
+    public bool Hovered;
+    public bool Entered;
+    public bool Exited;
 
     public readonly StringBuilder Text = new(initialValue);
     public readonly Options Settings = options;

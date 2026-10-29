@@ -18,4 +18,28 @@ internal static class MenuGlyphs
     public const string SHAPES = "\uf61f";
     public const string DISCORD = "\uf392";
     public const string STEAM = "\uf1b6";
+
+    /// <summary>Returns the glyph constant for a semantic name.</summary>
+    public static string Get(string name)
+    {
+        return name switch
+        {
+            "dice" => DICE,
+            "trash" => TRASH,
+            "crew" => CREW,
+            "server" => SERVER,
+            "chevron-left" => CHEVRON_LEFT,
+            "chevron-right" => CHEVRON_RIGHT,
+            "star" => STAR,
+            "signal" => SIGNAL,
+            "x-mark" => X_MARK,
+            "feedback" => FEEDBACK,
+            "settings" => SETTINGS,
+            "rotate" => ROTATE,
+            "shapes" => SHAPES,
+            "discord" => DISCORD,
+            "steam" => STEAM,
+            _ => string.Empty,
+        };
+    }
 }

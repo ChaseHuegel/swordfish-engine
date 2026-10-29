@@ -1,0 +1,8 @@
+<Reef xmlns="Reef"
+      Class="Keycap"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-keycap">
+        <Content />
+    </Element>
+</Reef>

@@ -1,0 +1,15 @@
+<Reef xmlns="Reef"
+      Class="Page"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-column"
+             size="100% 100%"
+             min-width="320"
+             max-width="1280"
+             min-height="280"
+             max-height="840"
+             anchor="Center"
+             clip="true">
+        <Content />
+    </Element>
+</Reef>

@@ -1,0 +1,476 @@
+.wb-scrim {
+    background-color: var(--wb-scrim);
+}
+
+.wb-scrim-soft {
+    background-color: var(--wb-scrim-soft);
+}
+
+.wb-scrim-heavy {
+    background-color: var(--wb-scrim-heavy);
+}
+
+.wb-row {
+    layout: horizontal;
+    gap: 8px;
+}
+
+.wb-column {
+    layout: vertical;
+    gap: 8px;
+}
+
+.wb-stack {
+    layout: none;
+}
+
+.wb-list {
+    layout: vertical;
+    gap: 8px;
+}
+
+.wb-text {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+}
+
+.wb-text-title {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 24px;
+    text-align: center;
+}
+
+.wb-text-body {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 18px;
+}
+
+.wb-text-label {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 18px;
+}
+
+.wb-text-small {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+}
+
+.wb-text-tiny {
+    color: var(--wb-text-dim);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-text-muted {
+    color: var(--wb-text-muted);
+}
+
+.wb-text-dim {
+    color: var(--wb-text-dim);
+}
+
+.wb-text-accent {
+    color: var(--wb-accent-bright);
+}
+
+.wb-text-primary {
+    color: var(--wb-primary-bright);
+}
+
+.wb-text-danger {
+    color: var(--wb-danger-bright);
+}
+
+.wb-text-success {
+    color: var(--wb-success);
+}
+
+.wb-text-warning {
+    color: var(--wb-warning);
+}
+
+.wb-icon {
+    color: var(--wb-text-muted);
+    font-family: "Font Awesome 6 Free Solid";
+    font-size: 20px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-icon-large {
+    font-size: 32px;
+}
+
+.wb-icon-brand {
+    color: var(--wb-text-muted);
+    font-family: "Font Awesome 6 Free Brands";
+    font-size: 32px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-divider {
+    background-color: var(--wb-border);
+    height: 1px;
+}
+
+.wb-divider-inner {
+    background-color: var(--wb-border-inner);
+    height: 1px;
+}
+
+.wb-panel {
+    background-color: var(--wb-panel);
+    corner-caps: 10 2 #2b384e;
+}
+
+.wb-panel-inner {
+    background-color: transparent;
+    border: 1px var(--wb-border-inner);
+}
+
+.wb-panel-header {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 16px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-panel-title {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 24px;
+}
+
+.wb-modal-center {
+    padding: 80px;
+}
+
+.wb-modal {
+    background-color: var(--wb-panel);
+    corner-caps: 10 2 #2b384e;
+    padding: 28px;
+}
+
+.wb-modal-playtest {
+    size: 100% 100%;
+    min-width: 520px;
+    max-width: 760px;
+    min-height: 460px;
+    max-height: 500px;
+    anchor: Center;
+}
+
+.wb-modal-compact {
+    size: 100% 100%;
+    min-width: 520px;
+    max-width: 520px;
+    min-height: 250px;
+    max-height: 250px;
+    anchor: Center;
+}
+
+.wb-modal-title {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 24px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-modal-body {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 18px;
+}
+
+.wb-modal-actions {
+    layout: horizontal;
+    gap: 12px;
+}
+
+.wb-button-base {
+    text-color: var(--wb-text);
+    padding: 16px 8px;
+    border-radius: 2px;
+}
+
+.wb-button-label {
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-button {
+    --extends: wb-button-base;
+    background-color: var(--wb-button);
+    border: 1px var(--wb-border);
+}
+
+.wb-button:hover {
+    background-color: var(--wb-button-hover);
+    border-color: var(--wb-border-hover);
+    text-color: var(--wb-text);
+}
+
+.wb-button:active {
+    background-color: var(--wb-accent-dark);
+    text-color: var(--wb-text);
+}
+
+.wb-button:disabled {
+    background-color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    text-color: var(--wb-text-dim);
+}
+
+.wb-button-primary {
+    --extends: wb-button-base;
+    background-color: var(--wb-button);
+    border: 1px var(--wb-primary);
+    corner-caps: 6 1 #f2994a;
+    text-color: var(--wb-primary-bright);
+}
+
+.wb-button-primary:hover {
+    background-color: var(--wb-button-hover);
+    border-color: var(--wb-primary-bright);
+    corner-caps-color: var(--wb-primary-bright);
+    text-color: var(--wb-text);
+}
+
+.wb-button-primary:active {
+    background-color: var(--wb-primary-dark);
+    text-color: var(--wb-text);
+}
+
+.wb-button-danger {
+    --extends: wb-button-base;
+    background-color: var(--wb-button);
+    border: 1px var(--wb-danger);
+    text-color: var(--wb-danger-bright);
+}
+
+.wb-button-danger:hover {
+    background-color: var(--wb-button-hover);
+    border-color: var(--wb-danger-bright);
+    text-color: var(--wb-text);
+}
+
+.wb-button-subtle {
+    --extends: wb-button-base;
+    background-color: transparent;
+    text-color: var(--wb-text-muted);
+}
+
+.wb-button-subtle:hover {
+    background-color: var(--wb-button-hover);
+    text-color: var(--wb-text);
+}
+
+.wb-button-compact {
+    padding: 6px 12px;
+    font-size: 16px;
+}
+
+.wb-icon-button {
+    background-color: transparent;
+    padding: 0;
+    text-color: var(--wb-text-muted);
+}
+
+.wb-icon-button:hover {
+    background-color: var(--wb-button-hover);
+    text-color: var(--wb-text);
+}
+
+.wb-icon-button:active {
+    background-color: var(--wb-accent-dark);
+    text-color: var(--wb-text);
+}
+
+.wb-icon-button-danger {
+    text-color: var(--wb-danger);
+}
+
+.wb-icon-button-danger:hover {
+    background-color: var(--wb-danger-dark);
+    text-color: var(--wb-danger-bright);
+}
+
+.wb-tab {
+    background-color: var(--wb-panel-inner);
+    text-color: var(--wb-text-muted);
+}
+
+.wb-tab-label {
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-tab:hover {
+    text-color: var(--wb-text);
+}
+
+.wb-tab-selected {
+    background-color: var(--wb-panel-solid);
+    border-bottom: 2px var(--wb-accent);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-card {
+    background-color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+    text-color: var(--wb-text);
+    padding: 6px 8px;
+}
+
+.wb-card:hover {
+    background-color: var(--wb-button-hover);
+    border-color: var(--wb-border-hover);
+}
+
+.wb-card-selected {
+    background-color: #172336;
+    border: 1px var(--wb-primary);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-card-selected:hover {
+    background-color: #172336;
+    border-color: var(--wb-primary-bright);
+}
+
+.wb-card-title {
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 18px;
+}
+
+.wb-card-meta {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+}
+
+.wb-field {
+    layout: vertical;
+    gap: 4px;
+}
+
+.wb-field-label {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+}
+
+.wb-field-frame {
+    background-color: var(--wb-input);
+    border: 1px var(--wb-border);
+    color: var(--wb-text-muted);
+    padding: 6px 8px;
+}
+
+.wb-field-frame:focus {
+    background-color: var(--wb-input-focus);
+    border-color: var(--wb-border-hover);
+    color: var(--wb-text);
+}
+
+.wb-field-hint {
+    color: var(--wb-text-dim);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-field-error {
+    color: var(--wb-danger);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-footer {
+    layout: horizontal;
+    gap: 12px;
+}
+
+.wb-footer-status {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-footer-status-error {
+    color: var(--wb-danger);
+}
+
+.wb-footer-status-warning {
+    color: var(--wb-warning);
+}
+
+.wb-footer-status-success {
+    color: var(--wb-success);
+}
+
+.wb-badge {
+    background-color: var(--wb-accent-dark);
+    border: 1px var(--wb-border-hover);
+    color: var(--wb-accent-bright);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+    padding: 2px 6px;
+}
+
+.wb-keycap {
+    background-color: var(--wb-accent-dark);
+    border: 1px var(--wb-border-hover);
+    color: var(--wb-accent-bright);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+    padding: 2px 6px;
+}
+
+.wb-hint-pill {
+    background-color: var(--wb-panel);
+    border: 1px var(--wb-border);
+    padding: 4px 10px 4px 4px;
+    layout: horizontal;
+    gap: 8px;
+}
+
+.wb-hint-text {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.wb-empty-state {
+    color: var(--wb-text-dim);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-scrollbar {
+    background-color: var(--wb-control);
+    width: 6px;
+}
+
+.wb-scrollbar-thumb {
+    background-color: var(--wb-border-hover);
+}

@@ -1,0 +1,39 @@
+:root {
+    --wb-font-ui: "Salmon Mono 9 Regular";
+    --wb-font-icons: "Font Awesome 6 Free Solid";
+    --wb-font-brands: "Font Awesome 6 Free Brands";
+
+    --wb-text: #f0f3f6;
+    --wb-text-muted: #8da0b8;
+    --wb-text-dim: #45546b;
+    --wb-text-soft: #bfbfbf;
+
+    --wb-panel: #111723f0;
+    --wb-panel-solid: #111723;
+    --wb-panel-inner: #0d121cf0;
+    --wb-border: #2b384e;
+    --wb-border-inner: #1a2333;
+    --wb-border-hover: #495d7a;
+
+    --wb-accent: #4be3e3;
+    --wb-accent-bright: #a5f3fc;
+    --wb-accent-dark: #162838;
+    --wb-primary: #f2994a;
+    --wb-primary-bright: #ffd27d;
+    --wb-primary-dark: #3d2614;
+    --wb-danger: #e04f7a;
+    --wb-danger-bright: #ff8da6;
+    --wb-danger-dark: #3d141e;
+    --wb-success: #6fcf97;
+    --wb-warning: #f2cc4a;
+
+    --wb-input: #1c2433;
+    --wb-input-focus: #232e42;
+    --wb-control: #151d2a;
+    --wb-selection: #0074ff80;
+    --wb-button: #121826;
+    --wb-button-hover: #1b2538;
+    --wb-scrim: #000000bf;
+    --wb-scrim-soft: #00000080;
+    --wb-scrim-heavy: #000000f2;
+}

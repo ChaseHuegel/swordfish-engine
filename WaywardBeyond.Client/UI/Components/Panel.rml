@@ -1,0 +1,11 @@
+<Reef xmlns="Reef"
+      Class="Panel"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-panel" layout="vertical" clip="true" padding="12">
+        <Content name="header" />
+        <Element class="wb-divider-inner" width="fill" height="1" />
+        <Element height="8" />
+        <Content />
+    </Element>
+</Reef>

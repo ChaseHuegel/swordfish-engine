@@ -9,6 +9,7 @@ using Reef.Text;
 using Reef.UI;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using WaywardBeyond.Client.UI.Controls;
 using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
@@ -35,7 +36,11 @@ internal static partial class Widgets
         ref TextBoxState state,
         FontOptions fontOptions,
         IInputService inputService,
-        out Interactions interactions
+        out Interactions interactions,
+        Style? style = null,
+        TextInputPalette? palette = null,
+        Constraints? constraintsOverride = null,
+        string? placeholderOverride = null
     )
     {
         fontOptions.ID ??= ui.DefaultFontID;
@@ -45,9 +50,10 @@ internal static partial class Widgets
             ui.LayoutDirection = LayoutDirection.None;
             ui.Padding = new Padding(left: 0, top: 0, right: 0, bottom: 0);
 
-            if (state.Settings.Constraints != null)
+            Constraints? constraints = constraintsOverride ?? state.Settings.Constraints;
+            if (constraints != null)
             {
-                ui.Constraints = state.Settings.Constraints.Value;
+                ui.Constraints = constraints.Value;
                 ui.ClipConstraints = new Constraints
                 {
                     Width = new Relative(1f),
@@ -62,7 +68,24 @@ internal static partial class Widgets
             bool exited = ui.Exited();
             bool focused = ui.Focused();
 
-            if (state.Settings.Chrome)
+            Vector4 textColor = style?.Color ?? (focused
+                ? palette?.TextFocused ?? UiTheme.Text
+                : palette?.Text ?? UiTheme.TextMuted);
+            Vector4 placeholderColor = focused
+                ? palette?.PlaceholderFocused ?? UiTheme.TextMuted
+                : palette?.Placeholder ?? UiTheme.TextDim;
+            Vector4 selectionColor = palette?.Selection ?? UiTheme.RowSelected;
+            Vector4 caretColor = palette?.Caret ?? UiTheme.Text;
+
+            if (style != null)
+            {
+                ui.Color = style.Value.BackgroundColor;
+                ui.BackgroundColor = style.Value.BackgroundColor;
+                ui.Border = style.Value.Border;
+                ui.CornerRadius = style.Value.CornerRadius;
+                ui.Padding = style.Value.Padding;
+            }
+            else if (state.Settings.Chrome)
             {
                 if (focused)
                 {
@@ -437,15 +460,15 @@ internal static partial class Widgets
             int lineStride = textLayout.Constraints.PreferredHeight / Math.Max(textLayout.Lines.Length, 1);
 
             //  Selection paints behind the glyphs.
-            DrawSelection(ui, state, textLayout, selection, hasSelection, lineStride);
+            DrawSelection(ui, state, textLayout, selection, hasSelection, lineStride, selectionColor);
 
             if (isPlaceholder)
             {
-                using (ui.Text(state.Settings.Placeholder ?? ""))
+                using (ui.Text(placeholderOverride ?? state.Settings.Placeholder ?? ""))
                 {
                     ui.Passthrough = true;
                     ui.FontOptions = fontOptions;
-                    ui.Color = focused ? UiTheme.TextMuted : UiTheme.TextDim;
+                    ui.Color = placeholderColor;
                 }
             }
 
@@ -455,18 +478,11 @@ internal static partial class Widgets
                 ui.Passthrough = true;
                 ui.FontOptions = fontOptions;
 
-                if (focused)
-                {
-                    ui.Color = UiTheme.Text;
-                }
-                else
-                {
-                    ui.Color = UiTheme.TextMuted;
-                }
+                ui.Color = textColor;
             }
 
             //  The caret paints over the glyphs.
-            DrawCaret(ui, state, textLayout, selectionStart, hasSelection, focused, lineStride);
+            DrawCaret(ui, state, textLayout, selectionStart, hasSelection, focused, lineStride, caretColor);
 
             interactions = Interactions.None;
 
@@ -504,6 +520,13 @@ internal static partial class Widgets
             {
                 interactions |= Interactions.Submit;
             }
+
+            state.Changed = typing;
+            state.Submitted = submitted;
+            state.Focused = focused;
+            state.Hovered = hovering;
+            state.Entered = entered;
+            state.Exited = exited;
 
             return interactions != Interactions.None;
         }
@@ -622,7 +645,8 @@ internal static partial class Widgets
         TextLayout textLayout,
         TextBoxState.Selection selection,
         bool hasSelection,
-        int lineStride
+        int lineStride,
+        Vector4 selectionColor
     )
     {
         if (!hasSelection)
@@ -661,7 +685,7 @@ internal static partial class Widgets
 
                 using (ui.Element())
                 {
-                    ui.Color = UiTheme.RowSelected;
+                    ui.Color = selectionColor;
                     ui.Constraints = new Constraints
                     {
                         X = new Fixed(x),
@@ -684,7 +708,8 @@ internal static partial class Widgets
         int caretIndex,
         bool hasSelection,
         bool focused,
-        int lineStride
+        int lineStride,
+        Vector4 caretColor
     )
     {
         if (hasSelection || !focused)
@@ -727,7 +752,7 @@ internal static partial class Widgets
 
                 using (ui.Element())
                 {
-                    ui.Color = UiTheme.Text;
+                    ui.Color = caretColor;
                     ui.Constraints = new Constraints
                     {
                         X = new Fixed(x + 1),
