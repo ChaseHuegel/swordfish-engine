@@ -196,13 +196,27 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                 Voxel neighbor = voxelObject.Get(nx, ny, nz);
                 int neighborLight = neighbor.GetLightLevel();
 
-                if (neighborLight != 0 && neighborLight < light)
+                bool isSource = false;
+                if (neighborLight >= light)
+                {
+                    Result<Brick> brickResult = _brickDatabase.Get(neighbor.ID);
+                    if (brickResult.Success && brickResult.Value.LightSource && brickResult.Value.Brightness >= neighborLight)
+                    {
+                        isSource = true;
+                    }
+                    else if (neighborLight == 15 && registry.DepthState.IsAmbientSource(nx, ny, nz))
+                    {
+                        isSource = true;
+                    }
+                }
+
+                if (neighborLight != 0 && (neighborLight < light || (neighborLight == light && !isSource)))
                 {
                     voxelObject.SetLight(nx, ny, nz, 0);
                     registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
                     _removeQueue.Enqueue((nx, ny, nz, neighborLight));
                 }
-                else if (neighborLight >= light)
+                else if (neighborLight >= light && isSource)
                 {
                     _addQueue.Enqueue((nx, ny, nz, neighborLight));
                 }

@@ -225,7 +225,12 @@ public sealed class DepthState
         {
             if (z == depthZ.Min - 1 || z == depthZ.Max + 1)
             {
-                return true;
+                bool enclosedY = XZ.TryGetValue(new Int2(x, z), out Int2 dy) && y > dy.Min && y < dy.Max;
+                bool enclosedX = ZY.TryGetValue(new Int2(z, y), out Int2 dx) && x > dx.Min && x < dx.Max;
+                if (!enclosedY || !enclosedX)
+                {
+                    return true;
+                }
             }
         }
 
@@ -233,7 +238,12 @@ public sealed class DepthState
         {
             if (y == depthY.Min - 1 || y == depthY.Max + 1)
             {
-                return true;
+                bool enclosedZ = XY.TryGetValue(new Int2(x, y), out Int2 dz) && z > dz.Min && z < dz.Max;
+                bool enclosedX = ZY.TryGetValue(new Int2(z, y), out Int2 dx) && x > dx.Min && x < dx.Max;
+                if (!enclosedZ || !enclosedX)
+                {
+                    return true;
+                }
             }
         }
 
@@ -241,7 +251,12 @@ public sealed class DepthState
         {
             if (x == depthX.Min - 1 || x == depthX.Max + 1)
             {
-                return true;
+                bool enclosedZ = XY.TryGetValue(new Int2(x, y), out Int2 dz) && z > dz.Min && z < dz.Max;
+                bool enclosedY = XZ.TryGetValue(new Int2(x, z), out Int2 dy) && y > dy.Min && y < dy.Max;
+                if (!enclosedZ || !enclosedY)
+                {
+                    return true;
+                }
             }
         }
 

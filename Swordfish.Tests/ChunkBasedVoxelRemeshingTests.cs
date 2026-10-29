@@ -858,4 +858,57 @@ public class ChunkBasedVoxelRemeshingTests
         // Stone must be removed from DepthState
         Assert.False(registry.DepthState.XY.ContainsKey(new WaywardBeyond.Client.Numerics.Int2(8, 8)));
     }
+
+    [Fact]
+    public void TunnelEndingAtChunkBorder_ClosingEntranceOverBorder_CavityBecomesDark()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Build asteroid in chunk (0, 0, 0): x from 6 to 10, y from 6 to 10, z from 10 to 15
+        for (int x = 6; x <= 10; x++)
+        {
+            for (int y = 6; y <= 10; y++)
+            {
+                for (int z = 10; z <= 15; z++)
+                {
+                    voxelObject.Set(x, y, z, stone);
+                }
+            }
+        }
+
+        registry.DepthState.Populate(voxelObject, brickDb);
+
+        // Dig a tunnel from outside (z = 15 is border) towards the back (z = 10):
+        for (int z = 15; z >= 11; z--)
+        {
+            Voxel current = voxelObject.Get(8, 8, z);
+            lightingService.UpdateLighting(voxelObject, registry, 8, 8, z, in current, ref air);
+        }
+
+        // Tunnel entrance at (8, 8, 15) was adjacent to non-resident chunk (0, 0, 1), so it received sky light 15.
+        Assert.Equal(15, voxelObject.Get(8, 8, 15).GetLightLevel());
+        Assert.True(voxelObject.Get(8, 8, 14).GetLightLevel() > 0);
+
+        // Close back of tunnel (place stone at z = 11)
+        Voxel air11 = voxelObject.Get(8, 8, 11);
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 11, in air11, ref stone);
+
+        // Now close the front of the tunnel: directly over the border at z = 16 (in neighbor chunk (0, 0, 1))
+        Voxel outOfBoundsAir = voxelObject.Get(8, 8, 16);
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 16, in outOfBoundsAir, ref stone);
+
+        // Assert that the interior of the tunnel is dark!
+        Assert.Equal(0, voxelObject.Get(8, 8, 15).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(8, 8, 14).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(8, 8, 13).GetLightLevel());
+        Assert.Equal(0, voxelObject.Get(8, 8, 12).GetLightLevel());
+    }
 }

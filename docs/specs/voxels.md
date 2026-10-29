@@ -116,12 +116,13 @@ dual-queue BFS flood-fill lighting across resident chunks. The service marks
 every modified cell and its chunk dirty.
 
 `DepthState`
-(`WaywardBeyond.Client/Voxels/Processing/DepthState.cs:12-280`) tracks min and max
+(`WaywardBeyond.Client/Voxels/Processing/DepthState.cs:12-295`) tracks min and max
 depth bounds across XY, XZ, and ZY projection planes in `VoxelChunkRegistry`.
 An air cell is an ambient light source (`DepthState.IsAmbientSource`) when its
 coordinates lie immediately outside the solid boundary (`depth.Max + 1` or
-`depth.Min - 1`) along at least one axis. Interior air cells inside cavities lie
-between depth bounds and return false.
+`depth.Min - 1`) along at least one axis and the cell is not enclosed on both
+perpendicular projection axes. Interior air cells inside cavities and tunnels lie
+between orthogonal depth bounds and return false.
 
 `DepthPrePass`
 (`WaywardBeyond.Client/Voxels/Processing/DepthPrePass.cs:6-28`) populates
@@ -134,11 +135,15 @@ light level 15 at resident min and max voxels on each depth plane and enqueues
 them for propagation.
 
 When a solid culler voxel is placed (`VoxelLightingService.cs:64-131`), occluded
-light drains through `_removeQueue`. The service updates depth bounds via
-`DepthState.Add` and checks adjacent air cells: any air cell that is an exterior
-ambient source (`DepthState.IsAmbientSource`) receives ambient light level 15 and
-propagates light outward through `_addQueue`. Interior air cells inside cavities
-are not ambient sources and receive no ambient sky light.
+light drains through `_removeQueue`. During drain removal
+(`VoxelLightingService.cs:177-225`), equal-light neighbors drain unless they are
+verified sources (lamps or ambient seeds). This prevents adjacent open-sky cells
+at light 15 from re-seeding enclosed spaces across chunk borders. The service
+updates depth bounds via `DepthState.Add` and checks adjacent air cells: any air
+cell that is an exterior ambient source (`DepthState.IsAmbientSource`) receives
+ambient light level 15 and propagates light outward through `_addQueue`. Interior
+air cells inside cavities and tunnels are not ambient sources and receive no
+ambient sky light.
 
 When a solid culler voxel is deleted (`VoxelLightingService.cs:77-163`), the
 service updates depth bounds via `DepthState.Remove`. The cell receives decayed
