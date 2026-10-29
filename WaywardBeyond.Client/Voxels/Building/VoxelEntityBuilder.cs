@@ -80,6 +80,7 @@ internal sealed class VoxelEntityBuilder(
         store.AddOrUpdate(entity, new MeshRendererCleanup());
 
         _voxelObjectBuilder.InitializeLighting(voxelObject, registry.DepthState);
+        registry.DepthStateInitialized = true;
 
         Uuid parentUuid = store.GetUuid(entity);
         foreach (ChunkData chunk in voxelObject)

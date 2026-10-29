@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using WaywardBeyond.Client.Numerics;
+using WaywardBeyond.Data;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
@@ -8,24 +9,17 @@ internal sealed class AmbientLightPass(LightingState lightingState, DepthState d
 {
     public void Process(VoxelObject voxelObject)
     {
-        //  Seed ambient light at all min and max voxels at each depth plane
-        
+        // Seed ambient light at resident min and max voxels at each depth plane.
         foreach (KeyValuePair<Int2, Int2> pair in depthState.XY)
         {
             Int2 coords = pair.Key;
             Int2 depth = pair.Value;
             
             VoxelSample min = voxelObject.Sample(coords.X, coords.Y, depth.Min);
-            ShapeLight shapeLight = min.Behind.ShapeLight;
-            min.Behind.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
-            var light = new LightingState.VoxelLight(coords.X, coords.Y, depth.Min - 1, min.Behind);
-            lightingState.ToPropagate.Enqueue(light);
-            
+            SeedAmbient(voxelObject, coords.X, coords.Y, depth.Min - 1, ref min.Behind);
+
             VoxelSample max = voxelObject.Sample(coords.X, coords.Y, depth.Max);
-            shapeLight = max.Ahead.ShapeLight;
-            max.Ahead.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
-            light = new LightingState.VoxelLight(coords.X, coords.Y, depth.Max + 1, max.Ahead);
-            lightingState.ToPropagate.Enqueue(light);
+            SeedAmbient(voxelObject, coords.X, coords.Y, depth.Max + 1, ref max.Ahead);
         }
         
         foreach (KeyValuePair<Int2, Int2> pair in depthState.XZ)
@@ -34,16 +28,10 @@ internal sealed class AmbientLightPass(LightingState lightingState, DepthState d
             Int2 depth = pair.Value;
             
             VoxelSample min = voxelObject.Sample(coords.X, depth.Min, coords.Y);
-            ShapeLight shapeLight = min.Below.ShapeLight;
-            min.Below.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
-            var light = new LightingState.VoxelLight(coords.X, depth.Min - 1, coords.Y, min.Below);
-            lightingState.ToPropagate.Enqueue(light);
-            
+            SeedAmbient(voxelObject, coords.X, depth.Min - 1, coords.Y, ref min.Below);
+
             VoxelSample max = voxelObject.Sample(coords.X, depth.Max, coords.Y);
-            shapeLight = max.Above.ShapeLight;
-            max.Above.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
-            light = new LightingState.VoxelLight(coords.X, depth.Max + 1, coords.Y, max.Above);
-            lightingState.ToPropagate.Enqueue(light);
+            SeedAmbient(voxelObject, coords.X, depth.Max + 1, coords.Y, ref max.Above);
         }
         
         foreach (KeyValuePair<Int2, Int2> pair in depthState.ZY)
@@ -52,16 +40,22 @@ internal sealed class AmbientLightPass(LightingState lightingState, DepthState d
             Int2 depth = pair.Value;
             
             VoxelSample min = voxelObject.Sample(depth.Min, coords.Y, coords.X);
-            ShapeLight shapeLight = min.Left.ShapeLight;
-            min.Left.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
-            var light = new LightingState.VoxelLight(depth.Min - 1, coords.Y, coords.X, min.Left);
-            lightingState.ToPropagate.Enqueue(light);
-            
+            SeedAmbient(voxelObject, depth.Min - 1, coords.Y, coords.X, ref min.Left);
+
             VoxelSample max = voxelObject.Sample(depth.Max, coords.Y, coords.X);
-            shapeLight = max.Right.ShapeLight;
-            max.Right.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
-            light = new LightingState.VoxelLight(depth.Max + 1, coords.Y, coords.X, max.Right);
-            lightingState.ToPropagate.Enqueue(light);
+            SeedAmbient(voxelObject, depth.Max + 1, coords.Y, coords.X, ref max.Right);
         }
+    }
+
+    private void SeedAmbient(VoxelObject voxelObject, int x, int y, int z, ref Voxel voxel)
+    {
+        if (!voxelObject.TryGetChunk(voxelObject.ToChunkOffset(x, y, z), out _))
+        {
+            return;
+        }
+
+        ShapeLight shapeLight = voxel.GetShapeLight();
+        voxel.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+        lightingState.ToPropagate.Enqueue(new LightingState.VoxelLight(x, y, z, voxel));
     }
 }

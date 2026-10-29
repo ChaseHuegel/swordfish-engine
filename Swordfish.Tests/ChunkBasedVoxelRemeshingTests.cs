@@ -38,7 +38,20 @@ public class ChunkBasedVoxelRemeshingTests
 
         public List<Brick> Get(Func<Brick, bool> predicate) => [];
 
-        public bool IsCuller(in Voxel voxel, BrickShape shape) => voxel.ID != 0;
+        public bool IsCuller(in Voxel voxel, BrickShape shape)
+        {
+            if (voxel.ID == 0 || shape != BrickShape.Block)
+            {
+                return false;
+            }
+
+            if (Bricks.TryGetValue(voxel.ID, out Brick brick))
+            {
+                return !brick.Transparent && !brick.Passable;
+            }
+
+            return true;
+        }
     }
 
     [Fact]
@@ -708,5 +721,141 @@ public class ChunkBasedVoxelRemeshingTests
         Assert.Equal(predicted.GetShapeLight().Shape, server.GetShapeLight().Shape);
         Assert.Equal(predicted.Orientation, server.Orientation);
         Assert.Equal(predicted.ID, server.ID);
+    }
+
+    [Fact]
+    public void BreakNonCullerVoxel_ReceivesProperLightAndPropagates()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[2] = new Brick("glass", transparent: true, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var glass = new Voxel(_ID: 2, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Place stone at (8, 8, 8)
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref stone);
+        // Place glass at (8, 8, 9)
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 9, in air, ref glass);
+
+        // Air at (8, 8, 10) is exposed to sky (ambient light level 15)
+        voxelObject.SetLight(8, 8, 10, 15);
+
+        // Break glass at (8, 8, 9)
+        Voxel currentGlass = voxelObject.Get(8, 8, 9);
+        var replacementAir = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 9, in currentGlass, ref replacementAir);
+
+        // The newly empty air cell at (8, 8, 9) must receive light from its lit neighbor (15 - 1 = 14), not stay 0
+        Assert.Equal(14, voxelObject.Get(8, 8, 9).GetLightLevel());
+    }
+
+    [Fact]
+    public void DepthPrePass_NonCullerBricks_DoNotAddToDepthState()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[2] = new Brick("glass", transparent: true, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+
+        var depthState = new DepthState();
+        var prePass = new DepthPrePass(depthState, brickDb);
+        var voxelObject = new VoxelObject(16);
+
+        var glass = new Voxel(_ID: 2, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        voxelObject.Set(8, 8, 8, glass);
+
+        foreach (ChunkData chunk in voxelObject)
+        {
+            foreach (VoxelSample sample in chunk.GetSampler())
+            {
+                prePass.Process(sample);
+            }
+        }
+
+        // Glass is not a culler, so DepthState must remain empty
+        Assert.Empty(depthState.XY);
+        Assert.Empty(depthState.XZ);
+        Assert.Empty(depthState.ZY);
+
+        // Now place stone and process
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        voxelObject.Set(8, 8, 8, stone);
+
+        foreach (ChunkData chunk in voxelObject)
+        {
+            foreach (VoxelSample sample in chunk.GetSampler())
+            {
+                prePass.Process(sample);
+            }
+        }
+
+        // Stone is a culler, so DepthState must contain bounds for (8, 8, 8)
+        Assert.Single(depthState.XY);
+        Assert.Single(depthState.XZ);
+        Assert.Single(depthState.ZY);
+    }
+
+    [Fact]
+    public void ReplaceLampWithCuller_DrainsEmittedLightAndUpdatesDepthState()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[10] = new Brick("lamp", transparent: true, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Place lamp at (8, 8, 8)
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref lamp);
+        Assert.Equal(15, voxelObject.Get(8, 8, 8).GetLightLevel());
+        Assert.Equal(14, voxelObject.Get(8, 8, 9).GetLightLevel());
+
+        // Replace lamp directly with stone
+        Voxel currentLamp = voxelObject.Get(8, 8, 8);
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in currentLamp, ref stone);
+
+        // Stone must have light level 0 (not 15!)
+        Assert.Equal(0, voxelObject.Get(8, 8, 8).GetLightLevel());
+        // Stone must be recorded in DepthState
+        Assert.True(registry.DepthState.XY.ContainsKey(new WaywardBeyond.Client.Numerics.Int2(8, 8)));
+    }
+
+    [Fact]
+    public void ReplaceCullerWithLamp_EmitsLightAndRemovesFromDepthState()
+    {
+        var brickDb = new TestBrickDatabase();
+        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[10] = new Brick("lamp", transparent: true, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
+
+        var lightingService = new VoxelLightingService(brickDb);
+        var registry = new VoxelChunkRegistry();
+        var voxelObject = new VoxelObject(16);
+
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+
+        // Place stone at (8, 8, 8)
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref stone);
+        Assert.True(registry.DepthState.XY.ContainsKey(new WaywardBeyond.Client.Numerics.Int2(8, 8)));
+
+        // Replace stone directly with lamp
+        Voxel currentStone = voxelObject.Get(8, 8, 8);
+        lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in currentStone, ref lamp);
+
+        // Lamp must emit light 15
+        Assert.Equal(15, voxelObject.Get(8, 8, 8).GetLightLevel());
+        // Stone must be removed from DepthState
+        Assert.False(registry.DepthState.XY.ContainsKey(new WaywardBeyond.Client.Numerics.Int2(8, 8)));
     }
 }

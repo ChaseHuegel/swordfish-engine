@@ -16,6 +16,9 @@ public sealed class VoxelChunkRegistry
     public readonly HashSet<Short3> DirtyChunks = [];
     public readonly DepthState DepthState = new();
 
+    /// <summary>Indicates whether depth state has been populated for this structure.</summary>
+    public bool DepthStateInitialized;
+
     /// <summary>Marks the chunk containing the coordinates and any orthogonal border neighbors as dirty.</summary>
     public void MarkVoxelModified(int x, int y, int z, byte chunkSize)
     {

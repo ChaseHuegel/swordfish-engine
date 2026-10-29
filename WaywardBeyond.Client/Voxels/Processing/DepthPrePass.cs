@@ -1,8 +1,9 @@
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
-internal sealed class DepthPrePass(DepthState depthState) : VoxelObjectProcessor.ISamplePass
+internal sealed class DepthPrePass(DepthState depthState, IBrickDatabase brickDatabase) : VoxelObjectProcessor.ISamplePass
 {
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
 
@@ -13,7 +14,7 @@ internal sealed class DepthPrePass(DepthState depthState) : VoxelObjectProcessor
 
     public void Process(VoxelSample sample)
     {
-        if (sample.Center.ID == 0)
+        if (sample.Center.ID == 0 || !brickDatabase.IsCuller(sample.Center, sample.Center.GetShapeLight().Shape))
         {
             return;
         }
