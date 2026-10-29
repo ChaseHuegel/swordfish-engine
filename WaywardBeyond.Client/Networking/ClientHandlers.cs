@@ -6,10 +6,11 @@ using WaywardBeyond.Networking.Rpc;
 namespace WaywardBeyond.Client.Networking;
 
 /// <summary>
-/// The client RPC handlers. Every handler runs on the nsd-rpc receive pump and only enqueues into
-/// <see cref="ClientInbound"/>. No handler touches an ECS store.
+/// The client RPC handlers. Every handler runs on the nsd-rpc receive pump. Server heartbeats directly
+/// record live stats, and every other message enqueues into <see cref="ClientInbound"/>. No handler
+/// touches an ECS store.
 /// </summary>
-internal sealed class ClientHandlers(ClientInbound inbound) : GameClientApiHandler
+internal sealed class ClientHandlers(ClientInbound inbound, ServerStats? serverStats = null) : GameClientApiHandler
 {
     public override void OnSendSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken)
     {
@@ -43,6 +44,6 @@ internal sealed class ClientHandlers(ClientInbound inbound) : GameClientApiHandl
 
     public override void OnServerHeartbeat(ServerHeartbeatMessage message, RpcContext context, CancellationToken cancellationToken)
     {
-        inbound.Heartbeats.Enqueue(message);
+        serverStats?.Record(message);
     }
 }

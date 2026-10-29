@@ -15,8 +15,6 @@ internal sealed class ClientInbound : IChunkSink<LevelStreamChunk>
     /// <summary>The ordered snapshot stream: full snapshots and fragment batches in arrival order.</summary>
     public ConcurrentQueue<InboundSnapshot> Snapshots { get; } = new();
 
-    public ConcurrentQueue<ServerHeartbeatMessage> Heartbeats { get; } = new();
-
     public ConcurrentQueue<VoxelEditMessage> VoxelEdits { get; } = new();
 
     public ConcurrentQueue<NotificationMessage> Notifications { get; } = new();
@@ -35,7 +33,6 @@ internal sealed class ClientInbound : IChunkSink<LevelStreamChunk>
     public void Clear()
     {
         while (Snapshots.TryDequeue(out _)) { }
-        while (Heartbeats.TryDequeue(out _)) { }
         while (VoxelEdits.TryDequeue(out _)) { }
         while (Notifications.TryDequeue(out _)) { }
         while (SkillUpdates.TryDequeue(out _)) { }

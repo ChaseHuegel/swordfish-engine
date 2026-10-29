@@ -113,7 +113,9 @@ public class Injector : IDryIocInjector
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
         container.Register<ServerStats>(Reuse.Singleton);
 
-        container.Register<IEntitySystem, ClientHeartbeatSystem>();
+        container.Register<ClientHeartbeatService>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, ClientHeartbeatService>();
+        container.RegisterMapping<IDisposable, ClientHeartbeatService>();
 
         container.Register<LocalPlayerReconciler>(Reuse.Singleton);
         container.Register<ClientInputSystem>(Reuse.Singleton);
