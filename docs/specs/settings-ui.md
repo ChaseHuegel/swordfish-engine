@@ -12,11 +12,17 @@ the category labels, selection, title, dirty flag, and status.
 choice cells, steppers, sliders, and the reset row. `SettingsRowState` is the
 per-row model, produced by `SettingsRow.Snapshot` on the row types.
 
-Controls are markup except the slider, which keeps its drag behavior in
-`SettingsSliderWidget` and reports changes through a delegate. Choice cells and
-settings steppers are authored inline in the row list because their callbacks
-need the row id. The shared stepper component is used where the arrows do not
-need an id.
+Row chrome, labels, sections, steppers, and reset rows are markup. Two controls
+stay coded because their interaction is not expressible in markup yet:
+
+- `SettingsChoiceWidget` wraps the shared segmented control for toggles and
+  radio-like choices.
+- `SettingsSliderWidget` wraps the slider for drag input.
+
+Both report `(row id, value)` through a view method, so the page updates the
+draft and plays the same sounds as before. Settings steppers are authored inline
+in the row list because each arrow needs the row id; the shared `Stepper`
+component serves rows whose callbacks need no id.
 
 The page uses responsive constraints, not fixed child positions. `SettingsLayout`
 provides the page size, the breakpoint, the tray width, and the label and control

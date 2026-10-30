@@ -26,9 +26,10 @@ internal partial class SettingsRowsView(ILocalization localization) : UiViewBase
     /// <summary>Raised when a reset row is clicked.</summary>
     public Action<string>? ResetRequested { get; set; }
 
-    partial void OnChoice(string id, int index) => ChoiceRequested?.Invoke(id, index);
-
     partial void OnStep(string id, int delta) => StepRequested?.Invoke(id, delta);
+
+    /// <summary>Reports a choice change to the hosting page.</summary>
+    public void OnChoiceChanged(string id, int index) => ChoiceRequested?.Invoke(id, index);
 
     partial void OnReset(string id) => ResetRequested?.Invoke(id);
 

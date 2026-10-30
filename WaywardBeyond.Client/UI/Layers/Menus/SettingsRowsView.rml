@@ -23,28 +23,14 @@
                           class:wb-text-dim="@(!row.Enabled)"
                           width="fill"
                           height="fill" />
-                    <Element class="wb-choice"
-                             class:wb-choice-disabled="@(!row.Enabled)"
-                             layout="none"
-                             width="@context.ControlWidth"
-                             height="32"
-                             anchor="Center"
-                             padding="1">
-                        <Element class="wb-choice-row" layout="horizontal" width="fill" height="fill" spacing="1">
-                            <ForEach in="@row.Options" as="option" index="j">
-                                <Element class="wb-choice-cell"
-                                         class:wb-choice-cell-selected="@(j == row.Index)"
-                                         class:wb-choice-cell-disabled="@(!row.Enabled)"
-                                         id="{row.Id}.{j}"
-                                         disabled="@(!row.Enabled)"
-                                         onclick="OnChoice(row.Id, j)"
-                                         width="fill"
-                                         height="fill">
-                                    <Text class="wb-choice-label" text="@option" width="fill" height="fill" />
-                                </Element>
-                            </ForEach>
-                        </Element>
-                    </Element>
+                    <s:SettingsChoice id="@row.Id"
+                                      options="@row.Options"
+                                      value="@row.Index"
+                                      enabled="@row.Enabled"
+                                      onChanged="OnChoiceChanged"
+                                      width="@context.ControlWidth"
+                                      height="32"
+                                      anchor="Center" />
                 </Element>
                 </ElseIf>
 
