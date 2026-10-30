@@ -1,0 +1,239 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      xmlns:controls="WaywardBeyond.Client.UI.Controls"
+      Class="NewSaveView"
+      Context="NewSaveState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Page visible="@(!context.Creating)" max-width="1160" max-height="560">
+        <Element layout="vertical" width="fill" height="fill" padding="0 12 0 0" spacing="12">
+
+            <Element visible="@(ui.Width &gt;= 1020)"
+                     layout="horizontal"
+                     width="fill"
+                     height="fill"
+                     spacing="20">
+                <Element class="wb-panel" layout="none" width="50%" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
+                        <Text text="@L('ui.panel.level.form')" class="wb-panel-header" width="fill" height="18" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@L('ui.text.level.form.hint')" class="wb-text-small" width="fill" height="18" />
+                        <Element height="16" />
+                        <Text text="@L('ui.field.level.name')" class="wb-field-label" width="fill" height="16" />
+                        <Element height="4" />
+                        <Element layout="horizontal" width="fill" height="32" spacing="8">
+                            <controls:TextInput id="TextBox_SaveName"
+                                                bind="NameState"
+                                                inputService="@Input"
+                                                placeholder="@L('ui.field.level.name.placeholder')"
+                                                class="wb-field-frame"
+                                                width="fill"
+                                                height="fill"
+                                                font-size="18" />
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomSaveName"
+                                     anchor="Center"
+                                     onclick="OnRandomName"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+                        <Element height="16" />
+                        <Text text="@L('ui.field.level.seed')" class="wb-field-label" width="fill" height="16" />
+                        <Element height="4" />
+                        <Element layout="horizontal" width="fill" height="32" spacing="8">
+                            <controls:TextInput id="TextBox_SaveSeed"
+                                                bind="SeedState"
+                                                inputService="@Input"
+                                                placeholder="@L('ui.field.level.seed.placeholder')"
+                                                class="wb-field-frame"
+                                                width="fill"
+                                                height="fill"
+                                                font-size="18" />
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomSeed"
+                                     anchor="Center"
+                                     onclick="OnRandomSeed"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+                    </Element>
+                </Element>
+
+                <Element class="wb-panel" layout="none" width="fill" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
+                        <Text text="@L('ui.panel.level.form.detail')" class="wb-panel-header" width="fill" height="18" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@context.Name" class="wb-text-title" width="fill" height="26" />
+                        <Element height="8" />
+                        <Text text="@context.ModeLine" class="wb-text-small" width="fill" height="18" />
+                        <Text text="@context.SeedLine" class="wb-text-small" width="fill" height="18" />
+                        <Text text="@context.TypeLine" class="wb-text-small" width="fill" height="18" />
+                        <Element height="16" />
+                        <Element class="wb-divider" width="fill" height="1" />
+                    </Element>
+                </Element>
+            </Element>
+
+            <Element visible="@(ui.Width &lt; 1020)" layout="vertical" width="fill" height="fill" spacing="0">
+                <Element layout="horizontal" width="fill" height="40" spacing="8">
+                    <Tab id="FormTab" param:selected="@(context.Tab == 0)" onclick="OnSelectTab(0)" width="fill" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.level.form')" width="fill" height="fill" />
+                    </Tab>
+                    <Tab id="DetailTab" param:selected="@(context.Tab == 1)" onclick="OnSelectTab(1)" width="fill" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.level.form.detail')" width="fill" height="fill" />
+                    </Tab>
+                </Element>
+
+                <Element class="wb-panel" visible="@(context.Tab == 0)" layout="none" width="fill" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
+                        <Text text="@L('ui.panel.level.form')" class="wb-panel-header" width="fill" height="18" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@L('ui.text.level.form.hint')" class="wb-text-small" width="fill" height="18" />
+                        <Element height="16" />
+                        <Text text="@L('ui.field.level.name')" class="wb-field-label" width="fill" height="16" />
+                        <Element height="4" />
+                        <Element layout="horizontal" width="fill" height="32" spacing="8">
+                            <controls:TextInput id="TextBox_SaveNameNarrow"
+                                                bind="NameState"
+                                                inputService="@Input"
+                                                placeholder="@L('ui.field.level.name.placeholder')"
+                                                class="wb-field-frame"
+                                                width="fill"
+                                                height="fill"
+                                                font-size="18" />
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomSaveNameNarrow"
+                                     anchor="Center"
+                                     onclick="OnRandomName"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+                        <Element height="16" />
+                        <Text text="@L('ui.field.level.seed')" class="wb-field-label" width="fill" height="16" />
+                        <Element height="4" />
+                        <Element layout="horizontal" width="fill" height="32" spacing="8">
+                            <controls:TextInput id="TextBox_SaveSeedNarrow"
+                                                bind="SeedState"
+                                                inputService="@Input"
+                                                placeholder="@L('ui.field.level.seed.placeholder')"
+                                                class="wb-field-frame"
+                                                width="fill"
+                                                height="fill"
+                                                font-size="18" />
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomSeedNarrow"
+                                     anchor="Center"
+                                     onclick="OnRandomSeed"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+                    </Element>
+                </Element>
+
+                <Element class="wb-panel" visible="@(context.Tab == 1)" layout="none" width="fill" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
+                        <Text text="@L('ui.panel.level.form.detail')" class="wb-panel-header" width="fill" height="18" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@context.Name" class="wb-text-title" width="fill" height="26" />
+                        <Element height="8" />
+                        <Text text="@context.ModeLine" class="wb-text-small" width="fill" height="18" />
+                        <Text text="@context.SeedLine" class="wb-text-small" width="fill" height="18" />
+                        <Text text="@context.TypeLine" class="wb-text-small" width="fill" height="18" />
+                        <Element height="16" />
+                        <Element class="wb-divider" width="fill" height="1" />
+                    </Element>
+                </Element>
+            </Element>
+
+            <Element layout="horizontal" width="fill" height="52" spacing="12">
+                <Button id="Button_Cancel"
+                        param:variant="secondary"
+                        onclick="OnCancel"
+                        anchor="Center"
+                        width="170"
+                        height="40">
+                    <Text class="wb-button-label" text="@L('ui.button.cancel')" anchor="Center" />
+                </Button>
+
+                <Text text="@context.Status"
+                      class="wb-text-small"
+                      class:wb-text-danger-solid="@context.StatusDanger"
+                      class:wb-text-warning="@context.StatusWarning"
+                      width="fill"
+                      height="fill"
+                      text-align="center"
+                      vertical-align="middle" />
+
+                <Button id="Button_Create"
+                        param:variant="primary"
+                        param:enabled="@context.CanCreate"
+                        disabled="@(!context.CanCreate)"
+                        onclick="OnCreate"
+                        anchor="Center"
+                        width="220"
+                        height="40">
+                    <Text class="wb-button-label" text="@L('ui.button.level.create')" anchor="Center" />
+                </Button>
+            </Element>
+        </Element>
+    </Page>
+
+    <Page visible="@context.Creating" max-width="600" max-height="560">
+        <Panel width="fill" height="fill">
+            <Content name="header">
+                <Text text="@L('ui.panel.level.form')" class="wb-panel-header" width="fill" height="18" />
+            </Content>
+            <Element layout="vertical" width="fill" height="fill" padding="28">
+                <Element layout="vertical" width="480" height="fill" anchor="Center">
+                    <Text text="@L('ui.label.level.creating')" class="wb-text-body" width="fill" height="24" />
+                    <Element height="8" />
+
+                    <ForEach in="@context.Lines" as="line">
+                        <Element layout="horizontal" width="fill" height="24" spacing="2">
+                            <Text text="&gt;"
+                                  class="wb-text-small"
+                                  color="@FadeAccent(line.Fade)"
+                                  width="12"
+                                  height="fill" />
+                            <Text text="@line.Text"
+                                  class="wb-text-small"
+                                  color="@FadeMuted(line.Fade)"
+                                  width="fill"
+                                  height="fill" />
+                        </Element>
+                    </ForEach>
+
+                    <Element layout="horizontal" width="fill" height="24" spacing="2">
+                        <Text text="&gt;" class="wb-text-small wb-text-accent" width="12" height="fill" />
+                        <Element class="wb-caret-block"
+                                 visible="@context.CursorOn"
+                                 anchor="Center"
+                                 width="8"
+                                 height="12" />
+                    </Element>
+
+                    <Element height="fill" />
+                    <Element class="wb-divider" width="fill" height="1" />
+                </Element>
+            </Element>
+        </Panel>
+    </Page>
+</Reef>

@@ -95,6 +95,10 @@
     color: var(--wb-primary-bright);
 }
 
+.wb-text-danger-solid {
+    color: var(--wb-danger);
+}
+
 .wb-text-danger {
     color: var(--wb-danger-bright);
 }
@@ -708,6 +712,10 @@
 
 .wb-scrollbar-thumb {
     color: var(--wb-border-hover);
+}
+
+.wb-caret-block {
+    color: var(--wb-accent);
 }
 
 .wb-save-mode {
