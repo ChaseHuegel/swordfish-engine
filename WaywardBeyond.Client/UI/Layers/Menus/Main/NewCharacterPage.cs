@@ -154,7 +154,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             ),
             new SelectorState(
                 L("ui.field.character.gender"),
-                _view.GenderName(_gender),
+                genders.Count > 0 ? _view.GenderName(_gender) : string.Empty,
                 genders.Count > 1,
                 genders.Count > 1 && IndexOfGender(genders, _gender) > 0,
                 genders.Count > 1 && IndexOfGender(genders, _gender) < genders.Count - 1

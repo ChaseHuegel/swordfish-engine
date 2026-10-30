@@ -20,6 +20,28 @@ public class StepperComponentTests
     }
 
     [Fact]
+    public void HoveredArrowUsesTheHighlightColors()
+    {
+        var controller = new UIController();
+        var ui = new UIBuilder<Material>(300, 60, new StubTextEngine(), controller);
+        var parameters = new StepperParameters("human", Enabled: true);
+
+        Render(ui, parameters, controller, 20, 20, UIController.MouseButtons.None);
+        ui.Build(0f);
+        Render(ui, parameters, controller, 20, 20, UIController.MouseButtons.None);
+        System.Collections.Generic.List<RenderCommand<Material>> commands = ui.Build(0.1f);
+
+        RenderCommand<Material> glyph = commands.Find(command => command.Text == "<");
+        Assert.NotNull(glyph);
+        Assert.Equal(0.6471f, glyph!.Color.X, 3);
+
+        RenderCommand<Material> arrow = commands.Find(
+            command => command.Rect.Size.X == 32 && command.Rect.Size.Y == 30 && command.Color.X > 0.05f && command.Color.X < 0.09f
+        );
+        Assert.NotNull(arrow);
+    }
+
+    [Fact]
     public void BothArrowsFireBetweenTheBounds()
     {
         var steps = 0;
