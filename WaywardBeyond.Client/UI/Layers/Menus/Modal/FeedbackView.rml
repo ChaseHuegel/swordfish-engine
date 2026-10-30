@@ -1,4 +1,5 @@
 <Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
       xmlns:wb="WaywardBeyond.Client.UI.Controls"
       Class="FeedbackView"
       Context="FeedbackState"
@@ -12,8 +13,12 @@
                     <Text text="@L('ui.dialog.feedback')" class="wb-modal-title" width="fill" height="30" />
                 </Content>
 
-                <Element class="wb-column" layout="vertical" width="fill" height="fill" spacing="10">
-                    <Element class="wb-field" layout="vertical" width="fill" height="fill" spacing="4">
+                <Element class="wb-column" layout="vertical" width="fill" height="fill" spacing="0">
+                    <Element class="wb-field"
+                             layout="vertical"
+                             width="fill"
+                             height="@(DescriptionHeight(ui.Height) + 22)"
+                             spacing="4">
                         <Text text="@L('ui.field.feedback.message')" class="wb-field-label" width="fill" height="18" />
                         <wb:TextInput id="TextBox_Message"
                                       bind="context.Description"
@@ -24,6 +29,7 @@
                                       height="fill" />
                     </Element>
 
+                    <Element height="12" />
                     <Element class="wb-field" layout="vertical" width="fill" spacing="4">
                         <Text text="@L('ui.field.feedback.contact')" class="wb-field-label" width="fill" height="18" />
                         <wb:TextInput id="TextBox_Contact"
@@ -35,26 +41,28 @@
                                       height="32" />
                     </Element>
 
+                    <Element height="8" />
                     <Text text="@L('ui.text.feedback.helper')"
                           class="wb-field-hint"
                           width="fill"
-                          height="32"
+                          height="fill"
                           wrap="true" />
                 </Element>
 
                 <Content name="actions">
-                    <Element id="Button_Back" class="wb-button" onclick="OnBack" width="160" height="40">
-                        <Text class="wb-button-label" text="@L('ui.button.back')" width="fill" height="fill" />
-                    </Element>
+                    <Button id="Button_Back" param:variant="secondary" onclick="OnBack" width="160" height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.back')" anchor="Center" />
+                    </Button>
                     <Element width="fill" />
-                    <Element id="Button_Submit"
-                             class="wb-button wb-button-primary"
-                             onclick="OnSubmit"
-                             disabled="@(!context.CanSubmit)"
-                             width="200"
-                             height="40">
-                        <Text class="wb-button-label" text="@L('ui.button.send')" width="fill" height="fill" />
-                    </Element>
+                    <Button id="Button_Submit"
+                            param:variant="primary"
+                            onclick="OnSubmit"
+                            param:enabled="@context.CanSubmit"
+                            disabled="@(!context.CanSubmit)"
+                            width="200"
+                            height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.send')" anchor="Center" />
+                    </Button>
                 </Content>
             </Modal>
         </Element>

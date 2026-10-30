@@ -1,0 +1,16 @@
+0 id=PlaytestNoticeScrim rect=0,0,800,600 clip=0,0,800,600 color=0,0,0,0.949 bg=0,0,0,0.949 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=0,0,800,600 clip=0,0,800,600 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+2 id=PlaytestNoticePanel rect=80,70,640,460 clip=80,70,640,460 color=0.0667,0.0902,0.1373,0.9412 bg=0.0667,0.0902,0.1373,0.9412 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=4:4:4:4 font=-:0 text=-
+3 id=- rect=108,98,584,30 clip=80,70,640,460 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:24 text=In-development playtest
+4 id=- rect=108,128,0,8 clip=80,70,640,460 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=- rect=108,136,584,1 clip=80,70,640,460 color=0.1686,0.2196,0.3059,1 bg=0.1686,0.2196,0.3059,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+6 id=- rect=108,137,0,16 clip=80,70,640,460 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=108,153,584,309 clip=80,70,640,460 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:18 text=This is an evolving version.
+8 id=- rect=108,462,584,40 clip=80,70,640,460 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+9 id=Button_Community rect=108,462,40,40 clip=80,70,640,460 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=4:4:4:4 font=-:0 text=-
+10 id=- rect=108,462,40,40 clip=80,70,640,460 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Brands:32 text=
+11 id=Button_Wishlist rect=156,462,40,40 clip=80,70,640,460 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=4:4:4:4 font=-:0 text=-
+12 id=- rect=156,462,40,40 clip=80,70,640,460 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Brands:32 text=
+13 id=- rect=204,462,280,0 clip=80,70,640,460 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+14 id=Button_Close rect=492,462,200,40 clip=80,70,640,460 color=0.0706,0.0941,0.149,1 bg=0.0706,0.0941,0.149,1 border=1:0.949,0.6,0.2902,1 caps=6:1:0.949,0.6,0.2902,1 radius=4:4:4:4 font=-:0 text=-
+15 id=- rect=508,470,168,24 clip=80,70,640,460 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:18 text=OK

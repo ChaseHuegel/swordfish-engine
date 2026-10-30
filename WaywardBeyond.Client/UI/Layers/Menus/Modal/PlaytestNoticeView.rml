@@ -1,4 +1,5 @@
 <Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
       Class="PlaytestNoticeView"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
@@ -14,14 +15,14 @@
                 </Content>
 
                 <Text text="@L('ui.dialog.playtest.body')"
-                      class="wb-modal-body"
+                      class="wb-playtest-body"
                       width="fill"
                       height="fill"
                       wrap="true" />
 
                 <Content name="actions">
                     <Element id="Button_Community"
-                             class="wb-icon-button"
+                             class="wb-icon-button wb-playtest-icon-button"
                              onclick="OnDiscord"
                              width="40"
                              height="40">
@@ -32,7 +33,7 @@
                     </Element>
 
                     <Element id="Button_Wishlist"
-                             class="wb-icon-button"
+                             class="wb-icon-button wb-playtest-icon-button"
                              onclick="OnSteam"
                              width="40"
                              height="40">
@@ -44,16 +45,18 @@
 
                     <Element width="fill" />
 
-                    <Element id="Button_Close"
-                             class="wb-button wb-button-primary"
-                             onclick="OnClose"
-                             width="200"
-                             height="40">
+                    <Button id="Button_Close"
+                            param:variant="primary"
+                            param:doubleBorder="false"
+                            class="wb-button-playtest"
+                            onclick="OnClose"
+                            width="200"
+                            height="40">
                         <Text text="@L('ui.button.ok')"
-                              class="wb-button-label"
+                              class="wb-playtest-label"
                               width="fill"
                               height="fill" />
-                    </Element>
+                    </Button>
                 </Content>
             </Modal>
         </Element>

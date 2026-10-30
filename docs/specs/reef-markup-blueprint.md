@@ -279,19 +279,32 @@ lists and fail the build on severe issues:
    - Dynamic key methods (e.g. `protected partial Reef.UIController.Key GetKeyBinding(string action);`).
 4. **Render method and component styling**:
    - When `RendererData` is defined on `<Reef>`, generates concrete signature
-     `public void Render(UIBuilder<ConcreteType> ui, <ContextType> context, StyleOverride? callerStyle = null, ConstraintsOverride? callerConstraints = null, string? idPrefix = null)`.
+     `public void Render(UIBuilder<ConcreteType> ui, <ContextType> context, <ParameterType>? parameters = null, StyleOverride? callerStyle = null, ConstraintsOverride? callerConstraints = null, string? idPrefix = null)`.
    - When omitted, generates generic signature
-     `public void Render<TData>(UIBuilder<TData> ui, <ContextType> context, StyleOverride? callerStyle = null, ConstraintsOverride? callerConstraints = null, string? idPrefix = null)`.
+     `public void Render<TData>(UIBuilder<TData> ui, <ContextType> context, <ParameterType>? parameters = null, StyleOverride? callerStyle = null, ConstraintsOverride? callerConstraints = null, string? idPrefix = null)`.
+   - The context and parameter arguments are omitted from the signature when
+     the component does not declare `Context` or `Parameters`.
    - The root element automatically merges caller styles and constraints with
      its internal styles. View methods and event callbacks invoke companion
      partial methods directly on `this`.
-5. **Slot inlining and zero-allocation projection**:
+   - The root element automatically merges caller styles and constraints with
+     its internal styles. View methods and event callbacks invoke companion
+     partial methods directly on `this`.
+5. **Component parameters**:
+   - `Parameters` resolves a parameter type. `param:` attributes are matched to
+     writable properties or fields by name, ignoring case.
+   - Local component calls emit a scoped `param` object before the component
+     body. Missing values use the model defaults.
+   - The `param` variable is available to expressions in the component body.
+   - Cross-assembly markup forwarding is not yet implemented.
+
+6. **Slot inlining and zero-allocation projection**:
    - When a component call site uses `<Content>` and both components exist in
      the same compilation, the generator inlines the slot AST directly into
      the parent scope. This avoids per-tick `Action<T>` delegate heap allocations.
    - For standalone or cross-module components, slot parameters fall back to
      delegates.
-6. **Linear scope emission**:
+7. **Linear scope emission**:
    - Recursively emits `using (ui.Element(...))` and `using (ui.Text(...))` scopes.
    - For interactive elements (any `<Element>` declaring click, held, or scroll handlers)
      omitting an explicit `id` outside `<ForEach>` loops, the generator derives a
@@ -337,6 +350,7 @@ bundles `reef.xsd`:
       <xs:attribute name="Class" type="xs:string" use="required" />
       <xs:attribute name="Access" type="xs:string" use="optional" />
       <xs:attribute name="Context" type="xs:string" use="optional" />
+      <xs:attribute name="Parameters" type="xs:string" use="optional" />
       <xs:attribute name="RendererData" type="xs:string" use="optional" />
       <xs:attribute name="Namespace" type="xs:string" use="optional" />
     </xs:complexType>

@@ -1,17 +1,17 @@
-0 id=- rect=0,0,800,600 clip=0,0,800,600 color=0,0,0,0.949 bg=0,0,0,0.949 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+0 id=- rect=0,0,800,600 clip=0,0,800,600 color=0,0,0,0.749 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 1 id=- rect=0,0,800,600 clip=0,0,800,600 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-2 id=- rect=140,180,520,240 clip=140,180,520,240 color=0.0667,0.0902,0.1373,0.9412 bg=0.0667,0.0902,0.1373,0.9412 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=140,180,520,240 clip=140,180,520,240 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
 3 id=- rect=168,208,464,30 clip=140,180,520,240 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:24 text=Connecting
 4 id=- rect=168,238,0,8 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-5 id=- rect=168,246,464,1 clip=140,180,520,240 color=0.1686,0.2196,0.3059,1 bg=0.1686,0.2196,0.3059,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=- rect=168,246,464,1 clip=140,180,520,240 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 6 id=- rect=168,247,0,16 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-7 id=- rect=168,263,464,73 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=168,263,464,89 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 8 id=- rect=168,263,464,22 clip=140,180,520,240 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=127.0.0.1:7777
-9 id=- rect=168,301,464,35 clip=168,301,464,35 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-10 id=- rect=260,317,280,2 clip=260,317,280,2 color=0.1686,0.2196,0.3059,1 bg=0.1686,0.2196,0.3059,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-11 id=- rect=168,336,0,16 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-12 id=- rect=168,352,464,40 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-13 id=- rect=168,352,130,0 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-14 id=Button_CancelConnect rect=310,352,180,40 clip=140,180,520,240 color=0.0706,0.0941,0.149,1 bg=0.0706,0.0941,0.149,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=2:2:2:2 font=-:0 text=-
-15 id=- rect=326,360,148,24 clip=140,180,520,240 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Cancel
-16 id=- rect=502,352,130,0 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+9 id=- rect=168,301,464,2 clip=168,301,464,2 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+10 id=- rect=260,301,280,2 clip=260,301,280,2 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+11 id=- rect=168,352,464,40 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+12 id=- rect=168,352,134,0 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+13 id=Button_CancelConnect rect=310,352,180,40 clip=140,180,520,240 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+14 id=- rect=312,354,176,36 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+15 id=- rect=376,363,48,18 clip=140,180,520,240 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Cancel
+16 id=- rect=498,352,134,0 clip=140,180,520,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-

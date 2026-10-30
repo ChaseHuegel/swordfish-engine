@@ -60,7 +60,12 @@ Use `Theme.rss` for tokens and `Components.rss` for classes.
 
 - Prefix game variables and classes with `wb-`.
 - Use semantic classes, not page-specific colors.
-- Use `.wb-button-primary` and the other variants instead of C# palettes.
+- Use the `Button` component with `param:variant` instead of C# palettes.
+  Supported variants are `secondary`, `primary`, `danger`, and `subtle`.
+- Use `color` for fills. The generator maps `background-color` to both the fill
+  and the background color. Legacy panels, buttons, tabs, and dividers paint the
+  fill only, so a background color can add an unintended layer.
+- Use `background-color` only for real overlays such as scrims and field frames.
 - Use `text-color` to recolor child text and icons.
 - Use `border-bottom` and the other side borders for attached tab or underline
   treatments.
@@ -70,6 +75,42 @@ Use `Theme.rss` for tokens and `Components.rss` for classes.
 
 Use a component when the concept has structure, slots, clipping, or repeated
 composition.
+
+The shared `Button` component owns the outer border, optional inner border,
+corner caps, padding, disabled state, and compact state. Use
+`param:doubleBorder="false"` only for single-outline buttons such as the
+playtest close button. Use `param:compact="true"` for compact controls. Use
+`param:enabled="@expression"` for the disabled visual state. Keep the normal
+`disabled="@expression"` attribute as well. It guards the click callbacks.
+Disabled buttons keep their disabled fill, border, text color, and cap style
+while hovered or pressed.
+
+`Panel` owns the outer caps, the inner hairline, and the content inset. Use
+`param:loose="true"` for the 24-pixel inset used by the credits page. `Tab`
+owns the selected bottom bar. `Card` owns the selected caret.
+
+### Component parameters
+
+Use typed parameters when a component has a small set of visual variants. The
+parameter type carries values only. It must not carry localized strings,
+colors, or page services.
+
+```xml
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      Class="FeedbackView"
+      Context="FeedbackState">
+    <Button param:variant="primary"
+            param:enabled="@context.CanSubmit"
+            onclick="OnSubmit">
+        <Text class="wb-button-label" text="@L('ui.button.send')" />
+    </Button>
+</Reef>
+```
+
+Use `param:` to separate component parameters from normal attributes. Local
+components are resolved first. Cross-assembly parameter forwarding is a later
+step.
 
 `Modal` is the modal panel. Wrap it with the `.wb-scrim-*` and
 `.wb-modal-center` classes. Caller constraints and classes apply to the panel,
@@ -133,6 +174,9 @@ must accept `Style` and `FontOptions`, and it must not hardcode theme values.
 - Component gallery goldens cover normal, hover, active, focus, disabled, and
   selected states.
 - Page goldens cover narrow and wide sizes.
+- Legacy component and page goldens prove parity with the old C# UI. The parity
+  comparison ignores instance IDs and clips, and it treats equal fill and
+  background colors as one fill.
 - Tests check localization keys, layout bounds, callbacks, and responsive
   branches.
 - Existing behavior tests remain until the behavior changes.

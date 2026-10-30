@@ -1,0 +1,16 @@
+0 id=- rect=0,0,800,600 clip=0,0,800,600 color=0,0,0,0.749 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=140,175,520,250 clip=140,175,520,250 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=140,175,520,250 clip=140,175,520,250 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+3 id=- rect=168,203,464,30 clip=140,175,520,250 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:24 text=Confirm
+4 id=- rect=168,233,0,8 clip=140,175,520,250 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=- rect=168,241,464,1 clip=140,175,520,250 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+6 id=- rect=168,242,0,16 clip=140,175,520,250 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=168,258,464,99 clip=140,175,520,250 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Are you sure?
+8 id=- rect=168,357,464,40 clip=140,175,520,250 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+9 id=Button_No rect=168,357,180,40 clip=168,357,180,40 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+10 id=- rect=170,359,176,36 clip=168,357,180,40 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+11 id=- rect=234,368,48,18 clip=168,357,180,40 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Cancel
+12 id=- rect=360,357,80,40 clip=140,175,520,250 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+13 id=Button_Yes rect=452,357,180,40 clip=452,357,180,40 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.8784,0.3098,0.4784,1 caps=6:1:0.8784,0.3098,0.4784,1 radius=0:0:0:0 font=-:0 text=-
+14 id=- rect=454,359,176,36 clip=452,357,180,40 color=0,0,0,0 bg=0,0,0,0 border=1:0.2392,0.0784,0.1176,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+15 id=- rect=514,368,56,18 clip=452,357,180,40 color=1,0.5529,0.651,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Confirm

@@ -22,6 +22,12 @@ internal partial class FeedbackView : UiViewBase
     /// <summary>Raised when the submit action is clicked.</summary>
     public Action? SubmitRequested { get; set; }
 
+    /// <summary>Returns the description field height for the current window.</summary>
+    protected static int DescriptionHeight(int windowHeight)
+    {
+        return Math.Clamp(windowHeight - 460, 160, 320);
+    }
+
     partial void OnBack() => BackRequested?.Invoke();
 
     partial void OnSubmit() => SubmitRequested?.Invoke();

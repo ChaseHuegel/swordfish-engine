@@ -42,9 +42,9 @@ public class PlaytestNoticeViewTests
         RenderCommand<Material> close = FindRequired(commands, "Button_Close");
         Assert.Equal(200, close.Rect.Size.X);
         Assert.Equal(40, close.Rect.Size.Y);
-        Assert.Equal(0.071f, close.BackgroundColor.X, 3);
-        Assert.Equal(0.094f, close.BackgroundColor.Y, 3);
-        Assert.Equal(0.149f, close.BackgroundColor.Z, 3);
+        Assert.Equal(0.071f, close.Color.X, 3);
+        Assert.Equal(0.094f, close.Color.Y, 3);
+        Assert.Equal(0.149f, close.Color.Z, 3);
         Assert.Equal(1, close.Border.Thickness);
         Assert.Equal(0.949f, close.Border.Color.X, 3);
         Assert.Equal(0.6f, close.Border.Color.Y, 3);

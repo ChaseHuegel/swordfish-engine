@@ -1,10 +1,11 @@
 using System;
 using Reef;
 using Reef.Constraints;
+using Reef.Text;
 using Reef.UI;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.UI.Components;
-using WaywardBeyond.Client.UI.Components;
+using WaywardBeyond.Client.UI.Theme;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -14,6 +15,61 @@ public class ComponentSnapshotTests
     [Fact]
     public void FoundationComponentsMatchSnapshots()
     {
+        Snapshot("component-button-secondary", ui => new Button().Render(
+            ui,
+            parameters: new ButtonParameters(),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(264),
+                Height = new Fixed(44),
+            },
+            content_default: content => DrawButtonLabel(content, "Secondary")
+        ));
+
+        Snapshot("component-button-primary", ui => new Button().Render(
+            ui,
+            parameters: new ButtonParameters(ButtonVariant.Primary),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(264),
+                Height = new Fixed(44),
+            },
+            content_default: content => DrawButtonLabel(content, "Primary")
+        ));
+
+        Snapshot("component-button-compact", ui => new Button().Render(
+            ui,
+            parameters: new ButtonParameters(ButtonVariant.Secondary, Compact: true),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(116),
+                Height = new Fixed(32),
+            },
+            content_default: content => DrawButtonLabel(content, "Feedback")
+        ));
+
+        Snapshot("component-button-disabled", ui => new Button().Render(
+            ui,
+            parameters: new ButtonParameters(Enabled: false),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(264),
+                Height = new Fixed(44),
+            },
+            content_default: content => DrawButtonLabel(content, "Disabled")
+        ));
+
+        Snapshot("component-button-compact-plain", ui => new Button().Render(
+            ui,
+            parameters: new ButtonParameters(ButtonVariant.Secondary, Compact: true, DoubleBorder: false),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(116),
+                Height = new Fixed(32),
+            },
+            content_default: content => DrawButtonLabel(content, "Feedback", compact: true)
+        ));
+
         Snapshot("component-panel", ui => new Panel().Render(
             ui,
             callerConstraints: new ConstraintsOverride
@@ -23,6 +79,39 @@ public class ComponentSnapshotTests
             },
             content_header: content => DrawText(content, "Header"),
             content_default: content => DrawText(content, "Body")
+        ));
+
+        Snapshot("component-card-selected", ui => new Card().Render(
+            ui,
+            parameters: new CardParameters(Selected: true),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(360),
+                Height = new Fixed(52),
+            },
+            content_default: content => DrawText(content, "Card")
+        ));
+
+        Snapshot("component-tab", ui => new Tab().Render(
+            ui,
+            parameters: new TabParameters(),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(160),
+                Height = new Fixed(40),
+            },
+            content_default: content => DrawText(content, "Tab")
+        ));
+
+        Snapshot("component-tab-selected", ui => new Tab().Render(
+            ui,
+            parameters: new TabParameters(Selected: true),
+            callerConstraints: new ConstraintsOverride
+            {
+                Width = new Fixed(160),
+                Height = new Fixed(40),
+            },
+            content_default: content => DrawText(content, "Tab")
         ));
 
         Snapshot("component-card", ui => new Card().Render(
@@ -149,6 +238,23 @@ public class ComponentSnapshotTests
     private static void Snapshot(string name, Action<UIBuilder<Material>> render)
     {
         UiSnapshotTests.Compare(name, 800, 600, render);
+    }
+
+    internal static void DrawButtonLabel(UIBuilder<Material> ui, string text, bool compact = false)
+    {
+        using (ui.Text(text))
+        {
+            ui.FontOptions = new FontOptions
+            {
+                ID = UiTheme.FONT_UI,
+                Size = compact ? UiMetrics.MENU_SMALL_FONT : UiMetrics.MENU_BODY_FONT,
+                NoWrap = true,
+            };
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+        }
     }
 
     private static void DrawText(UIBuilder<Material> ui, string text)

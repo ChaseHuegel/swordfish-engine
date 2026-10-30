@@ -29,6 +29,7 @@ internal sealed class CallerPlan
 {
     public readonly List<StyleLayer> Final = [];
     public string? RootId;
+    public string? Disabled;
     public readonly List<RmlAttribute> ExtraCallbacks = [];
     public bool Applied;
 }

@@ -1,17 +1,21 @@
 0 id=- rect=380,180,1160,720 clip=380,180,1160,720 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-1 id=- rect=380,192,1160,648 clip=380,192,1160,648 color=0.0667,0.0902,0.1373,0.9412 bg=0.0667,0.0902,0.1373,0.9412 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
-2 id=- rect=404,216,1112,18 clip=380,192,1160,648 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Credits
-3 id=- rect=404,234,1112,1 clip=380,192,1160,648 color=0.102,0.1373,0.2,1 bg=0.102,0.1373,0.2,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-4 id=- rect=404,235,0,8 clip=380,192,1160,648 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-5 id=Credits.Scroll rect=404,243,1112,573 clip=380,192,1160,648 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-6 id=- rect=404,243,1098,573 clip=404,243,1098,573 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-7 id=Credits.Content rect=404,243,1098,81 clip=404,243,1098,573 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-8 id=- rect=404,251,1098,18 clip=404,243,1098,573 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Credits body.
-9 id=- rect=404,277,1098,1 clip=404,243,1098,573 color=0.1686,0.2196,0.3059,1 bg=0.1686,0.2196,0.3059,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-10 id=- rect=404,302,1098,14 clip=404,243,1098,573 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Thank you.
-11 id=- rect=1510,243,6,573 clip=1510,243,6,573 color=0.0824,0.1137,0.1647,1 bg=0.0824,0.1137,0.1647,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-12 id=- rect=1510,243,6,191 clip=1510,243,6,573 color=0.2863,0.3647,0.4784,1 bg=0.2863,0.3647,0.4784,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-13 id=- rect=380,848,1160,52 clip=380,180,1160,720 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-14 id=Button_Back rect=380,854,170,40 clip=380,180,1160,720 color=0.0706,0.0941,0.149,1 bg=0.0706,0.0941,0.149,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=2:2:2:2 font=-:0 text=-
-15 id=- rect=396,862,138,24 clip=380,180,1160,720 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Back
-16 id=- rect=562,848,978,0 clip=380,180,1160,720 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=380,192,1160,644 clip=380,180,1160,720 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=382,194,1156,640 clip=382,194,1156,640 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+3 id=- rect=406,218,1108,18 clip=382,194,1156,640 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Credits
+4 id=- rect=406,236,0,4 clip=382,194,1156,640 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=- rect=406,240,1108,1 clip=382,194,1156,640 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+6 id=- rect=406,241,0,8 clip=382,194,1156,640 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=Credits.Scroll rect=406,249,1108,561 clip=382,194,1156,640 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+8 id=- rect=406,249,1094,561 clip=406,249,1094,561 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+9 id=Credits.Content rect=573,249,760,57 clip=406,249,1094,561 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+10 id=- rect=573,249,760,18 clip=406,249,1094,561 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Credits body.
+11 id=- rect=573,267,0,8 clip=406,249,1094,561 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+12 id=- rect=573,275,760,1 clip=406,249,1094,561 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+13 id=- rect=573,276,0,16 clip=406,249,1094,561 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+14 id=- rect=573,292,760,14 clip=406,249,1094,561 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Thank you.
+15 id=- rect=1508,249,6,561 clip=1508,249,6,561 color=0.1098,0.1412,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+16 id=- rect=380,848,1160,52 clip=380,180,1160,720 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+17 id=Button_Back rect=380,854,170,40 clip=380,180,1160,720 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+18 id=- rect=382,856,166,36 clip=380,180,1160,720 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+19 id=- rect=449,865,32,18 clip=380,180,1160,720 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Back
+20 id=- rect=562,848,978,52 clip=380,180,1160,720 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-

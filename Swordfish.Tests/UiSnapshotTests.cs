@@ -5,6 +5,7 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Reef;
 using Reef.Text;
 using Reef.UI;
@@ -56,7 +57,7 @@ public class UiSnapshotTests
             {
                 var state = new AddFavoriteState(
                     new TextBoxState(string.Empty),
-                    new TextBoxState(string.Empty)
+                    new TextBoxState("7777")
                 );
                 new AddFavoriteView(new StubLocalization(), new FakeInputService()).Render(ui, state);
             });
@@ -82,18 +83,102 @@ public class UiSnapshotTests
             Compare($"{width}x{height}-credits", width, height, (ui) =>
             {
                 var scroll = new WaywardBeyond.Client.UI.Components.ScrollAreaState();
-                scroll.SetMetrics(viewportHeight: 300, contentHeight: 900);
                 new CreditsView(new StubLocalization(), scroll).Render(ui);
             });
         }
     }
 
-    internal static void Compare(string name, int width, int height, Action<UIBuilder<Material>> render)
+    [Fact]
+    public void MigratedPagesMatchLegacyVisuals()
+    {
+        for (var i = 0; i < _widths.Length; i++)
+        {
+            int width = _widths[i];
+            int height = _heights[i];
+            AssertPageMatchesLegacy($"{width}x{height}-playtest", width, height, ui =>
+            {
+                new PlaytestNoticeView(new StubLocalization()).Render(ui);
+            });
+            AssertPageMatchesLegacy($"{width}x{height}-pause-home", width, height, ui =>
+            {
+                new HomePageView(new StubLocalization()).Render(ui);
+            });
+            AssertPageMatchesLegacy($"{width}x{height}-message", width, height, ui =>
+            {
+                new MessageModalView(new StubLocalization()).Render(
+                    ui,
+                    new MessageModalState("Message", "This is a message.")
+                );
+            });
+            AssertPageMatchesLegacy($"{width}x{height}-confirm", width, height, ui =>
+            {
+                new ConfirmModalView(new StubLocalization()).Render(
+                    ui,
+                    new ConfirmModalState("Confirm", "Are you sure?", "Confirm", "Cancel")
+                );
+            });
+            AssertPageMatchesLegacy($"{width}x{height}-add-favorite", width, height, ui =>
+            {
+                var state = new AddFavoriteState(
+                    new TextBoxState(string.Empty),
+                    new TextBoxState("7777")
+                );
+                new AddFavoriteView(new StubLocalization(), new FakeInputService()).Render(ui, state);
+            });
+            AssertPageMatchesLegacy($"{width}x{height}-feedback", width, height, ui =>
+            {
+                var state = new FeedbackState(
+                    new TextBoxState(string.Empty),
+                    new TextBoxState(string.Empty)
+                );
+                new FeedbackView(new StubLocalization(), new FakeInputService()).Render(ui, state);
+            });
+            AssertPageMatchesLegacy($"{width}x{height}-connecting", width, height, ui =>
+            {
+                new ConnectingModalView(new StubLocalization()).Render(
+                    ui,
+                    new ConnectingModalState("Connecting", "127.0.0.1:7777")
+                );
+            });
+            AssertPageMatchesLegacy($"{width}x{height}-credits", width, height, ui =>
+            {
+                var scroll = new WaywardBeyond.Client.UI.Components.ScrollAreaState();
+                new CreditsView(new StubLocalization(), scroll).Render(ui);
+            });
+            AssertPageMatchesLegacy($"{width}x{height}-main-menu-overlay", width, height, ui =>
+            {
+                new MainMenuOverlayView(new StubLocalization()).Render(ui);
+            });
+        }
+    }
+
+    private static void AssertPageMatchesLegacy(
+        string name,
+        int width,
+        int height,
+        Action<UIBuilder<Material>> render)
+    {
+        string legacyPath = Path.Combine(SourceDirectory(), "TestFiles", "Legacy", "Pages", name + ".txt");
+        string legacy = NormalizeVisual(File.ReadAllText(legacyPath));
+        string actual = NormalizeVisual(CaptureRender(width, height, render));
+        Assert.True(
+            string.Equals(legacy, actual, StringComparison.Ordinal),
+            $"Legacy visual mismatch for {name}."
+        );
+    }
+
+    internal static void Compare(
+        string name,
+        int width,
+        int height,
+        Action<UIBuilder<Material>> render,
+        string folder = "Snapshots",
+        bool allowUpdate = true)
     {
         var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), new UIController());
         render(ui);
         string actual = Capture(ui.Build(0d));
-        string goldenPath = Path.Combine(SourceDirectory(), "TestFiles", "Snapshots", name + ".txt");
+        string goldenPath = Path.Combine(SourceDirectory(), "TestFiles", folder, name + ".txt");
         string actualPath = Path.Combine(AppContext.BaseDirectory, "TestResults", "ui", name + ".txt");
         Directory.CreateDirectory(Path.GetDirectoryName(actualPath)!);
         File.WriteAllText(actualPath, actual);
@@ -103,7 +188,7 @@ public class UiSnapshotTests
             "1",
             StringComparison.Ordinal
         );
-        if (update || !File.Exists(goldenPath))
+        if (!File.Exists(goldenPath) || (update && allowUpdate))
         {
             Directory.CreateDirectory(Path.GetDirectoryName(goldenPath)!);
             File.WriteAllText(goldenPath, actual);
@@ -117,7 +202,40 @@ public class UiSnapshotTests
         );
     }
 
-    private static string Capture(List<RenderCommand<Material>> commands)
+    internal static string CaptureRender(int width, int height, Action<UIBuilder<Material>> render)
+    {
+        var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), new UIController());
+        render(ui);
+        return Capture(ui.Build(0d));
+    }
+
+    internal static string NormalizeIds(string snapshot)
+    {
+        return Regex.Replace(snapshot, @" id=[^ ]+", " id=-");
+    }
+
+    internal static string NormalizeVisual(string snapshot)
+    {
+        string normalized = Regex.Replace(NormalizeIds(snapshot), @" clip=[^ ]+", " clip=-");
+        normalized = Regex.Replace(normalized, @"color=([^ ]+) bg=\1", @"color=$1 bg=0,0,0,0");
+        string[] lines = normalized.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        var kept = new List<string>();
+        for (var i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i];
+            if (line.Contains(" color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            int space = line.IndexOf(' ');
+            kept.Add(kept.Count.ToString(CultureInfo.InvariantCulture) + line.Substring(space));
+        }
+
+        return string.Join("\n", kept) + "\n";
+    }
+
+    internal static string Capture(List<RenderCommand<Material>> commands)
     {
         var builder = new StringBuilder();
         for (var i = 0; i < commands.Count; i++)

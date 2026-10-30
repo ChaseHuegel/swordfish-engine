@@ -10,6 +10,7 @@ internal static class MarkupVocabulary
         "Class",
         "Access",
         "Context",
+        "Parameters",
         "RendererData",
         "Namespace",
     };

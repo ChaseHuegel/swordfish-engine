@@ -4,7 +4,7 @@
       Namespace="WaywardBeyond.Client.UI.Components">
     <Element class="wb-card" layout="horizontal" clip="true" spacing="8">
         <Content name="leading" />
-        <Element layout="vertical" width="fill" spacing="2">
+        <Element layout="vertical" width="fill" height="fill" spacing="2">
             <Content />
         </Element>
         <Content name="trailing" />

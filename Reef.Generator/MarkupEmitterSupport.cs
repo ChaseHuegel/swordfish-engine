@@ -496,7 +496,8 @@ internal sealed partial class DocumentState
             RmlAttribute attribute = node.Attributes[i];
             if (attribute.NamespaceUri == "http://www.w3.org/XML/1998/namespace"
                 || attribute.NamespaceUri == "http://www.w3.org/2001/XMLSchema-instance"
-                || attribute.IsClassDirective)
+                || attribute.IsClassDirective
+                || attribute.IsParameterAttribute)
             {
                 continue;
             }
@@ -582,6 +583,37 @@ internal sealed partial class DocumentState
                 return;
             }
 
+            ITypeSymbol? childParameterType = GetChildParameterType(component);
+            string? parameterObject = null;
+            var parameterAttributes = new List<RmlAttribute>();
+            for (var i = 0; i < call.Attributes.Count; i++)
+            {
+                if (call.Attributes[i].IsParameterAttribute)
+                {
+                    parameterAttributes.Add(call.Attributes[i]);
+                }
+            }
+
+            if (childParameterType == null && parameterAttributes.Count > 0)
+            {
+                Report(
+                    DiagnosticDescriptors.UnknownAttribute,
+                    parameterAttributes[0].Location,
+                    parameterAttributes[0].QualifiedName,
+                    call.Tag,
+                    "The component does not declare parameters.");
+                return;
+            }
+
+            if (childParameterType != null)
+            {
+                parameterObject = BuildParameterObject(call, childParameterType, parameterAttributes, context);
+                if (parameterObject == null)
+                {
+                    return;
+                }
+            }
+
             if (component.RendererDataType != null)
             {
                 string componentNamespace = TypeResolver.InferNamespace(component, Compilation, _options);
@@ -656,6 +688,13 @@ internal sealed partial class DocumentState
                 }
             }
 
+            if (parameterObject != null && childParameterType != null)
+            {
+                context.Writer.Open();
+                childScope.Variables["param"] = childParameterType;
+                context.Writer.Line("var param = " + parameterObject + ";");
+            }
+
             EmitContext childContext = context.Clone(childScope);
             childContext.IsRoot = false;
             childContext.CallerRuntime = false;
@@ -663,6 +702,11 @@ internal sealed partial class DocumentState
             childContext.CallerPlan = callerPlan;
             childContext.Slots = slotContent;
             EmitNodes(component.Roots, childContext);
+
+            if (parameterObject != null && childParameterType != null)
+            {
+                context.Writer.Close();
+            }
 
             if (visibleCode != null)
             {
@@ -675,6 +719,161 @@ internal sealed partial class DocumentState
         }
     }
 
+    private string? BuildParameterObject(
+        RmlElementNode call,
+        ITypeSymbol parameterType,
+        List<RmlAttribute> attributes,
+        EmitContext context)
+    {
+        var assignments = new List<string>();
+        for (var i = 0; i < attributes.Count; i++)
+        {
+            RmlAttribute attribute = attributes[i];
+            string name = attribute.Name;
+            IPropertySymbol? property = null;
+            IFieldSymbol? field = null;
+            for (INamedTypeSymbol? current = parameterType as INamedTypeSymbol; current != null; current = current.BaseType)
+            {
+                foreach (ISymbol member in current.GetMembers())
+                {
+                    if (!string.Equals(member.Name, name, StringComparison.OrdinalIgnoreCase)
+                        || member.IsStatic)
+                    {
+                        continue;
+                    }
+
+                    if (member is IPropertySymbol candidate && candidate.SetMethod != null)
+                    {
+                        property = candidate;
+                        break;
+                    }
+
+                    if (member is IFieldSymbol candidateField && !candidateField.IsReadOnly && !candidateField.IsConst)
+                    {
+                        field = candidateField;
+                        break;
+                    }
+                }
+
+                if (property != null || field != null)
+                {
+                    break;
+                }
+            }
+
+            ITypeSymbol? memberType = property?.Type ?? field?.Type;
+            string? memberName = property?.Name ?? field?.Name;
+            if (memberType == null || memberName == null)
+            {
+                Report(
+                    DiagnosticDescriptors.UnknownAttribute,
+                    attribute.Location,
+                    attribute.QualifiedName,
+                    call.Tag,
+                    "The component parameter does not exist.");
+                return null;
+            }
+
+            string? value = EmitParameterValue(attribute, memberType, context);
+            if (value == null)
+            {
+                return null;
+            }
+
+            assignments.Add(memberName + " = " + value);
+        }
+
+        string typeName = TypeNames.Display(parameterType);
+        return assignments.Count == 0
+            ? "new " + typeName + "()"
+            : "new " + typeName + " { " + string.Join(", ", assignments) + " }";
+    }
+
+    private string? EmitParameterValue(RmlAttribute attribute, ITypeSymbol type, EmitContext context)
+    {
+        string raw = attribute.Value.Trim();
+        if (TypeNames.IsString(type))
+        {
+            return EmitStringExpression(attribute.Value, attribute.Location, context.Scope);
+        }
+
+        if (TypeNames.IsBool(type))
+        {
+            if (bool.TryParse(raw, out bool literal))
+            {
+                return literal ? "true" : "false";
+            }
+
+            return EmitTypedExpression(attribute.Value, type, attribute.Location, context.Scope);
+        }
+
+        if (TypeNames.IsInteger(type)
+            || type.SpecialType == SpecialType.System_Single
+            || type.SpecialType == SpecialType.System_Double
+            || type.SpecialType == SpecialType.System_Decimal)
+        {
+            return EmitTypedExpression(attribute.Value, type, attribute.Location, context.Scope);
+        }
+
+        if (type.TypeKind == TypeKind.Enum)
+        {
+            if (raw.StartsWith("@", StringComparison.Ordinal))
+            {
+                return EmitTypedExpression(attribute.Value, type, attribute.Location, context.Scope);
+            }
+
+            for (INamedTypeSymbol? current = type as INamedTypeSymbol; current != null; current = current.BaseType)
+            {
+                foreach (ISymbol member in current.GetMembers())
+                {
+                    if (member is IFieldSymbol field
+                        && field.HasConstantValue
+                        && string.Equals(field.Name, raw, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return TypeNames.Display(type) + "." + field.Name;
+                    }
+                }
+            }
+
+            Report(
+                DiagnosticDescriptors.InvalidEnumValue,
+                attribute.Location,
+                raw,
+                TypeNames.Display(type));
+            return null;
+        }
+
+        if (TypeNames.Display(type) == "System.Numerics.Vector4")
+        {
+            if (raw.StartsWith("@", StringComparison.Ordinal))
+            {
+                return EmitTypedExpression(attribute.Value, type, attribute.Location, context.Scope);
+            }
+
+            if (ColorParser.TryParse(StyleValueParser.TokenizeValue(raw), out System.Numerics.Vector4 color, out _))
+            {
+                return FnvHash.FormatVector(color);
+            }
+
+            Report(
+                DiagnosticDescriptors.TypeMismatch,
+                attribute.Location,
+                "Expected a color value.");
+            return null;
+        }
+
+        if (raw.StartsWith("@", StringComparison.Ordinal))
+        {
+            return EmitTypedExpression(attribute.Value, type, attribute.Location, context.Scope);
+        }
+
+        Report(
+            DiagnosticDescriptors.TypeMismatch,
+            attribute.Location,
+            "Parameter '" + attribute.QualifiedName + "' requires an expression.");
+        return null;
+    }
+
     private void ValidateComponentCallAttributes(RmlElementNode call)
     {
         for (var i = 0; i < call.Attributes.Count; i++)
@@ -682,7 +881,8 @@ internal sealed partial class DocumentState
             RmlAttribute attribute = call.Attributes[i];
             if (attribute.NamespaceUri == "http://www.w3.org/XML/1998/namespace"
                 || attribute.NamespaceUri == "http://www.w3.org/2001/XMLSchema-instance"
-                || attribute.IsClassDirective)
+                || attribute.IsClassDirective
+                || attribute.IsParameterAttribute)
             {
                 continue;
             }
@@ -744,6 +944,16 @@ internal sealed partial class DocumentState
             }
         }
 
+        RmlAttribute? disabled = HasAttribute(call, "disabled");
+        if (disabled != null)
+        {
+            plan.Disabled = EmitTypedExpression(
+                disabled.Value,
+                Compilation.GetSpecialType(SpecialType.System_Boolean),
+                disabled.Location,
+                context.Scope);
+        }
+
         RmlAttribute? id = HasAttribute(call, "id");
         if (id != null)
         {
@@ -751,6 +961,21 @@ internal sealed partial class DocumentState
         }
 
         return plan;
+    }
+
+    private static string? CombineDisabled(string? first, string? second)
+    {
+        if (first == null)
+        {
+            return second;
+        }
+
+        if (second == null)
+        {
+            return first;
+        }
+
+        return "(" + first + " || " + second + ")";
     }
 
     private void AddCallerClassLayers(CallerPlan plan, string className, Location location, string? condition)

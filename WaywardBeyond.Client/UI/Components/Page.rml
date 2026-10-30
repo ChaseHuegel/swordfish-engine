@@ -3,11 +3,13 @@
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Components">
     <Element class="wb-column"
-             size="100% 100%"
-             min-width="320"
+             width="@(ui.Width - 120)"
+             height="@(ui.Height - 240)"
+             min-width="480"
              max-width="1280"
-             min-height="280"
+             min-height="360"
              max-height="840"
+             spacing="12"
              anchor="Center"
              clip="true">
         <Content />

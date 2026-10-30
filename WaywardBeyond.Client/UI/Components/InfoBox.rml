@@ -2,7 +2,7 @@
       Class="InfoBox"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Components">
-    <Element class="wb-panel" layout="vertical" clip="true" padding="10">
+    <Element class="wb-info-box" layout="vertical" clip="true" padding="10">
         <Content name="title" />
         <Element height="4" />
         <Element class="wb-divider" width="fill" height="1" />

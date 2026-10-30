@@ -1,5 +1,7 @@
-0 id=- rect=0,0,400,180 clip=0,0,400,180 color=0.0667,0.0902,0.1373,0.9412 bg=0.0667,0.0902,0.1373,0.9412 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
-1 id=- rect=12,12,376,74 clip=0,0,400,180 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Header
-2 id=- rect=12,86,376,1 clip=0,0,400,180 color=0.102,0.1373,0.2,1 bg=0.102,0.1373,0.2,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-3 id=- rect=12,87,0,8 clip=0,0,400,180 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-4 id=- rect=12,95,376,73 clip=0,0,400,180 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Body
+0 id=- rect=0,0,400,180 clip=0,0,400,180 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=2,2,396,176 clip=2,2,396,176 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=14,14,372,70 clip=2,2,396,176 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Header
+3 id=- rect=14,84,0,4 clip=2,2,396,176 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+4 id=- rect=14,88,372,1 clip=2,2,396,176 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=- rect=14,89,0,8 clip=2,2,396,176 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+6 id=- rect=14,97,372,69 clip=2,2,396,176 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Body

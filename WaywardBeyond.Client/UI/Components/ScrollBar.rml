@@ -6,6 +6,7 @@
       Namespace="WaywardBeyond.Client.UI.Components">
     <Element class="wb-scrollbar" layout="none" width="6" height="fill" clip="true">
         <Element class="wb-scrollbar-thumb"
+                 visible="@context.HasThumb"
                  width="fill"
                  height="@context.ThumbHeight"
                  y="@context.ThumbY" />

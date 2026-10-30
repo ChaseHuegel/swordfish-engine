@@ -148,6 +148,10 @@ internal sealed class RmlParser
                 {
                     _document.ContextType = value.Trim();
                 }
+                else if (string.Equals(name, "Parameters", StringComparison.Ordinal))
+                {
+                    _document.ParameterType = value.Trim();
+                }
                 else if (string.Equals(name, "RendererData", StringComparison.Ordinal))
                 {
                     _document.RendererDataType = value.Trim();

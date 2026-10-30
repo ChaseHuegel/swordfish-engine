@@ -1,26 +1,25 @@
-0 id=- rect=0,0,1280,720 clip=0,0,1280,720 color=0,0,0,0.949 bg=0,0,0,0.949 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+0 id=- rect=0,0,1280,720 clip=0,0,1280,720 color=0,0,0,0.749 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 1 id=- rect=0,0,1280,720 clip=0,0,1280,720 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-2 id=- rect=380,210,520,300 clip=380,210,520,300 color=0.0667,0.0902,0.1373,0.9412 bg=0.0667,0.0902,0.1373,0.9412 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=380,210,520,300 clip=380,210,520,300 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
 3 id=- rect=408,238,464,30 clip=380,210,520,300 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:24 text=Add signal
 4 id=- rect=408,268,0,8 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-5 id=- rect=408,276,464,1 clip=380,210,520,300 color=0.1686,0.2196,0.3059,1 bg=0.1686,0.2196,0.3059,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=- rect=408,276,464,1 clip=380,210,520,300 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 6 id=- rect=408,277,0,16 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-7 id=- rect=408,293,464,133 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=408,293,464,149 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 8 id=- rect=408,293,464,54 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 9 id=- rect=408,293,464,18 clip=380,210,520,300 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Host
 10 id=TextBox_FavoriteHost rect=408,315,464,32 clip=408,315,464,32 color=0.1098,0.1412,0.2,1 bg=0.1098,0.1412,0.2,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-11 id=- rect=414,323,32,16 clip=408,315,464,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Host
-12 id=TextBox_FavoriteHost_Text rect=414,323,0,16 clip=408,315,464,32 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=
-13 id=- rect=408,359,464,54 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-14 id=- rect=408,359,464,18 clip=380,210,520,300 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Port
-15 id=TextBox_FavoritePort rect=408,381,96,32 clip=408,381,96,32 color=0.1098,0.1412,0.2,1 bg=0.1098,0.1412,0.2,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-16 id=- rect=414,389,32,16 clip=408,381,96,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Port
-17 id=TextBox_FavoritePort_Text rect=414,389,0,16 clip=408,381,96,32 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=
-18 id=- rect=408,425,464,1 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-19 id=- rect=408,426,0,16 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-20 id=- rect=408,442,464,40 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-21 id=Button_CancelFavorite rect=408,442,180,40 clip=380,210,520,300 color=0.0706,0.0941,0.149,1 bg=0.0706,0.0941,0.149,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=2:2:2:2 font=-:0 text=-
-22 id=- rect=424,450,148,24 clip=380,210,520,300 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Cancel
-23 id=- rect=600,442,80,0 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-24 id=Button_SubmitFavorite rect=692,442,180,40 clip=380,210,520,300 color=0.0706,0.0941,0.149,1 bg=0.0706,0.0941,0.149,1 border=1:0.949,0.6,0.2902,1 caps=6:1:0.949,0.6,0.2902,1 radius=2:2:2:2 font=-:0 text=-
-25 id=- rect=708,450,148,24 clip=380,210,520,300 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Add signal
+11 id=- rect=408,315,32,18 clip=408,315,464,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:18 text=Host
+12 id=- rect=408,359,464,54 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+13 id=- rect=408,359,464,18 clip=380,210,520,300 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Port
+14 id=TextBox_FavoritePort rect=408,381,96,32 clip=408,381,96,32 color=0.1098,0.1412,0.2,1 bg=0.1098,0.1412,0.2,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+15 id=TextBox_FavoritePort_Text rect=408,381,32,18 clip=408,381,96,32 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:18 text=7777
+16 id=- rect=408,425,464,17 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+17 id=- rect=408,442,464,40 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+18 id=Button_CancelFavorite rect=408,442,180,40 clip=380,210,520,300 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+19 id=- rect=410,444,176,36 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+20 id=- rect=474,453,48,18 clip=380,210,520,300 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Cancel
+21 id=- rect=596,442,88,0 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+22 id=Button_SubmitFavorite rect=692,442,180,40 clip=380,210,520,300 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.949,0.6,0.2902,1 caps=6:1:0.949,0.6,0.2902,1 radius=0:0:0:0 font=-:0 text=-
+23 id=- rect=694,444,176,36 clip=380,210,520,300 color=0,0,0,0 bg=0,0,0,0 border=1:0.2392,0.149,0.0784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+24 id=- rect=742,453,80,18 clip=380,210,520,300 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Add signal

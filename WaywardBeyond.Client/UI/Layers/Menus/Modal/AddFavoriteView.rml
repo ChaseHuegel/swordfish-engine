@@ -1,11 +1,12 @@
 <Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
       xmlns:wb="WaywardBeyond.Client.UI.Controls"
       Class="AddFavoriteView"
       Context="AddFavoriteState"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
 
-    <Element class="wb-scrim-heavy" layout="none" width="100%" height="100%">
+    <Element class="wb-scrim" layout="none" width="100%" height="100%">
         <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
             <Modal class="wb-modal-form">
                 <Content name="header">
@@ -45,13 +46,13 @@
                 </Element>
 
                 <Content name="actions">
-                    <Element id="Button_CancelFavorite" class="wb-button" onclick="OnCancel" width="180" height="40">
-                        <Text class="wb-button-label" text="@L('ui.button.cancel')" width="fill" height="fill" />
-                    </Element>
+                    <Button id="Button_CancelFavorite" param:variant="secondary" onclick="OnCancel" width="180" height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.cancel')" anchor="Center" />
+                    </Button>
                     <Element width="fill" />
-                    <Element id="Button_SubmitFavorite" class="wb-button wb-button-primary" onclick="OnSubmit" width="180" height="40">
-                        <Text class="wb-button-label" text="@L('ui.button.server.add')" width="fill" height="fill" />
-                    </Element>
+                    <Button id="Button_SubmitFavorite" param:variant="primary" onclick="OnSubmit" width="180" height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.server.add')" anchor="Center" />
+                    </Button>
                 </Content>
             </Modal>
         </Element>

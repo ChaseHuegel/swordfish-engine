@@ -344,12 +344,40 @@ A generated component `Render` method accepts these optional parameters:
 | `callerStyle` | `StyleOverride?` | Nullable visual overrides. |
 | `callerConstraints` | `ConstraintsOverride?` | Nullable layout overrides. |
 | `idPrefix` | `string?` | Prefix for inner generated element IDs. |
+| `parameters` | Component type | Typed component parameter model. |
 
 `StyleOverride` fields: `Color`, `BackgroundColor`, `Padding`,
 `CornerRadius`, `Border`, and `CornerCaps`.
 
 `ConstraintsOverride` fields: `Anchors`, `X`, `Y`, `Width`, `Height`,
 `MinWidth`, `MinHeight`, `MaxWidth`, and `MaxHeight`.
+
+## Component parameters
+
+A component declares a parameter model on the root:
+
+```xml
+<Reef xmlns="Reef"
+      Class="Button"
+      Parameters="ButtonParameters">
+    <Element class="button" class:primary="@param.Primary">
+        <Content />
+    </Element>
+</Reef>
+```
+
+Pass values with the `param:` namespace:
+
+```xml
+<Button param:variant="primary" param:compact="true">
+    <Text text="Continue" />
+</Button>
+```
+
+Declare `xmlns:param="Reef.Param"` on the call document. Parameter names are
+case-insensitive at the call site. The type must provide usable defaults. Local
+component parameters work today. Cross-assembly parameter forwarding is not yet
+supported.
 
 ## Diagnostics
 

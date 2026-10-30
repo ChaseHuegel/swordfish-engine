@@ -391,6 +391,30 @@ the schema. The generator accepts both forms.
   `idPrefix` string. The generator uses this prefix for inner generated element
   IDs. The call site passes a stable instance prefix, so two instances of the
   same component do not collide.
+- **Component parameters**: A component can declare a parameter model with
+  `Parameters="ButtonParameters"`. Calls pass values through the `param:`
+  namespace. Declare the namespace on the call document.
+
+  ```xml
+  <Reef xmlns="Reef"
+        xmlns:param="Reef.Param"
+        Class="ToolbarView">
+      <Button param:variant="primary" param:compact="true">
+          <Text text="Continue" />
+      </Button>
+  </Reef>
+  ```
+
+  The parameter type must expose writable public properties or fields. Every
+  property must have a usable default. String, Boolean, numeric, enum, color,
+  constraint, and expression values are supported. Local parameters are
+  resolved by name and are case-insensitive at the call site. Cross-assembly
+  components can expose a parameter model on their generated `Render` method,
+  but markup parameter forwarding for cross-assembly components is not yet
+  supported.
+- **Disabled component calls**: A `disabled` attribute on a local component
+  call guards the callbacks owned by that call. It also combines with any
+  disabled state on the component root.
 - **Cross-assembly components**: Generated component classes carry a
   `ReefComponent` attribute. A consumer project can use the tag directly. The
   component must have an accessible parameterless constructor, or the call site

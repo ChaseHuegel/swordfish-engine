@@ -1,17 +1,20 @@
 <Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
       Class="MainMenuOverlayView"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
 
     <Element layout="none" width="100%" height="100%" padding="20" passthrough="true">
-        <Element id="Button_Feedback"
-                 class="wb-button wb-button-compact"
-                 onclick="OnFeedback"
-                 width="fit"
-                 height="fit"
-                 anchor="Bottom Left">
-            <Text class="wb-button-label" text="@L('ui.button.feedback.send')" />
-        </Element>
+        <Button id="Button_Feedback"
+                param:variant="secondary"
+                param:compact="true"
+                param:doubleBorder="false"
+                onclick="OnFeedback"
+                width="fit"
+                height="32"
+                anchor="Bottom Left">
+            <Text class="wb-button-label wb-button-label-compact" text="@L('ui.button.feedback.send')" anchor="Center" />
+        </Button>
 
         <Element layout="horizontal"
                  width="88"
@@ -23,14 +26,14 @@
                      onclick="OnDiscord"
                      width="40"
                      height="40">
-                <Text class="wb-icon-brand" text="@Glyph('discord')" width="fill" height="fill" />
+                <Text class="wb-icon-brand" text="@Glyph('discord')" width="fit" height="fit" x="16" />
             </Element>
             <Element id="Button_Steam"
                      class="wb-icon-button"
                      onclick="OnSteam"
                      width="40"
                      height="40">
-                <Text class="wb-icon-brand" text="@Glyph('steam')" width="fill" height="fill" />
+                <Text class="wb-icon-brand" text="@Glyph('steam')" width="fit" height="fit" x="16" />
             </Element>
         </Element>
     </Element>

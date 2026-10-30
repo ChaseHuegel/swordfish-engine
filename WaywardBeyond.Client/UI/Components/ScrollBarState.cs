@@ -7,6 +7,9 @@ namespace WaywardBeyond.Client.UI.Components;
 /// <summary>Thumb geometry for a scrollbar.</summary>
 internal readonly record struct ScrollBarState(float ThumbRatio, float ThumbOffset)
 {
+    /// <summary>Gets whether the thumb is smaller than the track.</summary>
+    public bool HasThumb => ThumbRatio < 1f;
+
     /// <summary>Gets the thumb height constraint.</summary>
     public IConstraint ThumbHeight => new Relative(Math.Clamp(ThumbRatio, 0f, 1f));
 

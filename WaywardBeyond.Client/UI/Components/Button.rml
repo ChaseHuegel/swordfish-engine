@@ -1,0 +1,26 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="Button"
+      Access="internal"
+      Parameters="ButtonParameters"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-button"
+             class:wb-button-primary="@param.Primary"
+             class:wb-button-danger="@param.Danger"
+             class:wb-button-subtle="@param.Subtle"
+             class:wb-button-compact="@param.Compact"
+             class:wb-button-plain="@(!param.InnerBorder)"
+             class:wb-button-compact-plain="@(param.Compact &amp;&amp; !param.InnerBorder)"
+             class:wb-button-disabled="@(!param.Enabled)"
+             layout="none">
+        <Element class="wb-button-inner"
+                 class:wb-button-inner-primary="@param.Primary"
+                 class:wb-button-inner-danger="@param.Danger"
+                 visible="@(param.InnerBorder &amp;&amp; param.Enabled)"
+                 layout="none"
+                 width="fill"
+                 height="fill" />
+        <Content />
+    </Element>
+</Reef>

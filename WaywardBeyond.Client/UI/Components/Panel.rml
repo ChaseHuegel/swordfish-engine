@@ -1,11 +1,22 @@
 <Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
       Class="Panel"
+      Access="internal"
+      Parameters="PanelParameters"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Components">
-    <Element class="wb-panel" layout="vertical" clip="true" padding="12">
-        <Content name="header" />
-        <Element class="wb-divider-inner" width="fill" height="1" />
-        <Element height="8" />
-        <Content />
+    <Element class="wb-panel" layout="none" padding="2">
+        <Element class="wb-panel-inner"
+                 class:wb-panel-inner-loose="@param.Loose"
+                 layout="vertical"
+                 width="fill"
+                 height="fill"
+                 clip="true">
+            <Content name="header" />
+            <Element height="4" />
+            <Element class="wb-divider-inner" width="fill" height="1" />
+            <Element height="8" />
+            <Content />
+        </Element>
     </Element>
 </Reef>

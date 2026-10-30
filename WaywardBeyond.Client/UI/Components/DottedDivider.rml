@@ -2,7 +2,7 @@
       Class="DottedDivider"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Components">
-    <Element layout="horizontal" spacing="4" clip="true" width="fill" height="1">
+    <Element layout="horizontal" spacing="4" width="fill" height="1">
         <Element class="wb-divider" width="2" height="1" />
         <Element class="wb-divider" width="2" height="1" />
         <Element class="wb-divider" width="2" height="1" />

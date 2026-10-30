@@ -1,12 +1,28 @@
 <Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
       Class="Card"
+      Access="internal"
+      Parameters="CardParameters"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Components">
-    <Element class="wb-card" layout="horizontal" clip="true" spacing="8">
-        <Content name="leading" />
-        <Element layout="vertical" width="fill" spacing="2">
-            <Content />
+    <Element class="wb-card"
+             class:wb-card-selected="@param.Selected"
+             layout="none"
+             clip="true">
+        <Element class="wb-card-caret"
+                 visible="@param.Selected"
+                 x="2"
+                 width="3"
+                 height="fill" />
+        <Element layout="horizontal"
+                 width="fill"
+                 height="fill"
+                 spacing="8">
+            <Content name="leading" />
+            <Element layout="vertical" width="fill" height="fill" spacing="2">
+                <Content />
+            </Element>
+            <Content name="trailing" />
         </Element>
-        <Content name="trailing" />
     </Element>
 </Reef>

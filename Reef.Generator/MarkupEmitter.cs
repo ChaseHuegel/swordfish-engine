@@ -157,11 +157,12 @@ internal sealed partial class DocumentState
         EmitScroll(node, context);
         EmitPassthrough(node, context);
         EmitNodes(node.Children, context);
-        EmitCallbacks(node, context, pseudo.Disabled);
+        string? disabled = CombineDisabled(pseudo.Disabled, context.CallerPlan?.Disabled);
+        EmitCallbacks(node, context, disabled);
 
         if (applyCaller && context.CallerPlan != null)
         {
-            EmitCallbacksFromAttributes(context.CallerPlan.ExtraCallbacks, node, context, pseudo.Disabled);
+            EmitCallbacksFromAttributes(context.CallerPlan.ExtraCallbacks, node, context, disabled);
         }
 
         context.Writer.Close();

@@ -3,8 +3,9 @@
 One subject: the locked plan for moving Wayward Beyond UI to Reef markup and
 style classes.
 
-Status: approved. This document records the target architecture, the component
-rules, and the migration phases.
+Status: approved and in progress. This document records the target
+architecture, the component rules, and the migration phases. Migrated pages
+pass the legacy visual parity gate.
 
 ## Goals
 
@@ -41,6 +42,8 @@ accept `Style` and `FontOptions`, and they must not hardcode colors or metrics.
 | Theme files | `Theme.rss` and `Components.rss` |
 | Parent text color | Add inheritable `text-color` in Reef |
 | Per-side borders | Add in Reef for tab underlines and similar rules |
+| Component parameters | Typed parameter model via `Parameters`, called with `param:` attributes |
+| Parameter resolution | Local components first, cross-assembly later |
 | Parameterized slots | Deferred |
 | Generic list component | Deferred |
 | Text input | Game-local external widget in `WaywardBeyond.Client/UI/Controls` |
@@ -59,6 +62,7 @@ typography, or a state.
 
 Components:
 
+- `Button`
 - `Modal`
 - `Panel`
 - `Page`
@@ -73,6 +77,7 @@ Components:
 - `ScrollArea`
 - `ScrollBar`
 - `DottedDivider`
+- `Tab`
 - `Notification`
 
 
@@ -106,6 +111,22 @@ text primitives.
 
 `List` starts as a style class plus `ForEach` plus `SelectableRow`. A true
 generic list needs parameterized slots. That feature is deferred.
+
+## Component parameters
+
+A component can declare `Parameters="ButtonParameters"`. Calls pass values
+with the `param:` namespace. The parameter model is a small record or struct
+with defaults. It holds visual variants and state values only. It does not hold
+localized strings, colors, layout values, or services.
+
+```xml
+<Button param:variant="primary" param:enabled="@context.CanSubmit">
+    <Text class="wb-button-label" text="@L('ui.button.send')" />
+</Button>
+```
+
+Use local component parameters first. Cross-assembly forwarding is a later
+step.
 
 ## Text input
 

@@ -27,7 +27,8 @@ runtime contract is in [reef-ui](../../docs/specs/reef-ui.md).
 
 - XML markup with `Element`, `Text`, `Image`, `If`, `ElseIf`, `Else`,
   `ForEach`, `Empty`, and `Content` tags.
-- Local `.rml` components with context values and content slots.
+- Local `.rml` components with context values, typed parameters, and content
+  slots.
 - Cross-assembly components with `ReefComponent` metadata.
 - External C# widgets from imported XML namespaces.
 - Style sheets with variables, inheritance, pseudo states, and dynamic classes.

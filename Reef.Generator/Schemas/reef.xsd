@@ -33,6 +33,7 @@
     <xs:attribute name="Class" type="IdentifierType" use="required" />
     <xs:attribute name="Access" type="AccessType" use="optional" />
     <xs:attribute name="Context" type="xs:string" use="optional" />
+    <xs:attribute name="Parameters" type="xs:string" use="optional" />
     <xs:attribute name="RendererData" type="xs:string" use="optional" />
     <xs:attribute name="Namespace" type="xs:string" use="optional" />
   </xs:attributeGroup>

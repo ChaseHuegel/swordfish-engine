@@ -40,6 +40,7 @@ internal sealed partial class DocumentState
     private readonly List<MarkupHelper> _helpers = [];
     private readonly List<SlotInfo> _slots = [];
     private readonly Dictionary<RmlDocument, ITypeSymbol?> _childContextTypes = [];
+    private readonly Dictionary<RmlDocument, ITypeSymbol?> _childParameterTypes = [];
     private readonly HashSet<string> _inlineStack = new(StringComparer.Ordinal);
     private readonly HashSet<string> _declaredHelperKeys = new(StringComparer.Ordinal);
     private readonly HashSet<string> _existingMethodKeys = new(StringComparer.Ordinal);
@@ -50,6 +51,7 @@ internal sealed partial class DocumentState
     private string _access = "public";
     private INamedTypeSymbol? _companionType;
     private ITypeSymbol? _contextType;
+    private ITypeSymbol? _parameterType;
     private ITypeSymbol? _rendererType;
     private ITypeSymbol? _builderType;
     private int _localCounter;
@@ -181,6 +183,28 @@ internal sealed partial class DocumentState
                     DiagnosticDescriptors.InvalidRoot,
                     _document.ClassLocation,
                     "A public view cannot expose a non-public context type.");
+                return false;
+            }
+        }
+
+        if (_document.ParameterType != null && _document.ParameterType.Trim().Length > 0)
+        {
+            _parameterType = TypeResolver.ResolveType(_compilation, _document.ParameterType, _namespaceName);
+            if (_parameterType == null)
+            {
+                Report(
+                    DiagnosticDescriptors.InvalidRoot,
+                    _document.ClassLocation,
+                    "Parameter type '" + _document.ParameterType + "' was not found.");
+                return false;
+            }
+
+            if (!TypeResolver.IsAccessible(_compilation, _parameterType))
+            {
+                Report(
+                    DiagnosticDescriptors.InvalidRoot,
+                    _document.ClassLocation,
+                    "Parameter type '" + _document.ParameterType + "' is not accessible.");
                 return false;
             }
         }
@@ -431,6 +455,11 @@ internal sealed partial class DocumentState
             variables["context"] = _contextType;
         }
 
+        if (_parameterType != null)
+        {
+            variables["param"] = _parameterType;
+        }
+
         _rootScope = new ExpressionScope(
             _compilation,
             _companionType,
@@ -591,6 +620,11 @@ internal sealed partial class DocumentState
             parameters.Add(TypeNames.Display(_contextType) + " context");
         }
 
+        if (_parameterType != null)
+        {
+            parameters.Add(TypeNames.Display(_parameterType) + "? parameters = null");
+        }
+
         parameters.Add("global::Reef.UI.StyleOverride? callerStyle = null");
         parameters.Add("global::Reef.UI.ConstraintsOverride? callerConstraints = null");
         parameters.Add("string? idPrefix = null");
@@ -605,6 +639,10 @@ internal sealed partial class DocumentState
         string generic = _rendererType == null ? "<TData>" : string.Empty;
         writer.Line("public void Render" + generic + "(" + string.Join(", ", parameters) + ")");
         writer.Open();
+        if (_parameterType != null)
+        {
+            writer.Line("var param = parameters ?? new " + TypeNames.Display(_parameterType) + "();");
+        }
         EmitBodyLines(writer, body);
         writer.Close();
     }
@@ -658,6 +696,25 @@ internal sealed partial class DocumentState
         string ns = TypeResolver.InferNamespace(document, _compilation, _options);
         ITypeSymbol? type = TypeResolver.ResolveType(_compilation, document.ContextType, ns);
         _childContextTypes[document] = type;
+        return type;
+    }
+
+    internal ITypeSymbol? GetChildParameterType(RmlDocument document)
+    {
+        if (_childParameterTypes.TryGetValue(document, out ITypeSymbol? cached))
+        {
+            return cached;
+        }
+
+        if (document.ParameterType == null || document.ParameterType.Trim().Length == 0)
+        {
+            _childParameterTypes[document] = null;
+            return null;
+        }
+
+        string ns = TypeResolver.InferNamespace(document, _compilation, _options);
+        ITypeSymbol? type = TypeResolver.ResolveType(_compilation, document.ParameterType, ns);
+        _childParameterTypes[document] = type;
         return type;
     }
 

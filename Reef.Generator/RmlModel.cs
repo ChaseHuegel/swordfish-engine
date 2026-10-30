@@ -22,6 +22,7 @@ internal sealed class RmlAttribute
     public int Column;
 
     public bool IsClassDirective => NamespaceUri == "Reef.Class";
+    public bool IsParameterAttribute => NamespaceUri == "Reef.Param";
 
     public string QualifiedName
     {
@@ -154,6 +155,7 @@ internal sealed class RmlDocument
     public string ClassName = string.Empty;
     public string? Access;
     public string? ContextType;
+    public string? ParameterType;
     public string? RendererDataType;
     public string? NamespaceName;
     public string? DefaultNamespace;

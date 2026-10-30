@@ -1,4 +1,5 @@
 <Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
       Class="HomePageView"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Layers.Menus.Pause">
@@ -6,42 +7,28 @@
     <Element class="wb-column"
              width="264"
              anchor="Center"
-             spacing="10">
+             spacing="0">
 
-        <Element id="Button_Continue"
-                 class="wb-button wb-button-primary"
-                 width="fill"
-                 height="44"
-                 onclick="OnContinue">
-            <Text class="wb-button-label" text="@L('ui.button.pause.continue')" width="fill" height="fill" />
-        </Element>
+        <Button id="Button_Continue" param:variant="primary" width="fill" height="44" onclick="OnContinue">
+            <Text class="wb-button-label" text="@L('ui.button.pause.continue')" anchor="Center" />
+        </Button>
 
-        <Element id="Button_Settings"
-                 class="wb-button"
-                 width="fill"
-                 height="44"
-                 onclick="OnSettings">
-            <Text class="wb-button-label" text="@L('ui.button.settings')" width="fill" height="fill" />
-        </Element>
+        <Element height="10" />
+        <Button id="Button_Settings" param:variant="secondary" width="fill" height="44" onclick="OnSettings">
+            <Text class="wb-button-label" text="@L('ui.button.settings')" anchor="Center" />
+        </Button>
 
-        <Element id="Button_Feedback"
-                 class="wb-button"
-                 width="fill"
-                 height="44"
-                 onclick="OnFeedback">
-            <Text class="wb-button-label" text="@L('ui.button.feedback.send')" width="fill" height="fill" />
-        </Element>
+        <Element height="10" />
+        <Button id="Button_Feedback" param:variant="secondary" width="fill" height="44" onclick="OnFeedback">
+            <Text class="wb-button-label" text="@L('ui.button.feedback.send')" anchor="Center" />
+        </Button>
 
-        <Element height="2" />
+        <Element height="12" />
         <DottedDivider width="fill" />
-        <Element height="2" />
+        <Element height="12" />
 
-        <Element id="Button_SaveAndExit"
-                 class="wb-button wb-button-danger"
-                 width="fill"
-                 height="44"
-                 onclick="OnSaveAndExit">
-            <Text class="wb-button-label" text="@L('ui.button.pause.saveExit')" width="fill" height="fill" />
-        </Element>
+        <Button id="Button_SaveAndExit" param:variant="danger" width="fill" height="44" onclick="OnSaveAndExit">
+            <Text class="wb-button-label" text="@L('ui.button.pause.saveExit')" anchor="Center" />
+        </Button>
     </Element>
 </Reef>

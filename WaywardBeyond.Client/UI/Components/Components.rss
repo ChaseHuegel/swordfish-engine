@@ -1,9 +1,9 @@
 .wb-accent {
-    background-color: var(--wb-accent);
+    color: var(--wb-accent);
 }
 
 .wb-scrim {
-    background-color: var(--wb-scrim);
+    color: var(--wb-scrim);
 }
 
 .wb-scrim-soft {
@@ -11,7 +11,7 @@
 }
 
 .wb-scrim-heavy {
-    background-color: var(--wb-scrim-heavy);
+    color: var(--wb-scrim-heavy);
 }
 
 .wb-row {
@@ -55,6 +55,10 @@
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 18px;
+}
+
+.wb-credits-thanks {
+    color: var(--wb-text);
 }
 
 .wb-text-small {
@@ -118,23 +122,46 @@
 }
 
 .wb-divider {
-    background-color: var(--wb-border);
+    color: var(--wb-border);
     height: 1px;
 }
 
 .wb-divider-inner {
-    background-color: var(--wb-border-inner);
+    color: var(--wb-border-inner);
     height: 1px;
 }
 
 .wb-panel {
-    background-color: var(--wb-panel);
+    color: var(--wb-panel);
     corner-caps: 10 2 #2b384e;
 }
 
 .wb-panel-inner {
-    background-color: transparent;
+    color: transparent;
     border: 1px var(--wb-border-inner);
+    padding: 12px;
+}
+
+.wb-panel-inner-loose {
+    padding: 24px;
+}
+
+.wb-info-box {
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+    padding: 10px;
+}
+
+.wb-info-box-title {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-info-box-body {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
 }
 
 .wb-panel-header {
@@ -156,12 +183,13 @@
 }
 
 .wb-modal {
-    background-color: var(--wb-panel);
+    color: var(--wb-panel);
     corner-caps: 10 2 #2b384e;
     padding: 28px;
 }
 
 .wb-modal-playtest {
+    border-radius: 4px;
     size: 100% 100%;
     min-width: 520px;
     max-width: 760px;
@@ -220,15 +248,32 @@
     font-size: 18px;
 }
 
+.wb-playtest-body {
+    color: var(--wb-text);
+    font-size: 18px;
+}
+
 .wb-modal-actions {
     layout: horizontal;
-    gap: 12px;
+    gap: 8px;
 }
 
 .wb-button-base {
     text-color: var(--wb-text);
-    padding: 16px 8px;
-    border-radius: 2px;
+    padding: 2px;
+    border-radius: 0;
+}
+
+.wb-button-inner {
+    border: 1px var(--wb-border-inner);
+}
+
+.wb-button-inner-primary {
+    border-color: var(--wb-primary-dark);
+}
+
+.wb-button-inner-danger {
+    border-color: var(--wb-danger-dark);
 }
 
 .wb-button-label {
@@ -238,10 +283,32 @@
     vertical-align: middle;
 }
 
+.wb-playtest-label {
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-button-label-compact {
+    font-size: 14px;
+}
+
 .wb-button {
     --extends: wb-button-base;
-    background-color: var(--wb-button);
+    color: var(--wb-button);
     border: 1px var(--wb-border);
+}
+
+.wb-button-compact {
+    padding: 2px;
+}
+
+.wb-button-plain {
+    padding: 10px 20px;
+}
+
+.wb-button-compact-plain {
+    padding: 12px 6px;
 }
 
 .wb-button-secondary {
@@ -249,85 +316,120 @@
 }
 
 .wb-button:hover {
-    background-color: var(--wb-button-hover);
+    color: var(--wb-button-hover);
     border-color: var(--wb-border-hover);
     text-color: var(--wb-text);
 }
 
 .wb-button:active {
-    background-color: var(--wb-accent-dark);
+    color: var(--wb-accent-dark);
     text-color: var(--wb-text);
 }
 
 .wb-button:disabled {
-    background-color: var(--wb-panel-inner);
+    color: var(--wb-panel-inner);
     border-color: var(--wb-border-inner);
     text-color: var(--wb-text-dim);
 }
 
 .wb-button-primary {
     --extends: wb-button-base;
-    background-color: var(--wb-button);
+    color: var(--wb-button);
     border: 1px var(--wb-primary);
     corner-caps: 6 1 #f2994a;
-    text-color: var(--wb-primary-bright);
+    text-color: var(--wb-accent-bright);
 }
 
 .wb-button-primary:hover {
-    background-color: var(--wb-button-hover);
+    color: var(--wb-button-hover);
     border-color: var(--wb-primary-bright);
     corner-caps-color: var(--wb-primary-bright);
     text-color: var(--wb-text);
 }
 
 .wb-button-primary:active {
-    background-color: var(--wb-primary-dark);
+    color: var(--wb-primary-dark);
     text-color: var(--wb-text);
 }
 
 .wb-button-danger {
     --extends: wb-button-base;
-    background-color: var(--wb-button);
+    color: var(--wb-button);
     border: 1px var(--wb-danger);
+    corner-caps: 6 1 var(--wb-danger);
     text-color: var(--wb-danger-bright);
 }
 
 .wb-button-danger:hover {
-    background-color: var(--wb-button-hover);
+    color: var(--wb-button-hover);
     border-color: var(--wb-danger-bright);
+    corner-caps-color: var(--wb-danger-bright);
     text-color: var(--wb-text);
 }
 
 .wb-button-subtle {
     --extends: wb-button-base;
-    background-color: transparent;
+    color: transparent;
     text-color: var(--wb-text-muted);
 }
 
 .wb-button-subtle:hover {
-    background-color: var(--wb-button-hover);
+    color: var(--wb-button-hover);
     text-color: var(--wb-text);
 }
 
-.wb-button-compact {
-    padding: 6px 8px;
-    font-size: 16px;
+.wb-button-disabled {
+    color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    corner-caps: 0 0 transparent;
+    text-color: var(--wb-text-dim);
+}
+
+.wb-button-playtest {
+    border-radius: 4px;
+    padding: 16px 8px;
+    text-color: var(--wb-primary-bright);
+}
+
+.wb-button-disabled:hover {
+    color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    corner-caps: 0 0 transparent;
+    text-color: var(--wb-text-dim);
+}
+
+.wb-button-disabled:active {
+    color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    corner-caps: 0 0 transparent;
+    text-color: var(--wb-text-dim);
+}
+
+.wb-button:disabled {
+    color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    corner-caps: 0 0 transparent;
+    text-color: var(--wb-text-dim);
 }
 
 .wb-icon-button {
-    background-color: transparent;
+    color: transparent;
     padding: 0;
     text-color: var(--wb-text-muted);
 }
 
 .wb-icon-button:hover {
-    background-color: var(--wb-button-hover);
+    color: var(--wb-button-hover);
     text-color: var(--wb-text);
 }
 
 .wb-icon-button:active {
-    background-color: var(--wb-accent-dark);
+    color: var(--wb-accent-dark);
     text-color: var(--wb-text);
+}
+
+.wb-playtest-icon-button {
+    border-radius: 4px;
 }
 
 .wb-icon-button-danger {
@@ -335,13 +437,18 @@
 }
 
 .wb-icon-button-danger:hover {
-    background-color: var(--wb-danger-dark);
+    color: var(--wb-danger-dark);
     text-color: var(--wb-danger-bright);
 }
 
 .wb-tab {
-    background-color: var(--wb-panel-inner);
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
     text-color: var(--wb-text-muted);
+}
+
+.wb-tab-bar {
+    color: var(--wb-panel-solid);
 }
 
 .wb-tab-label {
@@ -356,31 +463,36 @@
 }
 
 .wb-tab-selected {
-    background-color: var(--wb-panel-solid);
-    border-bottom: 2px var(--wb-accent);
+    color: var(--wb-panel-solid);
+    border: 1px var(--wb-accent);
+    border-bottom: 2px var(--wb-panel-solid);
     text-color: var(--wb-accent-bright);
 }
 
 .wb-card {
-    background-color: var(--wb-panel-inner);
+    color: var(--wb-panel-inner);
     border: 1px var(--wb-border);
     text-color: var(--wb-text);
-    padding: 6px 8px;
+    padding: 0 6px 0 6px;
+}
+
+.wb-card-caret {
+    color: var(--wb-accent);
 }
 
 .wb-card:hover {
-    background-color: var(--wb-button-hover);
+    color: var(--wb-button-hover);
     border-color: var(--wb-border-hover);
 }
 
 .wb-card-selected {
-    background-color: #172336;
+    color: #172336;
     border: 1px var(--wb-primary);
     text-color: var(--wb-accent-bright);
 }
 
 .wb-card-selected:hover {
-    background-color: #172336;
+    color: #172336;
     border-color: var(--wb-primary-bright);
 }
 
@@ -410,7 +522,7 @@
     background-color: var(--wb-input);
     border: 1px var(--wb-border);
     color: var(--wb-text-muted);
-    padding: 6px 8px;
+    font-size: 18px;
 }
 
 .wb-field-frame:focus {
@@ -420,15 +532,15 @@
 }
 
 .wb-field-hint {
-    color: var(--wb-text-dim);
+    color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .wb-field-error {
     color: var(--wb-danger);
     font-family: "Salmon Mono 9 Regular";
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .wb-footer {
@@ -457,7 +569,7 @@
 }
 
 .wb-badge {
-    background-color: var(--wb-accent-dark);
+    color: var(--wb-accent-dark);
     border: 1px var(--wb-border-hover);
     color: var(--wb-accent-bright);
     font-family: "Salmon Mono 9 Regular";
@@ -468,7 +580,7 @@
 }
 
 .wb-keycap {
-    background-color: var(--wb-accent-dark);
+    color: var(--wb-accent-dark);
     border: 1px var(--wb-border-hover);
     color: var(--wb-accent-bright);
     font-family: "Salmon Mono 9 Regular";
@@ -479,7 +591,7 @@
 }
 
 .wb-hint-pill {
-    background-color: var(--wb-panel);
+    color: var(--wb-panel);
     border: 1px var(--wb-border);
     padding: 4px 10px 4px 4px;
     layout: horizontal;
@@ -502,28 +614,28 @@
 }
 
 .wb-progress-track {
-    background-color: var(--wb-control);
+    color: var(--wb-control);
     border: 1px var(--wb-border);
 }
 
 .wb-progress-fill {
-    background-color: var(--wb-accent);
+    color: var(--wb-accent);
 }
 
 .wb-slot {
-    background-color: var(--wb-control);
+    color: var(--wb-control);
     border: 1px var(--wb-border);
     padding: 4px;
 }
 
 .wb-slot-selected {
-    background-color: #172336;
+    color: #172336;
     border-color: var(--wb-primary);
     corner-caps: 6 1 #f2994a;
 }
 
 .wb-slot-equipped {
-    background-color: #172336;
+    color: #172336;
     border-color: var(--wb-primary);
     corner-caps: 6 1 #ffd27d;
 }
@@ -543,10 +655,10 @@
 }
 
 .wb-scrollbar {
-    background-color: var(--wb-control);
+    color: var(--wb-input);
     width: 6px;
 }
 
 .wb-scrollbar-thumb {
-    background-color: var(--wb-border-hover);
+    color: var(--wb-border-hover);
 }

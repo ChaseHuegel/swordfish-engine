@@ -1,10 +1,11 @@
 <Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
       Class="CreditsView"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
 
     <Page max-width="1160" max-height="720" padding="0 12 0 0">
-        <Panel width="fill" height="fill" padding="24">
+        <Panel param:loose="true" width="fill" height="fill">
             <Content name="header">
                 <Text text="@L('ui.panel.credits')" class="wb-panel-header" width="fill" height="18" />
             </Content>
@@ -12,18 +13,20 @@
             <ScrollArea id="Credits.Scroll" context="@Scroll" width="fill" height="fill">
                 <Element id="Credits.Content"
                          layout="vertical"
-                         width="fill"
+                         width="@(ui.Width - 200)"
+                         max-width="760"
                          height="fit"
-                         spacing="8"
-                         padding="0 8 0 8">
+                         spacing="0"
+                         anchor="Center">
                     <Text text="@L('ui.text.credits.body')"
                           class="wb-text-body"
                           width="fill"
                           wrap="true" />
-                    <Element class="wb-divider" width="fill" height="1" />
                     <Element height="8" />
+                    <Element class="wb-divider" width="fill" height="1" />
+                    <Element height="16" />
                     <Text text="@L('ui.text.credits.thanks')"
-                          class="wb-text-small"
+                          class="wb-text-small wb-credits-thanks"
                           width="fill"
                           wrap="true" />
                 </Element>
@@ -31,15 +34,15 @@
         </Panel>
 
         <Element class="wb-footer" layout="horizontal" width="fill" height="52" spacing="12">
-            <Element id="Button_Back"
-                     class="wb-button"
-                     onclick="OnBack"
-                     width="170"
-                     height="40"
-                     anchor="Center">
-                <Text class="wb-button-label" text="@L('ui.button.back')" width="fill" height="fill" />
-            </Element>
-            <Element width="fill" />
+            <Button id="Button_Back"
+                    param:variant="secondary"
+                    onclick="OnBack"
+                    width="170"
+                    height="40"
+                    anchor="Center">
+                <Text class="wb-button-label" text="@L('ui.button.back')" anchor="Center" />
+            </Button>
+            <Element width="fill" height="fill" />
         </Element>
     </Page>
 </Reef>

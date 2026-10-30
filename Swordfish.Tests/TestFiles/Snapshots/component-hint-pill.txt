@@ -1,5 +1,5 @@
-0 id=- rect=0,0,84,42 clip=0,0,84,42 color=0.0667,0.0902,0.1373,0.9412 bg=0.0667,0.0902,0.1373,0.9412 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-1 id=- rect=4,10,28,28 clip=0,0,84,42 color=0.6471,0.9529,0.9882,1 bg=0.0863,0.1569,0.2196,1 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:12 text=-
+0 id=- rect=0,0,84,42 clip=0,0,84,42 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=4,10,28,28 clip=0,0,84,42 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:12 text=-
 2 id=- rect=6,16,24,16 clip=0,0,84,42 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Esc
 3 id=- rect=40,10,40,16 clip=0,0,84,42 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:12 text=-
 4 id=- rect=40,10,40,16 clip=0,0,84,42 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Close
