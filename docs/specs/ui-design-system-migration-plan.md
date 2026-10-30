@@ -70,10 +70,13 @@ Components:
 - `Keycap`
 - `ProgressBar`
 - `ItemSlot`
-- `ScrollArea`
 - `ScrollBar`
 - `DottedDivider`
 - `Notification`
+
+Scroll areas use `ScrollAreaState` with inline viewport and scrollbar markup.
+The nested scroll-area component is deferred until local component context
+passing supports a child context type.
 
 Style classes:
 
