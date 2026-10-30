@@ -175,19 +175,11 @@ internal sealed class SettingsPage<TIdentifier>(
         Rows.Render(ui, new SettingsRowsState(rows, _controlWidth));
     }
 
-    private void Play(Widgets.InterfaceSound sound)
-    {
-        if (_soundEffectService is not null)
-        {
-            Widgets.Interactions.Click.WithButtonAudio(_soundEffectService, sound);
-        }
-    }
-
     private void OnChoice(string id, int index)
     {
         if (FindEntry(id)?.TrySetOptionIndex(index) == true)
         {
-            Play(Widgets.InterfaceSound.Toggle);
+            _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Toggle);
         }
     }
 
@@ -199,7 +191,9 @@ internal sealed class SettingsPage<TIdentifier>(
             return;
         }
 
-        Play(applied > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease);
+        _soundEffectService.PlayInterfaceSound(
+            applied > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease
+        );
     }
 
     private void OnSlider(string id, float value)
@@ -215,7 +209,7 @@ internal sealed class SettingsPage<TIdentifier>(
         }
 
         _lastSliderSoundTime = _time;
-        Play(Widgets.InterfaceSound.Increase);
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Increase);
     }
 
     private void OnReset(string id)
@@ -234,7 +228,7 @@ internal sealed class SettingsPage<TIdentifier>(
                     && string.Equals(reset.Id, id, StringComparison.Ordinal))
                 {
                     reset.Invoke();
-                    Play(Widgets.InterfaceSound.Click);
+                    _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
                     return;
                 }
             }
@@ -250,12 +244,12 @@ internal sealed class SettingsPage<TIdentifier>(
 
         _categoryIndex = index;
         _scrollY = 0;
-        Play(Widgets.InterfaceSound.Toggle);
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Toggle);
     }
 
     private void OnCancel()
     {
-        Play(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
         _menu?.GoBack();
     }
 
