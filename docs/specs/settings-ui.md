@@ -5,6 +5,12 @@ behavior.
 
 ## Layout
 
+The page shell is markup: `SettingsShellView.rml` owns the page box, the tray,
+the tab strip, the pane frame, and the footer. `SettingsShellState` carries the
+category labels, selection, title, dirty flag, and status. The pane body is
+drawn by the row renderer through the `SettingsBody` hook until the rows move
+to markup.
+
 The page uses responsive constraints, not fixed child positions. `SettingsLayout`
 provides the page size, the breakpoint, the tray width, and the label and control
 column widths. The page builds the rest with rows, columns, fillers, and panels.

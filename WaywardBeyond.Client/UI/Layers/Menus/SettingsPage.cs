@@ -11,6 +11,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Settings;
 using WaywardBeyond.Client.UI.Theme;
@@ -49,6 +50,9 @@ internal sealed class SettingsPage<TIdentifier>(
     private readonly ILocalization _localization = localization;
 
     private readonly SettingsRenderer _renderer = new(localization, soundEffectService, inputService);
+    private SettingsShellView? _shell;
+    private Menu<TIdentifier>? _menu;
+    private double _time;
     private SettingsDraft? _draft;
     private SettingsCategory[]? _categories;
     private int _categoryIndex;
@@ -94,98 +98,75 @@ internal sealed class SettingsPage<TIdentifier>(
         RefreshExternalDisplaySettings();
 
         SettingsLayout layout = SettingsLayout.Compute(ui.Width, ui.Height);
-        SettingsRenderer renderer = _renderer;
-        renderer.SetLayout(ui, layout);
+        _renderer.SetLayout(ui, layout);
+        _menu = menu;
+        Shell.Body = DrawRows;
+        _time = ui.Time;
 
-        using (ui.Page(layout.PageWidth, layout.PageHeight, "SettingsPage"))
+        bool dirty = IsDirty();
+        string? status = _status != null && ui.Time < _statusUntil ? _status : null;
+
+        var entries = new SettingsCategoryEntry[_categories.Length];
+        for (var i = 0; i < _categories.Length; i++)
         {
-            ui.Padding = new Padding(left: 0, top: SettingsLayout.PAGE_GAP, right: 0, bottom: 0);
-            ui.Spacing = SettingsLayout.PAGE_GAP;
-
-            if (layout.UseTabs)
-            {
-                using (ui.Column(
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    }
-                ))
-                {
-                    if (renderer.DrawTabs(_categories, ref _categoryIndex))
-                    {
-                        _scrollY = 0;
-                    }
-
-                    using (ui.MenuPanel(
-                        new Constraints
-                        {
-                            Width = new Fill(),
-                            Height = new Fill(),
-                        },
-                        padding: SettingsLayout.PANE_PADDING
-                    ))
-                    {
-                        renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
-                    }
-                }
-            }
-            else
-            {
-                using (ui.Row(
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    },
-                    spacing: SettingsLayout.PANEL_GAP
-                ))
-                {
-                    using (ui.MenuPanel(
-                        new Constraints
-                        {
-                            Width = new Fixed(layout.TrayWidth),
-                            Height = new Fill(),
-                        },
-                        padding: SettingsMetrics.TRAY_PADDING
-                    ))
-                    {
-                        if (renderer.DrawTray(_categories, ref _categoryIndex))
-                        {
-                            _scrollY = 0;
-                        }
-                    }
-
-                    using (ui.MenuPanel(
-                        new Constraints
-                        {
-                            Width = new Fill(),
-                            Height = new Fill(),
-                        },
-                        padding: SettingsLayout.PANE_PADDING
-                    ))
-                    {
-                        renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
-                    }
-                }
-            }
-
-            bool dirty = IsDirty();
-            string? status = _status != null && ui.Time < _statusUntil ? _status : null;
-            renderer.DrawFooter(dirty, status, out bool cancelClicked, out bool applyClicked);
-
-            if (cancelClicked)
-            {
-                Widgets.Interactions.Click.WithButtonAudio(_soundEffectService);
-                menu.GoBack();
-            }
-            else if (applyClicked)
-            {
-                ApplySettings(ui.Time);
-            }
+            entries[i] = new SettingsCategoryEntry(
+                _categories[i].Id,
+                _localization.GetRequired(_categories[i].TitleKey)
+            );
         }
 
+        Shell.Render(ui, new SettingsShellState(
+            layout.UseTabs,
+            entries,
+            _categoryIndex,
+            _localization.GetRequired(_categories[_categoryIndex].TitleKey),
+            dirty,
+            dirty ? _localization.GetRequired("ui.settings.status.unsaved") : status,
+            dirty ? _localization.GetRequired("ui.button.cancel") : _localization.GetRequired("ui.button.back")
+        ));
+
         return Result.FromSuccess();
+    }
+
+    private SettingsShellView Shell => _shell ??= CreateShell();
+
+    private SettingsShellView CreateShell()
+    {
+        return new SettingsShellView(_localization)
+        {
+            CategoryRequested = OnCategorySelected,
+            CancelRequested = OnCancel,
+            ApplyRequested = OnApply,
+        };
+    }
+
+    /// <summary>Draws the rows of the active category inside the shell.</summary>
+    private void DrawRows(UIBuilder<Material> ui)
+    {
+        _renderer.DrawRows(_categories![_categoryIndex], ref _scrollY);
+    }
+
+    private void OnCategorySelected(int index)
+    {
+        if (index == _categoryIndex || _categories == null)
+        {
+            return;
+        }
+
+        _categoryIndex = index;
+        _scrollY = 0;
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Toggle);
+    }
+
+    private void OnCancel()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _menu?.GoBack();
+    }
+
+    private void OnApply()
+    {
+        ApplySettings(_time);
     }
 
     private void ApplySettings(double time)
