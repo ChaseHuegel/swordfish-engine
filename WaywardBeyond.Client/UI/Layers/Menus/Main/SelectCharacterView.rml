@@ -1,0 +1,280 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      Class="SelectCharacterView"
+      Context="SelectCharacterState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Page max-width="1160" max-height="560">
+        <Element layout="vertical" width="fill" height="fill" padding="0 12 0 0" spacing="12">
+
+            <Element visible="@(ui.Width &gt;= 1020)"
+                     layout="horizontal"
+                     width="fill"
+                     height="fill"
+                     spacing="20">
+                <Panel width="37%" height="fill">
+                    <Content name="header">
+                        <Text text="@L('ui.panel.character.list')" class="wb-panel-header" width="fill" height="18" />
+                    </Content>
+                    <Element layout="vertical" width="fill" height="fill">
+                        <Text visible="@(!context.HasCharacters)"
+                              text="@L('ui.label.none')"
+                              class="wb-text-body wb-text-dim"
+                              width="fill"
+                              height="fill"
+                              text-align="center"
+                              vertical-align="middle" />
+                        <ScrollArea id="SelectCharacter.Manifest"
+                                    context="@Scroll"
+                                    visible="@context.HasCharacters"
+                                    width="fill"
+                                    height="fill">
+                            <Element id="SelectCharacter.List" layout="vertical" width="fill" height="fit" spacing="8">
+                                <ForEach in="@context.Characters" as="crew">
+                                    <Element class="wb-card"
+                                             class:wb-card-selected="@crew.Selected"
+                                             id="Button_SelectCharacter_{crew.Uuid}"
+                                             layout="none"
+                                             clip="true"
+                                             onclick="OnSelectCharacter(crew.Uuid)"
+                                             width="fill"
+                                             height="44">
+                                        <Element class="wb-card-caret"
+                                                 visible="@crew.Selected"
+                                                 x="2"
+                                                 width="3"
+                                                 height="32" />
+                                        <Element layout="horizontal"
+                                                 width="fill"
+                                                 height="fill"
+                                                 padding="8 0 8 0"
+                                                 spacing="8">
+                                            <Image source="@crew.Portrait" width="32" height="32" />
+                                            <Text text="@crew.Name"
+                                                  class="wb-text-label"
+                                                  class:wb-text-accent="@crew.Selected"
+                                                  width="fill"
+                                                  height="fill" />
+                                            <Element class="wb-icon-button wb-icon-button-danger"
+                                                     id="Button_DeleteCharacter_{crew.Uuid}"
+                                                     anchor="Center"
+                                                     onclick="OnDeleteCharacter(crew.Uuid)"
+                                                     width="28"
+                                                     height="28">
+                                                <Text class="wb-icon wb-icon-danger" text="@Glyph('trash')" x="10" y="2" />
+                                            </Element>
+                                        </Element>
+                                    </Element>
+                                </ForEach>
+                            </Element>
+                        </ScrollArea>
+
+                        <Element height="8" />
+                        <Button id="Button_NewCharacter"
+                                param:variant="subtle"
+                                param:doubleBorder="false"
+                                onclick="OnNewCharacter"
+                                width="fill"
+                                height="32">
+                            <Text class="wb-button-label" text="@('+ ' + L('ui.button.character.new'))" anchor="Center" />
+                        </Button>
+                    </Element>
+                </Panel>
+
+                <Panel width="fill" height="fill">
+                    <Content name="header">
+                        <Text text="@L('ui.panel.character.detail')" class="wb-panel-header" width="fill" height="18" />
+                    </Content>
+                    <Text visible="@(!context.HasActive)"
+                          text="@L('ui.label.none')"
+                          class="wb-text-body wb-text-dim"
+                          width="fill"
+                          height="fill"
+                          text-align="center"
+                          vertical-align="middle" />
+                    <Element visible="@context.HasActive" layout="vertical" width="fill" height="fill">
+                        <Text text="@context.Detail.Name" class="wb-text-title" width="fill" height="26" />
+                        <Text text="@context.Detail.LevelLine" class="wb-text-small wb-text-accent" width="fill" height="18" text-align="center" />
+                        <Text text="@context.Detail.LastPlayed" class="wb-text-small" width="fill" height="18" text-align="center" />
+                        <Text text="@context.Detail.TimePlayed" class="wb-text-small" width="fill" height="18" text-align="center" />
+
+                        <Element height="16" />
+                        <Element layout="horizontal" width="fill" height="128" spacing="20">
+                            <Image source="@context.Detail.Portrait" width="128" height="128" />
+                            <Element layout="vertical" width="fill" height="fill">
+                                <ForEach in="@context.Detail.Stats" as="stat">
+                                    <Element layout="horizontal" width="fill" height="18">
+                                        <Text text="@StatText(stat.Label)" class="wb-text-small" width="fill" height="fill" />
+                                        <Text text="@stat.Value" class="wb-text-value" width="28" height="fill" text-align="right" />
+                                    </Element>
+                                </ForEach>
+                            </Element>
+                        </Element>
+
+                        <Element visible="@context.ShowAssignment" height="16" />
+                        <Element visible="@context.ShowAssignment" class="wb-divider" width="fill" height="1" />
+                        <Element visible="@context.ShowAssignment" height="8" />
+                        <Text visible="@context.ShowAssignment"
+                              text="@L('ui.label.character.assignment')"
+                              class="wb-text-small"
+                              width="fill"
+                              height="18" />
+                        <Text visible="@context.ShowAssignment"
+                              text="@context.Detail.Assignment"
+                              class="wb-text-label"
+                              width="fill"
+                              height="22" />
+
+                        <Element height="fill" />
+                        <Element class="wb-divider" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@L('ui.label.character.ready')" class="wb-text-small wb-text-success" width="fill" height="20" />
+                    </Element>
+                </Panel>
+            </Element>
+
+            <Element visible="@(ui.Width &lt; 1020)" layout="vertical" width="fill" height="fill" spacing="0">
+                <Element layout="horizontal" width="fill" height="40" spacing="8">
+                    <Tab id="ManifestTab" param:selected="@(context.Tab == 0)" onclick="OnSelectTab(0)" width="fill" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.character.list')" width="fill" height="fill" />
+                    </Tab>
+                    <Tab id="DetailTab" param:selected="@(context.Tab == 1)" onclick="OnSelectTab(1)" width="fill" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.character.detail')" width="fill" height="fill" />
+                    </Tab>
+                </Element>
+
+                <Panel visible="@(context.Tab == 0)" width="fill" height="fill">
+                    <Content name="header">
+                        <Text text="@L('ui.panel.character.list')" class="wb-panel-header" width="fill" height="18" />
+                    </Content>
+                    <Element layout="vertical" width="fill" height="fill">
+                        <Text visible="@(!context.HasCharacters)"
+                              text="@L('ui.label.none')"
+                              class="wb-text-body wb-text-dim"
+                              width="fill"
+                              height="fill"
+                              text-align="center"
+                              vertical-align="middle" />
+                        <ScrollArea id="SelectCharacter.NarrowManifest"
+                                    context="@Scroll"
+                                    visible="@context.HasCharacters"
+                                    width="fill"
+                                    height="fill">
+                            <Element id="SelectCharacter.NarrowList" layout="vertical" width="fill" height="fit" spacing="8">
+                                <ForEach in="@context.Characters" as="crew">
+                                    <Element class="wb-card"
+                                             class:wb-card-selected="@crew.Selected"
+                                             id="Button_SelectCharacter_{crew.Uuid}"
+                                             layout="none"
+                                             clip="true"
+                                             onclick="OnSelectCharacter(crew.Uuid)"
+                                             width="fill"
+                                             height="44">
+                                        <Element class="wb-card-caret"
+                                                 visible="@crew.Selected"
+                                                 x="2"
+                                                 width="3"
+                                                 height="32" />
+                                        <Element layout="horizontal"
+                                                 width="fill"
+                                                 height="fill"
+                                                 padding="8 0 8 0"
+                                                 spacing="8">
+                                            <Image source="@crew.Portrait" width="32" height="32" />
+                                            <Text text="@crew.Name"
+                                                  class="wb-text-label"
+                                                  class:wb-text-accent="@crew.Selected"
+                                                  width="fill"
+                                                  height="fill" />
+                                            <Element class="wb-icon-button wb-icon-button-danger"
+                                                     id="Button_DeleteCharacter_{crew.Uuid}"
+                                                     anchor="Center"
+                                                     onclick="OnDeleteCharacter(crew.Uuid)"
+                                                     width="28"
+                                                     height="28">
+                                                <Text class="wb-icon wb-icon-danger" text="@Glyph('trash')" x="10" y="2" />
+                                            </Element>
+                                        </Element>
+                                    </Element>
+                                </ForEach>
+                            </Element>
+                        </ScrollArea>
+
+                        <Element height="8" />
+                        <Button id="Button_NewCharacterNarrow"
+                                param:variant="subtle"
+                                param:doubleBorder="false"
+                                onclick="OnNewCharacter"
+                                width="fill"
+                                height="32">
+                            <Text class="wb-button-label" text="@('+ ' + L('ui.button.character.new'))" anchor="Center" />
+                        </Button>
+                    </Element>
+                </Panel>
+
+                <Panel visible="@(context.Tab == 1)" width="fill" height="fill">
+                    <Content name="header">
+                        <Text text="@L('ui.panel.character.detail')" class="wb-panel-header" width="fill" height="18" />
+                    </Content>
+                    <Text visible="@(!context.HasActive)"
+                          text="@L('ui.label.none')"
+                          class="wb-text-body wb-text-dim"
+                          width="fill"
+                          height="fill"
+                          text-align="center"
+                          vertical-align="middle" />
+                    <Element visible="@context.HasActive" layout="vertical" width="fill" height="fill">
+                        <Text text="@context.Detail.Name" class="wb-text-title" width="fill" height="26" />
+                        <Text text="@context.Detail.LevelLine" class="wb-text-small wb-text-accent" width="fill" height="18" text-align="center" />
+                        <Text text="@context.Detail.LastPlayed" class="wb-text-small" width="fill" height="18" text-align="center" />
+                        <Text text="@context.Detail.TimePlayed" class="wb-text-small" width="fill" height="18" text-align="center" />
+
+                        <Element height="16" />
+                        <Element layout="horizontal" width="fill" height="128" spacing="20">
+                            <Image source="@context.Detail.Portrait" width="128" height="128" />
+                            <Element layout="vertical" width="fill" height="fill">
+                                <ForEach in="@context.Detail.Stats" as="stat">
+                                    <Element layout="horizontal" width="fill" height="18">
+                                        <Text text="@StatText(stat.Label)" class="wb-text-small" width="fill" height="fill" />
+                                        <Text text="@stat.Value" class="wb-text-value" width="28" height="fill" text-align="right" />
+                                    </Element>
+                                </ForEach>
+                            </Element>
+                        </Element>
+
+                        <Element height="fill" />
+                        <Element class="wb-divider" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@L('ui.label.character.ready')" class="wb-text-small wb-text-success" width="fill" height="20" />
+                    </Element>
+                </Panel>
+            </Element>
+
+            <Element layout="horizontal" width="fill" height="52" spacing="12">
+                <Button id="Button_Back"
+                        param:variant="secondary"
+                        onclick="OnBack"
+                        anchor="Center"
+                        width="170"
+                        height="40">
+                    <Text class="wb-button-label" text="@L('ui.button.back')" anchor="Center" />
+                </Button>
+
+                <Element width="fill" />
+
+                <Button id="Button_LoadSave"
+                        param:variant="primary"
+                        param:enabled="@context.CanLaunch"
+                        disabled="@(!context.CanLaunch)"
+                        onclick="OnLaunch"
+                        anchor="Center"
+                        width="220"
+                        height="40">
+                    <Text class="wb-button-label" text="@L('ui.button.level.launch')" anchor="Center" />
+                </Button>
+            </Element>
+        </Element>
+    </Page>
+</Reef>

@@ -1,15 +1,19 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using Reef;
 using Reef.Text;
 using Reef.UI;
 using Swordfish.Library.Collections;
+using WaywardBeyond.Bodies;
+using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Localization;
+using WaywardBeyond.Skills;
 
 namespace Swordfish.Tests;
 
@@ -113,4 +117,58 @@ internal sealed class StubCharacterStorage(bool hasCharacter) : ICharacterStorag
     public Result SaveCharacter(Character character) => Result.FromSuccess();
 
     public Result DeleteCharacter(ulong id) => Result.FromSuccess();
+}
+
+internal sealed class StubBodyDatabase : IBodyDatabase
+{
+    private readonly Body _body = new(
+        "human",
+        "human",
+        Gender.Neutral,
+        new Dictionary<string, string[]> { ["standing"] = ["human_standing.png"] }
+    );
+
+    public string? DefaultId => "human";
+
+    public IReadOnlyList<string> Species => ["human"];
+
+    public IReadOnlyList<Gender> GetGenders(string species) => [Gender.Neutral];
+
+    public Body? GetBody(string species, Gender gender) => _body;
+
+    public Result<Body> Get(string id) => Result<Body>.FromSuccess(_body);
+}
+
+/// <summary>A texture database that returns a one-pixel texture.</summary>
+internal sealed class StubTextureDatabase : IAssetDatabase<Texture>
+{
+    public Result<Texture> Get(string id) => Result<Texture>.FromSuccess(new Texture([], 1, 1, mipmaps: false));
+}
+
+/// <summary>A file parser that parses nothing.</summary>
+internal sealed class StubFileParseService : IFileParseService
+{
+    public TResult Parse<TResult>(PathInfo path) => default!;
+
+    public TResult Parse<TResult>(Stream stream) => throw new NotSupportedException();
+
+    public bool TryParse<TResult>(PathInfo path, out TResult result)
+    {
+        result = default!;
+        return false;
+    }
+
+    public bool TryParse<TResult>(Stream stream, out TResult result)
+    {
+        result = default!;
+        return false;
+    }
+}
+
+/// <summary>A skill database with no skills.</summary>
+internal sealed class StubSkillDatabase : ISkillDatabase
+{
+    public Result<Skill> Get(string id) => Result<Skill>.FromFailure("No skills.");
+
+    public IReadOnlyList<Skill> Get(XPSource xpSource) => [];
 }

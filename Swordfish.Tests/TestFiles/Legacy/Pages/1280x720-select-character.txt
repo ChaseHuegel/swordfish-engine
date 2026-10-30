@@ -1,0 +1,77 @@
+0 id=- rect=60,120,1160,480 clip=60,120,1160,480 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=60,132,1160,404 clip=60,120,1160,480 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=60,132,429,404 clip=60,120,1160,480 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+3 id=- rect=62,134,425,400 clip=62,134,425,400 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+4 id=- rect=74,146,401,18 clip=62,134,425,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=ui.panel.character.list
+5 id=- rect=74,164,0,4 clip=62,134,425,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+6 id=- rect=74,168,401,1 clip=62,134,425,400 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=74,169,0,8 clip=62,134,425,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+8 id=- rect=74,177,401,345 clip=62,134,425,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+9 id=- rect=74,177,401,305 clip=62,134,425,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+10 id=SelectCharacter.Manifest rect=74,177,387,305 clip=74,177,387,305 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+11 id=Button_SelectCharacter_1 rect=74,177,387,44 clip=74,177,387,44 color=0.0902,0.1373,0.2118,1 bg=0,0,0,0 border=1:0.949,0.6,0.2902,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+12 id=- rect=76,183,3,32 clip=74,177,387,44 color=0.2941,0.8902,0.8902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+13 id=- rect=74,183,387,32 clip=74,177,387,44 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+14 id=- rect=82,183,32,32 clip=74,177,387,44 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+15 id=- rect=122,183,295,32 clip=74,177,387,44 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Ada
+16 id=Button_DeleteCharacter_1 rect=425,185,28,28 clip=425,185,28,28 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+17 id=- rect=435,187,8,20 clip=425,185,28,28 color=0.8784,0.3098,0.4784,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+18 id=Button_SelectCharacter_2 rect=74,229,387,44 clip=74,229,387,44 color=0.051,0.0706,0.1098,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+19 id=- rect=74,235,387,32 clip=74,229,387,44 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+20 id=- rect=82,235,32,32 clip=74,229,387,44 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+21 id=- rect=122,235,295,32 clip=74,229,387,44 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Bram
+22 id=Button_DeleteCharacter_2 rect=425,237,28,28 clip=425,237,28,28 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+23 id=- rect=435,239,8,20 clip=425,237,28,28 color=0.8784,0.3098,0.4784,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+24 id=- rect=469,177,6,305 clip=469,177,6,305 color=0.1098,0.1412,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+25 id=- rect=74,482,0,8 clip=62,134,425,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+26 id=Button_NewCharacter rect=74,490,401,32 clip=74,490,401,32 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+27 id=- rect=174,497,200,18 clip=74,490,401,32 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=+ ui.button.character.new
+28 id=- rect=509,132,711,404 clip=60,120,1160,480 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+29 id=- rect=511,134,707,400 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+30 id=- rect=523,146,683,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=ui.panel.character.detail
+31 id=- rect=523,164,0,4 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+32 id=- rect=523,168,683,1 clip=511,134,707,400 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+33 id=- rect=523,169,0,8 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+34 id=- rect=523,177,683,26 clip=511,134,707,400 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:24 text=Ada
+35 id=- rect=523,203,683,18 clip=511,134,707,400 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.label.character.level 0 · human
+36 id=- rect=523,221,683,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.label.lastPlayed: 11/14/2023 5:13 PM
+37 id=- rect=523,239,683,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.label.timePlayed: 1 ui.word.hours
+38 id=- rect=523,257,0,16 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+39 id=- rect=523,273,683,128 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+40 id=- rect=523,273,128,128 clip=511,134,707,400 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+41 id=- rect=671,273,535,128 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+42 id=- rect=671,273,535,18 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+43 id=- rect=671,273,507,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=#cyanu#Ri.label.character.strength
+44 id=- rect=1178,273,28,18 clip=511,134,707,400 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=4
+45 id=- rect=671,291,535,18 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+46 id=- rect=671,291,507,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=#cyanu#Ri.label.character.precision
+47 id=- rect=1178,291,28,18 clip=511,134,707,400 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=3
+48 id=- rect=671,309,535,18 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+49 id=- rect=671,309,507,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=#cyanu#Ri.label.character.awareness
+50 id=- rect=1178,309,28,18 clip=511,134,707,400 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=2
+51 id=- rect=671,327,535,18 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+52 id=- rect=671,327,507,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=#cyanu#Ri.label.character.charisma
+53 id=- rect=1178,327,28,18 clip=511,134,707,400 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=1
+54 id=- rect=671,345,535,18 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+55 id=- rect=671,345,507,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=#cyanu#Ri.label.character.education
+56 id=- rect=1178,345,28,18 clip=511,134,707,400 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=5
+57 id=- rect=671,363,535,18 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+58 id=- rect=671,363,507,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=#cyanu#Ri.label.character.resolve
+59 id=- rect=1178,363,28,18 clip=511,134,707,400 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=6
+60 id=- rect=523,401,0,16 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+61 id=- rect=523,417,683,1 clip=511,134,707,400 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+62 id=- rect=523,418,0,8 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+63 id=- rect=523,426,683,18 clip=511,134,707,400 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.label.character.assignment
+64 id=- rect=523,444,683,22 clip=511,134,707,400 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Frontier Base
+65 id=- rect=523,466,683,27 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+66 id=- rect=523,493,683,1 clip=511,134,707,400 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+67 id=- rect=523,494,0,8 clip=511,134,707,400 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+68 id=- rect=523,502,683,20 clip=511,134,707,400 color=0.4353,0.8118,0.5922,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.label.character.ready
+69 id=- rect=60,548,1160,52 clip=60,120,1160,480 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+70 id=Button_Back rect=60,554,170,40 clip=60,554,170,40 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+71 id=- rect=62,556,166,36 clip=60,554,170,40 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+72 id=- rect=89,565,112,18 clip=60,554,170,40 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=ui.button.back
+73 id=- rect=242,548,746,52 clip=60,120,1160,480 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+74 id=Button_LoadSave rect=1000,554,220,40 clip=1000,554,220,40 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.949,0.6,0.2902,1 caps=6:1:0.949,0.6,0.2902,1 radius=0:0:0:0 font=-:0 text=-
+75 id=- rect=1002,556,216,36 clip=1000,554,220,40 color=0,0,0,0 bg=0,0,0,0 border=1:0.2392,0.149,0.0784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+76 id=- rect=1022,565,176,18 clip=1000,554,220,40 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=ui.button.level.launch

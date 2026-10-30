@@ -113,57 +113,6 @@ internal static class HomeFixtures
         public Result DeleteCharacter(ulong id) => throw new NotSupportedException();
     }
 
-    private sealed class StubBodyDatabase : IBodyDatabase
-    {
-        private readonly Body _body = new(
-            "human",
-            "human",
-            Gender.Neutral,
-            new Dictionary<string, string[]> { ["standing"] = ["human_standing.png"] }
-        );
-
-        public string? DefaultId => "human";
-
-        public IReadOnlyList<string> Species => ["human"];
-
-        public IReadOnlyList<Gender> GetGenders(string species) => [Gender.Neutral];
-
-        public Body? GetBody(string species, Gender gender) => _body;
-
-        public Result<Body> Get(string id) => Result<Body>.FromSuccess(_body);
-    }
-
-    private sealed class StubTextureDatabase : IAssetDatabase<Texture>
-    {
-        public Result<Texture> Get(string id) => Result<Texture>.FromSuccess(new Texture([], 1, 1, mipmaps: false));
-    }
-
-    private sealed class StubFileParseService : IFileParseService
-    {
-        public TResult Parse<TResult>(PathInfo path) => default!;
-
-        public TResult Parse<TResult>(System.IO.Stream stream) => throw new NotSupportedException();
-
-        public bool TryParse<TResult>(PathInfo path, out TResult result)
-        {
-            result = default!;
-            return false;
-        }
-
-        public bool TryParse<TResult>(System.IO.Stream stream, out TResult result)
-        {
-            result = default!;
-            return false;
-        }
-    }
-
-    private sealed class StubSkillDatabase : ISkillDatabase
-    {
-        public Result<Skill> Get(string id) => Result<Skill>.FromFailure("No skills.");
-
-        public IReadOnlyList<Skill> Get(XPSource xpSource) => [];
-    }
-
     private sealed class StubTagDatabase : IAssetDatabase<LocalizedTags>
     {
         private readonly LocalizedTags _tags = new(new Dictionary<string, List<string>>

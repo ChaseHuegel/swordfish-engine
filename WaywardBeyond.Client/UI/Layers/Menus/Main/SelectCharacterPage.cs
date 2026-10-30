@@ -2,421 +2,238 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Reef;
-using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
-using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.Statistics;
+using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
-internal sealed class SelectCharacterPage(
-    in CharacterSaveManager characterSaveManager,
-    in ICharacterStorage characterStorage,
-    in IInputService inputService,
-    in SoundEffectService soundEffectService,
-    in ILocalization localization,
-    in CharacterAssetService characterAssetService,
-    in GameSaveManager gameSaveManager,
-    in ISkillDatabase skillDatabase,
-    in ModalMenu modalMenu,
-    in ConfirmModal confirmModal
-) : IMenuPage<MenuPage>
+internal sealed class SelectCharacterPage : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectCharacter;
 
-    private const int CARD_HEIGHT = 44;
-    private const int CARD_GAP = 8;
-    private const int NEW_BUTTON_HEIGHT = 32;
-
-    private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
-    private readonly ICharacterStorage _characterStorage = characterStorage;
-    private readonly IInputService _inputService = inputService;
-    private readonly SoundEffectService _soundEffectService = soundEffectService;
-    private readonly ILocalization _localization = localization;
-    private readonly CharacterAssetService _characterAssetService = characterAssetService;
-    private readonly GameSaveManager _gameSaveManager = gameSaveManager;
-    private readonly ISkillDatabase _skillDatabase = skillDatabase;
-    private readonly ModalMenu _modalMenu = modalMenu;
-    private readonly ConfirmModal _confirmModal = confirmModal;
-
-    private readonly Widgets.ActionButtonOptions _returnButton = Widgets.ActionButtonOptions.Menu(
-        ButtonVariant.Secondary,
-        soundEffectService
-    );
-    private readonly Widgets.ActionButtonOptions _launchButton = Widgets.ActionButtonOptions.Menu(
-        ButtonVariant.Primary,
-        soundEffectService
-    );
+    private readonly CharacterSaveManager _characterSaveManager;
+    private readonly ICharacterStorage _characterStorage;
+    private readonly SoundEffectService _soundEffectService;
+    private readonly ILocalization _localization;
+    private readonly CharacterAssetService _characterAssetService;
+    private readonly GameSaveManager _gameSaveManager;
+    private readonly ISkillDatabase _skillDatabase;
+    private readonly ModalMenu _modalMenu;
+    private readonly ConfirmModal _confirmModal;
+    private readonly ScrollAreaState _scroll = new();
+    private readonly SelectCharacterView _view;
     private readonly List<Character> _characters = [];
-    private int _scrollY;
+
+    private Menu<MenuPage>? _menu;
     private int _narrowTab;
+
+    public SelectCharacterPage(
+        in CharacterSaveManager characterSaveManager,
+        in ICharacterStorage characterStorage,
+        in SoundEffectService soundEffectService,
+        in ILocalization localization,
+        in CharacterAssetService characterAssetService,
+        in GameSaveManager gameSaveManager,
+        in ISkillDatabase skillDatabase,
+        in ModalMenu modalMenu,
+        in ConfirmModal confirmModal
+    )
+    {
+        _characterSaveManager = characterSaveManager;
+        _characterStorage = characterStorage;
+        _soundEffectService = soundEffectService;
+        _localization = localization;
+        _characterAssetService = characterAssetService;
+        _gameSaveManager = gameSaveManager;
+        _skillDatabase = skillDatabase;
+        _modalMenu = modalMenu;
+        _confirmModal = confirmModal;
+
+        _view = new SelectCharacterView(localization, _scroll)
+        {
+            CharacterSelected = SelectCharacter,
+            CharacterDeleteRequested = RequestDelete,
+            NewCharacterRequested = NewCharacter,
+            TabRequested = SelectTab,
+            BackRequested = Back,
+            LaunchRequested = Launch,
+        };
+    }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
+        _menu = menu;
         _characterSaveManager.ActiveSave ??= _characterSaveManager.GetMostRecentSave();
 
-        MenuLayout layout = MenuLayout.Compute(
-            ui.Width,
-            ui.Height,
-            maxPageWidth: 1160,
-            twoColumn: true,
-            leftRatio: 0.37f
-        );
-
-        using (ui.Page(layout))
+        ElementBounds viewport = ui.GetElementBounds("SelectCharacter.Manifest");
+        ElementBounds content = ui.GetElementBounds("SelectCharacter.List");
+        if (viewport.Rect.Size.Y > 0 && content.Rect.Size.Y > 0)
         {
-            ui.Padding = new Padding(left: 0, top: MenuLayout.PAGE_GAP, right: 0, bottom: 0);
-            ui.Spacing = MenuLayout.PAGE_GAP;
-
-            DrawPanels(ui, layout, menu);
-            DrawFooter(ui, menu);
+            _scroll.SetMetrics(viewport.Rect.Size.Y, content.Rect.Size.Y);
         }
 
+        ElementBounds narrowViewport = ui.GetElementBounds("SelectCharacter.NarrowManifest");
+        ElementBounds narrowContent = ui.GetElementBounds("SelectCharacter.NarrowList");
+        if (narrowViewport.Rect.Size.Y > 0 && narrowContent.Rect.Size.Y > 0)
+        {
+            _scroll.SetMetrics(narrowViewport.Rect.Size.Y, narrowContent.Rect.Size.Y);
+        }
+
+        _view.Render(ui, BuildState(ui.Height));
         return Result.FromSuccess();
     }
 
-    /// <summary>Draws the tab strip and the panels that the current layout shows.</summary>
-    private void DrawPanels(UIBuilder<Material> ui, in MenuLayout layout, Menu<MenuPage> menu)
+    /// <summary>Collects the crew rows and detail readouts shown this frame.</summary>
+    private SelectCharacterState BuildState(int windowHeight)
     {
-        if (!layout.UseTabs)
-        {
-            using (ui.Row(
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                },
-                spacing: MenuLayout.PANEL_GAP
-            ))
-            {
-                DrawManifest(
-                    ui,
-                    new Constraints
-                    {
-                        Width = new Relative(layout.LeftRatio),
-                        Height = new Fill(),
-                    },
-                    menu
-                );
-                DrawDetail(
-                    ui,
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    },
-                    showAssignment: layout.PageHeight >= 480
-                );
-            }
+        RefreshCharacters();
+        Character? active = _characterSaveManager.ActiveSave ?? _characterSaveManager.GetMostRecentSave();
 
-            return;
+        var rows = new List<CharacterRowState>(_characters.Count);
+        foreach (Character character in _characters)
+        {
+            rows.Add(new CharacterRowState(
+                character.Uuid.ToString(),
+                character.Name,
+                active != null && active.Value.Uuid == character.Uuid,
+                _characterAssetService.GetAppearanceMaterial(character)
+            ));
         }
 
-        using (ui.Column(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            }
-        ))
+        var detail = default(CharacterDetailState);
+        if (active != null)
         {
-            DrawTabs(ui);
-            Constraints pane = new()
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-
-            if (_narrowTab == 0)
-            {
-                DrawManifest(ui, pane, menu);
-                return;
-            }
-
-            DrawDetail(ui, pane, showAssignment: false);
-        }
-    }
-
-    /// <summary>Draws the page footer and runs the action that the player picked.</summary>
-    private void DrawFooter(UIBuilder<Material> ui, Menu<MenuPage> menu)
-    {
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(MenuLayout.FOOTER_HEIGHT),
-            },
-            spacing: 12
-        ))
-        {
-            if (ui.ActionButton(
-                "Button_Back",
-                _localization.GetRequired("ui.button.back"),
-                _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
-            ))
-            {
-                menu.GoToPage(MenuPage.Home);
-            }
-
-            ui.Filler();
-
-            bool canLaunch = _characterSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave != null;
-            Widgets.ActionButtonOptions loadOptions = _launchButton
-                .FooterButton(MenuLayout.PRIMARY_BUTTON_WIDTH) with
-            {
-                Enabled = canLaunch,
-            };
-            if (ui.ActionButton(
-                "Button_LoadSave",
-                _localization.GetRequired("ui.button.level.launch"),
-                loadOptions
-            ))
-            {
-                Task.Run(_gameSaveManager.Load);
-            }
-        }
-    }
-
-    private void DrawTabs(UIBuilder<Material> ui)
-    {
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(MenuLayout.TABS_HEIGHT),
-            },
-            spacing: 8
-        ))
-        {
-            var tabConstraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-
-            if (ui.Tab(
-                "ManifestTab",
-                _localization.GetRequired("ui.panel.character.list"),
-                selected: _narrowTab == 0,
-                tabConstraints
-            ))
-            {
-                _narrowTab = 0;
-            }
-
-            if (ui.Tab(
-                "DetailTab",
-                _localization.GetRequired("ui.panel.character.detail"),
-                selected: _narrowTab == 1,
-                tabConstraints
-            ))
-            {
-                _narrowTab = 1;
-            }
-        }
-    }
-
-    private void DrawManifest(UIBuilder<Material> ui, Constraints constraints, Menu<MenuPage> menu)
-    {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.list")))
-        {
-            RefreshCharacters();
-
-            if (_characterSaveManager.ActiveSave == null)
-            {
-                _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
-            }
-
-            using (ui.Column(
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                }
-            ))
-            {
-                if (_characters.Count > 0)
-                {
-                    DrawCharacterList(ui);
-                }
-                else
-                {
-                    ui.Label(
-                        _localization.GetRequired("ui.label.none"),
-                        UiMetrics.MENU_BODY_FONT,
-                        UiTheme.TextDim,
-                        new Constraints
-                        {
-                            Width = new Fill(),
-                            Height = new Fill(),
-                        },
-                        HorizontalAlignment.Center
-                    );
-                }
-
-                ui.Spacer(height: 8);
-                DrawNewCharacterButton(ui, menu);
-            }
-        }
-    }
-
-    /// <summary>Draws the scrolling list of crew manifest rows.</summary>
-    private void DrawCharacterList(UIBuilder<Material> ui)
-    {
-        int contentHeight = _characters.Count * CARD_HEIGHT
-            + Math.Max(0, _characters.Count - 1) * CARD_GAP;
-        Action<UIBuilder<Material>> body = contentUi => DrawCharacterCards(contentUi);
-
-        ui.ScrollArea(
-            "SelectCharacter.Manifest",
-            contentHeight,
-            ref _scrollY,
-            _inputService,
-            body
-        );
-    }
-
-    /// <summary>Draws every crew manifest row inside the scroll area.</summary>
-    private void DrawCharacterCards(UIBuilder<Material> ui)
-    {
-        Action<Character> deleteCharacter = DeleteCharacter;
-
-        for (var i = 0; i < _characters.Count; i++)
-        {
-            if (i > 0)
-            {
-                ui.Spacer(height: CARD_GAP);
-            }
-
-            DrawCharacterCard(ui, _characters[i], deleteCharacter);
-        }
-    }
-
-    /// <summary>Draws one crew manifest row and applies its selection.</summary>
-    private void DrawCharacterCard(
-        UIBuilder<Material> ui,
-        Character character,
-        Action<Character> deleteCharacter
-    )
-    {
-        bool selected = _characterSaveManager.ActiveSave != null &&
-            _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid;
-        var options = new Widgets.SelectableCardOptions(selected, SoundEffectService: _soundEffectService);
-        var context = new CharacterCardContext(
-            character,
-            selected,
-            _modalMenu,
-            _confirmModal,
-            _characterSaveManager,
-            _characterAssetService,
-            _soundEffectService,
-            _localization,
-            deleteCharacter
-        );
-
-        bool clicked = ui.SelectableCard(
-            $"Button_SelectCharacter_{character.Uuid}",
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(CARD_HEIGHT),
-            },
-            in options,
-            context,
-            static (contentUi, state) => DrawCharacterCardContent(contentUi, state)
-        );
-
-        if (clicked)
-        {
-            _characterSaveManager.ActiveSave = character;
-        }
-    }
-
-    /// <summary>Draws the portrait, the name, and the delete control of one crew manifest row.</summary>
-    private static void DrawCharacterCardContent(UIBuilder<Material> contentUi, CharacterCardContext context)
-    {
-        using (contentUi.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            },
-            spacing: 8
-        ))
-        {
-            contentUi.Padding = new Padding(left: 8, top: 0, right: 8, bottom: 0);
-
-            Material appearance = context.CharacterAssetService.GetAppearanceMaterial(context.Character);
-            using (contentUi.Image(appearance))
-            {
-                contentUi.Constraints = new Constraints
-                {
-                    Width = new Fixed(32),
-                    Height = new Fixed(32),
-                    Anchors = Anchors.Center,
-                };
-            }
-
-            contentUi.Label(
-                context.Character.Name,
-                UiMetrics.MENU_BODY_FONT,
-                context.Selected ? UiTheme.AccentBright : UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                }
+            Character character = active.Value;
+            int level = character.GetTotalSkillLevel(_skillDatabase);
+            detail = new CharacterDetailState(
+                character.Name,
+                _view.LevelLine(level, _characterAssetService.GetSpecies(character.Body)),
+                _view.Labeled("ui.label.lastPlayed", _view.LastPlayedText(character.Playtime.LastPlayedMs)),
+                _view.Labeled("ui.label.timePlayed", _view.TimePlayedText(character.Playtime.AgeMs)),
+                _characterAssetService.GetAppearanceMaterial(character),
+                BuildStats(character),
+                _gameSaveManager.ActiveSave?.Name ?? _localization.GetRequired("ui.label.none")
             );
-
-            DrawCharacterDeleteButton(contentUi, context);
         }
+
+        bool canLaunch = active != null && _gameSaveManager.ActiveSave != null;
+        return new SelectCharacterState(
+            _characters.Count > 0,
+            active != null,
+            canLaunch,
+            windowHeight >= 720,
+            _narrowTab,
+            rows,
+            detail
+        );
     }
 
-    /// <summary>Draws the delete control of one crew manifest row and opens its confirmation.</summary>
-    private static void DrawCharacterDeleteButton(UIBuilder<Material> contentUi, CharacterCardContext context)
+    /// <summary>Builds the six primary stat rows of the detail.</summary>
+    private List<StatRowState> BuildStats(in Character character)
     {
-        string id = $"Button_DeleteCharacter_{context.Character.Uuid}";
-        var options = new Widgets.IconButtonOptions(
-            Danger: true,
-            Enabled: true,
-            SoundEffectService: context.SoundEffectService
-        );
-        bool clicked = contentUi.IconButton(
-            id,
-            MenuGlyphs.TRASH,
-            options,
-            new Constraints
-            {
-                Width = new Fixed(28),
-                Height = new Fixed(28),
-                Anchors = Anchors.Center,
-            }
-        );
-        if (!clicked)
+        return
+        [
+            new StatRowState(_localization.GetRequired("ui.label.character.strength"), character.Strength.ToString()),
+            new StatRowState(_localization.GetRequired("ui.label.character.precision"), character.Precision.ToString()),
+            new StatRowState(_localization.GetRequired("ui.label.character.awareness"), character.Awareness.ToString()),
+            new StatRowState(_localization.GetRequired("ui.label.character.charisma"), character.Charisma.ToString()),
+            new StatRowState(_localization.GetRequired("ui.label.character.education"), character.Education.ToString()),
+            new StatRowState(_localization.GetRequired("ui.label.character.resolve"), character.Resolve.ToString()),
+        ];
+    }
+
+    private void SelectCharacter(string uuid)
+    {
+        if (!ulong.TryParse(uuid, out ulong id))
         {
             return;
         }
 
-        Character character = context.Character;
-        Action<Character> deleteCharacter = context.DeleteCharacter;
-        context.CharacterSaveManager.ActiveSave = character;
-        context.ModalMenu.GoToPage(context.ConfirmModal.Create(
-            () => deleteCharacter(character),
-            context.Localization.GetRequired("ui.dialog.character.delete"),
-            context.Localization.GetRequired("ui.dialog.character.delete.body"),
-            context.Localization.GetRequired("ui.button.character.delete"),
-            context.Localization.GetRequired("ui.button.cancel")
+        foreach (Character character in _characters)
+        {
+            if (character.Uuid != id)
+            {
+                continue;
+            }
+
+            _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+            _characterSaveManager.ActiveSave = character;
+            return;
+        }
+    }
+
+    private void SelectTab(int tab)
+    {
+        _narrowTab = tab;
+    }
+
+    private void NewCharacter()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _menu?.GoToPage(MenuPage.NewCharacter);
+    }
+
+    private void Back()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _menu?.GoToPage(MenuPage.Home);
+    }
+
+    private void Launch()
+    {
+        if (_characterSaveManager.ActiveSave == null || _gameSaveManager.ActiveSave == null)
+        {
+            return;
+        }
+
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        Task.Run(_gameSaveManager.Load);
+    }
+
+    /// <summary>Opens the delete confirmation for one colonist.</summary>
+    private void RequestDelete(string uuid)
+    {
+        if (!ulong.TryParse(uuid, out ulong id))
+        {
+            return;
+        }
+
+        Character? target = null;
+        foreach (Character character in _characters)
+        {
+            if (character.Uuid == id)
+            {
+                target = character;
+                break;
+            }
+        }
+
+        if (target == null)
+        {
+            return;
+        }
+
+        Character character1 = target.Value;
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _characterSaveManager.ActiveSave = character1;
+        _modalMenu.GoToPage(_confirmModal.Create(
+            () => DeleteCharacter(character1),
+            _localization.GetRequired("ui.dialog.character.delete"),
+            _localization.GetRequired("ui.dialog.character.delete.body"),
+            _localization.GetRequired("ui.button.character.delete"),
+            _localization.GetRequired("ui.button.cancel")
         ));
     }
 
@@ -425,267 +242,6 @@ internal sealed class SelectCharacterPage(
     {
         _characterSaveManager.Delete(character);
         _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
-    }
-
-    /// <summary>Draws the button that opens the new character page.</summary>
-    private void DrawNewCharacterButton(UIBuilder<Material> ui, Menu<MenuPage> menu)
-    {
-        var options = new Widgets.ActionButtonOptions(
-            Variant: ButtonVariant.Subtle,
-            Layout: new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(NEW_BUTTON_HEIGHT),
-            }
-        );
-        bool clicked = ui.ActionButton(
-            "Button_NewCharacter",
-            "+ " + _localization.GetRequired("ui.button.character.new"),
-            options
-        );
-        if (clicked)
-        {
-            menu.GoToPage(MenuPage.NewCharacter);
-        }
-    }
-
-    private void DrawDetail(UIBuilder<Material> ui, Constraints constraints, bool showAssignment)
-    {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.detail")))
-        {
-            Character? activeCharacter = _characterSaveManager.ActiveSave;
-            if (activeCharacter == null)
-            {
-                ui.Label(
-                    _localization.GetRequired("ui.label.none"),
-                    UiMetrics.MENU_BODY_FONT,
-                    UiTheme.TextDim,
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    },
-                    HorizontalAlignment.Center
-                );
-                return;
-            }
-
-            Character character = activeCharacter.Value;
-            DrawDetailHeader(ui, character);
-            ui.Spacer(height: 16);
-            DrawDetailPreview(ui, character);
-
-            if (showAssignment)
-            {
-                DrawDetailAssignment(ui);
-            }
-
-            DrawDetailSummary(ui);
-        }
-    }
-
-    /// <summary>Draws the name, level, and playtime readouts of the detail.</summary>
-    private void DrawDetailHeader(UIBuilder<Material> ui, in Character character)
-    {
-        ui.Label(
-            character.Name,
-            UiMetrics.MENU_TITLE_FONT,
-            UiTheme.Text,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(26),
-            },
-            HorizontalAlignment.Center
-        );
-
-        int level = character.GetTotalSkillLevel(_skillDatabase);
-        ui.Label(
-            _localization.GetCharacterLevelLine(
-                level,
-                _characterAssetService.GetSpecies(character.Body)
-            ),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.AccentBright,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            },
-            HorizontalAlignment.Center
-        );
-
-        string lastPlayed = character.Playtime.LastPlayedMs > 0
-            ? DateTimeOffset.FromUnixTimeMilliseconds(character.Playtime.LastPlayedMs).ToLocalTime().ToString("g")
-            : _localization.GetRequired("ui.label.never");
-        ui.Label(
-            $"{_localization.GetRequired("ui.label.lastPlayed")}: {lastPlayed}",
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            },
-            HorizontalAlignment.Center
-        );
-
-        TimeSpan age = TimeSpan.FromMilliseconds(character.Playtime.AgeMs);
-        ui.Label(
-            $"{_localization.GetRequired("ui.label.timePlayed")}: {_localization.GetLongString(age)}",
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            },
-            HorizontalAlignment.Center
-        );
-    }
-
-    /// <summary>Draws the portrait and the six primary stats of the detail.</summary>
-    private void DrawDetailPreview(UIBuilder<Material> ui, in Character character)
-    {
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(128),
-            },
-            spacing: 20
-        ))
-        {
-            Material appearance = _characterAssetService.GetAppearanceMaterial(character);
-            using (ui.Image(appearance))
-            {
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fixed(128),
-                    Height = new Fixed(128),
-                };
-            }
-
-            using (ui.Column(
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                }
-            ))
-            {
-                DrawStats(ui, character);
-            }
-        }
-    }
-
-    /// <summary>Draws the six primary stat rows of the detail.</summary>
-    private void DrawStats(UIBuilder<Material> ui, in Character character)
-    {
-        DrawStat(ui, _localization.GetRequired("ui.label.character.strength"), character.Strength);
-        DrawStat(ui, _localization.GetRequired("ui.label.character.precision"), character.Precision);
-        DrawStat(ui, _localization.GetRequired("ui.label.character.awareness"), character.Awareness);
-        DrawStat(ui, _localization.GetRequired("ui.label.character.charisma"), character.Charisma);
-        DrawStat(ui, _localization.GetRequired("ui.label.character.education"), character.Education);
-        DrawStat(ui, _localization.GetRequired("ui.label.character.resolve"), character.Resolve);
-    }
-
-    /// <summary>Draws the assignment block that tall detail panels show.</summary>
-    private void DrawDetailAssignment(UIBuilder<Material> ui)
-    {
-        ui.Spacer(height: 16);
-        ui.Divider(
-            UiTheme.Border,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(1),
-            }
-        );
-        ui.Spacer(height: 8);
-        ui.Label(
-            _localization.GetRequired("ui.label.character.assignment"),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.TextMuted,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            }
-        );
-        ui.Label(
-            _gameSaveManager.ActiveSave?.Name ?? _localization.GetRequired("ui.label.none"),
-            UiMetrics.MENU_BODY_FONT,
-            UiTheme.Text,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(22),
-            }
-        );
-    }
-
-    /// <summary>Draws the launch summary at the bottom of the detail.</summary>
-    private void DrawDetailSummary(UIBuilder<Material> ui)
-    {
-        ui.Filler();
-        ui.Divider(
-            UiTheme.Border,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(1),
-            }
-        );
-        ui.Spacer(height: 8);
-        ui.Label(
-            _localization.GetRequired("ui.label.character.ready"),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Success,
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(20),
-            }
-        );
-    }
-
-    private static void DrawStat(
-        UIBuilder<Material> ui,
-        string label,
-        int value
-    )
-    {
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(18),
-            }
-        ))
-        {
-            ui.StatLabel(
-                label,
-                UiMetrics.MENU_SMALL_FONT,
-                focused: false,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                }
-            );
-            ui.Label(
-                value.ToString(),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fixed(28),
-                    Height = new Fill(),
-                },
-                HorizontalAlignment.Right
-            );
-        }
     }
 
     /// <summary>Reloads the cached character list, ordered by the most recent play first.</summary>
@@ -709,17 +265,4 @@ internal sealed class SelectCharacterPage(
             _characters[j + 1] = current;
         }
     }
-
-    /// <summary>Everything one crew manifest row needs to draw itself.</summary>
-    private readonly record struct CharacterCardContext(
-        Character Character,
-        bool Selected,
-        ModalMenu ModalMenu,
-        ConfirmModal ConfirmModal,
-        CharacterSaveManager CharacterSaveManager,
-        CharacterAssetService CharacterAssetService,
-        SoundEffectService SoundEffectService,
-        ILocalization Localization,
-        Action<Character> DeleteCharacter
-    );
 }
