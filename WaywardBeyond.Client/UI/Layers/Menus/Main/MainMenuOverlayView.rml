@@ -8,7 +8,7 @@
                  class="wb-button wb-button-compact"
                  onclick="OnFeedback"
                  width="fit"
-                 height="32"
+                 height="fit"
                  anchor="Bottom Left">
             <Text class="wb-button-label" text="@L('ui.button.feedback.send')" />
         </Element>
