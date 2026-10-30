@@ -20,6 +20,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly LockedList<GLRenderTarget> _renderTargets = [];
     private readonly LockedList<GLRectRenderTarget> _rectRenderTargets = [];
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
+    private readonly ConcurrentQueue<UnboundRenderer> _unboundRenderers = new();
     private readonly List<EntityModel> _renderableEntities = [];
 
     private readonly GLContext _glContext;
@@ -56,6 +57,20 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public void Bind(Material material) => BindMaterial(material);
     public void Bind(MeshRenderer meshRenderer, Uuid entity) => BindMeshRenderer(meshRenderer, entity);
     public void Bind(RectRenderer rectRenderer) => BindRectRenderer(rectRenderer);
+
+    bool IRenderContext.TryDequeueUnbound(out UnboundRenderer unbound) => _unboundRenderers.TryDequeue(out unbound);
+
+    public bool TryGetRenderTarget(MeshRenderer renderer, out GLRenderTarget? target)
+    {
+        if (_linkedHandles.TryGetValue(renderer, out IHandle? handle))
+        {
+            target = Unsafe.As<GLRenderTarget>(handle);
+            return true;
+        }
+
+        target = null;
+        return false;
+    }
 
     public RenderScene GetSceneContext()
     {
@@ -377,6 +392,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             if (meshRenderer == null || meshRenderer.IsDisposed)
             {
                 return;
+            }
+
+            if (!meshRenderer.IsBound)
+            {
+                _owner._unboundRenderers.Enqueue(new UnboundRenderer(store.GetUuid(entity), meshRenderer));
             }
 
             Matrix4x4 matrix = transform.ToMatrix4X4();

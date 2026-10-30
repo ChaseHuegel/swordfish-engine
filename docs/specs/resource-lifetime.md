@@ -17,13 +17,13 @@ handle. `Handle`, `MeshRenderer`, and `RectRenderer` implement the property.
 
 Disposal runs on the GL thread. The `Disposed` callback posts one work item to
 the GL synchronization context. That work item removes the map entry and
-disposes the GL handle (`GLRenderContext.cs:72-88`). The mapping must not change
+disposes the GL handle (`GLRenderContext.cs:81-97`). The mapping must not change
 on the ECS thread, because the render thread also reads the map. A disposed
 mesh or renderer cannot create a new GL handle. The binder checks
-`IsDisposed` before it creates anything (`GLRenderContext.cs:186-191`,
-`:231-236`).
+`IsDisposed` before it creates anything (`GLRenderContext.cs:201-206`,
+`:246-251`).
 A mesh renderer owns one render target. The renderer's `Disposed` event removes
-the target from `_renderTargets` (`GLRenderContext.cs:273-277`). The target
+the target from `_renderTargets` (`GLRenderContext.cs:288-292`). The target
 leaves the draw list in the tick that disposes the renderer.
 
 ## Voxel renderer cleanup

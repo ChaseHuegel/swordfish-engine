@@ -18,6 +18,10 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
 
     internal readonly GLMaterial[] Materials;
 
+    internal Matrix4x4 LastModelMatrix;
+    internal int LastModelCount;
+    internal bool HasUploadedModelMatrix;
+
     public unsafe GLRenderTarget(GL gl, Uuid entity, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
     {
         Entity = entity;

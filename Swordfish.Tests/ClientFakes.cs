@@ -147,6 +147,12 @@ internal sealed class FakeRenderContext : IRenderContext
 
     RenderScene IRenderContext.GetSceneContext() => default;
 
+    bool IRenderContext.TryDequeueUnbound(out UnboundRenderer unbound)
+    {
+        unbound = default;
+        return false;
+    }
+
     public void Bind(Shader shader) { }
 
     public void Bind(Texture texture) { }

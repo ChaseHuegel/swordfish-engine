@@ -8,6 +8,8 @@ public interface IRenderContext
     DataBinding<CameraEntity> MainCamera { get; }
     
     internal RenderScene GetSceneContext();
+
+    internal bool TryDequeueUnbound(out UnboundRenderer unbound);
     
     void Bind(Shader shader);
 

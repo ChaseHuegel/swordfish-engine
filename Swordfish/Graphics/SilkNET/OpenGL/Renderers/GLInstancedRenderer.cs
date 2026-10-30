@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
@@ -8,85 +9,123 @@ using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IWorldSpaceRenderStage
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings, in GLRenderContext renderContext) : IWorldSpaceRenderStage
 {
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
+    private readonly GLRenderContext _renderContext = renderContext;
 
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _maskedInstances = [];
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
-    private readonly Dictionary<Uuid, List<Matrix4x4>> _entityTargetLists = [];
-    
+    private readonly Stack<List<Matrix4x4>> _listPool = new();
+
+    private List<Matrix4x4> RentMatrixList()
+    {
+        if (_listPool.TryPop(out List<Matrix4x4>? list))
+        {
+            list.Clear();
+            return list;
+        }
+
+        return new List<Matrix4x4>(4);
+    }
+
+    private void ReturnMatrixList(List<Matrix4x4> list)
+    {
+        list.Clear();
+        _listPool.Push(list);
+    }
+
     public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {
-        _instances.Clear();
-        _maskedInstances.Clear();
-        _transparentInstances.Clear();
-        _entityTargetLists.Clear();
-        
-        renderScene.RenderTargets.ForEach(ForEachRenderTarget);
-        void ForEachRenderTarget(GLRenderTarget renderTarget)
+        foreach (List<Matrix4x4> list in _instances.Values)
         {
-            List<Matrix4x4>? matrices;
-            if (renderTarget.RenderOptions.AlphaMode == AlphaMode.Blend || renderTarget.Materials.Any(material => material.Transparent))
-            {
-                //  Exclude anything with blend transparency from depth passes
-                if (isDepthPass)
-                {
-                    return;
-                }
-                
-                if (!_transparentInstances.TryGetValue(renderTarget, out matrices))
-                {
-                    matrices = [];
-                    _transparentInstances.TryAdd(renderTarget, matrices);
-                }
-            }
-            else if (renderTarget.RenderOptions.AlphaMode == AlphaMode.Masked)
-            {
-                if (!_maskedInstances.TryGetValue(renderTarget, out matrices))
-                {
-                    matrices = [];
-                    _maskedInstances.TryAdd(renderTarget, matrices);
-                }
-            }
-            else
-            {
-                if (!_instances.TryGetValue(renderTarget, out matrices))
-                {
-                    matrices = [];
-                    _instances.TryAdd(renderTarget, matrices);
-                }
-            }
-
-            _entityTargetLists[renderTarget.Entity] = matrices;
+            ReturnMatrixList(list);
         }
+        _instances.Clear();
+
+        foreach (List<Matrix4x4> list in _maskedInstances.Values)
+        {
+            ReturnMatrixList(list);
+        }
+        _maskedInstances.Clear();
+
+        foreach (List<Matrix4x4> list in _transparentInstances.Values)
+        {
+            ReturnMatrixList(list);
+        }
+        _transparentInstances.Clear();
 
         for (var i = 0; i < renderScene.EntityModels.Length; i++)
         {
             EntityModel entityModel = renderScene.EntityModels[i];
-            if (_entityTargetLists.TryGetValue(entityModel.Entity, out List<Matrix4x4>? matrices))
+            if (!_renderContext.TryGetRenderTarget(entityModel.MeshRenderer, out GLRenderTarget? renderTarget) || renderTarget == null)
             {
-                matrices.Add(entityModel.Matrix);
+                continue;
             }
+
+            bool isTransparent = renderTarget.RenderOptions.AlphaMode == AlphaMode.Blend || renderTarget.Materials.Any(material => material.Transparent);
+            if (isTransparent && isDepthPass)
+            {
+                continue;
+            }
+
+            Dictionary<GLRenderTarget, List<Matrix4x4>> targetDict;
+            if (isTransparent)
+            {
+                targetDict = _transparentInstances;
+            }
+            else if (renderTarget.RenderOptions.AlphaMode == AlphaMode.Masked)
+            {
+                targetDict = _maskedInstances;
+            }
+            else
+            {
+                targetDict = _instances;
+            }
+
+            if (!targetDict.TryGetValue(renderTarget, out List<Matrix4x4>? matrices))
+            {
+                matrices = RentMatrixList();
+                targetDict.Add(renderTarget, matrices);
+            }
+
+            matrices.Add(entityModel.Matrix);
         }
 
         foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in _instances)
         {
             ReadOnlySpan<Matrix4x4> models = CollectionsMarshal.AsSpan(instance.Value);
-            if (models.Length > 0)
-            {
-                instance.Key.ModelsBufferObject.UpdateData(models);
-            }
+            UploadModelMatrices(instance.Key, models);
         }
 
         foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in _maskedInstances)
         {
             ReadOnlySpan<Matrix4x4> models = CollectionsMarshal.AsSpan(instance.Value);
-            if (models.Length > 0)
+            UploadModelMatrices(instance.Key, models);
+        }
+    }
+
+    private static void UploadModelMatrices(GLRenderTarget target, ReadOnlySpan<Matrix4x4> modelsSpan)
+    {
+        if (modelsSpan.Length == 0)
+        {
+            return;
+        }
+
+        bool needsUpload = !target.HasUploadedModelMatrix
+            || target.LastModelCount != modelsSpan.Length
+            || (modelsSpan.Length == 1 ? target.LastModelMatrix != modelsSpan[0] : true);
+
+        if (needsUpload)
+        {
+            target.ModelsBufferObject.UploadOrResize(modelsSpan);
+            target.HasUploadedModelMatrix = true;
+            target.LastModelCount = modelsSpan.Length;
+            if (modelsSpan.Length == 1)
             {
-                instance.Key.ModelsBufferObject.UpdateData(models);
+                target.LastModelMatrix = modelsSpan[0];
             }
         }
     }
@@ -132,22 +171,32 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in instances)
         {
-            if (instance.Value.Count == 0)
+            List<Matrix4x4> matrices = instance.Value;
+            if (matrices.Count == 0)
             {
                 continue;
             }
 
             GLRenderTarget target = instance.Key;
-            List<Matrix4x4> list = instance.Value;
-            if (list.Count == 0 || target.VertexArrayObject.ElementBufferObject.Length == 0)
+            if (target.VertexArrayObject.ElementBufferObject.Length == 0)
             {
                 continue;
             }
 
+            ReadOnlySpan<Matrix4x4> modelsSpan;
             if (sort)
             {
-                list.Sort((a, b) => Vector3.DistanceSquared(b.GetPosition(), viewPosition).CompareTo(Vector3.DistanceSquared(a.GetPosition(), viewPosition)));
-                target.ModelsBufferObject.UpdateData(CollectionsMarshal.AsSpan(list));
+                if (matrices.Count > 1)
+                {
+                    matrices.Sort((a, b) => Vector3.DistanceSquared(b.GetPosition(), viewPosition).CompareTo(Vector3.DistanceSquared(a.GetPosition(), viewPosition)));
+                }
+                modelsSpan = CollectionsMarshal.AsSpan(matrices);
+                target.ModelsBufferObject.UploadOrResize(modelsSpan);
+            }
+            else
+            {
+                modelsSpan = CollectionsMarshal.AsSpan(matrices);
+                UploadModelMatrices(target, modelsSpan);
             }
 
             if (!isDepthPass)
@@ -212,7 +261,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 lastRenderOptions = target.RenderOptions;
             }
 
-            _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)list.Count);
+            _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)modelsSpan.Length);
             drawCalls++;
         }
 
