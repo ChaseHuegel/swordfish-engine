@@ -113,6 +113,22 @@ public class ComponentSnapshotTests
             }
         ));
 
+        Snapshot("component-scroll-area", ui =>
+        {
+            var state = new ScrollAreaState();
+            state.SetMetrics(viewportHeight: 100, contentHeight: 400);
+            new ScrollArea().Render(
+                ui,
+                state,
+                callerConstraints: new ConstraintsOverride
+                {
+                    Width = new Fixed(300),
+                    Height = new Fixed(100),
+                },
+                content_default: content => DrawText(content, "Item")
+            );
+        });
+
         Snapshot("component-item-slot", ui =>
         {
             var texture = new Texture([], 1, 1, mipmaps: false);

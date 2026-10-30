@@ -3,8 +3,8 @@
 2 id=- rect=404,216,1112,18 clip=380,192,1160,648 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Credits
 3 id=- rect=404,234,1112,1 clip=380,192,1160,648 color=0.102,0.1373,0.2,1 bg=0.102,0.1373,0.2,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 4 id=- rect=404,235,0,8 clip=380,192,1160,648 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-5 id=- rect=404,243,1112,573 clip=380,192,1160,648 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-6 id=Credits.Scroll rect=404,243,1098,573 clip=404,243,1098,573 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=Credits.Scroll rect=404,243,1112,573 clip=380,192,1160,648 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+6 id=- rect=404,243,1098,573 clip=404,243,1098,573 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 7 id=Credits.Content rect=404,243,1098,81 clip=404,243,1098,573 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 8 id=- rect=404,251,1098,18 clip=404,243,1098,573 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Credits body.
 9 id=- rect=404,277,1098,1 clip=404,243,1098,573 color=0.1686,0.2196,0.3059,1 bg=0.1686,0.2196,0.3059,1 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
