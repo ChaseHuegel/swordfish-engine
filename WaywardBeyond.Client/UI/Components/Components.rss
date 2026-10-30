@@ -119,6 +119,10 @@
     vertical-align: middle;
 }
 
+.wb-icon-dim {
+    color: var(--wb-text-dim);
+}
+
 .wb-icon-danger {
     color: var(--wb-danger);
 }
@@ -438,6 +442,10 @@
     text-color: var(--wb-text-muted);
 }
 
+.wb-icon-button:disabled {
+    text-color: var(--wb-text-dim);
+}
+
 .wb-icon-button:hover {
     color: var(--wb-button-hover);
     text-color: var(--wb-text);
@@ -712,6 +720,50 @@
 
 .wb-scrollbar-thumb {
     color: var(--wb-border-hover);
+}
+
+.wb-body-frame {
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+}
+
+.wb-stepper {
+    color: var(--wb-control);
+    border: 1px var(--wb-border-inner);
+}
+
+.wb-stepper-inner {
+    color: var(--wb-control);
+}
+
+.wb-stepper-sep {
+    color: var(--wb-border-inner);
+}
+
+.wb-stepper-arrow {
+    text-color: var(--wb-text-dim);
+}
+
+.wb-stepper-arrow:hover {
+    text-color: var(--wb-text);
+}
+
+.wb-stepper-value {
+    color: var(--wb-text-dim);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-info-box-label {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-text-primary-solid {
+    color: var(--wb-primary);
 }
 
 .wb-caret-block {

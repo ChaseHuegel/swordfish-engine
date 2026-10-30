@@ -10,6 +10,8 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Localization;
@@ -171,4 +173,12 @@ internal sealed class StubSkillDatabase : ISkillDatabase
     public Result<Skill> Get(string id) => Result<Skill>.FromFailure("No skills.");
 
     public IReadOnlyList<Skill> Get(XPSource xpSource) => [];
+}
+
+/// <summary>A modal page that renders nothing.</summary>
+internal sealed class StubModalPage(WaywardBeyond.Client.UI.Layers.Menus.Modal.Modal id) : IMenuPage<WaywardBeyond.Client.UI.Layers.Menus.Modal.Modal>
+{
+    public WaywardBeyond.Client.UI.Layers.Menus.Modal.Modal ID => id;
+
+    public Result RenderPage(double delta, Reef.UIBuilder<Graphics.Material> ui, Menu<WaywardBeyond.Client.UI.Layers.Menus.Modal.Modal> menu) => Result.FromSuccess();
 }

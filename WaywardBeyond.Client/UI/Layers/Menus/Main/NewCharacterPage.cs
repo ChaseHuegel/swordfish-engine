@@ -1,25 +1,23 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Reef.Constraints;
-using Reef.UI;
 using Reef;
+using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Threading.Tasks;
-using System;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
-using WaywardBeyond.Client.UI.Theme;
-using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Characters;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
@@ -28,20 +26,32 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private const int DEFAULT_SPACER_POINTS = 18;
     private const int MIN_STAT = 1;
     private const int MAX_STAT = 8;
-    private const int PANEL_PADDING = 20;
-    private const int INPUT_WIDTH = 300;
-    private const int BODY_BOX_SIZE = 192;
-    private const int FIELD_GROUP_WIDTH = INPUT_WIDTH + 8 + UiMetrics.SMALL_ICON_BUTTON_SIZE;
-    private const int SELECTOR_LABEL_WIDTH = 76;
 
     private static readonly char[] _characterNameTrimChars = [' ', '\t', '.', '\n', '\r'];
+    private static readonly string[] _statLabels =
+    [
+        "ui.label.character.strength",
+        "ui.label.character.precision",
+        "ui.label.character.awareness",
+        "ui.label.character.charisma",
+        "ui.label.character.education",
+        "ui.label.character.resolve",
+    ];
+    private static readonly string[] _statDescriptions =
+    [
+        "ui.text.character.strength",
+        "ui.text.character.precision",
+        "ui.text.character.awareness",
+        "ui.text.character.charisma",
+        "ui.text.character.education",
+        "ui.text.character.resolve",
+    ];
 
     public MenuPage ID => MenuPage.NewCharacter;
 
     private readonly ILogger<NewCharacterPage> _logger;
     private readonly ICharacterStorage _characterStorage;
     private readonly CharacterSaveManager _characterSaveManager;
-    private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
     private readonly IBodyDatabase _bodyDatabase;
@@ -50,15 +60,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly NotificationService _notificationService;
     private readonly ModalMenu _modalMenu;
     private readonly ConfirmModal _confirmModal;
-
-    private readonly Widgets.ActionButtonOptions _backButton;
-    private readonly Widgets.ActionButtonOptions _createButton;
     private readonly Randomizer _randomizer = new();
+    private readonly NewCharacterView _view;
 
+    private Menu<MenuPage>? _menu;
     private int _speciesIndex;
     private Gender _gender = Gender.Male;
     private Gender _rememberedGender = Gender.Male;
-    private TextBoxState _nameTextBox;
     private int _spacerPoints = DEFAULT_SPACER_POINTS;
     private int _focusedStat;
     private int _narrowTab;
@@ -82,11 +90,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         in NotificationService notificationService,
         in ModalMenu modalMenu,
         in ConfirmModal confirmModal
-    ) {
+    )
+    {
         _logger = logger;
         _characterStorage = characterStorage;
         _characterSaveManager = characterSaveManager;
-        _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
         _bodyDatabase = bodyDatabase;
@@ -96,678 +104,193 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _modalMenu = modalMenu;
         _confirmModal = confirmModal;
 
-        _backButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Secondary, soundEffectService);
-        _createButton = Widgets.ActionButtonOptions.Menu(ButtonVariant.Primary, soundEffectService);
-        var nameTextBoxOptions = new TextBoxState.Options(
-            Placeholder: localization.GetString("ui.field.character.name.placeholder"),
-            MaxCharacters: 20,
-            DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '<', '>', '|'],
-            Constraints: new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            }
-        );
-        _nameTextBox = new TextBoxState(initialValue: string.Empty, options: nameTextBoxOptions);
+        _view = new NewCharacterView(localization)
+        {
+            Input = inputService,
+            RandomNameRequested = RandomizeName,
+            SpeciesStepRequested = StepSpecies,
+            RandomSpeciesRequested = RandomizeSpecies,
+            GenderStepRequested = StepGender,
+            RandomGenderRequested = RandomizeGender,
+            RandomPointsRequested = RandomizePoints,
+            StatDecreaseRequested = DecreaseStat,
+            StatIncreaseRequested = IncreaseStat,
+            TabRequested = SelectTab,
+            BackRequested = Back,
+            CreateRequested = RequestCreate,
+        };
     }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        MenuLayout layout = MenuLayout.Compute(
-            ui.Width,
-            ui.Height,
-            maxPageWidth: 1160,
-            twoColumn: true,
-            leftRatio: 0.5f
-        );
-
-        using (ui.Page(layout))
-        {
-            ui.Padding = new Padding(left: 0, top: MenuLayout.PAGE_GAP, right: 0, bottom: 0);
-            ui.Spacing = MenuLayout.PAGE_GAP;
-
-            DrawPanes(ui, layout);
-            DrawFooter(ui, menu);
-        }
-
+        _menu = menu;
+        EnsureValidSelection();
+        _view.Render(ui, BuildState(ui));
         return Result.FromSuccess();
     }
 
-    /// <summary>Draws the identity and evaluation panes for the current width.</summary>
-    private void DrawPanes(UIBuilder<Material> ui, in MenuLayout layout)
+    /// <summary>Collects the form values, selectors, stat rows, and validation shown this frame.</summary>
+    private NewCharacterState BuildState(UIBuilder<Material> ui)
     {
-        if (!layout.UseTabs)
-        {
-            using (ui.Row(
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                },
-                spacing: MenuLayout.PANEL_GAP
-            ))
-            {
-                DrawIdentity(
-                    ui,
-                    new Constraints
-                    {
-                        Width = new Relative(layout.LeftRatio),
-                        Height = new Fill(),
-                    }
-                );
-                DrawEvaluation(
-                    ui,
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    }
-                );
-            }
+        string name = CurrentName();
+        bool nameMissing = string.IsNullOrWhiteSpace(name);
+        bool nameTaken = !nameMissing && _characterStorage.GetAllCharacters().Any(character => character.Name == name);
+        (string? status, bool danger, bool warning) = ResolveStatus(nameMissing, nameTaken);
 
-            return;
-        }
+        IReadOnlyList<string> speciesList = _bodyDatabase.Species;
+        string species = CurrentSpecies();
+        IReadOnlyList<Gender> genders = _bodyDatabase.GetGenders(species);
 
-        using (ui.Column(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            }
-        ))
-        {
-            DrawTabs(ui);
-            Constraints pane = new()
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-
-            if (_narrowTab == 0)
-            {
-                DrawIdentity(ui, pane);
-                return;
-            }
-
-            DrawEvaluation(ui, pane);
-        }
+        return new NewCharacterState(
+            _narrowTab,
+            _spacerPoints,
+            _characterAssetService.GetAppearanceMaterial(CurrentBodyId()),
+            new SelectorState(
+                L("ui.field.character.species"),
+                species,
+                speciesList.Count > 1
+            ),
+            new SelectorState(
+                L("ui.field.character.gender"),
+                _view.GenderName(_gender),
+                genders.Count > 1
+            ),
+            BuildStatRows(),
+            L("ui.label.info"),
+            _view.InfoText(L(_statLabels[_focusedStat]), L(_statDescriptions[_focusedStat])),
+            status,
+            danger,
+            warning,
+            CanCreate: !nameMissing && !nameTaken
+        );
     }
 
-    /// <summary>Draws the narrow-layout tabs.</summary>
-    private void DrawTabs(UIBuilder<Material> ui)
+    /// <summary>Builds the six spacer stat rows.</summary>
+    private List<CharacterStatRow> BuildStatRows()
     {
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(MenuLayout.TABS_HEIGHT),
-            },
-            spacing: 8
-        ))
+        int[] values = [_strength, _precision, _awareness, _charisma, _education, _resolve];
+        var rows = new List<CharacterStatRow>(values.Length);
+        for (var i = 0; i < values.Length; i++)
         {
-            var tabConstraints = new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
-
-            if (ui.Tab(
-                "IdentityTab",
-                _localization.GetRequired("ui.panel.character.form"),
-                selected: _narrowTab == 0,
-                tabConstraints
-            ))
-            {
-                _narrowTab = 0;
-            }
-
-            if (ui.Tab(
-                "EvaluationTab",
-                _localization.GetRequired("ui.panel.character.spacer"),
-                selected: _narrowTab == 1,
-                tabConstraints
-            ))
-            {
-                _narrowTab = 1;
-            }
+            rows.Add(new CharacterStatRow(
+                L(_statLabels[i]),
+                values[i].ToString(),
+                _focusedStat == i,
+                values[i] > MIN_STAT,
+                _spacerPoints > 0 && values[i] < MAX_STAT
+            ));
         }
+
+        return rows;
     }
 
-    /// <summary>Draws the page footer, then opens the created character or leaves the page.</summary>
-    private void DrawFooter(UIBuilder<Material> ui, Menu<MenuPage> menu)
-    {
-        string currentName = CurrentName();
-        bool nameMissing = string.IsNullOrWhiteSpace(currentName);
-        bool nameTaken = !nameMissing
-            && _characterStorage.GetAllCharacters().Any(character => character.Name == currentName);
-        bool canCreate = !nameMissing && !nameTaken;
-        FooterStatus status = ResolveFooterStatus(nameMissing, nameTaken);
-
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(MenuLayout.FOOTER_HEIGHT),
-            },
-            spacing: 12
-        ))
-        {
-            if (ui.ActionButton(
-                "Button_Back",
-                _localization.GetRequired("ui.button.back"),
-                _backButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH)
-            ))
-            {
-                menu.GoToPage(MenuPage.SelectCharacter);
-            }
-
-            ui.FooterStatus(status.Message, status.Color);
-
-            Widgets.ActionButtonOptions createOptions = _createButton
-                .FooterButton(MenuLayout.PRIMARY_BUTTON_WIDTH) with
-            {
-                Enabled = canCreate,
-            };
-            if (ui.ActionButton(
-                "Button_CreateCharacter",
-                _localization.GetRequired("ui.button.character.create"),
-                createOptions
-            ))
-            {
-                RequestCreate(menu);
-            }
-        }
-    }
-
-    /// <summary>Gets the footer message and its color for the current name and unspent spacer points.</summary>
-    private FooterStatus ResolveFooterStatus(bool nameMissing, bool nameTaken)
+    /// <summary>Gets the footer message and its tone for the current name and unspent points.</summary>
+    private (string? Status, bool Danger, bool Warning) ResolveStatus(bool nameMissing, bool nameTaken)
     {
         if (nameMissing)
         {
-            return new FooterStatus(_localization.GetString("ui.message.name.required"), UiTheme.Danger);
+            return (_localization.GetString("ui.message.name.required"), true, false);
         }
 
         if (nameTaken)
         {
-            return new FooterStatus(_localization.GetString("ui.message.name.taken"), UiTheme.Danger);
+            return (_localization.GetString("ui.message.name.taken"), true, false);
         }
 
         if (_spacerPoints == 0)
         {
-            return default;
+            return (null, false, false);
         }
 
-        string message = string.Format(
-            _localization.GetRequired("ui.message.character.unspentPoints"),
-            _spacerPoints
+        return (
+            string.Format(_localization.GetRequired("ui.message.character.unspentPoints"), _spacerPoints),
+            false,
+            true
         );
-
-        return new FooterStatus(message, UiTheme.Warning);
     }
 
-    /// <summary>A footer message and the color to draw it in.</summary>
-    private readonly record struct FooterStatus(string? Message, Vector4 Color);
-
-    /// <summary>Creates the character, or asks for confirmation first while spacer points are unspent.</summary>
-    private void RequestCreate(Menu<MenuPage> menu)
+    private string L(string key)
     {
-        if (_spacerPoints == 0)
-        {
-            TryCreate(menu);
-            return;
-        }
-
-        string title = _localization.GetRequired("ui.dialog.character.unspent");
-        string body = string.Format(
-            _localization.GetRequired("ui.dialog.character.unspent.body"),
-            _spacerPoints
-        );
-        string createLabel = _localization.GetRequired("ui.button.character.create");
-        string cancelLabel = _localization.GetRequired("ui.button.cancel");
-        _modalMenu.GoToPage(_confirmModal.Create(() => TryCreate(menu), title, body, createLabel, cancelLabel));
+        return _localization.GetRequired(key);
     }
 
-    /// <summary>Draws the identity panel.</summary>
-    private void DrawIdentity(UIBuilder<Material> ui, Constraints constraints)
+    private void SelectTab(int tab)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.form"), padding: PANEL_PADDING))
-        {
-            DrawNameField(ui);
-            ui.Spacer(height: 16);
-            DrawBodyPreview(ui);
-        }
+        _narrowTab = tab;
     }
 
-    /// <summary>Draws the character name field and its randomize button.</summary>
-    private void DrawNameField(UIBuilder<Material> ui)
+    private void Back()
     {
-        ui.Label(
-            _localization.GetRequired("ui.field.character.name"),
-            UiMetrics.MENU_SMALL_FONT,
-            UiTheme.Text,
-            new Constraints
-            {
-                Width = new Fixed(FIELD_GROUP_WIDTH),
-                Height = new Fixed(16),
-                Anchors = Anchors.Center,
-            }
-        );
-        ui.Spacer(height: 4);
-
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fixed(FIELD_GROUP_WIDTH),
-                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
-                Anchors = Anchors.Center,
-            },
-            spacing: 8
-        ))
-        {
-            Widgets.Interactions nameInteractions = ui.MenuTextBox(
-                "TextBox_CharacterName",
-                ref _nameTextBox,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                },
-                new FontOptions { Size = UiMetrics.MENU_BODY_FONT },
-                _inputService,
-                _soundEffectService
-            );
-            Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
-            if (ui.IconButton(
-                "Button_RandomName",
-                MenuGlyphs.DICE,
-                randomOptions,
-                new Constraints
-                {
-                    Width = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
-                    Height = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
-                    Anchors = Anchors.Center,
-                }
-            ) && !nameInteractions.Has(Widgets.Interactions.Input))
-            {
-                RandomizeName();
-            }
-        }
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _menu?.GoToPage(MenuPage.SelectCharacter);
     }
 
-    /// <summary>Draws the body preview box and the species and gender selectors.</summary>
-    private void DrawBodyPreview(UIBuilder<Material> ui)
+    private void StepSpecies(int delta)
     {
-        DrawBodyImage(ui);
-        ui.Spacer(height: 12);
-        DrawBodySelectors(ui);
-    }
-
-    /// <summary>Draws the body preview frame and the current appearance inside it.</summary>
-    private void DrawBodyImage(UIBuilder<Material> ui)
-    {
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Padding = new Padding(8);
-            ui.Color = UiTheme.PanelInner;
-            ui.Border = new BorderStyle
-            {
-                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                Color = UiTheme.Border,
-            };
-            ui.Constraints = new Constraints
-            {
-                Width = new Fixed(BODY_BOX_SIZE),
-                Height = new Fixed(BODY_BOX_SIZE),
-                Anchors = Anchors.Center,
-            };
-            ui.ClipConstraints = Widgets.ClipToBounds();
-
-            Material appearance = _characterAssetService.GetAppearanceMaterial(CurrentBodyId());
-            using (ui.Image(appearance))
-            {
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                };
-            }
-        }
-    }
-
-    /// <summary>Draws the species and gender selector rows beneath the preview.</summary>
-    private void DrawBodySelectors(UIBuilder<Material> ui)
-    {
-        EnsureValidSelection();
-
         IReadOnlyList<string> speciesList = _bodyDatabase.Species;
-        if (speciesList.Count == 0)
+        if (speciesList.Count <= 1)
         {
             return;
         }
 
-        DrawSelectorRow(
-            ui,
-            "SpeciesSelector",
-            _localization.GetRequired("ui.field.character.species"),
-            speciesList,
-            _speciesIndex,
-            _localization.GetSpeciesName,
-            index =>
-            {
-                _speciesIndex = index;
-                EnsureValidSelection();
-            },
-            RandomizeSpecies
+        _speciesIndex = Math.Clamp(_speciesIndex + delta, 0, speciesList.Count - 1);
+        EnsureValidSelection();
+        _soundEffectService.PlayInterfaceSound(
+            delta > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease
         );
+    }
 
-        ui.Spacer(height: 8);
-
-        //  The species row may have changed the selection in this frame.
+    private void StepGender(int delta)
+    {
         IReadOnlyList<Gender> genders = _bodyDatabase.GetGenders(CurrentSpecies());
-        DrawSelectorRow(
-            ui,
-            "GenderSelector",
-            _localization.GetRequired("ui.field.character.gender"),
-            genders,
-            IndexOfGender(genders, _gender),
-            FormatGenderName,
-            index => SetGender(genders[index]),
-            RandomizeGender
+        if (genders.Count <= 1)
+        {
+            return;
+        }
+
+        int index = Math.Clamp(IndexOfGender(genders, _gender) + delta, 0, genders.Count - 1);
+        SetGender(genders[index]);
+        _soundEffectService.PlayInterfaceSound(
+            delta > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease
         );
     }
 
-    /// <summary>Draws one labeled selector row with a discrete stepper and a randomize button.</summary>
-    private void DrawSelectorRow<T>(
-        UIBuilder<Material> ui,
-        string id,
-        string label,
-        IReadOnlyList<T> options,
-        int index,
-        Func<T, string> format,
-        Action<int> onChanged,
-        Action onRandomize
-    )
+    private void DecreaseStat(int index)
     {
-        bool enabled = options.Count > 1;
-
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fixed(FIELD_GROUP_WIDTH),
-                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
-                Anchors = Anchors.Center,
-            },
-            spacing: 8
-        ))
-        {
-            ui.Label(
-                label,
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.TextMuted,
-                new Constraints
-                {
-                    Width = new Fixed(SELECTOR_LABEL_WIDTH),
-                    Height = new Fill(),
-                }
-            );
-
-            ControlResult<int> result = ui.Stepper(
-                id,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                },
-                options,
-                index,
-                format,
-                enabled
-            );
-
-            if (result.Changed)
-            {
-                onChanged(result.Value);
-                Widgets.Interactions.Click.WithButtonAudio(
-                    _soundEffectService,
-                    result.Value > index ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease
-                );
-            }
-
-            Widgets.IconButtonOptions randomOptions = new(
-                SoundEffectService: _soundEffectService,
-                Enabled: enabled
-            );
-            if (ui.IconButton(
-                $"{id}_Random",
-                MenuGlyphs.DICE,
-                randomOptions,
-                new Constraints
-                {
-                    Width = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
-                    Height = new Fixed(UiMetrics.SMALL_ICON_BUTTON_SIZE),
-                    Anchors = Anchors.Center,
-                }
-            ))
-            {
-                onRandomize();
-            }
-        }
+        _focusedStat = index;
+        SetStat(index, ValueOf(index) - 1);
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Decrease);
     }
 
-    /// <summary>Draws the spacer evaluation panel.</summary>
-    private void DrawEvaluation(UIBuilder<Material> ui, Constraints constraints)
+    private void IncreaseStat(int index)
     {
-        using (ui.MenuPanel(constraints, _localization.GetRequired("ui.panel.character.spacer"), padding: 16))
-        {
-            ui.Paragraph(
-                _localization.GetRequired("ui.text.character.spacer"),
-                UiMetrics.MENU_SMALL_FONT,
-                UiTheme.TextMuted,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fit(),
-                }
-            );
-
-            ui.Spacer(height: 12);
-
-            using (ui.Row(
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fixed(32),
-                },
-                spacing: 8
-            ))
-            {
-                ui.Label(
-                    _localization.GetRequired("ui.label.character.spacer.points"),
-                    UiMetrics.MENU_SMALL_FONT,
-                    UiTheme.Text,
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    }
-                );
-                ui.Label(
-                    _spacerPoints.ToString(),
-                    UiMetrics.MENU_BODY_FONT,
-                    UiTheme.Primary,
-                    new Constraints
-                    {
-                        Width = new Fixed(36),
-                        Height = new Fill(),
-                    },
-                    HorizontalAlignment.Right
-                );
-
-                Widgets.IconButtonOptions randomOptions = new(SoundEffectService: _soundEffectService);
-                if (ui.IconButton(
-                    "Button_RandomPoints",
-                    MenuGlyphs.DICE,
-                    randomOptions,
-                    new Constraints
-                    {
-                        Width = new Fixed(32),
-                        Height = new Fixed(32),
-                    }
-                ))
-                {
-                    RandomizePoints();
-                }
-            }
-
-            ui.Spacer(height: 8);
-            DrawStatRows(ui);
-            ui.Spacer(height: 12);
-
-            string[] descriptions =
-            [
-                _localization.GetRequired("ui.text.character.strength"),
-                _localization.GetRequired("ui.text.character.precision"),
-                _localization.GetRequired("ui.text.character.awareness"),
-                _localization.GetRequired("ui.text.character.charisma"),
-                _localization.GetRequired("ui.text.character.education"),
-                _localization.GetRequired("ui.text.character.resolve"),
-            ];
-            string[] names =
-            [
-                _localization.GetRequired("ui.label.character.strength"),
-                _localization.GetRequired("ui.label.character.precision"),
-                _localization.GetRequired("ui.label.character.awareness"),
-                _localization.GetRequired("ui.label.character.charisma"),
-                _localization.GetRequired("ui.label.character.education"),
-                _localization.GetRequired("ui.label.character.resolve"),
-            ];
-
-            ui.InfoBox(
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                    MaxHeight = 96,
-                },
-                _localization.GetRequired("ui.label.info"),
-                descriptions[_focusedStat],
-                names[_focusedStat] + ":"
-            );
-        }
+        _focusedStat = index;
+        SetStat(index, ValueOf(index) + 1);
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Increase);
     }
 
-    /// <summary>Draws the six spacer stat rows.</summary>
-    private void DrawStatRows(UIBuilder<Material> ui)
+    private int ValueOf(int index)
     {
-        DrawStatRow(ui, 0, _localization.GetRequired("ui.label.character.strength"), _strength);
-        DrawStatRow(ui, 1, _localization.GetRequired("ui.label.character.precision"), _precision);
-        DrawStatRow(ui, 2, _localization.GetRequired("ui.label.character.awareness"), _awareness);
-        DrawStatRow(ui, 3, _localization.GetRequired("ui.label.character.charisma"), _charisma);
-        DrawStatRow(ui, 4, _localization.GetRequired("ui.label.character.education"), _education);
-        DrawStatRow(ui, 5, _localization.GetRequired("ui.label.character.resolve"), _resolve);
-    }
-
-    private void DrawStatRow(
-        UIBuilder<Material> ui,
-        int index,
-        string label,
-        int value
-    )
-    {
-        using (ui.Row(
-            new Constraints
-            {
-                Width = new Fill(),
-                Height = new Fixed(28),
-            },
-            spacing: 4,
-            id: $"StatRow_{index}"
-        ))
-        {
-            bool focused = _focusedStat == index;
-            bool hovering = ui.Hovering();
-            if (hovering)
-            {
-                _focusedStat = index;
-                focused = true;
-            }
-
-            ui.StatLabel(
-                label,
-                UiMetrics.MENU_BODY_FONT,
-                focused,
-                new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                }
-            );
-            ui.Label(
-                value.ToString(),
-                UiMetrics.MENU_BODY_FONT,
-                UiTheme.Text,
-                new Constraints
-                {
-                    Width = new Fixed(28),
-                    Height = new Fill(),
-                },
-                HorizontalAlignment.Right
-            );
-
-            bool canDecrease = value > MIN_STAT;
-            var buttonOptions = new Widgets.ActionButtonOptions(
-                Variant: ButtonVariant.Secondary,
-                Layout: new Constraints
-                {
-                    Width = new Fixed(24),
-                    Height = new Fixed(24),
-                    Anchors = Anchors.Center,
-                }
-            );
-            if (ui.ActionButton(
-                $"StatMinus_{index}",
-                "-",
-                buttonOptions with { Enabled = canDecrease }
-            ))
-            {
-                _focusedStat = index;
-                SetStat(index, value - 1);
-                Widgets.Interactions.Click.WithButtonAudio(_soundEffectService, Widgets.InterfaceSound.Decrease);
-            }
-
-            bool canIncrease = _spacerPoints > 0 && value < MAX_STAT;
-            if (ui.ActionButton(
-                $"StatPlus_{index}",
-                "+",
-                buttonOptions with { Enabled = canIncrease }
-            ))
-            {
-                _focusedStat = index;
-                SetStat(index, value + 1);
-                Widgets.Interactions.Click.WithButtonAudio(_soundEffectService, Widgets.InterfaceSound.Increase);
-            }
-        }
-    }
-
-    /// <summary>Gets the trimmed character name the field currently holds.</summary>
-    private string CurrentName()
-    {
-        return CharacterNames.Clamp(_nameTextBox.Text.ToString().Trim(_characterNameTrimChars));
-    }
-
-    private void SetStat(int index, int value)
-    {
-        int oldValue = index switch
+        return index switch
         {
             0 => _strength,
             1 => _precision,
             2 => _awareness,
             3 => _charisma,
             4 => _education,
-            5 => _resolve,
-            _ => 1,
+            _ => _resolve,
         };
+    }
+
+    /// <summary>Gets the trimmed character name the field currently holds.</summary>
+    private string CurrentName()
+    {
+        return CharacterNames.Clamp(_view.NameState.Text.ToString().Trim(_characterNameTrimChars));
+    }
+
+    private void SetStat(int index, int value)
+    {
+        int oldValue = ValueOf(index);
         int clamped = Math.Clamp(value, MIN_STAT, MAX_STAT);
         int change = clamped - oldValue;
         if (change == 0)
@@ -797,7 +320,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             case 4:
                 _education = clamped;
                 break;
-            case 5:
+            default:
                 _resolve = clamped;
                 break;
         }
@@ -805,7 +328,25 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _spacerPoints -= change;
     }
 
-    private void TryCreate(Menu<MenuPage> menu)
+    /// <summary>Creates the character, or asks for confirmation first while spacer points are unspent.</summary>
+    private void RequestCreate()
+    {
+        if (_spacerPoints == 0)
+        {
+            TryCreate();
+            return;
+        }
+
+        _modalMenu.GoToPage(_confirmModal.Create(
+            TryCreate,
+            _localization.GetRequired("ui.dialog.character.unspent"),
+            string.Format(_localization.GetRequired("ui.dialog.character.unspent.body"), _spacerPoints),
+            _localization.GetRequired("ui.button.character.create"),
+            _localization.GetRequired("ui.button.cancel")
+        ));
+    }
+
+    private void TryCreate()
     {
         string nameValue = CurrentName();
         if (string.IsNullOrWhiteSpace(nameValue))
@@ -838,17 +379,18 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             _Inventory: null
         );
 
-        Task.Run(() => SaveCharacter(character, menu));
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        Task.Run(() => SaveCharacter(character));
     }
 
     /// <summary>Saves the new character, then opens the character list.</summary>
-    private void SaveCharacter(Character character, Menu<MenuPage> menu)
+    private void SaveCharacter(Character character)
     {
         Result saveResult = _characterStorage.SaveCharacter(character);
         if (saveResult)
         {
             _characterSaveManager.ActiveSave = character;
-            menu.GoToPage(MenuPage.SelectCharacter);
+            _menu?.GoToPage(MenuPage.SelectCharacter);
             ResetState();
             return;
         }
@@ -873,12 +415,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             NicknameChance: 0.1f
         );
 
-        string generatedName = _nameGenerator.Generate(
-            key: CurrentBodyId(),
-            options
-        );
-        _nameTextBox.Text.Clear();
-        _nameTextBox.Text.Append(generatedName);
+        string generatedName = _nameGenerator.Generate(key: CurrentBodyId(), options);
+        _view.NameState.Text.Clear();
+        _view.NameState.Text.Append(generatedName);
     }
 
     private void RandomizePoints()
@@ -891,16 +430,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         while (_spacerPoints > 0)
         {
             int[] candidates = Enumerable.Range(0, 6)
-                .Where(index => index switch
-                {
-                    0 => _strength,
-                    1 => _precision,
-                    2 => _awareness,
-                    3 => _charisma,
-                    4 => _education,
-                    5 => _resolve,
-                    _ => MAX_STAT,
-                } < MAX_STAT)
+                .Where(index => ValueOf(index) < MAX_STAT)
                 .ToArray();
 
             if (candidates.Length == 0)
@@ -909,17 +439,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             }
 
             int attributeIndex = candidates[_randomizer.NextInt(0, candidates.Length)];
-            int value = attributeIndex switch
-            {
-                0 => _strength,
-                1 => _precision,
-                2 => _awareness,
-                3 => _charisma,
-                4 => _education,
-                5 => _resolve,
-                _ => MAX_STAT,
-            };
-            SetStat(attributeIndex, value + 1);
+            SetStat(attributeIndex, ValueOf(attributeIndex) + 1);
         }
     }
 
@@ -929,7 +449,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _gender = Gender.Male;
         _rememberedGender = Gender.Male;
         EnsureValidSelection();
-        _nameTextBox.Text.Clear();
+        _view.NameState.Text.Clear();
         ResetAttributes();
     }
 
@@ -1005,6 +525,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
         _speciesIndex = nextIndex;
         EnsureValidSelection();
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Toggle);
     }
 
     /// <summary>Picks a different gender for the current species at random.</summary>
@@ -1024,6 +545,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         } while (nextIndex == currentIndex);
 
         SetGender(genders[nextIndex]);
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Toggle);
     }
 
     /// <summary>Gets the current species ID, or an empty string when no body is loaded.</summary>
@@ -1031,17 +553,6 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     {
         IReadOnlyList<string> speciesList = _bodyDatabase.Species;
         return speciesList.Count > _speciesIndex ? speciesList[_speciesIndex] : string.Empty;
-    }
-
-    /// <summary>Gets the localized gender name.</summary>
-    private string FormatGenderName(Gender gender)
-    {
-        return gender switch
-        {
-            Gender.Male => _localization.GetRequired("body.gender.male"),
-            Gender.Female => _localization.GetRequired("body.gender.female"),
-            _ => _localization.GetRequired("body.gender.neutral"),
-        };
     }
 
     /// <summary>Gets the position of a gender in a list, or 0 when it is absent.</summary>

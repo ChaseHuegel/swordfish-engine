@@ -1,0 +1,314 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      xmlns:controls="WaywardBeyond.Client.UI.Controls"
+      Class="NewCharacterView"
+      Context="NewCharacterState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Page max-width="1160" max-height="560">
+        <Element layout="vertical" width="fill" height="fill" padding="0 12 0 0" spacing="12">
+
+            <Element visible="@(ui.Width &gt;= 1020)"
+                     layout="horizontal"
+                     width="fill"
+                     height="fill"
+                     spacing="20">
+                <Element class="wb-panel" layout="none" width="50%" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
+                        <Text text="@L('ui.panel.character.form')" class="wb-panel-header" width="fill" height="18" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+
+                        <Text text="@L('ui.field.character.name')" class="wb-field-label" width="340" height="16" anchor="Center" />
+                        <Element height="4" />
+                        <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
+                            <controls:TextInput id="TextBox_CharacterName"
+                                                bind="NameState"
+                                                input-service="@Input"
+                                                placeholder="@L('ui.field.character.name.placeholder')"
+                                                class="wb-field-frame"
+                                                width="fill"
+                                                height="fill"
+                                                font-size="18" />
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomName"
+                                     anchor="Center"
+                                     onclick="OnRandomName"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+
+                        <Element height="16" />
+                        <Element class="wb-body-frame" layout="none" width="192" height="192" padding="8" anchor="Center" clip="true">
+                            <Image source="@context.Appearance" width="fill" height="fill" />
+                        </Element>
+
+                        <Element height="12" />
+                        <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
+                            <Text text="@L('ui.field.character.species')" class="wb-text-small" width="76" height="fill" />
+                            <Element class="wb-stepper" layout="none" width="fill" height="fill" padding="1">
+                                <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
+                                    <Element class="wb-stepper-arrow" id="SpeciesDown" onclick="OnSpeciesDown" width="32" height="fill">
+                                        <Text text="&lt;" class="wb-stepper-value" width="fill" height="fill" />
+                                    </Element>
+                                    <Element class="wb-stepper-sep" width="1" height="fill" />
+                                    <Text text="@context.Species.Value" class="wb-stepper-value" width="fill" height="fill" />
+                                    <Element class="wb-stepper-sep" width="1" height="fill" />
+                                    <Element class="wb-stepper-arrow" id="SpeciesUp" onclick="OnSpeciesUp" width="32" height="fill">
+                                        <Text text="&gt;" class="wb-stepper-value" width="fill" height="fill" />
+                                    </Element>
+                                </Element>
+                            </Element>
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomSpecies"
+                                     disabled="@(!context.Species.Enabled)"
+                                     anchor="Center"
+                                     onclick="OnRandomSpecies"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Species.Enabled)" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+
+                        <Element height="8" />
+                        <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
+                            <Text text="@L('ui.field.character.gender')" class="wb-text-small" width="76" height="fill" />
+                            <Element class="wb-stepper" layout="none" width="fill" height="fill" padding="1">
+                                <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
+                                    <Element class="wb-stepper-arrow" id="GenderDown" onclick="OnGenderDown" width="32" height="fill">
+                                        <Text text="&lt;" class="wb-stepper-value" width="fill" height="fill" />
+                                    </Element>
+                                    <Element class="wb-stepper-sep" width="1" height="fill" />
+                                    <Text text="@context.Gender.Value" class="wb-stepper-value" width="fill" height="fill" />
+                                    <Element class="wb-stepper-sep" width="1" height="fill" />
+                                    <Element class="wb-stepper-arrow" id="GenderUp" onclick="OnGenderUp" width="32" height="fill">
+                                        <Text text="&gt;" class="wb-stepper-value" width="fill" height="fill" />
+                                    </Element>
+                                </Element>
+                            </Element>
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomGender"
+                                     disabled="@(!context.Gender.Enabled)"
+                                     anchor="Center"
+                                     onclick="OnRandomGender"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Gender.Enabled)" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+                    </Element>
+                </Element>
+
+                <Element class="wb-panel" layout="none" width="fill" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="16">
+                        <Text text="@L('ui.panel.character.spacer')" class="wb-panel-header" width="fill" height="18" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+
+                        <Text text="@L('ui.text.character.spacer')" class="wb-field-hint" width="fill" height="fit" wrap="true" />
+                        <Element height="12" />
+
+                        <Element layout="horizontal" width="fill" height="32" spacing="8">
+                            <Text text="@L('ui.label.character.spacer.points')" class="wb-field-label" width="fill" height="fill" />
+                            <Text text="@context.SpacerPoints.ToString()" class="wb-text-body wb-text-primary-solid" width="36" height="fill" text-align="right" />
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomPoints"
+                                     onclick="OnRandomPoints"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+
+                        <Element height="8" />
+                        <ForEach in="@context.Stats" as="stat" index="i">
+                            <Element layout="horizontal" width="fill" height="28" spacing="4">
+                                <Text text="@StatText(stat.Label, stat.Focused)" class="wb-text-body" class:wb-text-muted="@(!stat.Focused)" width="fill" height="fill" />
+                                <Text text="@stat.Value" class="wb-text-body" width="28" height="fill" text-align="right" />
+                                <Element class="wb-button-secondary"
+                                         class:wb-button-disabled="@(!stat.CanDecrease)"
+                                         id="StatMinus_{i}"
+                                         layout="none"
+                                         clip="true"
+                                         disabled="@(!stat.CanDecrease)"
+                                         onclick="OnStatMinus(i)"
+                                         y="2"
+                                         width="24"
+                                         height="24">
+                                    <Text class="wb-button-label" text="-" anchor="Center" />
+                                </Element>
+                                <Element class="wb-button-secondary"
+                                         class:wb-button-disabled="@(!stat.CanIncrease)"
+                                         id="StatPlus_{i}"
+                                         layout="none"
+                                         clip="true"
+                                         disabled="@(!stat.CanIncrease)"
+                                         onclick="OnStatPlus(i)"
+                                         y="2"
+                                         width="24"
+                                         height="24">
+                                    <Text class="wb-button-label" text="+" anchor="Center" />
+                                </Element>
+                            </Element>
+                        </ForEach>
+
+                        <Element height="12" />
+                        <Element class="wb-info-box" layout="vertical" width="fill" height="fill" max-height="96">
+                            <Text text="@L('ui.label.info')" class="wb-info-box-label wb-text" width="fill" height="16" />
+                            <Element height="4" />
+                            <Element class="wb-divider" width="fill" height="1" />
+                            <Element height="6" />
+                            <Text text="@context.InfoBody" class="wb-text-small" width="fill" height="fit" wrap="true" />
+                        </Element>
+                    </Element>
+                </Element>
+            </Element>
+
+            <Element visible="@(ui.Width &lt; 1020)" layout="vertical" width="fill" height="fill" spacing="0">
+                <Element layout="horizontal" width="fill" height="40" spacing="8">
+                    <Tab id="IdentityTab" param:selected="@(context.Tab == 0)" onclick="OnSelectTab(0)" width="fill" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.character.form')" width="fill" height="fill" />
+                    </Tab>
+                    <Tab id="EvaluationTab" param:selected="@(context.Tab == 1)" onclick="OnSelectTab(1)" width="fill" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.character.spacer')" width="fill" height="fill" />
+                    </Tab>
+                </Element>
+
+                <Element visible="@(context.Tab == 0)" class="wb-panel" layout="none" width="fill" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
+                        <Text text="@L('ui.panel.character.form')" class="wb-panel-header" width="fill" height="18" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@L('ui.field.character.name')" class="wb-field-label" width="340" height="16" anchor="Center" />
+                        <Element height="4" />
+                        <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
+                            <controls:TextInput id="TextBox_CharacterNameNarrow"
+                                                bind="NameState"
+                                                input-service="@Input"
+                                                placeholder="@L('ui.field.character.name.placeholder')"
+                                                class="wb-field-frame"
+                                                width="fill"
+                                                height="fill"
+                                                font-size="18" />
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomNameNarrow"
+                                     anchor="Center"
+                                     onclick="OnRandomName"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+
+                        <Element height="16" />
+                        <Element class="wb-body-frame" layout="none" width="192" height="192" padding="8" anchor="Center" clip="true">
+                            <Image source="@context.Appearance" width="fill" height="fill" />
+                        </Element>
+
+                        <Element height="12" />
+                        <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
+                            <Text text="@L('ui.field.character.species')" class="wb-text-small" width="76" height="fill" />
+                            <Element class="wb-stepper" layout="none" width="fill" height="fill" padding="1">
+                                <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
+                                    <Element class="wb-stepper-arrow" id="SpeciesDownNarrow" onclick="OnSpeciesDown" width="32" height="fill">
+                                        <Text text="&lt;" class="wb-stepper-value" width="fill" height="fill" />
+                                    </Element>
+                                    <Element class="wb-stepper-sep" width="1" height="fill" />
+                                    <Text text="@context.Species.Value" class="wb-stepper-value" width="fill" height="fill" />
+                                    <Element class="wb-stepper-sep" width="1" height="fill" />
+                                    <Element class="wb-stepper-arrow" id="SpeciesUpNarrow" onclick="OnSpeciesUp" width="32" height="fill">
+                                        <Text text="&gt;" class="wb-stepper-value" width="fill" height="fill" />
+                                    </Element>
+                                </Element>
+                            </Element>
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomSpeciesNarrow"
+                                     disabled="@(!context.Species.Enabled)"
+                                     anchor="Center"
+                                     onclick="OnRandomSpecies"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Species.Enabled)" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+
+                        <Element height="8" />
+                        <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
+                            <Text text="@L('ui.field.character.gender')" class="wb-text-small" width="76" height="fill" />
+                            <Element class="wb-stepper" layout="none" width="fill" height="fill" padding="1">
+                                <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
+                                    <Element class="wb-stepper-arrow" id="GenderDownNarrow" onclick="OnGenderDown" width="32" height="fill">
+                                        <Text text="&lt;" class="wb-stepper-value" width="fill" height="fill" />
+                                    </Element>
+                                    <Element class="wb-stepper-sep" width="1" height="fill" />
+                                    <Text text="@context.Gender.Value" class="wb-stepper-value" width="fill" height="fill" />
+                                    <Element class="wb-stepper-sep" width="1" height="fill" />
+                                    <Element class="wb-stepper-arrow" id="GenderUpNarrow" onclick="OnGenderUp" width="32" height="fill">
+                                        <Text text="&gt;" class="wb-stepper-value" width="fill" height="fill" />
+                                    </Element>
+                                </Element>
+                            </Element>
+                            <Element class="wb-icon-button"
+                                     id="Button_RandomGenderNarrow"
+                                     disabled="@(!context.Gender.Enabled)"
+                                     anchor="Center"
+                                     onclick="OnRandomGender"
+                                     width="32"
+                                     height="32">
+                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Gender.Enabled)" text="@Glyph('dice')" x="12" y="4" />
+                            </Element>
+                        </Element>
+                    </Element>
+                </Element>
+
+                <Element visible="@(context.Tab == 1)" class="wb-panel" layout="none" width="fill" height="fill" padding="2">
+                    <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="16">
+                        <Text text="@L('ui.panel.character.spacer')" class="wb-panel-header" width="fill" height="18" />
+                        <Element height="4" />
+                        <Element class="wb-divider-inner" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@L('ui.text.character.spacer')" class="wb-field-hint" width="fill" height="fit" wrap="true" />
+                    </Element>
+                </Element>
+            </Element>
+
+            <Element layout="horizontal" width="fill" height="52" spacing="12">
+                <Button id="Button_Back"
+                        param:variant="secondary"
+                        onclick="OnBack"
+                        anchor="Center"
+                        width="170"
+                        height="40">
+                    <Text class="wb-button-label" text="@L('ui.button.back')" anchor="Center" />
+                </Button>
+
+                <Text text="@context.Status"
+                      class="wb-text-small"
+                      class:wb-text-danger-solid="@context.StatusDanger"
+                      class:wb-text-warning="@context.StatusWarning"
+                      width="fill"
+                      height="fill"
+                      text-align="center"
+                      vertical-align="middle" />
+
+                <Button id="Button_CreateCharacter"
+                        param:variant="primary"
+                        param:enabled="@context.CanCreate"
+                        disabled="@(!context.CanCreate)"
+                        onclick="OnCreate"
+                        anchor="Center"
+                        width="220"
+                        height="40">
+                    <Text class="wb-button-label" text="@L('ui.button.character.create')" anchor="Center" />
+                </Button>
+            </Element>
+        </Element>
+    </Page>
+</Reef>
