@@ -77,6 +77,7 @@ Components:
 - `ScrollArea`
 - `ScrollBar`
 - `DottedDivider`
+- `Stepper`
 - `Tab`
 - `Notification`
 

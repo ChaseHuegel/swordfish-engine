@@ -895,6 +895,21 @@ string literals, and runtime UI metrics (such as `ui.Delta` and `ui.GetScrollDel
    ```
    The generator invokes the method directly on the context instance.
 
+3. **Delegate member invocation**:
+   ```xml
+   <Element onclick="@param.OnDecrease" />
+   ```
+   When the member holds a delegate, the generator emits a null-safe
+   `?.Invoke()`. This lets a component forward its own control events to the
+   caller.
+
+A component parameter of delegate type accepts a view method name, so a
+component can own its controls and still run the caller's handler:
+
+```xml
+<Stepper param:onDecrease="OnSpeciesDown" param:enabled="@context.Enabled" />
+```
+
 ### Dynamic hotkeys and keybindings
 
 The `hotkey` and `key` attributes support three value sources on interactive `<Element>` tags:
