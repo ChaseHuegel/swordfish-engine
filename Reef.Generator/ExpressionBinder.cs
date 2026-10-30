@@ -729,17 +729,17 @@ internal sealed class ExpressionBinder
         }
 
         string text = raw.Trim();
-        if (text.StartsWith("@", StringComparison.Ordinal))
-        {
-            text = text.Substring(1);
-        }
-
         text = text.Replace("@context.", _scope.ContextExpression + ".");
         text = text.Replace("@Context.", _scope.ContextExpression + ".");
         text = text.Replace("@ui.", _scope.BuilderExpression + ".");
         text = text.Replace("@Context", _scope.ContextExpression);
         text = text.Replace("@context", _scope.ContextExpression);
         text = text.Replace("@ui", _scope.BuilderExpression);
+
+        if (text.StartsWith("@", StringComparison.Ordinal))
+        {
+            text = text.Substring(1);
+        }
 
         var builder = new StringBuilder(text.Length);
         for (var i = 0; i < text.Length; i++)
