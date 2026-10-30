@@ -51,6 +51,51 @@ public class ComponentParameterTests
     }
 
     [Fact]
+    public void DelegateParameterForwardsToInnerCallback()
+    {
+        MarkupCompilation result = MarkupTestHost.CompileFiles(
+        [
+            ("Stepper.rml", """
+                <Reef xmlns="Reef" Class="Stepper" Parameters="StepperParameters" Namespace="ReefMarkupTest">
+                    <Element onclick="@param.OnStep" width="100" height="20" />
+                </Reef>
+                """),
+            ("View.rml", """
+                <Reef xmlns="Reef"
+                      xmlns:param="Reef.Param"
+                      Class="View"
+                      Namespace="ReefMarkupTest">
+                    <Stepper param:onStep="OnStep" />
+                </Reef>
+                """),
+        ], """
+            using System;
+            using Reef;
+            using Reef.UI;
+
+            namespace ReefMarkupTest
+            {
+                public readonly record struct StepperParameters(Action? OnStep = null);
+
+                public partial class Stepper
+                {
+                }
+
+                public partial class View
+                {
+                    public void OnStep()
+                    {
+                    }
+                }
+            }
+            """);
+
+        Assert.Empty(result.Errors);
+        Assert.Contains("OnStep", result.GeneratedText);
+        Assert.Contains("?.Invoke()", result.GeneratedText);
+    }
+
+    [Fact]
     public void NestedParameterizedComponentsCompileWithDistinctLocals()
     {
         MarkupCompilation result = MarkupTestHost.CompileFiles(

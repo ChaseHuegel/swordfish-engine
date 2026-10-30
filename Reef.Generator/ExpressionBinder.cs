@@ -88,6 +88,11 @@ internal sealed class ExpressionBinder
             return false;
         }
 
+        if (!trimmed.Contains("(") && TryBindDelegateCallback(trimmed, location, out callback))
+        {
+            return true;
+        }
+
         if (!trimmed.Contains("("))
         {
             trimmed += "()";
@@ -116,6 +121,36 @@ internal sealed class ExpressionBinder
         }
 
         callback.Code = bound.Code;
+        callback.IsValid = true;
+        return true;
+    }
+
+    private bool TryBindDelegateCallback(string raw, Location location, out BoundCallback callback)
+    {
+        callback = new BoundCallback();
+        if (!TryNormalize(raw, location, out string normalized))
+        {
+            return false;
+        }
+
+        ExpressionSyntax syntax = SyntaxFactory.ParseExpression(normalized);
+        if (syntax.ContainsDiagnostics)
+        {
+            return false;
+        }
+
+        BoundExpression bound = BindNode(syntax, null, location);
+        if (!bound.IsValid || bound.IsMethodGroup || bound.Type is not INamedTypeSymbol named)
+        {
+            return false;
+        }
+
+        if (named.DelegateInvokeMethod == null)
+        {
+            return false;
+        }
+
+        callback.Code = bound.Code + "?.Invoke()";
         callback.IsValid = true;
         return true;
     }
