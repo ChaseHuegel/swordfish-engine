@@ -531,11 +531,16 @@ internal sealed partial class DocumentState
 
         if (ContextType != null && ContextType.IsValueType)
         {
-            Report(
-                DiagnosticDescriptors.InvalidBind,
-                bindAttribute.Location,
-                "Bind requires a reference-type context so writeback is visible.");
-            return;
+            //  A write to a value-type context would be lost, but a view member keeps its writeback.
+            string root = ExpressionScope.GetRootIdentifier(bindAttribute.Value);
+            if (string.Equals(root, ExpressionScope.GetRootIdentifier(context.Scope.ContextExpression), StringComparison.Ordinal))
+            {
+                Report(
+                    DiagnosticDescriptors.InvalidBind,
+                    bindAttribute.Location,
+                    "Bind requires a reference-type context so writeback is visible.");
+                return;
+            }
         }
 
         IParameterSymbol? refParameter = null;

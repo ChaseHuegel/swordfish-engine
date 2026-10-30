@@ -181,6 +181,62 @@ public class SpecDiagnosticsTests
     }
 
     [Fact]
+    public void StructContextBindsToViewField()
+    {
+        MarkupCompilation result = MarkupTestHost.Compile("""
+            <Reef xmlns="Reef" xmlns:wb="Test.BindWidgets" Class="V" Context="Ctx" RendererData="Reef.PixelTexture">
+                <wb:TextInput id="t" bind="State" />
+            </Reef>
+            """, BIND_COMPANION);
+
+        Assert.Empty(result.Errors);
+        Assert.Contains("ref State", result.GeneratedText);
+    }
+
+    [Fact]
+    public void StructContextBindToContextReportsRf0011()
+    {
+        MarkupCompilation result = MarkupTestHost.Compile("""
+            <Reef xmlns="Reef" xmlns:wb="Test.BindWidgets" Class="V" Context="Ctx" RendererData="Reef.PixelTexture">
+                <wb:TextInput id="t" bind="context.Name" />
+            </Reef>
+            """, BIND_COMPANION);
+
+        AssertDiagnostic(result, "RF0011");
+    }
+
+    private const string BIND_COMPANION = """
+        using Reef;
+        using Reef.UI;
+
+        namespace ReefMarkupTest
+        {
+            public struct Ctx
+            {
+                public string Name { get; set; }
+            }
+
+            public struct BoxState
+            {
+                public string Text;
+            }
+
+            public partial class V
+            {
+                public BoxState State;
+            }
+        }
+
+        namespace Test.BindWidgets
+        {
+            public static class Widgets
+            {
+                public static void TextInput(this UIBuilder<Reef.PixelTexture> ui, string id, ref ReefMarkupTest.BoxState state) { }
+            }
+        }
+        """;
+
+    [Fact]
     public void DuplicateVariableReportsRf0012()
     {
         MarkupCompilation result = MarkupTestHost.CompileFiles(
