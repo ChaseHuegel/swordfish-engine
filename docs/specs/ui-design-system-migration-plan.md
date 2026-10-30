@@ -134,6 +134,24 @@ step.
 label, hint, and validation copy. The widget owns editing, selection, caret,
 focus, and submit state.
 
+Markup calls the widget with the `controls` prefix:
+
+```xml
+<controls:TextInput id="TextBox_SaveName"
+                    bind="NameState"
+                    input-service="@InputService"
+                    placeholder="@L('ui.field.level.name.placeholder')"
+                    class="wb-field-frame"
+                    width="fill" height="fill" font-size="18" />
+```
+
+- `bind` names a `TextBoxState` field on the view. The page reads the text
+  from that field. A bind into a value-type context is rejected, because the
+  writeback would be lost.
+- `input-service` names an `IInputService` property on the view.
+- `class="wb-field-frame"` supplies the fill, border, and text colors. The
+  widget palette supplies selection, caret, and placeholder colors.
+
 The widget accepts `Style` for frame and text styling. The selection, caret, and
 placeholder colors come from `TextInputPalette.Default`. The view passes
 `IInputService` for clipboard access only.
