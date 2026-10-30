@@ -280,7 +280,9 @@ internal sealed class ExpressionBinder
         {
             return new BoundExpression
             {
-                Code = identifier.ToFullString().Trim(),
+                Code = string.Equals(name, "param", StringComparison.Ordinal)
+                    ? _scope.ParameterName
+                    : identifier.ToFullString().Trim(),
                 Type = type,
                 IsValid = true,
             };
@@ -356,9 +358,14 @@ internal sealed class ExpressionBinder
 
         if (TryResolveMember(left.Type, name, out ISymbol? symbol, out ITypeSymbol? memberType))
         {
+            string expressionText = memberAccess.Expression.ToFullString().Trim();
+            string fullText = memberAccess.ToFullString().Trim();
+            string code = string.Equals(expressionText, left.Code, StringComparison.Ordinal)
+                ? fullText
+                : left.Code + fullText.Substring(expressionText.Length);
             return new BoundExpression
             {
-                Code = memberAccess.ToFullString().Trim(),
+                Code = code,
                 Type = memberType,
                 IsValid = true,
                 IsMethodGroup = symbol is IMethodSymbol,

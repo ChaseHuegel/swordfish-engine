@@ -35,6 +35,9 @@ internal sealed class ExpressionScope
     public ITypeSymbol? RendererDataType;
     public string ContextExpression = "context";
     public string BuilderExpression = "ui";
+
+    /// <summary>Gets or sets the emitted local name that markup refers to as <c>param</c>.</summary>
+    public string ParameterName = "param";
     public readonly Dictionary<string, ITypeSymbol> Variables = new(StringComparer.Ordinal);
     public readonly List<Diagnostic> Diagnostics;
     public readonly List<MarkupHelper> Helpers;
@@ -107,7 +110,10 @@ internal sealed class ExpressionScope
             builderExpression,
             Variables,
             Diagnostics,
-            Helpers);
+            Helpers)
+        {
+            ParameterName = ParameterName,
+        };
         return scope;
     }
 

@@ -43,9 +43,63 @@ public class ComponentParameterTests
             """);
 
         Assert.Empty(result.Errors);
-        Assert.Contains("var param = new global::ReefMarkupTest.ChildParameters { Value = \"Hello\" };", result.GeneratedText);
+        Assert.Matches(
+            @"var __param\d+ = new global::ReefMarkupTest\.ChildParameters \{ Value = ""Hello"" \};",
+            result.GeneratedText);
         Assert.Contains("global::ReefMarkupTest.ChildParameters? parameters = null", result.GeneratedText);
-        Assert.Contains("ui.Text(param.Value)", result.GeneratedText);
+        Assert.Matches(@"ui\.Text\(__param\d+\.Value\)", result.GeneratedText);
+    }
+
+    [Fact]
+    public void NestedParameterizedComponentsCompileWithDistinctLocals()
+    {
+        MarkupCompilation result = MarkupTestHost.CompileFiles(
+        [
+            ("Inner.rml", """
+                <Reef xmlns="Reef" Class="Inner" Parameters="InnerParameters" Namespace="ReefMarkupTest">
+                    <Text text="@param.Label" />
+                </Reef>
+                """),
+            ("Outer.rml", """
+                <Reef xmlns="Reef"
+                      xmlns:param="Reef.Param"
+                      Class="Outer"
+                      Parameters="OuterParameters"
+                      Namespace="ReefMarkupTest">
+                    <Inner param:label="@param.Title" />
+                </Reef>
+                """),
+            ("ParentView.rml", """
+                <Reef xmlns="Reef"
+                      xmlns:param="Reef.Param"
+                      Class="ParentView"
+                      Namespace="ReefMarkupTest">
+                    <Outer param:title="Nested" />
+                </Reef>
+                """),
+        ], """
+            namespace ReefMarkupTest
+            {
+                public readonly record struct InnerParameters(string Label = "");
+
+                public readonly record struct OuterParameters(string Title = "");
+
+                public partial class Inner
+                {
+                }
+
+                public partial class Outer
+                {
+                }
+
+                public partial class ParentView
+                {
+                }
+            }
+            """);
+
+        Assert.Empty(result.Errors);
+        Assert.Matches(@"var __param\d+ = new global::ReefMarkupTest\.InnerParameters \{ Label = __param\d+\.Title \};", result.GeneratedText);
     }
 
     [Fact]

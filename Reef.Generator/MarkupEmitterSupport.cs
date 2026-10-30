@@ -688,11 +688,14 @@ internal sealed partial class DocumentState
                 }
             }
 
+            int parameterMark = -1;
             if (parameterObject != null && childParameterType != null)
             {
                 context.Writer.Open();
                 childScope.Variables["param"] = childParameterType;
-                context.Writer.Line("var param = " + parameterObject + ";");
+                childScope.ParameterName = context.State.NextLocal("__param");
+                context.Writer.Line("var " + childScope.ParameterName + " = " + parameterObject + ";");
+                parameterMark = context.Writer.Mark();
             }
 
             EmitContext childContext = context.Clone(childScope);
@@ -706,6 +709,7 @@ internal sealed partial class DocumentState
             if (parameterObject != null && childParameterType != null)
             {
                 context.Writer.Close();
+                context.Writer.RenameParamFrom(parameterMark, childScope.ParameterName);
             }
 
             if (visibleCode != null)
