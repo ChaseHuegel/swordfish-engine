@@ -76,3 +76,4 @@ is not part of this workflow.
 - [ ] [Remove the feedback submit delay](/docs/issues/0094-feedback-submit-delay.md) — a fixed 100 ms delay stands in for "the modal has closed"
 
 ### Research
+| 0095 | [Nested markup view input](0095-nested-markup-view-input.md) | Open |
