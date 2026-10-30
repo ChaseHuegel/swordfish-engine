@@ -173,8 +173,9 @@ The first implementation does not add Reef text state or a Reef text control.
 ## Migrated pages
 
 - Home, credits, the main menu overlay, the pause scrim, and every modal.
-- Select save, the crew manifest, and the galaxy form, each with legacy parity
-  goldens at three window sizes.
+- Select save, the crew manifest, the galaxy form, and the multiplayer page,
+  each with legacy parity goldens at three window sizes. The multiplayer
+  goldens cover both the empty favorites list and a list with saved servers.
 - The colonist form, with pinned snapshots at three window sizes. The legacy
   page overflowed its own page and clipped the footer, so it has no usable
   legacy golden. Its body preview and info box depend on text measurement that

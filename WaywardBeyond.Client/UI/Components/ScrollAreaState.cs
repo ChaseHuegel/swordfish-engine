@@ -28,6 +28,13 @@ internal sealed class ScrollAreaState(int step = 64)
         UpdateBar();
     }
 
+    /// <summary>Scrolls back to the top.</summary>
+    public void Reset()
+    {
+        Offset = 0;
+        UpdateBar();
+    }
+
     /// <summary>Applies one wheel delta.</summary>
     public void OnScroll(float delta)
     {

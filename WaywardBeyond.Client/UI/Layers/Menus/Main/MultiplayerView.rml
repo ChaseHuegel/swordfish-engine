@@ -1,0 +1,234 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      xmlns:controls="WaywardBeyond.Client.UI.Controls"
+      Class="MultiplayerView"
+      Context="MultiplayerState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Page max-width="1160" max-height="560">
+        <Element layout="vertical" width="fill" height="fill" padding="0 12 0 0" spacing="12">
+
+            <Element visible="@context.Remote" layout="vertical" width="fill" height="40" clip="true">
+                <Element class="wb-banner" layout="horizontal" width="fill" height="fill" spacing="8" padding="12 0 12 0">
+                    <Text class="wb-server-icon" text="@Glyph('server')" width="16" height="fill" />
+                    <Text text="@(L('ui.label.server.connected') + ' ' + context.BannerServer)" class="wb-text-small wb-text" width="fill" height="fill" />
+                    <Button id="Button_Disconnect"
+                            param:variant="secondary"
+                            param:compact="true"
+                            onclick="OnDisconnect"
+                            anchor="Center"
+                            width="140"
+                            height="28">
+                        <Text class="wb-button-label wb-button-label-compact" text="@L('ui.button.server.disconnect')" anchor="Center" />
+                    </Button>
+                    <Button id="Button_ViewSaves"
+                            param:variant="primary"
+                            param:compact="true"
+                            onclick="OnViewSaves"
+                            anchor="Center"
+                            width="140"
+                            height="28">
+                        <Text class="wb-button-label wb-button-label-compact" text="@L('ui.button.level.list')" anchor="Center" />
+                    </Button>
+                </Element>
+                <Element class="wb-divider-inner" width="fill" height="1" />
+            </Element>
+
+            <Element layout="vertical" width="fill" height="fill" spacing="0">
+                <Element layout="horizontal" width="fill" height="40" spacing="4">
+                    <Tab id="FavoritesTab" param:selected="@context.Favorites" onclick="OnSelectFavorites" width="180" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.server.saved')" width="fill" height="fill" />
+                    </Tab>
+                    <Tab id="LanDiscoveryTab" param:selected="@(!context.Favorites)" onclick="OnSelectLan" width="180" height="fill">
+                        <Text class="wb-tab-label" text="@L('ui.panel.server.local')" width="fill" height="fill" />
+                    </Tab>
+                </Element>
+
+                <Panel width="fill" height="fill">
+                    <Content name="header">
+                        <Text text="@L('ui.panel.server.list')" class="wb-panel-header" width="fill" height="18" />
+                    </Content>
+
+                    <Element layout="vertical" width="fill" height="fill">
+                        <Element visible="@(!context.Favorites)" layout="horizontal" width="fill" height="24" spacing="8">
+                            <Element width="fill" />
+                            <Button id="Button_Scan"
+                                    param:variant="secondary"
+                                    param:enabled="@(!context.Scanning)"
+                                    disabled="@context.Scanning"
+                                    onclick="OnScan"
+                                    anchor="Center"
+                                    width="80"
+                                    height="22">
+                                <Text class="wb-button-label wb-button-label-compact" text="@L('ui.button.server.scan')" anchor="Center" />
+                            </Button>
+                        </Element>
+                        <Element visible="@(!context.Favorites)" height="4" />
+
+                        <Element layout="horizontal" width="fill" height="16">
+                            <Element width="32" />
+                            <Text text="@L('ui.label.server.name')"
+                                  class="wb-table-header"
+                                  width="@((((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 30 / 100 &gt; 110 ? ((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 30 / 100 : 110) - 32)"
+                                  height="fill" />
+                            <Text text="@L('ui.label.server.address')"
+                                  class="wb-table-header"
+                                  width="@(((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 38 / 100 &gt; 130 ? ((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 38 / 100 : 130)"
+                                  height="fill" />
+                            <Text text="@L('ui.label.server.players')"
+                                  class="wb-table-header"
+                                  width="@(((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 12 / 100 &gt; 50 ? ((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 12 / 100 : 50)"
+                                  height="fill" />
+                            <Text text="@L('ui.label.server.ping')" class="wb-table-header" width="fill" height="fill" />
+                            <Element width="32" />
+                        </Element>
+                        <Element class="wb-divider" width="fill" height="1" />
+                        <Element height="6" />
+
+                        <Text visible="@(context.Rows.Count == 0)"
+                              text="@context.EmptyMessage"
+                              class="wb-text-body"
+                              class:wb-text-dim="@context.EmptyFavorites"
+                              class:wb-text-muted="@(!context.EmptyFavorites)"
+                              width="fill"
+                              height="28" />
+
+                        <ScrollArea id="Multiplayer.Servers"
+                                    context="@Scroll"
+                                    visible="@(context.Rows.Count &gt; 0)"
+                                    width="fill"
+                                    height="fill">
+                            <Element id="Multiplayer.ServerList" layout="vertical" width="fill" height="fit" spacing="3">
+                                <ForEach in="@context.Rows" as="row" index="i">
+                                    <Element class="wb-card"
+                                             class:wb-card-selected="@row.Selected"
+                                             id="ServerRow_{i}"
+                                             layout="none"
+                                             clip="true"
+                                             onclick="OnSelectRow(i)"
+                                             width="fill"
+                                             height="48">
+                                        <Element class="wb-card-caret" visible="@row.Selected" x="2" width="3" height="36" />
+                                        <Element layout="horizontal" width="fill" height="fill" padding="8 0 8 0" spacing="4">
+                                            <Text class="wb-server-icon" text="@Glyph('server')" width="20" height="fill" />
+                                            <Text text="@row.Name" class="wb-text-body" width="fill" height="fill" />
+                                            <Text text="@row.Address"
+                                                  class="wb-text-small"
+                                                  width="@((((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 38 / 100 &gt; 130 ? ((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 38 / 100 : 130) - 8)"
+                                                  height="fill" />
+                                            <Text text="@row.Players"
+                                                  class="wb-text-value"
+                                                  width="@((((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 12 / 100 &gt; 50 ? ((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 12 / 100 : 50) - 8)"
+                                                  height="fill" />
+                                            <Element layout="horizontal" spacing="4" width="@(((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) - (((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 30 / 100 &gt; 110 ? ((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 30 / 100 : 110) - (((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 38 / 100 &gt; 130 ? ((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 38 / 100 : 130) - (((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 12 / 100 &gt; 50 ? ((ui.Width &gt; 1280 ? 1160 : ui.Width - 120) - 60) * 12 / 100 : 50) - 8)" height="fill">
+                                                <Text class="wb-ping-icon" text="@Glyph('signal')" width="20" height="fill" />
+                                                <Text class="wb-ping-text" text="-" width="fill" height="fill" />
+                                            </Element>
+                                            <Element visible="@(!row.Favorite)"
+                                                     class="wb-icon-button wb-icon-button-danger"
+                                                     id="RemoveSavedServer_{i}"
+                                                     y="6"
+                                                     onclick="OnRowAction(i)"
+                                                     width="24"
+                                                     height="24">
+                                                <Text class="wb-icon wb-icon-danger" text="@Glyph('trash')" x="8" y="0" />
+                                            </Element>
+                                            <Element visible="@row.Favorite"
+                                                     class="wb-icon-button"
+                                                     id="FavoriteServer_{i}"
+                                                     y="6"
+                                                     onclick="OnRowAction(i)"
+                                                     width="24"
+                                                     height="24">
+                                                <Text class="wb-icon" text="@Glyph('star')" x="8" y="0" />
+                                            </Element>
+                                        </Element>
+                                    </Element>
+                                </ForEach>
+                            </Element>
+                        </ScrollArea>
+
+                        <Element visible="@context.Favorites" height="8" />
+                        <Button id="Button_AddFavorite"
+                                visible="@context.Favorites"
+                                param:variant="subtle"
+                                param:doubleBorder="false"
+                                onclick="OnAddFavorite"
+                                width="fill"
+                                height="32">
+                            <Text class="wb-button-label" text="@('+ ' + L('ui.button.server.add'))" anchor="Center" />
+                        </Button>
+
+                        <Element visible="@(context.Rows.Count == 0)" height="fill" />
+                    </Element>
+                </Panel>
+            </Element>
+
+            <Element class="wb-panel" layout="none" width="fill" height="60" padding="2">
+                <Element class="wb-panel-inner" layout="horizontal" width="fill" height="fill" clip="true" padding="8" spacing="8">
+                    <Text text="@L('ui.label.server.direct')" class="wb-text-small wb-text" width="124" height="fill" />
+                    <controls:TextInput id="TextBox_Host"
+                                        bind="HostState"
+                                        input-service="@Input"
+                                        placeholder="@L('ui.field.server.host')"
+                                        class="wb-field-frame"
+                                        max-width="320"
+                                        width="fill"
+                                        height="fill"
+                                        font-size="14" />
+                    <controls:TextInput id="TextBox_Port"
+                                        bind="PortState"
+                                        input-service="@Input"
+                                        placeholder="@L('ui.field.server.port')"
+                                        class="wb-field-frame"
+                                        width="64"
+                                        height="fill"
+                                        font-size="14" />
+                    <Button id="Button_Connect"
+                            param:variant="primary"
+                            class="wb-button-primary-plain"
+                            onclick="OnConnect"
+                            anchor="Center"
+                            width="92"
+                            height="32">
+                        <Text class="wb-button-label" text="@L('ui.button.server.connect')" anchor="Center" />
+                    </Button>
+                </Element>
+            </Element>
+
+            <Element layout="horizontal" width="fill" height="52" spacing="12">
+                <Button id="Button_Back"
+                        param:variant="secondary"
+                        onclick="OnBack"
+                        anchor="Center"
+                        width="170"
+                        height="40">
+                    <Text class="wb-button-label" text="@L('ui.button.back')" anchor="Center" />
+                </Button>
+
+                <Element layout="none" width="fill" height="fill">
+                    <Text visible="@(context.Error != null)"
+                          text="@context.Error"
+                          class="wb-text-small wb-text-danger-solid"
+                          width="fill"
+                          height="fill"
+                          text-align="center"
+                          vertical-align="middle" />
+                </Element>
+
+                <Button id="Button_JoinServer"
+                        param:variant="primary"
+                        param:enabled="@context.JoinEnabled"
+                        disabled="@(!context.JoinEnabled)"
+                        onclick="OnJoin"
+                        anchor="Center"
+                        width="220"
+                        height="40">
+                    <Text class="wb-button-label" text="@L('ui.button.server.join')" anchor="Center" />
+                </Button>
+            </Element>
+        </Element>
+    </Page>
+</Reef>

@@ -358,6 +358,10 @@
     text-color: var(--wb-accent-bright);
 }
 
+.wb-button-primary-plain {
+    text-color: var(--wb-primary-bright);
+}
+
 .wb-button-primary:hover {
     color: var(--wb-button-hover);
     border-color: var(--wb-primary-bright);
@@ -720,6 +724,39 @@
 
 .wb-scrollbar-thumb {
     color: var(--wb-border-hover);
+}
+
+.wb-table-header {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-banner {
+    color: var(--wb-panel);
+}
+
+.wb-server-icon {
+    color: var(--wb-accent);
+    font-family: "Font Awesome 6 Free Solid";
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-ping-icon {
+    color: var(--wb-text-dim);
+    font-family: "Font Awesome 6 Free Solid";
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-ping-text {
+    color: var(--wb-text-dim);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-body-frame {

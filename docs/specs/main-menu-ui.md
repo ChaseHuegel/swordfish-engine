@@ -229,7 +229,7 @@ Do not add fake menu controls.
 - Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:24`
 - Crew manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:22`
 - Character form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:26`
-- Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:24`
+- Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:25`
 - Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:15`
 - Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:20`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
