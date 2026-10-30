@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Reef.Constraints;
-using Reef.UI;
 using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
@@ -10,21 +8,18 @@ using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using System.Threading.Tasks;
-using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
 internal sealed class MainMenu : TitleMenu<MenuPage>
 {
     private readonly ExternalAppService _externalAppService;
-    private readonly ILocalization _localization;
+    private readonly SoundEffectService _soundEffectService;
     private readonly ModalMenu _modalMenu;
-
-    private readonly Widgets.IconButtonOptions _brandIconOptions;
-    private readonly Widgets.ActionButtonOptions _feedbackButton;
+    private readonly MainMenuOverlayView _view;
 
     public MainMenu(
         ILogger<Menu<MenuPage>> logger,
@@ -39,25 +34,12 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
     ) : base(logger, materialDatabase, reefContext, pages)
     {
         _externalAppService = externalAppService;
-        _localization = localization;
+        _soundEffectService = soundEffectService;
         _modalMenu = modalMenu;
-        _brandIconOptions = new Widgets.IconButtonOptions(
-            FontId: UiTheme.FONT_BRANDS,
-            FontSize: UiMetrics.LARGE_ICON_FONT,
-            SoundEffectService: soundEffectService
-        );
-        _feedbackButton = Widgets.ActionButtonOptions.Compact(
-            ButtonVariant.Secondary,
-            soundEffectService
-        ) with
-        {
-            Font = new FontOptions
-            {
-                ID = UiTheme.FONT_UI,
-                Size = UiMetrics.MENU_SMALL_FONT,
-                NoWrap = true,
-            },
-        };
+        _view = new MainMenuOverlayView(localization);
+        _view.FeedbackRequested = Feedback;
+        _view.DiscordRequested = OpenDiscord;
+        _view.SteamRequested = OpenSteam;
 
         Shortcut backShortcut = new(
             name: "Go back",
@@ -84,50 +66,26 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
             return base.RenderUI(delta, ui);
         }
 
-        using (ui.Element())
-        {
-            ui.Padding = new Padding(20);
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Bottom | Anchors.Left,
-            };
-
-            if (ui.ActionButton("Button_Feedback", _localization.GetRequired("ui.button.feedback.send"), _feedbackButton))
-            {
-                _modalMenu.GoToPage(FeedbackModal.Modal);
-            }
-        }
-
-        using (ui.Row(
-            new Constraints
-            {
-                Anchors = Anchors.Bottom | Anchors.Right,
-                X = new Fixed(-20),
-                Y = new Fixed(-20),
-                Width = new Fixed(UiMetrics.ICON_BUTTON_SIZE * 2 + 8),
-                Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-            },
-            spacing: 8
-        ))
-        {
-            var iconConstraints = new Constraints
-            {
-                Width = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-                Height = new Fixed(UiMetrics.ICON_BUTTON_SIZE),
-            };
-
-            if (ui.IconButton("Button_Discord", MenuGlyphs.DISCORD, _brandIconOptions, iconConstraints))
-            {
-                Task.Run(_externalAppService.TryOpenDiscordAsync);
-            }
-
-            if (ui.IconButton("Button_Steam", MenuGlyphs.STEAM, _brandIconOptions, iconConstraints))
-            {
-                Task.Run(_externalAppService.TryOpenSteamAsync);
-            }
-        }
-
+        _view.Render(ui);
         return base.RenderUI(delta, ui);
+    }
+
+    private void Feedback()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _modalMenu.GoToPage(FeedbackModal.Modal);
+    }
+
+    private void OpenDiscord()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        Task.Run(_externalAppService.TryOpenDiscordAsync);
+    }
+
+    private void OpenSteam()
+    {
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        Task.Run(_externalAppService.TryOpenSteamAsync);
     }
 
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
