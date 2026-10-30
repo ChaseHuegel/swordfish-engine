@@ -590,7 +590,12 @@ public sealed class UIBuilder<TRendererData>
             }
             else if (widthConstraint is Fill)
             {
-                element.Constraints.MinWidth = element.Viewport.HorizontalScroll ? padX : (childrenMinWidth > 0 ? childrenMinWidth + padX : 0);
+                //  A fill child only sizes to its content inside a parent that sizes to its content.
+                //  Otherwise it clamps to the space the parent allots it.
+                bool parentSizesToContent = _hasOpenElement && parent.Constraints.Width is null or Fit or Shrink;
+                element.Constraints.MinWidth = element.Viewport.HorizontalScroll
+                    ? padX
+                    : (parentSizesToContent && childrenMinWidth > 0 ? childrenMinWidth + padX : 0);
             }
             else
             {
