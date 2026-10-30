@@ -111,7 +111,7 @@ internal static class FnvHash
             return "0f";
         }
 
-        return value.ToString("0.#######", System.Globalization.CultureInfo.InvariantCulture) + "f";
+        return value.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "f";
     }
 
     public static string FormatVector(System.Numerics.Vector4 value)

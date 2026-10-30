@@ -477,6 +477,12 @@ internal sealed partial class DocumentState
             return EmitTypedExpression(attribute.Value, type, attribute.Location, context.Scope);
         }
 
+        if (type is INamedTypeSymbol { DelegateInvokeMethod: not null }
+            && context.Scope.FindCompanionMethod(attribute.Value.Trim()) != null)
+        {
+            return attribute.Value.Trim();
+        }
+
         Report(
             DiagnosticDescriptors.TypeMismatch,
             attribute.Location,
