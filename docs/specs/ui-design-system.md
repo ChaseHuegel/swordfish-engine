@@ -164,6 +164,10 @@ placeholder colors.
   `x` and `y`. Size the wrapper and its frame with `ui.Width` expressions when
   the content is wider than the anchor. A component call does not accept
   expressions for `width` or `height`. Set them on an element instead.
+- `Panel` insets its header and content by 12px. A page that needs another
+  inset writes the frame inline with `wb-panel` and `wb-panel-inner`, then sets
+  `padding` on the inner element. An attribute `padding` replaces the class
+  padding rather than adding to it.
 - Do not compute page width or height in C#.
 - Allow C# geometry only for algorithmic layout such as radial menus, drag
   previews, and text measurement.
