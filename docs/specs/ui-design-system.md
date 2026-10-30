@@ -85,9 +85,10 @@ style rule.
 Lists use `.wb-list` and `ForEach`. Item structure belongs in a component such
 as `Card` or `SelectableRow`. A generic list template is not supported.
 
-The foundation also provides `ProgressBar`, `ScrollBar`, and `ItemSlot`.
-Scroll areas use `ScrollAreaState` with inline viewport and scrollbar markup.
-Dynamic fill and thumb sizes use `IConstraint` properties on the state.
+The foundation also provides `ProgressBar`, `ScrollArea`, `ScrollBar`, and
+`ItemSlot`. Scroll areas use `ScrollAreaState` for viewport metrics, content
+height, and thumb geometry. Dynamic fill and thumb sizes use `IConstraint`
+properties on the state.
 
 ## Text input
 
