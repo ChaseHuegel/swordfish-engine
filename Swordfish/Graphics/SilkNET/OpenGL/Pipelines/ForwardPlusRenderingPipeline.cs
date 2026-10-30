@@ -409,7 +409,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
             _gl.Enable(GLEnum.DepthTest);
 
-            Draw(delta, renderScene, isDepthPass: false);
+            Draw(delta, renderScene, isDepthPass: true);
         }
         _glDebug.TryLogError();
 

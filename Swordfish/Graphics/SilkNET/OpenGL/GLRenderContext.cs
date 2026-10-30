@@ -93,8 +93,10 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         cameraView = queryCameraAction.View;
         cameraProjection = queryCameraAction.Projection;
 
+        Frustum? frustum = queryCameraAction.Found ? Frustum.FromViewProjection(cameraView * cameraProjection) : null;
+
         //  Collect all renderable entities
-        var queryRenderableEntitiesAction = new ReadRenderableEntityAction(this);
+        var queryRenderableEntitiesAction = new ReadRenderableEntityAction(this, frustum);
         store.Query<TransformComponent, MeshRendererComponent, ReadRenderableEntityAction>(0f, ref queryRenderableEntitiesAction);
 
         //  Write the scene data then reset for the next Tick
@@ -340,6 +342,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         private readonly GLRenderContext _owner = owner;
         public Matrix4x4 View = view;
         public Matrix4x4 Projection = projection;
+        public bool Found;
 
         public void Execute(float delta, DataStore store, int entity, ref Ref<CameraComponent> camera, ref Ref<ViewFrustumComponent> viewFrustum)
         {
@@ -348,6 +351,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
                 return;
             }
 
+            Found = true;
             viewFrustum.Write.FOV.Degrees = _owner._renderSettings.FOV.Get();
             viewFrustum.Write.NearPlane = _owner._renderSettings.NearPlane.Get();
             viewFrustum.Write.FarPlane = _owner._renderSettings.FarPlane.Get();
@@ -362,18 +366,38 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
     }
 
-    private readonly struct ReadRenderableEntityAction(in GLRenderContext owner) : IForEach<TransformComponent, MeshRendererComponent>
+    private readonly struct ReadRenderableEntityAction(in GLRenderContext owner, in Frustum? frustum) : IForEach<TransformComponent, MeshRendererComponent>
     {
         private readonly GLRenderContext _owner = owner;
+        private readonly Frustum? _frustum = frustum;
 
         public void Execute(float delta, DataStore store, int entity, in TransformComponent transform, in MeshRendererComponent meshRendererComponent)
         {
-            if (meshRendererComponent.MeshRenderer == null)
+            MeshRenderer? meshRenderer = meshRendererComponent.MeshRenderer;
+            if (meshRenderer == null || meshRenderer.IsDisposed)
             {
                 return;
             }
 
-            _owner._renderableEntities.Add(new EntityModel(store.GetUuid(entity), transform.ToMatrix4X4(), meshRendererComponent.MeshRenderer));
+            Matrix4x4 matrix = transform.ToMatrix4X4();
+
+            if (_frustum.HasValue)
+            {
+                BoundingBox bounds = meshRenderer.Mesh.Bounds;
+                Vector3 worldCenter = Vector3.Transform(bounds.Center, matrix);
+                Vector3 worldExtents = new(
+                    MathF.Abs(matrix.M11) * bounds.Extents.X + MathF.Abs(matrix.M21) * bounds.Extents.Y + MathF.Abs(matrix.M31) * bounds.Extents.Z,
+                    MathF.Abs(matrix.M12) * bounds.Extents.X + MathF.Abs(matrix.M22) * bounds.Extents.Y + MathF.Abs(matrix.M32) * bounds.Extents.Z,
+                    MathF.Abs(matrix.M13) * bounds.Extents.X + MathF.Abs(matrix.M23) * bounds.Extents.Y + MathF.Abs(matrix.M33) * bounds.Extents.Z
+                );
+
+                if (!_frustum.Value.Intersects(worldCenter, worldExtents))
+                {
+                    return;
+                }
+            }
+
+            _owner._renderableEntities.Add(new EntityModel(store.GetUuid(entity), matrix, meshRenderer));
         }
     }
 }

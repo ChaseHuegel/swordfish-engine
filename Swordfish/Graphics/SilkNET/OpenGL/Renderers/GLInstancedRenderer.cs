@@ -103,20 +103,20 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         var drawCalls = 0;
 
-        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false);
-        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, sort: false);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false, isDepthPass);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, sort: false, isDepthPass);
 
         //  Exclude rendering transparent targets during a depth pass
         if (!isDepthPass)
         {
-            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true);
+            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true, isDepthPass: false);
         }
 
         _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 
-    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
+    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort, bool isDepthPass)
     {
         if (instances.Count == 0)
         {
@@ -125,6 +125,10 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         var drawCalls = 0;
         Vector3 viewPosition = view.GetCameraPosition();
+
+        GLMaterial[]? activeMaterials = null;
+        GLMaterial.Scope[]? activeScopes = null;
+        RenderOptions? lastRenderOptions = null;
 
         foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in instances)
         {
@@ -146,34 +150,79 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 target.ModelsBufferObject.UpdateData(CollectionsMarshal.AsSpan(list));
             }
 
-            GLMaterial.Scope[] materialScopes = ArrayPool<GLMaterial.Scope>.Shared.Rent(target.Materials.Length);
-            for (var n = 0; n < target.Materials.Length; n++)
+            if (!isDepthPass)
             {
-                GLMaterial material = target.Materials[n];
-                ShaderProgram shader = material.ShaderProgram;
-                
-                materialScopes[n] = material.Use();
-                shader.SetUniform("view", view);
-                shader.SetUniform("projection", projection);
-                shader.SetUniform("uCameraPos", viewPosition);
-                shader.SetUniform("uReceiveShadows", target.RenderOptions.ReceiveShadows ? 1.0f : 0.0f);
-                shader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaMode == AlphaMode.Masked ? target.RenderOptions.AlphaCutoff : 0.0f);
-                shaderActivationCallback(shader);
+                bool materialsMatch = activeMaterials != null && activeMaterials.Length == target.Materials.Length;
+                if (materialsMatch)
+                {
+                    for (var n = 0; n < target.Materials.Length; n++)
+                    {
+                        if (activeMaterials![n] != target.Materials[n])
+                        {
+                            materialsMatch = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (!materialsMatch)
+                {
+                    if (activeScopes != null && activeMaterials != null)
+                    {
+                        for (var n = 0; n < activeMaterials.Length; n++)
+                        {
+                            activeScopes[n].Dispose();
+                        }
+                        ArrayPool<GLMaterial.Scope>.Shared.Return(activeScopes);
+                    }
+
+                    activeMaterials = target.Materials;
+                    activeScopes = ArrayPool<GLMaterial.Scope>.Shared.Rent(target.Materials.Length);
+                    for (var n = 0; n < target.Materials.Length; n++)
+                    {
+                        GLMaterial material = target.Materials[n];
+                        ShaderProgram shader = material.ShaderProgram;
+
+                        activeScopes[n] = material.Use();
+                        shader.SetUniform("view", view);
+                        shader.SetUniform("projection", projection);
+                        shader.SetUniform("uCameraPos", viewPosition);
+                        shaderActivationCallback(shader);
+                    }
+                }
+
+                if (!materialsMatch || lastRenderOptions == null || !lastRenderOptions.Value.Equals(target.RenderOptions))
+                {
+                    for (var n = 0; n < activeMaterials!.Length; n++)
+                    {
+                        ShaderProgram shader = activeMaterials[n].ShaderProgram;
+                        shader.SetUniform("uReceiveShadows", target.RenderOptions.ReceiveShadows ? 1.0f : 0.0f);
+                        shader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaMode == AlphaMode.Masked ? target.RenderOptions.AlphaCutoff : 0.0f);
+                    }
+                }
             }
 
             target.VertexArrayObject.Bind();
 
-            _gl.Set(EnableCap.DepthTest, !target.RenderOptions.IgnoreDepth);
-            _gl.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
-            _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+            if (lastRenderOptions == null || !lastRenderOptions.Value.Equals(target.RenderOptions))
+            {
+                _gl.Set(EnableCap.DepthTest, !target.RenderOptions.IgnoreDepth);
+                _gl.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
+                _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+                lastRenderOptions = target.RenderOptions;
+            }
+
             _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)list.Count);
             drawCalls++;
+        }
 
-            for (var n = 0; n < target.Materials.Length; n++)
+        if (activeScopes != null && activeMaterials != null)
+        {
+            for (var n = 0; n < activeMaterials.Length; n++)
             {
-                materialScopes[n].Dispose();
+                activeScopes[n].Dispose();
             }
-            ArrayPool<GLMaterial.Scope>.Shared.Return(materialScopes);
+            ArrayPool<GLMaterial.Scope>.Shared.Return(activeScopes);
         }
 
         return drawCalls;

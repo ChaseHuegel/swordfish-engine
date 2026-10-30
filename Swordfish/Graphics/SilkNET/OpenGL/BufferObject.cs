@@ -6,8 +6,9 @@ internal sealed class BufferObject<TData> : GLHandle
     where TData : unmanaged
 {
     private readonly GL _gl;
-    public readonly int Length;
+    public int Length { get; private set; }
     public int ByteCapacity { get; private set; }
+    public int ByteLength => ByteCapacity;
     private readonly BufferTargetARB _bufferType;
     private readonly BufferUsageARB _usage;
 
@@ -18,7 +19,7 @@ internal sealed class BufferObject<TData> : GLHandle
     {
         _gl = gl;
         Length = data.Length;
-        ByteCapacity = data.Length * sizeof(TData);
+        ByteCapacity = checked(data.Length * sizeof(TData));
         _bufferType = bufferType;
         _usage = usage;
 
@@ -38,9 +39,10 @@ internal sealed class BufferObject<TData> : GLHandle
     public unsafe void UpdateData(ReadOnlySpan<TData> data)
     {
         Bind();
+        Length = data.Length;
         fixed (void* dataPtr = data)
         {
-            int requiredBytes = data.Length * sizeof(TData);
+            int requiredBytes = checked(data.Length * sizeof(TData));
             if (requiredBytes > ByteCapacity)
             {
                 ByteCapacity = requiredBytes;
@@ -55,11 +57,14 @@ internal sealed class BufferObject<TData> : GLHandle
     }
 
     public unsafe void UpdateData(Span<TData> data) => UpdateData((ReadOnlySpan<TData>)data);
+
+    public unsafe void UploadOrResize(ReadOnlySpan<TData> data) => UpdateData(data);
     
     public unsafe void Resize(int size)
     {
         Bind();
-        ByteCapacity = size * sizeof(TData);
+        Length = size;
+        ByteCapacity = checked(size * sizeof(TData));
         _gl.BufferData(_bufferType, (nuint)ByteCapacity, data: null, _usage);
         Unbind();
     }

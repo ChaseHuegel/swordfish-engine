@@ -30,9 +30,9 @@ by value equality, eliminating duplicate native `BoxShape` allocations.
 Profiling with `dotnet-trace` showed that `BuildCollision` dropped from 247 ms
 to less than 2 ms on large structures. Total rebuild time stays under 5 ms.
 
-The renderer draws every structure render target. Nothing skips a structure
-that is outside the view or fully occluded
-(`Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLInstancedRenderer.cs`).
+`GLRenderContext.Tick` extracts frustum planes from the camera view-projection
+matrix and tests each mesh bounding box (`Swordfish/Graphics/SilkNET/OpenGL/GLRenderContext.cs:96-103`).
+Entities outside the view frustum are dropped before submission.
 
 Disposal is bounded since [0083](0083-voxel-edit-memory-leak.md), so the leak is
 gone.
@@ -41,6 +41,6 @@ gone.
 
 - [x] A rebuild remeshes only the chunks around the edit.
 - [x] The collision shape contains only voxels on the surface of the structure.
-- [ ] A structure that is outside the view does not build or submit a draw.
+- [x] A structure that is outside the view does not build or submit a draw.
 - [x] A benchmark records the per-edit cost for a large structure before and
       after the change.

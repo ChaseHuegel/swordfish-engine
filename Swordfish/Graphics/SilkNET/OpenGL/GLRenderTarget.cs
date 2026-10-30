@@ -70,9 +70,17 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
             return false;
         }
 
-        if (!other.Materials.SequenceEqual(Materials))
+        if (other.Materials.Length != Materials.Length)
         {
             return false;
+        }
+
+        for (var i = 0; i < Materials.Length; i++)
+        {
+            if (!other.Materials[i].Equals(Materials[i]))
+            {
+                return false;
+            }
         }
 
         return other.RenderOptions.Equals(RenderOptions);
@@ -80,7 +88,13 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(VertexArrayObject.GetHashCode(), Materials.Select(material => material.GetHashCode()).Aggregate(HashCode.Combine), RenderOptions.GetHashCode());
+        var materialsHash = new HashCode();
+        for (var i = 0; i < Materials.Length; i++)
+        {
+            materialsHash.Add(Materials[i].GetHashCode());
+        }
+
+        return HashCode.Combine(VertexArrayObject.GetHashCode(), materialsHash.ToHashCode(), RenderOptions.GetHashCode());
     }
 
     public override string ToString()
