@@ -726,47 +726,6 @@
     color: var(--wb-border-hover);
 }
 
-.wb-settings-pane-title {
-    color: var(--wb-text);
-    font-family: "Salmon Mono 9 Regular";
-    font-size: 24px;
-}
-
-.wb-settings-message {
-    color: var(--wb-text);
-    font-family: "Salmon Mono 9 Regular";
-    font-size: 16px;
-}
-
-.wb-tray-item {
-    color: transparent;
-    text-color: var(--wb-text-muted);
-}
-
-.wb-tray-item:hover {
-    border: 1px var(--wb-border-hover);
-    text-color: var(--wb-text);
-}
-
-.wb-tray-item-selected {
-    color: #172336;
-    border: 1px var(--wb-primary);
-    text-color: var(--wb-accent-bright);
-}
-
-.wb-tray-item-selected:hover {
-    border-color: var(--wb-primary);
-}
-
-.wb-tray-caret {
-    color: var(--wb-accent);
-}
-
-.wb-tray-label {
-    font-family: "Salmon Mono 9 Regular";
-    font-size: 20px;
-}
-
 .wb-table-header {
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";

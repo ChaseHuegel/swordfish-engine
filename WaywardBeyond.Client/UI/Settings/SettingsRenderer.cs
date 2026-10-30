@@ -34,9 +34,191 @@ internal sealed class SettingsRenderer(
         _layout = layout;
     }
 
-    /// <summary>Draws the scrolling rows of the active category.</summary>
-    public void DrawRows(SettingsCategory category, ref int scrollY)
+    /// <summary>Draws the category tray and returns true when the selected category changes.</summary>
+    public bool DrawTray(SettingsCategory[] categories, ref int categoryIndex)
     {
+        Ui.Label(
+            L("ui.settings.panel.categories"),
+            UiMetrics.SMALL_FONT,
+            UiTheme.TextMuted,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(20),
+            },
+            HorizontalAlignment.Center
+        );
+        Ui.Spacer(height: 4);
+        Ui.Divider(
+            UiTheme.BorderInner,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(1),
+            }
+        );
+        Ui.Spacer(height: 8);
+
+        var changed = false;
+
+        for (var i = 0; i < categories.Length; i++)
+        {
+            SettingsCategory category = categories[i];
+            bool selected = i == categoryIndex;
+            string itemId = $"Settings.Category.{category.Id}";
+            string label = L(category.TitleKey);
+
+            using (Ui.Element(itemId))
+            {
+                bool clicked = Ui.Clicked();
+                bool hovering = Ui.Hovering();
+                DrawCategoryItem(label, selected, hovering);
+
+                if (clicked && !selected)
+                {
+                    categoryIndex = i;
+                    changed = true;
+                    Play(Widgets.InterfaceSound.Toggle);
+                }
+            }
+
+            Ui.Spacer(height: SettingsMetrics.TRAY_ITEM_GAP);
+        }
+
+        return changed;
+    }
+
+    /// <summary>Draws the horizontal category strip and returns true when the selected category changes.</summary>
+    public bool DrawTabs(SettingsCategory[] categories, ref int categoryIndex)
+    {
+        var changed = false;
+
+        using (Ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(SettingsLayout.TABS_HEIGHT),
+            },
+            spacing: 8
+        ))
+        {
+            for (var i = 0; i < categories.Length; i++)
+            {
+                SettingsCategory category = categories[i];
+                bool selected = i == categoryIndex;
+                string itemId = $"Settings.Tab.{category.Id}";
+                var constraints = new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+
+                if (Ui.Tab(itemId, L(category.TitleKey), selected, constraints) && !selected)
+                {
+                    categoryIndex = i;
+                    changed = true;
+                    Play(Widgets.InterfaceSound.Toggle);
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    /// <summary>Draws the page footer and reports the clicked action.</summary>
+    public void DrawFooter(bool dirty, string? status, out bool cancelClicked, out bool applyClicked)
+    {
+        using (Ui.Row(
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(SettingsLayout.FOOTER_HEIGHT),
+            },
+            spacing: 12
+        ))
+        {
+            Widgets.ActionButtonOptions cancelOptions = Widgets.ActionButtonOptions.Menu(
+                ButtonVariant.Secondary,
+                soundEffectService: null
+            ) with
+            {
+                Layout = new Constraints
+                {
+                    Width = new Fixed(SettingsMetrics.CANCEL_BUTTON_WIDTH),
+                    Height = new Fixed(SettingsMetrics.FOOTER_BUTTON_HEIGHT),
+                    Anchors = Anchors.Center,
+                },
+            };
+            cancelClicked = Ui.ActionButton(
+                "Settings.Cancel",
+                dirty ? L("ui.button.cancel") : L("ui.button.back"),
+                cancelOptions
+            );
+
+            string? message = dirty ? L("ui.settings.status.unsaved") : status;
+            if (message != null)
+            {
+                Ui.Label(
+                    message,
+                    UiMetrics.SMALL_FONT,
+                    dirty ? UiTheme.Primary : UiTheme.Success,
+                    new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    },
+                    HorizontalAlignment.Center
+                );
+            }
+            else
+            {
+                Ui.Filler();
+            }
+
+            Widgets.ActionButtonOptions applyOptions = Widgets.ActionButtonOptions.Menu(
+                ButtonVariant.Primary,
+                soundEffectService: null
+            ) with
+            {
+                Enabled = dirty,
+                Layout = new Constraints
+                {
+                    Width = new Fixed(SettingsMetrics.APPLY_BUTTON_WIDTH),
+                    Height = new Fixed(SettingsMetrics.FOOTER_BUTTON_HEIGHT),
+                    Anchors = Anchors.Center,
+                },
+            };
+            applyClicked = Ui.ActionButton(
+                "Settings.Apply",
+                L("ui.settings.action.apply"),
+                applyOptions
+            );
+        }
+    }
+
+    /// <summary>Draws the active category pane and updates the scroll offset.</summary>
+    public void DrawPane(SettingsCategory category, ref int scrollY)
+    {
+        Ui.Label(
+            L(category.TitleKey),
+            UiMetrics.PANE_TITLE_FONT,
+            UiTheme.Text,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(28),
+            }
+        );
+        Ui.Divider(
+            UiTheme.BorderInner,
+            new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fixed(1),
+            }
+        );
+        Ui.Spacer(height: 8);
+
         Ui.ScrollArea(
             "Settings.Rows",
             category.ContentHeight,
@@ -230,7 +412,60 @@ internal sealed class SettingsRenderer(
         return row;
     }
 
+    private void DrawCategoryItem(string label, bool selected, bool hovering)
+    {
+        Ui.LayoutDirection = LayoutDirection.None;
+        Ui.Color = selected ? UiTheme.SelectionBackground : UiTheme.Transparent;
+        Ui.Border = new BorderStyle
+        {
+            Thickness = selected || hovering ? 1 : 0,
+            Color = selected ? UiTheme.Primary : UiTheme.BorderHover,
+        };
+        Ui.CornerCaps = default;
+        Ui.Constraints = new Constraints
+        {
+            Width = new Fill(),
+            Height = new Fixed(SettingsMetrics.TRAY_ITEM_HEIGHT),
+        };
+        Ui.ClipConstraints = Widgets.ClipToBounds();
 
+        if (selected)
+        {
+            using (Ui.Element())
+            {
+                Ui.LayoutDirection = LayoutDirection.None;
+                Ui.Color = UiTheme.Accent;
+                Ui.Constraints = new Constraints
+                {
+                    X = new Fixed(2),
+                    Y = new Fixed(6),
+                    Width = new Fixed(3),
+                    Height = new Fixed(SettingsMetrics.TRAY_ITEM_HEIGHT - 12),
+                };
+            }
+        }
+
+        using (Ui.Element())
+        {
+            Ui.LayoutDirection = LayoutDirection.None;
+            Ui.Padding = new Padding(left: 16, right: 6, top: 0, bottom: 0);
+            Ui.Constraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+            Ui.Label(
+                label,
+                UiMetrics.BODY_FONT,
+                selected ? UiTheme.AccentBright : hovering ? UiTheme.Text : UiTheme.TextMuted,
+                new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                }
+            );
+        }
+    }
 
     private Constraints ControlConstraints()
     {
