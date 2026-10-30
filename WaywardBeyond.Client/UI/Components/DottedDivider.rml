@@ -1,57 +1,60 @@
 <Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
       Class="DottedDivider"
+      Access="internal"
+      Parameters="DottedDividerParameters"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Components">
-    <Element layout="horizontal" spacing="4" width="fill" height="1">
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
-        <Element class="wb-divider" width="2" height="1" />
+    <Element layout="horizontal" spacing="4" clip="true" width="fill" height="1">
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 0)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 1)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 2)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 3)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 4)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 5)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 6)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 7)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 8)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 9)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 10)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 11)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 12)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 13)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 14)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 15)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 16)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 17)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 18)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 19)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 20)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 21)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 22)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 23)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 24)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 25)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 26)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 27)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 28)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 29)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 30)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 31)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 32)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 33)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 34)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 35)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 36)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 37)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 38)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 39)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 40)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 41)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 42)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 43)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 44)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 45)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 46)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 47)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 48)" />
+        <Element class="wb-divider" width="2" height="1" visible="@(param.Count &gt; 49)" />
     </Element>
 </Reef>

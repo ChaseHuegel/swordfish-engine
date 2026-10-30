@@ -501,6 +501,30 @@
     font-size: 18px;
 }
 
+.wb-card-detail-label {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-card-detail-value {
+    color: var(--wb-text-soft);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-card-name {
+    color: var(--wb-accent-bright);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+}
+
+.wb-card-line {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+}
+
 .wb-card-meta {
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";

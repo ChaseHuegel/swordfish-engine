@@ -1,0 +1,190 @@
+using System;
+using System.Collections.Generic;
+using Reef;
+using Reef.UI;
+using Swordfish.Graphics;
+using Swordfish.Library.Collections;
+using Swordfish.Library.IO;
+using Swordfish.Library.Util;
+using WaywardBeyond.Bodies;
+using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.Saves;
+using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.UI.Layers.Menus.Main;
+using WaywardBeyond.Client.UI.Layers.Menus.Modal;
+using WaywardBeyond.Data;
+using WaywardBeyond.Data.Characters;
+using WaywardBeyond.Data.Localization;
+using WaywardBeyond.Data.Levels;
+using WaywardBeyond.Skills;
+
+namespace Swordfish.Tests;
+
+internal static class HomeFixtures
+{
+    public const string SAVE_NAME = "Frontier Base";
+    public const string CHARACTER_UUID = "1";
+
+    public static HomePage CreateHome(bool withSession)
+    {
+        var localization = new TestLocalization();
+        var profile = new ProfileSettings();
+        if (withSession)
+        {
+            profile.LastSession.Save.Set(new SessionSave
+            {
+                Guid = "save-guid",
+                Name = SAVE_NAME,
+                Seed = 42,
+                GameMode = GameMode.Creative,
+                LastPlayedMs = 1_700_000_000_000,
+                AgeMs = 3_600_000,
+            });
+            profile.LastSession.CharacterUuid.Set(CHARACTER_UUID);
+        }
+
+        var characters = new StubCharacterStorage(withSession);
+        var assets = new CharacterAssetService(
+            new StubBodyDatabase(),
+            new StubTextureDatabase(),
+            new StubFileParseService()
+        );
+        var seeds = new SeedPhraseService(new StubTagDatabase());
+        var modalMenu = new ModalMenu(
+            null!,
+            null!,
+            new StubShortcutService(),
+            null!,
+            [new StubModalPage(PlaytestNoticeModal.Modal)]
+        );
+
+        return new HomePage(
+            null!,
+            null!,
+            localization,
+            new GameSaveService(null!, null!, null!, null!, null!),
+            null!,
+            characters,
+            assets,
+            new StubSkillDatabase(),
+            null!,
+            profile,
+            new ContinueService(null!, null!, profile, null!, null!, null!, characters, localization, null!),
+            null!,
+            modalMenu,
+            seeds
+        );
+    }
+
+    private sealed class StubShortcutService : IShortcutService
+    {
+        public bool RegisterShortcut(Shortcut shortcut) => true;
+    }
+
+    private sealed class StubModalPage(Modal id) : IMenuPage<Modal>
+    {
+        public Modal ID => id;
+
+        public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<Modal> menu) => Result.FromSuccess();
+    }
+
+    private sealed class StubCharacterStorage(bool hasCharacter) : ICharacterStorage
+    {
+        private readonly Character _character = new(
+            default,
+            1UL,
+            _Playtime: new Playtime(),
+            "Ada",
+            0, 0, 0, 0, 0, 0,
+            _Body: "human",
+            _ActiveInventorySlot: 0,
+            _GameMode: GameMode.Creative,
+            _Statistics: null,
+            _Inventory: null
+        );
+
+        public Result<Character> GetCharacter(ulong id) => throw new NotSupportedException();
+
+        public IReadOnlyList<Character> GetAllCharacters() => hasCharacter ? [_character] : [];
+
+        public Result SaveCharacter(Character character) => throw new NotSupportedException();
+
+        public Result DeleteCharacter(ulong id) => throw new NotSupportedException();
+    }
+
+    private sealed class StubBodyDatabase : IBodyDatabase
+    {
+        private readonly Body _body = new(
+            "human",
+            "human",
+            Gender.Neutral,
+            new Dictionary<string, string[]> { ["standing"] = ["human_standing.png"] }
+        );
+
+        public string? DefaultId => "human";
+
+        public IReadOnlyList<string> Species => ["human"];
+
+        public IReadOnlyList<Gender> GetGenders(string species) => [Gender.Neutral];
+
+        public Body? GetBody(string species, Gender gender) => _body;
+
+        public Result<Body> Get(string id) => Result<Body>.FromSuccess(_body);
+    }
+
+    private sealed class StubTextureDatabase : IAssetDatabase<Texture>
+    {
+        public Result<Texture> Get(string id) => Result<Texture>.FromSuccess(new Texture([], 1, 1, mipmaps: false));
+    }
+
+    private sealed class StubFileParseService : IFileParseService
+    {
+        public TResult Parse<TResult>(PathInfo path) => default!;
+
+        public TResult Parse<TResult>(System.IO.Stream stream) => throw new NotSupportedException();
+
+        public bool TryParse<TResult>(PathInfo path, out TResult result)
+        {
+            result = default!;
+            return false;
+        }
+
+        public bool TryParse<TResult>(System.IO.Stream stream, out TResult result)
+        {
+            result = default!;
+            return false;
+        }
+    }
+
+    private sealed class StubSkillDatabase : ISkillDatabase
+    {
+        public Result<Skill> Get(string id) => Result<Skill>.FromFailure("No skills.");
+
+        public IReadOnlyList<Skill> Get(XPSource xpSource) => [];
+    }
+
+    private sealed class StubTagDatabase : IAssetDatabase<LocalizedTags>
+    {
+        private readonly LocalizedTags _tags = new(new Dictionary<string, List<string>>
+        {
+            [SeedPhraseService.ADJECTIVES_TAG] = Words("adjective"),
+            [SeedPhraseService.SUBJECTS_TAG] = Words("subject"),
+            [SeedPhraseService.VERBS_TAG] = Words("verb"),
+            [SeedPhraseService.DESTINATIONS_TAG] = Words("destination"),
+        });
+
+        public Result<LocalizedTags> Get(string id) => Result<LocalizedTags>.FromSuccess(_tags);
+
+        private static List<string> Words(string prefix)
+        {
+            var words = new List<string>(SeedPhraseService.DICTIONARY_SIZE);
+            for (var i = 0; i < SeedPhraseService.DICTIONARY_SIZE; i++)
+            {
+                words.Add($"{prefix}{i}");
+            }
+
+            return words;
+        }
+    }
+}

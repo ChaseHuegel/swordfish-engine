@@ -24,7 +24,7 @@
         </Button>
 
         <Element height="12" />
-        <DottedDivider width="fill" />
+        <DottedDivider width="fill" param:count="44" />
         <Element height="12" />
 
         <Button id="Button_SaveAndExit" param:variant="danger" width="fill" height="44" onclick="OnSaveAndExit">

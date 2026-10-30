@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -152,7 +153,18 @@ public class UiSnapshotTests
         }
     }
 
-    private static void AssertPageMatchesLegacy(
+    internal static void AssertMatchesLegacy(string name, string actualRaw)
+    {
+        string legacyPath = Path.Combine(SourceDirectory(), "TestFiles", "Legacy", "Pages", name + ".txt");
+        string legacy = NormalizeVisual(File.ReadAllText(legacyPath));
+        string actual = NormalizeVisual(actualRaw);
+        Assert.True(
+            string.Equals(legacy, actual, StringComparison.Ordinal),
+            $"Legacy visual mismatch for {name}."
+        );
+    }
+
+    internal static void AssertPageMatchesLegacy(
         string name,
         int width,
         int height,
@@ -214,9 +226,53 @@ public class UiSnapshotTests
         return Regex.Replace(snapshot, @" id=[^ ]+", " id=-");
     }
 
+    private static bool IsFullyClipped(string line)
+    {
+        Match rect = Regex.Match(line, @" rect=(-?\d+),(-?\d+),(\d+),(\d+)");
+        Match clip = Regex.Match(line, @" clip=(-?\d+),(-?\d+),(\d+),(\d+)");
+        if (!rect.Success || !clip.Success)
+        {
+            return false;
+        }
+
+        int left = int.Parse(rect.Groups[1].Value, CultureInfo.InvariantCulture);
+        int top = int.Parse(rect.Groups[2].Value, CultureInfo.InvariantCulture);
+        int right = left + int.Parse(rect.Groups[3].Value, CultureInfo.InvariantCulture);
+        int bottom = top + int.Parse(rect.Groups[4].Value, CultureInfo.InvariantCulture);
+        int clipLeft = int.Parse(clip.Groups[1].Value, CultureInfo.InvariantCulture);
+        int clipTop = int.Parse(clip.Groups[2].Value, CultureInfo.InvariantCulture);
+        int clipRight = clipLeft + int.Parse(clip.Groups[3].Value, CultureInfo.InvariantCulture);
+        int clipBottom = clipTop + int.Parse(clip.Groups[4].Value, CultureInfo.InvariantCulture);
+
+        return right <= clipLeft || left >= clipRight || bottom <= clipTop || top >= clipBottom;
+    }
+
+    internal static string CaptureHovered(
+        int width,
+        int height,
+        Action<UIBuilder<Material>> render,
+        string hoverId)
+    {
+        var controller = new UIController();
+        var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), controller);
+        render(ui);
+        ui.Build(0d);
+        ElementBounds bounds = ui.GetElementBounds(hoverId);
+        int x = bounds.Rect.Left + Math.Max(1, bounds.Rect.Size.X / 2);
+        int y = bounds.Rect.Top + Math.Max(1, bounds.Rect.Size.Y / 2);
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        render(ui);
+        ui.Build(0d);
+        render(ui);
+        return Capture(ui.Build(0d));
+    }
+
     internal static string NormalizeVisual(string snapshot)
     {
-        string normalized = Regex.Replace(NormalizeIds(snapshot), @" clip=[^ ]+", " clip=-");
+        string withoutClipped = string.Join(
+            "\n",
+            NormalizeIds(snapshot).Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(line => !IsFullyClipped(line)));
+        string normalized = Regex.Replace(withoutClipped, @" clip=[^ ]+", " clip=-");
         normalized = Regex.Replace(normalized, @"color=([^ ]+) bg=\1", @"color=$1 bg=0,0,0,0");
         string[] lines = normalized.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var kept = new List<string>();
