@@ -741,11 +741,24 @@
 }
 
 .wb-stepper-arrow {
+    color: transparent;
     text-color: var(--wb-text-dim);
 }
 
-.wb-stepper-arrow:hover {
-    text-color: var(--wb-text);
+.wb-stepper-arrow-enabled {
+    text-color: var(--wb-text-muted);
+}
+
+.wb-stepper-arrow-enabled:hover {
+    color: var(--wb-button-hover);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-stepper-arrow-glyph {
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .wb-stepper-value {
@@ -754,6 +767,10 @@
     font-size: 18px;
     text-align: center;
     vertical-align: middle;
+}
+
+.wb-stepper-value-enabled {
+    color: var(--wb-text);
 }
 
 .wb-info-box-label {

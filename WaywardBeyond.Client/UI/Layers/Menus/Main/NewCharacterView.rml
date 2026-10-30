@@ -51,19 +51,12 @@
                         <Element height="12" />
                         <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
                             <Text text="@L('ui.field.character.species')" class="wb-text-small" width="76" height="fill" />
-                            <Element class="wb-stepper" layout="none" width="fill" height="fill" padding="1">
-                                <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
-                                    <Element class="wb-stepper-arrow" id="SpeciesDown" onclick="OnSpeciesDown" width="32" height="fill">
-                                        <Text text="&lt;" class="wb-stepper-value" width="fill" height="fill" />
-                                    </Element>
-                                    <Element class="wb-stepper-sep" width="1" height="fill" />
-                                    <Text text="@context.Species.Value" class="wb-stepper-value" width="fill" height="fill" />
-                                    <Element class="wb-stepper-sep" width="1" height="fill" />
-                                    <Element class="wb-stepper-arrow" id="SpeciesUp" onclick="OnSpeciesUp" width="32" height="fill">
-                                        <Text text="&gt;" class="wb-stepper-value" width="fill" height="fill" />
-                                    </Element>
-                                </Element>
-                            </Element>
+                            <Stepper param:value="@context.Species.Value"
+                                     param:enabled="@context.Species.Enabled"
+                                     param:onDecrease="OnSpeciesDown"
+                                     param:onIncrease="OnSpeciesUp"
+                                     width="fill"
+                                     height="fill" />
                             <Element class="wb-icon-button"
                                      id="Button_RandomSpecies"
                                      disabled="@(!context.Species.Enabled)"
@@ -78,19 +71,12 @@
                         <Element height="8" />
                         <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
                             <Text text="@L('ui.field.character.gender')" class="wb-text-small" width="76" height="fill" />
-                            <Element class="wb-stepper" layout="none" width="fill" height="fill" padding="1">
-                                <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
-                                    <Element class="wb-stepper-arrow" id="GenderDown" onclick="OnGenderDown" width="32" height="fill">
-                                        <Text text="&lt;" class="wb-stepper-value" width="fill" height="fill" />
-                                    </Element>
-                                    <Element class="wb-stepper-sep" width="1" height="fill" />
-                                    <Text text="@context.Gender.Value" class="wb-stepper-value" width="fill" height="fill" />
-                                    <Element class="wb-stepper-sep" width="1" height="fill" />
-                                    <Element class="wb-stepper-arrow" id="GenderUp" onclick="OnGenderUp" width="32" height="fill">
-                                        <Text text="&gt;" class="wb-stepper-value" width="fill" height="fill" />
-                                    </Element>
-                                </Element>
-                            </Element>
+                            <Stepper param:value="@context.Gender.Value"
+                                     param:enabled="@context.Gender.Enabled"
+                                     param:onDecrease="OnGenderDown"
+                                     param:onIncrease="OnGenderUp"
+                                     width="fill"
+                                     height="fill" />
                             <Element class="wb-icon-button"
                                      id="Button_RandomGender"
                                      disabled="@(!context.Gender.Enabled)"
@@ -215,19 +201,12 @@
                         <Element height="12" />
                         <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
                             <Text text="@L('ui.field.character.species')" class="wb-text-small" width="76" height="fill" />
-                            <Element class="wb-stepper" layout="none" width="fill" height="fill" padding="1">
-                                <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
-                                    <Element class="wb-stepper-arrow" id="SpeciesDownNarrow" onclick="OnSpeciesDown" width="32" height="fill">
-                                        <Text text="&lt;" class="wb-stepper-value" width="fill" height="fill" />
-                                    </Element>
-                                    <Element class="wb-stepper-sep" width="1" height="fill" />
-                                    <Text text="@context.Species.Value" class="wb-stepper-value" width="fill" height="fill" />
-                                    <Element class="wb-stepper-sep" width="1" height="fill" />
-                                    <Element class="wb-stepper-arrow" id="SpeciesUpNarrow" onclick="OnSpeciesUp" width="32" height="fill">
-                                        <Text text="&gt;" class="wb-stepper-value" width="fill" height="fill" />
-                                    </Element>
-                                </Element>
-                            </Element>
+                            <Stepper param:value="@context.Species.Value"
+                                     param:enabled="@context.Species.Enabled"
+                                     param:onDecrease="OnSpeciesDown"
+                                     param:onIncrease="OnSpeciesUp"
+                                     width="fill"
+                                     height="fill" />
                             <Element class="wb-icon-button"
                                      id="Button_RandomSpeciesNarrow"
                                      disabled="@(!context.Species.Enabled)"
@@ -242,19 +221,12 @@
                         <Element height="8" />
                         <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
                             <Text text="@L('ui.field.character.gender')" class="wb-text-small" width="76" height="fill" />
-                            <Element class="wb-stepper" layout="none" width="fill" height="fill" padding="1">
-                                <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
-                                    <Element class="wb-stepper-arrow" id="GenderDownNarrow" onclick="OnGenderDown" width="32" height="fill">
-                                        <Text text="&lt;" class="wb-stepper-value" width="fill" height="fill" />
-                                    </Element>
-                                    <Element class="wb-stepper-sep" width="1" height="fill" />
-                                    <Text text="@context.Gender.Value" class="wb-stepper-value" width="fill" height="fill" />
-                                    <Element class="wb-stepper-sep" width="1" height="fill" />
-                                    <Element class="wb-stepper-arrow" id="GenderUpNarrow" onclick="OnGenderUp" width="32" height="fill">
-                                        <Text text="&gt;" class="wb-stepper-value" width="fill" height="fill" />
-                                    </Element>
-                                </Element>
-                            </Element>
+                            <Stepper param:value="@context.Gender.Value"
+                                     param:enabled="@context.Gender.Enabled"
+                                     param:onDecrease="OnGenderDown"
+                                     param:onIncrease="OnGenderUp"
+                                     width="fill"
+                                     height="fill" />
                             <Element class="wb-icon-button"
                                      id="Button_RandomGenderNarrow"
                                      disabled="@(!context.Gender.Enabled)"
