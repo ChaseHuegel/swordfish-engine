@@ -67,6 +67,12 @@
     font-size: 14px;
 }
 
+.wb-text-value {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+}
+
 .wb-text-tiny {
     color: var(--wb-text-dim);
     font-family: "Salmon Mono 9 Regular";
@@ -107,6 +113,10 @@
     font-size: 20px;
     text-align: center;
     vertical-align: middle;
+}
+
+.wb-icon-danger {
+    color: var(--wb-danger);
 }
 
 .wb-icon-large {
@@ -370,12 +380,18 @@
 .wb-button-subtle {
     --extends: wb-button-base;
     color: transparent;
+    border: 0 #00000000;
     text-color: var(--wb-text-muted);
 }
 
 .wb-button-subtle:hover {
     color: var(--wb-button-hover);
     text-color: var(--wb-text);
+}
+
+.wb-button-subtle:active {
+    color: var(--wb-accent-dark);
+    text-color: var(--wb-accent-bright);
 }
 
 .wb-button-disabled {
@@ -460,6 +476,13 @@
 
 .wb-tab:hover {
     text-color: var(--wb-text);
+}
+
+.wb-tab-label {
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .wb-tab-selected {
@@ -685,4 +708,16 @@
 
 .wb-scrollbar-thumb {
     color: var(--wb-border-hover);
+}
+
+.wb-save-mode {
+    color: var(--wb-primary);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
+}
+
+.wb-save-meta {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 12px;
 }
