@@ -47,7 +47,7 @@ public class ChunkBasedVoxelRemeshingTests
 
             if (Bricks.TryGetValue(voxel.ID, out Brick brick))
             {
-                return !brick.Transparent && !brick.Passable;
+                return brick.Alpha == BrickAlpha.Opaque && !brick.Passable;
             }
 
             return true;
@@ -130,7 +130,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void LocalizedLightingAddition_PropagatesAndMarksDirty()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[10] = new Brick("lamp", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
+        brickDb.Bricks[10] = new Brick("lamp", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -151,8 +151,8 @@ public class ChunkBasedVoxelRemeshingTests
     public void LocalizedLightingRemoval_DrainsLightAndMarksDirty()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
-        brickDb.Bricks[10] = new Brick("lamp", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[10] = new Brick("lamp", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -203,7 +203,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void DeleteVoxelOnChunkBorder_ReceivesSkyLightAndPropagatesToNeighbors()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -237,7 +237,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void DeleteVoxelInsideEnclosedDarkCavity_RemainsDark()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -270,8 +270,8 @@ public class ChunkBasedVoxelRemeshingTests
     public void DeleteVoxelAdjacentToIndoorLight_ReceivesDecayedLight()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
-        brickDb.Bricks[10] = new Brick("lamp", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[10] = new Brick("lamp", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -324,7 +324,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void PlaceVoxelOutwardIntoSpace_SeedsAmbientSkyLightOnExposedAirNeighbors()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -358,7 +358,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void MineHoleIntoAsteroidThenBlockOff_CavityBecomesDark()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -414,7 +414,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void SealedRoom_PlacingBlockInsideDoesNotSeedLight()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -457,7 +457,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void BuildOutwardAcrossChunkBoundary_EveryExposedFaceReceivesAmbient15()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -486,7 +486,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void SingleVoxelEdit_ExecutionTimeUnderOneMillisecond()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -727,8 +727,8 @@ public class ChunkBasedVoxelRemeshingTests
     public void BreakNonCullerVoxel_ReceivesProperLightAndPropagates()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
-        brickDb.Bricks[2] = new Brick("glass", transparent: true, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[2] = new Brick("glass", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -759,8 +759,8 @@ public class ChunkBasedVoxelRemeshingTests
     public void DepthPrePass_NonCullerBricks_DoNotAddToDepthState()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
-        brickDb.Bricks[2] = new Brick("glass", transparent: true, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[2] = new Brick("glass", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var depthState = new DepthState();
         var prePass = new DepthPrePass(depthState, brickDb);
@@ -804,8 +804,8 @@ public class ChunkBasedVoxelRemeshingTests
     public void ReplaceLampWithCuller_DrainsEmittedLightAndUpdatesDepthState()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
-        brickDb.Bricks[10] = new Brick("lamp", transparent: true, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[10] = new Brick("lamp", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -834,8 +834,8 @@ public class ChunkBasedVoxelRemeshingTests
     public void ReplaceCullerWithLamp_EmitsLightAndRemovesFromDepthState()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
-        brickDb.Bricks[10] = new Brick("lamp", transparent: true, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[10] = new Brick("lamp", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -863,7 +863,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void TunnelEndingAtChunkBorder_ClosingEntranceOverBorder_CavityBecomesDark()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();
@@ -916,7 +916,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void WideTunnelWithAmbientExposure_PlacingVoxel_NeighborAtSameDepthStaysLit()
     {
         var brickDb = new TestBrickDatabase();
-        brickDb.Bricks[1] = new Brick("stone", transparent: false, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        brickDb.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
 
         var lightingService = new VoxelLightingService(brickDb);
         var registry = new VoxelChunkRegistry();

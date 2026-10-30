@@ -31,7 +31,7 @@ leaves the draw list in the tick that disposes the renderer.
 A client voxel rebuild builds child chunk entities for opaque, masked, and
 transparent renderers. When a dirty chunk rebuilds or empties, it queues its
 previous renderers into `MeshRendererCleanup.Pending`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:258-360`).
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:288-375`).
 
 `CleanupMeshRendererSystem` processes pending replacements every tick
 (`WaywardBeyond.Client/Systems/CleanupMeshRendererSystem.cs:8-22`). It disposes

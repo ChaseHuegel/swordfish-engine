@@ -99,7 +99,7 @@ Id 0 is the empty voxel. `Only(0)` is true for a chunk that holds no content.
 ## Chunk remeshing and dirty tracking
 
 Client structures mesh each resident chunk into child entities
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:75`). Each chunk
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:86`). Each chunk
 child entity holds its own `MeshRendererComponent` and `VoxelChunkComponent`
 (`WaywardBeyond.Client/Components/VoxelChunkComponent.cs`).
 
@@ -158,7 +158,7 @@ decays with distance. When the entrance is blocked off, the decayed light drains
 to zero through `_removeQueue`, leaving enclosed interiors dark.
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:153-220`) rebuilds
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:171-238`) rebuilds
 only dirty chunks. Untouched chunks keep their existing mesh renderers.
 
 `ClientVoxelReconcileSystem`
@@ -186,7 +186,7 @@ allocations per tick.
 ## Chunk collision caching
 
 `VoxelObjectBuilder.BuildChunkCollision`
-(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:60-77`) computes
+(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:62-84`) computes
 surface collision boxes for one chunk.
 
 `VoxelChunkRegistry.ChunkColliders` caches `ChunkCollisionData`
@@ -194,7 +194,7 @@ surface collision boxes for one chunk.
 
 When a chunk becomes dirty, `VoxelEntityBuilder.RebuildDirtyChunks` resamples
 collision boxes only for that chunk. `VoxelObjectBuilder.CombineCollisions`
-(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:80-111`) merges
+(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:86-117`) merges
 the cached chunk boxes into one `CompoundShape`. The builder skips the collider
 update when dirty chunks produce no collision changes.
 
