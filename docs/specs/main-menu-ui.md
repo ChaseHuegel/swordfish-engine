@@ -225,9 +225,9 @@ Do not add fake menu controls.
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:14`
 - Connecting modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConnectingModal.cs:15`
 - Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:15`
-- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:22`
+- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:20`
 - Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:24`
-- Crew manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:23`
+- Crew manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:22`
 - Character form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:26`
 - Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:24`
 - Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:15`
@@ -236,6 +236,10 @@ Do not add fake menu controls.
 - Copy: [specs/ui-copy](ui-copy.md)
 
 ## Tests
+
+- `Swordfish.Tests/SelectSaveViewTests.cs` and
+  `Swordfish.Tests/SelectCharacterViewTests.cs` compare the migrated views to
+  the legacy goldens at 800x600, 1280x720, and 1920x1080.
 
 - `Swordfish.Tests/MenuLayoutTests.cs` covers wide and narrow page geometry and
   the shared footer button slot.

@@ -151,6 +151,12 @@ The first implementation does not add Reef text state or a Reef text control.
 - Allow C# geometry only for algorithmic layout such as radial nodes, drag
   previews, and text measurement.
 
+## Migrated pages
+
+- Home, credits, the main menu overlay, the pause scrim, and every modal.
+- Select save and the crew manifest, each with legacy parity goldens at three
+  window sizes.
+
 ## Migration phases
 
 1. Baseline harness, golden images, command snapshots, design guide.
