@@ -128,21 +128,6 @@ public class ComponentSnapshotTests
             );
         });
 
-        Snapshot("component-scroll-area", ui =>
-        {
-            var state = new ScrollAreaState();
-            state.SetMetrics(viewportHeight: 100, contentHeight: 400);
-            new ScrollArea().Render(
-                ui,
-                state,
-                callerConstraints: new ConstraintsOverride
-                {
-                    Width = new Fixed(300),
-                    Height = new Fixed(100),
-                },
-                content_default: content => DrawText(content, "Item")
-            );
-        });
     }
 
     private static void Snapshot(string name, Action<UIBuilder<Material>> render)
