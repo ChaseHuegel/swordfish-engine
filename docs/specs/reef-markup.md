@@ -444,6 +444,12 @@ Reef layout adheres to standard border-box semantics for constrained axes:
 - `fit`: Sizes to fit children bounds (`new Fit()`).
 - `shrink`: Shrinks when parent compresses (`new Shrink()`).
 
+A `fill` element never grows past its parent's allotted space. Its minimum
+width comes from its children only when its parent is `fit` or `shrink`, so
+text in a `fit` parent sizes to its text. Wider content in any other parent
+overflows the element. Set `clip` on the parent to hide it, or give the content
+a fixed width. Overflow is not clipped by default.
+
 An expression can return an integer or `IConstraint`. An integer maps to
 `Fixed`. An `IConstraint` value is emitted directly, so a model can expose
 dynamic fill or relative widths.

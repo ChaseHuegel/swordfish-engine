@@ -160,6 +160,10 @@ placeholder colors.
 - Keep fixed sizes only for icons, glyphs, slot cells, hit targets, and
   animation geometry.
 - Use `ui.Width` conditions or dynamic classes for page breakpoints.
+- Anchored overlays, such as the Home Continue card, use `overlay="true"` with
+  `x` and `y`. Size the wrapper and its frame with `ui.Width` expressions when
+  the content is wider than the anchor. A component call does not accept
+  expressions for `width` or `height`. Set them on an element instead.
 - Do not compute page width or height in C#.
 - Allow C# geometry only for algorithmic layout such as radial menus, drag
   previews, and text measurement.
