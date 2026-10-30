@@ -11,59 +11,98 @@ namespace Swordfish.Tests;
 public class StepperComponentTests
 {
     [Fact]
-    public void EnabledAndDisabledSteppersMatchSnapshots()
+    public void StepperStatesMatchSnapshots()
     {
         Snapshot("component-stepper-enabled", new StepperParameters("human", Enabled: true));
         Snapshot("component-stepper-disabled", new StepperParameters("human", Enabled: false));
+        Snapshot("component-stepper-min", new StepperParameters("human", Enabled: true, CanDecrease: false));
+        Snapshot("component-stepper-max", new StepperParameters("human", Enabled: true, CanIncrease: false));
     }
 
     [Fact]
-    public void EnabledStepperInvokesItsCallbacks()
+    public void BothArrowsFireBetweenTheBounds()
     {
         var steps = 0;
-        var controller = new UIController();
-        var ui = new UIBuilder<Material>(300, 60, new StubTextEngine(), controller);
         var parameters = new StepperParameters(
             "human",
             Enabled: true,
+            CanDecrease: true,
+            CanIncrease: true,
             OnDecrease: () => steps--,
             OnIncrease: () => steps++
         );
 
-        Click(ui, parameters, controller, 10, 16);
+        Click(parameters, 10, 16);
         Assert.Equal(-1, steps);
 
-        Click(ui, parameters, controller, 206, 16);
+        Click(parameters, 206, 16);
         Assert.Equal(0, steps);
+    }
+
+    [Fact]
+    public void DecreaseArrowIsInertAtTheMinimum()
+    {
+        var steps = 0;
+        var parameters = new StepperParameters(
+            "human",
+            Enabled: true,
+            CanDecrease: false,
+            CanIncrease: true,
+            OnDecrease: () => steps--,
+            OnIncrease: () => steps++
+        );
+
+        Click(parameters, 10, 16);
+        Assert.Equal(0, steps);
+
+        Click(parameters, 206, 16);
+        Assert.Equal(1, steps);
+    }
+
+    [Fact]
+    public void IncreaseArrowIsInertAtTheMaximum()
+    {
+        var steps = 0;
+        var parameters = new StepperParameters(
+            "human",
+            Enabled: true,
+            CanDecrease: true,
+            CanIncrease: false,
+            OnDecrease: () => steps--,
+            OnIncrease: () => steps++
+        );
+
+        Click(parameters, 206, 16);
+        Assert.Equal(0, steps);
+
+        Click(parameters, 10, 16);
+        Assert.Equal(-1, steps);
     }
 
     [Fact]
     public void DisabledStepperIgnoresClicks()
     {
         var steps = 0;
-        var controller = new UIController();
-        var ui = new UIBuilder<Material>(300, 60, new StubTextEngine(), controller);
         var parameters = new StepperParameters(
             "human",
             Enabled: false,
+            CanDecrease: true,
+            CanIncrease: true,
             OnDecrease: () => steps--,
             OnIncrease: () => steps++
         );
 
-        Click(ui, parameters, controller, 10, 16);
-        Click(ui, parameters, controller, 206, 16);
+        Click(parameters, 10, 16);
+        Click(parameters, 206, 16);
 
         Assert.Equal(0, steps);
     }
 
-    private static void Click(
-        UIBuilder<Material> ui,
-        StepperParameters parameters,
-        UIController controller,
-        int x,
-        int y
-    )
+    private static void Click(StepperParameters parameters, int x, int y)
     {
+        var controller = new UIController();
+        var ui = new UIBuilder<Material>(300, 60, new StubTextEngine(), controller);
+
         Render(ui, parameters, controller, x, y, UIController.MouseButtons.None);
         ui.Build(0f);
         Render(ui, parameters, controller, x, y, UIController.MouseButtons.Left);

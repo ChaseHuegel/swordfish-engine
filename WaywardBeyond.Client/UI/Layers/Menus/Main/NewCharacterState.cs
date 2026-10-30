@@ -23,7 +23,9 @@ internal readonly record struct NewCharacterState(
 internal readonly record struct SelectorState(
     string Label,
     string Value,
-    bool Enabled
+    bool Enabled,
+    bool CanDecrease,
+    bool CanIncrease
 );
 
 /// <summary>One spacer stat row.</summary>

@@ -53,6 +53,8 @@
                             <Text text="@L('ui.field.character.species')" class="wb-text-small" width="76" height="fill" />
                             <Stepper param:value="@context.Species.Value"
                                      param:enabled="@context.Species.Enabled"
+                                     param:canDecrease="@context.Species.CanDecrease"
+                                     param:canIncrease="@context.Species.CanIncrease"
                                      param:onDecrease="OnSpeciesDown"
                                      param:onIncrease="OnSpeciesUp"
                                      width="fill"
@@ -73,6 +75,8 @@
                             <Text text="@L('ui.field.character.gender')" class="wb-text-small" width="76" height="fill" />
                             <Stepper param:value="@context.Gender.Value"
                                      param:enabled="@context.Gender.Enabled"
+                                     param:canDecrease="@context.Gender.CanDecrease"
+                                     param:canIncrease="@context.Gender.CanIncrease"
                                      param:onDecrease="OnGenderDown"
                                      param:onIncrease="OnGenderUp"
                                      width="fill"
@@ -203,6 +207,8 @@
                             <Text text="@L('ui.field.character.species')" class="wb-text-small" width="76" height="fill" />
                             <Stepper param:value="@context.Species.Value"
                                      param:enabled="@context.Species.Enabled"
+                                     param:canDecrease="@context.Species.CanDecrease"
+                                     param:canIncrease="@context.Species.CanIncrease"
                                      param:onDecrease="OnSpeciesDown"
                                      param:onIncrease="OnSpeciesUp"
                                      width="fill"
@@ -223,6 +229,8 @@
                             <Text text="@L('ui.field.character.gender')" class="wb-text-small" width="76" height="fill" />
                             <Stepper param:value="@context.Gender.Value"
                                      param:enabled="@context.Gender.Enabled"
+                                     param:canDecrease="@context.Gender.CanDecrease"
+                                     param:canIncrease="@context.Gender.CanIncrease"
                                      param:onDecrease="OnGenderDown"
                                      param:onIncrease="OnGenderUp"
                                      width="fill"

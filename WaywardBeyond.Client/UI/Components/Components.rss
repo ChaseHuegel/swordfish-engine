@@ -732,6 +732,10 @@
     border: 1px var(--wb-border-inner);
 }
 
+.wb-stepper-enabled {
+    border-color: var(--wb-border);
+}
+
 .wb-stepper-inner {
     color: var(--wb-control);
 }

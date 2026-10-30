@@ -5,11 +5,15 @@
       Parameters="StepperParameters"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Components">
-    <Element class="wb-stepper" layout="none" padding="1" clip="true">
+    <Element class="wb-stepper"
+             class:wb-stepper-enabled="@param.Enabled"
+             layout="none"
+             padding="1"
+             clip="true">
         <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
             <Element class="wb-stepper-arrow"
-                     class:wb-stepper-arrow-enabled="@param.Enabled"
-                     disabled="@(!param.Enabled)"
+                     class:wb-stepper-arrow-enabled="@(param.Enabled &amp;&amp; param.CanDecrease)"
+                     disabled="@(!param.Enabled || !param.CanDecrease)"
                      onclick="@param.OnDecrease"
                      width="32"
                      height="fill">
@@ -26,8 +30,8 @@
                   height="fill" />
             <Element class="wb-stepper-sep" width="1" height="fill" />
             <Element class="wb-stepper-arrow"
-                     class:wb-stepper-arrow-enabled="@param.Enabled"
-                     disabled="@(!param.Enabled)"
+                     class:wb-stepper-arrow-enabled="@(param.Enabled &amp;&amp; param.CanIncrease)"
+                     disabled="@(!param.Enabled || !param.CanIncrease)"
                      onclick="@param.OnIncrease"
                      width="32"
                      height="fill">

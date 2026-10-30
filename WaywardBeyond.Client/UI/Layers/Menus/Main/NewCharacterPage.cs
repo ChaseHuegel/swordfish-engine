@@ -148,12 +148,16 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             new SelectorState(
                 L("ui.field.character.species"),
                 species,
-                speciesList.Count > 1
+                speciesList.Count > 1,
+                speciesList.Count > 1 && _speciesIndex > 0,
+                speciesList.Count > 1 && _speciesIndex < speciesList.Count - 1
             ),
             new SelectorState(
                 L("ui.field.character.gender"),
                 _view.GenderName(_gender),
-                genders.Count > 1
+                genders.Count > 1,
+                genders.Count > 1 && IndexOfGender(genders, _gender) > 0,
+                genders.Count > 1 && IndexOfGender(genders, _gender) < genders.Count - 1
             ),
             BuildStatRows(),
             L("ui.label.info"),
