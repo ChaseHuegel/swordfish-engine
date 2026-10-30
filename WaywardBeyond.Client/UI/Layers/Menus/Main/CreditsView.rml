@@ -1,0 +1,61 @@
+<Reef xmlns="Reef"
+      Class="CreditsView"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Page max-width="1160" max-height="720" padding="0 12 0 0">
+        <Panel width="fill" height="fill" padding="24">
+            <Content name="header">
+                <Text text="@L('ui.panel.credits')" class="wb-panel-header" width="fill" height="18" />
+            </Content>
+
+            <Element layout="horizontal" width="fill" height="fill" spacing="8">
+                <Element id="Credits.Scroll"
+                         layout="vertical"
+                         width="fill"
+                         height="fill"
+                         clip="true"
+                         scroll="vertical"
+                         scroll-y="@Scroll.ReefOffset"
+                         onscroll="Scroll.OnScroll(ui.GetScrollDelta())">
+                    <Element id="Credits.Content"
+                             layout="vertical"
+                             width="fill"
+                             height="fit"
+                             spacing="8"
+                             padding="0 8 0 8">
+                        <Text text="@L('ui.text.credits.body')"
+                              class="wb-text-body"
+                              width="fill"
+                              wrap="true" />
+                        <Element class="wb-divider" width="fill" height="1" />
+                        <Element height="8" />
+                        <Text text="@L('ui.text.credits.thanks')"
+                              class="wb-text-small"
+                              width="fill"
+                              wrap="true" />
+                    </Element>
+                </Element>
+
+                <Element class="wb-scrollbar" layout="none" width="6" height="fill" clip="true">
+                    <Element class="wb-scrollbar-thumb"
+                             width="fill"
+                             height="@Scroll.Bar.ThumbHeight"
+                             y="@Scroll.Bar.ThumbY" />
+                </Element>
+            </Element>
+        </Panel>
+
+        <Element class="wb-footer" layout="horizontal" width="fill" height="52" spacing="12">
+            <Element id="Button_Back"
+                     class="wb-button"
+                     onclick="OnBack"
+                     width="170"
+                     height="40"
+                     anchor="Center">
+                <Text class="wb-button-label" text="@L('ui.button.back')" width="fill" height="fill" />
+            </Element>
+            <Element width="fill" />
+        </Element>
+    </Page>
+</Reef>

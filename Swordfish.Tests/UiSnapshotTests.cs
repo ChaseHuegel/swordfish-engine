@@ -11,6 +11,7 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Layers.Menus.Pause;
 using Xunit;
@@ -73,6 +74,16 @@ public class UiSnapshotTests
                     ui,
                     new ConnectingModalState("Connecting", "127.0.0.1:7777")
                 );
+            });
+            Compare($"{width}x{height}-main-menu-overlay", width, height, (ui) =>
+            {
+                new MainMenuOverlayView(new StubLocalization()).Render(ui);
+            });
+            Compare($"{width}x{height}-credits", width, height, (ui) =>
+            {
+                var scroll = new WaywardBeyond.Client.UI.Components.ScrollAreaState();
+                scroll.SetMetrics(viewportHeight: 300, contentHeight: 900);
+                new CreditsView(new StubLocalization(), scroll).Render(ui);
             });
         }
     }
@@ -185,6 +196,9 @@ public class UiSnapshotTests
                 "ui.button.server.add" => "Add signal",
                 "ui.dialog.server.connecting" => "Connecting",
                 "ui.message.server.connecting" => "Contacting server",
+                "ui.panel.credits" => "Credits",
+                "ui.text.credits.body" => "Credits body.",
+                "ui.text.credits.thanks" => "Thank you.",
                 _ => value,
             };
         }
