@@ -49,10 +49,12 @@ internal sealed class SettingsPage<TIdentifier>(
     private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
 
-    private readonly SettingsRenderer _renderer = new(localization, soundEffectService, inputService);
+    private SettingsRowsView? _rows;
     private SettingsShellView? _shell;
     private Menu<TIdentifier>? _menu;
     private double _time;
+    private int _controlWidth;
+    private double _lastSliderSoundTime;
     private SettingsDraft? _draft;
     private SettingsCategory[]? _categories;
     private int _categoryIndex;
@@ -98,10 +100,10 @@ internal sealed class SettingsPage<TIdentifier>(
         RefreshExternalDisplaySettings();
 
         SettingsLayout layout = SettingsLayout.Compute(ui.Width, ui.Height);
-        _renderer.SetLayout(ui, layout);
         _menu = menu;
         Shell.Body = DrawRows;
         _time = ui.Time;
+        _controlWidth = layout.ControlWidth;
 
         bool dirty = IsDirty();
         string? status = _status != null && ui.Time < _statusUntil ? _status : null;
@@ -140,10 +142,97 @@ internal sealed class SettingsPage<TIdentifier>(
         };
     }
 
+    private SettingsRowsView Rows => _rows ??= CreateRows();
+
+    private SettingsRowsView CreateRows()
+    {
+        return new SettingsRowsView(_localization)
+        {
+            ChoiceRequested = OnChoice,
+            StepRequested = OnStep,
+            SliderRequested = OnSlider,
+            ResetRequested = OnReset,
+        };
+    }
+
     /// <summary>Draws the rows of the active category inside the shell.</summary>
     private void DrawRows(UIBuilder<Material> ui)
     {
-        _renderer.DrawRows(_categories![_categoryIndex], ref _scrollY);
+        ElementBounds viewport = ui.GetElementBounds("Settings.Rows");
+        ElementBounds content = ui.GetElementBounds("Settings.RowsContent");
+        if (viewport.Rect.Size.Y > 0 && content.Rect.Size.Y > 0)
+        {
+            Rows.Scroll.SetMetrics(viewport.Rect.Size.Y, content.Rect.Size.Y);
+        }
+
+        var rows = new List<SettingsRowState>();
+        SettingsRow[] categoryRows = _categories![_categoryIndex].Rows;
+        for (var i = 0; i < categoryRows.Length; i++)
+        {
+            rows.Add(categoryRows[i].Snapshot(_localization));
+        }
+
+        Rows.Render(ui, new SettingsRowsState(rows, _controlWidth));
+    }
+
+    private void OnChoice(string id, int index)
+    {
+        if (FindEntry(id)?.TrySetOptionIndex(index) == true)
+        {
+            _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Toggle);
+        }
+    }
+
+    private void OnStep(string id, int delta)
+    {
+        int applied = FindEntry(id)?.Step(delta) ?? 0;
+        if (applied == 0)
+        {
+            return;
+        }
+
+        _soundEffectService.PlayInterfaceSound(
+            applied > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease
+        );
+    }
+
+    private void OnSlider(string id, float value)
+    {
+        if (FindEntry(id)?.TrySetSlider(value) != true)
+        {
+            return;
+        }
+
+        if (_time - _lastSliderSoundTime < 0.05d)
+        {
+            return;
+        }
+
+        _lastSliderSoundTime = _time;
+        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Increase);
+    }
+
+    private void OnReset(string id)
+    {
+        if (_categories == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            SettingsRow[] rows = _categories[i].Rows;
+            for (var j = 0; j < rows.Length; j++)
+            {
+                if (rows[j] is SettingsResetRow reset
+                    && string.Equals(reset.Id, id, StringComparison.Ordinal))
+                {
+                    reset.Invoke();
+                    _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+                    return;
+                }
+            }
+        }
     }
 
     private void OnCategorySelected(int index)
