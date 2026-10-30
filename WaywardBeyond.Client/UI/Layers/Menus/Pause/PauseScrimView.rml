@@ -1,0 +1,7 @@
+<Reef xmlns="Reef"
+      Class="PauseScrimView"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Pause">
+
+    <Element class="wb-scrim-soft" layout="none" width="100%" height="100%" />
+</Reef>

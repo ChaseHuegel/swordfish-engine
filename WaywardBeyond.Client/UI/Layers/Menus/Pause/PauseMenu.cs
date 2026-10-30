@@ -7,13 +7,13 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Systems;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Pause;
 
 internal sealed class PauseMenu : TitleMenu<PausePage>
 {
     private readonly InteractionState _interactionState;
+    private readonly PauseScrimView _scrim = new();
 
     public PauseMenu(
         in ILogger<Menu<PausePage>> logger,
@@ -54,16 +54,7 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
 
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        //  Tint the screen
-        using (ui.Element())
-        {
-            ui.Color = UiTheme.ScrimSoft;
-            ui.Constraints = new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            };
-        }
+        _scrim.Render(ui);
 
         return base.RenderUI(delta, ui);
     }
