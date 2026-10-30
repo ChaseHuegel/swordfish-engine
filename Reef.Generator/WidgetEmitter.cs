@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.CodeAnalysis;
@@ -477,10 +478,13 @@ internal sealed partial class DocumentState
             return EmitTypedExpression(attribute.Value, type, attribute.Location, context.Scope);
         }
 
-        if (type is INamedTypeSymbol { DelegateInvokeMethod: not null }
-            && context.Scope.FindCompanionMethod(attribute.Value.Trim()) != null)
+        if (type is INamedTypeSymbol { DelegateInvokeMethod: not null })
         {
-            return attribute.Value.Trim();
+            string callbackText = attribute.Value.Trim();
+            if (callbackText.Length > 0 && callbackText.All(char.IsLetterOrDigit))
+            {
+                return callbackText;
+            }
         }
 
         Report(
