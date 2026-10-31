@@ -959,6 +959,19 @@ internal sealed partial class DocumentState
                     {
                         fontFields["Size"] = "Size = " + value.Value;
                     }
+                    else if (assignment.Value is MarkupExpression expression)
+                    {
+                        string? code = EmitTypedExpression(
+                            expression.Raw,
+                            Compilation.GetSpecialType(SpecialType.System_Int32),
+                            assignment.Location,
+                            context.Scope);
+                        if (code != null)
+                        {
+                            fontFields["Size"] = "Size = " + code;
+                        }
+                    }
+
                     break;
                 }
                 case MarkupProperty.FontID:
