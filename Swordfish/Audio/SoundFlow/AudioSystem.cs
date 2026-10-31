@@ -13,17 +13,25 @@ namespace Swordfish.Audio.SoundFlow;
 
 internal sealed class AudioSystem : IEntitySystem, IDisposable
 {
+    private const float PlaybackDeviceScanInterval = 2f;
+
     private readonly AudioEngine _engine;
+    private readonly ILogger<AudioSystem> _logger;
     private readonly IAssetDatabase<AudioStream> _audioStreamDatabase;
     
     private readonly AudioFormat _format;
-    private readonly AudioPlaybackDevice? _defaultPlaybackDevice;
     private readonly Dictionary<Uuid, SoundPlayer> _soundPlayers = [];
     private readonly Dictionary<SoundPlayer, string> _soundPlayerSources = [];
     private readonly Dictionary<string, AudioPlaybackDevice> _playbackDevices = [];
+    private readonly HashSet<string> _failedPlaybackDevices = [];
+    
+    private AudioPlaybackDevice? _defaultPlaybackDevice;
+    private bool? _hasDefaultPlaybackDevice;
+    private float _playbackDeviceScanTimer;
     
     public AudioSystem(ILogger<AudioSystem> logger, AudioEngine engine, AudioSettings audioSettings, IAssetDatabase<AudioStream> audioStreamDatabase)
     {
+        _logger = logger;
         _engine = engine;
         _audioStreamDatabase = audioStreamDatabase;
         
@@ -34,29 +42,7 @@ internal sealed class AudioSystem : IEntitySystem, IDisposable
             Channels = audioSettings.Playback.Channels,
         };
 
-        //  Init all playback devices
-        foreach (DeviceInfo deviceInfo in _engine.PlaybackDevices)
-        {
-            try
-            {
-                AudioPlaybackDevice playbackDevice = _engine.InitializePlaybackDevice(deviceInfo, _format);
-                _playbackDevices[deviceInfo.Name] = playbackDevice;
-                
-                if (deviceInfo.IsDefault)
-                {
-                    _defaultPlaybackDevice = playbackDevice;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to initialize playback device: {device}", deviceInfo.Name);
-            }
-        }
-
-        if (_defaultPlaybackDevice == null)
-        {
-            logger.LogWarning("No default playback device found.");
-        }
+        RefreshPlaybackDevices();
     }
     
     public void Dispose()
@@ -67,11 +53,128 @@ internal sealed class AudioSystem : IEntitySystem, IDisposable
     
     public void Tick(float delta, DataStore store)
     {
+        _playbackDeviceScanTimer += delta;
+        if (_playbackDeviceScanTimer >= PlaybackDeviceScanInterval)
+        {
+            _playbackDeviceScanTimer = 0f;
+            RefreshPlaybackDevices();
+        }
+
         var cleanupAudioPlayerAction = new CleanupAudioPlayerAction(this);
         store.Query<CleanupAudioPlayer, CleanupAudioPlayerAction>(delta, ref cleanupAudioPlayerAction);
 
         var tickAudioPlayerAction = new TickAudioPlayerAction(this);
         store.QueryRef<AudioPlayer, AudioSource, TickAudioPlayerAction>(delta, ref tickAudioPlayerAction);
+    }
+
+    private void RefreshPlaybackDevices()
+    {
+        try
+        {
+            _engine.UpdateAudioDevicesInfo();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to enumerate playback devices.");
+            return;
+        }
+
+        DeviceInfo[] playbackDevices = _engine.PlaybackDevices;
+
+        List<string> removedNames = [];
+        PlaybackDeviceSet.FindRemoved(_playbackDevices.Keys, playbackDevices, removedNames);
+        foreach (string name in removedNames)
+        {
+            RemovePlaybackDevice(name);
+        }
+
+        foreach (DeviceInfo deviceInfo in playbackDevices)
+        {
+            if (!_playbackDevices.ContainsKey(deviceInfo.Name))
+            {
+                AddPlaybackDevice(deviceInfo);
+            }
+        }
+
+        _defaultPlaybackDevice = ResolveDefaultPlaybackDevice(playbackDevices);
+
+        bool hasDefaultPlaybackDevice = _defaultPlaybackDevice != null;
+        if (_hasDefaultPlaybackDevice == hasDefaultPlaybackDevice)
+        {
+            return;
+        }
+
+        _hasDefaultPlaybackDevice = hasDefaultPlaybackDevice;
+        if (hasDefaultPlaybackDevice)
+        {
+            _logger.LogInformation("Default playback device: {device}", _defaultPlaybackDevice!.Info?.Name ?? "unknown");
+        }
+        else
+        {
+            _logger.LogWarning("No default playback device found.");
+        }
+    }
+
+    private void AddPlaybackDevice(DeviceInfo deviceInfo)
+    {
+        try
+        {
+            AudioPlaybackDevice playbackDevice = _engine.InitializePlaybackDevice(deviceInfo, _format);
+            _playbackDevices[deviceInfo.Name] = playbackDevice;
+            _failedPlaybackDevices.Remove(deviceInfo.Name);
+            _logger.LogInformation("Playback device initialized: {device}", deviceInfo.Name);
+        }
+        catch (Exception ex)
+        {
+            if (_failedPlaybackDevices.Add(deviceInfo.Name))
+            {
+                _logger.LogWarning(ex, "Failed to initialize playback device: {device}", deviceInfo.Name);
+            }
+            else
+            {
+                _logger.LogDebug(ex, "Failed to initialize playback device: {device}", deviceInfo.Name);
+            }
+        }
+    }
+
+    private void RemovePlaybackDevice(string name)
+    {
+        AudioPlaybackDevice playbackDevice = _playbackDevices[name];
+        _playbackDevices.Remove(name);
+        _failedPlaybackDevices.Remove(name);
+
+        if (_defaultPlaybackDevice == playbackDevice)
+        {
+            _defaultPlaybackDevice = null;
+        }
+
+        DetachSoundPlayers(playbackDevice.MasterMixer);
+        playbackDevice.Dispose();
+        _logger.LogInformation("Playback device removed: {device}", name);
+    }
+
+    private void DetachSoundPlayers(Mixer mixer)
+    {
+        foreach (SoundPlayer soundPlayer in _soundPlayers.Values)
+        {
+            if (soundPlayer.Parent == mixer)
+            {
+                mixer.RemoveComponent(soundPlayer);
+            }
+        }
+    }
+
+    private AudioPlaybackDevice? ResolveDefaultPlaybackDevice(DeviceInfo[] playbackDevices)
+    {
+        string? defaultName = PlaybackDeviceSet.FindDefaultName(playbackDevices);
+        if (defaultName == null)
+        {
+            return null;
+        }
+
+        return _playbackDevices.TryGetValue(defaultName, out AudioPlaybackDevice? playbackDevice)
+            ? playbackDevice
+            : null;
     }
 
     private SoundPlayer CreateSoundPlayer(Uuid entity, AudioStream audioStream)
@@ -131,7 +234,7 @@ internal sealed class AudioSystem : IEntitySystem, IDisposable
             }
             else if (!_owner._playbackDevices.TryGetValue(channel.PlaybackDevice!, out playbackDevice))
             {
-                playbackDevice = null;
+                playbackDevice = _owner._defaultPlaybackDevice;
             }
 
             if (playbackDevice == null)
