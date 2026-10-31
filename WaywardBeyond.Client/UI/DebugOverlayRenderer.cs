@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
@@ -7,7 +8,6 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Configuration;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
@@ -84,7 +84,7 @@ internal class DebugOverlayRenderer : IUILayer
                 {
                     using (ui.Element())
                     {
-                        ui.Color = UiTheme.ScrimSoft;
+                        ui.Color = new Vector4(0f, 0f, 0f, 128f / 255f);
                         ui.LayoutDirection = LayoutDirection.Vertical;
 
                         Result result = overlay.RenderDebugOverlay(delta, _reefContext.Builder);

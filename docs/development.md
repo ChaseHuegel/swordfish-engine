@@ -118,7 +118,8 @@ Keep the shape of the code readable.
   first:
 
   ```csharp
-  Widgets.ActionButtonOptions options = _returnButton with { Rect = layout.ReturnButton };
+  var layout = new Constraints { Width = new Fixed(264), Height = new Fixed(44) };
+  var options = new Widgets.ActionButtonOptions(Layout: layout);
   if (ui.ActionButton("Button_Back", label, options))
   ```
 
@@ -127,7 +128,7 @@ Keep the shape of the code readable.
   allocate nothing per row:
 
   ```csharp
-  ui.SelectableCard(id, rect, options, context, static (contentUi, row) => DrawRow(contentUi, in row));
+  ui.SegmentedControl(id, constraints, options, value, static option => option.Label, enabled);
   ```
 
 - **Extract per region, not per statement.** A page method draws one region

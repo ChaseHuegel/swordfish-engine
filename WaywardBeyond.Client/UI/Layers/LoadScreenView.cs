@@ -21,25 +21,25 @@ internal partial class LoadScreenView
     /// <summary>Returns the faded status text color.</summary>
     protected static Vector4 TextColor(float alpha)
     {
-        return Fade(UiTheme.Text, alpha);
+        return DynamicColors.Fade(DynamicColors.Text, alpha);
     }
 
     /// <summary>Returns the faded hint text color.</summary>
     protected static Vector4 MutedColor(float alpha)
     {
-        return Fade(UiTheme.TextMuted, alpha);
+        return DynamicColors.Fade(DynamicColors.TextMuted, alpha);
     }
 
     /// <summary>Returns the faded signal line color.</summary>
     protected static Vector4 BorderColor(float alpha)
     {
-        return Fade(UiTheme.Border, alpha);
+        return DynamicColors.Fade(DynamicColors.Border, alpha);
     }
 
     /// <summary>Returns the faded moving segment color.</summary>
     protected static Vector4 AccentColor(float alpha)
     {
-        return Fade(UiTheme.Accent, alpha);
+        return DynamicColors.Fade(DynamicColors.Accent, alpha);
     }
 
     /// <summary>Formats bracketed keys in a hint with rich-text color tags.</summary>
@@ -57,7 +57,7 @@ internal partial class LoadScreenView
             char c = hint[i];
             if (c == '[' && !inKey)
             {
-                builder.Append(UiTheme.AccentRichText + " ");
+                builder.Append(DynamicColors.AccentRichText + " ");
                 inKey = true;
             }
 
@@ -70,10 +70,5 @@ internal partial class LoadScreenView
         }
 
         return builder.ToString();
-    }
-
-    private static Vector4 Fade(Vector4 color, float alpha)
-    {
-        return new Vector4(color.X, color.Y, color.Z, color.W * alpha);
     }
 }

@@ -4,12 +4,19 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
+    private static readonly Vector4 SLIDER_TEXT = FromRgb(240, 243, 246);
+    private static readonly Vector4 SLIDER_TEXT_DIM = FromRgb(69, 84, 107);
+    private static readonly Vector4 SLIDER_TRACK = FromRgb(28, 36, 51);
+    private static readonly Vector4 SLIDER_TRACK_FILL = FromRgb(75, 227, 227, 180);
+    private static readonly Vector4 SLIDER_BORDER = FromRgb(43, 56, 78);
+    private static readonly Vector4 SLIDER_BORDER_INNER = FromRgb(26, 35, 51);
+    private static readonly Vector4 SLIDER_THUMB = FromRgb(240, 243, 246);
+
     /// <summary>Creates a draggable slider and reports whether the value changed.</summary>
     public static ControlResult<float> Slider(
         this UIBuilder<Material> ui,
@@ -45,11 +52,10 @@ internal static partial class Widgets
         using (ui.Row(constraints, spacing: 8))
         {
             var buttonOptions = new ActionButtonOptions(
-                Variant: ButtonVariant.Secondary,
                 Layout: new Constraints
                 {
-                    Width = new Fixed(UiMetrics.SLIDER_BUTTON_SIZE),
-                    Height = new Fixed(UiMetrics.SLIDER_BUTTON_SIZE),
+                    Width = new Fixed(24),
+                    Height = new Fixed(24),
                 },
                 Anchors: Anchors.Center
             );
@@ -91,11 +97,11 @@ internal static partial class Widgets
 
             ui.Label(
                 format(newValue),
-                UiMetrics.CONTROL_FONT,
-                enabled ? UiTheme.Text : UiTheme.TextDim,
+                18,
+                enabled ? SLIDER_TEXT : SLIDER_TEXT_DIM,
                 new Constraints
                 {
-                    Width = new Fixed(UiMetrics.SLIDER_VALUE_WIDTH),
+                    Width = new Fixed(56),
                     Height = new Fill(),
                 },
                 HorizontalAlignment.Right
@@ -148,17 +154,17 @@ internal static partial class Widgets
     )
     {
         ui.LayoutDirection = LayoutDirection.None;
-        ui.Padding = new Padding(UiMetrics.PANEL_BORDER_THICKNESS);
-        ui.Color = UiTheme.Track;
+        ui.Padding = new Padding(1);
+        ui.Color = SLIDER_TRACK;
         ui.Border = new BorderStyle
         {
-            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-            Color = enabled ? UiTheme.Border : UiTheme.BorderInner,
+            Thickness = 1,
+            Color = enabled ? SLIDER_BORDER : SLIDER_BORDER_INNER,
         };
         ui.Constraints = new Constraints
         {
             Width = new Fill(),
-            Height = new Fixed(UiMetrics.SLIDER_TRACK_HEIGHT),
+            Height = new Fixed(12),
             Anchors = Anchors.Center,
         };
         ui.ClipConstraints = ClipToBounds();
@@ -167,7 +173,7 @@ internal static partial class Widgets
 
         using (ui.Element())
         {
-            ui.Color = enabled ? UiTheme.TrackFill : UiTheme.BorderInner;
+            ui.Color = enabled ? SLIDER_TRACK_FILL : SLIDER_BORDER_INNER;
             ui.Constraints = new Constraints
             {
                 Width = new Relative(ratio),
@@ -179,7 +185,7 @@ internal static partial class Widgets
         {
             using (ui.Element())
             {
-                ui.Color = UiTheme.Track * new Vector4(0.5f);
+                ui.Color = SLIDER_TRACK * new Vector4(0.5f);
                 ui.Constraints = new Constraints
                 {
                     X = new Relative(i / 10f),
@@ -197,7 +203,7 @@ internal static partial class Widgets
 
         using (ui.Element())
         {
-            ui.Color = enabled ? UiTheme.Thumb : UiTheme.TextDim;
+            ui.Color = enabled ? SLIDER_THUMB : SLIDER_TEXT_DIM;
             ui.Constraints = new Constraints
             {
                 X = new Relative(thumbRatio),

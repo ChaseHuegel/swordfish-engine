@@ -14,7 +14,9 @@ The content block holds:
 - a 1 pixel signal track with a 48 pixel cyan segment;
 - the control hint at 16 pixels.
 
-The view fades each color from state alpha values supplied by the layer.
+The view fades each color from state alpha values supplied by the layer. The
+fade colors come from `DynamicColors` in
+`WaywardBeyond.Client/UI/Theme/DynamicColors.cs:7`.
 
 The signal segment scans left to right across a 160 pixel track. It exits the
 right edge and re-enters from the left after a short offscreen gap. The full

@@ -277,7 +277,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
     private void OnCancel()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(MenuPage.Home);
     }
 
@@ -302,7 +302,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _lastCreateMessage = string.Empty;
         _createMessages.Clear();
         _createMessageTimes.Clear();
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _createTask = Task.Run(() => _gameSaveService.CreateSaveAsync(new GameOptions(saveName, seed)));
     }
 

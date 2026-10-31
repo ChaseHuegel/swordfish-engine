@@ -75,7 +75,7 @@ internal sealed class ConnectingModal : IMenuPage<Modal>
 
     private void Cancel()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         Action? cancel = _onCancel;
         _onCancel = null;
         cancel?.Invoke();

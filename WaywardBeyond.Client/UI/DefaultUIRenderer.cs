@@ -6,7 +6,6 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Configuration;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
@@ -29,7 +28,7 @@ internal class DefaultUIRenderer : IAutoActivate
         _reefContext = reefContext;
         _uiSettings = uiSettings;
         _layers = layers;
-        _reefContext.Builder.DefaultFontID = UiTheme.FONT_UI;
+        _reefContext.Builder.DefaultFontID = "Salmon Mono 9 Regular";
 
         var toggleShortcut = new Shortcut
         {

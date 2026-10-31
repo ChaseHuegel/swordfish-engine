@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.Text;
@@ -10,13 +11,15 @@ using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
-using WaywardBeyond.Client.UI.Theme;
 using Xunit;
 
 namespace Swordfish.Tests;
 
 public class ButtonStateTests
 {
+    private static readonly Vector4 DISABLED_FILL = new(13f / 255f, 18f / 255f, 28f / 255f, 240f / 255f);
+    private static readonly Vector4 DISABLED_BORDER = new(26f / 255f, 35f / 255f, 51f / 255f, 1f);
+
     [Fact]
     public void DisabledButtonKeepsDisabledStyleWhileHoveredAndPressed()
     {
@@ -86,10 +89,10 @@ public class ButtonStateTests
 
     private static void AssertDisabled(RenderCommand<Material> command)
     {
-        Assert.Equal(UiTheme.PanelInner.X, command.Color.X, 3);
-        Assert.Equal(UiTheme.PanelInner.Y, command.Color.Y, 3);
-        Assert.Equal(UiTheme.PanelInner.Z, command.Color.Z, 3);
-        Assert.Equal(UiTheme.BorderInner.X, command.Border.Color.X, 3);
+        Assert.Equal(DISABLED_FILL.X, command.Color.X, 3);
+        Assert.Equal(DISABLED_FILL.Y, command.Color.Y, 3);
+        Assert.Equal(DISABLED_FILL.Z, command.Color.Z, 3);
+        Assert.Equal(DISABLED_BORDER.X, command.Border.Color.X, 3);
         Assert.Equal(0, command.CornerCaps.Length);
     }
 

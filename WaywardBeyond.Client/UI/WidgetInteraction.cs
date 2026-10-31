@@ -1,23 +1,11 @@
 using System;
-using Reef.UI;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
-internal static partial class Widgets
+/// <summary>Sound and pointer interaction helpers shared by game UI.</summary>
+internal static class WidgetInteraction
 {
-    /// <summary>Gets the vertical correction for Font Awesome glyphs, which sit low in their line box.</summary>
-    private static int IconVerticalOffset(in FontOptions font)
-    {
-        if (font.ID != UiTheme.FONT_ICONS && font.ID != UiTheme.FONT_BRANDS)
-        {
-            return 0;
-        }
-
-        return (int)MathF.Round(font.Size * 0.125f);
-    }
-
     private const string INTERFACE_AUDIO_CHANNEL = "interface";
     private const string EXIT_CLICK_SOUND = "sounds/menu sounds_exit click 1.wav";
     private const string CLICK_SOUND = "sounds/misc effects_click 1.wav";
@@ -54,23 +42,6 @@ internal static partial class Widgets
         return true;
     }
 
-    /// <summary>Plays the text input sounds, and reports whether the interactions include a submit.</summary>
-    public static bool WithTextInputAudio(this Interactions interactions, SoundEffectService soundEffectService)
-    {
-        if ((interactions & Interactions.Input) == Interactions.Input)
-        {
-            soundEffectService.PlayInterfaceSound(InterfaceSound.Input);
-        }
-
-        if ((interactions & Interactions.Submit) != Interactions.Submit)
-        {
-            return false;
-        }
-
-        soundEffectService.PlayInterfaceSound(InterfaceSound.Submit);
-        return true;
-    }
-
     /// <summary>Sound effects played by menu interactions.</summary>
     public enum InterfaceSound
     {
@@ -80,14 +51,6 @@ internal static partial class Widgets
         Decrease,
         Input,
         Submit,
-    }
-
-    /// <summary>
-    ///     Checks if interactions has the specified value.
-    /// </summary>
-    public static bool Has(this Interactions interactions, Interactions value)
-    {
-        return (interactions & value) == value;
     }
 
     [Flags]

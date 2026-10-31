@@ -4,7 +4,6 @@ using Reef.Text;
 using Reef.UI;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.UI;
-using WaywardBeyond.Client.UI.Theme;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -47,7 +46,7 @@ public class SliderInteractionTests
             new Constraints
             {
                 Width = new Fixed(300),
-                Height = new Fixed(UiMetrics.CONTROL_HEIGHT),
+                Height = new Fixed(32),
             },
             value,
             min: 0f,

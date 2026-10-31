@@ -1,5 +1,3 @@
-using WaywardBeyond.Client.UI.Theme;
-
 namespace WaywardBeyond.Client.UI.Components;
 
 /// <summary>Parameters for the shared button component.</summary>

@@ -279,7 +279,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private void Back()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(MenuPage.Home);
     }
 

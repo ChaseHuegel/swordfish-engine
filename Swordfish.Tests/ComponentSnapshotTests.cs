@@ -5,7 +5,6 @@ using Reef.Text;
 using Reef.UI;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.UI.Components;
-using WaywardBeyond.Client.UI.Theme;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -246,8 +245,8 @@ public class ComponentSnapshotTests
         {
             ui.FontOptions = new FontOptions
             {
-                ID = UiTheme.FONT_UI,
-                Size = compact ? UiMetrics.MENU_SMALL_FONT : UiMetrics.MENU_BODY_FONT,
+                ID = "Salmon Mono 9 Regular",
+                Size = compact ? 14 : 18,
                 NoWrap = true,
             };
             ui.Constraints = new Constraints

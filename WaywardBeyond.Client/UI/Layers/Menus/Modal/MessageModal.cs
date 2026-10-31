@@ -44,7 +44,7 @@ internal sealed class MessageModal : IMenuPage<Modal>
 
     private void Close()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoBack();
     }
 }

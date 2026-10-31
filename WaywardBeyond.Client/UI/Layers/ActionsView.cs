@@ -18,6 +18,6 @@ internal partial class ActionsView
     /// <summary>Returns the faded action text color.</summary>
     protected static Vector4 TextColor(float alpha)
     {
-        return UiTheme.Text * new Vector4(1f, 1f, 1f, alpha);
+        return DynamicColors.Fade(DynamicColors.Text, alpha);
     }
 }

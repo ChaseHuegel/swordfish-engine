@@ -3,7 +3,7 @@
 One subject: the locked plan for moving Wayward Beyond UI to Reef markup and
 style classes.
 
-Status: approved and in progress. This document records the target
+Status: complete through phase 8. This document records the target
 architecture, the component rules, and the migration phases. Migrated pages
 pass the legacy visual parity gate.
 
@@ -208,13 +208,13 @@ The first implementation does not add Reef text state or a Reef text control.
 5. Settings.
 6. HUD and overlays.
 7. Chat, inventory, and radial selectors.
-8. Delete old theme, metrics, widgets, and layout math.
+8. Delete old theme, metrics, widgets, and layout math. Complete.
 
 Each phase ends with build, tests, visual baselines, and a docs pass.
 
 ## Acceptance gates
 
-- No `UiTheme` or `UiMetrics` use in migrated page and layer code.
+- No legacy theme, metrics, widget, or menu-layout type remains.
 - No page layout math in migrated code.
 - All static UI copy uses `L` keys from `.rml`.
 - Context types contain no localized strings or colors.

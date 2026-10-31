@@ -27,24 +27,14 @@ manifest.
 
 ## Layout
 
-`MenuLayout` is at `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:10`. It
-computes the responsive page size, the narrow breakpoint, and the left-pane
-ratio. It does not compute panel or button rects.
+Each page builds its body in `.rml` with the shared components and style
+classes. Wide two-pane pages use a row. Narrow pages use a tab strip above one
+pane. A footer is a fixed height row with the Back button, the status, and the
+Primary button.
 
-Each page builds its body with `Row`, `Column`, and `Filler`. Wide two-pane pages
-use a row. Narrow pages use a tab strip above one pane. A footer is a fixed
-height row with the Back button, the status, and the Primary button.
-
-Footer buttons use the shared slot from `MenuLayoutExtensions.FooterButton`:
-
-```csharp
-Widgets.ActionButtonOptions options = _returnButton.FooterButton(MenuLayout.RETURN_BUTTON_WIDTH);
-if (ui.ActionButton("Button_Back", label, options))
-```
-
-`Widgets.FooterStatus` draws the status between the footer buttons. Each page
-passes its own colour, so a warning status uses `UiTheme.Warning` and an error
-uses `UiTheme.Danger`.
+Footer buttons use the shared `Button` component. The footer status uses the
+`wb-footer-status` class. A warning adds `wb-footer-status-warning` and an error
+adds `wb-footer-status-error`.
 
 - The design base is 1280 by 720.
 - The page shrinks with the window and has a 480 pixel minimum width.
@@ -84,8 +74,9 @@ galaxy` line and a rolling terminal feed from the `game_create` tag set.
 ## Form validation
 
 The character form and the level form show one form status centered in the
-footer. Errors use `UiTheme.Danger`. Warnings use `UiTheme.Warning`. Required
-field errors take priority over optional field warnings.
+footer. Errors use the `wb-footer-status-error` class. Warnings use the
+`wb-footer-status-warning` class. Required field errors take priority over
+optional field warnings.
 
 Character form:
 
@@ -102,23 +93,16 @@ Level form:
 
 ## Visual rules
 
-- `DefaultUIRenderer` sets `UIBuilder.DefaultFontID` to `UiTheme.FontUI`
-  (`Salmon Mono 9 Regular`). Menus, HUD, chat, and debug overlays use it.
-- `UiTheme` supplies the palette. Do not add raw colors to menu pages.
-- `MenuPanel` draws the shared settings-style panel: no outer border, an
-  inner hairline, and corner caps.
-- `ModalDialog` provides the standard centered modal layout: full-screen scrim,
-  centered size constraints, and a borderless `ModalPanel`.
-- `ModalPanel` draws no border for dialogs. It keeps the corner caps and has
-  no inner hairline.
-- `Panel` remains the primitive for special sub-panels.
-- `ActionButtonOptions.Menu` gives the amber-cyan menu treatment, including the
-  double border and cyan hover accent.
-- `ActionButtonOptions.Compact` covers small text actions. `IconButton` is a
-  borderless ghost button for dice, trash, chevrons, and social icons. It keeps
-  a full square hit target and adds only hover/pressed fills.
-- `SelectableCard` covers archive cards, crew cards, and server rows. Selected
-  rows use one orange border and a cyan left caret bar, not a double outline.
+- `DefaultUIRenderer` sets `UIBuilder.DefaultFontID` to the literal
+  `Salmon Mono 9 Regular`. Menus, HUD, chat, and debug overlays use it.
+- `Theme.rss` supplies the palette and `Components.rss` supplies the classes.
+  Do not add raw colors to menu pages.
+- `Panel` draws the shared settings-style panel: no outer border, an inner
+  hairline, and corner caps.
+- `Modal` provides the standard centered modal layout: full-screen scrim,
+  centered size constraints, and a borderless panel.
+- `Card` covers archive cards, crew cards, and server rows. Selected rows use
+  one orange border and a cyan left caret bar, not a double outline.
 - `Tab` covers narrow pane switching, Saved signals/Local signals, and attached
   section tabs.
 - `InfoBox` covers the galaxy and stat descriptions.
@@ -143,9 +127,9 @@ A save is a galaxy. The game stores levels and characters.
 
 - Galactic archives is the level list from `GameSaveService`. The listing is
   ordered by last played, newest first. Each row shows the galaxy name, game
-  mode, last played timestamp, and total playtime. It scrolls through
-  `Widgets.ScrollArea`, so it shows the same scrollbar as the crew manifest when
-  the list overflows.
+  mode, last played timestamp, and total playtime. It scrolls through the
+  `ScrollArea` component, so it shows the same scrollbar as the crew manifest
+  when the list overflows.
 - Galaxy telemetry is `Level` data (mode, seed, playtime, and last played).
 - Crew manifest is `ICharacterStorage`.
 - Species and gender are the real body selectors. Each one is a stepper over
@@ -219,7 +203,6 @@ Do not add fake menu controls.
 ## Source
 
 - Flow: `WaywardBeyond.Client/UI/Layers/Menus/Main/MenuPage.cs:3`
-- Layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:10`
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
 - Continue: `WaywardBeyond.Client/Saves/ContinueService.cs:18`
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:14`
@@ -232,7 +215,8 @@ Do not add fake menu controls.
 - Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:25`
 - Credits: `WaywardBeyond.Client/UI/Layers/Menus/Main/CreditsPage.cs:15`
 - Menu chrome: `WaywardBeyond.Client/UI/Layers/Menus/Main/MainMenu.cs:20`
-- Widgets: `WaywardBeyond.Client/UI/Widgets/`
+- Components: `WaywardBeyond.Client/UI/Components/`
+- Tokens: `WaywardBeyond.Client/UI/Theme/Theme.rss:1`
 - Copy: [specs/ui-copy](ui-copy.md)
 
 ## Tests
@@ -241,9 +225,5 @@ Do not add fake menu controls.
   `Swordfish.Tests/SelectCharacterViewTests.cs` compare the migrated views to
   the legacy goldens at 800x600, 1280x720, and 1920x1080.
 
-- `Swordfish.Tests/MenuLayoutTests.cs` covers wide and narrow page geometry and
-  the shared footer button slot.
-- `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic buttons.
-- `Swordfish.Tests/UiThemeResolverTests.cs` covers menu control states.
 - `Swordfish.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.

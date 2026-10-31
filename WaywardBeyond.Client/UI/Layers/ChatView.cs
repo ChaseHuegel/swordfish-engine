@@ -106,26 +106,26 @@ internal partial class ChatView : UiViewBase
     /// <summary>Formats the sender run followed by the message rich text.</summary>
     protected static string MessageText(string sender, string value)
     {
-        return $"{UiTheme.AccentBrightRichText} {sender}: #R {value}";
+        return $"{DynamicColors.AccentBrightRichText} {sender}: #R {value}";
     }
 
     /// <summary>Returns the closed message background, or transparent when open.</summary>
     protected static Vector4 MessageBackground(float alpha, bool showClosedChrome)
     {
         return showClosedChrome
-            ? UiTheme.PanelInner * new Vector4(1f, 1f, 1f, CLOSED_MESSAGE_BACKGROUND_ALPHA * alpha)
+            ? DynamicColors.Fade(DynamicColors.PanelInner, CLOSED_MESSAGE_BACKGROUND_ALPHA * alpha)
             : Vector4.Zero;
     }
 
     /// <summary>Returns the faded accent bar color.</summary>
     protected static Vector4 AccentColor(float alpha)
     {
-        return UiTheme.Accent * new Vector4(1f, 1f, 1f, alpha);
+        return DynamicColors.Fade(DynamicColors.Accent, alpha);
     }
 
     /// <summary>Returns the faded message text color.</summary>
     protected static Vector4 TextColor(float alpha)
     {
-        return UiTheme.Text * new Vector4(1f, 1f, 1f, alpha);
+        return DynamicColors.Fade(DynamicColors.Text, alpha);
     }
 }

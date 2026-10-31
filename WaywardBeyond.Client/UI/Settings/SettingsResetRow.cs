@@ -9,9 +9,6 @@ internal sealed class SettingsResetRow(string id, Action reset) : SettingsRow
     public string Id { get; } = id;
 
     /// <inheritdoc/>
-    public override int Height => SettingsMetrics.RESET_ROW_HEIGHT;
-
-    /// <inheritdoc/>
     public override SettingsRowState Snapshot(ILocalization localization)
     {
         return SettingsRowState.Reset(Id);

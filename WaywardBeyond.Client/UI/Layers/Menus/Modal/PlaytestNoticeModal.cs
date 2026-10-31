@@ -45,19 +45,19 @@ internal class PlaytestNoticeModal : IMenuPage<Modal>
 
     private void Close()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoBack();
     }
 
     private void OpenDiscord()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         Task.Run(_externalAppService.TryOpenDiscordAsync);
     }
 
     private void OpenSteam()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         Task.Run(_externalAppService.TryOpenSteamAsync);
     }
 }

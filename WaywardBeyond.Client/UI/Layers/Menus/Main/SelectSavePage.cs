@@ -150,7 +150,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 continue;
             }
 
-            _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+            _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
             _gameSaveManager.ActiveSave = save;
             return;
         }
@@ -179,7 +179,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
     private void Open(MenuPage page)
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(page);
     }
 
@@ -202,7 +202,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
         }
 
         GameSave save1 = target.Value;
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _gameSaveManager.ActiveSave = save1;
         _modalMenu.GoToPage(_confirmModal.Create(
             () => DeleteSave(save1),

@@ -16,8 +16,6 @@ internal sealed class SettingsCategory(
 
     public SettingsEntry[] Entries { get; } = CollectEntries(rows);
 
-    public int ContentHeight { get; } = SumHeights(rows);
-
     /// <summary>Gets whether any entry differs from its baseline.</summary>
     public bool IsDirty
     {
@@ -65,16 +63,5 @@ internal sealed class SettingsCategory(
         }
 
         return entries.ToArray();
-    }
-
-    private static int SumHeights(SettingsRow[] rows)
-    {
-        var height = 0;
-        for (var i = 0; i < rows.Length; i++)
-        {
-            height += rows[i].Height;
-        }
-
-        return height;
     }
 }

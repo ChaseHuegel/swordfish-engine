@@ -73,7 +73,7 @@ internal sealed class ConfirmModal : IMenuPage<Modal>
 
     private void Confirm()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         if (_requests.TryPop(out ConfirmRequest confirmed))
         {
             try
@@ -91,7 +91,7 @@ internal sealed class ConfirmModal : IMenuPage<Modal>
 
     private void Cancel()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _requests.TryPop(out _);
         _menu?.GoBack();
     }

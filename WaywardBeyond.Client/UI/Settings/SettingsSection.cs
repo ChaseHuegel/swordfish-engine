@@ -1,5 +1,3 @@
-using WaywardBeyond.Client.UI.Theme;
-
 using Swordfish.Library.Globalization;
 
 namespace WaywardBeyond.Client.UI.Settings;
@@ -8,9 +6,6 @@ namespace WaywardBeyond.Client.UI.Settings;
 internal sealed class SettingsSection(string labelKey) : SettingsRow
 {
     public string LabelKey { get; } = labelKey;
-
-    /// <inheritdoc/>
-    public override int Height => UiMetrics.SECTION_HEIGHT;
 
     /// <inheritdoc/>
     public override SettingsRowState Snapshot(ILocalization localization)

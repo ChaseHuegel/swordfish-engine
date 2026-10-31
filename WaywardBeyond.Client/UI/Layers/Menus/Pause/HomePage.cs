@@ -69,6 +69,6 @@ internal sealed class HomePage : IMenuPage<PausePage>
 
     private void PlayClick()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
     }
 }

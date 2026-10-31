@@ -107,7 +107,7 @@ The overlay itself never resets a message's clock.
 Closed chat is passthrough. The history viewport, rows, and message text ignore
 hit-testing. Each closed row draws a translucent `--wb-panel-inner` background
 with a 2-pixel vertical `--wb-accent` bar on the left edge. The sender run uses
-`UiTheme.AccentBrightRichText` followed by the message rich text.
+`DynamicColors.AccentBrightRichText` followed by the message rich text.
 
 The open overlay draws a `--wb-panel` surface with `--wb-border-hover` corner
 caps, an inset `--wb-border-inner` border, a `SUBSPACE COMMS // LOCAL` header

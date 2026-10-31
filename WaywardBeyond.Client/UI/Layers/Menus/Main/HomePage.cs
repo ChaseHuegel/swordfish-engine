@@ -14,7 +14,6 @@ using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Skills;

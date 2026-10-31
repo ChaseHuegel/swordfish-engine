@@ -84,8 +84,7 @@ left-aligned skill name and level on the XP progress bar, and
 percentage; `notification.skill.levelUp` renders the level-up toast. The bar
 amount is the XP earned into the current level divided by the next level's
 increment; a max-level skill renders a full bar. Skill XP bars set `Segments`
-to 10 and leave `Color` null so `Bars.cs` uses the default `UiTheme.Accent`
-fill.
+to 10 and leave `Color` null so `Bars.cs` uses the default accent fill.
 
 ## Source of truth
 

@@ -13,7 +13,6 @@ using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Settings;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 using Xunit;
 
@@ -103,7 +102,7 @@ public class SettingsPageRenderTests
         RenderCommand<Material> reset = FindRequired(commands, "Settings.Reset.display");
 
         Assert.Equal(1, reset.Border.Thickness);
-        Assert.Equal(UiTheme.Danger, reset.Border.Color);
+        Assert.Equal(new Vector4(224f / 255f, 79f / 255f, 122f / 255f, 1f), reset.Border.Color);
     }
 
     [Fact]

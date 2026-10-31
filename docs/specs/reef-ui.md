@@ -130,7 +130,7 @@ scroll routing. `GetElementScrollDelta` returns the wheel delta that targeted th
 element on the previous frame. Use it with the caller-owned scroll offset.
 `GetElementBounds` returns the previous frame rect, clip rect, and content size,
 so a scrollbar can size its thumb without guessing. The settings page and the
-menu lists use this pair through `Widgets.ScrollArea`.
+menu lists use this pair through the `ScrollArea` component.
 
 Interaction hit testing uses the intersection of the element rect and its clip
 rect. A clipped control cannot receive hover or click outside the clip. The

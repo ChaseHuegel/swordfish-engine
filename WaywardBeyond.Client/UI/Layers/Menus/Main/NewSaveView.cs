@@ -99,17 +99,12 @@ internal partial class NewSaveView : UiViewBase
     /// <summary>Gets the accent color of a creating log line, faded by its age.</summary>
     public static Vector4 FadeAccent(float fade)
     {
-        return Fade(UiTheme.Accent, fade);
+        return DynamicColors.Fade(DynamicColors.Accent, Math.Clamp(fade, 0f, 1f));
     }
 
     /// <summary>Gets the muted color of a creating log line, faded by its age.</summary>
     public static Vector4 FadeMuted(float fade)
     {
-        return Fade(UiTheme.TextMuted, fade);
-    }
-
-    private static Vector4 Fade(Vector4 color, float fade)
-    {
-        return new Vector4(color.X, color.Y, color.Z, color.W * Math.Clamp(fade, 0f, 1f));
+        return DynamicColors.Fade(DynamicColors.TextMuted, Math.Clamp(fade, 0f, 1f));
     }
 }

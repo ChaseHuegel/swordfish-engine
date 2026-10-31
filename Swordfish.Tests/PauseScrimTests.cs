@@ -22,7 +22,7 @@ public class PauseScrimTests
             {
                 using (ui.Element())
                 {
-                    ui.Color = UiTheme.ScrimSoft;
+                    ui.Color = DynamicColors.ScrimSoft;
                     ui.Constraints = new Constraints
                     {
                         Width = new Relative(1f),

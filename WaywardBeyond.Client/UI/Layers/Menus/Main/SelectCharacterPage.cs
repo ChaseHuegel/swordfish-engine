@@ -168,7 +168,7 @@ internal sealed class SelectCharacterPage : IMenuPage<MenuPage>
                 continue;
             }
 
-            _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+            _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
             _characterSaveManager.ActiveSave = character;
             return;
         }
@@ -181,13 +181,13 @@ internal sealed class SelectCharacterPage : IMenuPage<MenuPage>
 
     private void NewCharacter()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(MenuPage.NewCharacter);
     }
 
     private void Back()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(MenuPage.Home);
     }
 
@@ -198,7 +198,7 @@ internal sealed class SelectCharacterPage : IMenuPage<MenuPage>
             return;
         }
 
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         Task.Run(_gameSaveManager.Load);
     }
 
@@ -226,7 +226,7 @@ internal sealed class SelectCharacterPage : IMenuPage<MenuPage>
         }
 
         Character character1 = target.Value;
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _characterSaveManager.ActiveSave = character1;
         _modalMenu.GoToPage(_confirmModal.Create(
             () => DeleteCharacter(character1),

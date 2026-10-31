@@ -225,7 +225,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
     private void Back()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(MenuPage.SelectCharacter);
     }
 
@@ -240,7 +240,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _speciesIndex = Math.Clamp(_speciesIndex + delta, 0, speciesList.Count - 1);
         EnsureValidSelection();
         _soundEffectService.PlayInterfaceSound(
-            delta > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease
+            delta > 0 ? WidgetInteraction.InterfaceSound.Increase : WidgetInteraction.InterfaceSound.Decrease
         );
     }
 
@@ -255,7 +255,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         int index = Math.Clamp(IndexOfGender(genders, _gender) + delta, 0, genders.Count - 1);
         SetGender(genders[index]);
         _soundEffectService.PlayInterfaceSound(
-            delta > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease
+            delta > 0 ? WidgetInteraction.InterfaceSound.Increase : WidgetInteraction.InterfaceSound.Decrease
         );
     }
 
@@ -263,14 +263,14 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     {
         _focusedStat = index;
         SetStat(index, ValueOf(index) - 1);
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Decrease);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Decrease);
     }
 
     private void IncreaseStat(int index)
     {
         _focusedStat = index;
         SetStat(index, ValueOf(index) + 1);
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Increase);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Increase);
     }
 
     private int ValueOf(int index)
@@ -383,7 +383,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             _Inventory: null
         );
 
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         Task.Run(() => SaveCharacter(character));
     }
 
@@ -529,7 +529,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
         _speciesIndex = nextIndex;
         EnsureValidSelection();
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Toggle);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Toggle);
     }
 
     /// <summary>Picks a different gender for the current species at random.</summary>
@@ -549,7 +549,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         } while (nextIndex == currentIndex);
 
         SetGender(genders[nextIndex]);
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Toggle);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Toggle);
     }
 
     /// <summary>Gets the current species ID, or an empty string when no body is loaded.</summary>

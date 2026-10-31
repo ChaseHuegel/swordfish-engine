@@ -74,7 +74,7 @@ internal sealed class FeedbackModal : IMenuPage<Modal>
 
     private void Back()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoBack();
     }
 
@@ -97,7 +97,7 @@ internal sealed class FeedbackModal : IMenuPage<Modal>
         }
 
         _lastSubmissionTime = _time;
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         var contact = _state.Contact.Text.ToString();
         var description = _state.Description.Text.ToString();
         _menu?.GoBack();

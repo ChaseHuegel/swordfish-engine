@@ -63,7 +63,7 @@ internal sealed class AddFavoriteModal : IMenuPage<Modal>
 
     private void Cancel()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoBack();
     }
 
@@ -86,7 +86,7 @@ internal sealed class AddFavoriteModal : IMenuPage<Modal>
         }
 
         _state.ErrorKey = null;
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _submit?.Invoke(host, port);
         _menu?.GoBack();
     }

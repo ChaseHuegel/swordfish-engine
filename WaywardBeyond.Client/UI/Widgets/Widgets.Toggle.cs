@@ -1,51 +1,24 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
-    private static readonly bool[] BOOL_OPTIONS = [false, true];
-
-    /// <summary>Creates an on/off control and reports whether the value changed.</summary>
-    public static ControlResult<bool> Toggle(
-        this UIBuilder<Material> ui,
-        string id,
-        IntRect rect,
-        bool value,
-        string onLabel,
-        string offLabel,
-        bool enabled
-    )
-    {
-        return ui.Toggle(id, RectConstraints(rect), value, onLabel, offLabel, enabled);
-    }
-
-    /// <summary>Creates an on/off control in the current layout and reports whether the value changed.</summary>
-    public static ControlResult<bool> Toggle(
-        this UIBuilder<Material> ui,
-        string id,
-        Constraints constraints,
-        bool value,
-        string onLabel,
-        string offLabel,
-        bool enabled
-    )
-    {
-        return ui.SegmentedControl(
-            id,
-            constraints,
-            BOOL_OPTIONS,
-            value,
-            option => option ? onLabel : offLabel,
-            enabled
-        );
-    }
+    private static readonly Vector4 CHOICE_BACKGROUND = FromRgb(21, 29, 42);
+    private static readonly Vector4 CHOICE_BORDER = FromRgb(43, 56, 78);
+    private static readonly Vector4 CHOICE_BORDER_INNER = FromRgb(26, 35, 51);
+    private static readonly Vector4 CHOICE_HOVER = FromRgb(27, 37, 56);
+    private static readonly Vector4 CHOICE_SELECTED = FromRgb(22, 40, 56);
+    private static readonly Vector4 CHOICE_SELECTED_TEXT = FromRgb(165, 243, 252);
+    private static readonly Vector4 CHOICE_TEXT = FromRgb(240, 243, 246);
+    private static readonly Vector4 CHOICE_TEXT_MUTED = FromRgb(141, 160, 184);
+    private static readonly Vector4 CHOICE_TEXT_DIM = FromRgb(69, 84, 107);
 
     /// <summary>Creates a row of radio-like choices and reports whether the value changed.</summary>
     public static ControlResult<T> SegmentedControl<T>(
@@ -78,12 +51,12 @@ internal static partial class Widgets
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
-            ui.Padding = new Padding(UiMetrics.PANEL_BORDER_THICKNESS);
-            ui.Color = UiTheme.ControlBackground;
+            ui.Padding = new Padding(1);
+            ui.Color = CHOICE_BACKGROUND;
             ui.Border = new BorderStyle
             {
-                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                Color = enabled ? UiTheme.Border : UiTheme.BorderInner,
+                Thickness = 1,
+                Color = enabled ? CHOICE_BORDER : CHOICE_BORDER_INNER,
             };
             ui.Constraints = constraints;
             ui.ClipConstraints = ClipToBounds();
@@ -103,7 +76,7 @@ internal static partial class Widgets
                 spacing: 1
             ))
             {
-                ui.Color = UiTheme.BorderInner;
+                ui.Color = CHOICE_BORDER_INNER;
 
                 for (var i = 0; i < count; i++)
                 {
@@ -157,13 +130,36 @@ internal static partial class Widgets
         bool hovering
     )
     {
-        ControlStyle style = UiThemeResolver.ResolveChoiceCell(selected, enabled, hovering);
+        Vector4 fill;
+        Vector4 text;
+
+        if (!enabled)
+        {
+            fill = CHOICE_BACKGROUND;
+            text = CHOICE_TEXT_DIM;
+        }
+        else if (selected)
+        {
+            fill = CHOICE_SELECTED;
+            text = CHOICE_SELECTED_TEXT;
+        }
+        else if (hovering)
+        {
+            fill = CHOICE_HOVER;
+            text = CHOICE_TEXT;
+        }
+        else
+        {
+            fill = CHOICE_BACKGROUND;
+            text = CHOICE_TEXT_MUTED;
+        }
+
         ui.LayoutDirection = LayoutDirection.None;
-        ui.Color = style.Fill;
+        ui.Color = fill;
         ui.Border = new BorderStyle
         {
-            Thickness = style.BorderThickness,
-            Color = style.Border,
+            Thickness = 0,
+            Color = Vector4.Zero,
         };
         ui.Constraints = new Constraints
         {
@@ -173,8 +169,8 @@ internal static partial class Widgets
 
         ui.Label(
             label,
-            UiMetrics.CONTROL_FONT,
-            style.Text,
+            18,
+            text,
             new Constraints
             {
                 Width = new Fill(),

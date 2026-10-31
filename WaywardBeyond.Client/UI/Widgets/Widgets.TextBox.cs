@@ -10,13 +10,21 @@ using Reef.UI;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.UI.Controls;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
 internal static partial class Widgets
 {
     private static readonly Regex _wordRegex = WordRegex();
+
+    private static readonly Vector4 TEXTBOX_TEXT = FromRgb(240, 243, 246);
+    private static readonly Vector4 TEXTBOX_TEXT_MUTED = FromRgb(141, 160, 184);
+    private static readonly Vector4 TEXTBOX_TEXT_DIM = FromRgb(69, 84, 107);
+    private static readonly Vector4 TEXTBOX_SELECTION = FromRgb(0, 116, 255, 128);
+    private static readonly Vector4 TEXTBOX_INPUT_BACKGROUND = FromRgb(28, 36, 51);
+    private static readonly Vector4 TEXTBOX_INPUT_FOCUS = FromRgb(35, 46, 66);
+    private static readonly Vector4 TEXTBOX_BORDER = FromRgb(43, 56, 78);
+    private static readonly Vector4 TEXTBOX_BORDER_HOVER = FromRgb(73, 93, 122);
 
     /// <summary>
     ///     Searches for words, ignoring whitespace.
@@ -36,7 +44,7 @@ internal static partial class Widgets
         ref TextBoxState state,
         FontOptions fontOptions,
         IInputService inputService,
-        out Interactions interactions,
+        out WidgetInteraction.Interactions interactions,
         Style? style = null,
         TextInputPalette? palette = null,
         Constraints? constraintsOverride = null,
@@ -76,13 +84,13 @@ internal static partial class Widgets
             }
 
             Vector4 textColor = style?.Color ?? (focused
-                ? palette?.TextFocused ?? UiTheme.Text
-                : palette?.Text ?? UiTheme.TextMuted);
+                ? palette?.TextFocused ?? TEXTBOX_TEXT
+                : palette?.Text ?? TEXTBOX_TEXT_MUTED);
             Vector4 placeholderColor = focused
-                ? palette?.PlaceholderFocused ?? UiTheme.TextMuted
-                : palette?.Placeholder ?? UiTheme.TextDim;
-            Vector4 selectionColor = palette?.Selection ?? UiTheme.RowSelected;
-            Vector4 caretColor = palette?.Caret ?? UiTheme.Text;
+                ? palette?.PlaceholderFocused ?? TEXTBOX_TEXT_MUTED
+                : palette?.Placeholder ?? TEXTBOX_TEXT_DIM;
+            Vector4 selectionColor = palette?.Selection ?? TEXTBOX_SELECTION;
+            Vector4 caretColor = palette?.Caret ?? TEXTBOX_TEXT;
 
             if (style != null)
             {
@@ -96,26 +104,26 @@ internal static partial class Widgets
             {
                 if (focused)
                 {
-                    ui.Color = UiTheme.InputFocus;
+                    ui.Color = TEXTBOX_INPUT_FOCUS;
                     ui.Border = new BorderStyle
                     {
-                        Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                        Color = UiTheme.BorderHover,
+                        Thickness = 1,
+                        Color = TEXTBOX_BORDER_HOVER,
                     };
                 }
                 else
                 {
-                    ui.Color = UiTheme.InputBackground;
+                    ui.Color = TEXTBOX_INPUT_BACKGROUND;
                     ui.Border = new BorderStyle
                     {
-                        Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                        Color = UiTheme.Border,
+                        Thickness = 1,
+                        Color = TEXTBOX_BORDER,
                     };
                 }
             }
             else
             {
-                ui.Color = UiTheme.Transparent;
+                ui.Color = Vector4.Zero;
                 ui.Border = default;
             }
 
@@ -498,41 +506,41 @@ internal static partial class Widgets
             //  The caret paints over the glyphs.
             DrawCaret(ui, state, textLayout, selectionStart, hasSelection, focused, lineStride, caretColor);
 
-            interactions = Interactions.None;
+            interactions = WidgetInteraction.Interactions.None;
 
             if (clicked)
             {
-                interactions |= Interactions.Click;
+                interactions |= WidgetInteraction.Interactions.Click;
             }
 
             if (held)
             {
-                interactions |= Interactions.Held;
+                interactions |= WidgetInteraction.Interactions.Held;
             }
 
             if (hovering)
             {
-                interactions |= Interactions.Hover;
+                interactions |= WidgetInteraction.Interactions.Hover;
             }
 
             if (entered)
             {
-                interactions |= Interactions.Enter;
+                interactions |= WidgetInteraction.Interactions.Enter;
             }
 
             if (exited)
             {
-                interactions |= Interactions.Exit;
+                interactions |= WidgetInteraction.Interactions.Exit;
             }
 
             if (typing)
             {
-                interactions |= Interactions.Input;
+                interactions |= WidgetInteraction.Interactions.Input;
             }
 
             if (submitted)
             {
-                interactions |= Interactions.Submit;
+                interactions |= WidgetInteraction.Interactions.Submit;
             }
 
             state.Changed = typing;
@@ -542,7 +550,7 @@ internal static partial class Widgets
             state.Entered = entered;
             state.Exited = exited;
 
-            return interactions != Interactions.None;
+            return interactions != WidgetInteraction.Interactions.None;
         }
     }
 

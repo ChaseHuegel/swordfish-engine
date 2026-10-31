@@ -72,19 +72,19 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
 
     private void Feedback()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _modalMenu.GoToPage(FeedbackModal.Modal);
     }
 
     private void OpenDiscord()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         Task.Run(_externalAppService.TryOpenDiscordAsync);
     }
 
     private void OpenSteam()
     {
-        _soundEffectService.PlayInterfaceSound(Widgets.InterfaceSound.Click);
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         Task.Run(_externalAppService.TryOpenSteamAsync);
     }
 

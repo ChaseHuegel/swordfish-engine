@@ -1,5 +1,4 @@
 using System.Numerics;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Controls;
 
@@ -15,11 +14,16 @@ internal readonly record struct TextInputPalette(
 {
     /// <summary>The shared palette for menu and HUD text inputs.</summary>
     public static TextInputPalette Default { get; } = new(
-        Text: UiTheme.TextMuted,
-        TextFocused: UiTheme.Text,
-        Placeholder: UiTheme.TextDim,
-        PlaceholderFocused: UiTheme.TextMuted,
-        Selection: UiTheme.RowSelected,
-        Caret: UiTheme.Text
+        Text: FromRgb(141, 160, 184),
+        TextFocused: FromRgb(240, 243, 246),
+        Placeholder: FromRgb(69, 84, 107),
+        PlaceholderFocused: FromRgb(141, 160, 184),
+        Selection: FromRgb(0, 116, 255, 128),
+        Caret: FromRgb(240, 243, 246)
     );
+
+    private static Vector4 FromRgb(byte r, byte g, byte b, byte a = 255)
+    {
+        return new Vector4(r / 255f, g / 255f, b / 255f, a / 255f);
+    }
 }

@@ -14,7 +14,6 @@ using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Settings;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus;
@@ -169,11 +168,11 @@ internal sealed class SettingsPage<TIdentifier>(
         Shell.ResetLabel = _localization.GetRequired("ui.settings.action.reset");
     }
 
-    private void Play(Widgets.InterfaceSound sound)
+    private void Play(WidgetInteraction.InterfaceSound sound)
     {
         if (_soundEffectService is not null)
         {
-            Widgets.Interactions.Click.WithButtonAudio(_soundEffectService, sound);
+            WidgetInteraction.Interactions.Click.WithButtonAudio(_soundEffectService, sound);
         }
     }
 
@@ -181,7 +180,7 @@ internal sealed class SettingsPage<TIdentifier>(
     {
         if (FindEntry(id)?.TrySetOptionIndex(index) == true)
         {
-            Play(Widgets.InterfaceSound.Toggle);
+            Play(WidgetInteraction.InterfaceSound.Toggle);
         }
     }
 
@@ -190,7 +189,7 @@ internal sealed class SettingsPage<TIdentifier>(
         int applied = FindEntry(id)?.Step(delta) ?? 0;
         if (applied != 0)
         {
-            Play(applied > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease);
+            Play(applied > 0 ? WidgetInteraction.InterfaceSound.Increase : WidgetInteraction.InterfaceSound.Decrease);
         }
     }
 
@@ -204,7 +203,7 @@ internal sealed class SettingsPage<TIdentifier>(
         if (_time - _lastSliderSoundTime >= 0.05d)
         {
             _lastSliderSoundTime = _time;
-            Play(Widgets.InterfaceSound.Increase);
+            Play(WidgetInteraction.InterfaceSound.Increase);
         }
     }
 
@@ -224,7 +223,7 @@ internal sealed class SettingsPage<TIdentifier>(
                     && string.Equals(reset.Id, id, StringComparison.Ordinal))
                 {
                     reset.Invoke();
-                    Play(Widgets.InterfaceSound.Click);
+                    Play(WidgetInteraction.InterfaceSound.Click);
                     return;
                 }
             }
@@ -240,12 +239,12 @@ internal sealed class SettingsPage<TIdentifier>(
 
         _categoryIndex = index;
         _scrollY = 0;
-        Play(Widgets.InterfaceSound.Toggle);
+        Play(WidgetInteraction.InterfaceSound.Toggle);
     }
 
     private void OnCancel()
     {
-        Play(Widgets.InterfaceSound.Click);
+        Play(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoBack();
     }
 
@@ -308,7 +307,7 @@ internal sealed class SettingsPage<TIdentifier>(
 
         _status = L("ui.settings.status.saved");
         _statusUntil = time + 2d;
-        Widgets.Interactions.Click.WithButtonAudio(_soundEffectService);
+        WidgetInteraction.Interactions.Click.WithButtonAudio(_soundEffectService);
     }
 
     private SettingsCategory[] BuildCategories()
