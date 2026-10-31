@@ -1,0 +1,10 @@
+0 id=- rect=20,410,600,270 clip=20,410,600,270 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=26,442,580,200 clip=26,442,580,200 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=26,595,580,22 clip=26,442,580,200 color=0.051,0.0706,0.1098,0.7341 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+3 id=- rect=26,595,2,22 clip=26,442,580,200 color=0.2941,0.8902,0.8902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+4 id=- rect=26,595,580,22 clip=26,442,580,200 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=ChatMessage_0 rect=36,598,224,16 clip=26,442,580,200 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=#A5F3FC Ada: #R Hello there.
+6 id=- rect=26,620,580,22 clip=26,442,580,200 color=0.051,0.0706,0.1098,0.3671 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=26,620,2,22 clip=26,442,580,200 color=0.2941,0.8902,0.8902,0.5 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+8 id=- rect=26,620,580,22 clip=26,442,580,200 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+9 id=ChatMessage_1 rect=36,623,240,16 clip=26,442,580,200 color=0.9412,0.9529,0.9647,0.5 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=#A5F3FC Bo: #R General Kenobi!

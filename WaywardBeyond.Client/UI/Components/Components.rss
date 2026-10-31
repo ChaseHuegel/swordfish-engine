@@ -999,3 +999,65 @@
     font-size: 16px;
     vertical-align: middle;
 }
+
+.wb-chat-panel {
+    color: var(--wb-panel);
+    border: 1px var(--wb-border);
+    corner-caps: 10 2 var(--wb-border-hover);
+}
+
+.wb-chat-panel-inner {
+    color: transparent;
+    border: 1px var(--wb-border-inner);
+}
+
+.wb-chat-header-bar {
+    color: var(--wb-panel-inner);
+}
+
+.wb-chat-header {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-chat-close-hint {
+    color: var(--wb-text-dim);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-chat-send-hint {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-chat-prompt {
+    color: var(--wb-accent);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 16px;
+}
+
+.wb-chat-scrollbar {
+    color: var(--wb-input);
+}
+
+.wb-chat-scrollbar-thumb {
+    color: var(--wb-border-hover);
+}
+
+.wb-chat-input-bar {
+    color: var(--wb-input-focus);
+    border: 1px var(--wb-border-hover);
+}
+
+.wb-chat-field {
+    color: var(--wb-text);
+    background-color: transparent;
+    border: 0 #00000000;
+    padding: 0;
+}

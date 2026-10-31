@@ -1,0 +1,132 @@
+<Reef xmlns="Reef"
+      xmlns:controls="WaywardBeyond.Client.UI.Controls"
+      Class="ChatView"
+      Context="ChatViewState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Element layout="none"
+             anchor="Left Bottom"
+             x="20"
+             y="-40"
+             width="600"
+             height="270"
+             passthrough="true">
+
+        <controls:FocusTarget target="TextBox_Chat" visible="@context.Open" />
+
+        <If condition="@context.Open">
+            <Element class="wb-chat-panel" layout="none" width="600" height="270" clip="600 270">
+                <Element class="wb-chat-panel-inner" x="2" y="2" width="596" height="266" clip="596 266" />
+
+                <Element class="wb-chat-header-bar"
+                         layout="horizontal"
+                         x="3"
+                         y="3"
+                         width="594"
+                         height="25"
+                         padding="10 0 10 10">
+                    <Text class="wb-chat-header" text="@L('ui.label.chat.header')" />
+                    <Element width="fill" />
+                    <Text class="wb-chat-close-hint" text="@L('ui.hint.chat.close')" />
+                </Element>
+
+                <Element class="wb-divider-inner" x="3" y="28" width="594" height="1" />
+            </Element>
+        </If>
+
+        <Element visible="@context.HasHistory"
+                 layout="vertical"
+                 spacing="3"
+                 x="6"
+                 y="32"
+                 width="580"
+                 height="200"
+                 clip="580 200"
+                 passthrough="true"
+                 scroll="vertical"
+                 scroll-y="@context.ViewportOffsetY">
+            <ForEach in="@context.Messages" as="row" index="i">
+                <Element layout="none"
+                         width="580"
+                         height="@row.Height"
+                         passthrough="true"
+                         color="@MessageBackground(row.Alpha, row.ShowClosedChrome)">
+                    <Element visible="@row.ShowClosedChrome"
+                             x="0"
+                             y="0"
+                             width="2"
+                             height="@row.Height"
+                             passthrough="true"
+                             color="@AccentColor(row.Alpha)" />
+
+                    <Element layout="horizontal"
+                             width="580"
+                             height="@row.Height"
+                             padding="10 3 8 3"
+                             passthrough="true">
+                        <controls:PassthroughText id="ChatMessage_{i}"
+                                                  text="@MessageText(row.Sender, row.Value)"
+                                                  font-size="16"
+                                                  color="@TextColor(row.Alpha)" />
+                    </Element>
+                </Element>
+            </ForEach>
+        </Element>
+
+        <!-- Open chat blocks clicks and wheel input over the history area. -->
+        <Element visible="@context.Open"
+                 id="ChatHistoryHit"
+                 x="6"
+                 y="32"
+                 width="580"
+                 height="200"
+                 scroll="vertical" />
+
+        <If condition="@context.Open">
+            <Element class="wb-chat-scrollbar"
+                     layout="none"
+                     x="590"
+                     y="32"
+                     width="4"
+                     height="200"
+                     clip="4 200">
+                <Element visible="@context.ShowThumb"
+                         class="wb-chat-scrollbar-thumb"
+                         y="@context.ThumbOffsetY"
+                         width="fill"
+                         height="@context.ThumbHeight" />
+            </Element>
+        </If>
+
+        <If condition="@context.Open">
+            <Element class="wb-chat-input-bar"
+                     layout="none"
+                     x="6"
+                     y="236"
+                     width="588"
+                     height="28"
+                     clip="588 28"
+                     padding="10 0 10 10">
+                <Element layout="horizontal">
+                    <controls:TextInput id="TextBox_Chat"
+                                        bind="ChatBox"
+                                        inputService="@Input"
+                                        placeholder="@L('ui.field.chat.input')"
+                                        class="wb-chat-field"
+                                        x="22"
+                                        y="5"
+                                        width="490"
+                                        height="18"
+                                        font-size="16" />
+                </Element>
+
+                <Element layout="horizontal" y="5" width="fill" height="fill">
+                    <Text class="wb-chat-prompt" text="&gt;" />
+                    <Element width="fill" />
+                    <Text class="wb-chat-send-hint" text="@L('ui.hint.chat.send')" />
+                </Element>
+            </Element>
+        </If>
+    </Element>
+</Reef>

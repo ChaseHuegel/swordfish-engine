@@ -191,6 +191,9 @@ The first implementation does not add Reef text state or a Reef text control.
 - The shape and orientation radial selectors share `RadialMenuView`, and the
   action strip uses `ActionsView` with indicator icons from each selector.
   Pointer enter callbacks drive hover selection.
+- The chat overlay uses `ChatView`. The layer keeps the clock, sticky scroll,
+  shortcuts, and interaction blocker; the view owns chrome, history, and the
+  send bar.
 
 ## Migration phases
 

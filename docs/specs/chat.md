@@ -66,12 +66,19 @@ The chat tunables live in `chat.toml`. See
 
 ## UI
 
-`WaywardBeyond.Client/UI/Layers/ChatLayer.cs` is the chat overlay. It is
-an `IUILayer` registered by the client module.
+`WaywardBeyond.Client/UI/Layers/ChatLayer.cs` is the chat overlay layer. It is
+an `IUILayer` registered by the client module. The layer owns services,
+shortcuts, timers, scroll state, and state assembly. It renders through the
+generated `ChatView` markup view.
 
-One fixed-geometry box renders in both states: a 200-pixel scroll viewport at a
-fixed offset above the send bar's slot. Opening or closing changes only the
-outer chrome and the scroll behavior; the messages never shift.
+`ChatView.rml` owns the overlay geometry: the 600x270 panel, the 200-pixel
+history viewport at panel-space `(6,32)`, the scrollbar at `(590,32)`, the
+send bar at `(6,236)`, and the header and divider. `ChatView.cs` holds the
+`ChatViewState` record, the send box `TextBoxState`, rich-text formatting, and
+the faded color helpers.
+
+One fixed-geometry box renders in both states. Opening or closing changes only
+the outer chrome and the scroll behavior. The messages never shift.
 
 The Enter key opens the chat box. Escape closes it. While the box is open,
 gameplay interaction is blocked through `InteractionState` (the cursor is
@@ -80,34 +87,41 @@ Enter with non-empty text sends and closes the box. Escape or Enter with
 empty text closes without sending.
 
 Each message wraps to the viewport width. Its full wrapped height counts toward
-the scroll extent. The scroll viewport is always 200 pixels tall. When the
-content height is shorter than 200 pixels, a positive vertical viewport offset
-pins the messages to the bottom edge of the viewport. Closed chat sticks to the
-newest message and ignores the wheel. Open chat starts stuck to the newest
-message; the wheel breaks the stick to read older messages, and scrolling back
-to the bottom re-sticks it. A stuck scroller follows new arrivals.
+the scroll extent. The layer measures a row from the previous frame's
+`ChatMessage_{index}` text layout and adds the row padding. The fallback height
+is 16 pixels plus padding. The scroll viewport is always 200 pixels tall. When
+the content height is shorter than 200 pixels, a positive vertical viewport
+offset pins the messages to the bottom edge of the viewport. Closed chat sticks
+to the newest message and ignores the wheel. Open chat starts stuck to the
+newest message. The wheel breaks the stick to read older messages, and scrolling
+back to the bottom re-sticks it. A stuck scroller follows new arrivals.
 
 The fade is per message, not per window. Each message shows at full alpha for
-`StaleMs` after its arrival, then fades over one second. Closed chat
-hides a message once its fade completes. Because messages fade in arrival
-order, the faded messages are always an oldest prefix, and the overlay
-renders nothing once every message has faded. Open chat shows every message
-at full alpha. `ChatService` stamps the arrival time when the client receives
-the message; the overlay itself never resets a message's clock.
+`StaleMs` after its arrival, then fades over one second. Closed chat hides a
+message once its fade completes. Because messages fade in arrival order, the
+faded messages are always an oldest prefix, and the overlay renders nothing
+once every message has faded. Open chat shows every message at full alpha.
+`ChatService` stamps the arrival time when the client receives the message.
+The overlay itself never resets a message's clock.
 
-The open overlay renders a fixed-height `Widgets.Panel` with `UiTheme.BorderHover`
-corner caps, a `SUBSPACE COMMS // LOCAL` header bar with an `[ESC] CLOSE` hint, a
-`Widgets.Scrollbar` rail beside the 200-pixel history viewport, and a
-send bar (`>` prompt, chromeless `Widgets.TextBox`, and `[ENTER]`
-hint). Closed chat renders individual translucent message pills with a 2-pixel
-vertical cyan bar anchor on the left edge and `[SenderName]` in
-`UiTheme.Accent`.
+Closed chat is passthrough. The history viewport, rows, and message text ignore
+hit-testing. Each closed row draws a translucent `--wb-panel-inner` background
+with a 2-pixel vertical `--wb-accent` bar on the left edge. The sender run uses
+`UiTheme.AccentBrightRichText` followed by the message rich text.
 
-The chat box focuses programmatically when it opens (`UIBuilder.Focus`). The
-Enter key that opens the box is consumed by the box's first frame, so it does
-not submit an empty message. Clearing the send box also resets its caret and
-selection state; leaving those stale would crash the text box on the next
-edit.
+The open overlay draws a `--wb-panel` surface with `--wb-border-hover` corner
+caps, an inset `--wb-border-inner` border, a `SUBSPACE COMMS // LOCAL` header
+bar with an `[ESC] CLOSE` hint, a 4-pixel scrollbar rail beside the 200-pixel
+history viewport, and a send bar (`>` prompt, chromeless text input, and
+`[ENTER]` hint). The styles live in `Components.rss`. An open-only hit area
+over the history viewport blocks clicks and wheel input from the HUD.
+
+The chat box focuses programmatically when it opens. A `FocusTarget` directive
+sets focus on `TextBox_Chat` each open frame, so a click elsewhere cannot
+strand the box unfocused. The Enter key that opens the box is consumed by the
+box's first frame, so it does not submit an empty message. Clearing the send
+box also resets its caret, selection, modifier, and submit state. Leaving those
+stale would crash the text box on the next edit.
 
 ## Source of truth
 
@@ -116,4 +130,7 @@ edit.
 - `WaywardBeyond.Client/Systems/ChatService.cs`
 - `WaywardBeyond.Client/Systems/ClientChatSystem.cs`
 - `WaywardBeyond.Client/UI/Layers/ChatLayer.cs`
+- `WaywardBeyond.Client/UI/Layers/ChatView.rml`
+- `WaywardBeyond.Client/UI/Layers/ChatView.cs`
+- `WaywardBeyond.Client/UI/Components/Components.rss`
 - `WaywardBeyond.Config/ChatConfig.cs`
