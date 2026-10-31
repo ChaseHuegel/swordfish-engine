@@ -1,0 +1,17 @@
+<Reef xmlns="Reef"
+      Class="HotbarView"
+      Context="HotbarState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Element class="wb-hotbar"
+             passthrough="true"
+             anchor="Center"
+             layout="horizontal"
+             spacing="6"
+             padding="8">
+        <ForEach in="@context.Slots" as="slot">
+            <ItemSlot context="@slot" />
+        </ForEach>
+    </Element>
+</Reef>

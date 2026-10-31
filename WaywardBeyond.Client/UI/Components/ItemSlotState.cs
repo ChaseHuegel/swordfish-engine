@@ -11,6 +11,9 @@ internal readonly record struct ItemSlotState(
     bool Equipped = false
 )
 {
+    /// <summary>Gets whether the slot shows an item icon.</summary>
+    public bool HasItem => Icon != null;
+
     /// <summary>Gets whether the slot shows a count badge.</summary>
     public bool HasCount => Count != null;
 }

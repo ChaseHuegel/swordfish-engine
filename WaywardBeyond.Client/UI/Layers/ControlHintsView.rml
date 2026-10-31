@@ -1,0 +1,29 @@
+<Reef xmlns="Reef"
+      Class="ControlHintsView"
+      Context="ControlHintsState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Element passthrough="true"
+             anchor="Bottom Right"
+             x="-20"
+             y="-20"
+             layout="vertical"
+             spacing="6">
+        <ForEach in="@context.Hints" as="hint">
+            <If condition="@hint.HasKey">
+                <HintPill anchor="Right">
+                    <Keycap>
+                        <Text class="wb-keycap-text" text="@hint.Key" />
+                    </Keycap>
+                    <Text class="wb-hint-text" text="@hint.Action" />
+                </HintPill>
+            </If>
+            <Else>
+                <HintPill anchor="Right">
+                    <Text class="wb-hint-text" text="@hint.Action" />
+                </HintPill>
+            </Else>
+        </ForEach>
+    </Element>
+</Reef>

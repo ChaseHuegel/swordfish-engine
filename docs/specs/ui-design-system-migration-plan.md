@@ -185,6 +185,9 @@ The first implementation does not add Reef text state or a Reef text control.
   because it interleaves imperative debug sections.
 - Notification text and progress bars use the shared `NotificationView` and
   `BarsView` markup views, with lifetime fade passed as a state value.
+- The hotbar and control hints use `HotbarView` and `ControlHintsView`. The
+  layers keep shortcuts and state assembly; slot chrome and hint pills come
+  from the shared components.
 
 ## Migration phases
 

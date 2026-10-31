@@ -3,6 +3,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Xunit;
 using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Layers;
 
 namespace Swordfish.Tests;
@@ -68,6 +69,30 @@ public class OverlayViewTests
                     new("Farming", string.Empty, false, 0.8f, [], 0.6f, new System.Numerics.Vector4(0.43f, 0.81f, 0.59f, 1f)),
                 };
                 new BarsView().Render(ui, new BarsState(bars));
+            });
+
+            UiSnapshotTests.Compare($"{width}x{height}-hotbar", width, height, ui =>
+            {
+                var icon = new Material(null!);
+                var slots = new List<ItemSlotState>
+                {
+                    new(icon, "1", "12", Selected: true),
+                    new(icon, "2"),
+                    new(null!, "3"),
+                    new(icon, "4", "3"),
+                };
+                new HotbarView().Render(ui, new HotbarState(slots));
+            });
+
+            UiSnapshotTests.Compare($"{width}x{height}-control-hints", width, height, ui =>
+            {
+                var hints = new List<HintViewState>
+                {
+                    new("TAB", "Inventory"),
+                    new("R", "Change shape"),
+                    new(string.Empty, "Send feedback"),
+                };
+                new ControlHintsView().Render(ui, new ControlHintsState(hints));
             });
         }
     }

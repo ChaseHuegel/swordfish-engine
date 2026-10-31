@@ -652,7 +652,7 @@
     border: 1px var(--wb-border-hover);
     color: var(--wb-accent-bright);
     font-family: "Salmon Mono 9 Regular";
-    font-size: 12px;
+    font-size: 14px;
     text-align: center;
     vertical-align: middle;
     padding: 2px 6px;
@@ -663,7 +663,7 @@
     border: 1px var(--wb-border-hover);
     color: var(--wb-accent-bright);
     font-family: "Salmon Mono 9 Regular";
-    font-size: 12px;
+    font-size: 14px;
     text-align: center;
     vertical-align: middle;
     padding: 2px 6px;
@@ -680,7 +680,7 @@
 .wb-hint-text {
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
-    font-size: 12px;
+    font-size: 14px;
     vertical-align: middle;
 }
 
@@ -708,9 +708,9 @@
 }
 
 .wb-slot-selected {
-    color: #172336;
+    color: var(--wb-selection);
     border-color: var(--wb-primary);
-    corner-caps: 6 1 #f2994a;
+    corner-caps: 6 1 var(--wb-primary-bright);
 }
 
 .wb-slot-equipped {
@@ -722,15 +722,19 @@
 .wb-slot-number {
     color: var(--wb-text-dim);
     font-family: "Salmon Mono 9 Regular";
-    font-size: 12px;
+    font-size: 14px;
     vertical-align: middle;
+}
+
+.wb-slot-number-selected {
+    color: var(--wb-primary-bright);
 }
 
 .wb-slot-count {
     background-color: var(--wb-scrim-soft);
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
-    font-size: 12px;
+    font-size: 14px;
     text-align: right;
     vertical-align: middle;
 }
@@ -939,4 +943,15 @@
 .wb-nameplate-text {
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
+}
+
+.wb-hotbar {
+    color: var(--wb-panel);
+    border: 1px var(--wb-border);
+    corner-caps: 10 2 var(--wb-border-hover);
+}
+
+.wb-keycap-text {
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
 }

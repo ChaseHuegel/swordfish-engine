@@ -1,2 +1,2 @@
-0 id=- rect=0,0,28,28 clip=0,0,28,28 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:12 text=-
+0 id=- rect=0,0,28,28 clip=0,0,28,28 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
 1 id=- rect=2,6,24,16 clip=0,0,28,28 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Esc

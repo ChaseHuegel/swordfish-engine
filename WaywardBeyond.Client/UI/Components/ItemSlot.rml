@@ -10,8 +10,14 @@
              class:wb-slot-equipped="@context.Equipped"
              layout="none"
              clip="true">
-        <Image source="@context.Icon" width="fill" height="fill" />
-        <Text class="wb-slot-number" text="@context.Number" width="fill" height="fill" />
+        <If condition="@context.HasItem">
+            <Image source="@context.Icon" width="fill" height="fill" />
+        </If>
+        <Text class="wb-slot-number"
+              class:wb-slot-number-selected="@context.Selected"
+              text="@context.Number"
+              width="fill"
+              height="fill" />
         <If condition="@context.HasCount">
             <Text class="wb-slot-count" text="@context.Count" anchor="Bottom Right" />
         </If>

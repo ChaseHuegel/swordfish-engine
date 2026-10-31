@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Generic;
 using Reef;
-using Reef.Constraints;
 using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -11,7 +11,7 @@ using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
-using WaywardBeyond.Client.UI.Theme;
+using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Voxels;
@@ -23,8 +23,6 @@ internal sealed class Hotbar
 {
     /// <summary>The number of equipped hotbar slots.</summary>
     public const int SLOT_COUNT = 9;
-
-    private static readonly string[] _slotNumbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
     private readonly ItemIconDatabase _itemIcons;
     private readonly PlayerData _playerData;
@@ -85,37 +83,7 @@ internal sealed class Hotbar
         InventoryComponent inventory = inventoryResult.Value;
         int activeSlot = activeSlotResult.Value;
 
-        using (ui.Element())
-        {
-            ui.Passthrough = true;
-            ui.Color = UiTheme.PanelBackground;
-            ui.Border = new BorderStyle
-            {
-                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                Color = UiTheme.Border,
-            };
-            ui.CornerCaps = new CornerCapStyle
-            {
-                Length = UiMetrics.PANEL_CAP_LENGTH,
-                Thickness = UiMetrics.PANEL_CAP_THICKNESS,
-                Color = UiTheme.BorderHover,
-            };
-            ui.Spacing = 6;
-            ui.Padding = new Padding(left: 8, top: 8, right: 8, bottom: 8);
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-
-            DrawSlots(ui, in inventory, activeSlot);
-        }
-
-        return Result.FromSuccess();
-    }
-
-    /// <summary>Draws the nine item slots in order.</summary>
-    private void DrawSlots(UIBuilder<Material> ui, in InventoryComponent inventory, int activeSlot)
-    {
+        var slots = new List<ItemSlotState>(SLOT_COUNT);
         for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
         {
             ItemData itemStack = default;
@@ -124,97 +92,19 @@ internal sealed class Hotbar
                 itemStack = inventory.Contents[slotIndex];
             }
 
-            DrawSlot(ui, in itemStack, slotIndex, activeSlot == slotIndex);
-        }
-    }
-
-    /// <summary>Draws one slot's frame, icon, number, and stack count.</summary>
-    private void DrawSlot(UIBuilder<Material> ui, in ItemData itemStack, int slotIndex, bool isSelected)
-    {
-        using (ui.Element())
-        {
-            ui.Passthrough = true;
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
-            ApplySlotStyle(ui, isSelected);
-            ui.Constraints = new Constraints
-            {
-                Width = new Fixed(48),
-                Height = new Fixed(48),
-            };
-
-            if (itemStack.Count > 0 && itemStack.ID != null)
-            {
-                DrawSlotIcon(ui, in itemStack);
-            }
-
-            using (ui.Text(_slotNumbers[slotIndex], UiMetrics.TINY_FONT))
-            {
-                ui.Passthrough = true;
-                ui.Color = isSelected ? UiTheme.PrimaryBright : UiTheme.TextDim;
-            }
-
-            if (itemStack.Count == 0 || itemStack.ID == null)
-            {
-                return;
-            }
-
-            using (ui.Text(itemStack.Count.ToString(), UiMetrics.TINY_FONT))
-            {
-                ui.Passthrough = true;
-                ui.Color = UiTheme.Text;
-                ui.BackgroundColor = UiTheme.ScrimSoft;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Bottom | Anchors.Right,
-                };
-            }
-        }
-    }
-
-    /// <summary>Draws the item icon that fills a slot.</summary>
-    private void DrawSlotIcon(UIBuilder<Material> ui, in ItemData itemStack)
-    {
-        Material icon = _itemIcons.Get(itemStack.ID!);
-        using (ui.Image(icon))
-        {
-            ui.Passthrough = true;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            };
-        }
-    }
-
-    /// <summary>Applies the selected or unselected frame style to a slot.</summary>
-    private static void ApplySlotStyle(UIBuilder<Material> ui, bool isSelected)
-    {
-        if (isSelected)
-        {
-            ui.Color = UiTheme.SelectionBackground;
-            ui.Border = new BorderStyle
-            {
-                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                Color = UiTheme.Primary,
-            };
-            ui.CornerCaps = new CornerCapStyle
-            {
-                Length = UiMetrics.SELECTION_CAP_LENGTH,
-                Thickness = UiMetrics.SELECTION_CAP_THICKNESS,
-                Color = UiTheme.PrimaryBright,
-            };
-            return;
+            var hasItem = itemStack.Count > 0 && itemStack.ID != null;
+            Material? icon = hasItem ? _itemIcons.Get(itemStack.ID!) : null;
+            slots.Add(new ItemSlotState(
+                icon!,
+                (slotIndex + 1).ToString(),
+                hasItem ? itemStack.Count.ToString() : null,
+                Selected: activeSlot == slotIndex
+            ));
         }
 
-        ui.Color = UiTheme.ControlBackground;
-        ui.Border = new BorderStyle
-        {
-            Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-            Color = UiTheme.Border,
-        };
-        ui.CornerCaps = default;
+        new HotbarView().Render(ui, new HotbarState(slots));
+
+        return Result.FromSuccess();
     }
 
     private bool IsInputAllowed()

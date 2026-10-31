@@ -1,14 +1,12 @@
 using System;
+using System.Collections.Generic;
 using Reef;
-using Reef.Constraints;
-using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Config;
 using WaywardBeyond.Items;
 
@@ -17,12 +15,6 @@ namespace WaywardBeyond.Client.UI.Layers;
 /// <summary>Renders contextual keycap control hints in the bottom-right corner above HUD and modal layers.</summary>
 internal sealed class ControlHints : IUILayer
 {
-    private readonly struct HintEntry(string key, string action)
-    {
-        public readonly string Key = key;
-        public readonly string Action = action;
-    }
-
     private readonly OrientationSelector _orientationSelector;
     private readonly ShapeSelector _shapeSelector;
     private readonly Inventory _inventory;
@@ -30,19 +22,19 @@ internal sealed class ControlHints : IUILayer
     private readonly IECSContext _ecsContext;
     private readonly GameplayConfig _gameplayConfig;
 
-    private readonly HintEntry _feedbackHint;
+    private readonly HintViewState _feedbackHint;
 
-    private readonly HintEntry _changeShapeHint;
-    private readonly HintEntry _changeOrientationHint;
-    private readonly HintEntry _snapBrickHint;
-    private readonly HintEntry _pickBrickHint;
-    private readonly HintEntry _inventoryHint;
+    private readonly HintViewState _changeShapeHint;
+    private readonly HintViewState _changeOrientationHint;
+    private readonly HintViewState _snapBrickHint;
+    private readonly HintViewState _pickBrickHint;
+    private readonly HintViewState _inventoryHint;
 
-    private readonly HintEntry _inventoryMoveHint;
-    private readonly HintEntry _inventorySplitHint;
-    private readonly HintEntry _inventoryQuickMoveHint;
-    private readonly HintEntry _inventoryHotbarHint;
-    private readonly HintEntry _inventoryCloseHint;
+    private readonly HintViewState _inventoryMoveHint;
+    private readonly HintViewState _inventorySplitHint;
+    private readonly HintViewState _inventoryQuickMoveHint;
+    private readonly HintViewState _inventoryHotbarHint;
+    private readonly HintViewState _inventoryCloseHint;
 
     /// <summary>Initializes a new instance of the <see cref="ControlHints"/> class.</summary>
     public ControlHints(
@@ -83,146 +75,65 @@ internal sealed class ControlHints : IUILayer
     /// <inheritdoc/>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        using (ui.Element())
+        List<HintViewState> hints;
+        if (_inventory.IsVisible())
         {
-            ui.Passthrough = true;
-            ui.Spacing = 6;
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Bottom | Anchors.Right,
-                X = new Fixed(-20),
-                Y = new Fixed(-20),
-            };
-
-            if (_inventory.IsVisible())
-            {
-                RenderInventoryHints(ui);
-                return Result.FromSuccess();
-            }
-
+            hints = BuildInventoryHints();
+        }
+        else
+        {
             Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
             bool holdingPlaceable = mainHandResult.Success && mainHandResult.Value.Item.Placeable != null;
-
-            if (holdingPlaceable)
-            {
-                RenderPlaceableHints(ui);
-            }
-            else
-            {
-                RenderIdleHints(ui);
-            }
+            hints = holdingPlaceable ? BuildPlaceableHints() : BuildIdleHints();
         }
+
+        new ControlHintsView().Render(ui, new ControlHintsState(hints));
 
         return Result.FromSuccess();
     }
 
-    /// <summary>Draws the hints that belong to the open inventory.</summary>
-    private void RenderInventoryHints(UIBuilder<Material> ui)
+    /// <summary>Builds the hints that belong to the open inventory.</summary>
+    private List<HintViewState> BuildInventoryHints()
     {
-        RenderHintPill(ui, in _inventoryMoveHint);
-        RenderHintPill(ui, in _inventorySplitHint);
-        RenderHintPill(ui, in _inventoryQuickMoveHint);
-        RenderHintPill(ui, in _inventoryHotbarHint);
-        RenderHintPill(ui, in _inventoryCloseHint);
-        RenderHintPill(ui, in _feedbackHint);
+        return
+        [
+            _inventoryMoveHint,
+            _inventorySplitHint,
+            _inventoryQuickMoveHint,
+            _inventoryHotbarHint,
+            _inventoryCloseHint,
+            _feedbackHint,
+        ];
     }
 
-    /// <summary>Draws the hints for a placeable item in the main hand.</summary>
-    private void RenderPlaceableHints(UIBuilder<Material> ui)
+    /// <summary>Builds the hints for a placeable item in the main hand.</summary>
+    private List<HintViewState> BuildPlaceableHints()
     {
+        var hints = new List<HintViewState>();
         if (_shapeSelector.Available)
         {
-            RenderHintPill(ui, in _changeShapeHint);
+            hints.Add(_changeShapeHint);
         }
 
         if (_orientationSelector.Available)
         {
-            RenderHintPill(ui, in _changeOrientationHint);
+            hints.Add(_changeOrientationHint);
         }
 
-        RenderHintPill(ui, in _snapBrickHint);
-        RenderHintPill(ui, in _pickBrickHint);
-        RenderHintPill(ui, in _inventoryHint);
-        RenderHintPill(ui, in _feedbackHint);
+        hints.Add(_snapBrickHint);
+        hints.Add(_pickBrickHint);
+        hints.Add(_inventoryHint);
+        hints.Add(_feedbackHint);
+        return hints;
     }
 
-    /// <summary>Draws the hints for a main hand that holds no placeable item.</summary>
-    private void RenderIdleHints(UIBuilder<Material> ui)
+    /// <summary>Builds the hints for a main hand that holds no placeable item.</summary>
+    private List<HintViewState> BuildIdleHints()
     {
-        RenderHintPill(ui, in _inventoryHint);
-        RenderHintPill(ui, in _feedbackHint);
+        return [_inventoryHint, _feedbackHint];
     }
 
-    /// <summary>Draws one hint pill with its optional keycap.</summary>
-    private static void RenderHintPill(UIBuilder<Material> ui, in HintEntry hint)
-    {
-        if (string.IsNullOrEmpty(hint.Action))
-        {
-            return;
-        }
-
-        using (ui.Element())
-        {
-            ui.Passthrough = true;
-            ui.Spacing = 8;
-            ui.Padding = new Padding(left: 4, top: 4, right: 10, bottom: 4);
-            ui.LayoutDirection = LayoutDirection.Horizontal;
-            ui.Color = UiTheme.PanelBackground;
-            ui.Border = new BorderStyle
-            {
-                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                Color = UiTheme.Border,
-            };
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Right,
-            };
-
-            if (!string.IsNullOrEmpty(hint.Key))
-            {
-                RenderKeyBadge(ui, hint.Key);
-            }
-
-            using (ui.Text(hint.Action, UiMetrics.TINY_FONT))
-            {
-                ui.Passthrough = true;
-                ui.Color = UiTheme.Text;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-            }
-        }
-    }
-
-    /// <summary>Draws the keycap chip of a hint pill.</summary>
-    private static void RenderKeyBadge(UIBuilder<Material> ui, string key)
-    {
-        using (ui.Element())
-        {
-            ui.Passthrough = true;
-            ui.Padding = new Padding(left: 6, top: 2, right: 6, bottom: 2);
-            ui.Color = UiTheme.AccentDark;
-            ui.Border = new BorderStyle
-            {
-                Thickness = UiMetrics.PANEL_BORDER_THICKNESS,
-                Color = UiTheme.BorderHover,
-            };
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-
-            using (ui.Text(key, UiMetrics.TINY_FONT))
-            {
-                ui.Passthrough = true;
-                ui.Color = UiTheme.AccentBright;
-            }
-        }
-    }
-
-    private static HintEntry ParseHint(string? rawHint)
+    private static HintViewState ParseHint(string? rawHint)
     {
         if (string.IsNullOrWhiteSpace(rawHint))
         {
@@ -232,11 +143,11 @@ internal sealed class ControlHints : IUILayer
         int separatorIndex = rawHint.IndexOf(": ", StringComparison.Ordinal);
         if (separatorIndex <= 0)
         {
-            return new HintEntry(string.Empty, rawHint.Trim());
+            return new HintViewState(string.Empty, rawHint.Trim());
         }
 
         string key = rawHint[..separatorIndex].Trim();
         string action = rawHint[(separatorIndex + 2)..].Trim();
-        return new HintEntry(key, action);
+        return new HintViewState(key, action);
     }
 }
