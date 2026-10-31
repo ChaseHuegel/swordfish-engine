@@ -13,7 +13,7 @@
 12 id=TextBox_CharacterName rect=180,205,300,32 clip=180,205,300,32 color=0.1098,0.1412,0.2,1 bg=0.1098,0.1412,0.2,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 13 id=- rect=180,205,280,18 clip=180,205,300,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:18 text=ui.field.character.name.placeholder
 14 id=Button_RandomName rect=488,205,32,32 clip=62,134,576,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-15 id=- rect=500,209,8,20 clip=62,134,576,415 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+15 id=- rect=488,205,32,32 clip=62,134,576,415 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
 16 id=- rect=82,237,0,16 clip=62,134,576,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 17 id=- rect=254,253,192,192 clip=254,253,192,192 color=0.051,0.0706,0.1098,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 18 id=- rect=262,261,176,176 clip=254,253,192,192 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
@@ -30,7 +30,7 @@
 29 id=species.next rect=447,458,32,30 clip=264,457,216,32 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 30 id=- rect=447,464,32,18 clip=264,457,216,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=>
 31 id=Button_RandomSpecies rect=488,457,32,32 clip=62,134,576,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-32 id=- rect=500,461,8,20 clip=62,134,576,415 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+32 id=- rect=488,457,32,32 clip=62,134,576,415 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
 33 id=- rect=82,489,0,8 clip=62,134,576,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 34 id=- rect=180,497,340,32 clip=62,134,576,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 35 id=- rect=180,497,76,32 clip=62,134,576,415 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.field.character.gender
@@ -44,7 +44,7 @@
 43 id=gender.next rect=447,498,32,30 clip=264,497,216,32 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 44 id=- rect=447,504,32,18 clip=264,497,216,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=>
 45 id=Button_RandomGender rect=488,497,32,32 clip=62,134,576,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-46 id=- rect=500,501,8,20 clip=62,134,576,415 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+46 id=- rect=488,497,32,32 clip=62,134,576,415 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
 47 id=- rect=660,132,560,419 clip=60,120,1160,480 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
 48 id=- rect=662,134,556,415 clip=662,134,556,415 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 49 id=- rect=678,150,524,18 clip=662,134,556,415 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=ui.panel.character.spacer
@@ -57,7 +57,7 @@
 56 id=- rect=678,207,440,32 clip=662,134,556,415 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.label.character.spacer.points
 57 id=- rect=1126,207,36,32 clip=662,134,556,415 color=0.949,0.6,0.2902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=18
 58 id=Button_RandomPoints rect=1170,207,32,32 clip=662,134,556,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-59 id=- rect=1182,211,8,20 clip=662,134,556,415 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+59 id=- rect=1170,207,32,32 clip=662,134,556,415 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
 60 id=- rect=678,239,0,8 clip=662,134,556,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 61 id=- rect=678,247,524,28 clip=662,134,556,415 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 62 id=- rect=678,247,436,28 clip=662,134,556,415 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=#orangeu#Ri.label.character.strength

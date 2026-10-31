@@ -21,7 +21,7 @@
 20 id=TextBox_SaveNameNarrow rect=82,279,596,32 clip=82,279,596,32 color=0.1098,0.1412,0.2,1 bg=0.1098,0.1412,0.2,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 21 id=- rect=82,279,248,18 clip=82,279,596,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:18 text=ui.field.level.name.placeholder
 22 id=Button_RandomSaveNameNarrow rect=686,279,32,32 clip=62,174,676,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-23 id=- rect=698,283,8,20 clip=62,174,676,240 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+23 id=- rect=686,279,32,32 clip=62,174,676,240 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
 24 id=- rect=82,311,0,16 clip=62,174,676,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 25 id=- rect=82,327,636,16 clip=62,174,676,240 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.field.level.seed
 26 id=- rect=82,343,0,4 clip=62,174,676,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
@@ -29,7 +29,7 @@
 28 id=TextBox_SaveSeedNarrow rect=82,347,596,32 clip=82,347,596,32 color=0.1098,0.1412,0.2,1 bg=0.1098,0.1412,0.2,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 29 id=- rect=82,347,248,18 clip=82,347,596,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:18 text=ui.field.level.seed.placeholder
 30 id=Button_RandomSeedNarrow rect=686,347,32,32 clip=62,174,676,240 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-31 id=- rect=698,351,8,20 clip=62,174,676,240 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+31 id=- rect=686,347,32,32 clip=62,174,676,240 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
 32 id=- rect=60,428,680,52 clip=60,120,680,360 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 33 id=Button_Cancel rect=60,434,170,40 clip=60,120,680,360 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 34 id=- rect=62,436,166,36 clip=60,120,680,360 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-

@@ -39,7 +39,7 @@
                                      onclick="OnRandomName"
                                      width="32"
                                      height="32">
-                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                                <Text class="wb-icon" text="@Glyph('dice')" width="fill" height="fill" />
                             </Element>
                         </Element>
 
@@ -66,7 +66,7 @@
                                      onclick="OnRandomSpecies"
                                      width="32"
                                      height="32">
-                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Species.Enabled)" text="@Glyph('dice')" x="12" y="4" />
+                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Species.Enabled)" text="@Glyph('dice')" width="fill" height="fill" />
                             </Element>
                         </Element>
 
@@ -88,7 +88,7 @@
                                      onclick="OnRandomGender"
                                      width="32"
                                      height="32">
-                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Gender.Enabled)" text="@Glyph('dice')" x="12" y="4" />
+                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Gender.Enabled)" text="@Glyph('dice')" width="fill" height="fill" />
                             </Element>
                         </Element>
                     </Element>
@@ -112,7 +112,7 @@
                                      onclick="OnRandomPoints"
                                      width="32"
                                      height="32">
-                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                                <Text class="wb-icon" text="@Glyph('dice')" width="fill" height="fill" />
                             </Element>
                         </Element>
 
@@ -193,7 +193,7 @@
                                      onclick="OnRandomName"
                                      width="32"
                                      height="32">
-                                <Text class="wb-icon" text="@Glyph('dice')" x="12" y="4" />
+                                <Text class="wb-icon" text="@Glyph('dice')" width="fill" height="fill" />
                             </Element>
                         </Element>
 
@@ -220,7 +220,7 @@
                                      onclick="OnRandomSpecies"
                                      width="32"
                                      height="32">
-                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Species.Enabled)" text="@Glyph('dice')" x="12" y="4" />
+                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Species.Enabled)" text="@Glyph('dice')" width="fill" height="fill" />
                             </Element>
                         </Element>
 
@@ -242,7 +242,7 @@
                                      onclick="OnRandomGender"
                                      width="32"
                                      height="32">
-                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Gender.Enabled)" text="@Glyph('dice')" x="12" y="4" />
+                                <Text class="wb-icon" class:wb-icon-dim="@(!context.Gender.Enabled)" text="@Glyph('dice')" width="fill" height="fill" />
                             </Element>
                         </Element>
                     </Element>

@@ -19,7 +19,7 @@
 18 id=TextBox_CharacterNameNarrow rect=230,245,300,32 clip=230,245,300,32 color=0.1098,0.1412,0.2,1 bg=0.1098,0.1412,0.2,1 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 19 id=- rect=230,245,280,18 clip=230,245,300,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:18 text=ui.field.character.name.placeholder
 20 id=Button_RandomNameNarrow rect=538,245,32,32 clip=62,174,676,306 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-21 id=- rect=550,249,8,20 clip=62,174,676,306 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
+21 id=- rect=538,245,32,32 clip=62,174,676,306 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=
 22 id=- rect=82,277,0,16 clip=62,174,676,306 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 23 id=- rect=304,293,192,192 clip=304,293,192,187 color=0.051,0.0706,0.1098,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 24 id=- rect=312,301,176,176 clip=304,293,192,187 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
