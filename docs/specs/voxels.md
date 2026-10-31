@@ -108,7 +108,9 @@ tracks dirty chunk coordinates, active chunk child entities, and cached chunk
 collision data.
 
 A voxel edit marks its resident chunk dirty. An edit on a chunk boundary also
-marks the orthogonal neighbor chunk dirty.
+marks the orthogonal neighbor chunk dirty. A light-only write marks
+`LightDirtyChunks` and leaves `GeometryDirtyChunks` empty, so the rebuild skips
+collision and voxel-entity reconciliation for that chunk.
 
 `VoxelLightingService`
 (`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs`) runs

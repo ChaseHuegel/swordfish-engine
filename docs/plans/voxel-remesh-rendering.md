@@ -108,7 +108,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [ ] E6b Multi-draw batch stage
 - [ ] E6c Batch lifetime and fallbacks
 - [x] G1 Ambient model and unified light paths
-- [ ] G2 Light-only chunk dirtiness
+- [x] G2 Light-only chunk dirtiness
 - [ ] G3a Occupancy mask
 - [ ] G3b Rebuild scope and buffer reuse
 - [ ] G3c Chunk entity lifetime
@@ -133,7 +133,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 | E5 | done | pending | 2026-10-31 | Quantized equality and hash share one step |
 | E6 | not started | — | — | |
 | G1 | done | pending | 2026-10-31 | All-axis ambient rule, volume seed, residency rule |
-| G2 | not started | — | — | |
+| G2 | done | pending | 2026-10-31 | Geometry and light dirty sets; light-only skips collision and entities |
 | G3 | not started | — | — | |
 | G4 | not started | — | — | |
 | G5 | not started | — | — | |
@@ -468,13 +468,13 @@ dirtied 10 chunks in the probe.
 
 Steps:
 
-- [ ] Add a dirty kind to `VoxelChunkRegistry`: `Geometry`, `Light`, or both.
-- [ ] Geometry edits mark both. Light writes mark light only.
-- [ ] In `RebuildDirtyChunks`, skip `BuildChunkCollision` and
+- [x] Add a dirty kind to `VoxelChunkRegistry`: `Geometry`, `Light`, or both.
+- [x] Geometry edits mark both. Light writes mark light only.
+- [x] In `RebuildDirtyChunks`, skip `BuildChunkCollision` and
       `ReconcileVoxelEntities` for a light-only chunk.
-- [ ] Keep the mesh rebuild for now. It reads the new vertex light.
-- [ ] Add a test: a lamp edit changes no chunk collision. A geometry edit does.
-- [ ] Record the full split in [0095](../issues/0095-voxel-light-geometry-split.md).
+- [x] Keep the mesh rebuild for now. It reads the new vertex light.
+- [x] Add a test: a lamp edit changes no chunk collision. A geometry edit does.
+- [x] Record the full split in [0095](../issues/0095-voxel-light-geometry-split.md).
 
 Gate: build, tests, benchmark delta.
 

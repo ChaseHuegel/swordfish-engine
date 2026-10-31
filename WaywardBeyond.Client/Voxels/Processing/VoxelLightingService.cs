@@ -144,7 +144,7 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                     if (neighbor.GetLightLevel() < 15)
                     {
                         voxelObject.SetLight(nx, ny, nz, 15);
-                        registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
+                        registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize, lightOnly: true);
                     }
 
                     _addQueue.Enqueue((nx, ny, nz, 15));
@@ -227,7 +227,7 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
 
             ShapeLight shapeLight = sample.Center.GetShapeLight();
             sample.Center.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
-            registry.MarkVoxelModified(wx, wy, wz, voxelObject.ChunkSize);
+            registry.MarkVoxelModified(wx, wy, wz, voxelObject.ChunkSize, lightOnly: true);
             _addQueue.Enqueue((wx, wy, wz, 15));
         }
     }
@@ -261,7 +261,7 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                 if (neighborLight < light)
                 {
                     voxelObject.SetLight(nx, ny, nz, 0);
-                    registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
+                    registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize, lightOnly: true);
                     _removeQueue.Enqueue((nx, ny, nz, neighborLight));
                 }
                 else if (neighborLight > light || light < 15)
@@ -277,7 +277,7 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                     else
                     {
                         voxelObject.SetLight(nx, ny, nz, 0);
-                        registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
+                        registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize, lightOnly: true);
                         _removeQueue.Enqueue((nx, ny, nz, neighborLight));
                     }
                 }
@@ -361,7 +361,7 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
                 }
 
                 voxelObject.SetLight(nx, ny, nz, targetLight);
-                registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize);
+                registry.MarkVoxelModified(nx, ny, nz, voxelObject.ChunkSize, lightOnly: true);
                 _addQueue.Enqueue((nx, ny, nz, targetLight));
             }
         }

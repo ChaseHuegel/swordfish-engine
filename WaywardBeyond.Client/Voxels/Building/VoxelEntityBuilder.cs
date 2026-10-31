@@ -181,7 +181,7 @@ internal sealed class VoxelEntityBuilder(
         VoxelChunkRegistry registry = voxelComponent.Registry;
         VoxelObject voxelObject = voxelComponent.VoxelObject;
 
-        if (registry.ChunkColliders.Count == 0 && voxelObject.ChunkCount > 0)
+        if (registry.ChunkColliders.Count == 0 && voxelObject.ChunkCount > 0 && registry.GeometryDirtyChunks.Count > 0)
         {
             foreach (ChunkData residentChunk in voxelObject)
             {
@@ -203,11 +203,15 @@ internal sealed class VoxelEntityBuilder(
         for (var i = 0; i < dirtyList.Count; i++)
         {
             Short3 chunkOffset = dirtyList[i];
+            bool geometryDirty = registry.GeometryDirtyChunks.Contains(chunkOffset);
 
             if (!voxelObject.TryGetChunk(chunkOffset, out ChunkData chunk) || chunk.Palette.Only(0))
             {
                 RemoveChunkRenderers(store, chunkOffset, registry, meshRendererCleanup);
-                ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, []);
+                if (geometryDirty)
+                {
+                    ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, []);
+                }
                 if (registry.ChunkColliders.Remove(chunkOffset))
                 {
                     collisionChanged = true;
@@ -215,7 +219,12 @@ internal sealed class VoxelEntityBuilder(
                 continue;
             }
 
-            UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup);
+            UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup, geometryDirty);
+
+            if (!geometryDirty)
+            {
+                continue;
+            }
 
             ChunkCollisionData newCollision = _voxelObjectBuilder.BuildChunkCollision(chunk);
             if (newCollision.IsEmpty)
@@ -231,6 +240,9 @@ internal sealed class VoxelEntityBuilder(
                 collisionChanged = true;
             }
         }
+
+        registry.GeometryDirtyChunks.Clear();
+        registry.LightDirtyChunks.Clear();
 
         if (collisionChanged)
         {
@@ -293,7 +305,8 @@ internal sealed class VoxelEntityBuilder(
         Uuid parentUuid,
         VoxelComponent voxelComponent,
         ChunkData chunk,
-        MeshRendererCleanup meshRendererCleanup
+        MeshRendererCleanup meshRendererCleanup,
+        bool reconcileEntities = true
     )
     {
         VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(chunk);
@@ -304,7 +317,10 @@ internal sealed class VoxelEntityBuilder(
         UpdateRendererBucket(store, parentUuid, chunkOffset, data.MaskedMesh, _maskedMaterial, _maskedRenderOptions, AlphaMode.Masked, registry.MaskedEntities, meshRendererCleanup);
         UpdateRendererBucket(store, parentUuid, chunkOffset, data.TransparentMesh, _transparentMaterial, _transparentRenderOptions, AlphaMode.Blend, registry.TransparentEntities, meshRendererCleanup);
 
-        ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, data.VoxelEntities);
+        if (reconcileEntities)
+        {
+            ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, data.VoxelEntities);
+        }
     }
 
     private void UpdateRendererBucket(
