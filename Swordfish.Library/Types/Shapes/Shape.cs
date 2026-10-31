@@ -1,7 +1,7 @@
 using System;
-using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Runtime.InteropServices;
-using Swordfish.Library.Extensions;
+using Swordfish.Library.Types.Shapes;
 
 namespace Swordfish.Library.Types.Shapes;
 
@@ -91,31 +91,30 @@ public readonly struct Shape : IEquatable<Shape>
             return false;
         }
 
-        const float tolerance = 0.00001f;
         return Type switch
         {
-            ShapeType.Box3 => Box3.Extents == other.Box3.Extents,
+            ShapeType.Box3 => QuantizedEquals(Box3.Extents, other.Box3.Extents),
             
-            ShapeType.Box2 => Box2.Extents == other.Box2.Extents,
+            ShapeType.Box2 => QuantizedEquals(Box2.Extents, other.Box2.Extents),
             
-            ShapeType.Sphere => Math.Abs(Sphere.Radius - other.Sphere.Radius) < tolerance,
+            ShapeType.Sphere => Quantize(Sphere.Radius) == Quantize(other.Sphere.Radius),
             
-            ShapeType.Circle => Math.Abs(Circle.Radius - other.Circle.Radius) < tolerance,
+            ShapeType.Circle => Quantize(Circle.Radius) == Quantize(other.Circle.Radius),
             
-            ShapeType.Capsule => Math.Abs(Capsule.Height - other.Capsule.Height) < tolerance &&
-                                 Math.Abs(Capsule.Radius - other.Capsule.Radius) < tolerance,
+            ShapeType.Capsule => Quantize(Capsule.Height) == Quantize(other.Capsule.Height) &&
+                                 Quantize(Capsule.Radius) == Quantize(other.Capsule.Radius),
             
-            ShapeType.Cylinder => Math.Abs(Cylinder.Height - other.Cylinder.Height) < tolerance &&
-                                  Math.Abs(Cylinder.Radius - other.Cylinder.Radius) < tolerance,
+            ShapeType.Cylinder => Quantize(Cylinder.Height) == Quantize(other.Cylinder.Height) &&
+                                  Quantize(Cylinder.Radius) == Quantize(other.Cylinder.Radius),
             
-            ShapeType.Plane => Plane.Normal.ApproximatelyEquals(other.Plane.Normal) &&
-                               Math.Abs(Plane.Distance - other.Plane.Distance) < tolerance,
+            ShapeType.Plane => QuantizedEquals(Plane.Normal, other.Plane.Normal) &&
+                               Quantize(Plane.Distance) == Quantize(other.Plane.Distance),
             
-            ShapeType.Ellipse2 => Math.Abs(Ellipse2.A - other.Ellipse2.A) < tolerance &&
-                                  Math.Abs(Ellipse2.B - other.Ellipse2.B) < tolerance &&
-                                  Math.Abs(Ellipse2.H - other.Ellipse2.H) < tolerance &&
-                                  Math.Abs(Ellipse2.K - other.Ellipse2.K) < tolerance &&
-                                  Math.Abs(Ellipse2.Theta - other.Ellipse2.Theta) < tolerance,
+            ShapeType.Ellipse2 => Quantize(Ellipse2.A) == Quantize(other.Ellipse2.A) &&
+                                  Quantize(Ellipse2.B) == Quantize(other.Ellipse2.B) &&
+                                  Quantize(Ellipse2.H) == Quantize(other.Ellipse2.H) &&
+                                  Quantize(Ellipse2.K) == Quantize(other.Ellipse2.K) &&
+                                  Quantize(Ellipse2.Theta) == Quantize(other.Ellipse2.Theta),
             _ => false,
         };
     }
@@ -128,16 +127,46 @@ public readonly struct Shape : IEquatable<Shape>
     {
         return Type switch
         {
-            ShapeType.Box3 => HashCode.Combine(Type, Box3.Extents),
-            ShapeType.Box2 => HashCode.Combine(Type, Box2.Extents),
-            ShapeType.Sphere => HashCode.Combine(Type, Sphere.Radius),
-            ShapeType.Circle => HashCode.Combine(Type, Circle.Radius),
-            ShapeType.Capsule => HashCode.Combine(Type, Capsule.Height, Capsule.Radius),
-            ShapeType.Cylinder => HashCode.Combine(Type, Cylinder.Height, Cylinder.Radius),
-            ShapeType.Plane => HashCode.Combine(Type, Plane.Normal, Plane.Distance),
-            ShapeType.Ellipse2 => HashCode.Combine(Type, Ellipse2.A, Ellipse2.B, Ellipse2.H, Ellipse2.K, Ellipse2.Theta),
+            ShapeType.Box3 => HashCode.Combine(Type, Quantize(Box3.Extents.X), Quantize(Box3.Extents.Y), Quantize(Box3.Extents.Z)),
+            ShapeType.Box2 => HashCode.Combine(Type, Quantize(Box2.Extents.X), Quantize(Box2.Extents.Y)),
+            ShapeType.Sphere => HashCode.Combine(Type, Quantize(Sphere.Radius)),
+            ShapeType.Circle => HashCode.Combine(Type, Quantize(Circle.Radius)),
+            ShapeType.Capsule => HashCode.Combine(Type, Quantize(Capsule.Height), Quantize(Capsule.Radius)),
+            ShapeType.Cylinder => HashCode.Combine(Type, Quantize(Cylinder.Height), Quantize(Cylinder.Radius)),
+            ShapeType.Plane => HashCode.Combine(
+                Type,
+                Quantize(Plane.Normal.X),
+                Quantize(Plane.Normal.Y),
+                Quantize(Plane.Normal.Z),
+                Quantize(Plane.Distance)
+            ),
+            ShapeType.Ellipse2 => HashCode.Combine(
+                Type,
+                Quantize(Ellipse2.A),
+                Quantize(Ellipse2.B),
+                Quantize(Ellipse2.H),
+                Quantize(Ellipse2.K),
+                Quantize(Ellipse2.Theta)
+            ),
             _ => (int)Type,
         };
+    }
+
+    private const float QUANTIZATION_STEP = 0.0001f;
+
+    private static int Quantize(float value) => (int)MathF.Round(value / QUANTIZATION_STEP);
+
+    private static bool QuantizedEquals(Vector3 left, Vector3 right)
+    {
+        return Quantize(left.X) == Quantize(right.X)
+            && Quantize(left.Y) == Quantize(right.Y)
+            && Quantize(left.Z) == Quantize(right.Z);
+    }
+
+    private static bool QuantizedEquals(Vector2 left, Vector2 right)
+    {
+        return Quantize(left.X) == Quantize(right.X)
+            && Quantize(left.Y) == Quantize(right.Y);
     }
 
     /// <summary>Returns true if two shapes are equal.</summary>

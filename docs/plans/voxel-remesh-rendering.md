@@ -103,7 +103,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [ ] E2 Shadow culling and layered point shadows
 - [x] E3 Cutout depth, single depth pass, draw-call count
 - [x] E4 Per-frame renderer overhead
-- [ ] E5 Shape equality and helper docs
+- [x] E5 Shape equality and helper docs
 - [ ] E6a Batched mesh data model
 - [ ] E6b Multi-draw batch stage
 - [ ] E6c Batch lifetime and fallbacks
@@ -130,7 +130,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 | E2 | not started | — | — | |
 | E3 | done | pending | 2026-10-31 | Masked depth uses cutout; one depth pass; shadow count included |
 | E4 | done | pending | 2026-10-31 | One stage pre-render, cached targets/state, reused scene buffers |
-| E5 | not started | — | — | |
+| E5 | done | pending | 2026-10-31 | Quantized equality and hash share one step |
 | E6 | not started | — | — | |
 | G1 | not started | — | — | |
 | G2 | not started | — | — | |
@@ -293,13 +293,13 @@ differently, so the Jolt shape cache misses.
 
 Steps:
 
-- [ ] Add one quantizer. Use the same step in `Equals` and `GetHashCode` for
+- [x] Add one quantizer. Use the same step in `Equals` and `GetHashCode` for
       every float field. Quantize both sides.
-- [ ] Add tests: values inside the step are equal and hash equal. Values
+- [x] Add tests: values inside the step are equal and hash equal. Values
       outside the step are not equal.
-- [ ] Add the one-line summary to `VectorExtensions.ApproximatelyEquals`.
-- [ ] Do not change the `ShapeType` switch.
-- [ ] Run the docs pass for the changed engine doc.
+- [x] Add the one-line summary to `VectorExtensions.ApproximatelyEquals`.
+- [x] Do not change the `ShapeType` switch.
+- [x] Run the docs pass for the changed engine doc.
 
 Gate: build, `Swordfish.Tests`.
 
