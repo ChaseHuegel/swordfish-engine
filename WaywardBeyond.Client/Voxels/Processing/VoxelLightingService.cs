@@ -40,8 +40,6 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
         EnsureDepthState(voxelObject, registry);
         registry.MarkVoxelModified(x, y, z, voxelObject.ChunkSize);
 
-        SeedNewChunk(voxelObject, registry, x, y, z);
-
         Result<Brick> oldBrickResult = _brickDatabase.Get(original.ID);
         Result<Brick> newBrickResult = _brickDatabase.Get(updated.ID);
 
@@ -106,6 +104,9 @@ internal sealed class VoxelLightingService(IBrickDatabase brickDatabase)
         {
             DrainRemoveQueue(voxelObject, registry);
         }
+
+        //  A write can make a new chunk resident. Seed its ambient air after the depth state update.
+        SeedNewChunk(voxelObject, registry, x, y, z);
 
         // 3. Assign cell light and enqueue for propagation
         if (newIsLight)
