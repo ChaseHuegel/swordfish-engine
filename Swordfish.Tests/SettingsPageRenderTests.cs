@@ -1,3 +1,4 @@
+using System;
 #nullable enable
 using System.Collections.Generic;
 using System.Numerics;
@@ -25,17 +26,18 @@ public class SettingsPageRenderTests
     {
         const int windowWidth = 1920;
         const int windowHeight = 1080;
-        SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
+        int pageWidth = Math.Max(320, Math.Min(windowWidth - 80, 1280));
+        int pageHeight = Math.Max(280, Math.Min(windowHeight - 240, 840));
         List<RenderCommand<Material>> commands = RenderSettingsPage(windowWidth, windowHeight);
 
         IntRect pageRect = FindRequired(commands, "SettingsPage").Rect;
-        Assert.Equal((windowWidth - layout.PageWidth) / 2, pageRect.Left);
-        Assert.Equal((windowHeight - layout.PageHeight) / 2, pageRect.Top);
-        Assert.Equal(layout.PageWidth, pageRect.Size.X);
-        Assert.Equal(layout.PageHeight, pageRect.Size.Y);
+        Assert.Equal((windowWidth - pageWidth) / 2, pageRect.Left);
+        Assert.Equal((windowHeight - pageHeight) / 2, pageRect.Top);
+        Assert.Equal(pageWidth, pageRect.Size.X);
+        Assert.Equal(pageHeight, pageRect.Size.Y);
 
         IntRect tray = FindRequired(commands, "Settings.Tray").Rect;
-        int paneLeft = tray.Right + SettingsLayout.PANEL_GAP;
+        int paneLeft = tray.Right + 16;
         int paneRight = pageRect.Right;
 
         string[] controlIds =
@@ -82,8 +84,6 @@ public class SettingsPageRenderTests
     {
         const int windowWidth = 800;
         const int windowHeight = 600;
-        SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
-        Assert.True(layout.UseTabs);
         List<RenderCommand<Material>> commands = RenderSettingsPage(windowWidth, windowHeight);
 
         Assert.True(

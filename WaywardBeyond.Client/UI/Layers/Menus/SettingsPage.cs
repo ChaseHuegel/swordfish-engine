@@ -52,7 +52,6 @@ internal sealed class SettingsPage<TIdentifier>(
     private SettingsShellView? _shell;
     private Menu<TIdentifier>? _menu;
     private double _time;
-    private int _controlWidth;
     private double _lastSliderSoundTime;
     private SettingsDraft? _draft;
     private SettingsCategory[]? _categories;
@@ -98,9 +97,7 @@ internal sealed class SettingsPage<TIdentifier>(
 
         RefreshExternalDisplaySettings();
 
-        SettingsLayout layout = SettingsLayout.Compute(ui.Width, ui.Height);
         _menu = menu;
-        _controlWidth = layout.ControlWidth;
         RenderRows(ui);
         _time = ui.Time;
 
@@ -117,7 +114,6 @@ internal sealed class SettingsPage<TIdentifier>(
         }
 
         Shell.Render(ui, new SettingsShellState(
-            layout.UseTabs,
             entries,
             _categoryIndex,
             _localization.GetRequired(_categories[_categoryIndex].TitleKey),
@@ -170,7 +166,6 @@ internal sealed class SettingsPage<TIdentifier>(
         }
 
         Shell.Rows = rows;
-        Shell.ControlWidth = _controlWidth;
         Shell.ResetLabel = _localization.GetRequired("ui.settings.action.reset");
     }
 

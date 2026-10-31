@@ -18,9 +18,6 @@ internal partial class SettingsShellView(ILocalization localization) : UiViewBas
     /// <summary>Gets or sets the rows rendered inside the pane.</summary>
     public IReadOnlyList<SettingsRowState> Rows { get; set; } = [];
 
-    /// <summary>Gets or sets the control column width.</summary>
-    public int ControlWidth { get; set; } = 220;
-
     /// <summary>Gets or sets the reset row label.</summary>
     public string ResetLabel { get; set; } = string.Empty;
 

@@ -49,12 +49,14 @@
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 18px;
+    vertical-align: middle;
 }
 
 .wb-text-label {
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 18px;
+    vertical-align: middle;
 }
 
 .wb-credits-thanks {
@@ -65,18 +67,21 @@
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-text-value {
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-text-tiny {
     color: var(--wb-text-dim);
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
+    vertical-align: middle;
 }
 
 .wb-text-muted {
@@ -556,12 +561,14 @@
     color: var(--wb-accent-bright);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-card-line {
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-card-meta {
@@ -579,6 +586,7 @@
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-field-frame {
@@ -730,12 +738,14 @@
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
     font-size: 16px;
+    vertical-align: middle;
 }
 
 .wb-settings-label {
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 20px;
+    vertical-align: middle;
 }
 
 .wb-settings-pane-title {
@@ -783,6 +793,7 @@
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
+    vertical-align: middle;
 }
 
 .wb-banner {
@@ -871,6 +882,7 @@
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
+    vertical-align: middle;
 }
 
 .wb-text-primary-solid {
@@ -885,10 +897,12 @@
     color: var(--wb-primary);
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
+    vertical-align: middle;
 }
 
 .wb-save-meta {
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
+    vertical-align: middle;
 }

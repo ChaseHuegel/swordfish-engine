@@ -4,7 +4,6 @@ namespace WaywardBeyond.Client.UI.Settings;
 
 /// <summary>Dynamic state for the settings page shell.</summary>
 internal readonly record struct SettingsShellState(
-    bool UseTabs,
     IReadOnlyList<SettingsCategoryEntry> Categories,
     int CategoryIndex,
     string Title,
