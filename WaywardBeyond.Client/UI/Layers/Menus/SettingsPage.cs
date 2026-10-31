@@ -11,6 +11,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Settings;
 using WaywardBeyond.Client.UI.Theme;
@@ -48,7 +49,11 @@ internal sealed class SettingsPage<TIdentifier>(
     private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
 
-    private readonly SettingsRenderer _renderer = new(localization, soundEffectService, inputService);
+    private SettingsShellView? _shell;
+    private Menu<TIdentifier>? _menu;
+    private double _time;
+    private int _controlWidth;
+    private double _lastSliderSoundTime;
     private SettingsDraft? _draft;
     private SettingsCategory[]? _categories;
     private int _categoryIndex;
@@ -94,98 +99,164 @@ internal sealed class SettingsPage<TIdentifier>(
         RefreshExternalDisplaySettings();
 
         SettingsLayout layout = SettingsLayout.Compute(ui.Width, ui.Height);
-        SettingsRenderer renderer = _renderer;
-        renderer.SetLayout(ui, layout);
+        _menu = menu;
+        _controlWidth = layout.ControlWidth;
+        RenderRows(ui);
+        _time = ui.Time;
 
-        using (ui.Page(layout.PageWidth, layout.PageHeight, "SettingsPage"))
+        bool dirty = IsDirty();
+        string? status = _status != null && ui.Time < _statusUntil ? _status : null;
+
+        var entries = new SettingsCategoryEntry[_categories.Length];
+        for (var i = 0; i < _categories.Length; i++)
         {
-            ui.Padding = new Padding(left: 0, top: SettingsLayout.PAGE_GAP, right: 0, bottom: 0);
-            ui.Spacing = SettingsLayout.PAGE_GAP;
-
-            if (layout.UseTabs)
-            {
-                using (ui.Column(
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    }
-                ))
-                {
-                    if (renderer.DrawTabs(_categories, ref _categoryIndex))
-                    {
-                        _scrollY = 0;
-                    }
-
-                    using (ui.MenuPanel(
-                        new Constraints
-                        {
-                            Width = new Fill(),
-                            Height = new Fill(),
-                        },
-                        padding: SettingsLayout.PANE_PADDING
-                    ))
-                    {
-                        renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
-                    }
-                }
-            }
-            else
-            {
-                using (ui.Row(
-                    new Constraints
-                    {
-                        Width = new Fill(),
-                        Height = new Fill(),
-                    },
-                    spacing: SettingsLayout.PANEL_GAP
-                ))
-                {
-                    using (ui.MenuPanel(
-                        new Constraints
-                        {
-                            Width = new Fixed(layout.TrayWidth),
-                            Height = new Fill(),
-                        },
-                        padding: SettingsMetrics.TRAY_PADDING
-                    ))
-                    {
-                        if (renderer.DrawTray(_categories, ref _categoryIndex))
-                        {
-                            _scrollY = 0;
-                        }
-                    }
-
-                    using (ui.MenuPanel(
-                        new Constraints
-                        {
-                            Width = new Fill(),
-                            Height = new Fill(),
-                        },
-                        padding: SettingsLayout.PANE_PADDING
-                    ))
-                    {
-                        renderer.DrawPane(_categories[_categoryIndex], ref _scrollY);
-                    }
-                }
-            }
-
-            bool dirty = IsDirty();
-            string? status = _status != null && ui.Time < _statusUntil ? _status : null;
-            renderer.DrawFooter(dirty, status, out bool cancelClicked, out bool applyClicked);
-
-            if (cancelClicked)
-            {
-                Widgets.Interactions.Click.WithButtonAudio(_soundEffectService);
-                menu.GoBack();
-            }
-            else if (applyClicked)
-            {
-                ApplySettings(ui.Time);
-            }
+            entries[i] = new SettingsCategoryEntry(
+                _categories[i].Id,
+                _localization.GetRequired(_categories[i].TitleKey)
+            );
         }
 
+        Shell.Render(ui, new SettingsShellState(
+            layout.UseTabs,
+            entries,
+            _categoryIndex,
+            _localization.GetRequired(_categories[_categoryIndex].TitleKey),
+            dirty,
+            dirty ? _localization.GetRequired("ui.settings.status.unsaved") : status,
+            dirty ? _localization.GetRequired("ui.button.cancel") : _localization.GetRequired("ui.button.back")
+        ));
+
         return Result.FromSuccess();
+    }
+
+    private SettingsShellView Shell => _shell ??= CreateShell();
+
+    private SettingsShellView CreateShell()
+    {
+        return new SettingsShellView(_localization)
+        {
+            CategoryRequested = OnCategorySelected,
+            CancelRequested = OnCancel,
+            ApplyRequested = OnApply,
+            ChoiceRequested = OnChoice,
+            StepRequested = OnStep,
+            SliderRequested = OnSlider,
+            ResetRequested = OnReset,
+        };
+    }
+
+    /// <summary>Collects the active category rows and updates the scroll metrics.</summary>
+    private void RenderRows(UIBuilder<Material> ui)
+    {
+        ElementBounds viewport = ui.GetElementBounds("Settings.Rows");
+        ElementBounds content = ui.GetElementBounds("Settings.RowsContent");
+        if (viewport.Rect.Size.Y > 0 && content.Rect.Size.Y > 0)
+        {
+            Shell.Scroll.SetMetrics(viewport.Rect.Size.Y, content.Rect.Size.Y);
+        }
+
+        ElementBounds tabsViewport = ui.GetElementBounds("Settings.RowsTabs");
+        ElementBounds tabsContent = ui.GetElementBounds("Settings.RowsContentTabs");
+        if (tabsViewport.Rect.Size.Y > 0 && tabsContent.Rect.Size.Y > 0)
+        {
+            Shell.Scroll.SetMetrics(tabsViewport.Rect.Size.Y, tabsContent.Rect.Size.Y);
+        }
+
+        var rows = new List<SettingsRowState>();
+        SettingsRow[] categoryRows = _categories![_categoryIndex].Rows;
+        for (var i = 0; i < categoryRows.Length; i++)
+        {
+            rows.Add(categoryRows[i].Snapshot(_localization));
+        }
+
+        Shell.Rows = rows;
+        Shell.ControlWidth = _controlWidth;
+        Shell.ResetLabel = _localization.GetRequired("ui.settings.action.reset");
+    }
+
+    private void Play(Widgets.InterfaceSound sound)
+    {
+        if (_soundEffectService is not null)
+        {
+            Widgets.Interactions.Click.WithButtonAudio(_soundEffectService, sound);
+        }
+    }
+
+    private void OnChoice(string id, int index)
+    {
+        if (FindEntry(id)?.TrySetOptionIndex(index) == true)
+        {
+            Play(Widgets.InterfaceSound.Toggle);
+        }
+    }
+
+    private void OnStep(string id, int delta)
+    {
+        int applied = FindEntry(id)?.Step(delta) ?? 0;
+        if (applied != 0)
+        {
+            Play(applied > 0 ? Widgets.InterfaceSound.Increase : Widgets.InterfaceSound.Decrease);
+        }
+    }
+
+    private void OnSlider(string id, float value)
+    {
+        if (FindEntry(id)?.TrySetSlider(value) != true)
+        {
+            return;
+        }
+
+        if (_time - _lastSliderSoundTime >= 0.05d)
+        {
+            _lastSliderSoundTime = _time;
+            Play(Widgets.InterfaceSound.Increase);
+        }
+    }
+
+    private void OnReset(string id)
+    {
+        if (_categories == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            SettingsRow[] rows = _categories[i].Rows;
+            for (var j = 0; j < rows.Length; j++)
+            {
+                if (rows[j] is SettingsResetRow reset
+                    && string.Equals(reset.Id, id, StringComparison.Ordinal))
+                {
+                    reset.Invoke();
+                    Play(Widgets.InterfaceSound.Click);
+                    return;
+                }
+            }
+        }
+    }
+
+    private void OnCategorySelected(int index)
+    {
+        if (index == _categoryIndex || _categories == null)
+        {
+            return;
+        }
+
+        _categoryIndex = index;
+        _scrollY = 0;
+        Play(Widgets.InterfaceSound.Toggle);
+    }
+
+    private void OnCancel()
+    {
+        Play(Widgets.InterfaceSound.Click);
+        _menu?.GoBack();
+    }
+
+    private void OnApply()
+    {
+        ApplySettings(_time);
     }
 
     private void ApplySettings(double time)

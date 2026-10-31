@@ -1,4 +1,5 @@
 using System;
+using Swordfish.Library.Globalization;
 
 namespace WaywardBeyond.Client.UI.Settings;
 
@@ -25,8 +26,24 @@ internal sealed class SliderEntry(
     public string Format(float value) => format(value);
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer)
+    public override SettingsRowState Snapshot(ILocalization localization)
     {
-        renderer.DrawSlider(this);
+        return SettingsRowState.Slider(
+            Id,
+            localization.GetString(LabelKey) ?? LabelKey,
+            CanEdit,
+            Value,
+            Min,
+            Max,
+            Step,
+            format(Value)
+        );
+    }
+
+    /// <inheritdoc/>
+    public override bool TrySetSlider(float value)
+    {
+        SetValue(value);
+        return true;
     }
 }

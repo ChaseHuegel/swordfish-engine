@@ -1,0 +1,356 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      xmlns:s="WaywardBeyond.Client.UI.Settings"
+      Class="SettingsShellView"
+      Context="SettingsShellState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus">
+
+    <Element id="SettingsPage"
+             layout="vertical"
+             width="@(ui.Width - 80 &gt; 1280 ? 1280 : ui.Width - 80)"
+             height="@(ui.Height - 240 &gt; 840 ? 840 : ui.Height - 240)"
+             min-width="320"
+             min-height="280"
+             max-width="1280"
+             max-height="840"
+             anchor="Center"
+             clip="true"
+             padding="0 12 0 0"
+             spacing="12">
+
+        <Element visible="@(!context.UseTabs)" layout="horizontal" width="fill" height="fill" spacing="16">
+            <Element class="wb-panel" layout="none" width="@(ui.Width - 80 &gt; 1280 ? (1280 * 24 / 100 &gt; 300 ? 300 : (1280 * 24 / 100 &lt; 220 ? 220 : 1280 * 24 / 100)) : ((ui.Width - 80) * 24 / 100 &gt; 300 ? 300 : ((ui.Width - 80) * 24 / 100 &lt; 220 ? 220 : (ui.Width - 80) * 24 / 100)))" height="fill" padding="2">
+                <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
+                    <Text text="@L('ui.settings.panel.categories')" class="wb-text-small" width="fill" height="20" text-align="center" />
+                    <Element height="4" />
+                    <Element class="wb-divider-inner" width="fill" height="1" />
+                    <Element height="8" />
+
+                    <ForEach in="@context.Categories" as="category" index="i">
+                        <Element class="wb-tray-item"
+                                 class:wb-tray-item-selected="@(i == context.CategoryIndex)"
+                                 id="Settings.Category.{category.Id}"
+                                 layout="none"
+                                 clip="true"
+                                 onclick="OnSelectCategory(i)"
+                                 width="fill"
+                                 height="40">
+                            <Element class="wb-tray-caret"
+                                     visible="@(i == context.CategoryIndex)"
+                                     x="2"
+                                     y="6"
+                                     width="3"
+                                     height="28" />
+                            <Element layout="none" width="fill" height="fill" padding="16 0 6 0">
+                                <Text text="@category.Label" class="wb-tray-label" width="fill" height="fill" />
+                            </Element>
+                        </Element>
+                        <Element height="4" />
+                    </ForEach>
+                </Element>
+            </Element>
+
+            <Element class="wb-panel" layout="none" width="fill" height="fill" padding="2">
+                <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="24">
+                    <Text text="@context.Title" class="wb-settings-pane-title" width="fill" height="28" />
+                    <Element class="wb-divider-inner" width="fill" height="1" />
+                    <Element height="8" />
+                    <ScrollArea id="Settings.Rows" context="@Scroll" width="fill" height="fill">
+                        <Element id="Settings.RowsContent" layout="vertical" width="fill" height="fit">
+            <ForEach in="@Rows" as="row">
+                <If condition="@row.IsSection">
+                    <Text text="@row.Label" class="wb-settings-section" width="fill" height="35" />
+                    <Element class="wb-divider-inner" width="fill" height="1" />
+                </If>
+
+                <ElseIf condition="@row.IsChoice">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@row.Label"
+                          wrap="false"
+                          class="wb-settings-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <s:SettingsChoice id="@row.Id"
+                                      options="@row.Options"
+                                      value="@row.Index"
+                                      enabled="@row.Enabled"
+                                      onChanged="@ChoiceChanged"
+                                      width="@ControlWidth"
+                                      height="32"
+                                      anchor="Center" />
+                </Element>
+                </ElseIf>
+
+                <ElseIf condition="@row.IsStepper">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@row.Label"
+                          wrap="false"
+                          class="wb-settings-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <Element class="wb-stepper"
+                             class:wb-stepper-enabled="@row.Enabled"
+                             layout="none"
+                             width="@ControlWidth"
+                             height="32"
+                             anchor="Center"
+                             padding="1"
+                             clip="true">
+                        <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
+                            <Element class="wb-stepper-arrow"
+                                     class:wb-stepper-arrow-enabled="@(row.Enabled &amp;&amp; row.CanDecrease)"
+                                     id="{row.Id}.previous"
+                                     disabled="@(!row.Enabled || !row.CanDecrease)"
+                                     onclick="OnStep(row.Id, -1)"
+                                     width="32"
+                                     height="fill">
+                                <Text text="&lt;" class="wb-stepper-arrow-glyph" width="fill" height="fill" />
+                            </Element>
+                            <Element class="wb-stepper-sep" width="1" height="fill" />
+                            <Text text="@row.Value"
+                                  class="wb-stepper-value"
+                                  class:wb-stepper-value-enabled="@row.Enabled"
+                                  width="fill"
+                                  height="fill" />
+                            <Element class="wb-stepper-sep" width="1" height="fill" />
+                            <Element class="wb-stepper-arrow"
+                                     class:wb-stepper-arrow-enabled="@(row.Enabled &amp;&amp; row.CanIncrease)"
+                                     id="{row.Id}.next"
+                                     disabled="@(!row.Enabled || !row.CanIncrease)"
+                                     onclick="OnStep(row.Id, 1)"
+                                     width="32"
+                                     height="fill">
+                                <Text text="&gt;" class="wb-stepper-arrow-glyph" width="fill" height="fill" />
+                            </Element>
+                        </Element>
+                    </Element>
+                </Element>
+                </ElseIf>
+
+                <ElseIf condition="@row.IsSlider">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@row.Label"
+                          wrap="false"
+                          class="wb-settings-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <s:SettingsSlider id="@row.Id"
+                                      value="@row.SliderValue"
+                                      min="@row.Min"
+                                      max="@row.Max"
+                                      step="@row.Step"
+                                      display="@row.Display"
+                                      enabled="@row.Enabled"
+                                      onChanged="@SliderChanged"
+                                      width="@ControlWidth"
+                                      height="32"
+                                      anchor="Center" />
+                </Element>
+                </ElseIf>
+
+                <ElseIf condition="@row.IsReset">
+                <Element class="wb-divider-inner" width="fill" height="1" />
+                <Element height="4" />
+                <Element class="wb-button wb-button-danger"
+                         id="{row.Id}"
+                         layout="none"
+                         clip="true"
+                         onclick="OnReset(row.Id)"
+                         width="fill"
+                         height="36">
+                    <Element class="wb-button-inner wb-button-inner-danger" layout="none" width="fill" height="fill" />
+                    <Text class="wb-button-label" text="@L('ui.settings.action.reset')" anchor="Center" />
+                </Element>
+                <Element height="3" />
+                </ElseIf>
+            </ForEach>
+                        </Element>
+                    </ScrollArea>
+                </Element>
+            </Element>
+        </Element>
+
+        <Element visible="@context.UseTabs" layout="vertical" width="fill" height="fill" spacing="0">
+            <Element layout="horizontal" width="fill" height="40" spacing="8">
+                <ForEach in="@context.Categories" as="category" index="i">
+                    <Element class="wb-tab"
+                             class:wb-tab-selected="@(i == context.CategoryIndex)"
+                             id="Settings.Tab.{category.Id}"
+                             layout="none"
+                             clip="true"
+                             onclick="OnSelectCategory(i)"
+                             width="fill"
+                             height="fill">
+                        <Element class="wb-tab-bar"
+                                 visible="@(i == context.CategoryIndex)"
+                                 anchor="Bottom"
+                                 width="fill"
+                                 height="2" />
+                        <Text class="wb-tab-label" text="@category.Label" width="fill" height="fill" />
+                    </Element>
+                </ForEach>
+            </Element>
+
+            <Element class="wb-panel" layout="none" width="fill" height="fill" padding="2">
+                <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="24">
+                    <Text text="@context.Title" class="wb-settings-pane-title" width="fill" height="28" />
+                    <Element class="wb-divider-inner" width="fill" height="1" />
+                    <Element height="8" />
+                    <ScrollArea id="Settings.RowsTabs" context="@Scroll" width="fill" height="fill">
+                        <Element id="Settings.RowsContentTabs" layout="vertical" width="fill" height="fit">
+            <ForEach in="@Rows" as="row">
+                <If condition="@row.IsSection">
+                    <Text text="@row.Label" class="wb-settings-section" width="fill" height="35" />
+                    <Element class="wb-divider-inner" width="fill" height="1" />
+                </If>
+
+                <ElseIf condition="@row.IsChoice">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@row.Label"
+                          wrap="false"
+                          class="wb-settings-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <s:SettingsChoice id="@row.Id"
+                                      options="@row.Options"
+                                      value="@row.Index"
+                                      enabled="@row.Enabled"
+                                      onChanged="@ChoiceChanged"
+                                      width="@ControlWidth"
+                                      height="32"
+                                      anchor="Center" />
+                </Element>
+                </ElseIf>
+
+                <ElseIf condition="@row.IsStepper">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@row.Label"
+                          wrap="false"
+                          class="wb-settings-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <Element class="wb-stepper"
+                             class:wb-stepper-enabled="@row.Enabled"
+                             layout="none"
+                             width="@ControlWidth"
+                             height="32"
+                             anchor="Center"
+                             padding="1"
+                             clip="true">
+                        <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
+                            <Element class="wb-stepper-arrow"
+                                     class:wb-stepper-arrow-enabled="@(row.Enabled &amp;&amp; row.CanDecrease)"
+                                     id="{row.Id}.previous"
+                                     disabled="@(!row.Enabled || !row.CanDecrease)"
+                                     onclick="OnStep(row.Id, -1)"
+                                     width="32"
+                                     height="fill">
+                                <Text text="&lt;" class="wb-stepper-arrow-glyph" width="fill" height="fill" />
+                            </Element>
+                            <Element class="wb-stepper-sep" width="1" height="fill" />
+                            <Text text="@row.Value"
+                                  class="wb-stepper-value"
+                                  class:wb-stepper-value-enabled="@row.Enabled"
+                                  width="fill"
+                                  height="fill" />
+                            <Element class="wb-stepper-sep" width="1" height="fill" />
+                            <Element class="wb-stepper-arrow"
+                                     class:wb-stepper-arrow-enabled="@(row.Enabled &amp;&amp; row.CanIncrease)"
+                                     id="{row.Id}.next"
+                                     disabled="@(!row.Enabled || !row.CanIncrease)"
+                                     onclick="OnStep(row.Id, 1)"
+                                     width="32"
+                                     height="fill">
+                                <Text text="&gt;" class="wb-stepper-arrow-glyph" width="fill" height="fill" />
+                            </Element>
+                        </Element>
+                    </Element>
+                </Element>
+                </ElseIf>
+
+                <ElseIf condition="@row.IsSlider">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@row.Label"
+                          wrap="false"
+                          class="wb-settings-label"
+                          class:wb-text-dim="@(!row.Enabled)"
+                          width="fill"
+                          height="fill" />
+                    <s:SettingsSlider id="@row.Id"
+                                      value="@row.SliderValue"
+                                      min="@row.Min"
+                                      max="@row.Max"
+                                      step="@row.Step"
+                                      display="@row.Display"
+                                      enabled="@row.Enabled"
+                                      onChanged="@SliderChanged"
+                                      width="@ControlWidth"
+                                      height="32"
+                                      anchor="Center" />
+                </Element>
+                </ElseIf>
+
+                <ElseIf condition="@row.IsReset">
+                <Element class="wb-divider-inner" width="fill" height="1" />
+                <Element height="4" />
+                <Element class="wb-button wb-button-danger"
+                         id="{row.Id}"
+                         layout="none"
+                         clip="true"
+                         onclick="OnReset(row.Id)"
+                         width="fill"
+                         height="36">
+                    <Element class="wb-button-inner wb-button-inner-danger" layout="none" width="fill" height="fill" />
+                    <Text class="wb-button-label" text="@L('ui.settings.action.reset')" anchor="Center" />
+                </Element>
+                <Element height="3" />
+                </ElseIf>
+            </ForEach>
+                        </Element>
+                    </ScrollArea>
+                </Element>
+            </Element>
+        </Element>
+
+        <Element layout="horizontal" width="fill" height="48" spacing="12">
+            <Button id="Settings.Cancel"
+                    param:variant="secondary"
+                    onclick="OnCancel"
+                    anchor="Center"
+                    width="140"
+                    height="40">
+                <Text class="wb-button-label" text="@context.CancelLabel" anchor="Center" />
+            </Button>
+
+            <Element layout="none" width="fill" height="fill">
+                <Text visible="@(context.Status != null)"
+                      text="@context.Status"
+                      class="wb-settings-message"
+                      class:wb-text-primary-solid="@context.Dirty"
+                      class:wb-text-success="@(!context.Dirty)"
+                      width="fill"
+                      height="fill"
+                      text-align="center"
+                      vertical-align="middle" />
+            </Element>
+
+            <Button id="Settings.Apply"
+                    param:variant="primary"
+                    param:enabled="@context.Dirty"
+                    disabled="@(!context.Dirty)"
+                    onclick="OnApply"
+                    anchor="Center"
+                    width="220"
+                    height="40">
+                <Text class="wb-button-label" text="@L('ui.settings.action.apply')" anchor="Center" />
+            </Button>
+        </Element>
+    </Element>
+</Reef>

@@ -1,4 +1,5 @@
 using System;
+using Swordfish.Library.Globalization;
 
 namespace WaywardBeyond.Client.UI.Settings;
 
@@ -11,8 +12,14 @@ internal sealed class SettingsResetRow(string id, Action reset) : SettingsRow
     public override int Height => SettingsMetrics.RESET_ROW_HEIGHT;
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer)
+    public override SettingsRowState Snapshot(ILocalization localization)
     {
-        renderer.DrawResetRow(Id, reset);
+        return SettingsRowState.Reset(Id);
+    }
+
+    /// <summary>Restores the category defaults.</summary>
+    public void Invoke()
+    {
+        reset();
     }
 }

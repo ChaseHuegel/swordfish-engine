@@ -1,4 +1,5 @@
 using System;
+using Swordfish.Library.Globalization;
 using System.Collections.Generic;
 
 namespace WaywardBeyond.Client.UI.Settings;
@@ -33,8 +34,30 @@ internal sealed class StepperEntry<T>(
     }
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer)
+    public override SettingsRowState Snapshot(ILocalization localization)
     {
-        renderer.DrawStepper(this);
+        int index = IndexOf(Value);
+        return SettingsRowState.Stepper(
+            Id,
+            localization.GetString(LabelKey) ?? LabelKey,
+            CanEdit,
+            index >= 0 ? format(Options[index]) : string.Empty,
+            CanEdit && index > 0,
+            CanEdit && index >= 0 && index < Options.Count - 1
+        );
+    }
+
+    /// <inheritdoc/>
+    public override int Step(int delta)
+    {
+        int index = IndexOf(Value);
+        int next = Math.Clamp(index + delta, 0, Options.Count - 1);
+        if (index < 0 || next == index)
+        {
+            return 0;
+        }
+
+        SetValue(Options[next]);
+        return next > index ? 1 : -1;
     }
 }

@@ -1,8 +1,16 @@
-# Bug: interactive elements in a nested markup view do not receive clicks
+# Resolved: settings row controls did not render or receive clicks
 
 ## Status
 
-Open. Blocks moving the settings rows to markup.
+Resolved. The cause was not nested views or scroll input.
+
+## Cause
+
+`SettingsPage.RenderPage` assigned `_controlWidth` **after** building the row
+states, so every control was built with a fixed width of 0 on the first frame
+and rendered nothing. Clicks then had no target. Rows are now built after the
+layout width is known, and `SettingsInteractionTests` covers a choice cell, a
+stepper arrow, and the tray selection.
 
 ## Summary
 
