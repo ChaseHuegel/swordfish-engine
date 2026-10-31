@@ -98,7 +98,7 @@ Record these before Phase E0. Add the numbers to this table.
 
 ## Phase checklist
 
-- [ ] E0 Child transform order
+- [x] E0 Child transform order
 - [ ] E1 View-only culling
 - [ ] E2 Shadow culling and layered point shadows
 - [ ] E3 Cutout depth, single depth pass, draw-call count
@@ -125,7 +125,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 
 | Phase | State | Commit | Date | Note |
 |---|---|---|---|---|
-| E0 | not started | — | — | |
+| E0 | done | pending | 2026-10-31 | ChildSystem now ticks before GLRenderContext |
 | E1 | not started | — | — | |
 | E2 | not started | — | — | |
 | E3 | not started | — | — | |
@@ -153,10 +153,10 @@ culls at the world origin.
 
 Steps:
 
-- [ ] Register `ChildSystem` before `GLRenderContext`.
-- [ ] Add a test that the render context sees the child transform written in the
+- [x] Register `ChildSystem` before `GLRenderContext`.
+- [x] Add a test that the render context sees the child transform written in the
       same tick. Use a fake render context or a system order test.
-- [ ] Update `docs/architecture.md` if it lists the system order.
+- [x] Update `docs/architecture.md` if it lists the system order.
 
 Gate: build, `Swordfish.Tests`.
 

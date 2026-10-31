@@ -48,6 +48,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         
         container.RegisterMany<GLRenderer>(Reuse.Singleton);
+        container.Register<IEntitySystem, ChildSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<GLRenderContext>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, GLRenderContext>();
         container.RegisterMapping<IAutoActivate, GLRenderContext>();
@@ -81,7 +82,6 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterInstance<SynchronizationContext>(_mainThreadContext);
         
         container.RegisterMany<ECSContext>(Reuse.Singleton);
-        container.Register<IEntitySystem, ChildSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
         container.Register<IEntitySystem, RectRendererSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
