@@ -102,7 +102,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [x] E1 View-only culling
 - [ ] E2 Shadow culling and layered point shadows
 - [x] E3 Cutout depth, single depth pass, draw-call count
-- [ ] E4 Per-frame renderer overhead
+- [x] E4 Per-frame renderer overhead
 - [ ] E5 Shape equality and helper docs
 - [ ] E6a Batched mesh data model
 - [ ] E6b Multi-draw batch stage
@@ -129,7 +129,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 | E1 | done | pending | 2026-10-31 | Scene holds all renderers; stages cull per pass |
 | E2 | not started | — | — | |
 | E3 | done | pending | 2026-10-31 | Masked depth uses cutout; one depth pass; shadow count included |
-| E4 | not started | — | — | |
+| E4 | done | pending | 2026-10-31 | One stage pre-render, cached targets/state, reused scene buffers |
 | E5 | not started | — | — | |
 | E6 | not started | — | — | |
 | G1 | not started | — | — | |
@@ -259,27 +259,27 @@ every frame (`Swordfish/Graphics/SilkNET/OpenGL/GLRenderer.cs:96-100`).
 
 Steps:
 
-- [ ] Add `IEquatable<RenderOptions>` with a manual `Equals` and `GetHashCode`
+- [x] Add `IEquatable<RenderOptions>` with a manual `Equals` and `GetHashCode`
       (`Swordfish/Graphics/RenderOptions.cs`).
-- [ ] Cache the render-options hash in `GLRenderTarget`.
-- [ ] Replace `Materials.Any(...)` with a cached `IsTransparent` flag. Remove
+- [x] Cache the render-options hash in `GLRenderTarget`.
+- [x] Replace `Materials.Any(...)` with a cached `IsTransparent` flag. Remove
       the LINQ call (`GLInstancedRenderer.cs:68`).
-- [ ] Cache the bound target on the renderer as `IRenderTarget?`
+- [x] Cache the bound target on the renderer as `IRenderTarget?`
       (`Swordfish/Graphics/MeshRenderer.cs`). Set it in `GLRenderContext` on
       bind. Use it in `PreRender` and the scene build. Do not leak
       `GLRenderTarget` into the renderer-agnostic type. Remove the per-entity
       `TryGetRenderTarget` dictionary lookup.
-- [ ] Delete the per-frame `Bind` loop in `GLRenderer`. The unbound queue
+- [x] Delete the per-frame `Bind` loop in `GLRenderer`. The unbound queue
       already binds every renderer once.
-- [ ] Build the instance lists once per frame. Reuse them for depth and color.
-- [ ] Double-buffer the scene array. Remove `_renderableEntities.ToArray()`.
-- [ ] Use the cached model upload for one-instance targets in the transparent
+- [x] Build the instance lists once per frame. Reuse them for depth and color.
+- [x] Double-buffer the scene array. Remove `_renderableEntities.ToArray()`.
+- [x] Use the cached model upload for one-instance targets in the transparent
       path (`GLInstancedRenderer.cs:187-195`).
-- [ ] Back `MeshRenderer.IsBound` with a `volatile` field. A property cannot be
+- [x] Back `MeshRenderer.IsBound` with a `volatile` field. A property cannot be
       `volatile`.
-- [ ] Add tests for `RenderOptions` equality and hash, and for the scene buffer
+- [x] Add tests for `RenderOptions` equality and hash, and for the scene buffer
       reuse.
-- [ ] Add the render-target cache to the resource lifetime doc.
+- [x] Add the render-target cache to the resource lifetime doc.
 
 Gate: build, `Swordfish.Tests`, draw-call and frame-time check.
 

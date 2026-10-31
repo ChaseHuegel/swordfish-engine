@@ -9,11 +9,10 @@ using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings, in GLRenderContext renderContext) : IWorldSpaceRenderStage
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IWorldSpaceRenderStage
 {
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
-    private readonly GLRenderContext _renderContext = renderContext;
 
     private readonly Dictionary<GLRenderTarget, InstanceSet> _instances = [];
     private readonly Dictionary<GLRenderTarget, InstanceSet> _maskedInstances = [];
@@ -69,16 +68,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         for (var i = 0; i < renderScene.EntityModels.Length; i++)
         {
             EntityModel entityModel = renderScene.EntityModels[i];
-            if (!_renderContext.TryGetRenderTarget(entityModel.MeshRenderer, out GLRenderTarget? renderTarget) || renderTarget == null)
+            if (entityModel.MeshRenderer.RenderTarget is not GLRenderTarget renderTarget)
             {
                 continue;
             }
 
-            bool isTransparent = renderTarget.RenderOptions.AlphaMode == AlphaMode.Blend || renderTarget.Materials.Any(material => material.Transparent);
-            if (isTransparent && isDepthPass)
-            {
-                continue;
-            }
+            bool isTransparent = renderTarget.IsTransparent;
 
             Dictionary<GLRenderTarget, InstanceSet> targetDict;
             if (isTransparent)
@@ -219,7 +214,14 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                     matrices.Sort((a, b) => Vector3.DistanceSquared(b.GetPosition(), viewPosition).CompareTo(Vector3.DistanceSquared(a.GetPosition(), viewPosition)));
                 }
                 modelsSpan = CollectionsMarshal.AsSpan(matrices);
-                target.ModelsBufferObject.UploadOrResize(modelsSpan);
+                if (matrices.Count == 1)
+                {
+                    UploadModelMatrices(target, modelsSpan);
+                }
+                else
+                {
+                    target.ModelsBufferObject.UploadOrResize(modelsSpan);
+                }
             }
             else
             {

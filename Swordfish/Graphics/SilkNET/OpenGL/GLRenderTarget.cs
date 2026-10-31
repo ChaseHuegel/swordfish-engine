@@ -17,10 +17,13 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
     internal readonly BufferObject<Matrix4x4> ModelsBufferObject;
 
     internal readonly GLMaterial[] Materials;
+    internal readonly bool IsTransparent;
 
     internal Matrix4x4 LastModelMatrix;
     internal int LastModelCount;
     internal bool HasUploadedModelMatrix;
+
+    private readonly int _hash;
 
     public unsafe GLRenderTarget(GL gl, Uuid entity, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
     {
@@ -29,6 +32,15 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
         ModelsBufferObject = modelsBufferObject;
         Materials = materials;
         RenderOptions = renderOptions;
+        IsTransparent = renderOptions.AlphaMode == AlphaMode.Blend || HasTransparentMaterial(materials);
+
+        var materialsHash = new HashCode();
+        for (var i = 0; i < materials.Length; i++)
+        {
+            materialsHash.Add(materials[i].GetHashCode());
+        }
+
+        _hash = HashCode.Combine(vertexArrayObject.GetHashCode(), materialsHash.ToHashCode(), renderOptions.GetHashCode());
 
         VertexArrayObject.Bind();
 
@@ -92,13 +104,20 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
 
     public override int GetHashCode()
     {
-        var materialsHash = new HashCode();
-        for (var i = 0; i < Materials.Length; i++)
+        return _hash;
+    }
+
+    private static bool HasTransparentMaterial(GLMaterial[] materials)
+    {
+        for (var i = 0; i < materials.Length; i++)
         {
-            materialsHash.Add(Materials[i].GetHashCode());
+            if (materials[i].Transparent)
+            {
+                return true;
+            }
         }
 
-        return HashCode.Combine(VertexArrayObject.GetHashCode(), materialsHash.ToHashCode(), RenderOptions.GetHashCode());
+        return false;
     }
 
     public override string ToString()

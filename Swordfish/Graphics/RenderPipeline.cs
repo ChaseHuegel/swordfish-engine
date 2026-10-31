@@ -21,14 +21,19 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
     public int Render(double delta, RenderScene renderScene)
     {
         int drawCalls = PreRender(delta, renderScene);
-        drawCalls += Draw(delta, renderScene);
+        drawCalls += Draw(delta, renderScene, preRenderStages: !PreRenderStagesInPreRender);
         PostRender(delta, renderScene);
         return drawCalls;
     }
+
+    protected virtual bool PreRenderStagesInPreRender => false;
     
-    protected int Draw(double delta, RenderScene renderScene, bool isDepthPass = false)
+    protected int Draw(double delta, RenderScene renderScene, bool isDepthPass = false, bool preRenderStages = true)
     {
-        PreRenderStages(delta, renderScene, isDepthPass);
+        if (preRenderStages)
+        {
+            PreRenderStages(delta, renderScene, isDepthPass);
+        }
 
         var drawCalls = 0;
         for (var i = 0; i < _renderStages.Length; i++)

@@ -21,7 +21,9 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly LockedList<GLRectRenderTarget> _rectRenderTargets = [];
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
     private readonly ConcurrentQueue<UnboundRenderer> _unboundRenderers = new();
+    private readonly ConcurrentQueue<EntityModel[]> _freeSceneBuffers = new();
     private readonly List<EntityModel> _renderableEntities = [];
+    private EntityModel[]? _lastSceneInstances;
 
     private readonly GLContext _glContext;
     private readonly IWindowContext _windowContext;
@@ -60,21 +62,16 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     bool IRenderContext.TryDequeueUnbound(out UnboundRenderer unbound) => _unboundRenderers.TryDequeue(out unbound);
 
-    public bool TryGetRenderTarget(MeshRenderer renderer, out GLRenderTarget? target)
-    {
-        if (_linkedHandles.TryGetValue(renderer, out IHandle? handle))
-        {
-            target = Unsafe.As<GLRenderTarget>(handle);
-            return true;
-        }
-
-        target = null;
-        return false;
-    }
-
     public RenderScene GetSceneContext()
     {
         SceneData scene = Volatile.Read(ref _sceneData);
+
+        if (_lastSceneInstances != null && _lastSceneInstances != scene.Instances && _lastSceneInstances.Length > 0)
+        {
+            _freeSceneBuffers.Enqueue(_lastSceneInstances);
+        }
+
+        _lastSceneInstances = scene.Instances;
         return new RenderScene(scene.View, scene.Projection, scene.Instances, _renderTargets, _rectRenderTargets, scene.CameraFrustum);
     }
 
@@ -115,8 +112,23 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         store.Query<TransformComponent, MeshRendererComponent, ReadRenderableEntityAction>(0f, ref queryRenderableEntitiesAction);
 
         //  Write the scene data then reset for the next Tick
-        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, _renderableEntities.ToArray(), frustum));
+        EntityModel[] instances = RentSceneBuffer(_renderableEntities.Count);
+        _renderableEntities.CopyTo(instances);
+        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, instances, frustum));
         _renderableEntities.Clear();
+    }
+
+    private EntityModel[] RentSceneBuffer(int count)
+    {
+        while (_freeSceneBuffers.TryDequeue(out EntityModel[]? buffer))
+        {
+            if (buffer.Length >= count)
+            {
+                return buffer;
+            }
+        }
+
+        return count == 0 ? [] : new EntityModel[count];
     }
 
     private void OnWindowResized(Vector2 newSize)
@@ -282,11 +294,14 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
         _renderTargets.Add(renderTarget);
         meshRenderer.Disposed += OnMeshRendererDisposed;
+        meshRenderer.RenderTarget = renderTarget;
         meshRenderer.IsBound = true;
         return;
 
         void OnMeshRendererDisposed(object? sender, EventArgs e)
         {
+            meshRenderer.RenderTarget = null;
+            meshRenderer.IsBound = false;
             _renderTargets.Remove(renderTarget);
             OnHandleDisposed(sender, e);
         }

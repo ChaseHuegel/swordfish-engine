@@ -92,12 +92,6 @@ internal sealed class GLRenderer : IRenderer, IDisposable, IAutoActivate
         }
 
         RenderScene renderScene = _renderContext.GetSceneContext();
-        
-        for (var i = 0; i < renderScene.EntityModels.Length; i++)
-        {
-            EntityModel entityModel = renderScene.EntityModels[i];
-            _renderContext.Bind(entityModel.MeshRenderer, entityModel.Entity);
-        }
 
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         

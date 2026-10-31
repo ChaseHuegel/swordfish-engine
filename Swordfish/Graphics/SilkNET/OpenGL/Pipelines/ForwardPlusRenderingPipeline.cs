@@ -76,6 +76,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     private readonly DoubleList<GPULight> _lightsBuffer = new();
     private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
+
+    protected override bool PreRenderStagesInPreRender => true;
     
     private uint _csmFBO;
     private TexImage3D? _csmTexture;
@@ -344,7 +346,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
             _gl.Enable(GLEnum.DepthTest);
 
-            drawCalls += Draw(delta, renderScene, isDepthPass: true);
+            drawCalls += Draw(delta, renderScene, isDepthPass: true, preRenderStages: false);
         }
         _glDebug.TryLogError();
 
