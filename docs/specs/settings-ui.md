@@ -28,13 +28,12 @@ The page uses responsive constraints, not fixed child positions. `SettingsLayout
 provides the page size, the breakpoint, the tray width, and the label and control
 column widths. The page builds the rest with rows, columns, fillers, and panels.
 
-`SettingsLayout.Compute` is at
-`WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:30`. It produces:
-
-- a centered page of at most 1280 by 840 pixels;
-- a tray and a pane, or a horizontal tab strip and a full-width pane;
-- a 48 pixel footer;
-- label and control column widths for the current pane width.
+The page box and the tray size come from markup constraints: the page is
+`window - 80` wide and `window - 240` tall with 320/280 floors and 1280/840
+caps, and the tray is `24%` wide with a 220 pixel floor and a 300 pixel cap.
+`SettingsLayout.Compute` remains for the parts that need arithmetic across
+columns: it reports the breakpoint and the control column width, which shrinks
+to keep a 120 pixel label column on very narrow panes.
 
 The page width is `min(window width - 80, 1280)`. The page height is
 `min(window height - 240, 840)`. The page leaves room for the title image in

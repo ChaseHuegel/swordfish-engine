@@ -9,8 +9,8 @@
 
     <Element id="SettingsPage"
              layout="vertical"
-             width="@(ui.Width - 80 &gt; 1280 ? 1280 : ui.Width - 80)"
-             height="@(ui.Height - 240 &gt; 840 ? 840 : ui.Height - 240)"
+             width="@(ui.Width - 80)"
+             height="@(ui.Height - 240)"
              min-width="320"
              min-height="280"
              max-width="1280"
@@ -21,7 +21,7 @@
              spacing="12">
 
         <Element visible="@(!context.UseTabs)" layout="horizontal" width="fill" height="fill" spacing="16">
-            <Element class="wb-panel" layout="none" width="@(ui.Width - 80 &gt; 1280 ? (1280 * 24 / 100 &gt; 300 ? 300 : (1280 * 24 / 100 &lt; 220 ? 220 : 1280 * 24 / 100)) : ((ui.Width - 80) * 24 / 100 &gt; 300 ? 300 : ((ui.Width - 80) * 24 / 100 &lt; 220 ? 220 : (ui.Width - 80) * 24 / 100)))" height="fill" padding="2">
+            <Element class="wb-panel" layout="none" width="24%" min-width="220" max-width="300" height="fill" padding="2">
                 <Element class="wb-panel-inner" layout="vertical" width="fill" height="fill" clip="true" padding="20">
                     <Text text="@L('ui.settings.panel.categories')" class="wb-text-small" width="fill" height="20" text-align="center" />
                     <Element height="4" />
