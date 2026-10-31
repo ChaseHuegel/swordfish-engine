@@ -5,14 +5,16 @@ data sources.
 
 ## Visuals
 
-`LoadScreen` covers the screen while `GameState.Loading`. It draws a full-screen
-`UiTheme.ScrimHeavy` overlay and a centered 760 by 74 pixel content block.
+`LoadScreen` covers the screen while `GameState.Loading`. `LoadScreenView.rml`
+draws a full-screen scrim and a centered 760 by 74 pixel content block.
 
 The content block holds:
 
-- the diegetic status line at 20 pixels in `UiTheme.Text`;
+- the diegetic status line at 20 pixels;
 - a 1 pixel signal track with a 48 pixel cyan segment;
-- the control hint at 16 pixels in `UiTheme.TextMuted`.
+- the control hint at 16 pixels.
+
+The view fades each color from state alpha values supplied by the layer.
 
 The signal segment scans left to right across a 160 pixel track. It exits the
 right edge and re-enters from the left after a short offscreen gap. The full
@@ -48,13 +50,14 @@ If a tag set is missing, the line is blank.
 ## Source
 
 - Layer: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:18`
-- Visibility and reset: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:52`
-- Render: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:72`
-- Copy timing: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:146`
-- Signal line: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:170`
-- Hint markup: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:244`
-- Word count: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:278`
+- View: `WaywardBeyond.Client/UI/Layers/LoadScreenView.rml:1`
+- Visibility and reset: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:48`
+- Render: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:68`
+- Copy timing: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:96`
+- Signal state: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:83`
+- Hint formatting: `WaywardBeyond.Client/UI/Layers/LoadScreenView.cs:46`
+- Word count: `WaywardBeyond.Client/UI/Layers/LoadScreen.cs:161`
 
 ## Tests
 
-No dedicated tests. The layer has no isolated clock or geometry helper.
+`Swordfish.Tests/OverlayViewTests.cs` snapshots the view at three window sizes.

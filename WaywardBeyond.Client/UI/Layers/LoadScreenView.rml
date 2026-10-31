@@ -1,0 +1,47 @@
+<Reef xmlns="Reef"
+      Class="LoadScreenView"
+      Context="LoadScreenState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Element layout="none" width="100%" height="100%">
+        <Element class="wb-scrim-heavy" width="fill" height="fill" />
+
+        <Element layout="none"
+                 anchor="Center"
+                 width="760"
+                 height="74"
+                 clip="760 74">
+            <Element layout="none" width="760" height="30">
+                <Text class="wb-load-status"
+                      text="@context.Status"
+                      color="@TextColor(context.ContentFade * context.StatusFade)"
+                      anchor="Center"
+                      wrap="false" />
+            </Element>
+
+            <Element layout="none"
+                     color="@BorderColor(context.ContentFade)"
+                     x="300"
+                     y="38"
+                     width="160"
+                     height="1"
+                     clip-width="160"
+                     clip-height="1">
+                <Element color="@AccentColor(context.ContentFade)"
+                         x="@context.SignalX"
+                         y="0"
+                         width="48"
+                         height="1" />
+            </Element>
+
+            <Element layout="none" y="50" width="760" height="24">
+                <Text class="wb-load-hint"
+                      text="@FormatHint(context.Hint)"
+                      color="@MutedColor(context.ContentFade * context.HintFade)"
+                      anchor="Center"
+                      wrap="false" />
+            </Element>
+        </Element>
+    </Element>
+</Reef>

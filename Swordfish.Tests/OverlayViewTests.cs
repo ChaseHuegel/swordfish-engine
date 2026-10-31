@@ -94,6 +94,21 @@ public class OverlayViewTests
                 };
                 new ControlHintsView().Render(ui, new ControlHintsState(hints));
             });
+
+            UiSnapshotTests.Compare($"{width}x{height}-load-screen", width, height, ui =>
+            {
+                new LoadScreenView().Render(
+                    ui,
+                    new LoadScreenState(
+                        "Generating terrain",
+                        "Press [TAB] to open the inventory",
+                        1f,
+                        1f,
+                        0.5f,
+                        120
+                    )
+                );
+            });
         }
     }
 }
