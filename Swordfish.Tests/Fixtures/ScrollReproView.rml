@@ -22,14 +22,16 @@
                                  onclick="OnPlain"
                                  width="200"
                                  height="30" />
-                        <Element visible="@context.ShowChoice" layout="none" width="240" height="32">
+                        <Element visible="@context.ShowChoice" layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                            <Text text="Label" class="wb-text" width="fill" height="fill" />
                             <wb:Choice id="repro_choice"
                                        options="@Options"
                                        value="@context.Index"
                                        enabled="true"
                                        onChanged="@ChoiceCallback"
-                                       width="240"
-                                       height="32" />
+                                       width="220"
+                                       height="32"
+                                       anchor="Center" />
                         </Element>
                     </Element>
                 </ScrollArea>
