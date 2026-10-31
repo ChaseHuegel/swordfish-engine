@@ -1,4 +1,4 @@
-0 id=- rect=828,383,264,313 clip=828,383,264,313 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+0 id=Button_Continue rect=828,383,264,313 clip=828,383,264,313 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 1 id=- rect=828,383,264,313 clip=828,383,264,313 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 2 id=Button_Continue rect=828,383,264,44 clip=828,383,264,313 color=0.1059,0.1451,0.2196,1 bg=0,0,0,0 border=1:1,0.8235,0.4902,1 caps=6:1:1,0.8235,0.4902,1 radius=0:0:0:0 font=-:0 text=-
 3 id=- rect=830,385,260,40 clip=828,383,264,313 color=0,0,0,0 bg=0,0,0,0 border=1:0.2392,0.149,0.0784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
@@ -63,8 +63,8 @@
 62 id=Button_Quit rect=828,652,264,44 clip=828,383,264,313 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 63 id=- rect=830,654,260,40 clip=828,383,264,313 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 64 id=- rect=944,665,32,18 clip=828,383,264,313 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=Quit
-65 id=- rect=1116,383,440,220 clip=1116,383,440,220 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-66 id=- rect=1116,383,440,220 clip=1116,383,440,220 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+65 id=- rect=1116,383,464,220 clip=1116,383,464,220 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+66 id=- rect=1116,383,440,220 clip=1116,383,464,220 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
 67 id=- rect=1118,385,436,216 clip=1118,385,436,216 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 68 id=- rect=1130,397,232,16 clip=1118,385,436,216 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 69 id=- rect=1130,397,232,16 clip=1118,385,436,216 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=ui.label.session.singleplayer

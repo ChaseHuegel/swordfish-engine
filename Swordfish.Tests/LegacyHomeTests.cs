@@ -41,12 +41,48 @@ public class LegacyHomeTests
         string actual = UiSnapshotTests.CaptureHovered(
             1280,
             720,
-            ui => home.RenderPage(0d, ui, null!),
+            ui =>
+            {
+                using (ui.Element())
+                {
+                    ui.Padding = new Padding { Left = 20, Top = 64, Right = 20, Bottom = 20 };
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Relative(1f),
+                        Height = new Relative(1f),
+                    };
+                    home.RenderPage(0d, ui, null!);
+                }
+            },
             "Button_Continue");
 
         int continueTop = TopOf(actual, "id=Button_Continue ");
         int cardTop = TopOf(actual, "caps=10:2:");
         Assert.Equal(continueTop, cardTop);
+    }
+
+    [Fact]
+    public void ContinueHoverDoesNotMoveTheMenu()
+    {
+        var home = HomeFixtures.CreateHome(true);
+        string resting = UiSnapshotTests.CaptureRender(1280, 720, ui => home.RenderPage(0d, ui, null!));
+        string hovered = UiSnapshotTests.CaptureHovered(1280, 720, ui => home.RenderPage(0d, ui, null!), "Button_Continue");
+
+        Assert.Equal(RectOf(resting, "id=Button_Continue "), RectOf(hovered, "id=Button_Continue "));
+    }
+
+    private static string RectOf(string snapshot, string marker)
+    {
+        foreach (string line in snapshot.Split('\n'))
+        {
+            if (line.Contains(marker, StringComparison.Ordinal))
+            {
+                System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(line, @" rect=[^ ]+");
+                return match.Value;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No command matches '{marker}'.");
     }
 
     private static int TopOf(string snapshot, string marker)

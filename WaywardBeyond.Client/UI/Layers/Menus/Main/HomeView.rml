@@ -45,15 +45,14 @@
                 <Text class="wb-button-label" text="@L('ui.button.home.quit')" anchor="Center" />
             </Button>
         </Element>
-    </Element>
 
-    <Element visible="@(context.HasLastSession &amp;&amp; ui.Width &gt;= 1220 &amp;&amp; ui.Hovering('Button_Continue'))"
-             layout="none"
-             anchor="Top Left"
-             x="@(ui.Width / 2 + 156)"
-             y="@((ui.Height - 313) / 2)"
-             width="fit"
-             height="@(context.Card.Remote ? 242 : 220)">
+        <Element visible="@(context.HasLastSession &amp;&amp; ui.Width &gt;= 1220 &amp;&amp; ui.Hovering('Button_Continue'))"
+                 layout="none"
+                 overlay="true"
+                 x="288"
+                 y="0"
+                 width="464"
+                 height="@(context.Card.Remote ? 242 : 220)">
             <Element class="wb-panel"
                      layout="none"
                      width="fit"
@@ -122,5 +121,6 @@
                     </Element>
                 </Element>
             </Element>
+        </Element>
     </Element>
 </Reef>
