@@ -12,6 +12,7 @@ internal sealed class MeshState
     public void Clear()
     {
         Opaque.Clear();
+        Masked.Clear();
         Transparent.Clear();
     }
     

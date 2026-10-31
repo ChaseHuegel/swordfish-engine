@@ -83,6 +83,7 @@ internal sealed class VoxelEntityBuilder(
         registry.DepthStateInitialized = true;
 
         Uuid parentUuid = store.GetUuid(entity);
+        using VoxelObjectBuilder.ChunkBuildContext buildContext = _voxelObjectBuilder.OpenChunkBuildContext();
         foreach (ChunkData chunk in voxelObject)
         {
             registry.KnownChunks.Add(chunk.Coords);
@@ -92,9 +93,9 @@ internal sealed class VoxelEntityBuilder(
                 continue;
             }
 
-            BuildAndAttachChunk(store, entity, parentUuid, voxelComponent, chunk);
+            BuildAndAttachChunk(store, entity, parentUuid, voxelComponent, chunk, buildContext);
 
-            ChunkCollisionData chunkCollision = _voxelObjectBuilder.BuildChunkCollision(chunk);
+            ChunkCollisionData chunkCollision = _voxelObjectBuilder.BuildChunkCollision(buildContext, chunk);
             if (!chunkCollision.IsEmpty)
             {
                 voxelComponent.Registry.ChunkColliders[chunk.Coords] = chunkCollision;
@@ -129,45 +130,12 @@ internal sealed class VoxelEntityBuilder(
 
         if (registry.DirtyChunks.Count == 0)
         {
-            RebuildAllChunks(store, entity, parentUuid, voxelComponent, meshRendererCleanup);
+            _logger.LogWarning("Tried to rebuild entity {Entity} without any dirty chunks.", entity);
             return;
         }
 
-        RebuildDirtyChunks(store, entity, parentUuid, voxelComponent, meshRendererCleanup);
-    }
-
-    private void RebuildAllChunks(
-        DataStore store,
-        int parentEntity,
-        Uuid parentUuid,
-        VoxelComponent voxelComponent,
-        MeshRendererCleanup meshRendererCleanup
-    )
-    {
-        VoxelChunkRegistry registry = voxelComponent.Registry;
-        VoxelObject voxelObject = voxelComponent.VoxelObject;
-
-        registry.ChunkColliders.Clear();
-        foreach (ChunkData chunk in voxelObject)
-        {
-            if (chunk.Palette.Only(0))
-            {
-                RemoveChunkRenderers(store, chunk.Coords, registry, meshRendererCleanup);
-                ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunk.Coords, []);
-                continue;
-            }
-
-            UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup);
-
-            ChunkCollisionData chunkCollision = _voxelObjectBuilder.BuildChunkCollision(chunk);
-            if (!chunkCollision.IsEmpty)
-            {
-                registry.ChunkColliders[chunk.Coords] = chunkCollision;
-            }
-        }
-
-        CompoundShape collisionShape = VoxelObjectBuilder.CombineCollisions(registry.ChunkColliders.Values);
-        store.AddOrUpdate(parentEntity, new ColliderComponent(collisionShape));
+        using VoxelObjectBuilder.ChunkBuildContext buildContext = _voxelObjectBuilder.OpenChunkBuildContext();
+        RebuildDirtyChunks(store, entity, parentUuid, voxelComponent, meshRendererCleanup, buildContext);
     }
 
     private void RebuildDirtyChunks(
@@ -175,7 +143,8 @@ internal sealed class VoxelEntityBuilder(
         int parentEntity,
         Uuid parentUuid,
         VoxelComponent voxelComponent,
-        MeshRendererCleanup meshRendererCleanup
+        MeshRendererCleanup meshRendererCleanup,
+        VoxelObjectBuilder.ChunkBuildContext buildContext
     )
     {
         VoxelChunkRegistry registry = voxelComponent.Registry;
@@ -187,7 +156,7 @@ internal sealed class VoxelEntityBuilder(
             {
                 if (!residentChunk.Palette.Only(0))
                 {
-                    ChunkCollisionData c = _voxelObjectBuilder.BuildChunkCollision(residentChunk);
+                    ChunkCollisionData c = _voxelObjectBuilder.BuildChunkCollision(buildContext, residentChunk);
                     if (!c.IsEmpty)
                     {
                         registry.ChunkColliders[residentChunk.Coords] = c;
@@ -219,14 +188,14 @@ internal sealed class VoxelEntityBuilder(
                 continue;
             }
 
-            UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup, geometryDirty);
+            UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup, buildContext, geometryDirty);
 
             if (!geometryDirty)
             {
                 continue;
             }
 
-            ChunkCollisionData newCollision = _voxelObjectBuilder.BuildChunkCollision(chunk);
+            ChunkCollisionData newCollision = _voxelObjectBuilder.BuildChunkCollision(buildContext, chunk);
             if (newCollision.IsEmpty)
             {
                 if (registry.ChunkColliders.Remove(chunkOffset))
@@ -256,10 +225,11 @@ internal sealed class VoxelEntityBuilder(
         int parentEntity,
         Uuid parentUuid,
         VoxelComponent voxelComponent,
-        ChunkData chunk
+        ChunkData chunk,
+        VoxelObjectBuilder.ChunkBuildContext buildContext
     )
     {
-        VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(chunk);
+        VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(buildContext, chunk);
         VoxelChunkRegistry registry = voxelComponent.Registry;
         Short3 chunkOffset = chunk.Coords;
 
@@ -306,10 +276,11 @@ internal sealed class VoxelEntityBuilder(
         VoxelComponent voxelComponent,
         ChunkData chunk,
         MeshRendererCleanup meshRendererCleanup,
+        VoxelObjectBuilder.ChunkBuildContext buildContext,
         bool reconcileEntities = true
     )
     {
-        VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(chunk);
+        VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(buildContext, chunk);
         VoxelChunkRegistry registry = voxelComponent.Registry;
         Short3 chunkOffset = chunk.Coords;
 

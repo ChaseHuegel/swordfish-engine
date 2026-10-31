@@ -9,4 +9,11 @@ internal sealed class CollisionState
     public readonly List<Shape> Shapes = [];
     public readonly List<Vector3> Positions = [];
     public readonly List<Quaternion> Orientations = [];
+
+    public void Clear()
+    {
+        Shapes.Clear();
+        Positions.Clear();
+        Orientations.Clear();
+    }
 }

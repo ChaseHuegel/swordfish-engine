@@ -110,7 +110,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [x] G1 Ambient model and unified light paths
 - [x] G2 Light-only chunk dirtiness
 - [x] G3a Occupancy mask
-- [ ] G3b Rebuild scope and buffer reuse
+- [x] G3b Rebuild scope and buffer reuse
 - [ ] G3c Chunk entity lifetime
 - [ ] G3d Rebuild time budget and system order
 - [ ] G3e Mesh allocation
@@ -508,12 +508,12 @@ list for dense chunks.
 
 Commit: `Reuse chunk rebuild scopes and buffers`.
 
-- [ ] Open one DI scope per `Rebuild`, not one per chunk.
-- [ ] Resolve `MeshPostPass`, `VoxelEntityPostPass`, and the state objects once.
-- [ ] Clear `MeshState`, `EntityState`, and `CollisionState` between chunks.
+- [x] Open one DI scope per `Rebuild`, not one per chunk.
+- [x] Resolve `MeshPostPass`, `VoxelEntityPostPass`, and the state objects once.
+- [x] Clear `MeshState`, `EntityState`, and `CollisionState` between chunks.
       Fix `MeshState.Clear` to clear `Masked`.
-- [ ] Delete the dead `Build` and `BuildCollision` paths. See G5.
-- [ ] Add a test for two sequential chunk builds with one scope.
+- [x] Delete the dead `Build` and `BuildCollision` paths. See G5.
+- [x] Add a test for two sequential chunk builds with one scope.
 
 ### G3c: Single-owner chunk entity lifetime
 
