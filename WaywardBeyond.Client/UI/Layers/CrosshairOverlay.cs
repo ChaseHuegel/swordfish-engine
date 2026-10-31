@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Reef;
-using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
@@ -41,16 +40,8 @@ internal class CrosshairOverlay : IUILayer
             return Result.FromSuccess();
         }
         
-        using (ui.Image(_crosshairMaterial))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                Width = new Fixed((int)(ui.Width * 0.01f)),
-                Height = new Fixed((int)(ui.Width * 0.01f)),
-            };
-        }
-        
+        new CrosshairView().Render(ui, new CrosshairState(_crosshairMaterial));
+
         return Result.FromSuccess();
     }
 }

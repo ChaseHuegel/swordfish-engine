@@ -1,0 +1,20 @@
+<Reef xmlns="Reef"
+      Class="NameplateView"
+      Context="NameplateState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <ForEach in="@context.Nameplates" as="nameplate">
+        <Element id="nameplate_{nameplate.Entity}"
+                 class="wb-nameplate"
+                 layout="none"
+                 anchor="Center Bottom Local"
+                 x="@nameplate.X"
+                 y="@nameplate.Y">
+            <Text text="@nameplate.Name"
+                  class="wb-nameplate-text"
+                  font-size="@nameplate.FontSize"
+                  wrap="false" />
+        </Element>
+    </ForEach>
+</Reef>

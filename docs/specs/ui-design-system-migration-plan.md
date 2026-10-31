@@ -180,6 +180,9 @@ The first implementation does not add Reef text state or a Reef text control.
   page overflowed its own page and clipped the footer, so it has no usable
   legacy golden. Its body preview and info box depend on text measurement that
   the stub engine does not wrap, so the snapshots gate regressions instead.
+- The version watermark, crosshair, nameplates, and debug stat lines, with
+  snapshots at three window sizes. `DebugOverlayRenderer` stays the C# host
+  because it interleaves imperative debug sections.
 
 ## Migration phases
 

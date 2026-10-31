@@ -1,10 +1,10 @@
 using System;
+using System.Collections.Generic;
 using NsdRpc;
 using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Client.Networking;
 
 namespace WaywardBeyond.Client.UI;
@@ -40,10 +40,10 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
     {
         if (!_rpcHost.IsConnected)
         {
-            using (ui.Text("NET: offline"))
-            {
-                ui.Color = UiTheme.Danger;
-            }
+            new StatLinesView().Render(
+                ui,
+                new StatLinesState([new StatLine("NET: offline", Danger: true)])
+            );
             return Result.FromSuccess();
         }
 
@@ -74,24 +74,21 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
         Sample bytesInSample = _bytesInSampler.GetSnapshot();
         Sample bytesOutSample = _bytesOutSampler.GetSnapshot();
 
-        using (ui.Text("NETWORK")) { }
-        using (ui.Text($"   IN     A:{packetsInSample.Average:F0} pkt/s / {Format(bytesInSample.Average)}/s")) { }
-        using (ui.Text($"   OUT    A:{packetsOutSample.Average:F0} pkt/s / {Format(bytesOutSample.Average)}/s")) { }
-        using (ui.Text($"   BYTES  {Format(bytesIn)} in / {Format(bytesOut)} out")) { }
-        using (ui.Text($"   PKTS   {packetsIn} in / {packetsOut} out")) { }
+        var lines = new List<StatLine>
+        {
+            new("NETWORK"),
+            new($"   IN     A:{packetsInSample.Average:F0} pkt/s / {Format(bytesInSample.Average)}/s"),
+            new($"   OUT    A:{packetsOutSample.Average:F0} pkt/s / {Format(bytesOutSample.Average)}/s"),
+            new($"   BYTES  {Format(bytesIn)} in / {Format(bytesOut)} out"),
+            new($"   PKTS   {packetsIn} in / {packetsOut} out"),
+        };
 
         //  Session heartbeat signal: live server TPS and player count, never stale.
-        if (_serverStats.IsStale(2000))
-        {
-            using (ui.Text("No server signal"))
-            {
-                ui.Color = UiTheme.Danger;
-            }
-        }
-        else
-        {
-            using (ui.Text($"   SERVER {_serverStats.TPS} tps / tick {_serverStats.ServerTick} / {_serverStats.PlayerCount} players")) { }
-        }
+        lines.Add(_serverStats.IsStale(2000)
+            ? new StatLine("No server signal", Danger: true)
+            : new StatLine($"   SERVER {_serverStats.TPS} tps / tick {_serverStats.ServerTick} / {_serverStats.PlayerCount} players"));
+
+        new StatLinesView().Render(ui, new StatLinesState(lines));
 
         return Result.FromSuccess();
     }

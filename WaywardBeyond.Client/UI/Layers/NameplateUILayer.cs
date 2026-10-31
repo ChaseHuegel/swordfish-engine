@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using Reef;
-using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
@@ -26,22 +24,7 @@ internal sealed class NameplateUILayer(in NameplateSnapshot snapshot) : IUILayer
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         _snapshot.CopyTo(_nameplates);
-
-        for (var i = 0; i < _nameplates.Count; i++)
-        {
-            NameplateInfo nameplate = _nameplates[i];
-            using (ui.Text(nameplate.Name, nameplate.FontSize))
-            {
-                ui.ID = $"nameplate_{nameplate.Entity}";
-                ui.BackgroundColor = UiTheme.ScrimSoft;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Local | Anchors.Bottom | Anchors.Center,
-                    X = new Fixed(nameplate.X),
-                    Y = new Fixed(nameplate.Y),
-                };
-            }
-        }
+        new NameplateView().Render(ui, new NameplateState(_nameplates));
 
         return Result.FromSuccess();
     }

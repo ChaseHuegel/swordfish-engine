@@ -1,9 +1,9 @@
+using System.Collections.Generic;
 using Reef;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI;
 
@@ -33,42 +33,27 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
         _tickSampler.Record(tps);
         Sample tpsSample = _tickSampler.GetSnapshot();
 
-        using (ui.Text($"FPS M:{fpsSample.Median:F0} / A:{fpsSample.Average:F0} / L:{fpsSample.Lowest:F0} / H:{fpsSample.Highest:F0}"))
+        var lines = new List<StatLine>
         {
-            if (fpsSample.Median < 30)
-            {
-                ui.Color = UiTheme.Danger;
-            }
-            else if (fpsSample.Median < 45)
-            {
-                ui.Color = UiTheme.Warning;
-            }
-        }
+            Line("FPS", fpsSample, warningBelow: 45d),
+            Line("UPS", upsSample, warningBelow: 60d),
+            Line("TPS", tpsSample, warningBelow: 60d),
+        };
 
-        using (ui.Text($"UPS M:{upsSample.Median:F0} / A:{upsSample.Average:F0} / L:{upsSample.Lowest:F0} / H:{upsSample.Highest:F0}"))
-        {
-            if (upsSample.Median < 30)
-            {
-                ui.Color = UiTheme.Danger;
-            }
-            else if (upsSample.Median < 60)
-            {
-                ui.Color = UiTheme.Warning;
-            }
-        }
-
-        using (ui.Text($"TPS M:{tpsSample.Median:F0} / A:{tpsSample.Average:F0} / L:{tpsSample.Lowest:F0} / H:{tpsSample.Highest:F0}"))
-        {
-            if (tpsSample.Median < 30)
-            {
-                ui.Color = UiTheme.Danger;
-            }
-            else if (tpsSample.Median < 60)
-            {
-                ui.Color = UiTheme.Warning;
-            }
-        }
+        new StatLinesView().Render(ui, new StatLinesState(lines));
 
         return Result.FromSuccess();
+    }
+
+    private static StatLine Line(string label, Sample sample, double warningBelow)
+    {
+        var danger = sample.Median < 30d;
+        var warning = !danger && sample.Median < warningBelow;
+
+        return new StatLine(
+            $"{label} M:{sample.Median:F0} / A:{sample.Average:F0} / L:{sample.Lowest:F0} / H:{sample.Highest:F0}",
+            danger,
+            warning
+        );
     }
 }

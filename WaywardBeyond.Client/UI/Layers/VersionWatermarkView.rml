@@ -1,0 +1,11 @@
+<Reef xmlns="Reef"
+      Class="VersionWatermarkView"
+      Context="VersionWatermarkState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Text class="wb-version-watermark"
+          text="@context.Version"
+          anchor="Center Bottom"
+          wrap="false" />
+</Reef>

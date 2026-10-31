@@ -919,3 +919,24 @@
     font-size: 12px;
     vertical-align: middle;
 }
+
+.wb-version-watermark {
+    color: #8da0b880;
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 16px;
+}
+
+.wb-nameplate {
+    background-color: var(--wb-scrim-soft);
+    font-family: "Salmon Mono 9 Regular";
+}
+
+.wb-stat-line {
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 16px;
+}
+
+.wb-nameplate-text {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+}
