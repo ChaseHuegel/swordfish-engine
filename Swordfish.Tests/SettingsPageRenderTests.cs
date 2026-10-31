@@ -69,6 +69,20 @@ public class SettingsPageRenderTests
     }
 
     [Fact]
+    public void RowAndTrayLabelsAreVerticallyCentered()
+    {
+        List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);
+
+        RenderCommand<Material> rowLabel = FindText(commands, "ui.settings.option.vsync");
+        RenderCommand<Material> trayLabel = FindText(commands, "ui.settings.category.audio");
+        RenderCommand<Material> title = FindText(commands, "ui.settings.category.display");
+
+        Assert.Equal(VerticalAlignment.Center, rowLabel.FontOptions.VerticalAlignment);
+        Assert.Equal(VerticalAlignment.Center, trayLabel.FontOptions.VerticalAlignment);
+        Assert.Equal(VerticalAlignment.Center, title.FontOptions.VerticalAlignment);
+    }
+
+    [Fact]
     public void ResetRowUsesDangerStyling()
     {
         List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);
@@ -123,6 +137,19 @@ public class SettingsPageRenderTests
         var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), new UIController());
         page.RenderPage(delta: 0d, ui, menu: null!);
         return ui.Build(delta: 0d);
+    }
+
+    private static RenderCommand<Material> FindText(List<RenderCommand<Material>> commands, string text)
+    {
+        for (var i = 0; i < commands.Count; i++)
+        {
+            if (commands[i].Text == text)
+            {
+                return commands[i];
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No render command found for text \"{text}\".");
     }
 
     private static RenderCommand<Material> FindRequired(List<RenderCommand<Material>> commands, string id)

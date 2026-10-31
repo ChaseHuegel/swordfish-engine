@@ -21,14 +21,14 @@
                     <Text text="@L('ui.text.credits.body')"
                           class="wb-text-body"
                           width="fill"
-                          wrap="true" />
+                          wrap="true"  vertical-align="top" />
                     <Element height="8" />
                     <Element class="wb-divider" width="fill" height="1" />
                     <Element height="16" />
                     <Text text="@L('ui.text.credits.thanks')"
                           class="wb-text-small wb-credits-thanks"
                           width="fill"
-                          wrap="true" />
+                          wrap="true"  vertical-align="top" />
                 </Element>
             </ScrollArea>
         </Panel>

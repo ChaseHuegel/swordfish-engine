@@ -18,7 +18,7 @@
                       class="wb-playtest-body"
                       width="fill"
                       height="fill"
-                      wrap="true" />
+                      wrap="true"  vertical-align="top" />
 
                 <Content name="actions">
                     <Element id="Button_Community"

@@ -12,7 +12,7 @@
                     <Text text="@context.Title" class="wb-modal-title" width="fill" height="30" />
                 </Content>
 
-                <Text text="@context.Body" class="wb-modal-body" width="fill" height="fill" wrap="true" />
+                <Text text="@context.Body" class="wb-modal-body" width="fill" height="fill" wrap="true"  vertical-align="top" />
 
                 <Content name="actions">
                     <Button id="Button_No" param:variant="secondary" onclick="OnCancel" width="180" height="40">

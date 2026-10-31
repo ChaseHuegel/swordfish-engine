@@ -46,7 +46,7 @@
                           class="wb-field-hint"
                           width="fill"
                           height="fill"
-                          wrap="true" />
+                          wrap="true"  vertical-align="top" />
                 </Element>
 
                 <Content name="actions">

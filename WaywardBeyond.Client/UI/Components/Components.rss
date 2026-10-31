@@ -43,6 +43,7 @@
     font-family: "Salmon Mono 9 Regular";
     font-size: 24px;
     text-align: center;
+    vertical-align: middle;
 }
 
 .wb-text-body {
@@ -269,11 +270,13 @@
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
     font-size: 18px;
+    vertical-align: middle;
 }
 
 .wb-playtest-body {
     color: var(--wb-text);
     font-size: 18px;
+    vertical-align: middle;
 }
 
 .wb-modal-actions {
@@ -314,6 +317,7 @@
 
 .wb-button-label-compact {
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-button {
@@ -549,12 +553,14 @@
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
+    vertical-align: middle;
 }
 
 .wb-card-detail-value {
     color: var(--wb-text-soft);
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
+    vertical-align: middle;
 }
 
 .wb-card-name {
@@ -606,12 +612,14 @@
     color: var(--wb-text-muted);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-field-error {
     color: var(--wb-danger);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .wb-footer {
@@ -715,6 +723,7 @@
     color: var(--wb-text-dim);
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
+    vertical-align: middle;
 }
 
 .wb-slot-count {
@@ -723,6 +732,7 @@
     font-family: "Salmon Mono 9 Regular";
     font-size: 12px;
     text-align: right;
+    vertical-align: middle;
 }
 
 .wb-scrollbar {
@@ -752,12 +762,14 @@
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 24px;
+    vertical-align: middle;
 }
 
 .wb-settings-message {
     color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 16px;
+    vertical-align: middle;
 }
 
 .wb-tray-item {
@@ -787,6 +799,7 @@
 .wb-tray-label {
     font-family: "Salmon Mono 9 Regular";
     font-size: 20px;
+    vertical-align: middle;
 }
 
 .wb-table-header {

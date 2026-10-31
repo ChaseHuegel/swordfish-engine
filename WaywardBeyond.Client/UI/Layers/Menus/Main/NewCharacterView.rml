@@ -101,7 +101,7 @@
                         <Element class="wb-divider-inner" width="fill" height="1" />
                         <Element height="8" />
 
-                        <Text text="@L('ui.text.character.spacer')" class="wb-field-hint" width="fill" height="fit" wrap="true" />
+                        <Text text="@L('ui.text.character.spacer')" class="wb-field-hint" width="fill" height="fit" wrap="true"  vertical-align="top" />
                         <Element height="12" />
 
                         <Element layout="horizontal" width="fill" height="32" spacing="8">
@@ -154,7 +154,7 @@
                             <Element height="4" />
                             <Element class="wb-divider" width="fill" height="1" />
                             <Element height="6" />
-                            <Text text="@context.InfoBody" class="wb-text-small" width="fill" height="fit" wrap="true" />
+                            <Text text="@context.InfoBody" class="wb-text-small" width="fill" height="fit" wrap="true"  vertical-align="top" />
                         </Element>
                     </Element>
                 </Element>
@@ -254,7 +254,7 @@
                         <Element height="4" />
                         <Element class="wb-divider-inner" width="fill" height="1" />
                         <Element height="8" />
-                        <Text text="@L('ui.text.character.spacer')" class="wb-field-hint" width="fill" height="fit" wrap="true" />
+                        <Text text="@L('ui.text.character.spacer')" class="wb-field-hint" width="fill" height="fit" wrap="true"  vertical-align="top" />
                     </Element>
                 </Element>
             </Element>
