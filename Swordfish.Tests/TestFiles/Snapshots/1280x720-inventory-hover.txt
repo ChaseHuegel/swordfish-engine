@@ -1,0 +1,176 @@
+0 id=- rect=0,0,1280,720 clip=0,0,1280,720 color=0,0,0,0.502 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=384,162,512,395 clip=384,162,512,395 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=0:0,0,0,0 caps=10:2:0.1686,0.2196,0.3059,1 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=386,164,508,391 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=1:0.102,0.1373,0.2,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+3 id=- rect=402,180,476,18 clip=386,164,508,391 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Inventory
+4 id=- rect=402,198,0,4 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+5 id=- rect=402,202,476,1 clip=386,164,508,391 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+6 id=- rect=402,203,0,8 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=402,211,476,48 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+8 id=inventorySlot9 rect=402,211,48,48 clip=402,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+9 id=- rect=406,215,40,40 clip=402,211,48,48 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+10 id=- rect=438,241,8,14 clip=402,211,48,48 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=5
+11 id=inventorySlot10 rect=456,211,48,48 clip=456,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+12 id=inventorySlot11 rect=510,211,48,48 clip=510,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+13 id=inventorySlot12 rect=564,211,48,48 clip=564,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+14 id=inventorySlot13 rect=618,211,48,48 clip=618,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+15 id=- rect=622,215,40,40 clip=618,211,48,48 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+16 id=- rect=654,241,8,14 clip=618,211,48,48 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=1
+17 id=inventorySlot14 rect=672,211,48,48 clip=672,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+18 id=inventorySlot15 rect=726,211,48,48 clip=726,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+19 id=inventorySlot16 rect=780,211,48,48 clip=780,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+20 id=inventorySlot17 rect=834,211,48,48 clip=834,211,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+21 id=- rect=402,259,0,6 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+22 id=- rect=402,265,476,48 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+23 id=inventorySlot18 rect=402,265,48,48 clip=402,265,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+24 id=inventorySlot19 rect=456,265,48,48 clip=456,265,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+25 id=inventorySlot20 rect=510,265,48,48 clip=510,265,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+26 id=- rect=514,269,40,40 clip=510,265,48,48 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+27 id=- rect=546,295,8,14 clip=510,265,48,48 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=1
+28 id=inventorySlot21 rect=564,265,48,48 clip=564,265,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+29 id=inventorySlot22 rect=618,265,48,48 clip=618,265,48,48 color=0.1059,0.1451,0.2196,1 bg=0,0,0,0 border=1:0.2941,0.8902,0.8902,1 caps=6:1:0.6471,0.9529,0.9882,1 radius=0:0:0:0 font=-:0 text=-
+30 id=- rect=622,269,40,40 clip=618,265,48,48 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+31 id=- rect=654,295,8,14 clip=618,265,48,48 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=1
+32 id=inventorySlot23 rect=672,265,48,48 clip=672,265,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+33 id=inventorySlot24 rect=726,265,48,48 clip=726,265,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+34 id=inventorySlot25 rect=780,265,48,48 clip=780,265,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+35 id=inventorySlot26 rect=834,265,48,48 clip=834,265,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+36 id=- rect=402,313,0,6 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+37 id=- rect=402,319,476,48 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+38 id=inventorySlot27 rect=402,319,48,48 clip=402,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+39 id=inventorySlot28 rect=456,319,48,48 clip=456,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+40 id=inventorySlot29 rect=510,319,48,48 clip=510,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+41 id=inventorySlot30 rect=564,319,48,48 clip=564,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+42 id=inventorySlot31 rect=618,319,48,48 clip=618,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+43 id=inventorySlot32 rect=672,319,48,48 clip=672,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+44 id=inventorySlot33 rect=726,319,48,48 clip=726,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+45 id=inventorySlot34 rect=780,319,48,48 clip=780,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+46 id=inventorySlot35 rect=834,319,48,48 clip=834,319,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+47 id=- rect=402,367,0,6 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+48 id=- rect=402,373,476,48 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+49 id=inventorySlot36 rect=402,373,48,48 clip=402,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+50 id=inventorySlot37 rect=456,373,48,48 clip=456,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+51 id=inventorySlot38 rect=510,373,48,48 clip=510,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+52 id=inventorySlot39 rect=564,373,48,48 clip=564,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+53 id=inventorySlot40 rect=618,373,48,48 clip=618,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+54 id=inventorySlot41 rect=672,373,48,48 clip=672,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+55 id=- rect=676,377,40,40 clip=672,373,48,48 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+56 id=- rect=700,403,16,14 clip=672,373,48,48 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=64
+57 id=inventorySlot42 rect=726,373,48,48 clip=726,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+58 id=inventorySlot43 rect=780,373,48,48 clip=780,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+59 id=inventorySlot44 rect=834,373,48,48 clip=834,373,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+60 id=- rect=402,421,0,10 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+61 id=- rect=402,431,476,1 clip=402,431,476,1 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+62 id=- rect=402,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+63 id=- rect=408,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+64 id=- rect=414,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+65 id=- rect=420,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+66 id=- rect=426,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+67 id=- rect=432,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+68 id=- rect=438,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+69 id=- rect=444,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+70 id=- rect=450,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+71 id=- rect=456,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+72 id=- rect=462,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+73 id=- rect=468,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+74 id=- rect=474,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+75 id=- rect=480,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+76 id=- rect=486,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+77 id=- rect=492,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+78 id=- rect=498,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+79 id=- rect=504,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+80 id=- rect=510,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+81 id=- rect=516,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+82 id=- rect=522,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+83 id=- rect=528,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+84 id=- rect=534,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+85 id=- rect=540,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+86 id=- rect=546,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+87 id=- rect=552,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+88 id=- rect=558,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+89 id=- rect=564,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+90 id=- rect=570,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+91 id=- rect=576,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+92 id=- rect=582,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+93 id=- rect=588,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+94 id=- rect=594,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+95 id=- rect=600,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+96 id=- rect=606,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+97 id=- rect=612,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+98 id=- rect=618,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+99 id=- rect=624,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+100 id=- rect=630,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+101 id=- rect=636,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+102 id=- rect=642,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+103 id=- rect=648,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+104 id=- rect=654,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+105 id=- rect=660,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+106 id=- rect=666,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+107 id=- rect=672,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+108 id=- rect=678,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+109 id=- rect=684,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+110 id=- rect=690,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+111 id=- rect=696,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+112 id=- rect=702,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+113 id=- rect=708,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+114 id=- rect=714,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+115 id=- rect=720,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+116 id=- rect=726,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+117 id=- rect=732,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+118 id=- rect=738,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+119 id=- rect=744,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+120 id=- rect=750,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+121 id=- rect=756,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+122 id=- rect=762,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+123 id=- rect=768,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+124 id=- rect=774,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+125 id=- rect=780,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+126 id=- rect=786,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+127 id=- rect=792,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+128 id=- rect=798,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+129 id=- rect=804,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+130 id=- rect=810,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+131 id=- rect=816,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+132 id=- rect=822,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+133 id=- rect=828,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+134 id=- rect=834,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+135 id=- rect=840,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+136 id=- rect=846,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+137 id=- rect=852,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+138 id=- rect=858,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+139 id=- rect=864,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+140 id=- rect=870,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+141 id=- rect=876,431,2,1 clip=402,431,476,1 color=0.1686,0.2196,0.3059,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+142 id=- rect=402,432,0,11 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+143 id=- rect=402,443,476,48 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+144 id=inventorySlot0 rect=402,443,48,48 clip=402,443,48,48 color=0.0902,0.1373,0.2118,1 bg=0,0,0,0 border=1:0.949,0.6,0.2902,1 caps=6:1:1,0.8235,0.4902,1 radius=0:0:0:0 font=-:0 text=-
+145 id=- rect=406,447,40,40 clip=402,443,48,48 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+146 id=- rect=406,447,40,40 clip=402,443,48,48 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=1
+147 id=- rect=430,473,16,14 clip=402,443,48,48 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=12
+148 id=inventorySlot1 rect=456,443,48,48 clip=456,443,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+149 id=- rect=460,447,40,40 clip=456,443,48,48 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+150 id=- rect=460,447,40,40 clip=456,443,48,48 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=2
+151 id=- rect=492,473,8,14 clip=456,443,48,48 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=3
+152 id=inventorySlot2 rect=510,443,48,48 clip=510,443,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+153 id=- rect=514,447,40,40 clip=510,443,48,48 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=3
+154 id=inventorySlot3 rect=564,443,48,48 clip=564,443,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+155 id=- rect=568,447,40,40 clip=564,443,48,48 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=4
+156 id=inventorySlot4 rect=618,443,48,48 clip=618,443,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+157 id=- rect=622,447,40,40 clip=618,443,48,48 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=5
+158 id=inventorySlot5 rect=672,443,48,48 clip=672,443,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+159 id=- rect=676,447,40,40 clip=672,443,48,48 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=6
+160 id=inventorySlot6 rect=726,443,48,48 clip=726,443,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+161 id=- rect=730,447,40,40 clip=726,443,48,48 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=7
+162 id=inventorySlot7 rect=780,443,48,48 clip=780,443,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+163 id=- rect=784,447,40,40 clip=780,443,48,48 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=8
+164 id=inventorySlot8 rect=834,443,48,48 clip=834,443,48,48 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+165 id=- rect=838,447,40,40 clip=834,443,48,48 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=9
+166 id=- rect=402,491,0,12 clip=386,164,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+167 id=- rect=402,503,476,36 clip=402,503,476,36 color=0.051,0.0706,0.1098,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+168 id=- rect=414,511,2,20 clip=402,503,476,36 color=0.949,0.6,0.2902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+169 id=- rect=424,511,202,20 clip=402,503,476,36 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Caution panel
+170 id=- rect=634,509,112,24 clip=402,503,476,36 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+171 id=- rect=640,509,20,24 clip=402,503,476,36 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:16 text=
+172 id=- rect=662,509,78,24 clip=402,503,476,36 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Rotatable
+173 id=- rect=754,509,112,24 clip=402,503,476,36 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+174 id=- rect=760,509,20,24 clip=402,503,476,36 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:16 text=
+175 id=- rect=782,509,78,24 clip=402,503,476,36 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Shapeable

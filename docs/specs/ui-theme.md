@@ -143,8 +143,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   transparent input style such as `wb-chat-field`.
 - The HUD overlays use `RadialMenuView`, `ActionsView`, `HotbarView`, and
   `ControlHintsView`. The chat overlay uses `ChatView` markup and its
-  `wb-chat-*` classes. The modal `Inventory` window uses
-  `Widgets.MenuPanel` and `Widgets.DottedDivider`.
+  `wb-chat-*` classes. The modal `Inventory` window uses `InventoryView` markup
+  and the shared `ItemSlot` and `DottedDivider` components.
 - The version watermark, crosshair, nameplates, and debug stat overlays are
   markup views with style classes.
 - Settings controls use the common widgets and the shared `Stepper`

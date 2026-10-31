@@ -8,16 +8,22 @@
     <Element class="wb-slot"
              class:wb-slot-selected="@context.Selected"
              class:wb-slot-equipped="@context.Equipped"
+             class:wb-slot-hovered="@context.Hovered"
+             class:wb-slot-dragging="@context.Dragging"
              layout="none"
              clip="true">
         <If condition="@context.HasItem">
             <Image source="@context.Icon" width="fill" height="fill" />
         </If>
-        <Text class="wb-slot-number"
-              class:wb-slot-number-selected="@context.Selected"
-              text="@context.Number"
-              width="fill"
-              height="fill" />
+        <If condition="@context.HasNumber">
+            <Text class="wb-slot-number"
+                  class:wb-slot-number-selected="@context.NumberActive"
+                  class:wb-slot-number-hovered="@context.Hovered"
+                  text="@context.Number"
+                  vertical-align="top"
+                  width="fill"
+                  height="fill" />
+        </If>
         <If condition="@context.HasCount">
             <Text class="wb-slot-count" text="@context.Count" anchor="Bottom Right" />
         </If>

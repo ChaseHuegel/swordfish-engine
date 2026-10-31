@@ -1,0 +1,146 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      Class="InventoryView"
+      Context="InventoryViewState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <!-- The modal scrim passes input through so gameplay stays reachable behind the frame. -->
+    <Element class="wb-scrim-soft"
+             layout="none"
+             width="100%"
+             height="100%"
+             passthrough="true" />
+
+    <Element class="wb-inventory-panel"
+             anchor="Center"
+             width="512"
+             height="@context.PanelHeightConstraint"
+             layout="none">
+
+        <Element class="wb-inventory-panel-inner"
+                 layout="vertical"
+                 width="fill"
+                 height="fill"
+                 padding="16"
+                 clip="true">
+
+            <Text class="wb-panel-header"
+                  text="@L('ui.label.inventory.title')"
+                  width="fill"
+                  height="18"
+                  wrap="false" />
+
+            <Element height="4" />
+            <Element class="wb-divider-inner" width="fill" height="1" />
+            <Element height="8" />
+
+            <ForEach in="@context.CargoRows" as="row" index="rowIndex">
+                <Element visible="@(rowIndex &gt; 0)" height="6" />
+                <Element layout="horizontal" width="fill" height="48" spacing="6">
+                    <ForEach in="@row.Slots" as="slot">
+                        <ItemSlot id="{slot.ID}"
+                                  context="@slot.Slot"
+                                  width="48"
+                                  height="48" />
+                    </ForEach>
+                </Element>
+            </ForEach>
+
+            <Element height="10" />
+            <DottedDivider width="fill" param:count="80" />
+            <Element height="11" />
+
+            <Element layout="horizontal" width="fill" height="48" spacing="6">
+                <ForEach in="@context.Hotbar" as="slot">
+                    <ItemSlot id="{slot.ID}"
+                              context="@slot.Slot"
+                              width="48"
+                              height="48" />
+                </ForEach>
+            </Element>
+
+            <Element height="12" />
+
+            <Element class="wb-inventory-footer"
+                     layout="horizontal"
+                     width="fill"
+                     height="36"
+                     spacing="8"
+                     clip="true">
+
+                <If condition="@context.Footer.Empty">
+                    <Text class="wb-inventory-footer-empty"
+                          text="@L('ui.label.inventory.empty')"
+                          width="fill"
+                          height="fill" />
+                </If>
+
+                <ElseIf condition="@context.Footer.Unknown">
+                    <Text class="wb-inventory-footer-unknown"
+                          text="@context.Footer.Name"
+                          width="fill"
+                          height="fill" />
+                </ElseIf>
+
+                <Else>
+                    <Element class="wb-inventory-primary-bar" width="2" height="fill" />
+                    <Text class="wb-inventory-footer-name"
+                          text="@context.Footer.Name"
+                          width="fill"
+                          height="fill" />
+
+                    <If condition="@context.Footer.Orientable">
+                        <Element class="wb-inventory-badge"
+                                 anchor="Center"
+                                 width="112"
+                                 height="24">
+                            <Text class="wb-inventory-badge-icon"
+                                  text="@Glyph('rotate')"
+                                  width="20"
+                                  height="fill" />
+                            <Text class="wb-inventory-badge-label"
+                                  text="@L('ui.label.inventory.orientable')"
+                                  width="fill"
+                                  height="fill" />
+                        </Element>
+                    </If>
+
+                    <If condition="@context.Footer.Shapeable">
+                        <Element class="wb-inventory-badge"
+                                 anchor="Center"
+                                 width="112"
+                                 height="24">
+                            <Text class="wb-inventory-badge-icon"
+                                  text="@Glyph('shapes')"
+                                  width="20"
+                                  height="fill" />
+                            <Text class="wb-inventory-badge-label"
+                                  text="@L('ui.label.inventory.shapeable')"
+                                  width="fill"
+                                  height="fill" />
+                        </Element>
+                    </If>
+                </Else>
+            </Element>
+        </Element>
+    </Element>
+
+    <!-- The dragged stack preview follows the cursor above the whole frame. -->
+    <Element visible="@context.HasDrag"
+             layout="none"
+             anchor="Center Local"
+             x="@context.DragX"
+             y="@context.DragY"
+             width="48"
+             height="48"
+             passthrough="true">
+        <Image source="@context.DragIcon"
+               anchor="Center"
+               width="fill"
+               height="fill" />
+        <Text class="wb-slot-count"
+              text="@context.DragCount"
+              anchor="Bottom Right" />
+    </Element>
+</Reef>

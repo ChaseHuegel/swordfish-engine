@@ -1061,3 +1061,88 @@
     border: 0 #00000000;
     padding: 0;
 }
+
+.wb-slot-hovered {
+    color: var(--wb-button-hover);
+    border-color: var(--wb-accent);
+    corner-caps: 6 1 var(--wb-accent-bright);
+}
+
+.wb-slot-dragging {
+    color: var(--wb-accent-dark);
+    border-color: var(--wb-accent);
+    corner-caps: 0 0 transparent;
+}
+
+.wb-slot-number-hovered {
+    color: var(--wb-accent-bright);
+}
+
+.wb-inventory-panel {
+    --extends: wb-panel;
+    padding: 2px;
+}
+
+.wb-inventory-panel-inner {
+    --extends: wb-panel-inner;
+    padding: 16px;
+}
+
+.wb-inventory-footer {
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+    layout: horizontal;
+    gap: 8px;
+    padding: 12px 8px;
+}
+
+.wb-inventory-primary-bar {
+    color: var(--wb-primary);
+}
+
+.wb-inventory-footer-empty {
+    color: var(--wb-text-dim);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 16px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.wb-inventory-footer-unknown {
+    color: var(--wb-text-muted);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 16px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.wb-inventory-footer-name {
+    color: var(--wb-primary-bright);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 16px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.wb-inventory-badge {
+    color: var(--wb-accent-dark);
+    border: 1px var(--wb-border-hover);
+    layout: horizontal;
+    gap: 2px;
+    padding: 6px 0;
+}
+
+.wb-inventory-badge-icon {
+    color: var(--wb-accent-bright);
+    font-family: "Font Awesome 6 Free Solid";
+    font-size: 16px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-inventory-badge-label {
+    color: var(--wb-text);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 14px;
+    vertical-align: middle;
+}

@@ -194,6 +194,10 @@ The first implementation does not add Reef text state or a Reef text control.
 - The chat overlay uses `ChatView`. The layer keeps the clock, sticky scroll,
   shortcuts, and interaction blocker; the view owns chrome, history, and the
   send bar.
+- The modal inventory window uses `InventoryView`. The layer keeps services,
+  shortcuts, the interaction blocker, hover and drag state, and every slot move.
+  The view owns the scrim, the frame, the cargo and hotbar rows, the inspection
+  footer, and the drag preview.
 
 ## Migration phases
 
