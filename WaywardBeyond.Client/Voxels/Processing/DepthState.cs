@@ -218,46 +218,37 @@ public sealed class DepthState
         }
     }
 
-    /// <summary>Returns true if the coordinates represent an exterior ambient light seed on any axis.</summary>
+    /// <summary>Returns true if the coordinates represent an exterior ambient light source.</summary>
     public bool IsAmbientSource(int x, int y, int z)
     {
-        if (XY.TryGetValue(new Int2(x, y), out Int2 depthZ))
+        //  A column with no solid cells is open along Y. The cell sees space above
+        //  or below, so ambient light reaches it without decay.
+        bool hasY = XZ.TryGetValue(new Int2(x, z), out Int2 depthY);
+        bool openY = !hasY || y < depthY.Min || y > depthY.Max;
+        if (openY)
         {
-            if (z == depthZ.Min - 1 || z == depthZ.Max + 1)
-            {
-                bool enclosedY = XZ.TryGetValue(new Int2(x, z), out Int2 dy) && y > dy.Min && y < dy.Max;
-                bool enclosedX = ZY.TryGetValue(new Int2(z, y), out Int2 dx) && x > dx.Min && x < dx.Max;
-                if (!enclosedY || !enclosedX)
-                {
-                    return true;
-                }
-            }
+            return true;
         }
 
-        if (XZ.TryGetValue(new Int2(x, z), out Int2 depthY))
+        bool hasZ = XY.TryGetValue(new Int2(x, y), out Int2 depthZ);
+        bool openZ = !hasZ || z < depthZ.Min || z > depthZ.Max;
+        bool hasX = ZY.TryGetValue(new Int2(z, y), out Int2 depthX);
+        bool openX = !hasX || x < depthX.Min || x > depthX.Max;
+
+        bool enclosedY = y > depthY.Min && y < depthY.Max;
+        bool enclosedZ = hasZ && z > depthZ.Min && z < depthZ.Max;
+        bool enclosedX = hasX && x > depthX.Min && x < depthX.Max;
+
+        //  A horizontal opening only seeds the cell when the other two axes do
+        //  not enclose it. This keeps tunnel and cavity light decaying inward.
+        if (openZ && (!enclosedX || !enclosedY))
         {
-            if (y == depthY.Min - 1 || y == depthY.Max + 1)
-            {
-                bool enclosedZ = XY.TryGetValue(new Int2(x, y), out Int2 dz) && z > dz.Min && z < dz.Max;
-                bool enclosedX = ZY.TryGetValue(new Int2(z, y), out Int2 dx) && x > dx.Min && x < dx.Max;
-                if (!enclosedZ || !enclosedX)
-                {
-                    return true;
-                }
-            }
+            return true;
         }
 
-        if (ZY.TryGetValue(new Int2(z, y), out Int2 depthX))
+        if (openX && (!enclosedY || !enclosedZ))
         {
-            if (x == depthX.Min - 1 || x == depthX.Max + 1)
-            {
-                bool enclosedZ = XY.TryGetValue(new Int2(x, y), out Int2 dz) && z > dz.Min && z < dz.Max;
-                bool enclosedY = XZ.TryGetValue(new Int2(x, z), out Int2 dy) && y > dy.Min && y < dy.Max;
-                if (!enclosedZ || !enclosedY)
-                {
-                    return true;
-                }
-            }
+            return true;
         }
 
         return false;

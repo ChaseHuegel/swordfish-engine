@@ -143,8 +143,9 @@ public class ChunkBasedVoxelRemeshingTests
 
         Assert.Contains(new Short3(0, 0, 0), registry.DirtyChunks);
         Assert.Equal(15, voxelObject.Get(8, 8, 8).GetLightLevel());
-        Assert.Equal(14, voxelObject.Get(8, 8, 9).GetLightLevel());
-        Assert.Equal(14, voxelObject.Get(8, 9, 8).GetLightLevel());
+        //  Open space is ambient, so the neighbours stay at full light.
+        Assert.Equal(15, voxelObject.Get(8, 8, 9).GetLightLevel());
+        Assert.Equal(15, voxelObject.Get(8, 9, 8).GetLightLevel());
     }
 
     [Fact]
@@ -751,8 +752,8 @@ public class ChunkBasedVoxelRemeshingTests
         var replacementAir = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 9, in currentGlass, ref replacementAir);
 
-        // The newly empty air cell at (8, 8, 9) must receive light from its lit neighbor (15 - 1 = 14), not stay 0
-        Assert.Equal(14, voxelObject.Get(8, 8, 9).GetLightLevel());
+        // The newly empty air cell at (8, 8, 9) is open space, so it is ambient.
+        Assert.Equal(15, voxelObject.Get(8, 8, 9).GetLightLevel());
     }
 
     [Fact]
@@ -818,7 +819,8 @@ public class ChunkBasedVoxelRemeshingTests
         // Place lamp at (8, 8, 8)
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref lamp);
         Assert.Equal(15, voxelObject.Get(8, 8, 8).GetLightLevel());
-        Assert.Equal(14, voxelObject.Get(8, 8, 9).GetLightLevel());
+        //  Open space is ambient.
+        Assert.Equal(15, voxelObject.Get(8, 8, 9).GetLightLevel());
 
         // Replace lamp directly with stone
         Voxel currentLamp = voxelObject.Get(8, 8, 8);

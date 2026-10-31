@@ -111,18 +111,26 @@ A voxel edit marks its resident chunk dirty. An edit on a chunk boundary also
 marks the orthogonal neighbor chunk dirty.
 
 `VoxelLightingService`
-(`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs:30-257`) runs
+(`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs`) runs
 dual-queue BFS flood-fill lighting across resident chunks. The service marks
-every modified cell and its chunk dirty.
+every modified cell and its chunk dirty. It seeds the edited cell, its six
+neighbours, and the air of any chunk an edit adds.
 
 `DepthState`
-(`WaywardBeyond.Client/Voxels/Processing/DepthState.cs:12-295`) tracks min and max
-depth bounds across XY, XZ, and ZY projection planes in `VoxelChunkRegistry`.
-An air cell is an ambient light source (`DepthState.IsAmbientSource`) when its
-coordinates lie immediately outside the solid boundary (`depth.Max + 1` or
-`depth.Min - 1`) along at least one axis and the cell is not enclosed on both
-perpendicular projection axes. Interior air cells inside cavities and tunnels lie
-between orthogonal depth bounds and return false.
+(`WaywardBeyond.Client/Voxels/Processing/DepthState.cs`) tracks min and max
+depth bounds across the XY, XZ, and ZY projection planes in
+`VoxelChunkRegistry`. `IsAmbientSource` uses all three planes:
+
+- `openY`: the XZ column has no solid, or `y` is below its min or above its max.
+  Open air, pits, holes, and trenches use this path. It seeds light 15.
+- `openZ` and `openX`: the cell is outside the span on that axis. The cell
+  seeds only when the other two axes do not enclose it. A tunnel or a cavity
+  stays between spans, so its light decays from the opening.
+
+`VoxelAmbient.IsAmbient`
+(`WaywardBeyond.Client/Voxels/Processing/VoxelAmbient.cs`) adds the residency
+rule. A cell on a chunk face that touches a non-resident chunk is exterior. A
+newly resident chunk seeds its ambient air after the edit.
 
 `DepthPrePass`
 (`WaywardBeyond.Client/Voxels/Processing/DepthPrePass.cs:6-34`) populates
@@ -130,32 +138,29 @@ between orthogonal depth bounds and return false.
 transparent and non-culling bricks so they do not expand depth bounds.
 
 `AmbientLightPass`
-(`WaywardBeyond.Client/Voxels/Processing/AmbientLightPass.cs:11-80`) seeds ambient
-light level 15 at resident min and max voxels on each depth plane and enqueues
-them for propagation. The pass verifies that target cells are exterior ambient
-sources (`DepthState.IsAmbientSource`) and not solid cullers before seeding ambient
-light.
+(`WaywardBeyond.Client/Voxels/Processing/AmbientLightPass.cs`) scans every
+resident air cell. It seeds light 15 for each ambient cell and enqueues it for
+propagation. It skips solid cullers and cells that are already at 15.
 
-When a solid culler voxel is placed (`VoxelLightingService.cs:64-151`), occluded
-light drains through `_removeQueue`. If the placed block replaces open-sky space,
-the initial drain light level is 15. During drain removal
-(`VoxelLightingService.cs:197-281`), brighter neighbors and equal-decay neighbors
-(`< 15`) re-propagate light via `_addQueue`. At maximum ambient sky light (level 15),
-equal-light neighbors drain unless they are independent sky sources (lamps, exterior
-ambient sources, or cells adjacent to non-resident space). This keeps lit tunnel
-neighbors illuminated while draining enclosed spaces when sealed across chunk borders.
-The service updates depth bounds via `DepthState.Add` and checks adjacent air cells:
-any air cell that is an exterior ambient source (`DepthState.IsAmbientSource`) receives
-ambient light level 15 and propagates light outward through `_addQueue`. Interior
-air cells inside cavities and tunnels are not ambient sources and receive no
-ambient sky light.
+When a solid culler voxel is placed (`VoxelLightingService.cs`), occluded light
+drains through `_removeQueue`. If the placed block replaces open space, the
+initial drain light level is 15. During drain removal, brighter neighbors and
+equal-decay neighbors re-propagate light via `_addQueue`. At maximum ambient
+light (level 15), equal-light neighbors drain unless they are independent light
+sources: lamps, ambient cells, or cells at a residency boundary. The service
+updates depth bounds via `DepthState.Add` and checks adjacent air cells with
+`VoxelAmbient.IsAmbient`.
 
-When a solid culler voxel is deleted (`VoxelLightingService.cs:97-183`), the
-service updates depth bounds via `DepthState.Remove`. The cell receives decayed
-light from the brightest resident neighbor (`maxNeighborLight - 1`), or light
-level 15 if adjacent to non-resident space. Light entering a cavity or tunnel
-decays with distance. When the entrance is blocked off, the decayed light drains
-to zero through `_removeQueue`, leaving enclosed interiors dark.
+When a solid culler voxel is deleted (`VoxelLightingService.cs`), the service
+updates depth bounds via `DepthState.Remove`. The cell receives light 15 when it
+is ambient, or the brightest resident neighbor minus one. Light entering a
+cavity or tunnel decays with distance. When the entrance is blocked off, the
+decayed light drains to zero through `_removeQueue`, leaving enclosed interiors
+dark.
+
+Both light passes use one rule. The next level is 15 when the destination is
+ambient, otherwise one less. Open air never decays. A tunnel or a cavity does.
+
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
 (`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:171-238`) rebuilds

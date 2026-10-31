@@ -14,6 +14,7 @@ public sealed class VoxelChunkRegistry
     public readonly Dictionary<Short3, int> TransparentEntities = [];
     public readonly Dictionary<Short3, ChunkCollisionData> ChunkColliders = [];
     public readonly HashSet<Short3> DirtyChunks = [];
+    public readonly HashSet<Short3> KnownChunks = [];
     public readonly DepthState DepthState = new();
 
     /// <summary>Indicates whether depth state has been populated for this structure.</summary>

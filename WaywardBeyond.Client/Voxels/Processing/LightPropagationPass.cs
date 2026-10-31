@@ -7,7 +7,11 @@ namespace WaywardBeyond.Client.Voxels.Processing;
 /// <summary>
 /// Propagates light levels across resident voxels using a breadth-first search.
 /// </summary>
-internal sealed class LightPropagationPass(LightingState lightingState, IBrickDatabase brickDatabase) : VoxelObjectProcessor.IPass
+internal sealed class LightPropagationPass(
+    LightingState lightingState,
+    DepthState depthState,
+    IBrickDatabase brickDatabase
+) : VoxelObjectProcessor.IPass
 {
     /// <inheritdoc/>
     public void Process(VoxelObject voxelObject)
@@ -20,10 +24,10 @@ internal sealed class LightPropagationPass(LightingState lightingState, IBrickDa
             {
                 continue;
             }
-            
+
             int nextLightLevel = lightLevel - 1;
             VoxelSample sample = voxelObject.Sample(item.X, item.Y, item.Z);
-            
+
             PropagateLight(voxelObject, ref sample.Left, item.X - 1, item.Y, item.Z, nextLightLevel);
             PropagateLight(voxelObject, ref sample.Right, item.X + 1, item.Y, item.Z, nextLightLevel);
             PropagateLight(voxelObject, ref sample.Above, item.X, item.Y + 1, item.Z, nextLightLevel);
@@ -40,8 +44,10 @@ internal sealed class LightPropagationPass(LightingState lightingState, IBrickDa
             return;
         }
 
+        int targetLight = VoxelAmbient.IsAmbient(voxelObject, depthState, x, y, z) ? 15 : nextLightLevel;
+
         ShapeLight shapeLight = voxel.GetShapeLight();
-        if (shapeLight.LightLevel >= nextLightLevel)
+        if (shapeLight.LightLevel >= targetLight)
         {
             return;
         }
@@ -51,7 +57,7 @@ internal sealed class LightPropagationPass(LightingState lightingState, IBrickDa
             return;
         }
 
-        voxel.ShapeLight = new ShapeLight(shapeLight.Shape, nextLightLevel);
+        voxel.ShapeLight = new ShapeLight(shapeLight.Shape, targetLight);
         lightingState.ToPropagate.Enqueue(new LightingState.VoxelLight(x, y, z, voxel));
     }
 }

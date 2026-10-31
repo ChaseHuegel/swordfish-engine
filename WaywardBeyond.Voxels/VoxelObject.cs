@@ -86,6 +86,25 @@ public sealed class VoxelObject
     /// <summary>Tries to get resident chunk data at the given chunk offset.</summary>
     public bool TryGetChunk(Short3 offset, out ChunkData chunkData) => _chunks.TryGetValue(offset, out chunkData);
 
+    /// <summary>Returns true when the voxel at the given world coordinates has a resident chunk.</summary>
+    public bool IsResident(int x, int y, int z) => _chunks.ContainsKey(ToChunkOffset(x, y, z));
+
+    /// <summary>Returns true when any face of the voxel touches a non-resident chunk.</summary>
+    public bool IsAdjacentToNonResident(int x, int y, int z)
+    {
+        int localX = x & _chunkMask;
+        int localY = y & _chunkMask;
+        int localZ = z & _chunkMask;
+
+        if (localX == 0 && !IsResident(x - 1, y, z)) return true;
+        if (localX == _chunkMask && !IsResident(x + 1, y, z)) return true;
+        if (localY == 0 && !IsResident(x, y - 1, z)) return true;
+        if (localY == _chunkMask && !IsResident(x, y + 1, z)) return true;
+        if (localZ == 0 && !IsResident(x, y, z - 1)) return true;
+        if (localZ == _chunkMask && !IsResident(x, y, z + 1)) return true;
+        return false;
+    }
+
     /// <summary>Calculates the chunk offset containing the given world voxel coordinates.</summary>
     public Short3 ToChunkOffset(int x, int y, int z) => new((short)(x >> _chunkShift), (short)(y >> _chunkShift), (short)(z >> _chunkShift));
     

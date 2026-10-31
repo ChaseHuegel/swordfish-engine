@@ -1,13 +1,11 @@
-using System.Collections.Generic;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Data;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
 /// <summary>
-/// Seeds ambient sky light at exterior boundaries of a voxel structure.
+/// Seeds ambient light across every resident air cell that is exterior.
 /// </summary>
 internal sealed class AmbientLightPass(
     LightingState lightingState,
@@ -18,63 +16,38 @@ internal sealed class AmbientLightPass(
     /// <inheritdoc/>
     public void Process(VoxelObject voxelObject)
     {
-        // Seed ambient light at resident min and max voxels at each depth plane.
-        foreach (KeyValuePair<Int2, Int2> pair in depthState.XY)
+        foreach (ChunkData chunk in voxelObject)
         {
-            Int2 coords = pair.Key;
-            Int2 depth = pair.Value;
-            
-            VoxelSample min = voxelObject.Sample(coords.X, coords.Y, depth.Min);
-            SeedAmbient(voxelObject, coords.X, coords.Y, depth.Min - 1, ref min.Behind);
+            if (chunk.Palette.Only(0))
+            {
+                continue;
+            }
 
-            VoxelSample max = voxelObject.Sample(coords.X, coords.Y, depth.Max);
-            SeedAmbient(voxelObject, coords.X, coords.Y, depth.Max + 1, ref max.Ahead);
+            foreach (VoxelSample sample in chunk.GetSampler())
+            {
+                if (sample.Center.ID != 0 && brickDatabase.IsCuller(sample.Center, sample.Center.GetShapeLight().Shape))
+                {
+                    continue;
+                }
+
+                int x = sample.Coords.X + sample.ChunkOffset.X;
+                int y = sample.Coords.Y + sample.ChunkOffset.Y;
+                int z = sample.Coords.Z + sample.ChunkOffset.Z;
+
+                if (!VoxelAmbient.IsAmbient(voxelObject, depthState, x, y, z))
+                {
+                    continue;
+                }
+
+                if (sample.Center.GetLightLevel() >= 15)
+                {
+                    continue;
+                }
+
+                ShapeLight shapeLight = sample.Center.GetShapeLight();
+                sample.Center.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+                lightingState.ToPropagate.Enqueue(new LightingState.VoxelLight(x, y, z, sample.Center));
+            }
         }
-        
-        foreach (KeyValuePair<Int2, Int2> pair in depthState.XZ)
-        {
-            Int2 coords = pair.Key;
-            Int2 depth = pair.Value;
-            
-            VoxelSample min = voxelObject.Sample(coords.X, depth.Min, coords.Y);
-            SeedAmbient(voxelObject, coords.X, depth.Min - 1, coords.Y, ref min.Below);
-
-            VoxelSample max = voxelObject.Sample(coords.X, depth.Max, coords.Y);
-            SeedAmbient(voxelObject, coords.X, depth.Max + 1, coords.Y, ref max.Above);
-        }
-        
-        foreach (KeyValuePair<Int2, Int2> pair in depthState.ZY)
-        {
-            Int2 coords = pair.Key;
-            Int2 depth = pair.Value;
-            
-            VoxelSample min = voxelObject.Sample(depth.Min, coords.Y, coords.X);
-            SeedAmbient(voxelObject, depth.Min - 1, coords.Y, coords.X, ref min.Left);
-
-            VoxelSample max = voxelObject.Sample(depth.Max, coords.Y, coords.X);
-            SeedAmbient(voxelObject, depth.Max + 1, coords.Y, coords.X, ref max.Right);
-        }
-    }
-
-    private void SeedAmbient(VoxelObject voxelObject, int x, int y, int z, ref Voxel voxel)
-    {
-        if (!voxelObject.TryGetChunk(voxelObject.ToChunkOffset(x, y, z), out _))
-        {
-            return;
-        }
-
-        if (voxel.ID != 0 && brickDatabase.IsCuller(voxel, voxel.GetShapeLight().Shape))
-        {
-            return;
-        }
-
-        if (!depthState.IsAmbientSource(x, y, z))
-        {
-            return;
-        }
-
-        ShapeLight shapeLight = voxel.GetShapeLight();
-        voxel.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
-        lightingState.ToPropagate.Enqueue(new LightingState.VoxelLight(x, y, z, voxel));
     }
 }

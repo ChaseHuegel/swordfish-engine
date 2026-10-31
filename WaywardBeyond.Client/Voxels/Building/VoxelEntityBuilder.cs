@@ -85,6 +85,8 @@ internal sealed class VoxelEntityBuilder(
         Uuid parentUuid = store.GetUuid(entity);
         foreach (ChunkData chunk in voxelObject)
         {
+            registry.KnownChunks.Add(chunk.Coords);
+
             if (chunk.Palette.Only(0))
             {
                 continue;
