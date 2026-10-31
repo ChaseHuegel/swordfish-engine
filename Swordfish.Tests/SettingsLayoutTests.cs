@@ -21,7 +21,6 @@ public class SettingsLayoutTests
         Assert.True(layout.PageHeight > 0);
         Assert.True(layout.PageWidth <= windowWidth);
         Assert.True(layout.PageHeight <= windowHeight);
-        Assert.True(layout.LabelWidth > 0);
         Assert.True(layout.ControlWidth > 0);
     }
 
@@ -34,9 +33,7 @@ public class SettingsLayoutTests
         SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
 
         Assert.False(layout.UseTabs);
-        Assert.True(layout.TrayWidth >= 220);
-        Assert.True(layout.TrayWidth + SettingsLayout.PANEL_GAP < layout.PageWidth);
-        Assert.True(layout.LabelWidth + layout.ControlWidth < layout.PageWidth);
+        Assert.True(layout.ControlWidth < layout.PageWidth);
     }
 
     [Theory]
@@ -47,7 +44,6 @@ public class SettingsLayoutTests
         SettingsLayout layout = SettingsLayout.Compute(windowWidth, windowHeight);
 
         Assert.True(layout.UseTabs);
-        Assert.Equal(0, layout.TrayWidth);
     }
 
     [Theory]

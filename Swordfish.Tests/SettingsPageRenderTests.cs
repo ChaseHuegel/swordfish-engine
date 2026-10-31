@@ -34,7 +34,8 @@ public class SettingsPageRenderTests
         Assert.Equal(layout.PageWidth, pageRect.Size.X);
         Assert.Equal(layout.PageHeight, pageRect.Size.Y);
 
-        int paneLeft = pageRect.Left + layout.TrayWidth + SettingsLayout.PANEL_GAP;
+        IntRect tray = FindRequired(commands, "Settings.Tray").Rect;
+        int paneLeft = tray.Right + SettingsLayout.PANEL_GAP;
         int paneRight = pageRect.Right;
 
         string[] controlIds =

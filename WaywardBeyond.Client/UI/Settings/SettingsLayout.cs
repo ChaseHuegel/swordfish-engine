@@ -7,8 +7,6 @@ internal readonly record struct SettingsLayout(
     int PageWidth,
     int PageHeight,
     bool UseTabs,
-    int TrayWidth,
-    int LabelWidth,
     int ControlWidth
 )
 {
@@ -49,14 +47,10 @@ internal readonly record struct SettingsLayout(
             controlWidth,
             Math.Max(MIN_LABEL_WIDTH, listWidth - MIN_LABEL_WIDTH - ROW_GAP)
         );
-        int labelWidth = Math.Max(0, listWidth - controlWidth - ROW_GAP);
-
         return new SettingsLayout(
             pageWidth,
             pageHeight,
             useTabs,
-            trayWidth,
-            labelWidth,
             controlWidth
         );
     }
