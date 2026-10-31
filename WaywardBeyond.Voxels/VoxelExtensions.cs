@@ -30,5 +30,6 @@ public static class VoxelExtensions
         chunkVoxel.ChunkData.Palette.Decrement(chunkVoxel.Voxel.ID);
         chunkVoxel.Voxel = voxel;
         chunkVoxel.ChunkData.Palette.Increment(voxel.ID);
+        chunkVoxel.ChunkData.SetOccupied(chunkVoxel.Index, voxel.ID != 0);
     }
 }

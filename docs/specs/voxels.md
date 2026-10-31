@@ -112,6 +112,10 @@ marks the orthogonal neighbor chunk dirty. A light-only write marks
 `LightDirtyChunks` and leaves `GeometryDirtyChunks` empty, so the rebuild skips
 collision and voxel-entity reconciliation for that chunk.
 
+`ChunkData.GetOccupiedSampler` visits only non-empty voxels. The chunk keeps a
+lazy `ulong` bitmask of non-empty cells. The mask is 512 bytes for a 16-cubed
+chunk. `ChunkVoxel.Set` updates the bit when the mask exists.
+
 `VoxelLightingService`
 (`WaywardBeyond.Client/Voxels/Processing/VoxelLightingService.cs`) runs
 dual-queue BFS flood-fill lighting across resident chunks. The service marks

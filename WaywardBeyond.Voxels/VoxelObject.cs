@@ -142,7 +142,7 @@ public sealed class VoxelObject
         int localZ = z & _chunkMask;
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
-        var chunkVoxel = new ChunkVoxel(chunkData, ref chunkData.Data.Voxels[index]);
+        var chunkVoxel = new ChunkVoxel(chunkData, ref chunkData.Data.Voxels[index], index);
         chunkVoxel.Set(voxel);
     }
 

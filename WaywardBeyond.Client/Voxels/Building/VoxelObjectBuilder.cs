@@ -44,7 +44,7 @@ public sealed class VoxelObjectBuilder(in IContainer container)
 
         if (!chunkData.Palette.Only(0))
         {
-            foreach (VoxelSample sample in chunkData.GetSampler())
+            foreach (VoxelSample sample in chunkData.GetOccupiedSampler())
             {
                 meshPostPass.Process(sample);
                 voxelEntityPostPass.Process(sample);
@@ -70,7 +70,7 @@ public sealed class VoxelObjectBuilder(in IContainer container)
             return new ChunkCollisionData([], [], []);
         }
 
-        foreach (VoxelSample sample in chunkData.GetSampler())
+        foreach (VoxelSample sample in chunkData.GetOccupiedSampler())
         {
             collisionPass.Process(sample);
         }

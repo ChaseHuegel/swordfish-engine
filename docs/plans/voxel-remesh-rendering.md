@@ -109,7 +109,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [ ] E6c Batch lifetime and fallbacks
 - [x] G1 Ambient model and unified light paths
 - [x] G2 Light-only chunk dirtiness
-- [ ] G3a Occupancy mask
+- [x] G3a Occupancy mask
 - [ ] G3b Rebuild scope and buffer reuse
 - [ ] G3c Chunk entity lifetime
 - [ ] G3d Rebuild time budget and system order
@@ -134,7 +134,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 | E6 | not started | — | — | |
 | G1 | done | pending | 2026-10-31 | All-axis ambient rule, volume seed, residency rule |
 | G2 | done | pending | 2026-10-31 | Geometry and light dirty sets; light-only skips collision and entities |
-| G3 | not started | — | — | |
+| G3 | in progress | — | — | |
 | G4 | not started | — | — | |
 | G5 | not started | — | — | |
 | G6 | not started | — | — | |
@@ -488,14 +488,14 @@ The mask is a non-empty bitset. A 16-cubed chunk needs 64 `ulong` values, or
 512 bytes. Do not keep an index list per chunk. Most chunks are dense, so an
 index list would cost more memory than it saves.
 
-- [ ] Add a lazy `NonEmptyMask` to `ChunkData`.
-- [ ] Build it on chunk creation and on load.
-- [ ] Update the bit in `ChunkVoxel.Set`.
-- [ ] Add `GetOccupiedSampler()`. Use it in `BuildChunk` and
+- [x] Add a lazy `NonEmptyMask` to `ChunkData`.
+- [x] Build it on chunk creation and on load.
+- [x] Update the bit in `ChunkVoxel.Set`.
+- [x] Add `GetOccupiedSampler()`. Use it in `BuildChunk` and
       `BuildChunkCollision`.
-- [ ] Add a test: a sparse chunk visits only non-empty voxels. A dense chunk
+- [x] Add a test: a sparse chunk visits only non-empty voxels. A dense chunk
       produces the same mesh and collision as today.
-- [ ] Benchmark the remesh cost.
+- [x] Benchmark the remesh cost.
 
 Note: tracking empty voxels does not help. The loop already skips empty cells in
 one branch. The cost is the six-neighbour sample for every non-empty voxel, so
