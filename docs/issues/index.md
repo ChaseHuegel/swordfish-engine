@@ -74,5 +74,6 @@ is not part of this workflow.
 - [ ] [Show the menu spaceship](/docs/issues/0092-menu-spaceship.md) — the main menu background voxel ship is not wired up
 - [ ] [Add a window concept to the UI layers](/docs/issues/0093-ui-window-concept.md) — one global interaction blocker cannot separate closable windows from selectors
 - [ ] [Remove the feedback submit delay](/docs/issues/0094-feedback-submit-delay.md) — a fixed 100 ms delay stands in for "the modal has closed"
+- [ ] [Allow output device selection](/docs/issues/0095-output-device-selection.md) — the engine has no public device list or preference API, and the audio settings page cannot choose an output device
 
 ### Research
