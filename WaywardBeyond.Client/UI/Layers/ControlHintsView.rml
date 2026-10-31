@@ -13,9 +13,11 @@
         <ForEach in="@context.Hints" as="hint">
             <If condition="@hint.HasKey">
                 <HintPill anchor="Right">
-                    <Keycap>
-                        <Text class="wb-keycap-text" text="@hint.Key" />
-                    </Keycap>
+                    <Content name="key">
+                        <Keycap>
+                            <Text class="wb-keycap-text" text="@hint.Key" />
+                        </Keycap>
+                    </Content>
                     <Text class="wb-hint-text" text="@hint.Action" anchor="Center" />
                 </HintPill>
             </If>

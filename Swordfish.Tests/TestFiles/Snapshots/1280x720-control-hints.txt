@@ -1,14 +1,14 @@
-0 id=- rect=1130,614,130,86 clip=1130,614,130,86 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-1 id=- rect=1138,614,122,26 clip=1130,614,130,86 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-2 id=- rect=1142,618,108,18 clip=1130,614,130,86 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
-3 id=- rect=1142,618,36,18 clip=1130,614,130,86 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
-4 id=- rect=1148,620,24,14 clip=1130,614,130,86 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=TAB
-5 id=- rect=1178,620,72,14 clip=1130,614,130,86 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Inventory
-6 id=- rect=1130,646,130,26 clip=1130,614,130,86 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-7 id=- rect=1134,650,116,18 clip=1130,614,130,86 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
-8 id=- rect=1134,650,20,18 clip=1130,614,130,86 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
-9 id=- rect=1140,652,8,14 clip=1130,614,130,86 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=R
-10 id=- rect=1154,652,96,14 clip=1130,614,130,86 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Change shape
-11 id=- rect=1142,678,118,22 clip=1130,614,130,86 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-12 id=- rect=1146,682,104,14 clip=1130,614,130,86 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
-13 id=- rect=1146,682,104,14 clip=1130,614,130,86 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Send feedback
+0 id=- rect=1122,614,138,86 clip=1122,614,138,86 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=1130,614,130,26 clip=1122,614,138,86 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=1134,618,36,18 clip=1122,614,138,86 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
+3 id=- rect=1140,620,24,14 clip=1122,614,138,86 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=TAB
+4 id=- rect=1178,618,72,14 clip=1122,614,138,86 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
+5 id=- rect=1178,618,72,14 clip=1122,614,138,86 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Inventory
+6 id=- rect=1122,646,138,26 clip=1122,614,138,86 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=1126,650,20,18 clip=1122,614,138,86 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
+8 id=- rect=1132,652,8,14 clip=1122,614,138,86 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=R
+9 id=- rect=1154,650,96,14 clip=1122,614,138,86 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
+10 id=- rect=1154,650,96,14 clip=1122,614,138,86 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Change shape
+11 id=- rect=1142,678,118,22 clip=1122,614,138,86 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+12 id=- rect=1146,682,104,14 clip=1122,614,138,86 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=-
+13 id=- rect=1146,682,104,14 clip=1122,614,138,86 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Send feedback
