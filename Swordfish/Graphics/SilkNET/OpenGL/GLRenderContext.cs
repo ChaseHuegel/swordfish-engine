@@ -75,7 +75,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public RenderScene GetSceneContext()
     {
         SceneData scene = Volatile.Read(ref _sceneData);
-        return new RenderScene(scene.View, scene.Projection, scene.Instances, _renderTargets, _rectRenderTargets);
+        return new RenderScene(scene.View, scene.Projection, scene.Instances, _renderTargets, _rectRenderTargets, scene.CameraFrustum);
     }
 
     private void OnHandleDisposed(object? sender, EventArgs _)
@@ -110,12 +110,12 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
         Frustum? frustum = queryCameraAction.Found ? Frustum.FromViewProjection(cameraView * cameraProjection) : null;
 
-        //  Collect all renderable entities
-        var queryRenderableEntitiesAction = new ReadRenderableEntityAction(this, frustum);
+        //  Collect all renderable entities. Culling is a view concern and runs in the render stages.
+        var queryRenderableEntitiesAction = new ReadRenderableEntityAction(this);
         store.Query<TransformComponent, MeshRendererComponent, ReadRenderableEntityAction>(0f, ref queryRenderableEntitiesAction);
 
         //  Write the scene data then reset for the next Tick
-        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, _renderableEntities.ToArray()));
+        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, _renderableEntities.ToArray(), frustum));
         _renderableEntities.Clear();
     }
 
@@ -343,13 +343,14 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         return Unsafe.As<BufferObject<Matrix4x4>>(handle);
     }
     
-    private sealed class SceneData(in Matrix4x4 view, in Matrix4x4 projection, in EntityModel[] instances)
+    private sealed class SceneData(in Matrix4x4 view, in Matrix4x4 projection, in EntityModel[] instances, in Frustum? cameraFrustum)
     {
-        public static readonly SceneData Empty = new(Matrix4x4.Identity, Matrix4x4.Identity, []);
+        public static readonly SceneData Empty = new(Matrix4x4.Identity, Matrix4x4.Identity, [], null);
 
         public readonly Matrix4x4 View = view;
         public readonly Matrix4x4 Projection = projection;
         public readonly EntityModel[] Instances = instances;
+        public readonly Frustum? CameraFrustum = cameraFrustum;
     }
     
     private struct ReadCameraAction(in GLRenderContext owner, in Matrix4x4 view, in Matrix4x4 projection) : IForEachRef<CameraComponent, ViewFrustumComponent>
@@ -381,10 +382,9 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
     }
 
-    private readonly struct ReadRenderableEntityAction(in GLRenderContext owner, in Frustum? frustum) : IForEach<TransformComponent, MeshRendererComponent>
+    private readonly struct ReadRenderableEntityAction(in GLRenderContext owner) : IForEach<TransformComponent, MeshRendererComponent>
     {
         private readonly GLRenderContext _owner = owner;
-        private readonly Frustum? _frustum = frustum;
 
         public void Execute(float delta, DataStore store, int entity, in TransformComponent transform, in MeshRendererComponent meshRendererComponent)
         {
@@ -400,24 +400,14 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             }
 
             Matrix4x4 matrix = transform.ToMatrix4X4();
+            BoundingBox worldBounds = meshRenderer.Mesh.Bounds.Transform(matrix);
 
-            if (_frustum.HasValue)
-            {
-                BoundingBox bounds = meshRenderer.Mesh.Bounds;
-                Vector3 worldCenter = Vector3.Transform(bounds.Center, matrix);
-                Vector3 worldExtents = new(
-                    MathF.Abs(matrix.M11) * bounds.Extents.X + MathF.Abs(matrix.M21) * bounds.Extents.Y + MathF.Abs(matrix.M31) * bounds.Extents.Z,
-                    MathF.Abs(matrix.M12) * bounds.Extents.X + MathF.Abs(matrix.M22) * bounds.Extents.Y + MathF.Abs(matrix.M32) * bounds.Extents.Z,
-                    MathF.Abs(matrix.M13) * bounds.Extents.X + MathF.Abs(matrix.M23) * bounds.Extents.Y + MathF.Abs(matrix.M33) * bounds.Extents.Z
-                );
-
-                if (!_frustum.Value.Intersects(worldCenter, worldExtents))
-                {
-                    return;
-                }
-            }
-
-            _owner._renderableEntities.Add(new EntityModel(store.GetUuid(entity), matrix, meshRenderer));
+            _owner._renderableEntities.Add(new EntityModel(
+                store.GetUuid(entity),
+                matrix,
+                meshRenderer,
+                worldBounds
+            ));
         }
     }
 }

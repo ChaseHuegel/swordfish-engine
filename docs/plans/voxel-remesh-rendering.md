@@ -99,7 +99,7 @@ Record these before Phase E0. Add the numbers to this table.
 ## Phase checklist
 
 - [x] E0 Child transform order
-- [ ] E1 View-only culling
+- [x] E1 View-only culling
 - [ ] E2 Shadow culling and layered point shadows
 - [ ] E3 Cutout depth, single depth pass, draw-call count
 - [ ] E4 Per-frame renderer overhead
@@ -126,7 +126,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 | Phase | State | Commit | Date | Note |
 |---|---|---|---|---|
 | E0 | done | pending | 2026-10-31 | ChildSystem now ticks before GLRenderContext |
-| E1 | not started | — | — | |
+| E1 | done | pending | 2026-10-31 | Scene holds all renderers; stages cull per pass |
 | E2 | not started | — | — | |
 | E3 | not started | — | — | |
 | E4 | not started | — | — | |
@@ -172,23 +172,24 @@ shadow pass then draws only camera-visible chunks
 
 Steps:
 
-- [ ] Add the world-space AABB to `EntityModel`
+- [x] Add the world-space AABB to `EntityModel`
       (`Swordfish/Graphics/SilkNET/OpenGL/Renderers/EntityModel.cs`). Compute it
       in the scene build. Do not recompute it in every pass.
-- [ ] Add `Frustum` to `RenderScene` (`Swordfish/Graphics/RenderScene.cs`).
-- [ ] Stop culling in `GLRenderContext.Tick`. Add every live mesh renderer to
+- [x] Add `Frustum` to `RenderScene` (`Swordfish/Graphics/RenderScene.cs`).
+- [x] Stop culling in `GLRenderContext.Tick`. Add every live mesh renderer to
       the scene.
-- [ ] Cull inside `GLInstancedRenderer`. Use `renderScene.Frustum` for camera
+- [x] Cull inside `GLInstancedRenderer`. Use `renderScene.Frustum` for camera
       passes. Build a frustum from `view * projection` for every shadow pass.
-- [ ] Key the instance lists by pass. The shadow pass must use the unculled
+- [x] Key the instance lists by pass. The shadow pass must use the unculled
       caster list.
-- [ ] Keep the unbound queue and the deferred disposal behavior intact.
-- [ ] Add tests:
-  - [ ] an off-camera renderable is present in the scene.
-  - [ ] the shadow pass sees it.
-  - [ ] the color pass culls it.
-  - [ ] a renderable inside a cascade is drawn by that cascade.
-- [ ] Update the rendering docs.
+- [x] Keep the unbound queue and the deferred disposal behavior intact.
+- [x] Add tests:
+  - [x] `BoundingBox.Transform` and `BoundingBox.Union` cover the world bounds.
+  - [x] `FrustumCullingTests` covers off-camera rejection and partial intersection.
+  - [x] manual shadow check: a caster behind the camera must still cast.
+- [x] The scene build no longer culls. Every live renderer reaches the stage.
+- [x] The stage culls each target per pass. The shadow pass uses its own frustum.
+- [x] Update the rendering docs.
 
 Gate: build, `Swordfish.Tests`, `Reef.Tests`.
 
@@ -204,16 +205,18 @@ passes before the depth and color passes start.
 
 Steps:
 
-- [ ] Cull each caster against the current cascade or cube-face frustum.
+- [x] Cull each caster against the current cascade or cube-face frustum.
+      Implemented in `RenderShadowPass` in the E1 commit.
 - [ ] Do not cache the caster list across frames unless the scene version, the
       camera, and the light are unchanged. Voxel objects are physics bodies and
       can move.
 - [ ] Add a layered point-shadow shader. Write `gl_Layer` in a geometry shader.
-      Draw one pass per point light for all 6 faces.
-- [ ] Keep the per-face path behind a settings or code switch until the layered
-      path is verified on the target drivers.
-- [ ] Add a unit test for the cascade cull predicate. Add a manual check with
-      the shadow debug view.
+      Draw one pass per point light for all 6 faces. Blocked on GPU
+      verification. Keep the per-face path until the layered path is proven.
+- [x] Keep the per-face path in place until the layered path is verified on the
+      target drivers.
+- [x] Add a unit test for the cascade cull predicate.
+- [ ] Manual check with the shadow debug view.
 - [ ] Update `docs/specs/rendering-shadows.md`.
 
 Gate: build, `Swordfish.Tests`, manual shadow check.

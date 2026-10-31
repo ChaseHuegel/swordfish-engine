@@ -15,45 +15,45 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly GLRenderContext _renderContext = renderContext;
 
-    private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
-    private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _maskedInstances = [];
-    private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
-    private readonly Stack<List<Matrix4x4>> _listPool = new();
+    private readonly Dictionary<GLRenderTarget, InstanceSet> _instances = [];
+    private readonly Dictionary<GLRenderTarget, InstanceSet> _maskedInstances = [];
+    private readonly Dictionary<GLRenderTarget, InstanceSet> _transparentInstances = [];
+    private readonly Stack<InstanceSet> _setPool = new();
 
-    private List<Matrix4x4> RentMatrixList()
+    private InstanceSet RentSet()
     {
-        if (_listPool.TryPop(out List<Matrix4x4>? list))
+        if (_setPool.TryPop(out InstanceSet? set))
         {
-            list.Clear();
-            return list;
+            set.Clear();
+            return set;
         }
 
-        return new List<Matrix4x4>(4);
+        return new InstanceSet();
     }
 
-    private void ReturnMatrixList(List<Matrix4x4> list)
+    private void ReturnSet(InstanceSet set)
     {
-        list.Clear();
-        _listPool.Push(list);
+        set.Clear();
+        _setPool.Push(set);
     }
 
     public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {
-        foreach (List<Matrix4x4> list in _instances.Values)
+        foreach (InstanceSet set in _instances.Values)
         {
-            ReturnMatrixList(list);
+            ReturnSet(set);
         }
         _instances.Clear();
 
-        foreach (List<Matrix4x4> list in _maskedInstances.Values)
+        foreach (InstanceSet set in _maskedInstances.Values)
         {
-            ReturnMatrixList(list);
+            ReturnSet(set);
         }
         _maskedInstances.Clear();
 
-        foreach (List<Matrix4x4> list in _transparentInstances.Values)
+        foreach (InstanceSet set in _transparentInstances.Values)
         {
-            ReturnMatrixList(list);
+            ReturnSet(set);
         }
         _transparentInstances.Clear();
 
@@ -71,7 +71,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 continue;
             }
 
-            Dictionary<GLRenderTarget, List<Matrix4x4>> targetDict;
+            Dictionary<GLRenderTarget, InstanceSet> targetDict;
             if (isTransparent)
             {
                 targetDict = _transparentInstances;
@@ -85,26 +85,36 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 targetDict = _instances;
             }
 
-            if (!targetDict.TryGetValue(renderTarget, out List<Matrix4x4>? matrices))
+            if (!targetDict.TryGetValue(renderTarget, out InstanceSet? set))
             {
-                matrices = RentMatrixList();
-                targetDict.Add(renderTarget, matrices);
+                set = RentSet();
+                targetDict.Add(renderTarget, set);
             }
 
-            matrices.Add(entityModel.Matrix);
+            set.Add(entityModel.Matrix, entityModel.WorldBounds);
         }
 
-        foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in _instances)
+        foreach (KeyValuePair<GLRenderTarget, InstanceSet> instance in _instances)
         {
-            ReadOnlySpan<Matrix4x4> models = CollectionsMarshal.AsSpan(instance.Value);
+            ReadOnlySpan<Matrix4x4> models = CollectionsMarshal.AsSpan(instance.Value.Matrices);
             UploadModelMatrices(instance.Key, models);
         }
 
-        foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in _maskedInstances)
+        foreach (KeyValuePair<GLRenderTarget, InstanceSet> instance in _maskedInstances)
         {
-            ReadOnlySpan<Matrix4x4> models = CollectionsMarshal.AsSpan(instance.Value);
+            ReadOnlySpan<Matrix4x4> models = CollectionsMarshal.AsSpan(instance.Value.Matrices);
             UploadModelMatrices(instance.Key, models);
         }
+    }
+
+    private static bool IsVisible(in InstanceSet set, in Frustum? frustum)
+    {
+        if (!set.HasBounds || !frustum.HasValue)
+        {
+            return true;
+        }
+
+        return frustum.Value.Intersects(set.Bounds.Center, set.Bounds.Extents);
     }
 
     private static void UploadModelMatrices(GLRenderTarget target, ReadOnlySpan<Matrix4x4> modelsSpan)
@@ -142,20 +152,20 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         var drawCalls = 0;
 
-        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false, isDepthPass);
-        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, sort: false, isDepthPass);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false, isDepthPass, renderScene.CameraFrustum);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, sort: false, isDepthPass, renderScene.CameraFrustum);
 
         //  Exclude rendering transparent targets during a depth pass
         if (!isDepthPass)
         {
-            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true, isDepthPass: false);
+            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true, isDepthPass: false, renderScene.CameraFrustum);
         }
 
         _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 
-    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort, bool isDepthPass)
+    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, InstanceSet> instances, bool sort, bool isDepthPass, Frustum? frustum)
     {
         if (instances.Count == 0)
         {
@@ -169,10 +179,15 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         GLMaterial.Scope[]? activeScopes = null;
         RenderOptions? lastRenderOptions = null;
 
-        foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in instances)
+        foreach (KeyValuePair<GLRenderTarget, InstanceSet> instance in instances)
         {
-            List<Matrix4x4> matrices = instance.Value;
-            if (matrices.Count == 0)
+            InstanceSet set = instance.Value;
+            if (set.Matrices.Count == 0)
+            {
+                continue;
+            }
+
+            if (!IsVisible(set, frustum))
             {
                 continue;
             }
@@ -183,6 +198,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 continue;
             }
 
+            List<Matrix4x4> matrices = set.Matrices;
             ReadOnlySpan<Matrix4x4> modelsSpan;
             if (sort)
             {
@@ -289,6 +305,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             return 0;
         }
 
+        Frustum cullFrustum = Frustum.FromViewProjection(view * projection);
         var drawCalls = 0;
 
         if (_instances.Count > 0)
@@ -297,7 +314,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             depthShader.SetUniform("view", view);
             depthShader.SetUniform("projection", projection);
 
-            foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in _instances)
+            foreach (KeyValuePair<GLRenderTarget, InstanceSet> instance in _instances)
             {
                 GLRenderTarget target = instance.Key;
                 if (!target.RenderOptions.CastShadows || target.RenderOptions.IgnoreDepth)
@@ -305,9 +322,11 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                     continue;
                 }
 
-                int count = instance.Value.Count;
-                if (count == 0 || target.VertexArrayObject.ElementBufferObject.Length == 0)
-                {
+                InstanceSet set = instance.Value;
+                if (set.Matrices.Count == 0
+                    || target.VertexArrayObject.ElementBufferObject.Length == 0
+                    || !IsVisible(set, cullFrustum)
+                ) {
                     continue;
                 }
 
@@ -316,7 +335,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 _gl.Set(EnableCap.DepthTest, true);
                 _gl.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
                 _gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-                _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)count);
+                _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)set.Matrices.Count);
                 drawCalls++;
             }
         }
@@ -328,7 +347,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             ShaderProgram? activeCutoutShader = null;
             GLHandle.Scope? cutoutScope = null;
 
-            foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in _maskedInstances)
+            foreach (KeyValuePair<GLRenderTarget, InstanceSet> instance in _maskedInstances)
             {
                 GLRenderTarget target = instance.Key;
                 if (!target.RenderOptions.CastShadows || target.RenderOptions.IgnoreDepth)
@@ -336,9 +355,11 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                     continue;
                 }
 
-                int count = instance.Value.Count;
-                if (count == 0 || target.VertexArrayObject.ElementBufferObject.Length == 0)
-                {
+                InstanceSet set = instance.Value;
+                if (set.Matrices.Count == 0
+                    || target.VertexArrayObject.ElementBufferObject.Length == 0
+                    || !IsVisible(set, cullFrustum)
+                ) {
                     continue;
                 }
 
@@ -367,7 +388,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
                 _gl.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
                 _gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-                _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)count);
+                _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)set.Matrices.Count);
                 drawCalls++;
 
                 texScope?.Dispose();
@@ -377,5 +398,32 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         }
 
         return drawCalls;
+    }
+
+    private sealed class InstanceSet
+    {
+        public readonly List<Matrix4x4> Matrices = new(4);
+        public BoundingBox Bounds;
+        public bool HasBounds;
+
+        public void Clear()
+        {
+            Matrices.Clear();
+            HasBounds = false;
+        }
+
+        public void Add(in Matrix4x4 matrix, in BoundingBox worldBounds)
+        {
+            Matrices.Add(matrix);
+
+            if (!HasBounds)
+            {
+                Bounds = worldBounds;
+                HasBounds = true;
+                return;
+            }
+
+            Bounds = BoundingBox.Union(Bounds, worldBounds);
+        }
     }
 }

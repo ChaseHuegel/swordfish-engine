@@ -47,6 +47,32 @@ public readonly struct BoundingBox(in Vector3 center, in Vector3 extents, in flo
         return new BoundingBox(center, extents, MathF.Sqrt(radiusSq));
     }
 
+    /// <summary>
+    ///     Transforms the bounds by a matrix and returns the axis-aligned bounds of the result.
+    /// </summary>
+    public BoundingBox Transform(in Matrix4x4 matrix)
+    {
+        Vector3 worldCenter = Vector3.Transform(Center, matrix);
+        Vector3 worldExtents = new(
+            MathF.Abs(matrix.M11) * Extents.X + MathF.Abs(matrix.M21) * Extents.Y + MathF.Abs(matrix.M31) * Extents.Z,
+            MathF.Abs(matrix.M12) * Extents.X + MathF.Abs(matrix.M22) * Extents.Y + MathF.Abs(matrix.M32) * Extents.Z,
+            MathF.Abs(matrix.M13) * Extents.X + MathF.Abs(matrix.M23) * Extents.Y + MathF.Abs(matrix.M33) * Extents.Z
+        );
+
+        return new BoundingBox(worldCenter, worldExtents, worldExtents.Length());
+    }
+
+    /// <summary>
+    ///     Returns the smallest axis-aligned box that contains both inputs.
+    /// </summary>
+    public static BoundingBox Union(in BoundingBox left, in BoundingBox right)
+    {
+        Vector3 min = Vector3.Min(left.Center - left.Extents, right.Center - right.Extents);
+        Vector3 max = Vector3.Max(left.Center + left.Extents, right.Center + right.Extents);
+        Vector3 extents = (max - min) * 0.5f;
+        return new BoundingBox((min + max) * 0.5f, extents, extents.Length());
+    }
+
     /// <inheritdoc/>
     public bool Equals(BoundingBox other)
     {
