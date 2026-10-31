@@ -115,6 +115,11 @@ collision and voxel-entity reconciliation for that chunk.
 A rebuild opens one resolver scope for every dirty chunk. It reuses the mesh,
 entity, and collision buffers between chunks.
 
+`VoxelEntityBuilder` is the only owner of chunk child entities. Each bucket
+stores the entity index and its `Uuid`. A mismatch means the index was recycled,
+so the entry is dropped. `VoxelEntityBuilder.FreeChunks` frees every child and
+clears the registry before a parent voxel entity is freed.
+
 `ChunkData.GetOccupiedSampler` visits only non-empty voxels. The chunk keeps a
 lazy `ulong` bitmask of non-empty cells. The mask is 512 bytes for a 16-cubed
 chunk. `ChunkVoxel.Set` updates the bit when the mask exists.

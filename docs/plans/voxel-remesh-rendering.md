@@ -111,7 +111,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [x] G2 Light-only chunk dirtiness
 - [x] G3a Occupancy mask
 - [x] G3b Rebuild scope and buffer reuse
-- [ ] G3c Chunk entity lifetime
+- [x] G3c Chunk entity lifetime
 - [ ] G3d Rebuild time budget and system order
 - [ ] G3e Mesh allocation
 - [ ] G4 Voxel gizmo toggle
@@ -519,25 +519,25 @@ Commit: `Reuse chunk rebuild scopes and buffers`.
 
 Commit: `Make the chunk entity lifetime single-owner`.
 
-- [ ] Audit every chunk entity free. The current sites are
+- [x] Audit every chunk entity free. The current sites are
       `VoxelEntityBuilder.UpdateRendererBucket`, `RemoveBucket`, and
       `ClientCleanupSystem`.
-- [ ] Store `(int Entity, Uuid Uuid)` in every registry bucket. Validate the
+- [x] Store `(int Entity, Uuid Uuid)` in every registry bucket. Validate the
       Uuid before you touch an entity.
-- [ ] Make `VoxelEntityBuilder` the only allocator and freer of chunk entities.
-- [ ] Add `FreeChunks(store, entity)` to `VoxelEntityBuilder`. Free every bucket
+- [x] Make `VoxelEntityBuilder` the only allocator and freer of chunk entities.
+- [x] Add `FreeChunks(store, entity)` to `VoxelEntityBuilder`. Free every bucket
       entity and clear the registry.
-- [ ] Initialize the chunk child's `TransformComponent` from the parent
+- [x] Initialize the chunk child's `TransformComponent` from the parent
       transform at creation, not only through `ChildSystem`. This removes the
       identity-transform frame.
-- [ ] Call `FreeChunks` before a parent voxel entity is freed:
+- [x] Call `FreeChunks` before a parent voxel entity is freed:
       `ClientCleanupSystem` and the snapshot removal in `ClientReconcileSystem`.
-- [ ] Do not rely on `store.Free` being idempotent. It is not
+- [x] Do not rely on `store.Free` being idempotent. It is not
       ([0039](../issues/0039-datastore-free-idempotency.md)).
-- [ ] Add tests:
-  - [ ] freeing a parent frees every chunk entity.
-  - [ ] a recycled entity index is not touched by a stale bucket.
-  - [ ] a chunk that empties frees its entity once.
+- [x] Add tests:
+  - [x] freeing a parent frees every chunk entity.
+  - [x] a recycled entity index is not touched by a stale bucket.
+  - [x] a chunk that empties frees its entity once.
 
 ### G3d: Rebuild time budget and system order
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Swordfish.ECS;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Voxels;
 
@@ -9,9 +10,9 @@ namespace WaywardBeyond.Client.Voxels;
 /// </summary>
 public sealed class VoxelChunkRegistry
 {
-    public readonly Dictionary<Short3, int> OpaqueEntities = [];
-    public readonly Dictionary<Short3, int> MaskedEntities = [];
-    public readonly Dictionary<Short3, int> TransparentEntities = [];
+    public readonly Dictionary<Short3, ChunkEntity> OpaqueEntities = [];
+    public readonly Dictionary<Short3, ChunkEntity> MaskedEntities = [];
+    public readonly Dictionary<Short3, ChunkEntity> TransparentEntities = [];
     public readonly Dictionary<Short3, ChunkCollisionData> ChunkColliders = [];
     public readonly HashSet<Short3> DirtyChunks = [];
     public readonly HashSet<Short3> GeometryDirtyChunks = [];
@@ -55,4 +56,11 @@ public sealed class VoxelChunkRegistry
             LightDirtyChunks.Remove(chunk);
         }
     }
+}
+
+/// <summary>Identifies a chunk child entity and its identity at allocation time.</summary>
+public readonly struct ChunkEntity(in int entity, in Uuid uuid)
+{
+    public readonly int Entity = entity;
+    public readonly Uuid Uuid = uuid;
 }

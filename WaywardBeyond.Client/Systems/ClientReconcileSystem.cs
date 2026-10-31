@@ -7,6 +7,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Registry;
@@ -168,6 +169,11 @@ internal sealed class ClientReconcileSystem(
         {
             if (store.TryGet(Uuid.FromValue(removed[i]), out int entity))
             {
+                if (store.TryGet(entity, out VoxelComponent _))
+                {
+                    VoxelEntityBuilder.FreeChunks(store, entity);
+                }
+
                 store.Free(entity);
             }
         }

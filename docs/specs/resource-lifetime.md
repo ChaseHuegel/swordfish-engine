@@ -46,6 +46,10 @@ world entity (`WaywardBeyond.Client/Systems/ClientCleanupSystem.cs:57-60`).
 `MeshRendererCleanup.DisposeAll` owns the full drain loop
 (`WaywardBeyond.Client/Components/MeshRendererCleanup.cs:30-38`).
 
+`VoxelEntityBuilder.FreeChunks` frees the chunk child entities before a parent
+voxel entity is freed. The registry stores each child's `Uuid`, so a recycled
+entity index is ignored.
+
 ## Jolt shape wrappers
 
 `JoltPhysicsSystem.TryGetJoltShape` creates managed wrappers for native Jolt

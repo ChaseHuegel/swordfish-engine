@@ -3,6 +3,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
