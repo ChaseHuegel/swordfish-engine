@@ -862,6 +862,7 @@ internal sealed class EmitContext
     public readonly List<string> LoopIndexes = [];
     public readonly List<string> LoopItems = [];
     public bool RuntimeCallerApplied;
+    public bool InComponent;
 
     public EmitContext Clone(ExpressionScope scope)
     {
@@ -877,6 +878,7 @@ internal sealed class EmitContext
             CallerPlan = CallerPlan,
             Slots = Slots,
             LoopDepth = LoopDepth,
+            InComponent = InComponent,
         };
         clone.LoopIndexes.AddRange(LoopIndexes);
         clone.LoopItems.AddRange(LoopItems);

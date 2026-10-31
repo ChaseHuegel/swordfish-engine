@@ -440,6 +440,21 @@ internal sealed class ExpressionBinder
                 arguments.Add(arg.Type);
             }
 
+            if (TryResolveMember(left.Type, name, out ISymbol? delegateMember, out ITypeSymbol? delegateType)
+                && delegateMember is IPropertySymbol or IFieldSymbol
+                && delegateType is INamedTypeSymbol delegateNamed
+                && delegateNamed.DelegateInvokeMethod is not null)
+            {
+                return new BoundExpression
+                {
+                    Code = left.Code + "." + name + "?.Invoke" + invocation.ArgumentList,
+                    Type = delegateNamed.DelegateInvokeMethod.ReturnType,
+                    IsValid = true,
+                    IsMethodGroup = true,
+                    Symbol = delegateMember,
+                };
+            }
+
             IMethodSymbol? method = ResolveMethod(left.Type, name, arguments);
             if (method == null)
             {

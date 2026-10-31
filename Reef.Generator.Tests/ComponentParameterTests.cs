@@ -96,6 +96,104 @@ public class ComponentParameterTests
     }
 
     [Fact]
+    public void DelegateParameterInvokesWithArguments()
+    {
+        MarkupCompilation result = MarkupTestHost.CompileFiles(
+        [
+            ("Stepper.rml", """
+                <Reef xmlns="Reef" Class="Stepper" Parameters="StepperParameters" Namespace="ReefMarkupTest">
+                    <Element onclick="@param.OnStep(param.Id, -1)" width="100" height="20" />
+                </Reef>
+                """),
+            ("View.rml", """
+                <Reef xmlns="Reef"
+                      xmlns:param="Reef.Param"
+                      Class="View"
+                      Namespace="ReefMarkupTest">
+                    <Stepper param:id="step" param:onStep="OnStep" />
+                </Reef>
+                """),
+        ], """
+            using System;
+            using Reef;
+            using Reef.UI;
+
+            namespace ReefMarkupTest
+            {
+                public readonly record struct StepperParameters(string Id = "", Action<string, int>? OnStep = null);
+
+                public partial class Stepper
+                {
+                }
+
+                public partial class View
+                {
+                    public void OnStep(string id, int delta)
+                    {
+                    }
+                }
+            }
+            """);
+
+        Assert.Empty(result.Errors);
+        Assert.Matches(@"OnStep\?\.Invoke\([^,]+, -1\)", result.GeneratedText);
+    }
+
+    [Fact]
+    public void ComponentLoopIdsMayDeriveFromParameters()
+    {
+        MarkupCompilation result = MarkupTestHost.CompileFiles(
+        [
+            ("Stepper.rml", """
+                <Reef xmlns="Reef" Class="Stepper" Parameters="StepperParameters" Namespace="ReefMarkupTest">
+                    <Element id="@(param.Id + '.previous')" onclick="@param.OnStep(param.Id, -1)" width="100" height="20" />
+                </Reef>
+                """),
+            ("View.rml", """
+                <Reef xmlns="Reef"
+                      xmlns:param="Reef.Param"
+                      Class="View"
+                      Context="ViewState"
+                      Namespace="ReefMarkupTest">
+                    <ForEach in="@context.Rows" as="row">
+                        <Stepper param:id="@row.Id" param:onStep="OnStep" />
+                    </ForEach>
+                </Reef>
+                """),
+        ], """
+            using System;
+            using System.Collections.Generic;
+            using Reef;
+            using Reef.UI;
+
+            namespace ReefMarkupTest
+            {
+                public readonly record struct StepperParameters(string Id = "", Action<string, int>? OnStep = null);
+
+                public sealed class ViewState
+                {
+                    public IReadOnlyList<Row> Rows { get; } = [];
+                }
+
+                public readonly record struct Row(string Id);
+
+                public partial class Stepper
+                {
+                }
+
+                public partial class View
+                {
+                    public void OnStep(string id, int delta)
+                    {
+                    }
+                }
+            }
+            """);
+
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
     public void NestedParameterizedComponentsCompileWithDistinctLocals()
     {
         MarkupCompilation result = MarkupTestHost.CompileFiles(

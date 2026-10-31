@@ -382,7 +382,20 @@ internal sealed partial class DocumentState
     private bool IsKeyBoundLoopId(RmlElementNode node, EmitContext context)
     {
         RmlAttribute? id = HasAttribute(node, "id");
-        if (id == null || id.Value.IndexOf('{') < 0)
+        if (id == null)
+        {
+            return false;
+        }
+
+        string idValue = id.Value.TrimStart();
+        if (context.InComponent
+            && idValue.StartsWith("@(", StringComparison.Ordinal)
+            && idValue.IndexOf("param.", System.StringComparison.Ordinal) >= 0)
+        {
+            return true;
+        }
+
+        if (id.Value.IndexOf('{') < 0)
         {
             return false;
         }
@@ -701,6 +714,7 @@ internal sealed partial class DocumentState
             EmitContext childContext = context.Clone(childScope);
             childContext.IsRoot = false;
             childContext.CallerRuntime = false;
+            childContext.InComponent = true;
             childContext.IdPrefix = combinedPrefix;
             childContext.CallerPlan = callerPlan;
             childContext.Slots = slotContent;

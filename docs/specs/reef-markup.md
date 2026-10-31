@@ -278,6 +278,16 @@ Omitting `id` on an interactive element inside `<ForEach>` produces compiler
 diagnostic `RF0010`. Sharing an identifier across multiple loop iterations
 causes immediate-mode interaction collisions in Reef's `UIController`.
 
+A component body inlined inside a loop can derive its interactive `id` from a
+parameter instead, when the call site passes a key-bound value:
+
+```xml
+<Stepper param:id="@row.Id" param:onStep="OnStep" />
+```
+
+The component owns the id suffix, such as `@(param.Id + '.previous')`, and the
+call site owns uniqueness.
+
 ##### Lexical scoping in nested loops
 
 Nested loops inherit full lexical scope over outer iteration variables and the
@@ -898,16 +908,17 @@ string literals, and runtime UI metrics (such as `ui.Delta` and `ui.GetScrollDel
 3. **Delegate member invocation**:
    ```xml
    <Element onclick="@param.OnDecrease" />
+   <Element onclick="@param.OnStep(row.Id, -1)" />
    ```
    When the member holds a delegate, the generator emits a null-safe
-   `?.Invoke()`. This lets a component forward its own control events to the
-   caller.
+   `?.Invoke(...)` and forwards any arguments. This lets a component forward its
+   own control events to the caller.
 
 A component parameter of delegate type accepts a view method name, so a
 component can own its controls and still run the caller's handler:
 
 ```xml
-<Stepper param:onDecrease="OnSpeciesDown" param:enabled="@context.Enabled" />
+<Stepper param:id="@row.Id" param:onStep="OnStep" />
 ```
 
 ### Dynamic hotkeys and keybindings
