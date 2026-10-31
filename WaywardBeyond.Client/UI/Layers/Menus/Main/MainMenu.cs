@@ -36,10 +36,12 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         _externalAppService = externalAppService;
         _soundEffectService = soundEffectService;
         _modalMenu = modalMenu;
-        _view = new MainMenuOverlayView(localization);
-        _view.FeedbackRequested = Feedback;
-        _view.DiscordRequested = OpenDiscord;
-        _view.SteamRequested = OpenSteam;
+        _view = new MainMenuOverlayView(localization)
+        {
+            FeedbackRequested = Feedback,
+            DiscordRequested = OpenDiscord,
+            SteamRequested = OpenSteam
+        };
 
         Shortcut backShortcut = new(
             name: "Go back",

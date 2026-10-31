@@ -24,8 +24,10 @@ internal sealed class CreditsPage : IMenuPage<MenuPage>
     )
     {
         _soundEffectService = soundEffectService;
-        _view = new CreditsView(localization, _scroll);
-        _view.BackRequested = Back;
+        _view = new CreditsView(localization, _scroll)
+        {
+            BackRequested = Back
+        };
     }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)

@@ -17,8 +17,8 @@
         </Button>
 
         <Element layout="horizontal"
-                 width="88"
-                 height="40"
+                 width="fit"
+                 height="fit"
                  spacing="8"
                  anchor="Bottom Right">
             <Element id="Button_Discord"
@@ -26,14 +26,14 @@
                      onclick="OnDiscord"
                      width="40"
                      height="40">
-                <Text class="wb-icon-brand" text="@Glyph('discord')" width="fit" height="fit" x="16" />
+                <Text class="wb-icon-brand" text="@Glyph('discord')" width="fill" height="fill" />
             </Element>
             <Element id="Button_Steam"
                      class="wb-icon-button"
                      onclick="OnSteam"
                      width="40"
                      height="40">
-                <Text class="wb-icon-brand" text="@Glyph('steam')" width="fit" height="fit" x="16" />
+                <Text class="wb-icon-brand" text="@Glyph('steam')" width="fill" height="fill" />
             </Element>
         </Element>
     </Element>
