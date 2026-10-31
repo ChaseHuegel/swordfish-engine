@@ -207,6 +207,9 @@
     <xs:attribute name="onrightclick" type="xs:string" use="optional" />
     <xs:attribute name="onmiddleclick" type="xs:string" use="optional" />
     <xs:attribute name="onheld" type="xs:string" use="optional" />
+    <xs:attribute name="onenter" type="xs:string" use="optional" />
+    <xs:attribute name="onexit" type="xs:string" use="optional" />
+    <xs:attribute name="focus" type="BooleanExpressionType" use="optional" />
     <xs:attribute name="button" type="MouseButtonType" use="optional" />
     <xs:attribute name="hotkey" type="xs:string" use="optional" />
     <xs:attribute name="key" type="xs:string" use="optional" />

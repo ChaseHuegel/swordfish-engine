@@ -116,6 +116,9 @@ scope via `ui.Element(...)`:
 - `onclick`: Callback executed on left mouse button click.
 - `onrightclick`: Callback executed on right mouse button click.
 - `onmiddleclick`: Callback executed on middle mouse button click.
+- `onenter`: Callback executed when the pointer enters the element.
+- `onexit`: Callback executed when the pointer leaves the element.
+- `focus`: Boolean or expression. When true, the element takes keyboard focus.
 - `button`: Active mouse button filter (`left`, `right`, `middle`). Default is
   `left`.
 - `hotkey`: Keyboard key or dynamic key expression that triggers element interaction.
@@ -875,7 +878,7 @@ edit, decouple the binding into explicit `value` and `onchange` attributes:
 ### Hybrid callback contract and multi-argument events
 
 Callbacks target either the View code-behind or the Context. Event attributes
-(`onclick`, `onrightclick`, `onmiddleclick`, `onscroll`) support multiple
+(`onclick`, `onrightclick`, `onmiddleclick`, `onenter`, `onexit`, `onscroll`) support multiple
 comma-separated arguments combining context properties, iteration variables,
 string literals, and runtime UI metrics (such as `ui.Delta` and `ui.GetScrollDelta()`):
 
@@ -955,6 +958,9 @@ The `hotkey` and `key` attributes support three value sources on interactive `<E
 - `scroll-y`: Vertical scroll offset integer or binding (`scroll-y="@context.ScrollY"`).
 - `onscroll`: Scroll callback triggered when the user scrolls over this element
   (e.g. `onscroll="OnScrolled"` or `onscroll="OnScrolled(ui.GetScrollDelta())"`).
+- `onenter` / `onexit`: Pointer entry and exit callbacks. The element must have
+  an `id` so the controller can track the edge.
+- `focus="true"`: Calls `Focus()` on the element each frame while true.
 
 ### Clipping and overlay
 

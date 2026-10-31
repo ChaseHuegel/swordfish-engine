@@ -209,6 +209,36 @@ internal sealed partial class DocumentState
         }
     }
 
+    private void EmitFocus(RmlElementNode node, EmitContext context)
+    {
+        RmlAttribute? attribute = HasAttribute(node, "focus");
+        if (attribute == null)
+        {
+            return;
+        }
+
+        bool? value = EmitBoolAttribute(attribute, context);
+        if (value == true)
+        {
+            context.Writer.Line(context.Builder + ".Focus();");
+        }
+        else if (value == null)
+        {
+            string? code = EmitTypedExpression(
+                attribute.Value,
+                Compilation.GetSpecialType(SpecialType.System_Boolean),
+                attribute.Location,
+                context.Scope);
+            if (code != null)
+            {
+                context.Writer.Line("if (" + code + ")");
+                context.Writer.Open();
+                context.Writer.Line(context.Builder + ".Focus();");
+                context.Writer.Close();
+            }
+        }
+    }
+
     private void EmitPassthrough(RmlElementNode node, EmitContext context)
     {
         RmlAttribute? attribute = HasAttribute(node, "passthrough");
@@ -319,6 +349,26 @@ internal sealed partial class DocumentState
             if (binder.TryBindCallback(scrollAttribute.Value, scrollAttribute.Location, out BoundCallback callback))
             {
                 EmitGuarded(context, disabled, context.Builder + ".Scrolled()", callback.Code);
+            }
+        }
+
+        RmlAttribute? enterAttribute = FindAttribute(attributes, "onenter");
+        if (enterAttribute != null)
+        {
+            var binder = new ExpressionBinder(context.Scope);
+            if (binder.TryBindCallback(enterAttribute.Value, enterAttribute.Location, out BoundCallback callback))
+            {
+                EmitGuarded(context, disabled, context.Builder + ".Entered()", callback.Code);
+            }
+        }
+
+        RmlAttribute? exitAttribute = FindAttribute(attributes, "onexit");
+        if (exitAttribute != null)
+        {
+            var binder = new ExpressionBinder(context.Scope);
+            if (binder.TryBindCallback(exitAttribute.Value, exitAttribute.Location, out BoundCallback callback))
+            {
+                EmitGuarded(context, disabled, context.Builder + ".Exited()", callback.Code);
             }
         }
     }
@@ -959,6 +1009,8 @@ internal sealed partial class DocumentState
                     || string.Equals(attribute.Name, "onrightclick", StringComparison.Ordinal)
                     || string.Equals(attribute.Name, "onmiddleclick", StringComparison.Ordinal)
                     || string.Equals(attribute.Name, "onheld", StringComparison.Ordinal)
+                    || string.Equals(attribute.Name, "onenter", StringComparison.Ordinal)
+                    || string.Equals(attribute.Name, "onexit", StringComparison.Ordinal)
                     || string.Equals(attribute.Name, "onscroll", StringComparison.Ordinal)
                     || string.Equals(attribute.Name, "hotkey", StringComparison.Ordinal)
                     || string.Equals(attribute.Name, "key", StringComparison.Ordinal)

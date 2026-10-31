@@ -156,6 +156,7 @@ internal sealed partial class DocumentState
         EmitClip(node, context);
         EmitScroll(node, context);
         EmitPassthrough(node, context);
+        EmitFocus(node, context);
         EmitNodes(node.Children, context);
         string? disabled = CombineDisabled(pseudo.Disabled, context.CallerPlan?.Disabled);
         EmitCallbacks(node, context, disabled);
@@ -651,6 +652,9 @@ internal sealed partial class DocumentState
                || HasAttribute(node, "onrightclick") != null
                || HasAttribute(node, "onmiddleclick") != null
                || HasAttribute(node, "onheld") != null
+               || HasAttribute(node, "onenter") != null
+               || HasAttribute(node, "onexit") != null
+               || HasAttribute(node, "focus") != null
                || HasAttribute(node, "onscroll") != null
                || HasAttribute(node, "hotkey") != null
                || HasAttribute(node, "key") != null
