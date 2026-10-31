@@ -660,25 +660,25 @@
 
 .wb-keycap {
     color: var(--wb-accent-dark);
+    text-color: var(--wb-accent-bright);
     border: 1px var(--wb-border-hover);
-    color: var(--wb-accent-bright);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
     text-align: center;
     vertical-align: middle;
-    padding: 2px 6px;
+    padding: 6px 2px 6px 2px;
 }
 
 .wb-hint-pill {
     color: var(--wb-panel);
     border: 1px var(--wb-border);
-    padding: 4px 10px 4px 4px;
+    padding: 4px 4px 10px 4px;
     layout: horizontal;
     gap: 8px;
 }
 
 .wb-hint-text {
-    color: var(--wb-text);
+    text-color: var(--wb-text);
     font-family: "Salmon Mono 9 Regular";
     font-size: 14px;
     vertical-align: middle;

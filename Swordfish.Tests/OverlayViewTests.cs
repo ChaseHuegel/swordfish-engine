@@ -144,6 +144,24 @@ public class OverlayViewTests
     }
 
     [Fact]
+    public void EmptyHotbarSlotsKeepTheirFixedSize()
+    {
+        var ui = new UIBuilder<Material>(800, 600, new StubTextEngine(), new UIController());
+        var slots = new List<ItemSlotState>();
+        for (var i = 0; i < 9; i++)
+        {
+            slots.Add(new ItemSlotState(null!, (i + 1).ToString()));
+        }
+
+        new HotbarView().Render(ui, new HotbarState(slots));
+        List<RenderCommand<Material>> commands = ui.Build(0d);
+
+        RenderCommand<Material> panel = commands[0];
+        Assert.Equal(496, panel.Rect.Size.X);
+        Assert.Equal(64, panel.Rect.Size.Y);
+    }
+
+    [Fact]
     public void RadialMenuInvokesEnterCallback()
     {
         var controller = new UIController();

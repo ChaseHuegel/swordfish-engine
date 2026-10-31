@@ -167,10 +167,10 @@
 166 id=- rect=722,671,0,12 clip=706,344,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 167 id=- rect=722,683,476,36 clip=722,683,476,36 color=0.051,0.0706,0.1098,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 168 id=- rect=734,691,2,20 clip=722,683,476,36 color=0.949,0.6,0.2902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-169 id=- rect=744,691,202,20 clip=722,683,476,36 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Caution panel
-170 id=- rect=954,689,112,24 clip=722,683,476,36 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-171 id=- rect=960,689,20,24 clip=722,683,476,36 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:16 text=
-172 id=- rect=982,689,78,24 clip=722,683,476,36 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Rotatable
-173 id=- rect=1074,689,112,24 clip=722,683,476,36 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-174 id=- rect=1080,689,20,24 clip=722,683,476,36 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:16 text=
-175 id=- rect=1102,689,78,24 clip=722,683,476,36 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Shapeable
+169 id=- rect=744,691,214,20 clip=722,683,476,36 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Caution panel
+170 id=- rect=966,689,106,24 clip=722,683,476,36 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+171 id=- rect=972,689,20,24 clip=722,683,476,36 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:16 text=
+172 id=- rect=994,689,72,24 clip=722,683,476,36 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Rotatable
+173 id=- rect=1080,689,106,24 clip=722,683,476,36 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+174 id=- rect=1086,689,20,24 clip=722,683,476,36 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:16 text=
+175 id=- rect=1108,689,72,24 clip=722,683,476,36 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Shapeable

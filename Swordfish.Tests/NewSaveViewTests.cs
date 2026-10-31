@@ -55,6 +55,34 @@ public class NewSaveViewTests
         }
     }
 
+    [Fact]
+    public void ReadyFormHidesTheEmptyStatus()
+    {
+        for (var i = 0; i < Widths.Length; i++)
+        {
+            int width = Widths[i];
+            int height = Heights[i];
+            UiSnapshotTests.Compare($"{width}x{height}-new-save-ready", width, height, ui =>
+            {
+                var view = new NewSaveView(new TestLocalization()) { Input = new FakeInputService() };
+                view.Render(ui, new NewSaveState(
+                    Creating: false,
+                    "Outer Hercules VI",
+                    view.ModeLine(),
+                    view.Labeled("ui.label.level.seed", "Lunar Steer Glorifies Wormhole"),
+                    view.Labeled("ui.label.level.type", "ui.label.level.type.asteroids"),
+                    CanCreate: true,
+                    Status: null,
+                    StatusDanger: false,
+                    StatusWarning: false,
+                    Tab: 0,
+                    [],
+                    CursorOn: false
+                ));
+            });
+        }
+    }
+
     /// <summary>Builds the empty form state that the legacy capture used.</summary>
     private static NewSaveState CreateState(NewSaveView view, int height)
     {

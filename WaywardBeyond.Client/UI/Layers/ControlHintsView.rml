@@ -16,12 +16,12 @@
                     <Keycap>
                         <Text class="wb-keycap-text" text="@hint.Key" />
                     </Keycap>
-                    <Text class="wb-hint-text" text="@hint.Action" />
+                    <Text class="wb-hint-text" text="@hint.Action" anchor="Center" />
                 </HintPill>
             </If>
             <Else>
                 <HintPill anchor="Right">
-                    <Text class="wb-hint-text" text="@hint.Action" />
+                    <Text class="wb-hint-text" text="@hint.Action" anchor="Center" />
                 </HintPill>
             </Else>
         </ForEach>

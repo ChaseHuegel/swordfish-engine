@@ -167,10 +167,10 @@
 166 id=- rect=162,431,0,12 clip=146,104,508,391 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 167 id=- rect=162,443,476,36 clip=162,443,476,36 color=0.051,0.0706,0.1098,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 168 id=- rect=174,451,2,20 clip=162,443,476,36 color=0.949,0.6,0.2902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-169 id=- rect=184,451,322,20 clip=162,443,476,36 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Control buttons
-170 id=- rect=514,449,112,24 clip=162,443,476,36 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-171 id=- rect=520,449,20,24 clip=162,443,476,36 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:16 text=
-172 id=- rect=542,449,78,24 clip=162,443,476,36 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Rotatable
+169 id=- rect=184,451,328,20 clip=162,443,476,36 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Control buttons
+170 id=- rect=520,449,106,24 clip=162,443,476,36 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=1:0.2863,0.3647,0.4784,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+171 id=- rect=526,449,20,24 clip=162,443,476,36 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:16 text=
+172 id=- rect=548,449,72,24 clip=162,443,476,36 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=Rotatable
 173 id=- rect=270,205,48,48 clip=270,205,48,48 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 174 id=- rect=270,205,48,48 clip=270,205,48,48 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 175 id=- rect=310,239,8,14 clip=270,205,48,48 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0.502 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:14 text=5

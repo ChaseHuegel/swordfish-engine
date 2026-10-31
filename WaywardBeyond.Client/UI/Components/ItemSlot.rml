@@ -11,6 +11,8 @@
              class:wb-slot-hovered="@context.Hovered"
              class:wb-slot-dragging="@context.Dragging"
              layout="none"
+             width="48"
+             height="48"
              clip="true">
         <If condition="@context.HasItem">
             <Image source="@context.Icon" width="fill" height="fill" />
