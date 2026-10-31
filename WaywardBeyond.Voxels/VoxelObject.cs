@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using WaywardBeyond.Data;
 
@@ -27,6 +28,9 @@ public sealed class VoxelObject
     internal readonly int _chunkShift2;
     internal readonly int _voxelsPerChunk;
     
+    /// <summary>The default chunk edge length in voxels.</summary>
+    public const byte DefaultChunkEdge = 16;
+
     public VoxelObject(byte chunkSize)
     {
         if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
@@ -146,9 +150,11 @@ public sealed class VoxelObject
         chunkVoxel.Set(voxel);
     }
 
-    /// <summary>Updates the light level of the voxel at the given world coordinates.</summary>
+    /// <summary>Updates the light level of the voxel at the given world coordinates. The level must be 0..15.</summary>
     public void SetLight(int x, int y, int z, int lightLevel)
     {
+        Debug.Assert(lightLevel is >= 0 and <= 15, "Light level must be in the range 0..15.");
+
         var chunkX = (short)(x >> _chunkShift);
         var chunkY = (short)(y >> _chunkShift);
         var chunkZ = (short)(z >> _chunkShift);

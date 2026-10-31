@@ -21,7 +21,7 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
     /// <summary>Generate an asteroid using the provided parameters.</summary>
     public VoxelEntityData GenerateAt(Vector3 position, int diameter, Uuid uuid)
     {
-        var writer = new VoxelChunkWriter(chunkSize: 16);
+        var writer = new VoxelChunkWriter(chunkSize: VoxelObject.DefaultChunkEdge);
         Voxel voxel = _materialVoxels[_randomizer.NextInt(_materialVoxels.Length)];
 
         int width = diameter / 2;

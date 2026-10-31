@@ -31,7 +31,7 @@ leaves the draw list in the tick that disposes the renderer.
 A client voxel rebuild builds child chunk entities for opaque, masked, and
 transparent renderers. When a dirty chunk rebuilds or empties, it queues its
 previous renderers into `MeshRendererCleanup.Pending`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:288-375`).
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:289-402`).
 
 `CleanupMeshRendererSystem` processes pending replacements every tick
 (`WaywardBeyond.Client/Systems/CleanupMeshRendererSystem.cs:8-22`). It disposes
@@ -53,7 +53,7 @@ entity index is ignored.
 ## Jolt shape wrappers
 
 `JoltPhysicsSystem.TryGetJoltShape` creates managed wrappers for native Jolt
-shapes (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:204-251`). The wrappers are
+shapes (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:206-251`). The wrappers are
 temporary. Jolt keeps its own reference after `SetShape` or `CreateBody`.
 
 The caller disposes the shape wrapper after `SetShape` and after `CreateBody`

@@ -16,6 +16,7 @@ dotnet test Reef.Text.Tests                         # xunit Reef rich-text parse
 dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
+dotnet run -c Release --project WaywardBeyond.Client.Benchmarks -- --filter "*BuildChunk*" --job short
 ```
 
 - `Reef.Tests` is `net8.0`; it runs on Linux. On non-Windows platforms the

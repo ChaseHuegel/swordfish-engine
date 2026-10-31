@@ -377,7 +377,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         byte chunkSize = data.Chunks[0].Chunk.Size;
         if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
         {
-            chunkSize = 16;
+            chunkSize = VoxelObject.DefaultChunkEdge;
         }
 
         //  Resolve the server's palette-indexed voxel ids into this process's local id space.

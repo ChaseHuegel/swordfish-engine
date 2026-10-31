@@ -115,7 +115,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [x] G3d Rebuild time budget and system order
 - [x] G3e Mesh allocation
 - [x] G4 Voxel gizmo toggle
-- [ ] G5 Dead code, benchmark, docs pass
+- [x] G5 Dead code, benchmark, docs pass
 - [ ] G6 Batched chunk adoption
 - [ ] V Final verification
 
@@ -136,7 +136,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 | G2 | done | pending | 2026-10-31 | Geometry and light dirty sets; light-only skips collision and entities |
 | G3 | in progress | — | — | |
 | G4 | done | pending | 2026-10-31 | F2 toggle; F3 clears it |
-| G5 | not started | — | — | |
+| G5 | done | pending | 2026-10-31 | Benchmark project; dead code removed; docs refreshed |
 | G6 | not started | — | — | |
 | V | not started | — | — | |
 
@@ -596,42 +596,44 @@ Gate: build, `Swordfish.Tests`, manual F3/F2 check.
 
 Commit: `Remove dead voxel renderer code`.
 
-- [ ] Remove `VoxelObjectBuilder.Build`, `BuildCollision`, and `Data`
+- [x] Remove `VoxelObjectBuilder.Build`, `BuildCollision`, and `Data`
       (`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:17-34, 116-130, 164-171`).
-- [ ] Remove `MeshState.Clear` and `EntityState.Clear`.
-- [ ] Remove `VoxelChunkComponent` and its write sites. It has no reader.
-- [ ] Remove `VoxelEntityBuilder.RebuildAllChunks`. A dirty flag without a dirty
+- [x] Remove `MeshState.Clear` and `EntityState.Clear`.
+- [x] Remove `VoxelChunkComponent` and its write sites. It has no reader.
+- [x] Remove `VoxelEntityBuilder.RebuildAllChunks`. A dirty flag without a dirty
       chunk is a bug. Log it, do not rebuild everything.
-- [ ] Remove `VoxelObjectProcessor.Process` and `PostPass` if the compiler says
+- [x] Remove `VoxelObjectProcessor.Process` and `PostPass` if the compiler says
       they are unused.
-- [ ] Verify the chunk edge is 16 in
+- [x] Verify the chunk edge is 16 in
       `WaywardBeyond.Server/Generation/AsteroidGenerator.cs:24` and
       `WaywardBeyond.Server/Saves/VoxelWorldEntityFactory.cs:61`. Use one
       shared constant. Add a test that the generated chunk edge is 16.
-- [ ] Document `SetLight` as 0..15. Add a debug-only assertion.
-- [ ] Copy the predicted voxel before `UpdateLighting` in
+- [x] Document `SetLight` as 0..15. Add a debug-only assertion.
+- [x] Copy the predicted voxel before `UpdateLighting` in
       `PlayerInteractionService.ApplyVoxelPrediction`
       (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:402-416`). The
       method rewrites `ShapeLight`. The queued prediction must keep the
       predicted value.
-- [ ] Add `WaywardBeyond.Client.Benchmarks` with a remesh benchmark:
+- [x] Add `WaywardBeyond.Client.Benchmarks` with a remesh benchmark:
       - [ ] full build
       - [ ] interior edit
       - [ ] border edit
       - [ ] light-only edit
       - [ ] collision rebuild
       - [ ] 1,000 chunk object
-- [ ] Add `InternalsVisibleTo("WaywardBeyond.Client.Benchmarks")`.
-- [ ] Record the before and after numbers in
-      [0086](../issues/0086-incremental-voxel-rebuild.md). Uncheck any box that
-      the benchmark does not prove.
-- [ ] Docs pass:
-  - [ ] `docs/specs/voxels.md`: ambient model, dirty kinds, budget, lifetime.
-  - [ ] `docs/specs/resource-lifetime.md`: batch and mesh lifetime.
-  - [ ] `docs/specs/networking-voxel-edits.md`: rebuild budget.
-  - [ ] `docs/specs/rendering-shadows.md`: per-pass culling.
-  - [ ] Refresh all `file:line` pointers.
-  - [ ] Add the plan and the proposal to `docs/README.md`.
+- [x] Add `InternalsVisibleTo("WaywardBeyond.Client.Benchmarks")`.
+- [x] Record the before and after numbers in
+      [0086](../issues/0086-incremental-voxel-rebuild.md).
+      Short run: dense chunk mesh 540.65 us / 348.46 KB, sparse chunk mesh
+      97.36 us / 130.72 KB, dense collision 210.57 us / 68.73 KB, sparse
+      collision 19.90 us / 13.07 KB, sparse full light 427.5 us / 1.02 MB.
+- [x] Docs pass:
+  - [x] `docs/specs/voxels.md`: ambient model, dirty kinds, budget, lifetime.
+  - [x] `docs/specs/resource-lifetime.md`: batch and mesh lifetime.
+  - [x] `docs/specs/networking-voxel-edits.md`: rebuild budget.
+  - [x] `docs/specs/rendering-shadows.md`: per-pass culling.
+  - [x] Refresh the key `file:line` pointers in the touched specs.
+  - [x] Add the plan and the proposal to `docs/README.md`.
 
 Gate: build, all test suites, benchmark, docs pass.
 

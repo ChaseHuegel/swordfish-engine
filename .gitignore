@@ -2,6 +2,7 @@
 **/.idea/
 **/bin/
 **/obj/
+**/BenchmarkDotNet.Artifacts/
 **/screenshots/
 **/nuget/
 **/plugins/

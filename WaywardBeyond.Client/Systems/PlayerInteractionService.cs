@@ -400,6 +400,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         //  Breaking writes an empty voxel; placing writes the resolved placed brick - the same voxel the
         //  server authoritatively writes, so a confirm-match reconciles to a no-op.
         Voxel predicted = kind == InteractionKind.PrimaryPressed ? new Voxel() : resolution.Voxel;
+        Voxel predictedForRecord = predicted;
 
         //  Predict the authoritative outcome onto the presentation-only voxel container. The reconcile
         //  system confirms, snaps, or reverts this against the server's authoritative VoxelEditMessage.
@@ -413,7 +414,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         PendingInteractionComponent pending = GetOrCreatePending(store, playerEntity);
         uint sequence = ++_interactionSequence;
         uint serverTickAtSample = _snapshotAck.LastAppliedSnapshotTick;
-        pending.Queue.Register(resolution.Entity, coordinate, original, predicted, sequence, serverTickAtSample);
+        pending.Queue.Register(resolution.Entity, coordinate, original, predictedForRecord, sequence, serverTickAtSample);
 
         var interaction = new InteractionEvent
         {

@@ -259,7 +259,6 @@ internal sealed class VoxelEntityBuilder(
             store.AddOrUpdate(opaqueEntity, new IdentifierComponent(name: null, tag: "game"));
             store.AddOrUpdate(opaqueEntity, chunkTransform);
             store.AddOrUpdate(opaqueEntity, new ChildComponent(parentUuid));
-            store.AddOrUpdate(opaqueEntity, new VoxelChunkComponent(chunkOffset, AlphaMode.Opaque));
             store.AddOrUpdate(opaqueEntity, new MeshRendererComponent(new MeshRenderer(data.OpaqueMesh, _opaqueMaterial, _opaqueRenderOptions)));
             registry.OpaqueEntities[chunkOffset] = new ChunkEntity(opaqueEntity, store.GetUuid(opaqueEntity));
         }
@@ -270,7 +269,6 @@ internal sealed class VoxelEntityBuilder(
             store.AddOrUpdate(maskedEntity, new IdentifierComponent(name: null, tag: "game"));
             store.AddOrUpdate(maskedEntity, chunkTransform);
             store.AddOrUpdate(maskedEntity, new ChildComponent(parentUuid));
-            store.AddOrUpdate(maskedEntity, new VoxelChunkComponent(chunkOffset, AlphaMode.Masked));
             store.AddOrUpdate(maskedEntity, new MeshRendererComponent(new MeshRenderer(data.MaskedMesh, _maskedMaterial, _maskedRenderOptions)));
             registry.MaskedEntities[chunkOffset] = new ChunkEntity(maskedEntity, store.GetUuid(maskedEntity));
         }
@@ -281,7 +279,6 @@ internal sealed class VoxelEntityBuilder(
             store.AddOrUpdate(transparentEntity, new IdentifierComponent(name: null, tag: "game"));
             store.AddOrUpdate(transparentEntity, chunkTransform);
             store.AddOrUpdate(transparentEntity, new ChildComponent(parentUuid));
-            store.AddOrUpdate(transparentEntity, new VoxelChunkComponent(chunkOffset, AlphaMode.Blend));
             store.AddOrUpdate(transparentEntity, new MeshRendererComponent(new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions)));
             registry.TransparentEntities[chunkOffset] = new ChunkEntity(transparentEntity, store.GetUuid(transparentEntity));
         }
@@ -304,9 +301,9 @@ internal sealed class VoxelEntityBuilder(
         VoxelChunkRegistry registry = voxelComponent.Registry;
         Short3 chunkOffset = chunk.Coords;
 
-        UpdateRendererBucket(store, parentUuid, chunkOffset, data.OpaqueMesh, _opaqueMaterial, _opaqueRenderOptions, AlphaMode.Opaque, registry.OpaqueEntities, meshRendererCleanup);
-        UpdateRendererBucket(store, parentUuid, chunkOffset, data.MaskedMesh, _maskedMaterial, _maskedRenderOptions, AlphaMode.Masked, registry.MaskedEntities, meshRendererCleanup);
-        UpdateRendererBucket(store, parentUuid, chunkOffset, data.TransparentMesh, _transparentMaterial, _transparentRenderOptions, AlphaMode.Blend, registry.TransparentEntities, meshRendererCleanup);
+        UpdateRendererBucket(store, parentUuid, chunkOffset, data.OpaqueMesh, _opaqueMaterial, _opaqueRenderOptions, registry.OpaqueEntities, meshRendererCleanup);
+        UpdateRendererBucket(store, parentUuid, chunkOffset, data.MaskedMesh, _maskedMaterial, _maskedRenderOptions, registry.MaskedEntities, meshRendererCleanup);
+        UpdateRendererBucket(store, parentUuid, chunkOffset, data.TransparentMesh, _transparentMaterial, _transparentRenderOptions, registry.TransparentEntities, meshRendererCleanup);
 
         if (reconcileEntities)
         {
@@ -321,7 +318,6 @@ internal sealed class VoxelEntityBuilder(
         Mesh? mesh,
         Material material,
         RenderOptions renderOptions,
-        AlphaMode alphaMode,
         Dictionary<Short3, ChunkEntity> bucket,
         MeshRendererCleanup meshRendererCleanup
     )
@@ -346,7 +342,6 @@ internal sealed class VoxelEntityBuilder(
                 store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
                 store.AddOrUpdate(entity, chunkTransform);
                 store.AddOrUpdate(entity, new ChildComponent(parentUuid));
-                store.AddOrUpdate(entity, new VoxelChunkComponent(chunkOffset, alphaMode));
                 store.AddOrUpdate(entity, new MeshRendererComponent(newRenderer));
                 bucket[chunkOffset] = new ChunkEntity(entity, store.GetUuid(entity));
             }

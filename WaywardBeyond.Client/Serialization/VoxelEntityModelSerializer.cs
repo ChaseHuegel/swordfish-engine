@@ -42,7 +42,7 @@ internal class VoxelEntityModelSerializer : ISerializer<VoxelEntityModel>
         byte chunkSize = voxelEntityData.Chunks.Length > 0 ? voxelEntityData.Chunks[0].Chunk.Size : (byte)0;
         if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
         {
-            chunkSize = 16;
+            chunkSize = VoxelObject.DefaultChunkEdge;
         }
 
         var voxelObject = new VoxelObject(chunkSize, voxelEntityData.Chunks);

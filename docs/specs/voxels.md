@@ -11,18 +11,18 @@ container. It owns a `Dictionary<Short3, ChunkData>` keyed by chunk offset. It
 creates a chunk on the first write that lands in it.
 
 - `Set(x, y, z, voxel)` writes one cell and creates the chunk when absent
-  (`VoxelObject.cs:92`).
+  (`VoxelObject.cs:115`).
 - `SetLight(x, y, z, lightLevel)` updates the light level of a resident cell
-  without modifying palette counts (`VoxelObject.cs:131`).
-- `Get(x, y, z)` returns one cell by value (`VoxelObject.cs:168`).
+  without modifying palette counts (`VoxelObject.cs:154`).
+- `Get(x, y, z)` returns one cell by value (`VoxelObject.cs:193`).
 - `Sample(x, y, z)` returns the cell and its six neighbours
-  (`VoxelObject.cs:208`).
+  (`VoxelObject.cs:233`).
 - `GetChunkInfos()` returns a copy of every resident chunk. The caller owns the
-  voxel arrays (`VoxelObject.cs:310`).
+  voxel arrays (`VoxelObject.cs:335`).
 
 A chunk holds `chunkSize³` voxels. `chunkSize` is a power of two and the
 constructor rejects any chunk whose `Size`, voxel count, or array does not match
-(`VoxelObject.cs:45`).
+(`VoxelObject.cs:34-43`).
 
 ### One thread at a time
 
@@ -49,8 +49,8 @@ world coordinate shifts forward by its chunk span before the mask applies, so
 ### Out of bounds
 
 A read outside a resident chunk returns the shared empty voxel. That voxel
-carries light level 15, so an absent chunk reads as lit sky
-(`VoxelObject.cs:14`).
+carries light level 15, so an absent chunk reads as full ambient
+(`VoxelObject.cs:16`).
 
 The container resets that voxel before every export. A write through a returned
 reference therefore cannot reach a later read, and a write outside a resident
@@ -69,7 +69,7 @@ The two producers do not agree, and a caller must know which one it holds.
 | `VoxelObject.Sample(...)` | fixed world axes | left at `default` |
 
 `ChunkData` rotates each offset by the centre voxel's pitch, yaw, and roll
-(`ChunkData.cs:112`), so the mesh and collider passes follow a rotated brick.
+(`ChunkData.cs:113`), so the mesh and collider passes follow a rotated brick.
 `VoxelObject.Sample` does not rotate, so the light passes treat every brick as
 axis aligned. [0072](../issues/0072-voxel-sample-producers-disagree.md) tracks the split.
 
@@ -99,7 +99,7 @@ Id 0 is the empty voxel. `Only(0)` is true for a chunk that holds no content.
 ## Chunk remeshing and dirty tracking
 
 Client structures mesh each resident chunk into child entities
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:86`). Each chunk
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:98-110`). Each chunk
 child entity holds its own `MeshRendererComponent` and `VoxelChunkComponent`
 (`WaywardBeyond.Client/Components/VoxelChunkComponent.cs`).
 
@@ -180,11 +180,11 @@ ambient, otherwise one less. Open air never decays. A tunnel or a cavity does.
 
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:171-238`) rebuilds
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:146-243`) rebuilds
 only dirty chunks. Untouched chunks keep their existing mesh renderers.
 
 `ClientVoxelReconcileSystem`
-(`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:232-265`) reconciles
+(`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:232-252`) reconciles
 predicted edits against authoritative server echoes. `VoxelEquals` compares brick
 identity, shape, and orientation. It does not compare light level because server
 echoes do not compute presentation lighting. This avoids false misprediction
@@ -212,7 +212,7 @@ allocations per tick.
 ## Chunk collision caching
 
 `VoxelObjectBuilder.BuildChunkCollision`
-(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:62-84`) computes
+(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:57-83`) computes
 surface collision boxes for one chunk.
 
 `VoxelChunkRegistry.ChunkColliders` caches `ChunkCollisionData`
@@ -220,13 +220,13 @@ surface collision boxes for one chunk.
 
 When a chunk becomes dirty, `VoxelEntityBuilder.RebuildDirtyChunks` resamples
 collision boxes only for that chunk. `VoxelObjectBuilder.CombineCollisions`
-(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:86-117`) merges
+(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:109-144`) merges
 the cached chunk boxes into one `CompoundShape`. The builder skips the collider
 update when dirty chunks produce no collision changes.
 
 `JoltPhysicsSystem.TryGetJoltShape`
-(`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:204-242`) deduplicates child shapes
-using `Shape` value equality (`Swordfish.Library/Types/Shapes/Shape.cs:12-85`).
+(`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:206-241`) deduplicates child shapes
+using `Shape` value equality (`Swordfish.Library/Types/Shapes/Shape.cs:12-120`).
 It creates only one native `BoxShape` per unique size, instead of allocating one
 per surface voxel.
 

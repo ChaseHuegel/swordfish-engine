@@ -58,7 +58,7 @@ public static class VoxelWorldEntityFactory
         return new Entity(entity, store);
     }
 
-    private const byte DEFAULT_CHUNK_SIZE = 16;
+    private const byte DEFAULT_CHUNK_SIZE = VoxelObject.DefaultChunkEdge;
 
     /// <summary>
     /// Serializes a live authority structure entity back to its <see cref="VoxelEntityData"/> form, using
