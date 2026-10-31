@@ -74,5 +74,7 @@ is not part of this workflow.
 - [ ] [Show the menu spaceship](/docs/issues/0092-menu-spaceship.md) — the main menu background voxel ship is not wired up
 - [ ] [Add a window concept to the UI layers](/docs/issues/0093-ui-window-concept.md) — one global interaction blocker cannot separate closable windows from selectors
 - [ ] [Remove the feedback submit delay](/docs/issues/0094-feedback-submit-delay.md) — a fixed 100 ms delay stands in for "the modal has closed"
+- [ ] [Separate voxel light from geometry](/docs/issues/0095-voxel-light-geometry-split.md) — a light change remeshes and recollides every chunk it touches
+- [ ] [Use one physics body with per-chunk compound children](/docs/issues/0096-per-chunk-compound-collision.md) — every edit copies all chunk shapes and rebuilds the whole Jolt compound
 
 ### Research
