@@ -37,6 +37,18 @@ Not yet isolated. Candidates:
 Render the rows as a markup component rather than a nested view, so the rows
 emit into the caller's scope.
 
+## Findings from the component attempt
+
+- A component cannot reference an external widget namespace. Declaring
+  `xmlns:s="WaywardBeyond.Client.UI.Settings"` on the component root and using
+  `<s:SettingsChoice ... />` reports `RF0007` (the prefix is not declared) even
+  though the declaration sits on the Reef root. Views do not have this problem.
+  This blocks a rows component that wraps the coded choice or slider widgets.
+- Inlining the rows into the page view (no nested view) was not enough to make
+  the controls respond in the page-level probe. The tray still worked. The
+  probes that followed were inconclusive because the rows stopped rendering
+  after ad-hoc layout edits, so no trustworthy conclusion was reached.
+
 ## Verification
 
 Re-adding a shell-level click test and observing a draft change (Apply enabled)
