@@ -7,8 +7,7 @@ internal sealed class BufferObject<TData> : GLHandle
 {
     private readonly GL _gl;
     public int Length { get; private set; }
-    public int ByteCapacity { get; private set; }
-    public int ByteLength => ByteCapacity;
+    public int ByteCount { get; private set; }
     private readonly BufferTargetARB _bufferType;
     private readonly BufferUsageARB _usage;
 
@@ -19,14 +18,14 @@ internal sealed class BufferObject<TData> : GLHandle
     {
         _gl = gl;
         Length = data.Length;
-        ByteCapacity = checked(data.Length * sizeof(TData));
+        ByteCount = checked(data.Length * sizeof(TData));
         _bufferType = bufferType;
         _usage = usage;
 
         using Scope _ = Use();
         fixed (void* dataPtr = data)
         {
-            nuint bufferSize = new((uint)ByteCapacity);
+            nuint bufferSize = new((uint)ByteCount);
             _gl.BufferData(_bufferType, bufferSize, dataPtr, _usage);
         }
 
@@ -43,9 +42,9 @@ internal sealed class BufferObject<TData> : GLHandle
         fixed (void* dataPtr = data)
         {
             int requiredBytes = checked(data.Length * sizeof(TData));
-            if (requiredBytes > ByteCapacity)
+            if (requiredBytes > ByteCount)
             {
-                ByteCapacity = requiredBytes;
+                ByteCount = requiredBytes;
                 _gl.BufferData(_bufferType, (nuint)requiredBytes, dataPtr, _usage);
             }
             else
@@ -64,8 +63,8 @@ internal sealed class BufferObject<TData> : GLHandle
     {
         Bind();
         Length = size;
-        ByteCapacity = checked(size * sizeof(TData));
-        _gl.BufferData(_bufferType, (nuint)ByteCapacity, data: null, _usage);
+        ByteCount = checked(size * sizeof(TData));
+        _gl.BufferData(_bufferType, (nuint)ByteCount, data: null, _usage);
         Unbind();
     }
 
