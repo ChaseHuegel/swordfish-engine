@@ -173,6 +173,8 @@
                     <Text class="wb-button-label" text="@L('ui.button.cancel')" anchor="Center" />
                 </Button>
 
+                <Element width="fill" visible="@(context.Status == null)" />
+
                 <Text visible="@(context.Status != null)"
                       text="@context.Status"
                       class="wb-text-small"

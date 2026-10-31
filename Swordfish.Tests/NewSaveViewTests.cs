@@ -1,4 +1,5 @@
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
+using System;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -65,22 +66,49 @@ public class NewSaveViewTests
             UiSnapshotTests.Compare($"{width}x{height}-new-save-ready", width, height, ui =>
             {
                 var view = new NewSaveView(new TestLocalization()) { Input = new FakeInputService() };
-                view.Render(ui, new NewSaveState(
-                    Creating: false,
-                    "Outer Hercules VI",
-                    view.ModeLine(),
-                    view.Labeled("ui.label.level.seed", "Lunar Steer Glorifies Wormhole"),
-                    view.Labeled("ui.label.level.type", "ui.label.level.type.asteroids"),
-                    CanCreate: true,
-                    Status: null,
-                    StatusDanger: false,
-                    StatusWarning: false,
-                    Tab: 0,
-                    [],
-                    CursorOn: false
-                ));
+                view.Render(ui, CreateReadyState(view));
             });
         }
+    }
+
+    [Fact]
+    public void ReadyFooterKeepsCreateOnTheRight()
+    {
+        var view = new NewSaveView(new TestLocalization()) { Input = new FakeInputService() };
+        string actual = UiSnapshotTests.CaptureRender(1280, 720, ui => view.Render(ui, CreateReadyState(view)));
+        Assert.True(LeftOf(actual, "id=Button_Create ") > 900, "Create did not stay on the right side of the footer.");
+    }
+
+    private static int LeftOf(string snapshot, string marker)
+    {
+        foreach (string line in snapshot.Split('\n'))
+        {
+            if (line.Contains(marker, StringComparison.Ordinal))
+            {
+                System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(line, @" rect=(-?\d+),");
+                return int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No command matches '{marker}'.");
+    }
+
+    private static NewSaveState CreateReadyState(NewSaveView view)
+    {
+        return new NewSaveState(
+            Creating: false,
+            "Outer Hercules VI",
+            view.ModeLine(),
+            view.Labeled("ui.label.level.seed", "Lunar Steer Glorifies Wormhole"),
+            view.Labeled("ui.label.level.type", "ui.label.level.type.asteroids"),
+            CanCreate: true,
+            Status: null,
+            StatusDanger: false,
+            StatusWarning: false,
+            Tab: 0,
+            [],
+            CursorOn: false
+        );
     }
 
     /// <summary>Builds the empty form state that the legacy capture used.</summary>
