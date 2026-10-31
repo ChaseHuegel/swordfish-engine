@@ -1,0 +1,42 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="RadialMenuView"
+      Context="RadialMenuState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <ForEach in="@context.Nodes" as="node">
+        <Element id="{node.Id}"
+                 onenter="@context.OnEnter(node.Index)"
+                 layout="none"
+                 anchor="Center"
+                 x="@node.X"
+                 y="@node.Y"
+                 width="88"
+                 height="88">
+            <Element class="wb-radial-node"
+                     class:wb-radial-node-selected="@node.Selected"
+                     layout="none"
+                     anchor="Center"
+                     width="56"
+                     height="56">
+                <Image class="wb-radial-icon"
+                       class:wb-radial-icon-selected="@node.Selected"
+                       source="@node.Icon"
+                       anchor="Center"
+                       width="28"
+                       height="28" />
+            </Element>
+        </Element>
+    </ForEach>
+
+    <Element class="wb-radial-label"
+             passthrough="true"
+             layout="none"
+             anchor="Center">
+        <Text class="wb-radial-label-text"
+              text="@context.Label"
+              anchor="Center"
+              wrap="false" />
+    </Element>
+</Reef>

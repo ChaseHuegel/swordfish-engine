@@ -141,9 +141,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   directly. Both read theme colors for focus, placeholder, selection, and caret.
   A container that draws its own frame, such as the chat send bar, sets
   `TextBoxState.Options.Chrome` to false.
-- HUD overlays still in C# (`Actions`, `ShapeSelector`,
-  `OrientationSelector`, `ChatLayer`) use theme tokens, borders,
-  and corner caps directly. `ChatLayer` uses `Widgets.Panel` and
+- The HUD overlays use `RadialMenuView`, `ActionsView`, `HotbarView`, and
+  `ControlHintsView`. `ChatLayer` still uses `Widgets.Panel` and
   `Widgets.Scrollbar` when open. The modal `Inventory` window uses
   `Widgets.MenuPanel` and `Widgets.DottedDivider`.
 - The version watermark, crosshair, nameplates, and debug stat overlays are

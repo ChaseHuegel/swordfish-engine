@@ -965,3 +965,37 @@
     font-family: "Salmon Mono 9 Regular";
     font-size: 16px;
 }
+
+.wb-radial-node {
+    color: var(--wb-panel);
+    border: 1px var(--wb-border);
+    corner-caps: 6 1 var(--wb-border-hover);
+}
+
+.wb-radial-node-selected {
+    color: var(--wb-selection);
+    border-color: var(--wb-primary);
+    corner-caps: 6 1 var(--wb-primary-bright);
+}
+
+.wb-radial-icon {
+    color: var(--wb-accent-bright);
+}
+
+.wb-radial-icon-selected {
+    color: var(--wb-primary-bright);
+}
+
+.wb-radial-label {
+    color: var(--wb-panel);
+    border: 1px var(--wb-primary);
+    corner-caps: 6 1 var(--wb-primary-bright);
+    padding: 6px 14px;
+}
+
+.wb-radial-label-text {
+    color: var(--wb-primary-bright);
+    font-family: "Salmon Mono 9 Regular";
+    font-size: 16px;
+    vertical-align: middle;
+}

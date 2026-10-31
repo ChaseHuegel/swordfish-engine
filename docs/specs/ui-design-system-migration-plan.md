@@ -188,6 +188,9 @@ The first implementation does not add Reef text state or a Reef text control.
 - The hotbar and control hints use `HotbarView` and `ControlHintsView`. The
   layers keep shortcuts and state assembly; slot chrome and hint pills come
   from the shared components.
+- The shape and orientation radial selectors share `RadialMenuView`, and the
+  action strip uses `ActionsView` with indicator icons from each selector.
+  Pointer enter callbacks drive hover selection.
 
 ## Migration phases
 

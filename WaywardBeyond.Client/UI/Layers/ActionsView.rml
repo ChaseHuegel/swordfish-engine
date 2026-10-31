@@ -1,0 +1,30 @@
+<Reef xmlns="Reef"
+      Class="ActionsView"
+      Context="ActionsState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Element passthrough="true"
+             anchor="Center"
+             layout="vertical"
+             spacing="8"
+             width="100%">
+        <If condition="@context.HasAction">
+            <Element passthrough="true" anchor="Center">
+                <Text text="@context.ActionText"
+                      color="@TextColor(context.ActionAlpha)"
+                      font-size="16"
+                      wrap="false" />
+            </Element>
+        </If>
+
+        <Element passthrough="true"
+                 anchor="Center"
+                 layout="horizontal"
+                 spacing="12">
+            <ForEach in="@context.Indicators" as="indicator">
+                <IndicatorView context="@indicator" />
+            </ForEach>
+        </Element>
+    </Element>
+</Reef>

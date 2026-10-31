@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Reef;
+using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Xunit;
@@ -95,6 +97,35 @@ public class OverlayViewTests
                 new ControlHintsView().Render(ui, new ControlHintsState(hints));
             });
 
+            UiSnapshotTests.Compare($"{width}x{height}-radial-menu", width, height, ui =>
+            {
+                var icon = new Material(null!);
+                var nodes = new List<RadialNodeState>
+                {
+                    new("orientationSelector1", 0, 0, 76, icon, Selected: true),
+                    new("orientationSelector2", 1, -76, 0, icon, false),
+                    new("orientationSelector3", 2, 0, -76, icon, false),
+                    new("orientationSelector4", 3, 76, 0, icon, false),
+                };
+                new RadialMenuView().Render(ui, new RadialMenuState("Down", nodes, _ => { }));
+            });
+
+            UiSnapshotTests.Compare($"{width}x{height}-indicator", width, height, ui =>
+            {
+                new IndicatorView().Render(ui, new IndicatorState(new Material(null!)));
+            });
+
+            UiSnapshotTests.Compare($"{width}x{height}-actions", width, height, ui =>
+            {
+                var icon = new Material(null!);
+                var indicators = new List<IndicatorState>
+                {
+                    new(icon),
+                    new(icon),
+                };
+                new ActionsView().Render(ui, new ActionsState("Shape: Block", 0.7f, true, indicators));
+            });
+
             UiSnapshotTests.Compare($"{width}x{height}-load-screen", width, height, ui =>
             {
                 new LoadScreenView().Render(
@@ -110,5 +141,36 @@ public class OverlayViewTests
                 );
             });
         }
+    }
+
+    [Fact]
+    public void RadialMenuInvokesEnterCallback()
+    {
+        var controller = new UIController();
+        var ui = new UIBuilder<Material>(800, 600, new StubTextEngine(), controller);
+        var icon = new Material(null!);
+        var nodes = new List<RadialNodeState>
+        {
+            new("orientationSelector1", 0, 0, 76, icon, false),
+        };
+        var entered = -1;
+
+        void Render()
+        {
+            new RadialMenuView().Render(ui, new RadialMenuState("Down", nodes, index => entered = index));
+            ui.Build(0d);
+        }
+
+        Render();
+        ElementBounds bounds = ui.GetElementBounds("orientationSelector1");
+        controller.UpdateMouse(
+            bounds.Rect.Left + bounds.Rect.Size.X / 2,
+            bounds.Rect.Top + bounds.Rect.Size.Y / 2,
+            UIController.MouseButtons.None
+        );
+        Render();
+        Render();
+
+        Assert.Equal(0, entered);
     }
 }

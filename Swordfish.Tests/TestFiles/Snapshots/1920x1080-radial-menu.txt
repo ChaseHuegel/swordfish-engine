@@ -1,0 +1,14 @@
+0 id=orientationSelector1 rect=916,572,88,88 clip=916,572,88,88 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+1 id=- rect=932,588,56,56 clip=916,572,88,88 color=0,0.4549,1,0.502 bg=0,0,0,0 border=1:0.949,0.6,0.2902,1 caps=6:1:1,0.8235,0.4902,1 radius=0:0:0:0 font=-:0 text=-
+2 id=- rect=946,602,28,28 clip=916,572,88,88 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+3 id=orientationSelector2 rect=840,496,88,88 clip=840,496,88,88 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+4 id=- rect=856,512,56,56 clip=840,496,88,88 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=6:1:0.2863,0.3647,0.4784,1 radius=0:0:0:0 font=-:0 text=-
+5 id=- rect=870,526,28,28 clip=840,496,88,88 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+6 id=orientationSelector3 rect=916,420,88,88 clip=916,420,88,88 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+7 id=- rect=932,436,56,56 clip=916,420,88,88 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=6:1:0.2863,0.3647,0.4784,1 radius=0:0:0:0 font=-:0 text=-
+8 id=- rect=946,450,28,28 clip=916,420,88,88 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+9 id=orientationSelector4 rect=992,496,88,88 clip=992,496,88,88 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+10 id=- rect=1008,512,56,56 clip=992,496,88,88 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=6:1:0.2863,0.3647,0.4784,1 radius=0:0:0:0 font=-:0 text=-
+11 id=- rect=1022,526,28,28 clip=992,496,88,88 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+12 id=- rect=938,518,44,44 clip=938,518,44,44 color=0.0667,0.0902,0.1373,0.9412 bg=0,0,0,0 border=1:0.949,0.6,0.2902,1 caps=6:1:1,0.8235,0.4902,1 radius=0:0:0:0 font=-:0 text=-
+13 id=- rect=944,532,32,16 clip=938,518,44,44 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Down
