@@ -93,7 +93,7 @@
                     <If condition="@context.Footer.Orientable">
                         <Element class="wb-inventory-badge"
                                  anchor="Center"
-                                 width="112"
+                                 width="fit"
                                  height="24">
                             <Text class="wb-inventory-badge-icon"
                                   text="@Glyph('rotate')"
@@ -109,7 +109,7 @@
                     <If condition="@context.Footer.Shapeable">
                         <Element class="wb-inventory-badge"
                                  anchor="Center"
-                                 width="112"
+                                 width="fit"
                                  height="24">
                             <Text class="wb-inventory-badge-icon"
                                   text="@Glyph('shapes')"
