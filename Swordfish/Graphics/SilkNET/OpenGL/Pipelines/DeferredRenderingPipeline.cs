@@ -56,7 +56,7 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
         _screenShader = screenShader.Value.CreateProgram(glContext);
     }
     
-    public override void PreRender(double delta, RenderScene renderScene)
+    public override int PreRender(double delta, RenderScene renderScene)
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
@@ -66,6 +66,7 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
         //  Render to the gbuffer
         _gBuffer.Bind();
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        return 0;
     }
 
     public override void PostRender(double delta, RenderScene renderScene)

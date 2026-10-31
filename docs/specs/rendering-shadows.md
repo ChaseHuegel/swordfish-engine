@@ -14,6 +14,19 @@ Dynamic shadows render directional cascaded shadow maps (CSM) and omnidirectiona
 6. The main forward lighting pass binds shadow textures and evaluates shadow factors in `pbr_plus.glsl`.
 7. Objects with `RenderOptions.ReceiveShadows = false` skip shadow attenuation.
 
+## Culling
+
+Camera culling is a view concern. `GLRenderContext.Tick` submits every live
+mesh renderer to the scene. The render stages cull per pass.
+
+- The camera pass tests each render target against `RenderScene.CameraFrustum`.
+- The shadow pass builds a frustum from the cascade or cube-face view and
+  projection. It tests every caster against that frustum.
+- A caster outside the camera view still casts a shadow inside the view.
+
+The point-shadow path draws six faces per light. A layered `gl_Layer` draw is not
+implemented yet. The per-face path remains the fallback.
+
 ## Directional Light Shadows (CSM)
 
 Directional shadows use Cascaded Shadow Maps with 1 to 4 split cascades.

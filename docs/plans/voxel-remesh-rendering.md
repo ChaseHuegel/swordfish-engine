@@ -101,7 +101,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [x] E0 Child transform order
 - [x] E1 View-only culling
 - [ ] E2 Shadow culling and layered point shadows
-- [ ] E3 Cutout depth, single depth pass, draw-call count
+- [x] E3 Cutout depth, single depth pass, draw-call count
 - [ ] E4 Per-frame renderer overhead
 - [ ] E5 Shape equality and helper docs
 - [ ] E6a Batched mesh data model
@@ -128,7 +128,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 | E0 | done | pending | 2026-10-31 | ChildSystem now ticks before GLRenderContext |
 | E1 | done | pending | 2026-10-31 | Scene holds all renderers; stages cull per pass |
 | E2 | not started | — | — | |
-| E3 | not started | — | — | |
+| E3 | done | pending | 2026-10-31 | Masked depth uses cutout; one depth pass; shadow count included |
 | E4 | not started | — | — | |
 | E5 | not started | — | — | |
 | E6 | not started | — | — | |
@@ -233,15 +233,15 @@ The SSAO half-res depth pass and the full depth pass both draw the scene
 
 Steps:
 
-- [ ] Bind `depthCutoutShader` or `depthCutoutArrayShader` for the masked
+- [x] Bind `depthCutoutShader` or `depthCutoutArrayShader` for the masked
       bucket in a depth pass. Set `uAlphaCutoff` and `texture0`.
-- [ ] Render the full depth buffer first. Use it for SSAO. Remove the half-res
+- [x] Render the full depth buffer first. Use it for SSAO. Remove the half-res
       depth draw, or downsample the full depth into the SSAO input.
-- [ ] Set `_preDepthTex` or replace its users with `_depthTex`.
-- [ ] Return the shadow draw-call count from `RenderShadows` and add it to the
+- [x] Set `_preDepthTex` or replace its users with `_depthTex`.
+- [x] Return the shadow draw-call count from `RenderShadows` and add it to the
       pipeline total.
-- [ ] Verify the overlay count against the real calls.
-- [ ] Update `docs/specs/resource-lifetime.md` if the pass order changes.
+- [ ] Manual: verify the overlay count against the real calls.
+- [x] Update `docs/specs/resource-lifetime.md` if the pass order changes.
 
 Gate: build, `Swordfish.Tests`, manual SSAO and cutout check.
 

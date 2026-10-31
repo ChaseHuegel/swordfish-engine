@@ -20,6 +20,15 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
     private readonly Dictionary<GLRenderTarget, InstanceSet> _transparentInstances = [];
     private readonly Stack<InstanceSet> _setPool = new();
 
+    private ShaderProgram? _depthCutoutShader;
+    private ShaderProgram? _depthCutoutArrayShader;
+
+    public void SetDepthShaders(ShaderProgram depthShader, ShaderProgram depthCutoutShader, ShaderProgram depthCutoutArrayShader)
+    {
+        _depthCutoutShader = depthCutoutShader;
+        _depthCutoutArrayShader = depthCutoutArrayShader;
+    }
+
     private InstanceSet RentSet()
     {
         if (_setPool.TryPop(out InstanceSet? set))
@@ -152,20 +161,20 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         var drawCalls = 0;
 
-        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false, isDepthPass, renderScene.CameraFrustum);
-        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, sort: false, isDepthPass, renderScene.CameraFrustum);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false, isDepthPass, masked: false, renderScene.CameraFrustum);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, sort: false, isDepthPass, masked: true, renderScene.CameraFrustum);
 
         //  Exclude rendering transparent targets during a depth pass
         if (!isDepthPass)
         {
-            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true, isDepthPass: false, renderScene.CameraFrustum);
+            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true, isDepthPass: false, masked: false, renderScene.CameraFrustum);
         }
 
         _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 
-    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, InstanceSet> instances, bool sort, bool isDepthPass, Frustum? frustum)
+    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, InstanceSet> instances, bool sort, bool isDepthPass, bool masked, Frustum? frustum)
     {
         if (instances.Count == 0)
         {
@@ -178,6 +187,9 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         GLMaterial[]? activeMaterials = null;
         GLMaterial.Scope[]? activeScopes = null;
         RenderOptions? lastRenderOptions = null;
+
+        ShaderProgram? activeCutoutShader = null;
+        GLHandle.Scope? cutoutScope = null;
 
         foreach (KeyValuePair<GLRenderTarget, InstanceSet> instance in instances)
         {
@@ -213,6 +225,39 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             {
                 modelsSpan = CollectionsMarshal.AsSpan(matrices);
                 UploadModelMatrices(target, modelsSpan);
+            }
+
+            if (isDepthPass && masked)
+            {
+                bool isArray = target.Materials.Length > 0 && target.Materials[0].Textures.Length > 0 && target.Materials[0].Textures[0] is TexImage3D;
+                ShaderProgram? cutoutShader = isArray ? _depthCutoutArrayShader : _depthCutoutShader;
+                if (cutoutShader != null)
+                {
+                    if (activeCutoutShader != cutoutShader)
+                    {
+                        cutoutScope?.Dispose();
+                        activeCutoutShader = cutoutShader;
+                        cutoutScope = cutoutShader.Use();
+                        cutoutShader.SetUniform("view", view);
+                        cutoutShader.SetUniform("projection", projection);
+                        cutoutShader.SetUniform("texture0", 0);
+                    }
+
+                    cutoutShader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaCutoff);
+
+                    GLHandle.Scope? textureScope = null;
+                    if (target.Materials.Length > 0 && target.Materials[0].Textures.Length > 0)
+                    {
+                        textureScope = target.Materials[0].Textures[0].Activate(TextureUnit.Texture0);
+                    }
+
+                    target.VertexArrayObject.Bind();
+                    _gl.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
+                    _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)modelsSpan.Length);
+                    drawCalls++;
+                    textureScope?.Dispose();
+                    continue;
+                }
             }
 
             if (!isDepthPass)
@@ -289,6 +334,8 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             }
             ArrayPool<GLMaterial.Scope>.Shared.Return(activeScopes);
         }
+
+        cutoutScope?.Dispose();
 
         return drawCalls;
     }

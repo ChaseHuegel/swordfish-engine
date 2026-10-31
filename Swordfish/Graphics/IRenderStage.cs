@@ -14,4 +14,7 @@ internal interface IRenderStage
         ShaderProgram depthCutoutShader,
         ShaderProgram depthCutoutArrayShader
     ) => 0;
+
+    /// <summary>Supplies the depth shaders used by depth and shadow passes.</summary>
+    void SetDepthShaders(ShaderProgram depthShader, ShaderProgram depthCutoutShader, ShaderProgram depthCutoutArrayShader) { }
 }

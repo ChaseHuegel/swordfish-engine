@@ -13,10 +13,11 @@ internal sealed class ForwardRenderingPipeline<TRenderStage>(
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
 
-    public override void PreRender(double delta, RenderScene renderScene)
+    public override int PreRender(double delta, RenderScene renderScene)
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
+        return 0;
     }
 
     public override void PostRender(double delta, RenderScene renderScene)

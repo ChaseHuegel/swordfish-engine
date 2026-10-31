@@ -14,14 +14,14 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
         _renderStages = renderStages;
     }
     
-    public abstract void PreRender(double delta, RenderScene renderScene);
+    public abstract int PreRender(double delta, RenderScene renderScene);
 
     public abstract void PostRender(double delta, RenderScene renderScene);
 
     public int Render(double delta, RenderScene renderScene)
     {
-        PreRender(delta, renderScene);
-        int drawCalls = Draw(delta, renderScene);
+        int drawCalls = PreRender(delta, renderScene);
+        drawCalls += Draw(delta, renderScene);
         PostRender(delta, renderScene);
         return drawCalls;
     }
