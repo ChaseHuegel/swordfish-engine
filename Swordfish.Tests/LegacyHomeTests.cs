@@ -39,21 +39,9 @@ public class LegacyHomeTests
     {
         var home = HomeFixtures.CreateHome(true);
         string actual = UiSnapshotTests.CaptureHovered(
-            800,
-            600,
-            ui =>
-            {
-                using (ui.Element())
-                {
-                    ui.Padding = new Padding { Left = 20, Top = 64, Right = 20, Bottom = 20 };
-                    ui.Constraints = new Constraints
-                    {
-                        Width = new Relative(1f),
-                        Height = new Relative(1f),
-                    };
-                    home.RenderPage(0d, ui, null!);
-                }
-            },
+            1280,
+            720,
+            ui => home.RenderPage(0d, ui, null!),
             "Button_Continue");
 
         int continueTop = TopOf(actual, "id=Button_Continue ");

@@ -177,6 +177,10 @@ and the card use that one result, so a disabled button never draws a card and an
 enabled button always does. Deleting the last played galaxy or colonist clears
 the recorded session.
 
+The hover card sizes to its content and never wraps or clips a save name or seed
+phrase. It appears only when the window is wide enough to hold the menu and the
+full card side by side.
+
 ## Credits
 
 The credits page reads three entries from `ui.toml`:

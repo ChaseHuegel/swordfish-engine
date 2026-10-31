@@ -45,26 +45,26 @@
                 <Text class="wb-button-label" text="@L('ui.button.home.quit')" anchor="Center" />
             </Button>
         </Element>
+    </Element>
 
-        <Element visible="@(context.HasLastSession &amp;&amp; ui.Width &gt;= 792 &amp;&amp; ui.Hovering('Button_Continue'))"
-                 layout="none"
-                 overlay="true"
-                 anchor="Top Left"
-                 x="288"
-                 y="0"
-                 width="@(ui.Width &gt; 980 ? 294 : ui.Width / 2 - 196)"
-                 height="@(context.Card.Remote ? 242 : 220)">
+    <Element visible="@(context.HasLastSession &amp;&amp; ui.Width &gt;= 1220 &amp;&amp; ui.Hovering('Button_Continue'))"
+             layout="none"
+             anchor="Top Left"
+             x="@(ui.Width / 2 + 156)"
+             y="@((ui.Height - 313) / 2)"
+             width="fit"
+             height="@(context.Card.Remote ? 242 : 220)">
             <Element class="wb-panel"
                      layout="none"
-                     width="@(ui.Width &gt; 980 ? 294 : ui.Width / 2 - 196)"
+                     width="fit"
                      height="fill"
                      padding="2">
                 <Element class="wb-panel-inner"
                          layout="vertical"
-                         width="@(ui.Width &gt; 980 ? 290 : ui.Width / 2 - 200)"
+                         width="fit"
                          height="fill"
                          clip="true">
-                    <Element layout="horizontal" height="16" spacing="6">
+                    <Element layout="horizontal" width="fit" height="16" spacing="6">
                         <Text visible="@context.Card.Remote"
                               text="@Glyph('server')"
                               class="wb-icon wb-text-accent"
@@ -81,45 +81,46 @@
                     </Element>
 
                     <Element height="4" />
-                    <Text text="@context.Card.SaveName" class="wb-text-body" height="20" />
+                    <Text text="@context.Card.SaveName" class="wb-text-body" width="fit" height="20" wrap="false" />
 
                     <Element visible="@context.Card.Remote" height="4" />
                     <Text visible="@context.Card.Remote"
                           text="@context.Card.Destination"
                           class="wb-text-small"
-                          height="16" />
+                          width="fit"
+                          height="16"
+                          wrap="false" />
 
                     <Element height="4" />
-                    <Element layout="horizontal" height="18">
+                    <Element layout="horizontal" width="fit" height="18">
                         <Text text="@L('ui.label.level.mode')" class="wb-card-detail-label" width="100" height="fill" />
-                        <Text text="@ModeName(context.Card.Mode)" class="wb-card-detail-value" height="fill" />
+                        <Text text="@ModeName(context.Card.Mode)" class="wb-card-detail-value" width="fit" height="fill" wrap="false" />
                     </Element>
-                    <Element layout="horizontal" height="18">
+                    <Element layout="horizontal" width="fit" height="18">
                         <Text text="@L('ui.label.level.seed')" class="wb-card-detail-label" width="100" height="fill" />
-                        <Text text="@context.Card.SeedPhrase" class="wb-card-detail-value" height="fill" />
+                        <Text text="@context.Card.SeedPhrase" class="wb-card-detail-value" width="fit" height="fill" wrap="false" />
                     </Element>
-                    <Element layout="horizontal" height="18">
+                    <Element layout="horizontal" width="fit" height="18">
                         <Text text="@L('ui.label.lastPlayed')" class="wb-card-detail-label" width="100" height="fill" />
-                        <Text text="@LastPlayedText(context.Card.LastPlayedMs)" class="wb-card-detail-value" height="fill" />
+                        <Text text="@LastPlayedText(context.Card.LastPlayedMs)" class="wb-card-detail-value" width="fit" height="fill" wrap="false" />
                     </Element>
-                    <Element layout="horizontal" height="18">
+                    <Element layout="horizontal" width="fit" height="18">
                         <Text text="@L('ui.label.timePlayed')" class="wb-card-detail-label" width="100" height="fill" />
-                        <Text text="@TimePlayedText(context.Card.AgeMs)" class="wb-card-detail-value" height="fill" />
+                        <Text text="@TimePlayedText(context.Card.AgeMs)" class="wb-card-detail-value" width="fit" height="fill" wrap="false" />
                     </Element>
 
                     <Element height="fill" />
                     <Element class="wb-divider-inner" width="fill" height="1" />
                     <Element height="8" />
 
-                    <Element layout="horizontal" height="64" spacing="12">
+                    <Element layout="horizontal" width="fit" height="64" spacing="12">
                         <Image source="@context.Card.Avatar" width="64" height="64" />
                         <Element layout="vertical" height="fill">
-                            <Text text="@context.Card.CharacterName" class="wb-card-name" height="18" />
-                            <Text text="@LevelLine(context.Card.Level, context.Card.Species)" class="wb-card-line" height="18" />
+                            <Text text="@context.Card.CharacterName" class="wb-card-name" width="fit" height="18" wrap="false" />
+                            <Text text="@LevelLine(context.Card.Level, context.Card.Species)" class="wb-card-line" width="fit" height="18" wrap="false" />
                         </Element>
                     </Element>
                 </Element>
             </Element>
-        </Element>
     </Element>
 </Reef>

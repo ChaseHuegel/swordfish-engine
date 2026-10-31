@@ -103,7 +103,7 @@
                         <Element height="16" />
                         <Element layout="horizontal" width="fill" height="128" spacing="20">
                             <Image source="@context.Detail.Portrait" width="128" height="128" />
-                            <Element layout="vertical" width="fill" height="fill">
+                            <Element layout="vertical" width="fill" height="fill" padding="0 0 40 0">
                                 <ForEach in="@context.Detail.Stats" as="stat">
                                     <Element layout="horizontal" width="fill" height="18">
                                         <Text text="@StatText(stat.Label)" class="wb-text-small" width="fill" height="fill" />
@@ -234,7 +234,7 @@
                         <Element height="16" />
                         <Element layout="horizontal" width="fill" height="128" spacing="20">
                             <Image source="@context.Detail.Portrait" width="128" height="128" />
-                            <Element layout="vertical" width="fill" height="fill">
+                            <Element layout="vertical" width="fill" height="fill" padding="0 0 40 0">
                                 <ForEach in="@context.Detail.Stats" as="stat">
                                     <Element layout="horizontal" width="fill" height="18">
                                         <Text text="@StatText(stat.Label)" class="wb-text-small" width="fill" height="fill" />
