@@ -1,7 +1,7 @@
 # Plan: Voxel remesh and chunk rendering
 
 - Type: plan
-- Status: proposed
+- Status: in progress (engine E0-E5 and game G1-G5 landed)
 - Workflow: [../specs/issues.md](../specs/issues.md)
 - Related: [0086](../issues/0086-incremental-voxel-rebuild.md), [0095](../issues/0095-voxel-light-geometry-split.md), [0096](../issues/0096-per-chunk-compound-collision.md)
 - Batching proposal: [../proposals/voxel-chunk-batching.md](../proposals/voxel-chunk-batching.md)
@@ -100,11 +100,12 @@ Record these before Phase E0. Add the numbers to this table.
 
 - [x] E0 Child transform order
 - [x] E1 View-only culling
-- [ ] E2 Shadow culling and layered point shadows
+- [x] E2a Shadow culling per cascade and face
+- [ ] E2b Layered point shadows (blocked on GPU verification)
 - [x] E3 Cutout depth, single depth pass, draw-call count
 - [x] E4 Per-frame renderer overhead
 - [x] E5 Shape equality and helper docs
-- [ ] E6a Batched mesh data model
+- [ ] E6a Batched mesh data model (blocked on D4 approval)
 - [ ] E6b Multi-draw batch stage
 - [ ] E6c Batch lifetime and fallbacks
 - [x] G1 Ambient model and unified light paths
@@ -125,20 +126,20 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 
 | Phase | State | Commit | Date | Note |
 |---|---|---|---|---|
-| E0 | done | pending | 2026-10-31 | ChildSystem now ticks before GLRenderContext |
-| E1 | done | pending | 2026-10-31 | Scene holds all renderers; stages cull per pass |
-| E2 | not started | — | — | |
-| E3 | done | pending | 2026-10-31 | Masked depth uses cutout; one depth pass; shadow count included |
-| E4 | done | pending | 2026-10-31 | One stage pre-render, cached targets/state, reused scene buffers |
-| E5 | done | pending | 2026-10-31 | Quantized equality and hash share one step |
-| E6 | not started | — | — | |
-| G1 | done | pending | 2026-10-31 | All-axis ambient rule, volume seed, residency rule |
-| G2 | done | pending | 2026-10-31 | Geometry and light dirty sets; light-only skips collision and entities |
-| G3 | in progress | — | — | |
-| G4 | done | pending | 2026-10-31 | F2 toggle; F3 clears it |
-| G5 | done | pending | 2026-10-31 | Benchmark project; dead code removed; docs refreshed |
-| G6 | not started | — | — | |
-| V | not started | — | — | |
+| E0 | done | 8d288945 | 2026-10-31 | ChildSystem ticks before GLRenderContext |
+| E1 | done | dfc1a05d | 2026-10-31 | Scene holds all renderers; stages cull per pass |
+| E2 | partial | dfc1a05d | 2026-10-31 | Per-cascade culling landed with E1; layered point shadows pending |
+| E3 | done | 4d498256 | 2026-10-31 | Cutout depth, one depth pass, shadow draw count |
+| E4 | done | 03ed61b9 | 2026-10-31 | One stage pre-render, cached targets, reused scene buffers |
+| E5 | done | aa83ae47 | 2026-10-31 | Quantized shape equality |
+| E6 | not started | — | — | Blocked on D4 |
+| G1 | done | 74c3323e | 2026-10-31 | Ambient model v2 and unified light paths |
+| G2 | done | 25707892 | 2026-10-31 | Light-only chunks skip collision |
+| G3 | done | 02c30491..153347ca | 2026-10-31 | Mask, scope reuse, lifetime, budget, mesh bounds |
+| G4 | done | a7921564 | 2026-10-31 | F2 toggle; F3 clears it |
+| G5 | done | 63eeb6b1 | 2026-10-31 | Benchmark, dead code, docs pass |
+| G6 | not started | — | — | Blocked on E6 |
+| V | in progress | — | — | Automated gates pass; GPU and in-game checks remain |
 
 ## Phase E0: Tick child transforms before the render context
 
@@ -692,12 +693,12 @@ Run after every gate.
 - [ ] `dotnet test Reef.Text.Tests`
 - [ ] `dotnet test WaywardBeyond.Voxels.Tests`
 - [ ] `dotnet run --project WaywardBeyond.Client.Benchmarks -c Release`
-- [ ] In game: F3 overlay, F2 gizmos, F3 hides them
-- [ ] In game: draw-call count before and after E2, E3, E6, G6
-- [ ] In game: light probe scene (open air, pit, trench, tunnel, sealed room)
-- [ ] In game: shadows from an off-camera caster
-- [ ] In game: transparent chunk order
-- [ ] In game: edit latency on a large object
+- [ ] In game: F3 overlay, F2 gizmos, F3 hides them (manual check pending)
+- [ ] In game: draw-call count before and after E2, E3, E6, G6 (manual check pending)
+- [ ] In game: light probe scene (covered by VoxelLightModelTests; visual check pending)
+- [ ] In game: shadows from an off-camera caster (manual check pending)
+- [ ] In game: transparent chunk order (manual check pending)
+- [ ] In game: edit latency on a large object (benchmark recorded)
 - [ ] Docs pass
 
 ## Risks
