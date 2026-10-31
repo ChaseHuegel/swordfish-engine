@@ -194,8 +194,12 @@ preserves existing air light when writing an authoritative empty cell.
 ## Voxel debug gizmos
 
 `VoxelDebugGizmoSystem`
-(`WaywardBeyond.Client/Systems/VoxelDebugGizmoSystem.cs:17-175`) renders bounding
-box lines when the debug overlay is active (`DebugSettings.OverlayVisible`).
+(`WaywardBeyond.Client/Systems/VoxelDebugGizmoSystem.cs`) renders bounding box
+lines when the debug overlay is active (`DebugSettings.OverlayVisible`) and the
+voxel gizmo toggle is on (`DebugSettings.VoxelGizmosVisible`).
+
+F2 toggles the voxel gizmos while the overlay is open. F3 closes the overlay and
+clears the voxel gizmo toggle.
 
 The system renders two bounding boxes:
 - Cyan lines around the nearest chunk in the nearest voxel object.

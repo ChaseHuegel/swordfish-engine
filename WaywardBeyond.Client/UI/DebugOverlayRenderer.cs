@@ -52,6 +52,16 @@ internal class DebugOverlayRenderer : IUILayer
             Action = OnToggleUIDebug,
         };
         shortcutService.RegisterShortcut(toggleUIDebugShortcut);
+
+        var toggleVoxelGizmosShortcut = new Shortcut
+        {
+            Name = "Toggle voxel gizmos",
+            Category = "Developer/Debug",
+            Key = Key.F2,
+            IsEnabled = IsVisible,
+            Action = OnToggleVoxelGizmos,
+        };
+        shortcutService.RegisterShortcut(toggleVoxelGizmosShortcut);
     }
 
     public bool IsVisible()
@@ -107,11 +117,17 @@ internal class DebugOverlayRenderer : IUILayer
     private void OnToggleDebug()
     {
         _debugSettings.OverlayVisible.Set(!_debugSettings.OverlayVisible);
+        _debugSettings.VoxelGizmosVisible.Set(false);
         _engineDebugSettings.UI.Set(false);
     }
 
     private void OnToggleUIDebug()
     {
         _engineDebugSettings.UI.Set(!_engineDebugSettings.UI);
+    }
+
+    private void OnToggleVoxelGizmos()
+    {
+        _debugSettings.VoxelGizmosVisible.Set(!_debugSettings.VoxelGizmosVisible);
     }
 }

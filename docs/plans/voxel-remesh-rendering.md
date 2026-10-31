@@ -114,7 +114,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [x] G3c Chunk entity lifetime
 - [x] G3d Rebuild time budget and system order
 - [x] G3e Mesh allocation
-- [ ] G4 Voxel gizmo toggle
+- [x] G4 Voxel gizmo toggle
 - [ ] G5 Dead code, benchmark, docs pass
 - [ ] G6 Batched chunk adoption
 - [ ] V Final verification
@@ -135,7 +135,7 @@ Keep this table current. Add the commit hash and the date when a phase lands.
 | G1 | done | pending | 2026-10-31 | All-axis ambient rule, volume seed, residency rule |
 | G2 | done | pending | 2026-10-31 | Geometry and light dirty sets; light-only skips collision and entities |
 | G3 | in progress | — | — | |
-| G4 | not started | — | — | |
+| G4 | done | pending | 2026-10-31 | F2 toggle; F3 clears it |
 | G5 | not started | — | — | |
 | G6 | not started | — | — | |
 | V | not started | — | — | |
@@ -580,15 +580,15 @@ Commit: `Gate voxel gizmos behind a debug shortcut`.
 
 See D1. Resolve D1 first. The recommended key is `F2`.
 
-- [ ] Add `DebugSettings.VoxelGizmosVisible` (default false).
-- [ ] Register the shortcut in `DebugOverlayRenderer` with category
+- [x] Add `DebugSettings.VoxelGizmosVisible` (default false).
+- [x] Register the shortcut in `DebugOverlayRenderer` with category
       `Developer/Debug` and `IsEnabled = IsVisible`, same as the F4 pattern
       (`WaywardBeyond.Client/UI/DebugOverlayRenderer.cs:46-54`).
-- [ ] `OnToggleDebug` sets `VoxelGizmosVisible` to false on every F3 press.
-- [ ] `VoxelDebugGizmoSystem` runs only when `OverlayVisible` and
+- [x] `OnToggleDebug` sets `VoxelGizmosVisible` to false on every F3 press.
+- [x] `VoxelDebugGizmoSystem` runs only when `OverlayVisible` and
       `VoxelGizmosVisible` are true. Hide the lines otherwise.
-- [ ] Add a test for the toggle and the F3 reset.
-- [ ] Update the debug docs.
+- [x] Add a test for the toggle and the F3 reset.
+- [x] Update the debug docs.
 
 Gate: build, `Swordfish.Tests`, manual F3/F2 check.
 

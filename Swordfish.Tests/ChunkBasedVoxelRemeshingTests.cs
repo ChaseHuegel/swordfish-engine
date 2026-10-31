@@ -646,8 +646,16 @@ public class ChunkBasedVoxelRemeshingTests
             new TransformComponent(new Vector3(2f, 2f, 2f))
         ));
 
-        // Enable overlay
+        // Enable overlay. The voxel gizmos stay hidden until their own toggle is on.
         debugSettings.OverlayVisible.Set(true);
+        debugSettings.VoxelGizmosVisible.Set(false);
+        gizmoSystem.Tick(1f / 60f, store);
+        for (var i = 0; i < 24; i++)
+        {
+            Assert.Equal(Vector4.Zero, fakeLineRenderer.CreatedLines[i].Color);
+        }
+
+        debugSettings.VoxelGizmosVisible.Set(true);
         gizmoSystem.Tick(1f / 60f, store);
 
         // Nearest chunk lines should be active (Cyan)

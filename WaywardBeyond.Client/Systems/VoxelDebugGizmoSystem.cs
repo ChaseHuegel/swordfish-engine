@@ -49,7 +49,7 @@ public sealed class VoxelDebugGizmoSystem : IEntitySystem, IDisposable
     /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
-        if (!_debugSettings.OverlayVisible.Get())
+        if (!_debugSettings.OverlayVisible.Get() || !_debugSettings.VoxelGizmosVisible.Get())
         {
             if (_visible)
             {
