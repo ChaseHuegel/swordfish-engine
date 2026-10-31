@@ -65,7 +65,10 @@ internal sealed class Actions(
                     Anchors = Anchors.Center,
                 };
 
-                state.Render(ui, DateTime.Now, hasBackground: false);
+                new NotificationView().Render(
+                    ui,
+                    new NotificationViewState(state.Notification.Text, state.GetAlpha(DateTime.Now), HasBackground: false)
+                );
             }
 
             return;

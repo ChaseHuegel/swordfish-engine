@@ -39,7 +39,10 @@ internal abstract class NotificationLayer(in NotificationService notificationSer
                 continue;
             }
 
-            state.Render(ui, now, HasBackground);
+            new NotificationView().Render(
+                ui,
+                new NotificationViewState(state.Notification.Text, state.GetAlpha(now), HasBackground)
+            );
 
             if (OnlyRenderLatest)
             {

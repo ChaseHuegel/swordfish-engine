@@ -1,0 +1,63 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="BarsView"
+      Context="BarsState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Element passthrough="true"
+             anchor="Center"
+             layout="vertical"
+             spacing="8">
+        <ForEach in="@context.Bars" as="bar">
+            <Element layout="vertical">
+                <Element passthrough="true"
+                         layout="vertical"
+                         spacing="6"
+                         padding="12 8"
+                         color="@PanelColor(bar.Alpha)"
+                         anchor="Center"
+                         width="512">
+                    <Element passthrough="true"
+                             layout="none"
+                             width="488"
+                             height="18">
+                        <Text text="@bar.Text"
+                              color="@TextColor(bar.Alpha)"
+                              font-size="16"
+                              anchor="Left Center"
+                              wrap="false" />
+                        <If condition="@bar.HasSubtext">
+                            <Text text="@bar.Subtext"
+                                  color="@TextColor(bar.Alpha)"
+                                  font-size="16"
+                                  anchor="Right Center"
+                                  wrap="false" />
+                        </If>
+                    </Element>
+                    <Element passthrough="true"
+                             layout="none"
+                             width="488"
+                             height="6"
+                             color="@TrackColor(bar.Alpha)">
+                        <Element passthrough="true"
+                                 color="@FillColor(bar.Alpha, bar.FillColor)"
+                                 width="@FillWidth(bar.Amount)"
+                                 height="fill" />
+                        <ForEach in="@bar.Dividers" as="divider">
+                            <Element passthrough="true"
+                                     color="@PanelColor(bar.Alpha)"
+                                     x="@divider"
+                                     width="2"
+                                     height="6" />
+                        </ForEach>
+                    </Element>
+                </Element>
+
+                <Element color="@BorderColor(bar.Alpha)"
+                         width="fill"
+                         height="1" />
+            </Element>
+        </ForEach>
+    </Element>
+</Reef>

@@ -49,6 +49,26 @@ public class OverlayViewTests
             {
                 new CrosshairView().Render(ui, new CrosshairState(new Material(null!)));
             });
+
+            UiSnapshotTests.Compare($"{width}x{height}-notification", width, height, ui =>
+            {
+                new NotificationView().Render(ui, new NotificationViewState("Saved", 0.8f, HasBackground: true));
+            });
+
+            UiSnapshotTests.Compare($"{width}x{height}-notification-plain", width, height, ui =>
+            {
+                new NotificationView().Render(ui, new NotificationViewState("Shape: Block", 1f, HasBackground: false));
+            });
+
+            UiSnapshotTests.Compare($"{width}x{height}-notification-bars", width, height, ui =>
+            {
+                var bars = new List<NotificationBarState>
+                {
+                    new("Mining", "Level 4", true, 0.45f, [162, 325], 1f, null),
+                    new("Farming", string.Empty, false, 0.8f, [], 0.6f, new System.Numerics.Vector4(0.43f, 0.81f, 0.59f, 1f)),
+                };
+                new BarsView().Render(ui, new BarsState(bars));
+            });
         }
     }
 }

@@ -1,0 +1,1 @@
+0 id=- rect=0,0,96,16 clip=0,0,96,16 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:16 text=Shape: Block

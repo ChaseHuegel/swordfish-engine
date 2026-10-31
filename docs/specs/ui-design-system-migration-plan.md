@@ -183,6 +183,8 @@ The first implementation does not add Reef text state or a Reef text control.
 - The version watermark, crosshair, nameplates, and debug stat lines, with
   snapshots at three window sizes. `DebugOverlayRenderer` stays the C# host
   because it interleaves imperative debug sections.
+- Notification text and progress bars use the shared `NotificationView` and
+  `BarsView` markup views, with lifetime fade passed as a state value.
 
 ## Migration phases
 
