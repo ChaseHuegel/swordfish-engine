@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Reef;
-using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;

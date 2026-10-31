@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using Reef;
 using Reef.Text;
-using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;

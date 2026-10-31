@@ -4,7 +4,6 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Components;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;

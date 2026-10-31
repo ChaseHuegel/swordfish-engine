@@ -9,7 +9,6 @@ using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using System.Threading.Tasks;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;

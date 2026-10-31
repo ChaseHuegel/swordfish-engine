@@ -1,11 +1,8 @@
 using System;
-using Reef.UI;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Client.Extensions;
-using WaywardBeyond.Client.Services;
-using WaywardBeyond.Data.Characters;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Reef;
@@ -10,7 +9,6 @@ using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.Statistics;
-using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Data;

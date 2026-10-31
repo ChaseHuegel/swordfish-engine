@@ -1,10 +1,7 @@
 using System;
 using System.Numerics;
-using Reef;
-using Reef.UI;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
-using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Theme;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;

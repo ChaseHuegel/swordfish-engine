@@ -1,10 +1,8 @@
 ﻿using Microsoft.Extensions.Logging;
 using Reef;
-using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Client.UI.Layers;

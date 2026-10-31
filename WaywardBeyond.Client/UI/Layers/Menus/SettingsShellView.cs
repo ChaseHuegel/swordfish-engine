@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using WaywardBeyond.Client.UI.Components;
-using Reef;
-using Reef.UI;
-using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.UI.Settings;
 

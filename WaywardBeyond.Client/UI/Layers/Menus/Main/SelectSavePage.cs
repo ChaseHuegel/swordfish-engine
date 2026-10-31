@@ -9,7 +9,6 @@ using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Data;
