@@ -53,7 +53,7 @@ uses `UiTheme.Danger`.
 - Two-pane pages stay side-by-side down to a 900 pixel page width.
 - Below 900 pixels, the same pages use a tab strip and one full-width pane.
   The tab strip sits directly on the pane top.
-- Settings keeps its own `SettingsLayout`. Do not replace it.
+- Settings uses the shared markup shell and responsive constraints.
 
 Pages render inside the `TitleMenu` content host. The title texture above the
 content stays unchanged.

@@ -8,6 +8,6 @@ internal readonly record struct StepperParameters(
     bool Enabled = false,
     bool CanDecrease = true,
     bool CanIncrease = true,
-    Action? OnDecrease = null,
-    Action? OnIncrease = null
+    string Id = "",
+    Action<string, int>? OnStep = null
 );

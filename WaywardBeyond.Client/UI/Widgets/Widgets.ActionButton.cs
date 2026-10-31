@@ -168,6 +168,11 @@ internal static partial class Widgets
         {
             layout.Width ??= options.MinWidth > 0 ? new Fixed(options.MinWidth) : null;
             layout.Height ??= options.Height > 0 ? new Fixed(options.Height) : null;
+            if (options.Anchors != default)
+            {
+                layout.Anchors = options.Anchors;
+            }
+
             ui.Constraints = layout;
         }
         else

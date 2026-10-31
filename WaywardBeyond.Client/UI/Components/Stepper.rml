@@ -13,8 +13,9 @@
         <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
             <Element class="wb-stepper-arrow"
                      class:wb-stepper-arrow-enabled="@(param.Enabled &amp;&amp; param.CanDecrease)"
+                     id="@(param.Id + '.previous')"
                      disabled="@(!param.Enabled || !param.CanDecrease)"
-                     onclick="@param.OnDecrease"
+                     onclick="@param.OnStep(param.Id, -1)"
                      width="32"
                      height="fill">
                 <Text text="&lt;"
@@ -33,8 +34,9 @@
             <Element class="wb-stepper-sep" width="1" height="fill" />
             <Element class="wb-stepper-arrow"
                      class:wb-stepper-arrow-enabled="@(param.Enabled &amp;&amp; param.CanIncrease)"
+                     id="@(param.Id + '.next')"
                      disabled="@(!param.Enabled || !param.CanIncrease)"
-                     onclick="@param.OnIncrease"
+                     onclick="@param.OnStep(param.Id, 1)"
                      width="32"
                      height="fill">
                 <Text text="&gt;"

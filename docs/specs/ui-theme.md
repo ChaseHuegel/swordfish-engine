@@ -60,8 +60,8 @@ the resolved fill, border, border thickness, corner caps, and text color.
 
 `UiThemeResolver` is at `WaywardBeyond.Client/UI/Theme/UiThemeResolver.cs:6`. It
 turns a variant and a state into a `ControlStyle`. The resolver covers button
-variants, segmented cells, and stepper arrows. It has no drawing code, so tests
-can call it directly.
+variants and segmented cells. It has no drawing code, so tests can call it
+directly.
 
 One `ButtonPalette` per variant holds the fill, border, and text colours for the
 normal, hover, pressed, and active states. `FromPalette` maps a state onto those
@@ -84,7 +84,6 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `PingIndicator` | `Widgets.Ping.cs:45` | Colored signal icon and ping value. |
 | `Toggle` | `Widgets.Toggle.cs:16` | Two-cell on/off control. |
 | `SegmentedControl` | `Widgets.Toggle.cs:39` | Radio-like choice row. |
-| `Stepper` | `Widgets.Stepper.cs:14` | Discrete value control. |
 | `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
 | `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator that fills the layout or a fixed rect. |
 | `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar and routed wheel input. |
@@ -106,8 +105,8 @@ The widgets are extension methods on `UIBuilder<Material>` in
 | `Page` | `Widgets.Layout.cs:52` | Centered page with a fixed maximum size and a clip. |
 
 `ControlResult<T>` at `WaywardBeyond.Client/UI/Widgets/ControlResultOfT.cs:4` is
-the return type of `Toggle`, `SegmentedControl`, `Stepper`, and `Slider`. Read
-`Changed` before `Value`, so a control never needs an `out` value.
+the return type of `Toggle`, `SegmentedControl`, and `Slider`. Read `Changed`
+before `Value`, so a control never needs an `out` value.
 
 `Widgets.ActionButton.cs:253` defines `ActionButtonOptions`. Use the factories:
 
@@ -147,8 +146,8 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
   and corner caps directly. `ChatLayer` uses `Widgets.Panel` and
   `Widgets.Scrollbar` when open. The modal `Inventory` window uses
   `Widgets.MenuPanel` and `Widgets.DottedDivider`.
-- Settings controls use the common widgets. The block layout stays in
-  `SettingsRenderer`.
+- Settings controls use the common widgets and the shared `Stepper`
+  component. Settings layout is markup.
 
 ## Source
 
@@ -158,13 +157,13 @@ parent layout. Pass a `SoundEffectService` to play the standard click sound.
 - Resolver: `WaywardBeyond.Client/UI/Theme/UiThemeResolver.cs:6`
 - Widgets: `WaywardBeyond.Client/UI/Widgets/`
 - Menu layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:10`
-- Settings layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:6`
-- Settings renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:14`
+- Settings shell: `WaywardBeyond.Client/UI/Layers/Menus/SettingsShellView.rml:1`
+- Stepper component: `WaywardBeyond.Client/UI/Components/Stepper.rml:1`
 
 ## Tests
 
 - `Swordfish.Tests/UiThemeResolverTests.cs` covers button variants, ghost icon
-  states, disabled styles, segmented cells, and stepper arrows.
+  states, disabled styles, and segmented cells.
 - `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic button
   sizing plus Font Awesome glyph centering.
 - `Swordfish.Tests/MenuLayoutTests.cs` covers wide and narrow page geometry and

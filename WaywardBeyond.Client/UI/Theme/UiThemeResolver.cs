@@ -78,22 +78,6 @@ internal static class UiThemeResolver
         );
     }
 
-    /// <summary>Resolves the style of a stepper arrow.</summary>
-    public static ControlStyle ResolveStepperArrow(bool enabled, bool hovering)
-    {
-        return new ControlStyle(
-            hovering && enabled ? UiTheme.ButtonHover : UiTheme.Transparent,
-            UiTheme.Transparent,
-            0,
-            default,
-            !enabled
-                ? UiTheme.TextDim
-                : hovering
-                    ? UiTheme.AccentBright
-                    : UiTheme.TextMuted
-        );
-    }
-
     private static ButtonPalette ResolvePalette(ButtonVariant variant)
     {
         return variant switch

@@ -55,8 +55,8 @@
                                      param:enabled="@context.Species.Enabled"
                                      param:canDecrease="@context.Species.CanDecrease"
                                      param:canIncrease="@context.Species.CanIncrease"
-                                     param:onDecrease="OnSpeciesDown"
-                                     param:onIncrease="OnSpeciesUp"
+                                     param:id="species"
+                                     param:onStep="OnStep"
                                      width="fill"
                                      height="fill" />
                             <Element class="wb-icon-button"
@@ -77,8 +77,8 @@
                                      param:enabled="@context.Gender.Enabled"
                                      param:canDecrease="@context.Gender.CanDecrease"
                                      param:canIncrease="@context.Gender.CanIncrease"
-                                     param:onDecrease="OnGenderDown"
-                                     param:onIncrease="OnGenderUp"
+                                     param:id="gender"
+                                     param:onStep="OnStep"
                                      width="fill"
                                      height="fill" />
                             <Element class="wb-icon-button"
@@ -209,8 +209,8 @@
                                      param:enabled="@context.Species.Enabled"
                                      param:canDecrease="@context.Species.CanDecrease"
                                      param:canIncrease="@context.Species.CanIncrease"
-                                     param:onDecrease="OnSpeciesDown"
-                                     param:onIncrease="OnSpeciesUp"
+                                     param:id="species"
+                                     param:onStep="OnStep"
                                      width="fill"
                                      height="fill" />
                             <Element class="wb-icon-button"
@@ -231,8 +231,8 @@
                                      param:enabled="@context.Gender.Enabled"
                                      param:canDecrease="@context.Gender.CanDecrease"
                                      param:canIncrease="@context.Gender.CanIncrease"
-                                     param:onDecrease="OnGenderDown"
-                                     param:onIncrease="OnGenderUp"
+                                     param:id="gender"
+                                     param:onStep="OnStep"
                                      width="fill"
                                      height="fill" />
                             <Element class="wb-icon-button"

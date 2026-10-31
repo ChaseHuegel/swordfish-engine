@@ -50,8 +50,8 @@ public class StepperComponentTests
             Enabled: true,
             CanDecrease: true,
             CanIncrease: true,
-            OnDecrease: () => steps--,
-            OnIncrease: () => steps++
+            Id: "step",
+            OnStep: (_, delta) => steps += delta
         );
 
         Click(parameters, 10, 16);
@@ -70,8 +70,8 @@ public class StepperComponentTests
             Enabled: true,
             CanDecrease: false,
             CanIncrease: true,
-            OnDecrease: () => steps--,
-            OnIncrease: () => steps++
+            Id: "step",
+            OnStep: (_, delta) => steps += delta
         );
 
         Click(parameters, 10, 16);
@@ -90,8 +90,8 @@ public class StepperComponentTests
             Enabled: true,
             CanDecrease: true,
             CanIncrease: false,
-            OnDecrease: () => steps--,
-            OnIncrease: () => steps++
+            Id: "step",
+            OnStep: (_, delta) => steps += delta
         );
 
         Click(parameters, 206, 16);
@@ -110,8 +110,8 @@ public class StepperComponentTests
             Enabled: false,
             CanDecrease: true,
             CanIncrease: true,
-            OnDecrease: () => steps--,
-            OnIncrease: () => steps++
+            Id: "step",
+            OnStep: (_, delta) => steps += delta
         );
 
         Click(parameters, 10, 16);

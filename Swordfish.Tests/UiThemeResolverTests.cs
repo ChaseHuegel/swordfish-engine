@@ -117,13 +117,4 @@ public class UiThemeResolverTests
         Assert.Equal(0, style.BorderThickness);
         Assert.Equal(UiTheme.TextDim, style.Text);
     }
-
-    [Fact]
-    public void DisabledStepperArrowUsesDimText()
-    {
-        ControlStyle style = UiThemeResolver.ResolveStepperArrow(enabled: false, hovering: false);
-
-        Assert.Equal(UiTheme.Transparent, style.Fill);
-        Assert.Equal(UiTheme.TextDim, style.Text);
-    }
 }

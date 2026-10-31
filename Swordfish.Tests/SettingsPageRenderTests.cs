@@ -83,6 +83,19 @@ public class SettingsPageRenderTests
     }
 
     [Fact]
+    public void SliderButtonsCenterVerticallyInRow()
+    {
+        List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);
+
+        IntRect track = FindRequired(commands, "Settings.Fov.track").Rect;
+        IntRect minus = FindRequired(commands, "Settings.Fov.minus").Rect;
+        IntRect plus = FindRequired(commands, "Settings.Fov.plus").Rect;
+
+        Assert.Equal(track.Top + track.Size.Y / 2, minus.Top + minus.Size.Y / 2);
+        Assert.Equal(track.Top + track.Size.Y / 2, plus.Top + plus.Size.Y / 2);
+    }
+
+    [Fact]
     public void ResetRowUsesDangerStyling()
     {
         List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);

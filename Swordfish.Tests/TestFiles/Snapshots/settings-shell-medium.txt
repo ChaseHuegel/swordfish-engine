@@ -79,8 +79,8 @@
 78 id=- rect=370,443,830,44 clip=370,443,830,44 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 79 id=- rect=370,443,538,44 clip=370,443,830,44 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:20 text=ui.settings.option.fov
 80 id=- rect=924,449,276,32 clip=370,443,830,44 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-81 id=Settings.Fov.minus rect=924,449,24,24 clip=924,449,24,24 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-82 id=- rect=932,452,8,18 clip=924,449,24,24 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=-
+81 id=Settings.Fov.minus rect=924,453,24,24 clip=924,453,24,24 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+82 id=- rect=932,456,8,18 clip=924,453,24,24 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=-
 83 id=Settings.Fov.track rect=956,459,148,12 clip=956,459,148,12 color=0.1098,0.1412,0.2,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 84 id=- rect=957,460,73,10 clip=956,459,148,12 color=0.2941,0.8902,0.8902,0.7059 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 85 id=- rect=971,460,2,10 clip=956,459,148,12 color=0.0549,0.0706,0.1,0.5 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
@@ -93,8 +93,8 @@
 92 id=- rect=1073,460,2,10 clip=956,459,148,12 color=0.0549,0.0706,0.1,0.5 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 93 id=- rect=1088,460,2,10 clip=956,459,148,12 color=0.0549,0.0706,0.1,0.5 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 94 id=- rect=1030,460,3,10 clip=956,459,148,12 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-95 id=Settings.Fov.plus rect=1112,449,24,24 clip=1112,449,24,24 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-96 id=- rect=1120,452,8,18 clip=1112,449,24,24 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=+
+95 id=Settings.Fov.plus rect=1112,453,24,24 clip=1112,453,24,24 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+96 id=- rect=1120,456,8,18 clip=1112,453,24,24 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=+
 97 id=- rect=1144,449,56,32 clip=370,443,830,44 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=90°
 98 id=- rect=370,487,830,44 clip=370,487,830,27 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 99 id=- rect=370,487,538,44 clip=370,487,830,27 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:20 text=ui.settings.option.viewDistance

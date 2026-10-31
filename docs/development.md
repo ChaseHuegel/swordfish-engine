@@ -131,8 +131,7 @@ Keep the shape of the code readable.
   ```
 
 - **Extract per region, not per statement.** A page method draws one region
-  (tabs, table, footer). `SettingsRenderer` and `PixelRenderer` are the
-  reference shape.
+  (tabs, table, footer). `PixelRenderer` is the reference shape.
 - **Pass a parameter object instead of a parameter list.** More than ~5
   arguments, or a run of `ref`/`out` flags, means a small `readonly record
   struct` context.

@@ -99,43 +99,17 @@
                           class:wb-text-dim="@(!row.Enabled)"
                           width="fill"
                           height="fill" />
-                    <Element class="wb-stepper"
-                             class:wb-stepper-enabled="@row.Enabled"
-                             layout="none"
-                             width="33.334%" min-width="220" max-width="340"
+                    <Stepper param:value="@row.Value"
+                             param:enabled="@row.Enabled"
+                             param:canDecrease="@row.CanDecrease"
+                             param:canIncrease="@row.CanIncrease"
+                             param:id="@row.Id"
+                             param:onStep="OnStep"
+                             width="33.334%"
+                             min-width="220"
+                             max-width="340"
                              height="32"
-                             anchor="Center"
-                             padding="1"
-                             clip="true">
-                        <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
-                            <Element class="wb-stepper-arrow"
-                                     class:wb-stepper-arrow-enabled="@(row.Enabled &amp;&amp; row.CanDecrease)"
-                                     id="{row.Id}.previous"
-                                     disabled="@(!row.Enabled || !row.CanDecrease)"
-                                     onclick="OnStep(row.Id, -1)"
-                                     width="32"
-                                     height="fill">
-                                <Text text="&lt;" class="wb-stepper-arrow-glyph" anchor="Center" width="fill" height="fit" />
-                            </Element>
-                            <Element class="wb-stepper-sep" width="1" height="fill" />
-                            <Text text="@row.Value"
-                                  class="wb-stepper-value"
-                                  class:wb-stepper-value-enabled="@row.Enabled"
-                                  anchor="Center"
-                                  width="fill"
-                                  height="fit" />
-                            <Element class="wb-stepper-sep" width="1" height="fill" />
-                            <Element class="wb-stepper-arrow"
-                                     class:wb-stepper-arrow-enabled="@(row.Enabled &amp;&amp; row.CanIncrease)"
-                                     id="{row.Id}.next"
-                                     disabled="@(!row.Enabled || !row.CanIncrease)"
-                                     onclick="OnStep(row.Id, 1)"
-                                     width="32"
-                                     height="fill">
-                                <Text text="&gt;" class="wb-stepper-arrow-glyph" anchor="Center" width="fill" height="fit" />
-                            </Element>
-                        </Element>
-                    </Element>
+                             anchor="Center" />
                 </Element>
                 </ElseIf>
 
@@ -244,43 +218,17 @@
                           class:wb-text-dim="@(!row.Enabled)"
                           width="fill"
                           height="fill" />
-                    <Element class="wb-stepper"
-                             class:wb-stepper-enabled="@row.Enabled"
-                             layout="none"
-                             width="33.334%" min-width="220" max-width="340"
+                    <Stepper param:value="@row.Value"
+                             param:enabled="@row.Enabled"
+                             param:canDecrease="@row.CanDecrease"
+                             param:canIncrease="@row.CanIncrease"
+                             param:id="@row.Id"
+                             param:onStep="OnStep"
+                             width="33.334%"
+                             min-width="220"
+                             max-width="340"
                              height="32"
-                             anchor="Center"
-                             padding="1"
-                             clip="true">
-                        <Element class="wb-stepper-inner" layout="horizontal" width="fill" height="fill">
-                            <Element class="wb-stepper-arrow"
-                                     class:wb-stepper-arrow-enabled="@(row.Enabled &amp;&amp; row.CanDecrease)"
-                                     id="{row.Id}.previous"
-                                     disabled="@(!row.Enabled || !row.CanDecrease)"
-                                     onclick="OnStep(row.Id, -1)"
-                                     width="32"
-                                     height="fill">
-                                <Text text="&lt;" class="wb-stepper-arrow-glyph" anchor="Center" width="fill" height="fit" />
-                            </Element>
-                            <Element class="wb-stepper-sep" width="1" height="fill" />
-                            <Text text="@row.Value"
-                                  class="wb-stepper-value"
-                                  class:wb-stepper-value-enabled="@row.Enabled"
-                                  anchor="Center"
-                                  width="fill"
-                                  height="fit" />
-                            <Element class="wb-stepper-sep" width="1" height="fill" />
-                            <Element class="wb-stepper-arrow"
-                                     class:wb-stepper-arrow-enabled="@(row.Enabled &amp;&amp; row.CanIncrease)"
-                                     id="{row.Id}.next"
-                                     disabled="@(!row.Enabled || !row.CanIncrease)"
-                                     onclick="OnStep(row.Id, 1)"
-                                     width="32"
-                                     height="fill">
-                                <Text text="&gt;" class="wb-stepper-arrow-glyph" anchor="Center" width="fill" height="fit" />
-                            </Element>
-                        </Element>
-                    </Element>
+                             anchor="Center" />
                 </Element>
                 </ElseIf>
 

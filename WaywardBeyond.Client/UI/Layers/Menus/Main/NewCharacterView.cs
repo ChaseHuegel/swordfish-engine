@@ -69,19 +69,19 @@ internal partial class NewCharacterView : UiViewBase
 
     partial void OnRandomName() => RandomNameRequested?.Invoke();
 
-    /// <summary>Steps the species selection down.</summary>
-    public void OnSpeciesDown() => SpeciesStepRequested?.Invoke(-1);
-
-    /// <summary>Steps the species selection up.</summary>
-    public void OnSpeciesUp() => SpeciesStepRequested?.Invoke(1);
-
     partial void OnRandomSpecies() => RandomSpeciesRequested?.Invoke();
 
-    /// <summary>Steps the gender selection down.</summary>
-    public void OnGenderDown() => GenderStepRequested?.Invoke(-1);
+    /// <summary>Steps a selector by one option.</summary>
+    public void OnStep(string id, int delta)
+    {
+        if (string.Equals(id, "species", StringComparison.Ordinal))
+        {
+            SpeciesStepRequested?.Invoke(delta);
+            return;
+        }
 
-    /// <summary>Steps the gender selection up.</summary>
-    public void OnGenderUp() => GenderStepRequested?.Invoke(1);
+        GenderStepRequested?.Invoke(delta);
+    }
 
     partial void OnRandomGender() => RandomGenderRequested?.Invoke();
 

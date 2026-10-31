@@ -54,7 +54,8 @@ internal partial class SettingsShellView(ILocalization localization) : UiViewBas
 
     partial void OnApply() => ApplyRequested?.Invoke();
 
-    partial void OnStep(string id, int delta) => StepRequested?.Invoke(id, delta);
+    /// <summary>Reports a stepper move.</summary>
+    public void OnStep(string id, int delta) => StepRequested?.Invoke(id, delta);
 
     partial void OnReset(string id) => ResetRequested?.Invoke(id);
 }
