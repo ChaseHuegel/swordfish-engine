@@ -21,6 +21,9 @@
   <ItemGroup>
     <None Include="TestFiles\**\*.*" CopyToOutputDirectory="Always"/>
     <ProjectReference Include="..\Reef\Reef.csproj" />
+    <ProjectReference Include="..\Reef.Generator\Reef.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
     
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
     <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
@@ -42,4 +45,5 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <Import Project="..\Reef.Generator\build\Reef.Generator.props" />
 </Project>

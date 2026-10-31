@@ -37,7 +37,28 @@ Not yet isolated. Candidates:
 Render the rows as a markup component rather than a nested view, so the rows
 emit into the caller's scope.
 
-## Findings from the component attempt
+## Repro suite (added)
+
+`Swordfish.Tests/ScrollInputReproTests.cs` covers plain elements and the coded
+segmented control inside a `ScrollArea`, with and without a padded, clipped
+pane and page shell. All pass, so scroll input and widget input are not broken
+in a page-shaped composition.
+
+`Swordfish.Tests/Fixtures/ScrollReproView.rml` is the same case authored in
+markup. The test project now runs the Reef generator (`Reef.Generator` analyzer
+plus `Reef.Generator.props`). Both the plain element and the widget receive
+clicks.
+
+## Remaining problem
+
+In the settings page, the choice and slider widgets inside the row list produce
+no render commands at all, while labels, sections, and reset rows do render.
+The generated code calls `SettingsChoiceWidget.SettingsChoice` and
+`SettingsSliderWidget.SettingsSlider` with per-row constraints and the view's
+delegate property, so the call is reached. Next step: instrument those two
+wrappers or diff their generated call against the passing repro widget call.
+
+## Earlier findings from the component attempt
 
 - A component cannot reference an external widget namespace. Declaring
   `xmlns:s="WaywardBeyond.Client.UI.Settings"` on the component root and using
