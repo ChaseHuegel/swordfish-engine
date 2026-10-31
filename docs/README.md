@@ -43,6 +43,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | UI copy style, catalog conventions, key grammar, vocabulary, and string mappings | [specs/ui-copy](specs/ui-copy.md) |
 | Full-screen loading layer, visual rules, copy timing, data sources | [specs/loading-screen](specs/loading-screen.md) |
 | Window video modes and batched display changes | [specs/window-display](specs/window-display.md) |
+| Audio playback device discovery, default routing, and hotplug response | [specs/audio](specs/audio.md) |
 | Settings page layout, controls, draft, and apply behavior | [specs/settings-ui](specs/settings-ui.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
 | Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
