@@ -115,7 +115,8 @@ collision and voxel-entity reconciliation for that chunk.
 A rebuild opens one resolver scope for every dirty chunk. It reuses the mesh,
 entity, and collision buffers between chunks. It stops after
 `VoxelSettings.RebuildBudgetMs` (10 ms by default). Unprocessed chunks stay dirty
-and resume on the next tick.
+and resume on the next tick. A chunk mesh uses bounds computed from the chunk
+coordinates, so the build does not scan every vertex.
 
 `VoxelEntityBuilder` is the only owner of chunk child entities. Each bucket
 stores the entity index and its `Uuid`. A mismatch means the index was recycled,

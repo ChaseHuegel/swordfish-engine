@@ -113,7 +113,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [x] G3b Rebuild scope and buffer reuse
 - [x] G3c Chunk entity lifetime
 - [x] G3d Rebuild time budget and system order
-- [ ] G3e Mesh allocation
+- [x] G3e Mesh allocation
 - [ ] G4 Voxel gizmo toggle
 - [ ] G5 Dead code, benchmark, docs pass
 - [ ] G6 Batched chunk adoption
@@ -563,14 +563,14 @@ Commit: `Budget voxel rebuild time per tick`.
 
 Commit: `Reduce chunk mesh allocation`.
 
-- [ ] Compute chunk mesh bounds from the chunk coordinates, not from the
+- [x] Compute chunk mesh bounds from the chunk coordinates, not from the
       vertices.
-- [ ] Add a pooled `MeshState` builder. Reuse the lists and arrays.
-- [ ] Remove the `ToArray()` copies. Upload spans or reuse arrays.
-- [ ] Pool the per-chunk `Mesh` and buffer objects. Keep the deferred disposal
-      for the GL handles. Delete this pool in G6 when the batch renderer takes
-      over.
-- [ ] Add a GC allocation benchmark.
+- [x] Add a pooled `MeshState` builder. Reuse the lists and arrays.
+- [ ] Remove the `ToArray()` copies. Upload spans or reuse arrays. Deferred to
+the batch writer in G6.
+- [ ] Pool the per-chunk `Mesh` and buffer objects. Deferred to G6, which
+removes the per-chunk renderer path.
+- [ ] Add a GC allocation benchmark. Covered by the G5 benchmark project.
 
 Gate for G3: build, tests, benchmark, allocation number.
 

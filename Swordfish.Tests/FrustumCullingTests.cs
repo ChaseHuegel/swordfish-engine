@@ -111,6 +111,15 @@ public class FrustumCullingTests
     }
 
     [Fact]
+    public void Mesh_ConstructorWithBoundsSkipsTheVertexScan()
+    {
+        var bounds = new BoundingBox(new Vector3(5f, 6f, 7f), Vector3.One, 1f);
+        var mesh = new Mesh([], [], [], [], [], bounds);
+
+        Assert.Equal(bounds, mesh.Bounds);
+    }
+
+    [Fact]
     public void BoundingBox_Transform_AppliesTranslationRotationAndScale()
     {
         var bounds = new BoundingBox(Vector3.Zero, Vector3.One, MathF.Sqrt(3f));

@@ -35,9 +35,20 @@ public sealed class VoxelObjectBuilder(in IContainer container)
             }
         }
 
-        Mesh? opaqueMesh = GenerateMeshOrNull(context.MeshState.Opaque);
-        Mesh? maskedMesh = GenerateMeshOrNull(context.MeshState.Masked);
-        Mesh? transparentMesh = GenerateMeshOrNull(context.MeshState.Transparent);
+        float half = chunkData.Data.Size * 0.5f;
+        var chunkBounds = new BoundingBox(
+            new Vector3(
+                chunkData.Coords.X * chunkData.Data.Size + half,
+                chunkData.Coords.Y * chunkData.Data.Size + half,
+                chunkData.Coords.Z * chunkData.Data.Size + half
+            ),
+            new Vector3(half + 1f),
+            (half + 1f) * MathF.Sqrt(3f)
+        );
+
+        Mesh? opaqueMesh = GenerateMeshOrNull(context.MeshState.Opaque, chunkBounds);
+        Mesh? maskedMesh = GenerateMeshOrNull(context.MeshState.Masked, chunkBounds);
+        Mesh? transparentMesh = GenerateMeshOrNull(context.MeshState.Transparent, chunkBounds);
 
         return new ChunkMeshData(opaqueMesh, maskedMesh, transparentMesh, context.EntityState.Voxels);
     }
@@ -138,14 +149,21 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         voxelObjectProcessor.ProcessLighting(voxelObject);
     }
 
-    private static Mesh? GenerateMeshOrNull(in MeshState.MeshData meshData)
+    private static Mesh? GenerateMeshOrNull(in MeshState.MeshData meshData, in BoundingBox bounds)
     {
         if (meshData.Triangles.Count == 0)
         {
             return null;
         }
 
-        return new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
+        return new Mesh(
+            meshData.Triangles.ToArray(),
+            meshData.Vertices.ToArray(),
+            meshData.Colors.ToArray(),
+            meshData.UV.ToArray(),
+            meshData.Normals.ToArray(),
+            bounds
+        );
     }
 
     /// <summary>Holds opaque, masked, and transparent meshes and entities for a single chunk.</summary>
