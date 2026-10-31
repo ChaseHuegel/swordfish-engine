@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
@@ -7,6 +8,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Models;
@@ -20,12 +22,14 @@ internal sealed class VoxelEntityBuilder(
     in Shader shader,
     in PBRTextureArrays textureArrays,
     in VoxelObjectBuilder voxelObjectBuilder,
-    in IVoxelEntityDecorator[] decorators
+    in IVoxelEntityDecorator[] decorators,
+    in VoxelSettings voxelSettings
 )
 {
     private readonly ILogger _logger = logger;
     private readonly IVoxelEntityDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = voxelObjectBuilder;
+    private readonly VoxelSettings _voxelSettings = voxelSettings;
     
     [ThreadStatic]
     private static HashSet<int>? _updatedEntities;
@@ -111,18 +115,19 @@ internal sealed class VoxelEntityBuilder(
         return new Entity(entity, store);
     }
     
-    public void Rebuild(DataStore store, int entity)
+    /// <summary>Rebuilds dirty chunks within the configured time budget. Returns true when no dirty chunks remain.</summary>
+    public bool Rebuild(DataStore store, int entity)
     {
         if (!store.TryGet(entity, out VoxelComponent voxelComponent))
         {
             _logger.LogWarning("Tried to rebuild entity {Entity} that doesn't have a VoxelComponent.", entity);
-            return;
+            return true;
         }
         
         if (!store.TryGet(entity, out MeshRendererCleanup meshRendererCleanup))
         {
             _logger.LogWarning("Tried to rebuild entity {Entity} but it is missing MeshRendererCleanup.", entity);
-            return;
+            return true;
         }
 
         VoxelChunkRegistry registry = voxelComponent.Registry;
@@ -131,14 +136,14 @@ internal sealed class VoxelEntityBuilder(
         if (registry.DirtyChunks.Count == 0)
         {
             _logger.LogWarning("Tried to rebuild entity {Entity} without any dirty chunks.", entity);
-            return;
+            return true;
         }
 
         using VoxelObjectBuilder.ChunkBuildContext buildContext = _voxelObjectBuilder.OpenChunkBuildContext();
-        RebuildDirtyChunks(store, entity, parentUuid, voxelComponent, meshRendererCleanup, buildContext);
+        return RebuildDirtyChunks(store, entity, parentUuid, voxelComponent, meshRendererCleanup, buildContext);
     }
 
-    private void RebuildDirtyChunks(
+    private bool RebuildDirtyChunks(
         DataStore store,
         int parentEntity,
         Uuid parentUuid,
@@ -149,6 +154,8 @@ internal sealed class VoxelEntityBuilder(
     {
         VoxelChunkRegistry registry = voxelComponent.Registry;
         VoxelObject voxelObject = voxelComponent.VoxelObject;
+        long startedAt = Stopwatch.GetTimestamp();
+        double budgetMs = _voxelSettings.RebuildBudgetMs.Get();
 
         if (registry.ChunkColliders.Count == 0 && voxelObject.ChunkCount > 0 && registry.GeometryDirtyChunks.Count > 0)
         {
@@ -166,8 +173,6 @@ internal sealed class VoxelEntityBuilder(
         }
 
         var dirtyList = new List<Short3>(registry.DirtyChunks);
-        registry.DirtyChunks.Clear();
-
         var collisionChanged = false;
         for (var i = 0; i < dirtyList.Count; i++)
         {
@@ -181,23 +186,7 @@ internal sealed class VoxelEntityBuilder(
                 {
                     ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, []);
                 }
-                if (registry.ChunkColliders.Remove(chunkOffset))
-                {
-                    collisionChanged = true;
-                }
-                continue;
-            }
 
-            UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup, buildContext, geometryDirty);
-
-            if (!geometryDirty)
-            {
-                continue;
-            }
-
-            ChunkCollisionData newCollision = _voxelObjectBuilder.BuildChunkCollision(buildContext, chunk);
-            if (newCollision.IsEmpty)
-            {
                 if (registry.ChunkColliders.Remove(chunkOffset))
                 {
                     collisionChanged = true;
@@ -205,19 +194,47 @@ internal sealed class VoxelEntityBuilder(
             }
             else
             {
-                registry.ChunkColliders[chunkOffset] = newCollision;
-                collisionChanged = true;
+                UpdateChunkRenderers(store, parentEntity, parentUuid, voxelComponent, chunk, meshRendererCleanup, buildContext, geometryDirty);
+
+                if (geometryDirty)
+                {
+                    ChunkCollisionData newCollision = _voxelObjectBuilder.BuildChunkCollision(buildContext, chunk);
+                    if (newCollision.IsEmpty)
+                    {
+                        if (registry.ChunkColliders.Remove(chunkOffset))
+                        {
+                            collisionChanged = true;
+                        }
+                    }
+                    else
+                    {
+                        registry.ChunkColliders[chunkOffset] = newCollision;
+                        collisionChanged = true;
+                    }
+                }
+            }
+
+            MarkProcessed(registry, chunkOffset);
+            if (Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds >= budgetMs)
+            {
+                break;
             }
         }
-
-        registry.GeometryDirtyChunks.Clear();
-        registry.LightDirtyChunks.Clear();
 
         if (collisionChanged)
         {
             CompoundShape collisionShape = VoxelObjectBuilder.CombineCollisions(registry.ChunkColliders.Values);
             store.AddOrUpdate(parentEntity, new ColliderComponent(collisionShape));
         }
+
+        return registry.DirtyChunks.Count == 0;
+    }
+
+    private static void MarkProcessed(VoxelChunkRegistry registry, Short3 chunkOffset)
+    {
+        registry.DirtyChunks.Remove(chunkOffset);
+        registry.GeometryDirtyChunks.Remove(chunkOffset);
+        registry.LightDirtyChunks.Remove(chunkOffset);
     }
 
     private void BuildAndAttachChunk(

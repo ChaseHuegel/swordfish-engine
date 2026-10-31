@@ -112,7 +112,7 @@ Record these before Phase E0. Add the numbers to this table.
 - [x] G3a Occupancy mask
 - [x] G3b Rebuild scope and buffer reuse
 - [x] G3c Chunk entity lifetime
-- [ ] G3d Rebuild time budget and system order
+- [x] G3d Rebuild time budget and system order
 - [ ] G3e Mesh allocation
 - [ ] G4 Voxel gizmo toggle
 - [ ] G5 Dead code, benchmark, docs pass
@@ -543,20 +543,20 @@ Commit: `Make the chunk entity lifetime single-owner`.
 
 Commit: `Budget voxel rebuild time per tick`.
 
-- [ ] Add `VoxelSettings` with `RebuildBudgetMs = 10` (configurable, TOML,
+- [x] Add `VoxelSettings` with `RebuildBudgetMs = 10` (configurable, TOML,
       `voxel.toml`).
-- [ ] Register it with `RegisterConfig`.
-- [ ] Add it to `ConfigManager.ApplySettings`.
-- [ ] `Rebuild` returns whether it finished. Process chunks until the budget is
+- [x] Register it with `RegisterConfig`.
+- [x] Add it to `ConfigManager.ApplySettings`.
+- [x] `Rebuild` returns whether it finished. Process chunks until the budget is
       spent. Leave the rest in `DirtyChunks`.
-- [ ] `VoxelEntityRebuildSystem` clears the dirty flag only when the rebuild
+- [x] `VoxelEntityRebuildSystem` clears the dirty flag only when the rebuild
       finished.
-- [ ] Combine the cached chunk colliders and replace the `ColliderComponent`
+- [x] Combine the cached chunk colliders and replace the `ColliderComponent`
       once per tick, after the budget batch. Do not rebuild the Jolt body once
       per chunk.
-- [ ] Register `VoxelEntityRebuildSystem` after `PlayerInteractionService` so a
+- [x] Register `VoxelEntityRebuildSystem` after `PlayerInteractionService` so a
       local click rebuilds on the same tick.
-- [ ] Add a test: the budget yields after N chunks. The remainder rebuilds on
+- [x] Add a test: the budget yields after N chunks. The remainder rebuilds on
       the next tick.
 
 ### G3e: Remove per-chunk mesh allocation

@@ -26,8 +26,10 @@ internal sealed class VoxelEntityRebuildSystem : IEntitySystem
 
         public void Execute(float delta, DataStore store, int entity, in VoxelComponent voxelComponent)
         {
-            Owner._voxelBuilder.Rebuild(store, entity);
-            store.ClearDirty<VoxelComponent>(entity);
+            if (Owner._voxelBuilder.Rebuild(store, entity))
+            {
+                store.ClearDirty<VoxelComponent>(entity);
+            }
         }
     }
 

@@ -113,7 +113,9 @@ marks the orthogonal neighbor chunk dirty. A light-only write marks
 collision and voxel-entity reconciliation for that chunk.
 
 A rebuild opens one resolver scope for every dirty chunk. It reuses the mesh,
-entity, and collision buffers between chunks.
+entity, and collision buffers between chunks. It stops after
+`VoxelSettings.RebuildBudgetMs` (10 ms by default). Unprocessed chunks stay dirty
+and resume on the next tick.
 
 `VoxelEntityBuilder` is the only owner of chunk child entities. Each bucket
 stores the entity index and its `Uuid`. A mismatch means the index was recycled,

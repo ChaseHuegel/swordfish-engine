@@ -125,9 +125,6 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientVoxelReconcileSystem>();
         container.Register<ChatService>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientChatSystem>();
-        //  Runs after the voxel-edit producers (PlayerInteractionService, ClientVoxelReconcileSystem) so
-        //  the dirty VoxelComponent flags it consumes reflect the current prediction/reconcile.
-        container.Register<IEntitySystem, VoxelEntityRebuildSystem>();
 
         container.Register<ClientJoinSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientJoinSystem>();
@@ -177,6 +174,7 @@ public class Injector : IDryIocInjector
         container.RegisterDataBinding<List<SavedServer>>();
         container.RegisterConfig<ProfileSettings>(file: "profile.toml");
         container.RegisterConfig<ChatConfig>(file: "chat.toml");
+        container.RegisterConfig<VoxelSettings>(file: "voxel.toml");
     }
 
     private static SettingsPage<TIdentifier> CreateSettingsPage<TIdentifier>(
@@ -298,6 +296,8 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
         container.RegisterMapping<IEntitySystem, PlayerInteractionService>();
         container.RegisterMapping<IDebugOverlay, PlayerInteractionService>();
+        //  Runs after the voxel-edit producers so the dirty flags it consumes reflect this tick.
+        container.Register<IEntitySystem, VoxelEntityRebuildSystem>();
 
         container.Register<ClientPlayerMotionProcessor>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientPlayerMotionProcessor>();
