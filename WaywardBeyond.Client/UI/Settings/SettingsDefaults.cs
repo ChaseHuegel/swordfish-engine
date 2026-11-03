@@ -16,7 +16,7 @@ internal static class SettingsDefaults
     public const bool AMBIENT_OCCLUSION = true;
     public const int AO_SAMPLES = 8;
     public const bool BLOOM = true;
-    public const int BLOOM_PASSES = 10;
+    public const BloomQuality BLOOM_QUALITY = BloomQuality.Medium;
     public const float MASTER_VOLUME = 0.5f;
     public const float MUSIC_VOLUME = 0.5f;
     public const float EFFECTS_VOLUME = 0.5f;
@@ -42,7 +42,12 @@ internal static class SettingsDefaults
     private static readonly float[] _viewDistances = [500f, 750f, 1000f, 1500f, 2000f, 2500f, 3000f, 4000f, 5000f];
     private static readonly int[] _autosaveIntervals = [1, 2, 5, 10, 15, 20, 30, 45, 60];
     private static readonly int[] _aoSamplesOptions = [4, 8, 16];
-    private static readonly int[] _bloomPassesOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    private static readonly BloomQuality[] _bloomQualities =
+    [
+        BloomQuality.Low,
+        BloomQuality.Medium,
+        BloomQuality.High,
+    ];
     private static readonly ShadowQuality[] _shadowQualities =
     [
         ShadowQuality.Off,
@@ -82,10 +87,10 @@ internal static class SettingsDefaults
         return WithValue(_aoSamplesOptions, current);
     }
 
-    /// <summary>Gets a bloom pass list that includes the current value.</summary>
-    public static IReadOnlyList<int> GetBloomPasses(int current)
+    /// <summary>Gets a bloom quality list that includes the current value.</summary>
+    public static IReadOnlyList<BloomQuality> GetBloomQualities(BloomQuality current)
     {
-        return WithValue(_bloomPassesOptions, current);
+        return WithValue(_bloomQualities, current);
     }
 
     private static IReadOnlyList<T> WithValue<T>(T[] values, T current)

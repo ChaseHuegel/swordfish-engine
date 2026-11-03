@@ -185,7 +185,7 @@
 "ui.settings.option.ambientOcclusion" = "Ambient occlusion"
 "ui.settings.option.aoSamples" = "AO samples"
 "ui.settings.option.bloom" = "Bloom"
-"ui.settings.option.bloomPasses" = "Bloom passes"
+"ui.settings.option.bloomQuality" = "Bloom quality"
 
 "ui.settings.option.masterVolume" = "Master"
 "ui.settings.option.musicVolume" = "Music"

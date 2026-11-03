@@ -35,7 +35,7 @@ public class SettingsEntryTests
         Assert.Contains(1234f, SettingsDefaults.GetViewDistances(1234f));
         Assert.Contains(7, SettingsDefaults.GetAutosaveIntervals(7));
         Assert.Contains(12, SettingsDefaults.GetAoSamples(12));
-        Assert.Contains(11, SettingsDefaults.GetBloomPasses(11));
+        Assert.Contains(BloomQuality.High, SettingsDefaults.GetBloomQualities(BloomQuality.High));
         Assert.Contains(ShadowQuality.Custom, SettingsDefaults.GetShadowQualities(ShadowQuality.Custom));
     }
 
