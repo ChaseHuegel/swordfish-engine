@@ -1,14 +1,11 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Text;
 using Reef.UI;
 using Silk.NET.OpenGL;
-using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.IO;
 using Swordfish.Library.IO;
-using Swordfish.Library.Util;
 using Swordfish.Settings;
 using Swordfish.UI.Reef;
 
@@ -17,29 +14,36 @@ namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 // ReSharper disable once ClassNeverInstantiated.Global
 internal sealed class ReefRenderer : IScreenSpaceRenderStage
 {
+    private const string SOLID_REGION = "solid";
+    private const int SOLID_SIZE = 4;
+    private const uint VERTICES_PER_QUAD = 4;
+
     private readonly GL _gl;
     private readonly GLRenderContext _glRenderContext;
     private readonly RenderSettings _renderSettings;
     private readonly ReefContext _reefContext;
     private readonly DebugSettings _debugSettings;
-    private readonly Dictionary<string, Material> _typefaceMaterials = [];
 
-    //  If either of these is null, the renderer is attempting to render without having initialized.
-    private readonly ShaderProgram? _defaultShader;
+    //  Every quad of the frame shares one vertex buffer. Quads keep paint order, and a
+    //  run is closed only when the draw state changes.
+    private readonly ReefBatch _batch = new();
+    private readonly List<GLMaterial> _runMaterials = [];
+    private GLMaterial? _activeMaterial;
+
+    //  Rects and glyphs sample one packed atlas, so a frame without images is one draw.
+    private readonly ReefAtlas? _atlas;
+    private readonly Material? _atlasMaterial;
+    private readonly float _solidU;
+    private readonly float _solidV;
+
+    //  If this is null, the renderer is attempting to render without having initialized.
     private readonly VertexArrayObject<float>? _vao;
-    
-    //  TODO improve and bring back batching UI.
-    //       Instance batches were being created by material and font, however this was problematic
-    //       because images would render in a separate batch after simple rects and results in
-    //       depth being incorrect, where a parent Image renders over a child rect or text.
-    //       -
-    //       Using a depth buffer is insufficient because a parent isn't always in the same
-    //       draw call as the child in that scenario. Batches are going to have to be smarter,
-    //       likely where an element can break the batch for its entire tree of elements.
-    //       -
-    //       For the time being, UI is not being batched for the sake of being able to focus
-    //       on more important issues. For the time, performance here isn't a particular concern.
-    private readonly Dictionary<RenderCommand<Material>, InstanceVertexData> _instances = new(/*new MaterialRenderCommandComparer()*/);
+
+    //  Texture coordinates applied to the quad that is being appended.
+    private float _u0;
+    private float _v0;
+    private float _u1;
+    private float _v1;
 
     public ReefRenderer(
         in GL gl,
@@ -58,30 +62,19 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         _reefContext = reefContext;
         _debugSettings = debugSettings;
 
-        if (!vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef.glsl"), out PathInfo defaultUIShaderFile))
+        if (!vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef_atlas.glsl"), out PathInfo shaderFile))
         {
             logger.LogError("The shader source for OpenGL Reef UI was not found. Reef UI will not be rendered with OpenGL.");
             return;
         }
 
-        if (!fileParseService.TryParse(defaultUIShaderFile, out Shader shader))
+        if (!fileParseService.TryParse(shaderFile, out Shader shader))
         {
             logger.LogError("Failed to parse the OpenGL Reef UI shader. Reef UI will not be rendered with OpenGL.");
             return;
         }
-        
-        if (!vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef_msdf.glsl"), out PathInfo textShaderFile))
-        {
-            logger.LogError("The shader source for OpenGL Reef UI MSDF text was not found. Reef UI will not be rendered with OpenGL.");
-            return;
-        }
-        
-        if (!fileParseService.TryParse(textShaderFile, out Shader textShader))
-        {
-            logger.LogError("Failed to parse the OpenGL Reef UI MSDF text shader. Reef UI will not be rendered with OpenGL.");
-            return;
-        }
 
+        var sources = new List<ReefAtlas.Source>();
         foreach (ITypeface typeface in _reefContext.TextEngine.GetTypefaces())
         {
             AtlasInfo atlasInfo = typeface.GetAtlasInfo();
@@ -91,32 +84,41 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
                 continue;
             }
 
-            if (_typefaceMaterials.ContainsKey(typeface.ID))
+            if (sources.Exists(source => source.Key == typeface.ID))
             {
                 logger.LogWarning("Attempted to add a duplicate of typeface \"{ID}\".", typeface.ID);
                 continue;
             }
 
-            var material = new Material(textShader, atlas);
-            _typefaceMaterials.Add(typeface.ID, material);
+            sources.Add(new ReefAtlas.Source(typeface.ID, atlas.Width, atlas.Height, atlas.Pixels));
         }
 
+        sources.Add(new ReefAtlas.Source(SOLID_REGION, SOLID_SIZE, SOLID_SIZE, CreateSolidPixels(SOLID_SIZE)));
+        _atlas = ReefAtlas.Pack(sources);
+
+        ReefAtlas.Region solid = _atlas.GetRegion(SOLID_REGION);
+        _solidU = (solid.OffsetX + (SOLID_SIZE / 2f)) / _atlas.Width;
+        _solidV = (solid.OffsetY + (SOLID_SIZE / 2f)) / _atlas.Height;
+
+        var atlasTexture = new Texture("ui_atlas", _atlas.Pixels, _atlas.Width, _atlas.Height, mipmaps: false);
+        _atlasMaterial = new Material(shader, atlasTexture);
+
+        //  Locations match the declarations in ui_reef_atlas.glsl. Every attribute is
+        //  per instance, so the four corners of a quad read the same record.
         _vao = glContext.CreateVertexArrayObject(Array.Empty<float>());
         _vao.Bind();
         _vao.VertexBufferObject.Bind();
-        _vao.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 14, 0);
-        _vao.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 14, 3);
-        _vao.SetVertexAttribute(2, 3, VertexAttribPointerType.Float, 14, 7);
-        _vao.SetVertexAttribute(3, 4, VertexAttribPointerType.Float, 14, 10);
+        SetInstanceAttribute(_vao, 8, ReefBatch.RECT_OFFSET);
+        SetInstanceAttribute(_vao, 9, ReefBatch.UV_OFFSET);
+        SetInstanceAttribute(_vao, 1, ReefBatch.COLOR_OFFSET);
+        SetInstanceAttribute(_vao, 3, ReefBatch.CLIP_OFFSET);
         _vao.VertexBufferObject.Unbind();
         _vao.Unbind();
-
-        _defaultShader = shader.CreateProgram(glContext);
     }
 
     public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {
-        if (isDepthPass)
+        if (isDepthPass || _vao == null || _atlas == null || _atlasMaterial == null)
         {
             return;
         }
@@ -124,58 +126,177 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         _reefContext.Builder.Debug = _debugSettings.UI.Get();
         List<RenderCommand<Material>> commands = _reefContext.Builder.Build(delta);
 
-        _instances.Clear();
+        _batch.Begin(_reefContext.Builder.Width, _reefContext.Builder.Height);
+        _runMaterials.Clear();
+        _activeMaterial = null;
+
         for (var i = 0; i < commands.Count; i++)
         {
             RenderCommand<Material> command = commands[i];
+            IntRect clipRect = command.ClipRect;
 
-            if (!_instances.TryGetValue(command, out InstanceVertexData instance))
+            //  Only use the foreground color if this isn't text.
+            Vector4 rectColor = command.Text == null ? command.Color : command.BackgroundColor;
+
+            if (command.RendererData == null)
             {
-                instance = new InstanceVertexData(new Vertices(), command.Text != null ? new Vertices() : null);
+                UseMaterial(_glRenderContext.BindMaterial(_atlasMaterial));
+                SetSolidTextureCoordinates();
+            }
+            else
+            {
+                UseMaterial(_glRenderContext.BindMaterial(command.RendererData));
+                SetFullTextureCoordinates();
             }
 
-            //  Build rect vertices
-            //  Only use the foreground Color if this isn't text
-            instance.Rect.AddVertexData(command.Rect, command.Text == null ? command.Color : command.BackgroundColor, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+            AddRect(command.Rect, rectColor, clipRect);
+            AddBorder(command, clipRect);
+            AddCornerCaps(command, clipRect);
 
-            AddBorder(instance, command);
-            AddCornerCaps(instance, command);
-            
-            if (command.Text != null)
+            if (command.Text == null)
             {
-                //  Build text vertices
-                TextLayout textLayout = command.TextLayout ?? _reefContext.TextEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
-
-                for (var n = 0; n < textLayout.Glyphs.Length; n++)
-                {
-                    GlyphLayout glyph = textLayout.Glyphs[n];
-                    if (glyph.IsWhitespace)
-                    {
-                        continue;
-                    }
-                
-                    var bbox = new IntRect(
-                        command.Rect.Left + glyph.BBOX.Left,
-                        command.Rect.Top + glyph.BBOX.Top,
-                        command.Rect.Left + glyph.BBOX.Right,
-                        command.Rect.Top + glyph.BBOX.Bottom
-                    );
-                    
-                    if (!command.ClipRect.Intersects(bbox))
-                    {
-                        continue;
-                    }
-                
-                    Vector4 glyphColor = glyph.ResolveColor(command.Color);
-                    instance.Text!.Value.AddVertexData(bbox, glyph.UV, glyphColor, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
-                }
+                continue;
             }
-            
-            _instances[command] = instance;
+
+            string typefaceID = command.FontOptions.ID ?? _reefContext.TextEngine.GetDefaultTypeface().ID;
+            if (!_atlas.TryGetRegion(typefaceID, out ReefAtlas.Region region))
+            {
+                //  No matching typeface, and no default is loaded
+                continue;
+            }
+
+            TextLayout textLayout = command.TextLayout ?? _reefContext.TextEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
+            if (textLayout.Glyphs.Length == 0)
+            {
+                continue;
+            }
+
+            UseMaterial(_glRenderContext.BindMaterial(_atlasMaterial));
+            AddGlyphs(_atlas, textLayout, region, command, clipRect);
+        }
+
+        _batch.End();
+    }
+
+    public int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    {
+        if (_vao == null || isDepthPass || _batch.RunCount == 0)
+        {
+            return 0;
+        }
+
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        _gl.Set(EnableCap.DepthTest, false);
+        _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+
+        _vao.Bind();
+        _vao.VertexBufferObject.UpdateStreamingData(_batch.Instances);
+
+        for (var i = 0; i < _batch.RunCount; i++)
+        {
+            ReefBatch.Run run = _batch.GetRun(i);
+            GLMaterial material = _runMaterials[run.State - 1];
+
+            using GLMaterial.Scope _ = material.Use();
+            shaderActivationCallback(material.ShaderProgram);
+
+            _gl.DrawArraysInstancedBaseInstance(
+                PrimitiveType.TriangleFan,
+                first: 0,
+                count: VERTICES_PER_QUAD,
+                instancecount: (uint)run.InstanceCount,
+                baseinstance: (uint)run.BaseInstance
+            );
+        }
+
+        _gl.Disable(EnableCap.Blend);
+        return _batch.RunCount;
+    }
+
+    private static void SetInstanceAttribute(VertexArrayObject<float> vao, uint location, int offset)
+    {
+        vao.SetVertexAttribute(location, 4, VertexAttribPointerType.Float, ReefBatch.INSTANCE_STRIDE, offset);
+        vao.SetVertexAttributeDivisor(location, 1);
+    }
+
+    private static byte[] CreateSolidPixels(int size)
+    {
+        var pixels = new byte[size * size * 4];
+        Array.Fill(pixels, (byte)255);
+        return pixels;
+    }
+
+    private void UseMaterial(GLMaterial material)
+    {
+        if (ReferenceEquals(material, _activeMaterial))
+        {
+            return;
+        }
+
+        _activeMaterial = material;
+        _runMaterials.Add(material);
+        _batch.UseState(_runMaterials.Count);
+    }
+
+    private void SetSolidTextureCoordinates()
+    {
+        _u0 = _solidU;
+        _v0 = _solidV;
+        _u1 = _solidU;
+        _v1 = _solidV;
+    }
+
+    private void SetFullTextureCoordinates()
+    {
+        _u0 = 0f;
+        _v0 = 0f;
+        _u1 = 1f;
+        _v1 = 1f;
+    }
+
+    private void AddGlyphs(ReefAtlas atlas, TextLayout textLayout, in ReefAtlas.Region region, RenderCommand<Material> command, IntRect clipRect)
+    {
+        for (var i = 0; i < textLayout.Glyphs.Length; i++)
+        {
+            GlyphLayout glyph = textLayout.Glyphs[i];
+            if (glyph.IsWhitespace)
+            {
+                continue;
+            }
+
+            var bbox = new IntRect(
+                command.Rect.Left + glyph.BBOX.Left,
+                command.Rect.Top + glyph.BBOX.Top,
+                command.Rect.Left + glyph.BBOX.Right,
+                command.Rect.Top + glyph.BBOX.Bottom
+            );
+
+            if (!clipRect.Intersects(bbox))
+            {
+                continue;
+            }
+
+            float u0 = region.MapU(glyph.UV.Left, atlas.Width);
+            float u1 = region.MapU(glyph.UV.Right, atlas.Width);
+            float v0 = region.MapV(glyph.UV.Bottom, atlas.Height);
+            float v1 = region.MapV(glyph.UV.Top, atlas.Height);
+
+            _batch.AddQuad(bbox, u0, v0, u1, v1, glyph.ResolveColor(command.Color), clipRect);
         }
     }
 
-    private void AddBorder(InstanceVertexData instance, RenderCommand<Material> command)
+    private static int ResolveThickness(int sideThickness, int fallback)
+    {
+        return sideThickness > 0 ? sideThickness : fallback;
+    }
+
+    private static Vector4 ResolveColor(Vector4 sideColor, Vector4 fallback)
+    {
+        return sideColor.W > 0f ? sideColor : fallback;
+    }
+
+    private void AddBorder(RenderCommand<Material> command, IntRect clipRect)
     {
         BorderStyle border = command.Border;
         IntRect rect = command.Rect;
@@ -198,40 +319,39 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         if (drawTop)
         {
             int limit = drawBottom ? rect.Size.Y / 2 : rect.Size.Y;
-            AddHorizontalSide(instance, command, border, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
+            AddHorizontalSide(border, clipRect, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
         }
 
         if (drawBottom)
         {
             int limit = drawTop ? rect.Size.Y / 2 : rect.Size.Y;
             int thickness = Math.Min(bottomThickness, limit);
-            AddHorizontalSide(instance, command, border, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
+            AddHorizontalSide(border, clipRect, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
         }
 
         if (drawLeft)
         {
             int limit = drawRight ? rect.Size.X / 2 : rect.Size.X;
-            AddVerticalSide(instance, command, border, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
+            AddVerticalSide(border, clipRect, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
         }
 
         if (drawRight)
         {
             int limit = drawLeft ? rect.Size.X / 2 : rect.Size.X;
             int thickness = Math.Min(rightThickness, limit);
-            AddVerticalSide(instance, command, border, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
+            AddVerticalSide(border, clipRect, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
         }
     }
 
     private void AddHorizontalSide(
-        InstanceVertexData instance,
-        RenderCommand<Material> command,
         in BorderStyle border,
+        IntRect clipRect,
         int left,
         int right,
         int top,
         int thickness,
-        in Vector4 color)
-    {
+        in Vector4 color
+    ) {
         if (thickness <= 0)
         {
             return;
@@ -240,7 +360,7 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         BorderDash.Resolve(border, thickness, out int dash, out int gap);
         if (dash <= 0)
         {
-            AddRect(instance, new IntRect(left, top, right, top + thickness), color, command.ClipRect);
+            AddRect(new IntRect(left, top, right, top + thickness), color, clipRect);
             return;
         }
 
@@ -248,20 +368,19 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         while (segments.MoveNext())
         {
             int start = left + segments.Offset;
-            AddRect(instance, new IntRect(start, top, start + segments.SegmentLength, top + thickness), color, command.ClipRect);
+            AddRect(new IntRect(start, top, start + segments.SegmentLength, top + thickness), color, clipRect);
         }
     }
 
     private void AddVerticalSide(
-        InstanceVertexData instance,
-        RenderCommand<Material> command,
         in BorderStyle border,
+        IntRect clipRect,
         int top,
         int bottom,
         int left,
         int thickness,
-        in Vector4 color)
-    {
+        in Vector4 color
+    ) {
         if (thickness <= 0)
         {
             return;
@@ -270,7 +389,7 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         BorderDash.Resolve(border, thickness, out int dash, out int gap);
         if (dash <= 0)
         {
-            AddRect(instance, new IntRect(left, top, left + thickness, bottom), color, command.ClipRect);
+            AddRect(new IntRect(left, top, left + thickness, bottom), color, clipRect);
             return;
         }
 
@@ -278,21 +397,11 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         while (segments.MoveNext())
         {
             int start = top + segments.Offset;
-            AddRect(instance, new IntRect(left, start, left + thickness, start + segments.SegmentLength), color, command.ClipRect);
+            AddRect(new IntRect(left, start, left + thickness, start + segments.SegmentLength), color, clipRect);
         }
     }
 
-    private static int ResolveThickness(int sideThickness, int fallback)
-    {
-        return sideThickness > 0 ? sideThickness : fallback;
-    }
-
-    private static Vector4 ResolveColor(Vector4 sideColor, Vector4 fallback)
-    {
-        return sideColor.W > 0f ? sideColor : fallback;
-    }
-
-    private void AddCornerCaps(InstanceVertexData instance, RenderCommand<Material> command)
+    private void AddCornerCaps(RenderCommand<Material> command, IntRect clipRect)
     {
         CornerCapStyle caps = command.CornerCaps;
         IntRect rect = command.Rect;
@@ -306,245 +415,24 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         }
 
         //  Top left
-        AddRect(instance, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color, command.ClipRect);
+        AddRect(new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color, clipRect);
+        AddRect(new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color, clipRect);
 
         //  Top right
-        AddRect(instance, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color, command.ClipRect);
+        AddRect(new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color, clipRect);
+        AddRect(new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color, clipRect);
 
         //  Bottom left
-        AddRect(instance, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color, command.ClipRect);
+        AddRect(new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color, clipRect);
+        AddRect(new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color, clipRect);
 
         //  Bottom right
-        AddRect(instance, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color, command.ClipRect);
+        AddRect(new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color, clipRect);
+        AddRect(new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color, clipRect);
     }
 
-    private void AddRect(InstanceVertexData instance, IntRect rect, Vector4 color, IntRect clipRect)
+    private void AddRect(IntRect rect, Vector4 color, IntRect clipRect)
     {
-        if (rect.Size.X <= 0 || rect.Size.Y <= 0)
-        {
-            return;
-        }
-
-        instance.Rect.AddVertexData(rect, color, clipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
-    }
-
-    public int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
-    {
-        if (_vao == null || isDepthPass)
-        {
-            return 0;
-        }
-        
-        _gl.Enable(EnableCap.Blend);
-        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        
-        var drawCalls = 0;
-        _vao.Bind();
-        foreach (KeyValuePair<RenderCommand<Material>, InstanceVertexData> instance in _instances)
-        {
-            RenderCommand<Material> command = instance.Key;
-            drawCalls += Draw(_vao, command, vertices: instance.Value.Rect, shaderActivationCallback);
-
-            if (instance.Value.Text == null)
-            {
-                continue;
-            }
-            
-            drawCalls += Draw(_vao, command, vertices: instance.Value.Text.Value, shaderActivationCallback, isTextPass: true);
-        }
-        
-        _gl.Disable(EnableCap.Blend);
-        return drawCalls;
-    }
-
-    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, Vertices vertices, Action<ShaderProgram> shaderActivationCallback, bool isTextPass = false)
-    {
-        if (vertices.Count == 0)
-        {
-            return 0;
-        }
-
-        if (isTextPass)
-        {
-            string typefaceID = command.FontOptions.ID ?? _reefContext.TextEngine.GetDefaultTypeface().ID;
-            if (!_typefaceMaterials.TryGetValue(typefaceID, out Material? typefaceMaterial))
-            {
-                //  No matching typeface, and no default is loaded
-                return 0;
-            }
-            
-            GLMaterial typefaceGLMaterial = _glRenderContext.BindMaterial(typefaceMaterial);
-            
-            using GLMaterial.Scope _ = typefaceGLMaterial.Use();
-            shaderActivationCallback(typefaceGLMaterial.ShaderProgram);
-            
-            DrawArrays(vao, vertices);
-        }
-        else if (command.RendererData != null)
-        {
-            GLMaterial glMaterial = _glRenderContext.BindMaterial(command.RendererData);
-            
-            using GLMaterial.Scope _ = glMaterial.Use();
-            shaderActivationCallback(glMaterial.ShaderProgram);
-            
-            DrawArrays(vao, vertices);
-        }
-        else
-        {
-            if (_defaultShader == null)
-            {
-                return 0;
-            }
-            
-            using GLHandle.Scope _ = _defaultShader.Use();
-            shaderActivationCallback(_defaultShader);
-            var viewport = new int[4];
-            _gl.GetInteger(GLEnum.Viewport, viewport);
-            _defaultShader.SetUniform("screenSize", new Vector2(viewport[2], viewport[3]));
-            
-            DrawArrays(vao, vertices);
-        }
-
-        return 1;
-    }
-
-    private void DrawArrays(VertexArrayObject<float> vao, Vertices vertices)
-    {
-        vao.VertexBufferObject.UpdateData(CollectionsMarshal.AsSpan(vertices.Data));
-        _gl.Set(EnableCap.DepthTest, false);
-        _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
-        _gl.MultiDrawArrays(PrimitiveType.TriangleFan, CollectionsMarshal.AsSpan(vertices.Offsets), CollectionsMarshal.AsSpan(vertices.Counts), (uint)vertices.Count);
-    }
-
-    private readonly struct InstanceVertexData(Vertices rect, Vertices? text)
-    {
-        public readonly Vertices Rect = rect;
-        public readonly Vertices? Text = text;
-    }
-    
-    private readonly struct Vertices()
-    {
-        public readonly List<int> Offsets = [];
-        public readonly List<uint> Counts = [];
-        public readonly List<float> Data = [];
-
-        public int Count => Counts.Count;
-
-        public void AddVertexData(IntRect rect, Vector4 color, IntRect clipRect, float width, float height)
-        {
-            AddVertexData(rect, new IntRect(0, 1, 1, 0), color, clipRect, width, height);
-        }
-
-        public void AddVertexData(IntRect rect, IntRect uv, Vector4 color, IntRect clipRect, float width, float height)
-        {
-            Offsets.Add(Data.Count / 14);
-            Counts.Add(4);
-
-            Data.Capacity += 56;
-
-            //  Bottom left
-            // X,Y,Z
-            Data.Add(MathS.RangeToRange(rect.Left, 0f, width, -1f, 1f));
-            Data.Add(MathS.RangeToRange(rect.Bottom, height, 0f, -1f, 1f));
-            Data.Add(0f);
-            //  r,g,b,a
-            Data.Add(color.X);
-            Data.Add(color.Y);
-            Data.Add(color.Z);
-            Data.Add(color.W);
-            // u,v
-            Data.Add(uv.Left);
-            Data.Add(uv.Bottom);
-            Data.Add(0);
-            //  TODO clip rect should not be baked into every vertex. 
-            //       It should be passed per instance via a buffer. This is less straight forward in
-            //       the current GLSL 3.30, but doable. It would also require breaking batches into multiple draw
-            //       calls if they have too many instances (256 instances per draw call likely is ideal).
-            //       -
-            //       Alternatively, gl_DrawID is available in GLSL 4.60 and simplifies passing per instance.
-            //       This existing behavior could be used anytime using GLSL <4.60.
-            //  clip l,t,r,b / x1,y1,x2,y2
-            Data.Add(clipRect.Left);
-            Data.Add(clipRect.Top);
-            Data.Add(clipRect.Right);
-            Data.Add(clipRect.Bottom);
-            
-            //  Bottom right
-            // X,Y,Z
-            Data.Add(MathS.RangeToRange(rect.Right, 0f, width, -1f, 1f));
-            Data.Add(MathS.RangeToRange(rect.Bottom, height, 0f, -1f, 1f));
-            Data.Add(0f);
-            //  r,g,b,a
-            Data.Add(color.X);
-            Data.Add(color.Y);
-            Data.Add(color.Z);
-            Data.Add(color.W);
-            // u,v
-            Data.Add(uv.Right);
-            Data.Add(uv.Bottom);
-            Data.Add(0);
-            //  clip l,t,r,b / x1,y1,x2,y2
-            Data.Add(clipRect.Left);
-            Data.Add(clipRect.Top);
-            Data.Add(clipRect.Right);
-            Data.Add(clipRect.Bottom);
-            
-            //  Top right
-            // X,Y,Z
-            Data.Add(MathS.RangeToRange(rect.Right, 0f, width, -1f, 1f));
-            Data.Add(MathS.RangeToRange(rect.Top, height, 0f, -1f, 1f));
-            Data.Add(0f);
-            //  r,g,b,a
-            Data.Add(color.X);
-            Data.Add(color.Y);
-            Data.Add(color.Z);
-            Data.Add(color.W);
-            // u,v
-            Data.Add(uv.Right);
-            Data.Add(uv.Top);
-            Data.Add(0);
-            //  clip l,t,r,b / x1,y1,x2,y2
-            Data.Add(clipRect.Left);
-            Data.Add(clipRect.Top);
-            Data.Add(clipRect.Right);
-            Data.Add(clipRect.Bottom);
-            
-            //  Top left
-            // X,Y,Z
-            Data.Add(MathS.RangeToRange(rect.Left, 0f, width, -1f, 1f));
-            Data.Add(MathS.RangeToRange(rect.Top, height, 0f, -1f, 1f));
-            Data.Add(0f);
-            //  r,g,b,a
-            Data.Add(color.X);
-            Data.Add(color.Y);
-            Data.Add(color.Z);
-            Data.Add(color.W);
-            // u,v
-            Data.Add(uv.Left);
-            Data.Add(uv.Top);
-            Data.Add(0);
-            //  clip l,t,r,b / x1,y1,x2,y2
-            Data.Add(clipRect.Left);
-            Data.Add(clipRect.Top);
-            Data.Add(clipRect.Right);
-            Data.Add(clipRect.Bottom);
-        }
-    }
-    
-    private class MaterialRenderCommandComparer : IEqualityComparer<RenderCommand<Material>>
-    {
-        public bool Equals(RenderCommand<Material> x, RenderCommand<Material> y)
-        {
-            return x.RendererData == y.RendererData && x.FontOptions.ID == y.FontOptions.ID;
-        }
-
-        public int GetHashCode(RenderCommand<Material> obj)
-        {
-            return HashCode.Combine(obj.RendererData?.GetHashCode() ?? 0, obj.FontOptions.ID?.GetHashCode() ?? 0);
-        }
+        _batch.AddQuad(rect, _u0, _v0, _u1, _v1, color, clipRect);
     }
 }
