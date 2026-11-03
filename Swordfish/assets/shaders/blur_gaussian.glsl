@@ -15,27 +15,17 @@ uniform bool uHorizontal;
 vec4 fragment()
 {
     vec2 texelSize = 1.0 / textureSize(texture0, 0);
-    vec3 result = texture(texture0, UV).rgb * WEIGHTS[0];
-    if (uHorizontal)
+    vec2 direction = uHorizontal ? vec2(texelSize.x, 0.0) : vec2(0.0, texelSize.y);
+
+    vec4 result = texture(texture0, UV) * WEIGHTS[0];
+    for(int i = 1; i < 5; ++i)
     {
-        for(int i = 1; i < 5; ++i)
-        {
-            vec2 offset = texelSize * i;
-            result += texture(texture0, UV + vec2(offset.x * i, 0.0)).rgb * WEIGHTS[i];
-            result += texture(texture0, UV - vec2(offset.x * i, 0.0)).rgb * WEIGHTS[i];
-        }
+        vec2 offset = direction * i;
+        result += texture(texture0, UV + offset) * WEIGHTS[i];
+        result += texture(texture0, UV - offset) * WEIGHTS[i];
     }
-    else
-    {
-        for(int i = 1; i < 5; ++i)
-        {
-            vec2 offset = texelSize * i;
-            result += texture(texture0, UV + vec2(0.0, offset.y * i)).rgb * WEIGHTS[i];
-            result += texture(texture0, UV - vec2(0.0, offset.y * i)).rgb * WEIGHTS[i];
-        }
-    }
-    
-    return vec4(result, 1.0);
+
+    return result;
 }
 #endif
 
