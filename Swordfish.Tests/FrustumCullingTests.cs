@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using Swordfish.Graphics;
+using Swordfish.Graphics.SilkNET.OpenGL;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -155,5 +156,107 @@ public class FrustumCullingTests
 
         Assert.False(frustum.Intersects(behind.Center, behind.Extents));
         Assert.True(frustum.Intersects(visible.Center, visible.Extents));
+    }
+
+    [Fact]
+    public void Frustum_KeepsGeometryJustInsideTheNearPlane()
+    {
+        Matrix4x4 view = Matrix4x4.CreateLookAt(Vector3.Zero, -Vector3.UnitZ, Vector3.UnitY);
+        Matrix4x4 projection = ShadowCascadeMath.CreatePerspectiveOpenGL(MathF.PI / 3f, 1f, 1f, 100f);
+        Frustum frustum = Frustum.FromViewProjection(view * projection);
+
+        //  The near plane sits at 1m, so 1.5m is inside the frustum.
+        Assert.True(frustum.Intersects(new Vector3(0f, 0f, -1.5f), new Vector3(0.1f)));
+
+        //  0.5m is in front of the near plane.
+        Assert.False(frustum.Intersects(new Vector3(0f, 0f, -0.5f), new Vector3(0.1f)));
+    }
+
+    [Fact]
+    public void Frustum_KeepsEveryCascadeSliceCorner()
+    {
+        Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0f, 2f, 5f), Vector3.Zero, Vector3.UnitY);
+        float fov = MathF.PI / 3f;
+        float aspect = 16f / 9f;
+        float near = 0.1f;
+        float far = 20f;
+        Vector3 lightDirection = Vector3.Normalize(new Vector3(-0.35f, -0.85f, -0.4f));
+
+        ShadowCascadeMath.CalculateCascadeMatrix(
+            view, fov, aspect, near, far, lightDirection, resolution: 1024,
+            out Matrix4x4 cascadeView, out Matrix4x4 cascadeProj
+        );
+
+        Frustum frustum = Frustum.FromViewProjection(cascadeView * cascadeProj);
+        Vector3[] corners = GetSliceCorners(view, fov, aspect, near, far);
+
+        for (var i = 0; i < corners.Length; i++)
+        {
+            Assert.True(frustum.Intersects(corners[i], Vector3.Zero), $"corner {i} was culled");
+        }
+    }
+
+    [Fact]
+    public void Frustum_KeepsCasterBetweenTheLightAndTheCascade()
+    {
+        Matrix4x4 view = Matrix4x4.CreateLookAt(new Vector3(0f, 2f, 5f), Vector3.Zero, Vector3.UnitY);
+        float fov = MathF.PI / 3f;
+        float aspect = 16f / 9f;
+        float near = 0.1f;
+        float far = 20f;
+        Vector3 lightDirection = Vector3.Normalize(new Vector3(-0.35f, -0.85f, -0.4f));
+
+        ShadowCascadeMath.CalculateCascadeMatrix(
+            view, fov, aspect, near, far, lightDirection, resolution: 1024,
+            out Matrix4x4 cascadeView, out Matrix4x4 cascadeProj
+        );
+
+        Frustum frustum = Frustum.FromViewProjection(cascadeView * cascadeProj);
+        Vector3[] corners = GetSliceCorners(view, fov, aspect, near, far);
+        Vector3 center = Vector3.Zero;
+        for (var i = 0; i < corners.Length; i++)
+        {
+            center += corners[i];
+        }
+
+        center /= corners.Length;
+
+        //  A caster toward the light must remain in the shadow map.
+        ShadowCascadeMath.CalculateCascadeSphere(
+            view, fov, aspect, near, far, out _, out float radius
+        );
+        Vector3 caster = center - (lightDirection * (radius * 0.5f));
+
+        Assert.True(frustum.Intersects(caster, Vector3.Zero));
+    }
+
+    private static Vector3[] GetSliceCorners(Matrix4x4 view, float fov, float aspect, float near, float far)
+    {
+        Assert.True(Matrix4x4.Invert(view, out Matrix4x4 inverseView));
+
+        float tanHalfFov = MathF.Tan(fov * 0.5f);
+        float nearH = near * tanHalfFov;
+        float nearW = nearH * aspect;
+        float farH = far * tanHalfFov;
+        float farW = farH * aspect;
+
+        Vector3[] corners =
+        [
+            new(-nearW, nearH, -near),
+            new(nearW, nearH, -near),
+            new(-nearW, -nearH, -near),
+            new(nearW, -nearH, -near),
+            new(-farW, farH, -far),
+            new(farW, farH, -far),
+            new(-farW, -farH, -far),
+            new(farW, -farH, -far),
+        ];
+
+        for (var i = 0; i < corners.Length; i++)
+        {
+            corners[i] = Vector3.Transform(corners[i], inverseView);
+        }
+
+        return corners;
     }
 }
