@@ -279,7 +279,7 @@ internal sealed class SettingsPage<TIdentifier>(
         _renderSettings.SAO.Enabled.Set(draft.AmbientOcclusion);
         _renderSettings.SAO.Samples.Set(draft.AoSamples);
         _renderSettings.Bloom.Enabled.Set(draft.Bloom);
-        _renderSettings.Bloom.Passes.Set(draft.BloomPasses);
+        draft.BloomQuality.Apply(_renderSettings);
 
         _volumeSettings.Master.Set(draft.MasterVolume);
         _volumeSettings.Music.Set(draft.MusicVolume);

@@ -157,16 +157,16 @@
 156 id=Settings.Bloom.1 rect=1411,750,148,30 clip=1261,749,299,32 color=0.0863,0.1569,0.2196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 157 id=- rect=1411,750,148,30 clip=1261,749,299,32 color=0.6471,0.9529,0.9882,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=ui.settings.value.on
 158 id=- rect=662,787,898,44 clip=662,787,898,44 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-159 id=- rect=662,787,583,44 clip=662,787,898,44 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:20 text=ui.settings.option.bloomPasses
+159 id=- rect=662,787,583,44 clip=662,787,898,44 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:20 text=ui.settings.option.bloomQuality
 160 id=- rect=1261,793,299,32 clip=1261,793,299,32 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 161 id=- rect=1262,794,297,30 clip=1261,793,299,32 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-162 id=Settings.BloomPasses.previous rect=1262,794,32,30 clip=1261,793,299,32 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+162 id=Settings.BloomQuality.previous rect=1262,794,32,30 clip=1261,793,299,32 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 163 id=- rect=1262,800,32,18 clip=1261,793,299,32 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=<
 164 id=- rect=1294,794,1,30 clip=1261,793,299,32 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-165 id=- rect=1295,800,231,18 clip=1261,793,299,32 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=10
+165 id=- rect=1295,800,231,18 clip=1261,793,299,32 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=ui.settings.value.medium
 166 id=- rect=1526,794,1,30 clip=1261,793,299,32 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-167 id=Settings.BloomPasses.next rect=1527,794,32,30 clip=1261,793,299,32 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-168 id=- rect=1527,800,32,18 clip=1261,793,299,32 color=0.2706,0.3294,0.4196,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=>
+167 id=Settings.BloomQuality.next rect=1527,794,32,30 clip=1261,793,299,32 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+168 id=- rect=1527,800,32,18 clip=1261,793,299,32 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:18 text=>
 169 id=- rect=662,831,898,1 clip=662,195,898,679 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 170 id=Settings.Reset.display rect=662,836,898,36 clip=662,195,898,679 color=0.0706,0.0941,0.149,1 bg=0,0,0,0 border=1:0.8784,0.3098,0.4784,1 caps=6:1:0.8784,0.3098,0.4784,1 radius=0:0:0:0 font=-:0 text=-
 171 id=- rect=664,838,894,32 clip=662,195,898,679 color=0,0,0,0 bg=0,0,0,0 border=1:0.2392,0.0784,0.1176,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-

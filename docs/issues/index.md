@@ -79,5 +79,6 @@ is not part of this workflow.
 - [ ] [Use one physics body with per-chunk compound children](/docs/issues/0096-per-chunk-compound-collision.md) — every edit copies all chunk shapes and rebuilds the whole Jolt compound
 - [ ] [Separate voxel light from geometry](/docs/issues/0097-voxel-light-geometry-split.md) — a light change remeshes and recollides every chunk it touches
 - [x] [Settings row controls did not render or receive clicks](/docs/issues/0097-settings-row-width.md) — the row controls were built before the width was known
+- [ ] [Output applies no color transfer and no tonemapping](/docs/issues/0098-color-transfer-and-tonemapping.md) — lighting and additive effects composite in gamma space, and highlights clip per channel
 
 ### Research

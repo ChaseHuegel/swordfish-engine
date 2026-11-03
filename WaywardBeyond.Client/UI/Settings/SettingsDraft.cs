@@ -21,7 +21,7 @@ internal sealed class SettingsDraft
     public bool AmbientOcclusion;
     public int AoSamples;
     public bool Bloom;
-    public int BloomPasses;
+    public BloomQuality BloomQuality;
     public float MasterVolume;
     public float MusicVolume;
     public float EffectsVolume;
@@ -62,7 +62,7 @@ internal sealed class SettingsDraft
             AmbientOcclusion = renderSettings.SAO.Enabled.Get(),
             AoSamples = renderSettings.SAO.Samples.Get(),
             Bloom = renderSettings.Bloom.Enabled.Get(),
-            BloomPasses = renderSettings.Bloom.Passes.Get(),
+            BloomQuality = BloomQualityExtensions.FromSettings(renderSettings.Bloom),
             MasterVolume = volumeSettings.Master.Get(),
             MusicVolume = volumeSettings.Music.Get(),
             EffectsVolume = volumeSettings.Effects.Get(),
@@ -94,7 +94,7 @@ internal sealed class SettingsDraft
             AmbientOcclusion = SettingsDefaults.AMBIENT_OCCLUSION,
             AoSamples = SettingsDefaults.AO_SAMPLES,
             Bloom = SettingsDefaults.BLOOM,
-            BloomPasses = SettingsDefaults.BLOOM_PASSES,
+            BloomQuality = SettingsDefaults.BLOOM_QUALITY,
             MasterVolume = SettingsDefaults.MASTER_VOLUME,
             MusicVolume = SettingsDefaults.MUSIC_VOLUME,
             EffectsVolume = SettingsDefaults.EFFECTS_VOLUME,

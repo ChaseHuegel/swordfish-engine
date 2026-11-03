@@ -223,7 +223,11 @@ See [rendering-shadows](rendering-shadows.md).
 | `FarPlane` | float | `1000.0` | camera far clipping distance |
 | `SAO.Enabled` | bool | `true` | enables Scalable Ambient Obscurance |
 | `SAO.Samples` | int | `8` | sample count for SAO obscurance passes |
-| `Bloom.Enabled` | bool | `false` | enables bloom post-processing |
+| `Bloom.Enabled` | bool | `true` | enables bloom post-processing |
+| `Bloom.Passes` | int | `2` | blur levels, clamped to 1-4 |
+| `Bloom.Intensity` | float | `2.0` | composite strength, clamped to 0-8 |
+| `Bloom.Threshold` | float | `0.0` | emissive brightness needed to bloom, clamped to 0-1 |
+| `Bloom.Softness` | float | `0.0` | width of the threshold knee, clamped to 0-1 |
 | `Shadows.Enabled` | bool | `true` | enables dynamic shadow mapping passes |
 | `Shadows.Quality` | enum | `Medium` | preset quality (`Off`, `Low`, `Medium`, `High`, `Ultra`) |
 | `Shadows.FilterMode` | enum | `Soft` | filtering method (`Sharp` \| `Soft`) |

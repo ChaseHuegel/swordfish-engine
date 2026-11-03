@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Numerics;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
@@ -137,14 +136,15 @@ internal static class DisplaySettingsCategory
                     set: value => draft.Bloom = value,
                     defaultValue: () => SettingsDefaults.BLOOM
                 ),
-                new StepperEntry<int>(
-                    id: "Settings.BloomPasses",
-                    labelKey: "ui.settings.option.bloomPasses",
-                    get: () => draft.BloomPasses,
-                    set: value => draft.BloomPasses = value,
-                    defaultValue: () => SettingsDefaults.BLOOM_PASSES,
-                    options: SettingsDefaults.GetBloomPasses(draft.BloomPasses),
-                    format: FormatInteger,
+                new StepperEntry<BloomQuality>(
+                    id: "Settings.BloomQuality",
+                    labelKey: "ui.settings.option.bloomQuality",
+                    get: () => draft.BloomQuality,
+                    set: value => draft.BloomQuality = value,
+                    defaultValue: () => SettingsDefaults.BLOOM_QUALITY,
+                    options: SettingsDefaults.GetBloomQualities(draft.BloomQuality),
+                    format: value => value.ToString(),
+                    valueKey: BloomQualityKey,
                     isEnabled: () => draft.Bloom
                 ),
                 new SettingsResetRow("Settings.Reset.display", reset),
@@ -261,14 +261,21 @@ internal static class DisplaySettingsCategory
         };
     }
 
+    private static string BloomQualityKey(BloomQuality quality)
+    {
+        return quality switch
+        {
+            BloomQuality.Low => "ui.settings.value.low",
+            BloomQuality.Medium => "ui.settings.value.medium",
+            BloomQuality.High => "ui.settings.value.high",
+            BloomQuality.Custom => "ui.settings.value.custom",
+            _ => string.Empty,
+        };
+    }
+
     private static string FormatSamples(int value)
     {
         return $"{value}x";
-    }
-
-    private static string FormatInteger(int value)
-    {
-        return value.ToString(CultureInfo.CurrentCulture);
     }
 
     private static string L(ILocalization localization, string key)
