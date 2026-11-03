@@ -23,6 +23,7 @@ public readonly struct Frustum(
 
     /// <summary>
     ///     Extracts frustum planes from a view-projection matrix using Gribb-Hartmann.
+    ///     The matrix must use the OpenGL clip volume, with depth in [-1, 1].
     /// </summary>
     public static Frustum FromViewProjection(in Matrix4x4 m)
     {
@@ -31,7 +32,7 @@ public readonly struct Frustum(
             NormalizePlane(m.M14 - m.M11, m.M24 - m.M21, m.M34 - m.M31, m.M44 - m.M41),
             NormalizePlane(m.M14 + m.M12, m.M24 + m.M22, m.M34 + m.M32, m.M44 + m.M42),
             NormalizePlane(m.M14 - m.M12, m.M24 - m.M22, m.M34 - m.M32, m.M44 - m.M42),
-            NormalizePlane(m.M13, m.M23, m.M33, m.M43),
+            NormalizePlane(m.M14 + m.M13, m.M24 + m.M23, m.M34 + m.M33, m.M44 + m.M43),
             NormalizePlane(m.M14 - m.M13, m.M24 - m.M23, m.M34 - m.M33, m.M44 - m.M43)
         );
     }

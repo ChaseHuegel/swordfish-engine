@@ -189,6 +189,53 @@ public class ShadowCascadeMathTests
         AssertMatrixNear(cascadeViewA * cascadeProjA, cascadeViewB * cascadeProjB, tolerance: 1e-5f);
     }
 
+    [Fact]
+    public void CalculateCascadeMatrix_MapsSliceCornersInsideTheClipVolume()
+    {
+        Matrix4x4 cameraView = Matrix4x4.CreateLookAt(new Vector3(0f, 2f, 5f), Vector3.Zero, Vector3.UnitY);
+        float fov = MathF.PI / 3f;
+        float aspect = 16f / 9f;
+        float near = 0.1f;
+        float far = 20f;
+        Vector3 lightDirection = Vector3.Normalize(new Vector3(0.5f, -1f, 0.3f));
+
+        ShadowCascadeMath.CalculateCascadeMatrix(
+            cameraView, fov, aspect, near, far, lightDirection, resolution: 1024,
+            out Matrix4x4 cascadeView, out Matrix4x4 cascadeProj
+        );
+
+        Assert.True(Matrix4x4.Invert(cameraView, out Matrix4x4 inverseCameraView));
+
+        float tanHalfFov = MathF.Tan(fov * 0.5f);
+        float nearH = near * tanHalfFov;
+        float nearW = nearH * aspect;
+        float farH = far * tanHalfFov;
+        float farW = farH * aspect;
+
+        Vector3[] corners =
+        [
+            new(-nearW, nearH, -near),
+            new(nearW, nearH, -near),
+            new(-nearW, -nearH, -near),
+            new(nearW, -nearH, -near),
+            new(-farW, farH, -far),
+            new(farW, farH, -far),
+            new(-farW, -farH, -far),
+            new(farW, -farH, -far),
+        ];
+
+        Matrix4x4 viewProjection = cascadeView * cascadeProj;
+        for (var i = 0; i < corners.Length; i++)
+        {
+            Vector3 world = Vector3.Transform(corners[i], inverseCameraView);
+            Vector4 clip = Vector4.Transform(new Vector4(world, 1f), viewProjection);
+
+            Assert.True(MathF.Abs(clip.X) <= MathF.Abs(clip.W), $"corner {i} left or right");
+            Assert.True(MathF.Abs(clip.Y) <= MathF.Abs(clip.W), $"corner {i} bottom or top");
+            Assert.True(MathF.Abs(clip.Z) <= MathF.Abs(clip.W), $"corner {i} near or far");
+        }
+    }
+
     private static void AssertMatrixNear(Matrix4x4 expected, Matrix4x4 actual, float tolerance)
     {
         Assert.True(Vector4.Distance(
