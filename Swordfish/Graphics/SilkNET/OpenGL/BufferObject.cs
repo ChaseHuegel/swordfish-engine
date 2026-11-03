@@ -57,6 +57,23 @@ internal sealed class BufferObject<TData> : GLHandle
 
     public void UpdateData(Span<TData> data) => UpdateData((ReadOnlySpan<TData>)data);
 
+    /// <summary>Replaces the whole buffer with data that changes every frame.</summary>
+    public unsafe void UpdateStreamingData(ReadOnlySpan<TData> data)
+    {
+        Bind();
+        Length = data.Length;
+        ByteCount = checked(data.Length * sizeof(TData));
+
+        //  Replacing the storage lets the driver hand out a new allocation instead of
+        //  waiting for draws that still read the previous one.
+        fixed (void* dataPtr = data)
+        {
+            _gl.BufferData(_bufferType, (nuint)ByteCount, dataPtr, BufferUsageARB.StreamDraw);
+        }
+
+        Unbind();
+    }
+
     /// <summary>Uploads data at a byte offset without resizing the buffer.</summary>
     public unsafe void UpdateRangeData(int byteOffset, ReadOnlySpan<TData> data)
     {
