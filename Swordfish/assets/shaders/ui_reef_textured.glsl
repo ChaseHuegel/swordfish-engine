@@ -2,6 +2,8 @@
 
 #ifdef VERTEX
 layout (location = 3) in vec4 in_clipRect;
+layout (location = 8) in vec4 in_rect;
+layout (location = 9) in vec4 in_uvRect;
 #endif
 
 #ifdef FRAGMENT
@@ -16,8 +18,21 @@ bool contains(vec4 rect, float x, float y);
 
 vec4 vertex()
 {
+    //  0: bottom left, 1: bottom right, 2: top right, 3: top left.
+    const vec2 CORNERS[4] = vec2[4](
+        vec2(0.0, 0.0),
+        vec2(1.0, 0.0),
+        vec2(1.0, 1.0),
+        vec2(0.0, 1.0)
+    );
+
+    vec2 corner = CORNERS[gl_VertexID];
+
     ClipRect = in_clipRect;
-    return vec4(VertexPosition, 1.0);
+    VertexPosition = vec3(mix(in_rect.xy, in_rect.zw, corner), 0.0);
+    TextureCoord = vec3(mix(in_uvRect.xy, in_uvRect.zw, corner), 0.0);
+
+    return vec4(VertexPosition.xy, 0.0, 1.0);
 }
 
 vec4 fragment()
@@ -36,17 +51,17 @@ bool contains(vec4 rect, float x, float y)
     {
         return false;
     }
-    
+
     if (x < rect.x)
     {
         return false;
     }
-    
+
     if (y > rect.w)
     {
         return false;
     }
-    
+
     if (y < rect.y)
     {
         return false;

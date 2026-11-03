@@ -11,6 +11,7 @@ namespace Swordfish.IO
         public string[] SupportedExtensions { get; } =
         [
             ".png",
+            ".bmp",
         ];
 
         object IFileParser.Parse(PathInfo file) => Parse(file);

@@ -111,9 +111,8 @@ Game pages do not use raw styles. They use the shared theme, metrics, and
 classes in [ui-theme](ui-theme.md).
 
 The pixel renderer draws both at `Reef/PixelRenderer.cs:134` and `:249`. The
-OpenGL renderer adds both to the command's rect vertex list at
-`Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:178` and `:295`.
-This keeps one draw call per element.
+OpenGL renderer adds both to the command's rect quads at
+`Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:240` and `:345`.
 
 ## Text
 
@@ -155,7 +154,27 @@ check is in `Reef/UIController.cs:480`, and `UIBuilder` passes both rects at
 
 - `Reef/PixelRenderer.cs` renders to a CPU pixel buffer. Tests use it.
 - `Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs` renders through
-  OpenGL. It reads each `RenderCommand` and builds rect and text vertices.
+  OpenGL. It reads each `RenderCommand`, appends quads to `ReefBatch`, and draws
+  one multi-draw call per contiguous run of quads that share a draw state.
+
+`Swordfish/UI/Reef/ReefBatch.cs` owns the per-frame instance array and the run
+table. A quad is one 64-byte instance of a four-vertex fan, so its color and
+clip rect are stored once. Paint order is preserved because a quad only merges
+into the previous run when the draw state is unchanged, so a run never reorders
+elements. The renderer uploads the whole frame with one `UpdateStreamingData`
+call (`Swordfish/Graphics/SilkNET/OpenGL/BufferObject.cs:61`) and draws each run
+with one `DrawArraysInstancedBaseInstance` call. The vertex stage expands the
+instance bounds over the four corners `gl_VertexID` selects.
+
+`Swordfish/UI/Reef/ReefAtlas.cs` packs every typeface atlas and one solid block
+into a single texture. Rects and text sample that texture, so a frame without an
+image is one draw call. An image material keeps its own shader and its own run,
+and samples the same per-quad instance record through `ui_reef_textured.glsl`.
+`Region.MapU` and `Region.MapV` map source pixel coordinates into the packed
+texture, including the vertical flip.
+
+The batching design and its measurements are in
+[proposals/reef-ui-batching](../proposals/reef-ui-batching.md).
 
 ## Tests
 
@@ -171,3 +190,10 @@ check is in `Reef/UIController.cs:480`, and `UIBuilder` passes both rects at
   order.
 - `Reef.Tests/UIBuilderLayoutTests.cs:349` checks that explicit element queries
   do not change the current element ID.
+- `Swordfish.Tests/ReefBatchTests.cs` checks run grouping, paint order, and the
+  clip-space mapping of the OpenGL batch.
+- `Swordfish.Tests/ReefAtlasTests.cs` checks atlas packing and the UV mapping.
+- `Swordfish.Tests/TypefaceAtlasLoadTests.cs` checks that a shipped typeface
+  atlas loads and matches its atlas description.
+- `Swordfish.Tests/ReefShaderContractTests.cs` checks that both Reef UI shaders
+  expand a quad instance instead of reading per-vertex attributes.
