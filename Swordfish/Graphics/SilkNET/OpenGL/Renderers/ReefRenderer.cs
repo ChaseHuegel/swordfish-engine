@@ -179,17 +179,117 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
     {
         BorderStyle border = command.Border;
         IntRect rect = command.Rect;
-        int thickness = Math.Min(border.Thickness, Math.Min(rect.Size.X, rect.Size.Y) / 2);
 
-        if (thickness <= 0 || border.Color.W <= 0f)
+        int topThickness = ResolveThickness(border.TopThickness, border.Thickness);
+        int rightThickness = ResolveThickness(border.RightThickness, border.Thickness);
+        int bottomThickness = ResolveThickness(border.BottomThickness, border.Thickness);
+        int leftThickness = ResolveThickness(border.LeftThickness, border.Thickness);
+        Vector4 topColor = ResolveColor(border.TopColor, border.Color);
+        Vector4 rightColor = ResolveColor(border.RightColor, border.Color);
+        Vector4 bottomColor = ResolveColor(border.BottomColor, border.Color);
+        Vector4 leftColor = ResolveColor(border.LeftColor, border.Color);
+
+        bool drawTop = topThickness > 0 && topColor.W > 0f;
+        bool drawRight = rightThickness > 0 && rightColor.W > 0f;
+        bool drawBottom = bottomThickness > 0 && bottomColor.W > 0f;
+        bool drawLeft = leftThickness > 0 && leftColor.W > 0f;
+
+        //  Opposing sides share an axis, so they halve the available space. A lone side may use all of it.
+        if (drawTop)
+        {
+            int limit = drawBottom ? rect.Size.Y / 2 : rect.Size.Y;
+            AddHorizontalSide(instance, command, border, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
+        }
+
+        if (drawBottom)
+        {
+            int limit = drawTop ? rect.Size.Y / 2 : rect.Size.Y;
+            int thickness = Math.Min(bottomThickness, limit);
+            AddHorizontalSide(instance, command, border, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
+        }
+
+        if (drawLeft)
+        {
+            int limit = drawRight ? rect.Size.X / 2 : rect.Size.X;
+            AddVerticalSide(instance, command, border, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
+        }
+
+        if (drawRight)
+        {
+            int limit = drawLeft ? rect.Size.X / 2 : rect.Size.X;
+            int thickness = Math.Min(rightThickness, limit);
+            AddVerticalSide(instance, command, border, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
+        }
+    }
+
+    private void AddHorizontalSide(
+        InstanceVertexData instance,
+        RenderCommand<Material> command,
+        in BorderStyle border,
+        int left,
+        int right,
+        int top,
+        int thickness,
+        in Vector4 color)
+    {
+        if (thickness <= 0)
         {
             return;
         }
 
-        AddRect(instance, new IntRect(rect.Left, rect.Top, rect.Right, rect.Top + thickness), border.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Left, rect.Bottom - thickness, rect.Right, rect.Bottom), border.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Bottom - thickness), border.Color, command.ClipRect);
-        AddRect(instance, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Bottom - thickness), border.Color, command.ClipRect);
+        BorderDash.Resolve(border, thickness, out int dash, out int gap);
+        if (dash <= 0)
+        {
+            AddRect(instance, new IntRect(left, top, right, top + thickness), color, command.ClipRect);
+            return;
+        }
+
+        var segments = new DashSegments(right - left, dash, gap);
+        while (segments.MoveNext())
+        {
+            int start = left + segments.Offset;
+            AddRect(instance, new IntRect(start, top, start + segments.SegmentLength, top + thickness), color, command.ClipRect);
+        }
+    }
+
+    private void AddVerticalSide(
+        InstanceVertexData instance,
+        RenderCommand<Material> command,
+        in BorderStyle border,
+        int top,
+        int bottom,
+        int left,
+        int thickness,
+        in Vector4 color)
+    {
+        if (thickness <= 0)
+        {
+            return;
+        }
+
+        BorderDash.Resolve(border, thickness, out int dash, out int gap);
+        if (dash <= 0)
+        {
+            AddRect(instance, new IntRect(left, top, left + thickness, bottom), color, command.ClipRect);
+            return;
+        }
+
+        var segments = new DashSegments(bottom - top, dash, gap);
+        while (segments.MoveNext())
+        {
+            int start = top + segments.Offset;
+            AddRect(instance, new IntRect(left, start, left + thickness, start + segments.SegmentLength), color, command.ClipRect);
+        }
+    }
+
+    private static int ResolveThickness(int sideThickness, int fallback)
+    {
+        return sideThickness > 0 ? sideThickness : fallback;
+    }
+
+    private static Vector4 ResolveColor(Vector4 sideColor, Vector4 fallback)
+    {
+        return sideColor.W > 0f ? sideColor : fallback;
     }
 
     private void AddCornerCaps(InstanceVertexData instance, RenderCommand<Material> command)

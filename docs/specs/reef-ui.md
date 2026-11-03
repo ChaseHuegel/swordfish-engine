@@ -70,6 +70,7 @@ source still receives `Held`.
 `Reef/UI/Style.cs:5` holds:
 
 - `Color` and `BackgroundColor`.
+- `TextColor`, which child text elements inherit until they set their own.
 - `Padding`.
 - `CornerRadius`.
 - `Border`.
@@ -78,10 +79,27 @@ source still receives `Held`.
 `CornerRadius` is applied by `Reef/PixelRenderer.cs`. The OpenGL renderer does
 not apply it.
 
+`Reef/UI/StyleOverride.cs` and `Reef/UI/ConstraintsOverride.cs` hold optional
+caller overrides for generated markup components. A null field leaves the
+component value in place.
+
 ### Border and corner caps
 
-`BorderStyle` is at `Reef/UI/BorderStyle.cs:6`. It has a thickness and a color.
-The border draws inside the element bounds. A zero thickness disables it.
+`BorderStyle` is at `Reef/UI/BorderStyle.cs:6`. It has a shared thickness and
+color, a thickness and color for each side, a line style, and an optional dash
+pattern. The border draws inside the element bounds. A zero thickness disables a
+side. A side color with zero alpha uses the shared color, so to omit a side set
+its thickness to zero.
+
+A side clamps to its axis. A single painted side may use the whole axis, and
+opposing sides on one axis share it. A one-pixel-tall element can therefore
+carry a one-pixel bottom border.
+
+`BorderDash` at `Reef/UI/BorderDash.cs:6` resolves the dash and gap for a side
+and walks the segments. `dashed` uses twice the side thickness, `dotted` uses
+the side thickness, and an explicit dash and gap win over both. The dash lives
+in the paint pass, so a dashed side stays one command and one draw call at any
+width.
 
 `CornerCapStyle` is at `Reef/UI/CornerCapStyle.cs:6`. It has an arm length, an
 arm thickness, and a color. Each corner gets an L shape. Caps draw over the
@@ -90,11 +108,11 @@ border. Zero values disable them.
 The builder exposes both fields at `Reef/UIBuilder.cs:98` and `:104`.
 
 Game pages do not use raw styles. They use the shared theme, metrics, and
-widgets in [ui-theme](ui-theme.md).
+classes in [ui-theme](ui-theme.md).
 
-The pixel renderer draws both at `Reef/PixelRenderer.cs:134` and `:151`. The
+The pixel renderer draws both at `Reef/PixelRenderer.cs:134` and `:249`. The
 OpenGL renderer adds both to the command's rect vertex list at
-`Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:178` and `:195`.
+`Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:178` and `:295`.
 This keeps one draw call per element.
 
 ## Text
@@ -126,7 +144,7 @@ scroll routing. `GetElementScrollDelta` returns the wheel delta that targeted th
 element on the previous frame. Use it with the caller-owned scroll offset.
 `GetElementBounds` returns the previous frame rect, clip rect, and content size,
 so a scrollbar can size its thumb without guessing. The settings page and the
-menu lists use this pair through `Widgets.ScrollArea`.
+menu lists use this pair through the `ScrollArea` component.
 
 Interaction hit testing uses the intersection of the element rect and its clip
 rect. A clipped control cannot receive hover or click outside the clip. The
@@ -141,6 +159,7 @@ check is in `Reef/UIController.cs:480`, and `UIBuilder` passes both rects at
 
 ## Tests
 
+- `Reef.Tests/StyleOverrideTests.cs` checks nullable override values.
 - `Reef.Tests/UIBuilderBorderTests.cs:15` checks border and cap pixels.
 - `Reef.Tests/UIBuilderBorderTests.cs:57` checks that zero styles change nothing.
 - `Reef.Tests/TextLayoutTests.cs:12` checks `NoWrap`.

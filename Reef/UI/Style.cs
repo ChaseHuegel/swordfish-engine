@@ -6,6 +6,7 @@ public struct Style
 {
     public Vector4 Color;
     public Vector4 BackgroundColor;
+    public Vector4 TextColor;
     public Padding Padding;
     public CornerRadius CornerRadius;
     public BorderStyle Border;

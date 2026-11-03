@@ -1,0 +1,9 @@
+.local-card {
+    background: #202020;
+    border: 1px #404040;
+    corner-radius: 3px;
+}
+
+.local-highlight {
+    background: #303030;
+}
