@@ -18,6 +18,9 @@
 ## Reef
 Reef is a 0-dependency, renderer-agnostic IMGUI library that supports dynamic and flexible layout rules comparable to typical retained-mode GUIs. This is an alpha API under development as a replacement for Swordfish's currently implemented Dear ImGui-based UI implementation.
 
+## Reef.Generator
+Reef.Generator is a Roslyn source generator for `.rml` markup and `.rss` style sheets. It compiles XML and CSS-like styles into strongly typed Reef UI code at build time. See the [Reef Markup onboarding docs](userdocs/reef/README.md).
+
 ## Shoal
 Shoal is a modular, and mod-friendly, application host that powers Swordfish. This provides Dependency Injection, containerization, C# scripting, and a standardized module system which implicitly provides modding support to applications. Applications are built from one or more modules themselves, and so are effectively "mods" of Shoal themselves.
 
@@ -84,7 +87,7 @@ Swordfish is on V3 and underwent a full rewrite from V2 to better support modula
 - [x] UI
     - [x] 2D
     - [ ] 3D
-    - [ ] File support
+    - [x] File support
     - [ ] Visual editor
 - [x] Renderer
   - [ ] Particles

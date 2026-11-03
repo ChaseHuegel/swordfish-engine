@@ -10,4 +10,37 @@ public struct BorderStyle
 
     /// <summary>Border color, including alpha.</summary>
     public Vector4 Color;
+
+    /// <summary>Top border thickness. Zero uses <see cref="Thickness"/>.</summary>
+    public int TopThickness;
+
+    /// <summary>Right border thickness. Zero uses <see cref="Thickness"/>.</summary>
+    public int RightThickness;
+
+    /// <summary>Bottom border thickness. Zero uses <see cref="Thickness"/>.</summary>
+    public int BottomThickness;
+
+    /// <summary>Left border thickness. Zero uses <see cref="Thickness"/>.</summary>
+    public int LeftThickness;
+
+    /// <summary>Top border color. Alpha zero uses <see cref="Color"/>.</summary>
+    public Vector4 TopColor;
+
+    /// <summary>Right border color. Alpha zero uses <see cref="Color"/>.</summary>
+    public Vector4 RightColor;
+
+    /// <summary>Bottom border color. Alpha zero uses <see cref="Color"/>.</summary>
+    public Vector4 BottomColor;
+
+    /// <summary>Left border color. Alpha zero uses <see cref="Color"/>.</summary>
+    public Vector4 LeftColor;
+
+    /// <summary>Stroke pattern applied to every painted side.</summary>
+    public BorderLineStyle LineStyle;
+
+    /// <summary>Dash length in pixels. Overrides <see cref="LineStyle"/> when positive.</summary>
+    public int Dash;
+
+    /// <summary>Gap length in pixels. Zero reuses <see cref="Dash"/>.</summary>
+    public int Gap;
 }

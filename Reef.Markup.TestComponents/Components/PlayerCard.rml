@@ -1,0 +1,12 @@
+<Reef xmlns="Reef"
+      Class="PlayerCard"
+      Context="PlayerInfo"
+      Namespace="Reef.Markup.TestComponents">
+
+    <Element layout="vertical" class="player-card" width="220" padding="10" spacing="4">
+        <Text text="@context.Name" size="16" color="#ffffff" />
+        <Text text="Score: {context.Score}" size="12" color="#9fe28f" />
+        <Element height="4" />
+    </Element>
+
+</Reef>

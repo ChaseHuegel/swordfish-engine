@@ -54,6 +54,35 @@ public class UIBuilderBorderTests
     }
 
     [Fact]
+    public void BottomOnlyBorderDoesNotDrawOtherSides()
+    {
+        UIBuilder<PixelTexture> ui = CreateBuilder();
+        var background = new Vector4(0f, 0f, 1f, 1f);
+        var border = new Vector4(1f, 0f, 0f, 1f);
+
+        using (ui.Element())
+        {
+            ui.Color = background;
+            ui.Constraints = new UI.Constraints
+            {
+                Width = new Fixed(WIDTH),
+                Height = new Fixed(HEIGHT),
+            };
+            ui.Border = new BorderStyle
+            {
+                BottomThickness = 2,
+                BottomColor = border,
+            };
+        }
+
+        ReadOnlyCollection<Vector4> pixels = Render(ui);
+
+        AssertColor(background, GetPixel(pixels, 32, 0));
+        AssertColor(background, GetPixel(pixels, 0, 32));
+        AssertColor(border, GetPixel(pixels, 32, HEIGHT - 1));
+    }
+
+    [Fact]
     public void ZeroBorderAndCapsDoNotChangeOutput()
     {
         UIBuilder<PixelTexture> ui = CreateBuilder();

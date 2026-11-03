@@ -1,0 +1,26 @@
+:root {
+    --card-bg: #202830;
+    --card-border: #3a4a5a;
+    --accent: #4fc3f7;
+}
+
+.player-card {
+    background: var(--card-bg);
+    border: 1px var(--card-border);
+    corner-radius: 4px;
+}
+
+.player-card:hover {
+    background: #2a3642;
+}
+
+.modal {
+    background: #151a20;
+    border: 1px #4fc3f7;
+    corner-radius: 6px;
+    corner-caps: 10px 2px #4fc3f7;
+}
+
+.modal:hover {
+    background: #1d2630;
+}

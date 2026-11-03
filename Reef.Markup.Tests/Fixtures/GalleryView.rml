@@ -1,0 +1,91 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="GalleryView"
+      Context="GalleryState"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="100%" height="100%" padding="12" spacing="10" background="#0b1016">
+        <Text text="Reef Markup Style Gallery" size="22" color="#ffffff" />
+
+        <Element layout="horizontal" spacing="8">
+            <Element id="gallery_red" width="48" height="28" background="#ff0000" />
+            <Element id="gallery_named" width="48" height="28" background="rebeccapurple" />
+            <Element id="gallery_rgb" width="48" height="28" background="rgb(0, 128, 255)" />
+            <Element id="gallery_rgba" width="48" height="28" background="rgba(255, 255, 0, 0.5)" />
+            <Element width="fill" />
+            <Text text="Colors" size="14" color="#c0c0c0" />
+        </Element>
+
+        <ForEach in="@context.Colors" as="color">
+            <Element layout="horizontal" spacing="4">
+                <Element width="24" height="18" background="@color.Value" />
+                <Text text="{color.Name}" size="12" />
+            </Element>
+        </ForEach>
+
+        <Element id="radius" width="120" height="50" background="#203040"
+                 corner-radius="4 12 20 8" border="2 #4fc3f7" corner-caps="10 2 #ff00ff" />
+
+        <Element id="discrete" width="120" height="40" background="#1a2028"
+                 border-width="3" border-color="#00ff00"
+                 corner-caps-length="6" corner-caps-thickness="2" corner-caps-color="#ff8800" />
+
+        <Element layout="horizontal" spacing="8" padding="6" background="#141a20" height="70">
+            <Element width="fit" height="fit" background="#283848">
+                <Element width="30" height="20" background="#4fc3f7" />
+            </Element>
+            <Element width="shrink" height="50" min-width="50" max-width="90" background="#384858">
+                <Element width="160" height="20" background="#ff8800" />
+            </Element>
+            <Element min-width="50" max-width="70" height="20" background="#22c55e" />
+            <Element width="fill" height="20" background="#e74c3c" />
+        </Element>
+
+        <Element layout="none" width="100%" height="50" background="#101820">
+            <Element pos="10 10" width="50" height="20" background="#f1c40f" />
+            <Element x="120" y="20" width="60" height="20" background="#9b59b6" />
+        </Element>
+
+        <Element layout="horizontal" spacing="8" padding="6" background="#141a20">
+            <Element width="60" height="20" background="#e74c3c" />
+            <Element width="fill" height="20" background="#2ecc71" />
+            <Element width="60" height="20" background="#3498db" />
+        </Element>
+
+        <Element layout="none" width="100%" height="60" background="#101820">
+            <Element width="80" height="24" anchor="Center" background="#f1c40f" />
+            <Element width="40" height="16" anchor="Bottom Right" background="#9b59b6" />
+        </Element>
+
+        <Text text="Body text with #FF5555red #Rreset and {context.Modal.Title}" size="16" color="#ffffff" />
+        <Text text="Wrapped text: The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."
+              width="240" color="#b0c4de" wrap="true" />
+        <Text text="No wrap overflow" width="80" wrap="false" color="#ffcc00" />
+
+        <Image source="@context.Texture" width="64" height="64" color="#ffffff" />
+
+        <PlayerCard context="@context.Player" width="240" />
+
+        <ModalDialog context="@context.Modal" width="300" background="#1b2430">
+            <Content name="header">
+                <Text text="Gallery Dialog" size="18" color="#ffffff" />
+            </Content>
+            <Text text="Dialog body" color="#d0d0d0" />
+        </ModalDialog>
+
+        <Element id="clip_parent" width="200" height="60" clip="true" background="#111111">
+            <Element width="280" height="60" background="#e67e22">
+                <Text text="Clipped" color="#ffffff" />
+            </Element>
+        </Element>
+
+        <Element layout="horizontal" spacing="6">
+            <Element id="hover" class="gallery-button" width="100" height="30">
+                <Text text="Hover" />
+            </Element>
+            <Element id="disabled" class="gallery-button" disabled="@context.Disabled" width="100" height="30">
+                <Text text="Disabled" />
+            </Element>
+        </Element>
+    </Element>
+</Reef>

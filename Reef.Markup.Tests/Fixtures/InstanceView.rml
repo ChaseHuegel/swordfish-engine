@@ -1,0 +1,11 @@
+<Reef xmlns="Reef"
+      Class="InstanceView"
+      Context="InstanceContext"
+      RendererData="Reef.PixelTexture"
+      Namespace="Reef.Markup.Tests">
+    <Element layout="vertical" width="240" padding="8" background="#101010">
+        <CaptionedCard context="@context.State" instance="@context.Card" />
+        <ModalDialog context="@context.ModalA" width="160" />
+        <ModalDialog context="@context.ModalB" width="160" />
+    </Element>
+</Reef>

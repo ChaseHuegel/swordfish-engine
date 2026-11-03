@@ -378,6 +378,195 @@ public class UIBuilderLayoutTests
         Assert.Equal("child", commands[1].ID);
     }
 
+    [Fact]
+    public void FillChildClampsToFixedParentWhenContentIsWider()
+    {
+        UIBuilder<PixelTexture> ui = CreateBuilder(600, 100);
+
+        using (ui.Element("parent"))
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new UI.Constraints
+            {
+                X = new Fixed(100),
+                Width = new Fixed(204),
+                Height = new Fixed(50),
+            };
+
+            using (ui.Element("fill"))
+            {
+                ui.Constraints = new UI.Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+
+                using (ui.Element("wide"))
+                {
+                    ui.Constraints = new UI.Constraints
+                    {
+                        Width = new Fixed(296),
+                        Height = new Fixed(10),
+                    };
+                }
+            }
+        }
+
+        List<RenderCommand<PixelTexture>> commands = ui.Build(delta: 0f);
+
+        Assert.Equal(204, commands[1].Rect.Size.X);
+        Assert.Equal(296, commands[2].Rect.Size.X);
+    }
+
+    [Fact]
+    public void FillChildClampsToFillParentWhenContentIsWider()
+    {
+        UIBuilder<PixelTexture> ui = CreateBuilder(600, 100);
+
+        using (ui.Element("outer"))
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new UI.Constraints
+            {
+                Width = new Fixed(300),
+                Height = new Fixed(100),
+            };
+
+            using (ui.Element("fillParent"))
+            {
+                ui.Constraints = new UI.Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+
+                using (ui.Element("fillChild"))
+                {
+                    ui.Constraints = new UI.Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    };
+
+                    using (ui.Element("wide"))
+                    {
+                        ui.Constraints = new UI.Constraints
+                        {
+                            Width = new Fixed(400),
+                            Height = new Fixed(10),
+                        };
+                    }
+                }
+            }
+        }
+
+        List<RenderCommand<PixelTexture>> commands = ui.Build(delta: 0f);
+
+        Assert.Equal(300, commands[1].Rect.Size.X);
+        Assert.Equal(300, commands[2].Rect.Size.X);
+    }
+
+    [Fact]
+    public void FillChildSizesToContentInsideFitParent()
+    {
+        UIBuilder<PixelTexture> ui = CreateBuilder(600, 100);
+
+        using (ui.Element("fitParent"))
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new UI.Constraints
+            {
+                Width = new Fit(),
+                Height = new Fixed(50),
+            };
+
+            using (ui.Element("fill"))
+            {
+                ui.Constraints = new UI.Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+
+                using (ui.Element("wide"))
+                {
+                    ui.Constraints = new UI.Constraints
+                    {
+                        Width = new Fixed(296),
+                        Height = new Fixed(10),
+                    };
+                }
+            }
+        }
+
+        List<RenderCommand<PixelTexture>> commands = ui.Build(delta: 0f);
+
+        Assert.Equal(296, commands[0].Rect.Size.X);
+        Assert.Equal(296, commands[1].Rect.Size.X);
+    }
+
+    [Fact]
+    public void FillRootClampsToWindowWhenContentIsWider()
+    {
+        UIBuilder<PixelTexture> ui = CreateBuilder(200, 100);
+
+        using (ui.Element("root"))
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new UI.Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+
+            using (ui.Element("wide"))
+            {
+                ui.Constraints = new UI.Constraints
+                {
+                    Width = new Fixed(400),
+                    Height = new Fixed(10),
+                };
+            }
+        }
+
+        List<RenderCommand<PixelTexture>> commands = ui.Build(delta: 0f);
+
+        Assert.Equal(200, commands[0].Rect.Size.X);
+    }
+
+    [Fact]
+    public void NonWrappingFillTextInsideFitParentSizesToText()
+    {
+        TextEngine textEngine = CreateTextEngine();
+        var ui = new UIBuilder<PixelTexture>(600, 100, textEngine, new UIController());
+
+        using (ui.Element("fitParent"))
+        {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new UI.Constraints
+            {
+                Width = new Fit(),
+                Height = new Fixed(20),
+            };
+
+            using (ui.Text("UnbreakableLabelWiderThanSixtyPixels"))
+            {
+                ui.Constraints = new UI.Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+            }
+        }
+
+        List<RenderCommand<PixelTexture>> commands = ui.Build(delta: 0f);
+        RenderCommand<PixelTexture> parent = commands[0];
+        RenderCommand<PixelTexture> text = commands[1];
+
+        Assert.True(text.Rect.Size.X > 60);
+        Assert.Equal(parent.Rect.Size.X, text.Rect.Size.X);
+    }
+
     private static UIBuilder<PixelTexture> CreateBuilder(int width, int height)
     {
         return new UIBuilder<PixelTexture>(width, height, CreateTextEngine(), new UIController());

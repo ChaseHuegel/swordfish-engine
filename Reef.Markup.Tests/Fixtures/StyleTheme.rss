@@ -1,0 +1,48 @@
+:root {
+    --base: #101010;
+    --panel: #202020;
+    --hover: #303030;
+    --active: #404040;
+    --disabled: #505050;
+}
+
+.base {
+    background: var(--base);
+    padding: 4px;
+    corner-radius: 4px;
+}
+
+.panel {
+    --extends: .base;
+    background: var(--panel);
+    border: 1px #606060;
+    padding: 8px;
+}
+
+.panel:hover {
+    background: var(--hover);
+}
+
+.panel:active {
+    background: var(--active);
+}
+
+.panel:disabled {
+    background: var(--disabled);
+}
+
+.accent {
+    color: #ffff00;
+}
+
+.radius-test {
+    background: #182028;
+}
+
+.order-a {
+    color: #ff0000;
+}
+
+.order-b {
+    color: #00ff00;
+}
