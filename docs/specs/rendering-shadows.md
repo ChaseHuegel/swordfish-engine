@@ -26,6 +26,11 @@ mesh renderer to the scene. The render stages cull per pass.
   light and the cascade remains in the shadow map.
 - A caster outside the camera view still casts a shadow inside the view.
 
+Plane extraction assumes the OpenGL clip volume, with NDC depth in [-1, 1]. A
+near plane built for the [0, 1] convention cuts the first half of the clip
+depth range. The cut is small for a perspective camera and half of an
+orthographic cascade. It removes the casters between the light and the cascade.
+
 The point-shadow path draws six faces per light. A layered `gl_Layer` draw is not
 implemented yet. The per-face path remains the fallback.
 
@@ -91,6 +96,7 @@ In the lighting pass, shaded fragments compute the point light distance and samp
 - Directional light: `Swordfish/ECS/DirectionalLightComponent.cs:6-20`
 - Point light: `Swordfish/ECS/LightComponent.cs:6-20`
 - Cascade math: `Swordfish/Graphics/SilkNET/OpenGL/ShadowCascadeMath.cs:6-199`
+- Frustum plane extraction: `Swordfish/Graphics/Frustum.cs:24-38`
 - Cubemap array texture: `Swordfish/Graphics/SilkNET/OpenGL/TexCubeArray.cs:6-94`
 - Shadow pass execution: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:570-778`
 - Instanced depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLInstancedRenderer.cs:343-449`
@@ -101,6 +107,8 @@ In the lighting pass, shaded fragments compute the point light distance and samp
 
 ## Tests That Pin This
 
-- `Swordfish.Tests/ShadowCascadeMathTests.cs:10-214`
+- `Swordfish.Tests/ShadowCascadeMathTests.cs:10-261`
+- `Swordfish.Tests/FrustumCullingTests.cs:162-230` — near plane and cascade
+  caster coverage
 - `Swordfish.Tests/SettingsEntryTests.cs:49-98`
 - `Swordfish.Tests` full engine suite.
