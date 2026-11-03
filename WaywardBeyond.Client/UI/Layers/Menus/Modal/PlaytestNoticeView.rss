@@ -1,0 +1,21 @@
+.wb-playtest-body {
+    color: var(--wb-text);
+    font-size: 18px;
+    vertical-align: middle;
+}
+
+.wb-playtest-label {
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-button-playtest {
+    border-radius: 4px;
+    padding: 16px 8px;
+    text-color: var(--wb-primary-bright);
+}
+
+.wb-playtest-icon-button {
+    border-radius: 4px;
+}

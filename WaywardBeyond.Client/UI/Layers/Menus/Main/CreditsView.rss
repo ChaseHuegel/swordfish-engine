@@ -1,0 +1,3 @@
+.wb-credits-thanks {
+    color: var(--wb-text);
+}

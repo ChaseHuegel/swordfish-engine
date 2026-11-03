@@ -13,8 +13,26 @@ internal sealed class ToggleEntry(
 ) : SettingsEntry<bool>(id, labelKey, get, set, defaultValue, isEnabled)
 {
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer)
+    public override SettingsRowState Snapshot()
     {
-        renderer.DrawToggle(this);
+        return SettingsRowState.Choice(
+            Id,
+            LabelKey,
+            CanEdit,
+            ["ui.settings.value.off", "ui.settings.value.on"],
+            Value ? 1 : 0
+        );
+    }
+
+    /// <inheritdoc/>
+    public override bool TrySetOptionIndex(int index)
+    {
+        if (index is < 0 or > 1)
+        {
+            return false;
+        }
+
+        SetValue(index == 1);
+        return true;
     }
 }

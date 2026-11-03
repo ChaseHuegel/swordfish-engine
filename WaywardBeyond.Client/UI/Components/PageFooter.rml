@@ -1,0 +1,13 @@
+<Reef xmlns="Reef"
+      Class="PageFooter"
+      Access="internal"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element layout="horizontal" width="fill" height="52" spacing="12">
+        <Content name="back" />
+        <Element layout="none" width="fill" height="fill">
+            <Content name="status" />
+        </Element>
+        <Content name="primary" />
+    </Element>
+</Reef>

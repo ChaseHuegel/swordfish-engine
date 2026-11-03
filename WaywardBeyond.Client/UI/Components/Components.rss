@@ -1,0 +1,988 @@
+.wb-accent {
+    color: var(--wb-accent);
+}
+
+.wb-scrim {
+    color: var(--wb-scrim);
+}
+
+.wb-scrim-soft {
+    background-color: var(--wb-scrim-soft);
+}
+
+.wb-scrim-heavy {
+    color: var(--wb-scrim-heavy);
+}
+
+.wb-page-top {
+    padding: 0 12px 0 0;
+}
+
+.wb-column {
+    layout: vertical;
+    gap: 8px;
+}
+
+.wb-split {
+    layout: horizontal;
+    gap: 20px;
+}
+
+.wb-split-narrow {
+    layout: vertical;
+    gap: 0;
+}
+
+.wb-split-third {
+    width: 37%;
+}
+
+.wb-split-half {
+    width: 50%;
+}
+
+.wb-split-fill {
+    width: fill;
+}
+
+.wb-text {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+}
+
+.wb-text-title {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 24px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-text-body {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 18px;
+    vertical-align: middle;
+}
+
+.wb-text-small {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-text-value {
+    --extends: wb-text-small;
+    color: var(--wb-text);
+}
+
+.wb-text-muted {
+    color: var(--wb-text-muted);
+}
+
+.wb-text-dim {
+    color: var(--wb-text-dim);
+}
+
+.wb-text-accent {
+    color: var(--wb-accent-bright);
+}
+
+.wb-text-primary {
+    color: var(--wb-primary-bright);
+}
+
+.wb-text-danger-solid {
+    color: var(--wb-danger);
+}
+
+.wb-text-danger {
+    color: var(--wb-danger-bright);
+}
+
+.wb-text-success {
+    color: var(--wb-success);
+}
+
+.wb-text-warning {
+    color: var(--wb-warning);
+}
+
+.wb-icon {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-icons);
+    font-size: 20px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-icon-dim {
+    color: var(--wb-text-dim);
+}
+
+.wb-icon-danger {
+    color: var(--wb-danger);
+}
+
+.wb-icon-accent {
+    color: var(--wb-accent);
+}
+
+.wb-icon-bright {
+    color: var(--wb-accent-bright);
+}
+
+.wb-icon-primary {
+    color: var(--wb-primary-bright);
+}
+
+.wb-icon-brand {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-brands);
+    font-size: 32px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-divider {
+    color: var(--wb-border);
+    height: 1px;
+}
+
+.wb-divider-dashed {
+    color: transparent;
+    width: fill;
+    height: 1px;
+    border-bottom: 1px var(--wb-border);
+    border-dash: 2 4;
+}
+
+.wb-divider-inner {
+    color: var(--wb-border-inner);
+    height: 1px;
+}
+
+.wb-panel {
+    color: var(--wb-panel);
+    corner-caps: 10 2 var(--wb-border);
+}
+
+.wb-panel-inner {
+    color: transparent;
+    border: 1px var(--wb-border-inner);
+    padding: 12px;
+}
+
+.wb-panel-inner-loose {
+    padding: 24px;
+}
+
+.wb-info-box {
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+    padding: 10px;
+}
+
+.wb-panel-header {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-modal-center {
+    padding: 80px;
+}
+
+.wb-modal {
+    color: var(--wb-panel);
+    corner-caps: 10 2 var(--wb-border);
+    padding: 28px;
+}
+
+.wb-modal-size {
+    size: 100% 100%;
+    anchor: Center;
+}
+
+.wb-modal-size-connecting {
+    --extends: wb-modal-size;
+    min-width: 520px;
+    max-width: 520px;
+    min-height: 240px;
+    max-height: 240px;
+}
+
+.wb-modal-size-compact {
+    --extends: wb-modal-size;
+    min-width: 520px;
+    max-width: 520px;
+    min-height: 250px;
+    max-height: 250px;
+}
+
+.wb-modal-size-form {
+    --extends: wb-modal-size;
+    min-width: 520px;
+    max-width: 520px;
+    min-height: 300px;
+    max-height: 300px;
+}
+
+.wb-modal-size-feedback {
+    --extends: wb-modal-size;
+    min-width: 520px;
+    max-width: 860px;
+    min-height: 460px;
+    max-height: 620px;
+}
+
+.wb-modal-size-playtest {
+    --extends: wb-modal-size;
+    border-radius: 4px;
+    min-width: 520px;
+    max-width: 760px;
+    min-height: 460px;
+    max-height: 500px;
+}
+
+.wb-modal-title {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 24px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-modal-body {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 18px;
+    vertical-align: middle;
+}
+
+.wb-modal-actions {
+    layout: horizontal;
+    gap: 8px;
+}
+
+.wb-button-base {
+    text-color: var(--wb-text);
+    padding: 2px;
+    border-radius: 0;
+}
+
+.wb-button-inner {
+    border: 1px var(--wb-border-inner);
+}
+
+.wb-button-inner-primary {
+    border-color: var(--wb-primary-dark);
+}
+
+.wb-button-inner-danger {
+    border-color: var(--wb-danger-dark);
+}
+
+.wb-button-label {
+    font-family: var(--wb-font-ui);
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-button-label-compact {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-button {
+    --extends: wb-button-base;
+    color: var(--wb-button);
+    border: 1px var(--wb-border);
+}
+
+.wb-button-compact {
+    padding: 2px;
+}
+
+.wb-button-plain {
+    padding: 10px 20px;
+}
+
+.wb-button-compact-plain {
+    padding: 12px 6px;
+}
+
+.wb-button:hover {
+    color: var(--wb-button-hover);
+    border-color: var(--wb-border-hover);
+    text-color: var(--wb-text);
+}
+
+.wb-button:active {
+    color: var(--wb-accent-dark);
+    text-color: var(--wb-text);
+}
+
+.wb-button-primary {
+    --extends: wb-button-base;
+    color: var(--wb-button);
+    border: 1px var(--wb-primary);
+    corner-caps: 6 1 var(--wb-primary);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-button-primary-plain {
+    text-color: var(--wb-primary-bright);
+}
+
+.wb-button-primary:hover {
+    color: var(--wb-button-hover);
+    border-color: var(--wb-primary-bright);
+    corner-caps-color: var(--wb-primary-bright);
+    text-color: var(--wb-text);
+}
+
+.wb-button-primary:active {
+    color: var(--wb-primary-dark);
+    text-color: var(--wb-text);
+}
+
+.wb-button-danger {
+    --extends: wb-button-base;
+    color: var(--wb-button);
+    border: 1px var(--wb-danger);
+    corner-caps: 6 1 var(--wb-danger);
+    text-color: var(--wb-danger-bright);
+}
+
+.wb-button-danger:hover {
+    color: var(--wb-button-hover);
+    border-color: var(--wb-danger-bright);
+    corner-caps-color: var(--wb-danger-bright);
+    text-color: var(--wb-text);
+}
+
+.wb-button-subtle {
+    --extends: wb-button-base;
+    color: transparent;
+    border: 0 transparent;
+    text-color: var(--wb-text-muted);
+}
+
+.wb-button-subtle:hover {
+    color: var(--wb-button-hover);
+    text-color: var(--wb-text);
+}
+
+.wb-button-subtle:active {
+    color: var(--wb-accent-dark);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-button-disabled {
+    color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    corner-caps: 0 0 transparent;
+    text-color: var(--wb-text-dim);
+}
+
+.wb-button-disabled:hover {
+    color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    corner-caps: 0 0 transparent;
+    text-color: var(--wb-text-dim);
+}
+
+.wb-button-disabled:active {
+    color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    corner-caps: 0 0 transparent;
+    text-color: var(--wb-text-dim);
+}
+
+.wb-button:disabled {
+    color: var(--wb-panel-inner);
+    border-color: var(--wb-border-inner);
+    corner-caps: 0 0 transparent;
+    text-color: var(--wb-text-dim);
+}
+
+.wb-icon-button {
+    color: transparent;
+    padding: 0;
+    text-color: var(--wb-text-muted);
+}
+
+.wb-icon-button:disabled {
+    text-color: var(--wb-text-dim);
+}
+
+.wb-icon-button:hover {
+    color: var(--wb-button-hover);
+    text-color: var(--wb-text);
+}
+
+.wb-icon-button:active {
+    color: var(--wb-accent-dark);
+    text-color: var(--wb-text);
+}
+
+.wb-icon-button-danger {
+    text-color: var(--wb-danger);
+}
+
+.wb-icon-button-danger:hover {
+    color: var(--wb-danger-dark);
+    text-color: var(--wb-danger-bright);
+}
+
+.wb-tab {
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+    text-color: var(--wb-text-muted);
+}
+
+.wb-tab-bar {
+    color: var(--wb-panel-solid);
+}
+
+.wb-tab-label {
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-tab:hover {
+    text-color: var(--wb-text);
+}
+
+.wb-tab-selected {
+    color: var(--wb-panel-solid);
+    border: 1px var(--wb-accent);
+    border-bottom: 2px var(--wb-panel-solid);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-card {
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+    text-color: var(--wb-text);
+    padding: 0 6px 0 6px;
+}
+
+.wb-card-caret {
+    color: var(--wb-accent);
+}
+
+.wb-card:hover {
+    color: var(--wb-button-hover);
+    border-color: var(--wb-border-hover);
+}
+
+.wb-card-selected {
+    color: var(--wb-selected-surface);
+    border: 1px var(--wb-primary);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-card-selected:hover {
+    color: var(--wb-selected-surface);
+    border-color: var(--wb-primary-bright);
+}
+
+.wb-card-detail-label {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.wb-card-detail-value {
+    color: var(--wb-text-soft);
+    font-family: var(--wb-font-ui);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.wb-card-name {
+    color: var(--wb-accent-bright);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-card-line {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-field {
+    layout: vertical;
+    gap: 4px;
+}
+
+.wb-field-label {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-field-frame {
+    background-color: var(--wb-input);
+    border: 1px var(--wb-border);
+    color: var(--wb-text-muted);
+    font-size: 18px;
+}
+
+.wb-field-frame:focus {
+    background-color: var(--wb-input-focus);
+    border-color: var(--wb-border-hover);
+    color: var(--wb-text);
+}
+
+.wb-field-hint {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-field-error {
+    color: var(--wb-danger);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-footer {
+    layout: horizontal;
+    gap: 12px;
+}
+
+.wb-keycap {
+    color: var(--wb-accent-dark);
+    text-color: var(--wb-accent-bright);
+    border: 1px var(--wb-border-hover);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    text-align: center;
+    vertical-align: middle;
+    padding: 6px 2px 6px 2px;
+}
+
+.wb-hint-pill {
+    color: var(--wb-panel);
+    border: 1px var(--wb-border);
+    padding: 4px 4px 10px 4px;
+    layout: horizontal;
+    gap: 8px;
+}
+
+.wb-hint-text {
+    text-color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-empty-state {
+    text-color: var(--wb-text-dim);
+}
+
+.wb-progress-track {
+    color: var(--wb-control);
+    border: 1px var(--wb-border);
+}
+
+.wb-slot {
+    color: var(--wb-control);
+    border: 1px var(--wb-border);
+    width: var(--wb-slot-size);
+    height: var(--wb-slot-size);
+    padding: 4px;
+}
+
+.wb-slot-selected {
+    color: var(--wb-selection);
+    border-color: var(--wb-primary);
+    corner-caps: 6 1 var(--wb-primary-bright);
+}
+
+.wb-slot-equipped {
+    color: var(--wb-selected-surface);
+    border-color: var(--wb-primary);
+    corner-caps: 6 1 var(--wb-primary-bright);
+}
+
+.wb-slot-number {
+    color: var(--wb-text-dim);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-slot-number-selected {
+    color: var(--wb-primary-bright);
+}
+
+.wb-slot-count {
+    background-color: var(--wb-scrim-soft);
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    text-align: right;
+    vertical-align: middle;
+}
+
+.wb-scrollbar {
+    color: var(--wb-input);
+    width: 6px;
+}
+
+.wb-scrollbar-thumb {
+    color: var(--wb-border-hover);
+}
+
+.wb-section-title {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+    vertical-align: middle;
+}
+
+.wb-row-label {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 20px;
+    vertical-align: middle;
+}
+
+.wb-pane-title {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 24px;
+    vertical-align: middle;
+}
+
+.wb-status-message {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+    vertical-align: middle;
+}
+
+.wb-table-header {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.wb-banner {
+    color: var(--wb-panel);
+}
+
+.wb-ping-text {
+    color: var(--wb-text-dim);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-body-frame {
+    color: var(--wb-panel-inner);
+    border: 1px var(--wb-border);
+}
+
+.wb-choice {
+    color: var(--wb-control);
+    border: 1px var(--wb-border);
+    padding: 1px;
+}
+
+.wb-choice-disabled {
+    border-color: var(--wb-border-inner);
+}
+
+.wb-choice-row {
+    color: var(--wb-border-inner);
+}
+
+.wb-choice-cell {
+    color: var(--wb-control);
+    text-color: var(--wb-text-muted);
+}
+
+.wb-choice-cell:hover {
+    color: var(--wb-button-hover);
+    text-color: var(--wb-text);
+}
+
+.wb-choice-cell-selected {
+    color: var(--wb-accent-dark);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-choice-cell-selected:hover {
+    color: var(--wb-accent-dark);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-choice-cell-disabled {
+    text-color: var(--wb-text-dim);
+}
+
+.wb-choice-label {
+    font-family: var(--wb-font-ui);
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-slider {
+    layout: horizontal;
+    gap: 8px;
+}
+
+.wb-slider-track {
+    color: var(--wb-input);
+    border: 1px var(--wb-border);
+    padding: 1px;
+}
+
+.wb-slider-track-disabled {
+    border-color: var(--wb-border-inner);
+}
+
+.wb-slider-fill {
+    color: var(--wb-slider-fill);
+}
+
+.wb-slider-fill-disabled {
+    color: var(--wb-border-inner);
+}
+
+.wb-slider-tick {
+    color: var(--wb-slider-tick);
+}
+
+.wb-slider-thumb {
+    color: var(--wb-text);
+}
+
+.wb-slider-thumb-disabled {
+    color: var(--wb-text-dim);
+}
+
+.wb-slider-value {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 18px;
+    text-align: right;
+    vertical-align: middle;
+}
+
+.wb-stepper {
+    color: var(--wb-control);
+    border: 1px var(--wb-border-inner);
+}
+
+.wb-stepper-enabled {
+    border-color: var(--wb-border);
+}
+
+.wb-stepper-inner {
+    color: var(--wb-control);
+}
+
+.wb-stepper-sep {
+    color: var(--wb-border-inner);
+}
+
+.wb-stepper-arrow {
+    color: transparent;
+    text-color: var(--wb-text-dim);
+}
+
+.wb-stepper-arrow-enabled {
+    text-color: var(--wb-text-muted);
+}
+
+.wb-stepper-arrow-enabled:hover {
+    color: var(--wb-button-hover);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-stepper-arrow-glyph {
+    font-family: var(--wb-font-ui);
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-stepper-value {
+    color: var(--wb-text-dim);
+    font-family: var(--wb-font-ui);
+    font-size: 18px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-stepper-value-enabled {
+    color: var(--wb-text);
+}
+
+.wb-info-box-label {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.wb-text-primary-solid {
+    color: var(--wb-primary);
+}
+
+.wb-caret-block {
+    color: var(--wb-accent);
+}
+
+.wb-save-mode {
+    color: var(--wb-primary);
+    font-family: var(--wb-font-ui);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.wb-save-meta {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.wb-version-watermark {
+    color: var(--wb-text-faint);
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+}
+
+.wb-nameplate {
+    background-color: var(--wb-scrim-soft);
+    font-family: var(--wb-font-ui);
+}
+
+.wb-stat-line {
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+}
+
+.wb-bar {
+    width: 512px;
+    padding: 12px 8px;
+}
+
+.wb-bar-row {
+    width: fill;
+    height: 18px;
+}
+
+.wb-bar-text {
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+}
+
+.wb-bar-divider {
+    width: 2px;
+    height: 6px;
+}
+
+.wb-bar-border {
+    width: fill;
+    height: 1px;
+}
+
+.wb-nameplate-text {
+    color: var(--wb-text);
+    font-family: var(--wb-font-ui);
+}
+
+.wb-hotbar {
+    color: var(--wb-panel);
+    border: 1px var(--wb-border);
+    corner-caps: 10 2 var(--wb-border-hover);
+}
+
+.wb-keycap-text {
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+}
+
+.wb-load-status {
+    font-family: var(--wb-font-ui);
+    font-size: 20px;
+}
+
+.wb-load-hint {
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+}
+
+.wb-radial-node {
+    color: var(--wb-panel);
+    border: 1px var(--wb-border);
+    corner-caps: 6 1 var(--wb-border-hover);
+}
+
+.wb-radial-node-selected {
+    color: var(--wb-selection);
+    border-color: var(--wb-primary);
+    corner-caps: 6 1 var(--wb-primary-bright);
+}
+
+.wb-radial-icon {
+    color: var(--wb-accent-bright);
+}
+
+.wb-radial-icon-selected {
+    color: var(--wb-primary-bright);
+}
+
+.wb-radial-label {
+    color: var(--wb-panel);
+    border: 1px var(--wb-primary);
+    corner-caps: 6 1 var(--wb-primary-bright);
+    padding: 6px 14px;
+}
+
+.wb-radial-label-text {
+    color: var(--wb-primary-bright);
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+    vertical-align: middle;
+}
+
+.wb-slot-hovered {
+    color: var(--wb-button-hover);
+    border-color: var(--wb-accent);
+    corner-caps: 6 1 var(--wb-accent-bright);
+}
+
+.wb-slot-dragging {
+    color: var(--wb-accent-dark);
+    border-color: var(--wb-accent);
+    corner-caps: 0 0 transparent;
+}
+
+.wb-slot-number-hovered {
+    color: var(--wb-accent-bright);
+}
+

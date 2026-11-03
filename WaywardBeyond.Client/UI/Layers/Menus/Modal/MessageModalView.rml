@@ -1,0 +1,26 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      Class="MessageModalView"
+      Context="MessageModalState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
+
+    <Element class="wb-scrim" layout="none" width="100%" height="100%">
+        <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
+            <Modal param:size="compact">
+                <Content name="header">
+                    <Text text="@context.Title" class="wb-modal-title" width="fill" height="30" />
+                </Content>
+
+                <Text text="@context.Body" class="wb-modal-body" width="fill" height="fill" wrap="true"  vertical-align="top" />
+
+                <Content name="actions">
+                    <Element width="fill" />
+                    <Button id="Button_Ok" param:variant="primary" onclick="OnOk" width="180" height="40">
+                        <Text class="wb-button-label" text="@L('ui.button.ok')" anchor="Center" />
+                    </Button>
+                </Content>
+            </Modal>
+        </Element>
+    </Element>
+</Reef>

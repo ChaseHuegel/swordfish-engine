@@ -62,6 +62,17 @@ internal sealed class GameSaveService(
         }
     }
 
+    /// <summary>Replaces the cached listing without a server. Tests use it to seed the menu.</summary>
+    internal void SetListing(Level[] levels, bool canCreateSave)
+    {
+        lock (_savesGate)
+        {
+            _levels = levels;
+            _canCreateSave = canCreateSave;
+            _listingGeneration++;
+        }
+    }
+
     public GameSave[] GetSaves()
     {
         lock (_savesGate)

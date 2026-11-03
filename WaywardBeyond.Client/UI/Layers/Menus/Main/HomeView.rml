@@ -1,0 +1,142 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      Class="HomeView"
+      Context="HomeState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Element layout="none" anchor="Center" width="264" height="fit">
+        <Element layout="vertical" width="264" height="fit">
+            <Button id="Button_Continue"
+                    param:variant="primary"
+                    param:enabled="@context.HasLastSession"
+                    disabled="@(!context.HasLastSession)"
+                    onclick="OnContinue"
+                    width="fill"
+                    height="44">
+                <Text class="wb-button-label" text="@L('ui.button.home.continue')" anchor="Center" />
+            </Button>
+
+            <Element height="8" />
+            <Button id="Button_Singleplayer" param:variant="secondary" onclick="OnSingleplayer" width="fill" height="44">
+                <Text class="wb-button-label" text="@L('ui.button.home.singleplayer')" anchor="Center" />
+            </Button>
+
+            <Element height="8" />
+            <Button id="Button_Multiplayer" param:variant="secondary" onclick="OnMultiplayer" width="fill" height="44">
+                <Text class="wb-button-label" text="@L('ui.button.home.multiplayer')" anchor="Center" />
+            </Button>
+
+            <Element height="8" />
+            <Element class="wb-divider-dashed" />
+            <Element height="8" />
+
+            <Button id="Button_Settings" param:variant="secondary" onclick="OnSettings" width="fill" height="44">
+                <Text class="wb-button-label" text="@L('ui.button.settings')" anchor="Center" />
+            </Button>
+
+            <Element height="8" />
+            <Button id="Button_Credits" param:variant="secondary" onclick="OnCredits" width="fill" height="44">
+                <Text class="wb-button-label" text="@L('ui.button.home.credits')" anchor="Center" />
+            </Button>
+
+            <Element height="8" />
+            <Button id="Button_Quit" param:variant="secondary" onclick="OnQuit" width="fill" height="44">
+                <Text class="wb-button-label" text="@L('ui.button.home.quit')" anchor="Center" />
+            </Button>
+        </Element>
+
+        <Element visible="@(context.HasLastSession &amp;&amp; UsesWideLayout(ui.Width) &amp;&amp; ui.Hovering('Button_Continue'))"
+                 layout="none"
+                 overlay="true"
+                 x="288"
+                 y="0"
+                 width="464"
+                 height="@(context.Card.Remote ? 242 : 220)">
+            <Element class="wb-panel"
+                     layout="none"
+                     width="fit"
+                     height="fill"
+                     padding="2">
+                <Element class="wb-panel-inner"
+                         layout="vertical"
+                         width="fit"
+                         height="fill"
+                         clip="true">
+                    <Element layout="horizontal" width="fit" height="16" spacing="6">
+                        <Icon visible="@context.Card.Remote"
+                              param:glyph="server"
+                              param:tone="bright"
+                              width="16"
+                              height="fill" />
+                        <Text visible="@(!context.Card.Remote)"
+                              text="@L('ui.label.session.singleplayer')"
+                              class="wb-text-small"
+                              height="fill" />
+                        <Text visible="@context.Card.Remote"
+                              text="@L('ui.label.session.multiplayer')"
+                              class="wb-text-small wb-text-accent"
+                              height="fill" />
+                    </Element>
+
+                    <Element height="4" />
+                    <Text text="@context.Card.SaveName" class="wb-text-body" width="fit" height="20" wrap="false" />
+
+                    <Element visible="@context.Card.Remote" height="4" />
+                    <Text visible="@context.Card.Remote"
+                          text="@context.Card.Destination"
+                          class="wb-text-small"
+                          width="fit"
+                          height="16"
+                          wrap="false" />
+
+                    <Element height="4" />
+                    <StatRow>
+                        <Content name="label">
+                            <Text text="@L('ui.label.level.mode')" class="wb-card-detail-label" width="100" height="fill" />
+                        </Content>
+                        <Content name="value">
+                            <Text text="@ModeName(context.Card.Mode)" class="wb-card-detail-value" width="fit" height="fill" wrap="false" />
+                        </Content>
+                    </StatRow>
+                    <StatRow>
+                        <Content name="label">
+                            <Text text="@L('ui.label.level.seed')" class="wb-card-detail-label" width="100" height="fill" />
+                        </Content>
+                        <Content name="value">
+                            <Text text="@context.Card.SeedPhrase" class="wb-card-detail-value" width="fit" height="fill" wrap="false" />
+                        </Content>
+                    </StatRow>
+                    <StatRow>
+                        <Content name="label">
+                            <Text text="@L('ui.label.lastPlayed')" class="wb-card-detail-label" width="100" height="fill" />
+                        </Content>
+                        <Content name="value">
+                            <Text text="@LastPlayedText(context.Card.LastPlayedMs)" class="wb-card-detail-value" width="fit" height="fill" wrap="false" />
+                        </Content>
+                    </StatRow>
+                    <StatRow>
+                        <Content name="label">
+                            <Text text="@L('ui.label.timePlayed')" class="wb-card-detail-label" width="100" height="fill" />
+                        </Content>
+                        <Content name="value">
+                            <Text text="@TimePlayedText(context.Card.AgeMs)" class="wb-card-detail-value" width="fit" height="fill" wrap="false" />
+                        </Content>
+                    </StatRow>
+
+                    <Element height="fill" />
+                    <Element class="wb-divider-inner" width="fill" height="1" />
+                    <Element height="8" />
+
+                    <Element layout="horizontal" width="fit" height="64" spacing="12">
+                        <Image source="@context.Card.Avatar" width="64" height="64" />
+                        <Element layout="vertical" height="fill">
+                            <Text text="@context.Card.CharacterName" class="wb-card-name" width="fit" height="18" wrap="false" />
+                            <Text text="@LevelLine(context.Card.Level, context.Card.Species)" class="wb-card-line" width="fit" height="18" wrap="false" />
+                        </Element>
+                    </Element>
+                </Element>
+            </Element>
+        </Element>
+    </Element>
+</Reef>

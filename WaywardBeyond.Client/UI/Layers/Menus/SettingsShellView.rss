@@ -1,0 +1,29 @@
+.wb-settings-tray-item {
+    color: transparent;
+    text-color: var(--wb-text-muted);
+}
+
+.wb-settings-tray-item:hover {
+    border: 1px var(--wb-border-hover);
+    text-color: var(--wb-text);
+}
+
+.wb-settings-tray-item-selected {
+    color: var(--wb-selected-surface);
+    border: 1px var(--wb-primary);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-settings-tray-item-selected:hover {
+    border-color: var(--wb-primary);
+}
+
+.wb-settings-tray-caret {
+    color: var(--wb-accent);
+}
+
+.wb-settings-tray-label {
+    font-family: var(--wb-font-ui);
+    font-size: 20px;
+    vertical-align: middle;
+}

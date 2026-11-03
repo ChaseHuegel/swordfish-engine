@@ -1,175 +1,147 @@
-# UI theme and widgets
+# UI theme
 
-One subject: the shared game UI theme, metrics, style resolution, and widget
-library.
+One subject: where Wayward Beyond UI gets its colors, fonts, spacing, and
+dynamic fade colors.
 
-## Scope
+Status: current. Static visual design lives in Reef stylesheets. C# holds only
+the colors that a view must fade at run time.
 
-The theme and widgets live in `WaywardBeyond.Client`. Reef stays renderer
-generic. Do not add game colors or game control styles to Reef.
+## Token files
 
-The theme is static. A page reads `UiTheme` and `UiMetrics` directly. If a second
-theme becomes a real requirement, promote these classes to an injected theme at
-that time.
+`WaywardBeyond.Client/UI/Theme/Theme.rss:1` holds the design tokens:
 
-## Theme tokens
+- fonts: `--wb-font-ui`, `--wb-font-icons`, and `--wb-font-brands`. Every text
+  rule in the stylesheet uses `var()`, so a font change is one token edit. A
+  literal font family in `.rss` is a bug.
+- text: `--wb-text`, `--wb-text-muted`, `--wb-text-dim`, `--wb-text-soft`, and
+  `--wb-text-faint`.
+- surfaces: `--wb-panel`, `--wb-panel-solid`, `--wb-panel-inner`,
+  `--wb-input`, `--wb-input-focus`, `--wb-control`, `--wb-selected-surface`, and
+  `--wb-selection`.
+- slots: `--wb-slot-size`, the shared item-slot cell size.
+- borders: `--wb-border`, `--wb-border-inner`, and `--wb-border-hover`.
+- accents: `--wb-accent`, `--wb-accent-bright`, and `--wb-accent-dark`.
+- primary actions: `--wb-primary`, `--wb-primary-bright`, and
+  `--wb-primary-dark`.
+- status: `--wb-danger`, `--wb-danger-bright`, `--wb-danger-dark`,
+  `--wb-success`, and `--wb-warning`.
+- buttons and scrims: `--wb-button`, `--wb-button-hover`, `--wb-scrim`,
+  `--wb-scrim-soft`, and `--wb-scrim-heavy`.
 
-`UiTheme` is at `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`. It holds the font
-IDs and semantic colors:
+`WaywardBeyond.Client/UI/Components/Components.rss:1` holds the shared classes
+that markup selects. The classes cover layout, typography, buttons, panels,
+modals, cards, tabs, rows, fields, keycaps, hints, progress, slots,
+scrollbars, HUD chrome, and the choice and slider controls.
 
-- fonts: `FONT_UI` (`Salmon Mono 9 Regular`), `FONT_ICONS`, and `FONT_BRANDS`.
-- surfaces: `PanelBackground`, `PanelSolid`, `PanelInner`, `InputBackground`,
-  `InputFocus`, `ControlBackground`, `SelectionBackground`.
-- borders: `Border`, `BorderInner`, `BorderHover`.
-- text: `Text`, `TextMuted`, `TextDim`, `TextSoft`.
-- accents: `Accent`, `AccentBright`, `AccentDark`.
-- primary actions: `Primary`, `PrimaryBright`, `PrimaryDark`.
-- status: `Danger`, `DangerBright`, `DangerDark`, `Success`, `Warning`.
-- scrims: `ScreenBackground`, `Scrim`, `ScrimSoft`, `ScrimHeavy`.
-- controls: `Track`, `TrackFill`, `Thumb`, `ButtonBackground`, `ButtonHover`,
-  `RowSelected`, `Transparent`.
+A class that one page uses lives in a stylesheet beside that page, such as
+`ChatView.rss` next to `ChatView.rml`. A page stylesheet declares only classes
+with its page prefix and no tokens. Every stylesheet is global at compile time,
+so the prefix marks the owner. The compiler does not scope the file.
 
-Use semantic tokens, not component names, in new code. Do not add a new color
-literal to a page or a widget.
+Item slots take their cell size from `--wb-slot-size` through `.wb-slot`, so a
+page sizes slots only when it needs a different cell. `.wb-divider-dashed`
+draws the dashed rule from `border-dash`, so a divider costs one element.
 
-`UIBuilder.DefaultFontID` at `Reef/UIBuilder.cs:155` applies `FONT_UI` to game
-text that does not specify a font. `DefaultUIRenderer` sets it once at startup.
-An explicit `FontOptions.ID` still wins. This keeps menus, HUD, chat, and debug
-overlays on the same pixel font.
+Use semantic tokens in the stylesheets. Do not add a color literal to `.rml`
+or to a view. A new token belongs in `Theme.rss`. A shared class belongs in
+`Components.rss`, and a class used by one page belongs beside that page. The
+behavior widgets described below are the one exception, because they own
+interaction state.
 
-`UiMetrics` is at `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`. It holds font
-sizes, control heights, button sizes, spacing, border sizes, and scroll metrics.
-The menu suite adds `MENU_TITLE_FONT`, `MENU_BODY_FONT`, `MENU_SMALL_FONT`,
-`MENU_LABEL_FONT`, and the shared panel cap sizes.
+`DefaultUIRenderer` sets the Reef default font to `Salmon Mono 9 Regular` at
+`WaywardBeyond.Client/UI/DefaultUIRenderer.cs:31`. An explicit font still wins.
 
-Constants are `UPPER_SNAKE_CASE`, per [development](../development.md).
+## Runtime token access
 
-`SettingsMetrics` is at
-`WaywardBeyond.Client/UI/Settings/SettingsMetrics.cs:4`. It holds only geometry
-that belongs to the settings page, such as the tray size and footer button
-widths.
+C# does not copy token values. `WaywardBeyond.Client/UI/Theme/Palette.rml`
+declares a palette over `Theme.rss`, and the generator emits one constant per
+token into `WbPalette`:
 
-## Style resolution
+```xml
+<Reef xmlns="Reef" Class="WbPalette" Palette="wb"
+      Namespace="WaywardBeyond.Client.UI.Theme" />
+```
 
-`ControlStyle` is at `WaywardBeyond.Client/UI/Theme/ControlStyle.cs:7`. It holds
-the resolved fill, border, border thickness, corner caps, and text color.
+- `--wb-text-muted` becomes `WbPalette.TextMuted`.
+- Colours are `Vector4`, the font names are `string`, and `--wb-slot-size` is
+  an `int`.
+- A new token is available to C# without a second declaration. A renamed token
+  fails the build where it is used.
+- `Swordfish.Tests/PaletteTests` fails when the palette misses a token.
 
-`UiThemeResolver` is at `WaywardBeyond.Client/UI/Theme/UiThemeResolver.cs:6`. It
-turns a variant and a state into a `ControlStyle`. The resolver covers button
-variants, segmented cells, and stepper arrows. It has no drawing code, so tests
-can call it directly.
+`DynamicColors` at `WaywardBeyond.Client/UI/Theme/DynamicColors.cs:7` keeps
+only the helpers that compute at run time:
 
-One `ButtonPalette` per variant holds the fill, border, and text colours for the
-normal, hover, pressed, and active states. `FromPalette` maps a state onto those
-colours, so a variant is added by adding data, not by copying a control-style
-block.
+- `Fade` multiplies the alpha channel by a fade amount.
+- `AccentRichText` and `AccentBrightRichText` format rich-text color tags.
 
-`ButtonVariant` is at `WaywardBeyond.Client/UI/Theme/ButtonVariant.cs:4`. The
-variants are `Secondary`, `Primary`, `Subtle`, and `Danger`.
+The faded token reads come from `WbPalette`, so a view writes
+`DynamicColors.Fade(WbPalette.Panel, alpha)`.
 
-## Widgets
+These views fade tokens at run time:
 
-The widgets are extension methods on `UIBuilder<Material>` in
-`WaywardBeyond.Client/UI/Widgets/`.
+- `NotificationView` for the notification panel scrim, accent bar, and text.
+- `BarsView` for the progress bar panel, border, dividers, text, and fill tint.
+- `ActionsView` for the action strip text.
+- `ChatView` for the message background, accent bar, text, and sender run.
+- `LoadScreenView` for the status, hint, signal line, segment, and key tags.
+- `NewSaveView` for the creating log lines.
 
-| Widget | Source | Purpose |
+The notification panel uses `--wb-scrim-soft` alone. It darkens the scene behind
+the text, so it does not multiply the scrim by a panel color. A component-wise
+color product is not a blend, and it discards one of the inputs.
+
+Do not add a literal colour to a view. Add a token to `Theme.rss` instead.
+
+## Behavior widgets
+
+Markup owns structure and static visuals. A few controls still need C# for
+editing, drag, or pointer mechanics:
+
+| Control | Source | Used by |
 |---|---|---|
-| `Panel` | `Widgets.Panel.cs:14` | Clipped panel with border, caps, and optional inner hairline. |
-| `ActionButton` | `Widgets.ActionButton.cs:15` | Text action button with layout constraints, a fixed rect, or an intrinsic size. |
-| `IconButton` | `Widgets.IconButton.cs:12` | Borderless icon action with hover/pressed fills. |
-| `PingIndicator` | `Widgets.Ping.cs:45` | Colored signal icon and ping value. |
-| `Toggle` | `Widgets.Toggle.cs:16` | Two-cell on/off control. |
-| `SegmentedControl` | `Widgets.Toggle.cs:39` | Radio-like choice row. |
-| `Stepper` | `Widgets.Stepper.cs:14` | Discrete value control. |
-| `Slider` | `Widgets.Slider.cs:14` | Continuous value control. |
-| `Scrollbar` | `Widgets.Scrollbar.cs:13` | Non-interactive list indicator that fills the layout or a fixed rect. |
-| `ScrollArea` | `Widgets.ScrollArea.cs:14` | Clipped wheel-scroll area with a scrollbar and routed wheel input. |
-| `ModalDialog` | `Widgets.ModalDialog.cs:31` | Centered dialog scope holding the scrim, center container, and modal panel. |
-| `MenuTextBox` | `Widgets.MenuTextBox.cs:13` | Clipped menu text box that returns its interactions. |
-| `DottedDivider` | `Widgets.DottedDivider.cs:12` | Light horizontal dotted separator. |
-| `FooterStatus` | `Widgets.FooterStatus.cs:13` | Centered footer status between two action buttons. |
-| `ModalPanel` | `Widgets.MenuPanel.cs:39` | Borderless panel for modal dialogs. |
-| `MenuPanel` | `Widgets.MenuPanel.cs:61` | Shared menu panel with inner hairline, corner caps, and optional title. Content hugs when the width is unconstrained. |
-| `InfoBox` | `Widgets.InfoBox.cs:12` | Titled box with wrapped body text. Highlight prefixes need a space after the color token. |
-| `SelectableCard` | `Widgets.SelectableCard.cs:14` | Selected/hover card with one orange border and a cyan left caret. |
-| `StatLabel` | `Widgets.StatLabel.cs:10` | Stat name with a colored first letter. |
-| `Tab` | `Widgets.Tab.cs:12` | Attached tab with selected state. |
-| `Label` | `Widgets.Text.cs:13` | Single-line text in the current layout or a fixed rect. |
-| `Paragraph` | `Widgets.Text.cs:57` | Wrapped text in the current layout or a fixed rect. |
-| `Divider` | `Widgets.Text.cs:90` | One-pixel divider. |
-| `Row` / `Column` | `Widgets.Layout.cs:76` | Horizontal or vertical stack with spacing. |
-| `Spacer` / `Filler` | `Widgets.Layout.cs:106` | Fixed or remaining-space filler. |
-| `Page` | `Widgets.Layout.cs:52` | Centered page with a fixed maximum size and a clip. |
+| `TextBox` | `WaywardBeyond.Client/UI/Widgets/Widgets.TextBox.cs:41` | `TextInputWidget` |
+| `SegmentedControl` | `WaywardBeyond.Client/UI/Widgets/Widgets.Toggle.cs:24` | `SettingsChoiceWidget` and the scroll repro fixture |
+| `Slider` | `WaywardBeyond.Client/UI/Widgets/Widgets.Slider.cs:21` | `SettingsSliderWidget` |
+| `ActionButton` | `WaywardBeyond.Client/UI/Widgets/Widgets.ActionButton.cs:23` | `Slider` |
 
-`ControlResult<T>` at `WaywardBeyond.Client/UI/Widgets/ControlResultOfT.cs:4` is
-the return type of `Toggle`, `SegmentedControl`, `Stepper`, and `Slider`. Read
-`Changed` before `Value`, so a control never needs an `out` value.
+`ControlResult<T>` at `WaywardBeyond.Client/UI/Widgets/ControlResultOfT.cs:4`
+reports a change and the new value. Read `Changed` before `Value`.
 
-`Widgets.ActionButton.cs:253` defines `ActionButtonOptions`. Use the factories:
+These widgets keep literal colors and sizes equal to the matching `Theme.rss`
+tokens and `Components.rss` classes. Markup cannot own their interaction
+state, so the values stay beside the drawing code.
 
-- `Menu` for a full menu button. Width is `UiMetrics.MenuButtonMinWidth`, height
-  is `UiMetrics.MenuButtonHeight`.
-- `Compact` for a small action button.
-- `ListRow` for a full-width list row. Content aligns left.
+Sound and pointer helpers live in `WaywardBeyond.Client/UI/WidgetInteraction.cs:7`.
+They play the interface sounds and decode `Interactions` flags.
 
-Set `Layout` to use the button in a row or a column. The layout width and height
-override the factory defaults. `MenuLayoutExtensions.FooterButton` supplies the
-shared footer slot.
+## Button variants
 
-Icon-only actions use `Widgets.IconButton` with `IconButtonOptions`, not the text
-button factories. Icon buttons are borderless and transparent at rest, then use a
-hover/pressed fill and icon-color change. Danger icons use the danger palette.
-Keep the full square hit target and let the glyph center in it.
+`ButtonVariant` at `WaywardBeyond.Client/UI/Components/ButtonVariant.cs:4` has
+four members: `Secondary`, `Primary`, `Subtle`, and `Danger`.
 
-A text button can take a fixed rect, layout constraints, or an intrinsic size.
-Prefer `Layout` for pages. Pass `ActionButtonOptions` as one value rather than
-building a partial options value at the call site.
+`ButtonParameters` at `WaywardBeyond.Client/UI/Components/ButtonParameters.cs:4`
+maps the variant to booleans for `Button.rml`. Markup passes the variant with
+`param:variant`:
 
-Set `Selected` to true for a current list row. Set `Anchors` for placement in a
-parent layout. Pass a `SoundEffectService` to play the standard click sound.
+```xml
+<Button param:variant="primary" param:enabled="@context.CanSubmit">
+    <Text class="wb-button-label" text="@L('ui.button.send')" />
+</Button>
+```
 
-## Page rules
-
-- Menus use `ActionButton` for actions. Use `Primary` for the main action,
-  `Secondary` for normal actions, `Subtle` for Back, and `Danger` for
-  destructive actions.
-- Lists use `ActionButtonOptions.ListRow`. Use `Selected` for the active item.
-- Text inputs use `Widgets.MenuTextBox` inside a menu, or `Widgets.TextBox`
-  directly. Both read theme colors for focus, placeholder, selection, and caret.
-  A container that draws its own frame, such as the chat send bar, sets
-  `TextBoxState.Options.Chrome` to false.
-- HUD overlays (`Hotbar`, `Bars`, `Actions`, `ShapeSelector`,
-  `OrientationSelector`, `ControlHints`, `ChatLayer`) use theme tokens, borders,
-  and corner caps directly. `ChatLayer` uses `Widgets.Panel` and
-  `Widgets.Scrollbar` when open. The modal `Inventory` window uses
-  `Widgets.MenuPanel` and `Widgets.DottedDivider`.
-- Settings controls use the common widgets. The block layout stays in
-  `SettingsRenderer`.
-
-## Source
-
-- Theme: `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`
-- Metrics: `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`
-- Glyphs: `WaywardBeyond.Client/UI/MenuGlyphs.cs:4`
-- Resolver: `WaywardBeyond.Client/UI/Theme/UiThemeResolver.cs:6`
-- Widgets: `WaywardBeyond.Client/UI/Widgets/`
-- Menu layout: `WaywardBeyond.Client/UI/Layers/Menus/MenuLayout.cs:10`
-- Settings layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:6`
-- Settings renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:14`
+The parameter model accepts the lowercase names `secondary`, `primary`,
+`subtle`, and `danger`.
 
 ## Tests
 
-- `Swordfish.Tests/UiThemeResolverTests.cs` covers button variants, ghost icon
-  states, disabled styles, segmented cells, and stepper arrows.
-- `Swordfish.Tests/ActionButtonTests.cs` covers fixed and intrinsic button
-  sizing plus Font Awesome glyph centering.
-- `Swordfish.Tests/MenuLayoutTests.cs` covers wide and narrow page geometry and
-  the shared footer button slot.
-- `Swordfish.Tests/PingDisplayTests.cs` covers ping bands and unknown/unreachable states.
-- `Swordfish.Tests/MenuPanelRenderTests.cs` checks that menu panels have no outer
-  border, that selected cards use one border plus a cyan caret, and that panels
-  with an unconstrained width hug their content up to `MaxWidth`.
-- `Swordfish.Tests/TextBoxZOrderTests.cs` checks selection and caret paint
-  order with the theme colors, plus relative text-box sizing.
+- `Swordfish.Tests/ButtonStateTests.cs` covers disabled button styles.
+- `Swordfish.Tests/SettingsInteractionTests.cs` covers selected settings rows.
+- `Swordfish.Tests/SettingsPageRenderTests.cs` covers the reset row danger
+  border.
+- `Swordfish.Tests/ConnectingModalTests.cs` covers the accent scan beam.
+- `Swordfish.Tests/PauseScrimTests.cs` covers the pause scrim.
+- `Swordfish.Tests/TextBoxZOrderTests.cs` covers text box paint order.
+- `Swordfish.Tests/SliderInteractionTests.cs` covers slider clicks.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.
 - `Reef.Tests/UIBuilderZOrderTests.cs` checks the Reef paint-order contract.

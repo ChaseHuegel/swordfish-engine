@@ -11,6 +11,8 @@ namespace WaywardBeyond.Client.UI.Layers;
 /// <summary>Base UI layer for rendering active notifications of a specific type.</summary>
 internal abstract class NotificationLayer(in NotificationService notificationService) : IUILayer
 {
+    private readonly NotificationView _view = new();
+
     private readonly NotificationService _notificationService = notificationService;
 
     /// <summary>Gets the notification type rendered by this layer.</summary>
@@ -39,7 +41,10 @@ internal abstract class NotificationLayer(in NotificationService notificationSer
                 continue;
             }
 
-            state.Render(ui, now, HasBackground);
+            _view.Render(
+                ui,
+                new NotificationViewState(state.Notification.Text, state.GetAlpha(now), HasBackground)
+            );
 
             if (OnlyRenderLatest)
             {

@@ -1,0 +1,19 @@
+<Reef xmlns="Reef"
+      Class="ScrollArea"
+      Access="internal"
+      Context="ScrollAreaState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element layout="horizontal" width="fill" height="fill" spacing="8">
+        <Element layout="vertical"
+                 width="fill"
+                 height="fill"
+                 clip="true"
+                 scroll="vertical"
+                 scroll-y="@context.ReefOffset"
+                 onscroll="@context.OnScroll(ui.GetScrollDelta())">
+            <Content />
+        </Element>
+        <ScrollBar context="@context.Bar" />
+    </Element>
+</Reef>

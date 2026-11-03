@@ -38,7 +38,16 @@ change touches a subject, run the docs pass (see `development.md`).
 | Native resource lifetime: GPU handle and Jolt shape disposal | [specs/resource-lifetime](specs/resource-lifetime.md) |
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |
 | Reef element layout, styling, borders, no-wrap text, clipping | [specs/reef-ui](specs/reef-ui.md) |
-| Game UI theme tokens, metrics, style resolution, and shared widgets | [specs/ui-theme](specs/ui-theme.md) |
+| Reef markup language (.rml) and stylesheets (.rss) | [specs/reef-markup](specs/reef-markup.md) |
+| Reef markup generator architecture and implementation blueprint | [specs/reef-markup-blueprint](specs/reef-markup-blueprint.md) |
+| Reef markup implementation plan, locked decisions, and diagnostics | [specs/reef-markup-implementation-plan](specs/reef-markup-implementation-plan.md) |
+| Open UI review fixes, their solutions, and their locations | [specs/ui-remediation-plan](specs/ui-remediation-plan.md) |
+| UI roles, the controller/view boundary, and the render-state rules | [specs/ui-architecture](specs/ui-architecture.md) |
+| UI boundary follow-up work, decisions, and progress | [specs/ui-architecture-plan](specs/ui-architecture-plan.md) |
+| Reef markup onboarding, examples, quick reference, Rider setup, and test traceability | [userdocs/reef](../userdocs/reef/README.md) |
+| Wayward Beyond UI design system, authoring rules, and component library | [specs/ui-design-system](specs/ui-design-system.md) |
+| Wayward Beyond UI design-system migration plan and locked decisions | [specs/ui-design-system-migration-plan](specs/ui-design-system-migration-plan.md) |
+| Game UI tokens, style classes, and dynamic fade colors | [specs/ui-theme](specs/ui-theme.md) |
 | Main menu flow, menu layout, data mapping, and visual rules | [specs/main-menu-ui](specs/main-menu-ui.md) |
 | UI copy style, catalog conventions, key grammar, vocabulary, and string mappings | [specs/ui-copy](specs/ui-copy.md) |
 | Full-screen loading layer, visual rules, copy timing, data sources | [specs/loading-screen](specs/loading-screen.md) |

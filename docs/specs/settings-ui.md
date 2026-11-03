@@ -5,17 +5,35 @@ behavior.
 
 ## Layout
 
-The page uses responsive constraints, not fixed child positions. `SettingsLayout`
-provides the page size, the breakpoint, the tray width, and the label and control
-column widths. The page builds the rest with rows, columns, fillers, and panels.
+The whole page is markup. `SettingsShellView.rml` owns the page box, the tray,
+the tab strip, the pane frame, the scrolling row list, and the footer, and
+`SettingsShellState` carries the category labels, selection, title, dirty flag,
+and status. `SettingsRowState` is the per-row model, produced by
+`SettingsRow.Snapshot` on the row types.
 
-`SettingsLayout.Compute` is at
-`WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:30`. It produces:
+Row chrome, labels, sections, steppers, and reset rows are markup. Two controls
+stay coded because their interaction is not expressible in markup yet:
 
-- a centered page of at most 1280 by 840 pixels;
-- a tray and a pane, or a horizontal tab strip and a full-width pane;
-- a 48 pixel footer;
-- label and control column widths for the current pane width.
+- `SettingsChoiceWidget` wraps the shared segmented control for toggles and
+  radio-like choices.
+- `SettingsSliderWidget` wraps the slider for drag input.
+
+Both report `(row id, value)` through a view method, so the page updates the
+draft and plays the same sounds as before. Settings steppers use the shared
+`Stepper` component. Each call passes the row id and a step callback, so the
+component owns its arrows and the page has one stepper implementation.
+
+The page uses responsive constraints, not fixed child positions.
+
+All page geometry comes from markup constraints. The page is `window - 80` wide
+and `window - 240` tall with 320/280 floors and 1280/840 caps. The tray is `24%`
+wide with a 220 pixel floor and a 300 pixel cap. The breakpoint is
+`ui.Width < 900`. The control column is `33.334%` of the row with a 220 pixel
+floor and a 340 pixel cap; the label takes the rest.
+
+The control column no longer shrinks to protect a 120 pixel label on very
+narrow panes; below roughly 356 pixels of list width the label is squeezed
+instead.
 
 The page width is `min(window width - 80, 1280)`. The page height is
 `min(window height - 240, 840)`. The page leaves room for the title image in
@@ -27,31 +45,32 @@ directly on the pane top and uses the short category names. The tray is a fixed 
 overflow work in
 [settings category overflow](/docs/issues/0091-settings-tray-overflow.md).
 
-The pane list scrolls with the mouse wheel through `Widgets.ScrollArea`. The
-scrollbar is an indicator and does not accept dragging. The list clips its rows.
+The pane list scrolls with the mouse wheel through the `ScrollArea` markup
+component. The scrollbar is an indicator and does not accept dragging. The list
+clips its rows.
 
 ## Rows and controls
 
-A category contains section headers, entries, and one reset row. The row height
-is 44 pixels. A section header is 36 pixels. Each row is a horizontal layout.
-The label takes the remaining width and the control uses the metric column.
+A category contains section headers, entries, and one reset row. Markup gives a
+row a height of 44 pixels and a section header 35 pixels. Each row is a
+horizontal layout. The label takes the remaining width and the control uses the
+control column.
 
 The label uses `NoWrap` and clips to the row. The control column holds one of
-these widgets. Each returns `ControlResult<T>`, so a row reads `.Changed` and
-`.Value` instead of taking an `out` value:
+these controls:
 
 - Category rows use the shared selected-row treatment: one orange border and a
   cyan left caret.
-- `Widgets.Toggle` for on/off choices.
-- `Widgets.SegmentedControl` for two or more radio-like choices.
-- `Widgets.Stepper` for discrete values.
-- `Widgets.Slider` for continuous values.
-- `Widgets.ActionButton` for actions.
+- A toggle or radio-like choice uses the coded `SettingsChoiceWidget`, which
+  wraps `Widgets.SegmentedControl` and returns `ControlResult<int>`.
+- A continuous value uses the coded `SettingsSliderWidget`, which wraps
+  `Widgets.Slider` and returns `ControlResult<float>`.
+- The shared `Stepper` component covers discrete values.
 - The category reset row uses the danger button variant.
 
-The widgets live in the game widget library. They use the shared theme and
-metrics from [ui-theme](ui-theme.md). They use the Reef border, corner cap,
-layout constraint, and no-wrap text support.
+The two coded controls read `.Changed` and `.Value` from `ControlResult<T>`
+instead of taking an `out` value. Their colors and sizes come from literals
+that equal the tokens and classes in [ui-theme](ui-theme.md).
 
 Disabled rows stay visible and dim. A setting can disable another row. For
 example, V-Sync disables the frame limit, and Autosave disables the interval.
@@ -150,24 +169,26 @@ existing spacer layout.
 - Categories: `WaywardBeyond.Client/UI/Settings/DisplaySettingsCategory.cs:12`,
   `AudioSettingsCategory.cs:7`, `GameplaySettingsCategory.cs:7`,
   `ControlSettingsCategory.cs:8`
-- Layout: `WaywardBeyond.Client/UI/Settings/SettingsLayout.cs:6`
-- Renderer: `WaywardBeyond.Client/UI/Settings/SettingsRenderer.cs:14`
 - Draft: `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:11`
 - Defaults: `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`
-- Theme: `WaywardBeyond.Client/UI/Theme/UiTheme.cs:6`
-- Metrics: `WaywardBeyond.Client/UI/Theme/UiMetrics.cs:4`
-- Widgets: `WaywardBeyond.Client/UI/Widgets/Widgets.Panel.cs:14`,
-  `Widgets.ActionButton.cs:34`, `Widgets.Toggle.cs:16`,
-  `Widgets.Stepper.cs:14`, `Widgets.Slider.cs:14`,
-  `Widgets.Scrollbar.cs:13`
+- Tokens: `WaywardBeyond.Client/UI/Theme/Theme.rss:1`
+- Classes: `WaywardBeyond.Client/UI/Components/Components.rss:1`
+- Choice control: `WaywardBeyond.Client/UI/Settings/SettingsChoiceWidget.cs:9`
+- Slider control: `WaywardBeyond.Client/UI/Settings/SettingsSliderWidget.cs:9`
+- Stepper component: `WaywardBeyond.Client/UI/Components/Stepper.rml:1`,
+  `StepperParameters.cs:8`
 - Localization: `WaywardBeyond.Client/assets/lang/en/ui.toml`
 
 ## Tests
 
-- `Swordfish.Tests/SettingsLayoutTests.cs` covers page fit, the 900 pixel
-  breakpoint, display mode mapping, and resolution availability.
+- `Swordfish.Tests/SettingsPageRenderTests.cs` builds the real page and checks
+  that the page centers, that controls stay inside the pane, and that labels
+  and slider buttons center vertically.
+- `Swordfish.Tests/SettingsShellViewTests.cs` covers the shell layout
+  snapshots.
+- `Swordfish.Tests/SettingsInteractionTests.cs` covers click, scroll, and
+  callback behavior.
+- `Swordfish.Tests/SettingsControlWidgetTests.cs` covers the coded choice and
+  slider controls.
 - `Swordfish.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, and
   option lists.
-- `Swordfish.Tests/SettingsPageRenderTests.cs` builds the real page and checks
-  that the page centers and that controls stay inside the pane.
-- `Swordfish.Tests/UiThemeResolverTests.cs` covers control styles and states.

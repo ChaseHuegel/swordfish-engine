@@ -1,0 +1,17 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="Icon"
+      Access="internal"
+      Parameters="IconParameters"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Text text="@param.Text"
+          class="wb-icon"
+          class:wb-icon-brand="@param.Brand"
+          class:wb-icon-dim="@param.IsDim"
+          class:wb-icon-accent="@param.Accent"
+          class:wb-icon-bright="@param.Bright"
+          class:wb-icon-danger="@param.Danger"
+          class:wb-icon-primary="@param.Primary"
+          font-size="@param.Size" />
+</Reef>

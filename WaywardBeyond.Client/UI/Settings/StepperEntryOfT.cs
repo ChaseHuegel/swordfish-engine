@@ -12,6 +12,7 @@ internal sealed class StepperEntry<T>(
     Func<T> defaultValue,
     IReadOnlyList<T> options,
     Func<T, string> format,
+    Func<T, string>? valueKey = null,
     Func<bool>? isEnabled = null
 ) : SettingsEntry<T>(id, labelKey, get, set, defaultValue, isEnabled)
 {
@@ -33,8 +34,32 @@ internal sealed class StepperEntry<T>(
     }
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer)
+    public override SettingsRowState Snapshot()
     {
-        renderer.DrawStepper(this);
+        int index = IndexOf(Value);
+        string key = index >= 0 && valueKey != null ? valueKey(Options[index]) : string.Empty;
+        return SettingsRowState.Stepper(
+            Id,
+            LabelKey,
+            CanEdit,
+            key.Length > 0 ? string.Empty : index >= 0 ? format(Options[index]) : string.Empty,
+            key,
+            CanEdit && index > 0,
+            CanEdit && index >= 0 && index < Options.Count - 1
+        );
+    }
+
+    /// <inheritdoc/>
+    public override int Step(int delta)
+    {
+        int index = IndexOf(Value);
+        int next = Math.Clamp(index + delta, 0, Options.Count - 1);
+        if (index < 0 || next == index)
+        {
+            return 0;
+        }
+
+        SetValue(Options[next]);
+        return next > index ? 1 : -1;
     }
 }

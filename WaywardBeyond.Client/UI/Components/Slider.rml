@@ -1,0 +1,73 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      Class="Slider"
+      Access="internal"
+      Parameters="SliderParameters"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-slider">
+        <Button id="@(param.Id + '.minus')"
+                param:variant="secondary"
+                param:doubleBorder="false"
+                param:enabled="@param.Enabled"
+                disabled="@(!param.Enabled)"
+                onclick="@param.OnStep(param.Id, -1)"
+                anchor="Center"
+                width="24"
+                height="24"
+                padding="0">
+            <Text class="wb-button-label" text="-" anchor="Center" />
+        </Button>
+
+        <Element class="wb-slider-track"
+                 class:wb-slider-track-disabled="@(!param.Enabled)"
+                 id="@(param.Id + '.track')"
+                 layout="none"
+                 width="fill"
+                 height="12"
+                 anchor="Center"
+                 clip="true"
+                 onclick="@param.OnDrag(param.Id, param.Ratio(ui.GetRelativeCursorPosition(param.Id + '.track').X, ui.GetElementBounds(param.Id + '.track').Rect.Size.X))"
+                 onheld="@param.OnDrag(param.Id, param.Ratio(ui.GetRelativeCursorPosition(param.Id + '.track').X, ui.GetElementBounds(param.Id + '.track').Rect.Size.X))">
+            <Element class="wb-slider-fill"
+                     class:wb-slider-fill-disabled="@(!param.Enabled)"
+                     layout="none"
+                     width="@param.Fill"
+                     height="fill">
+                <Element class="wb-slider-thumb"
+                         class:wb-slider-thumb-disabled="@(!param.Enabled)"
+                         anchor="Right"
+                         width="3"
+                         height="fill" />
+            </Element>
+            <Element class="wb-slider-tick" x="10%" width="2" height="fill" />
+            <Element class="wb-slider-tick" x="20%" width="2" height="fill" />
+            <Element class="wb-slider-tick" x="30%" width="2" height="fill" />
+            <Element class="wb-slider-tick" x="40%" width="2" height="fill" />
+            <Element class="wb-slider-tick" x="50%" width="2" height="fill" />
+            <Element class="wb-slider-tick" x="60%" width="2" height="fill" />
+            <Element class="wb-slider-tick" x="70%" width="2" height="fill" />
+            <Element class="wb-slider-tick" x="80%" width="2" height="fill" />
+            <Element class="wb-slider-tick" x="90%" width="2" height="fill" />
+        </Element>
+
+        <Button id="@(param.Id + '.plus')"
+                param:variant="secondary"
+                param:doubleBorder="false"
+                param:enabled="@param.Enabled"
+                disabled="@(!param.Enabled)"
+                onclick="@param.OnStep(param.Id, 1)"
+                anchor="Center"
+                width="24"
+                height="24"
+                padding="0">
+            <Text class="wb-button-label" text="+" anchor="Center" />
+        </Button>
+
+        <Text class="wb-slider-value"
+              text="@param.Display"
+              width="56"
+              height="fill" />
+    </Element>
+</Reef>

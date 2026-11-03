@@ -1,0 +1,41 @@
+<Reef xmlns="Reef"
+      xmlns:wb="Swordfish.Tests"
+      Class="ScrollReproView"
+      Context="ScrollReproState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="Swordfish.Tests">
+
+    <Element id="repro_page"
+             layout="vertical"
+             width="360"
+             height="220"
+             anchor="Center"
+             clip="true"
+             padding="0 12 0 0"
+             spacing="12">
+        <Element layout="none" width="fill" height="fill" padding="2">
+            <Element layout="vertical" width="fill" height="fill" clip="true" padding="24">
+                <ScrollArea id="repro_scroll" context="@Scroll" width="fill" height="fill">
+                    <Element layout="vertical" width="fill" height="fit">
+                        <Element id="repro_click"
+                                 layout="none"
+                                 onclick="OnPlain"
+                                 width="200"
+                                 height="30" />
+                        <Element visible="@context.ShowChoice" layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                            <Text text="Label" class="wb-text" width="fill" height="fill" />
+                            <wb:Choice id="repro_choice"
+                                       options="@Options"
+                                       value="@context.Index"
+                                       enabled="true"
+                                       onChanged="@ChoiceCallback"
+                                       width="220"
+                                       height="32"
+                                       anchor="Center" />
+                        </Element>
+                    </Element>
+                </ScrollArea>
+            </Element>
+        </Element>
+    </Element>
+</Reef>

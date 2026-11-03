@@ -1,0 +1,22 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      Class="IconButton"
+      Access="internal"
+      Parameters="IconButtonParameters"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-icon-button"
+             class:wb-icon-button-danger="@param.Danger"
+             layout="none"
+             width="@param.Size"
+             height="@param.Size">
+        <Icon param:glyph="@param.Glyph"
+              param:tone="@param.Tone"
+              param:size="@param.GlyphSize"
+              param:brand="@param.Brand"
+              param:dim="@param.Dim"
+              width="fill"
+              height="fill" />
+    </Element>
+</Reef>

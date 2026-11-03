@@ -1,0 +1,19 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      Class="Tab"
+      Access="internal"
+      Parameters="TabParameters"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-tab"
+             class:wb-tab-selected="@param.Selected"
+             layout="none"
+             clip="true">
+        <Element class="wb-tab-bar"
+                 visible="@param.Selected"
+                 anchor="Bottom"
+                 width="fill"
+                 height="2" />
+        <Content />
+    </Element>
+</Reef>

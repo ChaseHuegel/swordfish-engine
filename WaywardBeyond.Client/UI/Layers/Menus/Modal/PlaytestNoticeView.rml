@@ -1,0 +1,58 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      Class="PlaytestNoticeView"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Modal">
+
+    <Element id="PlaytestNoticeScrim" class="wb-scrim-heavy" layout="none" width="100%" height="100%">
+        <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
+            <Modal id="PlaytestNoticePanel" param:size="playtest">
+                <Content name="header">
+                    <Text text="@L('ui.dialog.playtest')"
+                          class="wb-modal-title"
+                          width="fill"
+                          height="30" />
+                </Content>
+
+                <Text text="@L('ui.dialog.playtest.body')"
+                      class="wb-playtest-body"
+                      width="fill"
+                      height="fill"
+                      wrap="true"  vertical-align="top" />
+
+                <Content name="actions">
+                    <IconButton class="wb-playtest-icon-button"
+                                id="Button_Community"
+                                param:glyph="discord"
+                                param:brand="true"
+                                param:size="40"
+                                param:glyphSize="32"
+                                onclick="OnDiscord" />
+
+                    <IconButton class="wb-playtest-icon-button"
+                                id="Button_Wishlist"
+                                param:glyph="steam"
+                                param:brand="true"
+                                param:size="40"
+                                param:glyphSize="32"
+                                onclick="OnSteam" />
+
+                    <Element width="fill" />
+
+                    <Button id="Button_Close"
+                            param:variant="primary"
+                            param:doubleBorder="false"
+                            class="wb-button-playtest"
+                            onclick="OnClose"
+                            width="200"
+                            height="40">
+                        <Text text="@L('ui.button.ok')"
+                              class="wb-playtest-label"
+                              width="fill"
+                              height="fill" />
+                    </Button>
+                </Content>
+            </Modal>
+        </Element>
+    </Element>
+</Reef>

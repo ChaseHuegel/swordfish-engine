@@ -46,6 +46,8 @@ dotnet build --configuration Release
 dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser tests, cross-platform
+dotnet test Reef.Generator.Tests                    # xunit Reef markup generator tests, cross-platform
+dotnet test Reef.Markup.Tests                       # xunit Reef markup runtime and visual tests
 dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 pwsh ./Pack.ps1                                     # same as above
@@ -116,7 +118,8 @@ Keep the shape of the code readable.
   first:
 
   ```csharp
-  Widgets.ActionButtonOptions options = _returnButton with { Rect = layout.ReturnButton };
+  var layout = new Constraints { Width = new Fixed(264), Height = new Fixed(44) };
+  var options = new Widgets.ActionButtonOptions(Layout: layout);
   if (ui.ActionButton("Button_Back", label, options))
   ```
 
@@ -125,12 +128,11 @@ Keep the shape of the code readable.
   allocate nothing per row:
 
   ```csharp
-  ui.SelectableCard(id, rect, options, context, static (contentUi, row) => DrawRow(contentUi, in row));
+  ui.SegmentedControl(id, constraints, options, value, static option => option.Label, enabled);
   ```
 
 - **Extract per region, not per statement.** A page method draws one region
-  (tabs, table, footer). `SettingsRenderer` and `PixelRenderer` are the
-  reference shape.
+  (tabs, table, footer). `PixelRenderer` is the reference shape.
 - **Pass a parameter object instead of a parameter list.** More than ~5
   arguments, or a run of `ref`/`out` flags, means a small `readonly record
   struct` context.
@@ -292,6 +294,14 @@ These rules bind every path and bind hardest to hot paths.
 - Decide which is wrong first: the test or the code. Never edit a test to match
   a bug.
 
+### UI authoring
+
+Read [specs/ui-design-system](specs/ui-design-system.md) before changing game UI.
+Use `.rml` for structure and designer-facing copy. Use `.rss` for colors,
+typography, and layout classes. Keep page services and navigation in the page
+object. Keep view code-behind limited to localization, formatting, and event
+forwarding.
+
 ### Comments & docs
 
 Document the contract. Do not document the implementation.
@@ -439,6 +449,9 @@ Attribute the docs pass to the same change that caused it. Stale docs are a bug.
 
 All new doc prose uses **Simplified Technical English**: one name per thing,
 active voice, short sentences, no semicolons, no contractions.
+
+Human onboarding docs live in `userdocs/reef/`. They follow the same writing
+style and link to the formal docs.
 
 Player-facing UI copy follows the Material style guide and a fixed language key
 grammar. See [specs/ui-copy](specs/ui-copy.md) before you add or rename a

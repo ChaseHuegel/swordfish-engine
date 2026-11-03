@@ -1,0 +1,11 @@
+<Reef xmlns="Reef"
+      Class="IndicatorView"
+      Context="IndicatorState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Image source="@context.Icon"
+           anchor="Center"
+           width="32"
+           height="32" />
+</Reef>

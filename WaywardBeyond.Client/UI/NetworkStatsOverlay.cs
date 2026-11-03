@@ -1,10 +1,10 @@
 using System;
+using System.Collections.Generic;
 using NsdRpc;
 using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.UI.Theme;
 using WaywardBeyond.Client.Networking;
 
 namespace WaywardBeyond.Client.UI;
@@ -18,6 +18,8 @@ namespace WaywardBeyond.Client.UI;
 /// </summary>
 internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerStats serverStats) : IDebugOverlay
 {
+    private readonly StatLinesView _statLines = new();
+
     private const int SAMPLE_LENGTH = 60 * 2;
 
     private readonly ClientRpcHost _rpcHost = rpcHost;
@@ -27,6 +29,7 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
     private readonly Sampler _packetsOutSampler = new(SAMPLE_LENGTH);
     private readonly Sampler _bytesInSampler = new(SAMPLE_LENGTH);
     private readonly Sampler _bytesOutSampler = new(SAMPLE_LENGTH);
+    private readonly List<StatLine> _lines = [];
 
     private long _lastPacketsIn;
     private long _lastPacketsOut;
@@ -40,10 +43,9 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
     {
         if (!_rpcHost.IsConnected)
         {
-            using (ui.Text("NET: offline"))
-            {
-                ui.Color = UiTheme.Danger;
-            }
+            _lines.Clear();
+            _lines.Add(new StatLine("NET: offline", Danger: true));
+            _statLines.Render(ui, new StatLinesState(_lines));
             return Result.FromSuccess();
         }
 
@@ -74,24 +76,19 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
         Sample bytesInSample = _bytesInSampler.GetSnapshot();
         Sample bytesOutSample = _bytesOutSampler.GetSnapshot();
 
-        using (ui.Text("NETWORK")) { }
-        using (ui.Text($"   IN     A:{packetsInSample.Average:F0} pkt/s / {Format(bytesInSample.Average)}/s")) { }
-        using (ui.Text($"   OUT    A:{packetsOutSample.Average:F0} pkt/s / {Format(bytesOutSample.Average)}/s")) { }
-        using (ui.Text($"   BYTES  {Format(bytesIn)} in / {Format(bytesOut)} out")) { }
-        using (ui.Text($"   PKTS   {packetsIn} in / {packetsOut} out")) { }
+        _lines.Clear();
+        _lines.Add(new StatLine("NETWORK"));
+        _lines.Add(new StatLine($"   IN     A:{packetsInSample.Average:F0} pkt/s / {Format(bytesInSample.Average)}/s"));
+        _lines.Add(new StatLine($"   OUT    A:{packetsOutSample.Average:F0} pkt/s / {Format(bytesOutSample.Average)}/s"));
+        _lines.Add(new StatLine($"   BYTES  {Format(bytesIn)} in / {Format(bytesOut)} out"));
+        _lines.Add(new StatLine($"   PKTS   {packetsIn} in / {packetsOut} out"));
 
         //  Session heartbeat signal: live server TPS and player count, never stale.
-        if (_serverStats.IsStale(2000))
-        {
-            using (ui.Text("No server signal"))
-            {
-                ui.Color = UiTheme.Danger;
-            }
-        }
-        else
-        {
-            using (ui.Text($"   SERVER {_serverStats.TPS} tps / tick {_serverStats.ServerTick} / {_serverStats.PlayerCount} players")) { }
-        }
+        _lines.Add(_serverStats.IsStale(2000)
+            ? new StatLine("No server signal", Danger: true)
+            : new StatLine($"   SERVER {_serverStats.TPS} tps / tick {_serverStats.ServerTick} / {_serverStats.PlayerCount} players"));
+
+        _statLines.Render(ui, new StatLinesState(_lines));
 
         return Result.FromSuccess();
     }

@@ -1,0 +1,11 @@
+<Reef xmlns="Reef"
+      Class="FormField"
+      Access="internal"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element class="wb-field" width="fill">
+        <Content name="label" />
+        <Content />
+        <Content name="hint" />
+    </Element>
+</Reef>

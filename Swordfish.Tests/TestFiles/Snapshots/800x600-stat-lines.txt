@@ -1,0 +1,3 @@
+0 id=- rect=0,0,232,16 clip=0,0,232,16 color=1,1,1,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=FPS M:60 / A:59 / L:48 / H:61
+1 id=- rect=0,0,232,16 clip=0,0,232,16 color=0.949,0.8,0.2902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=UPS M:42 / A:43 / L:38 / H:45
+2 id=- rect=0,0,232,16 clip=0,0,232,16 color=1,0.5529,0.651,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=TPS M:20 / A:22 / L:18 / H:24

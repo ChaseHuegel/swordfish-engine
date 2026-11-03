@@ -25,8 +25,36 @@ internal sealed class SliderEntry(
     public string Format(float value) => format(value);
 
     /// <inheritdoc/>
-    public override void Render(SettingsRenderer renderer)
+    public override SettingsRowState Snapshot()
     {
-        renderer.DrawSlider(this);
+        return SettingsRowState.Slider(
+            Id,
+            LabelKey,
+            CanEdit,
+            Value,
+            Min,
+            Max,
+            Step,
+            format(Value)
+        );
+    }
+
+    /// <inheritdoc/>
+    public override bool TrySetSlider(float value)
+    {
+        SetValue(value);
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public override bool TrySetSliderRatio(float ratio)
+    {
+        float value = Min + Math.Clamp(ratio, 0f, 1f) * (Max - Min);
+        if (Step > 0f)
+        {
+            value = MathF.Round((value - Min) / Step) * Step + Min;
+        }
+
+        return TrySetSlider(Math.Clamp(value, Min, Max));
     }
 }
