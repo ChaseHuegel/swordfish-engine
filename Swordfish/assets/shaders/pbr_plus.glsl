@@ -44,8 +44,6 @@ uniform float uRoughness = 0.5;
 uniform float uEnableAO;
 
 uniform sampler2D uAO;
-uniform sampler2D uPreDepth;
-uniform sampler2D uDepth;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -283,12 +281,7 @@ vec4 ao(vec4 albedo)
 
     vec2 screenUV = (gl_FragCoord.xy + 0.5) / uScreenSize;
 
-    float fragDepth = texture(uDepth, screenUV).r;
-    float aoDepth = texture(uPreDepth, screenUV).r;
-
-    float visibility = step(aoDepth, fragDepth);
-    
-    float ao = mix(1.0, texture(uAO, screenUV).r, albedo.a * visibility);
+    float ao = mix(1.0, texture(uAO, screenUV).r, albedo.a);
     return vec4(ao, ao, ao, 1.0);
 }
 #endif
