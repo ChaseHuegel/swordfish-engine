@@ -57,13 +57,13 @@ internal partial class SelectSaveView : UiViewBase
 
     partial void OnNext() => NextRequested?.Invoke();
 
-    /// <summary>Formats the last played label line of an archive row.</summary>
-    /// <summary>Formats the last played stamp, or the never label when the save was not played.</summary>
+    /// <summary>Formats the last played line of an archive row.</summary>
     public string LastPlayedLine(long lastPlayedMs)
     {
         return L("ui.label.lastPlayed") + ": " + LastPlayedText(lastPlayedMs);
     }
 
+    /// <summary>Formats the last played stamp, or the never label when the save was not played.</summary>
     public string LastPlayedText(long lastPlayedMs)
     {
         return lastPlayedMs > 0

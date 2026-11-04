@@ -67,14 +67,7 @@ public class SelectSaveViewTests
             CanCreateSave: true,
             Tab: 0,
             HasActive: true,
-            rows,
-            new SaveDetailState(
-                "Frontier Base",
-                GameMode.Creative,
-                "adjective42 subject0 verb0 destination0",
-                3_600_000,
-                1_700_000_000_000
-            )
+            rows
         );
     }
 }

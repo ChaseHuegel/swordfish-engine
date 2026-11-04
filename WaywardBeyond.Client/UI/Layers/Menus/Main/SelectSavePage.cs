@@ -108,26 +108,12 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             ));
         }
 
-        var detail = default(SaveDetailState);
-        if (active != null)
-        {
-            Level level = active.Value.Level;
-            detail = new SaveDetailState(
-                active.Value.Name,
-                level.DefaultGameMode,
-                _seedPhraseService.SeedToPhrase(level.Seed),
-                level.Playtime.AgeMs,
-                level.Playtime.LastPlayedMs
-            );
-        }
-
         return new SelectSaveState(
             _rpcHost.IsRemote,
             _gameSaveService.CanCreateSave,
             _narrowTab,
             active != null,
-            rows,
-            detail
+            rows
         );
     }
 
