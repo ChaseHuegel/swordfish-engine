@@ -14,7 +14,7 @@ internal static class SettingsDefaults
     public const AntiAliasing ANTI_ALIASING_MODE = AntiAliasing.MSAA;
     public const ShadowQuality SHADOW_QUALITY = ShadowQuality.Medium;
     public const bool AMBIENT_OCCLUSION = true;
-    public const int AO_SAMPLES = 8;
+    public const AoQuality AO_QUALITY = AoQuality.Medium;
     public const bool BLOOM = true;
     public const BloomQuality BLOOM_QUALITY = BloomQuality.Medium;
     public const float MASTER_VOLUME = 0.5f;
@@ -41,7 +41,12 @@ internal static class SettingsDefaults
     private static readonly int[] _frameLimits = [0, 30, 60, 75, 90, 120, 144, 165, 240];
     private static readonly float[] _viewDistances = [500f, 750f, 1000f, 1500f, 2000f, 2500f, 3000f, 4000f, 5000f];
     private static readonly int[] _autosaveIntervals = [1, 2, 5, 10, 15, 20, 30, 45, 60];
-    private static readonly int[] _aoSamplesOptions = [4, 8, 16];
+    private static readonly AoQuality[] _aoQualities =
+    [
+        AoQuality.Low,
+        AoQuality.Medium,
+        AoQuality.High,
+    ];
     private static readonly BloomQuality[] _bloomQualities =
     [
         BloomQuality.Low,
@@ -81,10 +86,10 @@ internal static class SettingsDefaults
         return WithValue(_autosaveIntervals, current);
     }
 
-    /// <summary>Gets an AO sample list that includes the current value.</summary>
-    public static IReadOnlyList<int> GetAoSamples(int current)
+    /// <summary>Gets an ambient occlusion quality list that includes the current value.</summary>
+    public static IReadOnlyList<AoQuality> GetAoQualities(AoQuality current)
     {
-        return WithValue(_aoSamplesOptions, current);
+        return WithValue(_aoQualities, current);
     }
 
     /// <summary>Gets a bloom quality list that includes the current value.</summary>

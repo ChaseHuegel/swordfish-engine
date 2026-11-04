@@ -119,14 +119,15 @@ internal static class DisplaySettingsCategory
                     set: value => draft.AmbientOcclusion = value,
                     defaultValue: () => SettingsDefaults.AMBIENT_OCCLUSION
                 ),
-                new StepperEntry<int>(
-                    id: "Settings.AoSamples",
-                    labelKey: "ui.settings.option.aoSamples",
-                    get: () => draft.AoSamples,
-                    set: value => draft.AoSamples = value,
-                    defaultValue: () => SettingsDefaults.AO_SAMPLES,
-                    options: SettingsDefaults.GetAoSamples(draft.AoSamples),
-                    format: FormatSamples,
+                new StepperEntry<AoQuality>(
+                    id: "Settings.AoQuality",
+                    labelKey: "ui.settings.option.aoQuality",
+                    get: () => draft.AoQuality,
+                    set: value => draft.AoQuality = value,
+                    defaultValue: () => SettingsDefaults.AO_QUALITY,
+                    options: SettingsDefaults.GetAoQualities(draft.AoQuality),
+                    format: value => value.ToString(),
+                    valueKey: AoQualityKey,
                     isEnabled: () => draft.AmbientOcclusion
                 ),
                 new ToggleEntry(
@@ -273,9 +274,16 @@ internal static class DisplaySettingsCategory
         };
     }
 
-    private static string FormatSamples(int value)
+    private static string AoQualityKey(AoQuality quality)
     {
-        return $"{value}x";
+        return quality switch
+        {
+            AoQuality.Low => "ui.settings.value.low",
+            AoQuality.Medium => "ui.settings.value.medium",
+            AoQuality.High => "ui.settings.value.high",
+            AoQuality.Custom => "ui.settings.value.custom",
+            _ => string.Empty,
+        };
     }
 
     private static string L(ILocalization localization, string key)

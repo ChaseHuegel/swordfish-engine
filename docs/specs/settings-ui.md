@@ -142,7 +142,7 @@ window while the page is open.
 The page exposes only options that the engine supports:
 
 - Display & Video: display mode, resolution, V-sync, frame limit, field of
-  view, view distance, anti-aliasing, ambient occlusion, AO samples, bloom, and
+  view, view distance, anti-aliasing, ambient occlusion, AO quality, bloom, and
   bloom quality.
 - Audio: master, music, effects, and interface volume.
 - Gameplay: autosave, autosave interval, control hints, crosshair, and name tag

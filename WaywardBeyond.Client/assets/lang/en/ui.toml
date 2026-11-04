@@ -183,7 +183,7 @@
 "ui.settings.option.antiAliasing" = "Anti-aliasing"
 "ui.settings.option.shadowQuality" = "Shadow quality"
 "ui.settings.option.ambientOcclusion" = "Ambient occlusion"
-"ui.settings.option.aoSamples" = "AO samples"
+"ui.settings.option.aoQuality" = "AO quality"
 "ui.settings.option.bloom" = "Bloom"
 "ui.settings.option.bloomQuality" = "Bloom quality"
 
