@@ -52,7 +52,10 @@ the field size. It returns placements and specks. It has no UI dependency.
 ## Interaction
 
 - Hover and selection are markup expressions. `ui.Hovering` is evaluated in the
-  component, so no view field tracks hover.
+  component, so no view field tracks hover. Element queries are pure reads, so
+  they do not retarget the element that asks.
+- The hit target is 24 by 40 pixels. It spans the glyph and the label, so a
+  pointer over either keeps one element hovered and the card does not flicker.
 - The card renders inside the node loop under an `<If>`, so only the hovered
   node draws one.
 - A **selected** node is `passthrough` only when another node's hit box overlaps

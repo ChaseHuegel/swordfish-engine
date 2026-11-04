@@ -84,6 +84,55 @@ public class StarChartViewTests
         Assert.NotNull(commands.Find(command => command.Text == "]"));
     }
 
+    /// <summary>Only the hit target owns the node id, so hover is unambiguous.</summary>
+    [Fact]
+    public void OnlyTheHitTargetCarriesTheNodeId()
+    {
+        List<RenderCommand<Material>> commands = Render(State(Node("aaaa", "Vela", 200, 200)));
+
+        var withId = new List<string>();
+        foreach (RenderCommand<Material> command in commands)
+        {
+            if (command.ID != null)
+            {
+                withId.Add(command.ID + "@" + command.Rect.Position.X + "," + command.Rect.Position.Y
+                    + "," + command.Rect.Size.X + "," + command.Rect.Size.Y);
+            }
+        }
+
+        Assert.True(withId.Count == 1, "Ids: " + string.Join(" | ", withId));
+        Assert.Equal("SelectSave.Node.aaaa@188,188,24,40", withId[0]);
+    }
+
+    /// <summary>Hover stays open over the diamond and over the label.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(18)]
+    public void HoverKeepsTheCardOpen(int offsetY)
+    {
+        var controller = new UIController();
+        StarChartState state = State(Node("aaaa", "Vela", 200, 200));
+        var ui = new UIBuilder<Material>(WIDTH, HEIGHT, new StubTextEngine(), controller);
+
+        for (var frame = 0; frame < 4; frame++)
+        {
+            controller.UpdateMouse(200, 200 + offsetY, UIController.MouseButtons.None);
+            new StarChart().Render(
+                ui,
+                context: state,
+                callerConstraints: new ConstraintsOverride { Width = new Fill(), Height = new Fill() },
+                idPrefix: "SelectSave.Chart"
+            );
+
+            List<RenderCommand<Material>> commands = ui.Build(0d);
+            if (frame >= 2)
+            {
+                Assert.Contains(commands, command => command.Text == "ui.label.level.mode");
+                Assert.Contains(commands, command => command.Text == "[");
+            }
+        }
+    }
+
     [Fact]
     public void PassthroughNodeStillDraws()
     {
@@ -141,7 +190,7 @@ public class StarChartViewTests
         bool violet = false
     )
     {
-        int half = StarChartLayout.HIT_SIZE / 2;
+        int half = StarChartLayout.HIT_WIDTH / 2;
         int glyph = StarChartLayout.GLYPH_SIZE / 2;
 
         return new StarChartNodeState(
@@ -160,7 +209,7 @@ public class StarChartViewTests
             X: x,
             Y: y,
             HitX: x - half,
-            HitY: y - half,
+            HitY: y + StarChartLayout.HIT_OFFSET_Y,
             GlyphX: x - glyph,
             GlyphY: y - glyph,
             BracketLeftX: x + StarChartLayout.BRACKET_OFFSET_LEFT,

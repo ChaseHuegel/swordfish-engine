@@ -43,7 +43,10 @@ internal static class StarChartLayout
     public const int NODE_INSET_Y = 28;
     public const int NODE_MIN_DISTANCE = 28;
     public const int MAX_SEPARATION_ATTEMPTS = 8;
-    public const int HIT_SIZE = 24;
+    public const int HIT_WIDTH = 24;
+    public const int HIT_HEIGHT = 40;
+    public const int HIT_OFFSET_Y = -12;
+    private const int HIT_CENTER_Y = HIT_OFFSET_Y + (HIT_HEIGHT / 2);
     public const int LABEL_WIDTH = 160;
     public const int LABEL_OFFSET_Y = 10;
     public const int GLYPH_SIZE = 16;
@@ -151,7 +154,7 @@ internal static class StarChartLayout
     /// <summary>Gets whether two square hit boxes overlap.</summary>
     public static bool Overlaps(int ax, int ay, int bx, int by)
     {
-        return Math.Abs(ax - bx) < HIT_SIZE && Math.Abs(ay - by) < HIT_SIZE;
+        return Math.Abs(ax - bx) < HIT_WIDTH && Math.Abs(ay - by) < HIT_HEIGHT;
     }
 
     /// <inheritdoc cref="Overlaps(int, int, int, int)"/>
@@ -164,7 +167,7 @@ internal static class StarChartLayout
                 continue;
             }
 
-            if (Overlaps(xs[index], ys[index], xs[other], ys[other]))
+            if (Overlaps(xs[index], ys[index] + HIT_CENTER_Y, xs[other], ys[other] + HIT_CENTER_Y))
             {
                 return true;
             }

@@ -216,7 +216,8 @@ public class StarChartLayoutTests
     public void OverlapUsesSquareHitBoxes()
     {
         Assert.True(StarChartLayout.Overlaps(0, 0, 20, 20));
-        Assert.True(StarChartLayout.Overlaps(0, 0, 0, 23));
+        Assert.True(StarChartLayout.Overlaps(0, 0, 0, 39));
+        Assert.False(StarChartLayout.Overlaps(0, 0, 0, 40));
         Assert.False(StarChartLayout.Overlaps(0, 0, 24, 0));
         Assert.False(StarChartLayout.Overlaps(0, 0, 28, 0));
     }

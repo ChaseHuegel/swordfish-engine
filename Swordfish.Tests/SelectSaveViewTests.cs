@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using Reef;
+using Reef.UI;
+using Swordfish.Graphics;
 using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Data;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
@@ -31,6 +34,107 @@ public class SelectSaveViewTests
                 frames: 2
             );
         }
+    }
+
+    /// <summary>Selecting from the archive list must work in both directions.</summary>
+    [Fact]
+    public void ArchiveRowClickSelectsTheSave()
+    {
+        var controller = new UIController();
+        var scroll = new ScrollAreaState();
+        var view = new SelectSaveView(new TestLocalization(), scroll);
+        string? selected = null;
+        view.SaveSelected = guid => selected = guid;
+        SelectSaveState state = CreateState(view);
+        var ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), controller);
+
+        // Settle the scroll metrics so the row geometry stops moving.
+        for (var i = 0; i < 3; i++)
+        {
+            controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
+            view.Render(ui, state);
+            ui.Build(0d);
+        }
+
+        ElementBounds row = ui.GetElementBounds("Button_SelectSave_Frontier Base");
+        Assert.True(row.Rect.Size.X > 0, "The archive row has no bounds.");
+        int x = row.Rect.Position.X + (row.Rect.Size.X / 2);
+        int y = row.Rect.Position.Y + (row.Rect.Size.Y / 2);
+
+        for (var i = 0; i < 2; i++)
+        {
+            controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+            view.Render(ui, state);
+            ui.Build(0d);
+        }
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.Left);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.Render(ui, state);
+        List<RenderCommand<Material>> commands = ui.Build(0d);
+
+        Assert.True(selected != null, "No row click fired. Interactive elements at the point: " + DescribeBlockers(commands, x, y));
+        Assert.Equal("save-a", selected);
+    }
+
+    /// <summary>The trash icon inside the row must still fire.</summary>
+    [Fact]
+    public void ArchiveRowDeleteFires()
+    {
+        var controller = new UIController();
+        var scroll = new ScrollAreaState();
+        var view = new SelectSaveView(new TestLocalization(), scroll);
+        string? deleted = null;
+        view.SaveDeleteRequested = guid => deleted = guid;
+        SelectSaveState state = CreateState(view);
+        var ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), controller);
+
+        controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        ElementBounds trash = ui.GetElementBounds("Button_DeleteSave_Frontier Base");
+        int x = trash.Rect.Position.X + (trash.Rect.Size.X / 2);
+        int y = trash.Rect.Position.Y + (trash.Rect.Size.Y / 2);
+        Assert.True(trash.Rect.Size.X > 0, "Trash has no bounds.");
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.Render(ui, state);
+        ui.Build(0d);
+        controller.UpdateMouse(x, y, UIController.MouseButtons.Left);
+        view.Render(ui, state);
+        ui.Build(0d);
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        Assert.Equal("save-a", deleted);
+    }
+
+    /// <summary>Lists the interactive elements under a point, top-most first.</summary>
+    private static string DescribeBlockers(List<RenderCommand<Material>> commands, int x, int y)
+    {
+        var found = new List<string>();
+        for (int i = commands.Count - 1; i >= 0; i--)
+        {
+            RenderCommand<Material> command = commands[i];
+            if (command.ID == null)
+            {
+                continue;
+            }
+
+            IntRect rect = command.Rect;
+            if (x >= rect.Position.X && x < rect.Position.X + rect.Size.X
+                && y >= rect.Position.Y && y < rect.Position.Y + rect.Size.Y)
+            {
+                found.Add(command.ID);
+            }
+        }
+
+        return string.Join(", ", found);
     }
 
     /// <summary>Builds the state that the legacy capture used: two archives with the first active.</summary>
