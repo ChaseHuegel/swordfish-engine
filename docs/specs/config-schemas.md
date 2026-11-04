@@ -211,7 +211,7 @@ type.
 Runtime rendering settings, registered via `RegisterConfig<RenderSettings>`.
 Schema: `Swordfish/Settings/RenderSettings.cs`.
 Sub-tables configure ambient occlusion, bloom, and dynamic shadows.
-See [rendering-shadows](rendering-shadows.md).
+See [rendering-shadows](rendering-shadows.md) and [rendering-sao](rendering-sao.md).
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
@@ -223,6 +223,8 @@ See [rendering-shadows](rendering-shadows.md).
 | `FarPlane` | float | `1000.0` | camera far clipping distance |
 | `SAO.Enabled` | bool | `true` | enables Scalable Ambient Obscurance |
 | `SAO.Samples` | int | `8` | sample count for SAO obscurance passes |
+| `SAO.ResolutionScale` | float | `0.5` | SAO buffer size as a fraction of the screen, clamped to 0.25-1 |
+| `SAO.MaxDistance` | float | `48.0` | view distance in meters where SAO fades out |
 | `Bloom.Enabled` | bool | `true` | enables bloom post-processing |
 | `Bloom.Passes` | int | `2` | blur levels, clamped to 1-4 |
 | `Bloom.Intensity` | float | `2.0` | composite strength, clamped to 0-8 |

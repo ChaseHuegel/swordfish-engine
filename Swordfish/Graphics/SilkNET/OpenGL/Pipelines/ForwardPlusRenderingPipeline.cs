@@ -25,6 +25,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private const float BLOOM_UPSAMPLE_WEIGHT = 0.5f;
     private const float MAX_BLOOM_INTENSITY = 8f;
     private const int MSAA_SAMPLES = 4;
+    private const int SAO_BLUR_PASSES = 2;
+    private const float SAO_MAX_DISTANCE_FADE = 8f;
     
     private readonly GL _gl;
     private readonly GLDebug _glDebug;
@@ -48,6 +50,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private uint _screenHeight;
     private uint _screenHalfWidth;
     private uint _screenHalfHeight;
+    private uint _ssaoWidth;
+    private uint _ssaoHeight;
+    private float _ssaoScale;
     
     private int _numTilesX;
     private int _numTilesY;
@@ -57,8 +62,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly TexImage2D _depthTex;
     private readonly FramebufferObject _depthFBO;
     
-    private readonly TexImage2D _ssaoTex;
-    private readonly FramebufferObject _ssaoFBO;
+    private readonly DoubleBufferTarget _ssaoChain;
 
     private readonly TexImage2D _bloomResolveTex;
     private readonly FramebufferObject _bloomResolveFBO;
@@ -218,8 +222,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _depthTex = new TexImage2D(_gl, name: "depth", pixels: null, _screenWidth, _screenHeight, TextureFormat.Depth24f, TextureParams.ClampNearest);
         _depthFBO = new FramebufferObject(_gl, name: "depth", _depthTex, FramebufferAttachment.DepthAttachment);
         
-        _ssaoTex = new TexImage2D(_gl, name: "ssao", pixels: null, _screenWidth, _screenHeight, TextureFormat.R32f, TextureParams.ClampLinear);
-        _ssaoFBO = new FramebufferObject(_gl, name: "ssao", _ssaoTex, FramebufferAttachment.ColorAttachment0);
+        _ssaoScale = GetSSAOScale();
+        _ssaoWidth = GetSSAOSize(_screenWidth, _ssaoScale);
+        _ssaoHeight = GetSSAOSize(_screenHeight, _ssaoScale);
+
+        _ssaoChain = new DoubleBufferTarget(_gl, name: "ssao", _ssaoWidth, _ssaoHeight, TextureFormat.R16f, TextureParams.ClampLinear);
         
         _bloomResolveTex = new TexImage2D(_gl, name: "bloom_resolve", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgba, TextureParams.ClampLinear);
         _bloomResolveFBO = new FramebufferObject(_gl, name: "bloom_resolve", _bloomResolveTex, FramebufferAttachment.ColorAttachment0);
@@ -308,7 +315,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _emptyTileCounts = new uint[_numTiles];
 
         _depthFBO.Resize(_screenWidth, _screenHeight);
-        _ssaoFBO.Resize(_screenWidth, _screenHeight);
+        ResizeSSAOChain();
         _bloomResolveFBO.Resize(_screenWidth, _screenHeight);
         for (var i = 0; i < MAX_BLOOM_LEVELS; i++)
         {
@@ -329,6 +336,12 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         if (_renderSamples != GetRenderSamples())
         {
             RebuildRenderTargets();
+            _glDebug.TryLogError();
+        }
+
+        if (MathF.Abs(_ssaoScale - GetSSAOScale()) > 0.001f)
+        {
+            ResizeSSAOChain();
             _glDebug.TryLogError();
         }
 
@@ -379,54 +392,38 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
         if (_renderSettings.SAO.Enabled.Get())
         {
-            _gl.Viewport(0, 0, _screenHalfWidth, _screenHalfHeight);
+            SAOProjection projection = SAOProjection.FromProjection(renderScene.Projection);
+            float maxDistance = Math.Max(SAO_MAX_DISTANCE_FADE, _renderSettings.SAO.MaxDistance.Get());
 
-            // SSAO pass. Reuses the full depth buffer.
-            using (_ssaoFBO.Use())
+            // SSAO pass. Reuses the full depth buffer. The chain front holds the
+            // raw result and the blur writes it back through the ping-pong pair.
+            using (_ssaoChain.FrontTarget.Use())
             using (_ssaoShader.Use())
             using (_depthTex.Activate(TextureUnit.Texture0))
             {
                 _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
-                _ssaoShader.SetUniform("uInvProj", inverseProjection);
+                _ssaoShader.SetUniform("uViewScale", projection.ViewScale);
+                _ssaoShader.SetUniform("uDepthA", projection.DepthA);
+                _ssaoShader.SetUniform("uDepthB", projection.DepthB);
+                _ssaoShader.SetUniform("uInvSize", new Vector2(1f / _screenWidth, 1f / _screenHeight));
+                _ssaoShader.SetUniform("uAspect", _screenWidth / (float)_screenHeight);
                 _ssaoShader.SetUniform("uRadius", 0.1f);
                 _ssaoShader.SetUniform("SIGMA", 0.5f);
-                _ssaoShader.SetUniform("SAO_K", 1.5f);
                 _ssaoShader.SetUniform("uSampleCount", _renderSettings.SAO.Samples.Get());
+                _ssaoShader.SetUniform("uMaxDistance", maxDistance);
+                _ssaoShader.SetUniform("uMaxDistanceFade", SAO_MAX_DISTANCE_FADE);
 
                 _gl.Clear(ClearBufferMask.ColorBufferBit);
 
-                _screenVAO.Bind();
-                _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-                _screenVAO.Unbind();
+                DrawScreenQuad();
                 drawCalls++;
             }
 
             _glDebug.TryLogError();
 
-            // SSAO blur pass
-            using (_blurShader.Use())
-            using (_ssaoFBO.Use())
-            using (_ssaoTex.Activate(TextureUnit.Texture0))
-            {
-                _blurShader.SetUniform("texture0", 0);
-
-                var horizontal = true;
-                for (var i = 0; i < 4; i++)
-                {
-                    int horizontalInt = horizontal ? 0 : 1;
-                    horizontal = !horizontal;
-
-                    _blurShader.SetUniform("uHorizontal", horizontalInt);
-
-                    _screenVAO.Bind();
-                    _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-                    _screenVAO.Unbind();
-                    drawCalls++;
-                }
-            }
+            Blur(_blurShader, _ssaoChain, SAO_BLUR_PASSES);
+            drawCalls += SAO_BLUR_PASSES;
             _glDebug.TryLogError();
-
-            _gl.Viewport(0, 0, _screenWidth, _screenHeight);
         }
 
         //  Reset to the back buffer
@@ -609,6 +606,24 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private static uint GetBloomLevelSize(uint size, int level)
     {
         return Math.Max(1u, size >> level);
+    }
+
+    private float GetSSAOScale()
+    {
+        return Math.Clamp(_renderSettings.SAO.ResolutionScale.Get(), 0.25f, 1f);
+    }
+
+    private static uint GetSSAOSize(uint size, float scale)
+    {
+        return Math.Max(1u, (uint)(size * scale));
+    }
+
+    private void ResizeSSAOChain()
+    {
+        _ssaoScale = GetSSAOScale();
+        _ssaoWidth = GetSSAOSize(_screenWidth, _ssaoScale);
+        _ssaoHeight = GetSSAOSize(_screenHeight, _ssaoScale);
+        _ssaoChain.Resize(_ssaoWidth, _ssaoHeight);
     }
 
     private int GetRenderSamples()
@@ -957,14 +972,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
         shader.SetUniform("uEnableAO", _renderSettings.SAO.Enabled.Get() ? 1f : 0f);
 
-        _ssaoTex.Activate(TextureUnit.Texture5);
+        _ssaoChain.Front.Activate(TextureUnit.Texture5);
         shader.SetUniform("uAO", 5);
 
         _depthTex.Activate(TextureUnit.Texture6);
         shader.SetUniform("uPreDepth", 6);
-        
-        _depthTex.Activate(TextureUnit.Texture7);
-        shader.SetUniform("uDepth", 7);
 
         bool shadowsEnabled = _renderSettings.Shadows.Enabled.Get();
         shader.SetUniform("uShadowsEnabled", shadowsEnabled ? 1 : 0);
@@ -1026,7 +1038,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
         //  Textures
         _depthTex.Dispose();
-        _ssaoTex.Dispose();
+        _ssaoChain.Dispose();
         _bloomResolveTex.Dispose();
         for (var i = 0; i < MAX_BLOOM_LEVELS; i++)
         {
@@ -1035,7 +1047,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
         //  Framebuffers and renderbuffers
         _depthFBO.Dispose();
-        _ssaoFBO.Dispose();
         _bloomResolveFBO.Dispose();
         _renderFBO.Dispose();
         _colorRBO.Dispose();

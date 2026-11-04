@@ -26,7 +26,7 @@ The active pipeline is `ForwardPlusRenderingPipeline<TRenderStage>` in `Swordfis
 The current frame flow executes in three phases:
 - `PreRender` (`ForwardPlusRenderingPipeline.cs:273-457`):
   - Renders an optional half-resolution depth pre-pass for SAO (`_preDepthFBO`).
-  - Evaluates SAO into `_ssaoFBO` and applies horizontal/vertical blur passes.
+  - Evaluates SAO into `_ssaoChain` and applies a ping-pong blur.
   - Renders a full-resolution depth pass into `_depthFBO` using `forward/depth.glsl`.
   - Collects point lights from ECS via `WriteLightAction` (`ForwardPlusRenderingPipeline.cs:576-586`) and uploads them to `_lightsSSBO` (`GPULight`).
   - Clears `_tileCountsSSBO` and dispatches `forward/cull_lights.glsl` compute shader (`ForwardPlusRenderingPipeline.cs:384-400`).

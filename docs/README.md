@@ -29,7 +29,9 @@ change touches a subject, run the docs pass (see `development.md`).
 | Multiple server worlds: per-world DI graphs, routing, idle unload | [specs/networking-worlds](specs/networking-worlds.md) |
 | Lua scripting proposal (not implemented) | [proposals/scripting-lua](proposals/scripting-lua.md) |
 | Bloom post-process: cost model, half-resolution chain, open phases | [proposals/bloom-optimization](proposals/bloom-optimization.md) |
+| SAO optimization proposal: half-resolution pass, shared ping-pong blur, cost budget | [proposals/sao-optimization](proposals/sao-optimization.md) |
 | Dynamic shadows: Forward+ CSM, point cubemap arrays, filtering, quality presets | [specs/rendering-shadows](specs/rendering-shadows.md) |
+| Ambient occlusion: half-resolution SAO, ping-pong blur, distance clip, presets | [specs/rendering-sao](specs/rendering-sao.md) |
 | Chat wire message, relay, logging, and UI | [specs/chat](specs/chat.md) |
 | Persistence: SQLite layout, level databases, storage services | [specs/persistence](specs/persistence.md) |
 | Seed phrase generation, 40-bit dictionary encoding, and 64-bit seed resolution | [specs/seed-phrases](specs/seed-phrases.md) |
