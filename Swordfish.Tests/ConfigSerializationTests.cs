@@ -99,6 +99,46 @@ public class ConfigSerializationTests
         Assert.Equal(2048, loaded.Shadows.Resolution.Get());
         Assert.Equal(4, loaded.Shadows.CascadeCount.Get());
         Assert.Equal(4, loaded.Shadows.MaxPointShadows.Get());
+        Assert.Equal(0.35f, loaded.SAO.Radius.Get());
+        Assert.Equal(1f, loaded.SAO.Intensity.Get());
+        Assert.Equal(0.02f, loaded.SAO.Bias.Get());
+        Assert.Equal(1.5f, loaded.SAO.Power.Get());
+        Assert.Equal(8f, loaded.SAO.FadeRange.Get());
+        Assert.Equal(2, loaded.SAO.BlurPasses.Get());
+    }
+
+    [Fact]
+    public void RenderSettings_MissingSaoKeysKeepDefaults()
+    {
+        RegisterPrimitiveMappers();
+        new DataBindingTomlMapper<AntiAliasing>().Register();
+        new DataBindingTomlMapper<ShadowFilterMode>().Register();
+
+        const string toml = "[SAO]\nEnabled = true\nSamples = 8\n";
+        RenderSettings loaded = RenderSettings.FromString(toml);
+
+        Assert.Equal(8, loaded.SAO.Samples.Get());
+        Assert.Equal(0.35f, loaded.SAO.Radius.Get());
+        Assert.Equal(1f, loaded.SAO.Intensity.Get());
+        Assert.Equal(0.02f, loaded.SAO.Bias.Get());
+        Assert.Equal(1.5f, loaded.SAO.Power.Get());
+        Assert.Equal(8f, loaded.SAO.FadeRange.Get());
+        Assert.Equal(2, loaded.SAO.BlurPasses.Get());
+    }
+
+    [Fact]
+    public void RenderSettings_MaxDistanceMaxValueRoundTrips()
+    {
+        RegisterPrimitiveMappers();
+        new DataBindingTomlMapper<AntiAliasing>().Register();
+        new DataBindingTomlMapper<ShadowFilterMode>().Register();
+
+        var settings = new RenderSettings();
+        settings.SAO.MaxDistance.Set(float.MaxValue);
+
+        RenderSettings loaded = RenderSettings.FromString(settings.ToString());
+
+        Assert.Equal(float.MaxValue, loaded.SAO.MaxDistance.Get());
     }
 
     [Fact]

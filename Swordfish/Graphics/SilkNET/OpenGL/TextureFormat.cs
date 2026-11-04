@@ -10,6 +10,7 @@ internal struct TextureFormat(in InternalFormat internalFormat, in PixelFormat p
 
     public static readonly TextureFormat Depth16f = new(InternalFormat.DepthComponent16, PixelFormat.DepthComponent, PixelType.Float);
     public static readonly TextureFormat Depth24f = new(InternalFormat.DepthComponent24, PixelFormat.DepthComponent, PixelType.Float);
+    public static readonly TextureFormat R16f = new(InternalFormat.R16f, PixelFormat.Red, PixelType.Float);
     public static readonly TextureFormat R32f = new(InternalFormat.R32f, PixelFormat.Red, PixelType.Float);
     public static readonly TextureFormat Rgb = new(InternalFormat.Rgb, PixelFormat.Rgb, PixelType.UnsignedByte);
     public static readonly TextureFormat Rgba = new(InternalFormat.Rgba, PixelFormat.Rgba, PixelType.UnsignedByte);
