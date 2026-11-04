@@ -21,21 +21,21 @@ The solution provides:
 
 ### 2.1 The Forward+ Pipeline
 
-The active pipeline is `ForwardPlusRenderingPipeline<TRenderStage>` in `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:18`.
+The active pipeline is `ForwardPlusRenderingPipeline<TRenderStage>` in `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:15`.
 
 The current frame flow executes in three phases:
-- `PreRender` (`ForwardPlusRenderingPipeline.cs:273-457`):
-  - Renders an optional half-resolution depth pre-pass for SAO (`_preDepthFBO`).
-  - Evaluates SAO into `_ssaoFBO` and applies horizontal/vertical blur passes.
-  - Renders a full-resolution depth pass into `_depthFBO` using `forward/depth.glsl`.
-  - Collects point lights from ECS via `WriteLightAction` (`ForwardPlusRenderingPipeline.cs:576-586`) and uploads them to `_lightsSSBO` (`GPULight`).
-  - Clears `_tileCountsSSBO` and dispatches `forward/cull_lights.glsl` compute shader (`ForwardPlusRenderingPipeline.cs:384-400`).
+- `PreRender` (`ForwardPlusRenderingPipeline.cs:362-592`):
+  - Renders dynamic shadows.
+  - Renders the depth prepass into `_depthFBO` using `forward/depth.glsl`.
+  - Evaluates SAO into `_ssaoChain` and applies a separable ping-pong blur.
+  - Uploads the point lights collected in `Tick` via `WriteLightAction` (`ForwardPlusRenderingPipeline.cs:323-324`) to `_lightsSSBO` (`:509`).
+  - Clears `_tileCountsSSBO` and dispatches `forward/cull_lights.glsl` compute shader (`ForwardPlusRenderingPipeline.cs:530`).
   - Renders skybox or ambient background to `_renderFBO`.
 - `Draw` (`RenderPipeline.cs:29-43`):
   - Iterates render stages (`GLInstancedRenderer`, `GLLineRenderer`).
   - `GLInstancedRenderer.Render` (`GLInstancedRenderer.cs:70-92`) renders opaque instances, then transparent instances sorted back-to-front.
-  - Executes `ForwardPlusRenderingPipeline.ShaderActivationCallback` (`ForwardPlusRenderingPipeline.cs:534-551`), binding tile uniforms and depth/SSAO textures.
-- `PostRender` (`ForwardPlusRenderingPipeline.cs:459-532`):
+  - Executes `ForwardPlusRenderingPipeline.ShaderActivationCallback` (`ForwardPlusRenderingPipeline.cs:1104`), binding tile uniforms and AO textures.
+- `PostRender` (`ForwardPlusRenderingPipeline.cs:594-711`):
   - Blits `_renderFBO` color attachment 0 to the backbuffer.
   - Evaluates multi-pass bloom blur and blends the result over the screen.
 

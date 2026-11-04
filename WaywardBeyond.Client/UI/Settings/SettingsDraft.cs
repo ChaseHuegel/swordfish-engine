@@ -19,7 +19,7 @@ internal sealed class SettingsDraft
     public AntiAliasing AntiAliasingMode;
     public ShadowQuality ShadowQuality;
     public bool AmbientOcclusion;
-    public int AoSamples;
+    public AoQuality AoQuality;
     public bool Bloom;
     public BloomQuality BloomQuality;
     public float MasterVolume;
@@ -60,7 +60,7 @@ internal sealed class SettingsDraft
             AntiAliasingMode = renderSettings.AntiAliasing.Get(),
             ShadowQuality = ShadowQualityExtensions.FromSettings(renderSettings.Shadows),
             AmbientOcclusion = renderSettings.SAO.Enabled.Get(),
-            AoSamples = renderSettings.SAO.Samples.Get(),
+            AoQuality = AoQualityExtensions.FromSettings(renderSettings.SAO),
             Bloom = renderSettings.Bloom.Enabled.Get(),
             BloomQuality = BloomQualityExtensions.FromSettings(renderSettings.Bloom),
             MasterVolume = volumeSettings.Master.Get(),
@@ -92,7 +92,7 @@ internal sealed class SettingsDraft
             AntiAliasingMode = SettingsDefaults.ANTI_ALIASING_MODE,
             ShadowQuality = SettingsDefaults.SHADOW_QUALITY,
             AmbientOcclusion = SettingsDefaults.AMBIENT_OCCLUSION,
-            AoSamples = SettingsDefaults.AO_SAMPLES,
+            AoQuality = SettingsDefaults.AO_QUALITY,
             Bloom = SettingsDefaults.BLOOM,
             BloomQuality = SettingsDefaults.BLOOM_QUALITY,
             MasterVolume = SettingsDefaults.MASTER_VOLUME,

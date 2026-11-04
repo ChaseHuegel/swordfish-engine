@@ -211,7 +211,7 @@ type.
 Runtime rendering settings, registered via `RegisterConfig<RenderSettings>`.
 Schema: `Swordfish/Settings/RenderSettings.cs`.
 Sub-tables configure ambient occlusion, bloom, and dynamic shadows.
-See [rendering-shadows](rendering-shadows.md).
+See [rendering-shadows](rendering-shadows.md) and [rendering-sao](rendering-sao.md).
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
@@ -222,7 +222,15 @@ See [rendering-shadows](rendering-shadows.md).
 | `NearPlane` | float | `0.1` | camera near clipping distance |
 | `FarPlane` | float | `1000.0` | camera far clipping distance |
 | `SAO.Enabled` | bool | `true` | enables Scalable Ambient Obscurance |
-| `SAO.Samples` | int | `8` | sample count for SAO obscurance passes |
+| `SAO.Samples` | int | `8` | sample count for SAO obscurance passes, cost is linear |
+| `SAO.ResolutionScale` | float | `0.5` | SAO buffer size as a fraction of the screen, at least one texel, above 1 supersamples |
+| `SAO.Radius` | float | `0.35` | world-space obscurance radius in meters, `0` disables |
+| `SAO.Intensity` | float | `1.0` | occlusion strength |
+| `SAO.Bias` | float | `0.02` | constant normal bias in meters |
+| `SAO.Power` | float | `1.5` | visibility curve exponent |
+| `SAO.MaxDistance` | float | `48.0` | view distance in meters where SAO fades out |
+| `SAO.FadeRange` | float | `8.0` | fade width in meters, `0` and a collapsed range are hard cuts |
+| `SAO.BlurPasses` | int | `2` | separable blur passes, 9 taps each, cost is linear |
 | `Bloom.Enabled` | bool | `true` | enables bloom post-processing |
 | `Bloom.Passes` | int | `2` | blur levels, clamped to 1-4 |
 | `Bloom.Intensity` | float | `2.0` | composite strength, clamped to 0-8 |

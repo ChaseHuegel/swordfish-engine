@@ -62,6 +62,16 @@ internal class DebugOverlayRenderer : IUILayer
             Action = OnToggleVoxelGizmos,
         };
         shortcutService.RegisterShortcut(toggleVoxelGizmosShortcut);
+
+        var cycleSaoDebugShortcut = new Shortcut
+        {
+            Name = "Cycle SAO debug",
+            Category = "Developer/Debug",
+            Key = Key.F6,
+            IsEnabled = IsVisible,
+            Action = OnCycleSaoDebug,
+        };
+        shortcutService.RegisterShortcut(cycleSaoDebugShortcut);
     }
 
     public bool IsVisible()
@@ -81,6 +91,16 @@ internal class DebugOverlayRenderer : IUILayer
                 Right = 20,
                 Bottom = 20,
             };
+
+            SaoDebugView saoDebugView = CurrentSaoDebugView();
+            if (saoDebugView != SaoDebugView.Off)
+            {
+                using (ui.Element())
+                {
+                    ui.Color = new Vector4(0f, 0f, 0f, 128f / 255f);
+                    using (ui.Text($"SAO debug: {saoDebugView}"));
+                }
+            }
 
             for (var i = 0; i < _overlays.Length; i++)
             {
@@ -119,6 +139,7 @@ internal class DebugOverlayRenderer : IUILayer
         _debugSettings.OverlayVisible.Set(!_debugSettings.OverlayVisible);
         _debugSettings.VoxelGizmosVisible.Set(false);
         _engineDebugSettings.UI.Set(false);
+        ApplySaoDebugView(SaoDebugView.Off);
     }
 
     private void OnToggleUIDebug()
@@ -129,5 +150,34 @@ internal class DebugOverlayRenderer : IUILayer
     private void OnToggleVoxelGizmos()
     {
         _debugSettings.VoxelGizmosVisible.Set(!_debugSettings.VoxelGizmosVisible);
+    }
+
+    private void OnCycleSaoDebug()
+    {
+        ApplySaoDebugView(CurrentSaoDebugView().Next());
+    }
+
+    private SaoDebugView CurrentSaoDebugView()
+    {
+        if (!_engineDebugSettings.SAO.Get())
+        {
+            return SaoDebugView.Off;
+        }
+
+        if (_engineDebugSettings.SAODepth.Get())
+        {
+            return SaoDebugView.Depth;
+        }
+
+        return _engineDebugSettings.SAORaw.Get()
+            ? SaoDebugView.Raw
+            : SaoDebugView.Blurred;
+    }
+
+    private void ApplySaoDebugView(SaoDebugView view)
+    {
+        _engineDebugSettings.SAO.Set(view != SaoDebugView.Off);
+        _engineDebugSettings.SAORaw.Set(view == SaoDebugView.Raw);
+        _engineDebugSettings.SAODepth.Set(view == SaoDebugView.Depth);
     }
 }

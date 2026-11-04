@@ -169,7 +169,7 @@ quality knob.
 
 Bloom reads a chain of blur levels. Level 0 is half resolution, and each level
 after it halves again. Every level blurs with two separable Gaussian passes
-through a `PingPongTarget`, moves down into the next coarser level, and the
+through a `DoubleBufferTarget`, moves down into the next coarser level, and the
 coarser levels accumulate back into the finest one.
 
 The multisample resolve stays at 1:1. A blit may not reduce the size of a
@@ -224,8 +224,8 @@ Details:
 - **Emissive mask.** `bloom_extract.glsl` writes `1 - step(1/255, max channel)`
   into alpha. The blur widens it into a soft falloff. The composite multiplies
   by it. No extra texture, pass, or resolve. `_screenTex` is gone.
-- **Shared API.** `PingPongTarget`
-  (`Swordfish/Graphics/SilkNET/OpenGL/PingPongTarget.cs`) owns two textures,
+- **Shared API.** `DoubleBufferTarget`
+  (`Swordfish/Graphics/SilkNET/OpenGL/DoubleBufferTarget.cs`) owns two textures,
   their framebuffers, `Swap()`, and `Resize()`. The pipeline's `Blur` drives it
   from any blur program. The SAO blur can adopt both without a pipeline change.
 - **Quality tiers.** `BloomQuality` in the client maps `Low`, `Medium`, and
@@ -267,7 +267,7 @@ storage.
    `NEAREST` (B2). b5ae7965.
 2. Correct the Gaussian tap offsets, and blur alpha so the chain can carry the
    mask (B4). 66c25c3a.
-3. Add `PingPongTarget` and make the blur ping-pong at half resolution (B1).
+3. Add `DoubleBufferTarget` and make the blur ping-pong at half resolution (B1).
    d8ea63e0.
 4. Remove `_screenTex` and `_screenFBO`. Move the emissive mask into the chain
    alpha through `bloom_extract.glsl` (B3). d8ea63e0.
