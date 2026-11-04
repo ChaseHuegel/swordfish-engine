@@ -12,4 +12,5 @@ internal enum IconGlyph
     Shapes,
     Discord,
     Steam,
+    Diamond,
 }

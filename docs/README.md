@@ -50,6 +50,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Wayward Beyond UI design-system migration plan and locked decisions | [specs/ui-design-system-migration-plan](specs/ui-design-system-migration-plan.md) |
 | Game UI tokens, style classes, and dynamic fade colors | [specs/ui-theme](specs/ui-theme.md) |
 | Main menu flow, menu layout, data mapping, and visual rules | [specs/main-menu-ui](specs/main-menu-ui.md) |
+| Save screen star chart: component, geometry, interaction, styling | [specs/star-chart](specs/star-chart.md) |
 | UI copy style, catalog conventions, key grammar, vocabulary, and string mappings | [specs/ui-copy](specs/ui-copy.md) |
 | Full-screen loading layer, visual rules, copy timing, data sources | [specs/loading-screen](specs/loading-screen.md) |
 | Window video modes and batched display changes | [specs/window-display](specs/window-display.md) |

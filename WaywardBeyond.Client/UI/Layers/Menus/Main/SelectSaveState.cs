@@ -9,8 +9,7 @@ internal readonly record struct SelectSaveState(
     bool CanCreateSave,
     int Tab,
     bool HasActive,
-    IReadOnlyList<SaveRowState> Saves,
-    SaveDetailState Detail
+    IReadOnlyList<SaveRowState> Saves
 );
 
 /// <summary>Dynamic facts shown by one galaxy archive row.</summary>
@@ -20,14 +19,8 @@ internal readonly record struct SaveRowState(
     GameMode Mode,
     bool Creative,
     long LastPlayedMs,
-    bool Selected
-);
-
-/// <summary>Dynamic facts shown by the telemetry panel.</summary>
-internal readonly record struct SaveDetailState(
-    string Name,
-    GameMode Mode,
-    string Seed,
+    bool Selected,
+    long Seed,
     long AgeMs,
-    long LastPlayedMs
+    string SeedPhrase
 );

@@ -206,11 +206,18 @@ public class UiSnapshotTests
         int height,
         Action<UIBuilder<Material>> render,
         string folder = "Snapshots",
-        bool allowUpdate = true)
+        bool allowUpdate = true,
+        int frames = 1)
     {
         var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), new UIController());
-        render(ui);
-        string actual = Capture(ui.Build(0d));
+        var commands = new List<RenderCommand<Material>>();
+        for (var frame = 0; frame < Math.Max(1, frames); frame++)
+        {
+            render(ui);
+            commands = ui.Build(0d);
+        }
+
+        string actual = Capture(commands);
         string goldenPath = Path.Combine(SourceDirectory(), "TestFiles", folder, name + ".txt");
         string actualPath = Path.Combine(AppContext.BaseDirectory, "TestResults", "ui", name + ".txt");
         Directory.CreateDirectory(Path.GetDirectoryName(actualPath)!);
