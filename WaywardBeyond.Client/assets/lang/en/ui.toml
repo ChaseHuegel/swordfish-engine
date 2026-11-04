@@ -40,7 +40,7 @@
 
 # Level
 "ui.panel.level.list" = "Galactic archives"
-"ui.panel.level.detail" = "Galaxy telemetry"
+"ui.panel.level.detail" = "Star chart"
 "ui.panel.level.form" = "Chart a galaxy"
 "ui.panel.level.form.detail" = "Galaxy telemetry"
 "ui.button.level.new" = "Chart new galaxy"
@@ -60,6 +60,7 @@
 "ui.label.level.type" = "Type"
 "ui.label.level.type.asteroids" = "Asteroids"
 "ui.label.level.creating" = "Charting galaxy"
+"ui.label.level.chart.empty" = "No systems charted"
 "ui.text.level.form.hint" = "Name the galaxy and set a seed, Spacer"
 "ui.message.level.createFailed" = "Could not chart the galaxy"
 "ui.message.level.randomSeed" = "A random seed will be used"

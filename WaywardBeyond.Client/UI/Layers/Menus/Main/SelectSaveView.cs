@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.UI.Components;
@@ -10,6 +12,10 @@ namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 internal partial class SelectSaveView : UiViewBase
 {
     private readonly ILocalization _localization;
+
+    private string _chartKey = string.Empty;
+    private StarChartGeometry _chartGeometry = StarChartGeometry.Empty;
+    private StarChartNodeState[] _chartNodes = Array.Empty<StarChartNodeState>();
 
     /// <summary>Initializes the galaxy archive view.</summary>
     public SelectSaveView(ILocalization localization, ScrollAreaState scroll) : base(localization)
@@ -81,5 +87,133 @@ internal partial class SelectSaveView : UiViewBase
     public static string ModeName(GameMode mode)
     {
         return mode.ToString();
+    }
+
+    /// <summary>Builds the star chart context for a field size, reusing cached geometry.</summary>
+    public StarChartState Chart(SelectSaveState state, int width, int height)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            return new StarChartState(
+                Array.Empty<StarChartNodeState>(),
+                Array.Empty<StarSpeck>(),
+                _localization,
+                SelectNode,
+                Ready: false
+            );
+        }
+
+        string key = ChartKey(state, width, height);
+        if (!string.Equals(key, _chartKey, StringComparison.Ordinal))
+        {
+            _chartKey = key;
+            _chartGeometry = BuildGeometry(state, width, height);
+            _chartNodes = BuildNodes(state, _chartGeometry);
+        }
+
+        return new StarChartState(
+            _chartNodes,
+            _chartGeometry.Specks,
+            _localization,
+            SelectNode,
+            Ready: true
+        );
+    }
+
+    /// <summary>Computes the chart geometry for the current save set and field size.</summary>
+    private static StarChartGeometry BuildGeometry(in SelectSaveState state, int width, int height)    {
+        var sources = new List<StarChartSource>(state.Saves.Count);
+        string? selected = null;
+
+        foreach (SaveRowState row in state.Saves)
+        {
+            sources.Add(new StarChartSource(row.Guid, row.Seed));
+            if (row.Selected)
+            {
+                selected = row.Guid;
+            }
+        }
+
+        return StarChartLayout.Compute(sources, selected, width, height);
+    }
+
+    /// <summary>Joins chart positions with the display facts of each save.</summary>
+    private StarChartNodeState[] BuildNodes(in SelectSaveState state, in StarChartGeometry geometry)
+    {
+        var byGuid = new Dictionary<string, SaveRowState>(state.Saves.Count, StringComparer.Ordinal);
+        foreach (SaveRowState row in state.Saves)
+        {
+            byGuid[row.Guid] = row;
+        }
+
+        var nodes = new StarChartNodeState[geometry.Nodes.Count];
+        for (var i = 0; i < geometry.Nodes.Count; i++)
+        {
+            StarNodePlacement placement = geometry.Nodes[i];
+            if (!byGuid.TryGetValue(placement.Guid, out SaveRowState row))
+            {
+                continue;
+            }
+
+            int half = StarChartLayout.HIT_SIZE / 2;
+            int glyph = StarChartLayout.GLYPH_SIZE / 2;
+
+            nodes[i] = new StarChartNodeState(
+                Guid: row.Guid,
+                NodeId: "SelectSave.Node." + row.Guid,
+                RowId: "Button_SelectSave_" + row.Name,
+                Name: row.Name,
+                Mode: ModeName(row.Mode),
+                Seed: row.SeedPhrase,
+                TimePlayed: TimePlayedText(row.AgeMs),
+                LastPlayed: LastPlayedText(row.LastPlayedMs),
+                ClassIndex: placement.ClassIndex,
+                IsRed: placement.ClassIndex == 1,
+                IsEmerald: placement.ClassIndex == 2,
+                IsViolet: placement.ClassIndex == 3,
+                X: placement.X,
+                Y: placement.Y,
+                HitX: placement.X - half,
+                HitY: placement.Y - half,
+                GlyphX: placement.X - glyph,
+                GlyphY: placement.Y - glyph,
+                BracketLeftX: placement.X + StarChartLayout.BRACKET_OFFSET_LEFT,
+                BracketRightX: placement.X + StarChartLayout.BRACKET_OFFSET_RIGHT,
+                BracketY: placement.Y + StarChartLayout.BRACKET_OFFSET_Y,
+                LabelX: placement.X - (StarChartLayout.LABEL_WIDTH / 2),
+                LabelY: placement.Y + StarChartLayout.LABEL_OFFSET_Y,
+                CardX: placement.CardX,
+                CardY: placement.CardY,
+                CardHeight: StarChartLayout.CARD_HEIGHT,
+                Selected: placement.Selected,
+                Passthrough: placement.Passthrough
+            );
+        }
+
+        return nodes;
+    }
+
+    /// <summary>Builds the cache key for the chart geometry.</summary>
+    private static string ChartKey(in SelectSaveState state, int width, int height)
+    {
+        var builder = new StringBuilder(state.Saves.Count * 32);
+        builder.Append(width).Append('x').Append(height);
+
+        foreach (SaveRowState row in state.Saves)
+        {
+            builder.Append('|').Append(row.Guid).Append(',').Append(row.Seed);
+            if (row.Selected)
+            {
+                builder.Append(',');
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>Raises the save selection for a chart node.</summary>
+    private void SelectNode(string guid)
+    {
+        SaveSelected?.Invoke(guid);
     }
 }

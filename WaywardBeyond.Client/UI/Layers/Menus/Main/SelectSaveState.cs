@@ -20,7 +20,10 @@ internal readonly record struct SaveRowState(
     GameMode Mode,
     bool Creative,
     long LastPlayedMs,
-    bool Selected
+    bool Selected,
+    long Seed,
+    long AgeMs,
+    string SeedPhrase
 );
 
 /// <summary>Dynamic facts shown by the telemetry panel.</summary>

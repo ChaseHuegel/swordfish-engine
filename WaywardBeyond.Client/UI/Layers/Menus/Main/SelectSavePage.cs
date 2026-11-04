@@ -101,7 +101,10 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 level.DefaultGameMode,
                 level.DefaultGameMode == GameMode.Creative,
                 level.Playtime.LastPlayedMs,
-                active != null && active.Value.Level.Guid == level.Guid
+                active != null && active.Value.Level.Guid == level.Guid,
+                level.Seed,
+                level.Playtime.AgeMs,
+                _seedPhraseService.SeedToPhrase(level.Seed)
             ));
         }
 

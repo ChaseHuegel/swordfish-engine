@@ -96,38 +96,12 @@
                     <Content name="header">
                         <Text text="@L('ui.panel.level.detail')" class="wb-panel-header" width="fill" height="18" />
                     </Content>
-                    <Text visible="@(!context.HasActive)"
-                          text="@L('ui.label.none')"
-                          class="wb-text-body wb-text-dim"
-                          width="fill"
-                          height="fill"
-                          text-align="center"
-                          vertical-align="middle" />
-                    <Element visible="@context.HasActive" layout="vertical" width="fill" height="fill">
-                        <Text text="@context.Detail.Name" class="wb-text-title" width="fill" height="28" />
-                        <Element height="8" />
-                        <Element class="wb-divider-inner" width="fill" height="1" />
-                        <Element height="16" />
-
-                        <Element layout="horizontal" width="fill" height="22">
-                            <Text text="@L('ui.label.level.mode')" class="wb-text-small wb-text-muted" width="120" height="fill" />
-                            <Text text="@ModeName(context.Detail.Mode)" class="wb-text-value" width="fill" height="fill" />
-                        </Element>
-                        <Element height="6" />
-                        <Element layout="horizontal" width="fill" height="22">
-                            <Text text="@L('ui.label.level.seed')" class="wb-text-small wb-text-muted" width="120" height="fill" />
-                            <Text text="@context.Detail.Seed" class="wb-text-value" width="fill" height="fill" />
-                        </Element>
-                        <Element height="6" />
-                        <Element layout="horizontal" width="fill" height="22">
-                            <Text text="@L('ui.label.timePlayed')" class="wb-text-small wb-text-muted" width="120" height="fill" />
-                            <Text text="@TimePlayedText(context.Detail.AgeMs)" class="wb-text-value" width="fill" height="fill" />
-                        </Element>
-                        <Element height="6" />
-                        <Element layout="horizontal" width="fill" height="22">
-                            <Text text="@L('ui.label.lastPlayed')" class="wb-text-small wb-text-muted" width="120" height="fill" />
-                            <Text text="@LastPlayedText(context.Detail.LastPlayedMs)" class="wb-text-value" width="fill" height="fill" />
-                        </Element>
+                    <Element id="SelectSave.Chart" layout="none" width="fill" height="fill">
+                        <StarChart context="@Chart(context,
+                                                    ui.GetElementBounds('SelectSave.Chart').Rect.Size.X,
+                                                    ui.GetElementBounds('SelectSave.Chart').Rect.Size.Y)"
+                                   width="fill"
+                                   height="fill" />
                     </Element>
                 </Panel>
             </Element>

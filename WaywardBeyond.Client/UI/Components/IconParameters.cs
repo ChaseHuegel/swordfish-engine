@@ -21,6 +21,7 @@ internal sealed record IconParameters(
         IconGlyph.Shapes => "\uf61f",
         IconGlyph.Discord => "\uf392",
         IconGlyph.Steam => "\uf1b6",
+        IconGlyph.Diamond => "\uf219",
         _ => string.Empty,
     };
 

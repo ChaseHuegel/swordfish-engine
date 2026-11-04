@@ -11,19 +11,25 @@ public class SelectSaveViewTests
     private static readonly int[] Widths = [800, 1280, 1920];
     private static readonly int[] Heights = [600, 720, 1080];
 
+    /// <summary>The star chart needs a measured field, so the capture renders two frames.</summary>
     [Fact]
-    public void GalaxyArchivePageMatchesLegacy()
+    public void GalaxyArchivePageMatchesSnapshots()
     {
         for (var i = 0; i < Widths.Length; i++)
         {
             int width = Widths[i];
             int height = Heights[i];
-            UiSnapshotTests.AssertPageMatchesLegacy($"{width}x{height}-select-save", width, height, ui =>
-            {
-                var scroll = new ScrollAreaState();
-                var view = new SelectSaveView(new TestLocalization(), scroll);
-                view.Render(ui, CreateState(view));
-            });
+            var scroll = new ScrollAreaState();
+            var view = new SelectSaveView(new TestLocalization(), scroll);
+            SelectSaveState state = CreateState(view);
+
+            UiSnapshotTests.Compare(
+                $"page-select-save-{width}x{height}",
+                width,
+                height,
+                ui => view.Render(ui, state),
+                frames: 2
+            );
         }
     }
 
@@ -38,7 +44,10 @@ public class SelectSaveViewTests
                 GameMode.Creative,
                 true,
                 0,
-                true
+                true,
+                1_234_567_890L,
+                3_600_000L,
+                "adjective42 subject0 verb0 destination0"
             ),
             new(
                 "save-b",
@@ -46,7 +55,10 @@ public class SelectSaveViewTests
                 GameMode.Adventure,
                 false,
                 0,
-                false
+                false,
+                987_654_321L,
+                120_000L,
+                "obsidian apple ignites hyperion"
             ),
         };
 
