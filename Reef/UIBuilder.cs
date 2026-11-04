@@ -270,43 +270,36 @@ public sealed class UIBuilder<TRendererData>
     
     public bool Clicked(string id, UIController.MouseButtons button = UIController.MouseButtons.Left)
     {
-        _currentElement.ID = id;
         return _controller.IsClicked(id, button);
     }
     
     public bool Released(string id, UIController.MouseButtons button = UIController.MouseButtons.Left)
     {
-        _currentElement.ID = id;
         return _controller.IsReleased(id, button);
     }
     
     public bool Held(string id, UIController.MouseButtons button = UIController.MouseButtons.Left)
     {
-        _currentElement.ID = id;
         return _controller.IsHeld(id, button);
     }
 
     public bool Hovering(string id)
     {
-        _currentElement.ID = id;
         return _controller.IsHovering(id);
     }
 
     public bool Entered(string id)
     {
-        _currentElement.ID = id;
         return _controller.IsEntering(id);
     }
 
     public bool Exited(string id)
     {
-        _currentElement.ID = id;
         return _controller.IsExiting(id);
     }
 
     public bool Scrolled(string id)
     {
-        _currentElement.ID = id;
         return _controller.IsScrolled(id);
     }
 
@@ -348,7 +341,6 @@ public sealed class UIBuilder<TRendererData>
 
     public bool Focused(string id)
     {
-        _currentElement.ID = id;
         return _controller.IsFocused(id);
     }
 
