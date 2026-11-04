@@ -17,7 +17,9 @@ internal readonly record struct StarNodePlacement(
     bool Selected,
     bool Passthrough,
     int CardX,
-    int CardY
+    int CardY,
+    int LabelX,
+    int LabelY
 );
 
 /// <summary>One background star speck.</summary>
@@ -43,12 +45,13 @@ internal static class StarChartLayout
     public const int NODE_INSET_Y = 28;
     public const int NODE_MIN_DISTANCE = 28;
     public const int MAX_SEPARATION_ATTEMPTS = 8;
-    public const int HIT_WIDTH = 24;
-    public const int HIT_HEIGHT = 40;
-    public const int HIT_OFFSET_Y = -12;
-    private const int HIT_CENTER_Y = HIT_OFFSET_Y + (HIT_HEIGHT / 2);
+    public const int HIT_SIZE = 24;
     public const int LABEL_WIDTH = 160;
-    public const int LABEL_OFFSET_Y = 10;
+    public const int LABEL_HEIGHT = 16;
+    public const int LABEL_OFFSET_Y = 14;
+    public const int LABEL_STEP_Y = 18;
+    public const int LABEL_STEP_X = 40;
+    public const int LABEL_RINGS = 12;
     public const int GLYPH_SIZE = 16;
     public const int BRACKET_SIZE = 8;
     public const int BRACKET_OFFSET_LEFT = -14;
@@ -100,20 +103,30 @@ internal static class StarChartLayout
             selected[i] = selectedGuid != null && string.Equals(save.Guid, selectedGuid, StringComparison.Ordinal);
         }
 
+        var guids = new string[count];
+        for (var i = 0; i < count; i++)
+        {
+            guids[i] = ordered[i].Guid;
+        }
+
+        PlaceLabels(xs, ys, guids, width, height, count, out int[] labelXs, out int[] labelYs);
+
         var nodes = new List<StarNodePlacement>(count);
         for (var i = 0; i < count; i++)
         {
             bool passthrough = selected[i] && IsOverlapped(xs, ys, i, count);
             nodes.Add(
                 new StarNodePlacement(
-                    ordered[i].Guid,
+                    guids[i],
                     xs[i],
                     ys[i],
                     classes[i],
                     selected[i],
                     passthrough,
                     CardX(xs[i], width),
-                    CardY(ys[i], height)
+                    CardY(ys[i], height),
+                    labelXs[i],
+                    labelYs[i]
                 )
             );
         }
@@ -154,7 +167,7 @@ internal static class StarChartLayout
     /// <summary>Gets whether two square hit boxes overlap.</summary>
     public static bool Overlaps(int ax, int ay, int bx, int by)
     {
-        return Math.Abs(ax - bx) < HIT_WIDTH && Math.Abs(ay - by) < HIT_HEIGHT;
+        return Math.Abs(ax - bx) < HIT_SIZE && Math.Abs(ay - by) < HIT_SIZE;
     }
 
     /// <inheritdoc cref="Overlaps(int, int, int, int)"/>
@@ -167,7 +180,7 @@ internal static class StarChartLayout
                 continue;
             }
 
-            if (Overlaps(xs[index], ys[index] + HIT_CENTER_Y, xs[other], ys[other] + HIT_CENTER_Y))
+            if (Overlaps(xs[index], ys[index], xs[other], ys[other]))
             {
                 return true;
             }
@@ -238,6 +251,195 @@ internal static class StarChartLayout
             SeparationStep(save.Guid, attempt, out int dx, out int dy);
             x = ClampX(x + dx, width);
             y = ClampY(y + dy, height);        }
+    }
+
+    /// <summary>Places every label without overlaps, independent of selection and hover.</summary>
+    private static void PlaceLabels(
+        IReadOnlyList<int> xs,
+        IReadOnlyList<int> ys,
+        IReadOnlyList<string> guids,
+        int width,
+        int height,
+        int count,
+        out int[] labelXs,
+        out int[] labelYs
+    )
+    {
+        var lx = new int[count];
+        var ly = new int[count];
+
+        //  Top-left first, so the packing reads as a grid. Ties break on Guid.
+        var order = new int[count];
+        for (var i = 0; i < count; i++)
+        {
+            order[i] = i;
+        }
+
+        Array.Sort(order, (a, b) =>
+        {
+            int result = ys[a].CompareTo(ys[b]);
+            if (result != 0)
+            {
+                return result;
+            }
+
+            result = xs[a].CompareTo(xs[b]);
+            return result != 0 ? result : string.CompareOrdinal(guids[a], guids[b]);
+        });
+
+        var placed = new List<int>(count);
+
+        for (var step = 0; step < count; step++)
+        {
+            int index = order[step];
+            //  Clamp the base first, so an edge label can still find a slot.
+            int baseLeft = ClampLabelX(xs[index] - (LABEL_WIDTH / 2), width);
+            int baseTop = ClampLabelY(ys[index] + LABEL_OFFSET_Y, height);
+
+            bool done = TryPlace(index, baseLeft, baseTop, out int left, out int top);
+
+            for (var ring = 1; ring <= LABEL_RINGS && !done; ring++)
+            {
+                int down = baseTop + (ring * LABEL_STEP_Y);
+                int right = baseLeft + (ring * LABEL_STEP_X);
+                int shifted = baseLeft - (ring * LABEL_STEP_X);
+
+                done = TryPlace(index, baseLeft, down, out left, out top)
+                    || TryPlace(index, right, baseTop, out left, out top)
+                    || TryPlace(index, shifted, baseTop, out left, out top)
+                    || TryPlace(index, right, down, out left, out top)
+                    || TryPlace(index, shifted, down, out left, out top)
+                    || TryUp(ring);
+            }
+
+            bool TryUp(int ring)
+            {
+                int up = baseTop - (ring * LABEL_STEP_Y);
+                int right = baseLeft + (ring * LABEL_STEP_X);
+                int shifted = baseLeft - (ring * LABEL_STEP_X);
+
+                return TryPlace(index, baseLeft, up, out left, out top)
+                    || TryPlace(index, right, up, out left, out top)
+                    || TryPlace(index, shifted, up, out left, out top);
+            }
+
+            //  Labels never overlap each other. Avoiding nodes is a preference, so a second
+            //  pass drops it when the field is too dense for both.
+            for (var ring = 1; ring <= LABEL_RINGS && !done; ring++)
+            {
+                int down = baseTop + (ring * LABEL_STEP_Y);
+                int right = baseLeft + (ring * LABEL_STEP_X);
+                int shifted = baseLeft - (ring * LABEL_STEP_X);
+
+                done = TryPlace(index, baseLeft, down, out left, out top, avoidNodes: false)
+                    || TryPlace(index, right, baseTop, out left, out top, avoidNodes: false)
+                    || TryPlace(index, shifted, baseTop, out left, out top, avoidNodes: false)
+                    || TryPlace(index, right, down, out left, out top, avoidNodes: false)
+                    || TryPlace(index, shifted, down, out left, out top, avoidNodes: false)
+                    || TryUp(ring);
+            }
+
+            if (!done)
+            {
+                //  Give up on this label: keep it near its node, clamped into the field.
+                left = ClampLabelX(baseLeft, width);
+                top = ClampLabelY(baseTop, height);
+            }
+
+            lx[index] = left;
+            ly[index] = top;
+            placed.Add(index);
+        }
+
+        labelXs = lx;
+        labelYs = ly;
+
+        bool TryPlace(
+            int index,
+            int candidateLeft,
+            int candidateTop,
+            out int resultLeft,
+            out int resultTop,
+            bool avoidNodes = true
+        )
+        {
+            resultLeft = candidateLeft;
+            resultTop = candidateTop;
+            return Fits(index, candidateLeft, candidateTop, avoidNodes);
+        }
+
+        bool Fits(int index, int candidateLeft, int candidateTop, bool avoidNodes = true)
+        {
+            if (!InsideField(candidateLeft, candidateTop, width, height))
+            {
+                return false;
+            }
+
+            for (var i = 0; i < placed.Count; i++)
+            {
+                int other = placed[i];
+                if (OverlapsBox(
+                        candidateLeft,
+                        candidateTop,
+                        LABEL_WIDTH,
+                        LABEL_HEIGHT,
+                        lx[other],
+                        ly[other],
+                        LABEL_WIDTH,
+                        LABEL_HEIGHT))
+                {
+                    return false;
+                }
+            }
+
+            for (var other = 0; other < count && avoidNodes; other++)
+            {
+                if (other == index)
+                {
+                    continue;
+                }
+
+                if (OverlapsBox(
+                        candidateLeft,
+                        candidateTop,
+                        LABEL_WIDTH,
+                        LABEL_HEIGHT,
+                        xs[other] - (HIT_SIZE / 2),
+                        ys[other] - (HIT_SIZE / 2),
+                        HIT_SIZE,
+                        HIT_SIZE))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>Gets whether a label box sits fully inside the field.</summary>
+    public static bool InsideField(int left, int top, int width, int height)
+    {
+        return left >= 0 && top >= 0 && left + LABEL_WIDTH <= width && top + LABEL_HEIGHT <= height;
+    }
+
+    /// <summary>Gets whether two axis-aligned boxes overlap.</summary>
+    public static bool OverlapsBox(
+        int ax, int ay, int aw, int ah,
+        int bx, int by, int bw, int bh
+    )
+    {
+        return ax < bx + bw && bx < ax + aw && ay < by + bh && by < ay + ah;
+    }
+
+    private static int ClampLabelX(int left, int width)
+    {
+        return Math.Clamp(left, 0, Math.Max(0, width - LABEL_WIDTH));
+    }
+
+    private static int ClampLabelY(int top, int height)
+    {
+        return Math.Clamp(top, 0, Math.Max(0, height - LABEL_HEIGHT));
     }
 
     private static bool IsNearEarlier(IReadOnlyList<int> xs, IReadOnlyList<int> ys, int index, int x, int y)

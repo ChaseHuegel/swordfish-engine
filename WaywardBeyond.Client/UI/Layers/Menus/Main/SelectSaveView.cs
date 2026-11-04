@@ -155,7 +155,7 @@ internal partial class SelectSaveView : UiViewBase
                 continue;
             }
 
-            int half = StarChartLayout.HIT_WIDTH / 2;
+            int half = StarChartLayout.HIT_SIZE / 2;
             int glyph = StarChartLayout.GLYPH_SIZE / 2;
 
             nodes[i] = new StarChartNodeState(
@@ -174,14 +174,14 @@ internal partial class SelectSaveView : UiViewBase
                 X: placement.X,
                 Y: placement.Y,
                 HitX: placement.X - half,
-                HitY: placement.Y + StarChartLayout.HIT_OFFSET_Y,
+                HitY: placement.Y - half,
                 GlyphX: placement.X - glyph,
                 GlyphY: placement.Y - glyph,
                 BracketLeftX: placement.X + StarChartLayout.BRACKET_OFFSET_LEFT,
                 BracketRightX: placement.X + StarChartLayout.BRACKET_OFFSET_RIGHT,
                 BracketY: placement.Y + StarChartLayout.BRACKET_OFFSET_Y,
-                LabelX: placement.X - (StarChartLayout.LABEL_WIDTH / 2),
-                LabelY: placement.Y + StarChartLayout.LABEL_OFFSET_Y,
+                LabelX: placement.LabelX,
+                LabelY: placement.LabelY,
                 CardX: placement.CardX,
                 CardY: placement.CardY,
                 CardHeight: StarChartLayout.CARD_HEIGHT,

@@ -49,13 +49,32 @@ the field size. It returns placements and specks. It has no UI dependency.
 - **Specks.** 1px squares from a seed of the field size, capped at 120, so they
   do not shimmer.
 
+## Label packing
+
+Labels are 160 by 16 pixels and are placed by a deterministic greedy pass. It
+runs inside `Compute`, so the geometry cache covers it.
+
+- Order: top-left first, by node Y, then X, then Guid. Ties never depend on play
+  order, selection, or hover.
+- Preference ladder per ring: down, right, left, down-right, down-left, then up,
+  up-right, up-left. Twelve rings, 18px vertically and 40px horizontally.
+- Hard rule: a label never overlaps another label, and never leaves the field.
+  The base position is clamped into the field before the ladder runs, so an edge
+  label can still find a slot.
+- Soft rule: a label avoids every other node's 24px hit box. When the field is
+  too dense, a second pass drops that rule before it gives up.
+- Fallback: if every slot fails, the label sits at its clamped base position.
+
+The pass is pure integer math. The same rows and field size always produce the
+same boxes, and changing the selection does not move any label.
+
 ## Interaction
 
 - Hover and selection are markup expressions. `ui.Hovering` is evaluated in the
   component, so no view field tracks hover. Element queries are pure reads, so
   they do not retarget the element that asks.
-- The hit target is 24 by 40 pixels. It spans the glyph and the label, so a
-  pointer over either keeps one element hovered and the card does not flicker.
+- The hit target is 24 by 24 pixels, centered on the node. Labels are inert, so
+  a displaced label never takes hover from a node.
 - The card renders inside the node loop under an `<If>`, so only the hovered
   node draws one.
 - A **selected** node is `passthrough` only when another node's hit box overlaps

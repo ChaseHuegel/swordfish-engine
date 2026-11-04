@@ -128,7 +128,7 @@ public class StarChartLayoutTests
 
         StarChartGeometry geometry = StarChartLayout.Compute(saves, null, 4000, 4000);
         StarNodePlacement second = geometry.Nodes[1];
-        var baseNode = new StarNodePlacement("x", BaseX(SEED, 4000), BaseY(SEED, 4000), 0, false, false, 0, 0);
+        var baseNode = new StarNodePlacement("x", BaseX(SEED, 4000), BaseY(SEED, 4000), 0, false, false, 0, 0, 0, 0);
 
         Assert.True(Distance(second, baseNode) >= StarChartLayout.NODE_MIN_DISTANCE - 1.5);
     }
@@ -216,8 +216,8 @@ public class StarChartLayoutTests
     public void OverlapUsesSquareHitBoxes()
     {
         Assert.True(StarChartLayout.Overlaps(0, 0, 20, 20));
-        Assert.True(StarChartLayout.Overlaps(0, 0, 0, 39));
-        Assert.False(StarChartLayout.Overlaps(0, 0, 0, 40));
+        Assert.True(StarChartLayout.Overlaps(0, 0, 0, 23));
+        Assert.False(StarChartLayout.Overlaps(0, 0, 0, 24));
         Assert.False(StarChartLayout.Overlaps(0, 0, 24, 0));
         Assert.False(StarChartLayout.Overlaps(0, 0, 28, 0));
     }
@@ -273,6 +273,170 @@ public class StarChartLayoutTests
         }
 
         Assert.Equal(overlaps, selected.Passthrough);
+    }
+
+    [Fact]
+    public void LabelsNeverOverlapEachOther()
+    {
+        StarChartGeometry geometry = StarChartLayout.Compute(Many(10), null, WIDTH, HEIGHT);
+
+        for (var a = 0; a < geometry.Nodes.Count; a++)
+        {
+            for (var b = a + 1; b < geometry.Nodes.Count; b++)
+            {
+                Assert.False(
+                    StarChartLayout.OverlapsBox(
+                        geometry.Nodes[a].LabelX, geometry.Nodes[a].LabelY,
+                        StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT,
+                        geometry.Nodes[b].LabelX, geometry.Nodes[b].LabelY,
+                        StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT),
+                    $"Labels {geometry.Nodes[a].Guid} and {geometry.Nodes[b].Guid} overlap.");
+            }
+        }
+    }
+
+    [Fact]
+    public void LabelsAvoidOtherNodes()
+    {
+        StarChartGeometry geometry = StarChartLayout.Compute(Many(10), null, WIDTH, HEIGHT);
+
+        foreach (StarNodePlacement node in geometry.Nodes)
+        {
+            foreach (StarNodePlacement other in geometry.Nodes)
+            {
+                if (other.Guid == node.Guid)
+                {
+                    continue;
+                }
+
+                Assert.False(
+                    StarChartLayout.OverlapsBox(
+                        node.LabelX, node.LabelY,
+                        StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT,
+                        other.X - (StarChartLayout.HIT_SIZE / 2),
+                        other.Y - (StarChartLayout.HIT_SIZE / 2),
+                        StarChartLayout.HIT_SIZE, StarChartLayout.HIT_SIZE),
+                    $"Label {node.Guid} covers node {other.Guid}.");
+            }
+        }
+    }
+
+    [Fact]
+    public void LabelsStayInsideTheField()
+    {
+        StarChartGeometry geometry = StarChartLayout.Compute(Many(30), null, WIDTH, HEIGHT);
+
+        foreach (StarNodePlacement node in geometry.Nodes)
+        {
+            Assert.True(
+                StarChartLayout.InsideField(node.LabelX, node.LabelY, WIDTH, HEIGHT),
+                $"Label {node.Guid} left the field.");
+        }
+    }
+
+    [Fact]
+    public void LabelPlacementIgnoresSelection()
+    {
+        List<StarChartSource> saves = Many(12);
+
+        StarChartGeometry none = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
+        StarChartGeometry first = StarChartLayout.Compute(saves, saves[0].Guid, WIDTH, HEIGHT);
+        StarChartGeometry last = StarChartLayout.Compute(saves, saves[^1].Guid, WIDTH, HEIGHT);
+
+        for (var i = 0; i < none.Nodes.Count; i++)
+        {
+            Assert.Equal(none.Nodes[i].LabelX, first.Nodes[i].LabelX);
+            Assert.Equal(none.Nodes[i].LabelY, first.Nodes[i].LabelY);
+            Assert.Equal(none.Nodes[i].LabelX, last.Nodes[i].LabelX);
+            Assert.Equal(none.Nodes[i].LabelY, last.Nodes[i].LabelY);
+        }
+    }
+
+    [Fact]
+    public void LabelPlacementIsDeterministic()
+    {
+        List<StarChartSource> saves = Many(16);
+
+        StarChartGeometry first = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
+        StarChartGeometry second = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
+
+        for (var i = 0; i < first.Nodes.Count; i++)
+        {
+            Assert.Equal(first.Nodes[i].LabelX, second.Nodes[i].LabelX);
+            Assert.Equal(first.Nodes[i].LabelY, second.Nodes[i].LabelY);
+        }
+    }
+
+    [Fact]
+    public void LabelPlacementIgnoresListOrder()
+    {
+        List<StarChartSource> saves = Many(10);
+        var shuffled = new List<StarChartSource>(saves);
+        shuffled.Reverse();
+
+        StarChartGeometry a = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
+        StarChartGeometry b = StarChartLayout.Compute(shuffled, null, WIDTH, HEIGHT);
+
+        for (var i = 0; i < a.Nodes.Count; i++)
+        {
+            Assert.Equal(a.Nodes[i].Guid, b.Nodes[i].Guid);
+            Assert.Equal(a.Nodes[i].LabelX, b.Nodes[i].LabelX);
+            Assert.Equal(a.Nodes[i].LabelY, b.Nodes[i].LabelY);
+        }
+    }
+
+    [Fact]
+    public void LabelsOnlySitOnThePreferredLadder()
+    {
+        StarChartGeometry geometry = StarChartLayout.Compute(Many(14), null, WIDTH, HEIGHT);
+
+        foreach (StarNodePlacement node in geometry.Nodes)
+        {
+            int baseLeft = node.X - (StarChartLayout.LABEL_WIDTH / 2);
+            int baseTop = node.Y + StarChartLayout.LABEL_OFFSET_Y;
+            int dx = node.LabelX - baseLeft;
+            int dy = node.LabelY - baseTop;
+
+            int maxY = StarChartLayout.LABEL_RINGS * StarChartLayout.LABEL_STEP_Y;
+            int maxX = StarChartLayout.LABEL_RINGS * StarChartLayout.LABEL_STEP_X;
+
+            Assert.InRange(dx, -maxX, maxX);
+            Assert.InRange(dy, -maxY, maxY);
+
+            bool onLadder = dx == 0 && dy == 0;
+            for (var ring = 1; ring <= StarChartLayout.LABEL_RINGS && !onLadder; ring++)
+            {
+                int stepY = ring * StarChartLayout.LABEL_STEP_Y;
+                int stepX = ring * StarChartLayout.LABEL_STEP_X;
+                onLadder = (dx == 0 && dy == stepY)
+                    || (dx == stepX && dy == 0)
+                    || (dx == -stepX && dy == 0)
+                    || (dx == stepX && dy == stepY)
+                    || (dx == -stepX && dy == stepY)
+                    || (dx == 0 && dy == -stepY)
+                    || (dx == stepX && dy == -stepY)
+                    || (dx == -stepX && dy == -stepY);
+            }
+
+            //  A clamped fallback is allowed only when no ladder slot cleared.
+            Assert.True(onLadder || geometry.Nodes.Count < 10, $"Label {node.Guid} used an off-ladder offset {dx},{dy}.");
+        }
+    }
+
+    [Fact]
+    public void DenseChartsStayDeterministic()
+    {
+        List<StarChartSource> saves = Many(40);
+
+        StarChartGeometry first = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
+        StarChartGeometry second = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
+
+        for (var i = 0; i < first.Nodes.Count; i++)
+        {
+            Assert.Equal(first.Nodes[i].LabelX, second.Nodes[i].LabelX);
+            Assert.Equal(first.Nodes[i].LabelY, second.Nodes[i].LabelY);
+            Assert.True(StarChartLayout.InsideField(first.Nodes[i].LabelX, first.Nodes[i].LabelY, WIDTH, HEIGHT));
+        }
     }
 
     [Theory]
@@ -337,6 +501,17 @@ public class StarChartLayoutTests
         StarNodePlacement selected = Assert.Single(geometry.Nodes, node => node.Selected);
 
         Assert.Equal("bbbbbbbb", selected.Guid);
+    }
+
+    private static List<StarChartSource> Many(int count)
+    {
+        var saves = new List<StarChartSource>(count);
+        for (var i = 0; i < count; i++)
+        {
+            saves.Add(new StarChartSource($"guid-{i:D4}", (i * 7919) + 17));
+        }
+
+        return saves;
     }
 
     private static List<StarChartSource> Saves(params (string Guid, long Seed)[] saves)

@@ -101,13 +101,14 @@ public class StarChartViewTests
         }
 
         Assert.True(withId.Count == 1, "Ids: " + string.Join(" | ", withId));
-        Assert.Equal("SelectSave.Node.aaaa@188,188,24,40", withId[0]);
+        Assert.Equal("SelectSave.Node.aaaa@188,188,24,24", withId[0]);
     }
 
-    /// <summary>Hover stays open over the diamond and over the label.</summary>
+    /// <summary>Hover stays open across the diamond.</summary>
     [Theory]
     [InlineData(0)]
-    [InlineData(18)]
+    [InlineData(11)]
+    [InlineData(-11)]
     public void HoverKeepsTheCardOpen(int offsetY)
     {
         var controller = new UIController();
@@ -190,7 +191,7 @@ public class StarChartViewTests
         bool violet = false
     )
     {
-        int half = StarChartLayout.HIT_WIDTH / 2;
+        int half = StarChartLayout.HIT_SIZE / 2;
         int glyph = StarChartLayout.GLYPH_SIZE / 2;
 
         return new StarChartNodeState(
@@ -209,7 +210,7 @@ public class StarChartViewTests
             X: x,
             Y: y,
             HitX: x - half,
-            HitY: y + StarChartLayout.HIT_OFFSET_Y,
+            HitY: y - half,
             GlyphX: x - glyph,
             GlyphY: y - glyph,
             BracketLeftX: x + StarChartLayout.BRACKET_OFFSET_LEFT,
