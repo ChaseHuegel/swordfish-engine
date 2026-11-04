@@ -296,7 +296,7 @@ public class StarChartLayoutTests
     }
 
     [Fact]
-    public void LabelsAvoidOtherNodes()
+    public void LabelsAvoidEveryNodeIncludingTheirOwn()
     {
         StarChartGeometry geometry = StarChartLayout.Compute(Many(10), null, WIDTH, HEIGHT);
 
@@ -304,15 +304,61 @@ public class StarChartLayoutTests
         {
             foreach (StarNodePlacement other in geometry.Nodes)
             {
-                if (other.Guid == node.Guid)
-                {
-                    continue;
-                }
-
                 Assert.False(
                     StarChartLayout.OverlapsBox(
                         node.LabelX, node.LabelY,
                         StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT,
+                        other.X - (StarChartLayout.HIT_SIZE / 2),
+                        other.Y - (StarChartLayout.HIT_SIZE / 2),
+                        StarChartLayout.HIT_SIZE, StarChartLayout.HIT_SIZE),
+                    $"Label {node.Guid} covers node {other.Guid}.");
+            }
+        }
+    }
+
+    /// <summary>A realistic save set must resolve at both field sizes the page uses.</summary>
+    [Theory]
+    [InlineData(652, 185)]
+    [InlineData(683, 345)]
+    public void RealSaveSetResolvesWithoutCollisions(int width, int height)
+    {
+        long[] seeds =
+        {
+            1_234_567_890L, 222_333_444L, 987_654_321L, 515_151_515L, 42L,
+            7_777_777L, 3_141_592_653L, 902_107_777L, 8_675_309L, 55_555_555L,
+        };
+
+        var saves = new List<StarChartSource>(seeds.Length);
+        for (var i = 0; i < seeds.Length; i++)
+        {
+            saves.Add(new StarChartSource($"save-{i:D2}", seeds[i]));
+        }
+
+        StarChartGeometry geometry = StarChartLayout.Compute(saves, null, width, height);
+
+        for (var a = 0; a < geometry.Nodes.Count; a++)
+        {
+            StarNodePlacement node = geometry.Nodes[a];
+
+            Assert.True(
+                StarChartLayout.InsideField(node.LabelX, node.LabelY, width, height),
+                $"Label {node.Guid} left the field.");
+
+            for (var b = a + 1; b < geometry.Nodes.Count; b++)
+            {
+                StarNodePlacement other = geometry.Nodes[b];
+                Assert.False(
+                    StarChartLayout.OverlapsBox(
+                        node.LabelX, node.LabelY, StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT,
+                        other.LabelX, other.LabelY, StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT),
+                    $"Labels {node.Guid} and {other.Guid} overlap.");
+            }
+
+            foreach (StarNodePlacement other in geometry.Nodes)
+            {
+                Assert.False(
+                    StarChartLayout.OverlapsBox(
+                        node.LabelX, node.LabelY, StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT,
                         other.X - (StarChartLayout.HIT_SIZE / 2),
                         other.Y - (StarChartLayout.HIT_SIZE / 2),
                         StarChartLayout.HIT_SIZE, StarChartLayout.HIT_SIZE),
@@ -386,40 +432,22 @@ public class StarChartLayoutTests
     }
 
     [Fact]
-    public void LabelsOnlySitOnThePreferredLadder()
+    public void LabelsSitOnTheirBaseOrOnTheGrid()
     {
         StarChartGeometry geometry = StarChartLayout.Compute(Many(14), null, WIDTH, HEIGHT);
 
         foreach (StarNodePlacement node in geometry.Nodes)
         {
-            int baseLeft = node.X - (StarChartLayout.LABEL_WIDTH / 2);
-            int baseTop = node.Y + StarChartLayout.LABEL_OFFSET_Y;
-            int dx = node.LabelX - baseLeft;
-            int dy = node.LabelY - baseTop;
+            int baseLeft = Math.Clamp(
+                node.X - (StarChartLayout.LABEL_WIDTH / 2), 0, WIDTH - StarChartLayout.LABEL_WIDTH);
+            int baseTop = Math.Clamp(
+                node.Y + StarChartLayout.LABEL_OFFSET_Y, 0, HEIGHT - StarChartLayout.LABEL_HEIGHT);
 
-            int maxY = StarChartLayout.LABEL_RINGS * StarChartLayout.LABEL_STEP_Y;
-            int maxX = StarChartLayout.LABEL_RINGS * StarChartLayout.LABEL_STEP_X;
+            bool atBase = node.LabelX == baseLeft && node.LabelY == baseTop;
+            bool onGrid = node.LabelX % StarChartLayout.LABEL_STEP_X == 0
+                && node.LabelY % StarChartLayout.LABEL_STEP_Y == 0;
 
-            Assert.InRange(dx, -maxX, maxX);
-            Assert.InRange(dy, -maxY, maxY);
-
-            bool onLadder = dx == 0 && dy == 0;
-            for (var ring = 1; ring <= StarChartLayout.LABEL_RINGS && !onLadder; ring++)
-            {
-                int stepY = ring * StarChartLayout.LABEL_STEP_Y;
-                int stepX = ring * StarChartLayout.LABEL_STEP_X;
-                onLadder = (dx == 0 && dy == stepY)
-                    || (dx == stepX && dy == 0)
-                    || (dx == -stepX && dy == 0)
-                    || (dx == stepX && dy == stepY)
-                    || (dx == -stepX && dy == stepY)
-                    || (dx == 0 && dy == -stepY)
-                    || (dx == stepX && dy == -stepY)
-                    || (dx == -stepX && dy == -stepY);
-            }
-
-            //  A clamped fallback is allowed only when no ladder slot cleared.
-            Assert.True(onLadder || geometry.Nodes.Count < 10, $"Label {node.Guid} used an off-ladder offset {dx},{dy}.");
+            Assert.True(atBase || onGrid, $"Label {node.Guid} sits at {node.LabelX},{node.LabelY}.");
         }
     }
 

@@ -52,6 +52,7 @@ internal static class StarChartLayout
     public const int LABEL_STEP_Y = 18;
     public const int LABEL_STEP_X = 40;
     public const int LABEL_RINGS = 12;
+    public const int LABEL_SEARCH_RADIUS = 4;
     public const int GLYPH_SIZE = 16;
     public const int BRACKET_SIZE = 8;
     public const int BRACKET_OFFSET_LEFT = -14;
@@ -275,9 +276,23 @@ internal static class StarChartLayout
             order[i] = i;
         }
 
+        //  Most constrained labels first, so a crowded label cannot take the slot a
+        //  tighter one needs. Ties fall back to the spatial order.
+        var freedom = new int[count];
+        for (var i = 0; i < count; i++)
+        {
+            freedom[i] = CountFreeSlots(i, xs, ys, width, height, count);
+        }
+
         Array.Sort(order, (a, b) =>
         {
-            int result = ys[a].CompareTo(ys[b]);
+            int result = freedom[a].CompareTo(freedom[b]);
+            if (result != 0)
+            {
+                return result;
+            }
+
+            result = ys[a].CompareTo(ys[b]);
             if (result != 0)
             {
                 return result;
@@ -292,58 +307,15 @@ internal static class StarChartLayout
         for (var step = 0; step < count; step++)
         {
             int index = order[step];
-            //  Clamp the base first, so an edge label can still find a slot.
             int baseLeft = ClampLabelX(xs[index] - (LABEL_WIDTH / 2), width);
             int baseTop = ClampLabelY(ys[index] + LABEL_OFFSET_Y, height);
 
-            bool done = TryPlace(index, baseLeft, baseTop, out int left, out int top);
-
-            for (var ring = 1; ring <= LABEL_RINGS && !done; ring++)
+            if (!TryFirst(index, baseLeft, baseTop, avoidNodes: true, radius: LABEL_SEARCH_RADIUS, out int left, out int top)
+                && !TryFirst(index, baseLeft, baseTop, avoidNodes: true, radius: int.MaxValue, out left, out top)
+                && !TryFirst(index, baseLeft, baseTop, avoidNodes: false, radius: int.MaxValue, out left, out top))
             {
-                int down = baseTop + (ring * LABEL_STEP_Y);
-                int right = baseLeft + (ring * LABEL_STEP_X);
-                int shifted = baseLeft - (ring * LABEL_STEP_X);
-
-                done = TryPlace(index, baseLeft, down, out left, out top)
-                    || TryPlace(index, right, baseTop, out left, out top)
-                    || TryPlace(index, shifted, baseTop, out left, out top)
-                    || TryPlace(index, right, down, out left, out top)
-                    || TryPlace(index, shifted, down, out left, out top)
-                    || TryUp(ring);
-            }
-
-            bool TryUp(int ring)
-            {
-                int up = baseTop - (ring * LABEL_STEP_Y);
-                int right = baseLeft + (ring * LABEL_STEP_X);
-                int shifted = baseLeft - (ring * LABEL_STEP_X);
-
-                return TryPlace(index, baseLeft, up, out left, out top)
-                    || TryPlace(index, right, up, out left, out top)
-                    || TryPlace(index, shifted, up, out left, out top);
-            }
-
-            //  Labels never overlap each other. Avoiding nodes is a preference, so a second
-            //  pass drops it when the field is too dense for both.
-            for (var ring = 1; ring <= LABEL_RINGS && !done; ring++)
-            {
-                int down = baseTop + (ring * LABEL_STEP_Y);
-                int right = baseLeft + (ring * LABEL_STEP_X);
-                int shifted = baseLeft - (ring * LABEL_STEP_X);
-
-                done = TryPlace(index, baseLeft, down, out left, out top, avoidNodes: false)
-                    || TryPlace(index, right, baseTop, out left, out top, avoidNodes: false)
-                    || TryPlace(index, shifted, baseTop, out left, out top, avoidNodes: false)
-                    || TryPlace(index, right, down, out left, out top, avoidNodes: false)
-                    || TryPlace(index, shifted, down, out left, out top, avoidNodes: false)
-                    || TryUp(ring);
-            }
-
-            if (!done)
-            {
-                //  Give up on this label: keep it near its node, clamped into the field.
-                left = ClampLabelX(baseLeft, width);
-                top = ClampLabelY(baseTop, height);
+                left = baseLeft;
+                top = baseTop;
             }
 
             lx[index] = left;
@@ -354,21 +326,83 @@ internal static class StarChartLayout
         labelXs = lx;
         labelYs = ly;
 
-        bool TryPlace(
-            int index,
-            int candidateLeft,
-            int candidateTop,
-            out int resultLeft,
-            out int resultTop,
-            bool avoidNodes = true
-        )
+        bool TryFirst(int index, int baseLeft, int baseTop, bool avoidNodes, int radius, out int left, out int top)
         {
-            resultLeft = candidateLeft;
-            resultTop = candidateTop;
-            return Fits(index, candidateLeft, candidateTop, avoidNodes);
+            int maxX = Math.Max(0, width - LABEL_WIDTH);
+            int maxY = Math.Max(0, height - LABEL_HEIGHT);
+
+            //  Slots on the grid near the base, ordered down, right, left, up.
+            var candidates = new List<(int X, int Y, long Rank)>();
+            Add(baseLeft, baseTop);
+
+            bool wholeField = radius == int.MaxValue;
+            int reachX = wholeField ? maxX : radius * LABEL_STEP_X;
+            int reachY = wholeField ? maxY : radius * LABEL_STEP_Y;
+
+            //  Anchor the window to the grid so every slot shares one lattice.
+            int nearX = (Math.Max(0, baseLeft - reachX) / LABEL_STEP_X) * LABEL_STEP_X;
+            int farX = Math.Min(maxX, baseLeft + reachX);
+            int nearY = (Math.Max(0, baseTop - reachY) / LABEL_STEP_Y) * LABEL_STEP_Y;
+            int farY = Math.Min(maxY, baseTop + reachY);
+
+            for (var y = nearY; y <= farY; y += LABEL_STEP_Y)
+            {
+                for (var x = nearX; x <= farX; x += LABEL_STEP_X)
+                {
+                    Add(x, y);
+                }
+            }
+
+            candidates.Sort(static (a, b) => a.Rank.CompareTo(b.Rank));
+
+            for (var i = 0; i < candidates.Count; i++)
+            {
+                (int x, int y, _) = candidates[i];
+                if (Fits(index, x, y, avoidNodes))
+                {
+                    left = x;
+                    top = y;
+                    return true;
+                }
+            }
+
+            left = baseLeft;
+            top = baseTop;
+            return false;
+
+            void Add(int x, int y)
+            {
+                int dx = x - baseLeft;
+                int dy = y - baseTop;
+                long rank;
+
+                //  Exact base first, then down, then right, then left, then up.
+                if (dx == 0 && dy == 0)
+                {
+                    rank = 0;
+                }
+                else if (dy > 0)
+                {
+                    rank = 1_000_000L + (dy * 1_000L) + Math.Abs(dx);
+                }
+                else if (dy == 0 && dx > 0)
+                {
+                    rank = 2_000_000L + dx;
+                }
+                else if (dy == 0 && dx < 0)
+                {
+                    rank = 3_000_000L + Math.Abs(dx);
+                }
+                else
+                {
+                    rank = 4_000_000L + (Math.Abs(dy) * 1_000L) + Math.Abs(dx);
+                }
+
+                candidates.Add((x, y, rank));
+            }
         }
 
-        bool Fits(int index, int candidateLeft, int candidateTop, bool avoidNodes = true)
+        bool Fits(int index, int candidateLeft, int candidateTop, bool avoidNodes)
         {
             if (!InsideField(candidateLeft, candidateTop, width, height))
             {
@@ -394,11 +428,6 @@ internal static class StarChartLayout
 
             for (var other = 0; other < count && avoidNodes; other++)
             {
-                if (other == index)
-                {
-                    continue;
-                }
-
                 if (OverlapsBox(
                         candidateLeft,
                         candidateTop,
@@ -415,6 +444,51 @@ internal static class StarChartLayout
 
             return true;
         }
+    }
+
+    /// <summary>Counts the grid slots that clear every node for one label.</summary>
+    private static int CountFreeSlots(
+        int index,
+        IReadOnlyList<int> xs,
+        IReadOnlyList<int> ys,
+        int width,
+        int height,
+        int count
+    )
+    {
+        int free = 0;
+        int maxX = Math.Max(0, width - LABEL_WIDTH);
+        int maxY = Math.Max(0, height - LABEL_HEIGHT);
+
+        for (var y = 0; y <= maxY; y += LABEL_STEP_Y)
+        {
+            for (var x = 0; x <= maxX; x += LABEL_STEP_X)
+            {
+                var clears = true;
+                for (var other = 0; other < count && clears; other++)
+                {
+                    if (OverlapsBox(
+                            x,
+                            y,
+                            LABEL_WIDTH,
+                            LABEL_HEIGHT,
+                            xs[other] - (HIT_SIZE / 2),
+                            ys[other] - (HIT_SIZE / 2),
+                            HIT_SIZE,
+                            HIT_SIZE))
+                    {
+                        clears = false;
+                    }
+                }
+
+                if (clears)
+                {
+                    free++;
+                }
+            }
+        }
+
+        return free;
     }
 
     /// <summary>Gets whether a label box sits fully inside the field.</summary>
