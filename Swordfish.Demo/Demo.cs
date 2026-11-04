@@ -135,7 +135,7 @@ public class Demo : IEntryPoint, IAutoActivate
     {
         UIBuilder<Material> ui = _reefContext.Builder;
 
-        using (ui.Element())
+        using (ui.Element("abc"))
         {
             ui.Constraints = new Constraints
             {
@@ -359,7 +359,7 @@ public class Demo : IEntryPoint, IAutoActivate
                 using (ui.Text("Clicked!")) { }
             }
             
-            using (ui.Element())
+            using (ui.Element("click me"))
             {
                 if (ui.Clicked("click me"))
                 {

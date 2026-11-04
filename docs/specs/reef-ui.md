@@ -151,6 +151,24 @@ rect. A clipped control cannot receive hover or click outside the clip. The
 check is in `Reef/UIController.cs:480`, and `UIBuilder` passes both rects at
 `Reef/UIBuilder.cs:413`.
 
+## Element queries
+
+`Hovering`, `Clicked`, `Released`, `Held`, `Entered`, `Exited`, `Scrolled`, and
+`Focused` have an overload that takes another element's id. These overloads are
+pure reads. They never change the current element's id or its interaction
+state.
+
+```csharp
+using (ui.Element("target"))
+{
+    bool hoveredElsewhere = ui.Hovering("other");
+}
+```
+
+An element that must be interactive names itself, either through
+`ui.Element("id")` or through the markup `id` attribute. A query is not a way to
+name an element.
+
 ## Renderers
 
 - `Reef/PixelRenderer.cs` renders to a CPU pixel buffer. Tests use it.

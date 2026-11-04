@@ -319,7 +319,7 @@ public class UITests
                 using (ui.Text("Clicked!")) { }
             }
             
-            using (ui.Element())
+            using (ui.Element("click me"))
             {
                 if (ui.Clicked("click me"))
                 {
