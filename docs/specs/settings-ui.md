@@ -134,7 +134,7 @@ dim the resolution row and use the monitor resolution. See
 The page applies display changes through
 `IWindowContext.ApplyDisplaySettings`. See [window-display](window-display.md).
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:261` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:340` keeps the display
 mode and resolution rows in sync when a shortcut or a manual resize changes the
 window while the page is open.
 
@@ -143,7 +143,7 @@ window while the page is open.
 The page exposes only options that the engine supports:
 
 - Display & Video: display mode, resolution, V-sync, frame limit, field of
-  view, view distance, anti-aliasing, ambient occlusion, AO samples, bloom, and
+  view, view distance, anti-aliasing, ambient occlusion, AO quality, bloom, and
   bloom quality.
 - Audio: master, music, effects, and interface volume.
 - Gameplay: autosave, autosave interval, control hints, crosshair, and name tag
@@ -166,7 +166,7 @@ existing spacer layout.
 
 ## Source
 
-- Page: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:22`
+- Page: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:19`
 - Categories: `WaywardBeyond.Client/UI/Settings/DisplaySettingsCategory.cs:12`,
   `AudioSettingsCategory.cs:7`, `GameplaySettingsCategory.cs:7`,
   `ControlSettingsCategory.cs:8`
