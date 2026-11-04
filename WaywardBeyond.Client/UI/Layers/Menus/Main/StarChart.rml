@@ -1,0 +1,154 @@
+<Reef xmlns="Reef"
+      xmlns:class="Reef.Class"
+      xmlns:param="Reef.Param"
+      Class="StarChart"
+      Access="internal"
+      Context="StarChartState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
+
+    <Element class="wb-star-field" layout="none" clip="true">
+
+        <ForEach in="@context.Specks" as="speck">
+            <Element class="wb-star-speck" x="@speck.X" y="@speck.Y" width="1" height="1" />
+        </ForEach>
+
+        <If condition="@context.IsEmpty">
+            <Text class="wb-star-empty"
+                  text="@context.Text('ui.label.level.chart.empty')"
+                  width="fill"
+                  height="fill"
+                  text-align="center"
+                  vertical-align="middle" />
+        </If>
+
+        <ForEach in="@context.Nodes" as="node">
+
+            <If condition="@node.Passthrough">
+                <Element id="SelectSave.Node.{node.Guid}"
+                         passthrough="true"
+                         layout="none"
+                         x="@node.HitX"
+                         y="@node.HitY"
+                         width="24"
+                         height="24"
+                         onclick="@context.OnSelect(node.Guid)" />
+            </If>
+            <Else>
+                <Element id="SelectSave.Node.{node.Guid}"
+                         layout="none"
+                         x="@node.HitX"
+                         y="@node.HitY"
+                         width="24"
+                         height="24"
+                         onclick="@context.OnSelect(node.Guid)" />
+            </Else>
+
+            <Text class="wb-star-glyph"
+                  class:wb-star-red="@node.IsRed"
+                  class:wb-star-emerald="@node.IsEmerald"
+                  class:wb-star-violet="@node.IsViolet"
+                  class:wb-star-glyph-hover="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))"
+                  class:wb-star-glyph-selected="@node.Selected"
+                  text="@context.Glyph"
+                  x="@node.GlyphX"
+                  y="@node.GlyphY"
+                  width="16"
+                  height="16"
+                  text-align="center" />
+
+            <If condition="@(node.Selected || ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))">
+                <Text class="wb-star-bracket"
+                      class:wb-star-bracket-selected="@node.Selected"
+                      text="["
+                      x="@node.BracketLeftX"
+                      y="@node.BracketY"
+                      width="8"
+                      height="16"
+                      text-align="center" />
+                <Text class="wb-star-bracket"
+                      class:wb-star-bracket-selected="@node.Selected"
+                      text="]"
+                      x="@node.BracketRightX"
+                      y="@node.BracketY"
+                      width="8"
+                      height="16"
+                      text-align="center" />
+            </If>
+
+            <Element id="SelectSave.Label.{node.Guid}"
+                     passthrough="true"
+                     layout="none"
+                     width="160"
+                     height="16"
+                     x="@node.LabelX"
+                     y="@node.LabelY">
+                <Element class="wb-star-label-scrim"
+                         passthrough="true"
+                         layout="horizontal"
+                         width="fit"
+                         height="fit"
+                         padding="4 1 4 1"
+                         anchor="Center">
+                    <Text class="wb-star-label"
+                          class:wb-star-label-hover="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))"
+                          class:wb-star-label-selected="@node.Selected"
+                          text="@node.Name"
+                          wrap="false" />
+                </Element>
+            </Element>
+
+            <If condition="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))">
+                <Element id="SelectSave.Card.{node.Guid}"
+                         class="wb-star-card"
+                         overlay="true"
+                         passthrough="true"
+                         layout="vertical"
+                         x="@node.CardX"
+                         y="@node.CardY"
+                         width="310"
+                         height="fit"
+                         padding="12"
+                         spacing="4">
+                    <Text class="wb-text-body" text="@node.Name" width="fill" height="fit" wrap="true" />
+
+                    <StatRow param:wrap="true" width="fill">
+                        <Content name="label">
+                            <Text class="wb-card-detail-label" text="@context.Text('ui.label.level.mode')" width="100" height="fit" wrap="true" />
+                        </Content>
+                        <Content name="value">
+                            <Text class="wb-card-detail-value" text="@node.Mode" width="fill" height="fit" wrap="true" />
+                        </Content>
+                    </StatRow>
+
+                    <StatRow param:wrap="true" width="fill">
+                        <Content name="label">
+                            <Text class="wb-card-detail-label" text="@context.Text('ui.label.level.seed')" width="100" height="fit" wrap="true" />
+                        </Content>
+                        <Content name="value">
+                            <Text class="wb-card-detail-value" text="@node.Seed" width="fill" height="fit" wrap="true" />
+                        </Content>
+                    </StatRow>
+
+                    <StatRow param:wrap="true" width="fill">
+                        <Content name="label">
+                            <Text class="wb-card-detail-label" text="@context.Text('ui.label.timePlayed')" width="100" height="fit" wrap="true" />
+                        </Content>
+                        <Content name="value">
+                            <Text class="wb-card-detail-value" text="@node.TimePlayed" width="fill" height="fit" wrap="true" />
+                        </Content>
+                    </StatRow>
+
+                    <StatRow param:wrap="true" width="fill">
+                        <Content name="label">
+                            <Text class="wb-card-detail-label" text="@context.Text('ui.label.lastPlayed')" width="100" height="fit" wrap="true" />
+                        </Content>
+                        <Content name="value">
+                            <Text class="wb-card-detail-value" text="@node.LastPlayed" width="fill" height="fit" wrap="true" />
+                        </Content>
+                    </StatRow>
+                </Element>
+            </If>
+        </ForEach>
+    </Element>
+</Reef>

@@ -131,6 +131,9 @@ A save is a galaxy. The game stores levels and characters.
   `ScrollArea` component, so it shows the same scrollbar as the crew manifest
   when the list overflows.
 - Galaxy telemetry is `Level` data (mode, seed, playtime, and last played).
+- The Star chart pane replaces the telemetry panel. Each save is a node at a
+  position derived from its seed, and its telemetry shows in a hover card. See
+  [star-chart](star-chart.md).
 - Crew manifest is `ICharacterStorage`.
 - Species and gender are the real body selectors. Each one is a stepper over
   the shipped body definitions, and the pair resolves to the `Character.Body`
@@ -212,7 +215,10 @@ Do not add fake menu controls.
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:14`
 - Connecting modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/ConnectingModal.cs:15`
 - Pause: `WaywardBeyond.Client/UI/Layers/Menus/Pause/HomePage.cs:15`
-- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:20`
+- Select save: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:19`
+- Star chart view: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSaveView.rml:1`
+- Star chart component: `WaywardBeyond.Client/UI/Layers/Menus/Main/StarChart.rml:3`
+- Star chart geometry: `WaywardBeyond.Client/UI/Layers/Menus/Main/StarChartLayout.cs:40`
 - Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:24`
 - Crew manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:22`
 - Character form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:26`
@@ -225,9 +231,14 @@ Do not add fake menu controls.
 
 ## Tests
 
-- `Swordfish.Tests/SelectSaveViewTests.cs` and
-  `Swordfish.Tests/SelectCharacterViewTests.cs` compare the migrated views to
-  the legacy goldens at 800x600, 1280x720, and 1920x1080.
+- `Swordfish.Tests/SelectCharacterViewTests.cs` compares the migrated view to the
+  legacy goldens at 800x600, 1280x720, and 1920x1080. `SelectSaveViewTests`
+  compares the save page to `TestFiles/Snapshots` goldens instead, because the
+  star chart intentionally replaces the telemetry pane. The chart needs a
+  measured field, so that capture renders two frames.
+- `Swordfish.Tests/StarChartLayoutTests.cs` covers seed placement, separation,
+  overlap, and card placement. `Swordfish.Tests/StarChartViewTests.cs` renders
+  the chart component from a fixed state.
 
 - `Swordfish.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.

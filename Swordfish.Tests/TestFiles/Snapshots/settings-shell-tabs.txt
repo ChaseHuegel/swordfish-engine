@@ -17,10 +17,10 @@
 16 id=- rect=66,226,668,1 clip=42,174,716,244 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 17 id=- rect=66,227,0,8 clip=42,174,716,244 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 18 id=Settings.RowsTabs rect=66,235,668,159 clip=42,174,716,244 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-19 id=- rect=66,235,654,159 clip=66,235,654,159 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-20 id=Settings.RowsTabsContent rect=66,235,654,680 clip=66,235,654,159 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
-21 id=- rect=66,235,654,35 clip=66,235,654,159 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=ui.settings.section.window
-22 id=- rect=66,270,654,1 clip=66,235,654,159 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+19 id=- rect=66,235,668,159 clip=66,235,668,159 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+20 id=Settings.RowsTabsContent rect=66,235,654,680 clip=66,235,668,159 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
+21 id=- rect=66,235,654,35 clip=66,235,668,159 color=0.5529,0.6275,0.7216,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=ui.settings.section.window
+22 id=- rect=66,270,654,1 clip=66,235,668,159 color=0.102,0.1373,0.2,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 23 id=- rect=66,271,654,44 clip=66,271,654,44 color=0,0,0,0 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-
 24 id=- rect=66,271,418,44 clip=66,271,654,44 color=0.9412,0.9529,0.9647,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:20 text=ui.settings.option.displayMode
 25 id=- rect=500,277,220,32 clip=500,277,220,32 color=0.0824,0.1137,0.1647,1 bg=0,0,0,0 border=1:0.1686,0.2196,0.3059,1 caps=0:0:0,0,0,0 radius=0:0:0:0 font=-:0 text=-

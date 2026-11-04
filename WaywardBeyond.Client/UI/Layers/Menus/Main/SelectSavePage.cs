@@ -82,7 +82,9 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
         _scroll.Measure(ui, "SelectSave.Archives");
 
-        _view.Render(ui, BuildState());
+        SelectSaveState state = BuildState();
+        _view.TrackHover(ui, state);
+        _view.Render(ui, state);
         return Result.FromSuccess();
     }
 
@@ -101,21 +103,11 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
                 level.DefaultGameMode,
                 level.DefaultGameMode == GameMode.Creative,
                 level.Playtime.LastPlayedMs,
-                active != null && active.Value.Level.Guid == level.Guid
-            ));
-        }
-
-        var detail = default(SaveDetailState);
-        if (active != null)
-        {
-            Level level = active.Value.Level;
-            detail = new SaveDetailState(
-                active.Value.Name,
-                level.DefaultGameMode,
-                _seedPhraseService.SeedToPhrase(level.Seed),
+                active != null && active.Value.Level.Guid == level.Guid,
+                level.Seed,
                 level.Playtime.AgeMs,
-                level.Playtime.LastPlayedMs
-            );
+                _seedPhraseService.SeedToPhrase(level.Seed)
+            ));
         }
 
         return new SelectSaveState(
@@ -123,8 +115,7 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
             _gameSaveService.CanCreateSave,
             _narrowTab,
             active != null,
-            rows,
-            detail
+            rows
         );
     }
 

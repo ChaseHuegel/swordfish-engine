@@ -1,0 +1,78 @@
+.wb-star-field {
+    color: var(--wb-chart);
+}
+
+.wb-star-speck {
+    color: var(--wb-text-faint);
+}
+
+.wb-star-glyph {
+    color: var(--wb-text);
+    font-family: var(--wb-font-icons);
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-star-red {
+    color: var(--wb-star-red);
+}
+
+.wb-star-emerald {
+    color: var(--wb-star-emerald);
+}
+
+.wb-star-violet {
+    color: var(--wb-star-violet);
+}
+
+.wb-star-glyph-hover {
+    font-size: 14px;
+}
+
+.wb-star-glyph-selected {
+    font-size: 16px;
+}
+
+.wb-star-label-scrim {
+    color: var(--wb-chart-label-scrim);
+}
+
+.wb-star-label {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-star-label-hover {
+    color: var(--wb-text-soft);
+}
+
+.wb-star-label-selected {
+    color: var(--wb-accent-bright);
+}
+
+.wb-star-bracket {
+    color: var(--wb-border-hover);
+    font-family: var(--wb-font-ui);
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.wb-star-bracket-selected {
+    color: var(--wb-accent);
+}
+
+.wb-star-card {
+    color: var(--wb-panel);
+    border: 1px var(--wb-border);
+}
+
+.wb-star-empty {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 18px;
+}

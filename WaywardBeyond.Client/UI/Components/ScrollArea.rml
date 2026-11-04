@@ -4,16 +4,17 @@
       Context="ScrollAreaState"
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Components">
-    <Element layout="horizontal" width="fill" height="fill" spacing="8">
+    <Element layout="none" width="fill" height="fill">
         <Element layout="vertical"
                  width="fill"
                  height="fill"
+                 padding="0 0 14 0"
                  clip="true"
                  scroll="vertical"
                  scroll-y="@context.ReefOffset"
                  onscroll="@context.OnScroll(ui.GetScrollDelta())">
             <Content />
         </Element>
-        <ScrollBar context="@context.Bar" />
+        <ScrollBar context="@context.Bar" anchor="Right" width="6" height="fill" />
     </Element>
 </Reef>
