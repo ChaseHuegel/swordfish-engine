@@ -8,7 +8,7 @@ One subject: how to author Wayward Beyond UI with Reef markup and styles.
 |---|---|
 | `.rss` | Tokens, colors, fonts, spacing, variants, pseudo-states, responsive classes |
 | `.rml` | Structure, content, layout, slots, visibility, localization keys |
-| View code-behind | `L`, glyphs, formatting, event forwarding, service access |
+| View code-behind | `L`, glyphs, formatting, event forwarding |
 | Page or layer | Services, game state, navigation, sounds, async work, persistence |
 | Context type | Dynamic data only |
 | Behavior widget | Input mechanics only |
