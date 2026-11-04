@@ -142,13 +142,33 @@ Set `VerticalScroll` or `HorizontalScroll` to true to opt an element into the
 scroll routing. `GetElementScrollDelta` returns the wheel delta that targeted the
 element on the previous frame. Use it with the caller-owned scroll offset.
 `GetElementBounds` returns the previous frame rect, clip rect, and content size,
-so a scrollbar can size its thumb without guessing. The settings page and the
+so a scrollbar can size its thumb without guessing. The `ScrollArea` component
+spans its viewport across the full width and reserves the bar with right
+padding, so a wheel anywhere in the area, including over the bar, scrolls it. The settings page and the
 menu lists use this pair through the `ScrollArea` component.
 
 Interaction hit testing uses the intersection of the element rect and its clip
 rect. A clipped control cannot receive hover or click outside the clip. The
 check is in `Reef/UIController.cs:480`, and `UIBuilder` passes both rects at
 `Reef/UIBuilder.cs:413`.
+
+## Element queries
+
+`Hovering`, `Clicked`, `Released`, `Held`, `Entered`, `Exited`, `Scrolled`, and
+`Focused` have an overload that takes another element's id. These overloads are
+pure reads. They never change the current element's id or its interaction
+state.
+
+```csharp
+using (ui.Element("target"))
+{
+    bool hoveredElsewhere = ui.Hovering("other");
+}
+```
+
+An element that must be interactive names itself, either through
+`ui.Element("id")` or through the markup `id` attribute. A query is not a way to
+name an element.
 
 ## Renderers
 
