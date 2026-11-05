@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Reef;
 using Reef.UI;
@@ -182,6 +183,70 @@ public class SelectSaveViewTests
 
         Assert.Equal(2, chart.Nodes.Count);
         Assert.Equal("save-a", chart.Nodes[^1].Guid);
+    }
+
+    /// <summary>The archive list scrolls with the wheel at every layout size.</summary>
+    [Theory]
+    [InlineData(800, 600)]
+    [InlineData(1024, 768)]
+    [InlineData(1280, 720)]
+    [InlineData(1600, 900)]
+    [InlineData(1920, 1080)]
+    public void ArchiveListScrolls(int width, int height)
+    {
+        Assert.True(ScrollsAt(width, height), $"No scroll at {width}x{height}.");
+    }
+
+    private static bool ScrollsAt(int width, int height)
+    {
+        var controller = new UIController();
+        var scroll = new ScrollAreaState();
+        var view = new SelectSaveView(new TestLocalization(), scroll);
+        var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), controller);
+
+        var rows = new List<SaveRowState>();
+        for (var i = 0; i < 12; i++)
+        {
+            rows.Add(new SaveRowState(
+                $"save-{i:D2}",
+                "Galaxy " + i,
+                GameMode.Creative,
+                true,
+                0,
+                i == 0,
+                100 + i,
+                0,
+                "seed"));
+        }
+
+        var state = new SelectSaveState(false, true, 0, true, rows);
+
+        for (var frame = 0; frame < 3; frame++)
+        {
+            controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
+            scroll.Measure(ui, "SelectSave.Archives");
+            view.TrackHover(ui, state);
+            view.Render(ui, state);
+            ui.Build(0d);
+        }
+
+        ElementBounds list = ui.GetElementBounds("SelectSave.Archives");
+        int x = list.Rect.Position.X + (list.Rect.Size.X / 2);
+        int y = list.Rect.Position.Y + (list.Rect.Size.Y / 2);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        scroll.Measure(ui, "SelectSave.Archives");
+        view.TrackHover(ui, state);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None, scrollDeltaY: -1f);
+        scroll.Measure(ui, "SelectSave.Archives");
+        view.TrackHover(ui, state);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        return scroll.Offset > 0 && scroll.Bar.ThumbOffset > 0f;
     }
 
     /// <summary>The trash icon inside the row must still fire.</summary>
