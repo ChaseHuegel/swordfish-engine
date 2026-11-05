@@ -98,7 +98,7 @@ internal partial class SelectSaveView : UiViewBase
     {
         foreach (SaveRowState row in state.Saves)
         {
-            ElementBounds bounds = ui.GetElementBounds("SelectSave.Label." + row.Guid);
+            ElementBounds bounds = ui.GetElementBounds("SelectSave.LabelText." + row.Guid);
             if (bounds.Rect.Size.X > 0 && bounds.Rect.Size.Y > 0)
             {
                 _labelSizes[row.Guid] = (bounds.Rect.Size.X, bounds.Rect.Size.Y);

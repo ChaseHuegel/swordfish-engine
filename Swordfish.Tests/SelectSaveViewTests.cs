@@ -98,8 +98,8 @@ public class SelectSaveViewTests
             ui.Build(0d);
         }
 
-        ElementBounds longLabel = ui.GetElementBounds("SelectSave.Label.save-a");
-        ElementBounds shortLabel = ui.GetElementBounds("SelectSave.Label.save-b");
+        ElementBounds longLabel = ui.GetElementBounds("SelectSave.LabelText.save-a");
+        ElementBounds shortLabel = ui.GetElementBounds("SelectSave.LabelText.save-b");
 
         Assert.True(longLabel.Rect.Size.X > 0, "The label was not measured.");
         Assert.True(shortLabel.Rect.Size.X > 0, "The label was not measured.");

@@ -57,6 +57,7 @@ internal static class StarChartLayout
     public const int LABEL_HEIGHT = 16;
     public const int LABEL_OFFSET_Y = 14;
     public const int LABEL_MIN_WIDTH = 24;
+    public const int LABEL_GAP = 6;
     public const int LABEL_STEP_Y = 18;
     public const int LABEL_STEP_X = 40;
     public const int LABEL_RINGS = 12;
@@ -326,8 +327,15 @@ internal static class StarChartLayout
             placed.Add(index);
         }
 
-        labelXs = lx;
-        labelYs = ly;
+        //  Packing works on text boxes. The rendered element keeps a fixed width so
+        //  the text stays centered even before it has been measured.
+        labelXs = new int[count];
+        labelYs = new int[count];
+        for (var i = 0; i < count; i++)
+        {
+            labelXs[i] = lx[i] + (labelWidths[i] / 2) - (LABEL_WIDTH / 2);
+            labelYs[i] = ly[i];
+        }
 
         bool TryFirst(
             int index,
@@ -414,10 +422,10 @@ internal static class StarChartLayout
             {
                 int other = placed[i];
                 if (OverlapsBox(
-                        candidateLeft,
-                        candidateTop,
-                        labelWidth,
-                        labelHeight,
+                        candidateLeft - LABEL_GAP,
+                        candidateTop - LABEL_GAP,
+                        labelWidth + (LABEL_GAP * 2),
+                        labelHeight + (LABEL_GAP * 2),
                         lx[other],
                         ly[other],
                         labelWidths[other],

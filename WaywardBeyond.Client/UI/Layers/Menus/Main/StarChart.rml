@@ -77,16 +77,23 @@
 
             <Element id="SelectSave.Label.{node.Guid}"
                      passthrough="true"
-                     layout="horizontal"
-                     width="fit"
-                     height="fit"
+                     layout="none"
+                     width="160"
+                     height="16"
                      x="@node.LabelX"
                      y="@node.LabelY">
-                <Text class="wb-star-label"
-                      class:wb-star-label-hover="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))"
-                      class:wb-star-label-selected="@node.Selected"
-                      text="@node.Name"
-                      wrap="false" />
+                <Element id="SelectSave.LabelText.{node.Guid}"
+                         passthrough="true"
+                         layout="horizontal"
+                         width="fit"
+                         height="fit"
+                         anchor="Center">
+                    <Text class="wb-star-label"
+                          class:wb-star-label-hover="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))"
+                          class:wb-star-label-selected="@node.Selected"
+                          text="@node.Name"
+                          wrap="false" />
+                </Element>
             </Element>
 
             <If condition="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))">

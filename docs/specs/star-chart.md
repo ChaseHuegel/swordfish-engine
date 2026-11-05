@@ -51,9 +51,11 @@ the field size. It returns placements and specks. It has no UI dependency.
 
 ## Label packing
 
-Labels size to their text. The page measures each label's bounds one frame
-ahead, so the packing uses real font metrics and never guesses a character
-width. Before the first measurement the packing falls back to 160 by 16.
+Labels are a fixed 160 by 16 element with the text centered inside, so a label
+is always centered on its node even before it has been measured. An inner
+fit-sized element carries the text and gives the page its measured width one
+frame ahead. Packing uses those real metrics and never guesses a character
+width. Before the first measurement it falls back to 160 by 16.
 
 The placement is a deterministic greedy pass inside `Compute`, so the geometry
 cache covers it and the measured sizes join the cache key.
@@ -66,7 +68,8 @@ cache covers it and the measured sizes join the cache key.
 - Preference: exact base, then down, then right, then left, then up. Within a
   direction the nearest slot wins, and the cost is `|dx| + 2|dy|` so a label
   never trades a long horizontal move for a short vertical one.
-- Hard rule: a label never overlaps another label, and never leaves the field.
+- Hard rule: a label never overlaps another label, never comes within 6px of
+  one, and never leaves the field.
 - Labels may cover a node or a diamond. Only label collisions are resolved, so a
   label stays as close to its star as the lattice allows.
 - Fallback: if every slot fails, the label sits at its clamped base position.

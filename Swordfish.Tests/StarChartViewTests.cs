@@ -100,9 +100,10 @@ public class StarChartViewTests
             }
         }
 
-        Assert.Equal(2, withId.Count);
+        Assert.Equal(3, withId.Count);
         Assert.Contains("SelectSave.Node.aaaa@188,188,24,24", withId);
         Assert.Contains(withId, id => id.StartsWith("SelectSave.Label.aaaa@", StringComparison.Ordinal));
+        Assert.Contains(withId, id => id.StartsWith("SelectSave.LabelText.aaaa@", StringComparison.Ordinal));
     }
 
     /// <summary>Hover stays open across the diamond.</summary>
