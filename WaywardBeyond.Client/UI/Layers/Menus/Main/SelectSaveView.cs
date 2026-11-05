@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Reef;
+using Reef.UI;
+using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.UI.Components;
@@ -13,6 +16,7 @@ internal partial class SelectSaveView : UiViewBase
 {
     private readonly ILocalization _localization;
 
+    private readonly Dictionary<string, (int Width, int Height)> _labelSizes = new(StringComparer.Ordinal);
     private string _chartKey = string.Empty;
     private StarChartGeometry _chartGeometry = StarChartGeometry.Empty;
     private StarChartNodeState[] _chartNodes = Array.Empty<StarChartNodeState>();
@@ -89,6 +93,19 @@ internal partial class SelectSaveView : UiViewBase
         return mode.ToString();
     }
 
+    /// <summary>Records the measured size of each chart label from the previous frame.</summary>
+    public void Measure(UIBuilder<Material> ui, SelectSaveState state)
+    {
+        foreach (SaveRowState row in state.Saves)
+        {
+            ElementBounds bounds = ui.GetElementBounds("SelectSave.Label." + row.Guid);
+            if (bounds.Rect.Size.X > 0 && bounds.Rect.Size.Y > 0)
+            {
+                _labelSizes[row.Guid] = (bounds.Rect.Size.X, bounds.Rect.Size.Y);
+            }
+        }
+    }
+
     /// <summary>Builds the star chart context for a field size, reusing cached geometry.</summary>
     public StarChartState Chart(SelectSaveState state, int width, int height)
     {
@@ -121,13 +138,17 @@ internal partial class SelectSaveView : UiViewBase
     }
 
     /// <summary>Computes the chart geometry for the current save set and field size.</summary>
-    private static StarChartGeometry BuildGeometry(in SelectSaveState state, int width, int height)    {
+    private StarChartGeometry BuildGeometry(in SelectSaveState state, int width, int height)    {
         var sources = new List<StarChartSource>(state.Saves.Count);
         string? selected = null;
 
         foreach (SaveRowState row in state.Saves)
         {
-            sources.Add(new StarChartSource(row.Guid, row.Seed));
+            (int labelWidth, int labelHeight) = _labelSizes.TryGetValue(row.Guid, out (int, int) size)
+                ? size
+                : (0, 0);
+
+            sources.Add(new StarChartSource(row.Guid, row.Seed, labelWidth, labelHeight));
             if (row.Selected)
             {
                 selected = row.Guid;
@@ -185,6 +206,8 @@ internal partial class SelectSaveView : UiViewBase
                 CardX: placement.CardX,
                 CardY: placement.CardY,
                 CardHeight: StarChartLayout.CARD_HEIGHT,
+                LabelWidth: placement.LabelWidth,
+                LabelHeight: placement.LabelHeight,
                 Selected: placement.Selected,
                 Passthrough: placement.Passthrough
             );
@@ -194,7 +217,7 @@ internal partial class SelectSaveView : UiViewBase
     }
 
     /// <summary>Builds the cache key for the chart geometry.</summary>
-    private static string ChartKey(in SelectSaveState state, int width, int height)
+    private string ChartKey(in SelectSaveState state, int width, int height)
     {
         var builder = new StringBuilder(state.Saves.Count * 32);
         builder.Append(width).Append('x').Append(height);
@@ -206,9 +229,30 @@ internal partial class SelectSaveView : UiViewBase
             {
                 builder.Append(',');
             }
+
+            //  Measured label size feeds the packing, so a change repacks.
+            if (TryGetSize(state, row.Guid, out int labelWidth, out int labelHeight))
+            {
+                builder.Append('@').Append(labelWidth).Append('x').Append(labelHeight);
+            }
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>Gets the measured label size for one save, when it is known.</summary>
+    private bool TryGetSize(in SelectSaveState state, string guid, out int width, out int height)
+    {
+        if (_labelSizes.TryGetValue(guid, out (int Width, int Height) size))
+        {
+            width = size.Width;
+            height = size.Height;
+            return true;
+        }
+
+        width = 0;
+        height = 0;
+        return false;
     }
 
     /// <summary>Raises the save selection for a chart node.</summary>

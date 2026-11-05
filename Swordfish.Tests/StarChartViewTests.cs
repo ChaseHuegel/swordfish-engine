@@ -84,9 +84,9 @@ public class StarChartViewTests
         Assert.NotNull(commands.Find(command => command.Text == "]"));
     }
 
-    /// <summary>Only the hit target owns the node id, so hover is unambiguous.</summary>
+    /// <summary>The node owns its hit id and the label owns its measurement id.</summary>
     [Fact]
-    public void OnlyTheHitTargetCarriesTheNodeId()
+    public void NodeAndLabelOwnDistinctIds()
     {
         List<RenderCommand<Material>> commands = Render(State(Node("aaaa", "Vela", 200, 200)));
 
@@ -100,8 +100,9 @@ public class StarChartViewTests
             }
         }
 
-        Assert.True(withId.Count == 1, "Ids: " + string.Join(" | ", withId));
-        Assert.Equal("SelectSave.Node.aaaa@188,188,24,24", withId[0]);
+        Assert.Equal(2, withId.Count);
+        Assert.Contains("SelectSave.Node.aaaa@188,188,24,24", withId);
+        Assert.Contains(withId, id => id.StartsWith("SelectSave.Label.aaaa@", StringComparison.Ordinal));
     }
 
     /// <summary>Hover stays open across the diamond.</summary>
@@ -218,6 +219,8 @@ public class StarChartViewTests
             BracketY: y + StarChartLayout.BRACKET_OFFSET_Y,
             LabelX: x - (StarChartLayout.LABEL_WIDTH / 2),
             LabelY: y + StarChartLayout.LABEL_OFFSET_Y,
+            LabelWidth: StarChartLayout.LABEL_WIDTH,
+            LabelHeight: StarChartLayout.LABEL_HEIGHT,
             CardX: 100,
             CardY: 100,
             CardHeight: StarChartLayout.CARD_HEIGHT,

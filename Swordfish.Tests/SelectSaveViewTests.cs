@@ -80,6 +80,33 @@ public class SelectSaveViewTests
         Assert.Equal("save-a", selected);
     }
 
+    /// <summary>Labels size to their text instead of a fixed width.</summary>
+    [Fact]
+    public void ChartLabelsMeasureTheirText()
+    {
+        var controller = new UIController();
+        var scroll = new ScrollAreaState();
+        var view = new SelectSaveView(new TestLocalization(), scroll);
+        SelectSaveState state = CreateState(view);
+        var ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), controller);
+
+        for (var frame = 0; frame < 3; frame++)
+        {
+            controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
+            view.Measure(ui, state);
+            view.Render(ui, state);
+            ui.Build(0d);
+        }
+
+        ElementBounds longLabel = ui.GetElementBounds("SelectSave.Label.save-a");
+        ElementBounds shortLabel = ui.GetElementBounds("SelectSave.Label.save-b");
+
+        Assert.True(longLabel.Rect.Size.X > 0, "The label was not measured.");
+        Assert.True(shortLabel.Rect.Size.X > 0, "The label was not measured.");
+        Assert.True(longLabel.Rect.Size.X < StarChartLayout.LABEL_WIDTH);
+        Assert.True(longLabel.Rect.Size.X > shortLabel.Rect.Size.X);
+    }
+
     /// <summary>The trash icon inside the row must still fire.</summary>
     [Fact]
     public void ArchiveRowDeleteFires()

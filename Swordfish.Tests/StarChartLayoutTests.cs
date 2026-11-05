@@ -128,7 +128,7 @@ public class StarChartLayoutTests
 
         StarChartGeometry geometry = StarChartLayout.Compute(saves, null, 4000, 4000);
         StarNodePlacement second = geometry.Nodes[1];
-        var baseNode = new StarNodePlacement("x", BaseX(SEED, 4000), BaseY(SEED, 4000), 0, false, false, 0, 0, 0, 0);
+        var baseNode = new StarNodePlacement("x", BaseX(SEED, 4000), BaseY(SEED, 4000), 0, false, false, 0, 0, 0, 0, 0, 0);
 
         Assert.True(Distance(second, baseNode) >= StarChartLayout.NODE_MIN_DISTANCE - 1.5);
     }

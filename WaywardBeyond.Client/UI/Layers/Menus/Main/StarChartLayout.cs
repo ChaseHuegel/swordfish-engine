@@ -6,7 +6,12 @@ using WaywardBeyond.Data;
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
 /// <summary>The facts that place one save on the star chart.</summary>
-internal readonly record struct StarChartSource(string Guid, long Seed);
+internal readonly record struct StarChartSource(
+    string Guid,
+    long Seed,
+    int LabelWidth = 0,
+    int LabelHeight = 0
+);
 
 /// <summary>The computed position of one save on the star chart.</summary>
 internal readonly record struct StarNodePlacement(
@@ -19,7 +24,9 @@ internal readonly record struct StarNodePlacement(
     int CardX,
     int CardY,
     int LabelX,
-    int LabelY
+    int LabelY,
+    int LabelWidth,
+    int LabelHeight
 );
 
 /// <summary>One background star speck.</summary>
@@ -49,6 +56,7 @@ internal static class StarChartLayout
     public const int LABEL_WIDTH = 160;
     public const int LABEL_HEIGHT = 16;
     public const int LABEL_OFFSET_Y = 14;
+    public const int LABEL_MIN_WIDTH = 24;
     public const int LABEL_STEP_Y = 18;
     public const int LABEL_STEP_X = 40;
     public const int LABEL_RINGS = 12;
@@ -104,12 +112,18 @@ internal static class StarChartLayout
         }
 
         var guids = new string[count];
+        var widths = new int[count];
+        var heights = new int[count];
         for (var i = 0; i < count; i++)
         {
             guids[i] = ordered[i].Guid;
+            widths[i] = ordered[i].LabelWidth > 0 ? ordered[i].LabelWidth : LABEL_WIDTH;
+            heights[i] = ordered[i].LabelHeight > 0 ? ordered[i].LabelHeight : LABEL_HEIGHT;
         }
 
-        PlaceLabels(xs, ys, guids, width, height, count, out int[] labelXs, out int[] labelYs);
+        PlaceLabels(
+            xs, ys, guids, widths, heights, width, height, count,
+            out int[] labelXs, out int[] labelYs);
 
         var nodes = new List<StarNodePlacement>(count);
         for (var i = 0; i < count; i++)
@@ -126,7 +140,9 @@ internal static class StarChartLayout
                     CardX(xs[i], width),
                     CardY(ys[i], height),
                     labelXs[i],
-                    labelYs[i]
+                    labelYs[i],
+                    widths[i],
+                    heights[i]
                 )
             );
         }
@@ -258,6 +274,8 @@ internal static class StarChartLayout
         IReadOnlyList<int> xs,
         IReadOnlyList<int> ys,
         IReadOnlyList<string> guids,
+        IReadOnlyList<int> labelWidths,
+        IReadOnlyList<int> labelHeights,
         int width,
         int height,
         int count,
@@ -292,10 +310,12 @@ internal static class StarChartLayout
         for (var step = 0; step < count; step++)
         {
             int index = order[step];
-            int baseLeft = ClampLabelX(xs[index] - (LABEL_WIDTH / 2), width);
-            int baseTop = ClampLabelY(ys[index] + LABEL_OFFSET_Y, height);
+            int labelWidth = labelWidths[index];
+            int labelHeight = labelHeights[index];
+            int baseLeft = ClampLabelX(xs[index] - (labelWidth / 2), width, labelWidth);
+            int baseTop = ClampLabelY(ys[index] + LABEL_OFFSET_Y, height, labelHeight);
 
-            if (!TryFirst(index, baseLeft, baseTop, out int left, out int top))
+            if (!TryFirst(index, baseLeft, baseTop, labelWidth, labelHeight, out int left, out int top))
             {
                 left = baseLeft;
                 top = baseTop;
@@ -309,10 +329,18 @@ internal static class StarChartLayout
         labelXs = lx;
         labelYs = ly;
 
-        bool TryFirst(int index, int baseLeft, int baseTop, out int left, out int top)
+        bool TryFirst(
+            int index,
+            int baseLeft,
+            int baseTop,
+            int labelWidth,
+            int labelHeight,
+            out int left,
+            out int top
+        )
         {
-            int maxX = Math.Max(0, width - LABEL_WIDTH);
-            int maxY = Math.Max(0, height - LABEL_HEIGHT);
+            int maxX = Math.Max(0, width - labelWidth);
+            int maxY = Math.Max(0, height - labelHeight);
 
             //  Every slot on the lattice, nearest first, ordered down, right, left, up.
             var candidates = new List<(int X, int Y, long Rank)>();
@@ -331,7 +359,7 @@ internal static class StarChartLayout
             for (var i = 0; i < candidates.Count; i++)
             {
                 (int x, int y, _) = candidates[i];
-                if (Fits(x, y))
+                if (Fits(x, y, labelWidth, labelHeight))
                 {
                     left = x;
                     top = y;
@@ -375,9 +403,9 @@ internal static class StarChartLayout
             }
         }
 
-        bool Fits(int candidateLeft, int candidateTop)
+        bool Fits(int candidateLeft, int candidateTop, int labelWidth, int labelHeight)
         {
-            if (!InsideField(candidateLeft, candidateTop, width, height))
+            if (!InsideField(candidateLeft, candidateTop, width, height, labelWidth, labelHeight))
             {
                 return false;
             }
@@ -388,12 +416,12 @@ internal static class StarChartLayout
                 if (OverlapsBox(
                         candidateLeft,
                         candidateTop,
-                        LABEL_WIDTH,
-                        LABEL_HEIGHT,
+                        labelWidth,
+                        labelHeight,
                         lx[other],
                         ly[other],
-                        LABEL_WIDTH,
-                        LABEL_HEIGHT))
+                        labelWidths[other],
+                        labelHeights[other]))
                 {
                     return false;
                 }
@@ -404,9 +432,11 @@ internal static class StarChartLayout
     }
 
     /// <summary>Gets whether a label box sits fully inside the field.</summary>
-    public static bool InsideField(int left, int top, int width, int height)
+    public static bool InsideField(int left, int top, int width, int height, int labelWidth = 0, int labelHeight = 0)
     {
-        return left >= 0 && top >= 0 && left + LABEL_WIDTH <= width && top + LABEL_HEIGHT <= height;
+        int w = labelWidth > 0 ? labelWidth : LABEL_WIDTH;
+        int h = labelHeight > 0 ? labelHeight : LABEL_HEIGHT;
+        return left >= 0 && top >= 0 && left + w <= width && top + h <= height;
     }
 
     /// <summary>Gets whether two axis-aligned boxes overlap.</summary>
@@ -418,14 +448,14 @@ internal static class StarChartLayout
         return ax < bx + bw && bx < ax + aw && ay < by + bh && by < ay + ah;
     }
 
-    private static int ClampLabelX(int left, int width)
+    private static int ClampLabelX(int left, int width, int labelWidth)
     {
-        return Math.Clamp(left, 0, Math.Max(0, width - LABEL_WIDTH));
+        return Math.Clamp(left, 0, Math.Max(0, width - labelWidth));
     }
 
-    private static int ClampLabelY(int top, int height)
+    private static int ClampLabelY(int top, int height, int labelHeight)
     {
-        return Math.Clamp(top, 0, Math.Max(0, height - LABEL_HEIGHT));
+        return Math.Clamp(top, 0, Math.Max(0, height - labelHeight));
     }
 
     private static bool IsNearEarlier(IReadOnlyList<int> xs, IReadOnlyList<int> ys, int index, int x, int y)

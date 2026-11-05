@@ -82,7 +82,9 @@ internal sealed class SelectSavePage : IMenuPage<MenuPage>
 
         _scroll.Measure(ui, "SelectSave.Archives");
 
-        _view.Render(ui, BuildState());
+        SelectSaveState state = BuildState();
+        _view.Measure(ui, state);
+        _view.Render(ui, state);
         return Result.FromSuccess();
     }
 

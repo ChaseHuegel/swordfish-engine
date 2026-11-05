@@ -75,16 +75,19 @@
                       text-align="center" />
             </If>
 
-            <Text class="wb-star-label"
-                  class:wb-star-label-hover="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))"
-                  class:wb-star-label-selected="@node.Selected"
-                  text="@node.Name"
-                  x="@node.LabelX"
-                  y="@node.LabelY"
-                  width="160"
-                  height="16"
-                  text-align="center"
-                  wrap="false" />
+            <Element id="SelectSave.Label.{node.Guid}"
+                     passthrough="true"
+                     layout="horizontal"
+                     width="fit"
+                     height="fit"
+                     x="@node.LabelX"
+                     y="@node.LabelY">
+                <Text class="wb-star-label"
+                      class:wb-star-label-hover="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))"
+                      class:wb-star-label-selected="@node.Selected"
+                      text="@node.Name"
+                      wrap="false" />
+            </Element>
 
             <If condition="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))">
                 <Element class="wb-star-card"

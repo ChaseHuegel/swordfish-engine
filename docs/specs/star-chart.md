@@ -51,13 +51,18 @@ the field size. It returns placements and specks. It has no UI dependency.
 
 ## Label packing
 
-Labels are 160 by 16 pixels and are placed by a deterministic greedy pass. It
-runs inside `Compute`, so the geometry cache covers it.
+Labels size to their text. The page measures each label's bounds one frame
+ahead, so the packing uses real font metrics and never guesses a character
+width. Before the first measurement the packing falls back to 160 by 16.
+
+The placement is a deterministic greedy pass inside `Compute`, so the geometry
+cache covers it and the measured sizes join the cache key.
 
 - Order: top-left first, by node Y, then X, then Guid. Order never depends on
   play order, selection, or hover.
 - Slots: a lattice anchored at the field origin, 40px across and 18px down. The
-  base position is a candidate too.
+  base position is a candidate too. Each label keeps its own measured width, so
+  short names occupy less space.
 - Preference: exact base, then down, then right, then left, then up. Within a
   direction the nearest slot wins, and the cost is `|dx| + 2|dy|` so a label
   never trades a long horizontal move for a short vertical one.
