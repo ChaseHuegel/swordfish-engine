@@ -356,7 +356,7 @@ internal static class StarChartLayout
                 }
                 else if (dy > 0)
                 {
-                    rank = 1_000_000L + (dy * 1_000L) + Math.Abs(dx);
+                    rank = 1_000_000L + (dy * 2L) + Math.Abs(dx);
                 }
                 else if (dy == 0 && dx > 0)
                 {
@@ -368,7 +368,7 @@ internal static class StarChartLayout
                 }
                 else
                 {
-                    rank = 4_000_000L + (Math.Abs(dy) * 1_000L) + Math.Abs(dx);
+                    rank = 4_000_000L + (Math.Abs(dy) * 2L) + Math.Abs(dx);
                 }
 
                 candidates.Add((x, y, rank));

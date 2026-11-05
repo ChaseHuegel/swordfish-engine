@@ -58,8 +58,9 @@ runs inside `Compute`, so the geometry cache covers it.
   play order, selection, or hover.
 - Slots: a lattice anchored at the field origin, 40px across and 18px down. The
   base position is a candidate too.
-- Preference: exact base, then down, then right, then left, then up, nearest
-  first within each direction.
+- Preference: exact base, then down, then right, then left, then up. Within a
+  direction the nearest slot wins, and the cost is `|dx| + 2|dy|` so a label
+  never trades a long horizontal move for a short vertical one.
 - Hard rule: a label never overlaps another label, and never leaves the field.
 - Labels may cover a node or a diamond. Only label collisions are resolved, so a
   label stays as close to its star as the lattice allows.
