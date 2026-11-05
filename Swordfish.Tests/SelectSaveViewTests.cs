@@ -205,7 +205,7 @@ public class SelectSaveViewTests
         var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), controller);
 
         var rows = new List<SaveRowState>();
-        for (var i = 0; i < 12; i++)
+        for (var i = 0; i < 19; i++)
         {
             rows.Add(new SaveRowState(
                 $"save-{i:D2}",
