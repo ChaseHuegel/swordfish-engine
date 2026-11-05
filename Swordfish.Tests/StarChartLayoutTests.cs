@@ -30,8 +30,8 @@ public class StarChartLayoutTests
             double x = StarChartLayout.NormalizedX(i);
             double y = StarChartLayout.NormalizedY(i);
 
-            Assert.InRange(x, 0.14, 0.86);
-            Assert.InRange(y, 0.18, 0.84);
+            Assert.InRange(x, 0.07, 0.93);
+            Assert.InRange(y, 0.10, 0.88);
         }
     }
 
@@ -50,8 +50,8 @@ public class StarChartLayoutTests
         Assert.Equal(3, geometry.Nodes.Count);
         foreach (StarNodePlacement node in geometry.Nodes)
         {
-            Assert.InRange(node.X, StarChartLayout.NODE_INSET_X, WIDTH - StarChartLayout.NODE_INSET_X);
-            Assert.InRange(node.Y, StarChartLayout.NODE_INSET_Y, HEIGHT - StarChartLayout.NODE_INSET_Y);
+            Assert.InRange(node.X, 0, WIDTH);
+            Assert.InRange(node.Y, 0, HEIGHT);
             Assert.InRange(node.ClassIndex, 0, StarChartLayout.STAR_CLASS_COUNT - 1);
         }
     }
@@ -166,10 +166,10 @@ public class StarChartLayoutTests
         StarChartGeometry geometry = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
         (double scale, int offsetX, int offsetY) = StarChartLayout.Projection(WIDTH, HEIGHT);
 
-        int minX = offsetX + (int)Math.Floor(StarChartLayout.NODE_INSET_X * scale);
-        int maxX = offsetX + (int)Math.Ceiling((StarChartLayout.WORLD_WIDTH - StarChartLayout.NODE_INSET_X) * scale);
-        int minY = offsetY + (int)Math.Floor(StarChartLayout.NODE_INSET_Y * scale);
-        int maxY = offsetY + (int)Math.Ceiling((StarChartLayout.WORLD_HEIGHT - StarChartLayout.NODE_INSET_Y) * scale);
+        int minX = offsetX + (int)Math.Floor(StarChartLayout.MinWorldX * scale);
+        int maxX = offsetX + (int)Math.Ceiling(StarChartLayout.MaxWorldX * scale);
+        int minY = offsetY + (int)Math.Floor(StarChartLayout.MinWorldY * scale);
+        int maxY = offsetY + (int)Math.Ceiling(StarChartLayout.MaxWorldY * scale);
 
         foreach (StarNodePlacement node in geometry.Nodes)
         {
@@ -337,8 +337,24 @@ public class StarChartLayoutTests
 
         foreach (StarNodePlacement node in geometry.Nodes)
         {
-            Assert.Equal(node.X - (StarChartLayout.LABEL_WIDTH / 2), node.LabelX);
-            Assert.Equal(node.Y + StarChartLayout.LABEL_OFFSET_Y, node.LabelY);
+            Assert.Equal(
+                Math.Clamp(node.X - (StarChartLayout.LABEL_WIDTH / 2), 0, WIDTH - StarChartLayout.LABEL_WIDTH),
+                node.LabelX);
+            Assert.Equal(
+                Math.Clamp(node.Y + StarChartLayout.LABEL_OFFSET_Y, 0, HEIGHT - StarChartLayout.LABEL_HEIGHT),
+                node.LabelY);
+        }
+    }
+
+    [Fact]
+    public void LabelsStayInsideTheField()
+    {
+        StarChartGeometry geometry = StarChartLayout.Compute(Many(40), null, WIDTH, HEIGHT);
+
+        foreach (StarNodePlacement node in geometry.Nodes)
+        {
+            Assert.InRange(node.LabelX, 0, WIDTH - StarChartLayout.LABEL_WIDTH);
+            Assert.InRange(node.LabelY, 0, HEIGHT - StarChartLayout.LABEL_HEIGHT);
         }
     }
 

@@ -39,12 +39,13 @@ uniform scale, `min(width / 1000, height / 500)`, and centers it. The narrow tab
 therefore letterboxes instead of reshaping the constellation.
 
 - **Base position.** `FNV1a.ComputeHash64(seed)` gives the X and Y fractions of
-  the world. X spans 0.14 to 0.86, Y spans 0.18 to 0.84, so no node sits on the
-  world edge.
+  the world. X spans 0.07 to 0.93, Y spans 0.10 to 0.88. That range is the single
+  source of truth for the margins: `MinWorldX` and friends derive from it, and
+  there are no separate inset constants.
 - **Class.** `FNV1a.ComputeHash64("class:" + seed) % 4` picks white, red,
   emerald, or violet. The salt keeps class bits apart from position bits.
-- **Clamp.** Centers stay 80 world units from the horizontal edges and 50 from
-  the vertical edges.
+- **Clamp.** A separated node is clamped back into the same range, so separation
+  can never push a node past the margin.
 - **Separation.** Saves are processed in ascending Guid order, so play order
   never moves a node. A node within 40 world units of an earlier node steps 40
   units along a direction derived from `FNV1a.ComputeHash64(guid + ":" + attempt)`,
@@ -58,9 +59,10 @@ therefore letterboxes instead of reshaping the constellation.
 
 ## Labels
 
-- Position: centered under the node, `x = nodeX - 80`, `y = nodeY + 14`. A label
-  never depends on its neighbours, so adding or removing a save does not move
-  another label.
+- Position: centered under the node, `x = nodeX - 80`, `y = nodeY + 14`, then
+  clamped into the field so a label at the edge stays fully visible. A label never
+  depends on its neighbours, so adding or removing a save does not move another
+  label.
 - Card: fixed 310px wide and `height="fit"`. The header, every label, and every
   value wrap, so the card grows to whatever the text needs. Rows use
   `StatRow param:wrap="true"`, whose height fits its content.

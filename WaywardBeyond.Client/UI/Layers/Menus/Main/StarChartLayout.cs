@@ -41,8 +41,6 @@ internal static class StarChartLayout
 {
     public const int WORLD_WIDTH = 1000;
     public const int WORLD_HEIGHT = 500;
-    public const int NODE_INSET_X = 80;
-    public const int NODE_INSET_Y = 50;
     public const int NODE_MIN_DISTANCE = 40;
     public const int MAX_SEPARATION_ATTEMPTS = 8;
     public const int HIT_SIZE = 24;
@@ -59,10 +57,10 @@ internal static class StarChartLayout
     public const int MAX_SPECKS = 120;
     public const int STAR_CLASS_COUNT = 4;
 
-    private const double NORMALIZED_X_MIN = 0.14;
-    private const double NORMALIZED_Y_MIN = 0.18;
-    private const double NORMALIZED_X_SPAN = 0.72;
-    private const double NORMALIZED_Y_SPAN = 0.66;
+    private const double NORMALIZED_X_MIN = 0.07;
+    private const double NORMALIZED_Y_MIN = 0.10;
+    private const double NORMALIZED_X_SPAN = 0.86;
+    private const double NORMALIZED_Y_SPAN = 0.78;
     private const double CARD_FLIP_Y_RATIO = 0.64;
     private const double UINT32_RANGE = 4294967296.0;
     private const double UINT64_RANGE = 18446744073709551616.0;
@@ -122,8 +120,8 @@ internal static class StarChartLayout
                     classes[i],
                     selected[i],
                     passthrough,
-                    xs[i] - (LABEL_WIDTH / 2),
-                    ys[i] + LABEL_OFFSET_Y
+                    Math.Clamp(xs[i] - (LABEL_WIDTH / 2), 0, Math.Max(0, width - LABEL_WIDTH)),
+                    Math.Clamp(ys[i] + LABEL_OFFSET_Y, 0, Math.Max(0, height - LABEL_HEIGHT))
                 )
             );
         }
@@ -230,16 +228,28 @@ internal static class StarChartLayout
         return Math.Clamp(top, 0, Math.Max(0, height - cardHeight));
     }
 
-    /// <summary>Gets the horizontal clamp range for a node center in world units.</summary>
+    /// <summary>Gets the leftmost node center in world units.</summary>
+    public static int MinWorldX => (int)Math.Round(NORMALIZED_X_MIN * WORLD_WIDTH);
+
+    /// <summary>Gets the rightmost node center in world units.</summary>
+    public static int MaxWorldX => (int)Math.Round((NORMALIZED_X_MIN + NORMALIZED_X_SPAN) * WORLD_WIDTH);
+
+    /// <summary>Gets the topmost node center in world units.</summary>
+    public static int MinWorldY => (int)Math.Round(NORMALIZED_Y_MIN * WORLD_HEIGHT);
+
+    /// <summary>Gets the bottommost node center in world units.</summary>
+    public static int MaxWorldY => (int)Math.Round((NORMALIZED_Y_MIN + NORMALIZED_Y_SPAN) * WORLD_HEIGHT);
+
+    /// <summary>Clamps a node center to the placement range in world units.</summary>
     public static int ClampX(int x)
     {
-        return Math.Clamp(x, NODE_INSET_X, WORLD_WIDTH - NODE_INSET_X);
+        return Math.Clamp(x, MinWorldX, MaxWorldX);
     }
 
-    /// <summary>Gets the vertical clamp range for a node center in world units.</summary>
+    /// <summary>Clamps a node center to the placement range in world units.</summary>
     public static int ClampY(int y)
     {
-        return Math.Clamp(y, NODE_INSET_Y, WORLD_HEIGHT - NODE_INSET_Y);
+        return Math.Clamp(y, MinWorldY, MaxWorldY);
     }
 
     private static void Place(
