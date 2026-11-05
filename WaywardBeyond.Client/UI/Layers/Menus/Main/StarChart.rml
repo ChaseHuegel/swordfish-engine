@@ -117,7 +117,7 @@
                             <Text class="wb-card-detail-label" text="@context.Text('ui.label.level.mode')" width="100" height="fit" wrap="true" />
                         </Content>
                         <Content name="value">
-                            <Text class="wb-card-detail-value" text="@node.Mode" width="fill" height="fill" wrap="true" />
+                            <Text class="wb-card-detail-value" text="@node.Mode" width="fill" height="fit" wrap="true" />
                         </Content>
                     </StatRow>
 
@@ -126,7 +126,7 @@
                             <Text class="wb-card-detail-label" text="@context.Text('ui.label.level.seed')" width="100" height="fit" wrap="true" />
                         </Content>
                         <Content name="value">
-                            <Text class="wb-card-detail-value" text="@node.Seed" width="fill" height="fill" wrap="true" />
+                            <Text class="wb-card-detail-value" text="@node.Seed" width="fill" height="fit" wrap="true" />
                         </Content>
                     </StatRow>
 
@@ -135,7 +135,7 @@
                             <Text class="wb-card-detail-label" text="@context.Text('ui.label.timePlayed')" width="100" height="fit" wrap="true" />
                         </Content>
                         <Content name="value">
-                            <Text class="wb-card-detail-value" text="@node.TimePlayed" width="fill" height="fill" wrap="true" />
+                            <Text class="wb-card-detail-value" text="@node.TimePlayed" width="fill" height="fit" wrap="true" />
                         </Content>
                     </StatRow>
 
@@ -144,7 +144,7 @@
                             <Text class="wb-card-detail-label" text="@context.Text('ui.label.lastPlayed')" width="100" height="fit" wrap="true" />
                         </Content>
                         <Content name="value">
-                            <Text class="wb-card-detail-value" text="@node.LastPlayed" width="fill" height="fill" wrap="true" />
+                            <Text class="wb-card-detail-value" text="@node.LastPlayed" width="fill" height="fit" wrap="true" />
                         </Content>
                     </StatRow>
                 </Element>

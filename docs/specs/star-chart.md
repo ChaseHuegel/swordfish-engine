@@ -66,6 +66,9 @@ therefore letterboxes instead of reshaping the constellation.
 - Card: fixed 310px wide and `height="fit"`. The header, every label, and every
   value wrap, so the card grows to whatever the text needs. Rows use
   `StatRow param:wrap="true"`, whose height fits its content.
+- Every text in a wrapping row is `height="fit"`. A `height="fill"` child of a
+  fitting row cannot resolve, and the row stays short while the text overlaps
+  its neighbours.
 - Card placement uses the card's measured height from the previous frame, read
   from `SelectSave.Card.{guid}` in `TrackHover`. There is no fixed card height.
   Until the first measurement, `CardY` places the card above its node without
