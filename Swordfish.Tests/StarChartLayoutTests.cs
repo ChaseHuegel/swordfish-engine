@@ -130,7 +130,7 @@ public class StarChartLayoutTests
 
         StarChartGeometry geometry = StarChartLayout.Compute(saves, null, 4000, 4000);
         StarNodePlacement second = geometry.Nodes[1];
-        var baseNode = new StarNodePlacement("x", BaseX(SEED), BaseY(SEED), 0, false, false, 0, 0, 0, 0);
+        var baseNode = new StarNodePlacement("x", BaseX(SEED), BaseY(SEED), 0, false, false, 0, 0);
 
         Assert.True(Distance(second, baseNode) >= StarChartLayout.NODE_MIN_DISTANCE - 1.5);
     }
@@ -365,10 +365,24 @@ public class StarChartLayoutTests
     public void CardStaysInsideTheField(int nodeX, int nodeY, int cardWidth, int cardHeight)
     {
         int x = StarChartLayout.CardX(nodeX, WIDTH);
-        int y = StarChartLayout.CardY(nodeY, HEIGHT);
+        int y = StarChartLayout.CardY(nodeY, HEIGHT, cardHeight);
 
         Assert.InRange(x, 0, WIDTH - cardWidth);
         Assert.InRange(y, 0, HEIGHT - cardHeight);
+    }
+
+    [Fact]
+    public void TallCardFlipsUpAndStaysInside()
+    {
+        int y = StarChartLayout.CardY(HEIGHT - 20, HEIGHT, 180);
+
+        Assert.InRange(y, 0, HEIGHT - 180);
+    }
+
+    [Fact]
+    public void UnmeasuredCardSitsAboveItsNode()
+    {
+        Assert.Equal(100 - StarChartLayout.CARD_GAP, StarChartLayout.CardY(100, HEIGHT, 0));
     }
 
     [Fact]

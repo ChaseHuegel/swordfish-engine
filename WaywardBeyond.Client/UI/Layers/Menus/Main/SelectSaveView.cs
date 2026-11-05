@@ -17,6 +17,9 @@ internal partial class SelectSaveView : UiViewBase
     private readonly ILocalization _localization;
 
     private string? _hoveredGuid;
+    private int _chartWidth;
+    private int _chartHeight;
+    private int _cardHeight;
     private string _chartKey = string.Empty;
     private StarChartGeometry _chartGeometry = StarChartGeometry.Empty;
     private StarChartNodeState[] _chartNodes = Array.Empty<StarChartNodeState>();
@@ -93,19 +96,28 @@ internal partial class SelectSaveView : UiViewBase
         return mode.ToString();
     }
 
-    /// <summary>Records which chart node the pointer is over, from the previous frame.</summary>
+    /// <summary>Records the hovered node and its card height, from the previous frame.</summary>
     public void TrackHover(UIBuilder<Material> ui, SelectSaveState state)
     {
         _hoveredGuid = null;
 
         foreach (SaveRowState row in state.Saves)
         {
-            if (ui.Hovering("SelectSave.Node." + row.Guid)
-                || ui.Hovering("SelectSave.Label." + row.Guid))
+            if (!ui.Hovering("SelectSave.Node." + row.Guid)
+                && !ui.Hovering("SelectSave.Label." + row.Guid))
             {
-                _hoveredGuid = row.Guid;
-                return;
+                continue;
             }
+
+            _hoveredGuid = row.Guid;
+
+            ElementBounds card = ui.GetElementBounds("SelectSave.Card." + row.Guid);
+            if (card.Rect.Size.Y > 0)
+            {
+                _cardHeight = card.Rect.Size.Y;
+            }
+
+            return;
         }
     }
 
@@ -122,6 +134,9 @@ internal partial class SelectSaveView : UiViewBase
                 Ready: false
             );
         }
+
+        _chartWidth = width;
+        _chartHeight = height;
 
         string key = ChartKey(state, width, height);
         if (!string.Equals(key, _chartKey, StringComparison.Ordinal))
@@ -205,8 +220,8 @@ internal partial class SelectSaveView : UiViewBase
                 BracketY: placement.Y + StarChartLayout.BRACKET_OFFSET_Y,
                 LabelX: placement.LabelX,
                 LabelY: placement.LabelY,
-                CardX: placement.CardX,
-                CardY: placement.CardY,
+                CardX: StarChartLayout.CardX(placement.X, _chartWidth),
+                CardY: StarChartLayout.CardY(placement.Y, _chartHeight, _cardHeight),
                 Selected: placement.Selected,
                 Passthrough: placement.Passthrough
             );

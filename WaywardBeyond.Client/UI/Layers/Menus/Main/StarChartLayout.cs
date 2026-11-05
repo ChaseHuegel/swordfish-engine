@@ -16,8 +16,6 @@ internal readonly record struct StarNodePlacement(
     int ClassIndex,
     bool Selected,
     bool Passthrough,
-    int CardX,
-    int CardY,
     int LabelX,
     int LabelY
 );
@@ -57,7 +55,6 @@ internal static class StarChartLayout
     public const int BRACKET_OFFSET_RIGHT = 10;
     public const int BRACKET_OFFSET_Y = -8;
     public const int CARD_WIDTH = 310;
-    public const int CARD_HEIGHT = 168;
     public const int CARD_GAP = 36;
     public const int MAX_SPECKS = 120;
     public const int STAR_CLASS_COUNT = 4;
@@ -125,8 +122,6 @@ internal static class StarChartLayout
                     classes[i],
                     selected[i],
                     passthrough,
-                    CardX(xs[i], width),
-                    CardY(ys[i], height),
                     xs[i] - (LABEL_WIDTH / 2),
                     ys[i] + LABEL_OFFSET_Y
                 )
@@ -218,15 +213,21 @@ internal static class StarChartLayout
     }
 
     /// <summary>Gets the clamped top edge of the hover card for a node.</summary>
-    public static int CardY(int nodeY, int height)
+    /// <remarks>Pass the card's measured height. Zero means it has not been measured yet.</remarks>
+    public static int CardY(int nodeY, int height, int cardHeight)
     {
+        if (cardHeight <= 0)
+        {
+            return nodeY - CARD_GAP;
+        }
+
         int top = nodeY - CARD_GAP;
         if (nodeY > CARD_FLIP_Y_RATIO * height)
         {
-            top = nodeY - CARD_HEIGHT + CARD_GAP;
+            top = nodeY - cardHeight + CARD_GAP;
         }
 
-        return Math.Clamp(top, 0, Math.Max(0, height - CARD_HEIGHT));
+        return Math.Clamp(top, 0, Math.Max(0, height - cardHeight));
     }
 
     /// <summary>Gets the horizontal clamp range for a node center in world units.</summary>
