@@ -56,7 +56,6 @@ internal readonly record struct StarChartNodeState(
     int LabelY,
     int CardX,
     int CardY,
-    int CardHeight,
     bool Selected,
     bool Passthrough
 );

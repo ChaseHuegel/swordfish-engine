@@ -57,7 +57,7 @@ internal static class StarChartLayout
     public const int BRACKET_OFFSET_RIGHT = 10;
     public const int BRACKET_OFFSET_Y = -8;
     public const int CARD_WIDTH = 310;
-    public const int CARD_HEIGHT = 132;
+    public const int CARD_HEIGHT = 168;
     public const int CARD_GAP = 36;
     public const int MAX_SPECKS = 120;
     public const int STAR_CLASS_COUNT = 4;

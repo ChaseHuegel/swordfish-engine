@@ -1,5 +1,6 @@
 <Reef xmlns="Reef"
       xmlns:class="Reef.Class"
+      xmlns:param="Reef.Param"
       Class="StarChart"
       Access="internal"
       Context="StarChartState"
@@ -105,44 +106,44 @@
                          x="@node.CardX"
                          y="@node.CardY"
                          width="310"
-                         height="@node.CardHeight"
+                         height="fit"
                          padding="12"
                          spacing="4">
-                    <Text class="wb-text-body" text="@node.Name" width="fill" height="20" wrap="false" />
+                    <Text class="wb-text-body" text="@node.Name" width="fill" height="fit" wrap="true" />
 
-                    <StatRow width="fill">
+                    <StatRow param:wrap="true" width="fill">
                         <Content name="label">
                             <Text class="wb-card-detail-label" text="@context.Text('ui.label.level.mode')" width="100" height="fill" />
                         </Content>
                         <Content name="value">
-                            <Text class="wb-card-detail-value" text="@node.Mode" width="fit" height="fill" wrap="false" />
+                            <Text class="wb-card-detail-value" text="@node.Mode" width="fill" height="fill" wrap="true" />
                         </Content>
                     </StatRow>
 
-                    <StatRow width="fill">
+                    <StatRow param:wrap="true" width="fill">
                         <Content name="label">
                             <Text class="wb-card-detail-label" text="@context.Text('ui.label.level.seed')" width="100" height="fill" />
                         </Content>
                         <Content name="value">
-                            <Text class="wb-card-detail-value" text="@node.Seed" width="fit" height="fill" wrap="false" />
+                            <Text class="wb-card-detail-value" text="@node.Seed" width="fill" height="fill" wrap="true" />
                         </Content>
                     </StatRow>
 
-                    <StatRow width="fill">
+                    <StatRow param:wrap="true" width="fill">
                         <Content name="label">
                             <Text class="wb-card-detail-label" text="@context.Text('ui.label.timePlayed')" width="100" height="fill" />
                         </Content>
                         <Content name="value">
-                            <Text class="wb-card-detail-value" text="@node.TimePlayed" width="fit" height="fill" wrap="false" />
+                            <Text class="wb-card-detail-value" text="@node.TimePlayed" width="fill" height="fill" wrap="true" />
                         </Content>
                     </StatRow>
 
-                    <StatRow width="fill">
+                    <StatRow param:wrap="true" width="fill">
                         <Content name="label">
                             <Text class="wb-card-detail-label" text="@context.Text('ui.label.lastPlayed')" width="100" height="fill" />
                         </Content>
                         <Content name="value">
-                            <Text class="wb-card-detail-value" text="@node.LastPlayed" width="fit" height="fill" wrap="false" />
+                            <Text class="wb-card-detail-value" text="@node.LastPlayed" width="fill" height="fill" wrap="true" />
                         </Content>
                     </StatRow>
                 </Element>

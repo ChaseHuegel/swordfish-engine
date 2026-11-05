@@ -61,6 +61,10 @@ therefore letterboxes instead of reshaping the constellation.
 - Position: centered under the node, `x = nodeX - 80`, `y = nodeY + 14`. A label
   never depends on its neighbours, so adding or removing a save does not move
   another label.
+- Card: fixed 310px wide and `height="fit"`, so a long seed phrase wraps and
+  the card grows downward. `StarChartLayout.CARD_HEIGHT` reserves the tallest
+  expected card for flip and clamp math, so the top edge never moves as text
+  wraps. Rows use `StatRow param:wrap="true"`, whose height fits its content.
 - Scrim: the text sits on `.wb-star-label-scrim`, a `--wb-chart-label-scrim`
   plate that hugs the text with 4px of horizontal padding. Where two labels
   overlap, the front one stays readable.

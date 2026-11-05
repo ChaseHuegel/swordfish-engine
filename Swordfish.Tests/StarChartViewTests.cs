@@ -221,7 +221,6 @@ public class StarChartViewTests
             LabelY: y + StarChartLayout.LABEL_OFFSET_Y,
             CardX: 100,
             CardY: 100,
-            CardHeight: StarChartLayout.CARD_HEIGHT,
             Selected: selected,
             Passthrough: passthrough
         );

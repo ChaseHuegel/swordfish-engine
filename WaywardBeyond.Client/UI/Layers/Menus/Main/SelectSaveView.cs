@@ -207,7 +207,6 @@ internal partial class SelectSaveView : UiViewBase
                 LabelY: placement.LabelY,
                 CardX: placement.CardX,
                 CardY: placement.CardY,
-                CardHeight: StarChartLayout.CARD_HEIGHT,
                 Selected: placement.Selected,
                 Passthrough: placement.Passthrough
             );
