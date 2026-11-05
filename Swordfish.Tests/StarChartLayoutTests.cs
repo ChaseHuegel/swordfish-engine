@@ -295,27 +295,6 @@ public class StarChartLayoutTests
         }
     }
 
-    [Fact]
-    public void LabelsAvoidEveryNodeIncludingTheirOwn()
-    {
-        StarChartGeometry geometry = StarChartLayout.Compute(Many(10), null, WIDTH, HEIGHT);
-
-        foreach (StarNodePlacement node in geometry.Nodes)
-        {
-            foreach (StarNodePlacement other in geometry.Nodes)
-            {
-                Assert.False(
-                    StarChartLayout.OverlapsBox(
-                        node.LabelX, node.LabelY,
-                        StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT,
-                        other.X - (StarChartLayout.HIT_SIZE / 2),
-                        other.Y - (StarChartLayout.HIT_SIZE / 2),
-                        StarChartLayout.HIT_SIZE, StarChartLayout.HIT_SIZE),
-                    $"Label {node.Guid} covers node {other.Guid}.");
-            }
-        }
-    }
-
     /// <summary>A realistic save set must resolve at both field sizes the page uses.</summary>
     [Theory]
     [InlineData(652, 185)]
@@ -354,16 +333,6 @@ public class StarChartLayoutTests
                     $"Labels {node.Guid} and {other.Guid} overlap.");
             }
 
-            foreach (StarNodePlacement other in geometry.Nodes)
-            {
-                Assert.False(
-                    StarChartLayout.OverlapsBox(
-                        node.LabelX, node.LabelY, StarChartLayout.LABEL_WIDTH, StarChartLayout.LABEL_HEIGHT,
-                        other.X - (StarChartLayout.HIT_SIZE / 2),
-                        other.Y - (StarChartLayout.HIT_SIZE / 2),
-                        StarChartLayout.HIT_SIZE, StarChartLayout.HIT_SIZE),
-                    $"Label {node.Guid} covers node {other.Guid}.");
-            }
         }
     }
 

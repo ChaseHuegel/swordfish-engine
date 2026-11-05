@@ -54,17 +54,15 @@ the field size. It returns placements and specks. It has no UI dependency.
 Labels are 160 by 16 pixels and are placed by a deterministic greedy pass. It
 runs inside `Compute`, so the geometry cache covers it.
 
-- Order: most constrained label first, measured by how many grid slots clear
-  every node. Ties break on node Y, then X, then Guid. Order never depends on
+- Order: top-left first, by node Y, then X, then Guid. Order never depends on
   play order, selection, or hover.
 - Slots: a lattice anchored at the field origin, 40px across and 18px down. The
   base position is a candidate too.
 - Preference: exact base, then down, then right, then left, then up, nearest
   first within each direction.
-- Passes: slots within four steps of the base that clear every node, then any
-  slot in the field that clears every node, then any slot at all.
 - Hard rule: a label never overlaps another label, and never leaves the field.
-  A label covers a node only when the whole field is exhausted.
+- Labels may cover a node or a diamond. Only label collisions are resolved, so a
+  label stays as close to its star as the lattice allows.
 - Fallback: if every slot fails, the label sits at its clamped base position.
 
 The pass is pure integer math. The same rows and field size always produce the
