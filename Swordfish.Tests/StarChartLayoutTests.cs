@@ -82,8 +82,10 @@ public class StarChartLayoutTests
         };
 
         StarChartGeometry geometry = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
+        (double scale, _, _) = StarChartLayout.Projection(WIDTH, HEIGHT);
 
-        Assert.True(Distance(geometry.Nodes[0], geometry.Nodes[1]) >= StarChartLayout.NODE_MIN_DISTANCE);
+        Assert.True(
+            Distance(geometry.Nodes[0], geometry.Nodes[1]) >= (StarChartLayout.NODE_MIN_DISTANCE * scale) - 1d);
     }
 
     [Fact]
@@ -128,7 +130,7 @@ public class StarChartLayoutTests
 
         StarChartGeometry geometry = StarChartLayout.Compute(saves, null, 4000, 4000);
         StarNodePlacement second = geometry.Nodes[1];
-        var baseNode = new StarNodePlacement("x", BaseX(SEED, 4000), BaseY(SEED, 4000), 0, false, false, 0, 0, 0, 0);
+        var baseNode = new StarNodePlacement("x", BaseX(SEED), BaseY(SEED), 0, false, false, 0, 0, 0, 0);
 
         Assert.True(Distance(second, baseNode) >= StarChartLayout.NODE_MIN_DISTANCE - 1.5);
     }
@@ -162,11 +164,64 @@ public class StarChartLayoutTests
         }
 
         StarChartGeometry geometry = StarChartLayout.Compute(saves, null, WIDTH, HEIGHT);
+        (double scale, int offsetX, int offsetY) = StarChartLayout.Projection(WIDTH, HEIGHT);
+
+        int minX = offsetX + (int)Math.Floor(StarChartLayout.NODE_INSET_X * scale);
+        int maxX = offsetX + (int)Math.Ceiling((StarChartLayout.WORLD_WIDTH - StarChartLayout.NODE_INSET_X) * scale);
+        int minY = offsetY + (int)Math.Floor(StarChartLayout.NODE_INSET_Y * scale);
+        int maxY = offsetY + (int)Math.Ceiling((StarChartLayout.WORLD_HEIGHT - StarChartLayout.NODE_INSET_Y) * scale);
 
         foreach (StarNodePlacement node in geometry.Nodes)
         {
-            Assert.InRange(node.X, StarChartLayout.NODE_INSET_X, WIDTH - StarChartLayout.NODE_INSET_X);
-            Assert.InRange(node.Y, StarChartLayout.NODE_INSET_Y, HEIGHT - StarChartLayout.NODE_INSET_Y);
+            Assert.InRange(node.X, minX, maxX);
+            Assert.InRange(node.Y, minY, maxY);
+        }
+    }
+
+    /// <summary>The constellation keeps its shape when the field changes size.</summary>
+    [Fact]
+    public void ConstellationIsStableAcrossFieldSizes()
+    {
+        List<StarChartSource> saves = Many(10);
+
+        StarChartGeometry wide = StarChartLayout.Compute(saves, null, 683, 345);
+        StarChartGeometry narrow = StarChartLayout.Compute(saves, null, 652, 185);
+
+        (double wideScale, int wideX, int wideY) = StarChartLayout.Projection(683, 345);
+        (double narrowScale, int narrowX, int narrowY) = StarChartLayout.Projection(652, 185);
+
+        for (var i = 0; i < wide.Nodes.Count; i++)
+        {
+            Assert.Equal(wide.Nodes[i].Guid, narrow.Nodes[i].Guid);
+
+            double wideWorldX = (wide.Nodes[i].X - wideX) / wideScale;
+            double narrowWorldX = (narrow.Nodes[i].X - narrowX) / narrowScale;
+            double wideWorldY = (wide.Nodes[i].Y - wideY) / wideScale;
+            double narrowWorldY = (narrow.Nodes[i].Y - narrowY) / narrowScale;
+
+            //  Screen positions round to whole pixels, so compare within one pixel
+            //  of world space at each scale.
+            double tolerance = (0.5d / wideScale) + (0.5d / narrowScale);
+            Assert.InRange(Math.Abs(wideWorldX - narrowWorldX), 0d, tolerance);
+            Assert.InRange(Math.Abs(wideWorldY - narrowWorldY), 0d, tolerance);
+        }
+    }
+
+    /// <summary>The world fits inside the wide field and keeps nodes off the edge.</summary>
+    [Fact]
+    public void WorldFitsTheWideFieldWithPadding()
+    {
+        (double scale, int offsetX, int offsetY) = StarChartLayout.Projection(683, 345);
+
+        Assert.True(offsetX >= 0 && offsetY >= 0);
+        Assert.True(offsetX + (StarChartLayout.WORLD_WIDTH * scale) <= 683);
+        Assert.True(offsetY + (StarChartLayout.WORLD_HEIGHT * scale) <= 345);
+
+        StarChartGeometry geometry = StarChartLayout.Compute(Many(10), null, 683, 345);
+        foreach (StarNodePlacement node in geometry.Nodes)
+        {
+            Assert.InRange(node.X, offsetX + 40, 683 - offsetX - 40);
+            Assert.InRange(node.Y, offsetY + 20, 345 - offsetY - 20);
         }
     }
 
@@ -389,14 +444,16 @@ public class StarChartLayoutTests
         return list;
     }
 
-    private static int BaseX(long seed, int width)
+    private static int BaseX(long seed)
     {
-        return StarChartLayout.ClampX((int)Math.Round(StarChartLayout.NormalizedX(seed) * width), width);
+        return StarChartLayout.ClampX(
+            (int)Math.Round(StarChartLayout.NormalizedX(seed) * StarChartLayout.WORLD_WIDTH));
     }
 
-    private static int BaseY(long seed, int height)
+    private static int BaseY(long seed)
     {
-        return StarChartLayout.ClampY((int)Math.Round(StarChartLayout.NormalizedY(seed) * height), height);
+        return StarChartLayout.ClampY(
+            (int)Math.Round(StarChartLayout.NormalizedY(seed) * StarChartLayout.WORLD_HEIGHT));
     }
 
     private static double Distance(in StarNodePlacement a, in StarNodePlacement b)

@@ -32,16 +32,23 @@ The component sits beside its only caller, as `PlaytestNoticeView` and
 `StarChartLayout.Compute` takes `(Guid, Seed)` sources, the selected Guid, and
 the field size. It returns placements and specks. It has no UI dependency.
 
-- **Base position.** `FNV1a.ComputeHash64(seed)` gives the X and Y fractions.
-  X spans 0.14 to 0.86, Y spans 0.18 to 0.84.
+Nodes live in a fixed world of `1000 x 500` world units. Position, separation,
+and clamping all happen in world units, so a save's coordinates never depend on
+the panel size. `Projection(width, height)` fits the world into the field with a
+uniform scale, `min(width / 1000, height / 500)`, and centers it. The narrow tab
+therefore letterboxes instead of reshaping the constellation.
+
+- **Base position.** `FNV1a.ComputeHash64(seed)` gives the X and Y fractions of
+  the world. X spans 0.14 to 0.86, Y spans 0.18 to 0.84, so no node sits on the
+  world edge.
 - **Class.** `FNV1a.ComputeHash64("class:" + seed) % 4` picks white, red,
   emerald, or violet. The salt keeps class bits apart from position bits.
-- **Clamp.** Centers stay 80px from the horizontal edges and 28px from the
-  vertical edges. The horizontal inset is half the 160px label.
+- **Clamp.** Centers stay 80 world units from the horizontal edges and 50 from
+  the vertical edges.
 - **Separation.** Saves are processed in ascending Guid order, so play order
-  never moves a node. A node within 28px of an earlier node steps 28px along a
-  direction derived from `FNV1a.ComputeHash64(guid + ":" + attempt)`, for at
-  most 8 attempts.
+  never moves a node. A node within 40 world units of an earlier node steps 40
+  units along a direction derived from `FNV1a.ComputeHash64(guid + ":" + attempt)`,
+  for at most 8 attempts.
 - **Overlap.** `Overlaps` treats two 24px hit boxes as overlapping when both
   axis distances are under 24.
 - **Card box.** The card sits 36px from the node, flips when it would leave the

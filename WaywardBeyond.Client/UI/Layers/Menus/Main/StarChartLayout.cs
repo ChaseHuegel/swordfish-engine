@@ -41,9 +41,11 @@ internal readonly record struct StarChartGeometry(
 /// <summary>Deterministic star chart geometry. It has no UI dependency.</summary>
 internal static class StarChartLayout
 {
+    public const int WORLD_WIDTH = 1000;
+    public const int WORLD_HEIGHT = 500;
     public const int NODE_INSET_X = 80;
-    public const int NODE_INSET_Y = 28;
-    public const int NODE_MIN_DISTANCE = 28;
+    public const int NODE_INSET_Y = 50;
+    public const int NODE_MIN_DISTANCE = 40;
     public const int MAX_SEPARATION_ATTEMPTS = 8;
     public const int HIT_SIZE = 24;
     public const int LABEL_WIDTH = 160;
@@ -85,32 +87,30 @@ internal static class StarChartLayout
         ordered.Sort(static (a, b) => string.CompareOrdinal(a.Guid, b.Guid));
 
         int count = ordered.Count;
-        var xs = new int[count];
-        var ys = new int[count];
+        var worldXs = new int[count];
+        var worldYs = new int[count];
         var classes = new int[count];
         var selected = new bool[count];
 
         for (var i = 0; i < count; i++)
         {
             StarChartSource save = ordered[i];
-            Place(save, width, height, xs, ys, i, out int x, out int y);
-            xs[i] = x;
-            ys[i] = y;
+            Place(save, worldXs, worldYs, i, out int x, out int y);
+            worldXs[i] = x;
+            worldYs[i] = y;
             classes[i] = ClassOf(save.Seed);
             selected[i] = selectedGuid != null && string.Equals(save.Guid, selectedGuid, StringComparison.Ordinal);
         }
 
-        var guids = new string[count];
-        var labelXs = new int[count];
-        var labelYs = new int[count];
+        //  The world is fixed. Only the projection into the field changes with its size,
+        //  so the constellation keeps its shape across resizes and layouts.
+        (double scale, int offsetX, int offsetY) = Projection(width, height);
+        var xs = new int[count];
+        var ys = new int[count];
         for (var i = 0; i < count; i++)
         {
-            guids[i] = ordered[i].Guid;
-
-            //  Labels stay centered under their node. Overlap is accepted and made
-            //  readable by the label scrim.
-            labelXs[i] = xs[i] - (LABEL_WIDTH / 2);
-            labelYs[i] = ys[i] + LABEL_OFFSET_Y;
+            xs[i] = (int)Math.Round((worldXs[i] * scale) + offsetX);
+            ys[i] = (int)Math.Round((worldYs[i] * scale) + offsetY);
         }
 
         var nodes = new List<StarNodePlacement>(count);
@@ -119,7 +119,7 @@ internal static class StarChartLayout
             bool passthrough = selected[i] && IsOverlapped(xs, ys, i, count);
             nodes.Add(
                 new StarNodePlacement(
-                    guids[i],
+                    ordered[i].Guid,
                     xs[i],
                     ys[i],
                     classes[i],
@@ -127,13 +127,27 @@ internal static class StarChartLayout
                     passthrough,
                     CardX(xs[i], width),
                     CardY(ys[i], height),
-                    labelXs[i],
-                    labelYs[i]
+                    xs[i] - (LABEL_WIDTH / 2),
+                    ys[i] + LABEL_OFFSET_Y
                 )
             );
         }
 
         return new StarChartGeometry(nodes, BuildSpecks(width, height));
+    }
+
+    /// <summary>Gets the uniform scale and centering offsets that fit the world into a field.</summary>
+    public static (double Scale, int OffsetX, int OffsetY) Projection(int width, int height)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            return (0d, 0, 0);
+        }
+
+        double scale = Math.Min((double)width / WORLD_WIDTH, (double)height / WORLD_HEIGHT);
+        int offsetX = (int)Math.Round((width - (WORLD_WIDTH * scale)) / 2d);
+        int offsetY = (int)Math.Round((height - (WORLD_HEIGHT * scale)) / 2d);
+        return (scale, offsetX, offsetY);
     }
 
     /// <summary>Gets whether the star class index for a seed is in range.</summary>
@@ -215,24 +229,20 @@ internal static class StarChartLayout
         return Math.Clamp(top, 0, Math.Max(0, height - CARD_HEIGHT));
     }
 
-    /// <summary>Gets the horizontal clamp range for a node center.</summary>
-    public static int ClampX(int x, int width)
+    /// <summary>Gets the horizontal clamp range for a node center in world units.</summary>
+    public static int ClampX(int x)
     {
-        int max = Math.Max(NODE_INSET_X, width - NODE_INSET_X);
-        return Math.Clamp(x, Math.Min(NODE_INSET_X, max), max);
+        return Math.Clamp(x, NODE_INSET_X, WORLD_WIDTH - NODE_INSET_X);
     }
 
-    /// <summary>Gets the vertical clamp range for a node center.</summary>
-    public static int ClampY(int y, int height)
+    /// <summary>Gets the vertical clamp range for a node center in world units.</summary>
+    public static int ClampY(int y)
     {
-        int max = Math.Max(NODE_INSET_Y, height - NODE_INSET_Y);
-        return Math.Clamp(y, Math.Min(NODE_INSET_Y, max), max);
+        return Math.Clamp(y, NODE_INSET_Y, WORLD_HEIGHT - NODE_INSET_Y);
     }
 
     private static void Place(
         in StarChartSource save,
-        int width,
-        int height,
         IReadOnlyList<int> xs,
         IReadOnlyList<int> ys,
         int index,
@@ -240,8 +250,8 @@ internal static class StarChartLayout
         out int y
     )
     {
-        x = ClampX((int)Math.Round(NormalizedX(save.Seed) * width), width);
-        y = ClampY((int)Math.Round(NormalizedY(save.Seed) * height), height);
+        x = ClampX((int)Math.Round(NormalizedX(save.Seed) * WORLD_WIDTH));
+        y = ClampY((int)Math.Round(NormalizedY(save.Seed) * WORLD_HEIGHT));
 
         for (var attempt = 0; attempt < MAX_SEPARATION_ATTEMPTS; attempt++)
         {
@@ -251,8 +261,9 @@ internal static class StarChartLayout
             }
 
             SeparationStep(save.Guid, attempt, out int dx, out int dy);
-            x = ClampX(x + dx, width);
-            y = ClampY(y + dy, height);        }
+            x = ClampX(x + dx);
+            y = ClampY(y + dy);
+        }
     }
 
     private static bool IsNearEarlier(IReadOnlyList<int> xs, IReadOnlyList<int> ys, int index, int x, int y)
