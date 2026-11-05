@@ -29,7 +29,7 @@
     --wb-warning: #f2cc4a;
 
     --wb-chart: #0b0e14;
-    --wb-chart-label-scrim: #0b0e14e6;
+    --wb-chart-label-scrim: #0b0e14aa;
     --wb-star-red: #ff6b7b;
     --wb-star-emerald: #7be382;
     --wb-star-violet: #c084fc;
