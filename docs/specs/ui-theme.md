@@ -25,8 +25,8 @@ the colors that a view must fade at run time.
   `--wb-primary-dark`.
 - status: `--wb-danger`, `--wb-danger-bright`, `--wb-danger-dark`,
   `--wb-success`, and `--wb-warning`.
-- star chart: `--wb-chart`, `--wb-star-red`, `--wb-star-emerald`, and
-  `--wb-star-violet`. White stars use `--wb-text`, so no cyan or amber class
+- star chart: `--wb-chart`, `--wb-chart-label-scrim`, `--wb-star-red`,
+  `--wb-star-emerald`, and `--wb-star-violet`. White stars use `--wb-text`, so no cyan or amber class
   collides with `--wb-accent` or `--wb-primary`.
 - buttons and scrims: `--wb-button`, `--wb-button-hover`, `--wb-scrim`,
   `--wb-scrim-soft`, and `--wb-scrim-heavy`.

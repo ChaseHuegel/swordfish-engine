@@ -49,33 +49,16 @@ the field size. It returns placements and specks. It has no UI dependency.
 - **Specks.** 1px squares from a seed of the field size, capped at 120, so they
   do not shimmer.
 
-## Label packing
+## Labels
 
-Labels are a fixed 160 by 16 element with the text centered inside, so a label
-is always centered on its node even before it has been measured. An inner
-fit-sized element carries the text and gives the page its measured width one
-frame ahead. Packing uses those real metrics and never guesses a character
-width. Before the first measurement it falls back to 160 by 16.
-
-The placement is a deterministic greedy pass inside `Compute`, so the geometry
-cache covers it and the measured sizes join the cache key.
-
-- Order: top-left first, by node Y, then X, then Guid. Order never depends on
-  play order, selection, or hover.
-- Slots: a lattice anchored at the field origin, 40px across and 18px down. The
-  base position is a candidate too. Each label keeps its own measured width, so
-  short names occupy less space.
-- Preference: exact base, then down, then right, then left, then up. Within a
-  direction the nearest slot wins, and the cost is `|dx| + 2|dy|` so a label
-  never trades a long horizontal move for a short vertical one.
-- Hard rule: a label never overlaps another label, never comes within 6px of
-  one, and never leaves the field.
-- Labels may cover a node or a diamond. Only label collisions are resolved, so a
-  label stays as close to its star as the lattice allows.
-- Fallback: if every slot fails, the label sits at its clamped base position.
-
-The pass is pure integer math. The same rows and field size always produce the
-same boxes, and changing the selection does not move any label.
+- Position: centered under the node, `x = nodeX - 80`, `y = nodeY + 14`. A label
+  never depends on its neighbours, so adding or removing a save does not move
+  another label.
+- Scrim: the text sits on `.wb-star-label-scrim`, a `--wb-chart-label-scrim`
+  plate that hugs the text with 4px of horizontal padding. Where two labels
+  overlap, the front one stays readable.
+- Paint order: the hovered node is moved to the end of the node list, so its
+  glyph, brackets, label, and card paint last and cover neighbours.
 
 ## Interaction
 

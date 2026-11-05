@@ -82,11 +82,12 @@
                      height="16"
                      x="@node.LabelX"
                      y="@node.LabelY">
-                <Element id="SelectSave.LabelText.{node.Guid}"
+                <Element class="wb-star-label-scrim"
                          passthrough="true"
                          layout="horizontal"
                          width="fit"
                          height="fit"
+                         padding="4 1 4 1"
                          anchor="Center">
                     <Text class="wb-star-label"
                           class:wb-star-label-hover="@(ui.Hovering(node.NodeId) || ui.Hovering(node.RowId))"

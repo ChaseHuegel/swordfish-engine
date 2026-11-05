@@ -16,7 +16,7 @@ internal partial class SelectSaveView : UiViewBase
 {
     private readonly ILocalization _localization;
 
-    private readonly Dictionary<string, (int Width, int Height)> _labelSizes = new(StringComparer.Ordinal);
+    private string? _hoveredGuid;
     private string _chartKey = string.Empty;
     private StarChartGeometry _chartGeometry = StarChartGeometry.Empty;
     private StarChartNodeState[] _chartNodes = Array.Empty<StarChartNodeState>();
@@ -93,15 +93,18 @@ internal partial class SelectSaveView : UiViewBase
         return mode.ToString();
     }
 
-    /// <summary>Records the measured size of each chart label from the previous frame.</summary>
-    public void Measure(UIBuilder<Material> ui, SelectSaveState state)
+    /// <summary>Records which chart node the pointer is over, from the previous frame.</summary>
+    public void TrackHover(UIBuilder<Material> ui, SelectSaveState state)
     {
+        _hoveredGuid = null;
+
         foreach (SaveRowState row in state.Saves)
         {
-            ElementBounds bounds = ui.GetElementBounds("SelectSave.LabelText." + row.Guid);
-            if (bounds.Rect.Size.X > 0 && bounds.Rect.Size.Y > 0)
+            if (ui.Hovering("SelectSave.Node." + row.Guid)
+                || ui.Hovering("SelectSave.Label." + row.Guid))
             {
-                _labelSizes[row.Guid] = (bounds.Rect.Size.X, bounds.Rect.Size.Y);
+                _hoveredGuid = row.Guid;
+                return;
             }
         }
     }
@@ -125,11 +128,10 @@ internal partial class SelectSaveView : UiViewBase
         {
             _chartKey = key;
             _chartGeometry = BuildGeometry(state, width, height);
-            _chartNodes = BuildNodes(state, _chartGeometry);
         }
 
         return new StarChartState(
-            _chartNodes,
+            BuildNodes(state, _chartGeometry, _hoveredGuid),
             _chartGeometry.Specks,
             _localization,
             SelectNode,
@@ -144,11 +146,7 @@ internal partial class SelectSaveView : UiViewBase
 
         foreach (SaveRowState row in state.Saves)
         {
-            (int labelWidth, int labelHeight) = _labelSizes.TryGetValue(row.Guid, out (int, int) size)
-                ? size
-                : (0, 0);
-
-            sources.Add(new StarChartSource(row.Guid, row.Seed, labelWidth, labelHeight));
+            sources.Add(new StarChartSource(row.Guid, row.Seed));
             if (row.Selected)
             {
                 selected = row.Guid;
@@ -159,7 +157,11 @@ internal partial class SelectSaveView : UiViewBase
     }
 
     /// <summary>Joins chart positions with the display facts of each save.</summary>
-    private StarChartNodeState[] BuildNodes(in SelectSaveState state, in StarChartGeometry geometry)
+    private StarChartNodeState[] BuildNodes(
+        in SelectSaveState state,
+        in StarChartGeometry geometry,
+        string? hoveredGuid
+    )
     {
         var byGuid = new Dictionary<string, SaveRowState>(state.Saves.Count, StringComparer.Ordinal);
         foreach (SaveRowState row in state.Saves)
@@ -206,11 +208,30 @@ internal partial class SelectSaveView : UiViewBase
                 CardX: placement.CardX,
                 CardY: placement.CardY,
                 CardHeight: StarChartLayout.CARD_HEIGHT,
-                LabelWidth: placement.LabelWidth,
-                LabelHeight: placement.LabelHeight,
                 Selected: placement.Selected,
                 Passthrough: placement.Passthrough
             );
+        }
+
+        //  The hovered node paints last so its label and card sit above the rest.
+        if (hoveredGuid != null)
+        {
+            for (var i = 0; i < nodes.Length - 1; i++)
+            {
+                if (!string.Equals(nodes[i].Guid, hoveredGuid, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                StarChartNodeState hovered = nodes[i];
+                for (var j = i; j < nodes.Length - 1; j++)
+                {
+                    nodes[j] = nodes[j + 1];
+                }
+
+                nodes[^1] = hovered;
+                break;
+            }
         }
 
         return nodes;
@@ -229,30 +250,9 @@ internal partial class SelectSaveView : UiViewBase
             {
                 builder.Append(',');
             }
-
-            //  Measured label size feeds the packing, so a change repacks.
-            if (TryGetSize(state, row.Guid, out int labelWidth, out int labelHeight))
-            {
-                builder.Append('@').Append(labelWidth).Append('x').Append(labelHeight);
-            }
         }
 
         return builder.ToString();
-    }
-
-    /// <summary>Gets the measured label size for one save, when it is known.</summary>
-    private bool TryGetSize(in SelectSaveState state, string guid, out int width, out int height)
-    {
-        if (_labelSizes.TryGetValue(guid, out (int Width, int Height) size))
-        {
-            width = size.Width;
-            height = size.Height;
-            return true;
-        }
-
-        width = 0;
-        height = 0;
-        return false;
     }
 
     /// <summary>Raises the save selection for a chart node.</summary>

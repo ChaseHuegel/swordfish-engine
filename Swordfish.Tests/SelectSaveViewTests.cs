@@ -80,9 +80,9 @@ public class SelectSaveViewTests
         Assert.Equal("save-a", selected);
     }
 
-    /// <summary>Labels size to their text instead of a fixed width.</summary>
+    /// <summary>The hovered node paints last so it sits above its neighbours.</summary>
     [Fact]
-    public void ChartLabelsMeasureTheirText()
+    public void HoveredNodePaintsLast()
     {
         var controller = new UIController();
         var scroll = new ScrollAreaState();
@@ -93,18 +93,25 @@ public class SelectSaveViewTests
         for (var frame = 0; frame < 3; frame++)
         {
             controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
-            view.Measure(ui, state);
+            view.TrackHover(ui, state);
             view.Render(ui, state);
             ui.Build(0d);
         }
 
-        ElementBounds longLabel = ui.GetElementBounds("SelectSave.LabelText.save-a");
-        ElementBounds shortLabel = ui.GetElementBounds("SelectSave.LabelText.save-b");
+        ElementBounds node = ui.GetElementBounds("SelectSave.Node.save-a");
+        int x = node.Rect.Position.X + (node.Rect.Size.X / 2);
+        int y = node.Rect.Position.Y + (node.Rect.Size.Y / 2);
 
-        Assert.True(longLabel.Rect.Size.X > 0, "The label was not measured.");
-        Assert.True(shortLabel.Rect.Size.X > 0, "The label was not measured.");
-        Assert.True(longLabel.Rect.Size.X < StarChartLayout.LABEL_WIDTH);
-        Assert.True(longLabel.Rect.Size.X > shortLabel.Rect.Size.X);
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.TrackHover(ui, state);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.TrackHover(ui, state);
+        StarChartState chart = view.Chart(state, node.Rect.Size.X, node.Rect.Size.Y);
+
+        Assert.Equal("save-a", chart.Nodes[^1].Guid);
     }
 
     /// <summary>The trash icon inside the row must still fire.</summary>
