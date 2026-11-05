@@ -213,28 +213,46 @@ internal partial class SelectSaveView : UiViewBase
             );
         }
 
-        //  The hovered node paints last so its label and card sit above the rest.
-        if (hoveredGuid != null)
+        //  Paint order: unselected, then selected, then hovered on top.
+        var ordered = new List<StarChartNodeState>(nodes.Length);
+        StarChartNodeState hovered = default;
+        var hasHovered = false;
+
+        foreach (StarChartNodeState node in nodes)
         {
-            for (var i = 0; i < nodes.Length - 1; i++)
+            if (node.Guid == null)
             {
-                if (!string.Equals(nodes[i].Guid, hoveredGuid, StringComparison.Ordinal))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                StarChartNodeState hovered = nodes[i];
-                for (var j = i; j < nodes.Length - 1; j++)
-                {
-                    nodes[j] = nodes[j + 1];
-                }
+            if (hoveredGuid != null && string.Equals(node.Guid, hoveredGuid, StringComparison.Ordinal))
+            {
+                hovered = node;
+                hasHovered = true;
+                continue;
+            }
 
-                nodes[^1] = hovered;
-                break;
+            if (!node.Selected)
+            {
+                ordered.Add(node);
             }
         }
 
-        return nodes;
+        foreach (StarChartNodeState node in nodes)
+        {
+            if (node.Guid != null && node.Selected
+                && (hoveredGuid == null || !string.Equals(node.Guid, hoveredGuid, StringComparison.Ordinal)))
+            {
+                ordered.Add(node);
+            }
+        }
+
+        if (hasHovered)
+        {
+            ordered.Add(hovered);
+        }
+
+        return ordered.ToArray();
     }
 
     /// <summary>Builds the cache key for the chart geometry.</summary>

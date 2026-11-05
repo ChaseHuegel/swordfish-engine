@@ -114,6 +114,76 @@ public class SelectSaveViewTests
         Assert.Equal("save-a", chart.Nodes[^1].Guid);
     }
 
+    /// <summary>Unselected paints first, then selected, then hovered.</summary>
+    [Fact]
+    public void SelectedPaintsAboveUnselectedAndHoveredPaintsTop()
+    {
+        var controller = new UIController();
+        var scroll = new ScrollAreaState();
+        var view = new SelectSaveView(new TestLocalization(), scroll);
+        SelectSaveState state = CreateState(view);
+        var ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), controller);
+
+        for (var frame = 0; frame < 3; frame++)
+        {
+            controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
+            view.TrackHover(ui, state);
+            view.Render(ui, state);
+            ui.Build(0d);
+        }
+
+        ElementBounds node = ui.GetElementBounds("SelectSave.Node.save-b");
+        int x = node.Rect.Position.X + (node.Rect.Size.X / 2);
+        int y = node.Rect.Position.Y + (node.Rect.Size.Y / 2);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.TrackHover(ui, state);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.TrackHover(ui, state);
+        StarChartState chart = view.Chart(state, node.Rect.Size.X, node.Rect.Size.Y);
+
+        Assert.Equal("save-b", chart.Nodes[^1].Guid);
+        Assert.True(chart.Nodes[^2].Selected);
+    }
+
+    /// <summary>A hovered node that is already selected still paints once, on top.</summary>
+    [Fact]
+    public void HoveredSelectedNodePaintsOnceOnTop()
+    {
+        var controller = new UIController();
+        var scroll = new ScrollAreaState();
+        var view = new SelectSaveView(new TestLocalization(), scroll);
+        SelectSaveState state = CreateState(view);
+        var ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), controller);
+
+        for (var frame = 0; frame < 3; frame++)
+        {
+            controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
+            view.TrackHover(ui, state);
+            view.Render(ui, state);
+            ui.Build(0d);
+        }
+
+        ElementBounds node = ui.GetElementBounds("SelectSave.Node.save-a");
+        int x = node.Rect.Position.X + (node.Rect.Size.X / 2);
+        int y = node.Rect.Position.Y + (node.Rect.Size.Y / 2);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.TrackHover(ui, state);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.TrackHover(ui, state);
+        StarChartState chart = view.Chart(state, node.Rect.Size.X, node.Rect.Size.Y);
+
+        Assert.Equal(2, chart.Nodes.Count);
+        Assert.Equal("save-a", chart.Nodes[^1].Guid);
+    }
+
     /// <summary>The trash icon inside the row must still fire.</summary>
     [Fact]
     public void ArchiveRowDeleteFires()

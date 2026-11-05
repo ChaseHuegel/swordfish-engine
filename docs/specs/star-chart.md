@@ -64,8 +64,9 @@ therefore letterboxes instead of reshaping the constellation.
 - Scrim: the text sits on `.wb-star-label-scrim`, a `--wb-chart-label-scrim`
   plate that hugs the text with 4px of horizontal padding. Where two labels
   overlap, the front one stays readable.
-- Paint order: the hovered node is moved to the end of the node list, so its
-  glyph, brackets, label, and card paint last and cover neighbours.
+- Paint order: unselected nodes first, then the selected node, then the hovered
+  node. `BuildNodes` emits the list in that order, so a selected node covers its
+  unselected neighbours and a hovered node covers everything.
 
 ## Interaction
 
