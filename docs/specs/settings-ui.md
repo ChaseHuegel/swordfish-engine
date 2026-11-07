@@ -46,8 +46,9 @@ overflow work in
 [settings category overflow](/docs/issues/0091-settings-tray-overflow.md).
 
 The pane list scrolls with the mouse wheel through the `ScrollArea` markup
-component. The scrollbar is an indicator and does not accept dragging. The list
-clips its rows.
+component. The scrollbar thumb drags, and a track click jumps toward the click.
+A drag keeps its hold after the cursor leaves the rail, and a release ends it.
+The list clips its rows.
 
 ## Rows and controls
 
@@ -188,6 +189,8 @@ existing spacer layout.
   snapshots.
 - `Swordfish.Tests/SettingsInteractionTests.cs` covers click, scroll, and
   callback behavior.
+- `Swordfish.Tests/ScrollBarInteractionTests.cs` covers thumb drag, drag outside
+  the rail, track jump, release, and end clamping.
 - `Swordfish.Tests/SettingsControlWidgetTests.cs` covers the coded choice and
   slider controls.
 - `Swordfish.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, and

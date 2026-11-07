@@ -145,8 +145,8 @@ component such as `Card`. A generic list template is not supported.
 
 The foundation also provides `ProgressBar`, `ScrollArea`, `ScrollBar`, and
 `ItemSlot`. Scroll areas use `ScrollAreaState` for viewport metrics, content
-height, and thumb geometry. A page calls `ScrollAreaState.Measure` with the
-viewport id. The content element id is the viewport id plus `Content`.
+height, thumb geometry, and drag progress. A page calls `ScrollAreaState.Measure`
+with the viewport id. The content element id is the viewport id plus `Content`.
 Dynamic fill and thumb sizes use `IConstraint` properties on the state.
 
 `ProgressBarState` carries the value and an optional fill tint, and it falls
