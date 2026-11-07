@@ -145,6 +145,11 @@ element on the previous frame. Use it with the caller-owned scroll offset.
 so a scrollbar can size its thumb without guessing. The settings page and the
 menu lists use this pair through the `ScrollArea` component.
 
+The `ScrollArea` scrollbar binds press and held input to its track overlay. The
+controller keeps the active pointer on that element, so a thumb drag continues
+after the cursor leaves the rail and stops on release. A track click centers the
+thumb on the click.
+
 Interaction hit testing uses the intersection of the element rect and its clip
 rect. A clipped control cannot receive hover or click outside the clip. The
 check is in `Reef/UIController.cs:480`, and `UIBuilder` passes both rects at
@@ -192,6 +197,8 @@ The batching design and its measurements are in
   do not change the current element ID.
 - `Swordfish.Tests/ReefBatchTests.cs` checks run grouping, paint order, and the
   clip-space mapping of the OpenGL batch.
+- `Swordfish.Tests/ScrollBarInteractionTests.cs` checks thumb drag, drag outside
+  the rail, track jump, release, and end clamping.
 - `Swordfish.Tests/ReefAtlasTests.cs` checks atlas packing and the UV mapping.
 - `Swordfish.Tests/TypefaceAtlasLoadTests.cs` checks that a shipped typeface
   atlas loads and matches its atlas description.

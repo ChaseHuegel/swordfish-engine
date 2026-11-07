@@ -10,5 +10,11 @@
                  width="fill"
                  height="@context.ThumbHeight"
                  y="@context.ThumbY" />
+        <Element visible="@context.HasThumb"
+                 layout="none"
+                 width="fill"
+                 height="fill"
+                 onclick="@context.OnPress(ui.GetRelativeCursorPosition().Y, ui.GetElementBounds().Rect.Size.Y)"
+                 onheld="@context.OnHeld(ui.GetRelativeCursorPosition().Y, ui.GetElementBounds().Rect.Size.Y)" />
     </Element>
 </Reef>
