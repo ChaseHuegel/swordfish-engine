@@ -56,6 +56,13 @@ The closest candidates up to `ShadowSettings.MaxPointShadows` render into array 
 Each cube slice draws six 90-degree perspective faces with a shared depth framebuffer.
 In the lighting pass, shaded fragments compute the point light distance and sample the cubemap array.
 
+Voxel light bricks use `AlphaMode.Blend`, so they skip the shadow pass. The
+point light relies on the adjacent structural face for occlusion. The mesh pass
+emits that face because the lamp is not a culler
+(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:127-142`). A lamp with
+no non-culling neighbour creates no point light
+(`WaywardBeyond.Client/Voxels/Building/LightEntityDecorator.cs`).
+
 ## Filtering Modes
 
 `ShadowFilterMode` controls filtering in `pbr_plus.glsl`:
