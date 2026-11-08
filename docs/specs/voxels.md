@@ -179,6 +179,21 @@ dark.
 Both light passes use one rule. The next level is 15 when the destination is
 ambient, otherwise one less. Open air never decays. A tunnel or a cavity does.
 
+Light bricks (`wb:light`, `wb:small_light`) use `Alpha = Blend`. They are not
+cullers, so the mesh pass emits the neighbouring solid's face against the lamp
+(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:127-142`). The point
+shadow pass uses that face as the occluder instead of the lamp mesh. The lamp
+mesh lands in the transparent bucket with `CastShadows = false`
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:60-67`), so it does
+not self-shadow its own centred point light.
+
+`LightEntityDecorator`
+(`WaywardBeyond.Client/Voxels/Building/LightEntityDecorator.cs`) creates a point
+light only when at least one orthogonal neighbour is not a culler. It removes
+the `LightComponent` when the lamp becomes fully buried. The exposure rule
+matches the flood-fill rule. A non-resident neighbour reads as exterior air, so
+it counts as exposed.
+
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
 (`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:163-248`) rebuilds

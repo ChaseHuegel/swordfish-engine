@@ -1,6 +1,7 @@
 [[Bricks]]
 ID      = "wb:small_light"
 Shape   = "any"
+Alpha   = "Blend"
 Tags    = [
     "entity",
     "light",

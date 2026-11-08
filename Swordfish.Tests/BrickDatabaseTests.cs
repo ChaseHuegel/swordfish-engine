@@ -27,6 +27,8 @@ public class BrickDatabaseTests
         BrickDatabase database = Load();
 
         Assert.Equal(BrickAlpha.Blend, database.Get(database.Id("wb:glass")).Value.Alpha);
+        Assert.Equal(BrickAlpha.Blend, database.Get(database.Id("wb:light")).Value.Alpha);
+        Assert.Equal(BrickAlpha.Blend, database.Get(database.Id("wb:small_light")).Value.Alpha);
         Assert.Equal(BrickAlpha.Masked, database.Get(database.Id("wb:grate")).Value.Alpha);
         Assert.Equal(BrickAlpha.Masked, database.Get(database.Id("wb:truss")).Value.Alpha);
         Assert.Equal(BrickAlpha.Masked, database.Get(database.Id("wb:porthole")).Value.Alpha);
@@ -43,14 +45,20 @@ public class BrickDatabaseTests
         ushort rockId = database.Id("wb:rock");
         ushort grateId = database.Id("wb:grate");
         ushort glassId = database.Id("wb:glass");
+        ushort lightId = database.Id("wb:light");
+        ushort smallLightId = database.Id("wb:small_light");
 
         var rockVoxel = new Voxel { ID = rockId };
         var grateVoxel = new Voxel { ID = grateId };
         var glassVoxel = new Voxel { ID = glassId };
+        var lightVoxel = new Voxel { ID = lightId };
+        var smallLightVoxel = new Voxel { ID = smallLightId };
 
         Assert.True(database.IsCuller(rockVoxel, BrickShape.Block));
         Assert.False(database.IsCuller(rockVoxel, BrickShape.Slab));
         Assert.False(database.IsCuller(grateVoxel, BrickShape.Block));
         Assert.False(database.IsCuller(glassVoxel, BrickShape.Block));
+        Assert.False(database.IsCuller(lightVoxel, BrickShape.Block));
+        Assert.False(database.IsCuller(smallLightVoxel, BrickShape.Block));
     }
 }
