@@ -819,8 +819,8 @@ runtime layout and input metrics:
 - `ui.Width`, `ui.Height`: Current viewport pixel dimensions.
 - `ui.IsMouseCaptured`: True when mouse input is captured by the UI.
 - `ui.IsKeyboardCaptured`: True when keyboard input is captured by the UI.
-- `ui.GetScrollDelta()`: Wheel scroll float delta.
-- `ui.GetScrollDelta2D()`: Wheel scroll 2D vector delta.
+- `ui.GetScrollDelta()`: Wheel scroll float delta, accumulated between frames.
+- `ui.GetScrollDelta2D()`: Wheel scroll 2D vector delta, accumulated between frames.
 - `ui.GetElementBounds('id')`: Resolved bounds of a previously rendered element.
 
 ```xml
