@@ -114,13 +114,12 @@ public class SilkInputService : IInputService
         }
     }
 
-    private volatile float _lastScroll;
+    private readonly ScrollAccumulator _scroll = new();
 
     private readonly IMouse _mainMouse;
     private readonly IKeyboard _mainKeyboard;
     private readonly ConcurrentDictionary<Key, InputRecord> _keyInputMap = new();
     private readonly ConcurrentDictionary<MouseButton, InputRecord> _mouseInputMap = new();
-    private readonly InputRecord _scrollRecord = new();
 
     private class InputRecord
     {
@@ -187,7 +186,7 @@ public class SilkInputService : IInputService
 
     public float GetMouseScroll()
     {
-        return _scrollRecord.LastInput.ElapsedMilliseconds <= INPUT_BUFFER_MS ? _lastScroll : 0f;
+        return _scroll.Value;
     }
 
     public bool IsButtonHeld(InputButton button)
@@ -304,8 +303,7 @@ public class SilkInputService : IInputService
 
     private void OnScroll(IMouse mouse, ScrollWheel wheel)
     {
-        _lastScroll = wheel.Y;
-        _scrollRecord.LastInput.Restart();
+        _scroll.Add(wheel.Y);
 
         Scrolled?.Invoke(
             new InputDevice(mouse.Index, mouse.Name),
@@ -337,6 +335,10 @@ public class SilkInputService : IInputService
 
     private void OnWindowUpdate(double delta)
     {
+        //  Latch the wheel deltas accumulated since the last frame so every consumer
+        //  in this frame observes the same value. Nothing older than a frame is lost.
+        _scroll.Latch();
+
         lock (_cursorLock)
         {
             Vector2 newMousePosition = _mainMouse.Position;
