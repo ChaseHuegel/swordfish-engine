@@ -1,7 +1,7 @@
 # Bug: nsd-rpc keeps a canceled inbound entry with a disposed token source
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -25,14 +25,24 @@ connection closes afterwards.
 
 ## Acceptance criteria
 
-- [ ] A canceled request leaves no entry in the inbound table.
-- [ ] A response or failure after cancellation removes the entry.
-- [ ] `FaultPending` tolerates a token source that is already disposed.
-- [ ] A test cancels a call, waits for the handler to return, then disconnects.
+- [x] A canceled request leaves no entry in the inbound table.
+- [x] A response or failure after cancellation removes the entry.
+- [x] `FaultPending` tolerates a token source that is already disposed.
+- [x] A test cancels a call, waits for the handler to return, then disconnects.
       The disconnect raises no exception.
-- [ ] The fix ships in a package version the game can pin.
+- [x] The fix ships in a package version the game can pin.
 
 ## Dependencies
 
 - Upstream repository: `ChaseHuegel/nsd-rpc`.
 - Found while working 0047 and 0048.
+
+## Resolution
+
+Fixed upstream in commit `ba882611` and released as nsd-rpc 0.3.1.
+`ClaimInbound` removes the entry, and `FaultPending` tolerates a disposed token
+source.
+
+The repository now pins 0.3.1. `LoopbackRpcTests` closes the connection after a
+timeout and after a cancellation. The cancellation test waits for the handler to
+return before it disconnects.

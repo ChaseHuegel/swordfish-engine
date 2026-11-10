@@ -1,7 +1,7 @@
 # Bug: CharacterSaveManagerTests session-time test never sets the active save
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -23,3 +23,10 @@ running the game test suite.
 - [ ] The test sets the active save before `Load`, or `Load` is corrected to
       seed it from storage, matching the intended contract.
 - [ ] `dotnet test WaywardBeyond.Client.Core.Tests` passes.
+
+## Resolution
+
+Stale. The test and the project this issue targets were removed in `1ff58cfb`
+on 2026-10-10, before the issue was recorded on 2026-10-24.
+`WaywardBeyond.Client.Core.Tests` no longer exists, so no failing test remains.
+Coverage is not restored.

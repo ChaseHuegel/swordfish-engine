@@ -5,13 +5,20 @@ One subject: how the repository compiles `.nsd` schemas into C# types.
 ## Packages
 
 - `Needlefish` 1.5.0 — runtime attributes and reflection helpers.
-- `Needlefish.Generators` 1.2.0 — Roslyn incremental source generator.
+- `Needlefish.Generators` 1.3.0 — Roslyn incremental source generator.
 
 The generator version is independent of the runtime version. The generator
 ships its own compiler and emits the same source as `nsdc`.
 
 The repository does not run `nsdc` as a build step. Do not install `nsdc` to
 build the repository.
+
+## Length bounds
+
+A string or array field is limited to 65,535 characters or elements. The
+serializer throws `InvalidOperationException` for a larger value. It never
+writes a truncated header. The deserializer checks every length against the
+buffer end and throws `InvalidDataException` for a truncated or forged value.
 
 ## Schema layout
 
@@ -49,7 +56,7 @@ resolve relative to the including file.
 `WaywardBeyond.Data.csproj` references the generator:
 
 ```xml
-<PackageReference Include="Needlefish.Generators" Version="1.2.0" PrivateAssets="all" />
+<PackageReference Include="Needlefish.Generators" Version="1.3.0" PrivateAssets="all" />
 ```
 
 It also sets `AllowUnsafeBlocks` because the generated serializer uses unsafe

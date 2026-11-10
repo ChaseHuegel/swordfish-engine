@@ -3,7 +3,7 @@
 - Type: plan
 - Status: in progress (engine E0-E6 and game G1-G6 landed; verification pending)
 - Workflow: [../specs/issues.md](../specs/issues.md)
-- Related: [0086](../issues/0086-incremental-voxel-rebuild.md), [0097](../issues/0097-voxel-light-geometry-split.md), [0096](../issues/0096-per-chunk-compound-collision.md)
+- Related: [0086](../issues/0086-incremental-voxel-rebuild.md), [0100](../issues/0100-voxel-light-geometry-split.md), [0099](../issues/0099-per-chunk-compound-collision.md)
 - Batching proposal: [../proposals/voxel-chunk-batching.md](../proposals/voxel-chunk-batching.md)
 
 ## How to use this plan
@@ -52,7 +52,7 @@ gameplay contract.
 | D2 | Ambient model v2 | proposed | Keep `XY`, `XZ`, and `ZY`. Seed every ambient cell in the full build. Do not decay into an ambient cell. See Phase G1. |
 | D3 | Chunk edge | closed | The chunk edge is 16. Pin the generator and the save default. Do not raise it to work around draw calls. |
 | D4 | Batched chunk renderer | approved | See the [batching proposal](../proposals/voxel-chunk-batching.md). Base-vertex only, no cross-object sharing, no chunk limit, multi-arena growth. |
-| D5 | Collision follow-up | closed | One body per voxel object with per-chunk compound children. See [0096](../issues/0096-per-chunk-compound-collision.md). |
+| D5 | Collision follow-up | closed | One body per voxel object with per-chunk compound children. See [0099](../issues/0099-per-chunk-compound-collision.md). |
 | D6 | Transparent ordering | open | See "Transparent ordering" below. |
 | D7 | `VoxelLightingService` singleton | closed | Leave as-is. Do not add a follow-up. |
 
@@ -475,7 +475,7 @@ Steps:
       `ReconcileVoxelEntities` for a light-only chunk.
 - [x] Keep the mesh rebuild for now. It reads the new vertex light.
 - [x] Add a test: a lamp edit changes no chunk collision. A geometry edit does.
-- [x] Record the full split in [0097](../issues/0097-voxel-light-geometry-split.md).
+- [x] Record the full split in [0100](../issues/0100-voxel-light-geometry-split.md).
 
 Gate: build, tests, benchmark delta.
 
@@ -720,7 +720,7 @@ Run after every gate.
 - Order-independent transparency.
 - A GPU-driven culling path with compute shaders. Plan it after E6 if the CPU
   cull is the bottleneck.
-- Server-side collision changes beyond [0096](../issues/0096-per-chunk-compound-collision.md).
+- Server-side collision changes beyond [0099](../issues/0099-per-chunk-compound-collision.md).
 - Chunk streaming or LOD.
 - Any change to the chunk edge other than keeping 16.
 - Refactoring the `VoxelLightingService` singleton or its mutable queues.

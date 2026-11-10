@@ -322,7 +322,7 @@ treat it as a fallback that needs art approval, not the default.
   deferred.
 - `Bloom.Intensity` above roughly 4 clips the additive composite to white and
   shifts hue as channels saturate. The tonemapping gap is tracked in
-  [issue 0098](../issues/0098-color-transfer-and-tonemapping.md).
+  [issue 0101](../issues/0101-color-transfer-and-tonemapping.md).
 - The half-resolution chain softens the smallest emissive texels. Compare
   against the current output at the same settings, and tune the default pass
   count with the art direction.

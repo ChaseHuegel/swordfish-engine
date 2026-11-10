@@ -25,8 +25,8 @@ is not part of this workflow.
 ### Bug
 
 - [ ] [DataStore.Free can double-free an entity index](/docs/issues/0039-datastore-free-idempotency.md) — a second Free re-enqueues the index; one index can reach two owners (engine-first)
-- [ ] [nsd-rpc keeps a canceled inbound entry with a disposed token source](/docs/issues/0052-nsd-rpc-canceled-inbound-dispose.md) — a canceled call makes the next disconnect throw (upstream)
-- [ ] [CharacterSaveManagerTests session-time test never sets the active save](/docs/issues/0041-character-save-load-test.md) — Load returns failure; the test asserts success
+- [x] [nsd-rpc keeps a canceled inbound entry with a disposed token source](/docs/issues/0052-nsd-rpc-canceled-inbound-dispose.md) — NsdRpc 0.3.1 removes the canceled entry and tolerates the disposed source
+- [x] [CharacterSaveManagerTests session-time test never sets the active save](/docs/issues/0041-character-save-load-test.md) — stale: the test and project were deleted before the issue was recorded
 - [ ] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` parses to `['Smoke', 'Test']`; consumers take only `values[0]`
 - [ ] [Bound how old a resolved input command may be](/docs/issues/0059-bound-command-staleness.md) — a client that stops sending keeps moving; the step re-applies its last sample forever
 - [ ] [Transport tests flake when the suite runs in parallel](/docs/issues/0063-flaky-transport-tests.md) — two loopback socket tests fail intermittently only under the full suite
@@ -38,10 +38,12 @@ is not part of this workflow.
 - [ ] [Voxel chunks are unbounded and chunk coordinates truncate](/docs/issues/0073-unbounded-voxel-chunks.md) — a `short` chunk cast wraps a distant write into a resident chunk, and `_chunks` never shrinks
 - [x] [Voxel edits leak mesh renderers and rebuild collision shapes](/docs/issues/0083-voxel-edit-memory-leak.md) — the cleanup gate never runs, so every edit leaks a mesh and a render target, and the Jolt compound is rebuilt without deterministic shape disposal ([#612](https://github.com/ChaseHuegel/swordfish-engine/issues/612))
 - [ ] [The scene buffer keeps stale entity models](/docs/issues/0098-scene-buffer-stale-entities.md) — a pooled scene array reports its old length, so dead entities draw at stale matrices and inflate culling bounds (engine-first)
+- [ ] [A fresh render state reports Low bloom while the declared default is Medium](/docs/issues/0103-bloom-quality-default-snapshot.md) — the client never applies `SettingsDefaults.BLOOM_QUALITY` to the render settings, so the settings page and the snapshot test disagree with the declared default
 
 ### Improvement
 
-- [ ] [nsdc unpack safety — submit B1-B3 upstream](/docs/issues/0037-nsdc-unpack-safety.md) — generated deserializer OOB reads; frame-level mitigations landed, structural fix needs codegen
+- [x] [Fix the B1-B3 deserializer bounds](/docs/issues/0037-nsdc-unpack-safety.md) — Needlefish checks every decode length and rejects values above 65,535; adopted in Generators 1.3.0
+- [x] [Add the RPC migration test suite and networking docs pass](/docs/issues/0051-rpc-tests-and-docs.md) — fragment, loopback, TCP, and policy tests plus the networking docs pass; the ordered join test moved to 0102
 - [ ] [Move character tunables into config](/docs/issues/0054-move-character-tunables-to-config.md) — movement, reach, and hotbar constants are hardcoded and absent from the config schema
 - [ ] [Remove the TODO markers from WaywardBeyond.Gameplay](/docs/issues/0055-remove-gameplay-todos.md) — two new TODO comments duplicate issues 0054 and 0056
 - [ ] [Split CharacterDefaults by concern](/docs/issues/0056-split-character-defaults.md) — movement, reach, inventory, and body geometry in one type; two competing heights
@@ -76,9 +78,10 @@ is not part of this workflow.
 - [ ] [Add a window concept to the UI layers](/docs/issues/0093-ui-window-concept.md) — one global interaction blocker cannot separate closable windows from selectors
 - [ ] [Remove the feedback submit delay](/docs/issues/0094-feedback-submit-delay.md) — a fixed 100 ms delay stands in for "the modal has closed"
 - [ ] [Allow output device selection](/docs/issues/0095-output-device-selection.md) — the engine has no public device list or preference API, and the audio settings page cannot choose an output device
-- [ ] [Use one physics body with per-chunk compound children](/docs/issues/0096-per-chunk-compound-collision.md) — every edit copies all chunk shapes and rebuilds the whole Jolt compound
-- [ ] [Separate voxel light from geometry](/docs/issues/0097-voxel-light-geometry-split.md) — a light change remeshes and recollides every chunk it touches
+- [ ] [Use one physics body with per-chunk compound children](/docs/issues/0099-per-chunk-compound-collision.md) — every edit copies all chunk shapes and rebuilds the whole Jolt compound
+- [ ] [Separate voxel light from geometry](/docs/issues/0100-voxel-light-geometry-split.md) — a light change remeshes and recollides every chunk it touches
 - [x] [Settings row controls did not render or receive clicks](/docs/issues/0097-settings-row-width.md) — the row controls were built before the width was known
-- [ ] [Output applies no color transfer and no tonemapping](/docs/issues/0098-color-transfer-and-tonemapping.md) — lighting and additive effects composite in gamma space, and highlights clip per channel
+- [ ] [Output applies no color transfer and no tonemapping](/docs/issues/0101-color-transfer-and-tonemapping.md) — lighting and additive effects composite in gamma space, and highlights clip per channel
+- [ ] [Prove level-stream order and that a partial stream cannot enter play](/docs/issues/0102-level-stream-order-and-partial-join-test.md) — the ordered join test from 0051 is still missing
 
 ### Research

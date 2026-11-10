@@ -26,3 +26,7 @@ client. `ServerPeer.CloseOnRejectedSend` exists for this, and the server calls
 - [ ] The generator emits a notification proxy that returns the `RpcPeer.Notify` result.
 - [ ] The server notification paths use the typed proxy again.
 - [ ] A test pins that a rejected notification is observable through the proxy.
+
+## Dependencies
+
+- Upstream issue: https://github.com/ChaseHuegel/nsd-rpc/issues/1.
