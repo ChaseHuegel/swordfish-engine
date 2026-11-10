@@ -1,11 +1,11 @@
-# Improvement: nsdc unpack safety — submit the B1-B3 deserializer defect upstream
+# Improvement: Fix the B1-B3 deserializer bounds
 
 > Historical: the repository now uses `Needlefish.Generators` instead of the
 > `nsdc` build step. The generated `Unpack` code and the guard requirement are
 > unchanged. Paths below describe the old `nsdc` output layout.
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -62,8 +62,23 @@ truncate when a value exceeds `ushort.MaxValue`.
 
 ## Acceptance criteria
 
-- [ ] The defect report (the locations and the suggested guard shape above)
+- [x] The defect report (the locations and the suggested guard shape above)
       is submitted to the nsdc issue tracker.
-- [ ] Once the fixed codegen is adopted in this repo, a malformed-frame
+- [x] Once the fixed codegen is adopted in this repo, a malformed-frame
       regression test is added under `Swordfish.Tests` proving a crafted
       frame cannot read out of bounds or over-allocate.
+
+## Resolution
+
+B1 and B2 are fixed in `Needlefish.Generators` 1.2.0 and later. The generated
+decode checks every read and every nested length against the buffer end.
+
+B3 is fixed in `Needlefish.Generators` 1.3.0. The serializer throws
+`InvalidOperationException` above 65,535 characters or elements. It never
+writes a truncated length header.
+
+The repository now pins `Needlefish.Generators` 1.3.0. Upstream issue
+`ChaseHuegel/needlefish#4` is closed, and the fix landed in commit `51364938`.
+`Swordfish.Tests/SerializationBoundsTests.cs` pins the length ceiling and the
+decode guards. `ServerRpcTests.MalformedPayloadAnswersInvalidParamsAndKeepsTheConnectionOpen`
+pins the RPC path.

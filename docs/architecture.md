@@ -142,7 +142,7 @@ This is not used by the game's save path, which uses SQLite directly in
 - **JoltPhysicsSharp** 2.17.5 — 3D physics
 - **DryIoc** 5.3.3 — DI container
 - **Needlefish** 1.5.0 — binary serializer (custom)
-- **Needlefish.Generators** 1.2.0 — Roslyn source generator for `.nsd` schemas
+- **Needlefish.Generators** 1.3.0 — Roslyn source generator for `.nsd` schemas
 - **Microsoft.Data.Sqlite** 8.0.6 — save store
 - **Currents/CRNT** — UDP protocol (custom)
 - **Tomlet** 6.2.0 — TOML parsing

@@ -10,8 +10,8 @@ fragment rule, the loopback behavior, and the threading model. Read
 
 Source of truth: `WaywardBeyond.Networking/WaywardBeyond.Networking.csproj`.
 
-The game references `NsdRpc`, `NsdRpc.Tcp`, and `NsdRpc.Generators` at 0.3.0.
-The generator is an analyzer. The 0.3.0 package ships its assembly under
+The game references `NsdRpc`, `NsdRpc.Tcp`, and `NsdRpc.Generators` at 0.3.1.
+The generator is an analyzer. The 0.3.1 package ships its assembly under
 `lib/`, so the project adds it with an explicit `Analyzer` item.
 
 No game code writes the envelope, the frame format, the correlation table, or
@@ -24,6 +24,9 @@ handlers, the peer directory, the loopback transport, and the host wiring.
 nsd `Envelope`. The envelope carries the protocol version, message kind,
 correlation id, method id, payload, and error. The default frame cap is 65,570
 bytes. The game splits larger state payloads (see [Fragments](#fragments)).
+A single string or array field is limited to 65,535 characters or elements. A
+larger value fails serialization instead of truncating the length header. See
+[needlefish-codegen](needlefish-codegen.md) for the decode bounds.
 
 ## Method ids
 

@@ -110,8 +110,7 @@ public class LoopbackRpcTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal((int)RpcErrorCode.RequestTimeout, result.ErrorCode);
-        //  Do not close here: nsd-rpc 0.3.0 leaves a canceled inbound entry whose token source the
-        //  dispatcher already disposed. The disconnect path then throws. See issue 0052.
+        connection.Close();
     }
 
     [Fact]
@@ -119,7 +118,8 @@ public class LoopbackRpcTests
     {
         var transport = new LoopbackRpcServerTransport();
         var registry = new RpcRegistry();
-        registry.Add(new SlowHandler());
+        var handler = new SlowHandler();
+        registry.Add(handler);
         registry.Freeze();
         var server = new RpcServer(transport, registry);
         server.Start();
@@ -140,7 +140,11 @@ public class LoopbackRpcTests
 
         Assert.False(result.IsSuccess);
         Assert.Equal((int)RpcErrorCode.Cancelled, result.ErrorCode);
-        //  See the timeout test and issue 0052: closing after a canceled call trips the upstream bug.
+
+        //  Wait until the handler unwinds, then disconnect. The canceled inbound entry must be gone,
+        //  and the disconnect must tolerate the token source the dispatcher already disposed.
+        await handler.Returned.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Null(Record.Exception(() => connection.Close()));
     }
 
     [Fact]
@@ -186,13 +190,23 @@ public class LoopbackRpcTests
     {
         public const ulong Method = 900;
 
+        public TaskCompletionSource Returned { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public async ValueTask<RpcResult<NewLevelResponse>> ExecuteAsync(
             NewLevelRequest request,
             RpcContext context,
             CancellationToken cancellationToken
         ) {
-            await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
-            return RpcResult<NewLevelResponse>.Success(new NewLevelResponse { LevelGuid = "late", Success = true });
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                return RpcResult<NewLevelResponse>.Success(new NewLevelResponse { LevelGuid = "late", Success = true });
+            }
+            finally
+            {
+                Returned.TrySetResult();
+            }
         }
     }
 

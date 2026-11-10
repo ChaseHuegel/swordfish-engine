@@ -13,7 +13,7 @@ The wire catalog lives in [networking-rpc](networking-rpc.md).
 | loopback | the game | in-process server for singleplayer and host mode |
 
 `WaywardBeyond.Networking` references `NsdRpc`, `NsdRpc.Tcp`, and
-`NsdRpc.Generators` at 0.3.0. The game no longer owns a wire envelope, type
+`NsdRpc.Generators` at 0.3.1. The game no longer owns a wire envelope, type
 tags, per-type receive queues, or FIFO request matching.
 
 ## TCP
