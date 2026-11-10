@@ -1,7 +1,7 @@
 # Improvement: Add the RPC migration test suite and networking docs pass
 
 - Type: improvement
-- Status: in-progress
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -70,3 +70,8 @@ match the code.
 - 0046 through 0050.
 - nsd-rpc 0.3.0 supplies the backlog policy, idle timeout, metrics, and
   batching behavior that the tests pin.
+
+## Resolution
+
+All criteria are complete except the ordered join test. That test moves to
+0102. This issue closes.

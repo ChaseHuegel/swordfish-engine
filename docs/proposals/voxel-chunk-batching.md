@@ -361,7 +361,7 @@ option 2 if any driver misbehaves. Do not add per-vertex model data.
 - `BuildChunk` writes through `MeshBatchWriter`. It no longer creates `Mesh`
   objects or `MeshRenderer` entities.
 - A geometry edit updates only the dirty chunks' ranges. A light-only edit can
-  update the range color data only (see [0097](../issues/0097-voxel-light-geometry-split.md)).
+  update the range color data only (see [0100](../issues/0100-voxel-light-geometry-split.md)).
 - The per-chunk ECS entities and `VoxelChunkComponent` are removed.
 - `MeshRendererCleanup` stays for non-chunk renderers. Chunk cleanup becomes
   `RemoveRange`.
