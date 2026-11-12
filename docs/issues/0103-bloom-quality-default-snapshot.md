@@ -1,7 +1,7 @@
 # Bug: A fresh render state reports Low bloom while the declared default is Medium
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -28,12 +28,12 @@ transport flake in 0063.
 
 ## Acceptance criteria
 
-- [ ] The client applies `SettingsDefaults.BLOOM_QUALITY` to the render settings
+- [x] The client applies `SettingsDefaults.BLOOM_QUALITY` to the render settings
       at composition, before the settings page reads them.
-- [ ] A fresh client reports `FromSettings(Bloom) == SettingsDefaults.BLOOM_QUALITY`.
-- [ ] The snapshot fixture uses the same composition path, so
+- [x] A fresh client reports `FromSettings(Bloom) == SettingsDefaults.BLOOM_QUALITY`.
+- [x] The snapshot fixture uses the same composition path, so
       `SettingsShellMatchesSnapshots` passes without regenerating the golden to
       Low.
-- [ ] A unit test pins the round trip for Low, Medium, High, and Custom.
-- [ ] No engine default changes. The fix stays in the client, per the
+- [x] A unit test pins the round trip for Low, Medium, High, and Custom.
+- [x] No engine default changes. The fix stays in the client, per the
       engine/game split.

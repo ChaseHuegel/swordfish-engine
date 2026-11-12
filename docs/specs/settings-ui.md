@@ -99,6 +99,13 @@ so no builder dereferences the page.
 `SettingsDraft` is at `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:11`.
 It copies every editable config value when the page opens.
 
+The client applies its declared render defaults at composition, before any
+page reads the render config. `SettingsDefaults.ApplyRenderDefaults` at
+`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:67` sets the bloom quality
+when the config has no saved file. A saved `render.toml` keeps the user's
+values. The snapshot fixture composes a fresh render config through the same
+method.
+
 Each entry keeps its baseline value. The page compares the draft against the
 baselines to decide whether changes exist. `Apply changes` commits the draft,
 saves the configs, and captures new baselines. The footer action reads `Back`
@@ -193,5 +200,5 @@ existing spacer layout.
   the rail, track jump, release, and end clamping.
 - `Swordfish.Tests/SettingsControlWidgetTests.cs` covers the coded choice and
   slider controls.
-- `Swordfish.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, and
-  option lists.
+- `Swordfish.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, option
+  lists, and the bloom, shadow, and AO preset round trips.
