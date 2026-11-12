@@ -49,6 +49,9 @@ internal partial class NewCharacterView : UiViewBase
     /// <summary>Raised when the spacer point randomizer is clicked.</summary>
     public Action? RandomPointsRequested { get; set; }
 
+    /// <summary>Raised when a stat row is hovered.</summary>
+    public Action<int>? StatHoverRequested { get; set; }
+
     /// <summary>Raised when a stat row steps down.</summary>
     public Action<int>? StatDecreaseRequested { get; set; }
 
@@ -77,6 +80,8 @@ internal partial class NewCharacterView : UiViewBase
     partial void OnRandomGender() => RandomGenderRequested?.Invoke();
 
     partial void OnRandomPoints() => RandomPointsRequested?.Invoke();
+
+    partial void OnStatHovered(int index) => StatHoverRequested?.Invoke(index);
 
     partial void OnStatMinus(int index) => StatDecreaseRequested?.Invoke(index);
 

@@ -32,6 +32,16 @@ public class NewCharacterStepperTests
         Assert.Null(harness.SpeciesDelta);
     }
 
+    [Fact]
+    public void HoveringStatRowRaisesTheFocusAction()
+    {
+        var harness = new Harness();
+
+        harness.Hover("StatRow_3");
+
+        Assert.Equal(3, harness.HoveredStat);
+    }
+
     private static NewCharacterState CreateState()
     {
         List<CharacterStatRow> stats =
@@ -74,6 +84,7 @@ public class NewCharacterStepperTests
             _view = new NewCharacterView(new TestLocalization()) { Input = new FakeInputService() };
             _view.SpeciesStepRequested = delta => SpeciesDelta = delta;
             _view.GenderStepRequested = delta => GenderDelta = delta;
+            _view.StatHoverRequested = index => HoveredStat = index;
             _ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), _controller);
             Frame();
         }
@@ -81,6 +92,8 @@ public class NewCharacterStepperTests
         public int? SpeciesDelta { get; private set; }
 
         public int? GenderDelta { get; private set; }
+
+        public int? HoveredStat { get; private set; }
 
         public void Click(string id)
         {
@@ -93,6 +106,17 @@ public class NewCharacterStepperTests
             _controller.UpdateMouse(x, y, UIController.MouseButtons.Left);
             Frame();
             _controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+            Frame();
+        }
+
+        public void Hover(string id)
+        {
+            IntRect target = Find(id);
+            int x = target.Left + target.Size.X / 2;
+            int y = target.Top + target.Size.Y / 2;
+
+            _controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+            Frame();
             Frame();
         }
 

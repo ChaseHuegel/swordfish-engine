@@ -111,7 +111,8 @@ Level form:
 - The character form asks for confirmation when S.P.A.C.E.R points remain. The
   player can still register the colonist.
 - Stat rows color the first letter only. Focused rows use orange, unfocused
-  rows use cyan. The separate short-name box is gone.
+  rows use cyan. Hovering a stat row focuses it. The separate short-name box is
+  gone.
 - The S.P.A.C.E.R description sits under the evaluation header. The S.P.A.C.E.R
   total is not shown.
 - The selected colonist dossier shows the combined skill level and species under

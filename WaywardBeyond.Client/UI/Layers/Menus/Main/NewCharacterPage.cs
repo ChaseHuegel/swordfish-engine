@@ -111,6 +111,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             GenderStepRequested = StepGender,
             RandomGenderRequested = RandomizeGender,
             RandomPointsRequested = RandomizePoints,
+            StatHoverRequested = FocusStat,
             StatDecreaseRequested = DecreaseStat,
             StatIncreaseRequested = IncreaseStat,
             TabRequested = SelectTab,
@@ -250,6 +251,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _soundEffectService.PlayInterfaceSound(
             delta > 0 ? WidgetInteraction.InterfaceSound.Increase : WidgetInteraction.InterfaceSound.Decrease
         );
+    }
+
+    private void FocusStat(int index)
+    {
+        _focusedStat = index;
     }
 
     private void DecreaseStat(int index)
