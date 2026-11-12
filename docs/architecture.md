@@ -112,9 +112,13 @@ The engine has a two-layer command/argument surface.
 
 `Shoal/CommandLine/` tokenizes `argv` into `CommandLineArgs`:
 - `CommandLineParser.cs` lexes flags (`-x`, `--option`) and values, including
-  quoted values.
-- `CommandLineTokenParser.cs` reduces tokens into typed args.
+  quoted values. An `argv` entry that holds whitespace is quoted again before
+  lexing, so the entry stays one value.
+- `CommandLineTokenParser.cs` reduces tokens into typed args and strips the
+  surrounding quotes from a quoted value.
 - `--option=value` form is supported. See `CommandLineToken.cs`.
+- A single-value read (`CommandLineArgs.GetValue`, `TryGetValue`) joins the
+  recorded values with one space. It never truncates to the first value.
 
 ### In-game commands (Swordfish.Library)
 
