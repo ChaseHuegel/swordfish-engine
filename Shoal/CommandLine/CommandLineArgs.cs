@@ -36,7 +36,7 @@ public class CommandLineArgs
 
     public string GetValue(string key)
     {
-        return _options[key][0];
+        return GetSingleValue(_options[key]);
     }
 
     public string[] GetValues(string key)
@@ -48,12 +48,20 @@ public class CommandLineArgs
     {
         if (_options.TryGetValue(key, out string[]? values))
         {
-            value = values[0];
+            value = GetSingleValue(values);
             return true;
         }
 
         value = null;
         return false;
+    }
+
+    /// <summary>
+    /// Joins the recorded values of one key into a single string, so an unquoted multi-word value is not truncated.
+    /// </summary>
+    private static string GetSingleValue(in string[] values)
+    {
+        return values.Length == 1 ? values[0] : string.Join(' ', values);
     }
 
     public bool TryGetValues(string key, out string[]? values)

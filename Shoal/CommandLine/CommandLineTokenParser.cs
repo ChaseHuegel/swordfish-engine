@@ -54,16 +54,17 @@ internal class CommandLineTokenParser : TokenParser<CommandLineToken, CommandLin
     
     private bool TryReadQuoteOrText(out Token<CommandLineToken> token)
     {
-        if (TryReadToken(CommandLineToken.DoubleQuoteValue, out token))
+        if (TryReadToken(CommandLineToken.DoubleQuoteValue, out token) || TryReadToken(CommandLineToken.SingleQuoteValue, out token))
         {
-            return true;
-        }
-        
-        if (TryReadToken(CommandLineToken.SingleQuoteValue, out token))
-        {
+            token = new Token<CommandLineToken>(token.Type, Unquote(token.Value));
             return true;
         }
 
         return TryReadToken(CommandLineToken.Text, out token);
+    }
+
+    private static string Unquote(string value)
+    {
+        return value.Length >= 2 ? value[1..^1] : value;
     }
 }
