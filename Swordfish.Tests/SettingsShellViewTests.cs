@@ -5,6 +5,7 @@ using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
+using WaywardBeyond.Client.UI.Settings;
 using WaywardBeyond.Config;
 using Xunit;
 
@@ -24,12 +25,15 @@ public class SettingsShellViewTests
     {
         UiSnapshotTests.Compare(name, width, height, ui =>
         {
+            var renderSettings = new RenderSettings();
+            SettingsDefaults.ApplyRenderDefaults(renderSettings);
+
             var page = new SettingsPage<MenuPage>(
                 MenuPage.Settings,
                 configManager: null!,
                 controlSettings: new ControlSettings(),
                 windowSettings: new WindowSettings(),
-                renderSettings: new RenderSettings(),
+                renderSettings: renderSettings,
                 volumeSettings: new VolumeSettings(),
                 gameplayConfig: new GameplayConfig(),
                 uiSettings: new UISettings(),

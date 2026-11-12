@@ -184,4 +184,56 @@ public class SettingsEntryTests
         settings.FarPlane.Set(500f);
         Assert.Equal(AoQuality.Ultra, AoQualityExtensions.FromSettings(settings.SAO));
     }
+
+    [Fact]
+    public void BloomQuality_FreshSettingsMatchTheDeclaredDefault()
+    {
+        var settings = new Swordfish.Settings.RenderSettings();
+        SettingsDefaults.ApplyRenderDefaults(settings);
+
+        Assert.Equal(
+            SettingsDefaults.BLOOM_QUALITY,
+            BloomQualityExtensions.FromSettings(settings.Bloom)
+        );
+    }
+
+    [Fact]
+    public void BloomQuality_PresetsRoundTripAndHandTunedValuesAreCustom()
+    {
+        var settings = new Swordfish.Settings.RenderSettings();
+        BloomQuality[] presets = [BloomQuality.Low, BloomQuality.Medium, BloomQuality.High];
+
+        foreach (BloomQuality preset in presets)
+        {
+            preset.Apply(settings);
+            Assert.Equal(preset, BloomQualityExtensions.FromSettings(settings.Bloom));
+        }
+
+        settings.Bloom.Passes.Set(5);
+        settings.Bloom.Intensity.Set(0.5f);
+        Assert.Equal(BloomQuality.Custom, BloomQualityExtensions.FromSettings(settings.Bloom));
+    }
+
+    [Fact]
+    public void BloomQuality_SavedRenderConfigKeepsItsQuality()
+    {
+        string path = System.IO.Path.GetTempFileName();
+
+        try
+        {
+            var settings = new Swordfish.Settings.RenderSettings
+            {
+                Path = new Swordfish.Library.IO.PathInfo(path),
+            };
+            BloomQuality.High.Apply(settings);
+
+            SettingsDefaults.ApplyRenderDefaults(settings);
+
+            Assert.Equal(BloomQuality.High, BloomQualityExtensions.FromSettings(settings.Bloom));
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
 }

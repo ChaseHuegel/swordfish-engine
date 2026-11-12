@@ -63,6 +63,17 @@ internal static class SettingsDefaults
         ShadowQuality.Ultra,
     ];
 
+    /// <summary>Applies the recommended render values to a render config with no saved file.</summary>
+    public static void ApplyRenderDefaults(in RenderSettings renderSettings)
+    {
+        if (renderSettings.Path.FileExists())
+        {
+            return;
+        }
+
+        BLOOM_QUALITY.Apply(renderSettings);
+    }
+
     /// <summary>Gets a frame limit list that includes the current value.</summary>
     public static IReadOnlyList<int> GetFrameLimits(int current)
     {

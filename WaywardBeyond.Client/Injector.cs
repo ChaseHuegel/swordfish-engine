@@ -30,6 +30,7 @@ using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Layers.Menus.Pause;
+using WaywardBeyond.Client.UI.Settings;
 using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Models;
@@ -175,6 +176,9 @@ public class Injector : IDryIocInjector
         container.RegisterConfig<ProfileSettings>(file: "profile.toml");
         container.RegisterConfig<ChatConfig>(file: "chat.toml");
         container.RegisterConfig<VoxelSettings>(file: "voxel.toml");
+
+        var renderSettings = container.Resolve<Swordfish.Settings.RenderSettings>();
+        SettingsDefaults.ApplyRenderDefaults(renderSettings);
     }
 
     private static SettingsPage<TIdentifier> CreateSettingsPage<TIdentifier>(

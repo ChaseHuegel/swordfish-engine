@@ -38,7 +38,7 @@ is not part of this workflow.
 - [ ] [Voxel chunks are unbounded and chunk coordinates truncate](/docs/issues/0073-unbounded-voxel-chunks.md) — a `short` chunk cast wraps a distant write into a resident chunk, and `_chunks` never shrinks
 - [x] [Voxel edits leak mesh renderers and rebuild collision shapes](/docs/issues/0083-voxel-edit-memory-leak.md) — the cleanup gate never runs, so every edit leaks a mesh and a render target, and the Jolt compound is rebuilt without deterministic shape disposal ([#612](https://github.com/ChaseHuegel/swordfish-engine/issues/612))
 - [ ] [The scene buffer keeps stale entity models](/docs/issues/0098-scene-buffer-stale-entities.md) — a pooled scene array reports its old length, so dead entities draw at stale matrices and inflate culling bounds (engine-first)
-- [ ] [A fresh render state reports Low bloom while the declared default is Medium](/docs/issues/0103-bloom-quality-default-snapshot.md) — the client never applies `SettingsDefaults.BLOOM_QUALITY` to the render settings, so the settings page and the snapshot test disagree with the declared default
+- [x] [A fresh render state reports Low bloom while the declared default is Medium](/docs/issues/0103-bloom-quality-default-snapshot.md) — the client applies `SettingsDefaults.BLOOM_QUALITY` to a fresh render config at composition, so the settings page and the snapshot test agree with the declared default
 
 ### Improvement
 
