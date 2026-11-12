@@ -1,8 +1,9 @@
 # Bug: CLI parser splits quoted multi-word values
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
+- GitHub: [#709](https://github.com/ChaseHuegel/swordfish-engine/issues/709)
 
 ## Problem
 
@@ -22,7 +23,15 @@ option that carries a space hits the same defect.
 
 ## Acceptance criteria
 
-- [ ] `--name "Smoke Test"` parses to one value `Smoke Test` with quotes
+- [x] `--name "Smoke Test"` parses to one value `Smoke Test` with quotes
       stripped and the space kept.
-- [ ] `CommandLineArgs.TryGetValue` returns the full quoted value, pinned by a
+- [x] `CommandLineArgs.TryGetValue` returns the full quoted value, pinned by a
       `Swordfish.Tests` case on the parser.
+
+## Resolution
+
+`CommandLineParser.Parse(string[])` quotes each `argv` entry that holds
+whitespace before it lexes, so an entry keeps its space. `TryReadQuoteOrText`
+strips the surrounding quote characters. `CommandLineArgs.TryGetValue` and
+`GetValue` join the recorded values with one space instead of reading
+`values[0]`. `Swordfish.Tests/CommandLineParserTests.cs` pins the outcomes.

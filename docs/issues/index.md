@@ -27,7 +27,7 @@ is not part of this workflow.
 - [ ] [DataStore.Free can double-free an entity index](/docs/issues/0039-datastore-free-idempotency.md) — a second Free re-enqueues the index; one index can reach two owners (engine-first)
 - [x] [nsd-rpc keeps a canceled inbound entry with a disposed token source](/docs/issues/0052-nsd-rpc-canceled-inbound-dispose.md) — NsdRpc 0.3.1 removes the canceled entry and tolerates the disposed source
 - [x] [CharacterSaveManagerTests session-time test never sets the active save](/docs/issues/0041-character-save-load-test.md) — stale: the test and project were deleted before the issue was recorded
-- [ ] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` parses to `['Smoke', 'Test']`; consumers take only `values[0]`
+- [x] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` now parses to one value with the quotes stripped
 - [ ] [Bound how old a resolved input command may be](/docs/issues/0059-bound-command-staleness.md) — a client that stops sending keeps moving; the step re-applies its last sample forever
 - [ ] [Transport tests flake when the suite runs in parallel](/docs/issues/0063-flaky-transport-tests.md) — two loopback socket tests fail intermittently only under the full suite
 - [ ] [The server integration test writes the store off the server thread](/docs/issues/0082-test-writes-store-off-thread.md) — seeding a live world from the test thread races the `"Server"` tick
