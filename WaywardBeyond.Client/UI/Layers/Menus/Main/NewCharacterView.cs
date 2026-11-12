@@ -9,9 +9,12 @@ namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 /// <summary>Forwards colonist form interactions and formats colonist values.</summary>
 internal partial class NewCharacterView : UiViewBase
 {
+    private readonly ILocalization _localization;
+
     /// <summary>Initializes the colonist form view.</summary>
     public NewCharacterView(ILocalization localization) : base(localization)
     {
+        _localization = localization;
         NameState = new TextBoxState(
             initialValue: string.Empty,
             options: new TextBoxState.Options(
@@ -124,5 +127,11 @@ internal partial class NewCharacterView : UiViewBase
             Gender.Female => L("body.gender.female"),
             _ => L("body.gender.neutral"),
         };
+    }
+
+    /// <summary>Gets the localized species name.</summary>
+    public string SpeciesName(string species)
+    {
+        return _localization.GetSpeciesName(species);
     }
 }

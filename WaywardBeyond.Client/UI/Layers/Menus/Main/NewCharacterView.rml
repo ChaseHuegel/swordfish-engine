@@ -56,7 +56,7 @@
                         <Element height="12" />
                         <Element layout="horizontal" width="340" height="32" spacing="8" anchor="Center">
                             <Text text="@L('ui.field.character.species')" class="wb-text-small" width="76" height="fill" />
-                            <Stepper param:value="@context.Species.Value"
+                            <Stepper param:value="@SpeciesName(context.Species.Value)"
                                      param:enabled="@context.Species.Enabled"
                                      param:canDecrease="@context.Species.CanDecrease"
                                      param:canIncrease="@context.Species.CanIncrease"
