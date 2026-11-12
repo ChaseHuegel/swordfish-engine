@@ -118,7 +118,12 @@
 
                         <Element height="8" />
                         <ForEach in="@context.Stats" as="stat" index="i">
-                            <Element layout="horizontal" width="fill" height="28" spacing="4">
+                            <Element id="StatRow_{i}"
+                                     onenter="OnStatHovered(i)"
+                                     layout="horizontal"
+                                     width="fill"
+                                     height="28"
+                                     spacing="4">
                                 <Text text="@StatText(stat.LabelKey, stat.Focused)" class="wb-text-body" class:wb-text-muted="@(!stat.Focused)" width="fill" height="fill" />
                                 <Text text="@stat.Value" class="wb-text-body" width="28" height="fill" text-align="right" />
                                 <Element class="wb-button"
