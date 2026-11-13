@@ -4,7 +4,7 @@ public class TextureCubemap : Texture
 {
     public Texture[] Textures { get; }
 
-    public TextureCubemap(string name, Texture[] textures, bool mipmaps) : base(name, null!, 0, 0, mipmaps)
+    public TextureCubemap(string name, Texture[] textures, bool mipmaps, ColorSpace colorSpace = ColorSpace.Srgb) : base(name, null!, 0, 0, mipmaps, colorSpace)
     {
         if (textures.Length != 6)
         {

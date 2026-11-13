@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Swordfish.ECS;
 
-/// <summary>Represents a global directional light source.</summary>
+/// <summary>Represents a global directional light source with an sRGB color.</summary>
 public struct DirectionalLightComponent(
     Vector3 direction,
     Vector3 color,

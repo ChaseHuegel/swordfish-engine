@@ -20,8 +20,6 @@ layout(std430, binding = 2) buffer TileCounts {
     uint counts[];
 };
 
-const int SAMPLES_PER_TILE = 3;
-
 uniform ivec2 uScreenSize;
 uniform ivec2 uTileSize;
 uniform int uNumLights;
@@ -64,38 +62,45 @@ void compute()
 
     ivec2 start = tile * uTileSize;
     ivec2 end = min(start + uTileSize, uScreenSize);
-
-    int stepsX = max(1, (end.x - start.x) / SAMPLES_PER_TILE);
-    int stepsY = max(1, (end.y - start.y) / SAMPLES_PER_TILE);
     
-    float minD = 1.0;
+    float minD = 0.0;
     float maxD = 0.0;
+    bool hasSky = false;
     
-    for (int oy = 0; oy <= end.y - start.y; oy += stepsY) 
+    for (int py = start.y; py < end.y; ++py) 
     {
-        for (int ox = 0; ox <= end.x - start.x; ox += stepsX)
+        for (int px = start.x; px < end.x; ++px)
         {
-            ivec2 p = start + ivec2(ox, oy);
-            if (p.x >= uScreenSize.x || p.y >= uScreenSize.y)
+            float d = texelFetch(uDepthTex, ivec2(px, py), 0).r;
+            if (d >= 1.0)
             {
-                continue;
+                hasSky = true;
             }
-            
-            float d = texelFetch(uDepthTex, p, 0).r;
-            minD = min(minD, d);
-            maxD = max(maxD, d);
+            else
+            {
+                maxD = max(maxD, d);
+            }
         }
     }
+
+    if (hasSky)
+    {
+        maxD = 1.0;
+    }
     
-    vec3 corners[4];
+    vec3 corners[8];
     corners[0] = PixelToView(vec2(start.x, start.y), minD);
     corners[1] = PixelToView(vec2(end.x, start.y), minD);
-    corners[2] = PixelToView(vec2(start.x, end.y), maxD);
-    corners[3] = PixelToView(vec2(end.x, end.y), maxD);
+    corners[2] = PixelToView(vec2(start.x, end.y), minD);
+    corners[3] = PixelToView(vec2(end.x, end.y), minD);
+    corners[4] = PixelToView(vec2(start.x, start.y), maxD);
+    corners[5] = PixelToView(vec2(end.x, start.y), maxD);
+    corners[6] = PixelToView(vec2(start.x, end.y), maxD);
+    corners[7] = PixelToView(vec2(end.x, end.y), maxD);
     
     vec3 tileMin = corners[0];
     vec3 tileMax = corners[0];
-    for (int i = 1; i < 4; ++i)
+    for (int i = 1; i < 8; ++i)
     {
         tileMin = min(tileMin, corners[i]);
         tileMax = max(tileMax, corners[i]);

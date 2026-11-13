@@ -238,22 +238,25 @@ void main()
                     sourceBuilder.AppendLine(line);
                 }
 
-                if (line.Contains('{'))
+                if (inDefaultMethod)
                 {
-                    openBraces++;
-                }
+                    if (line.Contains('{'))
+                    {
+                        openBraces++;
+                    }
 
-                if (line.Contains('}'))
-                {
-                    closeBraces++;
-                }
+                    if (line.Contains('}'))
+                    {
+                        closeBraces++;
+                    }
 
-                if (inDefaultMethod && openBraces > 0 && closeBraces > 0 && openBraces == closeBraces)
-                {
-                    openBraces = 0;
-                    closeBraces = 0;
-                    inDefaultMethod = false;
-                    sourceBuilder.AppendLine("#endif");
+                    if (openBraces > 0 && closeBraces > 0 && openBraces == closeBraces)
+                    {
+                        openBraces = 0;
+                        closeBraces = 0;
+                        inDefaultMethod = false;
+                        sourceBuilder.AppendLine("#endif");
+                    }
                 }
 
                 line = reader.ReadLine()?.Trim();
