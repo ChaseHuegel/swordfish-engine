@@ -184,4 +184,23 @@ public class DataStoreUuidTests
 
         Assert.Throws<InvalidOperationException>(() => store.Alloc(Uuid.Null));
     }
+
+    [Fact]
+    public void FreeTwiceIsIdempotentAndDoesNotDuplicateIndex()
+    {
+        DataStore store = new();
+        int first = store.Alloc();
+
+        store.Free(first);
+        store.Free(first);
+
+        int reallocated = store.Alloc();
+        int next = store.Alloc();
+
+        Assert.Equal(first, reallocated);
+        Assert.NotEqual(reallocated, next);
+        Assert.NotEqual(Uuid.Null, store.GetUuid(reallocated));
+        Assert.NotEqual(Uuid.Null, store.GetUuid(next));
+        Assert.NotEqual(store.GetUuid(reallocated), store.GetUuid(next));
+    }
 }
