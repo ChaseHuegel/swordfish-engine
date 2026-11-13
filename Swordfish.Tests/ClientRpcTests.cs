@@ -71,6 +71,7 @@ public class ClientRpcTests
         Result connect = clientHost.ConnectRemote("127.0.0.1", serverHost.LanPort);
         Assert.True(connect.Success);
         Assert.True(clientHost.IsRemote);
+        await WaitUntil(() => HasRemotePeer(peers));
 
         RpcResult<ListLevelsResponse> remoteList = await ListLevelsAsync(clientHost, commands);
         Assert.True(remoteList.IsSuccess);
@@ -156,6 +157,19 @@ public class ClientRpcTests
 
         Assert.True(list.IsCompleted, "The list call did not complete within the budget.");
         return await list;
+    }
+
+    private static bool HasRemotePeer(ServerPeers peers)
+    {
+        foreach (ServerPeer peer in peers.Peers)
+        {
+            if (!peer.IsLocal)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static async Task WaitUntil(Func<bool> condition, int timeoutMs = 5000)

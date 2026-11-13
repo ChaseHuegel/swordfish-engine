@@ -29,7 +29,7 @@ is not part of this workflow.
 - [x] [CharacterSaveManagerTests session-time test never sets the active save](/docs/issues/0041-character-save-load-test.md) — stale: the test and project were deleted before the issue was recorded
 - [x] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` now parses to one value with the quotes stripped
 - [ ] [Bound how old a resolved input command may be](/docs/issues/0059-bound-command-staleness.md) — a client that stops sending keeps moving; the step re-applies its last sample forever
-- [ ] [Transport tests flake when the suite runs in parallel](/docs/issues/0063-flaky-transport-tests.md) — two loopback socket tests fail intermittently only under the full suite
+- [x] [Transport tests flake when the suite runs in parallel](/docs/issues/0063-flaky-transport-tests.md) — two loopback socket tests fail intermittently only under the full suite
 - [ ] [The server integration test writes the store off the server thread](/docs/issues/0082-test-writes-store-off-thread.md) — seeding a live world from the test thread races the `"Server"` tick
 - [ ] [The user claim is unauthenticated](/docs/issues/0064-unauthenticated-user-claim.md) — any client can present any user id, so a GUID's secrecy is the whole authorization model
 - [ ] [Voxel palette count means two different things](/docs/issues/0070-voxel-palette-count-semantics.md) — `Count()` returns distinct ids, so the empty-chunk guard never fires and each empty chunk asks for 4095 spare slots
