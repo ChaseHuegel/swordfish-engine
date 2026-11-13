@@ -50,6 +50,10 @@ between `Maximized` and `Windowed`. It is bound to F11.
 between `Fullscreen` and `Maximized`. It is bound to Alt+Enter. Both call
 `ApplyDisplaySettings` without a size, so the windowed size is preserved.
 
+The key match rule is in [input-shortcuts](input-shortcuts.md). A held
+modifier blocks a shortcut that declares none. For example, Shift+F11 does not
+toggle the window.
+
 ## Tests
 
 `Swordfish.Tests/ClientFakes.cs:115` provides the test stub for the video mode
