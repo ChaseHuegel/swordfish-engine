@@ -1,7 +1,7 @@
 # Bug: DataStore.Free can double-free an entity index
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -23,7 +23,7 @@ game-side session hardening that relies on it.
 
 ## Acceptance criteria
 
-- [ ] `Free` on an entity whose uuid is already `Uuid.Null` is a no-op and never
+- [x] `Free` on an entity whose uuid is already `Uuid.Null` is a no-op and never
       re-enqueues the index.
-- [ ] A regression test frees an index twice and asserts the index is never
+- [x] A regression test frees an index twice and asserts the index is never
       allocated to two live entities.
