@@ -202,7 +202,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             return Unsafe.As<IGLTexture>(handle);
         }
 
-        TextureFormat format = TextureFormat.Rgba;
+        TextureFormat format = texture.ColorSpace == ColorSpace.Srgb ? TextureFormat.Srgb8Alpha8 : TextureFormat.Rgba;
         TextureParams @params = TextureParams.ClampNearest with
         {
             GenerateMipmaps = texture.Mipmaps,

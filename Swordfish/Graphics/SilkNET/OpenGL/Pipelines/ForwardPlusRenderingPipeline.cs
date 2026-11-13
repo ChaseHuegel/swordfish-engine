@@ -68,6 +68,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly TexImage2D _ssaoDepthTex;
     private readonly FramebufferObject _ssaoDepthFBO;
 
+    private readonly TexImage2D _colorResolveTex;
+    private readonly FramebufferObject _colorResolveFBO;
     private readonly TexImage2D _bloomResolveTex;
     private readonly FramebufferObject _bloomResolveFBO;
     private readonly DoubleBufferTarget[] _bloomChain = new DoubleBufferTarget[MAX_BLOOM_LEVELS];
@@ -256,7 +258,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         );
         _ssaoDepthFBO = new FramebufferObject(_gl, name: "ssao_depth", _ssaoDepthTex, FramebufferAttachment.ColorAttachment0);
         
-        _bloomResolveTex = new TexImage2D(_gl, name: "bloom_resolve", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgba, TextureParams.ClampLinear);
+        _colorResolveTex = new TexImage2D(_gl, name: "color_resolve", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgba16f, TextureParams.ClampNearest);
+        _colorResolveFBO = new FramebufferObject(_gl, name: "color_resolve", _colorResolveTex, FramebufferAttachment.ColorAttachment0);
+
+        _bloomResolveTex = new TexImage2D(_gl, name: "bloom_resolve", pixels: null, _screenWidth, _screenHeight, TextureFormat.R11fG11fB10f, TextureParams.ClampLinear);
         _bloomResolveFBO = new FramebufferObject(_gl, name: "bloom_resolve", _bloomResolveTex, FramebufferAttachment.ColorAttachment0);
 
         for (var i = 0; i < MAX_BLOOM_LEVELS; i++)
@@ -344,6 +349,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
         _depthFBO.Resize(_screenWidth, _screenHeight);
         ResizeSSAOChain();
+        _colorResolveFBO.Resize(_screenWidth, _screenHeight);
         _bloomResolveFBO.Resize(_screenWidth, _screenHeight);
         for (var i = 0; i < MAX_BLOOM_LEVELS; i++)
         {
@@ -609,16 +615,17 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             return;
         }
 
-        //  Blit the render buffer to the back buffer to display it
-        //  A blit from a multisampled read buffer requires a nearest filter.
-        _renderFBO.Blit(ReadBufferMode.ColorAttachment0, DrawBufferMode.Back, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Nearest);
+        //  Resolve ColorAttachment0 into _colorResolveFBO
+        _renderFBO.Blit(_colorResolveFBO, ReadBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment0, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Nearest);
         _glDebug.TryLogError();
 
-        if (_renderSettings.Bloom.Enabled.Get())
+        bool bloomEnabled = _renderSettings.Bloom.Enabled.Get();
+        float intensity = bloomEnabled ? Math.Clamp(_renderSettings.Bloom.Intensity.Get(), 0f, MAX_BLOOM_INTENSITY) : 0f;
+
+        if (bloomEnabled && intensity > 0f)
         {
             int levels = Math.Clamp(_renderSettings.Bloom.Passes.Get(), MIN_BLOOM_LEVELS, MAX_BLOOM_LEVELS);
-            float intensity = Math.Clamp(_renderSettings.Bloom.Intensity.Get(), 0f, MAX_BLOOM_INTENSITY);
-            float threshold = Math.Clamp(_renderSettings.Bloom.Threshold.Get(), 0f, 1f);
+            float threshold = Math.Max(0f, _renderSettings.Bloom.Threshold.Get());
             float softness = Math.Clamp(_renderSettings.Bloom.Softness.Get(), 0f, 1f);
 
             //  Bloom pre-pass
@@ -665,30 +672,29 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             }
 
             _glDebug.TryLogError();
-            
-            //  Return to the back buffer
-            _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            _gl.Viewport(0, 0, _screenWidth, _screenHeight);
-            
-            //  Render the bloom overlay
-            using (_bloomShader.Use())
-            using (_bloomChain[0].Front.Activate(TextureUnit.Texture0))
-            {
-                _bloomShader.SetUniform("texture0", 0);
-                _bloomShader.SetUniform("uIntensity", intensity);
-
-                _gl.DepthMask(false);
-                _gl.Enable(EnableCap.Blend);
-                _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
-
-                DrawScreenQuad();
-
-                _gl.Disable(EnableCap.Blend);
-                _gl.DepthMask(true);
-            }
-
-            _glDebug.TryLogError();
         }
+
+        //  Composite, tonemap, and encode to the back buffer (FBO 0) in a single draw
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
+        _gl.Disable(EnableCap.DepthTest);
+        _gl.Disable(EnableCap.Blend);
+        _gl.DepthMask(false);
+
+        using (_bloomShader.Use())
+        using (_colorResolveTex.Activate(TextureUnit.Texture0))
+        using (_bloomChain[0].Front.Activate(TextureUnit.Texture1))
+        {
+            _bloomShader.SetUniform("uSceneTex", 0);
+            _bloomShader.SetUniform("uBloomTex", 1);
+            _bloomShader.SetUniform("uIntensity", intensity);
+
+            DrawScreenQuad();
+        }
+
+        _gl.DepthMask(true);
+        _gl.Enable(EnableCap.DepthTest);
+        _glDebug.TryLogError();
     }
 
     private static uint GetBloomLevelSize(uint size, int level)
@@ -735,7 +741,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         uint? samples = _renderSamples > 0 ? (uint)_renderSamples : null;
 
         _colorRBO = new RenderbufferObject(_gl, name: "render_color", _screenWidth, _screenHeight, FramebufferAttachment.ColorAttachment0, InternalFormat.Rgba16f, samples);
-        _bloomRBO = new RenderbufferObject(_gl, name: "render_bloom", _screenWidth, _screenHeight, FramebufferAttachment.ColorAttachment1, InternalFormat.Rgba8, samples);
+        _bloomRBO = new RenderbufferObject(_gl, name: "render_bloom", _screenWidth, _screenHeight, FramebufferAttachment.ColorAttachment1, InternalFormat.R11fG11fB10f, samples);
         _depthStencilRBO = new RenderbufferObject(_gl, name: "render_DS", _screenWidth, _screenHeight, FramebufferAttachment.DepthStencilAttachment, InternalFormat.Depth24Stencil8, samples);
         _renderFBO = new FramebufferObject(_gl, name: "render", _screenWidth, _screenHeight, _drawBuffers, renderBuffers: [_colorRBO, _bloomRBO, _depthStencilRBO]);
     }
@@ -1178,6 +1184,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _depthTex.Dispose();
         _ssaoChain.Dispose();
         _ssaoDepthTex.Dispose();
+        _colorResolveTex.Dispose();
         _bloomResolveTex.Dispose();
         for (var i = 0; i < MAX_BLOOM_LEVELS; i++)
         {
@@ -1187,6 +1194,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         //  Framebuffers and renderbuffers
         _depthFBO.Dispose();
         _ssaoDepthFBO.Dispose();
+        _colorResolveFBO.Dispose();
         _bloomResolveFBO.Dispose();
         _renderFBO.Dispose();
         _colorRBO.Dispose();
@@ -1240,7 +1248,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         {
             pixels[i] = skybox.Textures[i].Pixels;
         }
-        _skyboxTex = _glContext.CreateTexCubemap(skybox.Name, pixels, (uint)skybox.Width, (uint)skybox.Height, TextureFormat.Rgba, TextureParams.ClampNearest);
+        TextureFormat format = skybox.ColorSpace == ColorSpace.Srgb ? TextureFormat.Srgb8Alpha8 : TextureFormat.Rgba;
+        _skyboxTex = _glContext.CreateTexCubemap(skybox.Name, pixels, (uint)skybox.Width, (uint)skybox.Height, format, TextureParams.ClampNearest);
     }
     
     private struct WriteDirectionalLightAction(ref DirectionalLightComponent? target) : IForEach<DirectionalLightComponent>

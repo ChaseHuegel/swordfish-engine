@@ -100,7 +100,7 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         _solidU = (solid.OffsetX + (SOLID_SIZE / 2f)) / _atlas.Width;
         _solidV = (solid.OffsetY + (SOLID_SIZE / 2f)) / _atlas.Height;
 
-        var atlasTexture = new Texture("ui_atlas", _atlas.Pixels, _atlas.Width, _atlas.Height, mipmaps: false);
+        var atlasTexture = new Texture("ui_atlas", _atlas.Pixels, _atlas.Width, _atlas.Height, mipmaps: false, ColorSpace.Linear);
         _atlasMaterial = new Material(shader, atlasTexture);
 
         //  Locations match the declarations in ui_reef_atlas.glsl. Every attribute is

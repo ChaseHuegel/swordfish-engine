@@ -17,12 +17,13 @@ vec4 fragment()
     float brightness = max(emissive.r, max(emissive.g, emissive.b));
 
     //  A soft knee keeps dim emissive out of the blur without a hard edge.
-    float knee = max(uSoftness, 1.0 / 255.0);
+    const float MIN_EMISSIVE = 1.0 / (255.0 * 12.92);
+    float knee = max(uSoftness, MIN_EMISSIVE);
     float contribution = smoothstep(uThreshold, uThreshold + knee, brightness);
 
     //  Bloom must not cover the emissive surface that produced it. The mask
     //  rides in alpha and widens with the blur.
-    float mask = 1.0 - step(1.0 / 255.0, brightness);
+    float mask = 1.0 - step(MIN_EMISSIVE, brightness);
 
     return vec4(emissive.rgb * contribution, mask);
 }

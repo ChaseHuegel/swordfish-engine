@@ -8,7 +8,7 @@ public class TextureArray : Texture
 
     private readonly SwitchDictionary<string, Texture, int> _textureIndices = new();
 
-    public TextureArray(string name, Texture[] textures, bool mipmaps) : base(name, null!, 0, 0, mipmaps)
+    public TextureArray(string name, Texture[] textures, bool mipmaps, ColorSpace colorSpace = ColorSpace.Srgb) : base(name, null!, 0, 0, mipmaps, colorSpace)
     {
         Depth = textures.Length;
 

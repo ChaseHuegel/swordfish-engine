@@ -35,6 +35,14 @@ vec4 vertex()
     return vec4(VertexPosition.xy, 0.0, 1.0);
 }
 
+vec3 linearToSrgb(vec3 x)
+{
+    x = clamp(x, 0.0, 1.0);
+    vec3 lo = x * 12.92;
+    vec3 hi = 1.055 * pow(x, vec3(1.0 / 2.4)) - 0.055;
+    return mix(lo, hi, step(vec3(0.0031308), x));
+}
+
 vec4 fragment()
 {
     if (!contains(ClipRect, gl_FragCoord.x - 0.5, gl_FragCoord.y - 0.5))
@@ -42,7 +50,8 @@ vec4 fragment()
         return vec4(0);
     }
 
-    return VertexColor * texture(texture0, TextureCoord.xy);
+    vec4 tex = texture(texture0, TextureCoord.xy);
+    return VertexColor * vec4(linearToSrgb(tex.rgb), tex.a);
 }
 
 bool contains(vec4 rect, float x, float y)
