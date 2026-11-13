@@ -95,6 +95,11 @@ public partial class DataStore
             lock (_recycleLock)
             {
                 (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+                if (chunkIndex < 0 || chunkIndex >= _uuids.Count || _uuids[chunkIndex][localEntity] == Uuid.Null)
+                {
+                    return;
+                }
+
                 foreach (ChunkedStore store in _stores.Values)
                 {
                     store.SetAt(chunkIndex, localEntity, false);
