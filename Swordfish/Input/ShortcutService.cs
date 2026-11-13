@@ -44,17 +44,17 @@ public class ShortcutService : IShortcutService
     {
         var modifiers = ShortcutModifiers.None;
 
-        if (_inputService.IsKeyHeld(Key.Control))
+        if (e.Key != Key.Control && _inputService.IsKeyHeld(Key.Control))
         {
             modifiers |= ShortcutModifiers.Control;
         }
 
-        if (_inputService.IsKeyHeld(Key.Shift))
+        if (e.Key != Key.Shift && _inputService.IsKeyHeld(Key.Shift))
         {
             modifiers |= ShortcutModifiers.Shift;
         }
 
-        if (_inputService.IsKeyHeld(Key.Alt))
+        if (e.Key != Key.Alt && _inputService.IsKeyHeld(Key.Alt))
         {
             modifiers |= ShortcutModifiers.Alt;
         }
@@ -65,7 +65,7 @@ public class ShortcutService : IShortcutService
             {
                 Shortcut shortcut = registration.Shortcut;
                 
-                if (e.Key != shortcut.Key || (shortcut.Modifiers != ShortcutModifiers.None && modifiers != shortcut.Modifiers))
+                if (e.Key != shortcut.Key || modifiers != shortcut.Modifiers)
                 {
                     continue;
                 }
