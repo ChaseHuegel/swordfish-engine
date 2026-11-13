@@ -29,6 +29,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Multiple server worlds: per-world DI graphs, routing, idle unload | [specs/networking-worlds](specs/networking-worlds.md) |
 | Dynamic shadows: Forward+ CSM, point cubemap arrays, filtering, quality presets | [specs/rendering-shadows](specs/rendering-shadows.md) |
 | Ambient occlusion: half-resolution SAO, ping-pong blur, distance clip, presets | [specs/rendering-sao](specs/rendering-sao.md) |
+| Color space, texture decoding, HDR bloom resolve, tonemapping, and sRGB transfer | [specs/rendering-color](specs/rendering-color.md) |
 | Chat wire message, relay, logging, and UI | [specs/chat](specs/chat.md) |
 | Persistence: SQLite layout, level databases, storage services | [specs/persistence](specs/persistence.md) |
 | Seed phrase generation, 40-bit dictionary encoding, and 64-bit seed resolution | [specs/seed-phrases](specs/seed-phrases.md) |

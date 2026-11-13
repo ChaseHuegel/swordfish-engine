@@ -76,11 +76,11 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
         Texture[] normalTexturesArray = normalTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] emissiveTexturesArray = emissiveTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         
-        var albedoTextureArray = new TextureArray("bricks_albedo", albedoTexturesArray, mipmaps: true);
-        var metallicTextureArray = new TextureArray("bricks_metallic", metallicTexturesArray, mipmaps: true);
-        var smoothnessTextureArray = new TextureArray("bricks_smoothness", smoothnessTexturesArray, mipmaps: true);
-        var normalTextureArray = new TextureArray("bricks_normal", normalTexturesArray, mipmaps: true);
-        var emissiveTextureArray = new TextureArray("bricks_emissive", emissiveTexturesArray, mipmaps: true);
+        var albedoTextureArray = new TextureArray("bricks_albedo", albedoTexturesArray, mipmaps: true, ColorSpace.Srgb);
+        var metallicTextureArray = new TextureArray("bricks_metallic", metallicTexturesArray, mipmaps: true, ColorSpace.Linear);
+        var smoothnessTextureArray = new TextureArray("bricks_smoothness", smoothnessTexturesArray, mipmaps: true, ColorSpace.Linear);
+        var normalTextureArray = new TextureArray("bricks_normal", normalTexturesArray, mipmaps: true, ColorSpace.Linear);
+        var emissiveTextureArray = new TextureArray("bricks_emissive", emissiveTexturesArray, mipmaps: true, ColorSpace.Srgb);
         
         return new PBRTextureArrays(albedoTextureArray, metallicTextureArray, smoothnessTextureArray, normalTextureArray, emissiveTextureArray);
     }
