@@ -122,7 +122,7 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo, float roughnes
     vec3 lighting = (albedo / PI) * radiance * NdotL;
 
     float proximityRadiance = smoothstep(size, 0.0, dist);
-    vec3 proximityLighting = lightColor * proximityRadiance;
+    vec3 proximityLighting = albedo * lightColor * proximityRadiance;
     
     return lighting + proximityLighting;
 }
@@ -238,7 +238,7 @@ vec4 shade(vec3 albedo)
     vec3 V = normalize(uCameraPos - vWorldPos);
     vec3 F0 = mix(vec3(0.04), albedo, Metallic);
 
-    vec3 color = uAmbientLight;
+    vec3 color = albedo * uAmbientLight;
 
     if (uDirectionalLightIntensity > 0.0)
     {
