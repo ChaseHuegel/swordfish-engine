@@ -30,6 +30,7 @@ public sealed class RenderSettings : Config<RenderSettings>
     [TomlNonSerialized]
     public DataBinding<TextureCubemap?> Skybox { get; private set; } = new();
     
+    /// <summary>Ambient scene light and procedural skybox color in sRGB space.</summary>
     [TomlNonSerialized]
     public DataBinding<Vector3> AmbientLight { get; private set; } = new(new Vector3(0.5f));
 }
