@@ -1,7 +1,7 @@
 # Bug: Output applies no color transfer and no tonemapping
 
 - Type: bug
-- Status: open
+- Status: closed
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -38,11 +38,11 @@ instead of staying cyan. Raising bloom intensity exposes it immediately.
 
 ## Acceptance criteria
 
-- [ ] The repository records one color-space contract: which stage holds linear
+- [x] The repository records one color-space contract: which stage holds linear
       values and where the transfer function is applied.
-- [ ] The contract is applied exactly once on the way to the back buffer, and
+- [x] The contract is applied exactly once on the way to the back buffer, and
       texture sampling decodes sRGB sources.
-- [ ] Lighting and additive effects composite in linear space.
-- [ ] A tonemap stage maps values above 1.0 into gamut before the encode, so
+- [x] Lighting and additive effects composite in linear space.
+- [x] A tonemap stage maps values above 1.0 into gamut before the encode, so
       bright emissive surfaces keep their hue.
-- [ ] A reference scene compares against a captured baseline at each step.
+- [x] A reference scene compares against a captured baseline at each step.

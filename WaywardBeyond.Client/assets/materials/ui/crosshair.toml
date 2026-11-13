@@ -1,4 +1,4 @@
-Shader   = "ui/crosshair"
+Shader   = "ui_reef_textured"
 Transparent = true
 Textures = [
     "ui/crosshair.png",

@@ -73,13 +73,14 @@ resolution is hidden by the blur and the filter.
   curve. The base is floored before `pow`, so a zero or negative exponent is
   defined.
 
-`WaywardBeyond.Client/assets/shaders/lightedArray.glsl:44` applies the result:
+`WaywardBeyond.Client/assets/shaders/lightedArray.glsl:44-45` applies the result:
 
 ```glsl
-vec4 color = max(albedo * VertexColor * shade(albedo.rgb) * ao(albedo), emissive);
+vec4 shaded = vec4(shade(albedo.rgb).rgb, albedo.a);
+vec4 color = max(shaded * VertexColor * ao(albedo), emissive);
 ```
 
-`shade()` returns ambient plus direct light, so this multiplies both. The
+`shade()` returns ambient plus direct light multiplied by `albedo`, so `ao()` multiplies both. The
 current behavior darkens direct light in creases.
 
 Do not gate this with a depth test. The prepass depth is a 24-bit texture value.
