@@ -51,7 +51,7 @@ public class TransportPolicyTests
         server.Start();
 
         using var client = await ConnectAndHandshakeAsync(listener.Port);
-        RpcPeer serverPeer = await peers.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        RpcPeer serverPeer = await WaitWithTimeoutAsync(peers.Task, listener.Port, "ClientConnected");
 
         for (var index = 0; index < 5_000 && !reasons.Task.IsCompleted; index++)
         {
@@ -67,9 +67,17 @@ public class TransportPolicyTests
             {
                 break;
             }
+
+            //  NsdRpc.Tcp checks SendBacklogTracker.ExceedsWindow only on Enqueue.
+            //  Pause once the queue passes the 32 KiB threshold so the 25 ms window
+            //  elapses before the next enqueue, rather than filling 64 KiB in < 25 ms.
+            if (serverPeer.Stats.QueuedBytes >= 32 * 1024)
+            {
+                await Task.Delay(35);
+            }
         }
 
-        RpcDisconnectReason disconnectReason = await reasons.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        RpcDisconnectReason disconnectReason = await WaitWithTimeoutAsync(reasons.Task, listener.Port, "BacklogLimit disconnect");
         Assert.Equal(RpcDisconnectReason.BacklogLimit, disconnectReason);
         server.Close();
         listener.Close();
@@ -103,12 +111,24 @@ public class TransportPolicyTests
         server.Start();
 
         using var client = await ConnectAndHandshakeAsync(listener.Port);
-        _ = await peers.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        _ = await WaitWithTimeoutAsync(peers.Task, listener.Port, "ClientConnected");
 
-        RpcDisconnectReason disconnectReason = await reasons.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        RpcDisconnectReason disconnectReason = await WaitWithTimeoutAsync(reasons.Task, listener.Port, "IdleTimeout disconnect");
         Assert.Equal(RpcDisconnectReason.IdleTimeout, disconnectReason);
         server.Close();
         listener.Close();
+    }
+
+    private static async Task<T> WaitWithTimeoutAsync<T>(Task<T> task, int port, string operation, int timeoutSeconds = 5)
+    {
+        try
+        {
+            return await task.WaitAsync(TimeSpan.FromSeconds(timeoutSeconds));
+        }
+        catch (TimeoutException ex)
+        {
+            throw new TimeoutException($"{operation} on port {port} timed out after {timeoutSeconds} s.", ex);
+        }
     }
 
     private static RpcRegistry FrozenRegistry()

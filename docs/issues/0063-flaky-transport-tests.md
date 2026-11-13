@@ -1,7 +1,7 @@
 # Bug: Transport tests flake when the suite runs in parallel
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -26,6 +26,6 @@ the suite is not stable.
 
 ## Acceptance criteria
 
-- [ ] Each transport test uses a port that cannot collide with another test.
-- [ ] The suite passes on repeated runs on Linux with the full test set.
-- [ ] A failure reports which port or timeout was refused.
+- [x] Each transport test uses a port that cannot collide with another test.
+- [x] The suite passes on repeated runs on Linux with the full test set.
+- [x] A failure reports which port or timeout was refused.

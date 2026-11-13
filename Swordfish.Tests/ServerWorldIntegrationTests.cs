@@ -42,6 +42,7 @@ public class ServerWorldIntegrationTests
 
         var connection = new LoopbackRpcClientConnection(server.Loopback);
         await connection.ConnectAsync();
+        await WaitForPeerAsync(server, expectedCount: 1);
         var registry = new RpcRegistry();
         registry.Freeze();
         var api = new GameServerApiClient(new RpcClient(connection, registry));
@@ -82,37 +83,68 @@ public class ServerWorldIntegrationTests
         server.WorldHost.Run();
         server.RpcHost.Run();
         server.RpcHost.StartLan(0);
+        int port = server.RpcHost.LanPort;
+        var peers = server.Container.Resolve<ServerPeers>();
 
         var connection = new TcpClientConnection(
             new RpcOptions(),
-            new TcpOptions { Host = "127.0.0.1", Port = server.RpcHost.LanPort });
+            new TcpOptions { Host = "127.0.0.1", Port = port });
         await connection.ConnectAsync();
+
+        //  NsdRpc.Tcp starts the socket receive loop before AcceptAsync hands the connection to
+        //  RpcServer, so wait until the server registers the peer before sending the first RPC.
+        Assert.True(
+            await WaitForAsync(() => peers.Count > 0),
+            $"The server on port {port} did not accept the peer within the 5000 ms timeout.");
+
         var registry = new RpcRegistry();
         registry.Freeze();
         var api = new GameServerApiClient(new RpcClient(connection, registry));
 
         JoinRequest request = CreateJoinRequest(77);
-        RpcResult<JoinAccept> join = await api.JoinAsync(request).WaitAsync(TimeSpan.FromSeconds(10));
-        Assert.True(join.IsSuccess, join.ErrorMessage);
+        RpcResult<JoinAccept> join = await WaitRpcAsync(api.JoinAsync(request), port, "Join");
+        Assert.True(join.IsSuccess, $"Join on port {port} failed: {join.ErrorMessage}");
         Assert.NotEqual(0UL, join.Value.PlayerEntity);
 
         var sink = new CollectingSink();
-        RpcResult<LevelStreamComplete> stream = await api
-            .StreamLevelAsync(new StreamLevelRequest { LevelGuid = string.Empty }, sink)
-            .WaitAsync(TimeSpan.FromSeconds(10));
-        Assert.True(stream.IsSuccess, stream.ErrorMessage);
+        RpcResult<LevelStreamComplete> stream = await WaitRpcAsync(
+            api.StreamLevelAsync(new StreamLevelRequest { LevelGuid = string.Empty }, sink),
+            port,
+            "StreamLevel");
+        Assert.True(stream.IsSuccess, $"StreamLevel on port {port} failed: {stream.ErrorMessage}");
 
-        RpcResult<SaveLevelResponse> save = await api
-            .SaveLevelAsync(new SaveLevelRequest())
-            .WaitAsync(TimeSpan.FromSeconds(10));
+        RpcResult<SaveLevelResponse> save = await WaitRpcAsync(
+            api.SaveLevelAsync(new SaveLevelRequest()),
+            port,
+            "SaveLevel");
         Assert.False(save.IsSuccess);
         Assert.Equal(GameRpcErrors.PERMISSION_DENIED, save.ErrorCode);
 
         api.LeaveGame(new LeaveGameRequest());
-        RpcResult<JoinAccept> rejoin = await api.JoinAsync(request).WaitAsync(TimeSpan.FromSeconds(10));
-        Assert.True(rejoin.IsSuccess, rejoin.ErrorMessage);
+        RpcResult<JoinAccept> rejoin = await WaitRpcAsync(api.JoinAsync(request), port, "Rejoin");
+        Assert.True(rejoin.IsSuccess, $"Rejoin on port {port} failed: {rejoin.ErrorMessage}");
 
         connection.Close();
+    }
+
+    private static async Task WaitForPeerAsync(TestServer server, int expectedCount)
+    {
+        var peers = server.Container.Resolve<ServerPeers>();
+        Assert.True(
+            await WaitForAsync(() => peers.Count >= expectedCount),
+            $"The server did not accept {expectedCount} peer(s) within 5000 ms.");
+    }
+
+    private static async Task<T> WaitRpcAsync<T>(Task<T> task, int port, string operation, int timeoutSeconds = 10)
+    {
+        try
+        {
+            return await task.WaitAsync(TimeSpan.FromSeconds(timeoutSeconds));
+        }
+        catch (TimeoutException ex)
+        {
+            throw new TimeoutException($"{operation} on port {port} timed out after {timeoutSeconds} s.", ex);
+        }
     }
 
     [Fact]
@@ -124,6 +156,7 @@ public class ServerWorldIntegrationTests
 
         var connection = new LoopbackRpcClientConnection(server.Loopback);
         await connection.ConnectAsync();
+        await WaitForPeerAsync(server, expectedCount: 1);
         var registry = new RpcRegistry();
         registry.Freeze();
         var api = new GameServerApiClient(new RpcClient(connection, registry));
@@ -144,6 +177,7 @@ public class ServerWorldIntegrationTests
 
         var connection = new LoopbackRpcClientConnection(server.Loopback);
         await connection.ConnectAsync();
+        await WaitForPeerAsync(server, expectedCount: 1);
         var registry = new RpcRegistry();
         registry.Freeze();
         var api = new GameServerApiClient(new RpcClient(connection, registry));
@@ -205,6 +239,7 @@ public class ServerWorldIntegrationTests
 
         var connection = new LoopbackRpcClientConnection(server.Loopback);
         await connection.ConnectAsync();
+        await WaitForPeerAsync(server, expectedCount: 1);
         var registry = new RpcRegistry();
         registry.Freeze();
         var api = new GameServerApiClient(new RpcClient(connection, registry));
@@ -254,6 +289,7 @@ public class ServerWorldIntegrationTests
 
         var connection = new LoopbackRpcClientConnection(server.Loopback);
         await connection.ConnectAsync();
+        await WaitForPeerAsync(server, expectedCount: 1);
         var registry = new RpcRegistry();
         registry.Freeze();
         var api = new GameServerApiClient(new RpcClient(connection, registry));
@@ -276,6 +312,7 @@ public class ServerWorldIntegrationTests
 
         var connection = new LoopbackRpcClientConnection(server.Loopback);
         await connection.ConnectAsync();
+        await WaitForPeerAsync(server, expectedCount: 1);
         var registry = new RpcRegistry();
         registry.Freeze();
         var api = new GameServerApiClient(new RpcClient(connection, registry));

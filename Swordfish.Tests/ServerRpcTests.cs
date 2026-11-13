@@ -207,6 +207,7 @@ public class ServerRpcTests
 
         var connection = new LoopbackRpcClientConnection(transport);
         await connection.ConnectAsync();
+        await WaitForPeerAsync(peers, port: 0);
         var registry = new RpcRegistry();
         registry.Freeze();
         var client = new RpcClient(connection, registry);
@@ -248,13 +249,18 @@ public class ServerRpcTests
         var tcpOptions = new TcpOptions { Host = "127.0.0.1", Port = host.LanPort };
         var connection = new TcpClientConnection(new RpcOptions(), tcpOptions);
         await connection.ConnectAsync();
+
+        //  NsdRpc.Tcp starts the socket receive loop before AcceptAsync hands the connection to
+        //  RpcServer, so wait until the server registers the peer before sending the first RPC.
+        await WaitForPeerAsync(peers, host.LanPort);
+
         var registry = new RpcRegistry();
         registry.Freeze();
         var client = new RpcClient(connection, registry);
         var api = new GameServerApiClient(client);
 
         Task<RpcResult<ListLevelsResponse>> list = api.ListLevelsAsync(new ListLevelsRequest());
-        await PumpUntil(list, commands);
+        await PumpUntil(list, commands, context: $"port {host.LanPort}");
 
         RpcResult<ListLevelsResponse> listResult = await list;
         Assert.True(listResult.IsSuccess, listResult.ErrorMessage);
@@ -450,7 +456,18 @@ public class ServerRpcTests
         return commands;
     }
 
-    private static async Task PumpUntil(Task task, ServerHostCommands commands, int timeoutMs = 5000)
+    private static async Task WaitForPeerAsync(ServerPeers peers, int port, int timeoutMs = 5000)
+    {
+        long deadline = Environment.TickCount64 + timeoutMs;
+        while (peers.Count == 0 && Environment.TickCount64 < deadline)
+        {
+            await Task.Delay(10);
+        }
+
+        Assert.True(peers.Count > 0, $"The server on port {port} did not accept the peer within {timeoutMs} ms.");
+    }
+
+    private static async Task PumpUntil(Task task, ServerHostCommands commands, int timeoutMs = 5000, string? context = null)
     {
         long deadline = Environment.TickCount64 + timeoutMs;
         while (!task.IsCompleted && Environment.TickCount64 < deadline)
@@ -460,7 +477,8 @@ public class ServerRpcTests
             await Task.Delay(10);
         }
 
-        Assert.True(task.IsCompleted, "The RPC call did not complete within the budget.");
+        string suffix = string.IsNullOrEmpty(context) ? string.Empty : $" ({context})";
+        Assert.True(task.IsCompleted, $"The RPC call did not complete within {timeoutMs} ms{suffix}.");
         await task;
     }
 
