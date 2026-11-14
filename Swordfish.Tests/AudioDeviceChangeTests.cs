@@ -126,6 +126,171 @@ public class AudioDeviceChangeTests
         Assert.False(PlaybackDeviceSet.Contains(devices, "Headphones"));
     }
 
+    [Fact]
+    public void Service_ListsInitializedDevices()
+    {
+        FakeAudioEngine engine = new();
+        engine.Devices.Add(Device("Speakers", isDefault: true));
+        engine.Devices.Add(Device("Headphones", isDefault: false));
+        using AudioSystem system = CreateSystem(engine);
+
+        Assert.Equal(new[] { "Headphones", "Speakers" }, system.PlaybackDeviceNames);
+        Assert.Equal("Speakers", system.DefaultPlaybackDeviceName);
+    }
+
+    [Fact]
+    public void Service_OmitsFailedDevices()
+    {
+        FakeAudioEngine engine = new()
+        {
+            FailDeviceName = "Broken",
+        };
+        engine.Devices.Add(Device("Speakers", isDefault: true));
+        engine.Devices.Add(Device("Broken", isDefault: false));
+        using AudioSystem system = CreateSystem(engine);
+
+        Assert.Equal(new[] { "Speakers" }, system.PlaybackDeviceNames);
+    }
+
+    [Fact]
+    public void SetPreferredDevice_SetsActiveName()
+    {
+        (FakeAudioEngine _, AudioSystem system) = CreateTwoDeviceSystem();
+        using (system)
+        {
+            system.SetPreferredPlaybackDevice("Headphones");
+            system.Tick(0.1f, new DataStore());
+
+            Assert.Equal("Headphones", system.PreferredPlaybackDeviceName);
+            Assert.Equal("Headphones", system.ActivePlaybackDeviceName);
+            Assert.False(system.IsPreferredPlaybackDeviceMissing);
+        }
+    }
+
+    [Fact]
+    public void SetPreferredDevice_RaisesChanged()
+    {
+        (FakeAudioEngine _, AudioSystem system) = CreateTwoDeviceSystem();
+        using (system)
+        {
+            PlaybackDevicesChangedEventArgs? changed = null;
+            var changes = 0;
+            system.PlaybackDevicesChanged += (_, args) =>
+            {
+                changed = args;
+                changes++;
+            };
+
+            system.SetPreferredPlaybackDevice("Headphones");
+            system.Tick(0.1f, new DataStore());
+
+            Assert.Equal(1, changes);
+            Assert.True(changed.HasValue);
+            PlaybackDevicesChangedEventArgs args = changed.GetValueOrDefault();
+            Assert.Equal("Headphones", args.ActivePlaybackDeviceName);
+            Assert.Equal("Headphones", args.PreferredPlaybackDeviceName);
+        }
+    }
+
+    [Fact]
+    public void ClearPreferredDevice_UsesSystemDefault()
+    {
+        (FakeAudioEngine _, AudioSystem system) = CreateTwoDeviceSystem();
+        using (system)
+        {
+            system.SetPreferredPlaybackDevice("Headphones");
+            system.Tick(0.1f, new DataStore());
+
+            system.SetPreferredPlaybackDevice(null);
+            system.Tick(0.1f, new DataStore());
+
+            Assert.Null(system.PreferredPlaybackDeviceName);
+            Assert.Equal("Speakers", system.ActivePlaybackDeviceName);
+            Assert.False(system.IsPreferredPlaybackDeviceMissing);
+        }
+    }
+
+    [Fact]
+    public void RemovePreferredDevice_FallsBackAndReportsMissing()
+    {
+        (FakeAudioEngine engine, AudioSystem system) = CreateTwoDeviceSystem();
+        using (system)
+        {
+            system.SetPreferredPlaybackDevice("Headphones");
+            system.Tick(0.1f, new DataStore());
+
+            PlaybackDevicesChangedEventArgs? changed = null;
+            system.PlaybackDevicesChanged += (_, args) => changed = args;
+
+            engine.Devices.RemoveAll(device => device.Name == "Headphones");
+            system.Tick(2f, new DataStore());
+
+            Assert.Equal("Speakers", system.ActivePlaybackDeviceName);
+            Assert.True(system.IsPreferredPlaybackDeviceMissing);
+            Assert.True(changed.HasValue);
+            PlaybackDevicesChangedEventArgs args = changed.GetValueOrDefault();
+            Assert.True(args.IsPreferredPlaybackDeviceMissing);
+        }
+    }
+
+    [Fact]
+    public void ReturnPreferredDevice_ResumesPreference()
+    {
+        (FakeAudioEngine engine, AudioSystem system) = CreateTwoDeviceSystem();
+        using (system)
+        {
+            system.SetPreferredPlaybackDevice("Headphones");
+            system.Tick(0.1f, new DataStore());
+
+            engine.Devices.RemoveAll(device => device.Name == "Headphones");
+            system.Tick(2f, new DataStore());
+
+            engine.Devices.Add(Device("Headphones", isDefault: false));
+            system.Tick(2f, new DataStore());
+
+            Assert.Equal("Headphones", system.ActivePlaybackDeviceName);
+            Assert.False(system.IsPreferredPlaybackDeviceMissing);
+        }
+    }
+
+    [Fact]
+    public void UnknownPreferredDevice_IsReportedMissing()
+    {
+        (FakeAudioEngine _, AudioSystem system) = CreateTwoDeviceSystem();
+        using (system)
+        {
+            system.SetPreferredPlaybackDevice("Ghost");
+            system.Tick(0.1f, new DataStore());
+
+            Assert.Equal("Speakers", system.ActivePlaybackDeviceName);
+            Assert.True(system.IsPreferredPlaybackDeviceMissing);
+        }
+    }
+
+    [Fact]
+    public void UnchangedScan_DoesNotRaiseChanged()
+    {
+        (FakeAudioEngine _, AudioSystem system) = CreateTwoDeviceSystem();
+        using (system)
+        {
+            var changes = 0;
+            system.PlaybackDevicesChanged += (_, _) => changes++;
+
+            system.Tick(0.1f, new DataStore());
+            system.Tick(2f, new DataStore());
+
+            Assert.Equal(0, changes);
+        }
+    }
+
+    private static (FakeAudioEngine Engine, AudioSystem System) CreateTwoDeviceSystem()
+    {
+        FakeAudioEngine engine = new();
+        engine.Devices.Add(Device("Speakers", isDefault: true));
+        engine.Devices.Add(Device("Headphones", isDefault: false));
+        return (engine, CreateSystem(engine));
+    }
+
     private static AudioSystem CreateSystem(FakeAudioEngine engine)
     {
         return new AudioSystem(
@@ -147,6 +312,8 @@ public class AudioDeviceChangeTests
 
     private sealed class FakeAudioEngine : AudioEngine
     {
+        public string? FailDeviceName { get; init; }
+
         public List<DeviceInfo> Devices { get; } = [];
 
         public List<FakePlaybackDevice> ActiveDevices { get; } = [];
@@ -158,6 +325,11 @@ public class AudioDeviceChangeTests
 
         public override AudioPlaybackDevice InitializePlaybackDevice(DeviceInfo? deviceInfo, AudioFormat format, DeviceConfig? config = null)
         {
+            if (deviceInfo?.Name == FailDeviceName)
+            {
+                throw new InvalidOperationException("The device failed to initialize.");
+            }
+
             FakePlaybackDevice device = new(this, format, deviceInfo, config ?? new FakeDeviceConfig());
             ActiveDevices.Add(device);
             return device;
