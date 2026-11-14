@@ -7,6 +7,7 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.UI;
 
 namespace WaywardBeyond.Client.Systems;
@@ -15,6 +16,7 @@ internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
 {
     private readonly AudioChannelSystem _audioChannelSystem;
     private readonly NotificationService _notificationService;
+    private readonly LocalizedFormatter _localizedFormatter;
     
     private readonly Randomizer _randomizer;
     private readonly string[] _titleTracks;
@@ -26,10 +28,12 @@ internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
     public MusicSystem(
         in AudioChannelSystem audioChannelSystem,
         in VirtualFileSystem vfs,
-        in NotificationService notificationService
+        in NotificationService notificationService,
+        in LocalizedFormatter localizedFormatter
     ) {
         _audioChannelSystem = audioChannelSystem;
         _notificationService = notificationService;
+        _localizedFormatter = localizedFormatter;
         
         _randomizer = new Randomizer();
 
@@ -101,7 +105,10 @@ internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
 
             audioSource.Write.ID = WaywardBeyond.GameState == GameState.MainMenu ? Owner._randomizer.Select(Owner._titleTracks) : Owner._randomizer.Select(Owner._backgroundTracks);
             audioPlayer.Write.State = PlayerState.Play;
-            Owner._notificationService.Push(new Notification($"Track: {System.IO.Path.GetFileNameWithoutExtension(audioSource.Read.ID)}"));
+            string track = System.IO.Path.GetFileNameWithoutExtension(audioSource.Read.ID);
+            Owner._notificationService.Push(new Notification(
+                Owner._localizedFormatter.GetString("notification.music.track", track)
+            ));
         }
     }
 

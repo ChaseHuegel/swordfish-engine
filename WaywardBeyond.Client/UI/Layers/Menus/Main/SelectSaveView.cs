@@ -85,15 +85,15 @@ internal partial class SelectSaveView : UiViewBase
     }
 
     /// <summary>Gets the short game mode label shown on an archive row.</summary>
-    public static string ModeTag(GameMode mode)
+    public string ModeTag(GameMode mode)
     {
-        return mode.ToString().ToUpperInvariant();
+        return _localization.GetModeName(mode).ToUpperInvariant();
     }
 
     /// <summary>Gets the display name of the game mode.</summary>
-    public static string ModeName(GameMode mode)
+    public string ModeName(GameMode mode)
     {
-        return mode.ToString();
+        return _localization.GetModeName(mode);
     }
 
     /// <summary>Records the hovered node and its card height, from the previous frame.</summary>

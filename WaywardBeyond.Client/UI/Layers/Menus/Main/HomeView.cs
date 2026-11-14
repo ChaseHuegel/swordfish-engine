@@ -67,8 +67,8 @@ internal partial class HomeView : UiViewBase
     }
 
     /// <summary>Gets the game mode name shown in the Continue card.</summary>
-    protected static string ModeName(GameMode mode)
+    protected string ModeName(GameMode mode)
     {
-        return mode.ToString();
+        return _localization.GetModeName(mode);
     }
 }

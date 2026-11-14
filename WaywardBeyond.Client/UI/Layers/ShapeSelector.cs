@@ -199,7 +199,7 @@ internal sealed class ShapeSelector : IUILayer, IActionIndicator
             BrickShape.Slope => "brick.shape.slope",
             BrickShape.Column => "brick.shape.column",
             BrickShape.Plate => "brick.shape.plate",
-            _ => "UNKNOWN",
+            _ => "ui.label.shape.unknown",
         };
     }
 }
