@@ -115,9 +115,21 @@ explicit copy for a new destructive action.
 - Standard copy: home menu, settings, generic buttons, validation, errors.
 - Themed copy: level flow, character flow, multiplayer hub, HUD flavor.
 - Terminal copy: chat header, key hints, the creation and load feeds.
+- Developer diagnostics are not player copy: the F3 overlays, the debug
+  shortcut names and categories, and log messages stay in code.
 
 An immersive term must be a close synonym. If a player must learn the term to
 use the control, the term is wrong.
+
+## Scope
+
+The catalogs cover every surface the player reads: menu pages, settings rows,
+modals, HUD hints, control hints, toasts, and the action strip. A toast pushed
+by a client service reads its key from `notification.toml`, never from a
+format string in code. For example, the music track toast and the screenshot
+toast are keys. Enum values shown to the player, such as `GameMode`, resolve
+through a key too. The shape selector uses `ui.label.shape.unknown` instead of
+a literal fallback.
 
 ## Dead keys
 
@@ -126,10 +138,15 @@ No key may be unreferenced. Check both directions before you finish:
 1. Every catalog key appears as a literal in code.
 2. Every `"ui.…"` and `"notification.…"` literal in code exists in a catalog.
 
+Markup uses single-quoted keys (`@L('ui.button.back')`), so the sweep must
+read both quote styles and the `.rml` and `.rss` files. Test projects hold stub
+keys and generated fixtures, so exclude them.
+
 ```bash
 comm -23 \
-  <(grep -rhoE '"(ui|notification)\.[A-Za-z0-9._]+"' --include=*.cs . \
-    | tr -d '"' | grep -vE '^ui\.(toml|bmp)$' | LC_ALL=C sort -u) \
+  <(grep -rhoE "[\"'](ui|notification)\.[A-Za-z0-9._]+[\"']" \
+    --include=*.cs --include=*.rml --include=*.rss --exclude-dir='*Tests' . \
+    | tr -d "\"'" | grep -vE '^ui\.(toml|bmp)$' | LC_ALL=C sort -u) \
   <(grep -hoE '^"(ui|notification)\.[^"]+"' \
     WaywardBeyond.Client/assets/lang/en/ui.toml \
     WaywardBeyond.Client/assets/lang/en/notification.toml \
@@ -138,7 +155,8 @@ comm -23 \
 
 The first `comm` lists a used key that is not defined. Swap the inputs
 (`comm -13`) to list a defined key that is not used. Ignore strings that name a
-file, such as `ui.toml`.
+file, such as `ui.toml`. Both lists must be empty. A `.cs`-only sweep falsely
+reports every markup key as unused.
 
 The build does not read the catalogs. Nothing fails when a key is missing until
 the surface renders. Run the sweep by hand.

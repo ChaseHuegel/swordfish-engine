@@ -2,6 +2,7 @@ using Swordfish.Library.Globalization;
 using System.Text;
 using System;
 using WaywardBeyond.Client.Extensions;
+using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Client.Extensions;
 
@@ -26,6 +27,15 @@ public static class LocalizationExtensions
         string key = $"body.species.{species}";
         string name = localization.GetString(key) ?? key;
         return name == key ? species : name;
+    }
+
+    /// <summary>Gets the display name of a game mode.</summary>
+    /// <exception cref="InvalidOperationException">The mode key is not present in the active language.</exception>
+    public static string GetModeName(this ILocalization localization, GameMode mode)
+    {
+        return mode == GameMode.Adventure
+            ? localization.GetRequired("ui.label.level.mode.adventure")
+            : localization.GetRequired("ui.label.level.mode.creative");
     }
 
     /// <summary>Formats the colonist level and species line, for example "Level 4 · Human".</summary>

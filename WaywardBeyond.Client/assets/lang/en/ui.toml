@@ -56,6 +56,8 @@
 "ui.label.level.seed.random" = "Random"
 "ui.label.level.untitled" = "Untitled galaxy"
 "ui.label.level.mode" = "Mode"
+"ui.label.level.mode.creative" = "Creative"
+"ui.label.level.mode.adventure" = "Adventure"
 "ui.label.level.seed" = "Seed"
 "ui.label.level.type" = "Type"
 "ui.label.level.type.asteroids" = "Asteroids"
@@ -239,6 +241,8 @@
 "ui.label.inventory.empty" = "Empty slot"
 "ui.label.inventory.shapeable" = "Shapeable"
 "ui.label.inventory.orientable" = "Rotatable"
+
+"ui.label.shape.unknown" = "Unknown"
 
 "ui.hint.brick.changeShape" = "R: Change shape"
 "ui.hint.brick.changeOrientation" = "T: Change orientation"

@@ -15,6 +15,9 @@
 
 "notification.connection.lost" = "Connection to the server was lost"
 
+"notification.music.track" = "Track: {0}"
+"notification.screenshot.saved" = "Saved screenshot \"{0}\""
+
 "notification.skill.bar" = "{0}  #F2994A Lvl {1}"
 "notification.skill.bar.subtext" = "#4BE3E3 +{0} XP #8DA0B8 ({1}%)"
 "notification.skill.levelUp" = "{0} increased from {1} to {2}"

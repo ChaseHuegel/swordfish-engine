@@ -4,14 +4,20 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.UI;
 
 namespace WaywardBeyond.Client.Shortcuts;
 
-internal class ScreenshotShortcut(in IRenderer renderer, in NotificationService notificationService) : ShortcutRegistration
+internal class ScreenshotShortcut(
+    in IRenderer renderer,
+    in NotificationService notificationService,
+    in LocalizedFormatter localizedFormatter
+) : ShortcutRegistration
 {
     private readonly IRenderer _renderer = renderer;
     private readonly NotificationService _notificationService = notificationService;
+    private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly object _screenshotFileNameLock = new();
 
     protected override string Name => "Take screenshot";
@@ -53,6 +59,8 @@ internal class ScreenshotShortcut(in IRenderer renderer, in NotificationService 
         
         await fileStream.DisposeAsync();
 
-        _notificationService.Push(new Notification($"Saved screenshot \"{path}\""));
+        _notificationService.Push(new Notification(
+            _localizedFormatter.GetString("notification.screenshot.saved", path)
+        ));
     }
 }

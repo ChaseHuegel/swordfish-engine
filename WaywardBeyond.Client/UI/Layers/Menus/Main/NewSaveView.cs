@@ -81,7 +81,7 @@ internal partial class NewSaveView : UiViewBase
     /// <summary>Gets the created galaxy mode line.</summary>
     public string ModeLine()
     {
-        return L("ui.label.level.mode") + ": " + "Creative";
+        return Labeled("ui.label.level.mode", L("ui.label.level.mode.creative"));
     }
 
     /// <summary>Formats a labeled detail line.</summary>

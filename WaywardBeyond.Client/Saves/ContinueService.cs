@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -148,8 +149,8 @@ internal sealed class ContinueService(
     {
         WaywardBeyond.GameState.Set(GameState.MainMenu);
         _failures.Enqueue(new Failure(
-            localization.GetString(TITLE_KEY) ?? "Continue Failed",
-            localization.GetString(messageKey) ?? messageKey
+            localization.GetRequired(TITLE_KEY),
+            localization.GetRequired(messageKey)
         ));
     }
 
