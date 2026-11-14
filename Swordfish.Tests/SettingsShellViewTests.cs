@@ -35,6 +35,7 @@ public class SettingsShellViewTests
                 windowSettings: new WindowSettings(),
                 renderSettings: renderSettings,
                 volumeSettings: new VolumeSettings(),
+                playbackDeviceService: new FakePlaybackDeviceService(),
                 gameplayConfig: new GameplayConfig(),
                 uiSettings: new UISettings(),
                 soundEffectService: null!,

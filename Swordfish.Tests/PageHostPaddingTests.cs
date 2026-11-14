@@ -45,6 +45,7 @@ public class PageHostPaddingTests
             windowSettings: new WindowSettings(),
             renderSettings: new RenderSettings(),
             volumeSettings: new VolumeSettings(),
+            playbackDeviceService: new FakePlaybackDeviceService(),
             gameplayConfig: new GameplayConfig(),
             uiSettings: new UISettings(),
             soundEffectService: null!,

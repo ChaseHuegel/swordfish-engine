@@ -26,6 +26,7 @@ internal sealed class SettingsDraft
     public float MusicVolume;
     public float EffectsVolume;
     public float InterfaceVolume;
+    public string OutputDevice;
     public bool Autosave;
     public int AutosaveIntervalMinutes;
     public bool ControlHints;
@@ -67,6 +68,7 @@ internal sealed class SettingsDraft
             MusicVolume = volumeSettings.Music.Get(),
             EffectsVolume = volumeSettings.Effects.Get(),
             InterfaceVolume = volumeSettings.Interface.Get(),
+            OutputDevice = volumeSettings.OutputDevice.Get() ?? string.Empty,
             Autosave = gameplayConfig.Autosave.Get(),
             AutosaveIntervalMinutes = Math.Max(1, (int)Math.Round(gameplayConfig.AutosaveIntervalMs.Get() / 60000d)),
             ControlHints = gameplayConfig.ControlHints.Get(),
@@ -99,6 +101,7 @@ internal sealed class SettingsDraft
             MusicVolume = SettingsDefaults.MUSIC_VOLUME,
             EffectsVolume = SettingsDefaults.EFFECTS_VOLUME,
             InterfaceVolume = SettingsDefaults.INTERFACE_VOLUME,
+            OutputDevice = SettingsDefaults.OUTPUT_DEVICE,
             Autosave = SettingsDefaults.AUTOSAVE,
             AutosaveIntervalMinutes = SettingsDefaults.AUTOSAVE_INTERVAL_MINUTES,
             ControlHints = SettingsDefaults.CONTROL_HINTS,

@@ -1,4 +1,5 @@
 using Shoal.DependencyInjection;
+using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Settings;
 using WaywardBeyond.Config;
@@ -27,6 +28,7 @@ internal sealed class ConfigManager : IAutoActivate
         in RenderSettings renderSettings,
         in AudioSettings audioSettings,
         in VolumeSettings volumeSettings,
+        in IPlaybackDeviceService playbackDeviceService,
         in GameplayConfig gameplayConfig,
         in NetworkingConfig networkingConfig,
         in UISettings uiSettings,
@@ -47,6 +49,8 @@ internal sealed class ConfigManager : IAutoActivate
         _chatConfig = chatConfig;
         _storageConfig = storageConfig;
         _voxelSettings = voxelSettings;
+
+        playbackDeviceService.SetPreferredPlaybackDevice(volumeSettings.OutputDevice.Get());
 
         windowContext.Closed += OnWindowClosed;
         ApplySettings();

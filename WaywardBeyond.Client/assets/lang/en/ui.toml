@@ -169,6 +169,7 @@
 "ui.settings.section.window" = "Window"
 "ui.settings.section.view" = "View"
 "ui.settings.section.quality" = "Quality"
+"ui.settings.section.output" = "Output"
 "ui.settings.section.mix" = "Mix"
 "ui.settings.section.autosave" = "Autosave"
 "ui.settings.section.hud" = "HUD"
@@ -188,6 +189,7 @@
 "ui.settings.option.bloom" = "Bloom"
 "ui.settings.option.bloomQuality" = "Bloom quality"
 
+"ui.settings.option.outputDevice" = "Output device"
 "ui.settings.option.masterVolume" = "Master"
 "ui.settings.option.musicVolume" = "Music"
 "ui.settings.option.effectsVolume" = "Effects"
@@ -219,6 +221,8 @@
 "ui.settings.value.ultra" = "Ultra"
 "ui.settings.value.custom" = "Custom"
 "ui.settings.value.unlimited" = "Unlimited"
+"ui.settings.value.systemDefault" = "System default"
+"ui.settings.value.unavailable" = "Unavailable"
 
 "ui.settings.action.apply" = "Apply changes"
 "ui.settings.action.reset" = "Reset section to defaults"

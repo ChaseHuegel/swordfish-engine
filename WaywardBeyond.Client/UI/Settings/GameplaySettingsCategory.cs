@@ -27,7 +27,7 @@ internal static class GameplaySettingsCategory
                     get: () => draft.AutosaveIntervalMinutes,
                     set: value => draft.AutosaveIntervalMinutes = value,
                     defaultValue: () => SettingsDefaults.AUTOSAVE_INTERVAL_MINUTES,
-                    options: SettingsDefaults.GetAutosaveIntervals(draft.AutosaveIntervalMinutes),
+                    options: () => SettingsDefaults.GetAutosaveIntervals(draft.AutosaveIntervalMinutes),
                     format: value => FormatMinutes(localization, value),
                     isEnabled: () => draft.Autosave
                 ),

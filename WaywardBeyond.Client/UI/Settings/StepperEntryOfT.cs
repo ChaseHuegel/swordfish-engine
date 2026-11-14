@@ -10,56 +10,56 @@ internal sealed class StepperEntry<T>(
     Func<T> get,
     Action<T> set,
     Func<T> defaultValue,
-    IReadOnlyList<T> options,
+    Func<IReadOnlyList<T>> options,
     Func<T, string> format,
     Func<T, string>? valueKey = null,
     Func<bool>? isEnabled = null
 ) : SettingsEntry<T>(id, labelKey, get, set, defaultValue, isEnabled)
 {
-    public IReadOnlyList<T> Options { get; } = options;
-
     public string Format(T value) => format(value);
-
-    public int IndexOf(T value)
-    {
-        for (var i = 0; i < Options.Count; i++)
-        {
-            if (EqualityComparer<T>.Default.Equals(Options[i], value))
-            {
-                return i;
-            }
-        }
-
-        return -1;
-    }
 
     /// <inheritdoc/>
     public override SettingsRowState Snapshot()
     {
-        int index = IndexOf(Value);
-        string key = index >= 0 && valueKey != null ? valueKey(Options[index]) : string.Empty;
+        IReadOnlyList<T> values = options();
+        int index = IndexOf(values, Value);
+        string key = index >= 0 && valueKey != null ? valueKey(values[index]) : string.Empty;
         return SettingsRowState.Stepper(
             Id,
             LabelKey,
             CanEdit,
-            key.Length > 0 ? string.Empty : index >= 0 ? format(Options[index]) : string.Empty,
+            key.Length > 0 ? string.Empty : index >= 0 ? format(values[index]) : string.Empty,
             key,
             CanEdit && index > 0,
-            CanEdit && index >= 0 && index < Options.Count - 1
+            CanEdit && index >= 0 && index < values.Count - 1
         );
     }
 
     /// <inheritdoc/>
     public override int Step(int delta)
     {
-        int index = IndexOf(Value);
-        int next = Math.Clamp(index + delta, 0, Options.Count - 1);
+        IReadOnlyList<T> values = options();
+        int index = IndexOf(values, Value);
+        int next = Math.Clamp(index + delta, 0, values.Count - 1);
         if (index < 0 || next == index)
         {
             return 0;
         }
 
-        SetValue(Options[next]);
+        SetValue(values[next]);
         return next > index ? 1 : -1;
+    }
+
+    private static int IndexOf(IReadOnlyList<T> values, T value)
+    {
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (EqualityComparer<T>.Default.Equals(values[i], value))
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 }

@@ -53,6 +53,23 @@ public class SettingsInteractionTests
         Assert.Equal(PRIMARY, harness.FindCommand("Settings.Apply").Border.Color);
     }
 
+    [Fact]
+    public void PlaybackDeviceChangeRefreshesTheOutputDeviceRow()
+    {
+        var harness = new Harness();
+
+        harness.Click(harness.Find("Settings.Category.audio"));
+        harness.Frame();
+
+        harness.PlaybackDeviceService.SetDevices("Speakers");
+        harness.Frame();
+
+        harness.Click(harness.Find("Settings.OutputDevice.next"));
+        harness.Frame();
+
+        Assert.True(harness.HasText("Speakers"));
+    }
+
     private sealed class Harness
     {
         private readonly UIController _controller = new();
@@ -60,6 +77,8 @@ public class SettingsInteractionTests
         private readonly SettingsPage<MenuPage> _page;
         private List<RenderCommand<Material>> _last = [];
         private double _delta;
+
+        public FakePlaybackDeviceService PlaybackDeviceService { get; } = new();
 
         public Harness()
         {
@@ -71,6 +90,7 @@ public class SettingsInteractionTests
                 windowSettings: new WindowSettings(),
                 renderSettings: new RenderSettings(),
                 volumeSettings: new VolumeSettings(),
+                playbackDeviceService: PlaybackDeviceService,
                 gameplayConfig: new GameplayConfig(),
                 uiSettings: new UISettings(),
                 soundEffectService: null!,
@@ -107,6 +127,19 @@ public class SettingsInteractionTests
         public IntRect Find(string id)
         {
             return FindCommand(id).Rect;
+        }
+
+        public bool HasText(string text)
+        {
+            for (var i = 0; i < _last.Count; i++)
+            {
+                if (_last[i].Text == text)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public void Click(IntRect target)

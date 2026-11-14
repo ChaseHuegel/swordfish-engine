@@ -15,6 +15,8 @@ internal sealed class TestLocalization : ILocalization
             "ui.button.settings" => "Settings",
             "ui.button.home.credits" => "Credits",
             "ui.button.home.quit" => "Quit",
+            "ui.settings.value.systemDefault" => "System default",
+            "ui.settings.value.unavailable" => "unavailable",
             _ => value,
         };
     }

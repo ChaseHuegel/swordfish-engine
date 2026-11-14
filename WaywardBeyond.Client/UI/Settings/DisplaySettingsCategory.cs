@@ -28,6 +28,8 @@ internal static class DisplaySettingsCategory
 
     public static SettingsCategory Build(SettingsDraft draft, IWindowContext windowContext, ILocalization localization, Action reset)
     {
+        IReadOnlyList<SettingsResolution> resolutionOptions = GetResolutionOptions(draft, windowContext);
+
         return new SettingsCategory(
             id: "display",
             titleKey: "ui.settings.category.display",
@@ -40,7 +42,7 @@ internal static class DisplaySettingsCategory
                     get: () => draft.DisplayMode,
                     set: value => draft.DisplayMode = value,
                     defaultValue: () => SettingsDefaults.DISPLAY_MODE,
-                    options: _displayModes,
+                    options: () => _displayModes,
                     format: value => value.ToString(),
                     valueKey: DisplayModeKey
                 ),
@@ -50,7 +52,7 @@ internal static class DisplaySettingsCategory
                     get: () => draft.Resolution,
                     set: value => draft.Resolution = value,
                     defaultValue: () => SettingsDraft.GetNativeResolution(windowContext),
-                    options: GetResolutionOptions(draft, windowContext),
+                    options: () => resolutionOptions,
                     format: resolution => $"{resolution.Width} x {resolution.Height}",
                     isEnabled: () => draft.DisplayMode.UsesWindowSize()
                 ),
@@ -67,7 +69,7 @@ internal static class DisplaySettingsCategory
                     get: () => draft.FrameLimit,
                     set: value => draft.FrameLimit = value,
                     defaultValue: () => SettingsDefaults.FRAME_LIMIT,
-                    options: SettingsDefaults.GetFrameLimits(draft.FrameLimit),
+                    options: () => SettingsDefaults.GetFrameLimits(draft.FrameLimit),
                     format: value => FormatFrameLimit(localization, value),
                     isEnabled: () => !draft.VSync
                 ),
@@ -89,7 +91,7 @@ internal static class DisplaySettingsCategory
                     get: () => draft.ViewDistance,
                     set: value => draft.ViewDistance = value,
                     defaultValue: () => SettingsDefaults.VIEW_DISTANCE,
-                    options: SettingsDefaults.GetViewDistances(draft.ViewDistance),
+                    options: () => SettingsDefaults.GetViewDistances(draft.ViewDistance),
                     format: value => FormatDistance(localization, value)
                 ),
                 new SettingsSection("ui.settings.section.quality"),
@@ -108,7 +110,7 @@ internal static class DisplaySettingsCategory
                     get: () => draft.ShadowQuality,
                     set: value => draft.ShadowQuality = value,
                     defaultValue: () => SettingsDefaults.SHADOW_QUALITY,
-                    options: SettingsDefaults.GetShadowQualities(draft.ShadowQuality),
+                    options: () => SettingsDefaults.GetShadowQualities(draft.ShadowQuality),
                     format: value => value.ToString(),
                     valueKey: ShadowQualityKey
                 ),
@@ -125,7 +127,7 @@ internal static class DisplaySettingsCategory
                     get: () => draft.AoQuality,
                     set: value => draft.AoQuality = value,
                     defaultValue: () => SettingsDefaults.AO_QUALITY,
-                    options: SettingsDefaults.GetAoQualities(draft.AoQuality),
+                    options: () => SettingsDefaults.GetAoQualities(draft.AoQuality),
                     format: value => value.ToString(),
                     valueKey: AoQualityKey,
                     isEnabled: () => draft.AmbientOcclusion
@@ -143,7 +145,7 @@ internal static class DisplaySettingsCategory
                     get: () => draft.BloomQuality,
                     set: value => draft.BloomQuality = value,
                     defaultValue: () => SettingsDefaults.BLOOM_QUALITY,
-                    options: SettingsDefaults.GetBloomQualities(draft.BloomQuality),
+                    options: () => SettingsDefaults.GetBloomQualities(draft.BloomQuality),
                     format: value => value.ToString(),
                     valueKey: BloomQualityKey,
                     isEnabled: () => draft.Bloom
