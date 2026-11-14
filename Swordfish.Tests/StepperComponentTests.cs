@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -17,6 +18,27 @@ public class StepperComponentTests
         Snapshot("component-stepper-disabled", new StepperParameters("human", Enabled: false));
         Snapshot("component-stepper-min", new StepperParameters("human", Enabled: true, CanDecrease: false));
         Snapshot("component-stepper-max", new StepperParameters("human", Enabled: true, CanIncrease: false));
+    }
+
+    [Fact]
+    public void LongValueClipsBetweenTheArrows()
+    {
+        var controller = new UIController();
+        var ui = new UIBuilder<Material>(300, 60, new StubTextEngine(), controller);
+        var parameters = new StepperParameters("Meteor Lake-P HD Audio Controller HDMI / DisplayPort 3 Output", Enabled: true);
+
+        Render(ui, parameters, controller, 20, 20, UIController.MouseButtons.None);
+        List<RenderCommand<Material>> commands = ui.Build(0.1f);
+
+        RenderCommand<Material> previous = commands.Find(command => command.Text == "<");
+        RenderCommand<Material> next = commands.Find(command => command.Text == ">");
+        RenderCommand<Material> value = commands.Find(command => command.Text == parameters.Value);
+
+        Assert.Equal("<", previous.Text);
+        Assert.Equal(">", next.Text);
+        Assert.Equal(parameters.Value, value.Text);
+        Assert.True(value.ClipRect.Left >= previous.Rect.Left + previous.Rect.Size.X);
+        Assert.True(value.ClipRect.Left + value.ClipRect.Size.X <= next.Rect.Left);
     }
 
     [Fact]

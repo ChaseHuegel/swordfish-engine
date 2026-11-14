@@ -21,6 +21,7 @@ internal static class SettingsDefaults
     public const float MUSIC_VOLUME = 0.5f;
     public const float EFFECTS_VOLUME = 0.5f;
     public const float INTERFACE_VOLUME = 0.5f;
+    public const string OUTPUT_DEVICE = "";
     public const bool AUTOSAVE = true;
     public const int AUTOSAVE_INTERVAL_MINUTES = 5;
     public const bool CONTROL_HINTS = true;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using WaywardBeyond.Client.UI.Settings;
 using Xunit;
 
@@ -38,6 +39,30 @@ public class SettingsEntryTests
         Assert.Contains(AoQuality.Ultra, SettingsDefaults.GetAoQualities(AoQuality.Ultra));
         Assert.Contains(BloomQuality.High, SettingsDefaults.GetBloomQualities(BloomQuality.High));
         Assert.Contains(ShadowQuality.Custom, SettingsDefaults.GetShadowQualities(ShadowQuality.Custom));
+    }
+
+    [Fact]
+    public void StepperOptionsProviderRefreshesWithoutRebuildingTheEntry()
+    {
+        var options = new List<string> { "A", "B" };
+        var value = "A";
+        var entry = new StepperEntry<string>(
+            id: "test.stepper",
+            labelKey: "test.label",
+            get: () => value,
+            set: newValue => value = newValue,
+            defaultValue: () => "A",
+            options: () => options,
+            format: option => option
+        );
+
+        Assert.True(entry.Snapshot().CanIncrease);
+
+        options.Add("C");
+
+        Assert.True(entry.Snapshot().CanIncrease);
+        Assert.Equal(1, entry.Step(2));
+        Assert.Equal("C", value);
     }
 
     [Fact]

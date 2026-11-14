@@ -4,6 +4,7 @@ using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
+using Swordfish.Audio;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
@@ -50,11 +51,11 @@ public class Injector : IDryIocInjector
     {
         container.RegisterDataServices();
 
+        RegisterParsers(container);
         RegisterConfiguration(container);
         RegisterUI(container);
         RegisterInput(container);
         RegisterDatabases(container);
-        RegisterParsers(container);
         RegisterEntitySystems(container);
         RegisterVoxels(container);
         RegisterWebhooks(container);
@@ -194,6 +195,7 @@ public class Injector : IDryIocInjector
             context.Resolve<Swordfish.Settings.WindowSettings>(),
             context.Resolve<Swordfish.Settings.RenderSettings>(),
             context.Resolve<VolumeSettings>(),
+            context.Resolve<IPlaybackDeviceService>(),
             context.Resolve<GameplayConfig>(),
             context.Resolve<UISettings>(),
             context.Resolve<SoundEffectService>(),

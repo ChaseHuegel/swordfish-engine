@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Reef;
 using Reef.UI;
+using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
@@ -23,6 +25,7 @@ internal sealed class SettingsPage<TIdentifier>(
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
+    in IPlaybackDeviceService playbackDeviceService,
     in GameplayConfig gameplayConfig,
     in UISettings uiSettings,
     in SoundEffectService soundEffectService,
@@ -38,6 +41,7 @@ internal sealed class SettingsPage<TIdentifier>(
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
+    private readonly IPlaybackDeviceService _playbackDeviceService = playbackDeviceService;
     private readonly GameplayConfig _gameplayConfig = gameplayConfig;
     private readonly UISettings _uiSettings = uiSettings;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
@@ -54,6 +58,7 @@ internal sealed class SettingsPage<TIdentifier>(
     private SettingsCategoryEntry[] _entries = [];
     private SettingsRowState[] _rows = [];
     private bool _rowsDirty = true;
+    private int _playbackDevicesDirty;
     private int _categoryIndex;
     private int _scrollY;
     private string _statusKey = string.Empty;
@@ -62,6 +67,8 @@ internal sealed class SettingsPage<TIdentifier>(
     /// <inheritdoc/>
     public void OnEnter()
     {
+        _playbackDeviceService.PlaybackDevicesChanged -= OnPlaybackDevicesChanged;
+        _playbackDeviceService.PlaybackDevicesChanged += OnPlaybackDevicesChanged;
         _draft = SettingsDraft.FromConfigs(
             _controlSettings,
             _windowSettings,
@@ -74,8 +81,8 @@ internal sealed class SettingsPage<TIdentifier>(
         _categories = BuildCategories();
         _entries = BuildEntries(_categories);
         _rowsDirty = true;
+        _playbackDevicesDirty = 0;
         _categoryIndex = 0;
-        _rowsDirty = true;
         _scrollY = 0;
         _statusKey = string.Empty;
         _statusUntil = 0d;
@@ -84,11 +91,13 @@ internal sealed class SettingsPage<TIdentifier>(
     /// <inheritdoc/>
     public void OnExit()
     {
+        _playbackDeviceService.PlaybackDevicesChanged -= OnPlaybackDevicesChanged;
         _draft = null;
         _categories = null;
         _entries = [];
         _rows = [];
         _rowsDirty = true;
+        _playbackDevicesDirty = 0;
         _statusKey = string.Empty;
     }
 
@@ -102,6 +111,12 @@ internal sealed class SettingsPage<TIdentifier>(
 
         if (RefreshExternalDisplaySettings())
         {
+            _rowsDirty = true;
+        }
+
+        if (Interlocked.Exchange(ref _playbackDevicesDirty, 0) == 1)
+        {
+            RefreshPlaybackDeviceSettings();
             _rowsDirty = true;
         }
 
@@ -285,6 +300,8 @@ internal sealed class SettingsPage<TIdentifier>(
         _volumeSettings.Music.Set(draft.MusicVolume);
         _volumeSettings.Effects.Set(draft.EffectsVolume);
         _volumeSettings.Interface.Set(draft.InterfaceVolume);
+        _volumeSettings.OutputDevice.Set(draft.OutputDevice);
+        _playbackDeviceService.SetPreferredPlaybackDevice(draft.OutputDevice);
 
         _gameplayConfig.Autosave.Set(draft.Autosave);
         _gameplayConfig.AutosaveIntervalMs.Set(draft.AutosaveIntervalMinutes * 60000);
@@ -310,7 +327,7 @@ internal sealed class SettingsPage<TIdentifier>(
         _statusKey = "ui.settings.status.saved";
         _statusUntil = time + 2d;
         _rowsDirty = true;
-        WidgetInteraction.Interactions.Click.WithButtonAudio(_soundEffectService);
+        Play(WidgetInteraction.InterfaceSound.Click);
     }
 
     private static SettingsCategoryEntry[] BuildEntries(SettingsCategory[] categories)
@@ -331,10 +348,38 @@ internal sealed class SettingsPage<TIdentifier>(
         return
         [
             DisplaySettingsCategory.Build(draft, _windowContext, _localization, () => ResetCategory("display")),
-            AudioSettingsCategory.Build(draft, _localization, () => ResetCategory("audio")),
+            AudioSettingsCategory.Build(draft, _playbackDeviceService, _localization, () => ResetCategory("audio")),
             GameplaySettingsCategory.Build(draft, _localization, () => ResetCategory("gameplay")),
             ControlSettingsCategory.Build(draft, _localization, () => ResetCategory("controls")),
         ];
+    }
+
+    private void OnPlaybackDevicesChanged(object? sender, PlaybackDevicesChangedEventArgs e)
+    {
+        Interlocked.Exchange(ref _playbackDevicesDirty, 1);
+    }
+
+    private void RefreshPlaybackDeviceSettings()
+    {
+        if (_draft == null)
+        {
+            return;
+        }
+
+        SettingsEntry? entry = FindEntry("Settings.OutputDevice");
+        if (entry == null || entry.IsDirty)
+        {
+            return;
+        }
+
+        string preferredDevice = _playbackDeviceService.PreferredPlaybackDeviceName ?? string.Empty;
+        if (string.Equals(_draft.OutputDevice, preferredDevice, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _draft.OutputDevice = preferredDevice;
+        entry.CaptureBaseline();
     }
 
     private bool RefreshExternalDisplaySettings()

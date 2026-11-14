@@ -25,12 +25,15 @@
                       height="fit" />
             </Element>
             <Element class="wb-stepper-sep" width="1" height="fill" />
-            <Text text="@param.Value"
-                  class="wb-stepper-value"
-                  class:wb-stepper-value-enabled="@param.Enabled"
-                  anchor="Center"
-                  width="fill"
-                  height="fit" />
+            <Element width="fill" height="fill" clip="true">
+                <Text text="@param.Value"
+                      wrap="false"
+                      class="wb-stepper-value"
+                      class:wb-stepper-value-enabled="@param.Enabled"
+                      anchor="Center"
+                      width="fill"
+                      height="fit" />
+            </Element>
             <Element class="wb-stepper-sep" width="1" height="fill" />
             <Element class="wb-stepper-arrow"
                      class:wb-stepper-arrow-enabled="@(param.Enabled &amp;&amp; param.CanIncrease)"

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Swordfish.Audio;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
@@ -11,6 +12,59 @@ using Swordfish.Physics;
 using Swordfish.Settings;
 
 namespace Swordfish.Tests;
+
+/// <summary>A playback device stub whose device list a test can drive.</summary>
+internal sealed class FakePlaybackDeviceService : IPlaybackDeviceService
+{
+    public List<string> Devices { get; } = [];
+
+    public string? DefaultPlaybackDeviceName { get; set; }
+
+    public string? PreferredPlaybackDeviceName { get; private set; }
+
+    public string? ActivePlaybackDeviceName { get; private set; }
+
+    public bool IsPreferredPlaybackDeviceMissing { get; private set; }
+
+    public IReadOnlyList<string> PlaybackDeviceNames => Devices;
+
+    public event EventHandler<PlaybackDevicesChangedEventArgs>? PlaybackDevicesChanged;
+
+    /// <inheritdoc/>
+    public void SetPreferredPlaybackDevice(string? name)
+    {
+        PreferredPlaybackDeviceName = string.IsNullOrEmpty(name) ? null : name;
+        IsPreferredPlaybackDeviceMissing = PreferredPlaybackDeviceName != null && !Devices.Contains(PreferredPlaybackDeviceName);
+        ActivePlaybackDeviceName = !IsPreferredPlaybackDeviceMissing && PreferredPlaybackDeviceName != null
+            ? PreferredPlaybackDeviceName
+            : DefaultPlaybackDeviceName;
+        RaiseChanged();
+    }
+
+    /// <summary>Replaces the device list and raises one change event.</summary>
+    public void SetDevices(params string[] devices)
+    {
+        Devices.Clear();
+        Devices.AddRange(devices);
+        IsPreferredPlaybackDeviceMissing = PreferredPlaybackDeviceName != null && !Devices.Contains(PreferredPlaybackDeviceName);
+        ActivePlaybackDeviceName = !IsPreferredPlaybackDeviceMissing && PreferredPlaybackDeviceName != null
+            ? PreferredPlaybackDeviceName
+            : DefaultPlaybackDeviceName;
+        RaiseChanged();
+    }
+
+    /// <summary>Raises one change event with the current state.</summary>
+    public void RaiseChanged()
+    {
+        PlaybackDevicesChanged?.Invoke(this, new PlaybackDevicesChangedEventArgs(
+            PlaybackDeviceNames,
+            DefaultPlaybackDeviceName,
+            PreferredPlaybackDeviceName,
+            ActivePlaybackDeviceName,
+            IsPreferredPlaybackDeviceMissing
+        ));
+    }
+}
 
 /// <summary>An input stub whose held state and cursor deltas a test can drive.</summary>
 internal sealed class FakeInputService : IInputService

@@ -206,6 +206,21 @@ writes its private backing field instead: `Mode = { _data = "Remote" }`. Add a
 `RegisterDataBinding<T>` line next to `ProfileSettings` for every new binding
 type.
 
+## `volume.toml` (per app)
+
+Client audio preferences, registered via `RegisterConfig<VolumeSettings>`.
+Schema: `WaywardBeyond.Client/Configuration/VolumeSettings.cs`.
+`ConfigManager` applies `OutputDevice` to the engine at startup. See
+[audio](audio.md) and [settings-ui](settings-ui.md).
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `Master` | float | `0.5` | master volume, 0-1 |
+| `Music` | float | `0.5` | music channel volume, 0-1 |
+| `Effects` | float | `0.5` | effects channel volume, 0-1 |
+| `Interface` | float | `0.5` | interface channel volume, 0-1 |
+| `OutputDevice` | string | `""` | preferred playback device name, empty follows the system default |
+
 ## `render.toml` (per app)
 
 Runtime rendering settings, registered via `RegisterConfig<RenderSettings>`.

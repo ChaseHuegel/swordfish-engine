@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using Swordfish.Audio;
 using Swordfish.Library.Globalization;
 
 namespace WaywardBeyond.Client.UI.Settings;
@@ -6,13 +8,28 @@ namespace WaywardBeyond.Client.UI.Settings;
 /// <summary>Builds the audio settings category.</summary>
 internal static class AudioSettingsCategory
 {
-    public static SettingsCategory Build(SettingsDraft draft, ILocalization localization, Action reset)
+    public static SettingsCategory Build(
+        SettingsDraft draft,
+        IPlaybackDeviceService playbackDeviceService,
+        ILocalization localization,
+        Action reset
+    )
     {
         return new SettingsCategory(
             id: "audio",
             titleKey: "ui.settings.category.audio",
             rows:
             [
+                new SettingsSection("ui.settings.section.output"),
+                new StepperEntry<string>(
+                    id: "Settings.OutputDevice",
+                    labelKey: "ui.settings.option.outputDevice",
+                    get: () => draft.OutputDevice,
+                    set: value => draft.OutputDevice = value,
+                    defaultValue: () => SettingsDefaults.OUTPUT_DEVICE,
+                    options: () => GetOutputDeviceOptions(draft, playbackDeviceService),
+                    format: value => FormatOutputDevice(value, localization, playbackDeviceService)
+                ),
                 new SettingsSection("ui.settings.section.mix"),
                 BuildVolumeSlider(
                     "Settings.MasterVolume",
@@ -49,6 +66,60 @@ internal static class AudioSettingsCategory
                 new SettingsResetRow("Settings.Reset.audio", reset),
             ]
         );
+    }
+
+    private static IReadOnlyList<string> GetOutputDeviceOptions(
+        SettingsDraft draft,
+        IPlaybackDeviceService playbackDeviceService
+    )
+    {
+        IReadOnlyList<string> deviceNames = playbackDeviceService.PlaybackDeviceNames;
+        var options = new List<string>(deviceNames.Count + 2)
+        {
+            SettingsDefaults.OUTPUT_DEVICE,
+        };
+
+        for (var i = 0; i < deviceNames.Count; i++)
+        {
+            options.Add(deviceNames[i]);
+        }
+
+        string currentDevice = draft.OutputDevice;
+        if (currentDevice.Length > 0 && !ContainsDevice(deviceNames, currentDevice))
+        {
+            options.Add(currentDevice);
+        }
+
+        return options;
+    }
+
+    private static string FormatOutputDevice(
+        string value,
+        ILocalization localization,
+        IPlaybackDeviceService playbackDeviceService
+    )
+    {
+        if (value.Length == 0)
+        {
+            return L(localization, "ui.settings.value.systemDefault");
+        }
+
+        return ContainsDevice(playbackDeviceService.PlaybackDeviceNames, value)
+            ? value
+            : $"{value} ({L(localization, "ui.settings.value.unavailable")})";
+    }
+
+    private static bool ContainsDevice(IReadOnlyList<string> deviceNames, string name)
+    {
+        for (var i = 0; i < deviceNames.Count; i++)
+        {
+            if (string.Equals(deviceNames[i], name, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static SliderEntry BuildVolumeSlider(

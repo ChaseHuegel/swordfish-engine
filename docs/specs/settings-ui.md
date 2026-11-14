@@ -57,8 +57,9 @@ row a height of 44 pixels and a section header 35 pixels. Each row is a
 horizontal layout. The label takes the remaining width and the control uses the
 control column.
 
-The label uses `NoWrap` and clips to the row. The control column holds one of
-these controls:
+The label uses `NoWrap` and clips to the row. The stepper value uses `NoWrap`
+and clips to the space between the arrows. A long value does not wrap into the
+next row or cover the arrows. The control column holds one of these controls:
 
 - Category rows use the shared selected-row treatment: one orange border and a
   cyan left caret.
@@ -66,7 +67,9 @@ these controls:
   wraps `Widgets.SegmentedControl` and returns `ControlResult<int>`.
 - A continuous value uses the coded `SettingsSliderWidget`, which wraps
   `Widgets.Slider` and returns `ControlResult<float>`.
-- The shared `Stepper` component covers discrete values.
+- The shared `Stepper` component covers discrete values. It reads its options
+  from a provider on each snapshot. A static list is a provider that returns the
+  same list.
 - The category reset row uses the danger button variant.
 
 The two coded controls read `.Changed` and `.Value` from `ControlResult<T>`
@@ -87,7 +90,7 @@ Each category is built by its own type in `WaywardBeyond.Client/UI/Settings/`:
 
 - `DisplaySettingsCategory.Build` for display and video, including the
   resolution option list.
-- `AudioSettingsCategory.Build` for the volume sliders.
+- `AudioSettingsCategory.Build` for the output device row and the volume sliders.
 - `GameplaySettingsCategory.Build` for autosave and HUD rows.
 - `ControlSettingsCategory.Build` for mouse and placement rows.
 
@@ -101,7 +104,7 @@ It copies every editable config value when the page opens.
 
 The client applies its declared render defaults at composition, before any
 page reads the render config. `SettingsDefaults.ApplyRenderDefaults` at
-`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:67` sets the bloom quality
+`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:68` sets the bloom quality
 when the config has no saved file. A saved `render.toml` keeps the user's
 values. The snapshot fixture composes a fresh render config through the same
 method.
@@ -116,7 +119,13 @@ category.
 The recommended defaults are in `SettingsDefaults` at
 `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`. Display mode defaults
 to `SettingsDisplayMode.BorderlessWindow`. Resolution defaults to the native
-monitor resolution.
+monitor resolution. The output device defaults to the empty string, which means
+`System default`.
+
+The output device preference is `VolumeSettings.OutputDevice` in
+`volume.toml`. `ConfigManager` applies it to the engine at startup. The page
+writes the draft value to the config and to `IPlaybackDeviceService` on apply.
+Cancel leaves both unchanged.
 
 ## Display modes
 
@@ -141,7 +150,7 @@ dim the resolution row and use the monitor resolution. See
 The page applies display changes through
 `IWindowContext.ApplyDisplaySettings`. See [window-display](window-display.md).
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:340` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:385` keeps the display
 mode and resolution rows in sync when a shortcut or a manual resize changes the
 window while the page is open.
 
@@ -152,7 +161,7 @@ The page exposes only options that the engine supports:
 - Display & Video: display mode, resolution, V-sync, frame limit, field of
   view, view distance, anti-aliasing, ambient occlusion, AO quality, bloom, and
   bloom quality.
-- Audio: master, music, effects, and interface volume.
+- Audio: output device, master, music, effects, and interface volume.
 - Gameplay: autosave, autosave interval, control hints, crosshair, and name tag
   distance.
 - Controls: mouse sensitivity, remember shape, and remember orientation.
@@ -160,6 +169,36 @@ The page exposes only options that the engine supports:
 The page does not expose FXAA, particle density, dynamic lighting, or an
 environment audio channel. The engine has no such settings. View distance is
 the camera far plane, so the page shows meters or kilometers, not chunks.
+
+## Audio output device
+
+The audio category starts with an `Output` section. The section contains one
+`Settings.OutputDevice` stepper:
+
+- The first option is `System default` and uses the empty string.
+- The remaining options are `IPlaybackDeviceService.PlaybackDeviceNames` in
+  ordinal order.
+- The options provider appends the current draft value when the device list no
+  longer contains it. The row keeps the missing selection visible.
+- A missing selection formats as `Name (unavailable)`. This includes a device
+  that failed initialization.
+- A long device name clips to the space between the stepper arrows. It does not
+  wrap into the next row or cover the arrows.
+- A missing selection does not change the saved preference. The engine falls
+  back to the system default, and the device resumes when it returns.
+
+The row has no dropdown. The shared stepper exposes the list by cycling. This is
+the same control that the resolution row uses. A list or popup control is a
+separate UI feature.
+
+`SettingsPage` subscribes to `IPlaybackDeviceService.PlaybackDevicesChanged` in
+`OnEnter` and unsubscribes in `OnExit`. The handler runs on the ECS thread and
+sets a flag. `RenderPage` consumes the flag, marks the rows dirty, and keeps the
+draft preference when the entry is not dirty. The stepper reads the options
+provider on the next snapshot, so the row shows the new device list within one
+frame of the event.
+
+The scan interval is 2 seconds. A hotplug reaches the row on the next scan.
 
 ## Page shell
 
@@ -173,12 +212,19 @@ existing spacer layout.
 
 ## Source
 
-- Page: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:19`
-- Categories: `WaywardBeyond.Client/UI/Settings/DisplaySettingsCategory.cs:12`,
-  `AudioSettingsCategory.cs:7`, `GameplaySettingsCategory.cs:7`,
+- Page: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:21`
+- Categories: `WaywardBeyond.Client/UI/Settings/DisplaySettingsCategory.cs:11`,
+  `AudioSettingsCategory.cs:9`, `GameplaySettingsCategory.cs:7`,
   `ControlSettingsCategory.cs:8`
+- Audio output row: `WaywardBeyond.Client/UI/Settings/AudioSettingsCategory.cs:23`,
+  `:71`, `:96`
+- Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:70`,
+  `:117`, `:303`, `:357`, `:362`
+- Audio preference: `WaywardBeyond.Client/Configuration/VolumeSettings.cs:14`,
+  `WaywardBeyond.Client/Configuration/ConfigManager.cs:53`
 - Draft: `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:11`
 - Defaults: `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`
+- Stepper entry: `WaywardBeyond.Client/UI/Settings/StepperEntryOfT.cs:7`
 - Tokens: `WaywardBeyond.Client/UI/Theme/Theme.rss:1`
 - Classes: `WaywardBeyond.Client/UI/Components/Components.rss:1`
 - Choice control: `WaywardBeyond.Client/UI/Settings/SettingsChoiceWidget.cs:9`
@@ -200,5 +246,9 @@ existing spacer layout.
   the rail, track jump, release, and end clamping.
 - `Swordfish.Tests/SettingsControlWidgetTests.cs` covers the coded choice and
   slider controls.
-- `Swordfish.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, option
-  lists, and the bloom, shadow, and AO preset round trips.
+- `Swordfish.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, dynamic
+  option providers, and the bloom, shadow, and AO preset round trips.
+- `Swordfish.Tests/AudioSettingsCategoryTests.cs` covers the output device
+  option order, the missing-device label, and reset.
+- `Swordfish.Tests/SettingsInteractionTests.cs` covers the row refresh after a
+  playback device change.

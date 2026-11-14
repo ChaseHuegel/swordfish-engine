@@ -99,6 +99,10 @@ new shared singleton to that list, or a world silently gets a private copy.
 - Module load order comes from `config/modules.toml`. The client module loads
   before the server module, so client overrides register first. Do not rely on
   load order where `Keep` or `Replace` can express the intent.
+- The client registers its file parsers before config loading.
+  `VirtualFileParseService` captures the parser set when it is constructed.
+  Config loading resolves it. A parser registered after the first resolution is
+  invisible to later parses.
 - Server world systems tick in registration order. See
   [networking-worlds](networking-worlds.md).
 
