@@ -105,7 +105,9 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
         
         container.Register<AudioEngine, MiniAudioEngine>(Reuse.Singleton);
-        container.Register<IEntitySystem, AudioSystem>(Reuse.Singleton);
+        container.Register<AudioSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, AudioSystem>();
+        container.RegisterMapping<IPlaybackDeviceService, AudioSystem>();
         
         container.RegisterMany<GlslParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TextureParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
