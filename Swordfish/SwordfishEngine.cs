@@ -1,5 +1,6 @@
 using System.Drawing;
 using Microsoft.Extensions.Logging;
+using PInvoke;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
@@ -69,12 +70,14 @@ public class SwordfishEngine
     public int Run()
     {
         TransitionState(State.Initialized, State.Starting);
-#if WINDOWS
-        if ((_args.Contains("-debug") || _args.Contains("--debug")) && !Kernel32.AttachConsole(-1))
+        if (OperatingSystem.IsWindows() && (_args.Contains("-debug") || _args.Contains("--debug")))
         {
-            Kernel32.AllocConsole();
+            if (Kernel32.AttachConsole(-1) || Kernel32.AllocConsole())
+            {
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });
+                Console.SetError(new StreamWriter(Console.OpenStandardError()) { AutoFlush = true });
+            }
         }
-#endif
         TransitionState(State.Starting, State.Started);
         
         _mainWindow.Run();
