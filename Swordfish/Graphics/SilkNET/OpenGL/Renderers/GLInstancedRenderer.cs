@@ -63,9 +63,10 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         }
         _transparentInstances.Clear();
 
-        for (var i = 0; i < renderScene.EntityModels.Length; i++)
+        ReadOnlySpan<EntityModel> entityModels = renderScene.EntityModels.Span;
+        for (var i = 0; i < entityModels.Length; i++)
         {
-            EntityModel entityModel = renderScene.EntityModels[i];
+            EntityModel entityModel = entityModels[i];
             if (entityModel.MeshRenderer.RenderTarget is not GLRenderTarget renderTarget)
             {
                 continue;
