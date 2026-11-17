@@ -93,7 +93,8 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         _lastSceneInstances = scene.Instances;
-        return new RenderScene(scene.View, scene.Projection, scene.Instances, scene.BatchInstances, _renderTargets, _rectRenderTargets, scene.CameraFrustum);
+        var entityModels = new ReadOnlyMemory<EntityModel>(scene.Instances, 0, scene.InstanceCount);
+        return new RenderScene(scene.View, scene.Projection, entityModels, scene.BatchInstances, _renderTargets, _rectRenderTargets, scene.CameraFrustum);
     }
 
     private void OnHandleDisposed(object? sender, EventArgs _)
@@ -136,10 +137,16 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         store.Query<TransformComponent, MeshBatchRendererComponent, ReadBatchEntityAction>(0f, ref queryBatchEntitiesAction);
 
         //  Write the scene data then reset for the next Tick
-        EntityModel[] instances = RentSceneBuffer(_renderableEntities.Count);
+        int instanceCount = _renderableEntities.Count;
+        EntityModel[] instances = RentSceneBuffer(instanceCount);
         _renderableEntities.CopyTo(instances);
+        if (instances.Length > instanceCount)
+        {
+            Array.Clear(instances, instanceCount, instances.Length - instanceCount);
+        }
+
         BatchEntityModel[] batchInstances = _batchRenderables.Count == 0 ? [] : _batchRenderables.ToArray();
-        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, instances, batchInstances, frustum));
+        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, instances, instanceCount, batchInstances, frustum));
         _renderableEntities.Clear();
         _batchRenderables.Clear();
     }
@@ -422,13 +429,14 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         return Unsafe.As<BufferObject<Matrix4x4>>(handle);
     }
     
-    private sealed class SceneData(in Matrix4x4 view, in Matrix4x4 projection, in EntityModel[] instances, in BatchEntityModel[] batchInstances, in Frustum? cameraFrustum)
+    private sealed class SceneData(in Matrix4x4 view, in Matrix4x4 projection, in EntityModel[] instances, in int instanceCount, in BatchEntityModel[] batchInstances, in Frustum? cameraFrustum)
     {
-        public static readonly SceneData Empty = new(Matrix4x4.Identity, Matrix4x4.Identity, [], [], null);
+        public static readonly SceneData Empty = new(Matrix4x4.Identity, Matrix4x4.Identity, [], 0, [], null);
 
         public readonly Matrix4x4 View = view;
         public readonly Matrix4x4 Projection = projection;
         public readonly EntityModel[] Instances = instances;
+        public readonly int InstanceCount = instanceCount;
         public readonly BatchEntityModel[] BatchInstances = batchInstances;
         public readonly Frustum? CameraFrustum = cameraFrustum;
     }
