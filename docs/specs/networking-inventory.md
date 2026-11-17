@@ -81,8 +81,10 @@ Both sides call `InventoryResolver.Apply(ref inventory, in SlotMoveOp)`:
    capacity, then the first empty slot; no target → no-op.
 
 The client computes Exact targets for split (first empty slot via
-`FindFirstEmptySlot`) and partial drags; the server revalidates the same op
-against its own copy, so drift is corrected by the echo.
+`FindFirstEmptySlot`), right-click drag distribution (`ComputeDistribution`),
+and partial drags; the server revalidates the same ops against its own copy, so
+drift is corrected by the echo. `InventoryResolver.Apply` rejects same-slot
+`Exact` moves (`FromSlot == ToSlot`) as a no-op.
 
 ## The client producer: one mutation entry point
 
