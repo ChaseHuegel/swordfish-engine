@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 
@@ -20,8 +20,8 @@ public static class InventoryResolver
             return ApplyAutoStack(ref inventory, op.FromSlot);
         }
 
-        //  Exact move: destination must be in bounds; a null count means the whole source stack.
-        if (op.ToSlot < 0 || op.ToSlot >= inventory.Contents.Length)
+        //  Exact move: destination must be in bounds and distinct from source; a null count means the whole source stack.
+        if (op.ToSlot < 0 || op.ToSlot >= inventory.Contents.Length || op.FromSlot == op.ToSlot)
         {
             return false;
         }
@@ -160,5 +160,128 @@ public static class InventoryResolver
         }
 
         return -1;
+    }
+
+    /// <summary>Returns true when <paramref name="toSlot"/> can receive items distributed from <paramref name="fromSlot"/>.</summary>
+    public static bool CanDistributeToSlot(in InventoryComponent inventory, int fromSlot, int toSlot)
+    {
+        if (inventory.Contents == null
+            || fromSlot < 0
+            || fromSlot >= inventory.Contents.Length
+            || toSlot < 0
+            || toSlot >= inventory.Contents.Length)
+        {
+            return false;
+        }
+
+        ItemData source = inventory.Contents[fromSlot];
+        if (source.IsEmpty())
+        {
+            return false;
+        }
+
+        if (fromSlot == toSlot)
+        {
+            return true;
+        }
+
+        ItemData destination = inventory.Contents[toSlot];
+        if (destination.IsEmpty())
+        {
+            return true;
+        }
+
+        return destination.ID == source.ID && destination.Count < destination.MaxSize;
+    }
+
+    /// <summary>
+    /// Computes the even distribution of <paramref name="fromSlot"/> across <paramref name="targetSlots"/>,
+    /// writing each target slot's added count into <paramref name="allocations"/> and returning the remaining count.
+    /// </summary>
+    public static int ComputeDistribution(
+        in InventoryComponent inventory,
+        int fromSlot,
+        ReadOnlySpan<int> targetSlots,
+        Span<int> allocations
+    )
+    {
+        allocations.Clear();
+
+        if (inventory.Contents == null || fromSlot < 0 || fromSlot >= inventory.Contents.Length)
+        {
+            return 0;
+        }
+
+        ItemData source = inventory.Contents[fromSlot];
+        if (source.IsEmpty())
+        {
+            return 0;
+        }
+
+        int count = Math.Min(targetSlots.Length, allocations.Length);
+        var eligibleCount = 0;
+
+        for (var i = 0; i < count && eligibleCount < source.Count; i++)
+        {
+            int toSlot = targetSlots[i];
+            if (!CanDistributeToSlot(in inventory, fromSlot, toSlot) || ContainsSlot(targetSlots[..i], toSlot))
+            {
+                continue;
+            }
+
+            eligibleCount++;
+        }
+
+        if (eligibleCount == 0)
+        {
+            return source.Count;
+        }
+
+        int perSlot = source.Count / eligibleCount;
+        var totalAllocated = 0;
+        var assignedCount = 0;
+
+        for (var i = 0; i < count && assignedCount < eligibleCount; i++)
+        {
+            int toSlot = targetSlots[i];
+            if (!CanDistributeToSlot(in inventory, fromSlot, toSlot) || ContainsSlot(targetSlots[..i], toSlot))
+            {
+                continue;
+            }
+
+            assignedCount++;
+            int available = toSlot == fromSlot
+                ? source.MaxSize
+                : GetAvailableCapacity(in inventory.Contents[toSlot], in source);
+
+            int share = Math.Min(perSlot, available);
+            allocations[i] = share;
+            totalAllocated += share;
+        }
+
+        return Math.Max(0, source.Count - totalAllocated);
+    }
+
+    private static bool ContainsSlot(ReadOnlySpan<int> slots, int slot)
+    {
+        for (var i = 0; i < slots.Length; i++)
+        {
+            if (slots[i] == slot)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int GetAvailableCapacity(in ItemData destination, in ItemData source)
+    {
+        if (destination.IsEmpty())
+        {
+            return source.MaxSize;
+        }
+
+        return Math.Max(0, destination.MaxSize - destination.Count);
     }
 }

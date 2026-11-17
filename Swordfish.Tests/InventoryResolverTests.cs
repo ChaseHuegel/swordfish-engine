@@ -178,6 +178,111 @@ public class InventoryResolverTests
         Assert.False(new ItemData("rock", 1, 10).IsEmpty());
     }
 
+    [Fact]
+    public void RejectsSameSlotExactMove()
+    {
+        InventoryComponent inventory = Inventory(2);
+        inventory.Contents![0] = new ItemData("rock", 5, 10);
+
+        var op = Exact(from: 0, to: 0, count: 3);
+        Assert.False(InventoryResolver.Apply(ref inventory, in op));
+        Assert.Equal(5, inventory.Contents[0].Count);
+    }
+
+    [Fact]
+    public void ComputeDistributionSplitsEvenlyAcrossFourSlots()
+    {
+        InventoryComponent inventory = Inventory(10);
+        inventory.Contents![0] = new ItemData("rock", 40, 64);
+
+        int[] targets = [1, 2, 3, 4];
+        var allocations = new int[4];
+
+        int remainder = InventoryResolver.ComputeDistribution(in inventory, 0, targets, allocations);
+
+        Assert.Equal(0, remainder);
+        Assert.Equal([10, 10, 10, 10], allocations);
+    }
+
+    [Fact]
+    public void ComputeDistributionKeepsRemainderOnUnevenSplit()
+    {
+        InventoryComponent inventory = Inventory(10);
+        inventory.Contents![0] = new ItemData("rock", 40, 64);
+
+        int[] targets = [1, 2, 3];
+        var allocations = new int[3];
+
+        int remainder = InventoryResolver.ComputeDistribution(in inventory, 0, targets, allocations);
+
+        Assert.Equal(1, remainder);
+        Assert.Equal([13, 13, 13], allocations);
+    }
+
+    [Fact]
+    public void ComputeDistributionClampsToDestinationCapacity()
+    {
+        InventoryComponent inventory = Inventory(10);
+        inventory.Contents![0] = new ItemData("rock", 40, 64);
+        inventory.Contents[1] = new ItemData("rock", 60, 64);
+
+        int[] targets = [1, 2];
+        var allocations = new int[2];
+
+        int remainder = InventoryResolver.ComputeDistribution(in inventory, 0, targets, allocations);
+
+        Assert.Equal(16, remainder);
+        Assert.Equal([4, 20], allocations);
+    }
+
+    [Fact]
+    public void ComputeDistributionCapsTargetSlotsAtSourceCount()
+    {
+        InventoryComponent inventory = Inventory(10);
+        inventory.Contents![0] = new ItemData("rock", 3, 16);
+
+        int[] targets = [1, 2, 3, 4, 5];
+        var allocations = new int[5];
+
+        int remainder = InventoryResolver.ComputeDistribution(in inventory, 0, targets, allocations);
+
+        Assert.Equal(0, remainder);
+        Assert.Equal([1, 1, 1, 0, 0], allocations);
+    }
+
+    [Fact]
+    public void ComputeDistributionSkipsDuplicatesAndIncompatibleSlots()
+    {
+        InventoryComponent inventory = Inventory(10);
+        inventory.Contents![0] = new ItemData("rock", 20, 64);
+        inventory.Contents[2] = new ItemData("ice", 5, 64);
+
+        int[] targets = [1, 2, 1, 3];
+        var allocations = new int[4];
+
+        int remainder = InventoryResolver.ComputeDistribution(in inventory, 0, targets, allocations);
+
+        Assert.Equal(0, remainder);
+        Assert.Equal([10, 0, 0, 10], allocations);
+    }
+
+    [Fact]
+    public void CanDistributeToSlotValidatesCompatibility()
+    {
+        InventoryComponent inventory = Inventory(5);
+        inventory.Contents![0] = new ItemData("rock", 10, 16);
+        inventory.Contents[1] = new ItemData("rock", 12, 16);
+        inventory.Contents[2] = new ItemData("rock", 16, 16);
+        inventory.Contents[3] = new ItemData("ice", 4, 16);
+
+        Assert.True(InventoryResolver.CanDistributeToSlot(in inventory, 0, 0));
+        Assert.True(InventoryResolver.CanDistributeToSlot(in inventory, 0, 1));
+        Assert.False(InventoryResolver.CanDistributeToSlot(in inventory, 0, 2));
+        Assert.False(InventoryResolver.CanDistributeToSlot(in inventory, 0, 3));
+        Assert.True(InventoryResolver.CanDistributeToSlot(in inventory, 0, 4));
+        Assert.False(InventoryResolver.CanDistributeToSlot(in inventory, 0, 99));
+    }
+
     private static InventoryComponent Inventory(int size = 45)
     {
         return new InventoryComponent(size);

@@ -12,7 +12,7 @@ namespace WaywardBeyond.Client.Components;
 /// </summary>
 public struct PendingInventoryComponent() : IDataComponent
 {
-    private const int CAPACITY = 32;
+    private const int CAPACITY = 64;
 
     /// <summary>Ops authored by the inventory UI awaiting replication to the server.</summary>
     public readonly StageRing<InventoryOp> Outbound = new(CAPACITY);

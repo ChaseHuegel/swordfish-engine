@@ -8,7 +8,7 @@ public struct NetworkComponent : IDataComponent
 {
     private const int INPUT_CAPACITY = 64;
     private const int INTERACTION_CAPACITY = 64;
-    private const int INVENTORY_CAPACITY = 32;
+    private const int INVENTORY_CAPACITY = 64;
 
     /// <summary>The gameplay session the entity is bound to.</summary>
     public Session Session;
