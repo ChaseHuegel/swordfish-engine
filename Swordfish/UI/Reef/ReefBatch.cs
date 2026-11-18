@@ -54,6 +54,8 @@ internal sealed class ReefBatch
 
     private float _scaleX = 1f;
     private float _scaleY = 1f;
+    private float _clipScaleX = 1f;
+    private float _clipScaleY = 1f;
 
     /// <summary>The instance data written this frame.</summary>
     public ReadOnlySpan<float> Instances => _instances.AsSpan(0, _instanceCount * INSTANCE_STRIDE);
@@ -67,8 +69,8 @@ internal sealed class ReefBatch
     /// <summary>Returns one draw run.</summary>
     public Run GetRun(int index) => _runs[index];
 
-    /// <summary>Clears the batch and sets the screen size for the frame.</summary>
-    public void Begin(int width, int height)
+    /// <summary>Clears the batch and sets the screen size and clip scale for the frame.</summary>
+    public void Begin(int width, int height, float clipScaleX = 1f, float clipScaleY = 1f)
     {
         _instanceCount = 0;
         _runCount = 0;
@@ -77,6 +79,8 @@ internal sealed class ReefBatch
         _runInstanceOffset = 0;
         _scaleX = width > 0 ? 2f / width : 1f;
         _scaleY = height > 0 ? 2f / height : 1f;
+        _clipScaleX = clipScaleX;
+        _clipScaleY = clipScaleY;
     }
 
     /// <summary>
@@ -139,10 +143,10 @@ internal sealed class ReefBatch
         data[colorOffset + 3] = color.W;
 
         int clipOffset = index + CLIP_OFFSET;
-        data[clipOffset] = clipRect.Left;
-        data[clipOffset + 1] = clipRect.Top;
-        data[clipOffset + 2] = clipRect.Right;
-        data[clipOffset + 3] = clipRect.Bottom;
+        data[clipOffset] = clipRect.Left * _clipScaleX;
+        data[clipOffset + 1] = clipRect.Top * _clipScaleY;
+        data[clipOffset + 2] = clipRect.Right * _clipScaleX;
+        data[clipOffset + 3] = clipRect.Bottom * _clipScaleY;
 
         _instanceCount++;
     }
