@@ -147,6 +147,108 @@ public class VoxelCodecTests
         Assert.Equal(0, decoded.Chunks[0].Chunk.Voxels[0].ID);
     }
 
+    [Fact]
+    public void ResolveAllocatesStableExtensionIdOutsideRegisteredSpace()
+    {
+        var registry = BrickRegistry.FromNames(["wb:rock", "wb:ice"]);
+        int initialCount = registry.Count;
+        ushort rockId = registry.Id("wb:rock");
+
+        Assert.Equal(0, registry.Resolve(string.Empty));
+        Assert.Equal(rockId, registry.Resolve("wb:rock"));
+
+        ushort unknownFirst = registry.Resolve("mod:ore");
+        ushort unknownSecond = registry.Resolve("mod:crystal");
+
+        Assert.Equal(initialCount + 1, unknownFirst);
+        Assert.Equal(initialCount + 2, unknownSecond);
+        Assert.Equal(unknownFirst, registry.Resolve("mod:ore"));
+        Assert.Equal(unknownSecond, registry.Resolve("mod:crystal"));
+
+        Assert.Equal(initialCount, registry.Count);
+        Assert.Equal(0, registry.Id("mod:ore"));
+        Assert.Equal(0, registry.Id("mod:crystal"));
+        Assert.Equal("mod:ore", registry.Name(unknownFirst));
+        Assert.Equal("mod:crystal", registry.Name(unknownSecond));
+    }
+
+    [Fact]
+    public void DecodeAndReEncodePreservesUnknownBrickNamesAndVoxelCount()
+    {
+        var moddedRegistry = BrickRegistry.FromNames(["wb:rock", "mod:ore", "mod:crystal"]);
+        ushort moddedRockId = moddedRegistry.Id("wb:rock");
+        ushort moddedOreId = moddedRegistry.Id("mod:ore");
+        ushort moddedCrystalId = moddedRegistry.Id("mod:crystal");
+
+        var moddedVoxels = new VoxelObject(2);
+        moddedVoxels.Set(0, 0, 0, new Voxel(moddedRockId, new ShapeLight(BrickShape.Block, 15), 0));
+        moddedVoxels.Set(1, 0, 0, new Voxel(moddedOreId, new ShapeLight(BrickShape.Slope, 12), 3));
+        moddedVoxels.Set(0, 1, 0, new Voxel(moddedOreId, new ShapeLight(BrickShape.Stair, 8), 5));
+        moddedVoxels.Set(0, 0, 1, new Voxel(moddedCrystalId, new ShapeLight(BrickShape.Slab, 10), 2));
+
+        var moddedLocal = new VoxelEntityData(
+            1,
+            0, 0, 0,
+            0, 0, 0, 1,
+            1, 1, 1,
+            moddedVoxels.GetChunkInfos(),
+            null
+        );
+        VoxelEntityData moddedSaved = VoxelCodec.Encode(in moddedLocal, moddedRegistry);
+
+        var vanillaRegistry = BrickRegistry.FromNames(["wb:rock"]);
+        VoxelEntityData vanillaDecoded = VoxelCodec.Decode(in moddedSaved, vanillaRegistry);
+
+        var vanillaVoxels = new VoxelObject(2, vanillaDecoded.Chunks);
+        VoxelPalette vanillaPalette = SingleChunk(vanillaVoxels).Palette;
+        ushort vanillaRockId = vanillaRegistry.Id("wb:rock");
+        ushort vanillaOreId = vanillaRegistry.Resolve("mod:ore");
+        ushort vanillaCrystalId = vanillaRegistry.Resolve("mod:crystal");
+
+        Assert.Equal(1, vanillaPalette.Count(vanillaRockId));
+        Assert.Equal(2, vanillaPalette.Count(vanillaOreId));
+        Assert.Equal(1, vanillaPalette.Count(vanillaCrystalId));
+        Assert.Equal(4, vanillaPalette.Count(id: 0));
+
+        var vanillaLocal = new VoxelEntityData(
+            1,
+            0, 0, 0,
+            0, 0, 0, 1,
+            1, 1, 1,
+            vanillaVoxels.GetChunkInfos(),
+            null
+        );
+        VoxelEntityData vanillaSaved = VoxelCodec.Encode(in vanillaLocal, vanillaRegistry);
+
+        Assert.NotNull(vanillaSaved.BrickPalette);
+        Assert.Contains("wb:rock", vanillaSaved.BrickPalette!);
+        Assert.Contains("mod:ore", vanillaSaved.BrickPalette!);
+        Assert.Contains("mod:crystal", vanillaSaved.BrickPalette!);
+
+        VoxelEntityData reloadedModded = VoxelCodec.Decode(in vanillaSaved, moddedRegistry);
+        var reloadedVoxels = new VoxelObject(2, reloadedModded.Chunks);
+        VoxelPalette reloadedPalette = SingleChunk(reloadedVoxels).Palette;
+
+        Assert.Equal(1, reloadedPalette.Count(moddedRockId));
+        Assert.Equal(2, reloadedPalette.Count(moddedOreId));
+        Assert.Equal(1, reloadedPalette.Count(moddedCrystalId));
+        Assert.Equal(4, reloadedPalette.Count(id: 0));
+        Assert.Equal(new Voxel(moddedRockId, new ShapeLight(BrickShape.Block, 15), 0), reloadedVoxels.Get(0, 0, 0));
+        Assert.Equal(new Voxel(moddedOreId, new ShapeLight(BrickShape.Slope, 12), 3), reloadedVoxels.Get(1, 0, 0));
+        Assert.Equal(new Voxel(moddedOreId, new ShapeLight(BrickShape.Stair, 8), 5), reloadedVoxels.Get(0, 1, 0));
+        Assert.Equal(new Voxel(moddedCrystalId, new ShapeLight(BrickShape.Slab, 10), 2), reloadedVoxels.Get(0, 0, 1));
+    }
+
+    private static ChunkData SingleChunk(VoxelObject voxels)
+    {
+        foreach (ChunkData chunk in voxels)
+        {
+            return chunk;
+        }
+
+        throw new InvalidOperationException("The container has no chunk.");
+    }
+
     private static VoxelEntityData Local()
     {
         return Structure((LOCAL_ROCK, 0));

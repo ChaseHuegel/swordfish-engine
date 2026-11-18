@@ -17,6 +17,16 @@ internal sealed class MeshPostPass(
     IAssetDatabase<Mesh> meshDatabase
 ) : VoxelObjectProcessor.ISamplePass
 {
+    private static readonly Brick _unresolvedBrick = new(
+        id: string.Empty,
+        alpha: BrickAlpha.Opaque,
+        passable: false,
+        meshID: null,
+        shape: BrickShape.Any,
+        textures: default,
+        tags: null
+    );
+
     private readonly CubeMeshBuilder _opaqueCubeMeshBuilder = new(textureArrays.Albedo, meshState.Opaque);
     private readonly CubeMeshBuilder _maskedCubeMeshBuilder = new(textureArrays.Albedo, meshState.Masked);
     private readonly CubeMeshBuilder _transparentCubeMeshBuilder = new(textureArrays.Albedo, meshState.Transparent);
@@ -41,12 +51,7 @@ internal sealed class MeshPostPass(
         }
         
         Result<Brick> brickInfoResult = brickDatabase.Get(sample.Center.ID);
-        if (!brickInfoResult.Success)
-        {
-            return;
-        }
-        
-        Brick brickInfo = brickInfoResult.Value;
+        Brick brickInfo = brickInfoResult.Success ? brickInfoResult.Value : _unresolvedBrick;
         
         bool culledRight = IsCulledBy(target: sample.Center, neighbor: sample.Right);
         bool culledLeft = IsCulledBy(target: sample.Center, neighbor: sample.Left);
@@ -209,10 +214,12 @@ internal sealed class MeshPostPass(
             meshData.Colors.Add(color);
         }
         
+        string?[]? defaultTextures = brickInfo.Textures.Default;
+        string? defaultTexture = defaultTextures != null && defaultTextures.Length > 0 ? defaultTextures[0] : null;
+        int textureIndex = defaultTexture != null ? Math.Max(textureArrays.Albedo.IndexOf(defaultTexture), 0) : 0;
         foreach (Vector3 texCoord in mesh.Uv)
         {
-            int textureIndex = textureArrays.Albedo.IndexOf(brickInfo.Textures.Default![0]!);
-            meshData.UV.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
+            meshData.UV.Add(texCoord with { Z = textureIndex });
         }
         
         foreach (uint tri in mesh.Triangles)

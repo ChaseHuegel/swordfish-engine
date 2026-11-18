@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -70,19 +71,62 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
         GenerateMissingTextures(albedoTextures, normalTextures, ".n", new Rgba32(r: 0, g: 0, b: 255, a: 255));
         GenerateMissingTextures(albedoTextures, emissiveTextures, ".e", new Rgba32(r: 0, g: 0, b: 0, a: 0));
 
-        Texture[] albedoTexturesArray = albedoTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
-        Texture[] metallicTexturesArray = metallicTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
-        Texture[] smoothnessTexturesArray = smoothnessTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
-        Texture[] normalTexturesArray = normalTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
-        Texture[] emissiveTexturesArray = emissiveTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
-        
+        Texture[] sortedAlbedo = albedoTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
+        Texture[] sortedMetallic = metallicTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
+        Texture[] sortedSmoothness = smoothnessTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
+        Texture[] sortedNormal = normalTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
+        Texture[] sortedEmissive = emissiveTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
+
+        int width = sortedAlbedo.Length > 0 ? sortedAlbedo[0].Width : 16;
+        int height = sortedAlbedo.Length > 0 ? sortedAlbedo[0].Height : 16;
+
+        Texture missingAlbedo = CreateMissingAlbedoTexture(width, height);
+        Texture missingMetallic = CreateSolidTexture("missing.m", width, height, new Rgba32(r: 0, g: 0, b: 0, a: 255));
+        Texture missingSmoothness = CreateSolidTexture("missing.s", width, height, new Rgba32(r: 0, g: 0, b: 0, a: 255));
+        Texture missingNormal = CreateSolidTexture("missing.n", width, height, new Rgba32(r: 0, g: 0, b: 255, a: 255));
+        Texture missingEmissive = CreateSolidTexture("missing.e", width, height, new Rgba32(r: 0, g: 0, b: 0, a: 0));
+
+        Texture[] albedoTexturesArray = [missingAlbedo, .. sortedAlbedo];
+        Texture[] metallicTexturesArray = [missingMetallic, .. sortedMetallic];
+        Texture[] smoothnessTexturesArray = [missingSmoothness, .. sortedSmoothness];
+        Texture[] normalTexturesArray = [missingNormal, .. sortedNormal];
+        Texture[] emissiveTexturesArray = [missingEmissive, .. sortedEmissive];
+
         var albedoTextureArray = new TextureArray("bricks_albedo", albedoTexturesArray, mipmaps: true, ColorSpace.Srgb);
         var metallicTextureArray = new TextureArray("bricks_metallic", metallicTexturesArray, mipmaps: true, ColorSpace.Linear);
         var smoothnessTextureArray = new TextureArray("bricks_smoothness", smoothnessTexturesArray, mipmaps: true, ColorSpace.Linear);
         var normalTextureArray = new TextureArray("bricks_normal", normalTexturesArray, mipmaps: true, ColorSpace.Linear);
         var emissiveTextureArray = new TextureArray("bricks_emissive", emissiveTexturesArray, mipmaps: true, ColorSpace.Srgb);
-        
         return new PBRTextureArrays(albedoTextureArray, metallicTextureArray, smoothnessTextureArray, normalTextureArray, emissiveTextureArray);
+    }
+
+    /// <summary>Creates a magenta and black checkerboard placeholder texture for missing or unresolved bricks.</summary>
+    private static Texture CreateMissingAlbedoTexture(int width, int height)
+    {
+        using var image = new Image<Rgba32>(width, height);
+        int blockWidth = Math.Max(width / 2, 1);
+        int blockHeight = Math.Max(height / 2, 1);
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                bool magenta = (x / blockWidth + y / blockHeight) % 2 == 0;
+                image[x, y] = magenta ? new Rgba32(r: 255, g: 0, b: 255, a: 255) : new Rgba32(r: 0, g: 0, b: 0, a: 255);
+            }
+        }
+
+        var pixels = new byte[width * height * 4];
+        image.CopyPixelDataTo(pixels);
+        return new Texture("missing", pixels, width, height, mipmaps: true);
+    }
+
+    /// <summary>Creates a solid-color fallback texture layer.</summary>
+    private static Texture CreateSolidTexture(string name, int width, int height, Rgba32 color)
+    {
+        using var image = new Image<Rgba32>(width, height, color);
+        var pixels = new byte[width * height * 4];
+        image.CopyPixelDataTo(pixels);
+        return new Texture(name, pixels, width, height, mipmaps: true);
     }
 
     private static void GenerateMissingTextures(List<Texture> albedoTextures, List<Texture> textures, string suffix, Rgba32 color)

@@ -35,7 +35,7 @@ public static class VoxelCodec
         }
 
         string[] palette = source.BrickPalette!;
-        ChunkInfo[] chunks = RemapVoxels(source.Chunks, id => PaletteIdToLocalId(id, palette, map.Id));
+        ChunkInfo[] chunks = RemapVoxels(source.Chunks, id => PaletteIdToLocalId(id, palette, map.Resolve));
         return new VoxelEntityData(
             source.Uuid,
             source.X, source.Y, source.Z,
