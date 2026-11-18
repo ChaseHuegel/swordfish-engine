@@ -60,7 +60,7 @@ is not part of this workflow.
 - [ ] [One chunk layout decides voxel indexing](/docs/issues/0074-single-chunk-layout.md) — four copies of the index math have already diverged, and `VoxelChunkWriter` duplicates the shared container
 - [ ] [The voxel palette locks on a dictionary](/docs/issues/0075-voxel-palette-lock-target.md) — `lock` on a field with meaningful identity, and nothing contends for it
 - [ ] [VoxelCodec reports failure through Result](/docs/issues/0076-voxel-codec-result.md) — a skipped encode and a structural failure look the same to all four call sites
-- [ ] [Preserve unknown bricks across a save round trip](/docs/issues/0077-preserve-unknown-bricks.md) — an unknown palette name becomes the empty voxel, so a modded save loaded in vanilla is destroyed on re-save
+- [x] [Preserve unknown bricks across a save round trip](/docs/issues/0077-preserve-unknown-bricks.md) — an unknown palette name becomes the empty voxel, so a modded save loaded in vanilla is destroyed on re-save
 - [ ] [Delete dead voxel members and state container ownership](/docs/issues/0078-dead-voxel-members.md) — unused `Orientation` members and no stated owner for the container a component holds
 - [ ] [Document the voxel public surface](/docs/issues/0079-document-voxel-surface.md) — the new shared assembly has almost no contract docs and no `<inheritdoc/>`
 - [ ] [Encapsulate VoxelObject internals](/docs/issues/0080-encapsulate-voxel-object.md) — `ChunkData` re-derives index math from raw internal fields, under a `TODO`

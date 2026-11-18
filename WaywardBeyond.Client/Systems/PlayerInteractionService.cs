@@ -591,32 +591,46 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
         else
         {
-            placeableResult = _brickDatabase.Get(clickedVoxel.ID);
-            if (!placeableResult.Success)
-            {
-                _activeGizmo.Visible = false;
-                return;
-            }
-            
-            placeableBrick = placeableResult.Value;
             placeableShape = new ShapeLight(clickedVoxel.ShapeLight).Shape;
+            if (placeableShape == BrickShape.Custom && placeableResult.Success)
+            {
+                placeableBrick = placeableResult.Value;
+                Mesh? gizmoMesh = ResolveMesh(placeableBrick);
+                if (gizmoMesh != null)
+                {
+                    if (!_meshGizmos.TryGetValue(gizmoMesh, out MeshGizmo? meshGizmo))
+                    {
+                        meshGizmo = new MeshGizmo(_lineRenderer, _gizmoColor, gizmoMesh);
+                        _meshGizmos.Add(gizmoMesh, meshGizmo);
+                    }
+
+                    if (_activeGizmo != meshGizmo)
+                    {
+                        _activeGizmo.Visible = false;
+                        _activeGizmo = meshGizmo;
+                    }
+                }
+            }
         }
         
         if (placeableShape == BrickShape.Custom)
         {
-            Mesh? gizmoMesh = ResolveMesh(placeableBrick);
-            if (gizmoMesh != null)
+            if (placeableResult.Success)
             {
-                if (!_meshGizmos.TryGetValue(gizmoMesh, out MeshGizmo? meshGizmo))
+                Mesh? gizmoMesh = ResolveMesh(placeableResult.Value);
+                if (gizmoMesh != null)
                 {
-                    meshGizmo = new MeshGizmo(_lineRenderer, _gizmoColor, gizmoMesh);
-                    _meshGizmos.Add(gizmoMesh, meshGizmo);
-                }
+                    if (!_meshGizmos.TryGetValue(gizmoMesh, out MeshGizmo? meshGizmo))
+                    {
+                        meshGizmo = new MeshGizmo(_lineRenderer, _gizmoColor, gizmoMesh);
+                        _meshGizmos.Add(gizmoMesh, meshGizmo);
+                    }
 
-                if (_activeGizmo != meshGizmo)
-                {
-                    _activeGizmo.Visible = false;
-                    _activeGizmo = meshGizmo;
+                    if (_activeGizmo != meshGizmo)
+                    {
+                        _activeGizmo.Visible = false;
+                        _activeGizmo = meshGizmo;
+                    }
                 }
             }
         }
@@ -801,7 +815,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         DebugInfo debugInfo = _debugInfo;
 
         Result<Brick> brickInfoResult = _brickDatabase.Get(debugInfo.Voxel.ID);
-        string brickID = brickInfoResult.Success ? brickInfoResult.Value.ID : "UNKNOWN";
+        string brickID = brickInfoResult.Success ? brickInfoResult.Value.ID : (_brickRegistry.Name(debugInfo.Voxel.ID) ?? "UNKNOWN");
         var shapeLight = new ShapeLight(debugInfo.Voxel.ShapeLight);
         
         using (ui.Text($"Voxel: {debugInfo.Voxel.ID} ({brickID})")) {}

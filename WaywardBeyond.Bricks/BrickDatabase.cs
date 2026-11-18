@@ -40,6 +40,9 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     public ushort Id(string name) => _registry.Id(name);
 
     /// <inheritdoc/>
+    public ushort Resolve(string name) => _registry.Resolve(name);
+
+    /// <inheritdoc/>
     public string? Name(ushort id) => _registry.Name(id);
 
     /// <inheritdoc/>

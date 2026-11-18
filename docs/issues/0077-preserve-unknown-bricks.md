@@ -1,7 +1,7 @@
 # Improvement: preserve unknown bricks across a save round trip
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -27,14 +27,14 @@ missing while they are in the vanilla game.
 
 ## Acceptance criteria
 
-- [ ] Decoding an unknown brick name allocates a data id for that name. The
+- [x] Decoding an unknown brick name allocates a data id for that name. The
       allocation is stable for the lifetime of the process and does not disturb
       the existing id space.
-- [ ] Encoding a structure that holds an unresolved id writes the original name
+- [x] Encoding a structure that holds an unresolved id writes the original name
       back, so the round trip is lossless.
-- [ ] A brick whose name is unresolved renders with a missing-texture
+- [x] A brick whose name is unresolved renders with a missing-texture
       placeholder instead of disappearing.
-- [ ] `IBrickRegistry` states whether the allocated ids are part of its public id
+- [x] `IBrickRegistry` states whether the allocated ids are part of its public id
       space or a separate extension space.
-- [ ] Tests load palette data whose names the registry does not know, re-encode
+- [x] Tests load palette data whose names the registry does not know, re-encode
       it, and assert the names and voxel count survive.

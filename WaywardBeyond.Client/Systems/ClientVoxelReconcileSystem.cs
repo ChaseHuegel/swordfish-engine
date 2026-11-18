@@ -118,7 +118,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         Voxel authority = message.Voxel;
         if (!string.IsNullOrEmpty(message.BrickId))
         {
-            authority.ID = _brickRegistry.Id(message.BrickId);
+            authority.ID = _brickRegistry.Resolve(message.BrickId);
         }
 
         //  The pre-edit voxel survives only for an unpredicted edit's sound material: a break's result is

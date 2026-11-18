@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace WaywardBeyond.Bricks;
 
@@ -9,6 +10,9 @@ public sealed class BrickRegistry : IBrickRegistry
 {
     private readonly Dictionary<string, ushort> _idByName;
     private readonly Dictionary<ushort, string> _nameById;
+    private readonly Lock _extensionLock = new();
+    private readonly Dictionary<string, ushort> _extensionIdByName = new(StringComparer.Ordinal);
+    private readonly List<string> _extensionNames = [];
 
     private BrickRegistry(Dictionary<string, ushort> idByName, Dictionary<ushort, string> nameById)
     {
@@ -51,8 +55,55 @@ public sealed class BrickRegistry : IBrickRegistry
     }
 
     /// <inheritdoc/>
+    public ushort Resolve(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            return 0;
+        }
+
+        if (_idByName.TryGetValue(name, out ushort knownId))
+        {
+            return knownId;
+        }
+
+        lock (_extensionLock)
+        {
+            if (_extensionIdByName.TryGetValue(name, out ushort existingId))
+            {
+                return existingId;
+            }
+
+            int nextId = _idByName.Count + _extensionNames.Count + Brick.MIN_ID;
+            if (nextId > ushort.MaxValue)
+            {
+                throw new InvalidOperationException($"Too many brick ids: {nextId} exceeds the reserved ushort space.");
+            }
+
+            ushort allocated = (ushort)nextId;
+            _extensionIdByName[name] = allocated;
+            _extensionNames.Add(name);
+            return allocated;
+        }
+    }
+
+    /// <inheritdoc/>
     public string? Name(ushort id)
     {
-        return _nameById.GetValueOrDefault(id);
+        if (id < Brick.MIN_ID)
+        {
+            return null;
+        }
+
+        if (_nameById.TryGetValue(id, out string? knownName))
+        {
+            return knownName;
+        }
+
+        lock (_extensionLock)
+        {
+            int extensionIndex = id - Brick.MIN_ID - _idByName.Count;
+            return extensionIndex >= 0 && extensionIndex < _extensionNames.Count ? _extensionNames[extensionIndex] : null;
+        }
     }
 }
