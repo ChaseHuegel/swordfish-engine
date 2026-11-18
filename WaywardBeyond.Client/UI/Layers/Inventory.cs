@@ -282,7 +282,7 @@ internal sealed class Inventory : IUILayer
             cargoRows.Add(CreateSlotRow(rowIndex, slotStates));
         }
 
-        Vector2 cursorPosition = _inputService.CursorPosition;
+        IntVector2 cursorPosition = ui.GetCursorPosition();
         IReadOnlyList<InventorySlotViewState> hotbar = rowCount > 0 ? CreateSlotRow(0, slotStates).Slots : [];
         var state = new InventoryViewState(
             CargoRows: cargoRows,
@@ -291,8 +291,8 @@ internal sealed class Inventory : IUILayer
             HasDrag: _dragging && draggedSlotIcon != null && draggedSlotText != null,
             DragIcon: draggedSlotIcon!,
             DragCount: draggedSlotText,
-            DragX: (int)cursorPosition.X,
-            DragY: (int)cursorPosition.Y,
+            DragX: cursorPosition.X,
+            DragY: cursorPosition.Y,
             PanelHeight: CreatePanelHeight(rowCount)
         );
 

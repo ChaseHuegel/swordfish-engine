@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Numerics;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
@@ -55,6 +56,15 @@ internal static class DisplaySettingsCategory
                     options: () => resolutionOptions,
                     format: resolution => $"{resolution.Width} x {resolution.Height}",
                     isEnabled: () => draft.DisplayMode.UsesWindowSize()
+                ),
+                new StepperEntry<float>(
+                    id: "Settings.UiScale",
+                    labelKey: "ui.settings.option.uiScale",
+                    get: () => draft.UiScale,
+                    set: value => draft.UiScale = value,
+                    defaultValue: () => SettingsDefaults.UI_SCALE,
+                    options: () => SettingsDefaults.GetUiScales(draft.UiScale),
+                    format: value => FormatUiScale(localization, value)
                 ),
                 new ToggleEntry(
                     id: "Settings.VSync",
@@ -274,6 +284,16 @@ internal static class DisplaySettingsCategory
             BloomQuality.Custom => "ui.settings.value.custom",
             _ => string.Empty,
         };
+    }
+
+    private static string FormatUiScale(ILocalization localization, float value)
+    {
+        if (value <= 0f)
+        {
+            return L(localization, "ui.settings.value.auto");
+        }
+
+        return $"{value.ToString("0.##", CultureInfo.CurrentCulture)}x";
     }
 
     private static string AoQualityKey(AoQuality quality)

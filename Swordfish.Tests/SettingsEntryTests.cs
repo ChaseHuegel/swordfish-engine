@@ -38,6 +38,7 @@ public class SettingsEntryTests
         Assert.Contains(AoQuality.High, SettingsDefaults.GetAoQualities(AoQuality.High));
         Assert.Contains(AoQuality.Ultra, SettingsDefaults.GetAoQualities(AoQuality.Ultra));
         Assert.Contains(BloomQuality.High, SettingsDefaults.GetBloomQualities(BloomQuality.High));
+        Assert.Contains(1.33f, SettingsDefaults.GetUiScales(1.33f));
         Assert.Contains(ShadowQuality.Custom, SettingsDefaults.GetShadowQualities(ShadowQuality.Custom));
     }
 

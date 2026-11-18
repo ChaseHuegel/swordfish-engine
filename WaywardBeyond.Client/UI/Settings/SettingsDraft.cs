@@ -12,6 +12,7 @@ internal sealed class SettingsDraft
 {
     public SettingsDisplayMode DisplayMode;
     public SettingsResolution Resolution;
+    public float UiScale;
     public bool VSync;
     public int FrameLimit;
     public int Fov;
@@ -54,6 +55,7 @@ internal sealed class SettingsDraft
                 windowSettings.Borderless.Get()
             ),
             Resolution = GetWindowResolution(windowSettings, windowContext),
+            UiScale = renderSettings.Reef.Scale.Get(),
             VSync = renderSettings.VSync.Get(),
             FrameLimit = renderSettings.Framerate.Get(),
             Fov = renderSettings.FOV.Get(),
@@ -87,6 +89,7 @@ internal sealed class SettingsDraft
         {
             DisplayMode = SettingsDefaults.DISPLAY_MODE,
             Resolution = GetNativeResolution(windowContext),
+            UiScale = SettingsDefaults.UI_SCALE,
             VSync = SettingsDefaults.V_SYNC,
             FrameLimit = SettingsDefaults.FRAME_LIMIT,
             Fov = SettingsDefaults.FOV,

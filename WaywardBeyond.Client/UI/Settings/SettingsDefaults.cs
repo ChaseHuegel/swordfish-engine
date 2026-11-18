@@ -7,6 +7,7 @@ namespace WaywardBeyond.Client.UI.Settings;
 internal static class SettingsDefaults
 {
     public const SettingsDisplayMode DISPLAY_MODE = SettingsDisplayMode.Windowed;
+    public const float UI_SCALE = 0f;
     public const bool V_SYNC = false;
     public const int FRAME_LIMIT = 0;
     public const int FOV = 90;
@@ -39,6 +40,7 @@ internal static class SettingsDefaults
     public const int NAME_TAG_MAX = 64;
     public const int NAME_TAG_STEP = 4;
 
+    private static readonly float[] _uiScales = [0f, 1f, 1.25f, 1.5f, 1.75f, 2f];
     private static readonly int[] _frameLimits = [0, 30, 60, 75, 90, 120, 144, 165, 240];
     private static readonly float[] _viewDistances = [500f, 750f, 1000f, 1500f, 2000f, 2500f, 3000f, 4000f, 5000f];
     private static readonly int[] _autosaveIntervals = [1, 2, 5, 10, 15, 20, 30, 45, 60];
@@ -73,6 +75,12 @@ internal static class SettingsDefaults
         }
 
         BLOOM_QUALITY.Apply(renderSettings);
+    }
+
+    /// <summary>Gets a UI scale list that includes the current value.</summary>
+    public static IReadOnlyList<float> GetUiScales(float current)
+    {
+        return WithValue(_uiScales, current);
     }
 
     /// <summary>Gets a frame limit list that includes the current value.</summary>

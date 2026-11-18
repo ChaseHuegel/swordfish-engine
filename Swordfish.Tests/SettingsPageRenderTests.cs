@@ -43,6 +43,7 @@ public class SettingsPageRenderTests
         [
             "Settings.Category.display",
             "Settings.DisplayMode.next",
+            "Settings.UiScale.next",
             "Settings.VSync.0",
             "Settings.VSync.1",
             "Settings.Fov.track",
@@ -107,9 +108,28 @@ public class SettingsPageRenderTests
     [Fact]
     public void ResetRowUsesDangerStyling()
     {
-        List<RenderCommand<Material>> commands = RenderSettingsPage(1920, 1080);
+        var controller = new UIController();
+        var ui = new UIBuilder<Material>(1920, 1080, new StubTextEngine(), controller);
+        SettingsPage<MenuPage> page = CreateSettingsPage();
 
-        RenderCommand<Material> reset = FindRequired(commands, "Settings.Reset.display");
+        page.RenderPage(delta: 0d, ui, menu: null!);
+        List<RenderCommand<Material>> firstFrame = ui.Build(delta: 0d);
+        IntRect listRect = FindRequired(firstFrame, "Settings.Rows").Rect;
+
+        int trackX = listRect.Right - 3;
+        int trackY = listRect.Bottom - 10;
+        controller.UpdateMouse(trackX, trackY, UIController.MouseButtons.Left, scrollDeltaY: 0f);
+        page.RenderPage(delta: 0d, ui, menu: null!);
+        ui.Build(delta: 0d);
+
+        controller.UpdateMouse(trackX, trackY, UIController.MouseButtons.None, scrollDeltaY: 0f);
+        page.RenderPage(delta: 0d, ui, menu: null!);
+        ui.Build(delta: 0d);
+
+        page.RenderPage(delta: 0d, ui, menu: null!);
+        List<RenderCommand<Material>> scrolledFrame = ui.Build(delta: 0d);
+
+        RenderCommand<Material> reset = FindRequired(scrolledFrame, "Settings.Reset.display");
 
         Assert.Equal(1, reset.Border.Thickness);
         Assert.Equal(new Vector4(224f / 255f, 79f / 255f, 122f / 255f, 1f), reset.Border.Color);
@@ -140,6 +160,15 @@ public class SettingsPageRenderTests
         int height,
         ILocalization? localization = null)
     {
+        SettingsPage<MenuPage> page = CreateSettingsPage(localization);
+
+        var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), new UIController());
+        page.RenderPage(delta: 0d, ui, menu: null!);
+        return ui.Build(delta: 0d);
+    }
+
+    private static SettingsPage<MenuPage> CreateSettingsPage(ILocalization? localization = null)
+    {
         //  The config manager and sound service are only touched on apply or click,
         //  which these render-only tests never do.
         var page = new SettingsPage<MenuPage>(
@@ -159,10 +188,7 @@ public class SettingsPageRenderTests
         );
 
         page.OnEnter();
-
-        var ui = new UIBuilder<Material>(width, height, new StubTextEngine(), new UIController());
-        page.RenderPage(delta: 0d, ui, menu: null!);
-        return ui.Build(delta: 0d);
+        return page;
     }
 
     private static RenderCommand<Material> FindText(List<RenderCommand<Material>> commands, string text)
