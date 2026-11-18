@@ -181,8 +181,26 @@ public sealed class UIBuilder<TRendererData>
     public bool IsMouseCaptured => _controller.IsMouseCaptured;
     public bool IsKeyboardCaptured => _controller.IsKeyboardCaptured;
 
+    private const float MIN_SCALE = 0.5f;
+    private const float MAX_SCALE = 4.0f;
+
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
+
+    /// <summary>Gets the physical canvas width in pixels.</summary>
+    public int PhysicalWidth { get; private set; }
+
+    /// <summary>Gets the physical canvas height in pixels.</summary>
+    public int PhysicalHeight { get; private set; }
+
+    /// <summary>Gets the effective UI scale factor applied to this canvas.</summary>
+    public float Scale { get; private set; } = 1f;
+
+    /// <summary>Gets the configured UI scale multiplier; 0 selects automatic scaling from <see cref="ReferenceHeight"/>.</summary>
+    public float ConfiguredScale { get; private set; }
+
+    /// <summary>Gets the reference height in pixels used for automatic scaling; 0 disables auto-scaling.</summary>
+    public int ReferenceHeight { get; private set; }
 
     private IntRect _viewPort;
     public readonly ITextEngine TextEngine;
@@ -204,12 +222,67 @@ public sealed class UIBuilder<TRendererData>
     {
         TextEngine = textEngine;
         _controller = controller;
-        _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
+        Resize(width, height);
     }
-    
+
     public void Resize(int width, int height)
     {
-        _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
+        PhysicalWidth = width;
+        PhysicalHeight = height;
+        UpdateViewport();
+    }
+
+    /// <summary>Sets the canvas scale configuration and recomputes the logical viewport.</summary>
+    public void SetScale(float configuredScale, int referenceHeight = 0)
+    {
+        ConfiguredScale = configuredScale;
+        ReferenceHeight = referenceHeight;
+        UpdateViewport();
+    }
+
+    /// <summary>Maps physical canvas cursor coordinates into logical UI coordinates.</summary>
+    public IntVector2 MapCursorPosition(Vector2 physicalCursorPosition)
+    {
+        return ScaleCursorPosition(physicalCursorPosition, Scale);
+    }
+
+    /// <summary>Resolves an effective UI scale from a configured value (0 = auto), physical height, and reference height.</summary>
+    public static float ResolveScale(float configuredScale, int physicalHeight, int referenceHeight)
+    {
+        if (configuredScale > 0f && float.IsFinite(configuredScale))
+        {
+            return Math.Clamp(configuredScale, MIN_SCALE, MAX_SCALE);
+        }
+
+        if (referenceHeight <= 0)
+        {
+            return 1f;
+        }
+
+        return MathF.Max(1f, physicalHeight / (float)referenceHeight);
+    }
+
+    /// <summary>Computes the logical UI viewport size for a physical size and scale.</summary>
+    public static IntVector2 GetLogicalSize(int physicalWidth, int physicalHeight, float scale)
+    {
+        float safeScale = scale > 0f && float.IsFinite(scale) ? scale : 1f;
+        int width = Math.Max(1, (int)MathF.Round(physicalWidth / safeScale));
+        int height = Math.Max(1, (int)MathF.Round(physicalHeight / safeScale));
+        return new IntVector2(width, height);
+    }
+
+    /// <summary>Maps physical cursor coordinates into logical UI coordinates for a given scale.</summary>
+    public static IntVector2 ScaleCursorPosition(Vector2 cursorPosition, float scale)
+    {
+        float safeScale = scale > 0f && float.IsFinite(scale) ? scale : 1f;
+        return new IntVector2((int)(cursorPosition.X / safeScale), (int)(cursorPosition.Y / safeScale));
+    }
+
+    private void UpdateViewport()
+    {
+        Scale = ResolveScale(ConfiguredScale, PhysicalHeight, ReferenceHeight);
+        IntVector2 logicalSize = GetLogicalSize(PhysicalWidth, PhysicalHeight, Scale);
+        _viewPort = new IntRect(left: 0, top: 0, size: logicalSize);
     }
 
     public Scope Element() => OpenElement(new Element<TRendererData>());
