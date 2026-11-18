@@ -69,7 +69,7 @@ is not part of this workflow.
 - [ ] [nsd-rpc notification proxies swallow the send result](/docs/issues/0085-notification-proxy-send-result.md) — the generated proxy discards `RpcPeer.Notify`, so the server bypasses it to detect a rejected send
 - [x] [Reduce the cost of a voxel edit rebuild](/docs/issues/0086-incremental-voxel-rebuild.md) — every edit remeshes the whole structure, collides every solid voxel, and draws unseen structures
 - [ ] [Add keybinding rebinding](/docs/issues/0096-keybinding-rebinding.md) — shortcuts have no capture, rebind, enumeration, or persisted override path
-- [ ] [Scale the UI for high-density windows](/docs/issues/0087-ui-scaling.md) — Reef draws raw pixels, so fixed metrics stay small at 4K
+- [x] [Scale the UI for high-density windows](/docs/issues/0087-ui-scaling.md) — Reef draws raw pixels, so fixed metrics stay small at 4K
 - [ ] [Add keyboard and gamepad menu navigation](/docs/issues/0088-menu-keyboard-navigation.md) — menus are mouse-only and have no focus model
 - [ ] [Switch fullscreen resolution](/docs/issues/0089-fullscreen-resolution.md) — resolution is disabled in fullscreen modes because the mode-change path is unverified
 - [x] [Make the settings scrollbar draggable](/docs/issues/0090-settings-scrollbar-drag.md) — the shared scroll area drags its thumb and jumps on a track click

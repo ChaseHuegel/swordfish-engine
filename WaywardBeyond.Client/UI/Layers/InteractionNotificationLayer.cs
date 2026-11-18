@@ -1,19 +1,15 @@
-﻿using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.UI.Layers;
 
-internal class InteractionNotificationLayer(in IInputService inputService, in NotificationService notificationService)
+internal class InteractionNotificationLayer(in NotificationService notificationService)
     : NotificationLayer(notificationService)
 {
-    private readonly IInputService _inputService = inputService;
-    
     public override NotificationType Type => NotificationType.Interaction;
     
     protected override bool HasBackground => true;
@@ -26,15 +22,15 @@ internal class InteractionNotificationLayer(in IInputService inputService, in No
     
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        Vector2 cursorPosition = _inputService.CursorPosition;
+        IntVector2 cursorPosition = ui.GetCursorPosition();
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Local | Anchors.Bottom | Anchors.Center,
-                X = new Fixed((int)cursorPosition.X),
-                Y = new Fixed((int)cursorPosition.Y),
+                X = new Fixed(cursorPosition.X),
+                Y = new Fixed(cursorPosition.Y),
             };
 
             base.RenderUI(delta, ui);

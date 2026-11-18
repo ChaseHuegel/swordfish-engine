@@ -201,6 +201,26 @@ texture, including the vertical flip.
 The batching design and its measurements are in
 [proposals/reef-ui-batching](../proposals/reef-ui-batching.md).
 
+## Scaling
+
+Each `UIBuilder` canvas tracks its physical dimensions (`PhysicalWidth`,
+`PhysicalHeight`), `ConfiguredScale`, and `ReferenceHeight`. `UIBuilder.SetScale`
+at `Reef/UIBuilder.cs:232` computes the logical `Width` and `Height` from
+`ResolveScale` (`Reef/UIBuilder.cs:246`), and `UIBuilder.MapCursorPosition` at
+`Reef/UIBuilder.cs:240` maps physical cursor coordinates into the logical canvas
+space. By default, `Scale` is `1` and `ReferenceHeight` is `0` so standalone
+builders use raw pixels unless `SetScale` is called.
+
+`Swordfish/Settings/ReefSettings.cs:6` holds `Scale` (`0` = auto) and
+`ReferenceHeight` (`1080`) under `RenderSettings.Reef`.
+`Swordfish/UI/Reef/ReefContext.cs:58` binds those settings to the window
+`UIBuilder` and updates it on window resize or setting changes.
+
+`ReefRenderer` scales each `ClipRect` to physical framebuffer pixels at
+`Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:135` so fragment
+clipping matches the scaled NDC geometry while MSDF text renders directly at
+native resolution.
+
 ## Tests
 
 - `Reef.Tests/StyleOverrideTests.cs` checks nullable override values.
@@ -224,3 +244,6 @@ The batching design and its measurements are in
   atlas loads and matches its atlas description.
 - `Swordfish.Tests/ReefShaderContractTests.cs` checks that both Reef UI shaders
   expand a quad instance instead of reading per-vertex attributes.
+- `Reef.Tests/UIBuilderScalingTests.cs` checks canvas `SetScale`, `Resize`,
+  `ReferenceHeight`, `MapCursorPosition`, and multi-builder independence.
+- `Swordfish.Tests/ReefScalingTests.cs` checks `RenderSettings.Reef` defaults.

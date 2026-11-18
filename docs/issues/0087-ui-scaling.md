@@ -1,7 +1,7 @@
 # Improvement: Scale the UI for high-density windows
 
 - Type: improvement
-- Status: open
+- Status: closed
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -12,9 +12,9 @@ physically small as the window grows. Other menus have the same problem.
 
 ## Acceptance criteria
 
-- [ ] A global UI scale exists or Reef renders into a virtual-resolution buffer
+- [x] A global UI scale exists or Reef renders into a virtual-resolution buffer
       that scales to the window.
-- [ ] The settings page and the other menus stay readable from 720p through 4K.
-- [ ] Input coordinates map to the scaled UI correctly.
-- [ ] The change does not break the pixel-art crispness of the existing font
+- [x] The settings page and the other menus stay readable from 720p through 4K.
+- [x] Input coordinates map to the scaled UI correctly.
+- [x] The change does not break the pixel-art crispness of the existing font
       atlas.

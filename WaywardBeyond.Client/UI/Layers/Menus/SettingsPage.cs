@@ -158,8 +158,8 @@ internal sealed class SettingsPage<TIdentifier>(
     /// <summary>Collects the active category rows and updates the scroll metrics.</summary>
     private void RenderRows(UIBuilder<Material> ui)
     {
-        Shell.Scroll.Measure(ui, "Settings.Rows");
-        Shell.Scroll.Measure(ui, "Settings.RowsTabs");
+        bool useTabs = ui.Width < 900;
+        Shell.Scroll.Measure(ui, useTabs ? "Settings.RowsTabs" : "Settings.Rows");
 
         if (_rowsDirty)
         {
@@ -285,6 +285,7 @@ internal sealed class SettingsPage<TIdentifier>(
             );
         }
 
+        _renderSettings.Reef.Scale.Set(draft.UiScale);
         _renderSettings.VSync.Set(draft.VSync);
         _renderSettings.Framerate.Set(draft.FrameLimit);
         _renderSettings.FOV.Set(draft.Fov);

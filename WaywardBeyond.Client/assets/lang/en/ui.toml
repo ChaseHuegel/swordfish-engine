@@ -180,6 +180,7 @@
 
 "ui.settings.option.displayMode" = "Display mode"
 "ui.settings.option.resolution" = "Resolution"
+"ui.settings.option.uiScale" = "UI scale"
 "ui.settings.option.vsync" = "V-sync"
 "ui.settings.option.frameLimit" = "Frame limit"
 "ui.settings.option.fov" = "Field of view"
@@ -222,6 +223,7 @@
 "ui.settings.value.high" = "High"
 "ui.settings.value.ultra" = "Ultra"
 "ui.settings.value.custom" = "Custom"
+"ui.settings.value.auto" = "Auto"
 "ui.settings.value.unlimited" = "Unlimited"
 "ui.settings.value.systemDefault" = "System default"
 "ui.settings.value.unavailable" = "Unavailable"
