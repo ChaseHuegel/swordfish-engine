@@ -4,12 +4,15 @@ using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.MSDF;
 using Reef.Text;
+using Reef.UI;
 using Shoal.CommandLine;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
+using Swordfish.Settings;
 using Tomlet;
 
 namespace Swordfish.UI.Reef;
@@ -28,6 +31,7 @@ public sealed class ReefContext : IDisposable
     private readonly IWindow _window;
     private readonly IInputService _input;
     private readonly VirtualFileSystem _vfs;
+    private readonly RenderSettings _renderSettings;
     private readonly UIController _controller;
     private readonly double _inputRepeatDelaySec;
     private readonly double _inputRepeatIntervalSec;
@@ -35,12 +39,13 @@ public sealed class ReefContext : IDisposable
     private readonly List<UIController.Input> _inputBuffer = [];
     private readonly Dictionary<InputEvent, double> _heldInputs = []; // InputEvent, ProcessedRepeatTime
 
-    public ReefContext(ILogger logger, IWindow window, IInputService input, VirtualFileSystem vfs, CommandLineArgs commandLineArgs)
+    public ReefContext(ILogger logger, IWindow window, IInputService input, VirtualFileSystem vfs, CommandLineArgs commandLineArgs, RenderSettings renderSettings)
     {
         _logger = logger;
         _window = window;
         _input = input;
         _vfs = vfs;
+        _renderSettings = renderSettings;
         _controller = new UIController();
 
         if (!commandLineArgs.TryGetValue(INPUT_REPEAT_DELAY_SEC_ARG, out _inputRepeatDelaySec))
@@ -55,12 +60,15 @@ public sealed class ReefContext : IDisposable
 
         TextEngine = CreateTextEngine();        
         Builder = new UIBuilder<Material>(width: window.Size.X, height: window.Size.Y, TextEngine, _controller);
+        Builder.SetScale(_renderSettings.Reef.Scale.Get(), _renderSettings.Reef.ReferenceHeight.Get());
 
         window.Resize += OnWindowResize;
         window.Update += OnWindowUpdate;
         input.KeyPressed += OnKeyPressed;
         input.KeyReleased += OnKeyReleased;
         input.CharInput += OnCharInput;
+        _renderSettings.Reef.Scale.Changed += OnReefScaleChanged;
+        _renderSettings.Reef.ReferenceHeight.Changed += OnReefReferenceHeightChanged;
     }
     
     public void Dispose()
@@ -70,6 +78,18 @@ public sealed class ReefContext : IDisposable
         _input.KeyPressed -= OnKeyPressed;
         _input.KeyReleased -= OnKeyReleased;
         _input.CharInput -= OnCharInput;
+        _renderSettings.Reef.Scale.Changed -= OnReefScaleChanged;
+        _renderSettings.Reef.ReferenceHeight.Changed -= OnReefReferenceHeightChanged;
+    }
+
+    private void OnReefScaleChanged(object? sender, DataChangedEventArgs<float> e)
+    {
+        Builder.SetScale(e.NewValue, _renderSettings.Reef.ReferenceHeight.Get());
+    }
+
+    private void OnReefReferenceHeightChanged(object? sender, DataChangedEventArgs<int> e)
+    {
+        Builder.SetScale(_renderSettings.Reef.Scale.Get(), e.NewValue);
     }
     
     private void OnWindowResize(Vector2D<int> size)
@@ -79,7 +99,7 @@ public sealed class ReefContext : IDisposable
 
     private void OnWindowUpdate(double delta)
     {
-        Vector2 cursorPos = _input.CursorPosition;
+        IntVector2 cursorPos = Builder.MapCursorPosition(_input.CursorPosition);
 
         var mouseButtons = UIController.MouseButtons.None;
 

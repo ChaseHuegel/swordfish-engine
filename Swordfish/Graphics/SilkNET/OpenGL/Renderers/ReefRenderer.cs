@@ -126,7 +126,12 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         _reefContext.Builder.Debug = _debugSettings.UI.Get();
         List<RenderCommand<Material>> commands = _reefContext.Builder.Build(delta);
 
-        _batch.Begin(_reefContext.Builder.Width, _reefContext.Builder.Height);
+        int logicalWidth = _reefContext.Builder.Width;
+        int logicalHeight = _reefContext.Builder.Height;
+        float clipScaleX = logicalWidth > 0 ? _reefContext.Builder.PhysicalWidth / (float)logicalWidth : 1f;
+        float clipScaleY = logicalHeight > 0 ? _reefContext.Builder.PhysicalHeight / (float)logicalHeight : 1f;
+
+        _batch.Begin(logicalWidth, logicalHeight, clipScaleX, clipScaleY);
         _runMaterials.Clear();
         _activeMaterial = null;
 
