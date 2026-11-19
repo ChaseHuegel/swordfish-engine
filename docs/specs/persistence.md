@@ -6,10 +6,28 @@ One subject: how save data persists.
 
 All save data lives in SQLite databases through `Microsoft.Data.Sqlite`.
 `StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the file
-layout under a data root. The root defaults to the relative `saves/` directory
-and comes from `StorageConfig` (`WaywardBeyond.Config/StorageConfig.cs`,
-file `storage.toml`). The dedicated server can override it with `--data`
-(`WaywardBeyond.Server.Launcher/Program.cs`).
+layout under `StorageConfig.SaveRoot` (`WaywardBeyond.Config/StorageConfig.cs`,
+file `storage.toml`). The default value is the relative `saves/` path.
+`StoragePaths` resolves a relative `SaveRoot` against `AppPaths.DataRoot`
+(`Swordfish.Library/IO/AppPaths.cs`) and keeps a rooted `SaveRoot` unchanged.
+The client launcher supplies the company name `bitfish`, so saves go under
+`<LocalAppData>/bitfish/Wayward Beyond`. `SwordfishEngine.ResolveAppPaths`
+(`Swordfish/SwordfishEngine.cs`) chooses the data root from the process
+arguments. `--user-data <path>` uses the given directory, `--portable` uses the
+working directory, and the default is the local user data folder. `--user-data`
+wins when both flags are present. The engine logs the resolved roots at startup.
+`AppEngine` requires an `AppPaths` value, so every host states where its data
+lives. Pass a company name to `AppPaths.ForLocalUser` to nest the application
+under a company folder. On Windows the root is `%LOCALAPPDATA%`, on Linux it is
+`$XDG_DATA_HOME` or `~/.local/share`, and on macOS it is
+`~/Library/Application Support`. The dedicated server uses
+`AppPaths.ForWorkingDirectory()`, so its default saves stay in the working
+directory and `--data` (`WaywardBeyond.Server.Launcher/Program.cs`) overrides
+`SaveRoot`.
+
+A `saves/` folder from an older build in the working directory is ignored. The
+game is pre-release and this change is a clean break. Copy old saves into the
+local user data root to keep them.
 
 Connections are never pooled (`SqliteDatabase`, `WaywardBeyond.Data/Sqlite/SqliteDatabase.cs`),
 so a disposed store releases its file handle and a level directory can be
@@ -143,9 +161,9 @@ encodes live registry-id data to a palette on write and decodes on load. The
 `Character` and `Level` records stamp their format via the `Version` message.
 See [brick-identity](brick-identity.md).
 
-The previous NATS JetStream store is no longer read. Existing `saves/`
-JetStream data is ignored; the game is pre-release and this change is a clean
-break. No importer ships.
+The previous NATS JetStream store is no longer read. Existing JetStream data in
+the old install `saves/` folder is ignored; the game is pre-release and this
+change is a clean break. No importer ships.
 
 ## Multi-process behavior
 
@@ -157,6 +175,7 @@ no shared broker process to manage.
 
 ## Source of truth
 
+- `Swordfish.Library/IO/AppPaths.cs`
 - `WaywardBeyond.Config/StorageConfig.cs`
 - `WaywardBeyond.Data/StoragePaths.cs`
 - `WaywardBeyond.Data/Sqlite/SqliteDatabase.cs`

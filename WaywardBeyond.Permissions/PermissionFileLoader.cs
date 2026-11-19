@@ -12,7 +12,8 @@ namespace WaywardBeyond.Permissions;
 /// </summary>
 public sealed class PermissionFileLoader(
     VirtualFileSystem vfs,
-    IFileParseService fileParseService)
+    IFileParseService fileParseService,
+    AppPaths appPaths)
 {
     private const string ASSET_ROOT = "permissions/";
     private const string CONFIG_ROOT = "config/permissions/";
@@ -29,8 +30,13 @@ public sealed class PermissionFileLoader(
         }
 
         var paths = new List<PathInfo>(assetPaths);
-        paths.AddRange(new PathInfo(CONFIG_ROOT).GetFiles(SearchOption.AllDirectories)
-            .Where(static path => path.HasExtension(".toml")));
+        StringComparer pathComparer = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
+        var seenFullPaths = new HashSet<string>(pathComparer);
+
+        AddConfigDirectory(new PathInfo(CONFIG_ROOT), paths, seenFullPaths);
+        AddConfigDirectory(appPaths.ConfigRoot.At("permissions"), paths, seenFullPaths);
         paths.Sort(static (left, right) => string.CompareOrdinal(left.Value, right.Value));
 
         var files = new List<SourcedPermissionFile>();
@@ -57,5 +63,21 @@ public sealed class PermissionFileLoader(
         }
 
         return files;
+    }
+
+    private static void AddConfigDirectory(PathInfo directory, List<PathInfo> destination, HashSet<string> seenFullPaths)
+    {
+        foreach (PathInfo path in directory.GetFiles(SearchOption.AllDirectories))
+        {
+            if (!path.HasExtension(".toml"))
+            {
+                continue;
+            }
+
+            if (seenFullPaths.Add(Path.GetFullPath(path.Value)))
+            {
+                destination.Add(path);
+            }
+        }
     }
 }

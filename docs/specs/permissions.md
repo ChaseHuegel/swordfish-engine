@@ -13,15 +13,16 @@ permission never needs a code change.
 ## File sources
 
 The loader scans the module asset root `permissions/` through the virtual file
-system, and the admin root `config/permissions/` on disk relative to the working
-directory. Both roots are recursive. Only `.toml` files load. All files from
-both roots merge into one policy.
+system, the admin root `config/permissions/` on disk, and the user config root
+`AppPaths.ConfigRoot/permissions` (deduplicated by full path). All roots are
+recursive. Only `.toml` files load. All files from these roots merge into one
+policy.
 
-The two roots are additive. A config file can grant a node, but it cannot remove
+The roots are additive. A config file can grant a node, but it cannot remove
 an asset grant, except with an explicit deny.
 
 `PermissionFileLoader.Load`
-(`WaywardBeyond.Permissions/PermissionFileLoader.cs:21`) sorts the paths before
+(`WaywardBeyond.Permissions/PermissionFileLoader.cs:22`) sorts the paths before
 parsing, so the load order is deterministic. A parse failure is recorded as a
 diagnostic and skips the file. Startup continues. An empty asset root records a
 warning, because the game always ships a baseline. The server logs the collected
