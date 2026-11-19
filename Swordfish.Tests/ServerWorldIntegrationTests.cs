@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using NsdRpc;
 using NsdRpc.Tcp;
 using Swordfish.ECS;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Settings;
@@ -425,6 +426,7 @@ public class ServerWorldIntegrationTests
         container.RegisterInstance(new LevelGeneratorConfig());
         container.RegisterInstance(new PhysicsSettings());
         container.RegisterInstance(new StorageConfig());
+        container.RegisterInstance(AppPaths.ForWorkingDirectory());
         container.Register<IInteractionHandler, RejectingHandler>(Reuse.Singleton);
         container.RegisterDelegate<ILevelCatalog>(_ => catalog, Reuse.Singleton);
         container.RegisterDelegate<IBrickRegistry>(_ => BrickRegistry.FromNames(["test"]), Reuse.Singleton);

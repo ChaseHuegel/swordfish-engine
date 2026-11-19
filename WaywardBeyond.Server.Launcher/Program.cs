@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using DryIoc;
 using Shoal;
 using Shoal.CommandLine;
+using Swordfish.Library.IO;
 using WaywardBeyond.Config;
 using WaywardBeyond.Networking.Discovery;
 
@@ -14,7 +15,7 @@ internal static class Program
 
     private static int Main(string[] args)
     {
-        AppEngine engine = AppEngine.Build(args);
+        AppEngine engine = AppEngine.Build(args, AppPaths.ForWorkingDirectory());
         ApplyCliOverrides(engine.Container);
 
         Console.CancelKeyPress += (_, e) =>

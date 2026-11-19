@@ -171,7 +171,7 @@ Schema: `WaywardBeyond.Config/StorageConfig.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
-| `SaveRoot` | PathInfo | `saves/` | root for `profile.db` and the per-level databases; relative paths resolve against the process working directory |
+| `SaveRoot` | PathInfo | `saves/` | root for `profile.db` and the per-level databases. Relative paths resolve against `AppPaths.DataRoot` (local user data on clients, working directory on dedicated servers). Rooted paths stay unchanged. |
 
 A dedicated server can override the root with `--data`.
 
@@ -263,10 +263,25 @@ See [rendering-shadows](rendering-shadows.md) and [rendering-sao](rendering-sao.
 
 ## How configs load
 
-TOML parsing via Tomlet. See `Shoal/Modularity/ModuleOptions.cs`,
+TOML parsing uses Tomlet. See `Shoal/Modularity/ModuleOptions.cs`,
 `Shoal/Modularity/ModuleManifest.cs`, and the registrations in
-`Shoal/AppEngine.cs:165-169`. `Shoal.Extensions.Swordfish/TomletExtensions.cs`
-provides TOML helpers.
+`Shoal/AppEngine.cs`. `Shoal.Extensions.Swordfish/ContainerExtensions.cs`
+registers runtime configs through `RegisterConfig<T>(file, saveLocation)`.
+
+`AppEngine` requires an `AppPaths` value and mounts each module's `assets/`
+folder into `VirtualFileSystem` in load order. When `AppPaths.MountInVfs` is
+true (client local user data), `AppEngine` mounts `AppPaths.DataRoot` last so
+user files override module configs and content. `RegisterConfig<T>` reads from
+VFS `config/` first, then falls back to the `config/` folder on disk for
+launcher defaults such as `physics.toml` and `network.toml`, then falls back to
+`new T()`.
+
+`SaveLocation` (`Swordfish.Library/Configuration/SaveLocation.cs`) controls
+where `Config<T>.Save()` writes. `SaveLocation.UserData` (the default) writes
+to `AppPaths.ConfigRoot` (`<DataRoot>/config/<file>`). `SaveLocation.Install`
+writes to `config/<file>` relative to the working directory.
+`Config<T>.Save()` creates missing parent directories before writing. Logs
+write to `AppPaths.LogsRoot` (`<DataRoot>/logs`).
 
 ## Conventions
 
@@ -275,6 +290,11 @@ provides TOML helpers.
 
 ## Source of truth
 
+- `Swordfish.Library/IO/AppPaths.cs`
+- `Swordfish.Library/Configuration/Config.cs`
+- `Swordfish.Library/Configuration/SaveLocation.cs`
+- `Shoal/AppEngine.cs`
+- `Shoal.Extensions.Swordfish/ContainerExtensions.cs`
 - `Shoal/Modularity/ModuleManifest.cs`
 - `Shoal/Modularity/ModuleOptions.cs`
 - `Shoal/Modularity/ModulesLoader.cs`

@@ -9,12 +9,12 @@ namespace WaywardBeyond.Data;
 /// Resolves the save-data file layout under the configured data root. The client profile database and
 /// the per-level server databases share the root.
 /// </summary>
-public sealed class StoragePaths(StorageConfig config)
+public sealed class StoragePaths(StorageConfig config, AppPaths appPaths)
 {
     private const string PROFILE_DATABASE_NAME = "profile.db";
     private const string LEVEL_DATABASE_NAME = "level.db";
 
-    private PathInfo DataRoot => config.SaveRoot.Get();
+    private PathInfo DataRoot => appPaths.ResolveDataPath(config.SaveRoot.Get());
 
     /// <summary>Gets the path to the client profile database.</summary>
     public PathInfo GetProfileDatabase() => DataRoot.At(PROFILE_DATABASE_NAME);
@@ -35,7 +35,7 @@ public sealed class StoragePaths(StorageConfig config)
     /// <summary>Gets the guid of every level that has a save database under the data root.</summary>
     public string[] GetLevelGuids()
     {
-        if (!DataRoot.IsDirectory() || !DataRoot.DirectoryExists())
+        if (!DataRoot.DirectoryExists())
         {
             return [];
         }

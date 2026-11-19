@@ -89,11 +89,14 @@ process boundary detail.
 ## Persistence schema
 
 All save data persists in SQLite databases through `Microsoft.Data.Sqlite`.
-`StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the
-layout under `StorageConfig.SaveRoot` (default `saves/`, file
-`storage.toml`). The client owns `profile.db` (characters and save-listing
-metadata). The server owns one database per level. The dedicated server can
-override the data root with `--data`.
+`StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the layout under
+`StorageConfig.SaveRoot` (default `saves/`, file `storage.toml`) relative to
+`AppPaths.DataRoot` (`Swordfish.Library/IO/AppPaths.cs`). Clients store saves,
+settings, and logs under the local user's application data directory and mount
+that directory last in `VirtualFileSystem` as a user override. Dedicated servers
+use the working directory and can override `SaveRoot` with `--data`. The client
+owns `profile.db` (characters and save-listing metadata). The server owns one
+database per level.
 
 The source of truth for full details is [specs/persistence](specs/persistence.md).
 
@@ -119,6 +122,18 @@ The engine has a two-layer command/argument surface.
 - `--option=value` form is supported. See `CommandLineToken.cs`.
 - A single-value read (`CommandLineArgs.GetValue`, `TryGetValue`) joins the
   recorded values with one space. It never truncates to the first value.
+
+### Engine arguments (Swordfish)
+
+`SwordfishEngine.ResolveAppPaths` (`Swordfish/SwordfishEngine.cs`) chooses the
+data root before the host starts:
+- `--user-data <path>` uses the given directory as the data root.
+- `--portable` uses the working directory.
+- With neither flag, the local user data folder is used.
+
+`--user-data` wins when both flags are present. The resolved roots log at
+startup. The dedicated server resolves its own root with
+`AppPaths.ForWorkingDirectory()` and the `--data` override.
 
 ### In-game commands (Swordfish.Library)
 

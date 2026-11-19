@@ -12,7 +12,7 @@ public class PermissionFileLoaderTests
     [Fact]
     public void EmptyAssetRootWarns()
     {
-        var loader = new PermissionFileLoader(new VirtualFileSystem(), new PermissionTomlParser());
+        var loader = new PermissionFileLoader(new VirtualFileSystem(), new PermissionTomlParser(), AppPaths.ForDirectory(new PathInfo(Path.Combine(Path.GetTempPath(), Path.GetRandomFileName()))));
         var diagnostics = new PermissionDiagnostics();
 
         var files = loader.Load(diagnostics);
@@ -35,7 +35,7 @@ public class PermissionFileLoaderTests
             var vfs = new VirtualFileSystem();
             Assert.True(vfs.Mount(root).Success);
 
-            var loader = new PermissionFileLoader(vfs, new PermissionTomlParser());
+            var loader = new PermissionFileLoader(vfs, new PermissionTomlParser(), AppPaths.ForDirectory(new PathInfo(Path.Combine(root, "user"))));
             var diagnostics = new PermissionDiagnostics();
 
             var files = loader.Load(diagnostics);
@@ -43,6 +43,38 @@ public class PermissionFileLoaderTests
             Assert.Equal(2, files.Count);
             Assert.EndsWith("a.toml", files[0].Source);
             Assert.EndsWith("b.toml", files[1].Source);
+            Assert.Empty(diagnostics.Errors);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadsUserConfigPermissionsFromAppPaths()
+    {
+        string root = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        string assetsRoot = Path.Combine(root, "assets");
+        string userRoot = Path.Combine(root, "user");
+        Directory.CreateDirectory(Path.Combine(assetsRoot, "permissions"));
+        Directory.CreateDirectory(Path.Combine(userRoot, "config", "permissions"));
+        try
+        {
+            File.WriteAllText(Path.Combine(assetsRoot, "permissions", "default.toml"), "[Groups.default]\nPermissions = [\"a\"]");
+            File.WriteAllText(Path.Combine(userRoot, "config", "permissions", "custom.toml"), "[Groups.admin]\nPermissions = [\"*\"]");
+
+            var vfs = new VirtualFileSystem();
+            Assert.True(vfs.Mount(assetsRoot).Success);
+
+            var loader = new PermissionFileLoader(vfs, new PermissionTomlParser(), AppPaths.ForDirectory(new PathInfo(userRoot)));
+            var diagnostics = new PermissionDiagnostics();
+
+            var files = loader.Load(diagnostics);
+
+            Assert.Equal(2, files.Count);
+            Assert.Contains(files, file => file.Source.EndsWith("default.toml", StringComparison.Ordinal));
+            Assert.Contains(files, file => file.Source.EndsWith("custom.toml", StringComparison.Ordinal));
             Assert.Empty(diagnostics.Errors);
         }
         finally

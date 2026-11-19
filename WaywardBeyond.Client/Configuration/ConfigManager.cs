@@ -18,7 +18,7 @@ internal sealed class ConfigManager : IAutoActivate
     private readonly UISettings _uiSettings;
     private readonly LevelGeneratorConfig _levelGeneratorConfig;
     private readonly ChatConfig _chatConfig;
-    private readonly ChatConfig _storageConfig;
+    private readonly StorageConfig _storageConfig;
     private readonly VoxelSettings _voxelSettings;
 
     public ConfigManager(
@@ -34,7 +34,7 @@ internal sealed class ConfigManager : IAutoActivate
         in UISettings uiSettings,
         in LevelGeneratorConfig levelGeneratorConfig,
         in ChatConfig chatConfig,
-        in ChatConfig storageConfig,
+        in StorageConfig storageConfig,
         in VoxelSettings voxelSettings
     ) {
         _controlSettings = controlSettings;
