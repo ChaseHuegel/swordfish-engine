@@ -1,4 +1,4 @@
-using Swordfish.ECS;
+using Krill;
 using WaywardBeyond.Permissions;
 
 namespace WaywardBeyond.Server.Permissions;

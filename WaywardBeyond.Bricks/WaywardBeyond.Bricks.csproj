@@ -23,7 +23,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Shoal\Shoal.csproj" />
       <ProjectReference Include="..\Shoal.Extensions.Swordfish\Shoal.Extensions.Swordfish.csproj" />
-      <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
+      <ProjectReference Include="..\Krill\Krill.csproj" />
       <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
     </ItemGroup>

@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Graphics;
 
 namespace WaywardBeyond.Client.Components;

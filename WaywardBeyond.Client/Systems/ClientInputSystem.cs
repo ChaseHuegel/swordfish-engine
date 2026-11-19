@@ -1,5 +1,5 @@
 using System.Numerics;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;

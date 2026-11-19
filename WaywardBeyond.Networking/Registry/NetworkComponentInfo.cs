@@ -1,5 +1,5 @@
 using System;
-using Swordfish.ECS;
+using Krill;
 using WaywardBeyond.Networking.Codecs;
 
 namespace WaywardBeyond.Networking.Registry;

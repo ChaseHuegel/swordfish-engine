@@ -1,4 +1,4 @@
-﻿using Swordfish.ECS;
+﻿using Krill;
 using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Gameplay.Interactions;

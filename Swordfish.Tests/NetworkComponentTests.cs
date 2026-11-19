@@ -1,5 +1,5 @@
 #nullable enable
-using Swordfish.ECS;
+using Krill;
 using Xunit;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;

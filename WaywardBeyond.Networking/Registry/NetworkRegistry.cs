@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Util;
 using WaywardBeyond.Networking.Codecs;
 

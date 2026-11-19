@@ -1,4 +1,4 @@
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Util;
 using Xunit;
 using WaywardBeyond.Data.Components;

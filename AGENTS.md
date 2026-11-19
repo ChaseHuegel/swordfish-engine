@@ -44,9 +44,10 @@ Every top-level path and what it is:
 | `Swordfish/` | Engine module: rendering, physics, audio, input, UI |
 | `Swordfish.Compilation/` | Lexer/parser/linter for shader/script languages |
 | `Swordfish.Demo/` | Sandbox / tech demo module |
-| `Swordfish.ECS/` | Struct-based ECS: Entity, ChunkedStore, World |
-| `Swordfish.ECS.Benchmarks/` | ECS BenchmarkDotNet benchmarks |
-| `Swordfish.ECS.Generator/` | ECS source generators |
+| `Krill/` | Struct-based ECS: Entity, ChunkedStore, World (standalone package) |
+| `Krill.Benchmarks/` | ECS BenchmarkDotNet benchmarks |
+| `Krill.Generator/` | ECS source generators |
+| `Krill.Tests/` | xunit tests for the Krill package |
 | `Swordfish.Editor/` | Visual editor module |
 | `Swordfish.Integrations/` | Integrations (SQL, FontAwesome) |
 | `Swordfish.Launcher/` | Dev launcher for Swordfish modules |
@@ -101,7 +102,7 @@ Route a goal to the right doc:
 - **DI via DryIoc.** `IContainer` everywhere. Modules register via
   `IDryIocInjector`. See `Shoal/DependencyInjection/`.
 - **ECS-first.** Game objects are entities composed of struct components,
-  processed by systems (`Swordfish.ECS/`). Avoid OOP hierarchies.
+  processed by systems (`Krill/`). Avoid OOP hierarchies.
 - **Structs default** for new types, especially data types. Classes only for
   reference semantics or polymorphism.
 - **Manifest files** require `CopyToOutputDirectory=Always`.
@@ -111,6 +112,8 @@ Route a goal to the right doc:
   uses TOML.
 - **Engine vs game.** Everything except `WaywardBeyond.*` is engine. Engine
   changes commit separately, first, standalone-green, never mixed with game.
+- **Krill is standalone.** `Krill/` references no other repo project and is
+  published as its own package.
 - **Less is more.** Prefer deletion over addition. No thin wrappers, no
   unearned abstractions.
 - **Expected failure returns `Result<T>`.** Do not throw, and do not add a
@@ -126,13 +129,14 @@ Route a goal to the right doc:
 Before you finish a change, run:
 
 1. `dotnet build` — must compile clean.
-2. `dotnet test Swordfish.Tests` — engine tests.
-3. `dotnet test Reef.Tests` — Reef UI and render tests, cross-platform.
-4. `dotnet test Reef.Text.Tests` — Reef rich-text parser tests, cross-platform.
-5. `dotnet test Reef.Generator.Tests` — Reef markup generator tests.
-6. `dotnet test Reef.Markup.Tests` — Reef markup runtime and visual tests.
-7. `dotnet test WaywardBeyond.Voxels.Tests` — shared voxel container tests.
-8. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
+2. `dotnet test Krill.Tests` — standalone ECS package tests.
+3. `dotnet test Swordfish.Tests` — engine tests.
+4. `dotnet test Reef.Tests` — Reef UI and render tests, cross-platform.
+5. `dotnet test Reef.Text.Tests` — Reef rich-text parser tests, cross-platform.
+6. `dotnet test Reef.Generator.Tests` — Reef markup generator tests.
+7. `dotnet test Reef.Markup.Tests` — Reef markup runtime and visual tests.
+8. `dotnet test WaywardBeyond.Voxels.Tests` — shared voxel container tests.
+9. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
    Fix blocking findings. Capture the rest as issues.
 
 Then run the mandatory **docs pass** (see the next section). Stale docs are a

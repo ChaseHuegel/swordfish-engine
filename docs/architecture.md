@@ -9,7 +9,7 @@ and world split, the persistence schema, and the CLI surface.
 |---|---|---|---|
 | `Shoal/` | App host, DI (DryIoc), module loader, CLI, localization | `net8.0` | Shoal |
 | `Swordfish/` | Engine module: rendering (Silk.NET/OpenGL), physics (Jolt), audio, input, UI | `net8.0` | Swordfish |
-| `Swordfish.ECS/` | Struct-based ECS: Entity, ChunkedStore, World | `net8.0` | Swordfish.ECS |
+| `Krill/` | Standalone struct-based ECS: Entity, ChunkedStore, World | `net8.0` | Krill |
 | `Swordfish.Library/` | Shared types, serialization (Needlefish), DI abstractions | `netstandard2.1` | Swordfish.Library |
 | `Swordfish.Integrations/` | Integrations (SQL, FontAwesome, etc.) | — | Swordfish.Integrations |
 | `Swordfish.Compilation/` | Lexer/parser/linter for custom shader/script langs | `netstandard2.0` | Swordfish.Compilation |
@@ -40,6 +40,9 @@ Each launcher enters through `CrashSupervisor.Run` (`Shoal/CrashHandling/CrashSu
 before starting `SwordfishEngine` or `AppEngine`. Pass `--no-crash-handler` to bypass supervision.
 See [specs/logging-and-crash-handling](specs/logging-and-crash-handling.md).
 
+`Krill` is a standalone package. It references no other project in this repo.
+See [specs/krill](specs/krill.md) for the package contract.
+
 ## Core architecture principles
 
 - **Shoal modularity**: every feature is a Shoal module. A module = a DLL +
@@ -48,14 +51,14 @@ See [specs/logging-and-crash-handling](specs/logging-and-crash-handling.md).
 - **DI via DryIoc**: `IContainer` everywhere. Modules register services via
   `IDryIocInjector`. See `Shoal/DependencyInjection/`.
 - **ECS-first**: game objects are entities composed of struct components,
-  processed by systems (`Swordfish.ECS/`). Avoid OOP hierarchies.
+  processed by systems (`Krill/`). Avoid OOP hierarchies.
 - **Structs default** for new types, especially data types. Classes only for
   reference semantics or polymorphism.
 
 ## Engine vs game split
 
 - **Engine set**: everything except `WaywardBeyond.*` (`Swordfish`,
-  `Swordfish.ECS`, `Swordfish.Library`, `Swordfish.Integrations`,
+  `Krill`, `Swordfish.Library`, `Swordfish.Integrations`,
   `Swordfish.Compilation`, `Shoal`, `Reef`, `Shoal.Extensions.Swordfish`,
   launchers, demo/editor).
 - **Game set**: `WaywardBeyond.*`.

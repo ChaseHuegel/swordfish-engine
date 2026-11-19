@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Reef;
 using Reef.UI;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Graphics;
 using Xunit;
 using WaywardBeyond.Client.UI;
