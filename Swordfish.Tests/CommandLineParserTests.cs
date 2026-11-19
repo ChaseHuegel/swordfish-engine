@@ -74,4 +74,22 @@ public class CommandLineParserTests
         Assert.True(args.TryGetValue("name", out string? name));
         Assert.Equal("Smoke Test", name);
     }
+
+    [Fact]
+    public void HyphenatedOptionNameIsOneKey()
+    {
+        CommandLineArgs args = new CommandLineParser().Parse(["--user-data", "/tmp/user-data"]);
+
+        Assert.True(args.TryGetValue("user-data", out string? userData));
+        Assert.Equal("/tmp/user-data", userData);
+    }
+
+    [Fact]
+    public void HyphenatedValueStaysOneToken()
+    {
+        CommandLineArgs args = new CommandLineParser().Parse(["--data", "/tmp/my-saves"]);
+
+        Assert.True(args.TryGetValue("data", out string? data));
+        Assert.Equal("/tmp/my-saves", data);
+    }
 }

@@ -4,7 +4,9 @@ using PInvoke;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
+using Shoal.CommandLine;
 using Silk.NET.Core;
+using Swordfish.Library.IO;
 using Swordfish.Library.Threading;
 using Swordfish.Util;
 
@@ -35,17 +37,22 @@ public class SwordfishEngine
     private static Version? _version;
     
     private readonly string[] _args;
+    private readonly AppPaths _appPaths;
     private readonly EngineContainer _engineContainer;
     private readonly ThreadContext _mainThreadContext;
     private readonly IWindow _mainWindow;
-    private readonly ILogger _logger = AppEngine.CreateLogger(typeof(SwordfishEngine));
+    private readonly ILogger _logger;
     
     private AppEngine? _engine;
     private State _state;
     private int _exitCode;
 
-    public SwordfishEngine(string[] args)
+    public SwordfishEngine(string[] args, AppPaths? appPaths = null, string? companyName = null)
     {
+        _appPaths = appPaths ?? ResolveAppPaths(args, companyName);
+        AppEngine.ConfigurePaths(_appPaths);
+        _logger = AppEngine.CreateLogger(typeof(SwordfishEngine));
+
         TransitionState(State.Stopped, State.Initializing);
         _args = args;
 
@@ -65,6 +72,32 @@ public class SwordfishEngine
         
         _engineContainer = new EngineContainer(_mainWindow, _mainThreadContext);
         TransitionState(State.Initializing, State.Initialized);
+    }
+
+    /// <summary>Resolves the application paths from process arguments, defaulting to the local user's application data.</summary>
+    /// <param name="args">Process arguments. The --user-data flag overrides the data root and --portable uses the working directory.</param>
+    /// <param name="companyName">Optional company folder placed above the application folder.</param>
+    public static AppPaths ResolveAppPaths(string[] args, string? companyName = null)
+    {
+        CommandLineArgs commandLineArgs;
+        try
+        {
+            commandLineArgs = new CommandLineParser().Parse(args);
+        }
+        catch (Exception)
+        {
+            //  The host logs the parse failure once logging is configured.
+            return AppPaths.ForLocalUser(companyName: companyName);
+        }
+
+        if (commandLineArgs.TryGetValue("user-data", out string? userData) && !string.IsNullOrWhiteSpace(userData))
+        {
+            return AppPaths.ForDirectory(new PathInfo(Path.GetFullPath(userData)), mountInVfs: true);
+        }
+
+        return commandLineArgs.GetFlag("portable")
+            ? AppPaths.ForWorkingDirectory()
+            : AppPaths.ForLocalUser(companyName: companyName);
     }
 
     public int Run()
@@ -136,7 +169,7 @@ public class SwordfishEngine
         }
         
         TransitionState(State.Started, State.Loading);
-        _engine = AppEngine.Build(_args, _engineContainer.Register);
+        _engine = AppEngine.Build(_args, _appPaths, _engineContainer.Register);
         TransitionState(State.Loading, State.Loaded);
 
         TransitionState(State.Loaded, State.Waking);
