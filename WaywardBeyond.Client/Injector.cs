@@ -357,6 +357,12 @@ public class Injector : IDryIocInjector
         container.Register<IVoxelEntityDecorator, LightEntityDecorator>(Reuse.Transient);
         container.Register<IVoxelEntityDecorator, ThrusterEntityDecorator>(Reuse.Transient);
 
+        container.Register<VoxelMaterials>(Reuse.Singleton);
+        container.Register<BrickPreviewMeshBuilder>(Reuse.Singleton);
+        container.Register<BrickPreviewState>(Reuse.Singleton);
+        container.Register<BrickPreviewSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, BrickPreviewSystem>();
+
         container.Register<VoxelObjectBuilder>(Reuse.Singleton);
         container.Register<VoxelLightingService>(Reuse.Singleton);
         container.Register<VoxelObjectProcessor>(Reuse.Scoped);

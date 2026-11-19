@@ -9,7 +9,6 @@ using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
-using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Voxels;
 
@@ -17,13 +16,13 @@ namespace WaywardBeyond.Client.Voxels.Building;
 
 internal sealed class VoxelEntityBuilder(
     in ILogger logger,
-    in Shader shader,
-    in PBRTextureArrays textureArrays,
+    in VoxelMaterials materials,
     in VoxelObjectBuilder voxelObjectBuilder,
     in IVoxelEntityDecorator[] decorators,
     in VoxelSettings voxelSettings
 ) {
     private readonly ILogger _logger = logger;
+    private readonly VoxelMaterials _materials = materials;
     private readonly IVoxelEntityDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = voxelObjectBuilder;
     private readonly VoxelSettings _voxelSettings = voxelSettings;
@@ -31,40 +30,6 @@ internal sealed class VoxelEntityBuilder(
     [ThreadStatic]
     private static HashSet<int>? _updatedEntities;
     private static HashSet<int> UpdatedEntities => _updatedEntities ??= [];
-
-    private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
-    private readonly Material _maskedMaterial = new(shader, textureArrays.ToArray());
-    private readonly Material _transparentMaterial = new(shader, textureArrays.ToArray())
-    {
-        Transparent = true,
-    };
-
-    private readonly RenderOptions _opaqueRenderOptions = new()
-    {
-        AlphaMode = AlphaMode.Opaque,
-        DoubleFaced = false,
-        Wireframe = false,
-        CastShadows = true,
-        ReceiveShadows = true,
-    };
-
-    private readonly RenderOptions _maskedRenderOptions = new()
-    {
-        AlphaMode = AlphaMode.Masked,
-        DoubleFaced = true,
-        Wireframe = false,
-        CastShadows = true,
-        ReceiveShadows = true,
-    };
-    
-    private readonly RenderOptions _transparentRenderOptions = new()
-    {
-        AlphaMode = AlphaMode.Blend,
-        DoubleFaced = true,
-        Wireframe = false,
-        CastShadows = false,
-        ReceiveShadows = true,
-    };
 
     public Entity Create(DataStore store, Uuid uuid, VoxelObject voxelObject, Vector3 position, Quaternion orientation, Vector3 scale)
     {
@@ -109,9 +74,9 @@ internal sealed class VoxelEntityBuilder(
 
         //  Attach the renderers only after the ranges are filled. The scene does not see a
         //  partial batch during the load build.
-        AttachBatchRenderer(store, parentUuid, in transform, registry.OpaqueBatch, _opaqueMaterial, _opaqueRenderOptions, registry);
-        AttachBatchRenderer(store, parentUuid, in transform, registry.MaskedBatch, _maskedMaterial, _maskedRenderOptions, registry);
-        AttachBatchRenderer(store, parentUuid, in transform, registry.TransparentBatch, _transparentMaterial, _transparentRenderOptions, registry);
+        AttachBatchRenderer(store, parentUuid, in transform, registry.OpaqueBatch, _materials.Opaque, _materials.OpaqueOptions, registry);
+        AttachBatchRenderer(store, parentUuid, in transform, registry.MaskedBatch, _materials.Masked, _materials.MaskedOptions, registry);
+        AttachBatchRenderer(store, parentUuid, in transform, registry.TransparentBatch, _materials.Transparent, _materials.TransparentOptions, registry);
 
         CompoundShape collisionShape = VoxelObjectBuilder.CombineCollisions(registry.ChunkColliders.Values);
         store.AddOrUpdate(entity, voxelComponent);
