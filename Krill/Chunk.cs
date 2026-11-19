@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Swordfish.ECS;
+namespace Krill;
 
 internal class Chunk<T>(int size)
 {

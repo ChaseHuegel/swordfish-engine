@@ -8,7 +8,7 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;

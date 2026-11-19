@@ -1,3 +1,5 @@
+using Krill;
+
 namespace Swordfish.ECS;
 
 public struct IdentifierComponent : IDataComponent

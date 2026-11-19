@@ -1,6 +1,7 @@
 $packagesPath = '.packages'
 
 $projects = @(
+    'Krill',
     'Swordfish',
     'Swordfish.Integrations',
     'Swordfish.Library'

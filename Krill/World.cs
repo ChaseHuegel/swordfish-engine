@@ -1,4 +1,4 @@
-namespace Swordfish.ECS;
+namespace Krill;
 
 public class World(in byte chunkBitWidth = 16)
 {

@@ -8,7 +8,7 @@ using SoundFlow.Abstracts.Devices;
 using SoundFlow.Structs;
 using Swordfish.Audio;
 using Swordfish.Audio.SoundFlow;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Collections;
 using Swordfish.Settings;
 using Xunit;

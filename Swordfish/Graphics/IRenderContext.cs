@@ -1,4 +1,4 @@
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;

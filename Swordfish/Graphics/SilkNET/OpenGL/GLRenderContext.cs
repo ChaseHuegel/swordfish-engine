@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Krill;
 using Shoal.DependencyInjection;
 using Silk.NET.OpenGL;
 using Swordfish.ECS;

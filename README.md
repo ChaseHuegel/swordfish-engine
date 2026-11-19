@@ -1,7 +1,7 @@
 [![](https://img.shields.io/nuget/v/Swordfish?label=Swordfish)](https://www.nuget.org/packages/Swordfish/)
 [![](https://img.shields.io/nuget/v/Swordfish.Library?label=Library)](https://www.nuget.org/packages/Swordfish.Library/)
 [![](https://img.shields.io/nuget/v/Swordfish.Integrations?label=Integrations)](https://www.nuget.org/packages/Swordfish.Integrations/)
-[![](https://img.shields.io/nuget/v/Swordfish.ECS?label=ECS)](https://www.nuget.org/packages/Swordfish.ECS/)
+[![](https://img.shields.io/nuget/v/Krill?label=Krill)](https://www.nuget.org/packages/Krill/)
 [![](https://img.shields.io/nuget/v/Needlefish?label=Needlefish)](https://www.nuget.org/packages/Needlefish/)
 [![](https://img.shields.io/nuget/v/Shoal?label=Shoal)](https://www.nuget.org/packages/Shoal/)
 [![](https://img.shields.io/nuget/v/Swordfish.Compilation?label=Compilation)](https://www.nuget.org/packages/Swordfish.Compilation/)
@@ -36,8 +36,8 @@ This is an API for compilation tooling that provides types for lexing, linting, 
 ## Swordfish.Demo
 This is a module for Swordfish which is used for experimenting and showcasing some engine capabilities. It is considered to be a sandbox more than a tech demo at this time. This changes often, can be messy, and regularly includes in-preview engine capabilities.
 
-## Swordfish.ECS
-This is a 0-dependency, engine-agnostic API for a struct-based Entity-Component-System implementation which is used by Swordfish.
+## Krill
+This is a 0-dependency, engine-agnostic API for a struct-based Entity-Component-System implementation.
 
 ## Swordfish.Editor
 This is a module for Swordfish which provides a visual editor and tooling for developing with Swordfish. This is a strong use-case and showcase of Swordfish and Shoal's modularity; this module can be dropped into any Swordfish-based application to get access to developer tooling. At this time it is fairly simple and acts more as a viewer of what is going on within the engine.
