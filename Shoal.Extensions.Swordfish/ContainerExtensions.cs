@@ -19,35 +19,43 @@ public static class ContainerExtensions
     
     /// <summary>
     ///     Registers a config file modeled by type <typeparamref name="T"/>,
-    ///     which will be loaded from `config/` or else initialized from defaults.
+    ///     which will be loaded from VFS or install `config/`, or else initialized from defaults.
     /// </summary>
-    public static void RegisterConfig<T>(this IContainer container, string file) 
+    public static void RegisterConfig<T>(this IContainer container, string file, SaveLocation saveLocation = SaveLocation.UserData)
         where T : Config<T>, new()
     {
         container.RegisterTomlParser<T>();
-        container.RegisterDelegate<T>(context => LoadOrCreateConfig<T>(context, file), Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.RegisterDelegate<T>(
+            context => LoadOrCreateConfig<T>(context, file, saveLocation),
+            Reuse.Singleton,
+            ifAlreadyRegistered: IfAlreadyRegistered.Keep);
     }
-    
-    private static T LoadOrCreateConfig<T>(IResolverContext context, string file) 
+
+    private static T LoadOrCreateConfig<T>(IResolverContext context, string file, SaveLocation saveLocation)
         where T : Config<T>, new()
     {
         var configPath = new PathInfo("config/");
-        
+        PathInfo defaultPath = configPath.At(file);
+
         var vfs = context.Resolve<VirtualFileSystem>();
-        PathInfo[] files = vfs.GetFiles(configPath, SearchOption.AllDirectories);
-        
-        //  Attempt to resolve the config from VFS else resolve it at the root
-        PathInfo path = files.Any(pathInfo => pathInfo.GetFileName() == file)
-            ? files.First(pathInfo => pathInfo.GetFileName() == file)
-            : configPath.At(file);
-        
+        if (!vfs.TryGetFile(defaultPath, out PathInfo readPath))
+        {
+            PathInfo[] files = vfs.GetFiles(configPath, SearchOption.AllDirectories);
+            PathInfo? nestedMatch = files.Cast<PathInfo?>().FirstOrDefault(pathInfo => pathInfo!.Value.GetFileName() == file);
+            readPath = nestedMatch ?? defaultPath;
+        }
+
         var fileParseService = context.Resolve<IFileParseService>();
-        if (!fileParseService.TryParse<T>(path, out T result))
+        if (!fileParseService.TryParse<T>(readPath, out T result))
         {
             result = new T();
         }
 
-        result.Path = path;
+        result.Path = saveLocation switch
+        {
+            SaveLocation.Install => defaultPath,
+            _ => context.Resolve<AppPaths>().ConfigRoot.At(file),
+        };
         return result;
     }
 }

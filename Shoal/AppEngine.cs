@@ -15,54 +15,77 @@ namespace Shoal;
 
 public sealed class AppEngine : IDisposable
 {
+    private static readonly object _loggerLock = new();
     private static readonly LogListener _logListener = new();
-    private static readonly ILoggerFactory _loggerFactory = LoggerFactory.Create(BuildLoggerFactory);
-    private static readonly ILogger _logger = CreateLogger<AppEngine>();
+    private static AppPaths? _configuredPaths;
+    private static volatile ILoggerFactory? _loggerFactory;
+    private static volatile ILogger? _logger;
+
+    private static ILogger Logger => _logger ??= CreateLogger<AppEngine>();
 
     public IContainer Container { get; }
-    
-    private AppEngine(in string[] args, DryIocInjectCallback? dryIocInjectCallback = null)
+
+    private AppEngine(in string[] args, AppPaths appPaths, DryIocInjectCallback? dryIocInjectCallback = null)
     {
+        ConfigurePaths(appPaths);
+        Logger.LogInformation(
+            "Using data root '{dataRoot}', config root '{configRoot}', and logs root '{logsRoot}'.",
+            appPaths.DataRoot.Value,
+            appPaths.ConfigRoot.Value,
+            appPaths.LogsRoot.Value);
+
         CommandLineArgs commandLineArgs;
         try
         {
             var commandLineParser = new CommandLineParser();
             commandLineArgs = commandLineParser.Parse(args);
 
-            _logger.LogInformation("Using command line arguments: {commandLineArgs}.", commandLineArgs);
+            Logger.LogInformation("Using command line arguments: {commandLineArgs}.", commandLineArgs);
         }
         catch (Exception ex)
         {
             commandLineArgs = CommandLineArgs.Empty;
-            _logger.LogError(ex, "Failed to parse command line arguments.");
+            Logger.LogError(ex, "Failed to parse command line arguments.");
         }
-        
-        IContainer coreContainer = CreateCoreContainer(commandLineArgs);
+
+        IContainer coreContainer = CreateCoreContainer(commandLineArgs, appPaths);
         ActivateTomlMappers(coreContainer);
 
         dryIocInjectCallback?.Invoke(coreContainer);
 
-        IContainer modulesContainer = CreateModulesContainer(coreContainer);
+        IContainer modulesContainer = CreateModulesContainer(coreContainer, appPaths);
         ActivateTomlMappers(modulesContainer);
 
         //  Load languages
         coreContainer.Resolve<ConfigurationProvider>().GetLanguages();
-        
+
         //  Auto activate things
         foreach (IAutoActivate _ in coreContainer.ResolveMany<IAutoActivate>()) { }
         foreach (IAutoActivate _ in modulesContainer.ResolveMany<IAutoActivate>()) { }
 
         Container = modulesContainer;
     }
-    
-    public static AppEngine Build(in string[] args)
+
+    /// <summary>Configures the application paths used by logging before the first logger is created.</summary>
+    public static void ConfigurePaths(AppPaths appPaths)
     {
-        return new AppEngine(args);
+        lock (_loggerLock)
+        {
+            if (_loggerFactory == null)
+            {
+                _configuredPaths = appPaths;
+            }
+        }
     }
-    
-    public static AppEngine Build(in string[] args, DryIocInjectCallback dryIocInjectCallback)
+
+    public static AppEngine Build(in string[] args, AppPaths appPaths)
     {
-        return new AppEngine(args, dryIocInjectCallback);
+        return new AppEngine(args, appPaths);
+    }
+
+    public static AppEngine Build(in string[] args, AppPaths appPaths, DryIocInjectCallback dryIocInjectCallback)
+    {
+        return new AppEngine(args, appPaths, dryIocInjectCallback);
     }
 
     public void Dispose()
@@ -74,40 +97,61 @@ public sealed class AppEngine : IDisposable
     {
         foreach (IEntryPoint entryPoint in Container.ResolveMany<IEntryPoint>())
         {
-            _logger.LogInformation("Running entry point '{entryPoint}'.", entryPoint.GetType());
-            
+            Logger.LogInformation("Running entry point '{entryPoint}'.", entryPoint.GetType());
+
             Result<Exception> result = Safe.Invoke(entryPoint.Run);
             if (!result)
             {
-                _logger.LogError(result.Value, "Failed to run entry point '{entryPoint}'", entryPoint.GetType());
+                Logger.LogError(result.Value, "Failed to run entry point '{entryPoint}'", entryPoint.GetType());
             }
         }
     }
 
     public static ILogger<T> CreateLogger<T>()
     {
-        return _loggerFactory.CreateLogger<T>();
+        return GetLoggerFactory().CreateLogger<T>();
     }
-    
+
     public static ILogger CreateLogger(Type type)
     {
-        return _loggerFactory.CreateLogger(type);
+        return GetLoggerFactory().CreateLogger(type);
     }
 
     private static ILogger CreateLogger(Request request)
     {
+        ILoggerFactory factory = GetLoggerFactory();
         if (request.Parent?.ImplementationType == null)
         {
-            return _loggerFactory.CreateLogger("Default");
+            return factory.CreateLogger("Default");
         }
-        
-        return _loggerFactory.CreateLogger(request.Parent.ImplementationType);
+
+        return factory.CreateLogger(request.Parent.ImplementationType);
     }
 
-    private static void BuildLoggerFactory(ILoggingBuilder builder)
+    private static ILoggerFactory GetLoggerFactory()
+    {
+        if (_loggerFactory != null)
+        {
+            return _loggerFactory;
+        }
+
+        lock (_loggerLock)
+        {
+            if (_loggerFactory == null)
+            {
+                AppPaths paths = _configuredPaths
+                    ?? throw new InvalidOperationException("App paths must be configured before the first logger is created.");
+                _loggerFactory = LoggerFactory.Create(builder => BuildLoggerFactory(builder, paths));
+            }
+
+            return _loggerFactory;
+        }
+    }
+
+    private static void BuildLoggerFactory(ILoggingBuilder builder, AppPaths appPaths)
     {
         builder.AddProvider(_logListener);
-        
+
         builder.AddSimpleConsole(options =>
         {
             options.IncludeScopes = true;
@@ -117,7 +161,11 @@ public sealed class AppEngine : IDisposable
 
         builder.AddFile(options =>
         {
-            options.RootPath = AppContext.BaseDirectory;
+            //  The file appender requires its root directory to exist.
+            string logsDirectory = appPaths.LogsRoot.Value;
+            Directory.CreateDirectory(logsDirectory);
+
+            options.RootPath = appPaths.DataRoot.Value;
             options.BasePath = "logs";
             options.DateFormat = "yyyy-MM-dd";
             options.IncludeScopes = true;
@@ -133,9 +181,9 @@ public sealed class AppEngine : IDisposable
                     Path = "latest.log",
                 },
             ];
-            
+
             //  Clear the latest log file
-            string latestLogFile = Path.Combine(options.RootPath, options.BasePath, "latest.log");
+            string latestLogFile = Path.Combine(logsDirectory, "latest.log");
             if (File.Exists(latestLogFile))
             {
                 File.Delete(latestLogFile);
@@ -143,17 +191,18 @@ public sealed class AppEngine : IDisposable
         });
     }
 
-    private IContainer CreateCoreContainer(CommandLineArgs args)
+    private IContainer CreateCoreContainer(CommandLineArgs args, AppPaths appPaths)
     {
         IContainer container = new Container();
 
         container.RegisterInstance<CommandLineArgs>(args);
+        container.RegisterInstance(appPaths);
         container.RegisterInstance<LogListener>(_logListener);
 
         container.Register<VirtualFileSystem>(Reuse.Singleton);
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 
-        container.RegisterInstance(_loggerFactory);
+        container.RegisterInstance(GetLoggerFactory());
         MethodInfo loggerFactoryMethod = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
         container.Register(typeof(ILogger<>), made: Made.Of(req => loggerFactoryMethod.MakeGenericMethod(req.Parent.ImplementationType)));
         container.Register(Made.Of(() => CreateLogger( Arg.Index<Request>(0)), request => request));
@@ -167,6 +216,7 @@ public sealed class AppEngine : IDisposable
         container.RegisterTomlParser<ModuleManifest>();
 
         container.RegisterTomlMapper<PathTomlMapper>();
+        container.RegisterDataBinding<PathInfo>();
         
         container.RegisterDataBinding<bool>();
         container.RegisterDataBinding<byte>();
@@ -212,27 +262,39 @@ public sealed class AppEngine : IDisposable
         return container;
     }
 
-    private IContainer CreateModulesContainer(IContainer parentContainer)
+    private IContainer CreateModulesContainer(IContainer parentContainer, AppPaths appPaths)
     {
         var vfs = parentContainer.Resolve<VirtualFileSystem>();
-        
+
         IContainer container = parentContainer.With();
-        parentContainer.Resolve<IModulesLoader>().Load(AssemblyHookCallback);
-
-        container.Register<CommandParser>(Reuse.Singleton, made: Made.Of(() => new CommandParser(Arg.Index<char>(0), Arg.Of<Command[]>()), _ => '\0'));
-        
-        ValidateContainerOrDie(container);
-        return container;
-
-        void AssemblyHookCallback(ParsedFile<ModuleManifest> manifestFile, Assembly assembly)
+        var loadedAssemblies = new List<Assembly>();
+        parentContainer.Resolve<IModulesLoader>().Load((manifestFile, assembly) =>
         {
             vfs.Mount(manifestFile.GetRootPath().At("assets"));
-            
+            loadedAssemblies.Add(assembly);
+        });
+
+        if (appPaths.MountInVfs && appPaths.DataRoot.DirectoryExists())
+        {
+            Result mountResult = vfs.Mount(appPaths.DataRoot);
+            if (!mountResult)
+            {
+                Logger.LogWarning("Failed to mount user data directory '{path}': {message}", appPaths.DataRoot.Value, mountResult.Message);
+            }
+        }
+
+        foreach (Assembly assembly in loadedAssemblies)
+        {
             RegisterEventProcessors(assembly, container);
             RegisterSerializers(assembly, container);
             RegisterCommands(assembly, container);
             RegisterDryIocModules(assembly, container);
         }
+
+        container.Register<CommandParser>(Reuse.Singleton, made: Made.Of(() => new CommandParser(Arg.Index<char>(0), Arg.Of<Command[]>()), _ => '\0'));
+
+        ValidateContainerOrDie(container);
+        return container;
     }
 
     private static void ValidateContainerOrDie(IContainer container)
@@ -245,7 +307,7 @@ public sealed class AppEngine : IDisposable
 
         foreach (KeyValuePair<ServiceInfo, ContainerException> error in errors)
         {
-            _logger.LogError(error.Value, "There was an error validating a container (service: {service}).", error.Key);
+            Logger.LogError(error.Value, "There was an error validating a container (service: {service}).", error.Key);
         }
         Environment.Exit((int)ExitCode.BadDependency);
     }
@@ -317,7 +379,7 @@ public sealed class AppEngine : IDisposable
             }
 
             container.Register(typeof(Command), type, reuse: Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-            _logger.LogInformation("Registered command of type: {type}.", type);
+            Logger.LogInformation("Registered command of type: {type}.", type);
         }
     }
 
