@@ -51,7 +51,12 @@ freed. The registry stores each child's `Uuid`, so a recycled entity index is
 ignored.
 
 `MeshRendererCleanup` still serves non-voxel renderers
-(`WaywardBeyond.Client/Components/MeshRendererCleanup.cs`).
+(`WaywardBeyond.Client/Components/MeshRendererCleanup.cs`). The brick placement
+preview uses the same queue for replaced and hidden preview renderers
+(`WaywardBeyond.Client/Systems/BrickPreviewSystem.cs:91`, `:114`). The
+interaction outline uses `Line` handles from `ILineRenderer`
+(`WaywardBeyond.Client/Debug/MeshOutline.cs`). The interaction service keeps
+them for the process lifetime.
 
 ## Jolt shape wrappers
 
@@ -73,3 +78,8 @@ compound settings and each child wrapper before it returns the compound wrapper
 
 Each test asserts that the renderer, its mesh, and the queue are gone after the
 tick.
+
+`Swordfish.Tests/BrickPreviewTests.cs` pins the preview's use of the same queue:
+
+- `System_ShowsAndHidesThePreviewEntity` covers a hidden renderer.
+- `System_ReplacedRendererWaitsForTheNewRenderer` covers a replaced renderer.

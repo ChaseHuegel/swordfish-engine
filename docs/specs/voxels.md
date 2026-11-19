@@ -184,7 +184,7 @@ cullers, so the mesh pass emits the neighbouring solid's face against the lamp
 (`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:127-142`). The point
 shadow pass uses that face as the occluder instead of the lamp mesh. The lamp
 mesh lands in the transparent bucket with `CastShadows = false`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:60-67`), so it does
+(`WaywardBeyond.Client/Voxels/Building/VoxelMaterials.cs:47-54`), so it does
 not self-shadow its own centred point light.
 
 `LightEntityDecorator`
@@ -196,7 +196,7 @@ it counts as exposed.
 
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:163-248`) rebuilds
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:138-222`) rebuilds
 only dirty chunks. Untouched chunks keep their existing ranges.
 
 `ClientVoxelReconcileSystem`
@@ -206,6 +206,49 @@ identity, shape, and orientation. It does not compare light level because server
 echoes do not compute presentation lighting. This avoids false misprediction
 snaps that would clear locally calculated air lighting to zero. `WriteVoxel` also
 preserves existing air light when writing an authoritative empty cell.
+
+## Brick placement preview
+
+`BrickPreviewSystem`
+(`WaywardBeyond.Client/Systems/BrickPreviewSystem.cs:37`) renders a textured
+preview of the brick that the player will place.
+`PlayerInteractionService.OnFixedUpdate`
+(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:531`) publishes the
+held brick, effective shape, voxel-local orientation, target cell, and structure
+orientation to `BrickPreviewState`. The system ticks after the physics fixed
+update on the ECS thread. It stays visible while the game is paused and releases
+on menu or loading.
+
+`BrickPreviewMeshBuilder`
+(`WaywardBeyond.Client/Voxels/Building/BrickPreviewMeshBuilder.cs:48`) builds one
+isolated brick mesh. It reuses `MeshPostPass`, so the preview matches placed
+geometry, textures, alpha mode, and custom meshes. The builder bakes the
+voxel-local orientation through `BrickExtensions.ToVoxel`, which applies the
+`Brick.IsOrientable` rule. The preview transform then applies only the structure
+orientation. A non-orientable brick therefore does not rotate, exactly as
+placement writes it. The builder bakes light level 15 and casts no shadows.
+
+`PlayerInteractionService` also draws a feature-edge outline around the preview
+and around the selected break target (`WaywardBeyond.Client/Debug/MeshOutline.cs`).
+The outline uses an outset scale and depth-tested lines, so it sits just outside
+the mesh. It replaces the previous triangle-web gizmo.
+
+The system keeps one active `MeshRenderer` for the current brick, shape, and
+local orientation. It rebuilds only when that key changes and updates only the
+`TransformComponent` otherwise. A replaced or hidden renderer enters the
+deferred `MeshRendererCleanup` queue, so the system keeps no cache of meshes for
+previous keys or hidden previews. The preview entity carries the `game` tag, so
+world teardown frees it. The preview does not collide, emit light, or replicate.
+
+`VoxelMaterials`
+(`WaywardBeyond.Client/Voxels/Building/VoxelMaterials.cs:10`) owns the shared
+opaque, masked, and blend materials and render state for both world voxels and
+the preview. `VoxelEntityBuilder` consumes the same instance.
+
+The preview uses one brick voxel. It seeds the six adjacent cells with lit air
+for lighting and does not copy the destination structure's neighbours, so
+connected-texture edges, hidden-face culling, and random texture choice are
+approximations.
 
 ## Voxel debug gizmos
 
@@ -256,3 +299,12 @@ palette counts.
 chunk invalidation, single-voxel edit execution budgets, localized light
 propagation, border sky light restoration on deletion, collision caching,
 debug bounding box gizmo tracking, and prediction lighting equality.
+
+`Swordfish.Tests/BrickPreviewTests.cs` pins the preview mesh for every shape,
+the centered block geometry, lit vertex colors, texture layer selection, alpha
+mode geometry and material selection, the orientation rule for orientable and
+non-orientable bricks, and the preview entity show, hide, deferred replacement,
+pause, and release lifecycle.
+
+`Swordfish.Tests/MeshOutlineTests.cs` pins the feature-edge extraction,
+depth-tested line use, outset, visibility toggle, and open-mesh boundary edges.

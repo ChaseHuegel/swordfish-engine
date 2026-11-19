@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Reef;
 using Shoal.Modularity;
@@ -48,10 +47,12 @@ using DebugInfo = (
 
 internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDebugOverlay
 {
-    private static readonly Vector4 _gizmoColor = new(0.5f, 0.5f, 0.5f, 1f);
+    private const float OUTLINE_OUTSET = 1.035f;
+    private static readonly Vector4 _outlineColor = new(0.5f, 0.5f, 0.5f, 0.8f);
     private static readonly Vector3[] _worldAxes = [Vector3.UnitX, -Vector3.UnitX, Vector3.UnitY, -Vector3.UnitY, Vector3.UnitZ, -Vector3.UnitZ];
 
     private readonly InteractionState _interactionState;
+    private readonly BrickPreviewState _brickPreviewState;
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
     private readonly ILineRenderer _lineRenderer;
@@ -62,9 +63,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly IBrickRegistry _brickRegistry;
     private readonly ItemDatabase _itemDatabase;
     private readonly IAssetDatabase<Mesh> _meshDatabase;
-    private readonly Dictionary<BrickShape, MeshGizmo> _shapeGizmos;
-    private readonly Dictionary<Mesh, MeshGizmo> _meshGizmos = [];
-    private MeshGizmo _activeGizmo;
+    private readonly Dictionary<BrickShape, MeshOutline> _shapeOutlines;
+    private readonly Dictionary<Mesh, MeshOutline> _meshOutlines = [];
+    private MeshOutline? _activeOutline;
     private readonly Line[] _debugLines;
     private readonly DebugSettings _debugSettings;
     private readonly SoundEffectService _soundEffectService;
@@ -89,6 +90,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
     public PlayerInteractionService(
         in InteractionState interactionState,
+        in BrickPreviewState brickPreviewState,
         in IInputService inputService,
         in IPhysics physics,
         in ILineRenderer lineRenderer,
@@ -108,6 +110,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     in SnapshotAckTracker snapshotAck
     ) {
         _interactionState = interactionState;
+        _brickPreviewState = brickPreviewState;
         _inputService = inputService;
         _physics = physics;
         _lineRenderer = lineRenderer;
@@ -130,21 +133,19 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         Mesh slab = meshDatabase.Get("slab.obj").Value;
         Mesh column = meshDatabase.Get("column.obj").Value;
         Mesh plate = meshDatabase.Get("plate.obj").Value;
-        
-        _shapeGizmos = new Dictionary<BrickShape, MeshGizmo>
+
+        _shapeOutlines = new Dictionary<BrickShape, MeshOutline>
         {
-            { BrickShape.Any, new MeshGizmo(lineRenderer, _gizmoColor, new Cube())},
-            { BrickShape.Custom, new MeshGizmo(lineRenderer, _gizmoColor, new Cube())},
-            { BrickShape.Block, new MeshGizmo(lineRenderer, _gizmoColor, new Cube())},
-            { BrickShape.Slab, new MeshGizmo(lineRenderer, _gizmoColor, slab)},
-            { BrickShape.Stair, new MeshGizmo(lineRenderer, _gizmoColor, stair)},
-            { BrickShape.Slope, new MeshGizmo(lineRenderer, _gizmoColor, slope)},
-            { BrickShape.Column, new MeshGizmo(lineRenderer, _gizmoColor, column)},
-            { BrickShape.Plate, new MeshGizmo(lineRenderer, _gizmoColor, plate)},
+            { BrickShape.Any, new MeshOutline(lineRenderer, _outlineColor, new Cube(), outset: OUTLINE_OUTSET)},
+            { BrickShape.Custom, new MeshOutline(lineRenderer, _outlineColor, new Cube(), outset: OUTLINE_OUTSET)},
+            { BrickShape.Block, new MeshOutline(lineRenderer, _outlineColor, new Cube(), outset: OUTLINE_OUTSET)},
+            { BrickShape.Slab, new MeshOutline(lineRenderer, _outlineColor, slab, outset: OUTLINE_OUTSET)},
+            { BrickShape.Stair, new MeshOutline(lineRenderer, _outlineColor, stair, outset: OUTLINE_OUTSET)},
+            { BrickShape.Slope, new MeshOutline(lineRenderer, _outlineColor, slope, outset: OUTLINE_OUTSET)},
+            { BrickShape.Column, new MeshOutline(lineRenderer, _outlineColor, column, outset: OUTLINE_OUTSET)},
+            { BrickShape.Plate, new MeshOutline(lineRenderer, _outlineColor, plate, outset: OUTLINE_OUTSET)},
         };
-        
-        _activeGizmo = _shapeGizmos.Values.First();
-        
+
         _debugLines = new Line[3];
         _debugLines[0] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
         _debugLines[1] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
@@ -531,10 +532,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     {
         if (WaywardBeyond.GameState < GameState.Playing)
         {
-            _activeGizmo.Visible = false;
-            _debugLines[0].Color = Vector4.Zero;
-            _debugLines[1].Color = Vector4.Zero;
-            _debugLines[2].Color = Vector4.Zero;
+            HideInteractionVisuals();
             return;
         }
         
@@ -544,10 +542,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             || !holdingPlaceable && clickedVoxel.ID == 0)
         {
             _debugInfo = default;
-            _activeGizmo.Visible = false;
-            _debugLines[0].Color = Vector4.Zero;
-            _debugLines[1].Color = Vector4.Zero;
-            _debugLines[2].Color = Vector4.Zero;
+            HideInteractionVisuals();
             return;
         }
 
@@ -557,91 +552,147 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _debugInfo.Voxel = clickedVoxel;
         _debugInfo.Coordinate = brickPos;
         _debugInfo.Position = worldPos;
-        
-        Quaternion placeableOrientation = holdingPlaceable ? GetPlacementWorldQuaternion(transformComponent, clickedPoint, worldPos) : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
 
-        //  TODO clean this up
-        if (_debugSettings.OverlayVisible)
+        Quaternion localPlacementOrientation = holdingPlaceable
+            ? GetPlacementLocalQuaternion(transformComponent, clickedPoint, worldPos)
+            : Quaternion.Identity;
+
+        Quaternion placeableOrientation = holdingPlaceable
+            ? transformComponent.Orientation * localPlacementOrientation
+            : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
+
+        UpdateDebugLines(worldPos, placeableOrientation);
+
+        if (holdingPlaceable)
         {
-            _debugLines[0].Color = new Vector4(1, 0, 0, 1);
-            _debugLines[0].Start = worldPos;
-            _debugLines[0].End = worldPos + Vector3.Transform(Vector3.UnitX, placeableOrientation);
-            
-            _debugLines[1].Color = new Vector4(0, 1, 0, 1);
-            _debugLines[1].Start = worldPos;
-            _debugLines[1].End = worldPos + Vector3.Transform(Vector3.UnitY, placeableOrientation);
-            
-            _debugLines[2].Color = new Vector4(0, 0, 1, 1);
-            _debugLines[2].Start = worldPos;
-            _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, placeableOrientation);
+            Brick placeableBrick = placeableResult.Value;
+            BrickShape shape = placeableBrick.Shapeable ? _interactionState.SelectedShape.Get() : placeableBrick.Shape;
+            Orientation previewOrientation = placeableBrick.IsOrientable(shape)
+                ? new Orientation(localPlacementOrientation)
+                : Orientation.Identity;
+            _brickPreviewState.Show(placeableBrick, shape, previewOrientation, worldPos, transformComponent.Orientation);
+            ShowPlacementOutline(placeableBrick, shape, worldPos, transformComponent.Orientation, previewOrientation);
+            return;
         }
-        else
+
+        _brickPreviewState.Hide();
+        ShowSelectionOutline(new ShapeLight(clickedVoxel.ShapeLight).Shape, clickedVoxel, worldPos, placeableOrientation);
+    }
+
+    private void HideInteractionVisuals()
+    {
+        HideOutline();
+        _debugLines[0].Color = Vector4.Zero;
+        _debugLines[1].Color = Vector4.Zero;
+        _debugLines[2].Color = Vector4.Zero;
+        _brickPreviewState.Hide();
+    }
+
+    private void UpdateDebugLines(Vector3 worldPos, Quaternion orientation)
+    {
+        if (!_debugSettings.OverlayVisible)
         {
             _debugLines[0].Color = Vector4.Zero;
             _debugLines[1].Color = Vector4.Zero;
             _debugLines[2].Color = Vector4.Zero;
+            return;
         }
 
-        BrickShape placeableShape;
-        Brick placeableBrick;
-        if (holdingPlaceable)
+        _debugLines[0].Color = new Vector4(1, 0, 0, 1);
+        _debugLines[0].Start = worldPos;
+        _debugLines[0].End = worldPos + Vector3.Transform(Vector3.UnitX, orientation);
+        
+        _debugLines[1].Color = new Vector4(0, 1, 0, 1);
+        _debugLines[1].Start = worldPos;
+        _debugLines[1].End = worldPos + Vector3.Transform(Vector3.UnitY, orientation);
+        
+        _debugLines[2].Color = new Vector4(0, 0, 1, 1);
+        _debugLines[2].Start = worldPos;
+        _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, orientation);
+    }
+
+    private void ShowSelectionOutline(BrickShape shape, in Voxel voxel, Vector3 worldPos, Quaternion orientation)
+    {
+        Mesh? customMesh = null;
+
+        if (shape == BrickShape.Custom)
         {
-            placeableBrick = placeableResult.Value;
-            placeableShape = placeableBrick.Shapeable ? _interactionState.SelectedShape.Get() : placeableBrick.Shape;
-        }
-        else
-        {
-            placeableShape = new ShapeLight(clickedVoxel.ShapeLight).Shape;
-            if (placeableShape == BrickShape.Custom && placeableResult.Success)
+            Result<Brick> clickedBrickResult = _brickDatabase.Get(voxel.ID);
+            if (clickedBrickResult.Success)
             {
-                placeableBrick = placeableResult.Value;
-                Mesh? gizmoMesh = ResolveMesh(placeableBrick);
-                if (gizmoMesh != null)
-                {
-                    if (!_meshGizmos.TryGetValue(gizmoMesh, out MeshGizmo? meshGizmo))
-                    {
-                        meshGizmo = new MeshGizmo(_lineRenderer, _gizmoColor, gizmoMesh);
-                        _meshGizmos.Add(gizmoMesh, meshGizmo);
-                    }
-
-                    if (_activeGizmo != meshGizmo)
-                    {
-                        _activeGizmo.Visible = false;
-                        _activeGizmo = meshGizmo;
-                    }
-                }
+                customMesh = ResolveMesh(clickedBrickResult.Value);
             }
         }
-        
-        if (placeableShape == BrickShape.Custom)
-        {
-            if (placeableResult.Success)
-            {
-                Mesh? gizmoMesh = ResolveMesh(placeableResult.Value);
-                if (gizmoMesh != null)
-                {
-                    if (!_meshGizmos.TryGetValue(gizmoMesh, out MeshGizmo? meshGizmo))
-                    {
-                        meshGizmo = new MeshGizmo(_lineRenderer, _gizmoColor, gizmoMesh);
-                        _meshGizmos.Add(gizmoMesh, meshGizmo);
-                    }
 
-                    if (_activeGizmo != meshGizmo)
-                    {
-                        _activeGizmo.Visible = false;
-                        _activeGizmo = meshGizmo;
-                    }
-                }
-            }
-        }
-        else if (_shapeGizmos.TryGetValue(placeableShape, out MeshGizmo? meshGizmo) && _activeGizmo != meshGizmo)
+        ShowOutline(shape, customMesh, worldPos, orientation);
+    }
+
+    private void ShowPlacementOutline(
+        Brick brick,
+        BrickShape shape,
+        Vector3 worldPos,
+        Quaternion structureOrientation,
+        Orientation orientation
+    ) {
+        Mesh? customMesh = shape == BrickShape.Custom ? ResolveMesh(brick) : null;
+        ShowOutline(shape, customMesh, worldPos, structureOrientation * orientation.ToQuaternion());
+    }
+
+    private void ShowOutline(BrickShape shape, Mesh? customMesh, Vector3 worldPos, Quaternion orientation)
+    {
+        MeshOutline? outline = null;
+
+        if (shape == BrickShape.Custom)
         {
-            _activeGizmo.Visible = false;
-            _activeGizmo = meshGizmo;
+            outline = GetMeshOutline(customMesh);
         }
-        
-        _activeGizmo.Visible = true;
-        _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation, holdingPlaceable ? Vector3.One : new Vector3(1.0625f)));
+
+        if (outline == null && _shapeOutlines.TryGetValue(shape, out MeshOutline? shapeOutline))
+        {
+            outline = shapeOutline;
+        }
+
+        if (outline == null)
+        {
+            HideOutline();
+            return;
+        }
+
+        if (_activeOutline != outline)
+        {
+            HideOutline();
+            _activeOutline = outline;
+        }
+
+        _activeOutline.Visible = true;
+        _activeOutline.Render(new TransformComponent(worldPos, orientation, Vector3.One));
+    }
+
+    private MeshOutline? GetMeshOutline(Mesh? mesh)
+    {
+        if (mesh == null)
+        {
+            return null;
+        }
+
+        if (!_meshOutlines.TryGetValue(mesh, out MeshOutline? outline))
+        {
+            outline = new MeshOutline(_lineRenderer, _outlineColor, mesh, outset: OUTLINE_OUTSET);
+            _meshOutlines.Add(mesh, outline);
+        }
+
+        return outline;
+    }
+
+    private void HideOutline()
+    {
+        if (_activeOutline == null)
+        {
+            return;
+        }
+
+        _activeOutline.Visible = false;
+        _activeOutline = null;
     }
     
     private Mesh? ResolveMesh(in Brick brickInfo)
@@ -655,12 +706,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return meshResult.Success ? meshResult.Value : null;
     }
 
-    private Quaternion GetPlacementWorldQuaternion(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickPosWorld)
-    {
-        return transformComponent.Orientation * GetPlacementLocalQuaternion(transformComponent, clickedPos, brickPosWorld);
-    }
-    
-    
     private Quaternion GetPlacementLocalQuaternion(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickPosWorld)
     {
         CameraEntity camera = _renderContext.MainCamera.Get();

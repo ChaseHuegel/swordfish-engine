@@ -71,8 +71,8 @@ static. It separates the id space into two ranges:
 a loaded brick. It carries the voxel id, shape, textures, tags, and the custom
 mesh **id** (a string). It holds no renderable mesh and builds no voxel, so the
 server can reuse it. The client resolves the mesh id to a renderable mesh
-through an `IAssetDatabase<Mesh>` in the mesh-build and gizmo paths. Brick tags
-are case-insensitive.
+through an `IAssetDatabase<Mesh>` in the mesh-build, placement-preview, and gizmo
+paths. Brick tags are case-insensitive.
 
 ### Missing-brick placeholder rendering
 
