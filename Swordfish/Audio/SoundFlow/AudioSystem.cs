@@ -5,7 +5,7 @@ using SoundFlow.Components;
 using SoundFlow.Enums;
 using SoundFlow.Providers;
 using SoundFlow.Structs;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Collections;
 using Swordfish.Settings;
 

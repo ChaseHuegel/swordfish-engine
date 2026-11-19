@@ -1,7 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Krill;
 using Silk.NET.OpenGL;
-using Swordfish.ECS;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;

@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace Swordfish.ECS;
+namespace Krill;
 
 public partial class DataStore
 {

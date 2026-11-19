@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace Swordfish.ECS;
+namespace Krill;
 
 public readonly struct Uuid : IEquatable<Uuid>
 {

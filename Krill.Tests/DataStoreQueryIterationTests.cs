@@ -1,7 +1,7 @@
-using Swordfish.ECS;
+using Krill;
 using Xunit;
 
-namespace Swordfish.Tests;
+namespace Krill.Tests;
 
 public class DataStoreQueryIterationTests
 {
@@ -32,8 +32,8 @@ public class DataStoreQueryIterationTests
         store.Query<TestComp>(0f, (float delta, DataStore s, int e, in TestComp component) => visited++);
 
         Assert.Equal(2, visited);
-        Assert.Equal(first, 1);
-        Assert.Equal(last, 3);
+        Assert.Equal(1, first);
+        Assert.Equal(3, last);
     }
 
     [Fact]

@@ -1,3 +1,3 @@
-namespace Swordfish.ECS;
+namespace Krill;
 
 public interface IDataComponent;

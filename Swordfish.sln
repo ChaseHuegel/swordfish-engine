@@ -15,7 +15,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Editor", "Swordfi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Tests", "Swordfish.Tests\Swordfish.Tests.csproj", "{6E65476F-686B-4D75-912D-98141EC33982}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.ECS", "Swordfish.ECS\Swordfish.ECS.csproj", "{DDBCF831-02E5-4397-9D78-E37BA914E6DD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Krill", "Krill\Krill.csproj", "{DDBCF831-02E5-4397-9D78-E37BA914E6DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Krill.Tests", "Krill.Tests\Krill.Tests.csproj", "{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoal", "Shoal\Shoal.csproj", "{6B7DA392-8DA0-4E5A-BD4C-F0B73E3DBAA0}"
 EndProject
@@ -49,9 +51,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Networking", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Gameplay", "WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj", "{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.ECS.Generator", "Swordfish.ECS.Generator\Swordfish.ECS.Generator.csproj", "{BA467C17-0CA7-4E3E-8AE9-5A1B0CC5E722}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Krill.Generator", "Krill.Generator\Krill.Generator.csproj", "{BA467C17-0CA7-4E3E-8AE9-5A1B0CC5E722}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.ECS.Benchmarks", "Swordfish.ECS.Benchmarks\Swordfish.ECS.Benchmarks.csproj", "{8A0083D1-C544-4A10-81F3-0B685EAD18D4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Krill.Benchmarks", "Krill.Benchmarks\Krill.Benchmarks.csproj", "{8A0083D1-C544-4A10-81F3-0B685EAD18D4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reef.Generator", "Reef.Generator\Reef.Generator.csproj", "{6762FD0F-0583-43B1-85F5-2D87B57FB498}"
 EndProject
@@ -173,6 +175,18 @@ Global
 		{DDBCF831-02E5-4397-9D78-E37BA914E6DD}.Release|x64.Build.0 = Release|Any CPU
 		{DDBCF831-02E5-4397-9D78-E37BA914E6DD}.Release|x86.ActiveCfg = Release|Any CPU
 		{DDBCF831-02E5-4397-9D78-E37BA914E6DD}.Release|x86.Build.0 = Release|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Debug|x64.Build.0 = Debug|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Debug|x86.Build.0 = Debug|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Release|x64.ActiveCfg = Release|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Release|x64.Build.0 = Release|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Release|x86.ActiveCfg = Release|Any CPU
+		{C3F0D1E2-8A4B-4C5D-9E6F-7A8B9C0D1E2F}.Release|x86.Build.0 = Release|Any CPU
 		{6B7DA392-8DA0-4E5A-BD4C-F0B73E3DBAA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6B7DA392-8DA0-4E5A-BD4C-F0B73E3DBAA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B7DA392-8DA0-4E5A-BD4C-F0B73E3DBAA0}.Debug|x64.ActiveCfg = Debug|Any CPU

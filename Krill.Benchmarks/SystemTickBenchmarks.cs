@@ -1,8 +1,8 @@
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
-using Swordfish.ECS;
+using Krill;
 
-namespace Swordfish.ECS.Benchmarks;
+namespace Krill.Benchmarks;
 
 [MemoryDiagnoser]
 public class SystemTickBenchmarks

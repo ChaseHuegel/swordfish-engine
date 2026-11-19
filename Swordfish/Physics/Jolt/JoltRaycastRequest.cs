@@ -1,5 +1,6 @@
 using System.Numerics;
 using JoltPhysicsSharp;
+using Krill;
 using Swordfish.ECS;
 
 namespace Swordfish.Physics.Jolt;
