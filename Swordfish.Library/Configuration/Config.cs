@@ -17,6 +17,12 @@ public abstract class Config<T> : Toml<T>
     {
         lock (_saveLock)
         {
+            PathInfo directory = Path.GetDirectory();
+            if (!string.IsNullOrEmpty(directory.Value))
+            {
+                directory.CreateDirectory();
+            }
+
             string str = ToString();
             byte[] buffer = Encoding.UTF8.GetBytes(str);
 

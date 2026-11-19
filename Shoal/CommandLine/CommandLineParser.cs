@@ -9,7 +9,7 @@ public class CommandLineParser
     {
         new TokenMatcher<CommandLineToken>(CommandLineToken.EqualsOrWhitespace, @"\G[\s\t\n\r\f\0=]+"),
         new TokenMatcher<CommandLineToken>(CommandLineToken.Tack, @"\G-{1,2}"),
-        new TokenMatcher<CommandLineToken>(CommandLineToken.Text, """\G([^\s-""'=]+)"""),
+        new TokenMatcher<CommandLineToken>(CommandLineToken.Text, """\G([^\s""'=-][^\s""'=]*)"""),
         new TokenMatcher<CommandLineToken>(CommandLineToken.DoubleQuoteValue, @"\G""[^""]*"""),
         new TokenMatcher<CommandLineToken>(CommandLineToken.SingleQuoteValue, @"\G'[^']*'"),
     };
