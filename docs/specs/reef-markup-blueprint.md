@@ -8,7 +8,7 @@ integration for [specs/reef-markup](reef-markup.md).
 ## Project structure
 
 The generator lives in `Reef.Generator/` alongside other engine generators
-such as `Swordfish.ECS.Generator/`.
+such as `Krill.Generator/`.
 
 ```text
 Reef.Generator/
@@ -467,5 +467,5 @@ Reef markup integrates with modern .NET development workflows:
 - Implementation plan: [reef-markup-implementation-plan](reef-markup-implementation-plan.md)
 - Reef UI engine internals: [specs/reef-ui](reef-ui.md)
 - Generator entry: `Reef.Generator/ReefGenerator.cs`
-- Existing generator reference: `Swordfish.ECS.Generator/EcsComponentApiGenerator.cs`
+- Existing generator reference: `Krill.Generator/EcsComponentApiGenerator.cs`
 - Build conventions: [development](../development.md)

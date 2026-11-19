@@ -1,4 +1,4 @@
-namespace Swordfish.ECS;
+namespace Krill;
 
 public readonly partial struct Entity
 {

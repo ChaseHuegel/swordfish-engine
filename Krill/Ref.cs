@@ -1,4 +1,4 @@
-namespace Swordfish.ECS;
+namespace Krill;
 
 public readonly ref struct Ref<T> where T : struct, IDataComponent
 {

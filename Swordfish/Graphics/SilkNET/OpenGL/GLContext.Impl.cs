@@ -1,6 +1,6 @@
 using System.Numerics;
+using Krill;
 using Silk.NET.OpenGL;
-using Swordfish.ECS;
 using Swordfish.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;

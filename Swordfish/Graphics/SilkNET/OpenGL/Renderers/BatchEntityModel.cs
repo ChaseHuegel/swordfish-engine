@@ -1,5 +1,5 @@
 using System.Numerics;
-using Swordfish.ECS;
+using Krill;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 

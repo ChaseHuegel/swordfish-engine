@@ -22,6 +22,8 @@ jobs:
       run: dotnet build --no-restore
     - name: Test Reef
       run: dotnet test Reef.Tests --no-build --verbosity normal
+    - name: Test Krill
+      run: dotnet test Krill.Tests --no-build --verbosity normal
     - name: Test Reef rich text
       run: dotnet test Reef.Text.Tests --no-build --verbosity normal
     - name: Test Reef markup generator

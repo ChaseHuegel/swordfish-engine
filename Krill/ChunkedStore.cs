@@ -1,4 +1,4 @@
-namespace Swordfish.ECS;
+namespace Krill;
 
 internal abstract class ChunkedStore
 {

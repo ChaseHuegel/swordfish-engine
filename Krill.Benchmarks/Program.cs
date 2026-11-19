@@ -1,4 +1,4 @@
 using BenchmarkDotNet.Running;
-using Swordfish.ECS.Benchmarks;
+using Krill.Benchmarks;
 
 new BenchmarkSwitcher(typeof(Program).Assembly).Run(args);

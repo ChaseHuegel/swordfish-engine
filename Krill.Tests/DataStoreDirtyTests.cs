@@ -1,7 +1,7 @@
-using Swordfish.ECS;
+using Krill;
 using Xunit;
 
-namespace Swordfish.Tests;
+namespace Krill.Tests;
 
 public class DataStoreDirtyTests
 {

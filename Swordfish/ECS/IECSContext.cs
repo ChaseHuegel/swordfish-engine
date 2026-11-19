@@ -1,3 +1,4 @@
+using Krill;
 using Swordfish.Library.Types;
 
 namespace Swordfish.ECS;
