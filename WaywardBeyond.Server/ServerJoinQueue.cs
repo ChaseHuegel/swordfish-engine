@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using NsdRpc;
-using Swordfish.ECS;
+using Krill;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Server;

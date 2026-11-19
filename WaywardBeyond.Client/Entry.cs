@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Numerics;
 using HardwareInformation;
+using Krill;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.ECS;

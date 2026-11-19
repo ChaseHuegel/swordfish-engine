@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;

@@ -1,4 +1,4 @@
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;

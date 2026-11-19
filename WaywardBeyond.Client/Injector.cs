@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DryIoc;
+using Krill;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
@@ -17,7 +18,6 @@ using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Identity;
 using WaywardBeyond.Client.Items;
-using WaywardBeyond.Items;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Saves;
@@ -42,6 +42,7 @@ using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
+using WaywardBeyond.Items;
 
 namespace WaywardBeyond.Client;
 

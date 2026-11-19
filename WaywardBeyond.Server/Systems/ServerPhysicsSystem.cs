@@ -1,6 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Physics;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;

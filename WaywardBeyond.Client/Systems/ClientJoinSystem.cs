@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
-using Swordfish.ECS;
+using Krill;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Voxels.Building;

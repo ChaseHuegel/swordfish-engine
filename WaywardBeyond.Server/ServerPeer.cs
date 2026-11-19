@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
-using Swordfish.ECS;
+using Krill;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;

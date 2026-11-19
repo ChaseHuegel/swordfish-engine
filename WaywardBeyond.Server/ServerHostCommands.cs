@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Krill;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using Swordfish.ECS;

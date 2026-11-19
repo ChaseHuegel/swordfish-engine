@@ -3,7 +3,7 @@ using DryIoc;
 using Microsoft.Extensions.Logging;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Interactions;
 using WaywardBeyond.Server.Permissions;

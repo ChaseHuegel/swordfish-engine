@@ -1,5 +1,6 @@
 #nullable enable
 using System.Numerics;
+using Krill;
 using Swordfish.ECS;
 using Xunit;
 using WaywardBeyond.Client.Components;

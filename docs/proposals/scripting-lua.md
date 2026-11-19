@@ -302,7 +302,7 @@ A script defines these optional functions:
 ### 9.2 Bindings
 
 Bindings are `[LuaObject]`-wrapped C# types. The source generator builds the Lua
-surface. This matches the source-generator pattern in `Swordfish.ECS.Generator`.
+surface. This matches the source-generator pattern in `Krill.Generator`.
 
 v1 bindings, read-only:
 

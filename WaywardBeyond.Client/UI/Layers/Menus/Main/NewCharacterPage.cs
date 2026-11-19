@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Reef;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;

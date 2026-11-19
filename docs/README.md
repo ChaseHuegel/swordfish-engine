@@ -13,6 +13,7 @@ change touches a subject, run the docs pass (see `development.md`).
 |---|---|
 | Principles, workflows, toolchain, code style, commit rules, config schema, docs pass | [development](development.md) |
 | As-built architecture, module map, persistence schema, CLI | [architecture](architecture.md) |
+| Standalone Krill ECS package: identity, layout, API surface, boundary, pack steps | [specs/krill](specs/krill.md) |
 | DI composition: who registers what, call sites, policies | [specs/composition](specs/composition.md) |
 | Networking overview: process boundary, world split, current state | [specs/networking-overview](specs/networking-overview.md) |
 | Needlefish codegen: schema layout, includes, generator options | [specs/needlefish-codegen](specs/needlefish-codegen.md) |

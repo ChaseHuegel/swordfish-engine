@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;

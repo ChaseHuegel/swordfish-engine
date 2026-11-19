@@ -75,7 +75,7 @@ Conventions for common type patterns such as assets, config, and ECS live in [sp
 
 | Element | Convention | Example |
 |---|---|---|
-| Namespace | File-scoped | `namespace Swordfish.ECS;` |
+| Namespace | File-scoped | `namespace Krill;` |
 | Classes, structs, records | PascalCase | `SwordfishEngine`, `Entity` |
 | Interfaces | PascalCase + `I` prefix | `IDataComponent`, `IEntryPoint` |
 | Methods | PascalCase | `OnWindowLoaded()`, `Get<T>()` |
@@ -213,7 +213,7 @@ These rules bind every path and bind hardest to hot paths.
   can compute.
 - Gate expensive writes on a change check. See ECS dirty tracking.
 - Measure before you claim a win. `Reef.Benchmarks` and
-  `Swordfish.ECS.Benchmarks` exist for this.
+  `Krill.Benchmarks` exist for this.
 
 ### Placement & module boundaries
 
@@ -223,6 +223,8 @@ These rules bind every path and bind hardest to hot paths.
   type stays in that module.
 - Depend downward only. The client must not reference the server, and a game
   project must not gain an engine dependency.
+- `Krill/` is a standalone package. It must not reference another project in
+  this repo, and nothing in Krill may depend on Swordfish or Shoal.
 - A project that grows a second, unrelated concern splits into a new module.
   One clear responsibility is the trigger, not a line count.
 
@@ -328,6 +330,7 @@ Document the contract. Do not document the implementation.
 
 ### ECS
 
+- The API lives in the standalone `Krill` package. See [specs/krill](specs/krill.md).
 - Components are `readonly struct` implementing `IDataComponent`.
 - Generic constraints: `where T1 : struct, IDataComponent`.
 - Systems inherit `EntitySystem` and override `Tick()`.
@@ -405,7 +408,7 @@ Examples: `Fix sluggish Linux Wayland window resizes #591`,
 ### Engine vs game commit boundary
 
 - **Engine set**: everything except `WaywardBeyond.*` (`Swordfish`,
-  `Swordfish.ECS`, `Swordfish.Library`, `Swordfish.Integrations`,
+  `Krill`, `Swordfish.Library`, `Swordfish.Integrations`,
   `Swordfish.Compilation`, `Shoal`, `Reef`, `Shoal.Extensions.Swordfish`,
   launchers, demo/editor).
 - **Game set**: `WaywardBeyond.*`.

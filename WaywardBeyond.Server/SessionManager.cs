@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Concurrent;
-using Swordfish.ECS;
+using Krill;
 using WaywardBeyond.Gameplay.Networking;
 
 namespace WaywardBeyond.Server;

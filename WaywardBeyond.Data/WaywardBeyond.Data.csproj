@@ -15,7 +15,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
+      <ProjectReference Include="..\Krill\Krill.csproj" />
       <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Config\WaywardBeyond.Config.csproj" />
     </ItemGroup>

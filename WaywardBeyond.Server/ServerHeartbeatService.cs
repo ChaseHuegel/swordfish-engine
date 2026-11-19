@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Swordfish.ECS;
+using Krill;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;

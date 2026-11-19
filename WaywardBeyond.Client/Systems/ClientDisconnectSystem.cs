@@ -1,4 +1,4 @@
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Globalization;
 using System.Collections.Concurrent;
 using WaywardBeyond.Client.Extensions;

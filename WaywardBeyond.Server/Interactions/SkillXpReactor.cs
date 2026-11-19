@@ -1,6 +1,6 @@
 using System;
 using Microsoft.Extensions.Logging;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Interactions;

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
-using Swordfish.ECS;
+using Krill;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;

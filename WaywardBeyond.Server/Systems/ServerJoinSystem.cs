@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
+using Krill;
 using Swordfish.ECS;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using NsdRpc;
-using Swordfish.ECS;
+using Krill;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;

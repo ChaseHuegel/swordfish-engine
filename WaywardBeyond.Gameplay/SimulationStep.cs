@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
+using Krill;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
