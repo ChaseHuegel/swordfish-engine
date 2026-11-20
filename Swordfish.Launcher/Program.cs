@@ -1,13 +1,25 @@
-﻿namespace Swordfish.Launcher;
+﻿using Shoal.CrashHandling;
+using Swordfish.Library.IO;
+
+namespace Swordfish.Launcher;
 
 internal static class Program
 {
     private static int Main(string[] args)
     {
-        var engine = new SwordfishEngine(args);
+        AppPaths appPaths = SwordfishEngine.ResolveAppPaths(args);
+        var options = new CrashHandlerOptions
+        {
+            AppName = "Swordfish",
+            AppVersion = SwordfishEngine.Version.ToString(),
+            Headless = false,
+            AppPaths = appPaths,
+        };
 
-        int exitCode = engine.Run();
-
-        return exitCode;
+        return CrashSupervisor.Run(args, options, appArgs =>
+        {
+            var engine = new SwordfishEngine(appArgs, appPaths);
+            return engine.Run();
+        });
     }
 }

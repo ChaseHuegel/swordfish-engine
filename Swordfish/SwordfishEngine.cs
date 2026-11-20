@@ -5,6 +5,7 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
 using Shoal.CommandLine;
+using Shoal.CrashHandling;
 using Silk.NET.Core;
 using Swordfish.Library.IO;
 using Swordfish.Library.Threading;
@@ -103,7 +104,7 @@ public class SwordfishEngine
     public int Run()
     {
         TransitionState(State.Initialized, State.Starting);
-        if (OperatingSystem.IsWindows() && (_args.Contains("-debug") || _args.Contains("--debug")))
+        if (OperatingSystem.IsWindows() && !CrashSession.HasSupervisedConsole && (_args.Contains("-debug") || _args.Contains("--debug")))
         {
             if (Kernel32.AttachConsole(-1) || Kernel32.AllocConsole())
             {
@@ -138,6 +139,7 @@ public class SwordfishEngine
         }
 
         TransitionState(State.Closed, State.Stopped);
+        AppEngine.FlushLogs();
 
         return _exitCode;
     }
@@ -199,5 +201,6 @@ public class SwordfishEngine
 
         _logger.LogDebug("Engine state transitioning from {currentState} to {newState}.", _state, newState);
         _state = newState;
+        CrashSession.SetEngineState(newState.ToString());
     }
 }

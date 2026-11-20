@@ -32,7 +32,7 @@ public class ThreadWorker
         _handleOnce = handler;
         _thread = new Thread(new ThreadStart(_handleOnce))
         {
-            Name = name == "" ? _handle.Method.ToString() : name,
+            Name = name == "" ? _handleOnce.Method.ToString() : name,
             IsBackground = true,
         };
     }
