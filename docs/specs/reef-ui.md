@@ -46,6 +46,24 @@ aligned along that axis. Use `LayoutDirection.None` for full-screen overlay
 roots that center a fixed-size modal. `Reef.Tests/UIBuilderLayoutTests.cs:10`
 covers this.
 
+## Anchored overlays
+
+`OverlayPlacement` at `Reef/UI/OverlayPlacement.cs:23` anchors an overlay
+element beside a target element ID, a viewport rectangle, or a point. Call
+`OverlayPlacement.ForElement`, `OverlayPlacement.ForRect`, or
+`OverlayPlacement.AtPoint`, and assign the value to `UIBuilder.OverlayPlacement`
+(`Reef/UIBuilder.cs:179`). Setting `OverlayPlacement` implicitly defers the
+element to the overlay pass (`Reef/UIBuilder.cs:879`).
+
+Placement runs in Pass 2 after `FillShrinkAndWrapElements` resolves final
+sizes and after the normal pass positions non-overlay elements
+(`Reef/UIBuilder.cs:888`). `TryResolveAnchorRect` (`Reef/UIBuilder.cs:1127`)
+reads the target element's same-frame rect from the emitted commands and falls
+back to `UIController.GetElementBounds` when needed. `OverlayPlacement.Resolve`
+(`Reef/UI/OverlayPlacement.cs:123`) flips the preferred `OverlaySide` and
+`OverlayAlign` when the overlay would cross `ViewportMargin`, then clamps the
+origin into the logical viewport.
+
 ## Paint order
 
 Elements paint in declaration order. The parent paints first, then the first
@@ -246,4 +264,6 @@ native resolution.
   expand a quad instance instead of reading per-vertex attributes.
 - `Reef.Tests/UIBuilderScalingTests.cs` checks canvas `SetScale`, `Resize`,
   `ReferenceHeight`, `MapCursorPosition`, and multi-builder independence.
+- `Reef.Tests/OverlayPlacementTests.cs` checks anchored overlay placement,
+  single-frame fit sizing, viewport flipping, clamping, factories, and scaling.
 - `Swordfish.Tests/ReefScalingTests.cs` checks `RenderSettings.Reef` defaults.

@@ -21,6 +21,7 @@ public struct Element<TRendererData>
     public Viewport Viewport;
     public bool Passthrough;
     public bool Overlay;
+    public OverlayPlacement? OverlayPlacement;
 
     internal IntVector2 ContentSize;
     internal TextLayout? TextLayout;

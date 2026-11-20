@@ -40,6 +40,18 @@ internal static class StyleValueParser
             return TryParseExpressionAttribute(element, name, trimmed, attribute.Location, out assignments, out error);
         }
 
+        if (string.Equals(name, "overlay-target", StringComparison.Ordinal))
+        {
+            if (string.IsNullOrWhiteSpace(attribute.Value))
+            {
+                error = "Overlay target requires an element id.";
+                return false;
+            }
+
+            assignments.Add(new MarkupAssignment(MarkupProperty.OverlayTarget, attribute.Value, attribute.Location));
+            return true;
+        }
+
         List<RssToken> tokens = TokenizeValue(attribute.Value);
         if (tokens.Count == 0)
         {
@@ -102,6 +114,21 @@ internal static class StyleValueParser
                 return AddColor(tokens, MarkupProperty.CornerCapsColor, location, out assignments, out error);
             case "overlay":
                 return AddBool(tokens, MarkupProperty.Overlay, location, out assignments, out error);
+            case "overlay-placement":
+                error = "Overlay placement requires an @expression.";
+                return false;
+            case "overlay-side":
+                return AddOverlaySide(tokens, location, out assignments, out error);
+            case "overlay-align":
+                return AddOverlayAlign(tokens, location, out assignments, out error);
+            case "overlay-gap":
+                return AddInt(tokens, MarkupProperty.OverlayGap, location, out assignments, out error);
+            case "overlay-margin":
+                return AddInt(tokens, MarkupProperty.OverlayMargin, location, out assignments, out error);
+            case "overlay-flip":
+                return AddBool(tokens, MarkupProperty.OverlayFlip, location, out assignments, out error);
+            case "overlay-clamp":
+                return AddBool(tokens, MarkupProperty.OverlayClamp, location, out assignments, out error);
             case "width":
                 return AddConstraint(tokens, MarkupProperty.Width, location, out assignments, out error);
             case "height":
@@ -290,6 +317,18 @@ internal static class StyleValueParser
             case "overlay":
                 assignments.Add(new MarkupAssignment(MarkupProperty.Overlay, new MarkupExpression(raw, MarkupExpressionKind.Bool), location));
                 return true;
+            case "overlay-placement":
+                assignments.Add(new MarkupAssignment(MarkupProperty.OverlayPlacement, new MarkupExpression(raw, MarkupExpressionKind.OverlayPlacement), location));
+                return true;
+            case "overlay-target":
+                assignments.Add(new MarkupAssignment(MarkupProperty.OverlayTarget, new MarkupExpression(raw, MarkupExpressionKind.Text), location));
+                return true;
+            case "overlay-flip":
+                assignments.Add(new MarkupAssignment(MarkupProperty.OverlayFlip, new MarkupExpression(raw, MarkupExpressionKind.Bool), location));
+                return true;
+            case "overlay-clamp":
+                assignments.Add(new MarkupAssignment(MarkupProperty.OverlayClamp, new MarkupExpression(raw, MarkupExpressionKind.Bool), location));
+                return true;
             case "width":
                 assignments.Add(new MarkupAssignment(MarkupProperty.Width, new MarkupExpression(raw, MarkupExpressionKind.Constraint), location));
                 return true;
@@ -306,6 +345,8 @@ internal static class StyleValueParser
             case "min-height":
             case "max-width":
             case "max-height":
+            case "overlay-gap":
+            case "overlay-margin":
             case "spacing":
             case "font-size":
                 assignments.Add(new MarkupAssignment(PropertyForName(name), new MarkupExpression(raw, MarkupExpressionKind.Int), location));
@@ -343,6 +384,8 @@ internal static class StyleValueParser
             case "vertical-align":
             case "valign":
             case "wrap":
+            case "overlay-side":
+            case "overlay-align":
             case "min-size":
             case "max-size":
                 error = "This style attribute does not support expressions.";
@@ -365,6 +408,10 @@ internal static class StyleValueParser
                 return MarkupProperty.MaxWidth;
             case "max-height":
                 return MarkupProperty.MaxHeight;
+            case "overlay-gap":
+                return MarkupProperty.OverlayGap;
+            case "overlay-margin":
+                return MarkupProperty.OverlayMargin;
             case "spacing":
                 return MarkupProperty.Spacing;
             default:
@@ -1168,6 +1215,86 @@ internal static class StyleValueParser
         }
 
         assignments.Add(new MarkupAssignment(MarkupProperty.VerticalAlignment, alignment, location));
+        return true;
+    }
+
+    private static bool AddOverlaySide(
+        IReadOnlyList<RssToken> tokens,
+        Location location,
+        out List<MarkupAssignment> assignments,
+        out string error)
+    {
+        assignments = [];
+        error = string.Empty;
+        List<RssToken> values = NonTrivia(tokens);
+        if (values.Count != 1 || values[0].Kind != RssTokenKind.Identifier)
+        {
+            error = "Overlay side requires right, left, bottom, or top.";
+            return false;
+        }
+
+        MarkupOverlaySide side;
+        if (string.Equals(values[0].Text, "right", StringComparison.OrdinalIgnoreCase))
+        {
+            side = MarkupOverlaySide.Right;
+        }
+        else if (string.Equals(values[0].Text, "left", StringComparison.OrdinalIgnoreCase))
+        {
+            side = MarkupOverlaySide.Left;
+        }
+        else if (string.Equals(values[0].Text, "bottom", StringComparison.OrdinalIgnoreCase))
+        {
+            side = MarkupOverlaySide.Bottom;
+        }
+        else if (string.Equals(values[0].Text, "top", StringComparison.OrdinalIgnoreCase))
+        {
+            side = MarkupOverlaySide.Top;
+        }
+        else
+        {
+            error = "Overlay side requires right, left, bottom, or top.";
+            return false;
+        }
+
+        assignments.Add(new MarkupAssignment(MarkupProperty.OverlaySide, side, location));
+        return true;
+    }
+
+    private static bool AddOverlayAlign(
+        IReadOnlyList<RssToken> tokens,
+        Location location,
+        out List<MarkupAssignment> assignments,
+        out string error)
+    {
+        assignments = [];
+        error = string.Empty;
+        List<RssToken> values = NonTrivia(tokens);
+        if (values.Count != 1 || values[0].Kind != RssTokenKind.Identifier)
+        {
+            error = "Overlay align requires start, center, or end.";
+            return false;
+        }
+
+        MarkupOverlayAlign align;
+        if (string.Equals(values[0].Text, "start", StringComparison.OrdinalIgnoreCase))
+        {
+            align = MarkupOverlayAlign.Start;
+        }
+        else if (string.Equals(values[0].Text, "center", StringComparison.OrdinalIgnoreCase))
+        {
+            align = MarkupOverlayAlign.Center;
+        }
+        else if (string.Equals(values[0].Text, "end", StringComparison.OrdinalIgnoreCase))
+        {
+            align = MarkupOverlayAlign.End;
+        }
+        else
+        {
+            error = "Overlay align requires start, center, or end.";
+            return false;
+        }
+
+        assignments.Add(new MarkupAssignment(MarkupProperty.OverlayAlign, align, location));
         return true;
     }
 
