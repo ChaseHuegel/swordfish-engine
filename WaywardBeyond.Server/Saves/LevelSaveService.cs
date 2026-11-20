@@ -32,6 +32,7 @@ public sealed class LevelSaveService : IDisposable
     private readonly ILogger _logger;
     private readonly ILevelCatalog _levelCatalog;
     private readonly IBrickRegistry _brickRegistry;
+    private readonly IBrickDatabase _brickDatabase;
     private readonly Lock _saveLock = new();
     private readonly ConcurrentQueue<bool> _completions = new();
 
@@ -53,11 +54,13 @@ public sealed class LevelSaveService : IDisposable
         ILogger logger,
         ILevelCatalog levelCatalog,
         IBrickRegistry brickRegistry,
+        IBrickDatabase brickDatabase,
         GameplayConfig gameplayConfig
     ) {
         _logger = logger;
         _levelCatalog = levelCatalog;
         _brickRegistry = brickRegistry;
+        _brickDatabase = brickDatabase;
         _gameplayConfig = gameplayConfig;
         LevelSpawn = _gameplayConfig.DefaultSpawnPosition;
     }
@@ -110,7 +113,7 @@ public sealed class LevelSaveService : IDisposable
             try
             {
                 VoxelEntityData local = VoxelCodec.Decode(in entity, _brickRegistry);
-                VoxelWorldEntityFactory.CreateAuthority(store, local);
+                VoxelWorldEntityFactory.CreateAuthority(store, local, _brickDatabase);
             }
             catch (Exception ex)
             {

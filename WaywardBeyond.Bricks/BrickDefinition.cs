@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace WaywardBeyond.Bricks;
 
 /// <summary>Defines a brick asset.</summary>
@@ -11,4 +13,5 @@ internal struct BrickDefinition()
     public BrickShape Shape;
     public BrickTextures Textures;
     public string[] Tags;
+    public List<BrickColliderDefinition>? Colliders;
 }

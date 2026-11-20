@@ -2,6 +2,7 @@
 using Krill;
 using Swordfish.ECS;
 using Swordfish.Physics;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Server.Components;
@@ -22,7 +23,7 @@ namespace WaywardBeyond.Server.Saves;
 public static class VoxelWorldEntityFactory
 {
     /// <summary>Builds the authority components for one structure. Returns a default entity when it has no solid voxels.</summary>
-    public static Entity CreateAuthority(DataStore store, in VoxelEntityData data)
+    public static Entity CreateAuthority(DataStore store, in VoxelEntityData data, IBrickDatabase? brickDatabase = null)
     {
         //  Skip entities with no solid voxels - an empty CompoundShape would otherwise be handed to the
         //  physics system, which is a degenerate/undefined body. Such entities never occur in practice
@@ -34,15 +35,6 @@ public static class VoxelWorldEntityFactory
 
         int entity = store.Alloc(Uuid.FromValue(data.Uuid));
 
-        store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
-        store.AddOrUpdate(entity, new TransformComponent(
-            new Vector3((float)data.X, (float)data.Y, (float)data.Z),
-            new Quaternion(data.OrientationX, data.OrientationY, data.OrientationZ, data.OrientationW),
-            new Vector3(data.ScaleX, data.ScaleY, data.ScaleZ)
-        ));
-        store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
-        store.AddOrUpdate(entity, new ColliderComponent(VoxelColliderBuilder.BuildCollision(data.Chunks)));
-
         //  A live, mutable voxel container so the server can apply authoritative edits on its own copy
         //  of the structure. Chunk sizes are uniform across a structure (the shared generator emits
         //  power-of-two chunk sizes); use the first chunk's size (with the same fallback the client's
@@ -52,7 +44,17 @@ public static class VoxelWorldEntityFactory
         {
             chunkSize = DEFAULT_CHUNK_SIZE;
         }
-        store.AddOrUpdate(entity, new VoxelWorldComponent(new VoxelObject(chunkSize, data.Chunks)));
+        var voxelObject = new VoxelObject(chunkSize, data.Chunks);
+
+        store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
+        store.AddOrUpdate(entity, new TransformComponent(
+            new Vector3((float)data.X, (float)data.Y, (float)data.Z),
+            new Quaternion(data.OrientationX, data.OrientationY, data.OrientationZ, data.OrientationW),
+            new Vector3(data.ScaleX, data.ScaleY, data.ScaleZ)
+        ));
+        store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
+        store.AddOrUpdate(entity, new ColliderComponent(VoxelColliderBuilder.BuildCollision(voxelObject, brickDatabase)));
+        store.AddOrUpdate(entity, new VoxelWorldComponent(voxelObject));
 
         store.AddOrUpdate(entity, new NetworkComponent());
 
