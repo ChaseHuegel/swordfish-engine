@@ -1,8 +1,9 @@
-using Karambolo.Extensions.Logging.File;
 using Microsoft.Extensions.Logging.Console;
 using Shoal.CommandLine;
+using Shoal.CrashHandling;
 using Shoal.Extensions.Swordfish;
 using Shoal.Globalization;
+using Shoal.Logging;
 using Shoal.Modularity;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Events;
@@ -18,10 +19,18 @@ public sealed class AppEngine : IDisposable
     private static readonly object _loggerLock = new();
     private static readonly LogListener _logListener = new();
     private static AppPaths? _configuredPaths;
+    private static LoggingConfig? _loggingConfig;
+    private static AsyncFileLoggerProvider? _fileLoggerProvider;
+    private static int _globalHandlersRegistered;
     private static volatile ILoggerFactory? _loggerFactory;
     private static volatile ILogger? _logger;
 
     private static ILogger Logger => _logger ??= CreateLogger<AppEngine>();
+
+    /// <summary>
+    ///     Gets the active logging configuration loaded for the configured application paths.
+    /// </summary>
+    public static LoggingConfig LoggingConfig => _loggingConfig ?? LoggingConfig.CreateDefault();
 
     public IContainer Container { get; }
 
@@ -91,6 +100,23 @@ public sealed class AppEngine : IDisposable
     public void Dispose()
     {
         Container.Dispose();
+        FlushLogs();
+    }
+
+    /// <summary>
+    ///     Flushes all buffered file log entries to disk.
+    /// </summary>
+    public static void FlushLogs(TimeSpan? timeout = null)
+    {
+        _fileLoggerProvider?.Flush(timeout ?? TimeSpan.FromSeconds(2));
+    }
+
+    /// <summary>
+    ///     Flushes and closes file logging cleanly during process shutdown.
+    /// </summary>
+    public static void ShutdownLogging()
+    {
+        _fileLoggerProvider?.Dispose();
     }
 
     public void Start()
@@ -141,15 +167,58 @@ public sealed class AppEngine : IDisposable
             {
                 AppPaths paths = _configuredPaths
                     ?? throw new InvalidOperationException("App paths must be configured before the first logger is created.");
-                _loggerFactory = LoggerFactory.Create(builder => BuildLoggerFactory(builder, paths));
+                RegisterGlobalCrashHooks();
+                _loggingConfig = LoggingConfig.Load(paths);
+                _loggerFactory = LoggerFactory.Create(builder => BuildLoggerFactory(builder, paths, _loggingConfig));
             }
 
             return _loggerFactory;
         }
     }
 
-    private static void BuildLoggerFactory(ILoggingBuilder builder, AppPaths appPaths)
+    private static void RegisterGlobalCrashHooks()
     {
+        if (Interlocked.Exchange(ref _globalHandlersRegistered, 1) != 0)
+        {
+            return;
+        }
+
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+        AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+    }
+
+    private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        string threadName = string.IsNullOrEmpty(Thread.CurrentThread.Name)
+            ? $"Thread {Environment.CurrentManagedThreadId}"
+            : $"{Thread.CurrentThread.Name} (ID {Environment.CurrentManagedThreadId})";
+
+        string exceptionText = e.ExceptionObject is Exception ex
+            ? ex.ToString()
+            : e.ExceptionObject?.ToString() ?? "(unknown exception object)";
+
+        CrashSession.RecordUnhandledException(threadName, exceptionText);
+
+        string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [CRT] [{threadName}] UnhandledException (IsTerminating={e.IsTerminating}):{Environment.NewLine}{exceptionText}";
+        _fileLoggerProvider?.WriteEmergency(line);
+        FlushLogs(TimeSpan.FromSeconds(2));
+    }
+
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        Logger.LogError(e.Exception, "Unobserved task exception.");
+        FlushLogs(TimeSpan.FromSeconds(1));
+    }
+
+    private static void OnProcessExit(object? sender, EventArgs e)
+    {
+        FlushLogs(TimeSpan.FromSeconds(2));
+    }
+
+    private static void BuildLoggerFactory(ILoggingBuilder builder, AppPaths appPaths, LoggingConfig loggingConfig)
+    {
+        builder.SetMinimumLevel(loggingConfig.MinLevel);
         builder.AddProvider(_logListener);
 
         builder.AddSimpleConsole(options =>
@@ -159,36 +228,30 @@ public sealed class AppEngine : IDisposable
             options.ColorBehavior = LoggerColorBehavior.Enabled;
         });
 
-        builder.AddFile(options =>
+        string logsDirectory = appPaths.LogsRoot.Value;
+        LogRingBuffer? ringBuffer = null;
+        string? ringPath = CrashSession.RingBufferPath;
+        if (!string.IsNullOrWhiteSpace(ringPath))
         {
-            //  The file appender requires its root directory to exist.
-            string logsDirectory = appPaths.LogsRoot.Value;
-            Directory.CreateDirectory(logsDirectory);
-
-            options.RootPath = appPaths.DataRoot.Value;
-            options.BasePath = "logs";
-            options.DateFormat = "yyyy-MM-dd";
-            options.IncludeScopes = true;
-            options.FileAccessMode = LogFileAccessMode.KeepOpenAndAutoFlush;
-            options.Files =
-            [
-                new LogFileOptions
-                {
-                    Path = $"{DateTime.Now:yyyy-MM-dd_HHmm-ss}.log",
-                },
-                new LogFileOptions
-                {
-                    Path = "latest.log",
-                },
-            ];
-
-            //  Clear the latest log file
-            string latestLogFile = Path.Combine(logsDirectory, "latest.log");
-            if (File.Exists(latestLogFile))
+            try
             {
-                File.Delete(latestLogFile);
+                ringBuffer = LogRingBuffer.CreateOrOpenWriter(ringPath);
             }
-        });
+            catch
+            {
+                ringBuffer = null;
+            }
+        }
+
+        _fileLoggerProvider = new AsyncFileLoggerProvider(
+            loggingConfig,
+            logsDirectory,
+            ringBuffer,
+            ownsRingBuffer: ringBuffer != null
+        );
+
+        CrashSession.SetLogPaths(_fileLoggerProvider.TimestampedLogPath, _fileLoggerProvider.LatestLogPath);
+        builder.AddProvider(_fileLoggerProvider);
     }
 
     private IContainer CreateCoreContainer(CommandLineArgs args, AppPaths appPaths)
@@ -198,11 +261,12 @@ public sealed class AppEngine : IDisposable
         container.RegisterInstance<CommandLineArgs>(args);
         container.RegisterInstance(appPaths);
         container.RegisterInstance<LogListener>(_logListener);
+        container.RegisterInstance<LoggingConfig>(LoggingConfig);
 
         container.Register<VirtualFileSystem>(Reuse.Singleton);
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 
-        container.RegisterInstance(GetLoggerFactory());
+        container.RegisterInstance(GetLoggerFactory(), setup: Setup.With(preventDisposal: true));
         MethodInfo loggerFactoryMethod = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
         container.Register(typeof(ILogger<>), made: Made.Of(req => loggerFactoryMethod.MakeGenericMethod(req.Parent.ImplementationType)));
         container.Register(Made.Of(() => CreateLogger( Arg.Index<Request>(0)), request => request));
@@ -270,6 +334,7 @@ public sealed class AppEngine : IDisposable
         var loadedAssemblies = new List<Assembly>();
         parentContainer.Resolve<IModulesLoader>().Load((manifestFile, assembly) =>
         {
+            CrashSession.AddLoadedModule($"{manifestFile.Value.Name} ({manifestFile.Value.ID})");
             vfs.Mount(manifestFile.GetRootPath().At("assets"));
             loadedAssemblies.Add(assembly);
         });
@@ -309,6 +374,8 @@ public sealed class AppEngine : IDisposable
         {
             Logger.LogError(error.Value, "There was an error validating a container (service: {service}).", error.Key);
         }
+
+        FlushLogs(TimeSpan.FromSeconds(2));
         Environment.Exit((int)ExitCode.BadDependency);
     }
 

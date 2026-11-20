@@ -10,6 +10,7 @@ public readonly struct AppPaths
     private const string DEFAULT_APP_NAME = "Swordfish";
     private const string CONFIG_DIRECTORY = "config";
     private const string LOGS_DIRECTORY = "logs";
+    private const string CRASHES_DIRECTORY = "crashes";
 
     /// <summary>Root directory for application data such as saves and user overrides.</summary>
     public PathInfo DataRoot { get; }
@@ -19,6 +20,9 @@ public readonly struct AppPaths
 
     /// <summary>Directory where log files are written.</summary>
     public PathInfo LogsRoot => DataRoot.At(LOGS_DIRECTORY);
+
+    /// <summary>Directory where crash reports and crash dumps are written.</summary>
+    public PathInfo CrashesRoot => DataRoot.At(CRASHES_DIRECTORY);
 
     /// <summary>Whether <see cref="DataRoot"/> should be mounted into the virtual file system as a user override.</summary>
     public bool MountInVfs { get; }
