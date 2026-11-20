@@ -47,7 +47,7 @@ vec3 linearToSrgb(vec3 x)
 
 vec4 fragment()
 {
-    if (!contains(ClipRect, gl_FragCoord.x - 0.5, gl_FragCoord.y - 0.5))
+    if (!contains(ClipRect, gl_FragCoord.x, gl_FragCoord.y))
     {
         return vec4(0);
     }
@@ -58,7 +58,7 @@ vec4 fragment()
 
 bool contains(vec4 rect, float x, float y)
 {
-    if (x > rect.z)
+    if (x >= rect.z)
     {
         return false;
     }
@@ -68,7 +68,7 @@ bool contains(vec4 rect, float x, float y)
         return false;
     }
 
-    if (y > rect.w)
+    if (y >= rect.w)
     {
         return false;
     }
