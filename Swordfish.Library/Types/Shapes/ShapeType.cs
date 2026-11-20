@@ -10,4 +10,5 @@ public enum ShapeType
     Ellipse2,
     Plane,
     Sphere,
+    ConvexHull,
 }
