@@ -174,6 +174,20 @@ public sealed class UIBuilder<TRendererData>
         get => _currentElement.Overlay;
         set => _currentElement.Overlay = value;
     }
+
+    /// <summary>Gets or sets viewport-aware anchored placement for the current element, implicitly enabling <see cref="Overlay"/>.</summary>
+    public OverlayPlacement? OverlayPlacement
+    {
+        get => _currentElement.OverlayPlacement;
+        set
+        {
+            _currentElement.OverlayPlacement = value;
+            if (value.HasValue)
+            {
+                _currentElement.Overlay = true;
+            }
+        }
+    }
     
     /// <summary>Gets or sets the font ID applied to text that does not specify one.</summary>
     public string? DefaultFontID { get; set; }
@@ -862,63 +876,37 @@ public sealed class UIBuilder<TRendererData>
             ElementNode frame = _traversalStack.Pop();
             Element<TRendererData> element = frame.Element;
 
-            if (element.Overlay && !isOverlayPass)
+            bool isOverlay = element.Overlay || element.OverlayPlacement.HasValue;
+            if (isOverlay && !isOverlayPass)
             {
                 _overlayNodes.Add(frame);
                 continue;
             }
-    
-            //  Apply position constraints
-            int availableWidth = Width;
-            int availableHeight = Height;
-            if (frame.Parent != null)
-            {
-                availableWidth = frame.Parent.Value.Rect.Size.X - frame.Parent.Value.Style.Padding.Left - frame.Parent.Value.Style.Padding.Right;
-                availableHeight = frame.Parent.Value.Rect.Size.Y - frame.Parent.Value.Style.Padding.Top - frame.Parent.Value.Style.Padding.Bottom;
-            }
-            
-            int x = element.Constraints.X?.Calculate(availableWidth) ?? 0;
-            int y = element.Constraints.Y?.Calculate(availableHeight) ?? 0;
-            
-            //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
-            Anchors anchors = element.Constraints.Anchors;
-            LayoutDirection parentLayoutDirection = frame.Parent?.Layout.Direction ?? LayoutDirection.None;
-            
-            bool anchorLocal = (anchors & Anchors.Local) == Anchors.Local;
-            int layoutOffsetX = anchorLocal ? 0 : availableWidth;
-            int layoutOffsetY = anchorLocal ? 0 : availableHeight;
 
-            //  Horizontal anchoring when not in a horizontal layout
-            if (parentLayoutDirection != LayoutDirection.Horizontal)
+            int x;
+            int y;
+            if (isOverlayPass && element.OverlayPlacement.HasValue)
             {
-                if ((anchors & Anchors.Right) == Anchors.Right)
+                OverlayPlacement placement = element.OverlayPlacement.Value;
+                if (TryResolveAnchorRect(commands, in placement, out IntRect anchorRect))
                 {
-                    x += layoutOffsetX - element.Rect.Size.X;
+                    IntVector2 resolved = UI.OverlayPlacement.Resolve(
+                        anchorRect,
+                        element.Rect.Size,
+                        new IntVector2(Width, Height),
+                        in placement
+                    );
+                    x = resolved.X;
+                    y = resolved.Y;
                 }
-                else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
+                else
                 {
-                    x += (layoutOffsetX - element.Rect.Size.X) / 2;
+                    ResolveStandardPosition(in frame, in element, out x, out y);
                 }
             }
-        
-            //  Vertical anchoring when not in a vertical layout
-            if (parentLayoutDirection != LayoutDirection.Vertical)
+            else
             {
-                if ((anchors & Anchors.Bottom) == Anchors.Bottom)
-                {
-                    y += layoutOffsetY - element.Rect.Size.Y;
-                }
-                else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
-                {
-                    y += (layoutOffsetY - element.Rect.Size.Y) / 2;
-                }
-            }
-            
-            //  Apply layout offsets
-            if (frame.Parent != null)
-            {
-                x += frame.Parent.Value.Rect.Position.X + frame.LeftOffset;
-                y += frame.Parent.Value.Rect.Position.Y + frame.TopOffset;
+                ResolveStandardPosition(in frame, in element, out x, out y);
             }
             
             var position = new IntVector2(x, y);
@@ -939,7 +927,7 @@ public sealed class UIBuilder<TRendererData>
 
             //  Don't issue render commands or continue processing any non-overlay
             //  elements entirely outside their parent's effective clip bounds
-            if (!element.Overlay && frame.Parent != null)
+            if (!isOverlay && frame.Parent != null)
             {
                 IntRect parentBounds = frame.Parent.Value.Viewport.ClipRect ?? frame.Parent.Value.Rect;
                 if (!parentBounds.Intersects(element.Rect))
@@ -950,7 +938,7 @@ public sealed class UIBuilder<TRendererData>
 
             IntRect clipRect;
             //  Overlays escape ancestor clipping and start unclipped in the viewport
-            if (element.Overlay || frame.Parent == null)
+            if (isOverlay || frame.Parent == null)
             {
                 clipRect = element.Rect;
             }
@@ -1083,6 +1071,89 @@ public sealed class UIBuilder<TRendererData>
                 _traversalStack.Push(_childStack.Pop());
             }
         }
+    }
+
+    private void ResolveStandardPosition(in ElementNode frame, in Element<TRendererData> element, out int x, out int y)
+    {
+        int availableWidth = Width;
+        int availableHeight = Height;
+        if (frame.Parent != null)
+        {
+            availableWidth = frame.Parent.Value.Rect.Size.X - frame.Parent.Value.Style.Padding.Left - frame.Parent.Value.Style.Padding.Right;
+            availableHeight = frame.Parent.Value.Rect.Size.Y - frame.Parent.Value.Style.Padding.Top - frame.Parent.Value.Style.Padding.Bottom;
+        }
+
+        x = element.Constraints.X?.Calculate(availableWidth) ?? 0;
+        y = element.Constraints.Y?.Calculate(availableHeight) ?? 0;
+
+        Anchors anchors = element.Constraints.Anchors;
+        LayoutDirection parentLayoutDirection = frame.Parent?.Layout.Direction ?? LayoutDirection.None;
+
+        bool anchorLocal = (anchors & Anchors.Local) == Anchors.Local;
+        int layoutOffsetX = anchorLocal ? 0 : availableWidth;
+        int layoutOffsetY = anchorLocal ? 0 : availableHeight;
+
+        if (parentLayoutDirection != LayoutDirection.Horizontal)
+        {
+            if ((anchors & Anchors.Right) == Anchors.Right)
+            {
+                x += layoutOffsetX - element.Rect.Size.X;
+            }
+            else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
+            {
+                x += (layoutOffsetX - element.Rect.Size.X) / 2;
+            }
+        }
+
+        if (parentLayoutDirection != LayoutDirection.Vertical)
+        {
+            if ((anchors & Anchors.Bottom) == Anchors.Bottom)
+            {
+                y += layoutOffsetY - element.Rect.Size.Y;
+            }
+            else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
+            {
+                y += (layoutOffsetY - element.Rect.Size.Y) / 2;
+            }
+        }
+
+        if (frame.Parent != null)
+        {
+            x += frame.Parent.Value.Rect.Position.X + frame.LeftOffset;
+            y += frame.Parent.Value.Rect.Position.Y + frame.TopOffset;
+        }
+    }
+
+    private bool TryResolveAnchorRect(
+        List<RenderCommand<TRendererData>> commands,
+        in OverlayPlacement placement,
+        out IntRect anchorRect
+    )
+    {
+        if (!string.IsNullOrEmpty(placement.TargetID))
+        {
+            for (int i = commands.Count - 1; i >= 0; i--)
+            {
+                if (string.Equals(commands[i].ID, placement.TargetID, StringComparison.Ordinal))
+                {
+                    anchorRect = commands[i].Rect;
+                    return true;
+                }
+            }
+
+            ElementBounds previous = _controller.GetElementBounds(placement.TargetID);
+            if (previous.Rect.Size.X > 0 || previous.Rect.Size.Y > 0)
+            {
+                anchorRect = previous.Rect;
+                return true;
+            }
+
+            anchorRect = default;
+            return false;
+        }
+
+        anchorRect = placement.TargetRect;
+        return true;
     }
     
     private void FillShrinkAndWrapElements() 
