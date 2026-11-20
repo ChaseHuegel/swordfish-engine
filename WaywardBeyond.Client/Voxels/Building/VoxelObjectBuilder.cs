@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using DryIoc;
 using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
@@ -35,22 +36,12 @@ public sealed class VoxelObjectBuilder(in IContainer container)
             }
         }
 
-        float half = chunkData.Data.Size * 0.5f;
-        var chunkBounds = new BoundingBox(
-            new Vector3(
-                chunkData.Coords.X * chunkData.Data.Size + half,
-                chunkData.Coords.Y * chunkData.Data.Size + half,
-                chunkData.Coords.Z * chunkData.Data.Size + half
-            ),
-            new Vector3(half + 1f),
-            (half + 1f) * MathF.Sqrt(3f)
-        );
+        ChunkMesh opaqueMesh = GenerateChunkMesh(context.MeshState.Opaque);
+        ChunkMesh opaqueNoShadowMesh = GenerateChunkMesh(context.MeshState.OpaqueNoShadow);
+        ChunkMesh maskedMesh = GenerateChunkMesh(context.MeshState.Masked);
+        ChunkMesh transparentMesh = GenerateChunkMesh(context.MeshState.Transparent);
 
-        ChunkMesh opaqueMesh = GenerateChunkMesh(context.MeshState.Opaque, chunkBounds);
-        ChunkMesh maskedMesh = GenerateChunkMesh(context.MeshState.Masked, chunkBounds);
-        ChunkMesh transparentMesh = GenerateChunkMesh(context.MeshState.Transparent, chunkBounds);
-
-        return new ChunkMeshData(opaqueMesh, maskedMesh, transparentMesh, context.EntityState.Voxels);
+        return new ChunkMeshData(opaqueMesh, opaqueNoShadowMesh, maskedMesh, transparentMesh, context.EntityState.Voxels);
     }
 
     /// <summary>Builds surface collision data for a single chunk.</summary>
@@ -149,12 +140,14 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         voxelObjectProcessor.ProcessLighting(voxelObject);
     }
 
-    private static ChunkMesh GenerateChunkMesh(in MeshState.MeshData meshData, in BoundingBox bounds)
+    private static ChunkMesh GenerateChunkMesh(in MeshState.MeshData meshData)
     {
         if (meshData.Triangles.Count == 0 || meshData.Vertices.Count == 0)
         {
             return default;
         }
+
+        BoundingBox bounds = BoundingBox.FromVertices(CollectionsMarshal.AsSpan(meshData.Vertices));
 
         int count = meshData.Vertices.Count;
         var vertexData = new float[count * MeshBatch.VERTEX_STRIDE];
@@ -184,10 +177,11 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         return new ChunkMesh(vertexData, meshData.Triangles.ToArray(), bounds);
     }
 
-    /// <summary>Holds opaque, masked, and transparent mesh ranges and entities for a single chunk.</summary>
-    public readonly struct ChunkMeshData(in ChunkMesh opaqueMesh, in ChunkMesh maskedMesh, in ChunkMesh transparentMesh, in List<VoxelInfo> voxelEntities)
+    /// <summary>Holds opaque, non-shadow-casting opaque, masked, and transparent mesh ranges and entities for a single chunk.</summary>
+    public readonly struct ChunkMeshData(in ChunkMesh opaqueMesh, in ChunkMesh opaqueNoShadowMesh, in ChunkMesh maskedMesh, in ChunkMesh transparentMesh, in List<VoxelInfo> voxelEntities)
     {
         public readonly ChunkMesh OpaqueMesh = opaqueMesh;
+        public readonly ChunkMesh OpaqueNoShadowMesh = opaqueNoShadowMesh;
         public readonly ChunkMesh MaskedMesh = maskedMesh;
         public readonly ChunkMesh TransparentMesh = transparentMesh;
         public readonly List<VoxelInfo> VoxelEntities = voxelEntities;

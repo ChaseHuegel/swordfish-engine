@@ -6,12 +6,14 @@ namespace WaywardBeyond.Client.Voxels.Processing;
 internal sealed class MeshState
 {
     public readonly MeshData Opaque = new();
+    public readonly MeshData OpaqueNoShadow = new();
     public readonly MeshData Masked = new();
     public readonly MeshData Transparent = new();
 
     public void Clear()
     {
         Opaque.Clear();
+        OpaqueNoShadow.Clear();
         Masked.Clear();
         Transparent.Clear();
     }

@@ -82,7 +82,7 @@ internal sealed class CharacterAssetService
         //  Standing is the default state; if absent, fall back to the first floating state's texture.
         string[] textures = _bodyDatabase.Get(resolved).Value.GetTextures("standing");
         Texture texture = LoadFirstTexture(resolved, textures);
-        return new Material(_uiShader, texture) { Transparent = true };
+        return new Material(_uiShader, texture) { AlphaMode = AlphaMode.Blend };
     }
 
     private Material[] BuildFloatingMaterials(string bodyId)
@@ -98,13 +98,13 @@ internal sealed class CharacterAssetService
                 return [];
             }
 
-            return [new Material(_worldShader, LoadTexture(texturePath)) { Transparent = true }];
+            return [new Material(_worldShader, LoadTexture(texturePath)) { AlphaMode = AlphaMode.Blend }];
         }
 
         var materials = new Material[textures.Length];
         for (var i = 0; i < textures.Length; i++)
         {
-            materials[i] = new Material(_worldShader, LoadTexture(textures[i])) { Transparent = true };
+            materials[i] = new Material(_worldShader, LoadTexture(textures[i])) { AlphaMode = AlphaMode.Blend };
         }
 
         return materials;

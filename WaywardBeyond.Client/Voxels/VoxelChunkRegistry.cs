@@ -11,6 +11,7 @@ namespace WaywardBeyond.Client.Voxels;
 public sealed class VoxelChunkRegistry
 {
     public readonly Dictionary<Short3, MeshRangeHandle> OpaqueRanges = [];
+    public readonly Dictionary<Short3, MeshRangeHandle> OpaqueNoShadowRanges = [];
     public readonly Dictionary<Short3, MeshRangeHandle> MaskedRanges = [];
     public readonly Dictionary<Short3, MeshRangeHandle> TransparentRanges = [];
     public readonly Dictionary<Short3, ChunkCollisionData> ChunkColliders = [];
@@ -23,6 +24,9 @@ public sealed class VoxelChunkRegistry
 
     /// <summary>The opaque range batch for this structure.</summary>
     public MeshBatch? OpaqueBatch;
+
+    /// <summary>The non-shadow-casting opaque range batch for this structure.</summary>
+    public MeshBatch? OpaqueNoShadowBatch;
 
     /// <summary>The masked range batch for this structure.</summary>
     public MeshBatch? MaskedBatch;

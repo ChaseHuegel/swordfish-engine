@@ -5,6 +5,7 @@ internal struct BrickDefinition()
 {
     public string ID;
     public BrickAlpha Alpha = BrickAlpha.Opaque;
+    public bool CastShadows = true;
     public bool Passable;
     public string? Mesh;
     public BrickShape Shape;

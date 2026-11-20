@@ -1,4 +1,5 @@
-Shader   = "textured"
-Textures = [
+Shader    = "textured"
+AlphaMode = "Masked"
+Textures  = [
     "block/porthole.png",
 ]

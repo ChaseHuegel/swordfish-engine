@@ -50,6 +50,7 @@ internal sealed class VoxelEntityBuilder(
         int vertexHint = (int)Math.Min(1_000_000L, Math.Max(4096L, (long)voxelObject.ChunkCount * 2048L));
         int indexHint = (int)Math.Min(2_000_000L, Math.Max(8192L, (long)vertexHint * 2L));
         registry.OpaqueBatch = new MeshBatch(vertexHint, indexHint);
+        registry.OpaqueNoShadowBatch = new MeshBatch(vertexHint, indexHint);
         registry.MaskedBatch = new MeshBatch(vertexHint, indexHint);
         registry.TransparentBatch = new MeshBatch(vertexHint, indexHint);
         Uuid parentUuid = store.GetUuid(entity);
@@ -76,6 +77,7 @@ internal sealed class VoxelEntityBuilder(
         //  Attach the renderers only after the ranges are filled. The scene does not see a
         //  partial batch during the load build.
         AttachBatchRenderer(store, parentUuid, in transform, registry.OpaqueBatch, _materials.Opaque, _materials.OpaqueOptions, registry);
+        AttachBatchRenderer(store, parentUuid, in transform, registry.OpaqueNoShadowBatch, _materials.Opaque, _materials.OpaqueNoShadowOptions, registry);
         AttachBatchRenderer(store, parentUuid, in transform, registry.MaskedBatch, _materials.Masked, _materials.MaskedOptions, registry);
         AttachBatchRenderer(store, parentUuid, in transform, registry.TransparentBatch, _materials.Transparent, _materials.TransparentOptions, registry);
 
@@ -237,6 +239,7 @@ internal sealed class VoxelEntityBuilder(
         Short3 chunkOffset = chunk.Coords;
 
         UpdateBatch(registry.OpaqueBatch, registry.OpaqueRanges, chunkOffset, data.OpaqueMesh);
+        UpdateBatch(registry.OpaqueNoShadowBatch, registry.OpaqueNoShadowRanges, chunkOffset, data.OpaqueNoShadowMesh);
         UpdateBatch(registry.MaskedBatch, registry.MaskedRanges, chunkOffset, data.MaskedMesh);
         UpdateBatch(registry.TransparentBatch, registry.TransparentRanges, chunkOffset, data.TransparentMesh);
 
@@ -278,6 +281,7 @@ internal sealed class VoxelEntityBuilder(
     private static void RemoveChunkRanges(VoxelChunkRegistry registry, Short3 chunkOffset)
     {
         RemoveBatchRange(registry.OpaqueBatch, registry.OpaqueRanges, chunkOffset);
+        RemoveBatchRange(registry.OpaqueNoShadowBatch, registry.OpaqueNoShadowRanges, chunkOffset);
         RemoveBatchRange(registry.MaskedBatch, registry.MaskedRanges, chunkOffset);
         RemoveBatchRange(registry.TransparentBatch, registry.TransparentRanges, chunkOffset);
     }
@@ -331,9 +335,11 @@ internal sealed class VoxelEntityBuilder(
 
         registry.BatchEntities.Clear();
         registry.OpaqueRanges.Clear();
+        registry.OpaqueNoShadowRanges.Clear();
         registry.MaskedRanges.Clear();
         registry.TransparentRanges.Clear();
         registry.OpaqueBatch = null;
+        registry.OpaqueNoShadowBatch = null;
         registry.MaskedBatch = null;
         registry.TransparentBatch = null;
         registry.DirtyChunks.Clear();

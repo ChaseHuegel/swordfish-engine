@@ -27,12 +27,15 @@ public class BrickDatabaseTests
         BrickDatabase database = Load();
 
         Assert.Equal(BrickAlpha.Blend, database.Get(database.Id("wb:glass")).Value.Alpha);
-        Assert.Equal(BrickAlpha.Blend, database.Get(database.Id("wb:light")).Value.Alpha);
-        Assert.Equal(BrickAlpha.Blend, database.Get(database.Id("wb:small_light")).Value.Alpha);
+        Assert.Equal(BrickAlpha.Opaque, database.Get(database.Id("wb:light")).Value.Alpha);
+        Assert.False(database.Get(database.Id("wb:light")).Value.CastShadows);
+        Assert.Equal(BrickAlpha.Opaque, database.Get(database.Id("wb:small_light")).Value.Alpha);
+        Assert.False(database.Get(database.Id("wb:small_light")).Value.CastShadows);
         Assert.Equal(BrickAlpha.Masked, database.Get(database.Id("wb:grate")).Value.Alpha);
         Assert.Equal(BrickAlpha.Masked, database.Get(database.Id("wb:truss")).Value.Alpha);
         Assert.Equal(BrickAlpha.Masked, database.Get(database.Id("wb:porthole")).Value.Alpha);
         Assert.Equal(BrickAlpha.Opaque, database.Get(database.Id("wb:rock")).Value.Alpha);
+        Assert.True(database.Get(database.Id("wb:rock")).Value.CastShadows);
         Assert.Equal(BrickAlpha.Opaque, database.Get(database.Id("wb:panel")).Value.Alpha);
         Assert.Equal(BrickAlpha.Opaque, database.Get(database.Id("wb:vent")).Value.Alpha);
     }

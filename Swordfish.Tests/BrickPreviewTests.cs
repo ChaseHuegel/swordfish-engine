@@ -337,8 +337,8 @@ public class BrickPreviewTests
     {
         var fixture = new Fixture();
 
-        Assert.True(fixture.Materials.GetMaterial(BrickAlpha.Blend).Transparent);
-        Assert.False(fixture.Materials.GetMaterial(BrickAlpha.Masked).Transparent);
+        Assert.Equal(AlphaMode.Blend, fixture.Materials.GetMaterial(BrickAlpha.Blend).AlphaMode);
+        Assert.Equal(AlphaMode.Masked, fixture.Materials.GetMaterial(BrickAlpha.Masked).AlphaMode);
         Assert.Equal(AlphaMode.Masked, fixture.Materials.GetRenderOptions(BrickAlpha.Masked).AlphaMode);
         Assert.Equal(AlphaMode.Blend, fixture.Materials.GetRenderOptions(BrickAlpha.Blend).AlphaMode);
     }

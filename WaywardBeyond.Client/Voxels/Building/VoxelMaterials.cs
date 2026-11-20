@@ -13,6 +13,7 @@ internal sealed class VoxelMaterials
     public readonly Material Masked;
     public readonly Material Transparent;
     public readonly RenderOptions OpaqueOptions;
+    public readonly RenderOptions OpaqueNoShadowOptions;
     public readonly RenderOptions MaskedOptions;
     public readonly RenderOptions TransparentOptions;
 
@@ -20,10 +21,13 @@ internal sealed class VoxelMaterials
     public VoxelMaterials(in Shader shader, in PBRTextureArrays textureArrays)
     {
         Opaque = new Material(shader, textureArrays.ToArray());
-        Masked = new Material(shader, textureArrays.ToArray());
+        Masked = new Material(shader, textureArrays.ToArray())
+        {
+            AlphaMode = AlphaMode.Masked,
+        };
         Transparent = new Material(shader, textureArrays.ToArray())
         {
-            Transparent = true,
+            AlphaMode = AlphaMode.Blend,
         };
 
         OpaqueOptions = new RenderOptions
@@ -33,6 +37,11 @@ internal sealed class VoxelMaterials
             Wireframe = false,
             CastShadows = true,
             ReceiveShadows = true,
+        };
+
+        OpaqueNoShadowOptions = OpaqueOptions with
+        {
+            CastShadows = false,
         };
 
         MaskedOptions = new RenderOptions

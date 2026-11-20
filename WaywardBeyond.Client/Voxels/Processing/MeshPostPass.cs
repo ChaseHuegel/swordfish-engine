@@ -28,6 +28,7 @@ internal sealed class MeshPostPass(
     );
 
     private readonly CubeMeshBuilder _opaqueCubeMeshBuilder = new(textureArrays.Albedo, meshState.Opaque);
+    private readonly CubeMeshBuilder _opaqueNoShadowCubeMeshBuilder = new(textureArrays.Albedo, meshState.OpaqueNoShadow);
     private readonly CubeMeshBuilder _maskedCubeMeshBuilder = new(textureArrays.Albedo, meshState.Masked);
     private readonly CubeMeshBuilder _transparentCubeMeshBuilder = new(textureArrays.Albedo, meshState.Transparent);
     private readonly Mesh _slope = meshDatabase.Get("slope.obj").Value;
@@ -69,8 +70,8 @@ internal sealed class MeshPostPass(
         ShapeLight shapeLight = sample.Center.ShapeLight;
         var offset = new Vector3(sample.ChunkOffset.X, sample.ChunkOffset.Y, sample.ChunkOffset.Z);
         
-        MeshState.MeshData targetMesh = GetMeshData(brickInfo.Alpha);
-        ref readonly CubeMeshBuilder cubeMeshBuilder = ref GetCubeMeshBuilder(brickInfo.Alpha);
+        MeshState.MeshData targetMesh = GetMeshData(brickInfo);
+        ref readonly CubeMeshBuilder cubeMeshBuilder = ref GetCubeMeshBuilder(brickInfo);
 
         switch (shapeLight.Shape)
         {
@@ -106,26 +107,26 @@ internal sealed class MeshPostPass(
         }
     }
     
-    private MeshState.MeshData GetMeshData(BrickAlpha alpha)
+    private MeshState.MeshData GetMeshData(Brick brick)
     {
-        return alpha switch
+        return brick.Alpha switch
         {
             BrickAlpha.Masked => meshState.Masked,
             BrickAlpha.Blend => meshState.Transparent,
-            _ => meshState.Opaque,
+            _ => brick.CastShadows ? meshState.Opaque : meshState.OpaqueNoShadow,
         };
     }
 
-    private ref readonly CubeMeshBuilder GetCubeMeshBuilder(BrickAlpha alpha)
+    private ref readonly CubeMeshBuilder GetCubeMeshBuilder(Brick brick)
     {
-        switch (alpha)
+        switch (brick.Alpha)
         {
             case BrickAlpha.Masked:
                 return ref _maskedCubeMeshBuilder;
             case BrickAlpha.Blend:
                 return ref _transparentCubeMeshBuilder;
             default:
-                return ref _opaqueCubeMeshBuilder;
+                return ref brick.CastShadows ? ref _opaqueCubeMeshBuilder : ref _opaqueNoShadowCubeMeshBuilder;
         }
     }
 

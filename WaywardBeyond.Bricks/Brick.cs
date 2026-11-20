@@ -19,6 +19,7 @@ public sealed class Brick
     public readonly IReadOnlySet<string> Tags;
 
     public readonly BrickAlpha Alpha;
+    public readonly bool CastShadows;
     public readonly bool Passable;
     public readonly string? MeshID;
     public readonly BrickShape Shape;
@@ -38,10 +39,12 @@ public sealed class Brick
         in string? meshID,
         in BrickShape shape,
         in BrickTextures textures,
-        in string[]? tags
+        in string[]? tags,
+        in bool castShadows = true
     ) {
         ID = id;
         Alpha = alpha;
+        CastShadows = castShadows;
         Passable = passable;
         MeshID = meshID;
         Shape = shape;
