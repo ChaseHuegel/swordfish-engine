@@ -10,6 +10,8 @@ internal enum IconGlyph
     Signal,
     Rotate,
     Shapes,
+    Lightbulb,
+    Fire,
     Discord,
     Steam,
     Diamond,

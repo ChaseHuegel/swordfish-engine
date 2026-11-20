@@ -33,7 +33,7 @@ the colors that a view must fade at run time.
 
 `WaywardBeyond.Client/UI/Components/Components.rss:1` holds the shared classes
 that markup selects. The classes cover layout, typography, buttons, panels,
-modals, cards, tabs, rows, fields, keycaps, hints, progress, slots,
+modals, cards, tabs, rows, fields, keycaps, hints, progress, slots, tooltips,
 scrollbars, HUD chrome, and the choice and slider controls.
 
 A class that one page uses lives in a stylesheet beside that page, such as

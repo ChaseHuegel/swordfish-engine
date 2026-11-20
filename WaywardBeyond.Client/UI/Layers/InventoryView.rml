@@ -53,66 +53,10 @@
                     <ItemSlot id="{slot.ID}" context="@slot.Slot" />
                 </ForEach>
             </Element>
-
-            <Element height="12" />
-
-            <Element class="wb-inventory-footer"
-                     layout="horizontal"
-                     width="fill"
-                     height="36"
-                     spacing="8"
-                     clip="true">
-
-                <If condition="@context.Footer.Empty">
-                    <Text class="wb-inventory-footer-empty"
-                          text="@L('ui.label.inventory.empty')"
-                          width="fill"
-                          height="fill" />
-                </If>
-
-                <ElseIf condition="@context.Footer.Unknown">
-                    <Text class="wb-inventory-footer-unknown"
-                          text="@context.Footer.Name"
-                          width="fill"
-                          height="fill" />
-                </ElseIf>
-
-                <Else>
-                    <Element class="wb-inventory-primary-bar" width="2" height="fill" />
-                    <Text class="wb-inventory-footer-name"
-                          text="@context.Footer.Name"
-                          width="fill"
-                          height="fill" />
-
-                    <If condition="@context.Footer.Orientable">
-                        <Element class="wb-inventory-badge"
-                                 anchor="Center"
-                                 width="fit"
-                                 height="24">
-                            <Icon param:glyph="rotate" param:tone="bright" param:size="16" width="20" height="fill" />
-                            <Text class="wb-inventory-badge-label"
-                                  text="@L('ui.label.inventory.orientable')"
-                                  width="fill"
-                                  height="fill" />
-                        </Element>
-                    </If>
-
-                    <If condition="@context.Footer.Shapeable">
-                        <Element class="wb-inventory-badge"
-                                 anchor="Center"
-                                 width="fit"
-                                 height="24">
-                            <Icon param:glyph="shapes" param:tone="bright" param:size="16" width="20" height="fill" />
-                            <Text class="wb-inventory-badge-label"
-                                  text="@L('ui.label.inventory.shapeable')"
-                                  width="fill"
-                                  height="fill" />
-                        </Element>
-                    </If>
-                </Else>
-            </Element>
         </Element>
     </Element>
+
+    <ItemTooltip id="Inventory.Tooltip" context="@context.Tooltip" />
 
     <!-- The dragged stack preview follows the cursor above the whole frame. -->
     <Element visible="@context.HasDrag"

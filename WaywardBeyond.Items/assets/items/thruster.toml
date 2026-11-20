@@ -1,6 +1,7 @@
 [[Items]]
 ID       = "wb:thruster"
 Name     = "item.base.thruster"
+Description = "item.base.thruster.description"
 Icon     = "items/thruster.png"
 MaxStack = 100
 [Items.Placeable]

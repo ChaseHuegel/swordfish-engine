@@ -12,13 +12,17 @@ public sealed class Item(
     PlaceableDefinition? placeable,
     ToolDefinition? tool,
     ModelDefinition? viewModel,
-    ModelDefinition? worldModel
+    ModelDefinition? worldModel,
+    string? description = null
 ) {
     /// <summary>The canonical namespaced item id.</summary>
     public readonly string ID = id;
 
     /// <summary>The localization key of the display name.</summary>
     public readonly string Name = name;
+
+    /// <summary>The localization key of the description, or null when the item has none.</summary>
+    public readonly string? Description = description;
 
     /// <summary>The texture id of the inventory icon, or null when the item has none.</summary>
     public readonly string? IconID = iconID;

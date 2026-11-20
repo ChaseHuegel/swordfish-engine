@@ -1,6 +1,7 @@
 [[Items]]
 ID       = "wb:vent"
 Name     = "item.base.vent"
+Description = "item.base.vent.description"
 Icon     = "block/vent.png"
 MaxStack = 100
 [Items.Placeable]

@@ -240,9 +240,17 @@
 "ui.field.chat.input" = "Enter a message"
 
 "ui.label.inventory.title" = "Inventory"
-"ui.label.inventory.empty" = "Empty slot"
-"ui.label.inventory.shapeable" = "Shapeable"
-"ui.label.inventory.orientable" = "Rotatable"
+
+"ui.label.item.kind.brick" = "Brick"
+"ui.label.item.kind.miningTool" = "Mining tool"
+"ui.label.item.kind.conversionTool" = "Conversion tool"
+"ui.label.item.kind.item" = "Item"
+"ui.label.item.kind.unknown" = "Unknown item"
+
+"ui.label.item.trait.orientable" = "Rotatable"
+"ui.label.item.trait.shapeable" = "Shapeable"
+"ui.label.item.trait.lightSource" = "Light source"
+"ui.label.item.trait.propulsion" = "Propulsion"
 
 "ui.label.shape.unknown" = "Unknown"
 
