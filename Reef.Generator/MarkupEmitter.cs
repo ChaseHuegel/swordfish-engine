@@ -572,7 +572,8 @@ internal sealed partial class DocumentState
 
             List<MarkupAssignment> assignments;
             string error;
-            if (attribute.Value.TrimStart().StartsWith("@", StringComparison.Ordinal))
+            if (attribute.Value.TrimStart().StartsWith("@", StringComparison.Ordinal)
+                || string.Equals(attribute.Name, "overlay-target", StringComparison.Ordinal))
             {
                 if (!StyleValueParser.TryParseInline(node, attribute, out assignments, out error))
                 {
@@ -885,6 +886,10 @@ internal sealed partial class DocumentState
         var cornerCapsFields = new Dictionary<string, string>(StringComparer.Ordinal);
         var fontFields = new Dictionary<string, string>(StringComparer.Ordinal);
         var constraintFields = new Dictionary<string, string>(StringComparer.Ordinal);
+        var overlayArgs = new Dictionary<string, string>(StringComparer.Ordinal);
+        var overlayWithFields = new Dictionary<string, string>(StringComparer.Ordinal);
+        MarkupAssignment? overlayPlacement = null;
+        MarkupAssignment? overlayTarget = null;
 
         for (var i = 0; i < assignments.Count; i++)
         {
@@ -1075,6 +1080,79 @@ internal sealed partial class DocumentState
                     constraintFields["Anchors"] = "Anchors = " + BuildAnchors(anchors);
                     break;
                 }
+                case MarkupProperty.OverlayPlacement:
+                    overlayPlacement = assignment;
+                    break;
+                case MarkupProperty.OverlayTarget:
+                    overlayTarget = assignment;
+                    break;
+                case MarkupProperty.OverlaySide:
+                {
+                    string side = (MarkupOverlaySide)assignment.Value switch
+                    {
+                        MarkupOverlaySide.Left => "Left",
+                        MarkupOverlaySide.Bottom => "Bottom",
+                        MarkupOverlaySide.Top => "Top",
+                        _ => "Right",
+                    };
+                    string expr = "global::Reef.UI.OverlaySide." + side;
+                    overlayArgs["side"] = "side: " + expr;
+                    overlayWithFields["Side"] = "Side = " + expr;
+                    break;
+                }
+                case MarkupProperty.OverlayAlign:
+                {
+                    string align = (MarkupOverlayAlign)assignment.Value switch
+                    {
+                        MarkupOverlayAlign.Center => "Center",
+                        MarkupOverlayAlign.End => "End",
+                        _ => "Start",
+                    };
+                    string expr = "global::Reef.UI.OverlayAlign." + align;
+                    overlayArgs["align"] = "align: " + expr;
+                    overlayWithFields["Align"] = "Align = " + expr;
+                    break;
+                }
+                case MarkupProperty.OverlayGap:
+                {
+                    string? code = EmitIntCode(assignment, context);
+                    if (code != null)
+                    {
+                        overlayArgs["gap"] = "gap: " + code;
+                        overlayWithFields["Gap"] = "Gap = " + code;
+                    }
+                    break;
+                }
+                case MarkupProperty.OverlayMargin:
+                {
+                    string? code = EmitIntCode(assignment, context);
+                    if (code != null)
+                    {
+                        overlayArgs["viewportMargin"] = "viewportMargin: " + code;
+                        overlayWithFields["ViewportMargin"] = "ViewportMargin = " + code;
+                    }
+                    break;
+                }
+                case MarkupProperty.OverlayFlip:
+                {
+                    string? code = EmitBoolCode(assignment, context);
+                    if (code != null)
+                    {
+                        overlayArgs["flip"] = "flip: " + code;
+                        overlayWithFields["Flip"] = "Flip = " + code;
+                    }
+                    break;
+                }
+                case MarkupProperty.OverlayClamp:
+                {
+                    string? code = EmitBoolCode(assignment, context);
+                    if (code != null)
+                    {
+                        overlayArgs["clamp"] = "clamp: " + code;
+                        overlayWithFields["Clamp"] = "Clamp = " + code;
+                    }
+                    break;
+                }
                 default:
                     directAssignments.Add(assignment);
                     break;
@@ -1084,6 +1162,33 @@ internal sealed partial class DocumentState
         for (var i = 0; i < directAssignments.Count; i++)
         {
             ApplyDirectAssignment(directAssignments[i], node, context);
+        }
+
+        if (overlayPlacement != null)
+        {
+            string? code = EmitOverlayPlacement(overlayPlacement, context);
+            if (code != null)
+            {
+                context.Writer.Line(builder + ".OverlayPlacement = " + code + ";");
+                if (overlayWithFields.Count > 0)
+                {
+                    context.Writer.Line(
+                        "if (" + builder + ".OverlayPlacement.HasValue) { "
+                        + builder + ".OverlayPlacement = " + builder + ".OverlayPlacement.Value with { "
+                        + string.Join(", ", overlayWithFields.Values) + " }; }");
+                }
+            }
+        }
+        else if (overlayTarget != null)
+        {
+            string? targetCode = EmitOverlayTarget(overlayTarget, context);
+            if (targetCode != null)
+            {
+                string args = overlayArgs.Count > 0
+                    ? targetCode + ", " + string.Join(", ", overlayArgs.Values)
+                    : targetCode;
+                context.Writer.Line(builder + ".OverlayPlacement = global::Reef.UI.OverlayPlacement.ForElement(" + args + ");");
+            }
         }
 
         if (borderFields.Count > 0)
@@ -1275,6 +1380,72 @@ internal sealed partial class DocumentState
             }
         }
 
+        return null;
+    }
+
+    private string? EmitBoolCode(MarkupAssignment assignment, EmitContext context)
+    {
+        if (assignment.Value is bool value)
+        {
+            return value ? "true" : "false";
+        }
+
+        if (assignment.Value is MarkupExpression expression)
+        {
+            return EmitTypedExpression(
+                expression.Raw,
+                Compilation.GetSpecialType(SpecialType.System_Boolean),
+                assignment.Location,
+                context.Scope);
+        }
+
+        return null;
+    }
+
+    private string? EmitOverlayTarget(MarkupAssignment assignment, EmitContext context)
+    {
+        if (assignment.Value is string raw)
+        {
+            return EmitStringExpression(raw, assignment.Location, context.Scope);
+        }
+
+        if (assignment.Value is MarkupExpression expression)
+        {
+            return EmitTypedExpression(
+                expression.Raw,
+                Compilation.GetSpecialType(SpecialType.System_String),
+                assignment.Location,
+                context.Scope);
+        }
+
+        return null;
+    }
+
+    private string? EmitOverlayPlacement(MarkupAssignment assignment, EmitContext context)
+    {
+        if (assignment.Value is not MarkupExpression expression)
+        {
+            return null;
+        }
+
+        var binder = new ExpressionBinder(context.Scope);
+        if (!binder.TryBind(expression.Raw, null, assignment.Location, out BoundExpression bound)
+            || bound.Type == null)
+        {
+            return null;
+        }
+
+        ITypeSymbol? placementType = Compilation.GetTypeByMetadataName("Reef.UI.OverlayPlacement");
+        ITypeSymbol unwrapped = TypeNames.UnwrapNullable(bound.Type);
+        if (placementType != null && TypeNames.IsSameType(unwrapped, placementType))
+        {
+            return bound.Code;
+        }
+
+        Report(
+            DiagnosticDescriptors.TypeMismatch,
+            assignment.Location,
+            "Expected Reef.UI.OverlayPlacement or Reef.UI.OverlayPlacement?.");
         return null;
     }
 

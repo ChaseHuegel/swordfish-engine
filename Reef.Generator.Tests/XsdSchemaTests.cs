@@ -214,6 +214,31 @@ public class XsdSchemaTests
         Assert.Empty(outcome.Errors);
     }
 
+    [Fact]
+    public void OverlayPlacementAttributesValidate()
+    {
+        const string markup = """
+            <Reef xmlns="Reef" Class="TooltipView" Context="TooltipState">
+                <Element id="slot" width="48" height="48" />
+                <Element overlay-target="@context.TargetId"
+                         overlay-side="right"
+                         overlay-align="start"
+                         overlay-gap="8"
+                         overlay-margin="8"
+                         overlay-flip="true"
+                         overlay-clamp="true"
+                         width="fit"
+                         height="fit" />
+                <Element overlay-placement="@context.Placement" width="fit" height="fit" />
+            </Reef>
+            """;
+
+        ValidationOutcome outcome = Validate(markup);
+
+        Assert.Null(outcome.XmlError);
+        Assert.Empty(outcome.Errors);
+    }
+
     private static ValidationOutcome Validate(string markup)
     {
         XmlSchemaSet schemaSet = LoadSchema();

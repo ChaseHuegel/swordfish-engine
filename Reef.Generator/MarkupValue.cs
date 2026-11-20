@@ -26,6 +26,14 @@ internal enum MarkupProperty
     CornerCapsThickness,
     CornerCapsColor,
     Overlay,
+    OverlayPlacement,
+    OverlayTarget,
+    OverlaySide,
+    OverlayAlign,
+    OverlayGap,
+    OverlayMargin,
+    OverlayFlip,
+    OverlayClamp,
     FontSize,
     FontID,
     HorizontalAlignment,
@@ -133,6 +141,21 @@ internal enum MarkupVerticalAlignment
     Bottom,
 }
 
+internal enum MarkupOverlaySide
+{
+    Right,
+    Left,
+    Bottom,
+    Top,
+}
+
+internal enum MarkupOverlayAlign
+{
+    Start,
+    Center,
+    End,
+}
+
 internal sealed class MarkupExpression
 {
     public readonly string Raw;
@@ -154,6 +177,7 @@ internal enum MarkupExpressionKind
     Constraint,
     FontId,
     Hotkey,
+    OverlayPlacement,
 }
 
 internal sealed class MarkupAssignment

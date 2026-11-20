@@ -172,6 +172,14 @@
     <xs:attribute name="corner-caps-thickness" type="IntegerType" use="optional" />
     <xs:attribute name="corner-caps-color" type="ColorType" use="optional" />
     <xs:attribute name="overlay" type="BooleanExpressionType" use="optional" />
+    <xs:attribute name="overlay-placement" type="ExpressionType" use="optional" />
+    <xs:attribute name="overlay-target" type="xs:string" use="optional" />
+    <xs:attribute name="overlay-side" type="OverlaySideType" use="optional" />
+    <xs:attribute name="overlay-align" type="OverlayAlignType" use="optional" />
+    <xs:attribute name="overlay-gap" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="overlay-margin" type="IntegerExpressionType" use="optional" />
+    <xs:attribute name="overlay-flip" type="BooleanExpressionType" use="optional" />
+    <xs:attribute name="overlay-clamp" type="BooleanExpressionType" use="optional" />
     <xs:attribute name="width" type="DimensionType" use="optional" />
     <xs:attribute name="height" type="DimensionType" use="optional" />
     <xs:attribute name="min-width" type="IntegerExpressionType" use="optional" />
@@ -308,6 +316,29 @@
   <xs:simpleType name="BooleanExpressionType">
     <xs:restriction base="xs:string">
       <xs:pattern value="(true|false)|(@.*)" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ExpressionType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="@.*" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="OverlaySideType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="right" />
+      <xs:enumeration value="left" />
+      <xs:enumeration value="bottom" />
+      <xs:enumeration value="top" />
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="OverlayAlignType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="start" />
+      <xs:enumeration value="center" />
+      <xs:enumeration value="end" />
     </xs:restriction>
   </xs:simpleType>
 

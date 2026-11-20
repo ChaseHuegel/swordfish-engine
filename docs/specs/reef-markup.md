@@ -579,6 +579,24 @@ Padding follows the .NET and XAML LTRB standard: **Left, Top, Right, Bottom**.
 - `overlay`: Boolean (`true`, `false`). When `true`, allows an element to escape
   its parent's clipping bounds, painting over the parent or grandparent without
   being clipped (used for tooltips, dropdowns, context menus).
+- `overlay-target`: Target element ID (literal, `{expr}` interpolation, or
+  `@expression`). Compiles to `OverlayPlacement.ForElement(...)` and implicitly
+  enables `overlay`.
+- `overlay-side`: Preferred edge beside the target (`right`, `left`, `bottom`,
+  or `top`). Defaults to `right`.
+- `overlay-align`: Cross-axis alignment against the target (`start`, `center`,
+  or `end`). Defaults to `start`.
+- `overlay-gap`: Integer or `@expression` pixel gap between the target edge and
+  the overlay. Defaults to `8`.
+- `overlay-margin`: Integer or `@expression` pixel margin kept from viewport
+  edges. Defaults to `8`.
+- `overlay-flip`: Boolean or `@expression` controlling whether the overlay
+  flips to the opposite side or alignment when it overflows the viewport.
+- `overlay-clamp`: Boolean or `@expression` controlling final viewport clamping.
+- `overlay-placement`: Expression of type `OverlayPlacement` or
+  `OverlayPlacement?` for rectangle or point anchors such as
+  `OverlayPlacement.ForRect(...)` or `OverlayPlacement.AtPoint(...)`.
+  Implicitly enables `overlay`.
 - `corner-caps`: Sci-fi HUD bracket style (`CornerCapStyle`).
   Shorthand syntax: `corner-caps="length thickness color"`, for example
   `corner-caps="8 2 #00ffff"`.
