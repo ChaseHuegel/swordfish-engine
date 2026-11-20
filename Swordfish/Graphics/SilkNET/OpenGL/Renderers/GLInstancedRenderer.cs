@@ -72,21 +72,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 continue;
             }
 
-            bool isTransparent = renderTarget.IsTransparent;
-
-            Dictionary<GLRenderTarget, InstanceSet> targetDict;
-            if (isTransparent)
+            Dictionary<GLRenderTarget, InstanceSet> targetDict = renderTarget.EffectiveAlphaMode switch
             {
-                targetDict = _transparentInstances;
-            }
-            else if (renderTarget.RenderOptions.AlphaMode == AlphaMode.Masked)
-            {
-                targetDict = _maskedInstances;
-            }
-            else
-            {
-                targetDict = _instances;
-            }
+                AlphaMode.Blend => _transparentInstances,
+                AlphaMode.Masked => _maskedInstances,
+                _ => _instances,
+            };
 
             if (!targetDict.TryGetValue(renderTarget, out InstanceSet? set))
             {
@@ -158,14 +149,30 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false, isDepthPass, masked: false, renderScene.CameraFrustum);
         drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, sort: false, isDepthPass, masked: true, renderScene.CameraFrustum);
 
-        //  Exclude rendering transparent targets during a depth pass
-        if (!isDepthPass)
-        {
-            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true, isDepthPass: false, masked: false, renderScene.CameraFrustum);
-        }
-
         _gl.Disable(EnableCap.Blend);
         return drawCalls;
+    }
+
+    /// <inheritdoc/>
+    public int RenderTransparent(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback)
+    {
+        if (_transparentInstances.Count == 0 || _renderSettings.HideMeshes)
+        {
+            return 0;
+        }
+
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        _gl.DepthMask(false);
+        try
+        {
+            return Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true, isDepthPass: false, masked: false, renderScene.CameraFrustum);
+        }
+        finally
+        {
+            _gl.DepthMask(true);
+            _gl.Disable(EnableCap.Blend);
+        }
     }
 
     private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, InstanceSet> instances, bool sort, bool isDepthPass, bool masked, Frustum? frustum)
@@ -244,7 +251,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                         cutoutShader.SetUniform("texture0", 0);
                     }
 
-                    cutoutShader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaCutoff);
+                    cutoutShader.SetUniform("uAlphaCutoff", target.EffectiveAlphaCutoff);
 
                     GLHandle.Scope? textureScope = null;
                     if (target.Materials.Length > 0 && target.Materials[0].Textures.Length > 0)
@@ -308,7 +315,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                     {
                         ShaderProgram shader = activeMaterials[n].ShaderProgram;
                         shader.SetUniform("uReceiveShadows", target.RenderOptions.ReceiveShadows ? 1.0f : 0.0f);
-                        shader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaMode == AlphaMode.Masked ? target.RenderOptions.AlphaCutoff : 0.0f);
+                        shader.SetUniform("uAlphaCutoff", target.EffectiveAlphaMode == AlphaMode.Masked ? target.EffectiveAlphaCutoff : 0.0f);
                     }
                 }
             }
@@ -424,7 +431,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                     cutoutShader.SetUniform("texture0", 0);
                 }
 
-                cutoutShader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaCutoff);
+                cutoutShader.SetUniform("uAlphaCutoff", target.EffectiveAlphaCutoff);
 
                 GLHandle.Scope? texScope = null;
                 if (target.Materials.Length > 0 && target.Materials[0].Textures.Length > 0)

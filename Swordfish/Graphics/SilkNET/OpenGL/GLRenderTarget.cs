@@ -17,7 +17,8 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
     internal readonly BufferObject<Matrix4x4> ModelsBufferObject;
 
     internal readonly GLMaterial[] Materials;
-    internal readonly bool IsTransparent;
+    internal readonly AlphaMode EffectiveAlphaMode;
+    internal readonly float EffectiveAlphaCutoff;
 
     internal Matrix4x4 LastModelMatrix;
     internal int LastModelCount;
@@ -32,7 +33,7 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
         ModelsBufferObject = modelsBufferObject;
         Materials = materials;
         RenderOptions = renderOptions;
-        IsTransparent = renderOptions.AlphaMode == AlphaMode.Blend || HasTransparentMaterial(materials);
+        GLMaterial.ResolveAlpha(renderOptions, materials, out EffectiveAlphaMode, out EffectiveAlphaCutoff);
 
         var materialsHash = new HashCode();
         for (var i = 0; i < materials.Length; i++)
@@ -105,19 +106,6 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
     public override int GetHashCode()
     {
         return _hash;
-    }
-
-    private static bool HasTransparentMaterial(GLMaterial[] materials)
-    {
-        for (var i = 0; i < materials.Length; i++)
-        {
-            if (materials[i].Transparent)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public override string ToString()

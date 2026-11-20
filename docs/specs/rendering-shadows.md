@@ -105,9 +105,9 @@ no non-culling neighbour creates no point light
 - Cascade math: `Swordfish/Graphics/SilkNET/OpenGL/ShadowCascadeMath.cs:6-199`
 - Frustum plane extraction: `Swordfish/Graphics/Frustum.cs:24-38`
 - Cubemap array texture: `Swordfish/Graphics/SilkNET/OpenGL/TexCubeArray.cs:6-94`
-- Shadow pass execution: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:570-778`
-- Instanced depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLInstancedRenderer.cs:343-449`
-- Batch depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLMeshBatchRenderer.cs:100-159`
+- Shadow pass execution: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:853-1061`
+- Instanced depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLInstancedRenderer.cs:351-456`
+- Batch depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLMeshBatchRenderer.cs:145-211`
 - Shader evaluation: `Swordfish/assets/shaders/pbr_plus.glsl:132-227`
 - Client sun bootstrap: `WaywardBeyond.Client/Entry.cs:38-43`
 - Client UI controls: `WaywardBeyond.Client/UI/Settings/DisplaySettingsCategory.cs:105-113`

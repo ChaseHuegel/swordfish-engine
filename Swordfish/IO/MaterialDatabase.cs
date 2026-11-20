@@ -58,8 +58,11 @@ internal sealed class MaterialDatabase : ResourceVirtualAssetDatabase<MaterialDe
             textures[i] = texture;
         }
         
-        var material = new Material(shader, textures);
-        material.Transparent = assetInfo.Value.Transparent;
+        var material = new Material(shader, textures)
+        {
+            AlphaMode = assetInfo.Value.AlphaMode,
+            AlphaCutoff = assetInfo.Value.AlphaCutoff,
+        };
         return Result<Material>.FromSuccess(material);
     }
 }

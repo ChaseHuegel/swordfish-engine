@@ -7,6 +7,8 @@ internal interface IRenderStage
 {
     void PreRender(double delta, RenderScene renderScene, bool excludeTransparent = false);
     int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool excludeTransparent = false);
+    /// <summary>Draws blended transparent geometry after all opaque and masked stages complete.</summary>
+    int RenderTransparent(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback) => 0;
     int RenderShadowPass(
         Matrix4x4 view,
         Matrix4x4 projection,

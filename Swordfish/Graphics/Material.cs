@@ -8,7 +8,9 @@ public class Material : Handle
 
     public Texture[] Textures { get; set; }
 
-    public bool Transparent { get; set; }
+    public AlphaMode AlphaMode { get; set; } = AlphaMode.Opaque;
+
+    public float AlphaCutoff { get; set; } = 0.5f;
 
     public Material(Shader shader, params Texture[] textures)
     {
