@@ -21,7 +21,7 @@ vec3 GetNormal()
     vec2 st1 = dFdx(TextureCoord.xy);
     vec2 st2 = dFdy(TextureCoord.xy);
 
-    vec3 N = vNormal;
+    vec3 N = gl_FrontFacing ? vNormal : -vNormal;
     vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
     vec3 B = -normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);

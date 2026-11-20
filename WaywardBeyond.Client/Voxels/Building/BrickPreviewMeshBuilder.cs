@@ -72,7 +72,8 @@ internal sealed class BrickPreviewMeshBuilder
 
         Result<Brick> brickInfoResult = _brickDatabase.Get(voxel.ID);
         BrickAlpha alpha = brickInfoResult.Success ? brickInfoResult.Value.Alpha : BrickAlpha.Opaque;
-        MeshState.MeshData data = GetMeshData(alpha);
+        bool castShadows = !brickInfoResult.Success || brickInfoResult.Value.CastShadows;
+        MeshState.MeshData data = GetMeshData(alpha, castShadows);
         if (data.Vertices.Count == 0)
         {
             return Result<Mesh>.FromFailure($"Brick '{brick.ID}' produced no preview geometry.");
@@ -101,13 +102,13 @@ internal sealed class BrickPreviewMeshBuilder
         return Result<Mesh>.FromSuccess(mesh);
     }
 
-    private MeshState.MeshData GetMeshData(BrickAlpha alpha)
+    private MeshState.MeshData GetMeshData(BrickAlpha alpha, bool castShadows)
     {
         return alpha switch
         {
             BrickAlpha.Masked => _meshState.Masked,
             BrickAlpha.Blend => _meshState.Transparent,
-            _ => _meshState.Opaque,
+            _ => castShadows ? _meshState.Opaque : _meshState.OpaqueNoShadow,
         };
     }
 

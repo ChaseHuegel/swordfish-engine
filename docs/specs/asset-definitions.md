@@ -112,8 +112,10 @@ fallback face; faces override it.
 
 ## Materials (`assets/materials/**/*.toml`)
 
-Flat config: `Swordfish/IO/MaterialDefinition.cs`. Keys include `Shader`,
-`Textures`, `Transparent`. Example at
+Flat config: `Swordfish/IO/MaterialDefinition.cs`. Keys are `Shader`,
+`Textures`, `AlphaMode`, and `AlphaCutoff`. `AlphaMode` accepts `Opaque`,
+`Masked`, or `Blend` and defaults to `Opaque`. `AlphaCutoff` sets the alpha
+discard threshold for `Masked` materials and defaults to `0.5`. Example at
 `assets/materials/bricks/glass.toml`. These are engine-side material
 definitions, not game content tables.
 

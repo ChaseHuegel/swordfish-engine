@@ -1,5 +1,5 @@
-Shader   = "textured"
-Transparent = true
-Textures = [
+Shader    = "textured"
+AlphaMode = "Masked"
+Textures  = [
     "block/glass.png",
 ]

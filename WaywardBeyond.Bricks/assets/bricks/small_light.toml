@@ -1,7 +1,7 @@
 [[Bricks]]
-ID      = "wb:small_light"
-Shape   = "any"
-Alpha   = "Blend"
+ID          = "wb:small_light"
+Shape       = "any"
+CastShadows = false
 Tags    = [
     "entity",
     "light",

@@ -56,10 +56,12 @@ The closest candidates up to `ShadowSettings.MaxPointShadows` render into array 
 Each cube slice draws six 90-degree perspective faces with a shared depth framebuffer.
 In the lighting pass, shaded fragments compute the point light distance and sample the cubemap array.
 
-Voxel light bricks use `AlphaMode.Blend`, so they skip the shadow pass. The
-point light relies on the adjacent structural face for occlusion. The mesh pass
-emits that face because the lamp is not a culler
-(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:127-142`). A lamp with
+Voxel light bricks set `CastShadows = false`, so they render in the opaque
+non-shadow-casting batch and skip the shadow pass. The point light relies on
+the adjacent structural face for occlusion. The mesh pass emits that face
+because a non-shadow-casting brick is not a culler
+(`WaywardBeyond.Bricks/BrickDatabase.cs:57`,
+`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:138-153`). A lamp with
 no non-culling neighbour creates no point light
 (`WaywardBeyond.Client/Voxels/Building/LightEntityDecorator.cs`).
 
@@ -105,9 +107,9 @@ no non-culling neighbour creates no point light
 - Cascade math: `Swordfish/Graphics/SilkNET/OpenGL/ShadowCascadeMath.cs:6-199`
 - Frustum plane extraction: `Swordfish/Graphics/Frustum.cs:24-38`
 - Cubemap array texture: `Swordfish/Graphics/SilkNET/OpenGL/TexCubeArray.cs:6-94`
-- Shadow pass execution: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:570-778`
-- Instanced depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLInstancedRenderer.cs:343-449`
-- Batch depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLMeshBatchRenderer.cs:100-159`
+- Shadow pass execution: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:853-1061`
+- Instanced depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLInstancedRenderer.cs:402-507`
+- Batch depth draw pass: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLMeshBatchRenderer.cs:229-295`
 - Shader evaluation: `Swordfish/assets/shaders/pbr_plus.glsl:132-227`
 - Client sun bootstrap: `WaywardBeyond.Client/Entry.cs:38-43`
 - Client UI controls: `WaywardBeyond.Client/UI/Settings/DisplaySettingsCategory.cs:105-113`
