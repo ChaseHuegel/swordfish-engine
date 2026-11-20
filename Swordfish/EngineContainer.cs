@@ -1,5 +1,6 @@
 using DryIoc;
 using JoltPhysicsSharp;
+using Shoal.CrashHandling;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Silk.NET.Core.Contexts;
@@ -49,6 +50,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         GL gl = _window.CreateOpenGL();
         GraphicsApi = gl;
         GLContext = _window.GLContext;
+        RecordGpuInfo(gl);
         
         container.RegisterInstance<GL>(gl, setup: Setup.With(preventDisposal: true));
         container.Register<GLContext>(Reuse.Singleton);
@@ -137,5 +139,20 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterDataBinding<AntiAliasing>();
         container.RegisterDataBinding<WindowMode>();
         container.RegisterDataBinding<ShadowFilterMode>();
+    }
+
+    private static void RecordGpuInfo(GL gl)
+    {
+        try
+        {
+            string vendor = gl.GetStringS(StringName.Vendor);
+            string renderer = gl.GetStringS(StringName.Renderer);
+            string version = gl.GetStringS(StringName.Version);
+            CrashSession.SetGpuInfo(vendor, renderer, version);
+        }
+        catch
+        {
+            //  GPU diagnostics are best-effort.
+        }
     }
 }

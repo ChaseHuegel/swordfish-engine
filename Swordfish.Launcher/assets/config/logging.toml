@@ -1,0 +1,14 @@
+MinLevel = "Information"
+FlushIntervalMs = 200
+SyncFlushMinLevel = "Error"
+MaxLogFiles = 20
+
+[CrashHandler]
+Enabled = true
+MaxCrashReports = 20
+AlertTailLines = 80
+AlertTailMaxChars = 16384
+CollectDumps = true
+DumpType = "Mini"
+MaxCrashDumps = 5
+MaxUploadBytes = 8388608
