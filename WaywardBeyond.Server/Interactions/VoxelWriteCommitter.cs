@@ -21,6 +21,7 @@ namespace WaywardBeyond.Server.Interactions;
 public sealed class VoxelWriteCommitter(
     ServerPeers peers,
     IBrickRegistry brickRegistry,
+    IBrickDatabase brickDatabase,
     ILogger<VoxelWriteCommitter> logger
 ) : IInteractionHandler
 {
@@ -60,7 +61,7 @@ public sealed class VoxelWriteCommitter(
         //  VoxelObject is the single voxel representation; saves and streams re-derive chunks from it.
         context.Store.AddOrUpdate(
             resolution.Entity,
-            new ColliderComponent(VoxelColliderBuilder.BuildCollision(voxelObject.GetChunkInfos())));
+            new ColliderComponent(VoxelColliderBuilder.BuildCollision(voxelObject, brickDatabase)));
 
         Voxel written = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
         Broadcast(context.Store, resolution.Entity, coordinate, in written, context.Sequence);

@@ -9,6 +9,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
@@ -18,6 +19,7 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Debug;
 using WaywardBeyond.Client.Events;
+using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Services;
@@ -32,6 +34,7 @@ using WaywardBeyond.Items;
 using WaywardBeyond.Voxels;
 
 using WaywardBeyond.Client.Voxels.Processing;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -50,6 +53,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 {
     private const float OUTLINE_OUTSET = 1.035f;
     private static readonly Vector4 _outlineColor = new(0.5f, 0.5f, 0.5f, 0.8f);
+    private static readonly Vector4 _invalidOutlineColor = new(0.95f, 0.25f, 0.25f, 0.9f);
     private static readonly Vector3[] _worldAxes = [Vector3.UnitX, -Vector3.UnitX, Vector3.UnitY, -Vector3.UnitY, Vector3.UnitZ, -Vector3.UnitZ];
 
     private readonly InteractionState _interactionState;
@@ -74,6 +78,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly EventInvoker<PlaceEvent> _placeEvent;
     private readonly EventInvoker<BreakEvent> _breakEvent;
     private readonly SnapshotAckTracker _snapshotAck;
+    private readonly NotificationService _notificationService;
+    private readonly ILocalization _localization;
 
     private uint _interactionSequence;
 
@@ -108,7 +114,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in VoxelLightingService voxelLightingService,
         in EventInvoker<PlaceEvent> placeEvent,
         in EventInvoker<BreakEvent> breakEvent,
-    in SnapshotAckTracker snapshotAck
+        in SnapshotAckTracker snapshotAck,
+        in NotificationService notificationService,
+        in ILocalization localization
     ) {
         _interactionState = interactionState;
         _brickPreviewState = brickPreviewState;
@@ -128,6 +136,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _placeEvent = placeEvent;
         _breakEvent = breakEvent;
         _snapshotAck = snapshotAck;
+        _notificationService = notificationService;
+        _localization = localization;
 
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
@@ -285,8 +295,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         //  Resolve the target structure + cell and the placement orientation from the same screen-space
         //  raycast the ghost preview uses, so the placed brick always matches the previewed orientation.
-        if (!TryGetBrickFromScreenSpace(isPlace, reachAround: true, out Entity entity, out _, out Int3 coordinate, out _, out TransformComponent targetTransform, out Vector3 clickedPoint))
+        if (!TryGetBrickFromScreenSpace(isPlace, reachAround: true, out Entity entity, out Voxel targetVoxel, out Int3 coordinate, out _, out TransformComponent targetTransform, out Vector3 clickedPoint))
         {
+            return;
+        }
+
+        if (isPlace && placeable != null && targetVoxel.ID != 0)
+        {
+            _notificationService.Push(new Notification(_localization.GetRequired("notification.placement.occupied"), NotificationType.Action));
             return;
         }
 
@@ -571,8 +587,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             Orientation previewOrientation = placeableBrick.IsOrientable(shape)
                 ? new Orientation(localPlacementOrientation)
                 : Orientation.Identity;
-            _brickPreviewState.Show(placeableBrick, shape, previewOrientation, worldPos, transformComponent.Orientation);
-            ShowPlacementOutline(placeableBrick, shape, worldPos, transformComponent.Orientation, previewOrientation);
+            bool isPlacementValid = clickedVoxel.ID == 0;
+            if (isPlacementValid)
+            {
+                _brickPreviewState.Show(placeableBrick, shape, previewOrientation, worldPos, transformComponent.Orientation);
+            }
+            else
+            {
+                _brickPreviewState.Hide();
+            }
+
+            Vector4 outlineColor = isPlacementValid ? _outlineColor : _invalidOutlineColor;
+            ShowPlacementOutline(placeableBrick, shape, worldPos, transformComponent.Orientation, previewOrientation, outlineColor);
             return;
         }
 
@@ -625,7 +651,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             }
         }
 
-        ShowOutline(shape, customMesh, worldPos, orientation);
+        ShowOutline(shape, customMesh, worldPos, orientation, _outlineColor);
     }
 
     private void ShowPlacementOutline(
@@ -633,13 +659,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         BrickShape shape,
         Vector3 worldPos,
         Quaternion structureOrientation,
-        Orientation orientation
+        Orientation orientation,
+        Vector4 color
     ) {
         Mesh? customMesh = shape == BrickShape.Custom ? ResolveMesh(brick) : null;
-        ShowOutline(shape, customMesh, worldPos, structureOrientation * orientation.ToQuaternion());
+        ShowOutline(shape, customMesh, worldPos, structureOrientation * orientation.ToQuaternion(), color);
     }
 
-    private void ShowOutline(BrickShape shape, Mesh? customMesh, Vector3 worldPos, Quaternion orientation)
+    private void ShowOutline(BrickShape shape, Mesh? customMesh, Vector3 worldPos, Quaternion orientation, Vector4 color)
     {
         MeshOutline? outline = null;
 
@@ -665,6 +692,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             _activeOutline = outline;
         }
 
+        _activeOutline.Color = color;
         _activeOutline.Visible = true;
         _activeOutline.Render(new TransformComponent(worldPos, orientation, Vector3.One));
     }
@@ -929,33 +957,26 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
         
         clickedPoint = raycast.Point;
-        Vector3 worldPos = raycast.Point;
-        if (offset && reachAroundDir == null)
-        {
-            worldPos += raycast.Normal * 0.1f;
-        }
-        else
-        {
-            worldPos += raycast.Normal * -0.1f;
-        }
-        
-        coordinate = WorldToBrickSpace(worldPos, transformComponent.Position, transformComponent.Orientation);
+        coordinate = offset && reachAroundDir == null
+            ? InteractionResolver.ResolvePlacementCell(
+                raycast.Point,
+                raycast.Normal,
+                transformComponent.Position,
+                transformComponent.Orientation
+            )
+            : InteractionResolver.ResolveHitCell(
+                raycast.Point,
+                raycast.Normal,
+                transformComponent.Position,
+                transformComponent.Orientation
+            );
         voxel = voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
-        
+
         if (reachAroundDir != null)
         {
             TryGetRelativeBrickInWorldSpace(voxelComponent, transformComponent, reachAroundDir.Value, ref coordinate, out voxel);
         }
-        
-        //  If offset is true, then this raycast is attempting to be adjacent to a voxel.
-        //  If the hit voxel isn't empty, then march back along the ray to try and find an empty voxel.
-        for (var step = 0; offset && voxel.ID != 0 && step < 10; step++)
-        {
-            worldPos -= raycast.Normal * 0.25f;
-            coordinate = WorldToBrickSpace(worldPos, transformComponent.Position, transformComponent.Orientation);
-            voxel = voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
-        }
-        
+
         entity = raycast.Entity;
         return true;
     }

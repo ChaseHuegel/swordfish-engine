@@ -16,7 +16,9 @@ namespace WaywardBeyond.Gameplay.Interactions;
 /// </summary>
 public static class InteractionResolver
 {
-    private static readonly Vector3 HALF_CELL = new(0.5f);
+    private const float SURFACE_EPSILON = 0.001f;
+    
+    private static readonly Vector3 _halfCell = new(0.5f);
 
     /// <summary>
     /// Validates the hinted structure + cell against the world and resolves the action. Never throws;
@@ -109,7 +111,7 @@ public static class InteractionResolver
         //  every cell corner into world space.
         Vector3 localOrigin = Vector3.Transform(origin - transform.Position, Quaternion.Inverse(transform.Orientation));
         var center = new Vector3(coordinate.X, coordinate.Y, coordinate.Z);
-        Vector3 nearest = Vector3.Clamp(localOrigin, center - HALF_CELL, center + HALF_CELL);
+        Vector3 nearest = Vector3.Clamp(localOrigin, center - _halfCell, center + _halfCell);
         return Vector3.DistanceSquared(localOrigin, nearest) <= reach * reach;
     }
 
@@ -132,5 +134,97 @@ public static class InteractionResolver
     {
         var localPosition = new Vector3(coordinate.X, coordinate.Y, coordinate.Z);
         return Vector3.Transform(localPosition, orientation) + origin;
+    }
+
+    /// <summary>
+    /// Resolves the hit voxel coordinate from a physics raycast hit point and surface normal.
+    /// Uses a small inward nudge so thin and sloped hitboxes stay inside the hit cell.
+    /// </summary>
+    public static Int3 ResolveHitCell(
+        Vector3 hitPoint,
+        Vector3 hitNormal,
+        Vector3 structureOrigin,
+        Quaternion structureOrientation
+    ) {
+        Vector3 inwardPoint = hitPoint - hitNormal * SURFACE_EPSILON;
+        return WorldToBrickSpace(inwardPoint, structureOrigin, structureOrientation);
+    }
+
+    /// <summary>
+    /// Resolves the direct adjacent placement voxel coordinate from a physics raycast hit point and surface normal.
+    /// Never leaps across occupied cells; outer faces step directly into the neighbor and recessed or sloped
+    /// faces step along the dominant local normal axis from the hit cell.
+    /// </summary>
+    public static Int3 ResolvePlacementCell(
+        Vector3 hitPoint,
+        Vector3 hitNormal,
+        Vector3 structureOrigin,
+        Quaternion structureOrientation
+    ) {
+        Int3 hitCell = ResolveHitCell(hitPoint, hitNormal, structureOrigin, structureOrientation);
+
+        //  Outer cell faces step straight into the adjacent cell.
+        Vector3 outwardPoint = hitPoint + hitNormal * SURFACE_EPSILON;
+        Int3 outwardCell = WorldToBrickSpace(outwardPoint, structureOrigin, structureOrientation);
+        if (outwardCell != hitCell)
+        {
+            return outwardCell;
+        }
+
+        //  Recessed or sloped faces (slabs, plates, columns, stairs, slopes, custom shapes) stay inside
+        //  the hit cell after a tiny nudge. Step along the dominant local normal axis from the hit cell.
+        Quaternion inverseOrientation = Quaternion.Inverse(structureOrientation);
+        Vector3 localNormal = Vector3.Transform(hitNormal, inverseOrientation);
+        Vector3 localHit = Vector3.Transform(hitPoint - structureOrigin, inverseOrientation);
+        Vector3 cellOffset = localHit - new Vector3(hitCell.X, hitCell.Y, hitCell.Z);
+
+        Int3 primaryStep = PickCardinalStep(localNormal, cellOffset);
+        return new Int3(hitCell.X + primaryStep.X, hitCell.Y + primaryStep.Y, hitCell.Z + primaryStep.Z);
+    }
+
+    private static Int3 PickCardinalStep(Vector3 localNormal, Vector3 cellOffset)
+    {
+        const float minAxisComponent = 0.01f;
+        const float tieTolerance = 0.05f;
+
+        var chosenAxis = -1;
+        var bestMagnitude = 0f;
+        var bestTieBreak = float.NegativeInfinity;
+        var bestSign = 0;
+
+        for (var axis = 0; axis < 3; axis++)
+        {
+            float component = axis == 0 ? localNormal.X : (axis == 1 ? localNormal.Y : localNormal.Z);
+            float magnitude = MathF.Abs(component);
+            if (magnitude < minAxisComponent)
+            {
+                continue;
+            }
+
+            int sign = component >= 0f ? 1 : -1;
+            float offsetAlongAxis = (axis == 0 ? cellOffset.X : (axis == 1 ? cellOffset.Y : cellOffset.Z)) * sign;
+
+            bool isBetter = chosenAxis < 0
+                || magnitude > bestMagnitude + tieTolerance
+                || (MathF.Abs(magnitude - bestMagnitude) <= tieTolerance && offsetAlongAxis > bestTieBreak);
+
+            if (!isBetter)
+            {
+                continue;
+            }
+
+            chosenAxis = axis;
+            bestMagnitude = magnitude;
+            bestTieBreak = offsetAlongAxis;
+            bestSign = sign;
+        }
+
+        return chosenAxis switch
+        {
+            0 => new Int3(bestSign, 0, 0),
+            1 => new Int3(0, bestSign, 0),
+            2 => new Int3(0, 0, bestSign),
+            _ => default,
+        };
     }
 }

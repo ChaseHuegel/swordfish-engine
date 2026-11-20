@@ -13,6 +13,7 @@ namespace WaywardBeyond.Bricks;
 /// <inheritdoc/>
 internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, Brick>, IAutoActivate, IBrickDatabase, IBrickRegistry
 {
+    private readonly ILogger<BrickDatabase> _logger;
     private readonly List<Brick> _loaded = [];
     private readonly BrickRegistry _registry;
     private readonly Brick?[] _byId;
@@ -24,6 +25,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         in VirtualFileSystem vfs
     ) : base(logger, fileParseService, vfs)
     {
+        _logger = logger;
         Load();
 
         _registry = BrickRegistry.FromNames([.. _loaded.Select(brick => brick.ID)]);
@@ -85,9 +87,34 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     /// <inheritdoc/>
     protected override Result<Brick> LoadAsset(string id, BrickDefinition assetInfo)
     {
-        var brick = new Brick(id, assetInfo.Alpha, assetInfo.Passable, assetInfo.Mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags, assetInfo.CastShadows);
+        BrickColliderShape[] colliders = BuildColliders(id, assetInfo.Colliders);
+        var brick = new Brick(id, assetInfo.Alpha, assetInfo.Passable, assetInfo.Mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags, assetInfo.CastShadows, colliders);
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
+    }
+
+    private BrickColliderShape[] BuildColliders(string brickId, List<BrickColliderDefinition>? definitions)
+    {
+        if (definitions == null || definitions.Count == 0)
+        {
+            return [];
+        }
+
+        var built = new List<BrickColliderShape>(definitions.Count);
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            Result<BrickColliderShape> result = definitions[i].Build();
+            if (result.Success)
+            {
+                built.Add(result.Value);
+            }
+            else
+            {
+                _logger.LogWarning("Skipping invalid collider #{Index} on brick \"{BrickId}\": {Error}", i, brickId, result.Message);
+            }
+        }
+
+        return built.Count > 0 ? [.. built] : [];
     }
 
     private Brick? GetOrNull(ushort id)

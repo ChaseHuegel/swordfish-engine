@@ -17,9 +17,33 @@ internal sealed class MeshOutline : IDisposable
 
     private readonly Line[] _lines;
     private readonly LineTemplate[] _templates;
-    private readonly Vector4 _color;
+    private Vector4 _color;
     private readonly float _outset;
     private bool _visible;
+
+    /// <summary>Gets or sets the outline color.</summary>
+    public Vector4 Color
+    {
+        get => _color;
+        set
+        {
+            if (_color == value)
+            {
+                return;
+            }
+
+            _color = value;
+            if (!_visible)
+            {
+                return;
+            }
+
+            for (var i = 0; i < _lines.Length; i++)
+            {
+                _lines[i].Color = value;
+            }
+        }
+    }
 
     /// <summary>Gets or sets whether the outline is visible.</summary>
     public bool Visible
