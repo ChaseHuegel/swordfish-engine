@@ -56,9 +56,9 @@ internal unsafe partial class GLContext(in GL gl, in SynchronizationContext sync
         }
     }
 
-    public GLMaterial CreateGLMaterial(ShaderProgram shaderProgram, IGLTexture[] textures, bool transparent)
+    public GLMaterial CreateGLMaterial(ShaderProgram shaderProgram, IGLTexture[] textures, AlphaMode alphaMode, float alphaCutoff)
     {
-        return _glThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, textures, transparent));
+        return _glThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, textures, alphaMode, alphaCutoff));
     }
 
     internal GLRenderTarget CreateGLRenderTarget(Uuid entity, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)

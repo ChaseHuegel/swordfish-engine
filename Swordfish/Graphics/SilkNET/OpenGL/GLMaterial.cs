@@ -11,17 +11,52 @@ internal sealed class GLMaterial : Handle
 
     public IGLTexture[] Textures { get; }
 
-    public bool Transparent { get; }
+    /// <summary>Alpha handling mode for this material.</summary>
+    public AlphaMode AlphaMode { get; }
 
-    public GLMaterial(ShaderProgram shaderProgram, IGLTexture[] textures, bool transparent)
+    /// <summary>Alpha discard threshold for masked rendering.</summary>
+    public float AlphaCutoff { get; }
+
+    public GLMaterial(ShaderProgram shaderProgram, IGLTexture[] textures, AlphaMode alphaMode, float alphaCutoff)
     {
         ShaderProgram = shaderProgram;
         Textures = textures;
-        Transparent = transparent;
+        AlphaMode = alphaMode;
+        AlphaCutoff = alphaCutoff;
 
         if (textures.Length > 32)
         {
             throw new ArgumentException("Length can not exceed 32.", nameof(textures));
+        }
+    }
+
+    /// <summary>Resolves the effective alpha mode and cutoff from render options and materials.</summary>
+    internal static void ResolveAlpha(in RenderOptions options, GLMaterial[] materials, out AlphaMode alphaMode, out float alphaCutoff)
+    {
+        if (options.AlphaMode != AlphaMode.Opaque)
+        {
+            alphaMode = options.AlphaMode;
+            alphaCutoff = options.AlphaCutoff;
+            return;
+        }
+
+        alphaMode = AlphaMode.Opaque;
+        alphaCutoff = options.AlphaCutoff;
+
+        for (var i = 0; i < materials.Length; i++)
+        {
+            GLMaterial material = materials[i];
+            if (material.AlphaMode == AlphaMode.Blend)
+            {
+                alphaMode = AlphaMode.Blend;
+                return;
+            }
+
+            if (material.AlphaMode == AlphaMode.Masked && alphaMode == AlphaMode.Opaque)
+            {
+                alphaMode = AlphaMode.Masked;
+                alphaCutoff = material.AlphaCutoff;
+            }
         }
     }
 
@@ -53,7 +88,10 @@ internal sealed class GLMaterial : Handle
             return false;
         }
 
-        return Transparent.Equals(other.Transparent) && ShaderProgram.Equals(other.ShaderProgram) && Textures.SequenceEqual(other.Textures);
+        return AlphaMode == other.AlphaMode
+            && AlphaCutoff.Equals(other.AlphaCutoff)
+            && ShaderProgram.Equals(other.ShaderProgram)
+            && Textures.SequenceEqual(other.Textures);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,7 +107,7 @@ internal sealed class GLMaterial : Handle
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Transparent.GetHashCode(), ShaderProgram.GetHashCode(), Textures.GetHashCode());
+        return HashCode.Combine(AlphaMode.GetHashCode(), AlphaCutoff.GetHashCode(), ShaderProgram.GetHashCode(), Textures.GetHashCode());
     }
 
     public override string? ToString()

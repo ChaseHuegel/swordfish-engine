@@ -88,17 +88,19 @@ internal unsafe partial class GLContext
     }
 
     private readonly struct GLMaterialArgs(
-        in ShaderProgram shaderProgram, 
-        in IGLTexture[] texImages2D, 
-        in bool transparent)
+        in ShaderProgram shaderProgram,
+        in IGLTexture[] texImages2D,
+        in AlphaMode alphaMode,
+        in float alphaCutoff)
     {
         private readonly ShaderProgram _shaderProgram = shaderProgram;
         private readonly IGLTexture[] _textures = texImages2D;
-        private readonly bool _transparent = transparent;
+        private readonly AlphaMode _alphaMode = alphaMode;
+        private readonly float _alphaCutoff = alphaCutoff;
 
         public static GLMaterial Factory(GLMaterialArgs args)
         {
-            return new GLMaterial(args._shaderProgram, args._textures, args._transparent);
+            return new GLMaterial(args._shaderProgram, args._textures, args._alphaMode, args._alphaCutoff);
         }
     }
 
