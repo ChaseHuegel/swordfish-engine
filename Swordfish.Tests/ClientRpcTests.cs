@@ -136,7 +136,6 @@ public class ClientRpcTests
             logs);
 
         Assert.True(clientHost.IsLocal);
-        Assert.False(clientHost.IsTerminal);
 
         bool remoteDisconnected = false;
         clientHost.RemoteDisconnected += () => remoteDisconnected = true;
@@ -145,7 +144,6 @@ public class ClientRpcTests
         serverHost.Dispose();
 
         Assert.True(transport.IsClosed);
-        Assert.True(clientHost.IsTerminal);
         Assert.False(clientHost.IsConnected);
         Assert.False(clientHost.IsLocal);
         Assert.Null(clientHost.Api);
@@ -153,13 +151,13 @@ public class ClientRpcTests
         Assert.DoesNotContain(logs.Entries, entry => entry.Level >= LogLevel.Error);
 
         clientHost.Disconnect();
-        Assert.True(clientHost.IsTerminal);
+        Assert.False(clientHost.IsConnected);
         Assert.False(clientHost.ConnectRemote("127.0.0.1", 1).Success);
         Assert.DoesNotContain(logs.Entries, entry => entry.Level >= LogLevel.Error);
     }
 
     [Fact]
-    public void ShutdownMarksClientTerminalBeforeServerStops()
+    public void CloseMarksClientClosedBeforeServerStops()
     {
         var logs = new RecordingLoggerFactory();
         var transport = new LoopbackRpcServerTransport();
@@ -193,11 +191,12 @@ public class ClientRpcTests
         bool remoteDisconnected = false;
         clientHost.RemoteDisconnected += () => remoteDisconnected = true;
 
-        clientHost.Shutdown();
+        clientHost.Close();
 
-        Assert.True(clientHost.IsTerminal);
         Assert.False(clientHost.IsConnected);
+        Assert.Null(clientHost.Api);
         Assert.False(remoteDisconnected);
+        Assert.False(clientHost.ConnectRemote("127.0.0.1", 1).Success);
 
         serverHost.Dispose();
 

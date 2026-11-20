@@ -69,14 +69,14 @@ transport interfaces for the in-process host.
   then create a fresh loopback client connection. The menu lists and loads
   local saves without an application restart.
 - `Disconnect`: claims and closes an active remote peer, then restores the
-  loopback. An active loopback, an already-claimed disconnect, or a terminal
-  host is left alone, so `Disconnect` and `OnDisconnected` attempt at most one
+  loopback. An active loopback, an already-claimed disconnect, or a closed host
+  is left alone, so `Disconnect` and `OnDisconnected` attempt at most one
   restore per disconnect.
-- `Shutdown` and `Dispose`: mark the host terminal (`IsTerminal`) and close the
-  active connection with `LocalClose` without restoring the loopback.
+- `Close` and `Dispose`: mark the host closed and close the active connection
+  with `LocalClose` without restoring the loopback.
 - Shutdown ordering: if `ServerRpcHost.Dispose` closes the loopback listener
   before `ClientRpcHost.Dispose` runs, `OnDisconnected` sees
-  `LoopbackRpcServerTransport.IsClosed`, marks the host terminal, and returns
+  `LoopbackRpcServerTransport.IsClosed`, marks the host closed, and returns
   silently without raising `RemoteDisconnected`, attempting a loopback restore,
   or logging an error.
 - `Poll` enforces call deadlines once per client tick.
