@@ -12,20 +12,11 @@ internal readonly record struct InventorySlotViewState(string ID, ItemSlotState 
 /// <summary>Display data for one horizontal row of inventory slots.</summary>
 internal readonly record struct InventorySlotRowState(IReadOnlyList<InventorySlotViewState> Slots);
 
-/// <summary>Display data for the item inspection footer.</summary>
-internal readonly record struct InventoryFooterState(
-    bool Empty,
-    bool Unknown,
-    string Name,
-    bool Orientable,
-    bool Shapeable
-);
-
-/// <summary>Display data for the modal inventory frame and its drag preview.</summary>
+/// <summary>Display data for the modal inventory frame, hover tooltip, and drag preview.</summary>
 internal readonly record struct InventoryViewState(
     IReadOnlyList<InventorySlotRowState> CargoRows,
     IReadOnlyList<InventorySlotViewState> Hotbar,
-    InventoryFooterState Footer,
+    ItemTooltipState Tooltip,
     bool HasDrag,
     Material DragIcon,
     string? DragCount,

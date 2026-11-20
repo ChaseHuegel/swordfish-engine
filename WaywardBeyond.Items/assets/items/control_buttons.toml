@@ -1,6 +1,7 @@
 [[Items]]
 ID       = "wb:control_buttons"
 Name     = "item.base.control_buttons"
+Description = "item.base.control_buttons.description"
 Icon     = "block/control_buttons.0.png"
 MaxStack = 100
 [Items.Placeable]

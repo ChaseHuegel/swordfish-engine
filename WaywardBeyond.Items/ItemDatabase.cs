@@ -43,7 +43,8 @@ public sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDef
             assetInfo.Placeable,
             assetInfo.Tool,
             assetInfo.ViewModel,
-            assetInfo.WorldModel
+            assetInfo.WorldModel,
+            assetInfo.Description
         );
 
         return Result<Item>.FromSuccess(item);

@@ -1,6 +1,7 @@
 [[Items]]
 ID       = "wb:display_control"
 Name     = "item.base.display_control"
+Description = "item.base.display_control.description"
 Icon     = "block/display_control.0.png"
 MaxStack = 100
 [Items.Placeable]

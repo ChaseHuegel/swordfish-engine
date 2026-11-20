@@ -143,11 +143,17 @@ style rule.
 Lists use `ForEach` with the row's own spacing. Item structure belongs in a
 component such as `Card`. A generic list template is not supported.
 
-The foundation also provides `ProgressBar`, `ScrollArea`, `ScrollBar`, and
-`ItemSlot`. Scroll areas use `ScrollAreaState` for viewport metrics, content
-height, thumb geometry, and drag progress. A page calls `ScrollAreaState.Measure`
-with the viewport id. The content element id is the viewport id plus `Content`.
-Dynamic fill and thumb sizes use `IConstraint` properties on the state.
+The foundation also provides `ProgressBar`, `ScrollArea`, `ScrollBar`,
+`ItemSlot`, and `ItemTooltip`. Scroll areas use `ScrollAreaState` for viewport
+metrics, content height, thumb geometry, and drag progress. A page calls
+`ScrollAreaState.Measure` with the viewport id. The content element id is the
+viewport id plus `Content`. Dynamic fill and thumb sizes use `IConstraint`
+properties on the state.
+
+`ItemTooltip` takes an `ItemTooltipState` context. It anchors to the hovered
+slot id through `overlay-target`, flips when it overflows the viewport, and
+renders the item name, item kind subtitle, optional description, and trait
+badges. It carries localization keys and enums only.
 
 `ProgressBarState` carries the value and an optional fill tint, and it falls
 back to `--wb-accent`. The component projects a `Content` slot over the track,

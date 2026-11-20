@@ -1,6 +1,7 @@
 [[Items]]
 ID       = "wb:grate"
 Name     = "item.base.grate"
+Description = "item.base.grate.description"
 Icon     = "block/grate.png"
 MaxStack = 100
 [Items.Placeable]

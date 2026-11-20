@@ -28,10 +28,11 @@ internal sealed class Inventory : IUILayer
     private const int SLOT_GAP = 6;
 
     /// <summary>
-    /// The panel height that is not slot rows: the title block, divider spacers, hotbar row, footer,
+    /// The panel height that is not slot rows: the title block, divider spacers, hotbar row,
     /// and panel padding.
     /// </summary>
-    private const int PANEL_HEIGHT_CHROME = 185;
+    private const int PANEL_HEIGHT_CHROME = 137;
+    private const int TRAITS_PER_ROW = 2;
 
     private static readonly string[] _slotNumbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
@@ -287,7 +288,7 @@ internal sealed class Inventory : IUILayer
         var state = new InventoryViewState(
             CargoRows: cargoRows,
             Hotbar: hotbar,
-            Footer: CreateFooter(in inventory),
+            Tooltip: CreateTooltip(in inventory),
             HasDrag: _dragging && draggedSlotIcon != null && draggedSlotText != null,
             DragIcon: draggedSlotIcon!,
             DragCount: draggedSlotText,
@@ -330,58 +331,127 @@ internal sealed class Inventory : IUILayer
         return new InventorySlotRowState(slots);
     }
 
-    /// <summary>Resolves the hovered slot's name and its capability badges.</summary>
-    private InventoryFooterState CreateFooter(in InventoryComponent inventory)
+    /// <summary>Resolves the hovered slot's tooltip content and target anchor.</summary>
+    private ItemTooltipState CreateTooltip(in InventoryComponent inventory)
     {
+        if (_dragging || _rightDistributing || _selectedSlot < 0)
+        {
+            return ItemTooltipState.Hidden(_localization);
+        }
+
         ItemData itemStack = GetSlotStack(in inventory, _selectedSlot);
         if (itemStack.Count <= 0 || itemStack.ID == null)
         {
-            return new InventoryFooterState(
-                Empty: true,
-                Unknown: false,
-                Name: string.Empty,
-                Orientable: false,
-                Shapeable: false
-            );
+            return ItemTooltipState.Hidden(_localization);
         }
 
+        string anchorID = $"inventorySlot{_selectedSlot}";
         Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
         if (!itemResult.Success)
         {
-            string fallbackName = _localization.GetString(itemStack.ID) ?? itemStack.ID;
-            return new InventoryFooterState(
-                Empty: false,
-                Unknown: true,
-                Name: fallbackName,
-                Orientable: false,
-                Shapeable: false
+            return new ItemTooltipState(
+                Visible: true,
+                AnchorID: anchorID,
+                NameKey: itemStack.ID,
+                Kind: ItemTooltipKind.Unknown,
+                DescriptionKey: null,
+                TraitRows: [],
+                Localization: _localization
             );
         }
 
         Item item = itemResult.Value;
-        string itemName = _localization.GetString(item.Name) ?? item.Name;
+        ItemTooltipKind kind = ResolveItemKind(item);
+        IReadOnlyList<ItemTooltipTraitRowState> traitRows = ResolveTraitRows(item);
 
-        bool shapeable = false;
-        bool orientable = false;
+        return new ItemTooltipState(
+            Visible: true,
+            AnchorID: anchorID,
+            NameKey: item.Name,
+            Kind: kind,
+            DescriptionKey: item.Description,
+            TraitRows: traitRows,
+            Localization: _localization
+        );
+    }
 
+    private static ItemTooltipKind ResolveItemKind(Item item)
+    {
         if (item.Placeable != null)
         {
-            Result<Brick> brickResult = _brickDatabase.Get(item.Placeable.Value.ID);
-            if (brickResult.Success)
-            {
-                Brick brick = brickResult.Value;
-                shapeable = brick.Shapeable;
-                orientable = brick.Shapeable || brick.IsOrientable(BrickShape.Block);
-            }
+            return ItemTooltipKind.Brick;
         }
 
-        return new InventoryFooterState(
-            Empty: false,
-            Unknown: false,
-            Name: itemName,
-            Orientable: orientable,
-            Shapeable: shapeable
-        );
+        if (item.Tool != null)
+        {
+            return item.Tool.Value.Type switch
+            {
+                ToolType.Mining => ItemTooltipKind.MiningTool,
+                ToolType.Convert => ItemTooltipKind.ConversionTool,
+                _ => ItemTooltipKind.Item,
+            };
+        }
+
+        return ItemTooltipKind.Item;
+    }
+
+    private IReadOnlyList<ItemTooltipTraitRowState> ResolveTraitRows(Item item)
+    {
+        if (item.Placeable == null)
+        {
+            return [];
+        }
+
+        Result<Brick> brickResult = _brickDatabase.Get(item.Placeable.Value.ID);
+        if (!brickResult.Success)
+        {
+            return [];
+        }
+
+        Brick brick = brickResult.Value;
+        var traits = new List<ItemTooltipTrait>(4);
+
+        if (brick.Shapeable || brick.IsOrientable(BrickShape.Block))
+        {
+            traits.Add(ItemTooltipTrait.Orientable);
+        }
+
+        if (brick.Shapeable)
+        {
+            traits.Add(ItemTooltipTrait.Shapeable);
+        }
+
+        if (brick.LightSource)
+        {
+            traits.Add(ItemTooltipTrait.LightSource);
+        }
+
+        if (brick.Tags.Contains("thruster"))
+        {
+            traits.Add(ItemTooltipTrait.Propulsion);
+        }
+
+        if (traits.Count == 0)
+        {
+            return [];
+        }
+
+        int rowCount = (traits.Count + TRAITS_PER_ROW - 1) / TRAITS_PER_ROW;
+        var rows = new ItemTooltipTraitRowState[rowCount];
+        for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
+        {
+            int start = rowIndex * TRAITS_PER_ROW;
+            int length = Math.Min(TRAITS_PER_ROW, traits.Count - start);
+            var rowTraits = new ItemTooltipTrait[length];
+            for (var i = 0; i < length; i++)
+            {
+                rowTraits[i] = traits[start + i];
+            }
+
+            rows[rowIndex] = new ItemTooltipTraitRowState(rowTraits);
+        }
+
+        return rows;
     }
 
     /// <summary>Completes a click-to-drop by moving the picked-up stack onto the selected slot or putting it down.</summary>

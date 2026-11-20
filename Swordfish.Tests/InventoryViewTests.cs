@@ -154,6 +154,110 @@ public class InventoryViewTests
         harness.Hover("inventorySlot13");
 
         Assert.Equal(1, harness.CountText("wb:unknown"));
+        Assert.Equal(1, harness.CountText("Unknown item"));
+    }
+
+    [Fact]
+    public void TooltipIsHiddenWhenIdleOrHoveringEmptySlot()
+    {
+        var harness = new Harness();
+        harness.Populate();
+
+        Assert.False(harness.HasCommand("Inventory.Tooltip"));
+
+        harness.Hover("inventorySlot10");
+        Assert.False(harness.HasCommand("Inventory.Tooltip"));
+    }
+
+    [Fact]
+    public void TooltipAnchorsTopRightOnFirstHoverFrameAndHidesWhileDragging()
+    {
+        var harness = new Harness(1280, 720);
+        harness.Populate();
+
+        harness.HoverOnce("inventorySlot9");
+
+        RenderCommand<Material> slot = harness.FindCommand("inventorySlot9");
+        RenderCommand<Material> tooltip = harness.FindCommand("Inventory.Tooltip");
+        Assert.Equal(slot.Rect.Right + 8, tooltip.Rect.Left);
+        Assert.Equal(slot.Rect.Top, tooltip.Rect.Top);
+
+        harness.Hold("inventorySlot9");
+        Assert.False(harness.HasCommand("Inventory.Tooltip"));
+    }
+
+    [Fact]
+    public void TooltipFlipsLeftNearRightViewportEdge()
+    {
+        var harness = new Harness(600, 600);
+        harness.Populate();
+
+        harness.HoverOnce("inventorySlot17");
+
+        RenderCommand<Material> slot = harness.FindCommand("inventorySlot17");
+        RenderCommand<Material> tooltip = harness.FindCommand("Inventory.Tooltip");
+        Assert.Equal(slot.Rect.Left - 8, tooltip.Rect.Right);
+        Assert.Equal(slot.Rect.Top, tooltip.Rect.Top);
+        Assert.True(tooltip.Rect.Left >= 8);
+    }
+
+    [Fact]
+    public void TooltipFlipsUpNearBottomViewportEdge()
+    {
+        var harness = new Harness(1280, 400);
+        harness.Populate();
+
+        harness.HoverOnce("inventorySlot0");
+
+        RenderCommand<Material> slot = harness.FindCommand("inventorySlot0");
+        RenderCommand<Material> tooltip = harness.FindCommand("Inventory.Tooltip");
+        Assert.Equal(slot.Rect.Right + 8, tooltip.Rect.Left);
+        Assert.Equal(slot.Rect.Bottom, tooltip.Rect.Bottom);
+        Assert.True(tooltip.Rect.Bottom <= 400 - 8);
+    }
+
+    [Fact]
+    public void TooltipShowsSubtitleOptionalDescriptionAndTraits()
+    {
+        var harness = new Harness(1280, 720);
+        harness.Populate();
+
+        // Brick with description and two traits
+        harness.Hover("inventorySlot22");
+        Assert.Equal(1, harness.CountText("Caution panel"));
+        Assert.Equal(1, harness.CountText("Brick"));
+        Assert.Equal(1, harness.CountText("Painted steel plating"));
+        Assert.Equal(1, harness.CountText("Rotatable"));
+        Assert.Equal(1, harness.CountText("Shapeable"));
+
+        // Brick with three traits wraps onto two rows inside max-width
+        harness.Hover("inventorySlot12");
+        RenderCommand<Material> lightTooltip = harness.FindCommand("Inventory.Tooltip");
+        Assert.Equal(1, harness.CountText("Light"));
+        Assert.Equal(1, harness.CountText("Brick"));
+        Assert.Equal(1, harness.CountText("Rotatable"));
+        Assert.Equal(1, harness.CountText("Shapeable"));
+        Assert.Equal(1, harness.CountText("Light source"));
+        Assert.True(lightTooltip.Rect.Size.X <= 268);
+
+        // Thruster shows propulsion trait
+        harness.Hover("inventorySlot17");
+        Assert.Equal(1, harness.CountText("Thruster"));
+        Assert.Equal(1, harness.CountText("Rotatable"));
+        Assert.Equal(1, harness.CountText("Propulsion"));
+
+        // Tool shows mining tool subtitle and no brick traits
+        harness.Hover("inventorySlot3");
+        Assert.Equal(1, harness.CountText("Mining Laser"));
+        Assert.Equal(1, harness.CountText("Mining tool"));
+        Assert.Equal(1, harness.CountText("Handheld beam cutter"));
+        Assert.Equal(0, harness.CountText("Rotatable"));
+
+        // Brick without description omits description cleanly
+        harness.Hover("inventorySlot9");
+        Assert.Equal(1, harness.CountText("Rock"));
+        Assert.Equal(1, harness.CountText("Brick"));
+        Assert.Equal(0, harness.CountText("Painted steel plating"));
     }
 
     [Fact]
@@ -293,8 +397,11 @@ public class InventoryViewTests
         {
             SetSlot(0, new ItemData("wb:rock", 12, 64));
             SetSlot(1, new ItemData("wb:torch", 3, 32));
+            SetSlot(3, new ItemData("laser", 1, 1));
             SetSlot(9, new ItemData("wb:rock", 5, 64));
+            SetSlot(12, new ItemData("wb:light", 4, 64));
             SetSlot(13, new ItemData("wb:unknown", 1, 1));
+            SetSlot(17, new ItemData("wb:thruster", 2, 16));
             SetSlot(20, new ItemData("wb:control_buttons", 1, 16));
             SetSlot(22, new ItemData("wb:caution", 1, 16));
             SetSlot(41, new ItemData("wb:rock", 64, 64));
@@ -305,6 +412,19 @@ public class InventoryViewTests
         {
             Assert.True(_world.DataStore.TryGet(_player, out InventoryComponent inventory));
             return inventory.Contents![slot];
+        }
+
+        public bool HasCommand(string id)
+        {
+            for (var i = 0; i < _last.Count; i++)
+            {
+                if (_last[i].ID == id)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public RenderCommand<Material> FindCommand(string id)
@@ -369,6 +489,13 @@ public class InventoryViewTests
         public void Hover(string id)
         {
             Step();
+            MoveTo(id);
+            Step();
+            Step();
+        }
+
+        public void HoverOnce(string id)
+        {
             MoveTo(id);
             Step();
             Step();
@@ -468,6 +595,8 @@ public class InventoryViewTests
                 new Brick("wb:rock", BrickAlpha.Opaque, false, null, BrickShape.Any, default, null),
                 new Brick("wb:caution", BrickAlpha.Opaque, false, null, BrickShape.Any, default, null),
                 new Brick("wb:control_buttons", BrickAlpha.Opaque, false, null, BrickShape.Block, default, ["orientable"]),
+                new Brick("wb:light", BrickAlpha.Blend, false, null, BrickShape.Any, default, ["light"]),
+                new Brick("wb:thruster", BrickAlpha.Opaque, false, null, BrickShape.Custom, default, ["orientable", "thruster"]),
             ];
         }
 
@@ -487,6 +616,17 @@ public class InventoryViewTests
                 ),
                 new Item("wb:torch", "Torch", "torch.png", 32, null, null, null, null),
                 new Item(
+                    "laser",
+                    "Mining Laser",
+                    "laser.png",
+                    1,
+                    null,
+                    new ToolDefinition { Type = ToolType.Mining },
+                    null,
+                    null,
+                    "item.base.laser.description"
+                ),
+                new Item(
                     "wb:control_buttons",
                     "Control buttons",
                     "buttons.png",
@@ -504,7 +644,30 @@ public class InventoryViewTests
                     new PlaceableDefinition { Type = PlaceableType.Brick, ID = "wb:caution" },
                     null,
                     null,
-                    null
+                    null,
+                    "item.base.caution.description"
+                ),
+                new Item(
+                    "wb:light",
+                    "Light",
+                    "light.png",
+                    64,
+                    new PlaceableDefinition { Type = PlaceableType.Brick, ID = "wb:light" },
+                    null,
+                    null,
+                    null,
+                    "item.base.light.description"
+                ),
+                new Item(
+                    "wb:thruster",
+                    "Thruster",
+                    "thruster.png",
+                    16,
+                    new PlaceableDefinition { Type = PlaceableType.Brick, ID = "wb:thruster" },
+                    null,
+                    null,
+                    null,
+                    "item.base.thruster.description"
                 ),
             ];
         }
@@ -535,9 +698,19 @@ public class InventoryViewTests
             return value switch
             {
                 "ui.label.inventory.title" => "Inventory",
-                "ui.label.inventory.empty" => "Empty slot",
-                "ui.label.inventory.shapeable" => "Shapeable",
-                "ui.label.inventory.orientable" => "Rotatable",
+                "ui.label.item.kind.brick" => "Brick",
+                "ui.label.item.kind.miningTool" => "Mining tool",
+                "ui.label.item.kind.conversionTool" => "Conversion tool",
+                "ui.label.item.kind.item" => "Item",
+                "ui.label.item.kind.unknown" => "Unknown item",
+                "ui.label.item.trait.orientable" => "Rotatable",
+                "ui.label.item.trait.shapeable" => "Shapeable",
+                "ui.label.item.trait.lightSource" => "Light source",
+                "ui.label.item.trait.propulsion" => "Propulsion",
+                "item.base.caution.description" => "Painted steel plating",
+                "item.base.light.description" => "Caged deck lamp that casts bright light across corridors",
+                "item.base.laser.description" => "Handheld beam cutter",
+                "item.base.thruster.description" => "Exhaust nozzle assembly",
                 _ => null,
             };
         }

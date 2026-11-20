@@ -24,6 +24,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 |---|---|---|
 | `ID` | string | `ItemDefinition.ID` |
 | `Name` | string (localization key) | `ItemDefinition.Name` |
+| `Description` | string? (localization key) | `ItemDefinition.Description` |
 | `Icon` | string? | `ItemDefinition.Icon` |
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |

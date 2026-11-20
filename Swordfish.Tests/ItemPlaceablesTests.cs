@@ -41,6 +41,23 @@ public class ItemPlaceablesTests
         Assert.False(ItemPlaceables.ResolvePlaceable(items, bricks, string.Empty).Success);
     }
 
+    [Fact]
+    public void ShippedItemsLoadDescriptionKeys()
+    {
+        var (items, _) = Load();
+
+        Result<Item> rock = items.Get("wb:rock");
+        Result<Item> laser = items.Get("laser");
+        Result<Item> thruster = items.Get("wb:thruster");
+
+        Assert.True(rock.Success);
+        Assert.Equal("item.base.rock.description", rock.Value.Description);
+        Assert.True(laser.Success);
+        Assert.Equal("item.base.laser.description", laser.Value.Description);
+        Assert.True(thruster.Success);
+        Assert.Equal("item.base.thruster.description", thruster.Value.Description);
+    }
+
     private static (IAssetDatabase<Item> Items, IBrickDatabase Bricks) Load()
     {
         var vfs = new VirtualFileSystem();

@@ -1,0 +1,134 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      Class="ItemTooltip"
+      Access="internal"
+      Context="ItemTooltipState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Components">
+    <Element visible="@context.Visible"
+             class="wb-tooltip"
+             overlay-target="@context.AnchorID"
+             overlay-side="right"
+             overlay-align="start"
+             overlay-gap="8"
+             overlay-margin="8"
+             passthrough="true"
+             layout="none"
+             width="fit"
+             min-width="176"
+             max-width="268"
+             height="fit">
+        <Element class="wb-tooltip-inner"
+                 width="fit"
+                 min-width="172"
+                 max-width="264"
+                 height="fit">
+            <Element layout="horizontal" width="fit" height="fit" spacing="8">
+                <Element class="wb-tooltip-bar"
+                         class:wb-tooltip-bar-unknown="@context.IsUnknown"
+                         width="2"
+                         height="fill" />
+                <Element layout="vertical" width="fit" height="fit" spacing="2">
+                    <Text class="wb-tooltip-name"
+                          class:wb-tooltip-name-unknown="@context.IsUnknown"
+                          text="@context.ResolvedName"
+                          width="fit"
+                          height="18"
+                          wrap="false" />
+                    <If condition="@context.IsBrick">
+                        <Text class="wb-tooltip-subtitle"
+                              text="@context.L('ui.label.item.kind.brick')"
+                              width="fit"
+                              height="14"
+                              wrap="false" />
+                    </If>
+                    <ElseIf condition="@context.IsMiningTool">
+                        <Text class="wb-tooltip-subtitle"
+                              text="@context.L('ui.label.item.kind.miningTool')"
+                              width="fit"
+                              height="14"
+                              wrap="false" />
+                    </ElseIf>
+                    <ElseIf condition="@context.IsConversionTool">
+                        <Text class="wb-tooltip-subtitle"
+                              text="@context.L('ui.label.item.kind.conversionTool')"
+                              width="fit"
+                              height="14"
+                              wrap="false" />
+                    </ElseIf>
+                    <ElseIf condition="@context.IsUnknown">
+                        <Text class="wb-tooltip-subtitle wb-tooltip-subtitle-unknown"
+                              text="@context.L('ui.label.item.kind.unknown')"
+                              width="fit"
+                              height="14"
+                              wrap="false" />
+                    </ElseIf>
+                    <Else>
+                        <Text class="wb-tooltip-subtitle"
+                              text="@context.L('ui.label.item.kind.item')"
+                              width="fit"
+                              height="14"
+                              wrap="false" />
+                    </Else>
+                </Element>
+            </Element>
+
+            <If condition="@context.HasDescription">
+                <Text class="wb-tooltip-description"
+                      text="@context.ResolvedDescription"
+                      width="fit"
+                      max-width="244"
+                      height="fit" />
+            </If>
+
+            <If condition="@context.HasTraits">
+                <Element class="wb-divider-inner" width="fill" height="1" />
+                <Element layout="vertical" width="fit" height="fit" spacing="4">
+                    <ForEach in="@context.TraitRows" as="row">
+                        <Element layout="horizontal" width="fit" height="fit" spacing="4">
+                            <ForEach in="@row.Traits" as="trait">
+                                <If condition="@context.IsOrientable(trait)">
+                                    <Element class="wb-tooltip-badge" width="fit" height="22">
+                                        <Icon param:glyph="rotate" param:tone="bright" param:size="12" width="14" height="fill" />
+                                        <Text class="wb-tooltip-badge-label"
+                                              text="@context.L('ui.label.item.trait.orientable')"
+                                              width="fit"
+                                              height="fill" />
+                                    </Element>
+                                </If>
+                                <ElseIf condition="@context.IsShapeable(trait)">
+                                    <Element class="wb-tooltip-badge" width="fit" height="22">
+                                        <Icon param:glyph="shapes" param:tone="bright" param:size="12" width="14" height="fill" />
+                                        <Text class="wb-tooltip-badge-label"
+                                              text="@context.L('ui.label.item.trait.shapeable')"
+                                              width="fit"
+                                              height="fill" />
+                                    </Element>
+                                </ElseIf>
+                                <ElseIf condition="@context.IsLightSource(trait)">
+                                    <Element class="wb-tooltip-badge" width="fit" height="22">
+                                        <Icon param:glyph="lightbulb" param:tone="warning" param:size="12" width="14" height="fill" />
+                                        <Text class="wb-tooltip-badge-label"
+                                              text="@context.L('ui.label.item.trait.lightSource')"
+                                              width="fit"
+                                              height="fill" />
+                                    </Element>
+                                </ElseIf>
+                                <ElseIf condition="@context.IsPropulsion(trait)">
+                                    <Element class="wb-tooltip-badge" width="fit" height="22">
+                                        <Icon param:glyph="fire" param:tone="primary" param:size="12" width="14" height="fill" />
+                                        <Text class="wb-tooltip-badge-label"
+                                              text="@context.L('ui.label.item.trait.propulsion')"
+                                              width="fit"
+                                              height="fill" />
+                                    </Element>
+                                </ElseIf>
+                            </ForEach>
+                        </Element>
+                    </ForEach>
+                </Element>
+            </If>
+        </Element>
+    </Element>
+</Reef>

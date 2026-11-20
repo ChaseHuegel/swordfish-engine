@@ -1,6 +1,7 @@
 [[Items]]
 ID         = "wb:light"
 Name       = "item.base.light"
+Description = "item.base.light.description"
 Icon       = "block/light.0.png"
 MaxStack   = 100
 [Items.Placeable]
