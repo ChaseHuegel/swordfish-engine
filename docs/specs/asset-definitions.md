@@ -83,6 +83,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
 | `Textures` | sub-table | `BrickTextures` |
 | `Tags` | string[] | |
+| `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
 
 Base-game brick ids are prefixed with the `wb` namespace. A mod uses its own
 namespace so no two content authors can collide by name. A brick's voxel id is
@@ -109,6 +110,42 @@ Default = ["core"]
 `BrickTextures` (`BrickTextures.cs`): `Connected` plus per-face string?[] fields:
 `Default`, `Top`, `Bottom`, `Front`, `Back`, `Left`, `Right`. `Default` is the
 fallback face; faces override it.
+
+### Colliders
+
+Built-in shapes (`Block`, `Slab`, `Plate`, `Column`, `Stair`, `Slope`) resolve
+their collision primitives from `BrickColliders`
+(`WaywardBeyond.Bricks/BrickColliders.cs:8-63`). `Slope` uses a shared
+6-vertex `ConvexHull`. `Stair` uses two boxes. A `Custom` brick without explicit
+`[[Bricks.Colliders]]` falls back to a unit cube.
+
+Any brick can declare one or more `[[Bricks.Colliders]]` tables in brick-local
+space (centered on the voxel origin):
+
+| Field | Type | Notes |
+|---|---|---|
+| `Type` | string | `box` (default), `sphere`, `capsule`, `cylinder`, or `hull` |
+| `Size` | `{ X, Y, Z }` | Full extents for `box` (default `1, 1, 1`) |
+| `Offset` | `{ X, Y, Z }` | Local position offset from voxel center |
+| `Rotation` | `{ X, Y, Z }` | Local Euler rotation in degrees |
+| `Radius` | float | Radius for `sphere`, `capsule`, or `cylinder` |
+| `Height` | float | Height for `capsule` or `cylinder` |
+| `Points` | `{ X, Y, Z }[]` | At least 4 vertices for `hull` |
+
+Example (`WaywardBeyond.Bricks/assets/bricks/thruster.toml:16-24`):
+
+```toml
+[[Bricks.Colliders]]
+Type   = "box"
+Size   = { X = 1.0, Y = 1.0, Z = 0.1875 }
+Offset = { X = 0.0, Y = 0.0, Z = -0.40625 }
+```
+
+Invalid collider entries log a warning and are skipped at `BrickDatabase` load
+(`WaywardBeyond.Bricks/BrickDatabase.cs:96-116`). Both client
+(`WaywardBeyond.Client/Voxels/Processing/CollisionPostPass.cs`) and server
+(`WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`) build structure
+colliders through `VoxelCollision` (`WaywardBeyond.Voxels/VoxelCollision.cs`).
 
 ## Materials (`assets/materials/**/*.toml`)
 
@@ -203,7 +240,8 @@ hosted in `WaywardBeyond.Data/Localization/`.
 ## Source of truth
 
 - `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
-- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures,BrickAlpha}.cs`
+- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
+- `WaywardBeyond.Voxels/VoxelCollision.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
@@ -219,3 +257,7 @@ and pins the schema, the tag expansion, and the level curve. See
 [skills](skills.md). `Swordfish.Tests/BodyDatabaseTests.cs` loads the shipped
 body definitions and pins the species order, the gender groups, the species
 carried on each loaded body, and the species and gender resolution.
+`Swordfish.Tests/BrickColliderTests.cs` pins TOML `[[Bricks.Colliders]]`
+parsing, `wb:thruster` colliders, and non-cube raycast cell resolution.
+`WaywardBeyond.Voxels.Tests/VoxelCollisionTests.cs` pins built-in `BrickShape`
+colliders, orientation transforms, and mixed-shape interior culling.
