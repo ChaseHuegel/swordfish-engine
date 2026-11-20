@@ -46,4 +46,45 @@ public class ShapeEqualityTests
         Assert.False(box.Equals(sphere));
         Assert.NotEqual(box.GetHashCode(), sphere.GetHashCode());
     }
+
+    [Fact]
+    public void ConvexHullsInsideQuantizationStepAreEqualAndHashEqual()
+    {
+        var left = new Shape(new ConvexHull([
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, 0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, 0.5f),
+        ]));
+        var right = new Shape(new ConvexHull([
+            new Vector3(-0.50001f, -0.5f, -0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, 0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, 0.5f),
+        ]));
+
+        Assert.True(left.Equals(right));
+        Assert.True(left == right);
+        Assert.Equal(left.GetHashCode(), right.GetHashCode());
+    }
+
+    [Fact]
+    public void ConvexHullsWithDifferentVerticesAreNotEqual()
+    {
+        var left = new Shape(new ConvexHull([
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, 0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, 0.5f),
+        ]));
+        var right = new Shape(new ConvexHull([
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, 0.5f, -0.5f),
+            new Vector3(0.5f, -0.5f, 0.5f),
+        ]));
+
+        Assert.False(left.Equals(right));
+        Assert.True(left != right);
+    }
 }

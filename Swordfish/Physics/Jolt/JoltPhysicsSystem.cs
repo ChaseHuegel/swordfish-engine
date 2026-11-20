@@ -207,8 +207,15 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         if (collider.CompoundShape.HasValue)
         {
             CompoundShape compoundShape = collider.CompoundShape.Value;
-            var compoundShapeSettings = new MutableCompoundShapeSettings();
+            if (compoundShape.Shapes.Length == 0)
+            {
+                joltShape = null!;
+                return false;
+            }
+
+            var compoundShapeSettings = new StaticCompoundShapeSettings();
             var uniqueShapes = new Dictionary<Shape, JoltShape>();
+            var addedShapes = 0;
 
             try
             {
@@ -227,9 +234,16 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                     }
 
                     compoundShapeSettings.AddShape(compoundShape.Positions[i] * scale, compoundShape.Orientations[i], childJoltShape);
+                    addedShapes++;
                 }
 
-                joltShape = new MutableCompoundShape(compoundShapeSettings);
+                if (addedShapes == 0)
+                {
+                    joltShape = null!;
+                    return false;
+                }
+
+                joltShape = new StaticCompoundShape(compoundShapeSettings);
                 return true;
             }
             finally
@@ -282,10 +296,40 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             case ShapeType.Plane:
                 joltShape = new PlaneShape(new Plane(shape.Plane.Normal, shape.Plane.Distance), null, 5_000);
                 return true;
+
+            case ShapeType.ConvexHull:
+                if (shape.ConvexHull == null || shape.ConvexHull.Count < 4)
+                {
+                    joltShape = null!;
+                    return false;
+                }
+
+                return TryCreateConvexHullShape(shape.ConvexHull.Points, scale, out joltShape);
         }
 
         joltShape = null!;
         return false;
+    }
+
+    private static bool TryCreateConvexHullShape(ReadOnlySpan<Vector3> points, Vector3 scale, out JoltShape joltShape)
+    {
+        if (scale == Vector3.One)
+        {
+            using var hullSettings = new ConvexHullShapeSettings(points);
+            joltShape = new ConvexHullShape(hullSettings);
+            return true;
+        }
+
+        Vector3[]? rented = points.Length > 64 ? new Vector3[points.Length] : null;
+        Span<Vector3> scaled = rented != null ? rented : stackalloc Vector3[points.Length];
+        for (var i = 0; i < points.Length; i++)
+        {
+            scaled[i] = points[i] * scale;
+        }
+
+        using var scaledSettings = new ConvexHullShapeSettings(scaled);
+        joltShape = new ConvexHullShape(scaledSettings);
+        return true;
     }
     
     private readonly struct SyncEntityToJoltAction(in JoltPhysicsSystem owner) : IForEachRef<PhysicsComponent, TransformComponent>

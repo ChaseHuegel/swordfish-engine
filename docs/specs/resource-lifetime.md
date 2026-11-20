@@ -61,13 +61,15 @@ them for the process lifetime.
 ## Jolt shape wrappers
 
 `JoltPhysicsSystem.TryGetJoltShape` creates managed wrappers for native Jolt
-shapes (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:206-251`). The wrappers are
+shapes (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:205-333`). The wrappers are
 temporary. Jolt keeps its own reference after `SetShape` or `CreateBody`.
 
 The caller disposes the shape wrapper after `SetShape` and after `CreateBody`
-(`JoltPhysicsSystem.cs:335-340`, `:349-364`). A compound build disposes the
-compound settings and each child wrapper before it returns the compound wrapper
-(`JoltPhysicsSystem.cs:212-241`).
+(`JoltPhysicsSystem.cs:379-388`, `:393-413`). A compound build builds a
+`StaticCompoundShape` and disposes the compound settings and each deduplicated
+child wrapper before it returns the compound wrapper
+(`JoltPhysicsSystem.cs:216-256`). A convex hull build disposes its
+`ConvexHullShapeSettings` before it returns (`JoltPhysicsSystem.cs:314-333`).
 
 ## Tests
 
