@@ -77,6 +77,12 @@ through RPC handlers and notifications.
 - A remote drop raises `RemoteDisconnected` for the menu teardown and restores a
   fresh loopback session. The menu can list and load local saves without a
   restart.
+- Application shutdown calls `ClientRpcHost.Shutdown` (via `Dispose`) or closes
+  the server's loopback listener in `ServerRpcHost.Dispose`. When the client
+  host is terminal or `LoopbackRpcServerTransport.IsClosed` is true,
+  `OnDisconnected` transitions the host to a terminal state silently without
+  raising `RemoteDisconnected`, attempting a loopback restore, or logging an
+  error.
 
 ## Current state
 

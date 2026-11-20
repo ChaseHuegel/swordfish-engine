@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using NsdRpc;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Networking.Transport;
 
@@ -22,12 +23,15 @@ public sealed class LoopbackRpcServerTransport : IRpcServerTransport
     private ulong _nextClientId;
     private volatile bool _closed;
 
+    /// <summary>True once the loopback listener has been closed.</summary>
+    public bool IsClosed => _closed;
+
     /// <summary>Pairs a new client endpoint with a server endpoint and queues it for accept.</summary>
-    internal void Connect(LoopbackRpcEndpoint clientEndpoint)
+    internal Result TryConnect(LoopbackRpcEndpoint clientEndpoint)
     {
         if (_closed)
         {
-            throw new InvalidOperationException("The loopback server transport is closed.");
+            return Result.FromFailure("The loopback server transport is closed.");
         }
 
         var serverEndpoint = new LoopbackRpcEndpoint();
@@ -42,7 +46,7 @@ public sealed class LoopbackRpcServerTransport : IRpcServerTransport
             if (_closed)
             {
                 serverEndpoint.Close(RpcDisconnectReason.LocalClose);
-                throw new InvalidOperationException("The loopback server transport is closed.");
+                return Result.FromFailure("The loopback server transport is closed.");
             }
 
             _accepted.Add(connection);
@@ -51,8 +55,10 @@ public sealed class LoopbackRpcServerTransport : IRpcServerTransport
         if (!_pending.Writer.TryWrite(connection))
         {
             connection.Close(RpcDisconnectReason.LocalClose);
-            throw new InvalidOperationException("The loopback server transport is closed.");
+            return Result.FromFailure("The loopback server transport is closed.");
         }
+
+        return Result.FromSuccess();
     }
 
     /// <summary>Returns the next connected client, or null once the transport is closed.</summary>

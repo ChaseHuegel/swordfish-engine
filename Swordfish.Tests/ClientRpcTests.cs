@@ -1,5 +1,7 @@
 #nullable enable
 using System;
+using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -102,6 +104,162 @@ public class ClientRpcTests
     }
 
     [Fact]
+    public void StoppingServerBeforeClientEntersCleanTerminalStateWithoutLoggingErrors()
+    {
+        var logs = new RecordingLoggerFactory();
+        var transport = new LoopbackRpcServerTransport();
+        var config = new NetworkingConfig();
+        var peers = new ServerPeers();
+        var manager = new ServerLevelManager(new FakeLevelCatalog(), new PermissionResolver(PermissionPolicy.Create([])), NullLoggerFactory.Instance);
+        var commands = new ServerHostCommands(manager,
+            BrickRegistry.FromNames([]),
+            config,
+            NullLoggerFactory.Instance.CreateLogger<ServerHostCommands>());
+        var handlers = new ServerHandlers(
+            peers,
+            commands,
+            config,
+            NullLoggerFactory.Instance.CreateLogger<ServerHandlers>());
+
+        var serverHost = new ServerRpcHost(transport, peers, handlers, config, logs);
+        serverHost.Run();
+
+        var profile = new ProfileSettings();
+        profile.UserId.Set("test-user");
+        var inbound = new ClientInbound();
+        using var clientHost = new ClientRpcHost(
+            transport,
+            inbound,
+            new ClientHandlers(inbound),
+            config,
+            new ProfileUserClaimProvider(profile),
+            logs);
+
+        Assert.True(clientHost.IsLocal);
+        Assert.False(clientHost.IsTerminal);
+
+        bool remoteDisconnected = false;
+        clientHost.RemoteDisconnected += () => remoteDisconnected = true;
+
+        //  Application shutdown disposes the server host before the client host.
+        serverHost.Dispose();
+
+        Assert.True(transport.IsClosed);
+        Assert.True(clientHost.IsTerminal);
+        Assert.False(clientHost.IsConnected);
+        Assert.False(clientHost.IsLocal);
+        Assert.Null(clientHost.Api);
+        Assert.False(remoteDisconnected);
+        Assert.DoesNotContain(logs.Entries, entry => entry.Level >= LogLevel.Error);
+
+        clientHost.Disconnect();
+        Assert.True(clientHost.IsTerminal);
+        Assert.False(clientHost.ConnectRemote("127.0.0.1", 1).Success);
+        Assert.DoesNotContain(logs.Entries, entry => entry.Level >= LogLevel.Error);
+    }
+
+    [Fact]
+    public void ShutdownMarksClientTerminalBeforeServerStops()
+    {
+        var logs = new RecordingLoggerFactory();
+        var transport = new LoopbackRpcServerTransport();
+        var config = new NetworkingConfig();
+        var peers = new ServerPeers();
+        var manager = new ServerLevelManager(new FakeLevelCatalog(), new PermissionResolver(PermissionPolicy.Create([])), NullLoggerFactory.Instance);
+        var commands = new ServerHostCommands(manager,
+            BrickRegistry.FromNames([]),
+            config,
+            NullLoggerFactory.Instance.CreateLogger<ServerHostCommands>());
+        var handlers = new ServerHandlers(
+            peers,
+            commands,
+            config,
+            NullLoggerFactory.Instance.CreateLogger<ServerHandlers>());
+
+        using var serverHost = new ServerRpcHost(transport, peers, handlers, config, logs);
+        serverHost.Run();
+
+        var profile = new ProfileSettings();
+        profile.UserId.Set("test-user");
+        var inbound = new ClientInbound();
+        using var clientHost = new ClientRpcHost(
+            transport,
+            inbound,
+            new ClientHandlers(inbound),
+            config,
+            new ProfileUserClaimProvider(profile),
+            logs);
+
+        bool remoteDisconnected = false;
+        clientHost.RemoteDisconnected += () => remoteDisconnected = true;
+
+        clientHost.Shutdown();
+
+        Assert.True(clientHost.IsTerminal);
+        Assert.False(clientHost.IsConnected);
+        Assert.False(remoteDisconnected);
+
+        serverHost.Dispose();
+
+        Assert.False(remoteDisconnected);
+        Assert.DoesNotContain(logs.Entries, entry => entry.Level >= LogLevel.Error);
+    }
+
+    [Fact]
+    public async Task RemoteDropFollowedByDisconnectRestoresLoopbackAtMostOnce()
+    {
+        var logs = new RecordingLoggerFactory();
+        var transport = new LoopbackRpcServerTransport();
+        var config = new NetworkingConfig();
+        var peers = new ServerPeers();
+        var manager = new ServerLevelManager(new FakeLevelCatalog(), new PermissionResolver(PermissionPolicy.Create([])), NullLoggerFactory.Instance);
+        var commands = new ServerHostCommands(manager,
+            BrickRegistry.FromNames([]),
+            config,
+            NullLoggerFactory.Instance.CreateLogger<ServerHostCommands>());
+        var handlers = new ServerHandlers(
+            peers,
+            commands,
+            config,
+            NullLoggerFactory.Instance.CreateLogger<ServerHandlers>());
+
+        using var serverHost = new ServerRpcHost(transport, peers, handlers, config, logs);
+        serverHost.Run();
+        serverHost.StartLan(0);
+
+        var profile = new ProfileSettings();
+        profile.UserId.Set("test-user");
+        var inbound = new ClientInbound();
+        using var clientHost = new ClientRpcHost(
+            transport,
+            inbound,
+            new ClientHandlers(inbound),
+            config,
+            new ProfileUserClaimProvider(profile),
+            logs);
+
+        Assert.True(clientHost.ConnectRemote("127.0.0.1", serverHost.LanPort).Success);
+        await WaitUntil(() => HasRemotePeer(peers));
+
+        var dropped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        clientHost.RemoteDisconnected += () =>
+        {
+            clientHost.Disconnect();
+            dropped.TrySetResult();
+        };
+
+        clientHost.ActiveConnection!.Close(RpcDisconnectReason.PeerClosed);
+
+        await dropped.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await WaitUntil(() => clientHost.IsLocal);
+        clientHost.Disconnect();
+
+        int restoreLogs = logs.Entries.Count(entry => entry.Message.Contains("Restored the loopback session.", StringComparison.Ordinal));
+        Assert.Equal(1, restoreLogs);
+        Assert.DoesNotContain(logs.Entries, entry => entry.Level >= LogLevel.Error);
+    }
+
+    [Fact]
     public void ClientHandlersDirectlyRecordsServerHeartbeatStats()
     {
         var inbound = new ClientInbound();
@@ -198,5 +356,33 @@ public class ClientRpcTests
         public bool Exists(string levelGuid) => false;
 
         public ILevelStorage? Open(string levelGuid) => null;
+    }
+
+    private sealed class RecordingLoggerFactory : ILoggerFactory
+    {
+        public ConcurrentQueue<(LogLevel Level, string Message)> Entries { get; } = new();
+
+        public void AddProvider(ILoggerProvider provider) { }
+
+        public ILogger CreateLogger(string categoryName) => new RecordingLogger(Entries);
+
+        public void Dispose() { }
+
+        private sealed class RecordingLogger(ConcurrentQueue<(LogLevel Level, string Message)> entries) : ILogger
+        {
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+            public bool IsEnabled(LogLevel logLevel) => true;
+
+            public void Log<TState>(
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter
+            ) {
+                entries.Enqueue((logLevel, formatter(state, exception)));
+            }
+        }
     }
 }
