@@ -3,10 +3,16 @@ using System.IO;
 using System.IO.Compression;
 using Swordfish.Library.Util;
 
-namespace WaywardBeyond.Client.IO;
+namespace WaywardBeyond.Data.Webhooks;
 
-internal static class Zip
+/// <summary>
+///     Compresses named streams into an in-memory ZIP archive.
+/// </summary>
+public static class Zip
 {
+    /// <summary>
+    ///     Compresses all provided streams into a ZIP byte array.
+    /// </summary>
     public static Result<byte[]> Compress(params NamedStream[] streams)
     {
         try
@@ -16,8 +22,13 @@ internal static class Zip
             {
                 foreach (NamedStream stream in streams)
                 {
-                    ZipArchiveEntry entry = archive.CreateEntry(stream.Name);
-                    using var entryStream = entry.Open();
+                    if (stream.Value.CanSeek)
+                    {
+                        stream.Value.Position = 0;
+                    }
+
+                    ZipArchiveEntry entry = archive.CreateEntry(stream.Name, CompressionLevel.Optimal);
+                    using Stream entryStream = entry.Open();
                     stream.Value.CopyTo(entryStream);
                 }
             }

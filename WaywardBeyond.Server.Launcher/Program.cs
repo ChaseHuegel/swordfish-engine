@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using DryIoc;
 using Shoal;
 using Shoal.CommandLine;
+using Shoal.CrashHandling;
 using Swordfish.Library.IO;
 using WaywardBeyond.Config;
 using WaywardBeyond.Networking.Discovery;
@@ -15,7 +16,21 @@ internal static class Program
 
     private static int Main(string[] args)
     {
-        AppEngine engine = AppEngine.Build(args, AppPaths.ForWorkingDirectory());
+        AppPaths appPaths = AppPaths.ForWorkingDirectory();
+        var options = new CrashHandlerOptions
+        {
+            AppName = "Wayward Beyond Server",
+            AppVersion = typeof(Program).Assembly.GetName().Version?.ToString(),
+            Headless = true,
+            AppPaths = appPaths,
+        };
+
+        return CrashSupervisor.Run(args, options, appArgs => RunServer(appArgs, appPaths));
+    }
+
+    private static int RunServer(string[] args, AppPaths appPaths)
+    {
+        AppEngine engine = AppEngine.Build(args, appPaths);
         ApplyCliOverrides(engine.Container);
 
         Console.CancelKeyPress += (_, e) =>
@@ -37,6 +52,7 @@ internal static class Program
         {
             Console.Error.WriteLine($"Failed to start the dedicated server: {ex.Message}");
             engine.Dispose();
+            AppEngine.FlushLogs();
             return 1;
         }
 
@@ -44,6 +60,7 @@ internal static class Program
         {
             Console.Error.WriteLine("Failed to start the dedicated server: the LAN listener did not bind.");
             engine.Dispose();
+            AppEngine.FlushLogs();
             return 1;
         }
 
@@ -51,6 +68,7 @@ internal static class Program
 
         _shutdown.Wait();
         engine.Dispose();
+        AppEngine.FlushLogs();
         Console.WriteLine("Dedicated server stopped.");
         return 0;
     }
