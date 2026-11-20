@@ -235,6 +235,7 @@ vec4 shade(vec3 albedo)
     count = min(count, uint(uMaxLightsPerTile));
     uint base = uint(tId) * uint(uMaxLightsPerTile);
 
+    vec3 N = gl_FrontFacing ? vNormal : -vNormal;
     vec3 V = normalize(uCameraPos - vWorldPos);
     vec3 F0 = mix(vec3(0.04), albedo, Metallic);
 
@@ -243,8 +244,8 @@ vec4 shade(vec3 albedo)
     if (uDirectionalLightIntensity > 0.0)
     {
         vec3 L = normalize(-uDirectionalLightDir);
-        float NdotL = max(dot(vNormal, L), 0.0);
-        float shadow = SampleDirectionalShadow(vWorldPos, vNormal);
+        float NdotL = max(dot(N, L), 0.0);
+        float shadow = SampleDirectionalShadow(vWorldPos, N);
         vec3 directionalLighting = (albedo / PI) * uDirectionalLightColor * (uDirectionalLightIntensity * NdotL * shadow);
         color += directionalLighting;
     }
@@ -259,7 +260,7 @@ vec4 shade(vec3 albedo)
         uint lightIndex = indices[base + i];
         if (lightIndex < lights.length()) {
             Light light = lights[lightIndex];
-            vec3 lightContrib = EvalLight(light, vNormal, V, F0, albedo, Roughness, Metallic);
+            vec3 lightContrib = EvalLight(light, N, V, F0, albedo, Roughness, Metallic);
             if (light.ShadowParams.x >= 0.0)
             {
                 float pointShadow = SamplePointShadow(int(light.ShadowParams.x), light.PosRadius.xyz, light.PosRadius.w);

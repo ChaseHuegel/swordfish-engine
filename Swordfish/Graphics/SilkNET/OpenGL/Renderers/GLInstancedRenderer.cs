@@ -15,6 +15,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
     private readonly Dictionary<GLRenderTarget, InstanceSet> _instances = [];
     private readonly Dictionary<GLRenderTarget, InstanceSet> _maskedInstances = [];
     private readonly Dictionary<GLRenderTarget, InstanceSet> _transparentInstances = [];
+    private readonly List<TransparentInstanceItem> _transparentItems = [];
     private readonly Stack<InstanceSet> _setPool = new();
 
     private ShaderProgram? _depthCutoutShader;
@@ -72,21 +73,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 continue;
             }
 
-            bool isTransparent = renderTarget.IsTransparent;
-
-            Dictionary<GLRenderTarget, InstanceSet> targetDict;
-            if (isTransparent)
+            Dictionary<GLRenderTarget, InstanceSet> targetDict = renderTarget.EffectiveAlphaMode switch
             {
-                targetDict = _transparentInstances;
-            }
-            else if (renderTarget.RenderOptions.AlphaMode == AlphaMode.Masked)
-            {
-                targetDict = _maskedInstances;
-            }
-            else
-            {
-                targetDict = _instances;
-            }
+                AlphaMode.Blend => _transparentInstances,
+                AlphaMode.Masked => _maskedInstances,
+                _ => _instances,
+            };
 
             if (!targetDict.TryGetValue(renderTarget, out InstanceSet? set))
             {
@@ -150,25 +142,113 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             return 0;
         }
 
-        _gl.Enable(EnableCap.Blend);
-        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
         var drawCalls = 0;
 
-        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false, isDepthPass, masked: false, renderScene.CameraFrustum);
-        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, sort: false, isDepthPass, masked: true, renderScene.CameraFrustum);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, isDepthPass, masked: false, renderScene.CameraFrustum);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _maskedInstances, isDepthPass, masked: true, renderScene.CameraFrustum);
 
-        //  Exclude rendering transparent targets during a depth pass
-        if (!isDepthPass)
-        {
-            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true, isDepthPass: false, masked: false, renderScene.CameraFrustum);
-        }
-
-        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 
-    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, InstanceSet> instances, bool sort, bool isDepthPass, bool masked, Frustum? frustum)
+    /// <inheritdoc/>
+    public void CollectTransparent(RenderScene renderScene, int stageIndex, List<TransparentDrawItem> items)
+    {
+        _transparentItems.Clear();
+        if (_transparentInstances.Count == 0 || _renderSettings.HideMeshes)
+        {
+            return;
+        }
+
+        Vector3 viewPosition = renderScene.View.GetCameraPosition();
+        foreach (KeyValuePair<GLRenderTarget, InstanceSet> instance in _transparentInstances)
+        {
+            GLRenderTarget target = instance.Key;
+            InstanceSet set = instance.Value;
+            if (set.Matrices.Count == 0
+                || target.VertexArrayObject.ElementBufferObject.Length == 0
+                || !IsVisible(set, renderScene.CameraFrustum)
+            ) {
+                continue;
+            }
+
+            List<Matrix4x4> matrices = set.Matrices;
+            List<BoundingBox> bounds = set.InstanceBounds;
+            for (var i = 0; i < matrices.Count; i++)
+            {
+                Matrix4x4 matrix = matrices[i];
+                int itemIndex = _transparentItems.Count;
+                _transparentItems.Add(new TransparentInstanceItem(target, matrix));
+                items.Add(new TransparentDrawItem(stageIndex, itemIndex, bounds[i].DistanceSquaredTo(viewPosition)));
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public int RenderTransparentItem(int itemIndex, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback)
+    {
+        TransparentInstanceItem item = _transparentItems[itemIndex];
+        GLRenderTarget target = item.Target;
+        Matrix4x4 matrix = item.Matrix;
+        Vector3 viewPosition = renderScene.View.GetCameraPosition();
+
+        UploadModelMatrices(target, MemoryMarshal.CreateReadOnlySpan(ref matrix, 1));
+
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        _gl.DepthMask(false);
+
+        GLMaterial[] materials = target.Materials;
+        GLMaterial.Scope[] scopes = ArrayPool<GLMaterial.Scope>.Shared.Rent(materials.Length);
+        try
+        {
+            for (var n = 0; n < materials.Length; n++)
+            {
+                GLMaterial material = materials[n];
+                ShaderProgram shader = material.ShaderProgram;
+
+                scopes[n] = material.Use();
+                shader.SetUniform("view", renderScene.View);
+                shader.SetUniform("projection", renderScene.Projection);
+                shader.SetUniform("uCameraPos", viewPosition);
+                shader.SetUniform("uReceiveShadows", target.RenderOptions.ReceiveShadows ? 1.0f : 0.0f);
+                shader.SetUniform("uAlphaCutoff", 0.0f);
+                shaderActivationCallback(shader);
+            }
+
+            target.VertexArrayObject.Bind();
+            _gl.Set(EnableCap.DepthTest, !target.RenderOptions.IgnoreDepth);
+            _gl.Set(EnableCap.CullFace, true);
+            _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+
+            uint indexCount = (uint)target.VertexArrayObject.ElementBufferObject.Length;
+            if (target.RenderOptions.DoubleFaced)
+            {
+                _gl.CullFace(TriangleFace.Front);
+                _gl.DrawElementsInstanced(PrimitiveType.Triangles, indexCount, DrawElementsType.UnsignedInt, (void*)0, 1);
+                _gl.CullFace(TriangleFace.Back);
+                _gl.DrawElementsInstanced(PrimitiveType.Triangles, indexCount, DrawElementsType.UnsignedInt, (void*)0, 1);
+                return 2;
+            }
+
+            _gl.CullFace(TriangleFace.Back);
+            _gl.DrawElementsInstanced(PrimitiveType.Triangles, indexCount, DrawElementsType.UnsignedInt, (void*)0, 1);
+            return 1;
+        }
+        finally
+        {
+            for (var n = 0; n < materials.Length; n++)
+            {
+                scopes[n].Dispose();
+            }
+
+            ArrayPool<GLMaterial.Scope>.Shared.Return(scopes);
+            _gl.CullFace(TriangleFace.Back);
+            _gl.DepthMask(true);
+            _gl.Disable(EnableCap.Blend);
+        }
+    }
+
+    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, InstanceSet> instances, bool isDepthPass, bool masked, Frustum? frustum)
     {
         if (instances.Count == 0)
         {
@@ -204,29 +284,8 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 continue;
             }
 
-            List<Matrix4x4> matrices = set.Matrices;
-            ReadOnlySpan<Matrix4x4> modelsSpan;
-            if (sort)
-            {
-                if (matrices.Count > 1)
-                {
-                    matrices.Sort((a, b) => Vector3.DistanceSquared(b.GetPosition(), viewPosition).CompareTo(Vector3.DistanceSquared(a.GetPosition(), viewPosition)));
-                }
-                modelsSpan = CollectionsMarshal.AsSpan(matrices);
-                if (matrices.Count == 1)
-                {
-                    UploadModelMatrices(target, modelsSpan);
-                }
-                else
-                {
-                    target.ModelsBufferObject.UploadOrResize(modelsSpan);
-                }
-            }
-            else
-            {
-                modelsSpan = CollectionsMarshal.AsSpan(matrices);
-                UploadModelMatrices(target, modelsSpan);
-            }
+            ReadOnlySpan<Matrix4x4> modelsSpan = CollectionsMarshal.AsSpan(set.Matrices);
+            UploadModelMatrices(target, modelsSpan);
 
             if (isDepthPass && masked)
             {
@@ -244,7 +303,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                         cutoutShader.SetUniform("texture0", 0);
                     }
 
-                    cutoutShader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaCutoff);
+                    cutoutShader.SetUniform("uAlphaCutoff", target.EffectiveAlphaCutoff);
 
                     GLHandle.Scope? textureScope = null;
                     if (target.Materials.Length > 0 && target.Materials[0].Textures.Length > 0)
@@ -308,7 +367,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                     {
                         ShaderProgram shader = activeMaterials[n].ShaderProgram;
                         shader.SetUniform("uReceiveShadows", target.RenderOptions.ReceiveShadows ? 1.0f : 0.0f);
-                        shader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaMode == AlphaMode.Masked ? target.RenderOptions.AlphaCutoff : 0.0f);
+                        shader.SetUniform("uAlphaCutoff", target.EffectiveAlphaMode == AlphaMode.Masked ? target.EffectiveAlphaCutoff : 0.0f);
                     }
                 }
             }
@@ -424,7 +483,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                     cutoutShader.SetUniform("texture0", 0);
                 }
 
-                cutoutShader.SetUniform("uAlphaCutoff", target.RenderOptions.AlphaCutoff);
+                cutoutShader.SetUniform("uAlphaCutoff", target.EffectiveAlphaCutoff);
 
                 GLHandle.Scope? texScope = null;
                 if (target.Materials.Length > 0 && target.Materials[0].Textures.Length > 0)
@@ -448,21 +507,30 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         return drawCalls;
     }
 
+    private readonly struct TransparentInstanceItem(GLRenderTarget target, Matrix4x4 matrix)
+    {
+        public readonly GLRenderTarget Target = target;
+        public readonly Matrix4x4 Matrix = matrix;
+    }
+
     private sealed class InstanceSet
     {
         public readonly List<Matrix4x4> Matrices = new(4);
+        public readonly List<BoundingBox> InstanceBounds = new(4);
         public BoundingBox Bounds;
         public bool HasBounds;
 
         public void Clear()
         {
             Matrices.Clear();
+            InstanceBounds.Clear();
             HasBounds = false;
         }
 
         public void Add(in Matrix4x4 matrix, in BoundingBox worldBounds)
         {
             Matrices.Add(matrix);
+            InstanceBounds.Add(worldBounds);
 
             if (!HasBounds)
             {

@@ -6,6 +6,8 @@ namespace Swordfish.Graphics;
 internal abstract class RenderPipeline<TRenderStage>(TRenderStage[] renderStages) : IRenderPipeline
     where TRenderStage : IRenderStage
 {
+    private readonly List<TransparentDrawItem> _transparentItems = [];
+
     protected abstract int PreRender(double delta, RenderScene renderScene);
 
     protected abstract void PostRender(double delta, RenderScene renderScene);
@@ -31,6 +33,26 @@ internal abstract class RenderPipeline<TRenderStage>(TRenderStage[] renderStages
         for (var i = 0; i < renderStages.Length; i++)
         {
             drawCalls += renderStages[i].Render(delta, renderScene, ShaderActivationCallback, isDepthPass);
+        }
+
+        if (!isDepthPass)
+        {
+            _transparentItems.Clear();
+            for (var i = 0; i < renderStages.Length; i++)
+            {
+                renderStages[i].CollectTransparent(renderScene, i, _transparentItems);
+            }
+
+            if (_transparentItems.Count > 1)
+            {
+                _transparentItems.Sort(static (a, b) => b.DistanceSq.CompareTo(a.DistanceSq));
+            }
+
+            for (var i = 0; i < _transparentItems.Count; i++)
+            {
+                TransparentDrawItem item = _transparentItems[i];
+                drawCalls += renderStages[item.StageIndex].RenderTransparentItem(item.ItemIndex, renderScene, ShaderActivationCallback);
+            }
         }
 
         return drawCalls;

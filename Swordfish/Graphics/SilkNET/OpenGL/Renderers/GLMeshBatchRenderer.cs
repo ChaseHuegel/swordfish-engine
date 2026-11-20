@@ -19,6 +19,7 @@ internal sealed class GLMeshBatchRenderer(
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly GLRenderContext _renderContext = renderContext;
     private readonly List<RangeCommand> _commands = [];
+    private readonly List<TransparentRangeItem> _transparentItems = [];
 
     private BatchEntityModel[]? _models;
     private ShaderProgram? _depthShader;
@@ -59,8 +60,6 @@ internal sealed class GLMeshBatchRenderer(
 
         var drawCalls = 0;
         Vector3 viewPosition = renderScene.View.GetCameraPosition();
-        _gl.Enable(EnableCap.Blend);
-        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
         for (var i = 0; i < renderScene.BatchEntityModels.Length; i++)
         {
@@ -71,8 +70,8 @@ internal sealed class GLMeshBatchRenderer(
                 continue;
             }
 
-            bool transparent = renderer.RenderOptions.AlphaMode == AlphaMode.Blend || HasTransparentMaterial(target.Materials);
-            if (isDepthPass && transparent)
+            GLMaterial.ResolveAlpha(renderer.RenderOptions, target.Materials, out AlphaMode alphaMode, out float alphaCutoff);
+            if (alphaMode == AlphaMode.Blend)
             {
                 continue;
             }
@@ -82,19 +81,150 @@ internal sealed class GLMeshBatchRenderer(
                 _gl.Set(EnableCap.DepthTest, !renderer.RenderOptions.IgnoreDepth);
                 _gl.Set(EnableCap.CullFace, !renderer.RenderOptions.DoubleFaced);
                 _gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-                drawCalls += DrawDepth(target, renderer, model.Matrix, renderScene.CameraFrustum, renderScene.View, renderScene.Projection, viewPosition);
+                drawCalls += DrawDepth(target, alphaMode, alphaCutoff, model.Matrix, renderScene.CameraFrustum, renderScene.View, renderScene.Projection);
             }
             else
             {
                 _gl.Set(EnableCap.DepthTest, !renderer.RenderOptions.IgnoreDepth);
                 _gl.Set(EnableCap.CullFace, !renderer.RenderOptions.DoubleFaced);
                 _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe || renderer.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
-                drawCalls += DrawColor(target, renderer, model.Matrix, renderScene.CameraFrustum, renderScene.View, renderScene.Projection, viewPosition, shaderActivationCallback);
+                drawCalls += DrawColor(target, renderer, alphaMode, alphaCutoff, model.Matrix, renderScene.CameraFrustum, renderScene.View, renderScene.Projection, viewPosition, shaderActivationCallback);
             }
         }
 
-        _gl.Disable(EnableCap.Blend);
         return drawCalls;
+    }
+
+    /// <inheritdoc/>
+    public void CollectTransparent(RenderScene renderScene, int stageIndex, List<TransparentDrawItem> items)
+    {
+        _transparentItems.Clear();
+        if (_renderSettings.HideMeshes || renderScene.BatchEntityModels == null || renderScene.BatchEntityModels.Length == 0)
+        {
+            return;
+        }
+
+        Vector3 viewPosition = renderScene.View.GetCameraPosition();
+        for (var modelIndex = 0; modelIndex < renderScene.BatchEntityModels.Length; modelIndex++)
+        {
+            BatchEntityModel model = renderScene.BatchEntityModels[modelIndex];
+            MeshBatchRenderer renderer = model.Renderer;
+            if (!_renderContext.TryGetBatchTarget(renderer, out GLMeshBatch? target) || target == null)
+            {
+                continue;
+            }
+
+            GLMaterial.ResolveAlpha(renderer.RenderOptions, target.Materials, out AlphaMode alphaMode, out _);
+            if (alphaMode != AlphaMode.Blend)
+            {
+                continue;
+            }
+
+            lock (target.Batch.SyncRoot)
+            {
+                Frustum? frustum = renderScene.CameraFrustum;
+                for (var slot = 0; slot < target.Batch.Ranges.Count; slot++)
+                {
+                    MeshRange range = target.Batch.Ranges[slot];
+                    if (!range.Active || !IsVisible(in range, in model.Matrix, in frustum))
+                    {
+                        continue;
+                    }
+
+                    BoundingBox world = range.Bounds.Transform(model.Matrix);
+                    int itemIndex = _transparentItems.Count;
+                    _transparentItems.Add(new TransparentRangeItem(modelIndex, slot));
+                    items.Add(new TransparentDrawItem(stageIndex, itemIndex, world.DistanceSquaredTo(viewPosition)));
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    public int RenderTransparentItem(int itemIndex, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback)
+    {
+        if (renderScene.BatchEntityModels == null)
+        {
+            return 0;
+        }
+
+        TransparentRangeItem item = _transparentItems[itemIndex];
+        BatchEntityModel model = renderScene.BatchEntityModels[item.ModelIndex];
+        MeshBatchRenderer renderer = model.Renderer;
+        if (!_renderContext.TryGetBatchTarget(renderer, out GLMeshBatch? target) || target == null)
+        {
+            return 0;
+        }
+
+        Vector3 viewPosition = renderScene.View.GetCameraPosition();
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        _gl.DepthMask(false);
+
+        GLMaterial[] materials = target.Materials;
+        GLMaterial.Scope[] scopes = ArrayPool<GLMaterial.Scope>.Shared.Rent(materials.Length);
+        try
+        {
+            for (var i = 0; i < materials.Length; i++)
+            {
+                GLMaterial material = materials[i];
+                ShaderProgram shader = material.ShaderProgram;
+                scopes[i] = material.Use();
+                shader.SetUniform("view", renderScene.View);
+                shader.SetUniform("projection", renderScene.Projection);
+                shader.SetUniform("uCameraPos", viewPosition);
+                shader.SetUniform("uReceiveShadows", renderer.RenderOptions.ReceiveShadows ? 1.0f : 0.0f);
+                shader.SetUniform("uAlphaCutoff", 0.0f);
+                shaderActivationCallback(shader);
+            }
+
+            _gl.Set(EnableCap.DepthTest, !renderer.RenderOptions.IgnoreDepth);
+            _gl.Set(EnableCap.CullFace, true);
+            _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe || renderer.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+
+            lock (target.Batch.SyncRoot)
+            {
+                if (item.RangeSlot >= target.Batch.Ranges.Count)
+                {
+                    return 0;
+                }
+
+                MeshRange range = target.Batch.Ranges[item.RangeSlot];
+                if (!range.Active)
+                {
+                    return 0;
+                }
+
+                Span<uint> counts = [(uint)range.IndexCount];
+                Span<nint> offsets = [range.IndexOffset * sizeof(uint)];
+                Span<int> baseVertices = [range.VertexOffset];
+
+                if (renderer.RenderOptions.DoubleFaced)
+                {
+                    _gl.CullFace(TriangleFace.Front);
+                    target.Draw(range.Arena, counts, offsets, baseVertices);
+                    _gl.CullFace(TriangleFace.Back);
+                    target.Draw(range.Arena, counts, offsets, baseVertices);
+                    return 2;
+                }
+
+                _gl.CullFace(TriangleFace.Back);
+                target.Draw(range.Arena, counts, offsets, baseVertices);
+                return 1;
+            }
+        }
+        finally
+        {
+            for (var i = 0; i < materials.Length; i++)
+            {
+                scopes[i].Dispose();
+            }
+
+            ArrayPool<GLMaterial.Scope>.Shared.Return(scopes);
+            _gl.CullFace(TriangleFace.Back);
+            _gl.DepthMask(true);
+            _gl.Disable(EnableCap.Blend);
+        }
     }
 
     public int RenderShadowPass(
@@ -126,7 +256,13 @@ internal sealed class GLMeshBatchRenderer(
                 continue;
             }
 
-            bool masked = renderer.RenderOptions.AlphaMode == AlphaMode.Masked;
+            GLMaterial.ResolveAlpha(renderer.RenderOptions, target.Materials, out AlphaMode alphaMode, out float alphaCutoff);
+            if (alphaMode == AlphaMode.Blend)
+            {
+                continue;
+            }
+
+            bool masked = alphaMode == AlphaMode.Masked;
             ShaderProgram? shader = masked ? GetCutoutShader(target) : depthShader;
             if (shader == null)
             {
@@ -142,13 +278,13 @@ internal sealed class GLMeshBatchRenderer(
             if (masked)
             {
                 shader.SetUniform("texture0", 0);
-                shader.SetUniform("uAlphaCutoff", renderer.RenderOptions.AlphaCutoff);
+                shader.SetUniform("uAlphaCutoff", alphaCutoff);
             }
 
             GLHandle.Scope? textureScope = ActivateTexture(target);
             try
             {
-                drawCalls += DrawTarget(target, model.Matrix, frustum, view.GetCameraPosition(), sort: false);
+                drawCalls += DrawTarget(target, model.Matrix, frustum);
             }
             finally
             {
@@ -162,6 +298,8 @@ internal sealed class GLMeshBatchRenderer(
     private int DrawColor(
         GLMeshBatch target,
         MeshBatchRenderer renderer,
+        AlphaMode alphaMode,
+        float alphaCutoff,
         in Matrix4x4 matrix,
         in Frustum? frustum,
         in Matrix4x4 view,
@@ -182,11 +320,11 @@ internal sealed class GLMeshBatchRenderer(
                 shader.SetUniform("projection", projection);
                 shader.SetUniform("uCameraPos", viewPosition);
                 shader.SetUniform("uReceiveShadows", renderer.RenderOptions.ReceiveShadows ? 1.0f : 0.0f);
-                shader.SetUniform("uAlphaCutoff", renderer.RenderOptions.AlphaMode == AlphaMode.Masked ? renderer.RenderOptions.AlphaCutoff : 0.0f);
+                shader.SetUniform("uAlphaCutoff", alphaMode == AlphaMode.Masked ? alphaCutoff : 0.0f);
                 shaderActivationCallback(shader);
             }
 
-            return DrawTarget(target, matrix, frustum, viewPosition, sort: renderer.RenderOptions.AlphaMode == AlphaMode.Blend);
+            return DrawTarget(target, matrix, frustum);
         }
         finally
         {
@@ -201,14 +339,14 @@ internal sealed class GLMeshBatchRenderer(
 
     private int DrawDepth(
         GLMeshBatch target,
-        MeshBatchRenderer renderer,
+        AlphaMode alphaMode,
+        float alphaCutoff,
         in Matrix4x4 matrix,
         in Frustum? frustum,
         in Matrix4x4 view,
-        in Matrix4x4 projection,
-        in Vector3 viewPosition
+        in Matrix4x4 projection
     ) {
-        bool masked = renderer.RenderOptions.AlphaMode == AlphaMode.Masked;
+        bool masked = alphaMode == AlphaMode.Masked;
         ShaderProgram? shader = masked ? GetCutoutShader(target) : _depthShader;
         if (shader == null)
         {
@@ -221,13 +359,13 @@ internal sealed class GLMeshBatchRenderer(
         if (masked)
         {
             shader.SetUniform("texture0", 0);
-            shader.SetUniform("uAlphaCutoff", renderer.RenderOptions.AlphaCutoff);
+            shader.SetUniform("uAlphaCutoff", alphaCutoff);
         }
 
         GLHandle.Scope? textureScope = ActivateTexture(target);
         try
         {
-            return DrawTarget(target, matrix, frustum, viewPosition, sort: false);
+            return DrawTarget(target, matrix, frustum);
         }
         finally
         {
@@ -235,7 +373,7 @@ internal sealed class GLMeshBatchRenderer(
         }
     }
 
-    private int DrawTarget(GLMeshBatch target, in Matrix4x4 matrix, in Frustum? frustum, in Vector3 viewPosition, bool sort)
+    private int DrawTarget(GLMeshBatch target, in Matrix4x4 matrix, in Frustum? frustum)
     {
         //  Hold the batch lock across the draw. The ECS thread can update or compact a
         //  range between the command build and the draw.
@@ -250,20 +388,13 @@ internal sealed class GLMeshBatchRenderer(
                     continue;
                 }
 
-                BoundingBox world = range.Bounds.Transform(matrix);
                 _commands.Add(new RangeCommand
                 {
                     Arena = range.Arena,
                     IndexOffset = range.IndexOffset * sizeof(uint),
                     IndexCount = range.IndexCount,
                     BaseVertex = range.VertexOffset,
-                    DistanceSq = Vector3.DistanceSquared(world.Center, viewPosition),
                 });
-            }
-
-            if (sort && _commands.Count > 1)
-            {
-                _commands.Sort(static (a, b) => b.DistanceSq.CompareTo(a.DistanceSq));
             }
 
             var drawCalls = 0;
@@ -349,17 +480,10 @@ internal sealed class GLMeshBatchRenderer(
         return frustum.Value.Intersects(world.Center, world.Extents);
     }
 
-    private static bool HasTransparentMaterial(GLMaterial[] materials)
+    private readonly struct TransparentRangeItem(int modelIndex, int rangeSlot)
     {
-        for (var i = 0; i < materials.Length; i++)
-        {
-            if (materials[i].Transparent)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        public readonly int ModelIndex = modelIndex;
+        public readonly int RangeSlot = rangeSlot;
     }
 
     private struct RangeCommand
@@ -368,6 +492,5 @@ internal sealed class GLMeshBatchRenderer(
         public int IndexOffset;
         public int IndexCount;
         public int BaseVertex;
-        public float DistanceSq;
     }
 }
