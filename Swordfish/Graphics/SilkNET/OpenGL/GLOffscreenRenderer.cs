@@ -168,7 +168,7 @@ internal sealed unsafe class GLOffscreenRenderer(
         _gl.DepthMask(true);
         _gl.Set(EnableCap.CullFace, !request.RenderOptions.DoubleFaced);
 
-        bool useBlend = request.RenderOptions.AlphaMode == AlphaMode.Blend || glMaterial.Transparent;
+        bool useBlend = request.RenderOptions.AlphaMode == AlphaMode.Blend || glMaterial.AlphaMode == AlphaMode.Blend;
         if (useBlend)
         {
             _gl.Enable(EnableCap.Blend);
