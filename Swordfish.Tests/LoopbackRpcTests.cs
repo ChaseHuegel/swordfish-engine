@@ -168,6 +168,21 @@ public class LoopbackRpcTests
         firstConnection.Close();
     }
 
+    [Fact]
+    public void ClosedTransportReportsIsClosedAndConnectReturnsFailure()
+    {
+        var transport = new LoopbackRpcServerTransport();
+        Assert.False(transport.IsClosed);
+
+        transport.Close();
+        Assert.True(transport.IsClosed);
+
+        var connection = new LoopbackRpcClientConnection(transport);
+        Swordfish.Library.Util.Result result = connection.Connect();
+        Assert.False(result.Success);
+        Assert.False(connection.IsConnected);
+    }
+
     private static RpcServer CreateServer(LoopbackRpcServerTransport transport, TestServerHandler handler)
     {
         var registry = new RpcRegistry();

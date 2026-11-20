@@ -33,7 +33,7 @@ internal sealed class ClientRpcHost : IDisposable
     private RpcClient? _client;
     private GameServerApiClient? _api;
     private bool _isLocal;
-    private bool _disposed;
+    private volatile bool _closed;
 
     /// <summary>Raised on a non-local close. The ECS thread performs the teardown.</summary>
     public event Action? RemoteDisconnected;
@@ -94,22 +94,44 @@ internal sealed class ClientRpcHost : IDisposable
     /// <summary>Connects to a remote host over TCP. The loopback closes only after the connect succeeds.</summary>
     public Result ConnectRemote(string host, int port)
     {
+        if (_closed)
+        {
+            return Result.FromFailure("The client RPC host is closed.");
+        }
+
         try
         {
             TcpOptions tcpOptions = _config.ToTcpOptions(host, port);
             var connection = new TcpClientConnection(_options, tcpOptions);
             connection.ConnectAsync().GetAwaiter().GetResult();
 
+            IRpcConnection? previous = null;
+            bool previousWasLocal = false;
+            bool aborted = false;
             lock (_gate)
             {
-                IRpcConnection? previous = _connection;
-                bool previousWasLocal = _isLocal;
-                Activate(connection, isLocal: false);
-                previous?.Close(RpcDisconnectReason.LocalClose);
-                if (previousWasLocal)
+                if (_closed)
                 {
-                    _logger.LogInformation("Closed the loopback connection for a remote session.");
+                    aborted = true;
                 }
+                else
+                {
+                    previous = _connection;
+                    previousWasLocal = _isLocal;
+                    Activate(connection, isLocal: false);
+                }
+            }
+
+            if (aborted)
+            {
+                connection.Close(RpcDisconnectReason.LocalClose);
+                return Result.FromFailure("The client RPC host is closed.");
+            }
+
+            previous?.Close(RpcDisconnectReason.LocalClose);
+            if (previousWasLocal)
+            {
+                _logger.LogInformation("Closed the loopback connection for a remote session.");
             }
 
             return Result.FromSuccess();
@@ -122,24 +144,27 @@ internal sealed class ClientRpcHost : IDisposable
     }
 
     /// <summary>
-    /// Drops a remote connection. An active loopback is left alone, so repeated calls are harmless.
+    /// Drops a remote connection. An active loopback, an already-claimed disconnect, or a closed host is
+    /// left alone, so repeated calls are harmless.
     /// </summary>
     public void Disconnect()
     {
+        IRpcConnection? connection;
         lock (_gate)
         {
-            if (_isLocal && _connection != null && _connection.IsConnected)
+            if (_closed || _connection == null || (_isLocal && _connection.IsConnected))
             {
                 return;
             }
 
-            IRpcConnection? connection = _connection;
+            connection = _connection;
             _connection = null;
             _client = null;
             _api = null;
-            connection?.Close(RpcDisconnectReason.LocalClose);
-            RestoreLoopback();
         }
+
+        connection.Close(RpcDisconnectReason.LocalClose);
+        RestoreLoopback();
     }
 
     /// <summary>Sends a typed notification on the active client. Returns false when the send is rejected.</summary>
@@ -149,36 +174,62 @@ internal sealed class ClientRpcHost : IDisposable
         return _client?.Notify(method, in request) ?? false;
     }
 
-    public void Dispose()
+    /// <summary>Marks the host closed and closes the active connection without restoring the loopback.</summary>
+    public void Close()
     {
+        IRpcConnection? connection;
         lock (_gate)
         {
-            if (_disposed)
+            if (_closed)
             {
                 return;
             }
 
-            _disposed = true;
-            IRpcConnection? connection = _connection;
+            _closed = true;
+            connection = _connection;
             _connection = null;
             _client = null;
             _api = null;
-            connection?.Close(RpcDisconnectReason.LocalClose);
         }
+
+        connection?.Close(RpcDisconnectReason.LocalClose);
     }
 
-    private void ConnectLocal()
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        Close();
+    }
+
+    private Result ConnectLocal()
     {
         lock (_gate)
         {
+            if (_closed || _loopbackTransport.IsClosed)
+            {
+                _closed = true;
+                return Result.FromFailure("The loopback server transport is closed.");
+            }
+
             if (_isLocal && _connection != null && _connection.IsConnected)
             {
-                return;
+                return Result.FromSuccess();
             }
 
             var connection = new LoopbackRpcClientConnection(_loopbackTransport);
-            connection.ConnectAsync().GetAwaiter().GetResult();
+            Result connect = connection.Connect();
+            if (!connect.Success)
+            {
+                if (_loopbackTransport.IsClosed)
+                {
+                    _closed = true;
+                }
+
+                return connect;
+            }
+
             Activate(connection, isLocal: true);
+            return Result.FromSuccess();
         }
     }
 
@@ -210,6 +261,13 @@ internal sealed class ClientRpcHost : IDisposable
             _client = null;
             _api = null;
             LastDisconnectReason = reason;
+
+            if (_closed || _loopbackTransport.IsClosed)
+            {
+                _closed = true;
+                return;
+            }
+
             raiseRemoteDisconnected = reason != RpcDisconnectReason.LocalClose;
         }
 
@@ -227,19 +285,25 @@ internal sealed class ClientRpcHost : IDisposable
     {
         lock (_gate)
         {
-            if (_disposed || (_isLocal && _connection != null && _connection.IsConnected))
+            if (_closed || (_isLocal && _connection != null && _connection.IsConnected))
             {
                 return;
             }
 
-            try
+            if (_loopbackTransport.IsClosed)
             {
-                ConnectLocal();
+                _closed = true;
+                return;
+            }
+
+            Result result = ConnectLocal();
+            if (result.Success)
+            {
                 _logger.LogInformation("Restored the loopback session.");
             }
-            catch (Exception ex)
+            else if (!_closed)
             {
-                _logger.LogError(ex, "Failed to restore the loopback session.");
+                _logger.LogError("Failed to restore the loopback session: {message}", result.Message);
             }
         }
     }

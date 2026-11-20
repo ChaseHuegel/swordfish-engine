@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using NsdRpc;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Networking.Transport;
 
@@ -16,16 +17,26 @@ public sealed class LoopbackRpcClientConnection : LoopbackRpcConnection, IClient
         _transport = transport ?? throw new ArgumentNullException(nameof(transport));
     }
 
-    /// <inheritdoc/>
-    /// <inheritdoc/>
-    public Task ConnectAsync()
+    /// <summary>Connects to the loopback transport without throwing when the listener is closed.</summary>
+    public Result Connect()
     {
         if (IsConnected)
         {
-            throw new InvalidOperationException("The loopback connection is already connected.");
+            return Result.FromFailure("The loopback connection is already connected.");
         }
 
-        _transport.Connect(Endpoint);
+        return _transport.TryConnect(Endpoint);
+    }
+
+    /// <inheritdoc/>
+    public Task ConnectAsync()
+    {
+        Result result = Connect();
+        if (!result.Success)
+        {
+            throw new InvalidOperationException(result.Message);
+        }
+
         return Task.CompletedTask;
     }
 }
