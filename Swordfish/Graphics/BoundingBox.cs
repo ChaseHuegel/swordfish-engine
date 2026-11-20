@@ -62,6 +62,17 @@ public readonly struct BoundingBox(in Vector3 center, in Vector3 extents, in flo
     }
 
     /// <summary>
+    ///     Returns the squared distance from a point to the nearest point on this box.
+    /// </summary>
+    public float DistanceSquaredTo(in Vector3 point)
+    {
+        Vector3 min = Center - Extents;
+        Vector3 max = Center + Extents;
+        Vector3 closest = Vector3.Clamp(point, min, max);
+        return Vector3.DistanceSquared(closest, point);
+    }
+
+    /// <summary>
     ///     Returns the smallest axis-aligned box that contains both inputs.
     /// </summary>
     public static BoundingBox Union(in BoundingBox left, in BoundingBox right)

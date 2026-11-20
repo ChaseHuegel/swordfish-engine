@@ -280,7 +280,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             textures[i] = BindTexture(material.Textures[i]);
         }
 
-        handle = _glContext.CreateGLMaterial(shaderProgram, textures, material.Transparent);
+        handle = _glContext.CreateGLMaterial(shaderProgram, textures, material.AlphaMode, material.AlphaCutoff);
         if (_linkedHandles.TryAdd(material, handle))
         {
             material.Disposed += OnHandleDisposed;
