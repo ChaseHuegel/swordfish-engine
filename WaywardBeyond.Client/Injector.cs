@@ -23,6 +23,7 @@ using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Serialization;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Data.Webhooks;
 using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
@@ -151,11 +152,7 @@ public class Injector : IDryIocInjector
 
     private static void RegisterWebhooks(IContainer container)
     {
-        var feedbackSourceUri = new Uri("https://gist.githubusercontent.com/ChaseHuegel/ed8b4d594789c4567e352148e006dbc1/raw/wb-feedback-webhook.txt");
-        var discordUri = new Uri("https://gist.githubusercontent.com/ChaseHuegel/fce325f4a4d41684277994eaa730dc5b/raw/wb-discord");
-        var steamUri = new Uri("https://gist.githubusercontent.com/ChaseHuegel/c3b57b884e2c675fcbffdba869d2f05d/raw/wb-steam");
-        var webhooks = new Webhooks(feedbackSourceUri, discordUri, steamUri);
-        container.RegisterInstance(webhooks);
+        container.RegisterInstance(Webhooks.Default);
 
         container.Register<WebhookService>();
         container.Register<FeedbackWebhook>();

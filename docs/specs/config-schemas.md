@@ -261,6 +261,25 @@ See [rendering-shadows](rendering-shadows.md) and [rendering-sao](rendering-sao.
 | `Shadows.NormalBias` | float | `0.02` | normal offset bias to eliminate shadow acne |
 | `Shadows.DepthBias` | float | `0.005` | slope-scaled depth bias for depth comparisons |
 
+## `logging.toml` (per app)
+
+Logging and crash handler tunables loaded early by `LoggingConfig.Load` (`Shoal/Logging/LoggingConfig.cs`) before DI or child process launch. See [logging-and-crash-handling](logging-and-crash-handling.md).
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `MinLevel` | enum | `Information` | minimum log level written to file and console |
+| `FlushIntervalMs` | int | `200` | periodic background flush interval in milliseconds (minimum 25) |
+| `SyncFlushMinLevel` | enum | `Error` | minimum log level that forces a synchronous queue drain and file flush |
+| `MaxLogFiles` | int | `20` | maximum timestamped session log files retained in `logs/` (`0` disables pruning) |
+| `CrashHandler.Enabled` | bool | `true` | enables the out-of-process crash supervisor |
+| `CrashHandler.MaxCrashReports` | int | `20` | maximum crash reports retained in `crashes/` |
+| `CrashHandler.AlertTailLines` | int | `80` | maximum trailing log lines shown in the crash alert dialog |
+| `CrashHandler.AlertTailMaxChars` | int | `16384` | maximum trailing characters shown in the crash alert dialog (minimum 512) |
+| `CrashHandler.CollectDumps` | bool | `true` | enables `.NET` runtime crash dump generation (`DOTNET_DbgEnableMiniDump`) |
+| `CrashHandler.DumpType` | enum | `Mini` | crash dump detail (`Mini` \| `WithHeap` \| `Triage` \| `Full`) |
+| `CrashHandler.MaxCrashDumps` | int | `5` | maximum `.dmp` files retained in `crashes/` |
+| `CrashHandler.MaxUploadBytes` | int | `8388608` | maximum compressed attachment size in bytes for crash report uploads |
+
 ## How configs load
 
 TOML parsing uses Tomlet. See `Shoal/Modularity/ModuleOptions.cs`,
@@ -281,7 +300,8 @@ where `Config<T>.Save()` writes. `SaveLocation.UserData` (the default) writes
 to `AppPaths.ConfigRoot` (`<DataRoot>/config/<file>`). `SaveLocation.Install`
 writes to `config/<file>` relative to the working directory.
 `Config<T>.Save()` creates missing parent directories before writing. Logs
-write to `AppPaths.LogsRoot` (`<DataRoot>/logs`).
+write to `AppPaths.LogsRoot` (`<DataRoot>/logs`). Crash reports and dumps write
+to `AppPaths.CrashesRoot` (`<DataRoot>/crashes`).
 
 ## Conventions
 

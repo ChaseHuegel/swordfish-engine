@@ -59,7 +59,8 @@ change touches a subject, run the docs pass (see `development.md`).
 | Settings page layout, controls, draft, and apply behavior | [specs/settings-ui](specs/settings-ui.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
 | Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
-| Config schemas: `manifest.toml`, `modules.toml` | [specs/config-schemas](specs/config-schemas.md) |
+| Config schemas: `manifest.toml`, `modules.toml`, `logging.toml` | [specs/config-schemas](specs/config-schemas.md) |
+| Logging, flush guarantees, crash dumps, and out-of-process crash supervisor | [specs/logging-and-crash-handling](specs/logging-and-crash-handling.md) |
 | Self-review and peer review: triage, hot paths, threading, networking, gate | [specs/code-review](specs/code-review.md) |
 | Naming conventions common type patterns | [specs/naming](specs/naming.md) |
 | Local issue index and agent workflow | [specs/issues](specs/issues.md) |

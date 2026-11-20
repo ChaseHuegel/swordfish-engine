@@ -33,9 +33,12 @@ and world split, the persistence schema, and the CLI surface.
 | `WaywardBeyond.Items/` | Shared item module: definitions, headless database, item-to-brick resolution | `net9.0` | — |
 | `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database | `net9.0` | — |
 
-**Entrypoints**: `Swordfish.Launcher/Program.cs` (`new SwordfishEngine(args).Run()`),
+**Entrypoints**: `Swordfish.Launcher/Program.cs`,
 `WaywardBeyond.Client.Launcher/Program.cs`, and
 `WaywardBeyond.Server.Launcher/Program.cs` (headless dedicated server).
+Each launcher enters through `CrashSupervisor.Run` (`Shoal/CrashHandling/CrashSupervisor.cs`)
+before starting `SwordfishEngine` or `AppEngine`. Pass `--no-crash-handler` to bypass supervision.
+See [specs/logging-and-crash-handling](specs/logging-and-crash-handling.md).
 
 ## Core architecture principles
 
@@ -92,8 +95,8 @@ All save data persists in SQLite databases through `Microsoft.Data.Sqlite`.
 `StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the layout under
 `StorageConfig.SaveRoot` (default `saves/`, file `storage.toml`) relative to
 `AppPaths.DataRoot` (`Swordfish.Library/IO/AppPaths.cs`). Clients store saves,
-settings, and logs under the local user's application data directory and mount
-that directory last in `VirtualFileSystem` as a user override. Dedicated servers
+settings, logs, and crash reports under the local user's application data
+directory and mount that directory last in `VirtualFileSystem` as a user override. Dedicated servers
 use the working directory and can override `SaveRoot` with `--data`. The client
 owns `profile.db` (characters and save-listing metadata). The server owns one
 database per level.
