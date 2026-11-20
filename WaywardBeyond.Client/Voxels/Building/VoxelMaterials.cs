@@ -20,10 +20,13 @@ internal sealed class VoxelMaterials
     public VoxelMaterials(in Shader shader, in PBRTextureArrays textureArrays)
     {
         Opaque = new Material(shader, textureArrays.ToArray());
-        Masked = new Material(shader, textureArrays.ToArray());
+        Masked = new Material(shader, textureArrays.ToArray())
+        {
+            AlphaMode = AlphaMode.Masked,
+        };
         Transparent = new Material(shader, textureArrays.ToArray())
         {
-            Transparent = true,
+            AlphaMode = AlphaMode.Blend,
         };
 
         OpaqueOptions = new RenderOptions
