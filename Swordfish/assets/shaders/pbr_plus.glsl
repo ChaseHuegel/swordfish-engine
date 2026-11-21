@@ -235,7 +235,7 @@ vec4 shade(vec3 albedo)
     count = min(count, uint(uMaxLightsPerTile));
     uint base = uint(tId) * uint(uMaxLightsPerTile);
 
-    vec3 N = gl_FrontFacing ? vNormal : -vNormal;
+    vec3 N = normalize(gl_FrontFacing ? vNormal : -vNormal);
     vec3 V = normalize(uCameraPos - vWorldPos);
     vec3 F0 = mix(vec3(0.04), albedo, Metallic);
 
@@ -293,7 +293,7 @@ vec4 vertex()
     vec4 worldPos = model * vec4(VertexPosition, 1.0);
     vWorldPos = worldPos.xyz;
 
-    vNormal = mat3(transpose(inverse(model))) * VertexNormal;
+    vNormal = normalize(mat3(transpose(inverse(model))) * VertexNormal);
 
     return projection * view * worldPos;
 }
