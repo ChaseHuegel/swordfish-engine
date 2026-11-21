@@ -103,13 +103,14 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         var built = new List<BrickColliderShape>(definitions.Count);
         for (var i = 0; i < definitions.Count; i++)
         {
-            if (definitions[i].TryBuild(out BrickColliderShape collider, out string error))
+            Result<BrickColliderShape> result = definitions[i].Build();
+            if (result.Success)
             {
-                built.Add(collider);
+                built.Add(result.Value);
             }
             else
             {
-                _logger.LogWarning("Skipping invalid collider #{Index} on brick \"{BrickId}\": {Error}", i, brickId, error);
+                _logger.LogWarning("Skipping invalid collider #{Index} on brick \"{BrickId}\": {Error}", i, brickId, result.Message);
             }
         }
 

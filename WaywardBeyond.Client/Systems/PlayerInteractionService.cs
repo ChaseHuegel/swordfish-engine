@@ -929,14 +929,20 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
         
         clickedPoint = raycast.Point;
-        coordinate = InteractionResolver.ResolveTargetCell(
-            raycast.Point,
-            raycast.Normal,
-            transformComponent.Position,
-            transformComponent.Orientation,
-            voxelComponent.VoxelObject,
-            placeAdjacent: offset && reachAroundDir == null
-        );
+        coordinate = offset && reachAroundDir == null
+            ? InteractionResolver.ResolvePlacementCell(
+                raycast.Point,
+                raycast.Normal,
+                transformComponent.Position,
+                transformComponent.Orientation,
+                voxelComponent.VoxelObject
+            )
+            : InteractionResolver.ResolveHitCell(
+                raycast.Point,
+                raycast.Normal,
+                transformComponent.Position,
+                transformComponent.Orientation
+            );
         voxel = voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
 
         if (reachAroundDir != null)

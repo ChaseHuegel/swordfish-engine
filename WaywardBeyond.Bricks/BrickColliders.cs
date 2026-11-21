@@ -71,6 +71,6 @@ public static class BrickColliders
     /// <summary>Returns whether a voxel with this shape and brick completely fills its unit cell for interior culling.</summary>
     public static bool IsFullBlock(BrickShape shape, Brick? brick = null)
     {
-        return shape == BrickShape.Block && (brick == null || brick.Colliders.IsEmpty);
+        return shape == BrickShape.Block && (brick == null || brick.Colliders.IsEmpty || brick.Shapeable);
     }
 }

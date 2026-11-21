@@ -134,28 +134,36 @@ public static class InteractionResolver
         return Vector3.Transform(localPosition, orientation) + origin;
     }
 
+    private const float SURFACE_EPSILON = 0.001f;
+
     /// <summary>
-    /// Resolves the target voxel coordinate from a physics raycast hit point and surface normal.
-    /// Uses a small inward nudge for selection/breaking so thin and sloped hitboxes stay in the hit cell,
-    /// and steps into the adjacent empty cell along the surface normal when placing.
+    /// Resolves the hit voxel coordinate from a physics raycast hit point and surface normal.
+    /// Uses a small inward nudge so thin and sloped hitboxes stay inside the hit cell.
     /// </summary>
-    public static Int3 ResolveTargetCell(
+    public static Int3 ResolveHitCell(
+        Vector3 hitPoint,
+        Vector3 hitNormal,
+        Vector3 structureOrigin,
+        Quaternion structureOrientation
+    )
+    {
+        Vector3 inwardPoint = hitPoint - hitNormal * SURFACE_EPSILON;
+        return WorldToBrickSpace(inwardPoint, structureOrigin, structureOrientation);
+    }
+
+    /// <summary>
+    /// Resolves the adjacent placement voxel coordinate from a physics raycast hit point and surface normal.
+    /// Handles outer faces directly and steps along the surface normal for recessed or sloped faces.
+    /// </summary>
+    public static Int3 ResolvePlacementCell(
         Vector3 hitPoint,
         Vector3 hitNormal,
         Vector3 structureOrigin,
         Quaternion structureOrientation,
-        VoxelObject voxelObject,
-        bool placeAdjacent
+        VoxelObject voxelObject
     )
     {
-        const float SURFACE_EPSILON = 0.001f;
-
-        Vector3 inwardPoint = hitPoint - hitNormal * SURFACE_EPSILON;
-        Int3 hitCell = WorldToBrickSpace(inwardPoint, structureOrigin, structureOrientation);
-        if (!placeAdjacent)
-        {
-            return hitCell;
-        }
+        Int3 hitCell = ResolveHitCell(hitPoint, hitNormal, structureOrigin, structureOrientation);
 
         //  Outer cell faces step straight into the adjacent empty cell.
         Vector3 outwardPoint = hitPoint + hitNormal * SURFACE_EPSILON;
