@@ -13,6 +13,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.Diagnostics;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Graphics;
@@ -76,6 +77,9 @@ public class Injector : IDryIocInjector
         container.Register<CharacterAssetService>(Reuse.Singleton);
 
         container.Register<NotificationService>(Reuse.Singleton);
+
+        container.Register<LogCounters>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, LogCounters>();
 
         container.RegisterDelegate(factory: () => new Randomizer());
         container.Register<NameGenerator>(Reuse.Singleton);
@@ -272,6 +276,11 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
         container.Register<IDebugOverlay, PerformanceStatsOverlay>();
         container.Register<IDebugOverlay, NetworkStatsOverlay>();
+        container.Register<IDebugOverlay, LogCountersOverlay>();
+
+#if DEBUG
+        container.Register<IUILayer, LogCountersBadge>(Reuse.Singleton);
+#endif
 
         container.Register<ChatLayer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ChatLayer>();
