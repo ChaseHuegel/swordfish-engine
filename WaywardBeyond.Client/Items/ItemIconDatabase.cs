@@ -6,6 +6,7 @@ using Shoal.CommandLine;
 using Shoal.DependencyInjection;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
@@ -189,6 +190,7 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
                 string fileName = SanitizeFileName(brickID) + ".png";
                 string outputPath = Path.Combine(directory, fileName);
                 using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(texture.Pixels, texture.Width, texture.Height);
+                image.Mutate(context => context.Flip(FlipMode.Vertical));
                 image.SaveAsPng(outputPath);
             }
 
