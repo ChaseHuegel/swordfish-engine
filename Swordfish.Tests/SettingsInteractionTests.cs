@@ -23,11 +23,11 @@ public class SettingsInteractionTests
     {
         var harness = new Harness();
 
-        harness.Click(harness.Find("Settings.VSync.1"));
+        harness.Click(harness.Find("Settings.VSync.0"));
         harness.Frame();
 
         Assert.Equal(PRIMARY, harness.FindCommand("Settings.Apply").Border.Color);
-        Assert.Equal(ACCENT_DARK, harness.FindCommand("Settings.VSync.1").Color);
+        Assert.Equal(ACCENT_DARK, harness.FindCommand("Settings.VSync.0").Color);
     }
 
     [Fact]
