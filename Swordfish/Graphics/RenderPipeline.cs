@@ -33,6 +33,14 @@ internal abstract class RenderPipeline<TRenderStage>(TRenderStage[] renderStages
             drawCalls += renderStages[i].Render(delta, renderScene, ShaderActivationCallback, isDepthPass);
         }
 
+        if (!isDepthPass)
+        {
+            for (var i = 0; i < renderStages.Length; i++)
+            {
+                drawCalls += renderStages[i].RenderTransparent(delta, renderScene, ShaderActivationCallback);
+            }
+        }
+
         return drawCalls;
     }
 
