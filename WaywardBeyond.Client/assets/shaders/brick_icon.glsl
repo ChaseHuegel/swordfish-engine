@@ -124,8 +124,8 @@ vec4 fragment()
     vec3 emissive = texture(texture4, TextureCoord).rgb;
 
     vec3 viewDir = normalize(vec3(1.0, 0.85, 1.0));
-    vec3 keyLightDir = normalize(vec3(0.45, 0.95, 0.70));
-    vec3 fillLightDir = normalize(vec3(0.85, 0.25, -0.35));
+    vec3 keyLightDir = normalize(vec3(0.45, 0.95, -0.70));
+    vec3 fillLightDir = normalize(vec3(0.85, 0.25, 0.35));
 
     vec3 F0 = mix(vec3(0.04), albedo.rgb, metallic);
     vec3 lighting = evalDirectionalLight(keyLightDir, KEY_LIGHT_COLOR, N, viewDir, F0, albedo.rgb, roughness, metallic)
