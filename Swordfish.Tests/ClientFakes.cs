@@ -148,9 +148,13 @@ internal sealed class FakeWindowContext : IWindowContext
 
     public DataBinding<double> RenderDelta { get; } = new(0d);
 
-    public Vector2 Resolution => Vector2.Zero;
+    public Vector2 Resolution { get; set; } = Vector2.Zero;
 
-    public Vector2 MonitorResolution => Vector2.Zero;
+    public Vector2 MonitorResolution { get; set; } = Vector2.Zero;
+
+    public List<string> Monitors { get; } = [];
+
+    public Func<WindowMode, bool, int?, int?, string?, Result>? OnApplyDisplaySettings { get; set; }
 
     public Action? Loaded { get; set; }
 
@@ -169,7 +173,13 @@ internal sealed class FakeWindowContext : IWindowContext
     public Vector2 GetSize() => Vector2.Zero;
 
     /// <inheritdoc/>
-    public IReadOnlyList<Vector2> GetVideoModes()
+    public IReadOnlyList<string> GetMonitors()
+    {
+        return Monitors;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<Vector2> GetVideoModes(string? monitorName = null)
     {
         return
         [
@@ -180,7 +190,18 @@ internal sealed class FakeWindowContext : IWindowContext
     }
 
     /// <inheritdoc/>
-    public void ApplyDisplaySettings(WindowMode mode, bool borderless, int? width = null, int? height = null) { }
+    public Result ApplyDisplaySettings(
+        WindowMode mode,
+        bool borderless,
+        int? width = null,
+        int? height = null,
+        string? monitorName = null
+    )
+    {
+        return OnApplyDisplaySettings != null
+            ? OnApplyDisplaySettings(mode, borderless, width, height, monitorName)
+            : Result.FromSuccess();
+    }
 
     public void Close() { }
 

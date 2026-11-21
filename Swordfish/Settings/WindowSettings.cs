@@ -12,6 +12,11 @@ public sealed class WindowSettings : Config<WindowSettings>
     
     public DataBinding<int?> Width { get; private set; } = new();
     public DataBinding<int?> Height { get; private set; } = new();
+
+    public DataBinding<int?> FullscreenWidth { get; private set; } = new();
+    public DataBinding<int?> FullscreenHeight { get; private set; } = new();
+
+    public DataBinding<string> Monitor { get; private set; } = new(string.Empty);
     
     public DataBinding<WindowMode> Mode { get; private set; } = new();
     
