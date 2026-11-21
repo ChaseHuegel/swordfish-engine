@@ -9,12 +9,13 @@ public class Texture : Handle
     public int Height { get; protected set; }
     public bool Mipmaps { get; protected set; }
     public ColorSpace ColorSpace { get; protected set; }
+    public TextureFilter Filter { get; protected set; }
     public byte[] Pixels { get; protected set; }
 
-    public Texture(byte[] pixels, int width, int height, bool mipmaps, ColorSpace colorSpace = ColorSpace.Srgb)
-        : this("unknown", pixels, width, height, mipmaps, colorSpace) { }
+    public Texture(byte[] pixels, int width, int height, bool mipmaps, ColorSpace colorSpace = ColorSpace.Srgb, TextureFilter filter = TextureFilter.Nearest)
+        : this("unknown", pixels, width, height, mipmaps, colorSpace, filter) { }
 
-    public Texture(string name, byte[] pixels, int width, int height, bool mipmaps, ColorSpace colorSpace = ColorSpace.Srgb)
+    public Texture(string name, byte[] pixels, int width, int height, bool mipmaps, ColorSpace colorSpace = ColorSpace.Srgb, TextureFilter filter = TextureFilter.Nearest)
     {
         Name = name;
         Pixels = pixels;
@@ -22,6 +23,7 @@ public class Texture : Handle
         Height = height;
         Mipmaps = mipmaps;
         ColorSpace = colorSpace;
+        Filter = filter;
     }
 
     protected override void OnDisposed()

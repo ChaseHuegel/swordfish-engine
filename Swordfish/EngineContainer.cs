@@ -63,6 +63,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         
         container.RegisterMany<GLRenderer>(Reuse.Singleton);
+        container.Register<IOffscreenRenderer, GLOffscreenRenderer>(Reuse.Singleton);
         container.Register<IEntitySystem, ChildSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<GLRenderContext>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, GLRenderContext>();

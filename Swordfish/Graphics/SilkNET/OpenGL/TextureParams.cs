@@ -31,6 +31,14 @@ internal struct TextureParams(
         TextureMagFilter.Linear
     );
 
+    public static readonly TextureParams ClampLinearMipmap = new(
+        TextureWrapMode.ClampToEdge,
+        TextureWrapMode.ClampToEdge,
+        TextureMinFilter.LinearMipmapLinear,
+        TextureMagFilter.Linear,
+        generateMipmaps: true
+    );
+
     public static readonly TextureParams ShadowMap = new(
         TextureWrapMode.ClampToEdge,
         TextureWrapMode.ClampToEdge,
