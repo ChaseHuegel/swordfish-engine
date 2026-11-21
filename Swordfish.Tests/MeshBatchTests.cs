@@ -106,4 +106,18 @@ public class MeshBatchTests
         Assert.False(batch.RemoveRange(first));
         Assert.True(batch.RemoveRange(second));
     }
+
+    [Fact]
+    public void SortCenterDefaultsToBoundsCenterAndPreservesExplicitOverride()
+    {
+        var batch = new MeshBatch();
+        var bounds = new BoundingBox(new Vector3(1f, 2f, 3f), Vector3.One, 1f);
+        MeshRangeHandle handle = batch.AddRange(Vertices(3), 3, Indices(3), bounds);
+
+        Assert.Equal(bounds.Center, batch.Ranges[handle.Slot].SortCenter);
+
+        var explicitCenter = new Vector3(7.5f, 7.5f, 7.5f);
+        Assert.True(batch.UpdateRange(handle, Vertices(3), 3, Indices(3), bounds, explicitCenter));
+        Assert.Equal(explicitCenter, batch.Ranges[handle.Slot].SortCenter);
+    }
 }
