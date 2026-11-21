@@ -29,8 +29,6 @@ internal static class DisplaySettingsCategory
 
     public static SettingsCategory Build(SettingsDraft draft, IWindowContext windowContext, ILocalization localization, Action reset)
     {
-        IReadOnlyList<SettingsResolution> resolutionOptions = GetResolutionOptions(draft, windowContext);
-
         return new SettingsCategory(
             id: "display",
             titleKey: "ui.settings.category.display",
@@ -53,9 +51,9 @@ internal static class DisplaySettingsCategory
                     get: () => draft.Resolution,
                     set: value => draft.Resolution = value,
                     defaultValue: () => SettingsDraft.GetNativeResolution(windowContext),
-                    options: () => resolutionOptions,
+                    options: () => GetResolutionOptions(draft, windowContext),
                     format: resolution => $"{resolution.Width} x {resolution.Height}",
-                    isEnabled: () => draft.DisplayMode.UsesWindowSize()
+                    isEnabled: () => draft.DisplayMode.UsesResolution()
                 ),
                 new StepperEntry<float>(
                     id: "Settings.UiScale",

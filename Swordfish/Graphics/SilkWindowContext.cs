@@ -9,8 +9,10 @@ using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
+using Swordfish.Library.Util;
 using Swordfish.Settings;
 using Key = Swordfish.Library.IO.Key;
+using VideoMode = Silk.NET.Windowing.VideoMode;
 
 namespace Swordfish.Graphics;
 
@@ -86,11 +88,26 @@ public class SilkWindowContext : IWindowContext
         windowSettings.Width.Changed += OnWidthChanged;
         windowSettings.Height.Changed += OnHeightChanged;
         ApplySize(windowSettings.Width, windowSettings.Height);
+
+        windowSettings.FullscreenWidth.Changed += OnFullscreenWidthChanged;
+        windowSettings.FullscreenHeight.Changed += OnFullscreenHeightChanged;
         
         windowSettings.Borderless.Changed += OnBorderlessChanged;
         windowSettings.AllowResize.Changed += OnAllowResizeChanged;
         windowSettings.Mode.Changed += OnModeChanged;
-        ApplyWindowStyle(windowSettings.Mode, windowSettings.Borderless, windowSettings.AllowResize);
+        if (windowSettings.Mode.Get() == WindowMode.Fullscreen && !windowSettings.Borderless.Get())
+        {
+            ApplyDisplaySettings(
+                WindowMode.Fullscreen,
+                borderless: false,
+                windowSettings.FullscreenWidth.Get(),
+                windowSettings.FullscreenHeight.Get()
+            );
+        }
+        else
+        {
+            ApplyWindowStyle(windowSettings.Mode, windowSettings.Borderless, windowSettings.AllowResize);
+        }
 
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Toggle Fullscreen",
@@ -192,39 +209,100 @@ public class SilkWindowContext : IWindowContext
         return resolutions;
     }
 
-    /// <inheritdoc/>
-    public void ApplyDisplaySettings(WindowMode mode, bool borderless, int? width = null, int? height = null)
+    /// <summary>Result of resolving a requested exclusive fullscreen video mode.</summary>
+    internal readonly record struct FullscreenModeResolution(VideoMode Mode, Result Status);
+
+    /// <summary>Resolves a requested exclusive fullscreen resolution against supported monitor video modes.</summary>
+    /// <param name="requestedWidth">The requested width, or null to use the monitor's current mode.</param>
+    /// <param name="requestedHeight">The requested height, or null to use the monitor's current mode.</param>
+    /// <param name="supportedModes">The video modes reported by the monitor.</param>
+    /// <param name="currentMode">The monitor's current video mode, used for refresh-rate preference and fallback.</param>
+    internal static FullscreenModeResolution ResolveFullscreenVideoMode(
+        int? requestedWidth,
+        int? requestedHeight,
+        IReadOnlyList<VideoMode> supportedModes,
+        VideoMode currentMode
+    )
     {
+        if (requestedWidth == null || requestedHeight == null)
+        {
+            VideoMode? defaultMode = FindFallbackVideoMode(supportedModes, currentMode);
+            if (defaultMode == null)
+            {
+                return new FullscreenModeResolution(
+                    VideoMode.Default,
+                    Result.FromFailure("No supported fullscreen video modes were reported by the monitor.")
+                );
+            }
+
+            return new FullscreenModeResolution(defaultMode.Value, Result.FromSuccess());
+        }
+
+        if (requestedWidth.Value > 0 && requestedHeight.Value > 0)
+        {
+            VideoMode? matched = FindMatchingVideoMode(
+                supportedModes,
+                requestedWidth.Value,
+                requestedHeight.Value,
+                currentMode.RefreshRate
+            );
+            if (matched != null)
+            {
+                return new FullscreenModeResolution(matched.Value, Result.FromSuccess());
+            }
+        }
+
+        VideoMode? fallback = FindFallbackVideoMode(supportedModes, currentMode);
+        if (fallback == null)
+        {
+            return new FullscreenModeResolution(
+                VideoMode.Default,
+                Result.FromFailure(
+                    $"Fullscreen resolution {requestedWidth.Value}x{requestedHeight.Value} is not supported and no fallback video mode is available."
+                )
+            );
+        }
+
+        Vector2D<int> fallbackResolution = fallback.Value.Resolution!.Value;
+        return new FullscreenModeResolution(
+            fallback.Value,
+            Result.FromFailure(
+                $"Fullscreen resolution {requestedWidth.Value}x{requestedHeight.Value} is not supported; fell back to {fallbackResolution.X}x{fallbackResolution.Y}."
+            )
+        );
+    }
+
+    /// <inheritdoc/>
+    public Result ApplyDisplaySettings(WindowMode mode, bool borderless, int? width = null, int? height = null)
+    {
+        if (mode == WindowMode.Fullscreen && !borderless)
+        {
+            return ApplyExclusiveFullscreenSettings(width, height);
+        }
+
         int targetWidth = width ?? WindowSettings.Width.Get() ?? Window.Size.X;
         int targetHeight = height ?? WindowSettings.Height.Get() ?? Window.Size.Y;
-
-        if (Window.Monitor != null)
-        {
-            Vector2D<int> monitorSize = Window.Monitor.VideoMode.Resolution ?? Window.Monitor.Bounds.Size;
-            targetWidth = Math.Clamp(targetWidth, 320, monitorSize.X);
-            targetHeight = Math.Clamp(targetHeight, 240, monitorSize.Y);
-        }
 
         _suppressWindowEvents = true;
         try
         {
-            if (mode == WindowMode.Windowed)
-            {
-                WindowSettings.Width.Set(targetWidth);
-                WindowSettings.Height.Set(targetHeight);
-            }
-
-            if (mode != WindowMode.Fullscreen || !borderless)
-            {
-                WindowSettings.Borderless.Set(borderless);
-            }
-
+            WindowSettings.Borderless.Set(borderless);
             WindowSettings.Mode.Set(mode);
             
             ApplyWindowStyle(mode, borderless, WindowSettings.AllowResize.Get());
 
             if (mode == WindowMode.Windowed)
             {
+                if (Window.Monitor != null)
+                {
+                    Vector2D<int> monitorSize = Window.Monitor.VideoMode.Resolution ?? Window.Monitor.Bounds.Size;
+                    targetWidth = Math.Clamp(targetWidth, 320, monitorSize.X);
+                    targetHeight = Math.Clamp(targetHeight, 240, monitorSize.Y);
+                }
+
+                WindowSettings.Width.Set(targetWidth);
+                WindowSettings.Height.Set(targetHeight);
+
                 ApplySize(targetWidth, targetHeight);
                 Window.Center();
 
@@ -251,6 +329,196 @@ public class SilkWindowContext : IWindowContext
             Window.Size.Y,
             Window.Position
         );
+
+        return Result.FromSuccess();
+    }
+
+    private Result ApplyExclusiveFullscreenSettings(int? width, int? height)
+    {
+        int? requestedWidth = width ?? WindowSettings.FullscreenWidth.Get();
+        int? requestedHeight = height ?? WindowSettings.FullscreenHeight.Get();
+        IMonitor? monitor = Window.Monitor;
+
+        if (monitor == null)
+        {
+            _suppressWindowEvents = true;
+            try
+            {
+                WindowSettings.Borderless.Set(false);
+                WindowSettings.Mode.Set(WindowMode.Fullscreen);
+                ApplyWindowStyle(WindowMode.Fullscreen, borderless: false, WindowSettings.AllowResize.Get());
+                WindowSettings.Save();
+            }
+            finally
+            {
+                _suppressWindowEvents = false;
+            }
+
+            if (requestedWidth != null && requestedHeight != null)
+            {
+                string message = $"No monitor is available to apply fullscreen resolution {requestedWidth.Value}x{requestedHeight.Value}.";
+                Logger.LogWarning("{message}", message);
+                return Result.FromFailure(message);
+            }
+
+            return Result.FromSuccess();
+        }
+
+        List<VideoMode> supportedModes = CollectMonitorVideoModes(monitor);
+        FullscreenModeResolution resolution = ResolveFullscreenVideoMode(
+            requestedWidth,
+            requestedHeight,
+            supportedModes,
+            monitor.VideoMode
+        );
+
+        _suppressWindowEvents = true;
+        try
+        {
+            WindowSettings.Borderless.Set(false);
+            WindowSettings.Mode.Set(WindowMode.Fullscreen);
+
+            Vector2D<int>? appliedResolution = resolution.Mode.Resolution;
+            if (appliedResolution != null && appliedResolution.Value.X > 0 && appliedResolution.Value.Y > 0)
+            {
+                WindowSettings.FullscreenWidth.Set(appliedResolution.Value.X);
+                WindowSettings.FullscreenHeight.Set(appliedResolution.Value.Y);
+            }
+
+            ApplyExclusiveFullscreen(monitor, resolution.Mode, WindowSettings.AllowResize.Get());
+            WindowSettings.Save();
+        }
+        finally
+        {
+            _suppressWindowEvents = false;
+        }
+
+        if (!resolution.Status.Success)
+        {
+            Logger.LogWarning("{message}", resolution.Status.Message);
+        }
+
+        Logger.LogDebug(
+            "Applied exclusive fullscreen settings. Requested={requestedWidth}x{requestedHeight}, resolved={resolvedWidth}x{resolvedHeight}@{refreshRate}Hz. Actual state={state}, border={border}, size={actualWidth}x{actualHeight}, position={position}.",
+            requestedWidth,
+            requestedHeight,
+            resolution.Mode.Resolution?.X,
+            resolution.Mode.Resolution?.Y,
+            resolution.Mode.RefreshRate,
+            Window.WindowState,
+            Window.WindowBorder,
+            Window.Size.X,
+            Window.Size.Y,
+            Window.Position
+        );
+
+        return resolution.Status;
+    }
+
+    private static List<VideoMode> CollectMonitorVideoModes(IMonitor monitor)
+    {
+        var modes = new List<VideoMode>();
+        foreach (VideoMode mode in monitor.GetAllVideoModes())
+        {
+            Vector2D<int>? resolution = mode.Resolution;
+            if (resolution != null && resolution.Value.X > 0 && resolution.Value.Y > 0)
+            {
+                modes.Add(mode);
+            }
+        }
+
+        return modes;
+    }
+
+    private static VideoMode? FindMatchingVideoMode(
+        IReadOnlyList<VideoMode> supportedModes,
+        int width,
+        int height,
+        int? preferredRefreshRate
+    )
+    {
+        VideoMode? best = null;
+        int bestRefreshRate = -1;
+
+        for (var i = 0; i < supportedModes.Count; i++)
+        {
+            VideoMode candidate = supportedModes[i];
+            Vector2D<int>? resolution = candidate.Resolution;
+            if (resolution == null || resolution.Value.X != width || resolution.Value.Y != height)
+            {
+                continue;
+            }
+
+            if (preferredRefreshRate != null && candidate.RefreshRate == preferredRefreshRate)
+            {
+                return candidate;
+            }
+
+            int candidateRefreshRate = candidate.RefreshRate ?? 0;
+            if (best == null || candidateRefreshRate > bestRefreshRate)
+            {
+                best = candidate;
+                bestRefreshRate = candidateRefreshRate;
+            }
+        }
+
+        return best;
+    }
+
+    private static VideoMode? FindFallbackVideoMode(IReadOnlyList<VideoMode> supportedModes, VideoMode currentMode)
+    {
+        Vector2D<int>? currentResolution = currentMode.Resolution;
+        if (currentResolution != null && currentResolution.Value.X > 0 && currentResolution.Value.Y > 0)
+        {
+            VideoMode? matchedCurrent = FindMatchingVideoMode(
+                supportedModes,
+                currentResolution.Value.X,
+                currentResolution.Value.Y,
+                currentMode.RefreshRate
+            );
+            if (matchedCurrent != null)
+            {
+                return matchedCurrent;
+            }
+        }
+
+        VideoMode? largest = null;
+        for (var i = 0; i < supportedModes.Count; i++)
+        {
+            VideoMode candidate = supportedModes[i];
+            Vector2D<int>? candidateResolution = candidate.Resolution;
+            if (candidateResolution == null || candidateResolution.Value.X <= 0 || candidateResolution.Value.Y <= 0)
+            {
+                continue;
+            }
+
+            if (largest == null)
+            {
+                largest = candidate;
+                continue;
+            }
+
+            Vector2D<int> largestResolution = largest.Value.Resolution!.Value;
+            int widthCompare = candidateResolution.Value.X.CompareTo(largestResolution.X);
+            int heightCompare = candidateResolution.Value.Y.CompareTo(largestResolution.Y);
+            int refreshCompare = (candidate.RefreshRate ?? 0).CompareTo(largest.Value.RefreshRate ?? 0);
+
+            if (widthCompare > 0
+                || (widthCompare == 0 && heightCompare > 0)
+                || (widthCompare == 0 && heightCompare == 0 && refreshCompare > 0))
+            {
+                largest = candidate;
+            }
+        }
+
+        if (largest != null)
+        {
+            return largest;
+        }
+
+        return currentResolution != null && currentResolution.Value.X > 0 && currentResolution.Value.Y > 0
+            ? currentMode
+            : null;
     }
 
     /// <summary>Toggles the window between maximized and windowed.</summary>
@@ -387,6 +655,26 @@ public class SilkWindowContext : IWindowContext
 
         ApplySize(WindowSettings.Width, height: e.NewValue);
     }
+
+    private void OnFullscreenWidthChanged(object? sender, DataChangedEventArgs<int?> e)
+    {
+        if (_suppressWindowEvents || WindowSettings.Mode.Get() != WindowMode.Fullscreen || WindowSettings.Borderless.Get())
+        {
+            return;
+        }
+
+        ApplyDisplaySettings(WindowMode.Fullscreen, borderless: false, width: e.NewValue, height: WindowSettings.FullscreenHeight.Get());
+    }
+
+    private void OnFullscreenHeightChanged(object? sender, DataChangedEventArgs<int?> e)
+    {
+        if (_suppressWindowEvents || WindowSettings.Mode.Get() != WindowMode.Fullscreen || WindowSettings.Borderless.Get())
+        {
+            return;
+        }
+
+        ApplyDisplaySettings(WindowMode.Fullscreen, borderless: false, width: WindowSettings.FullscreenWidth.Get(), height: e.NewValue);
+    }
     
     private void OnBorderlessChanged(object? sender, DataChangedEventArgs<bool> e)
     {
@@ -396,14 +684,31 @@ public class SilkWindowContext : IWindowContext
         }
 
         WindowMode mode = WindowSettings.Mode.Get();
+        if (mode == WindowMode.Fullscreen && !e.NewValue)
+        {
+            ApplyDisplaySettings(mode, borderless: false);
+            return;
+        }
+
         bool allowResize = WindowSettings.AllowResize.Get();
         ApplyWindowStyle(mode, borderless: e.NewValue, allowResize);
     }
     
     private void OnAllowResizeChanged(object? sender, DataChangedEventArgs<bool> e)
     {
+        if (_suppressWindowEvents)
+        {
+            return;
+        }
+
         WindowMode mode = WindowSettings.Mode.Get();
         bool borderless = WindowSettings.Borderless.Get();
+        if (mode == WindowMode.Fullscreen && !borderless)
+        {
+            ApplyDisplaySettings(mode, borderless: false);
+            return;
+        }
+
         ApplyWindowStyle(mode, borderless, allowResize: e.NewValue);
     }
     
@@ -415,6 +720,12 @@ public class SilkWindowContext : IWindowContext
         }
 
         bool borderless = WindowSettings.Borderless.Get();
+        if (e.NewValue == WindowMode.Fullscreen && !borderless)
+        {
+            ApplyDisplaySettings(e.NewValue, borderless: false);
+            return;
+        }
+
         bool allowResize = WindowSettings.AllowResize.Get();
         ApplyWindowStyle(mode: e.NewValue, borderless, allowResize);
     }
@@ -470,6 +781,59 @@ public class SilkWindowContext : IWindowContext
         WindowSettings.Save();
     }
     
+    private void ApplyExclusiveFullscreen(IMonitor monitor, VideoMode videoMode, bool allowResize)
+    {
+        if (Window.WindowState != WindowState.Fullscreen)
+        {
+            Window.WindowState = WindowState.Normal;
+            Window.WindowBorder = allowResize ? WindowBorder.Resizable : WindowBorder.Fixed;
+            Window.WindowState = WindowState.Fullscreen;
+        }
+
+        Vector2D<int>? resolution = videoMode.Resolution;
+        if (resolution != null && resolution.Value.X > 0 && resolution.Value.Y > 0)
+        {
+            ApplyGlfwVideoMode(monitor, resolution.Value.X, resolution.Value.Y, videoMode.RefreshRate ?? Glfw.DontCare);
+        }
+
+        Window.VSync = RenderSettings.VSync.Get();
+    }
+
+    private unsafe void ApplyGlfwVideoMode(IMonitor monitor, int width, int height, int refreshRate)
+    {
+        if (Window.Handle == 0)
+        {
+            return;
+        }
+
+        Glfw glfw = Glfw.GetApi();
+        var windowHandle = (WindowHandle*)Window.Handle;
+        Silk.NET.GLFW.Monitor* nativeMonitor = GetNativeMonitor(glfw, windowHandle, monitor);
+        if (nativeMonitor == null)
+        {
+            return;
+        }
+
+        glfw.SetWindowMonitor(windowHandle, nativeMonitor, 0, 0, width, height, refreshRate);
+    }
+
+    private static unsafe Silk.NET.GLFW.Monitor* GetNativeMonitor(Glfw glfw, WindowHandle* windowHandle, IMonitor monitor)
+    {
+        Silk.NET.GLFW.Monitor** monitors = glfw.GetMonitors(out int count);
+        if (monitors != null && monitor.Index >= 0 && monitor.Index < count)
+        {
+            return monitors[monitor.Index];
+        }
+
+        Silk.NET.GLFW.Monitor* windowMonitor = glfw.GetWindowMonitor(windowHandle);
+        if (windowMonitor != null)
+        {
+            return windowMonitor;
+        }
+
+        return glfw.GetPrimaryMonitor();
+    }
+
     private void ApplyWindowStyle(WindowMode mode, bool borderless, bool allowResize) 
     {
         //  Borderless fullscreen must be handled specially
