@@ -26,6 +26,16 @@ A mesh renderer owns one render target. The renderer's `Disposed` event removes
 the target from `_renderTargets` (`GLRenderContext.cs:288-292`). The target
 leaves the draw list in the tick that disposes the renderer.
 
+`GLOffscreenRenderer` creates temporary FBOs, renderbuffers, a resolve texture,
+a model buffer, and per-mesh VAOs inside `RenderBatchToTextures`
+(`Swordfish/Graphics/SilkNET/OpenGL/GLOffscreenRenderer.cs:85-155`). It disposes
+every temporary GL handle on the GL thread before the batch returns. The caller
+owns the returned `Texture` handles and must dispose them when no longer needed.
+`ItemIconDatabase` (`WaywardBeyond.Client/Items/ItemIconDatabase.cs`) owns and
+disposes the generated brick icon `Texture` and `Material` handles on shutdown,
+and `BrickIconRenderer` (`WaywardBeyond.Client/Items/BrickIconRenderer.cs`)
+disposes its dedicated icon shader and materials.
+
 ## Engine shutdown
 
 The container does not own the window or the GL binding. The window loop unbinds

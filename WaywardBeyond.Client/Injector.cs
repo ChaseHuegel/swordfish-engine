@@ -312,7 +312,9 @@ public class Injector : IDryIocInjector
         //  The client reads localized tags for naming and the load screen, so it owns that registration.
         container.RegisterTags();
 
+        container.Register<BrickIconRenderer>(Reuse.Singleton);
         container.Register<ItemIconDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, ItemIconDatabase>();
 
 
         container.Register<BlueprintDatabase>(Reuse.Singleton);

@@ -2,7 +2,6 @@
 ID       = "wb:storage"
 Name     = "item.base.storage"
 Description = "item.base.storage.description"
-Icon     = "block/storage_front.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
