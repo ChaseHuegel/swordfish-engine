@@ -11,8 +11,10 @@ internal sealed class GLMaterial : Handle
 
     public IGLTexture[] Textures { get; }
 
+    /// <summary>Alpha handling mode for this material.</summary>
     public AlphaMode AlphaMode { get; }
 
+    /// <summary>Alpha discard threshold for masked rendering.</summary>
     public float AlphaCutoff { get; }
 
     public GLMaterial(ShaderProgram shaderProgram, IGLTexture[] textures, AlphaMode alphaMode, float alphaCutoff)
