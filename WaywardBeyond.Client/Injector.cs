@@ -331,7 +331,8 @@ public class Injector : IDryIocInjector
 
     private static void RegisterEntitySystems(IContainer container)
     {
-        container.Register<IEntitySystem, PlayerViewModelSystem>();
+        container.Register<PlayerViewModelSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, MainMenuAnimationSystem>();
         container.Register<IEntitySystem, ActiveSlotNotificationSystem>();

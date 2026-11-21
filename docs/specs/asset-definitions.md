@@ -51,16 +51,21 @@ ID = "wb:core"
 
 ### Model
 
-`ModelDefinition` (`ModelDefinition.cs`): `Mesh`, `Material`, `Position`/
-`Rotation`/`Scale` (each a `Float3` with `X`/`Y`/`Z`). `Scale` defaults to
-`1,1,1`.
+`ModelDefinition` (`ModelDefinition.cs`): optional `Mesh` and `Material`, plus
+`Position`/`Rotation`/`Scale` (each a `Float3` with `X`/`Y`/`Z`). `Scale`
+defaults to `1,1,1`.
 
-Example:
+For `[Items.ViewModel]`, `Mesh` and `Material` are optional. When omitted,
+`PlayerViewModelSystem` (`WaywardBeyond.Client/Systems/PlayerViewModelSystem.cs`)
+infers the resolved voxel mesh and PBR voxel material from `[Items.Placeable]`
+when the item places a brick. If no explicit model or placeable resolves, the
+system falls back to a placeholder cube using the missing-brick checkerboard
+texture layer (`BrickPreviewMeshBuilder.BuildFallback`).
+
+Example (placeable brick):
 
 ```toml
 [Items.ViewModel]
-Mesh       = "cube.obj"
-Material   = "bricks/core"
 Position.X = 0.4
 Scale.X    = 0.25
 ```
@@ -276,3 +281,6 @@ colliders, orientation transforms, and mixed-shape interior culling.
 `Swordfish.Tests/ShapedBrickTextureTests.cs` pins per-face texture mapping,
 angled-face fallback, rotation invariance, and default fallback on non-block
 shapes.
+`Swordfish.Tests/PlayerViewModelTests.cs` pins optional `ViewModel` mesh and
+material fields, placeable brick view-model inference, shape updates, PBR shadow
+options, and the placeholder checkerboard fallback.
