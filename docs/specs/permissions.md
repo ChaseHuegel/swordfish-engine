@@ -186,11 +186,11 @@ advance, so a denied client sees the failure from the call itself.
 
 ## Tests that pin this
 
-- `Swordfish.Tests/Permissions/PermissionCompilerTests.cs` — merging, layering,
+- `WaywardBeyond.Tests/Permissions/PermissionCompilerTests.cs` — merging, layering,
   deny precedence, cycles, caps, and diagnostics.
-- `Swordfish.Tests/Permissions/PermissionSetTests.cs` — set semantics and the
+- `WaywardBeyond.Tests/Permissions/PermissionSetTests.cs` — set semantics and the
   zero-allocation check.
-- `Swordfish.Tests/Permissions/UserPermissionServiceTests.cs` — session binding,
+- `WaywardBeyond.Tests/Permissions/UserPermissionServiceTests.cs` — session binding,
   host override, deny on unbind.
-- `Swordfish.Tests/Permissions/PermissionFileLoaderTests.cs` — root scanning and
+- `WaywardBeyond.Tests/Permissions/PermissionFileLoaderTests.cs` — root scanning and
   the empty-root warning.

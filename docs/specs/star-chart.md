@@ -120,13 +120,13 @@ the glyph grows without a transform.
 
 ## Tests
 
-- `Swordfish.Tests/StarChartLayoutTests.cs` covers determinism, bounds,
+- `WaywardBeyond.Tests/StarChartLayoutTests.cs` covers determinism, bounds,
   separation, the attempt limit, overlap, the card box, specks, and selection.
-- `Swordfish.Tests/StarChartViewTests.cs` renders the component from a fixed
+- `WaywardBeyond.Tests/StarChartViewTests.cs` renders the component from a fixed
   state and checks names, glyphs, brackets, the empty prompt, the hover card,
   passthrough, specks, and class colors.
-- `Swordfish.Tests/SelectSaveViewTests.cs` captures the whole page in two frames
-  against `TestFiles/Snapshots/page-select-save-{w}x{h}.txt`.
+- `WaywardBeyond.Tests/SelectSaveViewTests.cs` captures the whole page in two frames
+  against `WaywardBeyond.Tests/TestFiles/Snapshots/page-select-save-{w}x{h}.txt`.
 
 ## Related docs
 

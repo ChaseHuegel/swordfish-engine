@@ -295,16 +295,16 @@ per surface voxel.
 and 32. It also pins sampling parity, orientation masking, the snapshot copy, and
 palette counts.
 
-`Swordfish.Tests/ChunkBasedVoxelRemeshingTests.cs` pins dirty tracking, boundary
+`WaywardBeyond.Tests/ChunkBasedVoxelRemeshingTests.cs` pins dirty tracking, boundary
 chunk invalidation, single-voxel edit execution budgets, localized light
 propagation, border sky light restoration on deletion, collision caching,
 debug bounding box gizmo tracking, and prediction lighting equality.
 
-`Swordfish.Tests/BrickPreviewTests.cs` pins the preview mesh for every shape,
+`WaywardBeyond.Tests/BrickPreviewTests.cs` pins the preview mesh for every shape,
 the centered block geometry, lit vertex colors, texture layer selection, alpha
 mode geometry and material selection, the orientation rule for orientable and
 non-orientable bricks, and the preview entity show, hide, deferred replacement,
 pause, and release lifecycle.
 
-`Swordfish.Tests/MeshOutlineTests.cs` pins the feature-edge extraction,
+`WaywardBeyond.Tests/MeshOutlineTests.cs` pins the feature-edge extraction,
 depth-tested line use, outset, visibility toggle, and open-mesh boundary edges.

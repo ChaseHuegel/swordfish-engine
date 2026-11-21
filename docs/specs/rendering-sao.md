@@ -231,12 +231,12 @@ rework. Keep these invariants:
 
 - `Swordfish.Tests/SAOProjectionTests.cs` compares `SAOProjection` against
   `Matrix4x4.Invert` for 31 depth values.
-- `Swordfish.Tests/SettingsEntryTests.cs` covers preset apply and detect,
+- `WaywardBeyond.Tests/SettingsEntryTests.cs` covers preset apply and detect,
   including that presets leave the art knobs alone and that Ultra follows the
   far plane.
 - `Swordfish.Tests/ConfigSerializationTests.cs` covers the new defaults and the
   migration from a config that predates the new keys.
-- `Swordfish.Tests/SettingsShellViewTests.cs` pins the settings page layout.
+- `WaywardBeyond.Tests/SettingsShellViewTests.cs` pins the settings page layout.
 
 The pass itself needs a GPU. Verify it with a RenderDoc capture on the target
 hardware. See [the proposal](../proposals/sao-optimization.md).

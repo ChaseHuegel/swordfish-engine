@@ -240,23 +240,23 @@ existing spacer layout.
 
 ## Tests
 
-- `Swordfish.Tests/SettingsPageRenderTests.cs` builds the real page and checks
+- `WaywardBeyond.Tests/SettingsPageRenderTests.cs` builds the real page and checks
   that the page centers, that controls stay inside the pane, and that labels
   and slider buttons center vertically.
-- `Swordfish.Tests/SettingsShellViewTests.cs` covers the shell layout
+- `WaywardBeyond.Tests/SettingsShellViewTests.cs` covers the shell layout
   snapshots.
-- `Swordfish.Tests/SettingsInteractionTests.cs` covers click, scroll, and
+- `WaywardBeyond.Tests/SettingsInteractionTests.cs` covers click, scroll, and
   callback behavior.
-- `Swordfish.Tests/ScrollBarInteractionTests.cs` covers thumb drag, drag outside
+- `WaywardBeyond.Tests/ScrollBarInteractionTests.cs` covers thumb drag, drag outside
   the rail, track jump, release, and end clamping.
-- `Swordfish.Tests/SettingsControlWidgetTests.cs` covers the coded choice and
+- `WaywardBeyond.Tests/SettingsControlTests.cs` covers the coded choice and
   slider controls.
-- `Swordfish.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, dynamic
+- `WaywardBeyond.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, dynamic
   option providers, and the bloom, shadow, and AO preset round trips.
-- `Swordfish.Tests/AudioSettingsCategoryTests.cs` covers the output device
+- `WaywardBeyond.Tests/AudioSettingsCategoryTests.cs` covers the output device
   option order, the missing-device label, and reset.
-- `Swordfish.Tests/DisplaySettingsTests.cs` covers fullscreen video mode
+- `WaywardBeyond.Tests/DisplaySettingsTests.cs` covers fullscreen video mode
   resolution, fallback, resolution row enablement, and persisted fullscreen
   resolution loading.
-- `Swordfish.Tests/SettingsInteractionTests.cs` covers the row refresh after a
+- `WaywardBeyond.Tests/SettingsInteractionTests.cs` covers the row refresh after a
   playback device change and the status update on display fallback.

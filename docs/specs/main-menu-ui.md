@@ -232,14 +232,14 @@ Do not add fake menu controls.
 
 ## Tests
 
-- `Swordfish.Tests/SelectCharacterViewTests.cs` compares the migrated view to the
-  legacy goldens at 800x600, 1280x720, and 1920x1080. `SelectSaveViewTests`
-  compares the save page to `TestFiles/Snapshots` goldens instead, because the
-  star chart intentionally replaces the telemetry pane. The chart needs a
-  measured field, so that capture renders two frames.
-- `Swordfish.Tests/StarChartLayoutTests.cs` covers seed placement, separation,
-  overlap, and card placement. `Swordfish.Tests/StarChartViewTests.cs` renders
+- `WaywardBeyond.Tests/SelectCharacterViewTests.cs` compares the migrated view to
+  the legacy goldens at 800x600, 1280x720, and 1920x1080. `SelectSaveViewTests`
+  compares the save page to `WaywardBeyond.Tests/TestFiles/Snapshots` goldens
+  instead, because the star chart intentionally replaces the telemetry pane. The
+  chart needs a measured field, so that capture renders two frames.
+- `WaywardBeyond.Tests/StarChartLayoutTests.cs` covers seed placement, separation,
+  overlap, and card placement. `WaywardBeyond.Tests/StarChartViewTests.cs` renders
   the chart component from a fixed state.
 
-- `Swordfish.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.
+- `WaywardBeyond.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.

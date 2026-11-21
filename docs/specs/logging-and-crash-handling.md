@@ -112,6 +112,5 @@ All tunables live in `logging.toml`, resolved from `AppPaths.ConfigRoot` first a
 ## Tests that pin this
 
 - `Swordfish.Tests/LoggingAndCrashHandlingTests.cs`
-- `Swordfish.Tests/LogCountersTests.cs`
-- `Swordfish.Tests/FeedbackWebhookTests.cs`
-- `Swordfish.Tests/OverlayViewTests.cs`
+- `WaywardBeyond.Tests/FeedbackWebhookTests.cs`
+- `WaywardBeyond.Tests/OverlayViewTests.cs`

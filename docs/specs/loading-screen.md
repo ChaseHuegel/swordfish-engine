@@ -62,4 +62,4 @@ If a tag set is missing, the line is blank.
 
 ## Tests
 
-`Swordfish.Tests/OverlayViewTests.cs` snapshots the view at three window sizes.
+`WaywardBeyond.Tests/OverlayViewTests.cs` snapshots the view at three window sizes.

@@ -70,7 +70,7 @@ token into `WbPalette`:
   an `int`.
 - A new token is available to C# without a second declaration. A renamed token
   fails the build where it is used.
-- `Swordfish.Tests/PaletteTests` fails when the palette misses a token.
+- `WaywardBeyond.Tests/PaletteTests` fails when the palette misses a token.
 
 `DynamicColors` at `WaywardBeyond.Client/UI/Theme/DynamicColors.cs:7` keeps
 only the helpers that compute at run time:
@@ -138,13 +138,13 @@ The parameter model accepts the lowercase names `secondary`, `primary`,
 
 ## Tests
 
-- `Swordfish.Tests/ButtonStateTests.cs` covers disabled button styles.
-- `Swordfish.Tests/SettingsInteractionTests.cs` covers selected settings rows.
-- `Swordfish.Tests/SettingsPageRenderTests.cs` covers the reset row danger
+- `WaywardBeyond.Tests/ButtonStateTests.cs` covers disabled button styles.
+- `WaywardBeyond.Tests/SettingsInteractionTests.cs` covers selected settings rows.
+- `WaywardBeyond.Tests/SettingsPageRenderTests.cs` covers the reset row danger
   border.
-- `Swordfish.Tests/ConnectingModalTests.cs` covers the accent scan beam.
-- `Swordfish.Tests/PauseScrimTests.cs` covers the pause scrim.
-- `Swordfish.Tests/TextBoxZOrderTests.cs` covers text box paint order.
-- `Swordfish.Tests/SliderInteractionTests.cs` covers slider clicks.
+- `WaywardBeyond.Tests/ConnectingModalTests.cs` covers the accent scan beam.
+- `WaywardBeyond.Tests/PauseScrimTests.cs` covers the pause scrim.
+- `WaywardBeyond.Tests/TextBoxZOrderTests.cs` covers text box paint order.
+- `WaywardBeyond.Tests/SliderInteractionTests.cs` covers slider clicks.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.
 - `Reef.Tests/UIBuilderZOrderTests.cs` checks the Reef paint-order contract.

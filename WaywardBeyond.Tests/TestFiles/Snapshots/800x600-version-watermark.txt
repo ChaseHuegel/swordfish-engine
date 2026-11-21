@@ -1,0 +1,1 @@
+0 id=- rect=320,584,160,16 clip=320,584,160,16 color=0.5529,0.6275,0.7216,0.502 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Salmon Mono 9 Regular:16 text=Wayward Beyond 0.1.0

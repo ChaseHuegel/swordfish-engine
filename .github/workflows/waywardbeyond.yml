@@ -4,6 +4,17 @@ on:
     tags:
       - '*'
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+    - name: Test Wayward Beyond
+      run: dotnet test WaywardBeyond.Tests --verbosity normal
+
   generate-msdf:
     runs-on: windows-latest
     steps:
@@ -35,7 +46,7 @@ jobs:
         path: artifact/
 
   build-artifact-win64:
-    needs: generate-msdf
+    needs: [generate-msdf, test]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -56,7 +67,7 @@ jobs:
         path: artifact
 
   build-artifact-linux64:
-    needs: generate-msdf
+    needs: [generate-msdf, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

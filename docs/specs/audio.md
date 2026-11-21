@@ -139,7 +139,7 @@ the preference. The host owns persistence. Wayward Beyond stores the value in
 - `Swordfish.Tests/AudioDeviceChangeTests.cs` covers device discovery, removal,
   default detection, the device list, preference resolution, fallback, return,
   and event suppression.
-- `Swordfish.Tests/AudioSettingsCategoryTests.cs` covers the output device row
+- `WaywardBeyond.Tests/AudioSettingsCategoryTests.cs` covers the output device row
   options, the missing-device label, and reset.
-- `Swordfish.Tests/SettingsInteractionTests.cs` covers the refresh after a
+- `WaywardBeyond.Tests/SettingsInteractionTests.cs` covers the refresh after a
   device change.
