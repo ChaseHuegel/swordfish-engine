@@ -232,6 +232,7 @@
 "ui.settings.action.reset" = "Reset section to defaults"
 "ui.settings.status.unsaved" = "Unsaved"
 "ui.settings.status.saved" = "Settings saved"
+"ui.settings.status.displayFallback" = "Unsupported resolution, used a supported mode"
 
 # HUD
 "ui.label.chat.header" = "SUBSPACE COMMS // LOCAL"

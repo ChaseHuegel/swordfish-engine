@@ -119,7 +119,26 @@ internal sealed class SettingsDraft
     /// <summary>Gets the current window resolution, falling back to the monitor.</summary>
     public static SettingsResolution GetWindowResolution(in WindowSettings windowSettings, in IWindowContext windowContext)
     {
-        if (windowSettings.Mode.Get() == WindowMode.Windowed)
+        WindowMode mode = windowSettings.Mode.Get();
+        if (mode == WindowMode.Fullscreen && !windowSettings.Borderless.Get())
+        {
+            int? fullscreenWidth = windowSettings.FullscreenWidth.Get();
+            int? fullscreenHeight = windowSettings.FullscreenHeight.Get();
+            if (fullscreenWidth > 0 && fullscreenHeight > 0)
+            {
+                return new SettingsResolution(fullscreenWidth.Value, fullscreenHeight.Value);
+            }
+
+            Vector2 fullscreenSize = windowContext.Resolution;
+            if (fullscreenSize.X > 0f && fullscreenSize.Y > 0f)
+            {
+                return new SettingsResolution((int)fullscreenSize.X, (int)fullscreenSize.Y);
+            }
+
+            return GetNativeResolution(windowContext);
+        }
+
+        if (mode == WindowMode.Windowed)
         {
             Vector2 currentSize = windowContext.Resolution;
             if (currentSize.X > 0f && currentSize.Y > 0f)
