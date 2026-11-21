@@ -33,9 +33,21 @@ carry over `Window.Size` while the window is still fullscreen. Applying the
 windowed size first therefore loses the requested size.
 
 The suppression checks are in the X, Y, width, height, borderless, and mode
-change handlers at `Swordfish/Graphics/SilkWindowContext.cs:350`, `:360`,
-`:370`, `:380`, `:390`, and `:409`. This prevents a display change from
+change handlers at `Swordfish/Graphics/SilkWindowContext.cs:354`, `:364`,
+`:374`, `:384`, `:394`, and `:413`. This prevents a display change from
 resizing or moving the window several times.
+
+`SwordfishEngine` creates the window at `Swordfish/SwordfishEngine.cs:63` with
+an OpenGL 4.3 Core context, `VSync = true`, and `Samples = 0`. The Forward+
+pipeline owns offscreen multisampling, so the default framebuffer stays
+single-sampled.
+
+`SilkWindowContext.OverrideRefreshCallback` at
+`Swordfish/Graphics/SilkWindowContext.cs:129` replaces GLFW's window refresh
+callback with a static no-op delegate on all platforms. This stops Silk.NET from
+rendering re-entrantly inside resize and maximize event pumps. `OnRender` at
+`Swordfish/Graphics/SilkWindowContext.cs:306` ignores pending resize events
+when either dimension is zero or negative.
 
 The method logs the requested and actual window state at
 `Swordfish/Graphics/SilkWindowContext.cs:242`. Use that line to diagnose a

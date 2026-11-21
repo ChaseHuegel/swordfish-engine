@@ -37,6 +37,8 @@ public class SilkWindowContext : IWindowContext
     private WindowSettings WindowSettings { get; }
     private RenderSettings RenderSettings { get; }
 
+    private static readonly GlfwCallbacks.WindowRefreshCallback _noOpRefreshCallback = static _ => { };
+
     private readonly GL _gl;
     private readonly SynchronizationContext _mainThread;
     private Vector2D<int>? _pendingResizeSize;
@@ -127,18 +129,16 @@ public class SilkWindowContext : IWindowContext
     private void OverrideRefreshCallback()
     {
         //  GLFW's window refresh callback makes Silk.NET render a full frame re-entrantly from inside
-        //  the event pump, which breaks interactive resizing on Linux. The engine redraws every frame
-        //  regardless, so the refresh callback can be a no-op.
-        //  See https://github.com/dotnet/Silk.NET/issues/2581 and https://github.com/dotnet/Silk.NET/pull/2582
-        if (!OperatingSystem.IsLinux())
+        //  the event pump during resize, move, and maximize transitions. The engine redraws every frame
+        //  on the main loop, so the refresh callback can be a no-op.
+        if (Window.Handle == 0)
         {
             return;
         }
 
         unsafe
         {
-            GlfwCallbacks.WindowRefreshCallback noOpRefreshCallback = _ => { };
-            Glfw.GetApi().SetWindowRefreshCallback((WindowHandle*)Window.Handle, noOpRefreshCallback);
+            Glfw.GetApi().SetWindowRefreshCallback((WindowHandle*)Window.Handle, _noOpRefreshCallback);
         }
     }
 
@@ -305,8 +305,11 @@ public class SilkWindowContext : IWindowContext
         {
             Vector2D<int> size = _pendingResizeSize.Value;
             _pendingResizeSize = null;
-            _gl.Viewport(size);
-            Resized?.Invoke(new Vector2(size.X, size.Y));
+            if (size.X > 0 && size.Y > 0)
+            {
+                _gl.Viewport(size);
+                Resized?.Invoke(new Vector2(size.X, size.Y));
+            }
         }
 
         Render?.Invoke(delta);

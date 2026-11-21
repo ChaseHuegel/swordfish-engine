@@ -14,16 +14,18 @@ internal sealed class GLDebug : IDisposable, IAutoActivate
     private readonly GL _gl;
     private readonly ILogger _logger;
     private readonly IWindowContext _windowContext;
+    private readonly DebugProc _debugCallback;
 
     public GLDebug(in GL gl, in ILogger logger, in IWindowContext windowContext)
     {
         _gl = gl;
         _logger = logger;
         _windowContext = windowContext;
+        _debugCallback = DebugCallback;
         
         if (_gl.HasCapabilities(4, 3, "GL_KHR_debug"))
         {
-            _gl.DebugMessageCallback(DebugCallback, IntPtr.Zero);
+            _gl.DebugMessageCallback(_debugCallback, IntPtr.Zero);
             _gl.Enable(EnableCap.DebugOutput);
             _gl.Enable(EnableCap.DebugOutputSynchronous);
         }
@@ -67,11 +69,18 @@ internal sealed class GLDebug : IDisposable, IAutoActivate
         string output = Marshal.PtrToStringAnsi(message, length);
         if (type == GLEnum.DebugTypeError)
         {
-            _logger.LogError("[OpenGL] {output}", output);
+            _logger.LogError(
+                "[OpenGL] ({source}, {severity}, ID {id}) {output}\n{stack}",
+                source,
+                severity,
+                id,
+                output,
+                new StackTrace(fNeedFileInfo: true)
+            );
         }
         else
         {
-            _logger.LogTrace("[OpenGL] {output}", output);
+            _logger.LogTrace("[OpenGL] ({source}, {severity}, ID {id}) {output}", source, severity, id, output);
         }
     }
 }

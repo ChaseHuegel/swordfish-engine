@@ -63,9 +63,15 @@ public class SwordfishEngine
         var options = WindowOptions.Default;
         options.Size = new Vector2D<int>(800, 600);
         options.Title = "Swordfish";
+        options.API = new GraphicsAPI(
+            ContextAPI.OpenGL,
+            ContextProfile.Core,
+            ContextFlags.ForwardCompatible,
+            new APIVersion(4, 3)
+        );
         options.ShouldSwapAutomatically = true;
-        options.VSync = false;
-        options.Samples = 4;
+        options.VSync = true;
+        options.Samples = 0;
 
         _mainWindow = Window.Create(options);
         _mainWindow.Load += OnWindowLoaded;
