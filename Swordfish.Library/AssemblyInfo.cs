@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
 
-[assembly:InternalsVisibleTo("Swordfish.Engine")]
-[assembly:InternalsVisibleTo("Swordfish.Tests")]
+[assembly: InternalsVisibleTo("Swordfish.Engine")]
+[assembly: InternalsVisibleTo("Swordfish.Tests")]
+[assembly: InternalsVisibleTo("WaywardBeyond.Tests")]
