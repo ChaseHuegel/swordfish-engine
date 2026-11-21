@@ -19,6 +19,7 @@ internal sealed unsafe class GLMeshBatch : IDisposable
     private int _lastGeneration = -1;
     private Matrix4x4 _lastModelMatrix;
     private bool _hasModelMatrix;
+    private TransparentRangeSorter? _transparentSorter;
 
     public GLMeshBatch(in GL gl, in GLContext glContext, in MeshBatch batch, in GLMaterial[] materials)
     {
@@ -50,6 +51,7 @@ internal sealed unsafe class GLMeshBatch : IDisposable
             {
                 SyncArenas();
                 Array.Clear(_lastVersions);
+                _transparentSorter?.InvalidateUploadedOrder();
                 _lastGeneration = _batch.Generation;
             }
 
@@ -63,7 +65,13 @@ internal sealed unsafe class GLMeshBatch : IDisposable
             for (var slot = 0; slot < _batch.Ranges.Count; slot++)
             {
                 MeshRange range = _batch.Ranges[slot];
-                if (!range.Active || range.Arena >= _arenas.Count || range.Version == _lastVersions[slot])
+                if (!range.Active)
+                {
+                    _transparentSorter?.ClearInactiveSlot(slot);
+                    continue;
+                }
+
+                if (range.Arena >= _arenas.Count || range.Version == _lastVersions[slot])
                 {
                     continue;
                 }
@@ -82,8 +90,43 @@ internal sealed unsafe class GLMeshBatch : IDisposable
                 );
                 arena.IndexBuffer.Bind();
                 _lastVersions[slot] = range.Version;
+                _transparentSorter?.InvalidateRange(slot);
             }
         }
+    }
+
+    /// <summary>Sorts and uploads one transparent range's indices when camera movement exceeds the threshold. The caller must hold <see cref="MeshBatch.SyncRoot"/>.</summary>
+    public void SortRangeIndicesIfNeeded(int slot, in Vector3 localCameraPos, float movementThreshold)
+    {
+        if (_batch.Generation != _lastGeneration || slot < 0 || slot >= _batch.Ranges.Count || slot >= _lastVersions.Length)
+        {
+            return;
+        }
+
+        MeshRange range = _batch.Ranges[slot];
+        if (!range.Active || range.Arena < 0 || range.Arena >= _arenas.Count || range.Version != _lastVersions[slot])
+        {
+            return;
+        }
+
+        Arena arena = _arenas[range.Arena];
+        if (range.IndexOffset + range.IndexCount > arena.IndexCapacity)
+        {
+            return;
+        }
+
+        _transparentSorter ??= new TransparentRangeSorter();
+        ReadOnlySpan<uint> sortedIndices = _transparentSorter.SortIfNeeded(slot, in range, in localCameraPos, movementThreshold);
+        if (sortedIndices.IsEmpty)
+        {
+            return;
+        }
+
+        //  Bind the owning VAO first. BufferObject unbinds the element buffer,
+        //  and an unbind while a VAO is bound clears that VAO's index binding.
+        arena.VertexArrayObject.Bind();
+        arena.IndexBuffer.UpdateRangeData(range.IndexOffset * sizeof(uint), sortedIndices);
+        arena.IndexBuffer.Bind();
     }
 
     /// <summary>Draws one arena with a compacted set of ranges.</summary>
@@ -163,6 +206,7 @@ internal sealed unsafe class GLMeshBatch : IDisposable
         if (resized)
         {
             Array.Clear(_lastVersions);
+            _transparentSorter?.InvalidateUploadedOrder();
         }
     }
 

@@ -105,6 +105,7 @@ internal sealed class GLMeshBatchRenderer(
         }
 
         Vector3 viewPosition = renderScene.View.GetCameraPosition();
+        float sortThreshold = _renderSettings.TransparentSortThreshold.Get();
         for (var modelIndex = 0; modelIndex < renderScene.BatchEntityModels.Length; modelIndex++)
         {
             BatchEntityModel model = renderScene.BatchEntityModels[modelIndex];
@@ -120,6 +121,10 @@ internal sealed class GLMeshBatchRenderer(
                 continue;
             }
 
+            Vector3 localCameraPos = Matrix4x4.Invert(model.Matrix, out Matrix4x4 invModel)
+                ? Vector3.Transform(viewPosition, invModel)
+                : viewPosition;
+
             lock (target.Batch.SyncRoot)
             {
                 Frustum? frustum = renderScene.CameraFrustum;
@@ -131,10 +136,12 @@ internal sealed class GLMeshBatchRenderer(
                         continue;
                     }
 
-                    BoundingBox world = range.Bounds.Transform(model.Matrix);
+                    target.SortRangeIndicesIfNeeded(slot, in localCameraPos, sortThreshold);
+
+                    Vector3 worldSortCenter = Vector3.Transform(range.SortCenter, model.Matrix);
                     int itemIndex = _transparentItems.Count;
                     _transparentItems.Add(new TransparentRangeItem(modelIndex, slot));
-                    items.Add(new TransparentDrawItem(stageIndex, itemIndex, world.DistanceSquaredTo(viewPosition)));
+                    items.Add(new TransparentDrawItem(stageIndex, itemIndex, Vector3.DistanceSquared(worldSortCenter, viewPosition)));
                 }
             }
         }
@@ -179,7 +186,7 @@ internal sealed class GLMeshBatchRenderer(
             }
 
             _gl.Set(EnableCap.DepthTest, !renderer.RenderOptions.IgnoreDepth);
-            _gl.Set(EnableCap.CullFace, true);
+            _gl.Set(EnableCap.CullFace, !renderer.RenderOptions.DoubleFaced);
             _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe || renderer.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
 
             lock (target.Batch.SyncRoot)
@@ -199,15 +206,6 @@ internal sealed class GLMeshBatchRenderer(
                 Span<nint> offsets = [range.IndexOffset * sizeof(uint)];
                 Span<int> baseVertices = [range.VertexOffset];
 
-                if (renderer.RenderOptions.DoubleFaced)
-                {
-                    _gl.CullFace(TriangleFace.Front);
-                    target.Draw(range.Arena, counts, offsets, baseVertices);
-                    _gl.CullFace(TriangleFace.Back);
-                    target.Draw(range.Arena, counts, offsets, baseVertices);
-                    return 2;
-                }
-
                 _gl.CullFace(TriangleFace.Back);
                 target.Draw(range.Arena, counts, offsets, baseVertices);
                 return 1;
@@ -221,7 +219,6 @@ internal sealed class GLMeshBatchRenderer(
             }
 
             ArrayPool<GLMaterial.Scope>.Shared.Return(scopes);
-            _gl.CullFace(TriangleFace.Back);
             _gl.DepthMask(true);
             _gl.Disable(EnableCap.Blend);
         }
