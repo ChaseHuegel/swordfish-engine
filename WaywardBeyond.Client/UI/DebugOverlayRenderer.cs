@@ -72,6 +72,16 @@ internal class DebugOverlayRenderer : IUILayer
             Action = OnCycleSaoDebug,
         };
         shortcutService.RegisterShortcut(cycleSaoDebugShortcut);
+
+        var togglePhysicsDebugShortcut = new Shortcut
+        {
+            Name = "Toggle physics debug",
+            Category = "Developer/Debug",
+            Key = Key.F7,
+            IsEnabled = IsVisible,
+            Action = OnTogglePhysicsDebug,
+        };
+        shortcutService.RegisterShortcut(togglePhysicsDebugShortcut);
     }
 
     public bool IsVisible()
@@ -139,6 +149,7 @@ internal class DebugOverlayRenderer : IUILayer
         _debugSettings.OverlayVisible.Set(!_debugSettings.OverlayVisible);
         _debugSettings.VoxelGizmosVisible.Set(false);
         _engineDebugSettings.UI.Set(false);
+        _engineDebugSettings.Gizmos.Physics.Set(false);
         ApplySaoDebugView(SaoDebugView.Off);
     }
 
@@ -150,6 +161,11 @@ internal class DebugOverlayRenderer : IUILayer
     private void OnToggleVoxelGizmos()
     {
         _debugSettings.VoxelGizmosVisible.Set(!_debugSettings.VoxelGizmosVisible);
+    }
+
+    private void OnTogglePhysicsDebug()
+    {
+        _engineDebugSettings.Gizmos.Physics.Set(!_engineDebugSettings.Gizmos.Physics);
     }
 
     private void OnCycleSaoDebug()
