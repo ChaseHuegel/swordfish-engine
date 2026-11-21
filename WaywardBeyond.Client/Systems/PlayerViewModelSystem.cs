@@ -1,28 +1,57 @@
+using System;
 using System.Numerics;
 using Krill;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Items;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
 
+/// <summary>Maintains the first-person view model entity for the player's held item.</summary>
 internal sealed class PlayerViewModelSystem(
     in PlayerData playerData,
     in IAssetDatabase<Material> materialDatabase,
-    in IAssetDatabase<Mesh> meshDatabase
-) : IEntitySystem
-{
+    in IAssetDatabase<Mesh> meshDatabase,
+    in IBrickDatabase brickDatabase,
+    in BrickPreviewMeshBuilder brickMeshBuilder,
+    in VoxelMaterials voxelMaterials,
+    in InteractionState interactionState
+) : IEntitySystem, IDisposable {
+    private static readonly ModelDefinition _defaultViewModel = new()
+    {
+        Position = new ModelDefinition.Float3(0.4f, -0.4f, -0.5f),
+        Rotation = new ModelDefinition.Float3(0f, -60f, 0f),
+        Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f),
+    };
+
     private readonly PlayerData _playerData = playerData;
     private readonly IAssetDatabase<Material> _materialDatabase = materialDatabase;
     private readonly IAssetDatabase<Mesh> _meshDatabase = meshDatabase;
+    private readonly IBrickDatabase _brickDatabase = brickDatabase;
+    private readonly BrickPreviewMeshBuilder _brickMeshBuilder = brickMeshBuilder;
+    private readonly VoxelMaterials _voxelMaterials = voxelMaterials;
+    private readonly InteractionState _interactionState = interactionState;
 
     private Entity? _viewModelEntity;
-    private ModelDefinition _currentViewModel;
+    private ViewModelKey? _currentKey;
+    private Mesh? _ownedMesh;
+
+    private readonly record struct ViewModelKey(string ItemID, ModelDefinition Model, BrickShape Shape);
+
+    private readonly record struct ResolvedVisuals(
+        Mesh Mesh,
+        Material Material,
+        RenderOptions RenderOptions,
+        bool OwnsMesh
+    );
 
     private struct ForEachAction : IForEach<PlayerComponent, InventoryComponent>
     {
@@ -30,7 +59,6 @@ internal sealed class PlayerViewModelSystem(
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in InventoryComponent inventory)
         {
-            //  Create the entity if it doesn't exist yet
             if (!Owner._viewModelEntity.HasValue)
             {
                 Owner._viewModelEntity = new Entity(store.Alloc(), store);
@@ -39,69 +67,54 @@ internal sealed class PlayerViewModelSystem(
             }
 
             Result<ItemSlot> mainHandResult = Owner._playerData.GetMainHand(store, entity, inventory);
-            ModelDefinition viewModel;
-            if (mainHandResult.Success && WaywardBeyond.IsPlaying())
+            if (!mainHandResult.Success || !WaywardBeyond.IsPlaying())
             {
-                viewModel = mainHandResult.Value.Item.ViewModel ?? default;
-            }
-            else
-            {
-                viewModel = default;
-            }
+                if (Owner._currentKey != null)
+                {
+                    Owner._currentKey = null;
+                    Owner.ClearRenderer();
+                }
 
-            if (viewModel.Equals(Owner._currentViewModel))
-            {
-                //  Do nothing if the view model isn't changing
                 return;
             }
 
-            Owner._currentViewModel = viewModel;
+            Item item = mainHandResult.Value.Item;
+            ModelDefinition viewModel = item.ViewModel ?? _defaultViewModel;
+            BrickShape shape = Owner.ResolveShape(item);
+            var key = new ViewModelKey(item.ID, viewModel, shape);
 
-            //  Cleanup any pre-existing mesh renderer. Only the renderer is disposed: the mesh is shared
-            //  from the asset database, so disposing it would corrupt the asset for later swaps.
-            MeshRendererComponent? meshRendererComponent = Owner._viewModelEntity.Value.Get<MeshRendererComponent>();
-            if (meshRendererComponent != null)
-            {
-                meshRendererComponent.Value.MeshRenderer?.Dispose();
-                Owner._viewModelEntity.Value.Remove<MeshRendererComponent>();
-            }
-
-            //  Attempt to resolve resources for the view model
-            if (viewModel.Mesh == null || viewModel.Material == null)
+            if (key.Equals(Owner._currentKey))
             {
                 return;
             }
 
-            Result<Mesh> mesh = Owner._meshDatabase.Get(viewModel.Mesh);
-            Result<Material> material = Owner._materialDatabase.Get(viewModel.Material);
-            if (!mesh || !material)
-            {
-                return;
-            }
+            Owner._currentKey = key;
+            Owner.ClearRenderer();
 
-            //  Create a mesh renderer for the new view model
-            var renderOptions = new RenderOptions
-            {
-                CastShadows = false,
-                ReceiveShadows = true
-            };
-            
-            var meshRenderer = new MeshRenderer(mesh, material, renderOptions);
+            ResolvedVisuals visuals = Owner.ResolveVisuals(item, viewModel, shape);
+            Owner._ownedMesh = visuals.OwnsMesh ? visuals.Mesh : null;
+
+            var meshRenderer = new MeshRenderer(visuals.Mesh, visuals.Material, visuals.RenderOptions);
             Owner._viewModelEntity.Value.AddOrUpdate(new MeshRendererComponent(meshRenderer));
             Owner._viewModelEntity.Value.AddOrUpdate(new ChildComponent(store.GetUuid(entity))
             {
                 LocalPosition = new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z),
-                LocalOrientation = Quaternion.CreateFromYawPitchRoll(viewModel.Rotation.Y * MathS.DEGREES_TO_RADIANS, viewModel.Rotation.X * MathS.DEGREES_TO_RADIANS, viewModel.Rotation.Z * MathS.DEGREES_TO_RADIANS),
+                LocalOrientation = Quaternion.CreateFromYawPitchRoll(
+                    viewModel.Rotation.Y * MathS.DEGREES_TO_RADIANS,
+                    viewModel.Rotation.X * MathS.DEGREES_TO_RADIANS,
+                    viewModel.Rotation.Z * MathS.DEGREES_TO_RADIANS
+                ),
                 LocalScale = new Vector3(viewModel.Scale.X, viewModel.Scale.Y, viewModel.Scale.Z),
             });
         }
     }
 
+    /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
         //  The view model entity is owned by this system, not by a gameplay tag, so the tag-based world
         //  teardown never frees it. Free it here once play ends (menu or loading) and rebuild it on the
-        //  next join. Only the renderer is disposed: the mesh is shared from the asset database.
+        //  next join.
         if (_viewModelEntity.HasValue && !WaywardBeyond.IsInGame())
         {
             FreeViewModel(store);
@@ -109,6 +122,81 @@ internal sealed class PlayerViewModelSystem(
 
         ForEachAction action = new() { Owner = this };
         store.Query<PlayerComponent, InventoryComponent, ForEachAction>(delta, ref action);
+    }
+
+    private BrickShape ResolveShape(Item item)
+    {
+        if (item.Placeable is not { Type: PlaceableType.Brick } placeable)
+        {
+            return BrickShape.Block;
+        }
+
+        Result<Brick> brickResult = _brickDatabase.Get(placeable.ID);
+        if (!brickResult.Success)
+        {
+            return BrickShape.Block;
+        }
+
+        Brick brick = brickResult.Value;
+        BrickShape shape = brick.Shapeable ? _interactionState.SelectedShape.Get() : brick.Shape;
+        return shape == BrickShape.Any ? BrickShape.Block : shape;
+    }
+
+    private ResolvedVisuals ResolveVisuals(Item item, in ModelDefinition viewModel, BrickShape shape)
+    {
+        if (!string.IsNullOrEmpty(viewModel.Mesh) && !string.IsNullOrEmpty(viewModel.Material))
+        {
+            Result<Mesh> meshResult = _meshDatabase.Get(viewModel.Mesh);
+            Result<Material> materialResult = _materialDatabase.Get(viewModel.Material);
+            if (meshResult.Success && materialResult.Success)
+            {
+                var options = new RenderOptions
+                {
+                    CastShadows = false,
+                    ReceiveShadows = true,
+                };
+                return new ResolvedVisuals(meshResult.Value, materialResult.Value, options, OwnsMesh: false);
+            }
+        }
+
+        if (item.Placeable is { Type: PlaceableType.Brick } placeable)
+        {
+            Result<Brick> brickResult = _brickDatabase.Get(placeable.ID);
+            if (brickResult.Success)
+            {
+                Brick brick = brickResult.Value;
+                Result<Mesh> brickMesh = _brickMeshBuilder.Build(brick, shape, Orientation.Identity);
+                if (brickMesh.Success)
+                {
+                    RenderOptions options = _voxelMaterials.GetRenderOptions(brick.Alpha);
+                    options.CastShadows = false;
+                    options.ReceiveShadows = true;
+                    return new ResolvedVisuals(brickMesh.Value, _voxelMaterials.GetMaterial(brick.Alpha), options, OwnsMesh: true);
+                }
+            }
+        }
+
+        Mesh fallbackMesh = _brickMeshBuilder.BuildFallback();
+        RenderOptions fallbackOptions = _voxelMaterials.OpaqueOptions;
+        fallbackOptions.CastShadows = false;
+        fallbackOptions.ReceiveShadows = true;
+        return new ResolvedVisuals(fallbackMesh, _voxelMaterials.Opaque, fallbackOptions, OwnsMesh: true);
+    }
+
+    private void ClearRenderer()
+    {
+        if (_viewModelEntity.HasValue)
+        {
+            MeshRendererComponent? meshRendererComponent = _viewModelEntity.Value.Get<MeshRendererComponent>();
+            if (meshRendererComponent != null)
+            {
+                meshRendererComponent.Value.MeshRenderer?.Dispose();
+                _viewModelEntity.Value.Remove<MeshRendererComponent>();
+            }
+        }
+
+        _ownedMesh?.Dispose();
+        _ownedMesh = null;
     }
 
     private void FreeViewModel(DataStore store)
@@ -120,7 +208,18 @@ internal sealed class PlayerViewModelSystem(
             store.Free(_viewModelEntity.Value.Ptr);
         }
 
+        _ownedMesh?.Dispose();
+        _ownedMesh = null;
         _viewModelEntity = null;
-        _currentViewModel = default;
+        _currentKey = null;
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _ownedMesh?.Dispose();
+        _ownedMesh = null;
+        _viewModelEntity = null;
+        _currentKey = null;
     }
 }

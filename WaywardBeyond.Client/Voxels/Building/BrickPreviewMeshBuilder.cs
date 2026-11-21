@@ -79,6 +79,37 @@ internal sealed class BrickPreviewMeshBuilder
             return Result<Mesh>.FromFailure($"Brick '{brick.ID}' produced no preview geometry.");
         }
 
+        return Result<Mesh>.FromSuccess(CreateMesh(data));
+    }
+
+    /// <summary>Builds a centered placeholder cube mesh using the missing-brick texture layer.</summary>
+    public Mesh BuildFallback()
+    {
+        var voxel = new Voxel(
+            _ID: ushort.MaxValue,
+            _ShapeLight: new ShapeLight(BrickShape.Block, PREVIEW_LIGHT_LEVEL),
+            _Orientation: 0
+        );
+
+        var voxelObject = new VoxelObject(CHUNK_EDGE);
+        voxelObject.Set(CHUNK_CENTER, CHUNK_CENTER, CHUNK_CENTER, voxel);
+        SetPreviewNeighbors(voxelObject);
+
+        _meshState.Clear();
+        Short3 chunkOffset = voxelObject.ToChunkOffset(CHUNK_CENTER, CHUNK_CENTER, CHUNK_CENTER);
+        if (voxelObject.TryGetChunk(chunkOffset, out ChunkData chunk))
+        {
+            foreach (VoxelSample sample in chunk.GetOccupiedSampler())
+            {
+                _meshPostPass.Process(sample);
+            }
+        }
+
+        return CreateMesh(_meshState.Opaque);
+    }
+
+    private static Mesh CreateMesh(MeshState.MeshData data)
+    {
         var vertices = new Vector3[data.Vertices.Count];
         for (var i = 0; i < vertices.Length; i++)
         {
@@ -91,15 +122,13 @@ internal sealed class BrickPreviewMeshBuilder
             colors[i] = data.Colors[i] * _previewTint;
         }
 
-        var mesh = new Mesh(
+        return new Mesh(
             [.. data.Triangles],
             vertices,
             colors,
             [.. data.UV],
             [.. data.Normals]
         );
-
-        return Result<Mesh>.FromSuccess(mesh);
     }
 
     private MeshState.MeshData GetMeshData(BrickAlpha alpha, bool castShadows)

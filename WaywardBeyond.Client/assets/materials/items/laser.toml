@@ -1,4 +1,4 @@
-Shader    = "textured"
+Shader    = "lighted"
 AlphaMode = "Masked"
 Textures  = [
     "items/laser_uv.png",
