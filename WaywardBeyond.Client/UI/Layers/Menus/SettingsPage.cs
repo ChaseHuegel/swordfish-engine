@@ -274,15 +274,29 @@ internal sealed class SettingsPage<TIdentifier>(
     {
         SettingsDraft draft = _draft ?? throw new InvalidOperationException("The settings draft is not initialized.");
 
-        bool displayChanged = IsEntryDirty("Settings.DisplayMode") || IsEntryDirty("Settings.Resolution");
+        Result displayResult = Result.FromSuccess();
+        bool displayChanged = IsEntryDirty("Settings.DisplayMode")
+            || IsEntryDirty("Settings.Monitor")
+            || IsEntryDirty("Settings.Resolution");
         if (displayChanged)
         {
-            _windowContext.ApplyDisplaySettings(
+            displayResult = _windowContext.ApplyDisplaySettings(
                 draft.DisplayMode.ToWindowMode(),
                 draft.DisplayMode.IsBorderless(),
                 draft.Resolution.Width,
-                draft.Resolution.Height
+                draft.Resolution.Height,
+                draft.Monitor
             );
+
+            if (!displayResult.Success)
+            {
+                draft.DisplayMode = SettingsDisplayModeExtensions.FromWindowSettings(
+                    _windowSettings.Mode.Get(),
+                    _windowSettings.Borderless.Get()
+                );
+                draft.Monitor = _windowSettings.Monitor.Get() ?? string.Empty;
+                draft.Resolution = SettingsDraft.GetWindowResolution(_windowSettings, _windowContext);
+            }
         }
 
         _renderSettings.Reef.Scale.Set(draft.UiScale);
@@ -315,7 +329,10 @@ internal sealed class SettingsPage<TIdentifier>(
         _controlSettings.RememberShape.Set(draft.RememberShape);
         _controlSettings.RememberOrientation.Set(draft.RememberOrientation);
 
-        _configManager.ApplySettings();
+        if (_configManager != null)
+        {
+            _configManager.ApplySettings();
+        }
 
         if (_categories != null)
         {
@@ -325,8 +342,17 @@ internal sealed class SettingsPage<TIdentifier>(
             }
         }
 
-        _statusKey = "ui.settings.status.saved";
-        _statusUntil = time + 2d;
+        if (displayResult.Success)
+        {
+            _statusKey = "ui.settings.status.saved";
+            _statusUntil = time + 2d;
+        }
+        else
+        {
+            _statusKey = "ui.settings.status.displayFallback";
+            _statusUntil = time + 4d;
+        }
+
         _rowsDirty = true;
         Play(WidgetInteraction.InterfaceSound.Click);
     }
@@ -401,6 +427,16 @@ internal sealed class SettingsPage<TIdentifier>(
         {
             _draft.DisplayMode = currentMode;
             displayModeEntry.CaptureBaseline();
+            changed = true;
+        }
+
+        SettingsEntry? monitorEntry = FindEntry("Settings.Monitor");
+        string currentMonitor = _windowSettings.Monitor.Get() ?? string.Empty;
+
+        if (monitorEntry != null && !monitorEntry.IsDirty && !string.Equals(_draft.Monitor, currentMonitor, StringComparison.Ordinal))
+        {
+            _draft.Monitor = currentMonitor;
+            monitorEntry.CaptureBaseline();
             changed = true;
         }
 

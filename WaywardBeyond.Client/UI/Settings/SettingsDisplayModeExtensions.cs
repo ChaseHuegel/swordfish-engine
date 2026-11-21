@@ -33,10 +33,18 @@ internal static class SettingsDisplayModeExtensions
         };
     }
 
-    /// <summary>Gets whether the display mode choice uses the selected window size.</summary>
-    public static bool UsesWindowSize(this SettingsDisplayMode mode)
+    /// <summary>Gets whether the display mode choice uses the selected resolution.</summary>
+    public static bool UsesResolution(this SettingsDisplayMode mode)
     {
-        return mode is SettingsDisplayMode.Windowed or SettingsDisplayMode.BorderlessWindow;
+        return mode is SettingsDisplayMode.Windowed
+            or SettingsDisplayMode.BorderlessWindow
+            or SettingsDisplayMode.Fullscreen;
+    }
+
+    /// <summary>Gets whether the display mode choice uses the selected monitor.</summary>
+    public static bool UsesMonitor(this SettingsDisplayMode mode)
+    {
+        return mode == SettingsDisplayMode.Fullscreen;
     }
 
     /// <summary>Gets whether the display mode choice hides the window border.</summary>

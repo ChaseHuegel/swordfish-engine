@@ -7,6 +7,7 @@ namespace WaywardBeyond.Client.UI.Settings;
 internal static class SettingsDefaults
 {
     public const SettingsDisplayMode DISPLAY_MODE = SettingsDisplayMode.Windowed;
+    public const string MONITOR = "";
     public const float UI_SCALE = 0f;
     public const bool V_SYNC = false;
     public const int FRAME_LIMIT = 0;

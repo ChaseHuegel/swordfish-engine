@@ -143,24 +143,29 @@ combinations:
 | Fullscreen | Fullscreen | no |
 | Borderless Fullscreen | Fullscreen | yes |
 
-Resolution is editable only for Windowed and Borderless Window. The other modes
-dim the resolution row and use the monitor resolution. See
-[fullscreen resolution](/docs/issues/0089-fullscreen-resolution.md).
+Resolution is editable for Windowed, Borderless Window, and Fullscreen.
+Maximized, Borderless Maximized, and Borderless Fullscreen dim the resolution
+row and use the monitor resolution.
 
 The page applies display changes through
 `IWindowContext.ApplyDisplaySettings`. See [window-display](window-display.md).
+The `Settings.Monitor` stepper is editable only in Fullscreen mode. It selects
+`Auto` (empty string) or any connected monitor name from
+`IWindowContext.GetMonitors`, keeping an unavailable saved monitor visible. When an unsupported fullscreen resolution falls back to a
+supported mode, `SettingsPage.ApplySettings` syncs the draft to the applied mode
+and shows `ui.settings.status.displayFallback`.
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:385` keeps the display
-mode and resolution rows in sync when a shortcut or a manual resize changes the
-window while the page is open.
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:412` keeps the display
+mode, monitor, and resolution rows in sync when a shortcut or a manual resize
+changes the window while the page is open.
 
 ## Real option set
 
 The page exposes only options that the engine supports:
 
-- Display & Video: display mode, resolution, UI scale, V-sync, frame limit,
-  field of view, view distance, anti-aliasing, ambient occlusion, AO quality,
-  bloom, and bloom quality.
+- Display & Video: display mode, monitor, resolution, UI scale, V-sync, frame
+  limit, field of view, view distance, anti-aliasing, ambient occlusion, AO
+  quality, bloom, and bloom quality.
 - Audio: output device, master, music, effects, and interface volume.
 - Gameplay: autosave, autosave interval, control hints, crosshair, and name tag
   distance.
@@ -219,7 +224,7 @@ existing spacer layout.
 - Audio output row: `WaywardBeyond.Client/UI/Settings/AudioSettingsCategory.cs:23`,
   `:71`, `:96`
 - Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:70`,
-  `:117`, `:303`, `:357`, `:362`
+  `:117`, `:318`, `:384`, `:389`
 - Audio preference: `WaywardBeyond.Client/Configuration/VolumeSettings.cs:14`,
   `WaywardBeyond.Client/Configuration/ConfigManager.cs:53`
 - Draft: `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:11`
@@ -250,5 +255,8 @@ existing spacer layout.
   option providers, and the bloom, shadow, and AO preset round trips.
 - `Swordfish.Tests/AudioSettingsCategoryTests.cs` covers the output device
   option order, the missing-device label, and reset.
+- `Swordfish.Tests/DisplaySettingsTests.cs` covers fullscreen video mode
+  resolution, fallback, resolution row enablement, and persisted fullscreen
+  resolution loading.
 - `Swordfish.Tests/SettingsInteractionTests.cs` covers the row refresh after a
-  playback device change.
+  playback device change and the status update on display fallback.

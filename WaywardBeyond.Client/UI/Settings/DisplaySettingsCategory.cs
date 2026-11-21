@@ -29,8 +29,6 @@ internal static class DisplaySettingsCategory
 
     public static SettingsCategory Build(SettingsDraft draft, IWindowContext windowContext, ILocalization localization, Action reset)
     {
-        IReadOnlyList<SettingsResolution> resolutionOptions = GetResolutionOptions(draft, windowContext);
-
         return new SettingsCategory(
             id: "display",
             titleKey: "ui.settings.category.display",
@@ -47,15 +45,25 @@ internal static class DisplaySettingsCategory
                     format: value => value.ToString(),
                     valueKey: DisplayModeKey
                 ),
+                new StepperEntry<string>(
+                    id: "Settings.Monitor",
+                    labelKey: "ui.settings.option.monitor",
+                    get: () => draft.Monitor,
+                    set: value => draft.Monitor = value,
+                    defaultValue: () => SettingsDefaults.MONITOR,
+                    options: () => GetMonitorOptions(draft, windowContext),
+                    format: monitor => FormatMonitor(localization, windowContext, monitor),
+                    isEnabled: () => draft.DisplayMode.UsesMonitor()
+                ),
                 new StepperEntry<SettingsResolution>(
                     id: "Settings.Resolution",
                     labelKey: "ui.settings.option.resolution",
                     get: () => draft.Resolution,
                     set: value => draft.Resolution = value,
                     defaultValue: () => SettingsDraft.GetNativeResolution(windowContext),
-                    options: () => resolutionOptions,
+                    options: () => GetResolutionOptions(draft, windowContext),
                     format: resolution => $"{resolution.Width} x {resolution.Height}",
-                    isEnabled: () => draft.DisplayMode.UsesWindowSize()
+                    isEnabled: () => draft.DisplayMode.UsesResolution()
                 ),
                 new StepperEntry<float>(
                     id: "Settings.UiScale",
@@ -193,7 +201,7 @@ internal static class DisplaySettingsCategory
 
         Add(draft.Resolution, alwaysInclude: true);
 
-        IReadOnlyList<Vector2> videoModes = windowContext.GetVideoModes();
+        IReadOnlyList<Vector2> videoModes = windowContext.GetVideoModes(draft.Monitor);
         for (var i = 0; i < videoModes.Count; i++)
         {
             Vector2 mode = videoModes[i];
@@ -209,6 +217,55 @@ internal static class DisplaySettingsCategory
         });
 
         return options;
+    }
+
+    private static IReadOnlyList<string> GetMonitorOptions(SettingsDraft draft, IWindowContext windowContext)
+    {
+        IReadOnlyList<string> monitors = windowContext.GetMonitors();
+        var options = new List<string>(monitors.Count + 2) { string.Empty };
+        var containsDraft = string.IsNullOrEmpty(draft.Monitor);
+
+        for (var i = 0; i < monitors.Count; i++)
+        {
+            string name = monitors[i];
+            if (string.IsNullOrEmpty(name))
+            {
+                continue;
+            }
+
+            options.Add(name);
+            if (string.Equals(name, draft.Monitor, StringComparison.Ordinal))
+            {
+                containsDraft = true;
+            }
+        }
+
+        if (!containsDraft)
+        {
+            options.Add(draft.Monitor);
+        }
+
+        return options;
+    }
+
+    private static string FormatMonitor(ILocalization localization, IWindowContext windowContext, string monitor)
+    {
+        if (string.IsNullOrEmpty(monitor))
+        {
+            return L(localization, "ui.settings.value.auto");
+        }
+
+        IReadOnlyList<string> monitors = windowContext.GetMonitors();
+        for (var i = 0; i < monitors.Count; i++)
+        {
+            if (string.Equals(monitors[i], monitor, StringComparison.Ordinal))
+            {
+                return monitor;
+            }
+        }
+
+        string unavailable = L(localization, "ui.settings.value.unavailable");
+        return $"{monitor} ({unavailable})";
     }
 
     private static string DisplayModeKey(SettingsDisplayMode mode)
