@@ -1,6 +1,6 @@
 [[Bricks]]
 ID      = "wb:display_monitor"
-Shape   = "block"
+Shape   = "any"
 Tags    = [
     "metal",
     "buildable",
@@ -9,6 +9,7 @@ Tags    = [
 ]
 [Bricks.Textures]
 Default = ["display_monitor"]
+Front   = ["display_monitor"]
 Top     = ["panel.0"]
 Bottom  = ["panel.0"]
 Back    = ["vent"]

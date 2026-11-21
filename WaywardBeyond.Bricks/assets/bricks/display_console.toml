@@ -1,6 +1,6 @@
 [[Bricks]]
 ID      = "wb:display_console"
-Shape   = "block"
+Shape   = "any"
 Tags    = [
     "metal",
     "buildable",
@@ -9,6 +9,7 @@ Tags    = [
 ]
 [Bricks.Textures]
 Default = ["display_console"]
+Front   = ["display_console"]
 Top     = ["panel.0"]
 Bottom  = ["panel.0"]
 Back    = ["vent"]

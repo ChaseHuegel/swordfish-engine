@@ -360,7 +360,8 @@ internal readonly struct CubeMeshBuilder
         // }
     }
     
-    private static string? GetTextureName(Vector3 origin, string?[]? textures)
+    /// <summary>Selects a deterministic texture name for the voxel origin from a texture variant list.</summary>
+    internal static string? GetTextureName(Vector3 origin, string?[]? textures)
     {
         if (textures == null || textures.Length == 0)
         {

@@ -1,6 +1,6 @@
 [[Bricks]]
 ID      = "wb:control_panel"
-Shape   = "block"
+Shape   = "any"
 Tags    = [
     "metal",
     "buildable",
