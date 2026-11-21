@@ -11,7 +11,7 @@ public sealed class RenderSettings : Config<RenderSettings>
     public DataBinding<AntiAliasing> AntiAliasing { get; private set; } = new(Settings.AntiAliasing.MSAA);
     
     public DataBinding<int> Framerate { get; private set; } = new();
-    public DataBinding<bool> VSync { get; private set; } = new();
+    public DataBinding<bool> VSync { get; private set; } = new(true);
 
     public DataBinding<int> FOV { get; private set; } = new(90);
     public DataBinding<float> NearPlane { get; private set; } = new(0.1f);
