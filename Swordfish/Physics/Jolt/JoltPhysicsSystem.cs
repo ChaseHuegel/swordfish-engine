@@ -52,6 +52,8 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     private readonly BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
     private readonly ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
     private readonly BodyFilter _bodyFilter = new SimpleBodyFilter();
+    private readonly IgnoreBodyFilter _ignoreBodyFilter = new();
+    private readonly List<CollideShapeResult> _overlapResults = [];
     private readonly JobSystem _jobSystem;
 
     private ThreadContext? _context;
@@ -120,6 +122,20 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         }
 
         return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(_store, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
+    }
+
+    /// <inheritdoc/>
+    public bool Overlaps(in ShapeOverlapQuery query)
+    {
+        if (_context == null || _store == null)
+        {
+            return false;
+        }
+
+        return _context.WaitForResult(
+            JoltOverlapRequest.Invoke,
+            new JoltOverlapRequest(_store, System, query, _broadPhaseFilter, _objectLayerFilter, _bodyFilter, _ignoreBodyFilter, _overlapResults)
+        );
     }
 
     public void SetGravity(Vector3 gravity)
@@ -276,7 +292,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         return false;
     }
 
-    private static bool TryGetJoltShape(Shape shape, Vector3 scale, out JoltShape joltShape)
+    internal static bool TryGetJoltShape(Shape shape, Vector3 scale, out JoltShape joltShape)
     {
         switch (shape.Type)
         {
