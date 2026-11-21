@@ -12,6 +12,12 @@ Tags    = [
 ]
 [Bricks.Textures]
 Default = ["vent"]
+Top     = ["vent"]
+Bottom  = ["vent"]
+Back    = ["greeble1"]
+Left    = ["vent"]
+Right   = ["vent"]
+Front   = ["core"]
 
 [[Bricks.Colliders]]
 Type   = "box"

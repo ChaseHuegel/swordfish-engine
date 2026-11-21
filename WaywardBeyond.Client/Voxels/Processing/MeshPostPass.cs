@@ -17,6 +17,9 @@ internal sealed class MeshPostPass(
     IAssetDatabase<Mesh> meshDatabase
 ) : VoxelObjectProcessor.ISamplePass
 {
+    private const float NORMAL_EPSILON = 1e-4f;
+    private const float SECONDARY_AXIS_RATIO = 0.5f;
+    
     private static readonly Brick _unresolvedBrick = new(
         id: string.Empty,
         alpha: BrickAlpha.Opaque,
@@ -205,7 +208,7 @@ internal sealed class MeshPostPass(
             cubeMeshBuilder.AddLeftFace(origin, orientation, sample, brickInfo);
         }
     }
-    
+
     private void AddMesh(MeshState.MeshData meshData, Int3 coords, Vector3 offset, Brick brickInfo, Mesh mesh, Quaternion orientation, int lightLevel)
     {
         float light = Math.Clamp(lightLevel / 15f, 0.1f, 1f);
@@ -214,13 +217,26 @@ internal sealed class MeshPostPass(
         {
             meshData.Colors.Add(color);
         }
-        
-        string?[]? defaultTextures = brickInfo.Textures.Default;
-        string? defaultTexture = defaultTextures != null && defaultTextures.Length > 0 ? defaultTextures[0] : null;
-        int textureIndex = defaultTexture != null ? Math.Max(textureArrays.Albedo.IndexOf(defaultTexture), 0) : 0;
-        foreach (Vector3 texCoord in mesh.Uv)
+
+        Vector3 origin = offset + new Vector3(coords.X, coords.Y, coords.Z);
+        FaceTextureIndices faceTextures = ResolveFaceTextureIndices(origin, brickInfo.Textures);
+        if (faceTextures.HasPerFace)
         {
-            meshData.UV.Add(texCoord with { Z = textureIndex });
+            for (var i = 0; i < mesh.Uv.Length; i++)
+            {
+                int textureIndex = i < mesh.Normals.Length
+                    ? ResolveFaceTextureIndex(mesh.Normals[i], faceTextures)
+                    : faceTextures.Default;
+                meshData.UV.Add(mesh.Uv[i] with { Z = textureIndex });
+            }
+        }
+        else
+        {
+            int textureIndex = faceTextures.Default;
+            foreach (Vector3 texCoord in mesh.Uv)
+            {
+                meshData.UV.Add(texCoord with { Z = textureIndex });
+            }
         }
         
         foreach (uint tri in mesh.Triangles)
@@ -235,7 +251,101 @@ internal sealed class MeshPostPass(
         
         foreach (Vector3 vertex in mesh.Vertices)
         {
-            meshData.Vertices.Add(Vector3.Transform(vertex, orientation) + new Vector3(coords.X, coords.Y, coords.Z) + offset);
+            meshData.Vertices.Add(Vector3.Transform(vertex, orientation) + origin);
         }
+    }
+
+    private FaceTextureIndices ResolveFaceTextureIndices(Vector3 origin, in BrickTextures textures)
+    {
+        int defaultIndex = ResolveOptionalTextureIndex(origin, textures.Default);
+        return new FaceTextureIndices(
+            defaultIndex: defaultIndex >= 0 ? defaultIndex : 0,
+            topIndex: ResolveOptionalTextureIndex(origin, textures.Top),
+            bottomIndex: ResolveOptionalTextureIndex(origin, textures.Bottom),
+            frontIndex: ResolveOptionalTextureIndex(origin, textures.Front),
+            backIndex: ResolveOptionalTextureIndex(origin, textures.Back),
+            leftIndex: ResolveOptionalTextureIndex(origin, textures.Left),
+            rightIndex: ResolveOptionalTextureIndex(origin, textures.Right)
+        );
+    }
+
+    private int ResolveOptionalTextureIndex(Vector3 origin, string?[]? textures)
+    {
+        string? textureName = CubeMeshBuilder.GetTextureName(origin, textures);
+        return textureName != null ? Math.Max(textureArrays.Albedo.IndexOf(textureName), 0) : -1;
+    }
+
+    private static int ResolveFaceTextureIndex(in Vector3 normal, in FaceTextureIndices indices)
+    {
+        float ax = MathF.Abs(normal.X);
+        float ay = MathF.Abs(normal.Y);
+        float az = MathF.Abs(normal.Z);
+        if (ax <= NORMAL_EPSILON && ay <= NORMAL_EPSILON && az <= NORMAL_EPSILON)
+        {
+            return indices.Default;
+        }
+
+        //  Start in tie-break priority order (Z, Y, X) so 45-degree slopes prefer Front, then Top.
+        float m0 = az;
+        int i0 = az > NORMAL_EPSILON ? (normal.Z >= 0f ? indices.Front : indices.Back) : -1;
+        float m1 = ay;
+        int i1 = ay > NORMAL_EPSILON ? (normal.Y >= 0f ? indices.Top : indices.Bottom) : -1;
+        float m2 = ax;
+        int i2 = ax > NORMAL_EPSILON ? (normal.X >= 0f ? indices.Right : indices.Left) : -1;
+
+        if (m1 > m0 + NORMAL_EPSILON)
+        {
+            (m0, m1) = (m1, m0);
+            (i0, i1) = (i1, i0);
+        }
+
+        if (m2 > m1 + NORMAL_EPSILON)
+        {
+            (m1, m2) = (m2, m1);
+            (i1, i2) = (i2, i1);
+        }
+
+        if (m1 > m0 + NORMAL_EPSILON)
+        {
+            (m0, m1) = (m1, m0);
+            (i0, i1) = (i1, i0);
+        }
+
+        if (i0 >= 0)
+        {
+            return i0;
+        }
+
+        float minSecondary = m0 * SECONDARY_AXIS_RATIO;
+        if (i1 >= 0 && m1 >= minSecondary)
+        {
+            return i1;
+        }
+
+        if (i2 >= 0 && m2 >= minSecondary)
+        {
+            return i2;
+        }
+
+        return indices.Default;
+    }
+    
+    private readonly struct FaceTextureIndices(
+        int defaultIndex,
+        int topIndex,
+        int bottomIndex,
+        int frontIndex,
+        int backIndex,
+        int leftIndex,
+        int rightIndex
+    ) {
+        public readonly int Default = defaultIndex;
+        public readonly int Top = topIndex;
+        public readonly int Bottom = bottomIndex;
+        public readonly int Front = frontIndex;
+        public readonly int Back = backIndex;
+        public readonly int Left = leftIndex;
+        public readonly int Right = rightIndex;
+        public bool HasPerFace => Top >= 0 || Bottom >= 0 || Front >= 0 || Back >= 0 || Left >= 0 || Right >= 0;
     }
 }

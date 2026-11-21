@@ -109,7 +109,17 @@ Default = ["core"]
 
 `BrickTextures` (`BrickTextures.cs`): `Connected` plus per-face string?[] fields:
 `Default`, `Top`, `Bottom`, `Front`, `Back`, `Left`, `Right`. `Default` is the
-fallback face; faces override it.
+fallback face. Per-face entries override it.
+
+Non-block shapes (`Slab`, `Stair`, `Slope`, `Column`, `Plate`, `Custom`) also
+apply per-face textures in `MeshPostPass`
+(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:209-327`). Each vertex
+classifies its brick-local normal against the six cardinal faces in descending
+axis magnitude, breaking ties in Z (`Front`/`Back`), Y (`Top`/`Bottom`), X
+(`Right`/`Left`) order. When the primary face is unset, secondary axes with at
+least half the dominant magnitude act as fallbacks before `Default`. A 45-degree
+slope angled face therefore uses `Front`, falls back to `Top`, and then falls
+back to `Default`.
 
 ### Colliders
 
@@ -263,3 +273,6 @@ carried on each loaded body, and the species and gender resolution.
 parsing, `wb:thruster` colliders, and non-cube raycast cell resolution.
 `WaywardBeyond.Voxels.Tests/VoxelCollisionTests.cs` pins built-in `BrickShape`
 colliders, orientation transforms, and mixed-shape interior culling.
+`Swordfish.Tests/ShapedBrickTextureTests.cs` pins per-face texture mapping,
+angled-face fallback, rotation invariance, and default fallback on non-block
+shapes.
