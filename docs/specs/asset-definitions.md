@@ -25,7 +25,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `ID` | string | `ItemDefinition.ID` |
 | `Name` | string (localization key) | `ItemDefinition.Name` |
 | `Description` | string? (localization key) | `ItemDefinition.Description` |
-| `Icon` | string? | `ItemDefinition.Icon` |
+| `Icon` | string? | `ItemDefinition.Icon` (optional override. Brick placeables without `Icon` render an isometric 3D icon at startup through `BrickIconRenderer`) |
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
 | `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`, `Tags`) |

@@ -2,7 +2,6 @@
 ID         = "wb:glass"
 Name       = "item.base.glass"
 Description = "item.base.glass.description"
-Icon       = "block/glass.0.png"
 MaxStack   = 100
 [Items.Placeable]
 Type       = "brick"
