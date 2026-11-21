@@ -10,6 +10,9 @@ public interface IPhysics
     event EventHandler<EventArgs>? FixedUpdate;
 
     RaycastResult Raycast(in Ray ray);
+
+    /// <summary>Returns whether any physics body overlaps the queried shape beyond its penetration threshold.</summary>
+    bool Overlaps(in ShapeOverlapQuery query);
     
     void SetGravity(Vector3 gravity);
 }
