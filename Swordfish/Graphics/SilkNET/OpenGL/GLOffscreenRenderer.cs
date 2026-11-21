@@ -101,7 +101,7 @@ internal sealed unsafe class GLOffscreenRenderer(
         bool previousCullFace = _gl.IsEnabled(EnableCap.CullFace);
         bool previousDepthTest = _gl.IsEnabled(EnableCap.DepthTest);
         _gl.GetBoolean(GetPName.DepthWritemask, out bool previousDepthMask);
-        _gl.GetInteger(GetPName.MaxSamples, out int maxSamples);
+        _gl.GetInteger(GLEnum.MaxSamples, out int maxSamples);
         maxSamples = Math.Max(1, maxSamples);
 
         var modelBuffer = new BufferObject<Matrix4x4>(_gl, [Matrix4x4.Identity], BufferTargetARB.ArrayBuffer, BufferUsageARB.DynamicDraw);
