@@ -10,6 +10,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
@@ -59,6 +60,7 @@ internal sealed class Inventory : IUILayer
     private readonly InteractionState _interactionState;
     private readonly IInputService _inputService;
     private readonly ILocalization _localization;
+    private readonly DebugSettings _debugSettings;
     private readonly InventoryView _view;
 
     private bool _open;
@@ -85,7 +87,8 @@ internal sealed class Inventory : IUILayer
         in IECSContext ecsContext,
         in InteractionState interactionState,
         in IInputService inputService,
-        in ILocalization localization
+        in ILocalization localization,
+        in DebugSettings debugSettings
     )
     {
         _itemDatabase = itemDatabase;
@@ -96,6 +99,7 @@ internal sealed class Inventory : IUILayer
         _interactionState = interactionState;
         _inputService = inputService;
         _localization = localization;
+        _debugSettings = debugSettings;
         _view = new InventoryView(localization);
 
         var toggleShortcut = new Shortcut
@@ -346,6 +350,7 @@ internal sealed class Inventory : IUILayer
             return ItemTooltipState.Hidden(_localization);
         }
 
+        string debugID = _debugSettings.OverlayVisible ? itemStack.ID : string.Empty;
         string anchorID = $"inventorySlot{_selectedSlot}";
         Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
         if (!itemResult.Success)
@@ -357,7 +362,8 @@ internal sealed class Inventory : IUILayer
                 Kind: ItemTooltipKind.Unknown,
                 DescriptionKey: null,
                 TraitRows: [],
-                Localization: _localization
+                Localization: _localization,
+                DebugID: debugID
             );
         }
 
@@ -372,7 +378,8 @@ internal sealed class Inventory : IUILayer
             Kind: kind,
             DescriptionKey: item.Description,
             TraitRows: traitRows,
-            Localization: _localization
+            Localization: _localization,
+            DebugID: debugID
         );
     }
 

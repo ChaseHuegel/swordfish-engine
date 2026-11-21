@@ -14,7 +14,8 @@ internal readonly record struct ItemTooltipState(
     ItemTooltipKind Kind,
     string? DescriptionKey,
     IReadOnlyList<ItemTooltipTraitRowState> TraitRows,
-    ILocalization Localization
+    ILocalization Localization,
+    string DebugID = ""
 )
 {
     /// <summary>Creates a hidden tooltip state.</summary>
@@ -42,6 +43,9 @@ internal readonly record struct ItemTooltipState(
 
     /// <summary>Gets whether the hovered item is a conversion tool.</summary>
     public bool IsConversionTool => Kind == ItemTooltipKind.ConversionTool;
+
+    /// <summary>Gets whether the tooltip displays a debug item id subtitle row.</summary>
+    public bool HasDebugID => !string.IsNullOrEmpty(DebugID);
 
     /// <summary>Gets whether the tooltip has a resolved non-empty description.</summary>
     public bool HasDescription => !string.IsNullOrEmpty(ResolvedDescription);
