@@ -43,10 +43,13 @@ prediction and server authority:
   structure + cell by identity.
 - Rules: the brick is in reach when any part of its cell is within reach of
   the player origin. Break requires an occupied cell. Place requires an empty
-  destination cell, a held placeable brick that the brick registry knows, and a
-  shape byte inside `BrickShape`. A hint-less event, or a hint that fails
-  reach/occupancy/plausibility, resolves to `Action.None`. The resolver never
-  throws for a missing hint.
+  destination cell, a held placeable brick that the brick registry knows, a
+  shape byte inside `BrickShape`, and no physics collider intersection with
+  the resolved brick collider (excluding the target structure itself). This
+  prevents players from trapping themselves or overlapping NPCs, monsters, or
+  other ships. A hint-less event, or a hint that fails
+  reach/occupancy/plausibility/overlap, resolves to `Action.None`. The resolver
+  never throws for a missing hint.
 
 ## Authority apply
 

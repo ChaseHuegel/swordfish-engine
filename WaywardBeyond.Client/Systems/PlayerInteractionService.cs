@@ -303,7 +303,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             }
         }
 
-        var world = new ClientVoxelInteractionWorld(store);
+        var world = new ClientVoxelInteractionWorld(store, _physics);
 
         //  Resolve the target structure + cell and the placement orientation from the same screen-space
         //  raycast the ghost preview uses, so the placed brick always matches the previewed orientation.
@@ -319,6 +319,19 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         BrickInteraction hint = BuildInteractionHint(isPlace, placeable, store, coordinate, entity.Ptr, in targetTransform, clickedPoint);
+
+        if (isPlace && placeable != null)
+        {
+            BrickShape resolvedShape = placeable.Shapeable ? (BrickShape)hint.HintShape : placeable.Shape;
+            Orientation resolvedOrientation = placeable.IsOrientable(resolvedShape)
+                ? new Orientation(hint.HintOrientation)
+                : Orientation.Identity;
+            if (InteractionResolver.IntersectsCollider(_physics, entity.Ptr, in targetTransform, in coordinate, placeable, resolvedShape, resolvedOrientation))
+            {
+                _notificationService.Push(new Notification(_localization.GetRequired("notification.placement.occupied"), NotificationType.Action));
+                return;
+            }
+        }
 
         Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
         var request = new InteractionRequest(origin, hint, kind, placeable, mode, CharacterDefaults.DEFAULT_REACH);
@@ -599,7 +612,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             Orientation previewOrientation = placeableBrick.IsOrientable(shape)
                 ? new Orientation(localPlacementOrientation)
                 : Orientation.Identity;
-            bool isPlacementValid = clickedVoxel.ID == 0;
+            bool isPlacementValid = clickedVoxel.ID == 0
+                && !InteractionResolver.IntersectsCollider(_physics, entity.Ptr, in transformComponent, in brickPos, placeableBrick, shape, previewOrientation);
             if (isPlacementValid)
             {
                 _brickPreviewState.Show(placeableBrick, shape, previewOrientation, worldPos, transformComponent.Orientation);

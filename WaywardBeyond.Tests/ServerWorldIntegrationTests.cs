@@ -532,6 +532,8 @@ public class ServerWorldIntegrationTests
 
         public RaycastResult Raycast(in Ray ray) => default;
 
+        public bool Overlaps(in ShapeOverlapQuery query) => false;
+
         public void SetGravity(Vector3 gravity) { }
 
         public void Tick(float delta, DataStore store)
