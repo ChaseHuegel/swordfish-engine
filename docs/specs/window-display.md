@@ -46,7 +46,7 @@ single-sampled.
 `Swordfish/Graphics/SilkWindowContext.cs:129` replaces GLFW's window refresh
 callback with a static no-op delegate on all platforms. This stops Silk.NET from
 rendering re-entrantly inside resize and maximize event pumps. `OnRender` at
-`Swordfish/Graphics/SilkWindowContext.cs:306` ignores pending resize events
+`Swordfish/Graphics/SilkWindowContext.cs:300` ignores pending resize events
 when either dimension is zero or negative.
 
 The method logs the requested and actual window state at

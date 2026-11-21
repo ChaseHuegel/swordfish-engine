@@ -66,9 +66,9 @@ internal sealed class GLDebug : IDisposable, IAutoActivate
 
     private void DebugCallback(GLEnum source, GLEnum type, int id, GLEnum severity, int length, nint message, nint userParam)
     {
-        string output = Marshal.PtrToStringAnsi(message, length);
         if (type == GLEnum.DebugTypeError)
         {
+            string output = Marshal.PtrToStringAnsi(message, length);
             _logger.LogError(
                 "[OpenGL] ({source}, {severity}, ID {id}) {output}\n{stack}",
                 source,
@@ -78,8 +78,9 @@ internal sealed class GLDebug : IDisposable, IAutoActivate
                 new StackTrace(fNeedFileInfo: true)
             );
         }
-        else
+        else if (_logger.IsEnabled(LogLevel.Trace))
         {
+            string output = Marshal.PtrToStringAnsi(message, length);
             _logger.LogTrace("[OpenGL] ({source}, {severity}, ID {id}) {output}", source, severity, id, output);
         }
     }

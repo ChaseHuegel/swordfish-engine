@@ -131,7 +131,7 @@ public class SilkWindowContext : IWindowContext
         //  GLFW's window refresh callback makes Silk.NET render a full frame re-entrantly from inside
         //  the event pump during resize, move, and maximize transitions. The engine redraws every frame
         //  on the main loop, so the refresh callback can be a no-op.
-        if (Window.Handle == 0)
+        if (Window.Handle == IntPtr.Zero)
         {
             return;
         }
