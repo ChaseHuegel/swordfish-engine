@@ -71,6 +71,13 @@
                               height="14"
                               wrap="false" />
                     </Else>
+                    <If condition="@context.HasDebugID">
+                        <Text class="wb-tooltip-subtitle"
+                              text="@context.DebugID"
+                              width="fit"
+                              height="14"
+                              wrap="false" />
+                    </If>
                 </Element>
             </Element>
 

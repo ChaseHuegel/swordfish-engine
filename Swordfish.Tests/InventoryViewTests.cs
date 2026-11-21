@@ -19,6 +19,7 @@ using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
@@ -262,6 +263,30 @@ public class InventoryViewTests
     }
 
     [Fact]
+    public void TooltipShowsItemIdSecondSubtitleRowWhenDebugOverlayEnabled()
+    {
+        var harness = new Harness(1280, 720);
+        harness.Populate();
+
+        harness.Hover("inventorySlot22");
+        Assert.Equal(0, harness.CountText("wb:caution"));
+
+        harness.DebugSettings.OverlayVisible.Set(true);
+        harness.Hover("inventorySlot22");
+        Assert.Equal(1, harness.CountText("wb:caution"));
+
+        RenderCommand<Material> kindSubtitle = harness.FindText("Brick");
+        RenderCommand<Material> idSubtitle = harness.FindText("wb:caution");
+        RenderCommand<Material> description = harness.FindText("Painted steel plating");
+        Assert.True(idSubtitle.Rect.Top >= kindSubtitle.Rect.Bottom);
+        Assert.True(description.Rect.Top >= idSubtitle.Rect.Bottom);
+
+        harness.DebugSettings.OverlayVisible.Set(false);
+        harness.Hover("inventorySlot22");
+        Assert.Equal(0, harness.CountText("wb:caution"));
+    }
+
+    [Fact]
     public void ScrollingWhileDraggingMovesOneItemInEitherDirection()
     {
         var harness = new Harness();
@@ -361,6 +386,7 @@ public class InventoryViewTests
             _world.DataStore.AddOrUpdate(_player, new EquipmentComponent());
             _world.DataStore.AddOrUpdate(_player, new PendingInventoryComponent());
 
+            DebugSettings = new DebugSettings();
             _inventory = new Inventory(
                 _shortcuts,
                 items,
@@ -370,13 +396,16 @@ public class InventoryViewTests
                 new TestEcsContext(_world),
                 InteractionState,
                 _input,
-                new InventoryLocalization()
+                new InventoryLocalization(),
+                DebugSettings
             );
         }
 
         public InteractionState InteractionState { get; }
 
         public PlayerData PlayerData { get; }
+
+        public DebugSettings DebugSettings { get; }
 
         /// <summary>Advances the pointer state and renders one frame, like the renderer does.</summary>
         public List<RenderCommand<Material>> Step(UIController.MouseButtons? buttons = null)
@@ -439,6 +468,20 @@ public class InventoryViewTests
             }
 
             throw new Xunit.Sdk.XunitException($"No render command found for \"{id}\".");
+        }
+
+        /// <summary>Finds the first render command whose text matches exactly.</summary>
+        public RenderCommand<Material> FindText(string text)
+        {
+            for (var i = 0; i < _last.Count; i++)
+            {
+                if (string.Equals(_last[i].Text, text, StringComparison.Ordinal))
+                {
+                    return _last[i];
+                }
+            }
+
+            throw new Xunit.Sdk.XunitException($"No render command found with text \"{text}\".");
         }
 
         /// <summary>Counts the visible text commands that carry exactly this text.</summary>

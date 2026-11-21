@@ -94,6 +94,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private DataStore? _store;
 
     private DebugInfo _debugInfo;
+    private volatile string? _heldItemID;
 
     public PlayerInteractionService(
         in InteractionState interactionState,
@@ -219,6 +220,17 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         while (_pendingClicks.TryDequeue(out MouseButton button))
         {
             DispatchButton(button);
+        }
+
+        if (_debugSettings.OverlayVisible)
+        {
+            HeldItemQuery query = default;
+            store.Query<PlayerComponent, EquipmentComponent, InventoryComponent, HeldItemQuery>(delta, ref query);
+            _heldItemID = query.HeldItemID;
+        }
+        else
+        {
+            _heldItemID = null;
         }
     }
 
@@ -891,7 +903,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         Result<Brick> brickInfoResult = _brickDatabase.Get(debugInfo.Voxel.ID);
         string brickID = brickInfoResult.Success ? brickInfoResult.Value.ID : (_brickRegistry.Name(debugInfo.Voxel.ID) ?? "UNKNOWN");
         var shapeLight = new ShapeLight(debugInfo.Voxel.ShapeLight);
-        
+        string heldItemID = string.IsNullOrEmpty(_heldItemID) ? "None" : _heldItemID;
+
+        using (ui.Text($"Held item: {heldItemID}")) {}
         using (ui.Text($"Voxel: {debugInfo.Voxel.ID} ({brickID})")) {}
         using (ui.Text($"Light: {shapeLight.LightLevel}")) {}
         using (ui.Text($"Shape: {shapeLight.Shape}")) {}
@@ -1097,5 +1111,22 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
         
         return Result<Brick>.FromSuccess(brickInfoResult.Value);
+    }
+    
+    private struct HeldItemQuery : IForEach<PlayerComponent, EquipmentComponent, InventoryComponent>
+    {
+        public string? HeldItemID;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in EquipmentComponent equipment, in InventoryComponent inventory)
+        {
+            int slot = equipment.ActiveInventorySlot;
+            if (inventory.Contents == null || slot < 0 || slot >= inventory.Contents.Length)
+            {
+                return;
+            }
+
+            ItemData itemData = inventory.Contents[slot];
+            HeldItemID = itemData.Count > 0 ? itemData.ID : null;
+        }
     }
 }

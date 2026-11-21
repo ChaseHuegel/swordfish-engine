@@ -152,8 +152,9 @@ properties on the state.
 
 `ItemTooltip` takes an `ItemTooltipState` context. It anchors to the hovered
 slot id through `overlay-target`, flips when it overflows the viewport, and
-renders the item name, item kind subtitle, optional description, and trait
-badges. It carries localization keys and enums only.
+renders the item name, item kind subtitle, optional debug item id subtitle row
+when the debug overlay is enabled, optional description, and trait badges. It
+carries localization keys, enums, and raw item ids only.
 
 `ProgressBarState` carries the value and an optional fill tint, and it falls
 back to `--wb-accent`. The component projects a `Content` slot over the track,
