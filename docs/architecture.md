@@ -98,7 +98,7 @@ All save data persists in SQLite databases through `Microsoft.Data.Sqlite`.
 `StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the layout under
 `StorageConfig.SaveRoot` (default `saves/`, file `storage.toml`) relative to
 `AppPaths.DataRoot` (`Swordfish.Library/IO/AppPaths.cs`). Clients store saves,
-settings, logs, and crash reports under the local user's application data
+settings, screenshots, logs, and crash reports under the local user's application data
 directory and mount that directory last in `VirtualFileSystem` as a user override. Dedicated servers
 use the working directory and can override `SaveRoot` with `--data`. The client
 owns `profile.db` (characters and save-listing metadata). The server owns one
