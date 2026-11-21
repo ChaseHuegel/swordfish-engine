@@ -2,7 +2,6 @@
 ID       = "wb:display_monitor"
 Name     = "item.base.display_monitor"
 Description = "item.base.display_monitor.description"
-Icon     = "block/display_monitor.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"

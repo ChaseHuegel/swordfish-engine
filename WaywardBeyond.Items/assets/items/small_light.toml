@@ -2,7 +2,6 @@
 ID         = "wb:small_light"
 Name       = "item.base.small_light"
 Description = "item.base.small_light.description"
-Icon       = "block/small_light.png"
 MaxStack   = 100
 [Items.Placeable]
 Type       = "brick"

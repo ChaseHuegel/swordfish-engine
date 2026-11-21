@@ -2,7 +2,6 @@
 ID       = "wb:control_panel"
 Name     = "item.base.control_panel"
 Description = "item.base.control_panel.description"
-Icon     = "block/control_panel.0.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
