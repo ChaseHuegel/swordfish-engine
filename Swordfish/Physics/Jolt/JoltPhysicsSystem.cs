@@ -209,8 +209,9 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             CompoundShape compoundShape = collider.CompoundShape.Value;
             if (compoundShape.Shapes.Length == 0)
             {
-                joltShape = null!;
-                return false;
+                using var emptySettings = new MutableCompoundShapeSettings();
+                joltShape = new MutableCompoundShape(emptySettings);
+                return true;
             }
 
             var compoundShapeSettings = new StaticCompoundShapeSettings();
@@ -239,8 +240,9 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
                 if (addedShapes == 0)
                 {
-                    joltShape = null!;
-                    return false;
+                    using var emptySettings = new MutableCompoundShapeSettings();
+                    joltShape = new MutableCompoundShape(emptySettings);
+                    return true;
                 }
 
                 joltShape = new StaticCompoundShape(compoundShapeSettings);
