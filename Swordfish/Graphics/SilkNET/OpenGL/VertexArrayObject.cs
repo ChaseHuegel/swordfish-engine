@@ -49,11 +49,11 @@ internal class VertexArrayObject<TVertexType> : GLHandle, IEquatable<VertexArray
         _gl.BindVertexArray(0);
     }
 
-    public unsafe void SetVertexAttributePointer(uint index, int count, VertexAttribPointerType type, uint stride, int offset)
+    public unsafe void SetVertexAttributePointer(uint index, int count, VertexAttribPointerType type, uint stride, int offset, bool normalized = false)
     {
         using Scope _ = Use();
         _gl.EnableVertexAttribArray(index);
-        _gl.VertexAttribPointer(index, count, type, false, stride, (void*)offset);
+        _gl.VertexAttribPointer(index, count, type, normalized, stride, (void*)offset);
     }
 
     public unsafe void SetVertexAttribute(uint index, int count, VertexAttribPointerType type, uint vertexSize, int offset)

@@ -127,6 +127,15 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         System.Gravity = gravity;
     }
 
+    /// <inheritdoc/>
+    public void DrawBodies(in DrawSettings settings, DebugRenderer renderer, BodyDrawFilter? filter = null)
+    {
+        lock (_solverLock)
+        {
+            System.DrawBodies(settings, renderer, filter);
+        }
+    }
+
     private void SetupCollisionFiltering()
     {
         // We use only 2 layers: one for non-moving objects and one for moving objects
