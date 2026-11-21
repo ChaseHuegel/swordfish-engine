@@ -68,19 +68,27 @@ interaction outline uses `Line` handles from `ILineRenderer`
 (`WaywardBeyond.Client/Debug/MeshOutline.cs`). The interaction service keeps
 them for the process lifetime.
 
+## Jolt debug renderer
+
+`JoltDebugRenderer` owns two streaming vertex array objects, one shader program,
+and one native `FrustumBodyDrawFilter` (`Swordfish/Graphics/Jolt/JoltDebugRenderer.cs:18-57`).
+The engine container disposes the singleton on shutdown while the GL context is
+current. `DisposeManaged` frees the GL handles and the body filter before
+`NativeObject` frees the native debug renderer (`JoltDebugRenderer.cs:141-148`).
+
 ## Jolt shape wrappers
 
 `JoltPhysicsSystem.TryGetJoltShape` creates managed wrappers for native Jolt
-shapes (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:205-335`). The wrappers are
+shapes (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:214-344`). The wrappers are
 temporary. Jolt keeps its own reference after `SetShape` or `CreateBody`.
 
 The caller disposes the shape wrapper after `SetShape` and after `CreateBody`
-(`JoltPhysicsSystem.cs:381-390`, `:395-415`). A compound build builds a
+(`JoltPhysicsSystem.cs:390-399`, `:404-424`). A compound build builds a
 `StaticCompoundShape` (or an empty `MutableCompoundShape` when empty) and
 disposes the compound settings and each deduplicated child wrapper before it
-returns the compound wrapper (`JoltPhysicsSystem.cs:217-258`). A convex hull
+returns the compound wrapper (`JoltPhysicsSystem.cs:226-267`). A convex hull
 build disposes its `ConvexHullShapeSettings` before it returns
-(`JoltPhysicsSystem.cs:316-335`).
+(`JoltPhysicsSystem.cs:325-344`).
 
 ## Tests
 
