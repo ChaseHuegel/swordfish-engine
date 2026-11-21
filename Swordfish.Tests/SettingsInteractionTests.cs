@@ -3,6 +3,7 @@ using System.Numerics;
 using Reef;
 using Reef.UI;
 using Swordfish.Graphics;
+using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.UI.Layers.Menus;
@@ -70,6 +71,40 @@ public class SettingsInteractionTests
         Assert.True(harness.HasText("Speakers"));
     }
 
+    [Fact]
+    public void UnsupportedDisplayFallbackUpdatesResolutionAndShowsStatus()
+    {
+        var harness = new Harness();
+        harness.WindowContext.Resolution = new Vector2(1920, 1080);
+        harness.WindowContext.MonitorResolution = new Vector2(1920, 1080);
+        harness.WindowContext.OnApplyDisplaySettings = (mode, borderless, _, _, _) =>
+        {
+            harness.WindowSettings.Mode.Set(mode);
+            harness.WindowSettings.Borderless.Set(borderless);
+            harness.WindowSettings.FullscreenWidth.Set(1920);
+            harness.WindowSettings.FullscreenHeight.Set(1080);
+            return Result.FromFailure("Fullscreen resolution is not supported; fell back to 1920x1080.");
+        };
+
+        //  Step from Windowed to Fullscreen (4 steps: BorderlessWindow, Maximized, BorderlessMaximized, Fullscreen).
+        for (var i = 0; i < 4; i++)
+        {
+            harness.Click(harness.Find("Settings.DisplayMode.next"));
+            harness.Frame();
+        }
+
+        //  Step resolution down to 1280 x 720, then apply so the fake triggers fallback to 1920 x 1080.
+        harness.Click(harness.Find("Settings.Resolution.previous"));
+        harness.Frame();
+        Assert.True(harness.HasText("1280 x 720"));
+
+        harness.Click(harness.Find("Settings.Apply"));
+        harness.Frame();
+
+        Assert.True(harness.HasText("1920 x 1080"));
+        Assert.True(harness.HasText("ui.settings.status.displayFallback"));
+    }
+
     private sealed class Harness
     {
         private readonly UIController _controller = new();
@@ -79,6 +114,8 @@ public class SettingsInteractionTests
         private double _delta;
 
         public FakePlaybackDeviceService PlaybackDeviceService { get; } = new();
+        public FakeWindowContext WindowContext { get; } = new();
+        public WindowSettings WindowSettings { get; } = new();
 
         public Harness()
         {
@@ -87,14 +124,14 @@ public class SettingsInteractionTests
                 MenuPage.Settings,
                 configManager: null!,
                 controlSettings: new ControlSettings(),
-                windowSettings: new WindowSettings(),
+                windowSettings: WindowSettings,
                 renderSettings: new RenderSettings(),
                 volumeSettings: new VolumeSettings(),
                 playbackDeviceService: PlaybackDeviceService,
                 gameplayConfig: new GameplayConfig(),
                 uiSettings: new UISettings(),
                 soundEffectService: null!,
-                windowContext: new FakeWindowContext(),
+                windowContext: WindowContext,
                 inputService: new FakeInputService(),
                 localization: new TestLocalization()
             );

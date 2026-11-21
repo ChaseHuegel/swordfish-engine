@@ -11,6 +11,7 @@ namespace WaywardBeyond.Client.UI.Settings;
 internal sealed class SettingsDraft
 {
     public SettingsDisplayMode DisplayMode;
+    public string Monitor;
     public SettingsResolution Resolution;
     public float UiScale;
     public bool VSync;
@@ -54,6 +55,7 @@ internal sealed class SettingsDraft
                 windowSettings.Mode.Get(),
                 windowSettings.Borderless.Get()
             ),
+            Monitor = windowSettings.Monitor.Get() ?? string.Empty,
             Resolution = GetWindowResolution(windowSettings, windowContext),
             UiScale = renderSettings.Reef.Scale.Get(),
             VSync = renderSettings.VSync.Get(),
@@ -88,6 +90,7 @@ internal sealed class SettingsDraft
         return new SettingsDraft
         {
             DisplayMode = SettingsDefaults.DISPLAY_MODE,
+            Monitor = SettingsDefaults.MONITOR,
             Resolution = GetNativeResolution(windowContext),
             UiScale = SettingsDefaults.UI_SCALE,
             VSync = SettingsDefaults.V_SYNC,
@@ -119,7 +122,26 @@ internal sealed class SettingsDraft
     /// <summary>Gets the current window resolution, falling back to the monitor.</summary>
     public static SettingsResolution GetWindowResolution(in WindowSettings windowSettings, in IWindowContext windowContext)
     {
-        if (windowSettings.Mode.Get() == WindowMode.Windowed)
+        WindowMode mode = windowSettings.Mode.Get();
+        if (mode == WindowMode.Fullscreen && !windowSettings.Borderless.Get())
+        {
+            int? fullscreenWidth = windowSettings.FullscreenWidth.Get();
+            int? fullscreenHeight = windowSettings.FullscreenHeight.Get();
+            if (fullscreenWidth > 0 && fullscreenHeight > 0)
+            {
+                return new SettingsResolution(fullscreenWidth.Value, fullscreenHeight.Value);
+            }
+
+            Vector2 fullscreenSize = windowContext.Resolution;
+            if (fullscreenSize.X > 0f && fullscreenSize.Y > 0f)
+            {
+                return new SettingsResolution((int)fullscreenSize.X, (int)fullscreenSize.Y);
+            }
+
+            return GetNativeResolution(windowContext);
+        }
+
+        if (mode == WindowMode.Windowed)
         {
             Vector2 currentSize = windowContext.Resolution;
             if (currentSize.X > 0f && currentSize.Y > 0f)
