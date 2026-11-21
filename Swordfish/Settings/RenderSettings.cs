@@ -17,6 +17,9 @@ public sealed class RenderSettings : Config<RenderSettings>
     public DataBinding<float> NearPlane { get; private set; } = new(0.1f);
     public DataBinding<float> FarPlane { get; private set; } = new(1000f);
 
+    /// <summary>Minimum camera movement in batch-local units before transparent range indices re-sort.</summary>
+    public DataBinding<float> TransparentSortThreshold { get; private set; } = new(0.25f);
+
     public SAOSettings SAO { get; private set; } = new();
     public BloomSettings Bloom { get; private set; } = new();
     public ShadowSettings Shadows { get; private set; } = new();

@@ -1,3 +1,4 @@
+using System.Numerics;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
@@ -70,7 +71,8 @@ public sealed class MeshBatch : Handle
         ReadOnlySpan<float> vertexData,
         int vertexCount,
         ReadOnlySpan<uint> indices,
-        in BoundingBox bounds
+        in BoundingBox bounds,
+        Vector3? sortCenter = null
     ) {
         vertexCount = Math.Min(vertexCount, vertexData.Length / VERTEX_STRIDE);
 
@@ -105,6 +107,7 @@ public sealed class MeshBatch : Handle
                 VertexCount = vertexCount,
                 IndexCount = indices.Length,
                 Bounds = bounds,
+                SortCenter = sortCenter ?? bounds.Center,
                 VertexData = [.. vertexData],
                 Indices = [.. indices],
                 Version = 1,
@@ -123,7 +126,8 @@ public sealed class MeshBatch : Handle
         ReadOnlySpan<float> vertexData,
         int vertexCount,
         ReadOnlySpan<uint> indices,
-        in BoundingBox bounds
+        in BoundingBox bounds,
+        Vector3? sortCenter = null
     ) {
         vertexCount = Math.Min(vertexCount, vertexData.Length / VERTEX_STRIDE);
 
@@ -152,6 +156,7 @@ public sealed class MeshBatch : Handle
             range.VertexCount = vertexCount;
             range.IndexCount = indices.Length;
             range.Bounds = bounds;
+            range.SortCenter = sortCenter ?? bounds.Center;
             range.VertexData = [.. vertexData];
             range.Indices = [.. indices];
             range.Version++;

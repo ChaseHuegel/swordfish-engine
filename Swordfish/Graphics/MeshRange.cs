@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Swordfish.Graphics;
 
 internal struct MeshRange
@@ -12,6 +14,7 @@ internal struct MeshRange
     public int VertexCount;
     public int IndexCount;
     public BoundingBox Bounds;
+    public Vector3 SortCenter;
     public float[] VertexData;
     public uint[] Indices;
     public uint Version;
