@@ -1,33 +1,10 @@
 using System.Numerics;
 using Swordfish.Graphics;
-using Swordfish.Graphics.SilkNET.OpenGL;
 
 namespace Swordfish.Tests;
 
 public class OffscreenRendererTests
 {
-    [Fact]
-    public void FlipRowsVertical_ReversesRowOrderPreservingPixelsWithinEachRow()
-    {
-        byte[] input =
-        [
-            1, 2, 3, 4,   5, 6, 7, 8,
-            9, 10, 11, 12, 13, 14, 15, 16,
-            17, 18, 19, 20, 21, 22, 23, 24,
-        ];
-
-        byte[] flipped = GLOffscreenRenderer.FlipRowsVertical(input, width: 2, height: 3, bytesPerPixel: 4);
-
-        Assert.Equal(
-            [
-                17, 18, 19, 20, 21, 22, 23, 24,
-                9, 10, 11, 12, 13, 14, 15, 16,
-                1, 2, 3, 4,   5, 6, 7, 8,
-            ],
-            flipped
-        );
-    }
-
     [Fact]
     public void Texture_DefaultsToNearestFilterAndPreservesExplicitLinearFilter()
     {

@@ -47,10 +47,9 @@ internal sealed unsafe class GLOffscreenRenderer(
             }
 
             OffscreenRenderRequest request = requestArray[i];
-            byte[] flipped = FlipRowsVertical(raw.Pixels, request.Width, request.Height, RGBA_STRIDE_BYTES);
             var texture = new Texture(
                 request.Name,
-                flipped,
+                raw.Pixels,
                 request.Width,
                 request.Height,
                 request.Mipmaps,
@@ -61,25 +60,6 @@ internal sealed unsafe class GLOffscreenRenderer(
         }
 
         return results;
-    }
-
-    /// <summary>Flips tightly-packed pixel rows vertically to convert OpenGL bottom-up readback to top-down.</summary>
-    internal static byte[] FlipRowsVertical(byte[] pixels, int width, int height, int bytesPerPixel)
-    {
-        int stride = width * bytesPerPixel;
-        var flipped = new byte[pixels.Length];
-        for (var y = 0; y < height; y++)
-        {
-            Array.Copy(
-                sourceArray: pixels,
-                sourceIndex: y * stride,
-                destinationArray: flipped,
-                destinationIndex: (height - 1 - y) * stride,
-                length: stride
-            );
-        }
-
-        return flipped;
     }
 
     private RawRenderResult[] RenderBatchOnGLThread(OffscreenRenderRequest[] requests)

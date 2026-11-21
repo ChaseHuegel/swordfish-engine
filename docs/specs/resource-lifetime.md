@@ -28,7 +28,7 @@ leaves the draw list in the tick that disposes the renderer.
 
 `GLOffscreenRenderer` creates temporary FBOs, renderbuffers, a resolve texture,
 a model buffer, and per-mesh VAOs inside `RenderBatchToTextures`
-(`Swordfish/Graphics/SilkNET/OpenGL/GLOffscreenRenderer.cs:85-155`). It disposes
+(`Swordfish/Graphics/SilkNET/OpenGL/GLOffscreenRenderer.cs:66-136`). It disposes
 every temporary GL handle on the GL thread before the batch returns. The caller
 owns the returned `Texture` handles and must dispose them when no longer needed.
 `ItemIconDatabase` (`WaywardBeyond.Client/Items/ItemIconDatabase.cs`) owns and
