@@ -1,6 +1,6 @@
 # Logging and Crash Handling
 
-One subject: asynchronous file logging, crash-time log recovery, runtime dump collection, and the out-of-process crash supervisor.
+One subject: asynchronous file logging, crash-time log recovery, runtime dump collection, the out-of-process crash supervisor, and the client log counters.
 
 ## Overview
 
@@ -74,6 +74,17 @@ Non-headless hosts display a native OS window (`CrashAlertDialog`, `Shoal/CrashH
 - The dialog shows the fault summary, selectable crash log and dump paths, a scrollable monospace log tail (`AlertTailLines` and `AlertTailMaxChars`), an **Open Folder** button, and a **Close** button.
 - When `CrashHandlerOptions.OnSendReportAsync` is configured (as in `WaywardBeyond.Client.Launcher`), the dialog also shows optional **Contact** (max 30 chars) and **Description** (max 500 chars) inputs plus a **Send Report** button. Clicking **Send Report** works with or without user text.
 
+## Client log counters
+
+The client keeps a running total of warning, error, and critical log entries. `LogCounters` (`WaywardBeyond.Client/Diagnostics/LogCounters.cs:9`) subscribes to `LogListener.NewLog` and increments thread-safe counters. `GetSnapshot` returns the current `LogCountersSnapshot`.
+
+Two surfaces read the snapshot:
+
+- `LogCountersOverlay` (`WaywardBeyond.Client/UI/LogCountersOverlay.cs:10`) adds a `LOGS` block to the F3 debug overlay. It shows all three totals.
+- `LogCountersBadge` (`WaywardBeyond.Client/UI/Layers/LogCountersBadge.cs:9`) draws non-zero totals in the bottom-right corner. The client registers it only in `DEBUG` builds (`WaywardBeyond.Client/Injector.cs:282`).
+
+The badge sits left of the control hints, so it does not cover the hint pills.
+
 ## Configuration
 
 All tunables live in `logging.toml`, resolved from `AppPaths.ConfigRoot` first and falling back to shipped defaults. See [config-schemas](config-schemas.md#loggingtoml-per-app).
@@ -92,10 +103,15 @@ All tunables live in `logging.toml`, resolved from `AppPaths.ConfigRoot` first a
 - `Shoal/CrashHandling/UI/Win32CrashAlertDialog.cs`
 - `Shoal/CrashHandling/UI/GtkCrashAlertDialog.cs`
 - `WaywardBeyond.Data/Webhooks/FeedbackWebhook.cs`
+- `WaywardBeyond.Client/Diagnostics/LogCounters.cs`
+- `WaywardBeyond.Client/UI/LogCountersOverlay.cs`
+- `WaywardBeyond.Client/UI/Layers/LogCountersBadge.cs`
 - `WaywardBeyond.Client.Launcher/Application.cs`
 - `WaywardBeyond.Server.Launcher/Program.cs`
 
 ## Tests that pin this
 
 - `Swordfish.Tests/LoggingAndCrashHandlingTests.cs`
+- `Swordfish.Tests/LogCountersTests.cs`
 - `Swordfish.Tests/FeedbackWebhookTests.cs`
+- `Swordfish.Tests/OverlayViewTests.cs`

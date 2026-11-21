@@ -1,0 +1,30 @@
+<Reef xmlns="Reef"
+      Class="LogCountersBadgeView"
+      Context="LogCountersBadgeState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers">
+
+    <Element anchor="Bottom Right"
+             x="-240"
+             y="-20"
+             layout="horizontal"
+             spacing="10"
+             padding="2 2"
+             class="wb-log-counters">
+        <If condition="@context.HasWarnings">
+            <Text class="wb-log-counters-text wb-text-warning"
+                  text="WARN {context.Warnings}"
+                  wrap="false" />
+        </If>
+        <If condition="@context.HasErrors">
+            <Text class="wb-log-counters-text wb-text-danger"
+                  text="ERR {context.Errors}"
+                  wrap="false" />
+        </If>
+        <If condition="@context.HasCriticals">
+            <Text class="wb-log-counters-text wb-text-danger-solid"
+                  text="CRIT {context.Criticals}"
+                  wrap="false" />
+        </If>
+    </Element>
+</Reef>
