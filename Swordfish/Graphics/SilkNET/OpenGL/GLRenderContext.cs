@@ -211,9 +211,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         TextureFormat format = texture.ColorSpace == ColorSpace.Srgb ? TextureFormat.Srgb8Alpha8 : TextureFormat.Rgba;
-        TextureParams @params = TextureParams.ClampNearest with
+        TextureParams @params = texture.Filter switch
         {
-            GenerateMipmaps = texture.Mipmaps,
+            TextureFilter.Linear when texture.Mipmaps => TextureParams.ClampLinearMipmap,
+            TextureFilter.Linear => TextureParams.ClampLinear,
+            _ => TextureParams.ClampNearest with { GenerateMipmaps = texture.Mipmaps },
         };
 
         if (texture is TextureArray textureArray)
