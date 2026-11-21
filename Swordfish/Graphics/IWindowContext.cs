@@ -1,5 +1,6 @@
 using System.Numerics;
 using Swordfish.Library.Types;
+using Swordfish.Library.Util;
 using Swordfish.Settings;
 
 namespace Swordfish.Graphics;
@@ -25,12 +26,12 @@ public interface IWindowContext
     /// <summary>Gets the distinct fullscreen resolutions supported by the current monitor.</summary>
     IReadOnlyList<Vector2> GetVideoModes();
 
-    /// <summary>Applies a display mode, border, and window size as one window update.</summary>
+    /// <summary>Applies a display mode, border, and resolution as one window update.</summary>
     /// <param name="mode">The window mode to apply.</param>
     /// <param name="borderless">Whether the window suppresses its border.</param>
-    /// <param name="width">The windowed width, or null to keep the saved windowed width.</param>
-    /// <param name="height">The windowed height, or null to keep the saved windowed height.</param>
-    void ApplyDisplaySettings(WindowMode mode, bool borderless, int? width = null, int? height = null);
+    /// <param name="width">The requested width, or null to keep the saved width for the target mode.</param>
+    /// <param name="height">The requested height, or null to keep the saved height for the target mode.</param>
+    Result ApplyDisplaySettings(WindowMode mode, bool borderless, int? width = null, int? height = null);
 
     void Close();
     void SetIcon(Texture icon);
