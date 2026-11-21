@@ -19,5 +19,7 @@ internal sealed class FakePhysics : IPhysics
 
     public RaycastResult Raycast(in Ray ray) => default;
 
+    public bool Overlaps(in ShapeOverlapQuery query) => false;
+
     public void SetGravity(Vector3 gravity) { }
 }

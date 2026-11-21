@@ -3,6 +3,7 @@ using System.Numerics;
 using Krill;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using Swordfish.Physics;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
@@ -17,6 +18,7 @@ namespace WaywardBeyond.Gameplay.Interactions;
 public static class InteractionResolver
 {
     private const float SURFACE_EPSILON = 0.001f;
+    private const float PLACEMENT_PENETRATION_EPSILON = 0.005f;
     
     private static readonly Vector3 _halfCell = new(0.5f);
 
@@ -51,9 +53,10 @@ public static class InteractionResolver
             return InteractionResolution.None;
         }
 
-        VoxelObject voxelObject = targetResult.Value.VoxelObject;
-        TransformComponent transform = targetResult.Value.Transform;
-        int entity = targetResult.Value.Entity;
+        VoxelTarget target = targetResult.Value;
+        VoxelObject voxelObject = target.VoxelObject;
+        TransformComponent transform = target.Transform;
+        int entity = target.Entity;
 
         Int3 hintCell = new(hint.TargetX, hint.TargetY, hint.TargetZ);
 
@@ -101,7 +104,72 @@ public static class InteractionResolver
         }
 
         Voxel voxel = placeable.ToVoxel((BrickShape)hint.HintShape, brickRegistry, new Orientation(hint.HintOrientation));
+        BrickShape resolvedShape = voxel.GetShapeLight().Shape;
+        var resolvedOrientation = new Orientation(voxel.Orientation);
+        if (world.IntersectsCollider(in target, in hintCell, placeable, resolvedShape, resolvedOrientation))
+        {
+            return InteractionResolution.None;
+        }
+
         return new InteractionResolution(InteractionAction.Place, entity, hintCell, voxel);
+    }
+
+    /// <summary>
+    /// Returns whether placing <paramref name="placeable"/> at <paramref name="coordinate"/> on
+    /// <paramref name="targetEntity"/> intersects any physics collider other than the target structure itself.
+    /// </summary>
+    public static bool IntersectsCollider(
+        IPhysics physics,
+        int targetEntity,
+        in TransformComponent targetTransform,
+        in Int3 coordinate,
+        Brick placeable,
+        BrickShape shape,
+        Orientation orientation
+    ) {
+        ReadOnlySpan<BrickColliderShape> parts = BrickColliders.ForShape(shape, placeable);
+        if (parts.IsEmpty)
+        {
+            return false;
+        }
+
+        bool isPlainCube = BrickColliders.IsFullBlock(shape, placeable);
+        Quaternion voxelOrientation = isPlainCube
+            ? Quaternion.Identity
+            : orientation.ToQuaternion();
+
+        var localCenter = new Vector3(coordinate.X, coordinate.Y, coordinate.Z);
+
+        for (var i = 0; i < parts.Length; i++)
+        {
+            BrickColliderShape part = parts[i];
+            Vector3 localPosition = part.Offset == Vector3.Zero
+                ? localCenter
+                : localCenter + Vector3.Transform(part.Offset, voxelOrientation);
+            Quaternion localRotation = part.Orientation == Quaternion.Identity
+                ? voxelOrientation
+                : voxelOrientation * part.Orientation;
+
+            Vector3 worldPosition = Vector3.Transform(localPosition * targetTransform.Scale, targetTransform.Orientation)
+                + targetTransform.Position;
+            Quaternion worldRotation = targetTransform.Orientation * localRotation;
+
+            var query = new ShapeOverlapQuery(
+                part.Shape,
+                worldPosition,
+                worldRotation,
+                targetTransform.Scale,
+                ignoredEntity: targetEntity,
+                minPenetration: PLACEMENT_PENETRATION_EPSILON
+            );
+
+            if (physics.Overlaps(in query))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Returns whether any part of a brick cell is within <paramref name="reach"/> of a world position.</summary>

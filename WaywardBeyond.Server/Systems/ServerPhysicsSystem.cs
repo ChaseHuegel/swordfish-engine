@@ -43,6 +43,12 @@ public sealed class ServerPhysicsSystem : IServerWorldSystem, IServerWorldPhysic
     }
 
     /// <inheritdoc/>
+    public bool Overlaps(in ShapeOverlapQuery query)
+    {
+        return _physics.Overlaps(in query);
+    }
+
+    /// <inheritdoc/>
     public void SetGravity(System.Numerics.Vector3 gravity)
     {
         _physics.SetGravity(gravity);

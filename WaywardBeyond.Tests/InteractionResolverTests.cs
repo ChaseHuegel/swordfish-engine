@@ -118,6 +118,16 @@ public class InteractionResolverTests
     }
 
     [Fact]
+    public void RejectsAPlaceWhenDestinationIntersectsACollider()
+    {
+        var voxels = new VoxelObject(4);
+        var request = Place(cell: 0, reach: 9.5f, shape: (byte)BrickShape.Block, brick: Placeable());
+        var blockedWorld = new FakeWorld(TARGET, new VoxelTarget(0, voxels, Transform()), intersectsCollider: true);
+
+        Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in request, blockedWorld, Registry()).Action);
+    }
+
+    [Fact]
     public void ReachMeasuresToTheNearestCellPoint()
     {
         VoxelObject voxels = FilledVoxels();
@@ -232,16 +242,22 @@ public class InteractionResolverTests
         return new FakeRegistry();
     }
 
-    private sealed class FakeWorld(in Uuid target, in VoxelTarget value) : IVoxelInteractionWorld
+    private sealed class FakeWorld(in Uuid target, in VoxelTarget value, bool intersectsCollider = false) : IVoxelInteractionWorld
     {
         private readonly Uuid _target = target;
         private readonly VoxelTarget _value = value;
+        private readonly bool _intersectsCollider = intersectsCollider;
 
         public Result<VoxelTarget> GetTarget(in Uuid entityUuid)
         {
             return entityUuid == _target
                 ? Result<VoxelTarget>.FromSuccess(_value)
                 : Result<VoxelTarget>.FromFailure((string?)null);
+        }
+
+        public bool IntersectsCollider(in VoxelTarget target, in Int3 coordinate, Brick placeable, BrickShape shape, Orientation orientation)
+        {
+            return _intersectsCollider;
         }
     }
 

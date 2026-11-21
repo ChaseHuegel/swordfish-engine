@@ -80,7 +80,7 @@ public static class ServerComposition
             made: Made.Of(() => CreateSimulationStep(Arg.Of<World>(), Arg.Of<IServerWorldPhysics>())),
             setup: Setup.With(allowDisposableTransient: true)
         );
-        container.Register<Func<DataStore, IVoxelInteractionWorld>>(made: Made.Of(() => CreateInteractionWorldFactory()));
+        container.Register<Func<DataStore, IVoxelInteractionWorld>>(made: Made.Of(() => CreateInteractionWorldFactory(Arg.Of<IServerWorldPhysics>())));
 
         //  World systems in canonical tick order.
         RegisterServerSystem<ServerJoinSystem>(container);
@@ -159,9 +159,9 @@ public static class ServerComposition
         return (IServerWorldSystem)physics;
     }
 
-    private static Func<DataStore, IVoxelInteractionWorld> CreateInteractionWorldFactory()
+    private static Func<DataStore, IVoxelInteractionWorld> CreateInteractionWorldFactory(IServerWorldPhysics physics)
     {
-        return store => new ServerVoxelInteractionWorld(store);
+        return store => new ServerVoxelInteractionWorld(store, physics);
     }
 
     private static IServerWorldSystem CreateInteractionSystem(ServerInteractionSystem interaction)

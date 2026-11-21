@@ -328,6 +328,11 @@ public class InteractionHandlerRegistryTests
         {
             return Result<VoxelTarget>.FromSuccess(new VoxelTarget(1, _voxels, new TransformComponent()));
         }
+
+        public bool IntersectsCollider(in VoxelTarget target, in Int3 coordinate, Brick placeable, BrickShape shape, Orientation orientation)
+        {
+            return false;
+        }
     }
 
     private sealed class FakeRegistry : IBrickRegistry
