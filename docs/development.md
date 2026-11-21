@@ -44,6 +44,7 @@ file. Do not mass-rewrite untouched files.
 dotnet build                                        # Debug default; runs Needlefish codegen
 dotnet build --configuration Release
 dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
+dotnet test WaywardBeyond.Tests                     # xunit game tests
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser tests, cross-platform
 dotnet test Reef.Generator.Tests                    # xunit Reef markup generator tests, cross-platform
@@ -281,11 +282,13 @@ These rules bind every path and bind hardest to hot paths.
 
 ### Testing
 
-- **xunit** for `Swordfish.Tests`, `Reef.Tests`, `Reef.Text.Tests`, and
-  `WaywardBeyond.Voxels.Tests`.
+- **xunit** for `Swordfish.Tests`, `WaywardBeyond.Tests`, `Reef.Tests`,
+  `Reef.Text.Tests`, and `WaywardBeyond.Voxels.Tests`.
+- Engine tests live in `Swordfish.Tests`; game tests live in
+  `WaywardBeyond.Tests`. `Swordfish.Tests` references no game project.
 - Descriptive PascalCase test names: `SetMaxValueDoesScale`, `LightPropagationTest`.
 - Arrange/Act/Assert structure.
-- xunit tests inherit `TestBase` for DI container + `ITestOutputHelper`.
+- Engine xunit tests inherit `TestBase` for the DI container + `ITestOutputHelper`.
 - `dotnet build` and the test projects must pass before you finalize. A red
   test is a red change.
 - A test pins behavior, not an implementation. If a change intentionally

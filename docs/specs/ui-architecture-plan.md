@@ -81,7 +81,7 @@ Settled with the owner before the work started. Do not reopen without a reason.
   - Where: `WaywardBeyond.Client/UI/Layers/Bars.cs`,
     `WaywardBeyond.Client/UI/Layers/BarsView.cs`,
     `WaywardBeyond.Client/UI/Layers/BarsView.rml`,
-    `Swordfish.Tests/OverlayViewTests.cs`.
+    `WaywardBeyond.Tests/OverlayViewTests.cs`.
   - Verify: the notification-bar goldens. The test stops passing explicit
     positions and passes a count. Review the resulting positions.
   - Done: `bf451b1e` — the state carries the segment count. The view companion
@@ -100,7 +100,7 @@ Settled with the owner before the work started. Do not reopen without a reason.
     the markup. The page stops calling view formatters.
   - Where: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSaveState.cs`,
     `SelectSavePage.cs`, `SelectSaveView.rml`,
-    `Swordfish.Tests/SelectSaveViewTests.cs`.
+    `WaywardBeyond.Tests/SelectSaveViewTests.cs`.
   - Verify: the select-save goldens. Add a never-played case and a creative
     case.
   - Done: `e5138e3c` — the state carries `GameMode` and the millisecond values.
@@ -118,7 +118,7 @@ Settled with the owner before the work started. Do not reopen without a reason.
     with a named threshold.
   - Where: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterState.cs`,
     `SelectCharacterPage.cs`, `SelectCharacterView.rml`,
-    `Swordfish.Tests/SelectCharacterViewTests.cs`.
+    `WaywardBeyond.Tests/SelectCharacterViewTests.cs`.
   - Verify: the select-character goldens for the three sizes, plus a short
     window that hides the assignment.
   - Done: `e3a1f762` — the state carries the level, the species, the
@@ -135,7 +135,7 @@ Settled with the owner before the work started. Do not reopen without a reason.
     fade and the blink.
   - Where: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSaveState.cs`,
     `NewSavePage.cs`, `NewSaveView.rml`,
-    `Swordfish.Tests/NewSaveViewTests.cs`.
+    `WaywardBeyond.Tests/NewSaveViewTests.cs`.
   - Verify: the new-save ready and creating goldens.
   - Done: `66b3d038` — the state carries the raw name and seed, a status key,
     the line ages, and the create elapsed time. The view builds the lines, the
@@ -148,7 +148,7 @@ Settled with the owner before the work started. Do not reopen without a reason.
     the address and the banner.
   - Where: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerState.cs`,
     `MultiplayerPage.cs`, `MultiplayerView.rml`,
-    `Swordfish.Tests/MultiplayerViewTests.cs`.
+    `WaywardBeyond.Tests/MultiplayerViewTests.cs`.
   - Verify: the multiplayer goldens.
   - Done: `7a580c8d` — the state carries the host, the port, and the saved
     name. The view builds the address and the banner. The goldens are
@@ -202,7 +202,7 @@ Settled with the owner before the work started. Do not reopen without a reason.
     `OnGenderStep`. Each partial method forwards its delta to the existing
     action. Remove the id comparison.
   - Where: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterView.rml`,
-    `NewCharacterView.cs`, `Swordfish.Tests/NewCharacterViewTests.cs`.
+    `NewCharacterView.cs`, `WaywardBeyond.Tests/NewCharacterViewTests.cs`.
   - Verify: a view click test proves each stepper raises its own action. The
     colonist goldens are unchanged.
   - Done: `b3c20e69` — the species and gender steppers bind to separate

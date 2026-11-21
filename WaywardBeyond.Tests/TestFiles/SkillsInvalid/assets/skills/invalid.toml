@@ -1,0 +1,52 @@
+#  Fixture for the skill database rejection paths. Every invalid row fails on its own and the valid
+#  row in the same file still loads.
+
+[[Skills]]
+ID       = "valid"
+Name     = "skill.name.valid"
+Category = "skill.category.misc"
+
+[Skills.Sources.Break]
+"wb:rock" = 1
+
+[Skills.Levels]
+1 = 10
+
+[[Skills]]
+Name = "skill.name.no_id"
+
+[Skills.Levels]
+1 = 10
+
+[[Skills]]
+ID = "no_levels"
+
+[Skills.Sources.Break]
+"wb:rock" = 1
+
+[[Skills]]
+ID = "non_positive"
+
+[Skills.Sources.Break]
+"wb:rock" = 1
+
+[Skills.Levels]
+1 = 0
+
+[[Skills]]
+ID = "duplicate"
+
+[Skills.Sources.Break]
+"wb:rock" = 5
+
+[Skills.Levels]
+1 = 10
+
+[[Skills]]
+ID = "duplicate"
+
+[Skills.Sources.Break]
+"wb:rock" = 50
+
+[Skills.Levels]
+1 = 10

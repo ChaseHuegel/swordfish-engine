@@ -255,7 +255,7 @@ native resolution.
   do not change the current element ID.
 - `Swordfish.Tests/ReefBatchTests.cs` checks run grouping, paint order, and the
   clip-space mapping of the OpenGL batch.
-- `Swordfish.Tests/ScrollBarInteractionTests.cs` checks thumb drag, drag outside
+- `WaywardBeyond.Tests/ScrollBarInteractionTests.cs` checks thumb drag, drag outside
   the rail, track jump, release, and end clamping.
 - `Swordfish.Tests/ReefAtlasTests.cs` checks atlas packing and the UV mapping.
 - `Swordfish.Tests/TypefaceAtlasLoadTests.cs` checks that a shipped typeface

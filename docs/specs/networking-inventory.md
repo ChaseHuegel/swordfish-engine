@@ -126,7 +126,7 @@ them until the behavior is designed.
    through `PlayerData.ApplyMove` (the single entry point), never by mutating
    `InventoryComponent` directly.
 6. Test: resolver cases + a server e2e apply + echo, mirroring
-   `Swordfish.Tests/InventoryResolverTests.cs`.
+   `WaywardBeyond.Tests/InventoryResolverTests.cs`.
 
 ## Source of truth
 

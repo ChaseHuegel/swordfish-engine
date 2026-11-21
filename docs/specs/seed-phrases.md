@@ -98,6 +98,6 @@ converts user input into a `long` seed:
 
 ## Tests that pin this
 
-- `Swordfish.Tests/SeedPhraseServiceTests.cs` pins dictionary constraints,
+- `WaywardBeyond.Tests/SeedPhraseServiceTests.cs` pins dictionary constraints,
   bijective 40-bit round-trips, case-insensitivity, punctuation normalization,
   and 64-bit FNV-1a fallback hashing.

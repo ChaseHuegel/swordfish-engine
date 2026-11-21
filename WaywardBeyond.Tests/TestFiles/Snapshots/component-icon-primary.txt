@@ -1,0 +1,1 @@
+0 id=- rect=0,0,32,32 clip=0,0,32,32 color=1,0.8235,0.4902,1 bg=0,0,0,0 border=0:0,0,0,0 caps=0:0:0,0,0,0 radius=0:0:0:0 font=Font Awesome 6 Free Solid:20 text=

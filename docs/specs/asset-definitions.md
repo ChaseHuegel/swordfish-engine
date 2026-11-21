@@ -269,18 +269,18 @@ hosted in `WaywardBeyond.Data/Localization/`.
 
 ## Tests that pin this
 
-`Swordfish.Tests/SkillDatabaseTests.cs` loads the shipped skill and brick tomls
+`WaywardBeyond.Tests/SkillDatabaseTests.cs` loads the shipped skill and brick tomls
 and pins the schema, the tag expansion, and the level curve. See
-[skills](skills.md). `Swordfish.Tests/BodyDatabaseTests.cs` loads the shipped
+[skills](skills.md). `WaywardBeyond.Tests/BodyDatabaseTests.cs` loads the shipped
 body definitions and pins the species order, the gender groups, the species
 carried on each loaded body, and the species and gender resolution.
-`Swordfish.Tests/BrickColliderTests.cs` pins TOML `[[Bricks.Colliders]]`
+`WaywardBeyond.Tests/BrickColliderTests.cs` pins TOML `[[Bricks.Colliders]]`
 parsing, `wb:thruster` colliders, and non-cube raycast cell resolution.
 `WaywardBeyond.Voxels.Tests/VoxelCollisionTests.cs` pins built-in `BrickShape`
 colliders, orientation transforms, and mixed-shape interior culling.
-`Swordfish.Tests/ShapedBrickTextureTests.cs` pins per-face texture mapping,
+`WaywardBeyond.Tests/ShapedBrickTextureTests.cs` pins per-face texture mapping,
 angled-face fallback, rotation invariance, and default fallback on non-block
 shapes.
-`Swordfish.Tests/PlayerViewModelTests.cs` pins optional `ViewModel` mesh and
+`WaywardBeyond.Tests/PlayerViewModelTests.cs` pins optional `ViewModel` mesh and
 material fields, placeable brick view-model inference, shape updates, PBR shadow
 options, and the placeholder checkerboard fallback.

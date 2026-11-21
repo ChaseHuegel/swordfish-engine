@@ -115,6 +115,6 @@ toggle the window.
 `Swordfish.Tests/ClientFakes.cs:176` provides the test stub for the monitor
 list. `Swordfish.Tests/ClientFakes.cs:182` provides the stub for the video mode
 list. `Swordfish.Tests/ClientFakes.cs:193` provides the stub for the batched
-display update. `Swordfish.Tests/DisplaySettingsTests.cs` covers monitor name
+display update. `WaywardBeyond.Tests/DisplaySettingsTests.cs` covers monitor name
 formatting, video mode matching, refresh-rate selection, unsupported-mode
 fallback, and persisted fullscreen resolution loading.

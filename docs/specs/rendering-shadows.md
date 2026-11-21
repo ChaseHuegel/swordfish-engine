@@ -119,5 +119,5 @@ no non-culling neighbour creates no point light
 - `Swordfish.Tests/ShadowCascadeMathTests.cs:10-261`
 - `Swordfish.Tests/FrustumCullingTests.cs:162-230` — near plane and cascade
   caster coverage
-- `Swordfish.Tests/SettingsEntryTests.cs:49-98`
-- `Swordfish.Tests` full engine suite.
+- `WaywardBeyond.Tests/SettingsEntryTests.cs:49-98`
+- `Swordfish.Tests` full engine suite and `WaywardBeyond.Tests` full game suite.

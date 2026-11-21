@@ -11,6 +11,7 @@ short sentences, no semicolons, no contractions.
 ```bash
 dotnet build                                        # Debug default; runs Needlefish codegen
 dotnet test Swordfish.Tests                         # xunit engine tests
+dotnet test WaywardBeyond.Tests                     # xunit game tests
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
 dotnet test Reef.Generator.Tests                    # xunit Reef markup generator, cross-platform
@@ -25,6 +26,9 @@ dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel contain
 - `Reef.Generator.Tests` is `net8.0`; it runs the Roslyn generator in memory.
 - `Reef.Markup.Tests` is `net8.0`; it renders the visual gallery with the
   pre-generated font atlases.
+- `Swordfish.Tests` is `net9.0`; it references only engine projects.
+- `WaywardBeyond.Tests` is `net9.0`; it holds the game tests and references the
+  game modules.
 - `WaywardBeyond.Voxels.Tests` is `net9.0`; it references only the voxel module
   and the brick module, so it runs without the engine.
 - CI publishes release artifacts from `.github/workflows/waywardbeyond.yml`.
@@ -74,6 +78,7 @@ Every top-level path and what it is:
 | `WaywardBeyond.Server/` | Game server module |
 | `WaywardBeyond.Server.Launcher/` | Game server launcher |
 | `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader, server skill state |
+| `WaywardBeyond.Tests/` | Game tests: client, server, gameplay, networking, and game UI |
 | `docs/` | Self-documenting doc system (subject index in `docs/README.md`) |
 | `userdocs/` | Human onboarding docs, examples, and quick references |
 | `README.md`, `LICENSE` | Project docs |
@@ -135,9 +140,10 @@ Before you finish a change, run:
 5. `dotnet test Reef.Text.Tests` — Reef rich-text parser tests, cross-platform.
 6. `dotnet test Reef.Generator.Tests` — Reef markup generator tests.
 7. `dotnet test Reef.Markup.Tests` — Reef markup runtime and visual tests.
-8. `dotnet test WaywardBeyond.Voxels.Tests` — shared voxel container tests.
-9. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
-   Fix blocking findings. Capture the rest as issues.
+8. `dotnet test WaywardBeyond.Tests` — game tests.
+9. `dotnet test WaywardBeyond.Voxels.Tests` — shared voxel container tests.
+10. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
+    Fix blocking findings. Capture the rest as issues.
 
 Then run the mandatory **docs pass** (see the next section). Stale docs are a
 bug; do not finalize a change until the docs match the code.

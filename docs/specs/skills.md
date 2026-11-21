@@ -100,12 +100,12 @@ to 10 and leave `Color` null so `Bars.cs` uses the default accent fill.
 
 ## Tests that pin this
 
-- `Swordfish.Tests/SkillDatabaseTests.cs` — the shipped definitions load, tag
+- `WaywardBeyond.Tests/SkillDatabaseTests.cs` — the shipped definitions load, tag
   sources expand to the brick data ids worldgen writes, skills group by
   `XPSource`, the curve stays sorted, and the level thresholds and rejection
   paths hold.
-- `Swordfish.Tests/SkillXpReactorTests.cs` — the authoritative grant
+- `WaywardBeyond.Tests/SkillXpReactorTests.cs` — the authoritative grant
   accumulates into `SkillStateComponent`, an unknown brick grants nothing, and
   a seeded total continues the curve.
-- `Swordfish.Tests/ServerJoinSkillSeedTests.cs` — the join seed carries known
+- `WaywardBeyond.Tests/ServerJoinSkillSeedTests.cs` — the join seed carries known
   skill statistics and drops every other statistic.

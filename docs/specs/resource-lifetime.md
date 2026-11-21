@@ -92,7 +92,7 @@ build disposes its `ConvexHullShapeSettings` before it returns
 
 ## Tests
 
-`Swordfish.Tests/MeshRendererCleanupTests.cs` pins both queue drains:
+`WaywardBeyond.Tests/MeshRendererCleanupTests.cs` pins both queue drains:
 
 - `CleanupTickDisposesQueuedRenderersAndMeshes`
 - `ClientCleanupDrainsQueuedRenderersBeforeFreeing`
@@ -100,7 +100,7 @@ build disposes its `ConvexHullShapeSettings` before it returns
 Each test asserts that the renderer, its mesh, and the queue are gone after the
 tick.
 
-`Swordfish.Tests/BrickPreviewTests.cs` pins the preview's use of the same queue:
+`WaywardBeyond.Tests/BrickPreviewTests.cs` pins the preview's use of the same queue:
 
 - `System_ShowsAndHidesThePreviewEntity` covers a hidden renderer.
 - `System_ReplacedRendererWaitsForTheNewRenderer` covers a replaced renderer.

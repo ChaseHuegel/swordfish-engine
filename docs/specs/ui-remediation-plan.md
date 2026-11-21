@@ -46,7 +46,7 @@ under full suite load. They pass alone and on a rerun.
 - Every item ends with the gates in the appendix and a docs pass.
 - A page that changes pixels re-baselines its goldens in the same commit, with
   a note in the commit body. Never hand-edit a golden.
-- `UI_SNAPSHOT_UPDATE=1 dotnet test Swordfish.Tests` refreshes snapshot and
+- `UI_SNAPSHOT_UPDATE=1 dotnet test WaywardBeyond.Tests` refreshes snapshot and
   legacy page goldens that differ.
 - Do not add a `TODO` or a `FIXME`. This document is the tracker.
 - The prose in this file and in the docs uses Simplified Technical English:
@@ -169,7 +169,7 @@ redo earlier work.
   - Where: `WaywardBeyond.Client/UI/Widgets/Widgets.Slider.cs`,
     `WaywardBeyond.Client/UI/Widgets/Widgets.Toggle.cs`,
     `WaywardBeyond.Client/UI/Widgets/Widgets.Layout.cs`.
-  - Verify: build, `Swordfish.Tests` slider and settings tests stay green.
+  - Verify: build, `WaywardBeyond.Tests` slider and settings tests stay green.
   - Done: `81b3b130` — the overloads and `RectConstraints` are gone.
 
 - [x] **DEAD-3 — Remove the stale widget entries from the client project file**
@@ -299,7 +299,7 @@ redo earlier work.
     `WaywardBeyond.Client/UI/Settings/SettingsSliderWidget.cs`,
     `WaywardBeyond.Client/UI/Settings/SettingsChoiceWidget.cs`,
     `WaywardBeyond.Client/UI/Layers/Menus/SettingsShellView.rml`.
-  - Verify: `Swordfish.Tests/SettingsControlWidgetTests`,
+  - Verify: `WaywardBeyond.Tests/SettingsControlTests.cs`,
     `SliderInteractionTests`, `SettingsInteractionTests`. Settings snapshots
     unchanged at three sizes.
   - Done: `2de995df` — `SegmentedControl` and `Slider` replace the widgets and
@@ -422,7 +422,7 @@ redo earlier work.
   - Done: `5274ed27` (engine) and `bb1cdce3` (game). `Palette.rml` generates
     `WbPalette`; the nine `DynamicColors` constants and the six
     `TextInputPalette` values are gone, and the default font reads
-    `WbPalette.FontUi`. `Swordfish.Tests/PaletteTests` fails when the stylesheet
+    `WbPalette.FontUi`. `WaywardBeyond.Tests/PaletteTests` fails when the stylesheet
     gains a token the palette misses.
 
 - [x] **SYS-6 — Collapse the duplicate class pairs**
@@ -482,7 +482,7 @@ redo earlier work.
     why. The count is at review time. CMP-14 deletes one and other items add
     several.
   - Where: `WaywardBeyond.Client/UI/Components/*.rml`.
-  - Verify: build. `Reef.Markup.Tests` and `Swordfish.Tests` stay green.
+  - Verify: build. `Reef.Markup.Tests` and `WaywardBeyond.Tests` stay green.
   - Done: `8bd54784` — every component declares `Access="internal"`. No page or
     test needs a public component.
 
@@ -893,7 +893,7 @@ redo earlier work.
   - Fix: add gallery entries and snapshots for `Icon`, `IconButton`,
     `FormField`, `PageFooter`, `SettingsRows`, `StatRow`, and every state that
     applies. Keep one golden per state.
-  - Where: `Swordfish.Tests/ComponentSnapshotTests.cs`,
+  - Where: `WaywardBeyond.Tests/ComponentSnapshotTests.cs`,
     `Reef.Markup.Tests/Fixtures/GalleryView.rml`, and
     `WaywardBeyond.Client/UI/Components/`.
   - Verify: the gallery test and the new goldens.
@@ -1229,7 +1229,7 @@ These are recorded facts. They are not work items.
 | Caller font overrides | `StyleOverride` carries colour, padding, radius, border, and caps, but no `FontOptions`. A component call therefore cannot restyle its text size or font. `Icon` and `IconButton` take a size parameter for this reason. Revisit if a component needs caller typography. |
 | Caller clip on a component call | The `clip` attribute on a component call does not override the clip of the component root. A call that needs the root clipped must set it in the component markup. |
 | Mutable form state | `FeedbackState` exposes public mutable `TextBoxState` fields. Reference state is required for `bind`. Prefer properties, but this is style only. |
-| Local runtime | `Swordfish.Tests` and `WaywardBeyond.Voxels.Tests` need `DOTNET_ROLL_FORWARD=LatestMajor` on a machine without the .NET 9 runtime. CI uses .NET 9. |
+| Local runtime | `Swordfish.Tests`, `WaywardBeyond.Tests`, and `WaywardBeyond.Voxels.Tests` need `DOTNET_ROLL_FORWARD=LatestMajor` on a machine without the .NET 9 runtime. CI uses .NET 9. |
 | Clean observations | All `.rml` use `wb-` classes and `L` keys. No inline hex colour lives in `.rml`. Every detected `L` key exists in `ui.toml`. All test projects were green at the baseline. |
 
 ## Verification appendix
@@ -1243,13 +1243,14 @@ dotnet test Reef.Generator.Tests
 dotnet test Reef.Markup.Tests
 dotnet test Reef.Text.Tests
 DOTNET_ROLL_FORWARD=LatestMajor dotnet test Swordfish.Tests
+DOTNET_ROLL_FORWARD=LatestMajor dotnet test WaywardBeyond.Tests
 DOTNET_ROLL_FORWARD=LatestMajor dotnet test WaywardBeyond.Voxels.Tests
 ```
 
 Golden refresh:
 
 ```bash
-UI_SNAPSHOT_UPDATE=1 DOTNET_ROLL_FORWARD=LatestMajor dotnet test Swordfish.Tests
+UI_SNAPSHOT_UPDATE=1 DOTNET_ROLL_FORWARD=LatestMajor dotnet test WaywardBeyond.Tests
 ```
 
 `UI_SNAPSHOT_UPDATE=1` rewrites snapshot goldens and legacy page goldens that
