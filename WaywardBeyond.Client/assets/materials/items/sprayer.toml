@@ -1,0 +1,5 @@
+Shader    = "lighted"
+AlphaMode = "Masked"
+Textures  = [
+    "items/sprayer_uv.png",
+]

@@ -32,6 +32,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private readonly PlayerCharacterEntityBuilder _playerBuilder;
     private readonly VoxelEntityBuilder _voxelBuilder;
     private readonly IBrickRegistry _brickRegistry;
+    private readonly IPaintRegistry? _paintRegistry;
     private readonly ClientDisconnectSystem _disconnectSystem;
     private readonly ClientInputSystem _inputSystem;
     private readonly SnapshotAckTracker _snapshotAck;
@@ -58,13 +59,15 @@ internal sealed class ClientJoinSystem : IEntitySystem
         in ClientDisconnectSystem disconnectSystem,
         in ClientInputSystem inputSystem,
         in SnapshotAckTracker snapshotAck,
-        in NetworkingConfig config
+        in NetworkingConfig config,
+        IPaintRegistry? paintRegistry = null
     ) {
         _host = host;
         _inbound = inbound;
         _playerBuilder = playerBuilder;
         _voxelBuilder = voxelBuilder;
         _brickRegistry = brickRegistry;
+        _paintRegistry = paintRegistry;
         _disconnectSystem = disconnectSystem;
         _inputSystem = inputSystem;
         _snapshotAck = snapshotAck;
@@ -381,7 +384,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         }
 
         //  Resolve the server's palette-indexed voxel ids into this process's local id space.
-        VoxelEntityData local = VoxelCodec.Decode(data, _brickRegistry);
+        VoxelEntityData local = VoxelCodec.Decode(data, _brickRegistry, _paintRegistry);
 
         VoxelObject voxelObject;
         try

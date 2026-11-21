@@ -29,7 +29,8 @@ public sealed class ServerHostCommands(
     ServerLevelManager levelManager,
     IBrickRegistry brickRegistry,
     NetworkingConfig config,
-    ILogger<ServerHostCommands> logger
+    ILogger<ServerHostCommands> logger,
+    IPaintRegistry? paintRegistry = null
 ) {
     private readonly ConcurrentQueue<HostCall> _calls = new();
     private readonly List<ActiveStream> _streams = [];
@@ -373,7 +374,7 @@ public sealed class ServerHostCommands(
         }
 
         //  Attach the brick palette so the client can resolve the server's registry ids locally.
-        stream.Payload = VoxelCodec.Encode(data, brickRegistry).Serialize();
+        stream.Payload = VoxelCodec.Encode(data, brickRegistry, paintRegistry).Serialize();
         payloadBytes = stream.Payload.Length;
         return true;
     }

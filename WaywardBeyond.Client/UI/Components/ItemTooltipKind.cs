@@ -6,6 +6,8 @@ internal enum ItemTooltipKind
     Brick,
     MiningTool,
     ConversionTool,
+    PaintTool,
+    TextureTool,
     Item,
     Unknown,
 }

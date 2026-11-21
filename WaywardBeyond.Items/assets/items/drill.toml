@@ -1,0 +1,20 @@
+[[Items]]
+ID          = "wb:drill"
+Name        = "item.base.drill"
+Description = "item.base.drill.description"
+Icon        = "items/drill.png"
+MaxStack    = 1
+[Items.Tool]
+Type        = "drill"
+[Items.ViewModel]
+Mesh        = "items/drill.obj"
+Material    = "items/drill"
+Position.X  = 0.5
+Position.Y  = -0.5
+Position.Z  = -0.3
+Rotation.X  = 0
+Rotation.Y  = 5
+Rotation.Z  = 0
+[Items.WorldModel]
+Mesh        = "items/drill.obj"
+Material    = "items/drill"

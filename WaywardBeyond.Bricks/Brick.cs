@@ -33,6 +33,7 @@ public sealed class Brick
     public readonly bool LightSource;
     public readonly int Brightness;
     public readonly bool Entity;
+    public readonly bool Paintable;
 
     private readonly bool _hasOrientableTag;
 
@@ -60,6 +61,7 @@ public sealed class Brick
         LightSource = Tags.Contains("light");
         Brightness = LightSource ? 15 : 0;
         Entity = Tags.Contains("entity");
+        Paintable = Tags.Contains("paintable");
         _hasOrientableTag = Tags.Contains("orientable");
     }
 

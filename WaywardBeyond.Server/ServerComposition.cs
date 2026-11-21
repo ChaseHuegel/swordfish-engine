@@ -107,7 +107,9 @@ public static class ServerComposition
         //  which handlers exist. The registry is built once at startup, after every module has loaded,
         //  so a mod registers an IInteractionHandler implementation and never touches the registry.
         container.Register<IInteractionHandler, ItemPlaceableSelector>(Reuse.Singleton);
+        container.Register<IInteractionHandler, PaintHintResolver>(Reuse.Singleton);
         container.Register<IInteractionHandler, HintResolver>(Reuse.Singleton);
+        container.Register<IInteractionHandler, VoxelFaceWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakLootReactor>(Reuse.Singleton);
         container.Register<IInteractionHandler, PlaceConsumeReactor>(Reuse.Singleton);
@@ -131,6 +133,8 @@ public static class ServerComposition
         container.Resolve<ServerPeers>();
         container.Resolve<IBrickRegistry>();
         container.Resolve<IBrickDatabase>();
+        container.Resolve<IPaintRegistry>(IfUnresolved.ReturnDefault);
+        container.Resolve<IPaintDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<ISkillDatabase>();
     }
 

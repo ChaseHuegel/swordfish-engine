@@ -13,6 +13,20 @@ internal class InteractionState(in ClientPlayerMotionProcessor playerMotionProce
     public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
     public readonly DataBinding<Orientation> SelectedOrientation = new();
     public readonly DataBinding<bool> SnapPlacement = new();
+    public readonly DataBinding<string?> SelectedTexturePaintId = new(null);
+    public readonly DataBinding<string?> SelectedColorPaintId = new(null);
+
+    /// <summary>Selects a color paint for the sprayer.</summary>
+    public void SelectColorPaint(string paintId)
+    {
+        SelectedColorPaintId.Set(paintId);
+    }
+
+    /// <summary>Selects a texture paint for the drill.</summary>
+    public void SelectTexturePaint(string paintId)
+    {
+        SelectedTexturePaintId.Set(paintId);
+    }
     
     private readonly ClientPlayerMotionProcessor _playerMotionProcessor = playerMotionProcessor;
     

@@ -222,6 +222,14 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IUILayer, OrientationSelector>();
         container.RegisterMapping<IActionIndicator, OrientationSelector>();
 
+        container.Register<PaintColorSelector>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, PaintColorSelector>();
+        container.RegisterMapping<IActionIndicator, PaintColorSelector>();
+
+        container.Register<PaintTextureSelector>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, PaintTextureSelector>();
+        container.RegisterMapping<IActionIndicator, PaintTextureSelector>();
+
         //  Nameplates are world-correlated UI: ordered below the HUD layers (hotbar, inventory,
         //  notifications) so player tags render behind the widgets.
         container.Register<NameplateSnapshot>(Reuse.Singleton);

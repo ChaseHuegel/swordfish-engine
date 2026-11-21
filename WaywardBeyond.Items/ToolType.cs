@@ -4,4 +4,6 @@ public enum ToolType
 {
     Convert,
     Mining,
+    Sprayer,
+    Drill,
 }

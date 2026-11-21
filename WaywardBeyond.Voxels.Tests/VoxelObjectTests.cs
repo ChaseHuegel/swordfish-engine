@@ -130,7 +130,7 @@ public class VoxelObjectTests
     public void SamplerAcceptsAnOutOfRangeOrientation()
     {
         var voxels = new VoxelObject(4, [
-            new ChunkInfo(0, 0, 0, new Chunk(4, SampleTestIndex.Fill(chunkSize: 4, (1, 1, 1, new Voxel(1, 0, 200))))),
+            new ChunkInfo(0, 0, 0, new Chunk(4, SampleTestIndex.Fill(chunkSize: 4, (1, 1, 1, new Voxel(1, 0, 200))), null)),
         ]);
 
         VoxelSample sample = SampleAt(voxels, 1, 1, 1);
@@ -141,7 +141,7 @@ public class VoxelObjectTests
     [Fact]
     public void ConstructorRejectsAChunkWithTheWrongSize()
     {
-        ChunkInfo[] chunks = [new(0, 0, 0, new Chunk(8, new Voxel[512]))];
+        ChunkInfo[] chunks = [new(0, 0, 0, new Chunk(8, new Voxel[512], null))];
 
         Assert.Throws<ArgumentException>(() => new VoxelObject(chunkSize: 16, chunks));
     }
@@ -149,7 +149,7 @@ public class VoxelObjectTests
     [Fact]
     public void ConstructorRejectsAChunkWithTheWrongVoxelCount()
     {
-        ChunkInfo[] chunks = [new(0, 0, 0, new Chunk(4, new Voxel[10]))];
+        ChunkInfo[] chunks = [new(0, 0, 0, new Chunk(4, new Voxel[10], null))];
 
         Assert.Throws<ArgumentException>(() => new VoxelObject(chunkSize: 4, chunks));
     }
@@ -157,7 +157,7 @@ public class VoxelObjectTests
     [Fact]
     public void ConstructorRejectsAChunkWithoutVoxels()
     {
-        ChunkInfo[] chunks = [new(0, 0, 0, new Chunk(4, null!))];
+        ChunkInfo[] chunks = [new(0, 0, 0, new Chunk(4, null!, null))];
 
         Assert.Throws<ArgumentException>(() => new VoxelObject(chunkSize: 4, chunks));
     }
@@ -166,7 +166,7 @@ public class VoxelObjectTests
     public void ConstructorCountsEveryVoxelIntoThePalette()
     {
         var voxels = new VoxelObject(4, [
-            new ChunkInfo(0, 0, 0, new Chunk(4, SampleTestIndex.Fill(chunkSize: 4, (0, 0, 0, new Voxel(3, 0, 0))))),
+            new ChunkInfo(0, 0, 0, new Chunk(4, SampleTestIndex.Fill(chunkSize: 4, (0, 0, 0, new Voxel(3, 0, 0))), null)),
         ]);
 
         ChunkData chunk = Single(voxels);

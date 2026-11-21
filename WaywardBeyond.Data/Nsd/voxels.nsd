@@ -20,6 +20,7 @@ message VoxelEntityData
     
     ChunkInfo[] Chunks = 50;
     string[]? BrickPalette = 51;
+    string[]? PaintPalette = 52;
 }
 
 message ChunkInfo
@@ -35,11 +36,19 @@ message Chunk
 {
     byte Size = 0;
     Voxel[] Voxels = 1;
+    FaceOverrideData[]? FaceOverrides = 2;
+}
+
+message FaceOverrideData
+{
+    int Key = 0;
+    ushort TexturePaintId = 1;
+    ushort ColorPaintId = 2;
 }
 
 message Voxel
 {
     ushort ID = 0;
     byte ShapeLight = 1;
-    byte Orientation = 2;
+    byte OrientationFlags = 2;
 }

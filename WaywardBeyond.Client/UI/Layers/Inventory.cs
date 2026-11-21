@@ -396,6 +396,8 @@ internal sealed class Inventory : IUILayer
             {
                 ToolType.Mining => ItemTooltipKind.MiningTool,
                 ToolType.Convert => ItemTooltipKind.ConversionTool,
+                ToolType.Sprayer => ItemTooltipKind.PaintTool,
+                ToolType.Drill => ItemTooltipKind.TextureTool,
                 _ => ItemTooltipKind.Item,
             };
         }

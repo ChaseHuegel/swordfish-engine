@@ -14,7 +14,8 @@ internal sealed class MeshPostPass(
     MeshState meshState,
     IBrickDatabase brickDatabase,
     PBRTextureArrays textureArrays,
-    IAssetDatabase<Mesh> meshDatabase
+    IAssetDatabase<Mesh> meshDatabase,
+    IPaintDatabase? paintDatabase = null
 ) : VoxelObjectProcessor.ISamplePass
 {
     private const float NORMAL_EPSILON = 1e-4f;
@@ -30,10 +31,10 @@ internal sealed class MeshPostPass(
         tags: null
     );
 
-    private readonly CubeMeshBuilder _opaqueCubeMeshBuilder = new(textureArrays.Albedo, meshState.Opaque);
-    private readonly CubeMeshBuilder _opaqueNoShadowCubeMeshBuilder = new(textureArrays.Albedo, meshState.OpaqueNoShadow);
-    private readonly CubeMeshBuilder _maskedCubeMeshBuilder = new(textureArrays.Albedo, meshState.Masked);
-    private readonly CubeMeshBuilder _transparentCubeMeshBuilder = new(textureArrays.Albedo, meshState.Transparent);
+    private readonly CubeMeshBuilder _opaqueCubeMeshBuilder = new(textureArrays.Albedo, meshState.Opaque, brickDatabase, paintDatabase);
+    private readonly CubeMeshBuilder _opaqueNoShadowCubeMeshBuilder = new(textureArrays.Albedo, meshState.OpaqueNoShadow, brickDatabase, paintDatabase);
+    private readonly CubeMeshBuilder _maskedCubeMeshBuilder = new(textureArrays.Albedo, meshState.Masked, brickDatabase, paintDatabase);
+    private readonly CubeMeshBuilder _transparentCubeMeshBuilder = new(textureArrays.Albedo, meshState.Transparent, brickDatabase, paintDatabase);
     private readonly Mesh _slope = meshDatabase.Get("slope.obj").Value;
     private readonly Mesh _stair = meshDatabase.Get("stair.obj").Value;
     private readonly Mesh _slab = meshDatabase.Get("slab.obj").Value;
@@ -69,7 +70,7 @@ internal sealed class MeshPostPass(
             return;
         }
         
-        var orientation = ((Orientation)sample.Center.Orientation).ToQuaternion();
+        var orientation = sample.Center.GetOrientation().ToQuaternion();
         ShapeLight shapeLight = sample.Center.ShapeLight;
         var offset = new Vector3(sample.ChunkOffset.X, sample.ChunkOffset.Y, sample.ChunkOffset.Z);
         
@@ -79,19 +80,19 @@ internal sealed class MeshPostPass(
         switch (shapeLight.Shape)
         {
             case BrickShape.Slab:
-                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _slab, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, in sample, offset, brickInfo, _slab, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Stair:
-                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _stair, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, in sample, offset, brickInfo, _stair, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Slope:
-                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _slope, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, in sample, offset, brickInfo, _slope, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Column:
-                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _column, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, in sample, offset, brickInfo, _column, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Plate:
-                AddMesh(targetMesh, sample.Coords, offset, brickInfo, _plate, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, in sample, offset, brickInfo, _plate, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Custom:
                 Mesh? customMesh = ResolveMesh(in brickInfo);
@@ -101,7 +102,7 @@ internal sealed class MeshPostPass(
                     break;
                 }
 
-                AddMesh(targetMesh, sample.Coords, offset, brickInfo, customMesh, orientation, shapeLight.LightLevel);
+                AddMesh(targetMesh, in sample, offset, brickInfo, customMesh, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Block:
             default:
@@ -209,17 +210,32 @@ internal sealed class MeshPostPass(
         }
     }
 
-    private void AddMesh(MeshState.MeshData meshData, Int3 coords, Vector3 offset, Brick brickInfo, Mesh mesh, Quaternion orientation, int lightLevel)
+    private void AddMesh(MeshState.MeshData meshData, in VoxelSample sample, Vector3 offset, Brick brickInfo, Mesh mesh, Quaternion orientation, int lightLevel)
     {
+        Vector3 origin = offset + new Vector3(sample.Coords.X, sample.Coords.Y, sample.Coords.Z);
         float light = Math.Clamp(lightLevel / 15f, 0.1f, 1f);
-        var color = new Vector4(light, light, light, 1f);
-        for (var i = 0; i < mesh.Colors.Length; i++)
+
+        ResolveFaceStyles(in sample, origin, brickInfo.Textures, out FaceTextureIndices faceTextures, out FaceColorTints faceTints);
+
+        if (faceTints.HasAnyTint)
         {
-            meshData.Colors.Add(color);
+            for (var i = 0; i < mesh.Colors.Length; i++)
+            {
+                Vector3 tint = i < mesh.Normals.Length
+                    ? ResolveFaceTint(mesh.Normals[i], in faceTints)
+                    : Vector3.One;
+                meshData.Colors.Add(new Vector4(tint.X, tint.Y, tint.Z, light));
+            }
+        }
+        else
+        {
+            var color = new Vector4(1f, 1f, 1f, light);
+            for (var i = 0; i < mesh.Colors.Length; i++)
+            {
+                meshData.Colors.Add(color);
+            }
         }
 
-        Vector3 origin = offset + new Vector3(coords.X, coords.Y, coords.Z);
-        FaceTextureIndices faceTextures = ResolveFaceTextureIndices(origin, brickInfo.Textures);
         if (faceTextures.HasPerFace)
         {
             for (var i = 0; i < mesh.Uv.Length; i++)
@@ -255,24 +271,124 @@ internal sealed class MeshPostPass(
         }
     }
 
-    private FaceTextureIndices ResolveFaceTextureIndices(Vector3 origin, in BrickTextures textures)
-    {
+    private void ResolveFaceStyles(
+        in VoxelSample sample,
+        Vector3 origin,
+        in BrickTextures textures,
+        out FaceTextureIndices faceTextures,
+        out FaceColorTints faceTints
+    ) {
         int defaultIndex = ResolveOptionalTextureIndex(origin, textures.Default);
-        return new FaceTextureIndices(
+        int topIndex = ResolveOptionalTextureIndex(origin, textures.Top);
+        int bottomIndex = ResolveOptionalTextureIndex(origin, textures.Bottom);
+        int frontIndex = ResolveOptionalTextureIndex(origin, textures.Front);
+        int backIndex = ResolveOptionalTextureIndex(origin, textures.Back);
+        int leftIndex = ResolveOptionalTextureIndex(origin, textures.Left);
+        int rightIndex = ResolveOptionalTextureIndex(origin, textures.Right);
+
+        Vector3 topTint = Vector3.One;
+        Vector3 bottomTint = Vector3.One;
+        Vector3 frontTint = Vector3.One;
+        Vector3 backTint = Vector3.One;
+        Vector3 leftTint = Vector3.One;
+        Vector3 rightTint = Vector3.One;
+        var hasAnyTint = false;
+
+        if (sample.Center.HasFaceOverrides() && sample.VoxelIndex >= 0)
+        {
+            ApplyFaceOverride(in sample, origin, BrickFace.Top, ref topIndex, ref topTint, ref hasAnyTint);
+            ApplyFaceOverride(in sample, origin, BrickFace.Bottom, ref bottomIndex, ref bottomTint, ref hasAnyTint);
+            ApplyFaceOverride(in sample, origin, BrickFace.Front, ref frontIndex, ref frontTint, ref hasAnyTint);
+            ApplyFaceOverride(in sample, origin, BrickFace.Back, ref backIndex, ref backTint, ref hasAnyTint);
+            ApplyFaceOverride(in sample, origin, BrickFace.Left, ref leftIndex, ref leftTint, ref hasAnyTint);
+            ApplyFaceOverride(in sample, origin, BrickFace.Right, ref rightIndex, ref rightTint, ref hasAnyTint);
+        }
+
+        faceTextures = new FaceTextureIndices(
             defaultIndex: defaultIndex >= 0 ? defaultIndex : 0,
-            topIndex: ResolveOptionalTextureIndex(origin, textures.Top),
-            bottomIndex: ResolveOptionalTextureIndex(origin, textures.Bottom),
-            frontIndex: ResolveOptionalTextureIndex(origin, textures.Front),
-            backIndex: ResolveOptionalTextureIndex(origin, textures.Back),
-            leftIndex: ResolveOptionalTextureIndex(origin, textures.Left),
-            rightIndex: ResolveOptionalTextureIndex(origin, textures.Right)
+            topIndex: topIndex,
+            bottomIndex: bottomIndex,
+            frontIndex: frontIndex,
+            backIndex: backIndex,
+            leftIndex: leftIndex,
+            rightIndex: rightIndex
         );
+
+        faceTints = new FaceColorTints(topTint, bottomTint, frontTint, backTint, leftTint, rightTint, hasAnyTint);
+    }
+
+    private void ApplyFaceOverride(
+        in VoxelSample sample,
+        Vector3 origin,
+        BrickFace face,
+        ref int textureIndex,
+        ref Vector3 tint,
+        ref bool hasAnyTint
+    ) {
+        if (!sample.ChunkData.TryGetFaceOverride(sample.VoxelIndex, face, out FaceOverride faceOverride))
+        {
+            return;
+        }
+
+        if (faceOverride.TexturePaintId != 0)
+        {
+            textureIndex = ResolvePaintTextureIndex(origin, faceOverride.TexturePaintId);
+        }
+
+        if (faceOverride.ColorPaintId != 0 && paintDatabase != null)
+        {
+            Result<Paint> colorResult = paintDatabase.Get(faceOverride.ColorPaintId);
+            if (colorResult.Success && colorResult.Value.Kind == PaintKind.Color)
+            {
+                tint = colorResult.Value.LinearColor;
+                hasAnyTint = true;
+            }
+        }
+    }
+
+    private int ResolvePaintTextureIndex(Vector3 origin, ushort paintId)
+    {
+        if (paintDatabase == null)
+        {
+            return 0;
+        }
+
+        Result<Paint> result = paintDatabase.Get(paintId);
+        if (!result.Success || result.Value.Kind != PaintKind.Texture)
+        {
+            return 0;
+        }
+
+        string? textureName = CubeMeshBuilder.GetTextureName(origin, result.Value.Textures);
+        return textureName != null ? Math.Max(textureArrays.Albedo.IndexOf(textureName), 0) : 0;
     }
 
     private int ResolveOptionalTextureIndex(Vector3 origin, string?[]? textures)
     {
         string? textureName = CubeMeshBuilder.GetTextureName(origin, textures);
         return textureName != null ? Math.Max(textureArrays.Albedo.IndexOf(textureName), 0) : -1;
+    }
+
+    private static Vector3 ResolveFaceTint(in Vector3 normal, in FaceColorTints tints)
+    {
+        float ax = MathF.Abs(normal.X);
+        float ay = MathF.Abs(normal.Y);
+        float az = MathF.Abs(normal.Z);
+        if (ax <= NORMAL_EPSILON && ay <= NORMAL_EPSILON && az <= NORMAL_EPSILON)
+        {
+            return Vector3.One;
+        }
+
+        return BrickFaceExtensions.FromLocalNormal(normal) switch
+        {
+            BrickFace.Top => tints.Top,
+            BrickFace.Bottom => tints.Bottom,
+            BrickFace.Front => tints.Front,
+            BrickFace.Back => tints.Back,
+            BrickFace.Left => tints.Left,
+            BrickFace.Right => tints.Right,
+            _ => Vector3.One,
+        };
     }
 
     private static int ResolveFaceTextureIndex(in Vector3 normal, in FaceTextureIndices indices)
@@ -347,5 +463,23 @@ internal sealed class MeshPostPass(
         public readonly int Left = leftIndex;
         public readonly int Right = rightIndex;
         public bool HasPerFace => Top >= 0 || Bottom >= 0 || Front >= 0 || Back >= 0 || Left >= 0 || Right >= 0;
+    }
+
+    private readonly struct FaceColorTints(
+        Vector3 top,
+        Vector3 bottom,
+        Vector3 front,
+        Vector3 back,
+        Vector3 left,
+        Vector3 right,
+        bool hasAnyTint
+    ) {
+        public readonly Vector3 Top = top;
+        public readonly Vector3 Bottom = bottom;
+        public readonly Vector3 Front = front;
+        public readonly Vector3 Back = back;
+        public readonly Vector3 Left = left;
+        public readonly Vector3 Right = right;
+        public readonly bool HasAnyTint = hasAnyTint;
     }
 }

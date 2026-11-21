@@ -1,0 +1,188 @@
+[[Paints]]
+ID        = "wb:panel"
+Name      = "paint.panel.name"
+Alpha     = "Opaque"
+Connected = true
+Textures  = ["panel.0"]
+Tags      = ["metal"]
+
+[[Paints]]
+ID       = "wb:caution_panel"
+Name     = "paint.caution_panel.name"
+Alpha    = "Opaque"
+Textures = ["caution_panel"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:control_buttons"
+Name     = "paint.control_buttons.name"
+Alpha    = "Opaque"
+Textures = [
+    "control_buttons.0",
+    "control_buttons.1",
+    "control_buttons.2",
+    "control_buttons.3",
+]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:control_panel"
+Name     = "paint.control_panel.name"
+Alpha    = "Opaque"
+Textures = ["control_panel.0"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:core"
+Name     = "paint.core.name"
+Alpha    = "Opaque"
+Textures = ["core"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:display_console"
+Name     = "paint.display_console.name"
+Alpha    = "Opaque"
+Textures = ["display_console"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:display_control"
+Name     = "paint.display_control.name"
+Alpha    = "Opaque"
+Textures = [
+    "display_control.0",
+    "display_control.1",
+    "display_control.2",
+    "display_control.3",
+    "display_control.4",
+]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:display_monitor"
+Name     = "paint.display_monitor.name"
+Alpha    = "Opaque"
+Textures = ["display_monitor"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:display_screen"
+Name     = "paint.display_screen.name"
+Alpha    = "Opaque"
+Textures = ["display_screen"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:greeble"
+Name     = "paint.greeble.name"
+Alpha    = "Opaque"
+Textures = ["greeble1"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:vent"
+Name     = "paint.vent.name"
+Alpha    = "Opaque"
+Textures = ["vent"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID        = "wb:light"
+Name      = "paint.light.name"
+Alpha     = "Opaque"
+Connected = true
+Textures  = ["light.0"]
+Tags      = ["light", "metal"]
+
+[[Paints]]
+ID       = "wb:small_light"
+Name     = "paint.small_light.name"
+Alpha    = "Opaque"
+Textures = ["small_light"]
+Tags     = ["light", "metal"]
+
+[[Paints]]
+ID       = "wb:storage_front"
+Name     = "paint.storage_front.name"
+Alpha    = "Opaque"
+Textures = ["storage_front"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:storage_back"
+Name     = "paint.storage_back.name"
+Alpha    = "Opaque"
+Textures = ["storage_back"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:storage_side"
+Name     = "paint.storage_side.name"
+Alpha    = "Opaque"
+Textures = ["storage_side"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:storage_top"
+Name     = "paint.storage_top.name"
+Alpha    = "Opaque"
+Textures = ["storage_top"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:storage_bottom"
+Name     = "paint.storage_bottom.name"
+Alpha    = "Opaque"
+Textures = ["storage_bottom"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:rock"
+Name     = "paint.rock.name"
+Alpha    = "Opaque"
+Textures = ["rock"]
+Tags     = ["environment"]
+
+[[Paints]]
+ID       = "wb:ice"
+Name     = "paint.ice.name"
+Alpha    = "Opaque"
+Textures = ["ice"]
+Tags     = ["environment"]
+
+[[Paints]]
+ID       = "wb:grate"
+Name     = "paint.grate.name"
+Alpha    = "Masked"
+Textures = ["grate"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:porthole"
+Name     = "paint.porthole.name"
+Alpha    = "Masked"
+Textures = ["porthole"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID       = "wb:truss"
+Name     = "paint.truss.name"
+Alpha    = "Masked"
+Textures = ["truss"]
+Tags     = ["metal"]
+
+[[Paints]]
+ID        = "wb:glass"
+Name      = "paint.glass.name"
+Alpha     = "Blend"
+Connected = true
+Textures  = ["glass.0"]
+Tags      = ["glass"]
+
+[[Paints]]
+ID       = "wb:glass_plain"
+Name     = "paint.glass_plain.name"
+Alpha    = "Blend"
+Textures = ["glass"]
+Tags     = ["glass"]

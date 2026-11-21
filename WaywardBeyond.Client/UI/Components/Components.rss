@@ -961,19 +961,11 @@
     corner-caps: 6 1 var(--wb-primary-bright);
 }
 
-.wb-radial-icon {
-    color: var(--wb-accent-bright);
-}
-
-.wb-radial-icon-selected {
-    color: var(--wb-primary-bright);
-}
-
 .wb-radial-label {
     color: var(--wb-panel);
     border: 1px var(--wb-primary);
     corner-caps: 6 1 var(--wb-primary-bright);
-    padding: 6px 14px;
+    padding: 6px 4px;
 }
 
 .wb-radial-label-text {

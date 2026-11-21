@@ -105,7 +105,7 @@ public static class InteractionResolver
 
         Voxel voxel = placeable.ToVoxel((BrickShape)hint.HintShape, brickRegistry, new Orientation(hint.HintOrientation));
         BrickShape resolvedShape = voxel.GetShapeLight().Shape;
-        var resolvedOrientation = new Orientation(voxel.Orientation);
+        Orientation resolvedOrientation = voxel.GetOrientation();
         if (world.IntersectsCollider(in target, in hintCell, placeable, resolvedShape, resolvedOrientation))
         {
             return InteractionResolution.None;

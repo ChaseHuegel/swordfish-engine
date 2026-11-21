@@ -24,7 +24,7 @@ internal sealed class BrickPreviewMeshBuilder
     private static readonly Voxel _litAir = new(
         _ID: 0,
         _ShapeLight: new ShapeLight(default, PREVIEW_LIGHT_LEVEL),
-        _Orientation: 0
+        _OrientationFlags: 0
     );
 
     private readonly IBrickRegistry _brickRegistry;
@@ -88,7 +88,7 @@ internal sealed class BrickPreviewMeshBuilder
         var voxel = new Voxel(
             _ID: ushort.MaxValue,
             _ShapeLight: new ShapeLight(BrickShape.Block, PREVIEW_LIGHT_LEVEL),
-            _Orientation: 0
+            _OrientationFlags: 0
         );
 
         var voxelObject = new VoxelObject(CHUNK_EDGE);

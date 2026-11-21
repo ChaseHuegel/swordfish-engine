@@ -264,6 +264,23 @@ public class InventoryViewTests
     }
 
     [Fact]
+    public void TooltipShowsPaintAndTextureToolSubtitlesForSprayerAndDrill()
+    {
+        var harness = new Harness(1280, 720);
+        harness.Populate();
+        harness.PutItem(4, new ItemData("wb:sprayer", 1, 1));
+        harness.PutItem(5, new ItemData("wb:drill", 1, 1));
+
+        harness.Hover("inventorySlot4");
+        Assert.Equal(1, harness.CountText("Paint Sprayer"));
+        Assert.Equal(1, harness.CountText("Paint tool"));
+
+        harness.Hover("inventorySlot5");
+        Assert.Equal(1, harness.CountText("Drill"));
+        Assert.Equal(1, harness.CountText("Texture tool"));
+    }
+
+    [Fact]
     public void TooltipShowsItemIdSecondSubtitleRowWhenDebugOverlayEnabled()
     {
         var harness = new Harness(1280, 720);
@@ -620,6 +637,8 @@ public class InventoryViewTests
             Step();
         }
 
+        public void PutItem(int slot, ItemData item) => SetSlot(slot, item);
+
         private void SetSlot(int slot, ItemData item)
         {
             PlayerData.MutateInventory(_world.DataStore, (ref InventoryComponent inventory) =>
@@ -670,6 +689,26 @@ public class InventoryViewTests
                     null,
                     null,
                     "item.base.laser.description"
+                ),
+                new Item(
+                    "wb:sprayer",
+                    "Paint Sprayer",
+                    "sprayer.png",
+                    1,
+                    null,
+                    new ToolDefinition { Type = ToolType.Sprayer },
+                    null,
+                    null
+                ),
+                new Item(
+                    "wb:drill",
+                    "Drill",
+                    "drill.png",
+                    1,
+                    null,
+                    new ToolDefinition { Type = ToolType.Drill },
+                    null,
+                    null
                 ),
                 new Item(
                     "wb:control_buttons",
@@ -746,6 +785,8 @@ public class InventoryViewTests
                 "ui.label.item.kind.brick" => "Brick",
                 "ui.label.item.kind.miningTool" => "Mining tool",
                 "ui.label.item.kind.conversionTool" => "Conversion tool",
+                "ui.label.item.kind.paintTool" => "Paint tool",
+                "ui.label.item.kind.textureTool" => "Texture tool",
                 "ui.label.item.kind.item" => "Item",
                 "ui.label.item.kind.unknown" => "Unknown item",
                 "ui.label.item.trait.orientable" => "Rotatable",

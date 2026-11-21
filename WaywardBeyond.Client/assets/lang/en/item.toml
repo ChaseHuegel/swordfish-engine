@@ -41,3 +41,7 @@
 "item.base.vent.description" = "Allows airflow and radiating heat from machinery"
 "item.base.control_panel" = "Control Panel"
 "item.base.control_panel.description" = "Board of switches and dials for systems"
+"item.base.sprayer" = "Paint Sprayer"
+"item.base.sprayer.description" = "Applies and removes color tints on individual brick faces"
+"item.base.drill" = "Drill"
+"item.base.drill.description" = "Applies and removes textures on individual brick faces"

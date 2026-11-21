@@ -23,8 +23,6 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
 {
     private readonly RadialMenuView _view;
 
-    private const float ELEMENT_OFFSET = 76f;
-
     /// <summary>Gets whether the currently held item and shape support orientation selection.</summary>
     public bool Available => IsMainHandOrientable();
 
@@ -109,7 +107,7 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
     /// <inheritdoc/>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        float angleBetweenElements = 360f / _orientations.Length * MathS.DEGREES_TO_RADIANS;
+        RadialMenuLayoutResult layout = RadialMenuLayout.Compute(_orientations.Length, ui.Width, ui.Height);
         Orientation selectedOrientation = _interactionState.SelectedOrientation.Get();
         var nodes = new List<RadialNodeState>(_orientations.Length);
 
@@ -117,7 +115,7 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
         {
             Orientation orientation = _orientations[i];
             OrientationSelectorElement element = _orientationSelectorElements[orientation];
-            Vector2 offset = GetRadialOffset(angleBetweenElements, i);
+            Vector2 offset = layout.Positions[i];
             nodes.Add(new RadialNodeState(
                 element.ID,
                 i,
@@ -130,7 +128,7 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
 
         string translationKey = GetSelectedOrientationKey();
 
-        _view.Render(ui, new RadialMenuState(translationKey, nodes, OnNodeEnter));
+        _view.Render(ui, new RadialMenuState(translationKey, nodes, OnNodeEnter, layout.HitSize));
 
         return Result.FromSuccess();
     }
@@ -144,14 +142,6 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
         }
 
         _interactionState.SelectedOrientation.Set(_orientations[index]);
-    }
-
-    /// <summary>Computes the position of a radial node on the selection circle.</summary>
-    private static Vector2 GetRadialOffset(float angleBetweenElements, int index)
-    {
-        var offset = new Vector2(0f, ELEMENT_OFFSET);
-        var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, angleBetweenElements * index);
-        return Vector2.Transform(offset, rotation);
     }
 
     /// <summary>Resolves the translation key of the selected orientation.</summary>

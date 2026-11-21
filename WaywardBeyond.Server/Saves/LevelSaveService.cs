@@ -33,6 +33,7 @@ public sealed class LevelSaveService : IDisposable
     private readonly ILevelCatalog _levelCatalog;
     private readonly IBrickRegistry _brickRegistry;
     private readonly IBrickDatabase _brickDatabase;
+    private readonly IPaintRegistry? _paintRegistry;
     private readonly Lock _saveLock = new();
     private readonly ConcurrentQueue<bool> _completions = new();
 
@@ -55,12 +56,14 @@ public sealed class LevelSaveService : IDisposable
         ILevelCatalog levelCatalog,
         IBrickRegistry brickRegistry,
         IBrickDatabase brickDatabase,
-        GameplayConfig gameplayConfig
+        GameplayConfig gameplayConfig,
+        IPaintRegistry? paintRegistry = null
     ) {
         _logger = logger;
         _levelCatalog = levelCatalog;
         _brickRegistry = brickRegistry;
         _brickDatabase = brickDatabase;
+        _paintRegistry = paintRegistry;
         _gameplayConfig = gameplayConfig;
         LevelSpawn = _gameplayConfig.DefaultSpawnPosition;
     }
@@ -112,7 +115,7 @@ public sealed class LevelSaveService : IDisposable
         {
             try
             {
-                VoxelEntityData local = VoxelCodec.Decode(in entity, _brickRegistry);
+                VoxelEntityData local = VoxelCodec.Decode(in entity, _brickRegistry, _paintRegistry);
                 VoxelWorldEntityFactory.CreateAuthority(store, local, _brickDatabase);
             }
             catch (Exception ex)
@@ -355,6 +358,7 @@ public sealed class LevelSaveService : IDisposable
         {
             Entries = entities,
             BrickRegistry = _brickRegistry,
+            PaintRegistry = _paintRegistry,
         };
         store.Query<VoxelWorldComponent, TransformComponent, CaptureStructureAction>(0f, ref structureAction);
 
@@ -399,6 +403,7 @@ public sealed class LevelSaveService : IDisposable
     {
         public List<VoxelEntityData> Entries;
         public IBrickRegistry BrickRegistry;
+        public IPaintRegistry? PaintRegistry;
 
         public void Execute(float delta, DataStore store, int entity, in VoxelWorldComponent world, in TransformComponent transform)
         {
@@ -417,10 +422,11 @@ public sealed class LevelSaveService : IDisposable
                 transform.Scale.Y,
                 transform.Scale.Z,
                 world.VoxelObject.GetChunkInfos(),
-                _BrickPalette: null
+                _BrickPalette: null,
+                _PaintPalette: null
             );
             
-            voxelEntityData = VoxelCodec.Encode(voxelEntityData, BrickRegistry);
+            voxelEntityData = VoxelCodec.Encode(voxelEntityData, BrickRegistry, PaintRegistry);
             Entries.Add(voxelEntityData);
         }
     }

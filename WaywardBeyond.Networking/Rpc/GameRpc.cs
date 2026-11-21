@@ -37,5 +37,6 @@ public static class GameRpc
         public const ulong SKILL_UPDATE = 352;
         public const ulong CHAT_RELAY = 353;
         public const ulong SERVER_HEARTBEAT = 354;
+        public const ulong VOXEL_FACE_EDIT = 355;
     }
 }

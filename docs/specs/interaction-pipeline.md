@@ -18,9 +18,9 @@ Select → Resolve → Validate → Commit → React
 | Stage | Job | Default handler |
 |---|---|---|
 | `Select` | Determine the content the interaction operates with | `ItemPlaceableSelector` maps the held item to the brick it places |
-| `Resolve` | Derive the base outcome from the client's target hint | `HintResolver` runs `InteractionResolver` |
+| `Resolve` | Derive the base outcome from the client's target hint | `PaintHintResolver` (High) resolves paint hints, `HintResolver` (Normal) runs `InteractionResolver` |
 | `Validate` | Adjust or reject before any authority change | none; the stage is a policy hook |
-| `Commit` | Perform the authority change | `VoxelWriteCommitter` writes, rebuilds the collider, and broadcasts |
+| `Commit` | Perform the authority change | `VoxelFaceWriteCommitter` (Normal) applies face overrides, `VoxelWriteCommitter` (Low) writes bricks, rebuilds the collider, and broadcasts |
 | `React` | Apply the consequences | `BreakLootReactor`, `PlaceConsumeReactor`, `SkillXpReactor` |
 
 The game and its mods register the same kind of handler. There is no privileged path:

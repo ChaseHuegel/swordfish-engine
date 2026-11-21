@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Voxels;
 
-public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject voxelObject, in VoxelPalette? palette = null)
+public readonly struct ChunkData
 {
     /// <summary>
     ///     Lookup table of relative X/Y/Z oriented offsets to neighbors.
@@ -62,12 +63,243 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
         }
     }
     
-    public readonly Short3 Coords = coords;
-    public readonly Chunk Data = data;
-    public readonly VoxelPalette Palette = palette ?? new VoxelPalette(data.Voxels.Length);
+    /// <summary>Returns the rotated world-space neighbor offset for the given orientation and neighbor index (0..5: Left, Right, Ahead, Behind, Above, Below).</summary>
+    public static Int3 GetRotatedNeighborOffset(Orientation orientation, int neighborIndex)
+    {
+        return _neighborOffsetLookup[orientation.ToByte()][neighborIndex];
+    }
 
-    private readonly VoxelObject _voxelObject = voxelObject;
-    private readonly Occupancy _occupancy = new();
+    public readonly Short3 Coords;
+    public readonly Chunk Data;
+    public readonly VoxelPalette Palette;
+
+    private readonly VoxelObject _voxelObject;
+    private readonly Occupancy _occupancy;
+    private readonly FaceOverrideStore _faceOverrides;
+
+    public ChunkData(in Short3 coords, in Chunk data, in VoxelObject voxelObject, in VoxelPalette? palette = null)
+    {
+        Coords = coords;
+        Data = data;
+        Palette = palette ?? new VoxelPalette(data.Voxels.Length);
+        _voxelObject = voxelObject;
+        _occupancy = new Occupancy();
+        _faceOverrides = new FaceOverrideStore();
+
+        if (data.FaceOverrides != null && data.FaceOverrides.Length > 0)
+        {
+            var map = new Dictionary<int, FaceOverride>(data.FaceOverrides.Length);
+            Voxel[] voxels = data.Voxels;
+            for (var i = 0; i < data.FaceOverrides.Length; i++)
+            {
+                int voxelIndex = data.FaceOverrides[i].Key >> 3;
+                if ((uint)voxelIndex < (uint)voxels.Length)
+                {
+                    voxels[voxelIndex].OrientationFlags = new OrientationFlags(voxels[voxelIndex].OrientationFlags).WithFaceOverrides(false);
+                }
+            }
+
+            for (var i = 0; i < data.FaceOverrides.Length; i++)
+            {
+                FaceOverrideData entry = data.FaceOverrides[i];
+                var faceOverride = new FaceOverride(entry.TexturePaintId, entry.ColorPaintId);
+                if (faceOverride.IsEmpty)
+                {
+                    continue;
+                }
+
+                int voxelIndex = entry.Key >> 3;
+                int face = entry.Key & 7;
+                if ((uint)voxelIndex >= (uint)voxels.Length || face > (int)BrickFace.Right || voxels[voxelIndex].ID == 0)
+                {
+                    continue;
+                }
+
+                map[entry.Key] = faceOverride;
+                voxels[voxelIndex].OrientationFlags = new OrientationFlags(voxels[voxelIndex].OrientationFlags).WithFaceOverrides(true);
+            }
+
+            if (map.Count > 0)
+            {
+                _faceOverrides.Overrides = map;
+            }
+        }
+    }
+
+    /// <summary>True when at least one face in this chunk carries a paint override.</summary>
+    public bool HasAnyFaceOverrides => _faceOverrides.Overrides is { Count: > 0 };
+
+    /// <summary>Computes the chunk-local sparse key for a voxel index and brick-local face.</summary>
+    public static int MakeFaceKey(int voxelIndex, BrickFace face) => (voxelIndex << 3) | (int)face;
+
+    /// <summary>Tries to read the paint override for a voxel index and brick-local face.</summary>
+    public bool TryGetFaceOverride(int voxelIndex, BrickFace face, out FaceOverride faceOverride)
+    {
+        Dictionary<int, FaceOverride>? map = _faceOverrides.Overrides;
+        if (map == null)
+        {
+            faceOverride = default;
+            return false;
+        }
+
+        return map.TryGetValue(MakeFaceKey(voxelIndex, face), out faceOverride);
+    }
+
+    /// <summary>Sets or clears the full <see cref="FaceOverride"/> on all faces in <paramref name="faceMask"/>.</summary>
+    public void SetFaceOverride(int voxelIndex, BrickFaceMask faceMask, FaceOverride faceOverride)
+    {
+        if (faceMask == BrickFaceMask.None || Data.Voxels[voxelIndex].ID == 0)
+        {
+            return;
+        }
+
+        if (faceOverride.IsEmpty)
+        {
+            Dictionary<int, FaceOverride>? existing = _faceOverrides.Overrides;
+            if (existing == null)
+            {
+                return;
+            }
+
+            for (var f = 0; f < 6; f++)
+            {
+                var face = (BrickFace)f;
+                if (faceMask.HasFace(face))
+                {
+                    existing.Remove(MakeFaceKey(voxelIndex, face));
+                }
+            }
+
+            SyncVoxelOverrideFlag(voxelIndex);
+            if (existing.Count == 0)
+            {
+                _faceOverrides.Overrides = null;
+            }
+
+            return;
+        }
+
+        Dictionary<int, FaceOverride> map = _faceOverrides.Overrides ??= [];
+        for (var f = 0; f < 6; f++)
+        {
+            var face = (BrickFace)f;
+            if (faceMask.HasFace(face))
+            {
+                map[MakeFaceKey(voxelIndex, face)] = faceOverride;
+            }
+        }
+
+        Data.Voxels[voxelIndex].OrientationFlags = new OrientationFlags(Data.Voxels[voxelIndex].OrientationFlags).WithFaceOverrides(true);
+    }
+
+    /// <summary>Sets or clears only the texture paint slot on all faces in <paramref name="faceMask"/>, preserving color tint.</summary>
+    public void SetFaceTexture(int voxelIndex, BrickFaceMask faceMask, ushort texturePaintId)
+    {
+        if (faceMask == BrickFaceMask.None || Data.Voxels[voxelIndex].ID == 0)
+        {
+            return;
+        }
+
+        for (var f = 0; f < 6; f++)
+        {
+            var face = (BrickFace)f;
+            if (!faceMask.HasFace(face))
+            {
+                continue;
+            }
+
+            TryGetFaceOverride(voxelIndex, face, out FaceOverride current);
+            SetSingleFaceOverride(voxelIndex, face, current.WithTexture(texturePaintId));
+        }
+
+        SyncVoxelOverrideFlag(voxelIndex);
+    }
+
+    /// <summary>Sets or clears only the color tint slot on all faces in <paramref name="faceMask"/>, preserving texture paint.</summary>
+    public void SetFaceColor(int voxelIndex, BrickFaceMask faceMask, ushort colorPaintId)
+    {
+        if (faceMask == BrickFaceMask.None || Data.Voxels[voxelIndex].ID == 0)
+        {
+            return;
+        }
+
+        for (var f = 0; f < 6; f++)
+        {
+            var face = (BrickFace)f;
+            if (!faceMask.HasFace(face))
+            {
+                continue;
+            }
+
+            TryGetFaceOverride(voxelIndex, face, out FaceOverride current);
+            SetSingleFaceOverride(voxelIndex, face, current.WithColor(colorPaintId));
+        }
+
+        SyncVoxelOverrideFlag(voxelIndex);
+    }
+
+    /// <summary>Removes all face overrides belonging to <paramref name="voxelIndex"/>.</summary>
+    public void ClearFaceOverrides(int voxelIndex)
+    {
+        Dictionary<int, FaceOverride>? map = _faceOverrides.Overrides;
+        if (map == null)
+        {
+            return;
+        }
+
+        for (var f = 0; f < 6; f++)
+        {
+            map.Remove(MakeFaceKey(voxelIndex, (BrickFace)f));
+        }
+
+        if (map.Count == 0)
+        {
+            _faceOverrides.Overrides = null;
+        }
+
+        Data.Voxels[voxelIndex].OrientationFlags = new OrientationFlags(Data.Voxels[voxelIndex].OrientationFlags).WithFaceOverrides(false);
+    }
+
+    private void SetSingleFaceOverride(int voxelIndex, BrickFace face, FaceOverride value)
+    {
+        int key = MakeFaceKey(voxelIndex, face);
+        if (value.IsEmpty)
+        {
+            Dictionary<int, FaceOverride>? existing = _faceOverrides.Overrides;
+            if (existing != null)
+            {
+                existing.Remove(key);
+                if (existing.Count == 0)
+                {
+                    _faceOverrides.Overrides = null;
+                }
+            }
+
+            return;
+        }
+
+        Dictionary<int, FaceOverride> map = _faceOverrides.Overrides ??= [];
+        map[key] = value;
+    }
+
+    private void SyncVoxelOverrideFlag(int voxelIndex)
+    {
+        bool any = false;
+        Dictionary<int, FaceOverride>? map = _faceOverrides.Overrides;
+        if (map != null)
+        {
+            for (var f = 0; f < 6; f++)
+            {
+                if (map.ContainsKey(MakeFaceKey(voxelIndex, (BrickFace)f)))
+                {
+                    any = true;
+                    break;
+                }
+            }
+        }
+
+        Data.Voxels[voxelIndex].OrientationFlags = new OrientationFlags(Data.Voxels[voxelIndex].OrientationFlags).WithFaceOverrides(any);
+    }
 
     /// <summary>Returns a copy of this chunk that the caller owns.</summary>
     public ChunkInfo ToChunkInfo()
@@ -77,7 +309,19 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
         var copy = new Voxel[voxels.Length];
         Array.Copy(voxels, copy, voxels.Length);
 
-        return new ChunkInfo(Coords.X, Coords.Y, Coords.Z, new Chunk(source.Size, copy));
+        FaceOverrideData[]? overridesCopy = null;
+        Dictionary<int, FaceOverride>? map = _faceOverrides.Overrides;
+        if (map != null && map.Count > 0)
+        {
+            overridesCopy = new FaceOverrideData[map.Count];
+            var i = 0;
+            foreach (KeyValuePair<int, FaceOverride> kvp in map)
+            {
+                overridesCopy[i++] = new FaceOverrideData(kvp.Key, kvp.Value.TexturePaintId, kvp.Value.ColorPaintId);
+            }
+        }
+
+        return new ChunkInfo(Coords.X, Coords.Y, Coords.Z, new Chunk(source.Size, copy, overridesCopy));
     }
 
     public Enumerator GetEnumerator()
@@ -203,7 +447,7 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
         ref Voxel center = ref Data.Voxels[voxelIndex];
 
         //  Orientation arrives from disk and the wire as a raw byte, so mask it to the 64 stored values.
-        int orientation = center.Orientation & 0x3F;
+        int orientation = center.GetOrientation().ToByte();
 
         Int3 leftOffset = _neighborOffsetLookup[orientation][(int)Neighbor.Left];
         Int3 rightOffset = _neighborOffsetLookup[orientation][(int)Neighbor.Right];
@@ -222,7 +466,10 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
             ahead:  ref GetNeighbor(x, y, z, worldX, worldY, worldZ, aheadOffset.X,  aheadOffset.Y,  aheadOffset.Z),
             behind: ref GetNeighbor(x, y, z, worldX, worldY, worldZ, behindOffset.X, behindOffset.Y, behindOffset.Z),
             above:  ref GetNeighbor(x, y, z, worldX, worldY, worldZ, aboveOffset.X,  aboveOffset.Y,  aboveOffset.Z),
-            below:  ref GetNeighbor(x, y, z, worldX, worldY, worldZ, belowOffset.X,  belowOffset.Y,  belowOffset.Z)
+            below:  ref GetNeighbor(x, y, z, worldX, worldY, worldZ, belowOffset.X,  belowOffset.Y,  belowOffset.Z),
+            chunkData: this,
+            voxelObject: _voxelObject,
+            voxelIndex: voxelIndex
         );
     }
 
@@ -279,6 +526,11 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
     private sealed class Occupancy
     {
         public ulong[]? Mask;
+    }
+
+    private sealed class FaceOverrideStore
+    {
+        public Dictionary<int, FaceOverride>? Overrides;
     }
     
     private enum Neighbor

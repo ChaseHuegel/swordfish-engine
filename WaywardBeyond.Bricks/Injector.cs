@@ -16,5 +16,11 @@ public sealed class Injector : IDryIocInjector
         container.RegisterMapping<IBrickRegistry, BrickDatabase>();
         container.RegisterMapping<IBrickDatabase, BrickDatabase>();
         container.RegisterMapping<IAssetDatabase<Brick>, BrickDatabase>();
+
+        container.RegisterTomlParser<PaintDefinitions>();
+        container.Register<PaintDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IPaintRegistry, PaintDatabase>();
+        container.RegisterMapping<IPaintDatabase, PaintDatabase>();
+        container.RegisterMapping<IAssetDatabase<Paint>, PaintDatabase>();
     }
 }

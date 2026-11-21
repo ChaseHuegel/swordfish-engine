@@ -85,7 +85,8 @@ public sealed class ServerInteractionSystem(
             kind,
             null,
             mode,
-            CharacterDefaults.DEFAULT_REACH
+            CharacterDefaults.DEFAULT_REACH,
+            interaction.Paint
         );
 
         var context = new InteractionContext(store, player, clientId, interaction.SequenceNumber, world, in request, heldItemID);

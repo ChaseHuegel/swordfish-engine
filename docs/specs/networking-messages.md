@@ -113,7 +113,8 @@ message InteractionEvent
     uint  SequenceNumber;
     uint  ServerTickAtSample;
     byte  Kind;              // PrimaryPressed / PrimaryReleased / SecondaryPressed / SecondaryReleased
-    BrickInteraction? Brick; // hint payload; future interactions add their own nullable sub-message
+    BrickInteraction? Brick; // brick hint payload
+    PaintInteraction? Paint; // face-paint hint payload
 }
 
 message BrickInteraction
@@ -122,6 +123,15 @@ message BrickInteraction
     int  TargetX, TargetY, TargetZ;  // client hint target cell
     byte HintShape;         // place only
     byte HintOrientation;   // place only
+}
+
+message PaintInteraction
+{
+    ulong TargetEntity = 0;
+    int  TargetX, TargetY, TargetZ;  // client hint target cell
+    byte FaceMask = 4;               // BrickFaceMask bitmask
+    byte Mode = 5;                   // PaintKind: 0 = Texture, 1 = Color
+    string? PaintId = 6;             // canonical paint name, null on clear
 }
 ```
 
@@ -170,10 +180,21 @@ message VoxelEditMessage
     uint Sequence = 5;
     string? BrickId = 6;
 }
+
+message VoxelFaceEditMessage
+{
+    ulong EntityUuid = 0;
+    int X, Y, Z;
+    byte FaceMask = 4;
+    byte Mode = 5;
+    string? PaintId = 6;
+    uint Sequence = 7;
+}
 ```
 
-The edit is a server-to-client RPC notification (method 350). It rides the
-reliable send queue with every other server event.
+Voxel edits use server-to-client RPC notification method `350`. Face paint edits
+use server-to-client RPC notification method `355` (`VOXEL_FACE_EDIT`). Both
+ride the reliable send queue with every other server event.
 
 ## Session heartbeats
 

@@ -6,4 +6,5 @@ public enum InteractionAction : byte
     None = 0,
     Break = 1,
     Place = 2,
+    Paint = 3,
 }

@@ -1,0 +1,20 @@
+[[Items]]
+ID          = "wb:sprayer"
+Name        = "item.base.sprayer"
+Description = "item.base.sprayer.description"
+Icon        = "items/sprayer.png"
+MaxStack    = 1
+[Items.Tool]
+Type        = "sprayer"
+[Items.ViewModel]
+Mesh        = "items/sprayer.obj"
+Material    = "items/sprayer"
+Position.X  = 0.5
+Position.Y  = -0.5
+Position.Z  = -0.3
+Rotation.X  = 0
+Rotation.Y  = 5
+Rotation.Z  = 0
+[Items.WorldModel]
+Mesh        = "items/sprayer.obj"
+Material    = "items/sprayer"

@@ -48,7 +48,7 @@ public static class VoxelCollision
         bool isPlainCube = BrickColliders.IsFullBlock(brickShape, brick);
         Quaternion voxelOrientation = isPlainCube
             ? Quaternion.Identity
-            : ((Orientation)sample.Center.Orientation).ToQuaternion();
+            : sample.Center.GetOrientation().ToQuaternion();
 
         for (var i = 0; i < parts.Length; i++)
         {

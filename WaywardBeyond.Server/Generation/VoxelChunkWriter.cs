@@ -48,7 +48,7 @@ internal sealed class VoxelChunkWriter
 
         if (!_chunks.TryGetValue(key, out Chunk chunk))
         {
-            chunk = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk]);
+            chunk = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk], _FaceOverrides: null);
             _chunks[key] = chunk;
         }
 

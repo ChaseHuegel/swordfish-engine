@@ -79,6 +79,18 @@ message VoxelEditMessage
     string? BrickId = 6;
 }
 
+message VoxelFaceEditMessage
+{
+    ulong EntityUuid = 0;
+    int X = 1;
+    int Y = 2;
+    int Z = 3;
+    byte FaceMask = 4;
+    byte Mode = 5;
+    string? PaintId = 6;
+    uint Sequence = 7;
+}
+
 enum NotificationType
 {
     Toast = 0;

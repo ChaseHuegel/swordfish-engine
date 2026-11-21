@@ -3,6 +3,7 @@ ID      = "wb:ice"
 Shape   = "any"
 Tags    = [
     "environment",
+    "paintable",
 ]
 [Bricks.Textures]
 Default = ["ice"]

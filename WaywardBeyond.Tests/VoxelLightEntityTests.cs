@@ -58,7 +58,7 @@ public class VoxelLightEntityTests
 
     private static Voxel CreateVoxel(ushort id, int lightLevel)
     {
-        return new Voxel(_ID: id, _ShapeLight: new ShapeLight(BrickShape.Block, lightLevel), _Orientation: 0);
+        return new Voxel(_ID: id, _ShapeLight: new ShapeLight(BrickShape.Block, lightLevel), _OrientationFlags: 0);
     }
 
     private static void FillNeighbours(VoxelObject voxelObject, Voxel voxel, int x, int y, int z, int openMask = 0)

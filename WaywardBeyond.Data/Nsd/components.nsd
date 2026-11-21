@@ -49,6 +49,7 @@ message InteractionEvent
     uint ServerTickAtSample = 2;
     InteractionKind Kind = 3;
     BrickInteraction? Brick = 4;
+    PaintInteraction? Paint = 5;
 }
 
 enum InteractionKind
@@ -68,6 +69,17 @@ message BrickInteraction
     int  TargetZ = 3;
     byte HintShape = 4;
     byte HintOrientation = 5;
+}
+
+message PaintInteraction
+{
+    ulong TargetEntity = 0;
+    int TargetX = 1;
+    int TargetY = 2;
+    int TargetZ = 3;
+    byte FaceMask = 4;
+    byte Mode = 5;
+    string? PaintId = 6;
 }
 
 message InventoryEvent

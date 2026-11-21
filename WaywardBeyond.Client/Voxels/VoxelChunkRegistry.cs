@@ -19,6 +19,7 @@ public sealed class VoxelChunkRegistry
     public readonly HashSet<Short3> DirtyChunks = [];
     public readonly HashSet<Short3> GeometryDirtyChunks = [];
     public readonly HashSet<Short3> LightDirtyChunks = [];
+    public readonly HashSet<Short3> EntityDirtyChunks = [];
     public readonly HashSet<Short3> KnownChunks = [];
     public readonly DepthState DepthState = new();
 
@@ -36,6 +37,14 @@ public sealed class VoxelChunkRegistry
 
     /// <summary>Indicates whether depth state has been populated for this structure.</summary>
     public bool DepthStateInitialized;
+
+    /// <summary>Marks the chunk containing the coordinates and any orthogonal border neighbors as mesh-only dirty for a face paint edit, and flags the center chunk for voxel entity decorator updates.</summary>
+    public void MarkFaceModified(int x, int y, int z, byte chunkSize)
+    {
+        MarkVoxelModified(x, y, z, chunkSize, lightOnly: true);
+        int chunkShift = int.TrailingZeroCount(chunkSize);
+        EntityDirtyChunks.Add(new Short3((short)(x >> chunkShift), (short)(y >> chunkShift), (short)(z >> chunkShift)));
+    }
 
     /// <summary>Marks the chunk containing the coordinates and any orthogonal border neighbors as dirty.</summary>
     public void MarkVoxelModified(int x, int y, int z, byte chunkSize, bool lightOnly = false)

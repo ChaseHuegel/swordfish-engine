@@ -51,7 +51,7 @@ overrides after the engine builds
 | `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`) |
 | `WaywardBeyond.Data` (localization) | `LocalizationComposition.RegisterTags()` | localized tag database and parser |
 | `WaywardBeyond.Server` | `RegisterHost()`, `RegisterServer()` | host wire-up, server composition |
-| `WaywardBeyond.Bricks` | `Injector` | brick database, registry, parser |
+| `WaywardBeyond.Bricks` | `Injector` | brick and paint databases, registries, parsers |
 | `WaywardBeyond.Items` | `Injector` | item database and parser |
 | `WaywardBeyond.Bodies` | `Injector` | body database, parser |
 | `WaywardBeyond.Skills` | `Injector` | skill database, parser, tags |
