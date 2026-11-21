@@ -232,7 +232,7 @@ See [rendering-shadows](rendering-shadows.md) and [rendering-sao](rendering-sao.
 |---|---|---|---|
 | `AntiAliasing` | enum | `MSAA` | anti-aliasing mode (`None` \| `MSAA`) |
 | `Framerate` | int | `0` | target framerate limit; 0 removes the cap |
-| `VSync` | bool | `false` | vertical synchronization |
+| `VSync` | bool | `true` | vertical synchronization |
 | `FOV` | int | `90` | camera field of view in degrees |
 | `NearPlane` | float | `0.1` | camera near clipping distance |
 | `FarPlane` | float | `1000.0` | camera far clipping distance |
