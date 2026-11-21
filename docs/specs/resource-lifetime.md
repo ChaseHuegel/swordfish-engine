@@ -31,7 +31,7 @@ leaves the draw list in the tick that disposes the renderer.
 The container does not own the window or the GL binding. The window loop unbinds
 the GL context when it ends. The engine captures the window context in the
 engine container (`EngineContainer.cs:36-52`) and makes it current before the
-container disposes (`SwordfishEngine.cs:90-104`). The container then deletes its
+container disposes (`SwordfishEngine.cs:134-146`). The container then deletes its
 GL resources. The engine disposes the GL binding and the window afterward. Do
 not dispose `GL` from the close handler. The function pointers are unavailable
 until the captured context is current. The batch and mesh unbound queues are
