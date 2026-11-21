@@ -236,6 +236,7 @@ See [rendering-shadows](rendering-shadows.md) and [rendering-sao](rendering-sao.
 | `FOV` | int | `90` | camera field of view in degrees |
 | `NearPlane` | float | `0.1` | camera near clipping distance |
 | `FarPlane` | float | `1000.0` | camera far clipping distance |
+| `TransparentSortThreshold` | float | `0.25` | minimum batch-local camera movement in units before transparent range indices re-sort |
 | `SAO.Enabled` | bool | `true` | enables Scalable Ambient Obscurance |
 | `SAO.Samples` | int | `8` | sample count for SAO obscurance passes, cost is linear |
 | `SAO.ResolutionScale` | float | `0.5` | SAO buffer size as a fraction of the screen, at least one texel, above 1 supersamples |

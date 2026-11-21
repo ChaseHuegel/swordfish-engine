@@ -237,11 +237,12 @@ internal sealed class VoxelEntityBuilder(
         VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(buildContext, chunk);
         VoxelChunkRegistry registry = voxelComponent.Registry;
         Short3 chunkOffset = chunk.Coords;
+        Vector3 chunkSortCenter = GetChunkSortCenter(chunkOffset, voxelComponent.VoxelObject.ChunkSize);
 
-        UpdateBatch(registry.OpaqueBatch, registry.OpaqueRanges, chunkOffset, data.OpaqueMesh);
-        UpdateBatch(registry.OpaqueNoShadowBatch, registry.OpaqueNoShadowRanges, chunkOffset, data.OpaqueNoShadowMesh);
-        UpdateBatch(registry.MaskedBatch, registry.MaskedRanges, chunkOffset, data.MaskedMesh);
-        UpdateBatch(registry.TransparentBatch, registry.TransparentRanges, chunkOffset, data.TransparentMesh);
+        UpdateBatch(registry.OpaqueBatch, registry.OpaqueRanges, chunkOffset, data.OpaqueMesh, chunkSortCenter);
+        UpdateBatch(registry.OpaqueNoShadowBatch, registry.OpaqueNoShadowRanges, chunkOffset, data.OpaqueNoShadowMesh, chunkSortCenter);
+        UpdateBatch(registry.MaskedBatch, registry.MaskedRanges, chunkOffset, data.MaskedMesh, chunkSortCenter);
+        UpdateBatch(registry.TransparentBatch, registry.TransparentRanges, chunkOffset, data.TransparentMesh, chunkSortCenter);
 
         if (reconcileEntities)
         {
@@ -249,11 +250,23 @@ internal sealed class VoxelEntityBuilder(
         }
     }
 
+    /// <summary>Returns the uniform grid-cell center of a chunk for back-to-front sorting across chunk boundaries.</summary>
+    internal static Vector3 GetChunkSortCenter(Short3 chunkOffset, byte chunkSize)
+    {
+        float halfSpan = (chunkSize - 1) * 0.5f;
+        return new Vector3(
+            chunkOffset.X * chunkSize + halfSpan,
+            chunkOffset.Y * chunkSize + halfSpan,
+            chunkOffset.Z * chunkSize + halfSpan
+        );
+    }
+
     private static void UpdateBatch(
         MeshBatch? batch,
         Dictionary<Short3, MeshRangeHandle> ranges,
         Short3 chunkOffset,
-        in VoxelObjectBuilder.ChunkMesh mesh
+        in VoxelObjectBuilder.ChunkMesh mesh,
+        in Vector3 sortCenter
     )
     {
         if (batch == null)
@@ -265,11 +278,11 @@ internal sealed class VoxelEntityBuilder(
         {
             if (ranges.TryGetValue(chunkOffset, out MeshRangeHandle handle))
             {
-                batch.UpdateRange(handle, mesh.VertexData, mesh.VertexCount, mesh.Indices, mesh.Bounds);
+                batch.UpdateRange(handle, mesh.VertexData, mesh.VertexCount, mesh.Indices, mesh.Bounds, sortCenter);
             }
             else
             {
-                ranges[chunkOffset] = batch.AddRange(mesh.VertexData, mesh.VertexCount, mesh.Indices, mesh.Bounds);
+                ranges[chunkOffset] = batch.AddRange(mesh.VertexData, mesh.VertexCount, mesh.Indices, mesh.Bounds, sortCenter);
             }
         }
         else if (ranges.Remove(chunkOffset, out MeshRangeHandle handle))

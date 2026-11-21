@@ -98,10 +98,29 @@ Id 0 is the empty voxel. `Only(0)` is true for a chunk that holds no content.
 
 ## Chunk remeshing and dirty tracking
 
-Client structures mesh each resident chunk into one range in each of three
-`MeshBatch` resources: opaque, masked, and transparent. Three batch renderer
-child entities per object hold the batches
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs`).
+Client structures mesh each resident chunk into one range in each of four
+`MeshBatch` resources: opaque, non-shadow-casting opaque, masked, and
+transparent. Four batch renderer child entities per object hold the batches
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:52-82`).
+
+`GLMeshBatchRenderer.CollectTransparent`
+(`Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLMeshBatchRenderer.cs:99-148`)
+sorts visible `AlphaMode.Blend` ranges back-to-front across chunks by
+`MeshRange.SortCenter` and within each chunk by quad and triangle centroid in
+batch-local camera space. `VoxelEntityBuilder.GetChunkSortCenter`
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:254-262`) sets
+each chunk range's sort center to its uniform grid-cell center so adjacent
+chunks sort across exact separating planes while keeping tight frustum bounds.
+`TransparentRangeSorter`
+(`Swordfish/Graphics/TransparentRangeSorter.cs:8`) caches per-range centroids
+and re-sorts only when camera movement meets or exceeds
+`RenderSettings.TransparentSortThreshold` (`0.25` units by default).
+`GLMeshBatch.SortRangeIndicesIfNeeded`
+(`Swordfish/Graphics/SilkNET/OpenGL/GLMeshBatch.cs:99-130`) uploads only the
+sorted index slice while keeping the vertex buffer static.
+`GLMeshBatchRenderer.RenderTransparentItem`
+(`Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLMeshBatchRenderer.cs:151-225`)
+renders sorted double-faced ranges in a single pass with face culling disabled.
 
 `VoxelChunkRegistry` (`WaywardBeyond.Client/Voxels/VoxelChunkRegistry.cs`)
 tracks range handles, dirty chunk coordinates, cached chunk collision data, and
