@@ -105,13 +105,15 @@ internal struct BrickColliderDefinition()
 
     private static bool HasNonZeroVolume(Vector3[] points)
     {
-        const float EPSILON = 1e-6f;
+        const float DIST_SQ_EPSILON = 1e-10f;
+        const float CROSS_SQ_EPSILON = 1e-10f;
+        const float VOLUME_EPSILON = 1e-9f;
         Vector3 origin = points[0];
 
         var secondIndex = -1;
         for (var i = 1; i < points.Length; i++)
         {
-            if (Vector3.DistanceSquared(origin, points[i]) > EPSILON)
+            if (Vector3.DistanceSquared(origin, points[i]) > DIST_SQ_EPSILON)
             {
                 secondIndex = i;
                 break;
@@ -129,7 +131,7 @@ internal struct BrickColliderDefinition()
         for (var i = secondIndex + 1; i < points.Length; i++)
         {
             Vector3 cross = Vector3.Cross(edgeA, points[i] - origin);
-            if (cross.LengthSquared() > EPSILON)
+            if (cross.LengthSquared() > CROSS_SQ_EPSILON)
             {
                 normal = cross;
                 foundPlane = true;
@@ -144,7 +146,7 @@ internal struct BrickColliderDefinition()
 
         for (var i = 1; i < points.Length; i++)
         {
-            if (MathF.Abs(Vector3.Dot(normal, points[i] - origin)) > EPSILON)
+            if (MathF.Abs(Vector3.Dot(normal, points[i] - origin)) > VOLUME_EPSILON)
             {
                 return true;
             }

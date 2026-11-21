@@ -70,9 +70,10 @@ public static class VoxelCollision
     /// <summary>Builds the full compound collision shape for a live <see cref="VoxelObject"/>.</summary>
     public static CompoundShape BuildCompound(VoxelObject voxelObject, IBrickDatabase? brickDatabase = null)
     {
-        var shapes = new List<Shape>();
-        var positions = new List<Vector3>();
-        var orientations = new List<Quaternion>();
+        int initialCapacity = voxelObject.ChunkCount * 64;
+        var shapes = new List<Shape>(initialCapacity);
+        var positions = new List<Vector3>(initialCapacity);
+        var orientations = new List<Quaternion>(initialCapacity);
 
         foreach (ChunkData chunk in voxelObject)
         {

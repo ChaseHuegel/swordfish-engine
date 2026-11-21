@@ -142,7 +142,7 @@ Offset = { X = 0.0, Y = 0.0, Z = -0.40625 }
 ```
 
 Invalid collider entries log a warning and are skipped at `BrickDatabase` load
-(`WaywardBeyond.Bricks/BrickDatabase.cs:96-116`). Both client
+(`WaywardBeyond.Bricks/BrickDatabase.cs:96-117`). Both client
 (`WaywardBeyond.Client/Voxels/Processing/CollisionPostPass.cs`) and server
 (`WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`) build structure
 colliders through `VoxelCollision` (`WaywardBeyond.Voxels/VoxelCollision.cs`).
