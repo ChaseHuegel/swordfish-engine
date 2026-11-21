@@ -102,7 +102,7 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
         }
 
         if (item.Placeable?.Type == PlaceableType.Brick
-            && _brickIcons.TryGetValue(item.Placeable.ID, out Material? brickIcon))
+            && _brickIcons.TryGetValue(item.Placeable.Value.ID, out Material? brickIcon))
         {
             return brickIcon;
         }
