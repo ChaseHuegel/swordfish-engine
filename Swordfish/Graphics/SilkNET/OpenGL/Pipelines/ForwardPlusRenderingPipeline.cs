@@ -333,7 +333,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     private void OnWindowResized(Vector2 size)
     {
-        if (size.X <= 0 && size.Y <= 0)
+        if (size.X <= 0 || size.Y <= 0)
         {
             return;
         }
