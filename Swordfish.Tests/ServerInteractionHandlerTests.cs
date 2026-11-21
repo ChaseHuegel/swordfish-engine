@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
 using Krill;
@@ -32,7 +34,7 @@ public class ServerInteractionHandlerTests
         var store = new DataStore();
         VoxelObject voxels = FilledVoxels();
         int entity = AllocStructure(store, voxels);
-        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteCommitter>.Instance);
+        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), new FakeBrickDatabase(), NullLogger<VoxelWriteCommitter>.Instance);
 
         InteractionContext context = Context(store, entity);
         context.Resolution = new InteractionResolution(InteractionAction.Break, entity, new Int3(0, 0, 0), voxels.Get(0, 0, 0));
@@ -48,7 +50,7 @@ public class ServerInteractionHandlerTests
         var store = new DataStore();
         VoxelObject voxels = FilledVoxels();
         int entity = AllocStructure(store, voxels);
-        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteCommitter>.Instance);
+        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), new FakeBrickDatabase(), NullLogger<VoxelWriteCommitter>.Instance);
 
         InteractionContext context = Context(store, entity);
         var placed = new Voxel(2, new ShapeLight(BrickShape.Block, lightLevel: 0), default);
@@ -64,7 +66,7 @@ public class ServerInteractionHandlerTests
         var store = new DataStore();
         VoxelObject voxels = FilledVoxels();
         int entity = AllocStructure(store, voxels);
-        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), NullLogger<VoxelWriteCommitter>.Instance);
+        var handler = new VoxelWriteCommitter(new ServerPeers(), new FakeRegistry(), new FakeBrickDatabase(), NullLogger<VoxelWriteCommitter>.Instance);
 
         InteractionContext context = Context(store, entity);
 
@@ -171,5 +173,16 @@ public class ServerInteractionHandlerTests
             2 => "wb:panel",
             _ => null,
         };
+    }
+
+    private sealed class FakeBrickDatabase : IBrickDatabase
+    {
+        public bool IsCuller(in Voxel voxel, BrickShape shape) => false;
+
+        public Result<Brick> Get(ushort id) => Result<Brick>.FromFailure("Not found");
+
+        public Result<Brick> Get(string id) => Result<Brick>.FromFailure("Not found");
+
+        public List<Brick> Get(Func<Brick, bool> predicate) => [];
     }
 }

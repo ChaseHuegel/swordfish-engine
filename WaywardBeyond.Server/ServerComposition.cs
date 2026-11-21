@@ -130,6 +130,7 @@ public static class ServerComposition
         container.Resolve<PermissionPolicy>();
         container.Resolve<ServerPeers>();
         container.Resolve<IBrickRegistry>();
+        container.Resolve<IBrickDatabase>();
         container.Resolve<ISkillDatabase>();
     }
 

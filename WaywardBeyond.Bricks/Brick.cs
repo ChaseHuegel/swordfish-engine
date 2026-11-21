@@ -23,6 +23,10 @@ public sealed class Brick
     public readonly string? MeshID;
     public readonly BrickShape Shape;
     public readonly BrickTextures Textures;
+    private readonly BrickColliderShape[] _colliders;
+
+    /// <summary>Optional custom collider primitives declared on this brick, or empty for shape presets.</summary>
+    public ReadOnlySpan<BrickColliderShape> Colliders => _colliders;
 
     public readonly bool Shapeable;
     public readonly bool LightSource;
@@ -38,7 +42,8 @@ public sealed class Brick
         in string? meshID,
         in BrickShape shape,
         in BrickTextures textures,
-        in string[]? tags
+        in string[]? tags,
+        in BrickColliderShape[]? colliders = null
     ) {
         ID = id;
         Alpha = alpha;
@@ -46,6 +51,7 @@ public sealed class Brick
         MeshID = meshID;
         Shape = shape;
         Textures = textures;
+        _colliders = colliders ?? [];
         Tags = new HashSet<string>(tags ?? [], StringComparer.OrdinalIgnoreCase);
         Shapeable = shape == BrickShape.Any;
         LightSource = Tags.Contains("light");
