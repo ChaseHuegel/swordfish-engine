@@ -1,3 +1,4 @@
+using System.Numerics;
 using Krill;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -85,5 +86,23 @@ public class VoxelChunkLifetimeTests
 
         Assert.Empty(registry.BatchEntities);
         Assert.True(store.Has(typeof(MeshBatchRendererComponent), recycled));
+    }
+
+    [Fact]
+    public void ChunkSortCenterSeparatesAdjacentChunksAlongExactBoundaryPlane()
+    {
+        Vector3 leftCenter = VoxelEntityBuilder.GetChunkSortCenter(new Short3(0, 0, 0), 16);
+        Vector3 rightCenter = VoxelEntityBuilder.GetChunkSortCenter(new Short3(1, 0, 0), 16);
+
+        Assert.Equal(new Vector3(7.5f, 7.5f, 7.5f), leftCenter);
+        Assert.Equal(new Vector3(23.5f, 7.5f, 7.5f), rightCenter);
+
+        //  Camera on the left side of the x = 15.5 separating plane sorts left chunk closer regardless of Z
+        var cameraLeftOfBoundary = new Vector3(15.4f, 2f, 30f);
+        Assert.True(Vector3.DistanceSquared(leftCenter, cameraLeftOfBoundary) < Vector3.DistanceSquared(rightCenter, cameraLeftOfBoundary));
+
+        //  Camera on the right side of the x = 15.5 separating plane sorts right chunk closer regardless of Z
+        var cameraRightOfBoundary = new Vector3(15.6f, 2f, -30f);
+        Assert.True(Vector3.DistanceSquared(rightCenter, cameraRightOfBoundary) < Vector3.DistanceSquared(leftCenter, cameraRightOfBoundary));
     }
 }
