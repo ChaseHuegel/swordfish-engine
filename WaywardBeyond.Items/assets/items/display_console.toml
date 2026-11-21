@@ -2,7 +2,6 @@
 ID       = "wb:display_console"
 Name     = "item.base.display_console"
 Description = "item.base.display_console.description"
-Icon     = "block/display_console.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"

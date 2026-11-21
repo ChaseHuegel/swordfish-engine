@@ -2,7 +2,6 @@
 ID         = "wb:porthole"
 Name       = "item.base.porthole"
 Description = "item.base.porthole.description"
-Icon       = "block/porthole.png"
 MaxStack   = 100
 [Items.Placeable]
 Type       = "brick"

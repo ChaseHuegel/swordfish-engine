@@ -2,7 +2,6 @@
 ID       = "wb:core"
 Name     = "item.base.core"
 Description = "item.base.core.description"
-Icon     = "block/core.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
