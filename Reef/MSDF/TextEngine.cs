@@ -96,7 +96,7 @@ public sealed class TextEngine : ITextEngine
     private static void GenerateMSDF(string processPath, FontInfo fontInfo, out AtlasOutput output)
     {
         string fontFolder = Path.GetDirectoryName(fontInfo.Path)!;
-        string imageDestination = Path.Combine(fontFolder, fontInfo.ID + ".bmp");
+        string imageDestination = Path.Combine(fontFolder, fontInfo.ID + ".png");
         string jsonDestination = Path.Combine(fontFolder, fontInfo.ID + ".json");
         output = new AtlasOutput(imageDestination, jsonDestination);
 

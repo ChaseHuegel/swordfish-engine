@@ -131,8 +131,11 @@ public class ThreadWorker
                 }
             }
 
-            Thread.Sleep(200);  //	Sleep when paused
-            _lastTickTime = _stopwatch.Elapsed.TotalSeconds;
+            if (_stop == false)
+            {
+                Thread.Sleep(200);  //	Sleep when paused
+                _lastTickTime = _stopwatch.Elapsed.TotalSeconds;
+            }
         }
         //	Stopped thread safely
     }

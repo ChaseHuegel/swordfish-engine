@@ -11,8 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
-    <None Update="manifest.toml" CopyToOutputDirectory="Always"/>
+    <Content Include="assets\**\*.*" CopyToOutputDirectory="PreserveNewest"/>
+    <None Update="manifest.toml" CopyToOutputDirectory="PreserveNewest"/>
     <EmbeddedResource Include="Manifest\**\*.*" />
   </ItemGroup>
 

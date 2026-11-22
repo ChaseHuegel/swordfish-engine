@@ -18,25 +18,25 @@
 
     <ItemGroup>
       <None Update="Images\swordfish.png">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="Fonts\Font Awesome 6 Free Solid.otf">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="Fonts\Salmon Mono 9 Regular.ttf">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Include="..\Reef.Tests\TestFiles\Fonts\salmon-mono-9-regular.bmp" Link="Fonts\salmon-mono-9-regular.bmp">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <None Include="..\Reef.Tests\TestFiles\Fonts\salmon-mono-9-regular.png" Link="Fonts\salmon-mono-9-regular.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Include="..\Reef.Tests\TestFiles\Fonts\salmon-mono-9-regular.json" Link="Fonts\salmon-mono-9-regular.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
-      <None Include="..\Reef.Tests\TestFiles\Fonts\fa-6-free-solid.bmp" Link="Fonts\fa-6-free-solid.bmp">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <None Include="..\Reef.Tests\TestFiles\Fonts\fa-6-free-solid.png" Link="Fonts\fa-6-free-solid.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Include="..\Reef.Tests\TestFiles\Fonts\fa-6-free-solid.json" Link="Fonts\fa-6-free-solid.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
 

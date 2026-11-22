@@ -80,26 +80,37 @@ public class UITests
         
         var renderer = new PixelRenderer(ui.Width, ui.Height, textEngine, fonts);
         renderer.Render(renderCommands);
-        
-        SavePixels(ui.Width, ui.Height, renderer.GetPixels(), "ui.bmp");
+
+        ReadOnlyCollection<Vector4> pixels = renderer.GetPixels();
+        Assert.Equal(ui.Width * ui.Height, pixels.Count);
+
+        if (string.Equals(Environment.GetEnvironmentVariable("REEF_TESTS_SAVE_UI_BMP"), "1", StringComparison.Ordinal))
+        {
+            SavePixels(ui.Width, ui.Height, pixels, "ui.bmp");
+        }
     }
 
     private static void SavePixels(int width, int height, ReadOnlyCollection<Vector4> pixels, string path)
     {
         using var image = new Image<Rgba32>(width, height);
-        for (var i = 0; i < pixels.Count; i++)
+        image.ProcessPixelRows(accessor =>
         {
-            int x = i % width;
-            int y = i / width;
-
-            Vector4 pixel = pixels[i];
-            image[x, y] = new Rgba32(
-                (byte)(pixel.X * 255),
-                (byte)(pixel.Y * 255),
-                (byte)(pixel.Z * 255),
-                (byte)(pixel.W * 255)
-            );
-        }
+            for (var y = 0; y < height; y++)
+            {
+                Span<Rgba32> row = accessor.GetRowSpan(y);
+                int rowOffset = y * width;
+                for (var x = 0; x < width; x++)
+                {
+                    Vector4 pixel = pixels[rowOffset + x];
+                    row[x] = new Rgba32(
+                        (byte)(pixel.X * 255),
+                        (byte)(pixel.Y * 255),
+                        (byte)(pixel.Z * 255),
+                        (byte)(pixel.W * 255)
+                    );
+                }
+            }
+        });
 
         image.Save(path);
     }
@@ -108,20 +119,24 @@ public class UITests
     {
         using Image<Rgba32> image = Image.Load<Rgba32>(path);
         var texture = new PixelTexture(image.Width, image.Height);
-        for (var y = 0; y < image.Height; y++)
-        for (var x = 0; x < image.Width; x++)
+        image.ProcessPixelRows(accessor =>
         {
-            Rgba32 color = image[x, y];
-            var vector4 = new Vector4(
-                color.R / 255f,
-                color.G / 255f,
-                color.B / 255f,
-                color.A / 255f
-            );
-            
-            texture.SetPixel(x, y, vector4);
-        }
-        
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                Span<Rgba32> row = accessor.GetRowSpan(y);
+                for (var x = 0; x < row.Length; x++)
+                {
+                    Rgba32 color = row[x];
+                    texture.SetPixel(x, y, new Vector4(
+                        color.R / 255f,
+                        color.G / 255f,
+                        color.B / 255f,
+                        color.A / 255f
+                    ));
+                }
+            }
+        });
+
         return texture;
     }
 

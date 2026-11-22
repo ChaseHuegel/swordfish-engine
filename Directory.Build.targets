@@ -1,0 +1,56 @@
+<Project>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
+    <_UnusedRuntimeRidPattern>^(android|ios|freebsd|browser|maccatalyst|tvos|aot)</_UnusedRuntimeRidPattern>
+    <_KeepDebugRuntimeRidPattern Condition="'$(Configuration)' == 'Debug' and $([MSBuild]::IsOSPlatform('Windows'))">^(win|any)</_KeepDebugRuntimeRidPattern>
+    <_KeepDebugRuntimeRidPattern Condition="'$(Configuration)' == 'Debug' and $([MSBuild]::IsOSPlatform('Linux'))">^(linux|unix|any)</_KeepDebugRuntimeRidPattern>
+    <_KeepDebugRuntimeRidPattern Condition="'$(Configuration)' == 'Debug' and $([MSBuild]::IsOSPlatform('OSX'))">^(osx|unix|any)</_KeepDebugRuntimeRidPattern>
+  </PropertyGroup>
+
+  <Target Name="_FilterUnusedRuntimeTargetAssets"
+          AfterTargets="ResolvePackageAssets"
+          BeforeTargets="ResolveLockFileCopyLocalFiles"
+          Condition="'$(RuntimeIdentifier)' == '' and '@(RuntimeTargetsCopyLocalItems)' != ''">
+    <ItemGroup>
+      <_UnusedRuntimeTargets Include="@(RuntimeTargetsCopyLocalItems)"
+                             Condition="'$(_KeepDebugRuntimeRidPattern)' != ''
+                                        and !$([System.Text.RegularExpressions.Regex]::IsMatch('%(RuntimeTargetsCopyLocalItems.RuntimeIdentifier)', '$(_KeepDebugRuntimeRidPattern)', System.Text.RegularExpressions.RegexOptions.IgnoreCase))" />
+      <_UnusedRuntimeTargets Include="@(RuntimeTargetsCopyLocalItems)"
+                             Condition="'$(_KeepDebugRuntimeRidPattern)' == ''
+                                        and $([System.Text.RegularExpressions.Regex]::IsMatch('%(RuntimeTargetsCopyLocalItems.RuntimeIdentifier)', '$(_UnusedRuntimeRidPattern)', System.Text.RegularExpressions.RegexOptions.IgnoreCase))" />
+      <RuntimeTargetsCopyLocalItems Remove="@(_UnusedRuntimeTargets)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_ExcludeForeignModuleManifestsFromOutput"
+          BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectory;_CopyOutOfDateSourceItemsToOutputDirectoryAlways;_CopyDifferingSourceItemsToOutputDirectory"
+          Condition="Exists('$(MSBuildProjectDirectory)/manifest.toml')">
+    <PropertyGroup>
+      <_OwnModuleManifestPath>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/manifest.toml'))</_OwnModuleManifestPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ForeignModuleManifests Include="@(_SourceItemsToCopyToOutputDirectory);@(_SourceItemsToCopyToOutputDirectoryAlways);@(_SourceItemsToCopyToOutputDirectoryIfDifferent)"
+                               Condition="$([System.String]::Equals('%(TargetPath)', 'manifest.toml', System.StringComparison.OrdinalIgnoreCase))
+                                          and !$([System.String]::Equals('%(FullPath)', '$(_OwnModuleManifestPath)', System.StringComparison.OrdinalIgnoreCase))" />
+      <_SourceItemsToCopyToOutputDirectory Remove="@(_ForeignModuleManifests)" />
+      <_SourceItemsToCopyToOutputDirectoryAlways Remove="@(_ForeignModuleManifests)" />
+      <_SourceItemsToCopyToOutputDirectoryIfDifferent Remove="@(_ForeignModuleManifests)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="_ExcludeForeignModuleManifestsFromPublish"
+          AfterTargets="ComputeFilesToPublish"
+          BeforeTargets="_HandleFileConflictsForPublish;_GetCurrentAndPriorPublishFileWrites;_ComputeResolvedFilesToPublishTypes"
+          Condition="Exists('$(MSBuildProjectDirectory)/manifest.toml')">
+    <PropertyGroup>
+      <_OwnModuleManifestPath>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/manifest.toml'))</_OwnModuleManifestPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ForeignPublishModuleManifests Include="@(ResolvedFileToPublish)"
+                                      Condition="$([System.String]::Equals('%(RelativePath)', 'manifest.toml', System.StringComparison.OrdinalIgnoreCase))
+                                                 and !$([System.String]::Equals('%(FullPath)', '$(_OwnModuleManifestPath)', System.StringComparison.OrdinalIgnoreCase))" />
+      <ResolvedFileToPublish Remove="@(_ForeignPublishModuleManifests)" />
+    </ItemGroup>
+  </Target>
+
+</Project>
