@@ -6,7 +6,9 @@ using Swordfish;
 using Swordfish.Library.Configuration;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
+using Swordfish.Library.Serialization.Toml.Mappers;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -186,6 +188,58 @@ public class AppPathsAndConfigTests
 
             TestConfig loaded = container.Resolve<TestConfig>();
             Assert.Equal("exact", loaded.Value.Get());
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void RegisterConfig_ActivatesMappersRegisteredAfterStartup()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        string moduleAssets = Path.Combine(tempRoot, "module_assets");
+        string userRoot = Path.Combine(tempRoot, "user_data");
+        Directory.CreateDirectory(Path.Combine(moduleAssets, "config"));
+        File.WriteAllText(
+            Path.Combine(moduleAssets, "config", "render.toml"),
+            "VSync = false\nAntiAliasing = \"None\"\n"
+        );
+
+        try
+        {
+            using var container = new Container();
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(moduleAssets));
+            container.RegisterInstance(vfs);
+            container.RegisterInstance(AppPaths.ForDirectory(new PathInfo(userRoot)));
+            container.Register<IFileParseService, VirtualFileParseService>(Reuse.Transient);
+
+            container.RegisterTomlMapper<PathTomlMapper>();
+            container.RegisterDataBinding<bool>();
+            container.RegisterDataBinding<int>();
+            container.RegisterDataBinding<float>();
+
+            foreach (ITomlMapper mapper in container.ResolveMany<ITomlMapper>())
+            {
+                mapper.Register();
+            }
+
+            container.RegisterConfig<RenderSettings>(file: "render.toml");
+
+            // EngineContainer.Register adds this mapper after the startup activation pass.
+            container.RegisterDataBinding<AntiAliasing>();
+
+            // Module injectors resolve configs from the child modules container.
+            using var modulesContainer = container.With();
+            RenderSettings loaded = modulesContainer.Resolve<RenderSettings>();
+
+            Assert.False(loaded.VSync.Get());
+            Assert.Equal(AntiAliasing.None, loaded.AntiAliasing.Get());
         }
         finally
         {

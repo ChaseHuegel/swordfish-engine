@@ -1,6 +1,7 @@
 using DryIoc;
 using Swordfish.Library.Configuration;
 using Swordfish.Library.IO;
+using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Serialization.Toml.Mappers;
 using Swordfish.Library.Types;
 
@@ -34,6 +35,14 @@ public static class ContainerExtensions
     private static T LoadOrCreateConfig<T>(IResolverContext context, string file, SaveLocation saveLocation)
         where T : Config<T>, new()
     {
+        //  Modules register their binding mappers during injection, which happens after
+        //  the startup mapper pass. Activate what is registered now so the file is not
+        //  silently discarded and replaced with defaults.
+        foreach (ITomlMapper mapper in context.ResolveMany<ITomlMapper>())
+        {
+            mapper.Register();
+        }
+
         var configPath = new PathInfo("config/");
         PathInfo defaultPath = configPath.At(file);
 

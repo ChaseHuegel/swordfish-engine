@@ -23,19 +23,20 @@ public class DataBinding<T>
 
     public DataBinding<T> Set(T value)
     {
-        if (_data != null && !_data.Equals(value))
+        if (_data != null && _data.Equals(value))
         {
-            Changed?.Invoke(this, new DataChangedEventArgs<T>(_data, value));
-            _data = value;
             return this;
         }
 
-        if (_data == null && value != null)
+        if (_data == null && value == null)
         {
-            Changed?.Invoke(this, new DataChangedEventArgs<T>(_data, value));
-            _data = value;
             return this;
         }
+
+        T oldValue = _data;
+        _data = value;
+
+        Changed?.Invoke(this, new DataChangedEventArgs<T>(oldValue, value));
 
         return this;
     }

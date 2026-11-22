@@ -142,6 +142,41 @@ public class ConfigSerializationTests
     }
 
     [Fact]
+    public void RenderSettings_LoadsSavedVSyncValue()
+    {
+        RegisterPrimitiveMappers();
+        new DataBindingTomlMapper<AntiAliasing>().Register();
+        new DataBindingTomlMapper<ShadowFilterMode>().Register();
+
+        RenderSettings loaded = RenderSettings.FromString("VSync = false\n");
+
+        Assert.False(loaded.VSync.Get());
+    }
+
+    [Fact]
+    public void ChangedHandlerSavePersistsNewValue()
+    {
+        RegisterPrimitiveMappers();
+
+        string path = System.IO.Path.GetTempFileName();
+        try
+        {
+            var settings = new TestSettings();
+            settings.Path = new Swordfish.Library.IO.PathInfo(path);
+            settings.VSync.Changed += (_, _) => settings.Save();
+
+            settings.VSync.Set(false);
+
+            TestSettings loaded = TestSettings.FromString(System.IO.File.ReadAllText(path));
+            Assert.False(loaded.VSync.Get());
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DataBinding_EventIsNotSerializedByTomlet()
     {
         var binding = new DataBinding<string>("test");
