@@ -13,10 +13,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+        <Content Include="assets\**\*.*" Exclude="assets\lang\**\*" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest"/>
+        <Content Include="assets\lang\**\*" CopyToOutputDirectory="PreserveNewest"/>
         <EmbeddedResource Include="manifest\**\*.*" />
         <None Update="manifest.toml">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
@@ -29,7 +30,7 @@
         <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <ProjectReference Include="..\WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
-        <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
     <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <PackageReference Include="HardwareInformation" Version="5.0.2" />

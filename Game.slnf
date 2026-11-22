@@ -1,0 +1,34 @@
+{
+  "solution": {
+    "path": "Swordfish.sln",
+    "projects": [
+      "Krill\\Krill.csproj",
+      "Krill.Generator\\Krill.Generator.csproj",
+      "Reef\\Reef.csproj",
+      "Reef.Generator\\Reef.Generator.csproj",
+      "Shoal\\Shoal.csproj",
+      "Shoal.Build\\Shoal.Build.csproj",
+      "Shoal.Extensions.Swordfish\\Shoal.Extensions.Swordfish.csproj",
+      "Swordfish\\Swordfish.csproj",
+      "Swordfish.Compilation\\Swordfish.Compilation.csproj",
+      "Swordfish.Integrations\\Swordfish.Integrations.csproj",
+      "Swordfish.Library\\Swordfish.Library.csproj",
+      "WaywardBeyond.Bodies\\WaywardBeyond.Bodies.csproj",
+      "WaywardBeyond.Bricks\\WaywardBeyond.Bricks.csproj",
+      "WaywardBeyond.Client\\WaywardBeyond.Client.csproj",
+      "WaywardBeyond.Client.Launcher\\WaywardBeyond.Client.Launcher.csproj",
+      "WaywardBeyond.Config\\WaywardBeyond.Config.csproj",
+      "WaywardBeyond.Data\\WaywardBeyond.Data.csproj",
+      "WaywardBeyond.Gameplay\\WaywardBeyond.Gameplay.csproj",
+      "WaywardBeyond.Items\\WaywardBeyond.Items.csproj",
+      "WaywardBeyond.Networking\\WaywardBeyond.Networking.csproj",
+      "WaywardBeyond.Permissions\\WaywardBeyond.Permissions.csproj",
+      "WaywardBeyond.Server\\WaywardBeyond.Server.csproj",
+      "WaywardBeyond.Server.Launcher\\WaywardBeyond.Server.Launcher.csproj",
+      "WaywardBeyond.Skills\\WaywardBeyond.Skills.csproj",
+      "WaywardBeyond.Tests\\WaywardBeyond.Tests.csproj",
+      "WaywardBeyond.Voxels\\WaywardBeyond.Voxels.csproj",
+      "WaywardBeyond.Voxels.Tests\\WaywardBeyond.Voxels.Tests.csproj"
+    ]
+  }
+}

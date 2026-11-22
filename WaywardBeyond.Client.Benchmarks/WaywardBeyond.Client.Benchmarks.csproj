@@ -17,4 +17,16 @@
     <ProjectReference Include="..\WaywardBeyond.Client\WaywardBeyond.Client.csproj" />
   </ItemGroup>
 
+  <Target Name="_ExcludeUnusedAssetsFromBenchmarks"
+          BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectory;_CopyOutOfDateSourceItemsToOutputDirectoryAlways;_CopyDifferingSourceItemsToOutputDirectory">
+    <ItemGroup>
+      <_UnusedBenchmarkAssets Include="@(_SourceItemsToCopyToOutputDirectory);@(_SourceItemsToCopyToOutputDirectoryAlways);@(_SourceItemsToCopyToOutputDirectoryIfDifferent)"
+                              Condition="$([System.String]::Copy('%(TargetPath)').StartsWith('assets\', System.StringComparison.OrdinalIgnoreCase))
+                                         or $([System.String]::Copy('%(TargetPath)').StartsWith('assets/', System.StringComparison.OrdinalIgnoreCase))" />
+      <_SourceItemsToCopyToOutputDirectory Remove="@(_UnusedBenchmarkAssets)" MatchOnMetadata="TargetPath" />
+      <_SourceItemsToCopyToOutputDirectoryAlways Remove="@(_UnusedBenchmarkAssets)" MatchOnMetadata="TargetPath" />
+      <_SourceItemsToCopyToOutputDirectoryIfDifferent Remove="@(_UnusedBenchmarkAssets)" MatchOnMetadata="TargetPath" />
+    </ItemGroup>
+  </Target>
+
 </Project>

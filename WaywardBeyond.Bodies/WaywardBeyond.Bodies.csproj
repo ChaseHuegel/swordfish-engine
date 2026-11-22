@@ -9,9 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+        <Content Include="assets\**\*.*" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest"/>
         <None Update="manifest.toml">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
           <Private>false</Private>
         </None>
     </ItemGroup>

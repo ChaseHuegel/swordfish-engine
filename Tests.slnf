@@ -1,0 +1,15 @@
+{
+  "solution": {
+    "path": "Swordfish.sln",
+    "projects": [
+      "Krill.Tests\\Krill.Tests.csproj",
+      "Reef.Generator.Tests\\Reef.Generator.Tests.csproj",
+      "Reef.Markup.Tests\\Reef.Markup.Tests.csproj",
+      "Reef.Tests\\Reef.Tests.csproj",
+      "Reef.Text.Tests\\Reef.Text.Tests.csproj",
+      "Swordfish.Tests\\Swordfish.Tests.csproj",
+      "WaywardBeyond.Tests\\WaywardBeyond.Tests.csproj",
+      "WaywardBeyond.Voxels.Tests\\WaywardBeyond.Voxels.Tests.csproj"
+    ]
+  }
+}
