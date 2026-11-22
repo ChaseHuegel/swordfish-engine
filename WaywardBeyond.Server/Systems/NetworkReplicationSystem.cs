@@ -537,8 +537,8 @@ public sealed class NetworkReplicationSystem
 
                 if (!serialize.Success)
                 {
-                    Owner._logger.LogDebug("Dropping {component} snapshot for entity {uuid}: the codec failed.",
-                        info.Type.Name, entityUuid);
+                    Owner._logger.LogDebug("Dropping {component} snapshot for entity {uuid}: {message}.",
+                        info.Type.Name, entityUuid, serialize.Message);
                     continue;
                 }
 

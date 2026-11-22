@@ -4,7 +4,7 @@ namespace WaywardBeyond.Networking.Discovery;
 public static class LanDiscovery
 {
     /// <summary>The beacon protocol version. Hosts and clients must match.</summary>
-    public const int PROTOCOL_VERSION = 3;
+    public const int PROTOCOL_VERSION = 4;
 
     /// <summary>The IPv4 limited-broadcast address every host and scanner uses.</summary>
     public const string BROADCAST_ADDRESS = "255.255.255.255";

@@ -44,6 +44,15 @@ drains.
   `Deserialize(ReadOnlySpan<byte>)` through delegates.
 - Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`.
 
+`PhysicsCodec` carries the body configuration (`Layer`, `BodyType`,
+`CollisionDetection`) with velocity and angular velocity. `Apply` creates the
+component when the entity has none, which is how a client materializes a body it
+did not build itself. An existing component keeps its configuration and takes
+only the motion values.
+
+Every failure carries a message that names the entity and the invalid field. The
+caller writes that message into its log.
+
 ## Registered components
 
 Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.

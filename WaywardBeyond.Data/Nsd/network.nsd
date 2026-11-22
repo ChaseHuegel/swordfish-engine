@@ -66,6 +66,9 @@ message PhysicsMessage
     float AngularVelocityX   = 3;
     float AngularVelocityY   = 4;
     float AngularVelocityZ   = 5;
+    byte  Layer              = 6;
+    byte  BodyType           = 7;
+    byte  CollisionDetection = 8;
 }
 
 message VoxelEditMessage

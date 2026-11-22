@@ -1,5 +1,8 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Krill;
 using Swordfish.ECS;
@@ -79,7 +82,52 @@ public class ClientReconcileSystemTests
         Assert.Equal(serverAngularVelocity, physics.Torque);
     }
 
-    private static TestContext CreateContext()
+    [Fact]
+    public void RemotePlayerPhysicsSnapshotCreatesComponentWithoutWarning()
+    {
+        var logger = new RecordingLogger();
+        TestContext context = CreateContext(logger);
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var position = new Vector3(7f, 8f, 9f);
+        var velocity = new Vector3(1f, 2f, 3f);
+
+        var remotePhysics = new PhysicsComponent(
+            Layers.MOVING,
+            BodyType.Dynamic,
+            CollisionDetection.Continuous,
+            velocity,
+            Vector3.Zero
+        );
+        byte[] transformPayload = new TransformCodec().Serialize(new TransformComponent(position, Quaternion.Identity, Vector3.One));
+        byte[] physicsPayload = new PhysicsCodec().Serialize(in remotePhysics);
+
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 1,
+            LastProcessedInput = 0,
+            Components =
+            [
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(2).ToValue(), transformPayload),
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(3).ToValue(), physicsPayload),
+            ],
+            RemovedEntities = [],
+        };
+        context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
+
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remoteUuid, out int remote));
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(position, transform.Position);
+        Assert.True(context.Store.TryGet(remote, out PhysicsComponent physics));
+        Assert.Equal(Layers.MOVING, physics.Layer);
+        Assert.Equal(BodyType.Dynamic, physics.BodyType);
+        Assert.Equal(CollisionDetection.Continuous, physics.CollisionDetection);
+        Assert.Equal(velocity, physics.Velocity);
+        Assert.DoesNotContain(logger.Entries, entry => entry.Level >= LogLevel.Warning);
+    }
+
+    private static TestContext CreateContext(ILogger<ClientReconcileSystem>? logger = null)
     {
         var inbound = new ClientInbound();
         var registry = new NetworkRegistry();
@@ -100,7 +148,7 @@ public class ClientReconcileSystemTests
             motionProcessor,
             new LocalPlayerReconciler(NullLogger<LocalPlayerReconciler>.Instance),
             registry,
-            NullLogger<ClientReconcileSystem>.Instance
+            logger ?? NullLogger<ClientReconcileSystem>.Instance
         );
 
         var store = new DataStore();
@@ -187,6 +235,25 @@ public class ClientReconcileSystemTests
         };
 
         context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
+    }
+
+    private sealed class RecordingLogger : ILogger<ClientReconcileSystem>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
     }
 
     private sealed class TestContext(

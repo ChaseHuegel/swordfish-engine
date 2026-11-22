@@ -63,6 +63,9 @@ which flow as `VoxelEdit` notifications rather than snapshots.
 - Applies `ServerOwned` components, frees despawned entities, trims
   `PendingInputComponent` by `LastProcessedInput`, and aligns the shared step
   with the snapshot tick.
+- Creates a missing `PhysicsComponent` from the snapshot's body configuration
+  and motion values. A body the client did not build itself (a remote player)
+  materializes this way.
 - Applies the local player's authoritative position and scale. Small position
   errors are deadbanded and larger ones are blended over a few snapshots. Its
   orientation targets the server orientation plus the look applied after the

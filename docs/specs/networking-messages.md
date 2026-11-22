@@ -60,12 +60,25 @@ payload.
 
 ```nsd
 message TransformMessage { float PositionX/Y/Z; float OrientationX/Y/Z/W; float ScaleX/Y/Z; }
-message PhysicsMessage  { float VelocityX/Y/Z; float AngularVelocityX/Y/Z; }
+message PhysicsMessage
+{
+    float VelocityX/Y/Z;
+    float AngularVelocityX/Y/Z;
+    byte  Layer;
+    byte  BodyType;
+    byte  CollisionDetection;
+}
 ```
 
 `PhysicsComponent.Torque` is dual-semantics and was canonicalized: the wire
 `PhysicsMessage` carries velocity and angular velocity, well-defined only at
 sync boundaries.
+
+The wire also carries the body configuration, so a receiver can construct the
+component when it has none. An existing component keeps its configuration and
+takes only velocity and angular velocity; body configuration is read when the
+body is created. Enums travel as bytes because cross-namespace enums do not
+serialize as enums in Needlefish codegen.
 
 ## Input component
 
