@@ -85,6 +85,63 @@ public class ClientReconcileSystemTests
     }
 
     [Fact]
+    public void RemotePlayerTransformCorrectionBlendsPosition()
+    {
+        TestContext context = CreateContext();
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var initial = new Vector3(1f, 2f, 3f);
+        var serverPosition = initial + new Vector3(1f, 0f, 0f);
+        var serverOrientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 1.5f);
+        var serverScale = new Vector3(2f, 2f, 2f);
+        int remote = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(remote, new TransformComponent(initial, Quaternion.Identity, Vector3.One));
+        context.Store.AddOrUpdate(remote, new BodyViewComponent { Body = "wb:human_m" });
+
+        EnqueueTransform(context, remoteUuid, serverPosition, serverOrientation, serverScale);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(initial + new Vector3(0.5f, 0f, 0f), transform.Position);
+        Assert.Equal(serverOrientation, transform.Orientation);
+        Assert.Equal(serverScale, transform.Scale);
+    }
+
+    [Fact]
+    public void RemotePlayerTransformCorrectionIgnoresDeadbandError()
+    {
+        TestContext context = CreateContext();
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var initial = new Vector3(1f, 2f, 3f);
+        var withinDeadband = initial + new Vector3(0.005f, 0f, 0f);
+        int remote = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(remote, new TransformComponent(initial, Quaternion.Identity, Vector3.One));
+        context.Store.AddOrUpdate(remote, new BodyViewComponent { Body = "wb:human_m" });
+
+        EnqueueTransform(context, remoteUuid, withinDeadband, Quaternion.Identity, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(initial, transform.Position);
+    }
+
+    [Fact]
+    public void WorldTransformSnapshotSnapsExactly()
+    {
+        TestContext context = CreateContext();
+        Uuid structureUuid = Uuid.FromValue(88);
+        var initial = new Vector3(1f, 2f, 3f);
+        var serverPosition = initial + new Vector3(1f, 0f, 0f);
+        int structure = context.Store.Alloc(structureUuid);
+        context.Store.AddOrUpdate(structure, new TransformComponent(initial, Quaternion.Identity, Vector3.One));
+
+        EnqueueTransform(context, structureUuid, serverPosition, Quaternion.Identity, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(structure, out TransformComponent transform));
+        Assert.Equal(serverPosition, transform.Position);
+    }
+
+    [Fact]
     public void RemotePlayerPhysicsSnapshotCreatesComponentWithoutWarning()
     {
         var logger = new RecordingLogger();
@@ -209,6 +266,25 @@ public class ClientReconcileSystemTests
             ServerTickAtSample = serverTickAtSample,
         });
         context.Store.AddOrUpdate(context.Player, pending);
+    }
+
+    private static void EnqueueTransform(
+        TestContext context,
+        Uuid entityUuid,
+        Vector3 position,
+        Quaternion orientation,
+        Vector3 scale
+    ) {
+        byte[] payload = new TransformCodec().Serialize(new TransformComponent(position, orientation, scale));
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 1,
+            LastProcessedInput = 0,
+            Components = [new ComponentSnapshot(entityUuid.ToValue(), Uuid.FromValue(2).ToValue(), payload)],
+            RemovedEntities = [],
+        };
+
+        context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
     }
 
     private static void EnqueueTransformAndPhysics(

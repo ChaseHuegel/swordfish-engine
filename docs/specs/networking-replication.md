@@ -69,6 +69,9 @@ which flow as `VoxelEdit` notifications rather than snapshots.
 - Materializes a replicated `ColliderComponent` from its packed shapes. The
   server publishes it only for entities with `BodyViewComponent`, so a remote
   player gets a local body without shipping world voxel colliders.
+- Blends a remote player's authoritative position. An error at or below one
+  centimeter is ignored; a larger error moves halfway per snapshot. Orientation
+  and scale stay authoritative.
 - Applies the local player's authoritative position and scale. Small position
   errors are deadbanded and larger ones are blended over a few snapshots. Its
   orientation targets the server orientation plus the look applied after the
