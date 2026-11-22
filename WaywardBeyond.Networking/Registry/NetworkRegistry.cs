@@ -17,8 +17,16 @@ public sealed class NetworkRegistry
     private volatile NetworkComponentInfo[] _clientOwned = [];
     private bool _frozen;
 
-    /// <summary>Registers one networked component. Fails after <see cref="Freeze"/> or on a duplicate type or uuid.</summary>
-    public Result Register<T>(Uuid uuid, NetworkDirection direction, IPayloadCodec<T> codec)
+    /// <summary>
+    /// Registers one networked component. Fails after <see cref="Freeze"/> or on a duplicate type or uuid.
+    /// <paramref name="replicationFilter"/> limits replication to entities it accepts; null replicates for all.
+    /// </summary>
+    public Result Register<T>(
+        Uuid uuid,
+        NetworkDirection direction,
+        IPayloadCodec<T> codec,
+        Func<DataStore, int, bool>? replicationFilter = null
+    )
         where T : struct, IDataComponent
     {
         if (uuid == Uuid.Null)
@@ -43,7 +51,7 @@ public sealed class NetworkRegistry
                 return Result.FromFailure($"Cannot register {typeof(T).Name}: uuid {uuid} is already registered.");
             }
 
-            var info = new NetworkComponentInfo(typeof(T), uuid, direction, codec);
+            var info = new NetworkComponentInfo(typeof(T), uuid, direction, codec, replicationFilter);
             _byType[typeof(T)] = info;
             _byUuid[uuid] = info;
             return Result.FromSuccess();

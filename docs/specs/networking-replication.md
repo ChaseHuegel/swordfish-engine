@@ -60,12 +60,15 @@ which flow as `VoxelEdit` notifications rather than snapshots.
   fully, and every superseded frame still has its non-motion components applied
   first, so one-shot state seeded early in the join burst (the starter
   inventory) survives a motion-superseding burst.
-- Applies `ServerOwned` components, frees despawned entities, trims
-  `PendingInputComponent` by `LastProcessedInput`, and aligns the shared step
-  with the snapshot tick.
+- Applies `ServerOwned` components, disposes a despawned entity's physics body,
+  frees despawned entities, trims `PendingInputComponent` by
+  `LastProcessedInput`, and aligns the shared step with the snapshot tick.
 - Creates a missing `PhysicsComponent` from the snapshot's body configuration
   and motion values. A body the client did not build itself (a remote player)
   materializes this way.
+- Materializes a replicated `ColliderComponent` from its packed shapes. The
+  server publishes it only for entities with `BodyViewComponent`, so a remote
+  player gets a local body without shipping world voxel colliders.
 - Applies the local player's authoritative position and scale. Small position
   errors are deadbanded and larger ones are blended over a few snapshots. Its
   orientation targets the server orientation plus the look applied after the

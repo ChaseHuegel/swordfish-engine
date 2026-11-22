@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Krill;
 using Swordfish.ECS;
+using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Tests;
@@ -17,6 +18,7 @@ using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Codecs;
 using WaywardBeyond.Networking.Registry;
 
@@ -98,8 +100,10 @@ public class ClientReconcileSystemTests
             velocity,
             Vector3.Zero
         );
+        ColliderComponent remoteCollider = CharacterDefaults.CreateCharacterColliderComponent(Vector3.One);
         byte[] transformPayload = new TransformCodec().Serialize(new TransformComponent(position, Quaternion.Identity, Vector3.One));
         byte[] physicsPayload = new PhysicsCodec().Serialize(in remotePhysics);
+        byte[] colliderPayload = new ColliderCodec().Serialize(in remoteCollider);
 
         var snapshot = new WorldSnapshot
         {
@@ -109,6 +113,7 @@ public class ClientReconcileSystemTests
             [
                 new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(2).ToValue(), transformPayload),
                 new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(3).ToValue(), physicsPayload),
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(17).ToValue(), colliderPayload),
             ],
             RemovedEntities = [],
         };
@@ -124,6 +129,8 @@ public class ClientReconcileSystemTests
         Assert.Equal(BodyType.Dynamic, physics.BodyType);
         Assert.Equal(CollisionDetection.Continuous, physics.CollisionDetection);
         Assert.Equal(velocity, physics.Velocity);
+        Assert.True(context.Store.TryGet(remote, out ColliderComponent collider));
+        Assert.True(collider.CompoundShape.HasValue);
         Assert.DoesNotContain(logger.Entries, entry => entry.Level >= LogLevel.Warning);
     }
 
@@ -133,6 +140,7 @@ public class ClientReconcileSystemTests
         var registry = new NetworkRegistry();
         Assert.True(registry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec()).Success);
         Assert.True(registry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec()).Success);
+        Assert.True(registry.Register<ColliderComponent>(Uuid.FromValue(17), NetworkDirection.ServerOwned, new ColliderCodec()).Success);
         registry.Freeze();
 
         var motionProcessor = new ClientPlayerMotionProcessor(

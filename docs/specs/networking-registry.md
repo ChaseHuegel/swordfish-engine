@@ -42,13 +42,24 @@ drains.
 - `NsdComponentCodec<T>` — the default; requires the component to be an nsd
   message. It binds the generated `Serialize()` and
   `Deserialize(ReadOnlySpan<byte>)` through delegates.
-- Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`.
+- Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`/
+  `ColliderCodec`.
 
 `PhysicsCodec` carries the body configuration (`Layer`, `BodyType`,
 `CollisionDetection`) with velocity and angular velocity. `Apply` creates the
 component when the entity has none, which is how a client materializes a body it
 did not build itself. An existing component keeps its configuration and takes
 only the motion values.
+
+`ColliderCodec` carries a compound collider as packed shapes, offsets, and
+orientations. A single shape travels as a one-part compound.
+
+A registration may pass a replication filter. The publisher consults it before
+it collects a delta or a full sync, so a component that only some entities carry
+does not replicate for the others. `ColliderComponent` uses a filter: only an
+entity with `BodyViewComponent` (a character body) replicates its collider. The
+client derives a world structure's voxel collider from the level data, so those
+never cross the wire.
 
 Every failure carries a message that names the entity and the invalid field. The
 caller writes that message into its log.
@@ -69,9 +80,10 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `GameModeComponent` | 14 | ServerOwned | `NsdComponentCodec<GameModeComponent>` |
 | `InteractionEvent` | 15 | ClientOwned | `NsdComponentCodec<InteractionEvent>` |
 | `InventoryEvent` | 16 | ClientOwned | `NsdComponentCodec<InventoryEvent>` |
+| `ColliderComponent` | 17 | ServerOwned | `ColliderCodec` (character bodies only) |
 
 Uuid allocation is stable and intentional. The sequence-gap at 4–9 and the
-grouping of 10–16 are reserved; do not reuse.
+grouping of 10–17 are reserved; do not reuse.
 
 ## Remote player public view
 
@@ -98,7 +110,7 @@ consumes items against its values. See [join](networking-join.md) and
 ## Source of truth
 
 - `WaywardBeyond.Networking/Registry/{NetworkRegistry,NetworkComponentInfo,NetworkDirection}.cs`
-- `WaywardBeyond.Networking/Codecs/{IPayloadCodec,IPayloadCodecOfT,NsdComponentCodec}.cs`
+- `WaywardBeyond.Networking/Codecs/{IPayloadCodec,IPayloadCodecOfT,NsdComponentCodec,TransformCodec,PhysicsCodec,IdentifierCodec,ColliderCodec}.cs`
 - `WaywardBeyond.Networking/NetworkingComposition.cs`
 - Component declarations: `WaywardBeyond.Data/Components/`
 - Schemas: `WaywardBeyond.Data/Nsd/components.nsd`

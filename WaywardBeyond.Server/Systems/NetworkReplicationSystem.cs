@@ -518,6 +518,11 @@ public sealed class NetworkReplicationSystem
 
             foreach (NetworkComponentInfo info in Owner._serverOwnedComponents)
             {
+                if (info.ReplicationFilter != null && !info.ReplicationFilter(store, entity))
+                {
+                    continue;
+                }
+
                 if (!store.IsDirty(info.Type, entity))
                 {
                     continue;
@@ -573,6 +578,11 @@ public sealed class NetworkReplicationSystem
             //  so the boxing is bounded by joins, not by the per-tick hot path.
             foreach (NetworkComponentInfo info in ServerOwned)
             {
+                if (info.ReplicationFilter != null && !info.ReplicationFilter(store, entity))
+                {
+                    continue;
+                }
+
                 if (!Contains(present, info.Type))
                 {
                     continue;
