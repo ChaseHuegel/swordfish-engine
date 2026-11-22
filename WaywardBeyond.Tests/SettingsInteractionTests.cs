@@ -56,6 +56,30 @@ public class SettingsInteractionTests
     }
 
     [Fact]
+    public void SliderMinusButtonDecreasesTheDraft()
+    {
+        var harness = new Harness();
+        Assert.True(harness.HasText("90°"));
+
+        harness.Click(harness.Find("Settings.Fov.minus"));
+        harness.Frame();
+
+        Assert.True(harness.HasText("89°"));
+    }
+
+    [Fact]
+    public void SliderPlusButtonIncreasesTheDraft()
+    {
+        var harness = new Harness();
+        Assert.True(harness.HasText("90°"));
+
+        harness.Click(harness.Find("Settings.Fov.plus"));
+        harness.Frame();
+
+        Assert.True(harness.HasText("91°"));
+    }
+
+    [Fact]
     public void PlaybackDeviceChangeRefreshesTheOutputDeviceRow()
     {
         var harness = new Harness();

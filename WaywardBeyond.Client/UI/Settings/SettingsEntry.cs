@@ -29,11 +29,8 @@ internal abstract class SettingsEntry : SettingsRow
     /// <summary>Steps a stepper row and returns the applied direction.</summary>
     public virtual int Step(int delta) => 0;
 
-    /// <summary>Sets the value of a slider row.</summary>
-    public virtual bool TrySetSlider(float value) => false;
-
-    /// <summary>Sets a slider row from a normalized track position.</summary>
-    public virtual bool TrySetSliderRatio(float ratio) => false;
+    /// <summary>Steps a slider row from a normalized track position and reports the applied direction.</summary>
+    public virtual int TrySetSliderRatio(float ratio) => 0;
 
     /// <summary>Marks the current value as the baseline.</summary>
     public abstract void CaptureBaseline();

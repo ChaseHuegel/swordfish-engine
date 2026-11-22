@@ -11,17 +11,12 @@ the tab strip, the pane frame, the scrolling row list, and the footer, and
 and status. `SettingsRowState` is the per-row model, produced by
 `SettingsRow.Snapshot` on the row types.
 
-Row chrome, labels, sections, steppers, and reset rows are markup. Two controls
-stay coded because their interaction is not expressible in markup yet:
+Row chrome, labels, sections, choices, sliders, steppers, and reset rows are
+markup. `SettingsRows.rml` renders every row branch from `SettingsRowState`.
 
-- `SettingsChoiceWidget` wraps the shared segmented control for toggles and
-  radio-like choices.
-- `SettingsSliderWidget` wraps the slider for drag input.
-
-Both report `(row id, value)` through a view method, so the page updates the
-draft and plays the same sounds as before. Settings steppers use the shared
-`Stepper` component. Each call passes the row id and a step callback, so the
-component owns its arrows and the page has one stepper implementation.
+Each control reports its row id through a callback on `SettingsRowsState`, so
+the page updates the draft and plays the interface sound. The component owns its
+controls and the page owns the draft.
 
 The page uses responsive constraints, not fixed child positions.
 
@@ -63,18 +58,18 @@ next row or cover the arrows. The control column holds one of these controls:
 
 - Category rows use the shared selected-row treatment: one orange border and a
   cyan left caret.
-- A toggle or radio-like choice uses the coded `SettingsChoiceWidget`, which
-  wraps `Widgets.SegmentedControl` and returns `ControlResult<int>`.
-- A continuous value uses the coded `SettingsSliderWidget`, which wraps
-  `Widgets.Slider` and returns `ControlResult<float>`.
+- A toggle or radio-like choice uses the `SegmentedControl` component.
+- A continuous value uses the `Slider` component. It reports a step direction
+  from its arrows and a normalized track position from a drag.
 - The shared `Stepper` component covers discrete values. It reads its options
   from a provider on each snapshot. A static list is a provider that returns the
   same list.
 - The category reset row uses the danger button variant.
 
-The two coded controls read `.Changed` and `.Value` from `ControlResult<T>`
-instead of taking an `out` value. Their colors and sizes come from literals
-that equal the tokens and classes in [ui-theme](ui-theme.md).
+The slider arrows step by `SliderEntry.StepSize`. A track drag snaps to the same
+step. The page plays an increase or decrease cue only when the value changes, so
+a held drag does not loop the cue. Colors, fonts, spacing, and variants live in
+the theme and component styles. See [ui-theme](ui-theme.md).
 
 Disabled rows stay visible and dim. A setting can disable another row. For
 example, V-Sync disables the frame limit, and Autosave disables the interval.
@@ -155,7 +150,7 @@ The `Settings.Monitor` stepper is editable only in Fullscreen mode. It selects
 supported mode, `SettingsPage.ApplySettings` syncs the draft to the applied mode
 and shows `ui.settings.status.displayFallback`.
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:412` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:408` keeps the display
 mode, monitor, and resolution rows in sync when a shortcut or a manual resize
 changes the window while the page is open.
 
@@ -232,8 +227,11 @@ existing spacer layout.
 - Stepper entry: `WaywardBeyond.Client/UI/Settings/StepperEntryOfT.cs:7`
 - Tokens: `WaywardBeyond.Client/UI/Theme/Theme.rss:1`
 - Classes: `WaywardBeyond.Client/UI/Components/Components.rss:1`
-- Choice control: `WaywardBeyond.Client/UI/Settings/SettingsChoiceWidget.cs:9`
-- Slider control: `WaywardBeyond.Client/UI/Settings/SettingsSliderWidget.cs:9`
+- Choice component: `WaywardBeyond.Client/UI/Components/SegmentedControl.rml:1`,
+  `SegmentedControlParameters.cs:6`
+- Slider component: `WaywardBeyond.Client/UI/Components/Slider.rml:1`,
+  `SliderParameters.cs:9`
+- Slider entry: `WaywardBeyond.Client/UI/Settings/SliderEntry.cs:6`
 - Stepper component: `WaywardBeyond.Client/UI/Components/Stepper.rml:1`,
   `StepperParameters.cs:8`
 - Localization: `WaywardBeyond.Client/assets/lang/en/ui.toml`
@@ -245,14 +243,15 @@ existing spacer layout.
   and slider buttons center vertically.
 - `WaywardBeyond.Tests/SettingsShellViewTests.cs` covers the shell layout
   snapshots.
-- `WaywardBeyond.Tests/SettingsInteractionTests.cs` covers click, scroll, and
-  callback behavior.
+- `WaywardBeyond.Tests/SettingsInteractionTests.cs` covers click, scroll,
+  slider button, and callback behavior.
 - `WaywardBeyond.Tests/ScrollBarInteractionTests.cs` covers thumb drag, drag outside
   the rail, track jump, release, and end clamping.
 - `WaywardBeyond.Tests/SettingsControlTests.cs` covers the coded choice and
   slider controls.
-- `WaywardBeyond.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, dynamic
-  option providers, and the bloom, shadow, and AO preset round trips.
+- `WaywardBeyond.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, slider
+  steps and drag changes, dynamic option providers, and the bloom, shadow, and
+  AO preset round trips.
 - `WaywardBeyond.Tests/AudioSettingsCategoryTests.cs` covers the output device
   option order, the missing-device label, and reset.
 - `WaywardBeyond.Tests/DisplaySettingsTests.cs` covers fullscreen video mode

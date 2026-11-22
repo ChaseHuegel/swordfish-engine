@@ -20,7 +20,7 @@ internal sealed class SliderEntry(
 
     public float Max { get; } = max;
 
-    public float Step { get; } = step;
+    public float StepSize { get; } = step;
 
     public string Format(float value) => format(value);
 
@@ -34,27 +34,45 @@ internal sealed class SliderEntry(
             Value,
             Min,
             Max,
-            Step,
+            StepSize,
             format(Value)
         );
     }
 
     /// <inheritdoc/>
-    public override bool TrySetSlider(float value)
+    public override int Step(int delta)
     {
-        SetValue(value);
-        return true;
+        if (!CanEdit || StepSize <= 0f || delta == 0)
+        {
+            return 0;
+        }
+
+        return SetValueClamped(Value + delta * StepSize);
     }
 
     /// <inheritdoc/>
-    public override bool TrySetSliderRatio(float ratio)
+    public override int TrySetSliderRatio(float ratio)
     {
         float value = Min + Math.Clamp(ratio, 0f, 1f) * (Max - Min);
-        if (Step > 0f)
+        if (StepSize > 0f)
         {
-            value = MathF.Round((value - Min) / Step) * Step + Min;
+            value = MathF.Round((value - Min) / StepSize) * StepSize + Min;
         }
 
-        return TrySetSlider(Math.Clamp(value, Min, Max));
+        return SetValueClamped(value);
+    }
+
+    private int SetValueClamped(float value)
+    {
+        float previous = Value;
+        SetValue(Math.Clamp(value, Min, Max));
+        float applied = Value;
+
+        if (applied == previous)
+        {
+            return 0;
+        }
+
+        return applied > previous ? 1 : -1;
     }
 }

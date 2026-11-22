@@ -52,7 +52,6 @@ internal sealed class SettingsPage<TIdentifier>(
     private SettingsShellView? _shell;
     private Menu<TIdentifier>? _menu;
     private double _time;
-    private double _lastSliderSoundTime;
     private SettingsDraft? _draft;
     private SettingsCategory[]? _categories;
     private SettingsCategoryEntry[] _entries = [];
@@ -209,17 +208,14 @@ internal sealed class SettingsPage<TIdentifier>(
 
     private void OnSliderDrag(string id, float ratio)
     {
-        if (FindEntry(id)?.TrySetSliderRatio(ratio) != true)
+        int applied = FindEntry(id)?.TrySetSliderRatio(ratio) ?? 0;
+        if (applied == 0)
         {
             return;
         }
 
         _rowsDirty = true;
-        if (_time - _lastSliderSoundTime >= 0.05d)
-        {
-            _lastSliderSoundTime = _time;
-            Play(WidgetInteraction.InterfaceSound.Increase);
-        }
+        Play(applied > 0 ? WidgetInteraction.InterfaceSound.Increase : WidgetInteraction.InterfaceSound.Decrease);
     }
 
     private void OnReset(string id)
