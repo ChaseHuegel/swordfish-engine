@@ -67,6 +67,57 @@ public class SettingsEntryTests
     }
 
     [Fact]
+    public void SliderEntryStepsAndClampsAtTheRangeEdges()
+    {
+        var value = 0.5f;
+        var entry = new SliderEntry(
+            id: "test.slider",
+            labelKey: "test.label",
+            get: () => value,
+            set: newValue => value = newValue,
+            defaultValue: () => 0.5f,
+            min: 0f,
+            max: 1f,
+            step: 0.05f,
+            format: current => current.ToString()
+        );
+
+        Assert.Equal(1, entry.Step(1));
+        Assert.Equal(0.55f, value, 5);
+        Assert.Equal(-1, entry.Step(-1));
+        Assert.Equal(0.5f, value, 5);
+
+        value = 1f;
+        Assert.Equal(0, entry.Step(1));
+        Assert.Equal(1f, value);
+
+        value = 0f;
+        Assert.Equal(0, entry.Step(-1));
+        Assert.Equal(0f, value);
+    }
+
+    [Fact]
+    public void SliderEntryDragReportsOnlyValueChanges()
+    {
+        var value = 0.5f;
+        var entry = new SliderEntry(
+            id: "test.slider",
+            labelKey: "test.label",
+            get: () => value,
+            set: newValue => value = newValue,
+            defaultValue: () => 0.5f,
+            min: 0f,
+            max: 1f,
+            step: 0.05f,
+            format: current => current.ToString()
+        );
+
+        Assert.Equal(0, entry.TrySetSliderRatio(0.5f));
+        Assert.Equal(1, entry.TrySetSliderRatio(0.75f));
+        Assert.Equal(-1, entry.TrySetSliderRatio(0.25f));
+    }
+
+    [Fact]
     public void DefaultsSitInsideSliderRanges()
     {
         Assert.InRange(SettingsDefaults.FOV, SettingsDefaults.FOV_MIN, SettingsDefaults.FOV_MAX);
