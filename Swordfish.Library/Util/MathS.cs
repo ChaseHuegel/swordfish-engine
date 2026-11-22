@@ -1,6 +1,4 @@
 using System;
-using MemorizedCos = FastMath.MemoizedCos;
-using MemorizedSin = FastMath.MemoizedSin;
 // ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Util;
@@ -12,18 +10,6 @@ public static class MathS
     public const float RADIANS_HALF_REVOLUTION = MathF.PI;
 
     public static readonly Random Random = new();
-    private static readonly MemorizedSin _fastSin = MemorizedSin.ConstructByMaxError(0.001f);
-    private static readonly MemorizedCos _fastCos = MemorizedCos.ConstructByMaxError(0.001f);
-
-    public static float Sin(float value)
-    {
-        return _fastSin.CalculateUnbound(value);
-    }
-
-    public static float Cos(float value)
-    {
-        return _fastCos.CalculateUnbound(value);
-    }
 
     public static float Lerp(float start, float end, float value)
     {
