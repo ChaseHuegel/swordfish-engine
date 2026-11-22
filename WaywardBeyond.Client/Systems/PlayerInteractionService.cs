@@ -665,14 +665,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 return false;
             }
 
-            if (brickInfoResult.Value.Tags.Contains("environment"))
-            {
-                _soundEffectService.PlayRemoveRock();
-            }
-            else
-            {
-                _soundEffectService.PlayRemoveMetal();
-            }
+            _soundEffectService.PlayEffect(brickInfoResult.Value, BrickSoundEvent.Break);
         }
         else
         {
@@ -681,14 +674,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 return false;
             }
 
-            if (brickInfoResult.Value.Tags.Contains("environment"))
-            {
-                _soundEffectService.PlayPlaceRock();
-            }
-            else
-            {
-                _soundEffectService.PlayPlaceMetal();
-            }
+            _soundEffectService.PlayEffect(brickInfoResult.Value, BrickSoundEvent.Place);
         }
 
         return true;

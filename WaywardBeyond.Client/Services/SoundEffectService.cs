@@ -1,100 +1,78 @@
-using System.IO;
-using System.Linq;
+using System.Collections.Generic;
 using Krill;
 using Swordfish.Audio;
-using Swordfish.IO;
-using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.Services;
 
+/// <summary>Plays tag-based sound effects on the client audio channels.</summary>
 internal class SoundEffectService
 {
-    private readonly AudioChannelSystem _audioChannelSystem;
-    private readonly Randomizer _randomizer;
-    
-    private readonly string[] _placeMetalSounds;
-    private readonly string[] _removeMetalSounds;
-    
-    private readonly string[] _placeRockSounds;
-    private readonly string[] _removeRockSounds;
+    private const string EFFECTS_CHANNEL = "effects";
+    private const string INTERFACE_CHANNEL = "interface";
 
-    public SoundEffectService(in AudioChannelSystem audioChannelSystem, in VirtualFileSystem vfs)
+    private readonly AudioChannelSystem _audioChannelSystem;
+    private readonly LocalizedTags? _invariantTags;
+    private readonly Randomizer _randomizer;
+
+    public SoundEffectService(in AudioChannelSystem audioChannelSystem, in ILocalizedTagsDatabase tagDatabase)
     {
         _audioChannelSystem = audioChannelSystem;
+        _invariantTags = tagDatabase.Invariant;
         _randomizer = new Randomizer();
-        
-        PathInfo placeMetalFolder = AssetPaths.Audio.At("sounds/place/metal/");
-        _placeMetalSounds = vfs.GetFiles(placeMetalFolder, SearchOption.TopDirectoryOnly)
-            .Select(pathInfo => $"sounds/place/metal/{pathInfo.GetFileName()}")
-            .ToArray();
-        
-        PathInfo removeMetalFolder = AssetPaths.Audio.At("sounds/remove/metal/");
-        _removeMetalSounds = vfs.GetFiles(removeMetalFolder, SearchOption.TopDirectoryOnly)
-            .Select(pathInfo => $"sounds/remove/metal/{pathInfo.GetFileName()}")
-            .ToArray();
-        
-        PathInfo placeRockFolder = AssetPaths.Audio.At("sounds/place/rock/");
-        _placeRockSounds = vfs.GetFiles(placeRockFolder, SearchOption.TopDirectoryOnly)
-            .Select(pathInfo => $"sounds/place/rock/{pathInfo.GetFileName()}")
-            .ToArray();
-        
-        PathInfo removeRockFolder = AssetPaths.Audio.At("sounds/remove/rock/");
-        _removeRockSounds = vfs.GetFiles(removeRockFolder, SearchOption.TopDirectoryOnly)
-            .Select(pathInfo => $"sounds/remove/rock/{pathInfo.GetFileName()}")
-            .ToArray();
     }
 
-    public virtual void Play(string id, string channelName)
+    /// <summary>Plays the brick's declared sound for the provided interaction event.</summary>
+    public void PlayEffect(Brick brick, BrickSoundEvent soundEvent)
     {
-        if (!_audioChannelSystem.TryGetChannelEntity(channelName, out Uuid channel))
-        {
-            return;
-        }
-        
-        var audioSource = new AudioSource(id);
-        Play(audioSource, channel);
-    }
-
-    public void PlayPlaceMetal()
-    {
-        PlayRandomSound(_placeMetalSounds);
-    }
-    
-    public void PlayRemoveMetal()
-    {
-        PlayRandomSound(_removeMetalSounds);
-    }
-    
-    public void PlayPlaceRock()
-    {
-        PlayRandomSound(_placeRockSounds);
-    }
-    
-    public void PlayRemoveRock()
-    {
-        PlayRandomSound(_removeRockSounds);
-    }
-    
-    private void PlayRandomSound(string[] ids)
-    {
-        if (ids.Length == 0)
+        if (!brick.Sounds.TryGetValue(soundEvent, out string[]? tags))
         {
             return;
         }
 
-        if (!_audioChannelSystem.TryGetChannelEntity("effects", out Uuid channel))
+        Play(EFFECTS_CHANNEL, tags);
+    }
+
+    /// <summary>Plays a random clip from the provided invariant sound tag on the interface channel.</summary>
+    public virtual void PlayInterface(string tag)
+    {
+        Play(INTERFACE_CHANNEL, [tag]);
+    }
+
+    private void Play(string channelName, IReadOnlyList<string> tags)
+    {
+        if (_invariantTags == null)
         {
             return;
         }
-        
-        var audioSource = new AudioSource(id: _randomizer.Select(ids));
-        Play(audioSource, channel);
-    }
 
-    private void Play(AudioSource audioSource, Uuid channelEntity)
-    {
+        var clips = new List<string>();
+        foreach (string tag in tags)
+        {
+            IReadOnlyList<string>? values = _invariantTags.GetValues(tag);
+            if (values == null)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < values.Count; i++)
+            {
+                if (!clips.Contains(values[i]))
+                {
+                    clips.Add(values[i]);
+                }
+            }
+        }
+
+        if (clips.Count == 0 || !_audioChannelSystem.TryGetChannelEntity(channelName, out Uuid channel))
+        {
+            return;
+        }
+
+        var audioSource = new AudioSource(clips[_randomizer.NextInt(clips.Count)]);
         var audioPlayer = new AudioPlayer
         {
             Volume = 1f,
@@ -102,7 +80,7 @@ internal class SoundEffectService
             Loop = false,
             PlayOnce = true,
             State = PlayerState.Play,
-            ChannelEntity = channelEntity,
+            ChannelEntity = channel,
         };
         _audioChannelSystem.EnqueuePlay(audioSource, audioPlayer);
     }

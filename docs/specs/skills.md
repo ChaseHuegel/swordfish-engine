@@ -50,8 +50,8 @@ that owns the headless models and the tomls:
 Assets: `assets/skills/*.toml` (skill definitions) and `assets/lang/tags/*.toml`
 (invariant gameplay tag lists, empty-language). Tag list files are general
 purpose: the shared tag schema, database, and parser live in
-`WaywardBeyond.Data/Localization/` and serve both gameplay (skills) and client
-presentation (name generation, load screen).
+`WaywardBeyond.Data/Localization/` and serve gameplay (skills), client
+presentation (name generation, load screen), and sound effects.
 
 The `Name`/`Category` fields are **localization keys**, not display strings. The
 client's `assets/lang/en/skills.toml` holds the display strings.

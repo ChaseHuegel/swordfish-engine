@@ -3,6 +3,9 @@
 One subject: playback device discovery, selection, default routing, and response
 to hotplug.
 
+Invariant sound tags and sound-effect requests live in
+[sound-effects](sound-effects.md).
+
 ## Model
 
 - A playback device is identified by `DeviceInfo.Name`.

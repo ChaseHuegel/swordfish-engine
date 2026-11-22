@@ -12,5 +12,8 @@ Tags    = [
     "paintable",
     "convertable_truss",
 ]
+[Bricks.Sounds]
+Place = ["metal_place"]
+Break = ["metal_break"]
 [Bricks.Textures]
 Default   = ["small_light"]

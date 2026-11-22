@@ -154,43 +154,25 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     }
 
     /// <summary>
-    /// Plays the break or place sound for an unpredicted authoritative edit, with the material-class
-    /// variant (rock vs metal) resolved from the brick's tags, mirroring the prediction path. The result
-    /// voxel decides break (empty) vs place (filled); the material comes from the pre-edit voxel for a
-    /// break and the result voxel for a place.
+    /// Plays the break or place sound for an unpredicted authoritative edit, using the sound tags the brick
+    /// declares for that event. The result voxel decides break (empty) vs place (filled); the brick comes
+    /// from the pre-edit voxel for a break and the result voxel for a place.
     /// </summary>
     private void PlayEditSound(in Voxel previous, in Voxel result)
     {
         bool isBreak = result.ID == 0;
-        Voxel materialVoxel = isBreak ? previous : result;
-
-        bool isRock = false;
-        if (materialVoxel.ID != 0 && _brickDatabase.Get(materialVoxel.ID) is { Success: true } info)
+        Voxel brickVoxel = isBreak ? previous : result;
+        if (brickVoxel.ID == 0)
         {
-            isRock = info.Value.Tags.Contains("environment");
-        }
-
-        if (isBreak)
-        {
-            if (isRock)
-            {
-                _soundEffectService.PlayRemoveRock();
-            }
-            else
-            {
-                _soundEffectService.PlayRemoveMetal();
-            }
             return;
         }
 
-        if (isRock)
+        if (_brickDatabase.Get(brickVoxel.ID) is not { Success: true } brickInfo)
         {
-            _soundEffectService.PlayPlaceRock();
+            return;
         }
-        else
-        {
-            _soundEffectService.PlayPlaceMetal();
-        }
+
+        _soundEffectService.PlayEffect(brickInfo.Value, isBreak ? BrickSoundEvent.Break : BrickSoundEvent.Place);
     }
 
     private static PendingEdit? FindPending(

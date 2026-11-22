@@ -13,5 +13,6 @@ internal struct BrickDefinition()
     public BrickShape Shape;
     public BrickTextures Textures;
     public string[] Tags;
+    public Dictionary<BrickSoundEvent, string[]>? Sounds;
     public List<BrickColliderDefinition>? Colliders;
 }

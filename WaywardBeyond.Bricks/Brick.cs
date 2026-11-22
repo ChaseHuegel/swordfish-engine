@@ -8,6 +8,9 @@ public sealed class Brick
 {
     /// <summary>The minimum ID value.</summary>
     public const ushort MIN_ID = 1;
+
+    private static readonly IReadOnlyDictionary<BrickSoundEvent, string[]> _noSounds =
+        new Dictionary<BrickSoundEvent, string[]>();
     
     /// <inheritdoc cref="BrickDefinition.ID"/>
     public readonly string ID;
@@ -17,6 +20,9 @@ public sealed class Brick
 
     /// <summary>All brick tags are case-insensitive.</summary>
     public readonly IReadOnlySet<string> Tags;
+
+    /// <summary>The sound tags declared per <see cref="BrickSoundEvent"/>, or empty when the brick is silent.</summary>
+    public readonly IReadOnlyDictionary<BrickSoundEvent, string[]> Sounds;
 
     public readonly BrickAlpha Alpha;
     public readonly bool CastShadows;
@@ -46,7 +52,8 @@ public sealed class Brick
         in BrickTextures textures,
         in string[]? tags,
         in bool castShadows = true,
-        in BrickColliderShape[]? colliders = null
+        in BrickColliderShape[]? colliders = null,
+        in Dictionary<BrickSoundEvent, string[]>? sounds = null
     ) {
         ID = id;
         Alpha = alpha;
@@ -57,6 +64,7 @@ public sealed class Brick
         Textures = textures;
         _colliders = colliders ?? [];
         Tags = new HashSet<string>(tags ?? [], StringComparer.OrdinalIgnoreCase);
+        Sounds = sounds ?? _noSounds;
         Shapeable = shape == BrickShape.Any;
         LightSource = Tags.Contains("light");
         Brightness = LightSource ? 15 : 0;

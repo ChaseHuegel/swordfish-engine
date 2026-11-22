@@ -104,6 +104,8 @@ message VoxelEditMessage { ulong EntityUuid; int X, Y, Z; WaywardBeyond.Data.Vox
 ```
 
 The `BrickId` carries the canonical brick name so the client reconciles by name
+even when its registry ids differ from the server's. See
+[brick-identity](brick-identity.md).
 
 ### Edit audio
 
@@ -112,11 +114,10 @@ break/place sound for **unpredicted** edits only: a remote player's mining and
 construction is audible to everyone else. Edits correlating to the local
 player's own pending predictions (confirm, snap, or revert) play nothing — the
 prediction path already sounded (`PlayerInteractionService`). Break vs place is
-decided by the resulting voxel (empty = break, filled = place); the material
-class (rock vs metal) comes from the broken brick's tags, read from the cell
-before the write (a break's result carries no material).
-even when its registry ids differ from the server's. See
-[brick-identity](brick-identity.md).
+decided by the resulting voxel (empty = break, filled = place). The brick comes
+from the cell before the write for a break (a break's result is empty). The
+sound tags come from that brick's `[Bricks.Sounds]` declaration. See
+[sound-effects](sound-effects.md).
 
 `ClientVoxelReconcileSystem` (`WaywardBeyond.Client/Systems/`, gated on
 `Playing`) drains `ClientInbound.VoxelEdits` and correlates each echo against

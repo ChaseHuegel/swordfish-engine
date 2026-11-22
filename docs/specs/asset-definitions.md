@@ -8,8 +8,8 @@ client-owned.
 
 Parser registration: `WaywardBeyond.Items/Injector.cs:15`
 (`RegisterTomlParser<ItemDefinitions>`), `WaywardBeyond.Bricks/Injector.cs:14`
-(`RegisterTomlParser<BrickDefinitions>`), and
-`WaywardBeyond.Skills/Injector.cs:16` (`RegisterTomlParser<SkillDefinitions>`).
+(`RegisterTomlParser<BrickDefinitions>`), and `WaywardBeyond.Skills/Injector.cs:16`
+(`RegisterTomlParser<SkillDefinitions>`).
 
 ## Items (`assets/items/*.toml`)
 
@@ -88,6 +88,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
 | `Textures` | sub-table | `BrickTextures` |
 | `Tags` | string[] | |
+| `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickSoundEvent` (`Place`, `Break`) |
 | `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
 
 Base-game brick ids are prefixed with the `wb` namespace. A mod uses its own
@@ -106,9 +107,20 @@ Example:
 ID      = "wb:core"
 Shape   = "block"
 Tags    = ["metal", "buildable", "convertable_truss"]
+[Bricks.Sounds]
+Place = ["metal_place"]
+Break = ["metal_break"]
 [Bricks.Textures]
 Default = ["core"]
 ```
+
+### Sounds
+
+`BrickDefinition.Sounds` is a map keyed by `BrickSoundEvent`
+(`WaywardBeyond.Bricks/BrickSoundEvent.cs`) to invariant sound tags. The
+`LocalizedTagsDatabase` list defines the tags, and each value is an audio clip
+id. A brick without a declaration is silent. See
+[sound-effects](sound-effects.md).
 
 ### Textures
 
@@ -275,7 +287,8 @@ Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 
 Tag list files live under a `tags/` directory segment; other lang files are
 localization tables and are not tags. The tag list is shared and general purpose,
-hosted in `WaywardBeyond.Data/Localization/`.
+hosted in `WaywardBeyond.Data/Localization/`. Sound tags also live here, and
+their values are audio clip ids. See [sound-effects](sound-effects.md).
 
 ## Source of truth
 
@@ -283,6 +296,7 @@ hosted in `WaywardBeyond.Data/Localization/`.
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
+- `WaywardBeyond.Bricks/BrickSoundEvent.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`

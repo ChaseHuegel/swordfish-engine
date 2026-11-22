@@ -3,7 +3,6 @@ using System.Linq;
 using Reef;
 using Reef.UI;
 using Swordfish.Graphics;
-using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Tests;
 using WaywardBeyond.Client.Configuration;
@@ -11,6 +10,7 @@ using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
+using WaywardBeyond.Data.Localization;
 using Xunit;
 
 namespace WaywardBeyond.Tests;
@@ -30,7 +30,7 @@ public class MenuClickAudioTests
 
         harness.Click(buttonID);
 
-        Assert.Equal([RecordingSoundEffectService.EXIT_CLICK_SOUND], soundEffectService.Played);
+        Assert.Equal([RecordingSoundEffectService.EXIT_CLICK_TAG], soundEffectService.Played);
         Assert.Equal((MenuPage)nextPage, menu.GetCurrentPage());
     }
 
@@ -102,13 +102,24 @@ public class MenuClickAudioTests
     }
 
     private sealed class RecordingSoundEffectService()
-        : SoundEffectService(new AudioChannelSystem(new VolumeSettings()), new VirtualFileSystem())
+        : SoundEffectService(new AudioChannelSystem(new VolumeSettings()), new StubTagDatabase())
     {
-        public const string EXIT_CLICK_SOUND = "sounds/menu sounds_exit click 1.wav";
+        public const string EXIT_CLICK_TAG = "ui_exit";
 
         public List<string> Played { get; } = [];
 
         /// <inheritdoc/>
-        public override void Play(string id, string channelName) => Played.Add(id);
+        public override void PlayInterface(string tag) => Played.Add(tag);
+    }
+
+    private sealed class StubTagDatabase : ILocalizedTagsDatabase
+    {
+        private readonly LocalizedTags _tags = new(new Dictionary<string, List<string>>());
+
+        /// <inheritdoc/>
+        public LocalizedTags? Invariant => _tags;
+
+        /// <inheritdoc/>
+        public Result<LocalizedTags> Get(string id) => Result<LocalizedTags>.FromSuccess(_tags);
     }
 }
