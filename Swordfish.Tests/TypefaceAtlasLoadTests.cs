@@ -14,7 +14,7 @@ public class TypefaceAtlasLoadTests
     public void AtlasImagesAreParsableAsTextures()
     {
         var parser = new TextureParser();
-        string[] atlasFiles = Directory.GetFiles("assets/fonts", "*.bmp");
+        string[] atlasFiles = Directory.GetFiles("assets/fonts", "*.png");
         Assert.NotEmpty(atlasFiles);
 
         Array.Sort(atlasFiles);
@@ -27,7 +27,7 @@ public class TypefaceAtlasLoadTests
     [Fact]
     public void AtlasImageMatchesItsAtlasDescription()
     {
-        const string path = "assets/fonts/Salmon Sans 9 Regular.bmp";
+        const string path = "assets/fonts/Salmon Sans 9 Regular.png";
         var parser = new TextureParser();
 
         Texture texture = parser.Parse(new PathInfo(path));

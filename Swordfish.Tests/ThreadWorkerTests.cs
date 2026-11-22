@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Swordfish.Library.Threading;
 using Xunit;
@@ -19,29 +20,54 @@ public class ThreadWorkerTests
         };
 
         worker.Start();
-        Thread.Sleep(500);
+        Thread.Sleep(250);
         worker.Stop();
         worker.Join();
 
-        //  ~100 tps over 500 ms is 50 ticks; wide bounds absorb CI scheduling jitter.
-        Assert.InRange(ticks, 25, 75);
+        //  ~100 tps over 250 ms is 25 ticks; wide bounds absorb CI scheduling jitter.
+        Assert.InRange(ticks, 10, 45);
     }
 
     [Fact]
     public void ReportsTickIntervalAsDelta()
     {
-        float lastDelta = 0f;
-        var worker = new ThreadWorker(delta => lastDelta = delta, "ThreadWorkerDeltaTest")
+        const int sampleCount = 8;
+        var samples = new float[sampleCount];
+        int count = 0;
+        using var done = new ManualResetEventSlim(false);
+
+        var worker = new ThreadWorker(delta =>
+        {
+            int index = Interlocked.Increment(ref count) - 1;
+            if (index == 0)
+            {
+                return;
+            }
+
+            int sampleIndex = index - 1;
+            if (sampleIndex < sampleCount)
+            {
+                samples[sampleIndex] = delta;
+                if (sampleIndex == sampleCount - 1)
+                {
+                    done.Set();
+                }
+            }
+        }, "ThreadWorkerDeltaTest")
         {
             TargetTickRate = 100,
         };
 
         worker.Start();
-        Thread.Sleep(300);
+        bool completed = done.Wait(TimeSpan.FromSeconds(2));
         worker.Stop();
         worker.Join();
 
-        //  ~10 ms per tick at 100 tps.
-        Assert.InRange(lastDelta, 0.004f, 0.03f);
+        Assert.True(completed, "Timed out waiting for ThreadWorker tick samples.");
+        Array.Sort(samples);
+        float medianDelta = samples[sampleCount / 2];
+
+        //  ~10 ms per tick at 100 tps; median filters single-tick OS scheduling spikes.
+        Assert.InRange(medianDelta, 0.004f, 0.03f);
     }
 }

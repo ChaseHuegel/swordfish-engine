@@ -20,7 +20,7 @@ internal sealed class AudioStreamDatabase : SimpleVirtualAssetDatabase<AudioStre
     }
     
     /// <inheritdoc/>
-    protected override bool IsValidFile(PathInfo path) => path.HasExtension(".wav");
+    protected override bool IsValidFile(PathInfo path) => path.HasExtension(".wav") || path.HasExtension(".mp3") || path.HasExtension(".flac");
 
     /// <inheritdoc/>
     protected override PathInfo GetRootPath() => AssetPaths.Audio;

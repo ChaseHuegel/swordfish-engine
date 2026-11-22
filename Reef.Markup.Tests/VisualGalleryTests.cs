@@ -10,16 +10,18 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Reef.Markup.Tests;
 
-public class VisualGalleryTests
+public class VisualGalleryTests(VisualGalleryTests.GalleryAssetsFixture assets) : IClassFixture<VisualGalleryTests.GalleryAssetsFixture>
 {
     private const int WIDTH = 1100;
     private const int HEIGHT = 1200;
+
+    private readonly GalleryAssetsFixture _assets = assets;
 
     [Fact]
     public void GalleryNormalRendersAndMatchesGolden()
     {
         GalleryState state = CreateState();
-        using var harness = new GalleryHarness();
+        using var harness = new GalleryHarness(_assets);
         List<RenderCommand<PixelTexture>> commands = harness.Render(new GalleryView(), state, out ReadOnlyCollection<Vector4> pixels);
 
         Assert.Contains(commands, command => command.Text == "Reef Markup Style Gallery");
@@ -40,7 +42,7 @@ public class VisualGalleryTests
     public void GalleryHoverFrameMatchesGolden()
     {
         GalleryState state = CreateState();
-        using var harness = new GalleryHarness();
+        using var harness = new GalleryHarness(_assets);
         harness.Warmup(new GalleryView(), state);
         ElementBounds bounds = harness.Ui.GetElementBounds("hover");
         int x = bounds.Rect.Left + 4;
@@ -57,16 +59,16 @@ public class VisualGalleryTests
     {
         GalleryState state = CreateState();
         state.Disabled = true;
-        using var harness = new GalleryHarness();
+        using var harness = new GalleryHarness(_assets);
         harness.Render(new GalleryView(), state, out ReadOnlyCollection<Vector4> pixels);
         CompareGolden("gallery-disabled.png", pixels);
     }
 
-    private static GalleryState CreateState()
+    private GalleryState CreateState()
     {
         return new GalleryState
         {
-            Texture = GalleryHarness.LoadPixelTexture("TestFiles/Images/swordfish.png"),
+            Texture = _assets.SwordfishTexture,
         };
     }
 
@@ -74,13 +76,13 @@ public class VisualGalleryTests
     {
         string goldenPath = Path.Combine(SourceDirectory(), "TestFiles", "Golden", name);
         string outputDirectory = Path.Combine(AppContext.BaseDirectory, "TestResults", "reef-markup");
-        Directory.CreateDirectory(outputDirectory);
         string actualPath = Path.Combine(outputDirectory, name);
-        SavePixels(actualPath, WIDTH, HEIGHT, pixels);
 
         bool update = string.Equals(Environment.GetEnvironmentVariable("REEF_MARKUP_UPDATE_GOLDEN"), "1", StringComparison.Ordinal);
         if (update || !File.Exists(goldenPath))
         {
+            Directory.CreateDirectory(outputDirectory);
+            SavePixels(actualPath, WIDTH, HEIGHT, pixels);
             Directory.CreateDirectory(Path.GetDirectoryName(goldenPath)!);
             File.Copy(actualPath, goldenPath, overwrite: true);
             return;
@@ -90,37 +92,48 @@ public class VisualGalleryTests
         var mismatches = 0;
         var firstX = -1;
         var firstY = -1;
-        for (var y = 0; y < HEIGHT; y++)
+        expected.ProcessPixelRows(accessor =>
         {
-            if (y >= expected.Height)
+            for (var y = 0; y < HEIGHT; y++)
             {
-                mismatches += WIDTH;
-                continue;
-            }
-
-            for (var x = 0; x < WIDTH; x++)
-            {
-                if (x >= expected.Width)
+                if (y >= accessor.Height)
                 {
-                    mismatches++;
+                    mismatches += WIDTH;
                     continue;
                 }
 
-                Rgba32 expectedColor = expected[x, y];
-                Vector4 actualColor = pixels[y * WIDTH + x];
-                if (expectedColor.R != ToByte(actualColor.X)
-                    || expectedColor.G != ToByte(actualColor.Y)
-                    || expectedColor.B != ToByte(actualColor.Z)
-                    || expectedColor.A != ToByte(actualColor.W))
+                Span<Rgba32> row = accessor.GetRowSpan(y);
+                int rowOffset = y * WIDTH;
+                for (var x = 0; x < WIDTH; x++)
                 {
-                    mismatches++;
-                    if (firstX < 0)
+                    if (x >= row.Length)
                     {
-                        firstX = x;
-                        firstY = y;
+                        mismatches++;
+                        continue;
+                    }
+
+                    Rgba32 expectedColor = row[x];
+                    Vector4 actualColor = pixels[rowOffset + x];
+                    if (expectedColor.R != ToByte(actualColor.X)
+                        || expectedColor.G != ToByte(actualColor.Y)
+                        || expectedColor.B != ToByte(actualColor.Z)
+                        || expectedColor.A != ToByte(actualColor.W))
+                    {
+                        mismatches++;
+                        if (firstX < 0)
+                        {
+                            firstX = x;
+                            firstY = y;
+                        }
                     }
                 }
             }
+        });
+
+        if (mismatches > 0)
+        {
+            Directory.CreateDirectory(outputDirectory);
+            SavePixels(actualPath, WIDTH, HEIGHT, pixels);
         }
 
         Assert.True(
@@ -148,11 +161,6 @@ public class VisualGalleryTests
         Assert.Equal(expected.W, actual.W, 3);
     }
 
-    private static Vector4 ToVector(Rgba32 color)
-    {
-        return new Vector4(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
-    }
-
     private static byte ToByte(float value)
     {
         return (byte)(Math.Clamp(value, 0f, 1f) * 255f);
@@ -176,14 +184,14 @@ public class VisualGalleryTests
         image.Save(path);
     }
 
-    private sealed class GalleryHarness : IDisposable
+    /// <summary>Loads the immutable font atlases and textures shared across gallery frames.</summary>
+    public sealed class GalleryAssetsFixture
     {
         public readonly TextEngine TextEngine;
         public readonly Dictionary<string, PixelFontSDF> Fonts;
-        public readonly UIController Controller = new();
-        public readonly UIBuilder<PixelTexture> Ui;
+        public readonly PixelTexture SwordfishTexture;
 
-        public GalleryHarness()
+        public GalleryAssetsFixture()
         {
             var salmonFont = new FontInfo("salmon-mono-9-regular", "TestFiles/Fonts/Salmon Mono 9 Regular.ttf");
             var awesomeFont = new FontInfo("fa-6-free-solid", "TestFiles/Fonts/Font Awesome 6 Free Solid.otf");
@@ -203,6 +211,45 @@ public class VisualGalleryTests
                 [awesomeFont.ID] = new PixelFontSDF(awesomeTexture, 1f),
             };
 
+            SwordfishTexture = LoadPixelTexture("TestFiles/Images/swordfish.png");
+        }
+
+        private static PixelTexture LoadPixelTexture(string path)
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(path);
+            var texture = new PixelTexture(image.Width, image.Height);
+            image.ProcessPixelRows(accessor =>
+            {
+                for (var y = 0; y < accessor.Height; y++)
+                {
+                    Span<Rgba32> row = accessor.GetRowSpan(y);
+                    for (var x = 0; x < row.Length; x++)
+                    {
+                        Rgba32 color = row[x];
+                        texture.SetPixel(x, y, new Vector4(
+                            color.R / 255f,
+                            color.G / 255f,
+                            color.B / 255f,
+                            color.A / 255f));
+                    }
+                }
+            });
+
+            return texture;
+        }
+    }
+
+    private sealed class GalleryHarness : IDisposable
+    {
+        public readonly TextEngine TextEngine;
+        public readonly Dictionary<string, PixelFontSDF> Fonts;
+        public readonly UIController Controller = new();
+        public readonly UIBuilder<PixelTexture> Ui;
+
+        public GalleryHarness(GalleryAssetsFixture assets)
+        {
+            TextEngine = assets.TextEngine;
+            Fonts = assets.Fonts;
             Ui = new UIBuilder<PixelTexture>(WIDTH, HEIGHT, TextEngine, Controller);
         }
 
@@ -223,24 +270,6 @@ public class VisualGalleryTests
         {
             view.Render(Ui, state, null, null, null);
             Ui.Build(0d);
-        }
-
-        public static PixelTexture LoadPixelTexture(string path)
-        {
-            using Image<Rgba32> image = Image.Load<Rgba32>(path);
-            var texture = new PixelTexture(image.Width, image.Height);
-            for (var y = 0; y < image.Height; y++)
-            for (var x = 0; x < image.Width; x++)
-            {
-                Rgba32 color = image[x, y];
-                texture.SetPixel(x, y, new Vector4(
-                    color.R / 255f,
-                    color.G / 255f,
-                    color.B / 255f,
-                    color.A / 255f));
-            }
-
-            return texture;
         }
 
         public void Dispose()

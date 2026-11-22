@@ -10,7 +10,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="coverlet.collector" Version="6.0.2"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
         <PackageReference Include="xunit" Version="2.9.2"/>
@@ -26,7 +25,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="TestFiles\**\*.*" CopyToOutputDirectory="Always"/>
+        <None Include="TestFiles\**\*.*" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
 </Project>
