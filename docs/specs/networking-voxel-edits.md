@@ -27,6 +27,26 @@ replicate.
 hint presence is. A hint-less event is valid and resolves to `Action.None`. See
 [messages](networking-messages.md).
 
+## Client input and hold-to-repeat
+
+`PlayerInteractionService` receives discrete button edges from
+`IInputService.Clicked` on the window thread, queues them, and drains the queue
+on the ECS thread (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:227`).
+One edge runs one interaction attempt.
+
+Holding primary or secondary repeats the attempt on a 0.2 second interval until
+release (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:55`). The
+interval starts at the press edge. `InteractionRepeatTimer` owns the timing
+(`WaywardBeyond.Client/Systems/InteractionRepeatTimer.cs:4`). The repeat stops on
+release, when the game leaves `Playing`, or when an interaction blocker opens.
+
+A repeat is a full attempt. It raycasts again, resolves again, predicts again,
+and stages its own `InteractionEvent` with a fresh `SequenceNumber`. A repeat
+that is rejected stays silent: only the press edge pushes an invalid-target or
+occupied-cell notification
+(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:405`).
+`WaywardBeyond.Tests/InteractionRepeatTimerTests.cs` pins the timing.
+
 ## Shared resolution
 
 Targeting and outcome logic lives in shared code
@@ -184,6 +204,8 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 
 ## Source of truth
 
+- `WaywardBeyond.Client/Systems/InteractionRepeatTimer.cs` — hold-to-repeat timing
+- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs` — click edges and prediction
 - `WaywardBeyond.Gameplay/Interactions/` — resolver, request, handlers, registry
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs`
 - `WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`
