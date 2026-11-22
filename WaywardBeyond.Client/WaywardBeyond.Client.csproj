@@ -33,6 +33,9 @@
     <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <PackageReference Include="HardwareInformation" Version="5.0.2" />
+        <!--  HardwareInformation pulls VulkanSharp, which targets netstandard1.1 and brings vulnerable framework packages.  -->
+        <PackageReference Include="System.Net.Http" Version="4.3.4" />
+        <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
         <ProjectReference Include="..\Reef\Reef.csproj" />
         <ProjectReference Include="..\Reef.Generator\Reef.Generator.csproj"
                           OutputItemType="Analyzer"
