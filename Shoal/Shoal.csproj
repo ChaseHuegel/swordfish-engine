@@ -13,9 +13,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    <!--  Override the vulnerable System.Text.Json 8.0.0 pulled by Microsoft.Extensions.Logging.Console.  -->
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
     <PackageReference Include="Samboy063.Tomlet" Version="6.2.0" />
     <PackageReference Include="SmartFormat.NET" Version="3.4.0" />
-    <PackageReference Include="Swordfish.Library" Version="2.5.14" />
   </ItemGroup>
 
   <ItemGroup>

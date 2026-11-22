@@ -12,7 +12,6 @@
 
     <ItemGroup>
         <PackageReference Include="Samboy063.Tomlet" Version="6.2.0" />
-        <PackageReference Include="Swordfish.Library" Version="2.5.14" />
     </ItemGroup>
 
     <ItemGroup>
