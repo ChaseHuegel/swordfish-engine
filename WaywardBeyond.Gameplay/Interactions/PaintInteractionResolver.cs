@@ -11,17 +11,6 @@ using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 
-/// <summary>Result of validating a paint-apply target against brick paintability and alpha-bucket rules.</summary>
-public enum PaintTargetValidation : byte
-{
-    Valid = 0,
-    EmptyCell = 1,
-    UnknownBrick = 2,
-    NotPaintable = 3,
-    MissingPaint = 4,
-    AlphaMismatch = 5,
-}
-
 /// <summary>
 /// Shared validation for per-face brick painting (client prediction and server authority).
 /// Enforces brick paintability, like-material alpha matching for texture paints, and shape face expansion.

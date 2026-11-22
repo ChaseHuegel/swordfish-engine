@@ -1,17 +1,7 @@
-﻿using WaywardBeyond.Bricks;
-using WaywardBeyond.Data;
+﻿using WaywardBeyond.Data;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Gameplay.Interactions;
-
-/// <summary>The resolved per-face paint operation when <see cref="InteractionResolution.Action"/> is <see cref="InteractionAction.Paint"/>.</summary>
-public readonly struct PaintResolution(BrickFaceMask faceMask, PaintKind mode, ushort paintId, string? canonicalPaintId)
-{
-    public readonly BrickFaceMask FaceMask = faceMask;
-    public readonly PaintKind Mode = mode;
-    public readonly ushort PaintId = paintId;
-    public readonly string? CanonicalPaintId = canonicalPaintId;
-}
 
 /// <summary>The resolved outcome of an interaction.</summary>
 /// <remarks><see cref="InteractionAction.None"/> is a valid, expected outcome.</remarks>

@@ -1,0 +1,257 @@
+using System.Collections.Generic;
+using System.Threading;
+using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
+using WaywardBeyond.Voxels;
+
+namespace WaywardBeyond.Client.Components;
+
+/// <summary>
+/// Thread-safe bookkeeping for outstanding local voxel predictions keyed by (entity, coordinate). The
+/// prediction is authored from the interaction service thread and reconciled on the ECS thread, so the
+/// queue is lock-guarded.
+/// </summary>
+public sealed class PendingInteractionQueue
+{
+    private readonly Lock _gate = new();
+
+    private readonly List<PendingEdit> _edits = [];
+    private readonly List<PendingFaceEdit> _faceEdits = [];
+
+    /// <summary>Registers a new outstanding prediction, collapsing a prior one at the same cell.</summary>
+    public void Register(int entity, Int3 coordinate, in Voxel original, in Voxel predicted, uint sequence, uint serverTickAtSample)
+    {
+        lock (_gate)
+        {
+            int existing = FindIndex(entity, coordinate);
+            var edit = new PendingEdit(entity, coordinate, original, predicted, sequence, serverTickAtSample);
+            if (existing >= 0)
+            {
+                _edits[existing] = edit;
+            }
+            else
+            {
+                _edits.Add(edit);
+            }
+        }
+    }
+
+    /// <summary>Looks up the outstanding prediction for the given cell, if any.</summary>
+    public bool TryFind(int entity, Int3 coordinate, out PendingEdit edit)
+    {
+        lock (_gate)
+        {
+            int index = FindIndex(entity, coordinate);
+            if (index >= 0)
+            {
+                edit = _edits[index];
+                return true;
+            }
+
+            edit = default;
+            return false;
+        }
+    }
+
+    /// <summary>Looks up the outstanding prediction echoed by the given interaction sequence, if any.</summary>
+    public bool TryFindBySequence(uint sequence, out PendingEdit edit)
+    {
+        lock (_gate)
+        {
+            for (var i = 0; i < _edits.Count; i++)
+            {
+                if (_edits[i].Sequence == sequence)
+                {
+                    edit = _edits[i];
+                    return true;
+                }
+            }
+
+            edit = default;
+            return false;
+        }
+    }
+
+    /// <summary>Removes the prediction for the given cell, reporting whether one was present.</summary>
+    public bool Remove(int entity, Int3 coordinate)
+    {
+        lock (_gate)
+        {
+            int index = FindIndex(entity, coordinate);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            _edits.RemoveAt(index);
+            return true;
+        }
+    }
+
+    public int Count
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _edits.Count;
+            }
+        }
+    }
+
+    public PendingEdit this[int index]
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _edits[index];
+            }
+        }
+    }
+
+    /// <summary>Returns a copy of all outstanding predictions under the queue lock.</summary>
+    public PendingEdit[] Snapshot()
+    {
+        lock (_gate)
+        {
+            return _edits.ToArray();
+        }
+    }
+
+    public void RemoveAt(int index)
+    {
+        lock (_gate)
+        {
+            _edits.RemoveAt(index);
+        }
+    }
+
+    /// <summary>Registers a new outstanding predicted face paint edit.</summary>
+    public void RegisterFaceEdit(in PendingFaceEdit edit)
+    {
+        lock (_gate)
+        {
+            _faceEdits.Add(edit);
+        }
+    }
+
+    /// <summary>Looks up a pending face edit by its interaction sequence.</summary>
+    public bool TryFindFaceEditBySequence(uint sequence, out PendingFaceEdit edit)
+    {
+        lock (_gate)
+        {
+            for (var i = 0; i < _faceEdits.Count; i++)
+            {
+                if (_faceEdits[i].Sequence == sequence)
+                {
+                    edit = _faceEdits[i];
+                    return true;
+                }
+            }
+
+            edit = default;
+            return false;
+        }
+    }
+
+    /// <summary>Removes a pending face edit by sequence.</summary>
+    public bool RemoveFaceEdit(uint sequence)
+    {
+        lock (_gate)
+        {
+            for (var i = 0; i < _faceEdits.Count; i++)
+            {
+                if (_faceEdits[i].Sequence == sequence)
+                {
+                    _faceEdits.RemoveAt(i);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>Returns a snapshot of all outstanding face paint predictions.</summary>
+    public PendingFaceEdit[] SnapshotFaceEdits()
+    {
+        lock (_gate)
+        {
+            return _faceEdits.ToArray();
+        }
+    }
+
+    /// <summary>Removes pending face edits on the given cell that precede <paramref name="beforeSequence"/> (or all when 0).</summary>
+    public void RemoveFaceEditsForCell(int entity, in Int3 coordinate, uint beforeSequence = 0)
+    {
+        lock (_gate)
+        {
+            for (int i = _faceEdits.Count - 1; i >= 0; i--)
+            {
+                PendingFaceEdit edit = _faceEdits[i];
+                if (edit.Entity == entity &&
+                    edit.Coordinate == coordinate &&
+                    (beforeSequence == 0 || edit.Sequence < beforeSequence))
+                {
+                    _faceEdits.RemoveAt(i);
+                }
+            }
+        }
+    }
+
+    /// <summary>Removes older pending face edits superseded by a confirmed authoritative face edit on the same cell and mode.</summary>
+    public void RemoveSupersededFaceEdits(int entity, in Int3 coordinate, BrickFaceMask faceMask, PaintKind mode, uint confirmedSequence)
+    {
+        lock (_gate)
+        {
+            for (int i = _faceEdits.Count - 1; i >= 0; i--)
+            {
+                PendingFaceEdit edit = _faceEdits[i];
+                if (edit.Sequence < confirmedSequence &&
+                    edit.Entity == entity &&
+                    edit.Coordinate == coordinate &&
+                    edit.Mode == mode &&
+                    (edit.FaceMask & faceMask) == edit.FaceMask)
+                {
+                    _faceEdits.RemoveAt(i);
+                }
+            }
+        }
+    }
+
+    /// <summary>Returns true when a newer pending face edit is still outstanding for the same cell, mode, and any overlapping face.</summary>
+    public bool HasNewerFaceEdit(int entity, in Int3 coordinate, BrickFaceMask faceMask, PaintKind mode, uint sequence)
+    {
+        lock (_gate)
+        {
+            for (var i = 0; i < _faceEdits.Count; i++)
+            {
+                PendingFaceEdit edit = _faceEdits[i];
+                if (edit.Sequence > sequence &&
+                    edit.Entity == entity &&
+                    edit.Coordinate == coordinate &&
+                    edit.Mode == mode &&
+                    (edit.FaceMask & faceMask) != 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    private int FindIndex(int entity, Int3 coordinate)
+    {
+        for (var i = 0; i < _edits.Count; i++)
+        {
+            if (_edits[i].Entity == entity && _edits[i].Coordinate == coordinate)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+}

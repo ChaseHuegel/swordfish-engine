@@ -62,12 +62,6 @@ public readonly struct ChunkData
             return result;
         }
     }
-    
-    /// <summary>Returns the rotated world-space neighbor offset for the given orientation and neighbor index (0..5: Left, Right, Ahead, Behind, Above, Below).</summary>
-    public static Int3 GetRotatedNeighborOffset(Orientation orientation, int neighborIndex)
-    {
-        return _neighborOffsetLookup[orientation.ToByte()][neighborIndex];
-    }
 
     public readonly Short3 Coords;
     public readonly Chunk Data;
@@ -125,12 +119,18 @@ public readonly struct ChunkData
             }
         }
     }
+    
+    /// <summary>Returns the rotated world-space neighbor offset for the given orientation and neighbor index (0..5: Left, Right, Ahead, Behind, Above, Below).</summary>
+    public static Int3 GetRotatedNeighborOffset(Orientation orientation, int neighborIndex)
+    {
+        return _neighborOffsetLookup[orientation.ToByte()][neighborIndex];
+    }
 
     /// <summary>True when at least one face in this chunk carries a paint override.</summary>
     public bool HasAnyFaceOverrides => _faceOverrides.Overrides is { Count: > 0 };
 
     /// <summary>Computes the chunk-local sparse key for a voxel index and brick-local face.</summary>
-    public static int MakeFaceKey(int voxelIndex, BrickFace face) => (voxelIndex << 3) | (int)face;
+    public static int GetFaceKey(int voxelIndex, BrickFace face) => (voxelIndex << 3) | (int)face;
 
     /// <summary>Tries to read the paint override for a voxel index and brick-local face.</summary>
     public bool TryGetFaceOverride(int voxelIndex, BrickFace face, out FaceOverride faceOverride)
@@ -142,7 +142,7 @@ public readonly struct ChunkData
             return false;
         }
 
-        return map.TryGetValue(MakeFaceKey(voxelIndex, face), out faceOverride);
+        return map.TryGetValue(GetFaceKey(voxelIndex, face), out faceOverride);
     }
 
     /// <summary>Sets or clears the full <see cref="FaceOverride"/> on all faces in <paramref name="faceMask"/>.</summary>
@@ -166,7 +166,7 @@ public readonly struct ChunkData
                 var face = (BrickFace)f;
                 if (faceMask.HasFace(face))
                 {
-                    existing.Remove(MakeFaceKey(voxelIndex, face));
+                    existing.Remove(GetFaceKey(voxelIndex, face));
                 }
             }
 
@@ -185,7 +185,7 @@ public readonly struct ChunkData
             var face = (BrickFace)f;
             if (faceMask.HasFace(face))
             {
-                map[MakeFaceKey(voxelIndex, face)] = faceOverride;
+                map[GetFaceKey(voxelIndex, face)] = faceOverride;
             }
         }
 
@@ -249,7 +249,7 @@ public readonly struct ChunkData
 
         for (var f = 0; f < 6; f++)
         {
-            map.Remove(MakeFaceKey(voxelIndex, (BrickFace)f));
+            map.Remove(GetFaceKey(voxelIndex, (BrickFace)f));
         }
 
         if (map.Count == 0)
@@ -262,7 +262,7 @@ public readonly struct ChunkData
 
     private void SetSingleFaceOverride(int voxelIndex, BrickFace face, FaceOverride value)
     {
-        int key = MakeFaceKey(voxelIndex, face);
+        int key = GetFaceKey(voxelIndex, face);
         if (value.IsEmpty)
         {
             Dictionary<int, FaceOverride>? existing = _faceOverrides.Overrides;
@@ -290,7 +290,7 @@ public readonly struct ChunkData
         {
             for (var f = 0; f < 6; f++)
             {
-                if (map.ContainsKey(MakeFaceKey(voxelIndex, (BrickFace)f)))
+                if (map.ContainsKey(GetFaceKey(voxelIndex, (BrickFace)f)))
                 {
                     any = true;
                     break;

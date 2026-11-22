@@ -31,12 +31,14 @@ public static class GameRpc
         public const ulong SEND_WORLD_SNAPSHOT = 300;
         public const ulong SNAPSHOT_BATCH = 301;
 
-        //  Server events
+        //  Server interactions
         public const ulong VOXEL_EDIT = 350;
-        public const ulong NOTIFICATION = 351;
-        public const ulong SKILL_UPDATE = 352;
-        public const ulong CHAT_RELAY = 353;
-        public const ulong SERVER_HEARTBEAT = 354;
-        public const ulong VOXEL_FACE_EDIT = 355;
+        public const ulong VOXEL_FACE_EDIT = 351;
+        
+        //  Server events
+        public const ulong SERVER_HEARTBEAT = 400;
+        public const ulong CHAT_RELAY = 401;
+        public const ulong NOTIFICATION = 402;
+        public const ulong SKILL_UPDATE = 403;
     }
 }

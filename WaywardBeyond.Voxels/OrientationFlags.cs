@@ -4,10 +4,10 @@ namespace WaywardBeyond.Voxels;
 public readonly struct OrientationFlags
 {
     /// <summary>Bit mask covering the 6-bit voxel orientation (bits 0..5).</summary>
-    public const byte ORIENTATION_MASK = 0x3F;
+    private const byte ORIENTATION_MASK = 0x3F;
 
     /// <summary>Bit 6: set when the voxel has at least one entry in its chunk's face override map.</summary>
-    public const byte HAS_FACE_OVERRIDES_BIT = 0x40;
+    private const byte HAS_FACE_OVERRIDES_BIT = 0x40;
 
     private readonly byte _value;
 

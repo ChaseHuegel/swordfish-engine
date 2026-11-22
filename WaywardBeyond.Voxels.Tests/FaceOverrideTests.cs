@@ -155,8 +155,8 @@ public class FaceOverrideTests
         rawVoxels[0] = new Voxel(0, 0, new OrientationFlags(0).WithFaceOverrides(true));
         rawVoxels[1] = new Voxel(1, 0, new OrientationFlags(0).WithFaceOverrides(true));
         var chunk = new Chunk(16, rawVoxels, [
-            new FaceOverrideData(ChunkData.MakeFaceKey(0, BrickFace.Front), 5, 7),
-            new FaceOverrideData(ChunkData.MakeFaceKey(1, BrickFace.Front), 0, 0),
+            new FaceOverrideData(ChunkData.GetFaceKey(0, BrickFace.Front), 5, 7),
+            new FaceOverrideData(ChunkData.GetFaceKey(1, BrickFace.Front), 0, 0),
         ]);
         var chunkData = new ChunkData(new Short3(0, 0, 0), chunk, voxels);
         Assert.False(chunkData.HasAnyFaceOverrides);

@@ -277,7 +277,7 @@ public class InventoryViewTests
 
         harness.Hover("inventorySlot5");
         Assert.Equal(1, harness.CountText("Drill"));
-        Assert.Equal(1, harness.CountText("Texture tool"));
+        Assert.Equal(1, harness.CountText("Decorator tool"));
     }
 
     [Fact]

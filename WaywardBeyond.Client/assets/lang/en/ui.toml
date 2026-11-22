@@ -247,7 +247,7 @@
 "ui.label.item.kind.miningTool" = "Mining tool"
 "ui.label.item.kind.conversionTool" = "Conversion tool"
 "ui.label.item.kind.paintTool" = "Paint tool"
-"ui.label.item.kind.textureTool" = "Texture tool"
+"ui.label.item.kind.textureTool" = "Decorator tool"
 "ui.label.item.kind.item" = "Item"
 "ui.label.item.kind.unknown" = "Unknown item"
 
