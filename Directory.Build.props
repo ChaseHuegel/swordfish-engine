@@ -1,0 +1,12 @@
+<Project>
+
+  <PropertyGroup>
+    <RestoreUseStaticGraphEvaluation>true</RestoreUseStaticGraphEvaluation>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+    <IncludeSourceRevisionInInformationalVersion Condition="'$(Configuration)' == '' or '$(Configuration)' == 'Debug'">false</IncludeSourceRevisionInInformationalVersion>
+    <EnableSourceControlManagerQueries Condition="'$(Configuration)' == '' or '$(Configuration)' == 'Debug'">false</EnableSourceControlManagerQueries>
+    <DisableMsCoverageReferencedPathMaps Condition="'$(ContinuousIntegrationBuild)' != 'true'">true</DisableMsCoverageReferencedPathMaps>
+    <NuGetAudit Condition="'$(CI)' != 'true'">false</NuGetAudit>
+  </PropertyGroup>
+
+</Project>

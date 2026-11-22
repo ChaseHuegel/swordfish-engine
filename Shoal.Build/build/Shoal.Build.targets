@@ -1,19 +1,70 @@
 <Project>
 
+    <PropertyGroup>
+        <_ShoalGitLfsStamp>$(BaseIntermediateOutputPath)git-lfs-pull.stamp</_ShoalGitLfsStamp>
+    </PropertyGroup>
+
+    <Target Name="GitLFSPull"
+            BeforeTargets="Build"
+            Condition="'$(SkipGitLFSPull)' != 'true' and (!Exists('$(_ShoalGitLfsStamp)') or '$(_IsPublishing)' == 'true')">
+        <Exec Command="git lfs pull" />
+        <MakeDir Directories="$(BaseIntermediateOutputPath)" Condition="!Exists('$(BaseIntermediateOutputPath)')" />
+        <Touch Files="$(_ShoalGitLfsStamp)" AlwaysCreate="true" />
+    </Target>
+
     <Target Name="AllowDuplicatesOnPublish" BeforeTargets="BeforeResolveReferences">
         <PropertyGroup>
-            <!-- !! HACK !! manifest files will fail the publish if building multiple modules -->
             <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
         </PropertyGroup>
     </Target>
 
-    <Target Name="IncludeModulesOnBuild" AfterTargets="Build" Condition="'$(_IsPublishing)' != 'true'">
-        <MSBUild Projects="$(MSBuildProjectFullPath)" Targets="PublishModules" Properties="ModuleTargetDir=$(OutputPath)" />
+    <!-- Prevent module assets and manifest.toml from copying into the launcher root directory -->
+    <Target Name="_ExcludeModuleRootOutputFiles"
+            BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectory;_CopyOutOfDateSourceItemsToOutputDirectoryAlways;_CopyDifferingSourceItemsToOutputDirectory">
+        <ItemGroup>
+            <_ShoalExcludedRootOutput Include="@(_SourceItemsToCopyToOutputDirectory);@(_SourceItemsToCopyToOutputDirectoryAlways);@(_SourceItemsToCopyToOutputDirectoryIfDifferent)"
+                                      Condition="'%(TargetPath)' == 'manifest.toml'
+                                                 or $([System.String]::Copy('%(TargetPath)').StartsWith('assets\', System.StringComparison.OrdinalIgnoreCase))
+                                                 or $([System.String]::Copy('%(TargetPath)').StartsWith('assets/', System.StringComparison.OrdinalIgnoreCase))" />
+            <_SourceItemsToCopyToOutputDirectory Remove="@(_ShoalExcludedRootOutput)" MatchOnMetadata="TargetPath" />
+            <_SourceItemsToCopyToOutputDirectoryAlways Remove="@(_ShoalExcludedRootOutput)" MatchOnMetadata="TargetPath" />
+            <_SourceItemsToCopyToOutputDirectoryIfDifferent Remove="@(_ShoalExcludedRootOutput)" MatchOnMetadata="TargetPath" />
+        </ItemGroup>
     </Target>
 
-    <Target Name="IncludeModulesOnPublish" AfterTargets="Publish">
-        <MSBUild Projects="$(MSBuildProjectFullPath)" Targets="PublishModules" Properties="ModuleTargetDir=$(PublishDir)" />
+    <Target Name="_ExcludeModuleRootPublishFiles"
+            AfterTargets="ComputeFilesToPublish"
+            BeforeTargets="_HandleFileConflictsForPublish;_GetCurrentAndPriorPublishFileWrites;_ComputeResolvedFilesToPublishTypes">
+        <ItemGroup>
+            <_ShoalExcludedRootPublish Include="@(ResolvedFileToPublish)"
+                                       Condition="'%(RelativePath)' == 'manifest.toml'
+                                                  or $([System.String]::Copy('%(RelativePath)').StartsWith('assets\', System.StringComparison.OrdinalIgnoreCase))
+                                                  or $([System.String]::Copy('%(RelativePath)').StartsWith('assets/', System.StringComparison.OrdinalIgnoreCase))" />
+            <ResolvedFileToPublish Remove="@(_ShoalExcludedRootPublish)" MatchOnMetadata="RelativePath" />
+        </ItemGroup>
     </Target>
+
+    <Target Name="_SetBuildModuleTargetDir">
+        <PropertyGroup>
+            <ModuleTargetDir>$(TargetDir)</ModuleTargetDir>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="_SetPublishModuleTargetDir">
+        <PropertyGroup>
+            <ModuleTargetDir>$(PublishDir)</ModuleTargetDir>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="IncludeModulesOnBuild"
+            AfterTargets="Build"
+            Condition="'$(_IsPublishing)' != 'true' and '$(SkipShoalModuleStaging)' != 'true'"
+            DependsOnTargets="_SetBuildModuleTargetDir;PublishModules" />
+
+    <Target Name="IncludeModulesOnPublish"
+            AfterTargets="Publish"
+            Condition="'$(SkipShoalModuleStaging)' != 'true'"
+            DependsOnTargets="_SetPublishModuleTargetDir;PublishModules" />
 
     <Target Name="PublishModules">
         <ItemGroup>
@@ -21,26 +72,30 @@
         </ItemGroup>
 
         <PropertyGroup>
-            <AbsoluteModuleTargetDir>$([System.IO.Path]::GetFullPath('$(ModuleTargetDir)'))</AbsoluteModuleTargetDir>
+            <_ResolvedModuleTargetDir Condition="'$(ModuleTargetDir)' != ''">$(ModuleTargetDir)</_ResolvedModuleTargetDir>
+            <_ResolvedModuleTargetDir Condition="'$(_ResolvedModuleTargetDir)' == '' and '$(_IsPublishing)' == 'true'">$(PublishDir)</_ResolvedModuleTargetDir>
+            <_ResolvedModuleTargetDir Condition="'$(_ResolvedModuleTargetDir)' == ''">$(TargetDir)</_ResolvedModuleTargetDir>
+            <AbsoluteModuleTargetDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(_ResolvedModuleTargetDir)'))</AbsoluteModuleTargetDir>
             <ModulesRoot>$(AbsoluteModuleTargetDir)modules/</ModulesRoot>
         </PropertyGroup>
 
-        <!-- Publish module projects to the modules folder -->
-        <MSBuild Projects="@(ModuleProjectReferences)" Targets="Publish" Properties="
-            PublishDir=$(AbsoluteModuleTargetDir)modules/%(ModuleProjectReferences.ModulePath)/;
-            SelfContained=false;
-            RuntimeIdentifier="
-        />
-
-        <!-- Cleanup any runtimes that got published with the modules -->
         <ItemGroup>
-            <Runtimes Include="$([System.IO.Directory]::GetDirectories('$(ModulesRoot)', 'runtimes', System.IO.SearchOption.AllDirectories))" Condition="Exists('$(ModulesRoot)')" />
+            <_ModuleProjectsToPublish Include="@(ModuleProjectReferences)">
+                <AdditionalProperties>PublishDir=$(ModulesRoot)%(ModuleProjectReferences.ModulePath)/;NoBuild=true;SelfContained=false;RuntimeIdentifier=;CopyLocalRuntimeTargetAssets=false</AdditionalProperties>
+            </_ModuleProjectsToPublish>
         </ItemGroup>
-        <RemoveDir Directories="@(Runtimes)" />
 
-        <!-- Cleanup any asset and manifest files in the root dir, these are already contained in the individual modules -->
-        <Delete Files="$(ModuleTargetDir)manifest.toml" Condition="Exists('$(ModuleTargetDir)manifest.toml')" />
-        <RemoveDir Directories="$(ModuleTargetDir)assets/" Condition="Exists('$(ModuleTargetDir)assets/')" />
+        <!-- Publish module projects in parallel without rebuilding their already-built graphs -->
+        <MSBuild Projects="@(_ModuleProjectsToPublish)" Targets="Publish" BuildInParallel="true" />
+
+        <!-- Clean up any leftover runtimes, root manifest, or root assets from earlier builds -->
+        <ItemGroup>
+            <_StaleModuleRuntimes Include="@(ModuleProjectReferences->'$(ModulesRoot)%(ModulePath)/runtimes')"
+                                  Condition="Exists('$(ModulesRoot)%(ModulePath)/runtimes')" />
+        </ItemGroup>
+        <RemoveDir Directories="@(_StaleModuleRuntimes)" Condition="'@(_StaleModuleRuntimes)' != ''" />
+        <Delete Files="$(AbsoluteModuleTargetDir)manifest.toml" Condition="Exists('$(AbsoluteModuleTargetDir)manifest.toml')" />
+        <RemoveDir Directories="$(AbsoluteModuleTargetDir)assets/" Condition="Exists('$(AbsoluteModuleTargetDir)assets/')" />
     </Target>
 
 </Project>

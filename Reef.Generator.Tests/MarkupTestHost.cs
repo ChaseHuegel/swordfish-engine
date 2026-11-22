@@ -14,17 +14,38 @@ namespace Reef.Generator.Tests;
 
 internal sealed class MarkupTestHost
 {
+    private static readonly HashSet<string> RequiredAssemblies = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "System.Private.CoreLib.dll",
+        "System.Runtime.dll",
+        "netstandard.dll",
+        "System.Collections.dll",
+        "System.Linq.dll",
+        "System.Numerics.Vectors.dll",
+        "System.ObjectModel.dll",
+        "System.Console.dll",
+        "System.Runtime.Extensions.dll",
+        "System.Text.RegularExpressions.dll",
+    };
+
+    private static readonly CSharpParseOptions ParseOptions =
+        CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
+
     private static readonly ImmutableArray<MetadataReference> References = BuildReferences();
+
+    private static readonly CSharpCompilation BaseCompilation = CSharpCompilation.Create(
+        "ReefMarkupTest",
+        syntaxTrees: null,
+        References,
+        new CSharpCompilationOptions(
+            OutputKind.DynamicallyLinkedLibrary,
+            nullableContextOptions: NullableContextOptions.Enable));
 
     public static CSharpCompilation CreateCompilation(string assemblyName = "ReefIncrementalTest")
     {
-        return CSharpCompilation.Create(
-            assemblyName,
-            syntaxTrees: null,
-            References,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+        return string.Equals(assemblyName, BaseCompilation.AssemblyName, StringComparison.Ordinal)
+            ? BaseCompilation
+            : BaseCompilation.WithAssemblyName(assemblyName);
     }
 
     public static MarkupCompilation Compile(
@@ -34,20 +55,12 @@ internal sealed class MarkupTestHost
         string fileName = "TestView.rml",
         string assemblyName = "ReefMarkupTest")
     {
-        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
-        var syntaxTrees = new List<SyntaxTree>();
+        CSharpCompilation compilation = CreateCompilation(assemblyName);
         if (companionCode.Length > 0)
         {
-            syntaxTrees.Add(CSharpSyntaxTree.ParseText(companionCode, parseOptions, path: "Companion.cs"));
+            compilation = compilation.AddSyntaxTrees(
+                CSharpSyntaxTree.ParseText(companionCode, ParseOptions, path: "Companion.cs"));
         }
-
-        var compilation = CSharpCompilation.Create(
-            assemblyName,
-            syntaxTrees,
-            References,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
 
         var additionalTexts = new List<AdditionalText>
         {
@@ -61,7 +74,7 @@ internal sealed class MarkupTestHost
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             new[] { new ReefGenerator().AsSourceGenerator() },
             additionalTexts,
-            parseOptions,
+            ParseOptions,
             new TestAnalyzerConfigOptionsProvider());
 
         driver = driver.RunGeneratorsAndUpdateCompilation(
@@ -94,20 +107,12 @@ internal sealed class MarkupTestHost
         string companionCode = "",
         string assemblyName = "ReefMarkupTest")
     {
-        var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest);
-        var syntaxTrees = new List<SyntaxTree>();
+        CSharpCompilation compilation = CreateCompilation(assemblyName);
         if (companionCode.Length > 0)
         {
-            syntaxTrees.Add(CSharpSyntaxTree.ParseText(companionCode, parseOptions, path: "Companion.cs"));
+            compilation = compilation.AddSyntaxTrees(
+                CSharpSyntaxTree.ParseText(companionCode, ParseOptions, path: "Companion.cs"));
         }
-
-        var compilation = CSharpCompilation.Create(
-            assemblyName,
-            syntaxTrees,
-            References,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
 
         var additionalTexts = new List<AdditionalText>();
         foreach ((string path, string text) in files)
@@ -118,7 +123,7 @@ internal sealed class MarkupTestHost
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             new[] { new ReefGenerator().AsSourceGenerator() },
             additionalTexts,
-            parseOptions,
+            ParseOptions,
             new TestAnalyzerConfigOptionsProvider());
 
         driver = driver.RunGeneratorsAndUpdateCompilation(
@@ -204,7 +209,8 @@ internal sealed class MarkupTestHost
         {
             foreach (string path in trusted.Split(Path.PathSeparator))
             {
-                if (File.Exists(path))
+                string fileName = Path.GetFileName(path);
+                if (RequiredAssemblies.Contains(fileName) && File.Exists(path))
                 {
                     references.Add(MetadataReference.CreateFromFile(path));
                 }
