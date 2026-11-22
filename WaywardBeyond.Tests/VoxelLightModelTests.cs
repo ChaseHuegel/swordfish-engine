@@ -42,8 +42,8 @@ public class VoxelLightModelTests
         }
     }
 
-    private static readonly Voxel Air = new(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-    private static readonly Voxel Stone = new(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+    private static readonly Voxel Air = new(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+    private static readonly Voxel Stone = new(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
     private static TestBrickDatabase CreateBrickDatabase()
     {

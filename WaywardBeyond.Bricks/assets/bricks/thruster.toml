@@ -7,6 +7,7 @@ Tags    = [
     "metal",
     "thruster",
     "buildable",
+    "paintable",
     "orientable",
     "convertable_truss",
 ]

@@ -162,6 +162,29 @@ Invalid collider entries log a warning and are skipped at `BrickDatabase` load
 (`WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`) build structure
 colliders through `VoxelCollision` (`WaywardBeyond.Voxels/VoxelCollision.cs`).
 
+## Paints (`assets/paints/*.toml`)
+
+Schema: `WaywardBeyond.Bricks/PaintDefinitions.cs` (collection),
+`PaintDefinition.cs` (row), `Paint.cs` (runtime asset), `PaintKind.cs`
+(`Texture` or `Color`). Paint files live in `WaywardBeyond.Bricks/assets/paints/`
+and load through `PaintDatabase` (`WaywardBeyond.Bricks/PaintDatabase.cs`).
+
+Each `[[Paints]]` row defines either a texture paint (`Textures`) or a color
+swatch (`Color`). A row that sets both or neither logs a warning and is skipped.
+
+| Field | Type | Notes |
+|---|---|---|
+| `ID` | string | unique namespaced paint id (e.g. `wb:panel`, `wb:red`) |
+| `Name` | string? | localization key for radial menu display |
+| `Alpha` | `BrickAlpha` enum | `Opaque` (default), `Masked`, `Blend` (texture paints only) |
+| `Connected` | bool | enables 4-bit connected-texture adjacency on painted faces |
+| `Textures` | string?[]? | deterministic texture variant list (texture paints) |
+| `Color` | string? | 6-digit hex RGB swatch (color paints) |
+| `Tags` | string[]? | case-insensitive tags |
+
+Bricks opt in to player painting by carrying the `paintable` tag in their
+`Tags` list (`Brick.Paintable`).
+
 ## Materials (`assets/materials/**/*.toml`)
 
 Flat config: `Swordfish/IO/MaterialDefinition.cs`. Keys are `Shader`,
@@ -265,7 +288,8 @@ hosted in `WaywardBeyond.Data/Localization/`.
 - `WaywardBeyond.Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
 - Parser registration: `WaywardBeyond.Skills/Injector.cs:16`,
-  `WaywardBeyond.Client/Injector.cs:276`, `WaywardBeyond.Bricks/Injector.cs:14`
+  `WaywardBeyond.Client/Injector.cs:343`, `WaywardBeyond.Bricks/Injector.cs:14`,
+  `WaywardBeyond.Bricks/Injector.cs:20`
 
 ## Tests that pin this
 

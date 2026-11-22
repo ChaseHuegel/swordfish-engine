@@ -22,8 +22,6 @@ internal sealed class ShapeSelector : IUILayer, IActionIndicator
 {
     private readonly RadialMenuView _view;
 
-    private const float ELEMENT_OFFSET = 96f;
-
     /// <summary>Gets whether the currently held item supports shape selection.</summary>
     public bool Available => IsMainHandShapeable();
 
@@ -97,21 +95,24 @@ internal sealed class ShapeSelector : IUILayer, IActionIndicator
     /// <inheritdoc/>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        float angleBetweenElements = 360f / _shapeSelectorElements.Count * MathS.DEGREES_TO_RADIANS;
         BrickShape selectedShape = _interactionState.SelectedShape.Get();
-        var nodes = new List<RadialNodeState>(_shapeSelectorElements.Count);
         var shapes = new List<BrickShape>(_shapeSelectorElements.Count);
-        var index = 0;
-
         for (var shape = BrickShape.Block; shape < BrickShape.Custom; shape++)
         {
-            if (!_shapeSelectorElements.TryGetValue(shape, out ShapeSelectorElement element))
+            if (_shapeSelectorElements.ContainsKey(shape))
             {
-                continue;
+                shapes.Add(shape);
             }
+        }
 
-            Vector2 offset = GetRadialOffset(angleBetweenElements, index);
-            shapes.Add(shape);
+        RadialMenuLayoutResult layout = RadialMenuLayout.Compute(shapes.Count, ui.Width, ui.Height);
+        var nodes = new List<RadialNodeState>(shapes.Count);
+
+        for (var index = 0; index < shapes.Count; index++)
+        {
+            BrickShape shape = shapes[index];
+            ShapeSelectorElement element = _shapeSelectorElements[shape];
+            Vector2 offset = layout.Positions[index];
             nodes.Add(new RadialNodeState(
                 element.ID,
                 index,
@@ -120,13 +121,12 @@ internal sealed class ShapeSelector : IUILayer, IActionIndicator
                 element.Icon,
                 selectedShape == shape
             ));
-            index++;
         }
 
         string translationKey = GetShapeTranslationKey(selectedShape);
         _nodeShapes = shapes;
 
-        _view.Render(ui, new RadialMenuState(translationKey, nodes, OnNodeEnter));
+        _view.Render(ui, new RadialMenuState(translationKey, nodes, OnNodeEnter, layout.HitSize));
 
         return Result.FromSuccess();
     }
@@ -140,14 +140,6 @@ internal sealed class ShapeSelector : IUILayer, IActionIndicator
         }
 
         _interactionState.SelectedShape.Set(_nodeShapes[index]);
-    }
-
-    /// <summary>Computes the position of a radial node on the selection circle.</summary>
-    private static Vector2 GetRadialOffset(float angleBetweenElements, int index)
-    {
-        var offset = new Vector2(0f, ELEMENT_OFFSET);
-        var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, angleBetweenElements * index);
-        return Vector2.Transform(offset, rotation);
     }
 
     private void OnChangeShapePressed()

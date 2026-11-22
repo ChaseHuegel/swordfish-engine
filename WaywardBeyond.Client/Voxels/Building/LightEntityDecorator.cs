@@ -1,6 +1,7 @@
 using System.Numerics;
 using Krill;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Voxels.Models;
@@ -9,8 +10,10 @@ using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 
-internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase) : IVoxelEntityDecorator
+internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase, IPaintDatabase? paintDatabase = null) : IVoxelEntityDecorator
 {
+    internal static readonly Vector3 DefaultColor = new(0.25f);
+
     public void Process(in DataStore store, in int parent, in int entity, in VoxelComponent voxelComponent, in VoxelInfo voxelInfo)
     {
         ShapeLight shapeLight = voxelInfo.Voxel.ShapeLight;
@@ -21,8 +24,52 @@ internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase) : IVoxe
         }
 
         bool castShadows = shapeLight.LightLevel >= 14;
-        var light = new LightComponent(radius: shapeLight.LightLevel, color: new Vector3(0.25f), size: 2.4f, castShadows: castShadows);
+        Vector3 color = ResolveLightColor(voxelComponent.VoxelObject, in voxelInfo);
+        var light = new LightComponent(radius: shapeLight.LightLevel, color: color, size: 2.4f, castShadows: castShadows);
         store.AddOrUpdate(entity, light);
+    }
+
+    internal Vector3 ResolveLightColor(VoxelObject voxelObject, in VoxelInfo voxelInfo)
+    {
+        if (paintDatabase == null)
+        {
+            return DefaultColor;
+        }
+
+        Result<Brick> brickResult = brickDatabase.Get(voxelInfo.Voxel.ID);
+        if (!brickResult.Success || !brickResult.Value.LightSource)
+        {
+            return DefaultColor;
+        }
+
+        Vector3 colorSum = Vector3.Zero;
+        int paintedFaceCount = 0;
+
+        for (var f = 0; f < 6; f++)
+        {
+            if (!voxelObject.TryGetFaceOverride(voxelInfo.X, voxelInfo.Y, voxelInfo.Z, (BrickFace)f, out FaceOverride faceOverride)
+                || faceOverride.ColorPaintId == 0)
+            {
+                continue;
+            }
+
+            Result<Paint> paintResult = paintDatabase.Get(faceOverride.ColorPaintId);
+            if (!paintResult.Success || paintResult.Value.Kind != PaintKind.Color)
+            {
+                continue;
+            }
+
+            colorSum += paintResult.Value.Color;
+            paintedFaceCount++;
+        }
+
+        if (paintedFaceCount == 0)
+        {
+            return DefaultColor;
+        }
+
+        Vector3 mixedPaintColor = colorSum / paintedFaceCount;
+        return DefaultColor * mixedPaintColor;
     }
 
     private bool IsExposed(VoxelObject voxelObject, in VoxelInfo voxelInfo)

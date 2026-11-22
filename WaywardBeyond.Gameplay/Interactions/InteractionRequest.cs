@@ -6,15 +6,25 @@ using WaywardBeyond.Data.Components;
 namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>The shared input the interaction resolver decides over.</summary>
-public readonly struct InteractionRequest(Vector3 origin, BrickInteraction? hint, InteractionKind kind, Brick? placeable, GameMode gameMode, float reach)
-{
+public readonly struct InteractionRequest(
+    Vector3 origin,
+    BrickInteraction? hint,
+    InteractionKind kind,
+    Brick? placeable,
+    GameMode gameMode,
+    float reach,
+    PaintInteraction? paintHint = null
+) {
     /// <summary>World-space interaction origin (the player's position); reach is measured from here.</summary>
     public readonly Vector3 Origin = origin;
 
     /// <summary>The client's resolved target voxel hint.</summary>
     public readonly BrickInteraction? Hint = hint;
 
-    /// <summary>The input edge that produced this interaction.</summary>
+    /// <summary>The client's resolved target face paint hint, when using a paint tool.</summary>
+    public readonly PaintInteraction? PaintHint = paintHint;
+
+    /// <summary>The input edge that produced the interaction.</summary>
     public readonly InteractionKind Kind = kind;
 
     /// <summary>The resolved placeable brick for the held item, when it places one.</summary>

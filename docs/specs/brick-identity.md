@@ -27,7 +27,7 @@ material names ship as `levelgen.toml` defaults (`Asteroid.Materials`).
 
 ## Runtime voxel id
 
-A voxel packs a `ushort ID` (`WaywardBeyond.Data/Nsd/voxels.nsd:40`).
+A voxel packs a `ushort ID` (`WaywardBeyond.Data/Nsd/voxels.nsd:51`).
 That id comes from a sorted, collision-free registry. `BrickRegistry`
 (`WaywardBeyond.Bricks/BrickRegistry.cs`) assigns ids by sorting
 the present brick names, so id 0 (the empty voxel) is reserved and ids depend
@@ -77,9 +77,9 @@ paths. Brick tags are case-insensitive.
 ### Missing-brick placeholder rendering
 
 An extension id has no `Brick` entry in `BrickDatabase`. When `MeshPostPass`
-(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:53`) samples a non-zero
+(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:51`) samples a non-zero
 voxel id that `BrickDatabase.Get` does not know, it falls back to a static
-opaque placeholder `Brick` (`MeshPostPass.cs:20`) with empty textures. Both cube
+opaque placeholder `Brick` (`MeshPostPass.cs:24`) with empty textures. Both cube
 and custom-shape mesh builders map a missing texture name to layer `0` of the
 brick `TextureArray`. `PBRTextureArraysParser`
 (`WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs:83`) reserves layer
@@ -101,7 +101,7 @@ its own `IBrickRegistry`.
 - `Encode` (`VoxelCodec.cs:11`) attaches a palette to live voxel data through
   `IBrickRegistry.Name`. Both registered and extension ids write their original
   brick names back into the palette.
-- `Decode` (`VoxelCodec.cs:30`) resolves each non-empty palette name to the
+- `Decode` (`VoxelCodec.cs:37`) resolves each non-empty palette name to the
   caller's local id space through `IBrickRegistry.Resolve`. Unknown brick names
   receive extension ids and survive a save round trip without loss.
 
@@ -114,7 +114,7 @@ decodes it in `ClientJoinSystem` before building its view world.
 Voxel edits reconcile by **canonical name**, not by numeric id. The server
 broadcasts each edit in a `VoxelEditMessage` carrying `BrickId` (the brick name,
 `network.nsd`). `ClientVoxelReconcileSystem`
-(`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:117`) compares the
+(`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:100`) compares the
 predicted id and the authoritative name through its local `IBrickRegistry`. A
 client and server with different registries still agree, and a snapped or
 unpredicted edit resolves `BrickId` via `IBrickRegistry.Resolve`. Placement
@@ -131,9 +131,30 @@ and `IMigration` remain for future record migrations, but no migrations ship in
 this build. `DataComposition` registers an empty `Migrator`. See
 [persistence](persistence.md).
 
+## Paint identity and palette
+
+Paint assets follow the same identity model as bricks. `IPaintRegistry`
+(`WaywardBeyond.Bricks/IPaintRegistry.cs`) and `PaintRegistry`
+(`WaywardBeyond.Bricks/PaintRegistry.cs`) assign one unified sorted `ushort` id
+space across texture paints and color swatches (`0` means no override,
+`1 .. Count` are registered paints, `Count + 1 .. ushort.MaxValue` are
+extension ids allocated by `Resolve`).
+
+`VoxelEntityData.PaintPalette` (`WaywardBeyond.Data/Nsd/voxels.nsd:23`) records
+canonical paint names for every `TexturePaintId` and `ColorPaintId` present in
+chunk `FaceOverrides`. `VoxelCodec.Encode` and `VoxelCodec.Decode`
+(`WaywardBeyond.Voxels/VoxelCodec.cs`) translate paint ids through
+`IPaintRegistry`, so unknown modded paints survive save and network round trips.
+Unresolved texture paint extension ids render with layer `0` (the missing
+checkerboard texture) and `Connected = false`. Unresolved color paint extension
+ids render untinted.
+
 ## Tests that pin this
 
 - `WaywardBeyond.Voxels.Tests/VoxelPaletteTests.cs:86` (`VoxelCodecTests`) pins
   palette encode, palette decode, extension id allocation in `BrickRegistry`,
   and lossless unknown-brick round trips across modded and vanilla registries.
+- `WaywardBeyond.Voxels.Tests/FaceOverrideTests.cs:8` (`FaceOverrideTests`) pins
+  `PaintPalette` encode/decode, unknown-paint round trips, and two-stage decode
+  preservation.
 - No tests pin the migration path because no migrations ship in this build.

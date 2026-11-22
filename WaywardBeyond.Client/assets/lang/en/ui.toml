@@ -246,6 +246,8 @@
 "ui.label.item.kind.brick" = "Brick"
 "ui.label.item.kind.miningTool" = "Mining tool"
 "ui.label.item.kind.conversionTool" = "Conversion tool"
+"ui.label.item.kind.paintTool" = "Paint tool"
+"ui.label.item.kind.textureTool" = "Decorator tool"
 "ui.label.item.kind.item" = "Item"
 "ui.label.item.kind.unknown" = "Unknown item"
 
@@ -260,6 +262,8 @@
 "ui.hint.brick.changeOrientation" = "T: Change orientation"
 "ui.hint.brick.snap" = "Shift: Snap brick"
 "ui.hint.brick.pick" = "MMB: Pick brick"
+"ui.hint.sprayer.changeColor" = "R: Change color"
+"ui.hint.drill.changeTexture" = "R: Change texture"
 "ui.hint.inventory.toggle" = "Tab: Inventory"
 "ui.hint.inventory.move" = "LMB: Move / stack"
 "ui.hint.inventory.split" = "RMB: Split half"

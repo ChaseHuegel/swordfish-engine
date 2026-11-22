@@ -172,11 +172,12 @@ internal sealed class VoxelEntityBuilder(
         {
             Short3 chunkOffset = dirtyList[i];
             bool geometryDirty = registry.GeometryDirtyChunks.Contains(chunkOffset);
+            bool entityDirty = geometryDirty || registry.EntityDirtyChunks.Contains(chunkOffset);
 
             if (!voxelObject.TryGetChunk(chunkOffset, out ChunkData chunk) || chunk.Palette.Only(0))
             {
                 RemoveChunkRanges(registry, chunkOffset);
-                if (geometryDirty)
+                if (entityDirty)
                 {
                     ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, []);
                 }
@@ -188,7 +189,7 @@ internal sealed class VoxelEntityBuilder(
             }
             else
             {
-                UpdateChunkRanges(store, parentEntity, parentUuid, voxelComponent, chunk, buildContext, geometryDirty);
+                UpdateChunkRanges(store, parentEntity, parentUuid, voxelComponent, chunk, buildContext, entityDirty);
 
                 if (geometryDirty)
                 {
@@ -312,6 +313,7 @@ internal sealed class VoxelEntityBuilder(
         registry.DirtyChunks.Remove(chunkOffset);
         registry.GeometryDirtyChunks.Remove(chunkOffset);
         registry.LightDirtyChunks.Remove(chunkOffset);
+        registry.EntityDirtyChunks.Remove(chunkOffset);
     }
 
     /// <summary>Frees every batch renderer and range that belongs to the voxel entity.</summary>
@@ -358,6 +360,7 @@ internal sealed class VoxelEntityBuilder(
         registry.DirtyChunks.Clear();
         registry.GeometryDirtyChunks.Clear();
         registry.LightDirtyChunks.Clear();
+        registry.EntityDirtyChunks.Clear();
         registry.KnownChunks.Clear();
         registry.ChunkColliders.Clear();
     }

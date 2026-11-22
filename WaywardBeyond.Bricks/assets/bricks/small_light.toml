@@ -9,6 +9,7 @@ Tags    = [
     "glass",
     "decoration",
     "buildable",
+    "paintable",
     "convertable_truss",
 ]
 [Bricks.Textures]

@@ -81,7 +81,7 @@ The client keeps a running total of warning, error, and critical log entries. `L
 Two surfaces read the snapshot:
 
 - `LogCountersOverlay` (`WaywardBeyond.Client/UI/LogCountersOverlay.cs:10`) adds a `LOGS` block to the F3 debug overlay. It shows all three totals.
-- `LogCountersBadge` (`WaywardBeyond.Client/UI/Layers/LogCountersBadge.cs:9`) draws non-zero totals in the bottom-right corner. The client registers it only in `DEBUG` builds (`WaywardBeyond.Client/Injector.cs:282`).
+- `LogCountersBadge` (`WaywardBeyond.Client/UI/Layers/LogCountersBadge.cs:9`) draws non-zero totals in the bottom-right corner. The client registers it only in `DEBUG` builds (`WaywardBeyond.Client/Injector.cs:290`).
 
 The badge sits left of the control hints, so it does not cover the hint pills.
 

@@ -42,7 +42,7 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 100–149 | menu: list, create, delete, save |
 | 200–249 | join: join, stream level |
 | 300–349 | server state: snapshot, snapshot batch |
-| 350–399 | server events: voxel edit, notification, skill, chat relay, heartbeat |
+| 350–399 | server events: voxel edit, voxel face edit, notification, skill, chat relay, heartbeat |
 
 | Id | Method | Direction | Kind | Payload |
 |---|---|---|---|---|
@@ -64,6 +64,7 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 352 | `SkillUpdate` | server → client | notification | `SkillStateUpdateMessage` |
 | 353 | `ChatRelay` | server → client | notification | `ChatMessage` |
 | 354 | `ServerHeartbeat` | server → client | notification | `ServerHeartbeatMessage` |
+| 355 | `VoxelFaceEdit` | server → client | notification | `VoxelFaceEditMessage` |
 
 ## Services
 

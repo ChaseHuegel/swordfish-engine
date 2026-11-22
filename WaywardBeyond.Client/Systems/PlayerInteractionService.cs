@@ -66,6 +66,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly PlayerData _playerData;
     private readonly IBrickDatabase _brickDatabase;
     private readonly IBrickRegistry _brickRegistry;
+    private readonly IPaintDatabase? _paintDatabase;
+    private readonly IPaintRegistry? _paintRegistry;
     private readonly ItemDatabase _itemDatabase;
     private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<BrickShape, MeshOutline> _shapeOutlines;
@@ -117,7 +119,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in EventInvoker<BreakEvent> breakEvent,
         in SnapshotAckTracker snapshotAck,
         in NotificationService notificationService,
-        in ILocalization localization
+        in ILocalization localization,
+        IPaintDatabase? paintDatabase = null,
+        IPaintRegistry? paintRegistry = null
     ) {
         _interactionState = interactionState;
         _brickPreviewState = brickPreviewState;
@@ -129,6 +133,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _brickRegistry = brickRegistry;
+        _paintDatabase = paintDatabase;
+        _paintRegistry = paintRegistry;
         _itemDatabase = itemDatabase;
         _meshDatabase = meshDatabase;
         _debugSettings = debugSettings;
@@ -293,6 +299,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         string? heldItemID = GetHeldItemID(store, playerEntity);
+        if (heldItemID != null && TryGetPaintToolMode(heldItemID, out PaintKind paintMode))
+        {
+            AttemptPaintInteraction(store, playerEntity, kind, mode, paintMode);
+            return;
+        }
+
         Brick? placeable = null;
         if (isPlace && heldItemID != null)
         {
@@ -349,6 +361,210 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         ApplyVoxelPrediction(store, playerEntity, kind, in resolution, in hint);
+    }
+
+    private static bool TryGetPaintToolMode(Item item, out PaintKind mode)
+    {
+        if (item.Tool?.Type == ToolType.Sprayer)
+        {
+            mode = PaintKind.Color;
+            return true;
+        }
+
+        if (item.Tool?.Type == ToolType.Drill)
+        {
+            mode = PaintKind.Texture;
+            return true;
+        }
+
+        mode = default;
+        return false;
+    }
+
+    private bool TryGetPaintToolMode(string itemId, out PaintKind mode)
+    {
+        Result<Item> itemResult = _itemDatabase.Get(itemId);
+        if (itemResult.Success)
+        {
+            return TryGetPaintToolMode(itemResult.Value, out mode);
+        }
+
+        mode = default;
+        return false;
+    }
+
+    private void AttemptPaintInteraction(DataStore store, int playerEntity, InteractionKind kind, GameMode gameMode, PaintKind paintMode)
+    {
+        if (_paintDatabase == null || _paintRegistry == null)
+        {
+            return;
+        }
+
+        bool hit = TryGetBrickFromScreenSpace(
+            offset: false,
+            reachAround: false,
+            out Entity entity,
+            out Voxel targetVoxel,
+            out Int3 coordinate,
+            out VoxelComponent voxelComponent,
+            out TransformComponent targetTransform,
+            out _,
+            out Vector3 hitNormal
+        );
+        if (!hit || targetVoxel.ID == 0)
+        {
+            return;
+        }
+
+        BrickFace hitFace = PaintInteractionResolver.WorldNormalToBrickFace(hitNormal, targetTransform.Orientation, targetVoxel.GetOrientation());
+        string? paintId = null;
+        if (kind == InteractionKind.PrimaryPressed)
+        {
+            paintId = GetActiveOrDefaultPaintId(paintMode);
+            PaintTargetValidation validation = PaintInteractionResolver.ValidateApplyTarget(
+                in targetVoxel,
+                paintMode,
+                paintId,
+                _brickDatabase,
+                _paintDatabase,
+                _paintRegistry
+            );
+            if (validation != PaintTargetValidation.Valid)
+            {
+                string key = validation == PaintTargetValidation.AlphaMismatch
+                    ? "notification.paint.incompatibleTexture"
+                    : "notification.paint.invalidTarget";
+                _notificationService.Push(new Notification(_localization.GetRequired(key), NotificationType.Action));
+                return;
+            }
+        }
+        else if (kind == InteractionKind.SecondaryPressed)
+        {
+            BrickShape shape = targetVoxel.GetShapeLight().Shape;
+            BrickFaceMask expandedMask = PaintInteractionResolver.ExpandFaceMask(hitFace.ToMask(), shape);
+            if (!PaintInteractionResolver.HasRemovableOverride(voxelComponent.VoxelObject, in coordinate, expandedMask, paintMode))
+            {
+                _notificationService.Push(new Notification(_localization.GetRequired("notification.paint.nothingToRemove"), NotificationType.Action));
+                return;
+            }
+        }
+
+        var paintHint = new PaintInteraction(
+            store.GetUuid(entity.Ptr).ToValue(),
+            coordinate.X,
+            coordinate.Y,
+            coordinate.Z,
+            (byte)hitFace.ToMask(),
+            (byte)paintMode,
+            paintId
+        );
+
+        Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
+        var world = new ClientVoxelInteractionWorld(store, _physics);
+        var request = new InteractionRequest(origin, hint: null, kind, placeable: null, gameMode, CharacterDefaults.DEFAULT_REACH, paintHint);
+        InteractionResolution resolution = PaintInteractionResolver.Resolve(in request, world, _brickDatabase, _paintDatabase, _paintRegistry);
+        if (resolution.Action != InteractionAction.Paint)
+        {
+            if (kind == InteractionKind.PrimaryPressed || kind == InteractionKind.SecondaryPressed)
+            {
+                _notificationService.Push(new Notification(_localization.GetRequired("notification.paint.invalidTarget"), NotificationType.Action));
+            }
+
+            return;
+        }
+
+        ApplyFacePaintPrediction(store, playerEntity, kind, in resolution, in paintHint, voxelComponent);
+    }
+
+    private string? GetActiveOrDefaultPaintId(PaintKind paintMode)
+    {
+        string? paintId = paintMode == PaintKind.Color
+            ? _interactionState.SelectedColorPaintId.Get()
+            : _interactionState.SelectedTexturePaintId.Get();
+        if (!string.IsNullOrEmpty(paintId) || _paintDatabase == null)
+        {
+            return paintId;
+        }
+
+        IReadOnlyList<Paint> fallbackList = paintMode == PaintKind.Color
+            ? _paintDatabase.ColorPaints
+            : _paintDatabase.TexturePaints;
+        return fallbackList.Count > 0 ? fallbackList[0].ID : null;
+    }
+
+    private bool IsPaintTargetValid(in Voxel targetVoxel, PaintKind paintMode)
+    {
+        if (_paintDatabase == null || _paintRegistry == null)
+        {
+            return false;
+        }
+
+        string? paintId = GetActiveOrDefaultPaintId(paintMode);
+        return PaintInteractionResolver.ValidateApplyTarget(
+            in targetVoxel,
+            paintMode,
+            paintId,
+            _brickDatabase,
+            _paintDatabase,
+            _paintRegistry
+        ) == PaintTargetValidation.Valid;
+    }
+
+    private void ApplyFacePaintPrediction(
+        DataStore store,
+        int playerEntity,
+        InteractionKind kind,
+        in InteractionResolution resolution,
+        in PaintInteraction hint,
+        VoxelComponent voxelComponent
+    ) {
+        VoxelObject voxelObject = voxelComponent.VoxelObject;
+        Int3 coordinate = resolution.Coordinate;
+        PaintResolution paint = resolution.Paint;
+
+        var originalOverrides = new FaceOverride[6];
+        for (var f = 0; f < 6; f++)
+        {
+            voxelObject.TryGetFaceOverride(coordinate.X, coordinate.Y, coordinate.Z, (BrickFace)f, out originalOverrides[f]);
+        }
+
+        if (paint.Mode == PaintKind.Texture)
+        {
+            voxelObject.SetFaceTexture(coordinate.X, coordinate.Y, coordinate.Z, paint.FaceMask, paint.PaintId);
+        }
+        else
+        {
+            voxelObject.SetFaceColor(coordinate.X, coordinate.Y, coordinate.Z, paint.FaceMask, paint.PaintId);
+        }
+
+        voxelComponent.Registry.MarkFaceModified(coordinate.X, coordinate.Y, coordinate.Z, voxelObject.ChunkSize);
+        store.MarkDirty<VoxelComponent>(resolution.Entity);
+
+        PendingInteractionComponent pending = GetOrCreatePending(store, playerEntity);
+        uint sequence = ++_interactionSequence;
+        uint serverTickAtSample = _snapshotAck.LastAppliedSnapshotTick;
+        pending.Queue.RegisterFaceEdit(new PendingFaceEdit(
+            resolution.Entity,
+            coordinate,
+            paint.FaceMask,
+            paint.Mode,
+            originalOverrides,
+            paint.CanonicalPaintId,
+            sequence,
+            serverTickAtSample
+        ));
+
+        var interaction = new InteractionEvent
+        {
+            Entity = store.GetUuid(playerEntity).ToValue(),
+            SequenceNumber = sequence,
+            ServerTickAtSample = serverTickAtSample,
+            Kind = kind,
+            Paint = hint,
+        };
+
+        pending.Outbound.Stage(interaction);
+        store.AddOrUpdate(playerEntity, pending);
     }
 
     private BrickInteraction BuildInteractionHint(bool isPlace, Brick? placeable, DataStore store, Int3 coordinate, int targetEntity, in TransformComponent targetTransform, Vector3 clickedPoint)
@@ -505,8 +721,32 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     
     private void OnMiddleClick()
     {
-        if (!TryGetBrickFromScreenSpace(false, false, out Entity clickedEntity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent))
+        if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
         {
+            return;
+        }
+
+        bool hit = TryGetBrickFromScreenSpace(
+            offset: false,
+            reachAround: false,
+            out Entity clickedEntity,
+            out Voxel clickedVoxel,
+            out Int3 brickPos,
+            out VoxelComponent voxelComponent,
+            out TransformComponent transformComponent,
+            out _,
+            out Vector3 hitNormal
+        );
+        if (!hit || clickedVoxel.ID == 0)
+        {
+            return;
+        }
+
+        DataStore store = _store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.");
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store);
+        if (mainHandResult.Success && TryGetPaintToolMode(mainHandResult.Value.Item, out PaintKind paintMode))
+        {
+            PickPaintForTool(voxelComponent.VoxelObject, in brickPos, in clickedVoxel, in transformComponent, hitNormal, paintMode);
             return;
         }
 
@@ -518,7 +758,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         //  hotbar, otherwise move the whole stack into the active hotbar slot. Both paths replicate
         //  upstream - an active-slot change rides the dirty ClientOwned EquipmentComponent, a hotbar
         //  move rides an InventoryEvent via PlayerData.ApplyMove - so the server stays authoritative.
-        DataStore store = _store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.");
         int pickSlot = FindPickSlot(store, clickedVoxel.ID);
         if (pickSlot < 0)
         {
@@ -539,6 +778,45 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         else
         {
             _playerData.SetActiveSlot(store, pickSlot);
+        }
+    }
+
+    private void PickPaintForTool(
+        VoxelObject voxelObject,
+        in Int3 coordinate,
+        in Voxel clickedVoxel,
+        in TransformComponent transformComponent,
+        Vector3 hitNormal,
+        PaintKind paintMode
+    ) {
+        if (_paintDatabase == null)
+        {
+            return;
+        }
+
+        BrickFace hitFace = PaintInteractionResolver.WorldNormalToBrickFace(hitNormal, transformComponent.Orientation, clickedVoxel.GetOrientation());
+        Result<Paint> pickedResult = PaintInteractionResolver.PickFacePaint(
+            voxelObject,
+            in coordinate,
+            in clickedVoxel,
+            hitFace,
+            paintMode,
+            _brickDatabase,
+            _paintDatabase
+        );
+        if (!pickedResult.Success)
+        {
+            return;
+        }
+
+        Paint picked = pickedResult.Value;
+        if (picked.Kind == PaintKind.Color)
+        {
+            _interactionState.SelectColorPaint(picked.ID);
+        }
+        else
+        {
+            _interactionState.SelectTexturePaint(picked.ID);
         }
     }
 
@@ -572,15 +850,21 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
-        if (WaywardBeyond.GameState < GameState.Playing)
+        if (WaywardBeyond.GameState < GameState.Playing || _store == null)
         {
             HideInteractionVisuals();
             return;
         }
-        
-        Result<Brick> placeableResult = TryGetPlaceableBrick();
+
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_store);
+        Result<Brick> placeableResult = TryGetPlaceableBrick(mainHandResult);
         bool holdingPlaceable = placeableResult.Success;
-        if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint) 
+        PaintKind paintToolMode = default;
+        bool holdingPaintTool = !holdingPlaceable
+            && mainHandResult.Success
+            && TryGetPaintToolMode(mainHandResult.Value.Item, out paintToolMode);
+
+        if (!TryGetBrickFromScreenSpace(holdingPlaceable, reachAround: !holdingPaintTool, out Entity entity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint)
             || !holdingPlaceable && clickedVoxel.ID == 0)
         {
             _debugInfo = default;
@@ -601,7 +885,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         Quaternion placeableOrientation = holdingPlaceable
             ? transformComponent.Orientation * localPlacementOrientation
-            : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
+            : transformComponent.Orientation * clickedVoxel.GetOrientation().ToQuaternion();
 
         UpdateDebugLines(worldPos, placeableOrientation);
 
@@ -629,7 +913,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         _brickPreviewState.Hide();
-        ShowSelectionOutline(new ShapeLight(clickedVoxel.ShapeLight).Shape, clickedVoxel, worldPos, placeableOrientation);
+        Vector4 selectionColor = holdingPaintTool && !IsPaintTargetValid(in clickedVoxel, paintToolMode)
+            ? _invalidOutlineColor
+            : _outlineColor;
+        ShowSelectionOutline(new ShapeLight(clickedVoxel.ShapeLight).Shape, clickedVoxel, worldPos, placeableOrientation, selectionColor);
     }
 
     private void HideInteractionVisuals()
@@ -664,7 +951,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, orientation);
     }
 
-    private void ShowSelectionOutline(BrickShape shape, in Voxel voxel, Vector3 worldPos, Quaternion orientation)
+    private void ShowSelectionOutline(BrickShape shape, in Voxel voxel, Vector3 worldPos, Quaternion orientation, Vector4 color)
     {
         Mesh? customMesh = null;
 
@@ -677,7 +964,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             }
         }
 
-        ShowOutline(shape, customMesh, worldPos, orientation, _outlineColor);
+        ShowOutline(shape, customMesh, worldPos, orientation, color);
     }
 
     private void ShowPlacementOutline(
@@ -965,6 +1252,30 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         out TransformComponent transformComponent,
         out Vector3 clickedPoint
     ) {
+        return TryGetBrickFromScreenSpace(
+            offset,
+            reachAround,
+            out entity,
+            out voxel,
+            out coordinate,
+            out voxelComponent,
+            out transformComponent,
+            out clickedPoint,
+            out _
+        );
+    }
+
+    private bool TryGetBrickFromScreenSpace(
+        bool offset,
+        bool reachAround,
+        out Entity entity,
+        out Voxel voxel,
+        out Int3 coordinate,
+        out VoxelComponent voxelComponent,
+        out TransformComponent transformComponent,
+        out Vector3 clickedPoint,
+        out Vector3 hitNormal
+    ) {
         CameraEntity cameraEntity = _renderContext.MainCamera.Get();
 
         Vector3? reachAroundDir = null;
@@ -980,11 +1291,13 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 voxel = default;
                 coordinate = default;
                 clickedPoint = default;
+                hitNormal = default;
                 return false;
             }
         }
         
         clickedPoint = raycast.Point;
+        hitNormal = raycast.Normal;
         coordinate = offset && reachAroundDir == null
             ? InteractionResolver.ResolvePlacementCell(
                 raycast.Point,
@@ -1101,9 +1414,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return InteractionResolver.BrickToWorldSpace(coordinate, origin, orientation);
     }
     
-    private Result<Brick> TryGetPlaceableBrick()
+    private Result<Brick> TryGetPlaceableBrick(Result<ItemSlot> mainHandResult)
     {
-        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available."));
         if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
         {
             return new Result<Brick>(success: false, null!, mainHandResult.Message, mainHandResult.Exception);

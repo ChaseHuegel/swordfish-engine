@@ -4,6 +4,7 @@ Shape       = "any"
 Alpha       = "Masked"
 Tags        = [
     "metal",
+    "paintable",
 ]
 [Bricks.Textures]
 Default = ["truss"]

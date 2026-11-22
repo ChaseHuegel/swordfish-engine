@@ -44,6 +44,12 @@ internal readonly record struct ItemTooltipState(
     /// <summary>Gets whether the hovered item is a conversion tool.</summary>
     public bool IsConversionTool => Kind == ItemTooltipKind.ConversionTool;
 
+    /// <summary>Gets whether the hovered item is a paint tool.</summary>
+    public bool IsPaintTool => Kind == ItemTooltipKind.PaintTool;
+
+    /// <summary>Gets whether the hovered item is a texture tool.</summary>
+    public bool IsTextureTool => Kind == ItemTooltipKind.TextureTool;
+
     /// <summary>Gets whether the tooltip displays a debug item id subtitle row.</summary>
     public bool HasDebugID => !string.IsNullOrEmpty(DebugID);
 

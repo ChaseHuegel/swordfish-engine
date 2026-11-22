@@ -3,6 +3,7 @@ ID      = "wb:rock"
 Shape   = "any"
 Tags    = [
     "environment",
+    "paintable",
 ]
 [Bricks.Textures]
 Default = ["rock"]

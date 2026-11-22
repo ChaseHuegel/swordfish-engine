@@ -30,6 +30,7 @@ public struct InteractionContext
         World = world;
         Origin = request.Origin;
         Hint = request.Hint;
+        PaintHint = request.PaintHint;
         Kind = request.Kind;
         GameMode = request.GameMode;
         Reach = request.Reach;
@@ -59,6 +60,9 @@ public struct InteractionContext
     /// <summary>The client's resolved target voxel hint.</summary>
     public readonly BrickInteraction? Hint;
 
+    /// <summary>The client's resolved target face paint hint.</summary>
+    public readonly PaintInteraction? PaintHint;
+
     /// <summary>The input edge that produced the interaction.</summary>
     public readonly InteractionKind Kind;
 
@@ -80,6 +84,6 @@ public struct InteractionContext
     /// <summary>Builds the immutable request the shared resolver decides over.</summary>
     public readonly InteractionRequest BuildRequest()
     {
-        return new InteractionRequest(Origin, Hint, Kind, Placeable, GameMode, Reach);
+        return new InteractionRequest(Origin, Hint, Kind, Placeable, GameMode, Reach, PaintHint);
     }
 }

@@ -90,7 +90,8 @@ public static class VoxelWorldEntityFactory
             transform.Scale.Y,
             transform.Scale.Z,
             world.VoxelObject.GetChunkInfos(),
-            _BrickPalette: null
+            _BrickPalette: null,
+            _PaintPalette: null
         );
     }
 

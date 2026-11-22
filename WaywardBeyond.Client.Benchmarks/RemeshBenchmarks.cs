@@ -16,7 +16,7 @@ namespace WaywardBeyond.Client.Benchmarks;
 [MemoryDiagnoser]
 public class RemeshBenchmarks
 {
-    private readonly Voxel _stone = new(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+    private readonly Voxel _stone = new(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
     private VoxelObjectBuilder _builder = null!;
     private VoxelObjectBuilder.ChunkBuildContext _context = null!;

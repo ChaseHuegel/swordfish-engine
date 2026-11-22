@@ -94,6 +94,7 @@ Route a goal to the right doc:
 | Understand the module/process architecture | [docs/architecture.md](docs/architecture.md) |
 | Edit or add config schema | [docs/specs/config-schemas.md](docs/specs/config-schemas.md) |
 | Define game content | [docs/specs/asset-definitions.md](docs/specs/asset-definitions.md) |
+| Author 3D models, textures, or icons | [docs/specs/asset-art-style.md](docs/specs/asset-art-style.md) |
 | Change save/persistence | [docs/specs/persistence.md](docs/specs/persistence.md) |
 | Change an nsd message or generated model | [docs/specs/needlefish-codegen.md](docs/specs/needlefish-codegen.md) |
 | Change networking | the networking specs under `docs/specs/` (see index) |

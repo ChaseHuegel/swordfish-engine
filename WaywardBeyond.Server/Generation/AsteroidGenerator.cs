@@ -67,7 +67,8 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
             orientation.X, orientation.Y, orientation.Z, orientation.W,
             _ScaleX: 1, _ScaleY: 1, _ScaleZ: 1,
             chunkInfos,
-            _BrickPalette: null
+            _BrickPalette: null,
+            _PaintPalette: null
         );
         
         return VoxelCodec.Encode(voxelEntityData, brickRegistry);
@@ -91,7 +92,7 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
                     $"Level generation material \"{names[i]}\" is not a known brick; an unknown material would produce air.");
             }
 
-            voxels[i] = new Voxel(id, _ShapeLight: 0, _Orientation: 0);
+            voxels[i] = new Voxel(id, _ShapeLight: 0, _OrientationFlags: 0);
         }
 
         return voxels;

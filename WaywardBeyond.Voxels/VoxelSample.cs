@@ -7,6 +7,9 @@ public ref struct VoxelSample
     public readonly Int3 ChunkOffset;
     public readonly Int3 ChunkCoords;
     public readonly Int3 Coords;
+    public readonly ChunkData ChunkData;
+    public readonly VoxelObject? VoxelObject;
+    public readonly int VoxelIndex;
     public ref Voxel Center;
     public ref Voxel Left;
     public ref Voxel Right;
@@ -25,11 +28,17 @@ public ref struct VoxelSample
         ref Voxel ahead,
         ref Voxel behind,
         ref Voxel above,
-        ref Voxel below
+        ref Voxel below,
+        ChunkData chunkData = default,
+        VoxelObject? voxelObject = null,
+        int voxelIndex = -1
     ) {
         ChunkOffset = chunkOffset;
         ChunkCoords = chunkCoords;
         Coords = coords;
+        ChunkData = chunkData;
+        VoxelObject = voxelObject;
+        VoxelIndex = voxelIndex;
         Center = ref center;
         Left = ref left;
         Right = ref right;

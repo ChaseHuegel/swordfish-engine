@@ -33,7 +33,7 @@ public sealed class SkillXpReactor(
     /// <inheritdoc/>
     public InteractionDecision Handle(ref InteractionContext context)
     {
-        if (context.Resolution.Action == InteractionAction.None)
+        if (context.Resolution.Action is not (InteractionAction.Break or InteractionAction.Place))
         {
             return InteractionDecision.Continue;
         }

@@ -23,3 +23,6 @@
 "notification.skill.levelUp" = "{0} increased from {1} to {2}"
 
 "notification.placement.occupied" = "#E04F7A Something is in the way"
+"notification.paint.invalidTarget" = "#E04F7A Cannot paint this brick"
+"notification.paint.incompatibleTexture" = "#E04F7A Texture is not compatible with this brick"
+"notification.paint.nothingToRemove" = "#E04F7A Nothing to remove"

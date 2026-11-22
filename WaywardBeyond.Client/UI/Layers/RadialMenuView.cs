@@ -19,7 +19,8 @@ internal readonly record struct RadialNodeState(
 internal readonly record struct RadialMenuState(
     string LabelKey,
     IReadOnlyList<RadialNodeState> Nodes,
-    Action<int>? OnEnter
+    Action<int>? OnEnter,
+    int HitSize = 88
 );
 
 /// <summary>Draws radial selector nodes and the selected label.</summary>

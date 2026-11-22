@@ -19,6 +19,8 @@ internal sealed class ControlHints : IUILayer
 
     private readonly OrientationSelector _orientationSelector;
     private readonly ShapeSelector _shapeSelector;
+    private readonly PaintColorSelector _paintColorSelector;
+    private readonly PaintTextureSelector _paintTextureSelector;
     private readonly Inventory _inventory;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
@@ -30,6 +32,8 @@ internal sealed class ControlHints : IUILayer
     private readonly HintViewState _changeOrientationHint;
     private readonly HintViewState _snapBrickHint;
     private readonly HintViewState _pickBrickHint;
+    private readonly HintViewState _changeColorHint;
+    private readonly HintViewState _changeTextureHint;
     private readonly HintViewState _inventoryHint;
 
     private readonly HintViewState _inventoryMoveHint;
@@ -42,6 +46,8 @@ internal sealed class ControlHints : IUILayer
     public ControlHints(
         in OrientationSelector orientationSelector,
         in ShapeSelector shapeSelector,
+        in PaintColorSelector paintColorSelector,
+        in PaintTextureSelector paintTextureSelector,
         in Inventory inventory,
         in PlayerData playerData,
         in IECSContext ecsContext,
@@ -51,6 +57,8 @@ internal sealed class ControlHints : IUILayer
     {
         _orientationSelector = orientationSelector;
         _shapeSelector = shapeSelector;
+        _paintColorSelector = paintColorSelector;
+        _paintTextureSelector = paintTextureSelector;
         _inventory = inventory;
         _playerData = playerData;
         _ecsContext = ecsContext;
@@ -62,6 +70,8 @@ internal sealed class ControlHints : IUILayer
         _changeOrientationHint = ParseHint(localization.GetString("ui.hint.brick.changeOrientation"));
         _snapBrickHint = ParseHint(localization.GetString("ui.hint.brick.snap"));
         _pickBrickHint = ParseHint(localization.GetString("ui.hint.brick.pick"));
+        _changeColorHint = ParseHint(localization.GetString("ui.hint.sprayer.changeColor"));
+        _changeTextureHint = ParseHint(localization.GetString("ui.hint.drill.changeTexture"));
         _inventoryHint = ParseHint(localization.GetString("ui.hint.inventory.toggle"));
 
         _inventoryMoveHint = ParseHint(localization.GetString("ui.hint.inventory.move"));
@@ -86,7 +96,22 @@ internal sealed class ControlHints : IUILayer
         {
             Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
             bool holdingPlaceable = mainHandResult.Success && mainHandResult.Value.Item.Placeable != null;
-            hints = holdingPlaceable ? BuildPlaceableHints() : BuildIdleHints();
+            if (holdingPlaceable)
+            {
+                hints = BuildPlaceableHints();
+            }
+            else if (_paintColorSelector.Available)
+            {
+                hints = BuildSprayerHints();
+            }
+            else if (_paintTextureSelector.Available)
+            {
+                hints = BuildDrillHints();
+            }
+            else
+            {
+                hints = BuildIdleHints();
+            }
         }
 
         _view.Render(ui, new ControlHintsState(hints));
@@ -127,6 +152,18 @@ internal sealed class ControlHints : IUILayer
         hints.Add(_inventoryHint);
         hints.Add(_feedbackHint);
         return hints;
+    }
+
+    /// <summary>Builds the hints for the paint sprayer in the main hand.</summary>
+    private List<HintViewState> BuildSprayerHints()
+    {
+        return [_changeColorHint, _inventoryHint, _feedbackHint];
+    }
+
+    /// <summary>Builds the hints for the drill in the main hand.</summary>
+    private List<HintViewState> BuildDrillHints()
+    {
+        return [_changeTextureHint, _inventoryHint, _feedbackHint];
     }
 
     /// <summary>Builds the hints for a main hand that holds no placeable item.</summary>

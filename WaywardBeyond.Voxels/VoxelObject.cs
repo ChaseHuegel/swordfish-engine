@@ -12,7 +12,7 @@ namespace WaywardBeyond.Voxels;
 /// </summary>
 public sealed class VoxelObject
 {
-    private static readonly Voxel _outOfBoundsVoxel = new(_ID: 0, _ShapeLight: new ShapeLight(default, lightLevel: 15), _Orientation: 0);
+    private static readonly Voxel _outOfBoundsVoxel = new(_ID: 0, _ShapeLight: new ShapeLight(default, lightLevel: 15), _OrientationFlags: 0);
 
     /// <summary>
     ///     Target for a read outside a resident chunk. It is reset to <see cref="_outOfBoundsVoxel"/> before each
@@ -122,7 +122,7 @@ public sealed class VoxelObject
         
         if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
-            var chunk = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk]);
+            var chunk = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk], _FaceOverrides: null);
             chunkData = new ChunkData(chunkOffset, chunk, voxelObject: this);
             _chunks[chunkOffset] = chunkData;
         }
@@ -189,6 +189,98 @@ public sealed class VoxelObject
         ref Voxel current = ref chunkData.Data.Voxels[index];
         ShapeLight shapeLight = current.GetShapeLight();
         current.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel);
+    }
+
+    /// <summary>Tries to read the paint override for a voxel face at the given world coordinates.</summary>
+    public bool TryGetFaceOverride(int x, int y, int z, BrickFace face, out FaceOverride faceOverride)
+    {
+        if (!TryLocateVoxel(x, y, z, out ChunkData chunkData, out int index))
+        {
+            faceOverride = default;
+            return false;
+        }
+
+        return chunkData.TryGetFaceOverride(index, face, out faceOverride);
+    }
+
+    /// <summary>Sets or clears the full <see cref="FaceOverride"/> on all faces in <paramref name="faceMask"/> for a resident voxel.</summary>
+    public void SetFaceOverride(int x, int y, int z, BrickFaceMask faceMask, FaceOverride faceOverride)
+    {
+        if (!TryLocateVoxel(x, y, z, out ChunkData chunkData, out int index))
+        {
+            return;
+        }
+
+        chunkData.SetFaceOverride(index, faceMask, faceOverride);
+    }
+
+    /// <summary>Sets or clears only the texture paint slot on all faces in <paramref name="faceMask"/> for a resident voxel.</summary>
+    public void SetFaceTexture(int x, int y, int z, BrickFaceMask faceMask, ushort texturePaintId)
+    {
+        if (!TryLocateVoxel(x, y, z, out ChunkData chunkData, out int index))
+        {
+            return;
+        }
+
+        chunkData.SetFaceTexture(index, faceMask, texturePaintId);
+    }
+
+    /// <summary>Sets or clears only the color tint slot on all faces in <paramref name="faceMask"/> for a resident voxel.</summary>
+    public void SetFaceColor(int x, int y, int z, BrickFaceMask faceMask, ushort colorPaintId)
+    {
+        if (!TryLocateVoxel(x, y, z, out ChunkData chunkData, out int index))
+        {
+            return;
+        }
+
+        chunkData.SetFaceColor(index, faceMask, colorPaintId);
+    }
+
+    /// <summary>Removes all face overrides on the resident voxel at the given world coordinates.</summary>
+    public void ClearFaceOverrides(int x, int y, int z)
+    {
+        if (!TryLocateVoxel(x, y, z, out ChunkData chunkData, out int index))
+        {
+            return;
+        }
+
+        chunkData.ClearFaceOverrides(index);
+    }
+
+    private bool TryLocateVoxel(int x, int y, int z, out ChunkData chunkData, out int index)
+    {
+        var chunkX = (short)(x >> _chunkShift);
+        var chunkY = (short)(y >> _chunkShift);
+        var chunkZ = (short)(z >> _chunkShift);
+        var chunkOffset = new Short3(chunkX, chunkY, chunkZ);
+
+        if (!_chunks.TryGetValue(chunkOffset, out chunkData))
+        {
+            index = -1;
+            return false;
+        }
+
+        if (x < 0)
+        {
+            x += _chunkSize * Math.Abs((int)chunkX);
+        }
+
+        if (y < 0)
+        {
+            y += _chunkSize * Math.Abs((int)chunkY);
+        }
+
+        if (z < 0)
+        {
+            z += _chunkSize * Math.Abs((int)chunkZ);
+        }
+
+        int localX = x & _chunkMask;
+        int localY = y & _chunkMask;
+        int localZ = z & _chunkMask;
+
+        index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
+        return true;
     }
 
     public Voxel Get(int x, int y, int z)

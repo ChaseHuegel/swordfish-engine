@@ -38,7 +38,7 @@ public sealed class VoxelWriteCommitter(
     public InteractionDecision Handle(ref InteractionContext context)
     {
         InteractionResolution resolution = context.Resolution;
-        if (resolution.Action == InteractionAction.None)
+        if (resolution.Action is not (InteractionAction.Break or InteractionAction.Place))
         {
             return InteractionDecision.Continue;
         }

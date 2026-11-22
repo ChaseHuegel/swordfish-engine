@@ -11,14 +11,14 @@ container. It owns a `Dictionary<Short3, ChunkData>` keyed by chunk offset. It
 creates a chunk on the first write that lands in it.
 
 - `Set(x, y, z, voxel)` writes one cell and creates the chunk when absent
-  (`VoxelObject.cs:115`).
+  (`VoxelObject.cs:116`).
 - `SetLight(x, y, z, lightLevel)` updates the light level of a resident cell
-  without modifying palette counts (`VoxelObject.cs:154`).
-- `Get(x, y, z)` returns one cell by value (`VoxelObject.cs:193`).
+  without modifying palette counts (`VoxelObject.cs:155`).
+- `Get(x, y, z)` returns one cell by value (`VoxelObject.cs:286`).
 - `Sample(x, y, z)` returns the cell and its six neighbours
-  (`VoxelObject.cs:233`).
+  (`VoxelObject.cs:326`).
 - `GetChunkInfos()` returns a copy of every resident chunk. The caller owns the
-  voxel arrays (`VoxelObject.cs:335`).
+  voxel arrays (`VoxelObject.cs:428`).
 
 A chunk holds `chunkSize³` voxels. `chunkSize` is a power of two and the
 constructor rejects any chunk whose `Size`, voxel count, or array does not match
@@ -50,7 +50,7 @@ world coordinate shifts forward by its chunk span before the mask applies, so
 
 A read outside a resident chunk returns the shared empty voxel. That voxel
 carries light level 15, so an absent chunk reads as full ambient
-(`VoxelObject.cs:16`).
+(`VoxelObject.cs:15`).
 
 The container resets that voxel before every export. A write through a returned
 reference therefore cannot reach a later read, and a write outside a resident
@@ -69,7 +69,7 @@ The two producers do not agree, and a caller must know which one it holds.
 | `VoxelObject.Sample(...)` | fixed world axes | left at `default` |
 
 `ChunkData` rotates each offset by the centre voxel's pitch, yaw, and roll
-(`ChunkData.cs:113`), so the mesh and collider passes follow a rotated brick.
+(`ChunkData.cs:43`), so the mesh and collider passes follow a rotated brick.
 `VoxelObject.Sample` does not rotate, so the light passes treat every brick as
 axis aligned. [0072](../issues/0072-voxel-sample-producers-disagree.md) tracks the split.
 
@@ -84,8 +84,29 @@ Direction names for an unrotated voxel:
 | Ahead | `+Z` |
 | Behind | `-Z` |
 
-A voxel orientation is a byte. Only the low six bits are valid, and the
-orientation lookup masks the rest (`ChunkData.cs:147`).
+A voxel packs its 6-bit orientation and per-voxel flags into
+`Voxel.OrientationFlags` (`WaywardBeyond.Data/Nsd/voxels.nsd:53`).
+`OrientationFlags` (`WaywardBeyond.Voxels/OrientationFlags.cs`) unpacks bits
+`0..5` as `Orientation` and bit `6` (`0x40`) as `HasFaceOverrides`.
+
+## Per-face paint overrides
+
+Unpainted chunks allocate no override storage. When a face is painted,
+`ChunkData` (`WaywardBeyond.Voxels/ChunkData.cs`) lazily allocates a
+`Dictionary<int, FaceOverride>` keyed by `(voxelIndex << 3) | (int)face`, where
+`face` is a brick-local `BrickFace` (`WaywardBeyond.Voxels/BrickFace.cs`). Each
+`FaceOverride` (`WaywardBeyond.Voxels/FaceOverride.cs`) stores a `ushort`
+`TexturePaintId` and a `ushort` `ColorPaintId` (`0` means inherit default).
+
+`VoxelObject.Set` clears any face overrides on the overwritten cell and clears
+bit `6`. `VoxelChunkRegistry.MarkFaceModified`
+(`WaywardBeyond.Client/Voxels/VoxelChunkRegistry.cs:42`) marks the chunk and
+orthogonal boundary neighbors mesh-only dirty so face edits skip collision and
+lighting passes, and marks `EntityDirtyChunks` so light decorators refresh.
+`CubeMeshBuilder` connects textures across native bricks and painted faces by
+comparing effective resolved surfaces on coplanar neighbor faces.
+`lightedArray.glsl` applies `VertexColor.rgb` as linear albedo and emissive
+tint (including bloom `BrightColor`) and `VertexColor.a` as voxel light.
 
 ## Palette maintenance
 
@@ -232,7 +253,7 @@ preserves existing air light when writing an authoritative empty cell.
 (`WaywardBeyond.Client/Systems/BrickPreviewSystem.cs:37`) renders a textured
 preview of the brick that the player will place.
 `PlayerInteractionService.OnFixedUpdate`
-(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:531`) publishes the
+(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:851`) publishes the
 held brick, effective shape, voxel-local orientation, target cell, and structure
 orientation to `BrickPreviewState`. The system ticks after the physics fixed
 update on the ECS thread. It stays visible while the game is paused and releases

@@ -1,0 +1,5 @@
+Shader    = "lighted"
+AlphaMode = "Masked"
+Textures  = [
+    "items/drill_uv.png",
+]

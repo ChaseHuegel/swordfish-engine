@@ -8,47 +8,67 @@ namespace WaywardBeyond.Voxels;
 public static class VoxelCodec
 {
     /// <summary>Encodes voxel data from the local format into the persistent format.</summary>
-    public static VoxelEntityData Encode(in VoxelEntityData source, IBrickRegistry map)
+    public static VoxelEntityData Encode(in VoxelEntityData source, IBrickRegistry map, IPaintRegistry? paintMap = null)
     {
-        if (HasPalette(in source))
+        bool hasBrickPalette = HasPalette(source.BrickPalette);
+        bool hasPaintPalette = HasPalette(source.PaintPalette);
+        if (hasBrickPalette && (paintMap == null || hasPaintPalette))
         {
             return source;
         }
 
-        string[]? palette = BuildPalette(source.Chunks, map.Name);
+        string[]? brickPalette = hasBrickPalette ? source.BrickPalette : BuildBrickPalette(source.Chunks, map.Name);
+        string[]? paintPalette = hasPaintPalette
+            ? source.PaintPalette
+            : (paintMap != null ? BuildPaintPalette(source.Chunks, paintMap.Name) : null);
+
         return new VoxelEntityData(
             source.Uuid,
             source.X, source.Y, source.Z,
             source.OrientationX, source.OrientationY, source.OrientationZ, source.OrientationW,
             source.ScaleX, source.ScaleY, source.ScaleZ,
             source.Chunks,
-            palette
+            brickPalette,
+            paintPalette
         );
     }
 
     /// <summary>Decodes voxel data from the persistent format into the local format.</summary>
-    public static VoxelEntityData Decode(in VoxelEntityData source, IBrickRegistry map)
+    public static VoxelEntityData Decode(in VoxelEntityData source, IBrickRegistry map, IPaintRegistry? paintMap = null)
     {
-        if (!HasPalette(in source))
+        bool hasBrickPalette = HasPalette(source.BrickPalette);
+        bool hasPaintPalette = HasPalette(source.PaintPalette);
+        bool decodePaint = hasPaintPalette && paintMap != null;
+        if (!hasBrickPalette && !decodePaint)
         {
             return source;
         }
 
-        string[] palette = source.BrickPalette!;
-        ChunkInfo[] chunks = RemapVoxels(source.Chunks, id => PaletteIdToLocalId(id, palette, map.Resolve));
+        string[]? brickPalette = hasBrickPalette ? source.BrickPalette : null;
+        string[]? paintPalette = decodePaint ? source.PaintPalette : null;
+
+        Func<ushort, ushort>? remapBrick = brickPalette != null
+            ? id => PaletteIdToLocalId(id, brickPalette, map.Resolve)
+            : null;
+        Func<ushort, ushort>? remapPaint = paintPalette != null
+            ? id => PaletteIdToLocalId(id, paintPalette, paintMap!.Resolve)
+            : null;
+
+        ChunkInfo[] chunks = RemapChunks(source.Chunks, remapBrick, remapPaint);
         return new VoxelEntityData(
             source.Uuid,
             source.X, source.Y, source.Z,
             source.OrientationX, source.OrientationY, source.OrientationZ, source.OrientationW,
             source.ScaleX, source.ScaleY, source.ScaleZ,
             chunks,
-            null
+            null,
+            decodePaint ? null : source.PaintPalette
         );
     }
 
-    private static bool HasPalette(in VoxelEntityData data)
+    private static bool HasPalette(string[]? palette)
     {
-        return data.BrickPalette != null && data.BrickPalette.Length > 0;
+        return palette != null && palette.Length > 0;
     }
 
     private static ushort PaletteIdToLocalId(ushort paletteIndex, string[] palette, Func<string, ushort> nameToLocalId)
@@ -62,8 +82,11 @@ public static class VoxelCodec
         return string.IsNullOrEmpty(name) ? (ushort)0 : nameToLocalId(name);
     }
 
-    private static ChunkInfo[] RemapVoxels(ChunkInfo[] source, Func<ushort, ushort> remap)
-    {
+    private static ChunkInfo[] RemapChunks(
+        ChunkInfo[] source,
+        Func<ushort, ushort>? remapBrick,
+        Func<ushort, ushort>? remapPaint
+    ) {
         var result = new ChunkInfo[source.Length];
         for (var c = 0; c < source.Length; c++)
         {
@@ -76,25 +99,48 @@ public static class VoxelCodec
                 continue;
             }
 
-            var remapped = new Voxel[voxels.Length];
-            for (var v = 0; v < voxels.Length; v++)
+            Voxel[] remappedVoxels = voxels;
+            if (remapBrick != null)
             {
-                Voxel voxel = voxels[v];
-                if (voxel.ID != 0)
+                remappedVoxels = new Voxel[voxels.Length];
+                for (var v = 0; v < voxels.Length; v++)
                 {
-                    voxel.ID = remap(voxel.ID);
-                }
+                    Voxel voxel = voxels[v];
+                    if (voxel.ID != 0)
+                    {
+                        voxel.ID = remapBrick(voxel.ID);
+                    }
 
-                remapped[v] = voxel;
+                    remappedVoxels[v] = voxel;
+                }
             }
 
-            result[c] = new ChunkInfo(chunkInfo.OffsetX, chunkInfo.OffsetY, chunkInfo.OffsetZ, new Chunk(chunk.Size, remapped));
+            FaceOverrideData[]? remappedOverrides = chunk.FaceOverrides;
+            if (remapPaint != null && chunk.FaceOverrides != null && chunk.FaceOverrides.Length > 0)
+            {
+                FaceOverrideData[] overrides = chunk.FaceOverrides;
+                remappedOverrides = new FaceOverrideData[overrides.Length];
+                for (var i = 0; i < overrides.Length; i++)
+                {
+                    FaceOverrideData entry = overrides[i];
+                    ushort texId = entry.TexturePaintId != 0 ? remapPaint(entry.TexturePaintId) : (ushort)0;
+                    ushort colId = entry.ColorPaintId != 0 ? remapPaint(entry.ColorPaintId) : (ushort)0;
+                    remappedOverrides[i] = new FaceOverrideData(entry.Key, texId, colId);
+                }
+            }
+
+            result[c] = new ChunkInfo(
+                chunkInfo.OffsetX,
+                chunkInfo.OffsetY,
+                chunkInfo.OffsetZ,
+                new Chunk(chunk.Size, remappedVoxels, remappedOverrides)
+            );
         }
 
         return result;
     }
 
-    private static string[]? BuildPalette(ChunkInfo[] source, Func<ushort, string?> nameById)
+    private static string[]? BuildBrickPalette(ChunkInfo[] source, Func<ushort, string?> nameById)
     {
         //  One pass to find the highest id so the palette is sized to the used space.
         ushort maxId = 0;
@@ -146,5 +192,67 @@ public static class VoxelCodec
         }
 
         return palette;
+    }
+
+    private static string[]? BuildPaintPalette(ChunkInfo[] source, Func<ushort, string?> nameById)
+    {
+        ushort maxId = 0;
+        for (var c = 0; c < source.Length; c++)
+        {
+            FaceOverrideData[]? overrides = source[c].Chunk.FaceOverrides;
+            if (overrides == null)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < overrides.Length; i++)
+            {
+                ushort texId = overrides[i].TexturePaintId;
+                if (texId > maxId)
+                {
+                    maxId = texId;
+                }
+
+                ushort colId = overrides[i].ColorPaintId;
+                if (colId > maxId)
+                {
+                    maxId = colId;
+                }
+            }
+        }
+
+        if (maxId == 0)
+        {
+            return null;
+        }
+
+        var palette = new string[maxId + 1];
+        Array.Fill(palette, string.Empty);
+        for (var c = 0; c < source.Length; c++)
+        {
+            FaceOverrideData[]? overrides = source[c].Chunk.FaceOverrides;
+            if (overrides == null)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < overrides.Length; i++)
+            {
+                RecordPaint(overrides[i].TexturePaintId, palette, nameById);
+                RecordPaint(overrides[i].ColorPaintId, palette, nameById);
+            }
+        }
+
+        return palette;
+    }
+
+    private static void RecordPaint(ushort id, string[] palette, Func<ushort, string?> nameById)
+    {
+        if (id == 0 || !string.IsNullOrEmpty(palette[id]))
+        {
+            return;
+        }
+
+        palette[id] = nameById(id) ?? "";
     }
 }

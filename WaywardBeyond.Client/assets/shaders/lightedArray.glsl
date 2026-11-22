@@ -41,8 +41,10 @@ vec4 fragment()
     Roughness = 1.0 - texture(texture2, TextureCoord).r;
     Normal = GetNormal();
     vec4 emissive = texture(texture4, TextureCoord);
-    vec4 shaded = vec4(shade(albedo.rgb).rgb, albedo.a);
-    vec4 color = max(shaded * VertexColor * ao(albedo), emissive);
+    emissive.rgb *= VertexColor.rgb;
+    vec3 tintedAlbedo = albedo.rgb * VertexColor.rgb;
+    vec4 shaded = vec4(shade(tintedAlbedo).rgb, albedo.a);
+    vec4 color = max(vec4(shaded.rgb * VertexColor.a, shaded.a) * ao(albedo), emissive);
     
     if (length(emissive) > 0.0)
     {

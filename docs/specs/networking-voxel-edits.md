@@ -117,6 +117,43 @@ A light-only chunk skips collision and voxel-entity reconciliation. The rebuild
 queues replaced chunk renderers for disposal. See
 [resource-lifetime](resource-lifetime.md).
 
+## Per-face paint interactions
+
+Holding `wb:sprayer` (`ToolType.Sprayer`, Color mode) or `wb:drill`
+(`ToolType.Drill`, Texture mode) routes primary and secondary clicks through
+`PaintInteraction` (`WaywardBeyond.Data/Nsd/components.nsd`) and
+`PaintInteractionResolver` (`WaywardBeyond.Gameplay/Interactions/PaintInteractionResolver.cs`).
+Holding `R` opens `PaintColorSelector` when holding the sprayer, or
+`PaintTextureSelector` when holding the drill. Primary click applies the tool's
+slot. Secondary click clears only the tool's slot. Middle click acts as an eye
+dropper instead of brick pick, selecting the clicked face's painted color for
+the sprayer, or the clicked face's painted texture (falling back to the matching
+texture paint for that brick face) for the drill.
+
+Validation runs strictly at the interaction layer:
+- `PaintHintResolver` (`WaywardBeyond.Server/Interactions/PaintHintResolver.cs`)
+  verifies the held item tool matches the requested mode (`ToolType.Sprayer`
+  for Color, `ToolType.Drill` for Texture).
+- The target brick must carry the `paintable` tag (`Brick.Paintable`).
+- Texture paint `Alpha` must match the target brick `Alpha`. Color paint applies
+  to any paintable brick.
+- `BrickShape.Slope` expands `Front` or `Top` hits to `Front | Top`.
+- `BrickShape.Custom` expands any face hit to `BrickFaceMask.All`.
+- On the client, `PlayerInteractionService` highlights invalid sprayer or drill
+  targets with the invalid outline color. Attempting to paint an invalid target
+  or clear a face with no active-mode override shows a red action notification
+  and skips sending an interaction event.
+
+`VoxelFaceWriteCommitter` (`WaywardBeyond.Server/Interactions/VoxelFaceWriteCommitter.cs`)
+applies the edit to the live `VoxelObject` without rebuilding colliders and
+broadcasts `VoxelFaceEditMessage` on RPC method `355` (`VOXEL_FACE_EDIT`),
+echoing `Sequence` only to the originating client and `0` to witness peers.
+`ClientVoxelReconcileSystem` reconciles echoes by canonical `PaintId` and marks
+affected chunks mesh-only dirty via `MarkFaceModified`. `MarkFaceModified` also
+flags the edited chunk in `EntityDirtyChunks` so `LightEntityDecorator` updates
+light bricks (`Brick.LightSource`) to mix their default color with the average
+of their painted face colors without rebuilding colliders.
+
 ## Interaction handlers
 
 The pipeline that runs each stage, the priority bands, and the four decisions live in

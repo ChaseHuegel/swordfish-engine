@@ -192,6 +192,7 @@ public class VoxelCodecTests
             0, 0, 0, 1,
             1, 1, 1,
             moddedVoxels.GetChunkInfos(),
+            null,
             null
         );
         VoxelEntityData moddedSaved = VoxelCodec.Encode(in moddedLocal, moddedRegistry);
@@ -216,6 +217,7 @@ public class VoxelCodecTests
             0, 0, 0, 1,
             1, 1, 1,
             vanillaVoxels.GetChunkInfos(),
+            null,
             null
         );
         VoxelEntityData vanillaSaved = VoxelCodec.Encode(in vanillaLocal, vanillaRegistry);
@@ -262,13 +264,14 @@ public class VoxelCodecTests
             voxels[index] = new Voxel(id, 0, 0);
         }
 
-        ChunkInfo[] chunks = [new(0, 0, 0, new Chunk(2, voxels))];
+        ChunkInfo[] chunks = [new(0, 0, 0, new Chunk(2, voxels, null))];
         return new VoxelEntityData(
             1,
             0, 0, 0,
             0, 0, 0, 1,
             1, 1, 1,
             chunks,
+            null,
             null
         );
     }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Swordfish.Library.Types;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
@@ -13,11 +12,25 @@ internal class InteractionState(in ClientPlayerMotionProcessor playerMotionProce
     public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
     public readonly DataBinding<Orientation> SelectedOrientation = new();
     public readonly DataBinding<bool> SnapPlacement = new();
+    public readonly DataBinding<string?> SelectedTexturePaintId = new(null);
+    public readonly DataBinding<string?> SelectedColorPaintId = new(null);
     
     private readonly ClientPlayerMotionProcessor _playerMotionProcessor = playerMotionProcessor;
-    
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
+    
     private InteractionBlocker? _inputBlocker;
+
+    /// <summary>Selects a color paint for the sprayer.</summary>
+    public void SelectColorPaint(string paintId)
+    {
+        SelectedColorPaintId.Set(paintId);
+    }
+
+    /// <summary>Selects a texture paint for the drill.</summary>
+    public void SelectTexturePaint(string paintId)
+    {
+        SelectedTexturePaintId.Set(paintId);
+    }
     
     public InteractionBlocker BlockInteraction()
     {

@@ -112,7 +112,7 @@ public class ChunkBasedVoxelRemeshingTests
     public void SetLightUpdatesLightLevelWithoutModifyingPalette()
     {
         var voxelObject = new VoxelObject(16);
-        var voxel = new Voxel(_ID: 5, _ShapeLight: new ShapeLight(default, lightLevel: 0), _Orientation: 0);
+        var voxel = new Voxel(_ID: 5, _ShapeLight: new ShapeLight(default, lightLevel: 0), _OrientationFlags: 0);
         voxelObject.Set(2, 3, 4, voxel);
 
         Assert.True(voxelObject.TryGetChunk(new Short3(0, 0, 0), out ChunkData chunkData));
@@ -136,8 +136,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var original = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var original = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in original, ref lamp);
 
@@ -159,9 +159,9 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var original = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var original = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Enclose a room with stone so it is not exposed to sky
         for (int x = 6; x <= 10; x++)
@@ -191,7 +191,7 @@ public class ChunkBasedVoxelRemeshingTests
         registry.DirtyChunks.Clear();
 
         // Break lamp inside room
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
         Voxel placedLamp = voxelObject.Get(8, 8, 8);
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in placedLamp, ref air);
 
@@ -210,8 +210,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Build a tunnel collar around (1, 8, 8) so it only receives light from (0, 8, 8)
         voxelObject.Set(1, 9, 8, stone);
@@ -244,8 +244,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Enclose (8, 8, 8) with stone on all 6 sides to form an enclosed dark cavity
         voxelObject.Set(7, 8, 8, stone);
@@ -278,9 +278,9 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Enclose the space so it is an indoor room with no direct line of sight to sky
         for (int x = 6; x <= 10; x++)
@@ -331,8 +331,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Place stone block 1 into space at (8, 8, 8)
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref stone);
@@ -365,8 +365,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Build a solid 5x5x5 stone asteroid: x from 6 to 10, y from 6 to 10, z from 6 to 10
         for (int x = 6; x <= 10; x++)
@@ -421,8 +421,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Build a hollow 6x6x6 sealed room: x from 5 to 10, y from 5 to 10, z from 5 to 10
         for (int x = 5; x <= 10; x++)
@@ -464,8 +464,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Build outward starting at edge of chunk 0 (coords 14, 15) crossing into chunk 1 (coord 16)
         for (int z = 14; z <= 18; z++)
@@ -493,8 +493,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Warm up JIT
         lightingService.UpdateLighting(voxelObject, registry, 5, 5, 5, in air, ref stone);
@@ -728,7 +728,7 @@ public class ChunkBasedVoxelRemeshingTests
         var server = new Voxel(0, new ShapeLight(BrickShape.Block, 0), 0);
 
         Assert.Equal(predicted.GetShapeLight().Shape, server.GetShapeLight().Shape);
-        Assert.Equal(predicted.Orientation, server.Orientation);
+        Assert.Equal(predicted.GetOrientation(), server.GetOrientation());
         Assert.Equal(predicted.ID, server.ID);
     }
 
@@ -743,9 +743,9 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var glass = new Voxel(_ID: 2, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var glass = new Voxel(_ID: 2, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Place stone at (8, 8, 8)
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref stone);
@@ -757,7 +757,7 @@ public class ChunkBasedVoxelRemeshingTests
 
         // Break glass at (8, 8, 9)
         Voxel currentGlass = voxelObject.Get(8, 8, 9);
-        var replacementAir = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var replacementAir = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 9, in currentGlass, ref replacementAir);
 
         // The newly empty air cell at (8, 8, 9) is open space, so it is ambient.
@@ -775,7 +775,7 @@ public class ChunkBasedVoxelRemeshingTests
         var prePass = new DepthPrePass(depthState, brickDb);
         var voxelObject = new VoxelObject(16);
 
-        var glass = new Voxel(_ID: 2, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var glass = new Voxel(_ID: 2, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
         voxelObject.Set(8, 8, 8, glass);
 
         foreach (ChunkData chunk in voxelObject)
@@ -792,7 +792,7 @@ public class ChunkBasedVoxelRemeshingTests
         Assert.Empty(depthState.ZY);
 
         // Now place stone and process
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
         voxelObject.Set(8, 8, 8, stone);
 
         foreach (ChunkData chunk in voxelObject)
@@ -820,9 +820,9 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Place lamp at (8, 8, 8)
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref lamp);
@@ -851,9 +851,9 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var lamp = new Voxel(_ID: 10, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Place stone at (8, 8, 8)
         lightingService.UpdateLighting(voxelObject, registry, 8, 8, 8, in air, ref stone);
@@ -879,8 +879,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Build asteroid in chunk (0, 0, 0): x from 6 to 10, y from 6 to 10, z from 10 to 15
         for (int x = 6; x <= 10; x++)
@@ -932,8 +932,8 @@ public class ChunkBasedVoxelRemeshingTests
         var registry = new VoxelChunkRegistry();
         var voxelObject = new VoxelObject(16);
 
-        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
-        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _Orientation: 0);
+        var air = new Voxel(_ID: 0, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
         // Build asteroid in chunk (0, 0, 0): x from 5 to 11, y from 6 to 10, z from 10 to 15
         for (int x = 5; x <= 11; x++)

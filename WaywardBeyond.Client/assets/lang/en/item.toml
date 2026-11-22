@@ -41,3 +41,7 @@
 "item.base.vent.description" = "Allows airflow and radiating heat from machinery"
 "item.base.control_panel" = "Control Panel"
 "item.base.control_panel.description" = "Board of switches and dials for systems"
+"item.base.sprayer" = "Paint Sprayer"
+"item.base.sprayer.description" = "Handheld spray gun for applying and removing colors. An artist's best friend!"
+"item.base.drill" = "Drill"
+"item.base.drill.description" = "Handheld tool for modifying and stripping surfaces. A spacer's second-best friend!"
