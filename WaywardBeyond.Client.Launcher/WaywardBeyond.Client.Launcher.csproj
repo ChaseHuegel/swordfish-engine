@@ -12,7 +12,8 @@
         <BeautyLibsDir>./lib</BeautyLibsDir>
         <BeautyUsePatch>True</BeautyUsePatch>
         <BeautyExcludes>*glfw*</BeautyExcludes>
-        <SelfContained>true</SelfContained>
+        <BeautyOnPublishOnly>True</BeautyOnPublishOnly>
+        <SelfContained Condition="'$(Configuration)' == 'Release' or '$(RuntimeIdentifier)' != ''">true</SelfContained>
     </PropertyGroup>
 
     <ItemGroup>
@@ -32,13 +33,13 @@
 
     <ItemGroup>
         <None Update="config\modules.toml">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="config\physics.toml">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
         <None Update="config\logging.toml">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 

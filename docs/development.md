@@ -33,34 +33,43 @@ file. Do not mass-rewrite untouched files.
 - .NET 8 SDK minimum. Some projects target `net9.0`. Net8.0 is the common baseline.
 - Windows is needed for the full `Swordfish` engine runtime (Silk.NET OpenGL
   window). The `msdf-atlas-gen` font tool is Windows-only, so other platforms
-  reuse pre-generated atlas `.bmp` and `.json` files.
-- No `global.json`, `Directory.Build.props`, or `.editorconfig` exist. Each
-  `.csproj` is self-contained.
+  reuse pre-generated atlas `.png` and `.json` files.
+- Root `Directory.Build.props` enables static-graph NuGet restore, Visual Studio build acceleration, local test coverage path-map skipping, and Debug-only skips for git source-control queries and local NuGet audit. Root `Directory.Build.targets` filters unsupported mobile and non-host Debug native runtime assets on RID-less builds and excludes transitive foreign `manifest.toml` files when a module defines its own. No `global.json` or `.editorconfig` exist.
 - No lint, format, or typecheck scripts. Standard `dotnet build` is the check.
 
 ## Build & test
 
 ```bash
-dotnet build                                        # Debug default; runs Needlefish codegen
+dotnet restore                                      # run on fresh checkout or after .csproj changes
+dotnet build --no-restore                           # Debug default, runs Needlefish codegen
 dotnet build --configuration Release
-dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
-dotnet test WaywardBeyond.Tests                     # xunit game tests
-dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
-dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser tests, cross-platform
-dotnet test Reef.Generator.Tests                    # xunit Reef markup generator tests, cross-platform
-dotnet test Reef.Markup.Tests                       # xunit Reef markup runtime and visual tests
-dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
+dotnet build <Project> --no-restore                 # scoped build during iteration
+dotnet build Engine.slnf --no-restore               # engine projects and engine tests only
+dotnet build Game.slnf --no-restore                 # Wayward Beyond projects and engine deps only
+dotnet build Tests.slnf --no-restore                # all 8 test projects without launchers
+dotnet build Benchmarks.sln                         # BenchmarkDotNet projects
+dotnet test --no-build                              # all 8 xunit test projects in parallel
+dotnet test Swordfish.Tests --no-build              # xunit engine tests, cross-platform
+dotnet test WaywardBeyond.Tests --no-build          # xunit game tests
+dotnet test Reef.Tests --no-build                   # xunit Reef UI and render tests, cross-platform
+dotnet test Reef.Text.Tests --no-build              # xunit Reef rich-text parser tests, cross-platform
+dotnet test Reef.Generator.Tests --no-build         # xunit Reef markup generator tests, cross-platform
+dotnet test Reef.Markup.Tests --no-build            # xunit Reef markup runtime and visual tests
+dotnet test WaywardBeyond.Voxels.Tests --no-build   # xunit shared voxel container tests
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 pwsh ./Pack.ps1                                     # same as above
 dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
 ```
+
+- Scope iterative commands to the affected project with `--no-restore` and run tests with `--no-build` and `--filter` after building.
+- `Shoal.Build/build/Shoal.Build.targets` stages module outputs in parallel with `NoBuild=true` into launcher `modules/` directories on build and publish. Pass `-p:SkipShoalModuleStaging=true` to skip module staging during compile-only solution checks. Pass `-p:SkipGitLFSPull=true` to bypass the first-build `git lfs pull` check.
 
 - `Reef.Tests` targets `net8.0` and runs on Linux. Non-Windows runs reuse the
   pre-generated MSDF atlas fixtures in `Reef.Tests/TestFiles/Fonts`, because
   `msdf-atlas-gen` is Windows-only.
 - Regenerate the atlas fixtures on Windows (or Wine) with the bundled
   generator. Set the font id from `FontInfo` as the output name:
-  `Reef/Manifest/msdf-atlas-gen.exe -font "<font>" -imageout <id>.bmp
+  `Reef/Manifest/msdf-atlas-gen.exe -font "<font>" -imageout <id>.png
   -json <id>.json -chars "<charset>"`.
 - CI publishes release artifacts from `.github/workflows/waywardbeyond.yml`.
 - `Needlefish.Generators` runs as a Roslyn source generator during compilation.
@@ -392,7 +401,7 @@ Document the contract. Do not document the implementation.
 - No records in the netstandard2.0/2.1 projects.
 - Do not disable Nullable in new projects.
 - Do not introduce new test frameworks.
-- Do not remove `CopyToOutputDirectory=Always` from manifest files.
+- Use `CopyToOutputDirectory=PreserveNewest` (not `Always`) on manifest, asset, config, and test files. Never remove `CopyToOutputDirectory` from manifest files.
 
 ## Commit rules
 

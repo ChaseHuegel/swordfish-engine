@@ -8,10 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Content Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+        <Content Include="assets\**\*.*" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest"/>
         <EmbeddedResource Include="manifest\**\*.*" />
         <None Update="manifest.toml">
-          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 

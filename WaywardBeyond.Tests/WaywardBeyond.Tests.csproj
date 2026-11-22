@@ -7,19 +7,15 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="coverlet.collector" Version="1.3.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="TestFiles\**\*.*" CopyToOutputDirectory="Always"/>
+    <None Include="TestFiles\**\*.*" CopyToOutputDirectory="PreserveNewest"/>
     <!--  Engine tests also use these fakes, so the engine test project owns the file.  -->
     <Compile Include="..\Swordfish.Tests\ClientFakes.cs" Link="ClientFakes.cs" />
     <ProjectReference Include="..\Reef\Reef.csproj" />
@@ -42,13 +38,32 @@
     <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
-    <None Include="..\WaywardBeyond.Skills\assets\skills\*.toml" Link="TestFiles\Skills\assets\skills\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <None Include="..\WaywardBeyond.Skills\assets\lang\tags\*.toml" Link="TestFiles\Skills\assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <None Include="..\WaywardBeyond.Bricks\assets\bricks\*.toml" Link="TestFiles\Bricks\assets\bricks\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <None Include="..\WaywardBeyond.Bricks\assets\paints\*.toml" Link="TestFiles\Bricks\assets\paints\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <None Include="..\WaywardBeyond.Items\assets\items\*.toml" Link="TestFiles\Items\assets\items\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <None Include="..\WaywardBeyond.Bodies\assets\bodies\*.toml" Link="TestFiles\Bodies\assets\bodies\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <None Include="..\WaywardBeyond.Bodies\assets\textures\characters\*.png" Link="TestFiles\Bodies\assets\textures\characters\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <None Include="..\WaywardBeyond.Skills\assets\skills\*.toml" Link="TestFiles\Skills\assets\skills\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Skills\assets\lang\tags\*.toml" Link="TestFiles\Skills\assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Bricks\assets\bricks\*.toml" Link="TestFiles\Bricks\assets\bricks\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Bricks\assets\paints\*.toml" Link="TestFiles\Bricks\assets\paints\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Items\assets\items\*.toml" Link="TestFiles\Items\assets\items\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Bodies\assets\bodies\*.toml" Link="TestFiles\Bodies\assets\bodies\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Bodies\assets\textures\characters\*.png" Link="TestFiles\Bodies\assets\textures\characters\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Bricks\assets\bricks\*.toml" Link="assets\bricks\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Client\assets\audio\sounds\**\*.*" Link="assets\audio\sounds\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="_ExcludeUnusedGameAssetsFromTests"
+          BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectory;_CopyOutOfDateSourceItemsToOutputDirectoryAlways;_CopyDifferingSourceItemsToOutputDirectory">
+    <ItemGroup>
+      <_UnusedTestAssets Include="@(_SourceItemsToCopyToOutputDirectory);@(_SourceItemsToCopyToOutputDirectoryAlways);@(_SourceItemsToCopyToOutputDirectoryIfDifferent)"
+                         Condition="($([System.String]::Copy('%(TargetPath)').StartsWith('assets\', System.StringComparison.OrdinalIgnoreCase))
+                                     or $([System.String]::Copy('%(TargetPath)').StartsWith('assets/', System.StringComparison.OrdinalIgnoreCase)))
+                                    and !$([System.String]::Copy('%(TargetPath)').StartsWith('assets\lang\', System.StringComparison.OrdinalIgnoreCase))
+                                    and !$([System.String]::Copy('%(TargetPath)').StartsWith('assets/lang/', System.StringComparison.OrdinalIgnoreCase))
+                                    and !$([System.String]::Copy('%(TargetPath)').StartsWith('assets\bricks\', System.StringComparison.OrdinalIgnoreCase))
+                                    and !$([System.String]::Copy('%(TargetPath)').StartsWith('assets/bricks/', System.StringComparison.OrdinalIgnoreCase))
+                                    and !$([System.String]::Copy('%(TargetPath)').StartsWith('assets\audio\sounds\', System.StringComparison.OrdinalIgnoreCase))
+                                    and !$([System.String]::Copy('%(TargetPath)').StartsWith('assets/audio/sounds/', System.StringComparison.OrdinalIgnoreCase))" />
+      <_SourceItemsToCopyToOutputDirectory Remove="@(_UnusedTestAssets)" MatchOnMetadata="TargetPath" />
+      <_SourceItemsToCopyToOutputDirectoryAlways Remove="@(_UnusedTestAssets)" MatchOnMetadata="TargetPath" />
+      <_SourceItemsToCopyToOutputDirectoryIfDifferent Remove="@(_UnusedTestAssets)" MatchOnMetadata="TargetPath" />
+    </ItemGroup>
+  </Target>
   <Import Project="..\Reef.Generator\build\Reef.Generator.props" />
 </Project>

@@ -1,0 +1,28 @@
+{
+  "solution": {
+    "path": "Swordfish.sln",
+    "projects": [
+      "Krill\\Krill.csproj",
+      "Krill.Generator\\Krill.Generator.csproj",
+      "Krill.Tests\\Krill.Tests.csproj",
+      "Reef\\Reef.csproj",
+      "Reef.Generator\\Reef.Generator.csproj",
+      "Reef.Generator.Tests\\Reef.Generator.Tests.csproj",
+      "Reef.Markup.TestComponents\\Reef.Markup.TestComponents.csproj",
+      "Reef.Markup.Tests\\Reef.Markup.Tests.csproj",
+      "Reef.Tests\\Reef.Tests.csproj",
+      "Reef.Text.Tests\\Reef.Text.Tests.csproj",
+      "Shoal\\Shoal.csproj",
+      "Shoal.Build\\Shoal.Build.csproj",
+      "Shoal.Extensions.Swordfish\\Shoal.Extensions.Swordfish.csproj",
+      "Swordfish\\Swordfish.csproj",
+      "Swordfish.Compilation\\Swordfish.Compilation.csproj",
+      "Swordfish.Demo\\Swordfish.Demo.csproj",
+      "Swordfish.Editor\\Swordfish.Editor.csproj",
+      "Swordfish.Integrations\\Swordfish.Integrations.csproj",
+      "Swordfish.Launcher\\Swordfish.Launcher.csproj",
+      "Swordfish.Library\\Swordfish.Library.csproj",
+      "Swordfish.Tests\\Swordfish.Tests.csproj"
+    ]
+  }
+}

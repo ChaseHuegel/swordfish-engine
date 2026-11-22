@@ -34,8 +34,8 @@ Assemblies = [
 ]
 ```
 
-Manifest files require `CopyToOutputDirectory=Always` in the `.csproj`. Never
-remove it.
+Manifest files require `CopyToOutputDirectory=PreserveNewest` in the `.csproj`. Never
+remove `CopyToOutputDirectory` from manifest files.
 
 ## `modules.toml` (per launcher)
 

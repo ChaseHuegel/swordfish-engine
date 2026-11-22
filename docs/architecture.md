@@ -175,4 +175,4 @@ This is not used by the game's save path, which uses SQLite directly in
 - **ImageSharp** — image loading
 - **SoundFlow** — audio
 - **msdf-atlas-gen** — font atlases (external tool, Windows-only at runtime;
-  other platforms reuse pre-generated atlas `.bmp` and `.json` files)
+  other platforms reuse pre-generated atlas `.png` and `.json` files)

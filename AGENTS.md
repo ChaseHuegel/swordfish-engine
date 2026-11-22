@@ -9,15 +9,36 @@ short sentences, no semicolons, no contractions.
 ## Build & test
 
 ```bash
-dotnet build                                        # Debug default; runs Needlefish codegen
-dotnet test Swordfish.Tests                         # xunit engine tests
-dotnet test WaywardBeyond.Tests                     # xunit game tests
-dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
-dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
-dotnet test Reef.Generator.Tests                    # xunit Reef markup generator, cross-platform
-dotnet test Reef.Markup.Tests                       # xunit Reef markup runtime and visual gallery
-dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
+dotnet restore                                      # run on fresh checkout or after .csproj changes
+dotnet build --no-restore                           # Debug default, runs Needlefish codegen
+dotnet build Tests.slnf --no-restore                # build only test projects and their dependencies
+dotnet build Engine.slnf --no-restore               # build only engine projects and engine tests
+dotnet build Game.slnf --no-restore                 # build only Wayward Beyond projects and engine deps
+dotnet build <Project> --no-restore                 # scoped build during iteration
+dotnet test <TestProject> --no-build --filter <X>   # scoped test during iteration
+dotnet test Tests.slnf --no-build                   # all 8 xunit test projects in parallel
 ```
+
+Individual test projects (always pass `--no-build` after a build):
+
+```bash
+dotnet test Krill.Tests --no-build                  # standalone ECS package tests
+dotnet test Swordfish.Tests --no-build              # xunit engine tests
+dotnet test Reef.Tests --no-build                   # xunit Reef UI and render tests, cross-platform
+dotnet test Reef.Text.Tests --no-build              # xunit Reef rich-text parser, cross-platform
+dotnet test Reef.Generator.Tests --no-build         # xunit Reef markup generator, cross-platform
+dotnet test Reef.Markup.Tests --no-build            # xunit Reef markup runtime and visual gallery
+dotnet test WaywardBeyond.Tests --no-build          # xunit game tests
+dotnet test WaywardBeyond.Voxels.Tests --no-build   # xunit shared voxel container tests
+```
+
+### Agent build and test rules
+
+- Run `dotnet restore` only on a fresh checkout or after editing `.csproj` files or package references. Pass `--no-restore` on subsequent `dotnet build` commands.
+- During iteration, scope `dotnet build` to the affected project or test project (`dotnet build WaywardBeyond.Client --no-restore` or `dotnet build Swordfish.Tests --no-restore`) instead of building the full solution.
+- Always pass `--no-build` to `dotnet test` when a previous command already built the target. Use `--filter` to run only the relevant test class or method during iteration.
+- For the final test gate, run one `dotnet test --no-build` command across the solution rather than 8 separate `dotnet test <Project>` invocations.
+- Pass `-p:SkipShoalModuleStaging=true` when building the full solution only for compilation checks without running a launcher. Leave module staging enabled when testing or launching `WaywardBeyond.Client.Launcher` or `WaywardBeyond.Server.Launcher`.
 
 - `Reef.Tests` is `net8.0`; it runs on Linux. On non-Windows platforms the
   MSDF atlas fixtures in `Reef.Tests/TestFiles/Fonts` must exist, because the
@@ -111,7 +132,7 @@ Route a goal to the right doc:
   processed by systems (`Krill/`). Avoid OOP hierarchies.
 - **Structs default** for new types, especially data types. Classes only for
   reference semantics or polymorphism.
-- **Manifest files** require `CopyToOutputDirectory=Always`.
+- **Manifest files** require `CopyToOutputDirectory=PreserveNewest`.
 - **Sensitive serialization** uses `.nsd` files under
   `WaywardBeyond.Data/Nsd`. The `Needlefish.Generators` package emits the
   generated types at compile time. Never hand-edit generated source. Config
@@ -136,17 +157,10 @@ Route a goal to the right doc:
 
 Before you finish a change, run:
 
-1. `dotnet build` — must compile clean.
-2. `dotnet test Krill.Tests` — standalone ECS package tests.
-3. `dotnet test Swordfish.Tests` — engine tests.
-4. `dotnet test Reef.Tests` — Reef UI and render tests, cross-platform.
-5. `dotnet test Reef.Text.Tests` — Reef rich-text parser tests, cross-platform.
-6. `dotnet test Reef.Generator.Tests` — Reef markup generator tests.
-7. `dotnet test Reef.Markup.Tests` — Reef markup runtime and visual tests.
-8. `dotnet test WaywardBeyond.Tests` — game tests.
-9. `dotnet test WaywardBeyond.Voxels.Tests` — shared voxel container tests.
-10. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
-    Fix blocking findings. Capture the rest as issues.
+1. `dotnet build --no-restore` (or `dotnet build` if `.csproj` files changed) — must compile clean.
+2. `dotnet test --no-build` — runs all 8 test projects (`Krill.Tests`, `Swordfish.Tests`, `Reef.Tests`, `Reef.Text.Tests`, `Reef.Generator.Tests`, `Reef.Markup.Tests`, `WaywardBeyond.Tests`, `WaywardBeyond.Voxels.Tests`) in parallel.
+3. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
+   Fix blocking findings. Capture the rest as issues.
 
 Then run the mandatory **docs pass** (see the next section). Stale docs are a
 bug; do not finalize a change until the docs match the code.
@@ -170,7 +184,7 @@ a DB bucket/table, a config key, or an API route.
 - .NET 8 SDK minimum (some projects target net9.0; net8.0 is the baseline).
 - Windows needed for the full engine runtime (Silk.NET OpenGL window). The
   `msdf-atlas-gen` font tool is Windows-only, so other platforms reuse
-  pre-generated atlas `.bmp` and `.json` files.
+  pre-generated atlas `.png` and `.json` files.
 
 ## Read next
 
