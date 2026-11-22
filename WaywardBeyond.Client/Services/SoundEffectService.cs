@@ -9,7 +9,7 @@ using WaywardBeyond.Client.Systems;
 
 namespace WaywardBeyond.Client.Services;
 
-internal sealed class SoundEffectService
+internal class SoundEffectService
 {
     private readonly AudioChannelSystem _audioChannelSystem;
     private readonly Randomizer _randomizer;
@@ -46,7 +46,7 @@ internal sealed class SoundEffectService
             .ToArray();
     }
 
-    public void Play(string id, string channelName)
+    public virtual void Play(string id, string channelName)
     {
         if (!_audioChannelSystem.TryGetChannelEntity(channelName, out Uuid channel))
         {

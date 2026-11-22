@@ -48,6 +48,17 @@ adds `wb-footer-status-error`.
 Pages render inside the `TitleMenu` content host. The title texture above the
 content stays unchanged.
 
+## Interaction audio
+
+Every menu click that changes the page, or opens a modal, plays the interface
+click sound before it navigates. The handler owns the call, because the Reef
+markup button has no audio hook.
+
+`HomePage` plays the click for Continue, Singleplayer, Multiplayer, Settings,
+Credits, and Exit game. `MultiplayerPage` plays it for View archives, Add signal,
+Establish uplink, and saved-signal removal. `NewCharacterPage` plays it when the
+unspent-point confirmation opens.
+
 ## Pause menu
 
 The pause home page is a centered column below the title image. It sizes to its
@@ -242,4 +253,6 @@ Do not add fake menu controls.
   the chart component from a fixed state.
 
 - `WaywardBeyond.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.
+- `WaywardBeyond.Tests/MenuClickAudioTests.cs` clicks the Home page-change buttons
+  and asserts the interface click sound plays before the page changes.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.

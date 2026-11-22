@@ -36,6 +36,7 @@ internal sealed class HomePage(
 
 
     private readonly Entry _entry = entry;
+    private readonly SoundEffectService _soundEffectService = soundEffectService;
     private readonly ILocalization _localization = localization;
     private readonly GameSaveService _gameSaveService = gameSaveService;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
@@ -186,13 +187,36 @@ internal sealed class HomePage(
     {
         return new HomeView(_localization)
         {
-            ContinueRequested = () => _continueService.Start(),
+            ContinueRequested = Continue,
             SingleplayerRequested = StartSingleplayer,
-            MultiplayerRequested = () => _menu?.GoToPage(MenuPage.Multiplayer),
-            SettingsRequested = () => _menu?.GoToPage(MenuPage.Settings),
-            CreditsRequested = () => _menu?.GoToPage(MenuPage.Credits),
-            QuitRequested = () => _entry.Quit(),
+            MultiplayerRequested = () => Open(MenuPage.Multiplayer),
+            SettingsRequested = () => Open(MenuPage.Settings),
+            CreditsRequested = () => Open(MenuPage.Credits),
+            QuitRequested = Quit,
         };
+    }
+
+    private void Continue()
+    {
+        PlayClick();
+        _continueService.Start();
+    }
+
+    private void Quit()
+    {
+        PlayClick();
+        _entry.Quit();
+    }
+
+    private void Open(MenuPage page)
+    {
+        PlayClick();
+        _menu?.GoToPage(page);
+    }
+
+    private void PlayClick()
+    {
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
     }
 
     /// <summary>Builds the Continue card facts from the resolved last session.</summary>
@@ -217,6 +241,7 @@ internal sealed class HomePage(
 
     private void StartSingleplayer()
     {
+        PlayClick();
         _rpcHost.Disconnect();
         _gameSaveService.ClearListing();
         _gameSaveManager.ActiveSave = null;

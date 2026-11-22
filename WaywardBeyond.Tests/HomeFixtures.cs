@@ -26,7 +26,7 @@ internal static class HomeFixtures
     public const string SAVE_NAME = "Frontier Base";
     public const string CHARACTER_UUID = "1";
 
-    public static HomePage CreateHome(bool withSession)
+    public static HomePage CreateHome(bool withSession, SoundEffectService? soundEffectService = null)
     {
         var localization = new TestLocalization();
         var profile = new ProfileSettings();
@@ -61,7 +61,7 @@ internal static class HomeFixtures
 
         return new HomePage(
             null!,
-            null!,
+            soundEffectService!,
             localization,
             new GameSaveService(null!, null!, null!, null!, null!),
             null!,

@@ -340,6 +340,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             return;
         }
 
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _modalMenu.GoToPage(_confirmModal.Create(
             TryCreate,
             _localization.GetRequired("ui.dialog.character.unspent"),
