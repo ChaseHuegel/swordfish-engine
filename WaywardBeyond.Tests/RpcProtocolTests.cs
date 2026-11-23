@@ -97,7 +97,8 @@ public class RpcProtocolTests
             or >= 100 and <= 149
             or >= 200 and <= 249
             or >= 300 and <= 349
-            or >= 350 and <= 399;
+            or >= 350 and <= 399
+            or >= 400 and <= 449;
     }
 
     private sealed class EmptyServerHandler : GameServerApiHandler { }

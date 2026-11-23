@@ -242,12 +242,12 @@ message VoxelFaceEditMessage
 ```
 
 Voxel edits use server-to-client RPC notification method `350`. Face paint edits
-use server-to-client RPC notification method `355` (`VOXEL_FACE_EDIT`). Both
+use server-to-client RPC notification method `351` (`VOXEL_FACE_EDIT`). Both
 ride the reliable send queue with every other server event.
 
 ## Session heartbeats
 
-`ServerHeartbeatMessage` (server → client, notification 354) and
+`ServerHeartbeatMessage` (server → client, notification 400) and
 `ClientHeartbeatMessage` (client → server, notification 3) carry the liveness
 and lag signal at `NetworkingConfig.Protocol.HeartbeatIntervalMs`. The server
 emits to every accepted connection from establishment: the per-world

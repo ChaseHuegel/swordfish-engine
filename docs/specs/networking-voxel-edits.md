@@ -180,7 +180,7 @@ Validation runs strictly at the interaction layer:
 
 `VoxelFaceWriteCommitter` (`WaywardBeyond.Server/Interactions/VoxelFaceWriteCommitter.cs`)
 applies the edit to the live `VoxelObject` without rebuilding colliders and
-broadcasts `VoxelFaceEditMessage` on RPC method `355` (`VOXEL_FACE_EDIT`),
+broadcasts `VoxelFaceEditMessage` on RPC method `351` (`VOXEL_FACE_EDIT`),
 echoing `Sequence` only to the originating client and `0` to witness peers.
 `ClientVoxelReconcileSystem` reconciles echoes by canonical `PaintId` and marks
 affected chunks mesh-only dirty via `MarkFaceModified`. `MarkFaceModified` also

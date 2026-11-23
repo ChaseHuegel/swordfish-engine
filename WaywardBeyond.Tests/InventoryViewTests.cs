@@ -133,7 +133,7 @@ public class InventoryViewTests
     }
 
     [Fact]
-    public void HoldingASlotStartsADragAndReleaseMovesIt()
+    public void HoldingASlotStartsADragAndClickingATargetMovesIt()
     {
         var harness = new Harness();
         harness.Populate();
@@ -142,7 +142,7 @@ public class InventoryViewTests
         Assert.Equal(Harness.SlotDragFill, harness.FindCommand("inventorySlot9").Color);
         Assert.Equal(2, harness.CountBadgeText("5"));
 
-        harness.ReleaseOver("inventorySlot10");
+        harness.DropOn("inventorySlot10");
 
         Assert.True(IsEmpty(harness.Slot(9)));
         Assert.Equal(5, harness.Slot(10).Count);
@@ -594,12 +594,11 @@ public class InventoryViewTests
             Step();
         }
 
-        public void ReleaseOver(string id)
+        /// <summary>Puts a held stack down by clicking a target slot.</summary>
+        public void DropOn(string id)
         {
-            MoveTo(id);
-            Step(UIController.MouseButtons.Left);
-            Step();
             Release();
+            Click(id);
         }
 
         public void DragOver(string id)
@@ -786,7 +785,7 @@ public class InventoryViewTests
                 "ui.label.item.kind.miningTool" => "Mining tool",
                 "ui.label.item.kind.conversionTool" => "Conversion tool",
                 "ui.label.item.kind.paintTool" => "Paint tool",
-                "ui.label.item.kind.textureTool" => "Texture tool",
+                "ui.label.item.kind.textureTool" => "Decorator tool",
                 "ui.label.item.kind.item" => "Item",
                 "ui.label.item.kind.unknown" => "Unknown item",
                 "ui.label.item.trait.orientable" => "Rotatable",
