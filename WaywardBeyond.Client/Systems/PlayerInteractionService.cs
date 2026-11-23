@@ -298,22 +298,20 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
     private void OnLeftClick(InteractionSource source)
     {
-        AttemptVoxelInteraction(InteractionKind.PrimaryPressed, source);
+        AttemptAction(MouseButton.Left, source);
     }
 
     private void OnRightClick(InteractionSource source)
     {
-        AttemptVoxelInteraction(InteractionKind.SecondaryPressed, source);
+        AttemptAction(MouseButton.Right, source);
     }
 
     /// <summary>
-    /// Refactors the old client-authoritative interaction into intent + prediction: the client derives the
-    /// target cell with the same shared resolver the server uses, predicts the outcome onto its
-    /// presentation-only voxel container, records the prediction for reconcile, and sends the edge event
-    /// (with its hint) upstream for the server to validate and author. The server owns inventory
-    /// consumption/loot, so nothing here mutates the client inventory.
+    /// Performs the action the held item binds to the pressed button. The left button is the primary edge
+    /// of every item, and only a modifier tool binds the right button, to clear its paint. Empty hands and
+    /// block items have no brick action, so they break nothing.
     /// </summary>
-    private void AttemptVoxelInteraction(InteractionKind kind, InteractionSource source)
+    private void AttemptAction(MouseButton button, InteractionSource source)
     {
         if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
         {
@@ -321,7 +319,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         DataStore store = _store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.");
-        bool isPlace = kind == InteractionKind.SecondaryPressed;
 
         int playerEntity = -1;
         store.Query<PlayerComponent>(0f, (float _, DataStore s, int e, in PlayerComponent playerComponent) => playerEntity = e);
@@ -337,21 +334,35 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         string? heldItemID = GetHeldItemID(store, playerEntity);
-        if (heldItemID != null && TryGetPaintToolMode(heldItemID, out PaintKind paintMode))
+        Item? heldItem = GetHeldItem(heldItemID);
+
+        InteractionKind kind = InteractionIntent.For(button, heldItem);
+        if (kind == InteractionKind.None)
+        {
+            return;
+        }
+
+        if (InteractionIntent.PaintMode(heldItem) is { } paintMode)
         {
             AttemptPaintInteraction(store, playerEntity, kind, mode, paintMode, source);
             return;
         }
 
-        Brick? placeable = null;
-        if (isPlace && heldItemID != null)
-        {
-            Result<Brick> placeableResult = ItemPlaceables.ResolvePlaceable(_itemDatabase, _brickDatabase, heldItemID);
-            if (placeableResult.Success)
-            {
-                placeable = placeableResult.Value;
-            }
-        }
+        AttemptVoxelInteraction(store, playerEntity, mode, heldItemID, source);
+    }
+
+    /// <summary>
+    /// Refactors the old client-authoritative interaction into intent + prediction: the client derives the
+    /// target cell with the same shared resolver the server uses, predicts the outcome onto its
+    /// presentation-only voxel container, records the prediction for reconcile, and sends the interaction
+    /// event (with its hint) upstream for the server to validate and author. The server owns inventory
+    /// consumption/loot, so nothing here mutates the client inventory.
+    /// </summary>
+    private void AttemptVoxelInteraction(DataStore store, int playerEntity, GameMode mode, string? heldItemID, InteractionSource source)
+    {
+        //  The held placeable selects place over break, exactly as the shared resolver decides it.
+        Brick? placeable = ResolveHeldPlaceable(heldItemID);
+        bool isPlace = placeable != null;
 
         var world = new ClientVoxelInteractionWorld(store, _physics);
 
@@ -362,7 +373,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return;
         }
 
-        if (isPlace && placeable != null && targetVoxel.ID != 0)
+        if (isPlace && targetVoxel.ID != 0)
         {
             NotifyInteractionFailure(source, "notification.placement.occupied");
             return;
@@ -370,13 +381,13 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         BrickInteraction hint = BuildInteractionHint(isPlace, placeable, store, coordinate, entity.Ptr, in targetTransform, clickedPoint);
 
-        if (isPlace && placeable != null)
+        if (placeable is { } placeableBrick)
         {
-            BrickShape resolvedShape = placeable.Shapeable ? (BrickShape)hint.HintShape : placeable.Shape;
-            Orientation resolvedOrientation = placeable.IsOrientable(resolvedShape)
+            BrickShape resolvedShape = placeableBrick.Shapeable ? (BrickShape)hint.HintShape : placeableBrick.Shape;
+            Orientation resolvedOrientation = placeableBrick.IsOrientable(resolvedShape)
                 ? new Orientation(hint.HintOrientation)
                 : Orientation.Identity;
-            if (InteractionResolver.IntersectsCollider(_physics, entity.Ptr, in targetTransform, in coordinate, placeable, resolvedShape, resolvedOrientation))
+            if (InteractionResolver.IntersectsCollider(_physics, entity.Ptr, in targetTransform, in coordinate, placeableBrick, resolvedShape, resolvedOrientation))
             {
                 NotifyInteractionFailure(source, "notification.placement.occupied");
                 return;
@@ -384,7 +395,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
-        var request = new InteractionRequest(origin, hint, kind, placeable, mode, CharacterDefaults.DEFAULT_REACH);
+        var request = new InteractionRequest(origin, hint, InteractionKind.PrimaryPressed, placeable, mode, CharacterDefaults.DEFAULT_REACH);
         InteractionResolution resolution = InteractionResolver.Resolve(in request, world, _brickRegistry);
         if (resolution.Action == InteractionAction.None)
         {
@@ -393,12 +404,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         //  Presentation hooks (ghost/SFX) fire before the prediction; a cancel skips the local prediction
         //  (the server still validates the sent intent). Unconsumed inventory is the server's job.
-        if (!FirePresentationHook(in resolution, kind))
+        if (!FirePresentationHook(in resolution))
         {
             return;
         }
 
-        ApplyVoxelPrediction(store, playerEntity, kind, in resolution, in hint);
+        ApplyVoxelPrediction(store, playerEntity, in resolution, in hint);
+    }
+
+    private Brick? ResolveHeldPlaceable(string? heldItemID)
+    {
+        Result<Brick> placeableResult = ItemPlaceables.ResolvePlaceable(_itemDatabase, _brickDatabase, heldItemID);
+        return placeableResult.Success ? placeableResult.Value : null;
     }
 
     /// <summary>Reports a rejected interaction. A repeat stays silent so a held button does not stack notifications.</summary>
@@ -412,34 +429,15 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _notificationService.Push(new Notification(_localization.GetRequired(localizationKey), NotificationType.Action));
     }
 
-    private static bool TryGetPaintToolMode(Item item, out PaintKind mode)
+    private Item? GetHeldItem(string? heldItemID)
     {
-        if (item.Tool?.Type == ToolType.Sprayer)
+        if (heldItemID == null)
         {
-            mode = PaintKind.Color;
-            return true;
+            return null;
         }
 
-        if (item.Tool?.Type == ToolType.Drill)
-        {
-            mode = PaintKind.Texture;
-            return true;
-        }
-
-        mode = default;
-        return false;
-    }
-
-    private bool TryGetPaintToolMode(string itemId, out PaintKind mode)
-    {
-        Result<Item> itemResult = _itemDatabase.Get(itemId);
-        if (itemResult.Success)
-        {
-            return TryGetPaintToolMode(itemResult.Value, out mode);
-        }
-
-        mode = default;
-        return false;
+        Result<Item> itemResult = _itemDatabase.Get(heldItemID);
+        return itemResult.Success ? itemResult.Value : null;
     }
 
     private void AttemptPaintInteraction(DataStore store, int playerEntity, InteractionKind kind, GameMode gameMode, PaintKind paintMode, InteractionSource source)
@@ -650,7 +648,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return orientation.ToByte();
     }
 
-    private bool FirePresentationHook(in InteractionResolution resolution, InteractionKind kind)
+    private bool FirePresentationHook(in InteractionResolution resolution)
     {
         Result<Brick> brickInfoResult = _brickDatabase.Get(resolution.Voxel.ID);
         if (!brickInfoResult.Success)
@@ -658,7 +656,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return true;
         }
 
-        if (kind == InteractionKind.PrimaryPressed)
+        if (resolution.Action == InteractionAction.Break)
         {
             if (!_breakEvent.Invoke(new BreakEvent(brickInfoResult.Value)).Success)
             {
@@ -680,7 +678,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return true;
     }
 
-    private void ApplyVoxelPrediction(DataStore store, int playerEntity, InteractionKind kind, in InteractionResolution resolution, in BrickInteraction hint)
+    private void ApplyVoxelPrediction(DataStore store, int playerEntity, in InteractionResolution resolution, in BrickInteraction hint)
     {
         if (!store.TryGet(resolution.Entity, out VoxelComponent voxelComponent))
         {
@@ -693,7 +691,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         //  Breaking writes an empty voxel; placing writes the resolved placed brick - the same voxel the
         //  server authoritatively writes, so a confirm-match reconciles to a no-op.
-        Voxel predicted = kind == InteractionKind.PrimaryPressed ? new Voxel() : resolution.Voxel;
+        Voxel predicted = resolution.Action == InteractionAction.Break ? new Voxel() : resolution.Voxel;
         Voxel predictedForRecord = predicted;
 
         //  Predict the authoritative outcome onto the presentation-only voxel container. The reconcile
@@ -715,7 +713,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             Entity = store.GetUuid(playerEntity).ToValue(),
             SequenceNumber = sequence,
             ServerTickAtSample = serverTickAtSample,
-            Kind = kind,
+            Kind = InteractionKind.PrimaryPressed,
             Brick = hint,
         };
 
@@ -779,9 +777,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         DataStore store = _store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.");
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store);
-        if (mainHandResult.Success && TryGetPaintToolMode(mainHandResult.Value.Item, out PaintKind paintMode))
+        PaintKind? paintMode = mainHandResult.Success ? InteractionIntent.PaintMode(mainHandResult.Value.Item) : null;
+        if (paintMode != null)
         {
-            PickPaintForTool(voxelComponent.VoxelObject, in brickPos, in clickedVoxel, in transformComponent, hitNormal, paintMode);
+            PickPaintForTool(voxelComponent.VoxelObject, in brickPos, in clickedVoxel, in transformComponent, hitNormal, paintMode.Value);
             return;
         }
 
@@ -894,10 +893,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_store);
         Result<Brick> placeableResult = TryGetPlaceableBrick(mainHandResult);
         bool holdingPlaceable = placeableResult.Success;
-        PaintKind paintToolMode = default;
-        bool holdingPaintTool = !holdingPlaceable
-            && mainHandResult.Success
-            && TryGetPaintToolMode(mainHandResult.Value.Item, out paintToolMode);
+        PaintKind? paintToolMode = !holdingPlaceable && mainHandResult.Success
+            ? InteractionIntent.PaintMode(mainHandResult.Value.Item)
+            : null;
+        bool holdingPaintTool = paintToolMode != null;
 
         if (!TryGetBrickFromScreenSpace(holdingPlaceable, reachAround: !holdingPaintTool, out Entity entity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint)
             || !holdingPlaceable && clickedVoxel.ID == 0)
@@ -948,7 +947,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         _brickPreviewState.Hide();
-        Vector4 selectionColor = holdingPaintTool && !IsPaintTargetValid(in clickedVoxel, paintToolMode)
+        Vector4 selectionColor = paintToolMode is { } mode && !IsPaintTargetValid(in clickedVoxel, mode)
             ? _invalidOutlineColor
             : _outlineColor;
         ShowSelectionOutline(new ShapeLight(clickedVoxel.ShapeLight).Shape, clickedVoxel, worldPos, placeableOrientation, selectionColor);

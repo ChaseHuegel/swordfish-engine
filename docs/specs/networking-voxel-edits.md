@@ -23,7 +23,7 @@ replicate.
   deduped by `SequenceNumber`, and consumed in tick order.
 
 `InteractionEvent` carries `Entity`, `SequenceNumber`, `ServerTickAtSample`, and
-`Kind` at the root. `Kind` is the button/edge and is not the union discriminator;
+`Kind` at the root. `Kind` is the input edge and is not the union discriminator;
 hint presence is. A hint-less event is valid and resolves to `Action.None`. See
 [messages](networking-messages.md).
 
@@ -31,8 +31,16 @@ hint presence is. A hint-less event is valid and resolves to `Action.None`. See
 
 `PlayerInteractionService` receives discrete button edges from
 `IInputService.Clicked` on the window thread, queues them, and drains the queue
-on the ECS thread (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:227`).
+on the ECS thread (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:230`).
 One edge runs one interaction attempt.
+
+The control scheme maps each mouse button to an edge from the held item
+(`WaywardBeyond.Client/Systems/InteractionIntent.cs`). The left button is the
+primary edge for every item that has a primary action: a modifier tool applies its
+paint, a placeable item places its brick, and a removal tool breaks the targeted
+brick. The right button is the secondary edge and only a modifier tool binds it,
+to clear its paint. Empty hands and items without an action for a button produce
+no edge.
 
 Holding primary or secondary repeats the attempt on a 0.2 second interval until
 release (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:55`). The
@@ -44,7 +52,7 @@ A repeat is a full attempt. It raycasts again, resolves again, predicts again,
 and stages its own `InteractionEvent` with a fresh `SequenceNumber`. A repeat
 that is rejected stays silent: only the press edge pushes an invalid-target or
 occupied-cell notification
-(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:405`).
+(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:422`).
 `WaywardBeyond.Tests/InteractionRepeatTimerTests.cs` pins the timing.
 
 ## Shared resolution
@@ -53,10 +61,12 @@ Targeting and outcome logic lives in shared code
 (`WaywardBeyond.Gameplay/Interactions`), called identically by client
 prediction and server authority:
 
-- `InteractionResolver` takes an `InteractionRequest` (origin, hint, button
+- `InteractionResolver` takes an `InteractionRequest` (origin, hint, input
   edge, held placeable `Brick`, game mode, reach) plus the caller's
   `IVoxelInteractionWorld` and produces `{ Action None | Break | Place,
-  coordinate, voxel }`.
+  coordinate, voxel }`. A primary press places when the request carries a held
+  placeable and breaks the occupied cell otherwise. A release or secondary press
+  does not edit bricks.
 - Client targeting is a deterministic-from-ray routine
   (`TryGetBrickFromScreenSpace`: surface bias, reach-around probe rays, offset
   march-back). Server validation never raycasts; it validates the hinted
@@ -80,9 +90,12 @@ interaction context and runs the pipeline (see
 
 The default handlers:
 
+- `ItemPlaceableSelector` maps the held item to the brick it places.
 - `HintResolver` validates the hinted structure and cell against the
   authority store by identity and reach. It never raycasts, and it resolves
   with `InteractionResolver`.
+- `BreakToolValidator` rejects a break unless the active slot holds a removal
+  tool (`ToolType.Mining`), so bare hands and block items cannot break a brick.
 - `VoxelWriteCommitter` applies the outcome on the structure's live `VoxelObject`
   (`WaywardBeyond.Server/Components/VoxelWorldComponent.cs`) and rebuilds the
   structure `ColliderComponent` (`VoxelColliderBuilder`) so subsequent raycasts
@@ -145,11 +158,11 @@ Holding `wb:sprayer` (`ToolType.Sprayer`, Color mode) or `wb:drill`
 `PaintInteraction` (`WaywardBeyond.Data/Nsd/components.nsd`) and
 `PaintInteractionResolver` (`WaywardBeyond.Gameplay/Interactions/PaintInteractionResolver.cs`).
 Holding `R` opens `PaintColorSelector` when holding the sprayer, or
-`PaintTextureSelector` when holding the drill. Primary click applies the tool's
-slot. Secondary click clears only the tool's slot. Middle click acts as an eye
-dropper instead of brick pick, selecting the clicked face's painted color for
-the sprayer, or the clicked face's painted texture (falling back to the matching
-texture paint for that brick face) for the drill.
+`PaintTextureSelector` when holding the drill. The left button applies the
+tool's slot. The right button clears only the tool's slot. Middle click acts as
+an eye dropper instead of brick pick, selecting the clicked face's painted color
+for the sprayer, or the clicked face's painted texture (falling back to the
+matching texture paint for that brick face) for the drill.
 
 Validation runs strictly at the interaction layer:
 - `PaintHintResolver` (`WaywardBeyond.Server/Interactions/PaintHintResolver.cs`)
@@ -205,11 +218,11 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 
 ## Source of truth
 
-- `WaywardBeyond.Client/Systems/InteractionRepeatTimer.cs` — hold-to-repeat timing
-- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs` — click edges and prediction
+- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs` — click edges, hold-to-repeat dispatch, and prediction
+- `WaywardBeyond.Client/Systems/{InteractionIntent,InteractionRepeatTimer}.cs` — control scheme and repeat timing
 - `WaywardBeyond.Gameplay/Interactions/` — resolver, request, handlers, registry
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs`
+- `WaywardBeyond.Server/Interactions/` — default handlers, including `BreakToolValidator`
 - `WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`
-- `WaywardBeyond.Client/Systems/*InteractionSystem.cs`
 - `WaywardBeyond.Gameplay/Networking/{NetworkComponent,StageRing}.cs`
   (`StagedInteractions`)

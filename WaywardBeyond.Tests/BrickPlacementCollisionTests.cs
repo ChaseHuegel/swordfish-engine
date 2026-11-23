@@ -174,7 +174,7 @@ public class BrickPlacementCollisionTests
         return new InteractionRequest(
             origin,
             hint,
-            InteractionKind.SecondaryPressed,
+            InteractionKind.PrimaryPressed,
             Placeable(),
             GameMode.Creative,
             CharacterDefaults.DEFAULT_REACH
