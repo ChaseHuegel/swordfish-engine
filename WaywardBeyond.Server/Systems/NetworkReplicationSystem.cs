@@ -518,12 +518,12 @@ public sealed class NetworkReplicationSystem
 
             foreach (NetworkComponentInfo info in Owner._serverOwnedComponents)
             {
-                if (info.ReplicationFilter != null && !info.ReplicationFilter(store, entity))
+                if (!store.IsDirty(info.Type, entity))
                 {
                     continue;
                 }
 
-                if (!store.IsDirty(info.Type, entity))
+                if (info.ReplicationFilter != null && !info.ReplicationFilter(store, entity))
                 {
                     continue;
                 }

@@ -22,7 +22,15 @@ public sealed class PhysicsCodec : IPayloadCodec<PhysicsComponent>
     /// <inheritdoc/>
     public Result Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
-        PhysicsMessage message = PhysicsMessage.Deserialize(payload);
+        PhysicsMessage message;
+        try
+        {
+            message = PhysicsMessage.Deserialize(payload);
+        }
+        catch (Exception ex)
+        {
+            return Result.FromFailure(ex);
+        }
 
         if (message.Layer is not (Layers.NON_MOVING or Layers.MOVING))
         {

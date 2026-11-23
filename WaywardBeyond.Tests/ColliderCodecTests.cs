@@ -36,6 +36,7 @@ public class ColliderCodecTests
         Assert.True(filter(store, character));
         Assert.False(filter(store, structure));
     }
+
     [Fact]
     public void CharacterCompoundColliderRoundTrips()
     {
@@ -147,5 +148,83 @@ public class ColliderCodecTests
 
         Assert.False(applied.Success);
         Assert.Contains("counts differ", applied.Message);
+    }
+
+    [Fact]
+    public void ApplyRejectsNonPositiveOrNonFiniteShapeDimensions()
+    {
+        var message = new ColliderMessage
+        {
+            Shapes = [new ColliderShapeMessage { Type = (byte)ShapeType.Box3, X = 1f, Y = 0f, Z = 1f, Points = [] }],
+            Positions = [new Float3Message()],
+            Orientations = [new Float4Message { W = 1f }],
+        };
+
+        var store = new DataStore();
+        int entity = store.Alloc();
+
+        Result applied = new ColliderCodec().Apply(store, entity, message.Serialize());
+
+        Assert.False(applied.Success);
+        Assert.Contains("box extents are invalid", applied.Message);
+    }
+
+    [Fact]
+    public void ApplyRejectsInvalidShapeTransform()
+    {
+        var message = new ColliderMessage
+        {
+            Shapes = [new ColliderShapeMessage { Type = (byte)ShapeType.Box3, X = 1f, Y = 1f, Z = 1f, Points = [] }],
+            Positions = [new Float3Message { X = float.NaN }],
+            Orientations = [new Float4Message { W = 1f }],
+        };
+
+        var store = new DataStore();
+        int entity = store.Alloc();
+
+        Result applied = new ColliderCodec().Apply(store, entity, message.Serialize());
+
+        Assert.False(applied.Success);
+        Assert.Contains("position is non-finite", applied.Message);
+
+        message.Positions = [new Float3Message()];
+        message.Orientations = [new Float4Message()];
+
+        Result zeroQuaternion = new ColliderCodec().Apply(store, entity, message.Serialize());
+
+        Assert.False(zeroQuaternion.Success);
+        Assert.Contains("orientation is invalid", zeroQuaternion.Message);
+    }
+
+    [Fact]
+    public void ApplyRejectsNonFiniteConvexHullPoint()
+    {
+        var message = new ColliderMessage
+        {
+            Shapes =
+            [
+                new ColliderShapeMessage
+                {
+                    Type = (byte)ShapeType.ConvexHull,
+                    Points =
+                    [
+                        new Float3Message(),
+                        new Float3Message { X = 1f },
+                        new Float3Message { Y = 1f },
+                        new Float3Message { Z = float.PositiveInfinity },
+                    ],
+                },
+            ],
+            Positions = [new Float3Message()],
+            Orientations = [new Float4Message { W = 1f }],
+        };
+
+        var store = new DataStore();
+        int entity = store.Alloc();
+
+        Result applied = new ColliderCodec().Apply(store, entity, message.Serialize());
+
+        Assert.False(applied.Success);
+        Assert.Contains("non-finite point", applied.Message);
     }
 }

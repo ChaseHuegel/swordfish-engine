@@ -61,8 +61,8 @@ entity with `BodyViewComponent` (a character body) replicates its collider. The
 client derives a world structure's voxel collider from the level data, so those
 never cross the wire.
 
-Every failure carries a message that names the entity and the invalid field. The
-caller writes that message into its log.
+Every failure in `PhysicsCodec` and `ColliderCodec` carries a message that names
+the entity and the invalid field. The caller writes that message into its log.
 
 ## Registered components
 

@@ -76,7 +76,7 @@ sync boundaries.
 
 The wire also carries the body configuration, so a receiver can construct the
 component when it has none. An existing component keeps its configuration and
-takes only velocity and angular velocity; body configuration is read when the
+takes only velocity and angular velocity. Body configuration is read when the
 body is created. Enums travel as bytes because cross-namespace enums do not
 serialize as enums in Needlefish codegen.
 

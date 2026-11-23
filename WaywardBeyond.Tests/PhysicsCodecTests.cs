@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Krill;
 using Swordfish.ECS;
@@ -133,5 +134,25 @@ public class PhysicsCodecTests
 
         Assert.False(result.Success);
         Assert.Contains(nameof(PhysicsComponent), result.Message);
+    }
+
+    [Fact]
+    public void ApplyRejectsAMalformedPayload()
+    {
+        var source = new PhysicsComponent(
+            Layers.MOVING,
+            BodyType.Dynamic,
+            CollisionDetection.Discrete,
+            new Vector3(1f, 2f, 3f),
+            Vector3.Zero
+        );
+        byte[] valid = new PhysicsCodec().Serialize(in source);
+        var store = new DataStore();
+        int entity = store.Alloc();
+
+        Result result = new PhysicsCodec().Apply(store, entity, valid.AsSpan(0, 2));
+
+        Assert.False(result.Success);
+        Assert.False(string.IsNullOrEmpty(result.Message));
     }
 }

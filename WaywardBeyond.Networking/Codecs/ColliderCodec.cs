@@ -15,6 +15,8 @@ namespace WaywardBeyond.Networking.Codecs;
 /// </summary>
 public sealed class ColliderCodec : IPayloadCodec<ColliderComponent>
 {
+    private const float MIN_UNIT_LENGTH_SQ = 1e-12f;
+
     /// <inheritdoc/>
     public Result<byte[]> Serialize(DataStore store, int entity)
     {
@@ -68,13 +70,25 @@ public sealed class ColliderCodec : IPayloadCodec<ColliderComponent>
                 return Result.FromFailure($"entity {entity} has a malformed collider snapshot: {error}.");
             }
 
-            offsets[index] = new Vector3(positions[index].X, positions[index].Y, positions[index].Z);
-            rotations[index] = new Quaternion(
+            var offset = new Vector3(positions[index].X, positions[index].Y, positions[index].Z);
+            if (!IsFinite(in offset))
+            {
+                return Result.FromFailure($"entity {entity} has a malformed collider snapshot: a shape position is non-finite.");
+            }
+
+            var rotation = new Quaternion(
                 orientations[index].X,
                 orientations[index].Y,
                 orientations[index].Z,
                 orientations[index].W
             );
+            if (!IsFinite(in rotation) || rotation.LengthSquared() < MIN_UNIT_LENGTH_SQ)
+            {
+                return Result.FromFailure($"entity {entity} has a malformed collider snapshot: a shape orientation is invalid.");
+            }
+
+            offsets[index] = offset;
+            rotations[index] = rotation;
         }
 
         store.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(parts, offsets, rotations)));
@@ -250,31 +264,74 @@ public sealed class ColliderCodec : IPayloadCodec<ColliderComponent>
         switch ((ShapeType)message.Type)
         {
             case ShapeType.Box3:
+                if (!IsPositiveFinite(message.X) || !IsPositiveFinite(message.Y) || !IsPositiveFinite(message.Z))
+                {
+                    error = "the box extents are invalid";
+                    return false;
+                }
+
                 shape = new Box3(new Vector3(message.X, message.Y, message.Z));
                 return true;
 
             case ShapeType.Box2:
+                if (!IsPositiveFinite(message.X) || !IsPositiveFinite(message.Y))
+                {
+                    error = "the box extents are invalid";
+                    return false;
+                }
+
                 shape = new Box2(new Vector2(message.X, message.Y));
                 return true;
 
             case ShapeType.Sphere:
+                if (!IsPositiveFinite(message.X))
+                {
+                    error = "the sphere radius is invalid";
+                    return false;
+                }
+
                 shape = new Sphere(message.X);
                 return true;
 
             case ShapeType.Circle:
+                if (!IsPositiveFinite(message.X))
+                {
+                    error = "the circle radius is invalid";
+                    return false;
+                }
+
                 shape = new Circle(message.X);
                 return true;
 
             case ShapeType.Capsule:
+                if (!IsPositiveFinite(message.X) || !IsPositiveFinite(message.Y))
+                {
+                    error = "the capsule dimensions are invalid";
+                    return false;
+                }
+
                 shape = new Capsule(message.X, message.Y);
                 return true;
 
             case ShapeType.Cylinder:
+                if (!IsPositiveFinite(message.X) || !IsPositiveFinite(message.Y))
+                {
+                    error = "the cylinder dimensions are invalid";
+                    return false;
+                }
+
                 shape = new Cylinder(message.X, message.Y);
                 return true;
 
             case ShapeType.Plane:
-                shape = new ShapePlane(new Vector3(message.X, message.Y, message.Z), message.W);
+                var normal = new Vector3(message.X, message.Y, message.Z);
+                if (!IsFinite(in normal) || normal.LengthSquared() < MIN_UNIT_LENGTH_SQ || !float.IsFinite(message.W))
+                {
+                    error = "the plane parameters are invalid";
+                    return false;
+                }
+
+                shape = new ShapePlane(normal, message.W);
                 return true;
 
             case ShapeType.ConvexHull:
@@ -288,7 +345,14 @@ public sealed class ColliderCodec : IPayloadCodec<ColliderComponent>
                 var hullPoints = new Vector3[points.Length];
                 for (var index = 0; index < points.Length; index++)
                 {
-                    hullPoints[index] = new Vector3(points[index].X, points[index].Y, points[index].Z);
+                    var point = new Vector3(points[index].X, points[index].Y, points[index].Z);
+                    if (!IsFinite(in point))
+                    {
+                        error = "the convex hull has a non-finite point";
+                        return false;
+                    }
+
+                    hullPoints[index] = point;
                 }
 
                 shape = new ConvexHull(hullPoints);
@@ -298,5 +362,20 @@ public sealed class ColliderCodec : IPayloadCodec<ColliderComponent>
                 error = $"the shape type {message.Type} is not a 3D collider";
                 return false;
         }
+    }
+
+    private static bool IsPositiveFinite(float value)
+    {
+        return float.IsFinite(value) && value > 0f;
+    }
+
+    private static bool IsFinite(in Vector3 value)
+    {
+        return float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z);
+    }
+
+    private static bool IsFinite(in Quaternion value)
+    {
+        return float.IsFinite(value.X) && float.IsFinite(value.Y) && float.IsFinite(value.Z) && float.IsFinite(value.W);
     }
 }
