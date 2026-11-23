@@ -59,4 +59,21 @@ public class TonemapperTests
             Assert.DoesNotContain("vec4 vertex()\n#endif", source.Source.Replace("\r\n", "\n"));
         }
     }
+
+    [Fact]
+    public void GlslParserDefaultsBrightColorAlphaToFragColorAlpha()
+    {
+        string repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+        string shaderPath = Path.Combine(repoRoot, "Swordfish", "assets", "shaders", "ui_default.glsl");
+        var parser = new GlslParser(NullLogger.Instance, new VirtualFileSystem());
+
+        Shader shader = parser.Parse(new PathInfo(shaderPath));
+        ShaderSource fragmentSource = Assert.Single(shader.Sources, source => source.Type == ShaderType.Fragment);
+        string normalized = fragmentSource.Source.Replace("\r\n", "\n");
+
+        Assert.DoesNotContain("BrightColor = vec4(0.0, 0.0, 0.0, 1.0);", normalized);
+        Assert.Contains("BrightColor = vec4(0.0, 0.0, 0.0, -1.0);", normalized);
+        Assert.Contains("if (BrightColor.a < 0.0)", normalized);
+        Assert.Contains("BrightColor.a = FragColor.a;", normalized);
+    }
 }
