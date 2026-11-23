@@ -107,14 +107,7 @@ public sealed class ServerJoinSystem(
 
         if (sessions.TryGetEntity(clientId, out int entity))
         {
-            if (store.TryGet(entity, out PhysicsComponent physics))
-            {
-                physics.Dispose();
-            }
-
-            //  Capture the uuid before Free (which clears it) so the despawn can replicate.
-            replication.RequestDespawn(store.GetUuid(entity).ToValue());
-            store.Free(entity);
+            ReleasePlayerMirror(entity, store);
         }
 
         if (sessions.EndSession(clientId))
@@ -127,9 +120,10 @@ public sealed class ServerJoinSystem(
     }
 
     /// <summary>
-    /// Ends a player's server session when they return to the menu: disposes and frees the player mirror,
-    /// publishes its despawn to remaining clients, and clears the session mapping. The connection is
-    /// deliberately left registered on the hub so the client can join again.
+    /// Ends a player's server session when they return to the menu: saves the character location,
+    /// disposes and frees the player mirror, publishes its despawn to remaining clients, and clears
+    /// the session mapping. The connection is deliberately left registered on the hub so the client
+    /// can join again.
     /// </summary>
     private void HandleLeave(Uuid clientId, DataStore store)
     {
@@ -137,14 +131,7 @@ public sealed class ServerJoinSystem(
 
         if (sessions.TryGetEntity(clientId, out int entity))
         {
-            if (store.TryGet(entity, out PhysicsComponent physics))
-            {
-                physics.Dispose();
-            }
-
-            //  Capture the uuid before Free (which clears it) so the despawn can replicate.
-            replication.RequestDespawn(store.GetUuid(entity).ToValue());
-            store.Free(entity);
+            ReleasePlayerMirror(entity, store);
             logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
         }
 
@@ -155,6 +142,20 @@ public sealed class ServerJoinSystem(
         }
 
         permissions.Unbind(clientId);
+    }
+
+    private void ReleasePlayerMirror(int entity, DataStore store)
+    {
+        saveService.QueueSaveCharacterLocation(store, entity);
+
+        if (store.TryGet(entity, out PhysicsComponent physics))
+        {
+            physics.Dispose();
+        }
+
+        //  Capture the uuid before Free (which clears it) so the despawn can replicate.
+        replication.RequestDespawn(store.GetUuid(entity).ToValue());
+        store.Free(entity);
     }
 
     private void HandleJoin(in ServerJoinQueue.JoinCall join, DataStore store)
@@ -204,15 +205,7 @@ public sealed class ServerJoinSystem(
         if (sessions.TryGetEntity(clientId, out int existing))
         {
             replication.CancelStream(clientId);
-
-            if (store.TryGet(existing, out PhysicsComponent physics))
-            {
-                physics.Dispose();
-            }
-
-            //  Capture the uuid before Free (which clears it) so the old mirror despawns to peers.
-            replication.RequestDespawn(store.GetUuid(existing).ToValue());
-            store.Free(existing);
+            ReleasePlayerMirror(existing, store);
             sessions.EndSession(clientId);
         }
 
