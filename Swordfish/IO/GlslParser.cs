@@ -127,8 +127,12 @@ void main()
 #endif
 
 #ifdef FRAGMENT
-    BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+    BrightColor = vec4(0.0, 0.0, 0.0, -1.0);
     FragColor = fragment();
+    if (BrightColor.a < 0.0)
+    {
+        BrightColor.a = FragColor.a;
+    }
 #endif
 
 #ifdef COMPUTE
