@@ -9,6 +9,7 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Registry;
@@ -33,6 +34,10 @@ internal sealed class ClientReconcileSystem(
     ILogger<ClientReconcileSystem> logger
 ) : IEntitySystem
 {
+    //  Remote bodies correct like the local player: ignore sub-centimeter drift and blend larger errors.
+    private const float REMOTE_POSITION_CORRECTION_BLEND = 0.5f;
+    private const float REMOTE_POSITION_DEADBAND_SQ = 0.0001f;
+
     private readonly FragmentAssembler _snapshotAssembler = new();
     private readonly List<WorldSnapshot> _snapshots = [];
 
@@ -162,6 +167,11 @@ internal sealed class ClientReconcileSystem(
                 continue;
             }
 
+            if (lookup.Value.Type == typeof(PhysicsComponent) && store.TryGet(entity, out PhysicsComponent physics))
+            {
+                physics.Dispose();
+            }
+
             store.Remove(lookup.Value.Type, entity);
         }
 
@@ -173,6 +183,13 @@ internal sealed class ClientReconcileSystem(
                 if (store.TryGet(entity, out VoxelComponent _))
                 {
                     VoxelEntityBuilder.FreeChunks(store, entity);
+                }
+
+                //  Free clears the components, so the body must be released first or the solver keeps
+                //  a ghost body for the freed entity.
+                if (store.TryGet(entity, out PhysicsComponent physics))
+                {
+                    physics.Dispose();
                 }
 
                 store.Free(entity);
@@ -209,6 +226,30 @@ internal sealed class ClientReconcileSystem(
 
         if (!store.TryGet(entity, out PlayerComponent _))
         {
+            //  A remote player has no client-authoritative state: its body is simulated locally and
+            //  corrected by the snapshot. Blend the position so that correction does not snap each
+            //  authoritative frame. Orientation and scale stay authoritative.
+            if (info.Type == typeof(TransformComponent) && store.TryGet(entity, out BodyViewComponent _))
+            {
+                try
+                {
+                    TransformMessage message = TransformMessage.Deserialize(snapshot.Payload);
+                    ApplyRemoteTransform(
+                        store,
+                        entity,
+                        new Vector3(message.PositionX, message.PositionY, message.PositionZ),
+                        new Quaternion(message.OrientationX, message.OrientationY, message.OrientationZ, message.OrientationW),
+                        new Vector3(message.ScaleX, message.ScaleY, message.ScaleZ)
+                    );
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Dropping {component} snapshot for entity {entity}.", info.Type.Name, entity);
+                }
+
+                return;
+            }
+
             ApplyCodec(store, entity, in info, snapshot.Payload);
             return;
         }
@@ -258,6 +299,55 @@ internal sealed class ClientReconcileSystem(
             logger.LogWarning(
                 "Dropping {component} snapshot for entity {entity}: {message}.",
                 info.Type.Name, entity, applied.Message);
+        }
+    }
+
+    private static void ApplyRemoteTransform(
+        DataStore store,
+        int entity,
+        in Vector3 position,
+        in Quaternion orientation,
+        in Vector3 scale
+    ) {
+        if (!store.TryGet(entity, out TransformComponent _))
+        {
+            store.AddOrUpdate(entity, new TransformComponent(position, orientation, scale));
+            return;
+        }
+
+        var write = new BlendRemoteTransform(in position, in orientation, in scale);
+        store.QueryRef<TransformComponent, BlendRemoteTransform>(entity, 0f, ref write);
+    }
+
+    private readonly struct BlendRemoteTransform(
+        in Vector3 position,
+        in Quaternion orientation,
+        in Vector3 scale
+    ) : IForEachRef<TransformComponent>
+    {
+        private readonly Vector3 _position = position;
+        private readonly Quaternion _orientation = orientation;
+        private readonly Vector3 _scale = scale;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<TransformComponent> transform)
+        {
+            ref readonly TransformComponent current = ref transform.Read;
+            Vector3 offset = _position - current.Position;
+            bool positionChanged = offset.LengthSquared() > REMOTE_POSITION_DEADBAND_SQ;
+            bool poseChanged = current.Orientation != _orientation || current.Scale != _scale;
+            if (!positionChanged && !poseChanged)
+            {
+                return;
+            }
+
+            ref TransformComponent value = ref transform.Write;
+            if (positionChanged)
+            {
+                value.Position = current.Position + offset * REMOTE_POSITION_CORRECTION_BLEND;
+            }
+
+            value.Orientation = _orientation;
+            value.Scale = _scale;
         }
     }
 

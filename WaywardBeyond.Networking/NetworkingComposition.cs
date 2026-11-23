@@ -30,6 +30,15 @@ public static class NetworkingComposition
         Require(registry.Register<InteractionEvent>(Uuid.FromValue(15), NetworkDirection.ClientOwned, new NsdComponentCodec<InteractionEvent>()));
         Require(registry.Register<InventoryEvent>(Uuid.FromValue(16), NetworkDirection.ClientOwned, new NsdComponentCodec<InventoryEvent>()));
 
+        //  Only a character body's collider needs to cross the wire: the client already derives the
+        //  world's voxel colliders from the level data. BodyViewComponent is the public character marker.
+        Require(registry.Register<ColliderComponent>(
+            Uuid.FromValue(17),
+            NetworkDirection.ServerOwned,
+            new ColliderCodec(),
+            static (store, entity) => store.Has(typeof(BodyViewComponent), entity)
+        ));
+
         registry.Freeze();
     }
 

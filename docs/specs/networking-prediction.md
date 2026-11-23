@@ -52,6 +52,12 @@ error does not visibly jitter. Orientation targets the server orientation plus t
 look applied after the snapshot's ack, and angular velocity is authority only while
 look is idle.
 
+Remote player bodies run in the client's Jolt world too. The server replicates
+their body configuration and collider, so the local prediction collides with
+them the same way the authoritative world does. Their position correction uses
+the same deadband and blend as the local player's position. Orientation and
+scale are authoritative.
+
 Replay is per-sim-tick resolution, not a separate phase: the shared step's
 command resolver reads the pending ring (`StageRingExtensions.GetCommand`)
 instead of the newest live component, so every step after an `AlignTo` applies

@@ -1,8 +1,12 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Krill;
 using Swordfish.ECS;
+using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Tests;
@@ -14,6 +18,7 @@ using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Codecs;
 using WaywardBeyond.Networking.Registry;
 
@@ -79,12 +84,120 @@ public class ClientReconcileSystemTests
         Assert.Equal(serverAngularVelocity, physics.Torque);
     }
 
-    private static TestContext CreateContext()
+    [Fact]
+    public void RemotePlayerTransformCorrectionBlendsPosition()
+    {
+        TestContext context = CreateContext();
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var initial = new Vector3(1f, 2f, 3f);
+        var serverPosition = initial + new Vector3(1f, 0f, 0f);
+        var serverOrientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 1.5f);
+        var serverScale = new Vector3(2f, 2f, 2f);
+        int remote = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(remote, new TransformComponent(initial, Quaternion.Identity, Vector3.One));
+        context.Store.AddOrUpdate(remote, new BodyViewComponent { Body = "wb:human_m" });
+
+        EnqueueTransform(context, remoteUuid, serverPosition, serverOrientation, serverScale);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(initial + new Vector3(0.5f, 0f, 0f), transform.Position);
+        Assert.Equal(serverOrientation, transform.Orientation);
+        Assert.Equal(serverScale, transform.Scale);
+    }
+
+    [Fact]
+    public void RemotePlayerTransformCorrectionIgnoresDeadbandError()
+    {
+        TestContext context = CreateContext();
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var initial = new Vector3(1f, 2f, 3f);
+        var withinDeadband = initial + new Vector3(0.005f, 0f, 0f);
+        int remote = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(remote, new TransformComponent(initial, Quaternion.Identity, Vector3.One));
+        context.Store.AddOrUpdate(remote, new BodyViewComponent { Body = "wb:human_m" });
+
+        EnqueueTransform(context, remoteUuid, withinDeadband, Quaternion.Identity, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(initial, transform.Position);
+    }
+
+    [Fact]
+    public void WorldTransformSnapshotSnapsExactly()
+    {
+        TestContext context = CreateContext();
+        Uuid structureUuid = Uuid.FromValue(88);
+        var initial = new Vector3(1f, 2f, 3f);
+        var serverPosition = initial + new Vector3(1f, 0f, 0f);
+        int structure = context.Store.Alloc(structureUuid);
+        context.Store.AddOrUpdate(structure, new TransformComponent(initial, Quaternion.Identity, Vector3.One));
+
+        EnqueueTransform(context, structureUuid, serverPosition, Quaternion.Identity, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(structure, out TransformComponent transform));
+        Assert.Equal(serverPosition, transform.Position);
+    }
+
+    [Fact]
+    public void RemotePlayerPhysicsSnapshotCreatesComponentWithoutWarning()
+    {
+        var logger = new RecordingLogger();
+        TestContext context = CreateContext(logger);
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var position = new Vector3(7f, 8f, 9f);
+        var velocity = new Vector3(1f, 2f, 3f);
+
+        var remotePhysics = new PhysicsComponent(
+            Layers.MOVING,
+            BodyType.Dynamic,
+            CollisionDetection.Continuous,
+            velocity,
+            Vector3.Zero
+        );
+        ColliderComponent remoteCollider = CharacterDefaults.CreateCharacterColliderComponent(Vector3.One);
+        byte[] transformPayload = new TransformCodec().Serialize(new TransformComponent(position, Quaternion.Identity, Vector3.One));
+        byte[] physicsPayload = new PhysicsCodec().Serialize(in remotePhysics);
+        byte[] colliderPayload = new ColliderCodec().Serialize(in remoteCollider);
+
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 1,
+            LastProcessedInput = 0,
+            Components =
+            [
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(2).ToValue(), transformPayload),
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(3).ToValue(), physicsPayload),
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(17).ToValue(), colliderPayload),
+            ],
+            RemovedEntities = [],
+        };
+        context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
+
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remoteUuid, out int remote));
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(position, transform.Position);
+        Assert.True(context.Store.TryGet(remote, out PhysicsComponent physics));
+        Assert.Equal(Layers.MOVING, physics.Layer);
+        Assert.Equal(BodyType.Dynamic, physics.BodyType);
+        Assert.Equal(CollisionDetection.Continuous, physics.CollisionDetection);
+        Assert.Equal(velocity, physics.Velocity);
+        Assert.True(context.Store.TryGet(remote, out ColliderComponent collider));
+        Assert.True(collider.CompoundShape.HasValue);
+        Assert.DoesNotContain(logger.Entries, entry => entry.Level >= LogLevel.Warning);
+    }
+
+    private static TestContext CreateContext(ILogger<ClientReconcileSystem>? logger = null)
     {
         var inbound = new ClientInbound();
         var registry = new NetworkRegistry();
         Assert.True(registry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec()).Success);
         Assert.True(registry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec()).Success);
+        Assert.True(registry.Register<ColliderComponent>(Uuid.FromValue(17), NetworkDirection.ServerOwned, new ColliderCodec()).Success);
         registry.Freeze();
 
         var motionProcessor = new ClientPlayerMotionProcessor(
@@ -100,7 +213,7 @@ public class ClientReconcileSystemTests
             motionProcessor,
             new LocalPlayerReconciler(NullLogger<LocalPlayerReconciler>.Instance),
             registry,
-            NullLogger<ClientReconcileSystem>.Instance
+            logger ?? NullLogger<ClientReconcileSystem>.Instance
         );
 
         var store = new DataStore();
@@ -155,6 +268,25 @@ public class ClientReconcileSystemTests
         context.Store.AddOrUpdate(context.Player, pending);
     }
 
+    private static void EnqueueTransform(
+        TestContext context,
+        Uuid entityUuid,
+        Vector3 position,
+        Quaternion orientation,
+        Vector3 scale
+    ) {
+        byte[] payload = new TransformCodec().Serialize(new TransformComponent(position, orientation, scale));
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 1,
+            LastProcessedInput = 0,
+            Components = [new ComponentSnapshot(entityUuid.ToValue(), Uuid.FromValue(2).ToValue(), payload)],
+            RemovedEntities = [],
+        };
+
+        context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
+    }
+
     private static void EnqueueTransformAndPhysics(
         TestContext context,
         Vector3 position,
@@ -187,6 +319,25 @@ public class ClientReconcileSystemTests
         };
 
         context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
+    }
+
+    private sealed class RecordingLogger : ILogger<ClientReconcileSystem>
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) {
+            Entries.Add((logLevel, formatter(state, exception)));
+        }
     }
 
     private sealed class TestContext(

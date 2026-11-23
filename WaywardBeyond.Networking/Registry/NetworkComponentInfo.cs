@@ -5,7 +5,13 @@ using WaywardBeyond.Networking.Codecs;
 namespace WaywardBeyond.Networking.Registry;
 
 /// <summary>Registry metadata for one networked component type.</summary>
-public readonly struct NetworkComponentInfo(Type type, Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
+public readonly struct NetworkComponentInfo(
+    Type type,
+    Uuid uuid,
+    NetworkDirection direction,
+    IPayloadCodec codec,
+    Func<DataStore, int, bool>? replicationFilter = null
+)
 {
     /// <summary>The component type this entry describes.</summary>
     public Type Type { get; } = type;
@@ -18,4 +24,7 @@ public readonly struct NetworkComponentInfo(Type type, Uuid uuid, NetworkDirecti
 
     /// <summary>The codec that serializes and applies the component.</summary>
     public IPayloadCodec Codec { get; } = codec;
+
+    /// <summary>Returns whether an entity replicates this component, or null when every entity does.</summary>
+    public Func<DataStore, int, bool>? ReplicationFilter { get; } = replicationFilter;
 }

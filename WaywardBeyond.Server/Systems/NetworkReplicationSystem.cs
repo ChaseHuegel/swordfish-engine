@@ -523,6 +523,11 @@ public sealed class NetworkReplicationSystem
                     continue;
                 }
 
+                if (info.ReplicationFilter != null && !info.ReplicationFilter(store, entity))
+                {
+                    continue;
+                }
+
                 //  Removal publishes as a ComponentRemoval when the component no longer exists; the
                 //  dirty flag is cleared for both outcomes, and never both in one tick.
                 if (!store.Has(info.Type, entity))
@@ -537,8 +542,8 @@ public sealed class NetworkReplicationSystem
 
                 if (!serialize.Success)
                 {
-                    Owner._logger.LogDebug("Dropping {component} snapshot for entity {uuid}: the codec failed.",
-                        info.Type.Name, entityUuid);
+                    Owner._logger.LogDebug("Dropping {component} snapshot for entity {uuid}: {message}.",
+                        info.Type.Name, entityUuid, serialize.Message);
                     continue;
                 }
 
@@ -573,6 +578,11 @@ public sealed class NetworkReplicationSystem
             //  so the boxing is bounded by joins, not by the per-tick hot path.
             foreach (NetworkComponentInfo info in ServerOwned)
             {
+                if (info.ReplicationFilter != null && !info.ReplicationFilter(store, entity))
+                {
+                    continue;
+                }
+
                 if (!Contains(present, info.Type))
                 {
                     continue;
