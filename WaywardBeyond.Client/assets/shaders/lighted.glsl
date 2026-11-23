@@ -19,7 +19,7 @@ vec4 fragment()
 
     vec4 shaded = vec4(shade(albedo.rgb).rgb, albedo.a);
     vec4 color = shaded * VertexColor * ao(albedo);
-    BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+    BrightColor = vec4(0.0, 0.0, 0.0, color.a);
     return color;
 }
 #endif
