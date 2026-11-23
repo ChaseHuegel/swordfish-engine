@@ -253,7 +253,7 @@ preserves existing air light when writing an authoritative empty cell.
 (`WaywardBeyond.Client/Systems/BrickPreviewSystem.cs:37`) renders a textured
 preview of the brick that the player will place.
 `PlayerInteractionService.OnFixedUpdate`
-(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:851`) publishes the
+(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:900`) publishes the
 held brick, effective shape, voxel-local orientation, target cell, and structure
 orientation to `BrickPreviewState`. The system ticks after the physics fixed
 update on the ECS thread. It stays visible while the game is paused and releases

@@ -52,6 +52,7 @@ using DebugInfo = (
 internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDebugOverlay
 {
     private const float OUTLINE_OUTSET = 1.035f;
+    private const float INTERACTION_REPEAT_SECONDS = 0.2f;
     private static readonly Vector4 _outlineColor = new(0.5f, 0.5f, 0.5f, 0.8f);
     private static readonly Vector4 _invalidOutlineColor = new(0.95f, 0.25f, 0.25f, 0.9f);
     private static readonly Vector3[] _worldAxes = [Vector3.UnitX, -Vector3.UnitX, Vector3.UnitY, -Vector3.UnitY, Vector3.UnitZ, -Vector3.UnitZ];
@@ -89,6 +90,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     //  because every interaction path (resolution + store mutation + VoxelObject/Rebuild + SFX hooks)
     //  must run on the ECS thread, never off-thread.
     private readonly ConcurrentQueue<MouseButton> _pendingClicks = new();
+
+    private readonly InteractionRepeatTimer _primaryRepeat = new(INTERACTION_REPEAT_SECONDS);
+    private readonly InteractionRepeatTimer _secondaryRepeat = new(INTERACTION_REPEAT_SECONDS);
 
     //  The client world store, captured on the ECS thread at the first tick. Mutations and queries must
     //  not reach back through IECSContext (that would reintroduce a container cycle now that this type
@@ -216,17 +220,21 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     }
 
     /// <summary>
-    /// Drains click edges on the ECS thread. The interaction resolution and its store mutations, voxel
-    /// prediction/rebuild, and presentation hooks all mutate ECS-owned state, so they must never run on
-    /// the window/input thread.
+    /// Drains click edges on the ECS thread and repeats a held primary or secondary button. The
+    /// interaction resolution and its store mutations, voxel prediction/rebuild, and presentation hooks
+    /// all mutate ECS-owned state, so they must never run on the window/input thread.
     /// </summary>
     public void Tick(float delta, DataStore store)
     {
         _store = store;
         while (_pendingClicks.TryDequeue(out MouseButton button))
         {
-            DispatchButton(button);
+            DispatchButton(button, InteractionSource.Press);
+            BeginRepeat(button);
         }
+
+        AdvanceRepeat(_primaryRepeat, MouseButton.Left, delta);
+        AdvanceRepeat(_secondaryRepeat, MouseButton.Right, delta);
 
         if (_debugSettings.OverlayVisible)
         {
@@ -240,16 +248,16 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
     }
 
-    private void DispatchButton(MouseButton button)
+    private void DispatchButton(MouseButton button, InteractionSource source)
     {
         if (button == MouseButton.Left)
         {
-            OnLeftClick();
+            OnLeftClick(source);
         }
 
         if (button == MouseButton.Right)
         {
-            OnRightClick();
+            OnRightClick(source);
         }
 
         if (button == MouseButton.Middle)
@@ -258,14 +266,44 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
     }
 
-    private void OnLeftClick()
+    /// <summary>Starts hold-to-repeat for a button that began a press interaction.</summary>
+    private void BeginRepeat(MouseButton button)
     {
-        AttemptVoxelInteraction(InteractionKind.PrimaryPressed);
+        if (button == MouseButton.Left)
+        {
+            _primaryRepeat.Press();
+        }
+
+        if (button == MouseButton.Right)
+        {
+            _secondaryRepeat.Press();
+        }
     }
 
-    private void OnRightClick()
+    /// <summary>
+    /// Dispatches a repeat when the button is still held during play with interaction enabled. A held
+    /// press that stops qualifying, such as on release or when a blocker opens, stops repeating.
+    /// </summary>
+    private void AdvanceRepeat(InteractionRepeatTimer repeat, MouseButton button, float delta)
     {
-        AttemptVoxelInteraction(InteractionKind.SecondaryPressed);
+        bool eligible = WaywardBeyond.GameState == GameState.Playing
+            && !_interactionState.IsInteractionBlocked()
+            && _inputService.IsMouseHeld(button);
+
+        if (repeat.Advance(delta, eligible))
+        {
+            DispatchButton(button, InteractionSource.Repeat);
+        }
+    }
+
+    private void OnLeftClick(InteractionSource source)
+    {
+        AttemptVoxelInteraction(InteractionKind.PrimaryPressed, source);
+    }
+
+    private void OnRightClick(InteractionSource source)
+    {
+        AttemptVoxelInteraction(InteractionKind.SecondaryPressed, source);
     }
 
     /// <summary>
@@ -275,7 +313,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     /// (with its hint) upstream for the server to validate and author. The server owns inventory
     /// consumption/loot, so nothing here mutates the client inventory.
     /// </summary>
-    private void AttemptVoxelInteraction(InteractionKind kind)
+    private void AttemptVoxelInteraction(InteractionKind kind, InteractionSource source)
     {
         if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
         {
@@ -301,7 +339,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         string? heldItemID = GetHeldItemID(store, playerEntity);
         if (heldItemID != null && TryGetPaintToolMode(heldItemID, out PaintKind paintMode))
         {
-            AttemptPaintInteraction(store, playerEntity, kind, mode, paintMode);
+            AttemptPaintInteraction(store, playerEntity, kind, mode, paintMode, source);
             return;
         }
 
@@ -326,7 +364,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         if (isPlace && placeable != null && targetVoxel.ID != 0)
         {
-            _notificationService.Push(new Notification(_localization.GetRequired("notification.placement.occupied"), NotificationType.Action));
+            NotifyInteractionFailure(source, "notification.placement.occupied");
             return;
         }
 
@@ -340,7 +378,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 : Orientation.Identity;
             if (InteractionResolver.IntersectsCollider(_physics, entity.Ptr, in targetTransform, in coordinate, placeable, resolvedShape, resolvedOrientation))
             {
-                _notificationService.Push(new Notification(_localization.GetRequired("notification.placement.occupied"), NotificationType.Action));
+                NotifyInteractionFailure(source, "notification.placement.occupied");
                 return;
             }
         }
@@ -361,6 +399,17 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         ApplyVoxelPrediction(store, playerEntity, kind, in resolution, in hint);
+    }
+
+    /// <summary>Reports a rejected interaction. A repeat stays silent so a held button does not stack notifications.</summary>
+    private void NotifyInteractionFailure(InteractionSource source, string localizationKey)
+    {
+        if (source == InteractionSource.Repeat)
+        {
+            return;
+        }
+
+        _notificationService.Push(new Notification(_localization.GetRequired(localizationKey), NotificationType.Action));
     }
 
     private static bool TryGetPaintToolMode(Item item, out PaintKind mode)
@@ -393,7 +442,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return false;
     }
 
-    private void AttemptPaintInteraction(DataStore store, int playerEntity, InteractionKind kind, GameMode gameMode, PaintKind paintMode)
+    private void AttemptPaintInteraction(DataStore store, int playerEntity, InteractionKind kind, GameMode gameMode, PaintKind paintMode, InteractionSource source)
     {
         if (_paintDatabase == null || _paintRegistry == null)
         {
@@ -434,7 +483,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 string key = validation == PaintTargetValidation.AlphaMismatch
                     ? "notification.paint.incompatibleTexture"
                     : "notification.paint.invalidTarget";
-                _notificationService.Push(new Notification(_localization.GetRequired(key), NotificationType.Action));
+                NotifyInteractionFailure(source, key);
                 return;
             }
         }
@@ -444,7 +493,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             BrickFaceMask expandedMask = PaintInteractionResolver.ExpandFaceMask(hitFace.ToMask(), shape);
             if (!PaintInteractionResolver.HasRemovableOverride(voxelComponent.VoxelObject, in coordinate, expandedMask, paintMode))
             {
-                _notificationService.Push(new Notification(_localization.GetRequired("notification.paint.nothingToRemove"), NotificationType.Action));
+                NotifyInteractionFailure(source, "notification.paint.nothingToRemove");
                 return;
             }
         }
@@ -467,7 +516,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         {
             if (kind == InteractionKind.PrimaryPressed || kind == InteractionKind.SecondaryPressed)
             {
-                _notificationService.Push(new Notification(_localization.GetRequired("notification.paint.invalidTarget"), NotificationType.Action));
+                NotifyInteractionFailure(source, "notification.paint.invalidTarget");
             }
 
             return;
@@ -1439,6 +1488,13 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return Result<Brick>.FromSuccess(brickInfoResult.Value);
     }
     
+    /// <summary>Identifies whether an interaction came from a fresh press or a held repeat.</summary>
+    private enum InteractionSource
+    {
+        Press,
+        Repeat,
+    }
+
     private struct HeldItemQuery : IForEach<PlayerComponent, EquipmentComponent, InventoryComponent>
     {
         public string? HeldItemID;
