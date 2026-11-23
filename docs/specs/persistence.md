@@ -96,9 +96,13 @@ switch opens the next level through the catalog, and server shutdown flushes
 each world before its container is disposed.
 
 `MarkActive` and `EndSessionStamp` are small writes that only touch the `level`
-row. Character locations are captured with the full save and upserted with it,
-including the character's game mode and scale. The playtime stamping rules are
-unchanged (`PlayClock.Advance`).
+row. `QueueSaveCharacterLocation` captures one character's transform, scale,
+and game mode on the server thread and queues a single `character_locations`
+upsert on the save worker. It keeps the pending location in memory until the
+worker commits it, so an immediate rejoin reads the latest transform.
+`ServerJoinSystem` calls it whenever a player leaves, disconnects, or replaces
+an active session. Character locations are also captured and upserted with each
+full save. The playtime stamping rules are unchanged (`PlayClock.Advance`).
 
 ### Server autosave
 

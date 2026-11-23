@@ -36,9 +36,11 @@ public sealed class LevelSaveService : IDisposable
     private readonly IPaintRegistry? _paintRegistry;
     private readonly Lock _saveLock = new();
     private readonly ConcurrentQueue<bool> _completions = new();
+    private readonly Dictionary<ulong, PendingCharacterLocation> _pendingCharacterLocations = [];
 
     private ILevelStorage? _levelStorage;
     private Task _pendingSave = Task.CompletedTask;
+    private long _nextCharacterSaveSequence;
     private bool _disposed;
 
     /// <summary>The loaded level guid, or null when no level is loaded.</summary>
@@ -143,6 +145,7 @@ public sealed class LevelSaveService : IDisposable
 
         lock (_saveLock)
         {
+            _pendingCharacterLocations.Clear();
             _levelStorage?.Dispose();
             _levelStorage = null;
         }
@@ -158,6 +161,17 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     public bool TryGetSpawnPoint(ulong characterUuid, out Vector3 position, out Quaternion orientation)
     {
+        lock (_saveLock)
+        {
+            if (_pendingCharacterLocations.TryGetValue(characterUuid, out PendingCharacterLocation pending))
+            {
+                CharacterEntityData pendingLocation = pending.Data;
+                position = new Vector3((float)pendingLocation.X, (float)pendingLocation.Y, (float)pendingLocation.Z);
+                orientation = new Quaternion(pendingLocation.OrientationX, pendingLocation.OrientationY, pendingLocation.OrientationZ, pendingLocation.OrientationW);
+                return true;
+            }
+        }
+
         Result<CharacterEntityData> locationResult = _levelStorage?.GetCharacterEntity(characterUuid) ?? Result<CharacterEntityData>.FromFailure("No level loaded.");
         if (locationResult.Success)
         {
@@ -170,6 +184,29 @@ public sealed class LevelSaveService : IDisposable
         position = LevelSpawn;
         orientation = Quaternion.Identity;
         return false;
+    }
+
+    /// <summary>Captures one character's location on the server thread and queues its write to the level database.</summary>
+    public void QueueSaveCharacterLocation(DataStore store, int entity)
+    {
+        ILevelStorage? storage = _levelStorage;
+        if (string.IsNullOrEmpty(CurrentLevelGuid) || storage == null)
+        {
+            return;
+        }
+
+        if (!store.TryGet(entity, out TransformComponent transform))
+        {
+            return;
+        }
+
+        CharacterEntityData data = CaptureCharacter(store, entity, in transform);
+        lock (_saveLock)
+        {
+            long sequence = ++_nextCharacterSaveSequence;
+            _pendingCharacterLocations[data.Uuid] = new PendingCharacterLocation(data, sequence);
+            _pendingSave = _pendingSave.ContinueWith(_ => PersistCharacterLocation(storage, data, sequence));
+        }
     }
 
     /// <summary>
@@ -330,6 +367,53 @@ public sealed class LevelSaveService : IDisposable
         }
     }
 
+    private void PersistCharacterLocation(ILevelStorage storage, in CharacterEntityData data, long sequence)
+    {
+        try
+        {
+            Result result = storage.Save(data);
+            if (!result.Success)
+            {
+                _logger.LogError(result.Exception, "Failed to persist character location for {character}: {message}", data.Uuid, result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to persist character location for {character}.", data.Uuid);
+        }
+        finally
+        {
+            lock (_saveLock)
+            {
+                if (_pendingCharacterLocations.TryGetValue(data.Uuid, out PendingCharacterLocation pending)
+                    && pending.Sequence == sequence)
+                {
+                    _pendingCharacterLocations.Remove(data.Uuid);
+                }
+            }
+        }
+    }
+
+    private static CharacterEntityData CaptureCharacter(DataStore store, int entity, in TransformComponent transform)
+    {
+        Uuid uuid = store.GetUuid(entity);
+        GameMode gameMode = store.TryGet(entity, out GameModeComponent mode) ? mode.Mode : GameMode.Adventure;
+        return new CharacterEntityData(
+            uuid.ToValue(),
+            transform.Position.X,
+            transform.Position.Y,
+            transform.Position.Z,
+            transform.Orientation.X,
+            transform.Orientation.Y,
+            transform.Orientation.Z,
+            transform.Orientation.W,
+            _ScaleX: transform.Scale.X,
+            _ScaleY: transform.Scale.Y,
+            _ScaleZ: transform.Scale.Z,
+            _GameMode: gameMode
+        );
+    }
+
     private static Level StampMeta(in Level level, long nowMs)
     {
         return level with
@@ -437,25 +521,14 @@ public sealed class LevelSaveService : IDisposable
 
         public void Execute(float delta, DataStore store, int entity, in OwnedCharacterComponent owned, in TransformComponent transform)
         {
-            Uuid uuid = store.GetUuid(entity);
-            GameMode gameMode = store.TryGet(entity, out GameModeComponent mode) ? mode.Mode : GameMode.Adventure;
-            var data = new CharacterEntityData(
-                uuid.ToValue(),
-                transform.Position.X,
-                transform.Position.Y,
-                transform.Position.Z,
-                transform.Orientation.X,
-                transform.Orientation.Y,
-                transform.Orientation.Z,
-                transform.Orientation.W,
-                _ScaleX: transform.Scale.X,
-                _ScaleY: transform.Scale.Y,
-                _ScaleZ: transform.Scale.Z,
-                _GameMode: gameMode
-            );
-
-            Entries.Add(data);
+            Entries.Add(CaptureCharacter(store, entity, in transform));
         }
+    }
+
+    private readonly struct PendingCharacterLocation(in CharacterEntityData data, long sequence)
+    {
+        public readonly CharacterEntityData Data = data;
+        public readonly long Sequence = sequence;
     }
 
     private readonly struct CapturedSave(in ILevelStorage storage, in Level level, in VoxelEntityData[] entities, in CharacterEntityData[] locations)

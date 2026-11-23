@@ -67,10 +67,11 @@ under itself. A world serves exactly one level. A join that names another level
 is refused with `JoinRefused`; the host creates a separate world instead. See
 [networking-worlds](networking-worlds.md).
 
-A player who returns to the menu sends `LeaveGame`. The world tick ends the
-session and frees the player mirror. The host clears the peer's world binding,
-so the next `JoinAsync` routes to the world it names. A peer can switch saves
-without reconnecting.
+A player who returns to the menu sends `LeaveGame`. The world tick queues a
+save of the character's location, ends the session, and frees the player
+mirror. An abrupt disconnect queues the same location save before freeing the
+mirror. The host clears the peer's world binding, so the next `JoinAsync`
+routes to the world it names. A peer can switch saves without reconnecting.
 
 ## `Playing` as the gate
 
