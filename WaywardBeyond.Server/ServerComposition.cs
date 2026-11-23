@@ -109,6 +109,7 @@ public static class ServerComposition
         container.Register<IInteractionHandler, ItemPlaceableSelector>(Reuse.Singleton);
         container.Register<IInteractionHandler, PaintHintResolver>(Reuse.Singleton);
         container.Register<IInteractionHandler, HintResolver>(Reuse.Singleton);
+        container.Register<IInteractionHandler, BreakToolValidator>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelFaceWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakLootReactor>(Reuse.Singleton);

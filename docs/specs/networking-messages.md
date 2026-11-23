@@ -103,7 +103,7 @@ Discrete interaction edges ride a `ClientOwned` message as an extensible union
 of nullable hint sub-messages. Common edge metadata stays at the root;
 per-interaction hints are nullable sub-messages.
 
-`Kind` is the button/edge and is **not** the union discriminator. Hint
+`Kind` is the input edge and is **not** the union discriminator. Hint
 presence is. A wholly hint-less event is valid and resolves to `Action.None`.
 
 ```nsd
@@ -135,7 +135,7 @@ message PaintInteraction
 }
 ```
 
-`InteractionKind` maps the `byte Kind` to the edge. Callers guard optional
+`InteractionKind` maps the `byte Kind` to the input edge. Callers guard optional
 hints with `.HasValue` / pattern matching.
 
 Inventory moves use the same envelope pattern with a nullable op member; the

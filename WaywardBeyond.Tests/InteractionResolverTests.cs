@@ -13,8 +13,9 @@ using WaywardBeyond.Voxels;
 namespace WaywardBeyond.Tests;
 
 /// <summary>
-/// Pins the shared interaction resolver that client prediction and server authority both run. A hint-less
-/// or invalid hint must resolve to <see cref="InteractionAction.None"/> and never throw.
+/// Pins the shared interaction resolver that client prediction and server authority both run. A primary
+/// press places when it carries a held placeable and breaks the occupied cell otherwise. A hint-less or
+/// invalid hint must resolve to <see cref="InteractionAction.None"/> and never throw.
 /// </summary>
 public class InteractionResolverTests
 {
@@ -68,6 +69,22 @@ public class InteractionResolverTests
     }
 
     [Fact]
+    public void RejectsASecondaryPressOnABrick()
+    {
+        VoxelObject voxels = FilledVoxels();
+        var secondary = new InteractionRequest(
+            Vector3.Zero,
+            Hint(cell: 0),
+            InteractionKind.SecondaryPressed,
+            Placeable(),
+            GameMode.Creative,
+            9.5f
+        );
+
+        Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in secondary, World(voxels), Registry()).Action);
+    }
+
+    [Fact]
     public void ResolvesAPlaceOnAnEmptyCellWithTheRequestedShape()
     {
         var voxels = new VoxelObject(4);
@@ -85,15 +102,6 @@ public class InteractionResolverTests
     {
         VoxelObject voxels = FilledVoxels();
         var request = Place(cell: 0, reach: 9.5f, shape: (byte)BrickShape.Block, brick: Placeable());
-
-        Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in request, World(voxels), Registry()).Action);
-    }
-
-    [Fact]
-    public void RejectsAPlaceWithoutAHeldPlaceable()
-    {
-        var voxels = new VoxelObject(4);
-        var request = Place(cell: 0, reach: 9.5f, shape: (byte)BrickShape.Block, brick: null);
 
         Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in request, World(voxels), Registry()).Action);
     }
@@ -178,12 +186,12 @@ public class InteractionResolverTests
         );
     }
 
-    private static InteractionRequest Place(int cell, float reach, byte shape, Brick? brick)
+    private static InteractionRequest Place(int cell, float reach, byte shape, Brick brick)
     {
         return new InteractionRequest(
             Vector3.Zero,
             Hint(cell, shape),
-            InteractionKind.SecondaryPressed,
+            InteractionKind.PrimaryPressed,
             brick,
             GameMode.Creative,
             reach

@@ -19,7 +19,7 @@ Select → Resolve → Validate → Commit → React
 |---|---|---|
 | `Select` | Determine the content the interaction operates with | `ItemPlaceableSelector` maps the held item to the brick it places |
 | `Resolve` | Derive the base outcome from the client's target hint | `PaintHintResolver` (High) resolves paint hints, `HintResolver` (Normal) runs `InteractionResolver` |
-| `Validate` | Adjust or reject before any authority change | none; the stage is a policy hook |
+| `Validate` | Adjust or reject before any authority change | `BreakToolValidator` rejects a break made without a removal tool |
 | `Commit` | Perform the authority change | `VoxelFaceWriteCommitter` (Normal) applies face overrides, `VoxelWriteCommitter` (Low) writes bricks, rebuilds the collider, and broadcasts |
 | `React` | Apply the consequences | `BreakLootReactor`, `PlaceConsumeReactor`, `SkillXpReactor` |
 
