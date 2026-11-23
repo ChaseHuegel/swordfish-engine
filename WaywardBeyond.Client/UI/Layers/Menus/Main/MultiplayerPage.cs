@@ -262,6 +262,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private void AddFavoriteFromDialog()
     {
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _modalMenu.GoToPage(_addFavoriteModal.Create(
             AddFavoriteFromForm,
             _networkingConfig.RemotePort.Get()
@@ -270,6 +271,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private void ViewSaves()
     {
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(MenuPage.SelectSave);
     }
 
@@ -359,6 +361,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     /// <summary>Validates the connect fields, shows the connecting modal, and connects.</summary>
     private void TryConnect(string? serverName = null)
     {
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
+
         string host = _view.HostState.Text.ToString().Trim();
         string portText = _view.PortState.Text.ToString().Trim();
 
@@ -462,6 +466,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     /// <summary>Asks for confirmation, then removes the favorite at the index.</summary>
     private void ConfirmRemoveFavorite(int index, string name)
     {
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _modalMenu.GoToPage(_confirmModal.Create(
             () => RemoveFavoriteAt(index),
             _localization.GetRequired("ui.dialog.server.remove"),
