@@ -42,7 +42,8 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 100–149 | menu: list, create, delete, save |
 | 200–249 | join: join, stream level |
 | 300–349 | server state: snapshot, snapshot batch |
-| 350–399 | server events: voxel edit, voxel face edit, notification, skill, chat relay, heartbeat |
+| 350–399 | server interactions: voxel edit, voxel face edit |
+| 400–449 | server events: heartbeat, chat relay, notification, skill update |
 
 | Id | Method | Direction | Kind | Payload |
 |---|---|---|---|---|
@@ -60,11 +61,11 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 300 | `SendSnapshot` | server → client | notification | `WorldSnapshot` |
 | 301 | `SnapshotBatch` | server → client | notification | `SnapshotBatch` |
 | 350 | `VoxelEdit` | server → client | notification | `VoxelEditMessage` |
-| 351 | `Notification` | server → client | notification | `NotificationMessage` |
-| 352 | `SkillUpdate` | server → client | notification | `SkillStateUpdateMessage` |
-| 353 | `ChatRelay` | server → client | notification | `ChatMessage` |
-| 354 | `ServerHeartbeat` | server → client | notification | `ServerHeartbeatMessage` |
-| 355 | `VoxelFaceEdit` | server → client | notification | `VoxelFaceEditMessage` |
+| 351 | `VoxelFaceEdit` | server → client | notification | `VoxelFaceEditMessage` |
+| 400 | `ServerHeartbeat` | server → client | notification | `ServerHeartbeatMessage` |
+| 401 | `ChatRelay` | server → client | notification | `ChatMessage` |
+| 402 | `Notification` | server → client | notification | `NotificationMessage` |
+| 403 | `SkillUpdate` | server → client | notification | `SkillStateUpdateMessage` |
 
 ## Services
 

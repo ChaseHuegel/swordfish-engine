@@ -51,7 +51,7 @@ public class AudioSettingsCategoryTests
         StepperEntry<string> row = FindOutputDeviceRow(category);
         SettingsRowState state = row.Snapshot();
 
-        Assert.Equal("Ghost (unavailable)", state.Value);
+        Assert.Equal("Ghost (Unavailable)", state.Value);
         Assert.True(state.CanDecrease);
         Assert.False(state.CanIncrease);
 

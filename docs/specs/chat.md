@@ -16,7 +16,7 @@ the client-chosen display name, clamped to
 `CharacterNames.MAX_LENGTH` at join. The value is markup-tolerant by design.
 
 Chat is a client-to-server RPC notification (method 60) and a server-to-client
-notification (method 353). `ClientInbound.Chats` stages inbound relays for the
+notification (method 401). `ClientInbound.Chats` stages inbound relays for the
 ECS thread. Chat never competes with replication frames for a shared queue.
 
 ## Server relay

@@ -303,6 +303,10 @@ public class UiSnapshotTests
             NormalizeIds(snapshot).Split('\n', StringSplitOptions.RemoveEmptyEntries).Where(line => !IsFullyClipped(line)));
         string normalized = Regex.Replace(withoutClipped, @" clip=[^ ]+", " clip=-");
         normalized = Regex.Replace(normalized, @"color=([^ ]+) bg=\1", @"color=$1 bg=0,0,0,0");
+
+        //  The last-played row renders in the machine's local time zone, so mask the value and
+        //  keep the row geometry.
+        normalized = Regex.Replace(normalized, @"text=ui\.label\.lastPlayed: .*", "text=ui.label.lastPlayed: <local>");
         string[] lines = normalized.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var kept = new List<string>();
         for (var i = 0; i < lines.Length; i++)
