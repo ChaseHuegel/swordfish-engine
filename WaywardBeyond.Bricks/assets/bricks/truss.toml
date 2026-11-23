@@ -6,5 +6,8 @@ Tags        = [
     "metal",
     "paintable",
 ]
+[Bricks.Sounds]
+Place = ["metal_place"]
+Break = ["metal_break"]
 [Bricks.Textures]
 Default = ["truss"]

@@ -41,6 +41,24 @@ public class BrickDatabaseTests
     }
 
     [Fact]
+    public void LoadsShippedBrickSounds()
+    {
+        BrickDatabase database = Load();
+
+        Brick panel = database.Get(database.Id("wb:panel")).Value;
+        Assert.Equal(new[] { "metal_place" }, panel.Sounds[BrickSoundEvent.Place]);
+        Assert.Equal(new[] { "metal_break" }, panel.Sounds[BrickSoundEvent.Break]);
+
+        Brick rock = database.Get(database.Id("wb:rock")).Value;
+        Assert.Equal(new[] { "rock_place" }, rock.Sounds[BrickSoundEvent.Place]);
+        Assert.Equal(new[] { "rock_break" }, rock.Sounds[BrickSoundEvent.Break]);
+
+        Brick ice = database.Get(database.Id("wb:ice")).Value;
+        Assert.Equal(new[] { "rock_place" }, ice.Sounds[BrickSoundEvent.Place]);
+        Assert.Equal(new[] { "rock_break" }, ice.Sounds[BrickSoundEvent.Break]);
+    }
+
+    [Fact]
     public void IsCullerOnlyAllowsOpaqueBlocks()
     {
         BrickDatabase database = Load();

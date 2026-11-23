@@ -5,5 +5,8 @@ Tags    = [
     "environment",
     "paintable",
 ]
+[Bricks.Sounds]
+Place = ["rock_place"]
+Break = ["rock_break"]
 [Bricks.Textures]
 Default = ["ice"]

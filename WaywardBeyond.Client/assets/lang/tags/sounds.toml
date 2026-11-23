@@ -1,0 +1,43 @@
+# Invariant sound-effect tags. Each tag maps to audio clip ids relative to the
+# audio asset root. Bricks and interface widgets request a tag, never a clip id.
+
+"Language" = ""
+
+[Tags]
+"metal_place" = [
+    "sounds/place/metal/metal_place.1.wav",
+    "sounds/place/metal/metal_place.2.wav",
+    "sounds/place/metal/metal_place.3.wav",
+]
+
+"metal_break" = [
+    "sounds/remove/metal/metal_remove.1.wav",
+    "sounds/remove/metal/metal_remove.2.wav",
+    "sounds/remove/metal/metal_remove.3.wav",
+]
+
+"rock_place" = [
+    "sounds/place/rock/rock_place.1.wav",
+    "sounds/place/rock/rock_place.2.wav",
+    "sounds/place/rock/rock_place.3.wav",
+]
+
+"rock_break" = [
+    "sounds/remove/rock/rock_remove.1.wav",
+]
+
+"ui_click" = [
+    "sounds/misc effects_click 1.wav",
+]
+
+"ui_exit" = [
+    "sounds/menu sounds_exit click 1.wav",
+]
+
+"ui_tap_increase" = [
+    "sounds/misc effects_tap 2.wav",
+]
+
+"ui_tap_decrease" = [
+    "sounds/misc effects_tap 1.wav",
+]

@@ -8,6 +8,9 @@ Tags    = [
     "orientable",
     "convertable_truss",
 ]
+[Bricks.Sounds]
+Place = ["metal_place"]
+Break = ["metal_break"]
 [Bricks.Textures]
 Default = ["storage_front"]
 Top     = ["storage_top"]

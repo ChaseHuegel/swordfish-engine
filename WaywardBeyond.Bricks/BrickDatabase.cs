@@ -88,7 +88,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     protected override Result<Brick> LoadAsset(string id, BrickDefinition assetInfo)
     {
         BrickColliderShape[] colliders = BuildColliders(id, assetInfo.Colliders);
-        var brick = new Brick(id, assetInfo.Alpha, assetInfo.Passable, assetInfo.Mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags, assetInfo.CastShadows, colliders);
+        var brick = new Brick(id, assetInfo.Alpha, assetInfo.Passable, assetInfo.Mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags, assetInfo.CastShadows, colliders, assetInfo.Sounds);
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
     }

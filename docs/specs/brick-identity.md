@@ -68,11 +68,11 @@ static. It separates the id space into two ranges:
 | `ClientVoxelReconcileSystem` | `IBrickRegistry.Resolve` and `IBrickRegistry.Name` |
 
 `Brick` (`WaywardBeyond.Bricks/Brick.cs`) is the headless view of
-a loaded brick. It carries the voxel id, shape, textures, tags, and the custom
-mesh **id** (a string). It holds no renderable mesh and builds no voxel, so the
-server can reuse it. The client resolves the mesh id to a renderable mesh
-through an `IAssetDatabase<Mesh>` in the mesh-build, placement-preview, and gizmo
-paths. Brick tags are case-insensitive.
+a loaded brick. It carries the voxel id, shape, textures, tags, sound tags, and
+the custom mesh **id** (a string). It holds no renderable mesh and builds no
+voxel, so the server can reuse it. The client resolves the mesh id to a
+renderable mesh through an `IAssetDatabase<Mesh>` in the mesh-build,
+placement-preview, and gizmo paths. Brick tags are case-insensitive.
 
 ### Missing-brick placeholder rendering
 

@@ -6,25 +6,20 @@ namespace WaywardBeyond.Client.UI;
 /// <summary>Sound and pointer interaction helpers shared by game UI.</summary>
 internal static class WidgetInteraction
 {
-    private const string INTERFACE_AUDIO_CHANNEL = "interface";
-    private const string EXIT_CLICK_SOUND = "sounds/menu sounds_exit click 1.wav";
-    private const string CLICK_SOUND = "sounds/misc effects_click 1.wav";
-    private const string TAP_INCREASE_SOUND = "sounds/misc effects_tap 2.wav";
-    private const string TAP_DECREASE_SOUND = "sounds/misc effects_tap 1.wav";
-
     /// <summary>Plays the interface sound for one menu interaction.</summary>
     public static void PlayInterfaceSound(this SoundEffectService soundEffectService, InterfaceSound sound)
     {
-        string id = sound switch
-        {
-            InterfaceSound.Toggle or InterfaceSound.Input => CLICK_SOUND,
-            InterfaceSound.Increase => TAP_INCREASE_SOUND,
-            InterfaceSound.Decrease => TAP_DECREASE_SOUND,
-            _ => EXIT_CLICK_SOUND,
-        };
-
-        soundEffectService.Play(id, INTERFACE_AUDIO_CHANNEL);
+        soundEffectService.PlayInterface(GetSoundTag(sound));
     }
+
+    /// <summary>Gets the invariant sound tag for one menu interaction.</summary>
+    internal static string GetSoundTag(InterfaceSound sound) => sound switch
+    {
+        InterfaceSound.Toggle or InterfaceSound.Input => "ui_click",
+        InterfaceSound.Increase => "ui_tap_increase",
+        InterfaceSound.Decrease => "ui_tap_decrease",
+        _ => "ui_exit",
+    };
 
     /// <summary>Plays the interface sound when the interactions include a click, and reports the click.</summary>
     public static bool WithButtonAudio(
