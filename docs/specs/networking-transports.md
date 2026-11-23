@@ -146,7 +146,7 @@ state.
 - `LanDiscoveryService` listens on the discovery port for
   `Discovery.ScanDurationSeconds`, drops non-matching protocol versions, dedupes
   by endpoint, and ignores its own server by source address and TCP port.
-- `LanDiscovery.PROTOCOL_VERSION` is 4. An old client cannot join a new server.
+- `LanDiscovery.PROTOCOL_VERSION` is 3. An old client cannot join a new server.
 - `MultiplayerPage` pre-fills host and port and uses the normal
   `ClientRpcHost.ConnectRemote` path.
 
