@@ -12,7 +12,7 @@ sRGB transfer function once when writing to the back buffer.
 | Data textures (normal, metallic, smoothness, MSDF atlas) | Linear | `Rgba8` | Sampled without conversion. |
 | Light and ambient values (`AmbientLight`, `DirectionalLightComponent.Color`, `LightComponent.Color`) | sRGB to Linear HDR | `Vector3` | Authored in sRGB `[0, 1]`. `ForwardPlusRenderingPipeline` decodes via `Tonemapper.SrgbToLinear` and multiplies by `Intensity` on GPU upload. `shade(albedo)` multiplies `albedo` once across ambient, directional, and point light contributions. |
 | Scene color (`_colorRBO`, `_colorResolveTex`) | Linear HDR | `Rgba16f` | Direct light, ambient light, shadows, SAO, skybox, and alpha-blended meshes composite in linear HDR space. |
-| Emissive source (`_bloomRBO`, `_bloomResolveTex`) | Linear HDR | `R11fG11fB10f` | Scene shaders write linear HDR emissive values to `BrightColor` without clamping at `1.0`. |
+| Emissive source (`_bloomRBO`, `_bloomResolveTex`) | Linear HDR | `R11fG11fB10f` | Scene shaders write linear HDR emissive values to `BrightColor` without clamping at `1.0`. `GlslParser` defaults `BrightColor.a` to `FragColor.a` so alpha-blended draws preserve background bloom where transparent. |
 | Bloom mip chain (`_bloomChain[0..3]`) | Linear HDR | `Rgba16f` | Extracts, blurs, and accumulates in linear HDR space. Alpha holds the linear non-emissive mask. |
 | Post-process composite (`bloom.glsl` to `FBO 0`) | Linear HDR to sRGB | Back buffer | Adds bloom to scene color in linear HDR, tonemaps into `[0, 1]`, and encodes linear to sRGB once. |
 | Screen-space UI (`ForwardRenderingPipeline`) | sRGB | Back buffer | Vertex colors and MSDF coverage draw in sRGB screen space. UI textured shaders re-encode sampled linear RGB to sRGB before multiplying by vertex color. |
@@ -75,13 +75,13 @@ sRGB transfer function once when writing to the back buffer.
 - Texture upload binding: `Swordfish/Graphics/SilkNET/OpenGL/GLRenderContext.cs:205-242`
 - Reef UI atlas color space: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:103-105`
 - Forward+ resolve, bloom, and composite: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:71-75, 261-265, 352-353, 579, 618-698, 743-746, 1115, 1132, 1244-1253, 1269-1276`
-- Forward+ linear shading: `Swordfish/assets/shaders/pbr_plus.glsl:109-128, 227-273`, `WaywardBeyond.Client/assets/shaders/lightedArray.glsl:32-56`
+- Forward+ linear shading: `Swordfish/assets/shaders/pbr_plus.glsl:109-128, 227-273`, `WaywardBeyond.Client/assets/shaders/lighted.glsl:20-23`, `WaywardBeyond.Client/assets/shaders/lightedArray.glsl:32-58`
 - Bloom extraction shader: `Swordfish/assets/shaders/bloom_extract.glsl:14-29`
 - Composite, tonemap, and encode shader: `Swordfish/assets/shaders/bloom.glsl:14-52`
 - UI textured shaders: `Swordfish/assets/shaders/ui_reef_textured.glsl:38-57`, `Swordfish/assets/shaders/ui_default.glsl:10-24`
-- GLSL preprocessor block wrapping: `Swordfish/IO/GlslParser.cs:241-260`
+- GLSL preprocessor `BrightColor` alpha default and block wrapping: `Swordfish/IO/GlslParser.cs:129-136, 245-264`
 - Client PBR texture arrays: `WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs:79-85`
 
 ## Tests That Pin This
 
-- `Swordfish.Tests/TonemapperTests.cs:12-61`
+- `Swordfish.Tests/TonemapperTests.cs:12-78`

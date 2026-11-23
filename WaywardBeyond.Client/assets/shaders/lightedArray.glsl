@@ -52,7 +52,7 @@ vec4 fragment()
     }
     else
     {
-        BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+        BrightColor = vec4(0.0, 0.0, 0.0, color.a);
     }
 
     return color;
