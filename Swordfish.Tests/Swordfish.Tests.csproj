@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <IsPackable>false</IsPackable>
@@ -17,7 +18,6 @@
   <ItemGroup>
     <None Include="TestFiles\**\*.*" CopyToOutputDirectory="PreserveNewest"/>
     <ProjectReference Include="..\Reef\Reef.csproj" />
-    
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
     <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
     <ProjectReference Include="..\Krill\Krill.csproj" />

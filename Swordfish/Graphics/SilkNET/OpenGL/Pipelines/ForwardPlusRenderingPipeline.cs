@@ -75,10 +75,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly FramebufferObject _bloomResolveFBO;
     private readonly DoubleBufferTarget[] _bloomChain = new DoubleBufferTarget[MAX_BLOOM_LEVELS];
     
-    private FramebufferObject _renderFBO;
-    private RenderbufferObject _colorRBO;
-    private RenderbufferObject _bloomRBO;
-    private RenderbufferObject _depthStencilRBO;
+    private FramebufferObject _renderFBO = null!;
+    private RenderbufferObject _colorRBO = null!;
+    private RenderbufferObject _bloomRBO = null!;
+    private RenderbufferObject _depthStencilRBO = null!;
 
     private int _renderSamples;
     

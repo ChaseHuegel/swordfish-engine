@@ -763,7 +763,7 @@ public class SilkWindowContext : IWindowContext
     {
         ApplyAlwaysOnTop(e.NewValue);
     }
-    private void OnTitleChanged(object? sender, DataChangedEventArgs<string?> e)
+    private void OnTitleChanged(object? sender, DataChangedEventArgs<string> e)
     {
         ApplyTitle(e.NewValue);
     }

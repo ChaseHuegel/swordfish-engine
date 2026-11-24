@@ -60,7 +60,7 @@ public class CommandLineParserTests
         CommandLineArgs args = new CommandLineParser().Parse(["--tags", "alpha", "beta"]);
 
         Assert.True(args.TryGetValues("tags", out string[]? tags));
-        Assert.Equal(["alpha", "beta"], tags);
+        Assert.Equal(["alpha", "beta"], tags!);
     }
 
     [Fact]

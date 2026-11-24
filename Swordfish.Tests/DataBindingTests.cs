@@ -47,7 +47,7 @@ public class DataBindingTests
     [Fact]
     public void SetRaisesChangedWhenValueBecomesNull()
     {
-        var binding = new DataBinding<string>("value");
+        var binding = new DataBinding<string?>("value");
         var raised = 0;
         binding.Changed += (_, _) => raised++;
 

@@ -10,7 +10,7 @@ public class SystemTickBenchmarks
     [Params(500, 50_000)]
     public int EntityCount;
 
-    private DataStore _store;
+    private DataStore _store = null!;
 
     private readonly ForEachRef<TransformData, VelocityData> _delegateField;
 
@@ -31,7 +31,7 @@ public class SystemTickBenchmarks
         _store = new DataStore();
         for (var i = 0; i < EntityCount; i++)
         {
-            _store.Alloc(new TransformData(), new VelocityData());
+            _store.Alloc(new TransformData(), new VelocityData { Velocity = Vector3.UnitX });
         }
     }
 

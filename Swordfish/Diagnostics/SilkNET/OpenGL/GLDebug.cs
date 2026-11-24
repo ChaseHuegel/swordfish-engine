@@ -25,7 +25,7 @@ internal sealed class GLDebug : IDisposable, IAutoActivate
         
         if (_gl.HasCapabilities(4, 3, "GL_KHR_debug"))
         {
-            _gl.DebugMessageCallback(_debugCallback, IntPtr.Zero);
+            _gl.DebugMessageCallback(_debugCallback, in IntPtr.Zero);
             _gl.Enable(EnableCap.DebugOutput);
             _gl.Enable(EnableCap.DebugOutputSynchronous);
         }
