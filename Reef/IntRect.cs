@@ -1,3 +1,5 @@
+using System;
+
 namespace Reef;
 
 public readonly struct IntRect
@@ -42,6 +44,19 @@ public readonly struct IntRect
         Bottom = bottom;
     }
     
+    /// <summary>
+    ///     Returns the overlapping region of this rect and <paramref name="other" />.
+    ///     The result has a non-positive size when the rects do not overlap.
+    /// </summary>
+    public IntRect Intersect(IntRect other)
+    {
+        return new IntRect(
+            Math.Max(Left, other.Left),
+            Math.Max(Top, other.Top),
+            Math.Min(Right, other.Right),
+            Math.Min(Bottom, other.Bottom));
+    }
+
     public bool Intersects(IntRect other)
     {
         if (other.Left >= Right)

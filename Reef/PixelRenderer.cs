@@ -12,6 +12,7 @@ public sealed class PixelRenderer
 {
     private readonly int _width;
     private readonly int _height;
+    private readonly IntRect _screenBounds;
     private readonly PixelTexture _renderTexture;
     private readonly ITextEngine _textEngine;
     private readonly IDictionary<string, PixelFontSDF> _fonts;
@@ -20,6 +21,7 @@ public sealed class PixelRenderer
     {
         _width = width;
         _height = height;
+        _screenBounds = new IntRect(0, 0, width, height);
         _textEngine = textEngine;
         _fonts = fonts;
         _renderTexture = new PixelTexture(width, height);
@@ -51,23 +53,13 @@ public sealed class PixelRenderer
         
         //  Render rects.
         //  IntRect right and bottom bounds are exclusive, matching IntRect.Contains.
-        for (int y = renderCommand.Rect.Top; y < renderCommand.Rect.Bottom; y++)
-        for (int x = renderCommand.Rect.Left; x < renderCommand.Rect.Right; x++)
+        IntRect clipped = ClipToScreen(renderCommand.Rect, renderCommand.ClipRect);
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
+        for (int x = clipped.Left; x < clipped.Right; x++)
         {
-            //  Skip pixels that are outside the clip rect
-            if (!renderCommand.ClipRect.Contains(x, y))
-            {
-                continue;
-            }
-            
             //  Skip pixels that are outside the corner radii
             if (IsOutsideCornerRadius(renderCommand, x, y))
-            {
-                continue;
-            }
-
-            //  Skip pixels that are outside the render target
-            if (x < 0 || y < 0 || x >= _width || y >= _height)
             {
                 continue;
             }
@@ -276,23 +268,20 @@ public sealed class PixelRenderer
         DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color);
     }
 
+    private IntRect ClipToScreen(IntRect rect, IntRect clipRect)
+    {
+        return rect.Intersect(clipRect).Intersect(_screenBounds);
+    }
+
     private void DrawSolidRect(RenderCommand<PixelTexture> renderCommand, IntRect rect, Vector4 color)
     {
-        for (int y = rect.Top; y < rect.Bottom; y++)
+        IntRect clipped = ClipToScreen(rect, renderCommand.ClipRect);
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
-            for (int x = rect.Left; x < rect.Right; x++)
+            for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                if (!renderCommand.ClipRect.Contains(x, y))
-                {
-                    continue;
-                }
-
                 if (IsOutsideCornerRadius(renderCommand, x, y))
-                {
-                    continue;
-                }
-
-                if (x < 0 || y < 0 || x >= _width || y >= _height)
                 {
                     continue;
                 }
@@ -343,21 +332,11 @@ public sealed class PixelRenderer
 
     private void DrawCharacter(IntRect bbox, IntRect clipRect, IntRect uv, Vector4 color, PixelFontSDF font)
     {
-        for (int y = bbox.Top; y < bbox.Bottom; y++)
-        for (int x = bbox.Left; x < bbox.Right; x++)
+        IntRect clipped = ClipToScreen(bbox, clipRect);
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
+        for (int x = clipped.Left; x < clipped.Right; x++)
         {
-            //  Skip pixels that are outside the clip rect
-            if (!clipRect.Contains(x, y))
-            {
-                continue;
-            }
-            
-            //  Skip pixels that are outside the render target
-            if (x < 0 || y < 0 || x >= _width || y >= _height)
-            {
-                continue;
-            }
-            
             var u = (int)RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
             var v = (int)RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
             
