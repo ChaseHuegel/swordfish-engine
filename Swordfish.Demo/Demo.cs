@@ -784,7 +784,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
         material = new Material(shader, textureArray)
         {
-            Transparent = true,
+            AlphaMode = AlphaMode.Blend,
         };
         mesh = MeshBrickGrid(grid, textureArray, true);
         renderer = new MeshRenderer(mesh, material, renderOptions);

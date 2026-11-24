@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
