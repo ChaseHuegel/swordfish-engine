@@ -45,6 +45,18 @@ public readonly struct IntRect
     }
     
     /// <summary>
+    ///     Returns the smallest rect that contains this rect and <paramref name="other" />.
+    /// </summary>
+    public IntRect Union(IntRect other)
+    {
+        return new IntRect(
+            Math.Min(Left, other.Left),
+            Math.Min(Top, other.Top),
+            Math.Max(Right, other.Right),
+            Math.Max(Bottom, other.Bottom));
+    }
+
+    /// <summary>
     ///     Returns the overlapping region of this rect and <paramref name="other" />.
     ///     The result has a non-positive size when the rects do not overlap.
     /// </summary>

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Reef.Text;
 using Reef.UI;
 
@@ -11,6 +12,8 @@ namespace Reef;
 
 public sealed class PixelRenderer
 {
+    private const int TileSize = 64;
+
     private readonly IntRect _screenBounds;
 
     //  The frame is stored with premultiplied alpha so blending needs no division.
@@ -18,6 +21,16 @@ public sealed class PixelRenderer
     private readonly ITextEngine _textEngine;
     private readonly IDictionary<string, PixelFontSDF> _fonts;
     private readonly PixelFontSDF? _defaultFont;
+    private readonly int _tilesX;
+    private readonly int _tilesY;
+    private readonly int _tileCount;
+
+    private List<RenderCommand<PixelTexture>>? _frameCommands;
+    private TextLayout?[] _textLayouts = [];
+    private IntRect[] _commandBounds = [];
+    private int[] _tileCounts = [];
+    private int[] _tileOffsets = [];
+    private int[] _binnedCommands = [];
     
     public PixelRenderer(int width, int height, ITextEngine textEngine, IDictionary<string, PixelFontSDF> fonts)
     {
@@ -26,6 +39,9 @@ public sealed class PixelRenderer
         _fonts = fonts;
         _defaultFont = fonts.Count > 0 ? fonts.Values.First() : null;
         _renderTexture = new PixelTexture(width, height);
+        _tilesX = (width + TileSize - 1) / TileSize;
+        _tilesY = (height + TileSize - 1) / TileSize;
+        _tileCount = _tilesX * _tilesY;
     }
     
     /// <summary>
@@ -52,42 +68,218 @@ public sealed class PixelRenderer
     
     public void Render(List<RenderCommand<PixelTexture>> renderCommands)
     {
-        _renderTexture.Clear();
+        ReadOnlySpan<RenderCommand<PixelTexture>> commands = CollectionsMarshal.AsSpan(renderCommands);
+        _frameCommands = renderCommands;
 
-        foreach (ref readonly RenderCommand<PixelTexture> renderCommand in CollectionsMarshal.AsSpan(renderCommands))
+        _renderTexture.Clear();
+        ResolveTextLayouts(commands);
+        BinCommands(commands);
+
+        if (Environment.ProcessorCount > 1 && !OperatingSystem.IsBrowser())
         {
-            Draw(in renderCommand);
+            Parallel.For(0, _tileCount, RenderTile);
+            return;
+        }
+
+        //  A single-threaded runtime keeps the tiling, because a tile still fits
+        //  in cache while its commands rasterize.
+        for (var tileIndex = 0; tileIndex < _tileCount; tileIndex++)
+        {
+            RenderTile(tileIndex);
         }
     }
-    
-    private void Draw(in RenderCommand<PixelTexture> renderCommand)
+
+    private void ResolveTextLayouts(ReadOnlySpan<RenderCommand<PixelTexture>> commands)
+    {
+        EnsureCommandCapacity(commands.Length);
+
+        for (var i = 0; i < commands.Length; i++)
+        {
+            RenderCommand<PixelTexture> command = commands[i];
+            _textLayouts[i] = command.Text == null
+                ? null
+                : command.TextLayout ?? _textEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
+        }
+    }
+
+    private void BinCommands(ReadOnlySpan<RenderCommand<PixelTexture>> commands)
+    {
+        if (_tileCounts.Length < _tileCount)
+        {
+            _tileCounts = new int[_tileCount];
+        }
+
+        if (_tileOffsets.Length < _tileCount + 1)
+        {
+            _tileOffsets = new int[_tileCount + 1];
+        }
+
+        Array.Clear(_tileCounts, 0, _tileCount);
+
+        var requiredCommands = 0;
+        for (var i = 0; i < commands.Length; i++)
+        {
+            IntRect bounds = ResolveCommandBounds(commands[i], _textLayouts[i]);
+            _commandBounds[i] = bounds;
+            if (bounds.Size.X <= 0 || bounds.Size.Y <= 0)
+            {
+                continue;
+            }
+
+            int minTileX = bounds.Left / TileSize;
+            int maxTileX = (bounds.Right - 1) / TileSize;
+            int minTileY = bounds.Top / TileSize;
+            int maxTileY = (bounds.Bottom - 1) / TileSize;
+
+            for (int tileY = minTileY; tileY <= maxTileY; tileY++)
+            for (int tileX = minTileX; tileX <= maxTileX; tileX++)
+            {
+                _tileCounts[tileY * _tilesX + tileX]++;
+            }
+
+            requiredCommands += (maxTileX - minTileX + 1) * (maxTileY - minTileY + 1);
+        }
+
+        if (_binnedCommands.Length < requiredCommands)
+        {
+            _binnedCommands = new int[requiredCommands];
+        }
+
+        var offset = 0;
+        for (var tileIndex = 0; tileIndex < _tileCount; tileIndex++)
+        {
+            _tileOffsets[tileIndex] = offset;
+            offset += _tileCounts[tileIndex];
+            _tileCounts[tileIndex] = _tileOffsets[tileIndex];
+        }
+
+        _tileOffsets[_tileCount] = offset;
+
+        //  Commands are visited in paint order, so every tile keeps painter's order.
+        for (var i = 0; i < commands.Length; i++)
+        {
+            IntRect bounds = _commandBounds[i];
+            if (bounds.Size.X <= 0 || bounds.Size.Y <= 0)
+            {
+                continue;
+            }
+
+            int minTileX = bounds.Left / TileSize;
+            int maxTileX = (bounds.Right - 1) / TileSize;
+            int minTileY = bounds.Top / TileSize;
+            int maxTileY = (bounds.Bottom - 1) / TileSize;
+
+            for (int tileY = minTileY; tileY <= maxTileY; tileY++)
+            for (int tileX = minTileX; tileX <= maxTileX; tileX++)
+            {
+                _binnedCommands[_tileCounts[tileY * _tilesX + tileX]++] = i;
+            }
+        }
+    }
+
+    private void EnsureCommandCapacity(int commandCount)
+    {
+        if (_textLayouts.Length >= commandCount)
+        {
+            return;
+        }
+
+        _textLayouts = new TextLayout?[commandCount];
+        _commandBounds = new IntRect[commandCount];
+    }
+
+    private void RenderTile(int tileIndex)
+    {
+        ReadOnlySpan<RenderCommand<PixelTexture>> commands = CollectionsMarshal.AsSpan(_frameCommands!);
+        IntRect tileRect = ResolveTileRect(tileIndex);
+
+        int start = _tileOffsets[tileIndex];
+        int end = _tileOffsets[tileIndex + 1];
+        for (var i = start; i < end; i++)
+        {
+            int commandIndex = _binnedCommands[i];
+            var context = new DrawContext(commands[commandIndex], commands[commandIndex].ClipRect.Intersect(tileRect), _textLayouts[commandIndex]);
+            Draw(in context);
+        }
+    }
+
+    private IntRect ResolveTileRect(int tileIndex)
+    {
+        int tileX = tileIndex % _tilesX;
+        int tileY = tileIndex / _tilesX;
+        int left = tileX * TileSize;
+        int top = tileY * TileSize;
+        return new IntRect(
+            left,
+            top,
+            Math.Min(left + TileSize, _renderTexture.Width),
+            Math.Min(top + TileSize, _renderTexture.Height));
+    }
+
+    private IntRect ResolveCommandBounds(in RenderCommand<PixelTexture> command, TextLayout? textLayout)
+    {
+        IntRect bounds = command.Rect;
+        if (textLayout == null)
+        {
+            return ClipToScreen(bounds, command.ClipRect);
+        }
+
+        //  Glyph bounds are element-local and can overhang the rect when text does not wrap.
+        GlyphLayout[] glyphs = textLayout.Value.Glyphs;
+        for (var i = 0; i < glyphs.Length; i++)
+        {
+            GlyphLayout glyph = glyphs[i];
+            if (glyph.IsWhitespace)
+            {
+                continue;
+            }
+
+            bounds = bounds.Union(new IntRect(
+                command.Rect.Left + glyph.BBOX.Left,
+                command.Rect.Top + glyph.BBOX.Top,
+                command.Rect.Left + glyph.BBOX.Right,
+                command.Rect.Top + glyph.BBOX.Bottom));
+        }
+
+        return ClipToScreen(bounds, command.ClipRect);
+    }
+
+    private void Draw(in DrawContext context)
     {
         //  Render rects.
         //  IntRect right and bottom bounds are exclusive, matching IntRect.Contains.
-        IntRect clipped = ClipToScreen(renderCommand.Rect, renderCommand.ClipRect);
-        if (renderCommand.RendererData != null)
+        IntRect clipped = ClipToScreen(context.Command.Rect, context.ClipRect);
+        if (clipped.Size.X > 0 && clipped.Size.Y > 0)
         {
-            DrawTexturedRect(in renderCommand, clipped);
-        }
-        else
-        {
-            DrawColorRect(in renderCommand, clipped);
+            if (context.Command.RendererData != null)
+            {
+                DrawTexturedRect(in context, clipped);
+            }
+            else
+            {
+                DrawColorRect(in context, clipped);
+            }
         }
 
-        DrawBorder(in renderCommand);
-        DrawCornerCaps(in renderCommand);
+        DrawBorder(in context);
+        DrawCornerCaps(in context);
 
-        if (renderCommand.Text != null)
+        if (context.Command.Text != null)
         {
-            DrawText(in renderCommand);
+            DrawText(in context);
         }
     }
 
-    private void DrawText(in RenderCommand<PixelTexture> renderCommand)
+    private void DrawText(in DrawContext context)
     {
-        TextLayout textLayout = renderCommand.TextLayout ?? _textEngine.Layout(renderCommand.FontOptions, renderCommand.Text!, renderCommand.Rect.Size.X);
+        if (context.TextLayout == null)
+        {
+            return;
+        }
 
-        string? fontID = renderCommand.FontOptions.ID;
+        TextLayout textLayout = context.TextLayout.Value;
+
+        string? fontID = context.Command.FontOptions.ID;
         if (fontID == null || !_fonts.TryGetValue(fontID, out PixelFontSDF font))
         {
             if (_defaultFont == null)
@@ -98,7 +290,7 @@ public sealed class PixelRenderer
             font = _defaultFont.Value;
         }
 
-        Vector4 color = renderCommand.Color;
+        Vector4 color = context.Command.Color;
         for (var i = 0; i < textLayout.Glyphs.Length; i++)
         {
             GlyphLayout glyph = textLayout.Glyphs[i];
@@ -108,27 +300,27 @@ public sealed class PixelRenderer
             }
 
             var bbox = new IntRect(
-                renderCommand.Rect.Left + glyph.BBOX.Left,
-                renderCommand.Rect.Top + glyph.BBOX.Top,
-                renderCommand.Rect.Left + glyph.BBOX.Right,
-                renderCommand.Rect.Top + glyph.BBOX.Bottom
+                context.Command.Rect.Left + glyph.BBOX.Left,
+                context.Command.Rect.Top + glyph.BBOX.Top,
+                context.Command.Rect.Left + glyph.BBOX.Right,
+                context.Command.Rect.Top + glyph.BBOX.Bottom
             );
 
-            DrawCharacter(bbox, renderCommand.ClipRect, glyph.UV, glyph.ResolveColor(color), in font);
+            DrawCharacter(bbox, context.ClipRect, glyph.UV, glyph.ResolveColor(color), in font);
         }
     }
 
-    private void DrawColorRect(in RenderCommand<PixelTexture> renderCommand, IntRect clipped)
+    private void DrawColorRect(in DrawContext context, IntRect clipped)
     {
         //  A text element paints its background color behind the glyphs.
-        Vector4 rectColor = ToPremultiplied(renderCommand.Text == null ? renderCommand.Color : renderCommand.BackgroundColor);
+        Vector4 rectColor = ToPremultiplied(context.Command.Text == null ? context.Command.Color : context.Command.BackgroundColor);
         if (rectColor.W <= 0f)
         {
             return;
         }
 
-        IntRect rect = renderCommand.Rect;
-        CornerRadius radius = renderCommand.CornerRadius;
+        IntRect rect = context.Command.Rect;
+        CornerRadius radius = context.Command.CornerRadius;
         int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
@@ -148,17 +340,13 @@ public sealed class PixelRenderer
                     continue;
                 }
 
-                for (int x = clipped.Left; x < clipped.Right; x++)
-                {
-                    row[x] = AlphaBlend(row[x], rectColor);
-                }
-
+                BlendRow(row.Slice(clipped.Left, clipped.Size.X), rectColor);
                 continue;
             }
 
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                if (IsOutsideCornerRadius(in renderCommand, x, y))
+                if (IsOutsideCornerRadius(in context, x, y))
                 {
                     continue;
                 }
@@ -168,10 +356,10 @@ public sealed class PixelRenderer
         }
     }
 
-    private void DrawTexturedRect(in RenderCommand<PixelTexture> renderCommand, IntRect clipped)
+    private void DrawTexturedRect(in DrawContext context, IntRect clipped)
     {
-        Vector4 color = renderCommand.Color;
-        Vector4 backgroundColor = renderCommand.BackgroundColor;
+        Vector4 color = context.Command.Color;
+        Vector4 backgroundColor = context.Command.BackgroundColor;
 
         //  The background color is blended over the modulated texture, so a
         //  rect with a fully transparent color and background keeps the target.
@@ -180,9 +368,9 @@ public sealed class PixelRenderer
             return;
         }
 
-        PixelTexture texture = renderCommand.RendererData!;
-        IntRect rect = renderCommand.Rect;
-        CornerRadius radius = renderCommand.CornerRadius;
+        PixelTexture texture = context.Command.RendererData!;
+        IntRect rect = context.Command.Rect;
+        CornerRadius radius = context.Command.CornerRadius;
         int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
@@ -203,7 +391,7 @@ public sealed class PixelRenderer
 
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                if (!straightRow && IsOutsideCornerRadius(in renderCommand, x, y))
+                if (!straightRow && IsOutsideCornerRadius(in context, x, y))
                 {
                     continue;
                 }
@@ -222,10 +410,10 @@ public sealed class PixelRenderer
         }
     }
     
-    private void DrawBorder(in RenderCommand<PixelTexture> renderCommand)
+    private void DrawBorder(in DrawContext context)
     {
-        BorderStyle border = renderCommand.Border;
-        IntRect rect = renderCommand.Rect;
+        BorderStyle border = context.Command.Border;
+        IntRect rect = context.Command.Rect;
 
         int topThickness = ResolveThickness(border.TopThickness, border.Thickness);
         int rightThickness = ResolveThickness(border.RightThickness, border.Thickness);
@@ -245,32 +433,32 @@ public sealed class PixelRenderer
         if (drawTop)
         {
             int limit = drawBottom ? rect.Size.Y / 2 : rect.Size.Y;
-            DrawHorizontalSide(in renderCommand, border, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
+            DrawHorizontalSide(in context, border, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
         }
 
         if (drawBottom)
         {
             int limit = drawTop ? rect.Size.Y / 2 : rect.Size.Y;
             int thickness = Math.Min(bottomThickness, limit);
-            DrawHorizontalSide(in renderCommand, border, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
+            DrawHorizontalSide(in context, border, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
         }
 
         if (drawLeft)
         {
             int limit = drawRight ? rect.Size.X / 2 : rect.Size.X;
-            DrawVerticalSide(in renderCommand, border, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
+            DrawVerticalSide(in context, border, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
         }
 
         if (drawRight)
         {
             int limit = drawLeft ? rect.Size.X / 2 : rect.Size.X;
             int thickness = Math.Min(rightThickness, limit);
-            DrawVerticalSide(in renderCommand, border, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
+            DrawVerticalSide(in context, border, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
         }
     }
 
     private void DrawHorizontalSide(
-        in RenderCommand<PixelTexture> command,
+        in DrawContext context,
         in BorderStyle border,
         int left,
         int right,
@@ -286,7 +474,7 @@ public sealed class PixelRenderer
         BorderDash.Resolve(border, thickness, out int dash, out int gap);
         if (dash <= 0)
         {
-            DrawSolidRect(in command, new IntRect(left, top, right, top + thickness), color);
+            DrawSolidRect(in context, new IntRect(left, top, right, top + thickness), color);
             return;
         }
 
@@ -294,12 +482,12 @@ public sealed class PixelRenderer
         while (segments.MoveNext())
         {
             int start = left + segments.Offset;
-            DrawSolidRect(in command, new IntRect(start, top, start + segments.SegmentLength, top + thickness), color);
+            DrawSolidRect(in context, new IntRect(start, top, start + segments.SegmentLength, top + thickness), color);
         }
     }
 
     private void DrawVerticalSide(
-        in RenderCommand<PixelTexture> command,
+        in DrawContext context,
         in BorderStyle border,
         int top,
         int bottom,
@@ -315,7 +503,7 @@ public sealed class PixelRenderer
         BorderDash.Resolve(border, thickness, out int dash, out int gap);
         if (dash <= 0)
         {
-            DrawSolidRect(in command, new IntRect(left, top, left + thickness, bottom), color);
+            DrawSolidRect(in context, new IntRect(left, top, left + thickness, bottom), color);
             return;
         }
 
@@ -323,7 +511,7 @@ public sealed class PixelRenderer
         while (segments.MoveNext())
         {
             int start = top + segments.Offset;
-            DrawSolidRect(in command, new IntRect(left, start, left + thickness, start + segments.SegmentLength), color);
+            DrawSolidRect(in context, new IntRect(left, start, left + thickness, start + segments.SegmentLength), color);
         }
     }
 
@@ -337,10 +525,10 @@ public sealed class PixelRenderer
         return sideColor.W > 0f ? sideColor : fallback;
     }
 
-    private void DrawCornerCaps(in RenderCommand<PixelTexture> renderCommand)
+    private void DrawCornerCaps(in DrawContext context)
     {
-        CornerCapStyle caps = renderCommand.CornerCaps;
-        IntRect rect = renderCommand.Rect;
+        CornerCapStyle caps = context.Command.CornerCaps;
+        IntRect rect = context.Command.Rect;
         int maxLength = Math.Min(rect.Size.X, rect.Size.Y) / 2;
         int length = Math.Min(caps.Length, maxLength);
         int thickness = Math.Min(caps.Thickness, length);
@@ -351,20 +539,20 @@ public sealed class PixelRenderer
         }
 
         //  Top left
-        DrawSolidRect(in renderCommand, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color);
-        DrawSolidRect(in renderCommand, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color);
 
         //  Top right
-        DrawSolidRect(in renderCommand, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color);
-        DrawSolidRect(in renderCommand, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color);
 
         //  Bottom left
-        DrawSolidRect(in renderCommand, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color);
-        DrawSolidRect(in renderCommand, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color);
 
         //  Bottom right
-        DrawSolidRect(in renderCommand, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color);
-        DrawSolidRect(in renderCommand, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color);
     }
 
     private IntRect ClipToScreen(IntRect rect, IntRect clipRect)
@@ -372,11 +560,16 @@ public sealed class PixelRenderer
         return rect.Intersect(clipRect).Intersect(_screenBounds);
     }
 
-    private void DrawSolidRect(in RenderCommand<PixelTexture> renderCommand, IntRect rect, Vector4 color)
+    private void DrawSolidRect(in DrawContext context, IntRect rect, Vector4 color)
     {
-        IntRect clipped = ClipToScreen(rect, renderCommand.ClipRect);
-        IntRect commandRect = renderCommand.Rect;
-        CornerRadius radius = renderCommand.CornerRadius;
+        IntRect clipped = ClipToScreen(rect, context.ClipRect);
+        if (clipped.Size.X <= 0 || clipped.Size.Y <= 0)
+        {
+            return;
+        }
+
+        IntRect commandRect = context.Command.Rect;
+        CornerRadius radius = context.Command.CornerRadius;
         int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
@@ -397,17 +590,13 @@ public sealed class PixelRenderer
                     continue;
                 }
 
-                for (int x = clipped.Left; x < clipped.Right; x++)
-                {
-                    row[x] = AlphaBlend(row[x], premultiplied);
-                }
-
+                BlendRow(row.Slice(clipped.Left, clipped.Size.X), premultiplied);
                 continue;
             }
 
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                if (IsOutsideCornerRadius(in renderCommand, x, y))
+                if (IsOutsideCornerRadius(in context, x, y))
                 {
                     continue;
                 }
@@ -417,10 +606,10 @@ public sealed class PixelRenderer
         }
     }
 
-    private static bool IsOutsideCornerRadius(in RenderCommand<PixelTexture> renderCommand, int x, int y)
+    private static bool IsOutsideCornerRadius(in DrawContext context, int x, int y)
     {
-        CornerRadius radius = renderCommand.CornerRadius;
-        IntRect rect = renderCommand.Rect;
+        CornerRadius radius = context.Command.CornerRadius;
+        IntRect rect = context.Command.Rect;
         int rightEdge = rect.Right - 1;
         int bottomEdge = rect.Bottom - 1;
 
@@ -458,6 +647,11 @@ public sealed class PixelRenderer
     private void DrawCharacter(IntRect bbox, IntRect clipRect, IntRect uv, Vector4 color, in PixelFontSDF font)
     {
         IntRect clipped = ClipToScreen(bbox, clipRect);
+        if (clipped.Size.X <= 0 || clipped.Size.Y <= 0)
+        {
+            return;
+        }
+
         int atlasWidth = font.Texture.Width;
         int atlasHeight = font.Texture.Height;
         float[] distances = font.Distances;
@@ -488,6 +682,60 @@ public sealed class PixelRenderer
                 row[x] = sample.W >= 1f ? sample : AlphaBlend(row[x], sample);
             }
         }
+    }
+
+    /// <summary>
+    ///     Composites one premultiplied color over a scanline. The vector path
+    ///     maps to whatever SIMD width the runtime provides, and a scalar tail
+    ///     covers runtimes without hardware acceleration.
+    /// </summary>
+    private static void BlendRow(Span<Vector4> row, Vector4 foreground)
+    {
+        float inverseAlpha = 1f - foreground.W;
+        Span<float> lanes = MemoryMarshal.Cast<Vector4, float>(row);
+        int laneWidth = Vector<float>.Count;
+        var lane = 0;
+
+        if (Vector.IsHardwareAccelerated && lanes.Length >= laneWidth)
+        {
+            Span<float> foregroundLanes = stackalloc float[laneWidth];
+            Span<float> inverseLanes = stackalloc float[laneWidth];
+            for (var channel = 0; channel < laneWidth; channel++)
+            {
+                foregroundLanes[channel] = ResolveChannel(foreground, channel % 4);
+                inverseLanes[channel] = inverseAlpha;
+            }
+
+            var foregroundVector = new Vector<float>(foregroundLanes);
+            var inverseVector = new Vector<float>(inverseLanes);
+            for (; lane <= lanes.Length - laneWidth; lane += laneWidth)
+            {
+                var background = new Vector<float>(lanes.Slice(lane, laneWidth));
+                (foregroundVector + background * inverseVector).CopyTo(lanes.Slice(lane, laneWidth));
+            }
+        }
+
+        for (; lane < lanes.Length; lane += 4)
+        {
+            int pixel = lane / 4;
+            Vector4 background = row[pixel];
+            row[pixel] = new Vector4(
+                foreground.X + background.X * inverseAlpha,
+                foreground.Y + background.Y * inverseAlpha,
+                foreground.Z + background.Z * inverseAlpha,
+                foreground.W + background.W * inverseAlpha);
+        }
+    }
+
+    private static float ResolveChannel(Vector4 color, int channel)
+    {
+        return channel switch
+        {
+            0 => color.X,
+            1 => color.Y,
+            2 => color.Z,
+            _ => color.W,
+        };
     }
 
     /// <summary>
@@ -532,5 +780,19 @@ public sealed class PixelRenderer
         float b = bf * bb;
 
         return new Vector4(r, g, b, a);
+    }
+
+    /// <summary>
+    ///     One render command resolved for a tile: the command itself, the clip
+    ///     rect for the tile, and the text layout resolved on the calling thread.
+    /// </summary>
+    private readonly struct DrawContext(
+        RenderCommand<PixelTexture> command,
+        IntRect clipRect,
+        TextLayout? textLayout)
+    {
+        public readonly RenderCommand<PixelTexture> Command = command;
+        public readonly IntRect ClipRect = clipRect;
+        public readonly TextLayout? TextLayout = textLayout;
     }
 }

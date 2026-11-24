@@ -128,7 +128,7 @@ The builder exposes both fields at `Reef/UIBuilder.cs:98` and `:104`.
 Game pages do not use raw styles. They use the shared theme, metrics, and
 classes in [ui-theme](ui-theme.md).
 
-The pixel renderer draws both at `Reef/PixelRenderer.cs:134` and `:249`. The
+The pixel renderer draws both at `Reef/PixelRenderer.cs:413` and `:528`. The
 OpenGL renderer adds both to the command's rect quads at
 `Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:240` and `:345`.
 
@@ -199,6 +199,29 @@ name an element.
 - `Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs` renders through
   OpenGL. It reads each `RenderCommand`, appends quads to `ReefBatch`, and draws
   one multi-draw call per contiguous run of quads that share a draw state.
+
+### CPU pixel renderer
+
+`PixelRenderer` keeps its frame with premultiplied alpha, so blending is one
+multiply-add per channel and never divides. `GetPixels` converts back to
+straight alpha for callers that read the frame.
+
+Each frame is cleared with `Array.Clear` and split into 64 by 64 pixel tiles.
+Every render command bins into each tile its clipped bounds touch, including
+glyph overhangs. Commands visit the tiles in paint order, so a tile keeps the
+painter's algorithm on its own. Text layouts resolve once on the calling
+thread before any tile runs, because `ITextEngine` is not thread-safe. Tiles
+rasterize through `Parallel.For` when the runtime reports more than one
+processor and is not a browser. A single-threaded runtime keeps the tiling and
+runs the tiles in order.
+
+Draw rects intersect the command rect, the clip rect, and the screen once
+before the pixel loop. Color rects skip transparent fills and write opaque
+fills as one row `Fill`. Translucent rows go through `BlendRow`, which uses
+`System.Numerics.Vector<T>` and falls back to a scalar tail.
+
+`PixelFontSDF` stores one precomputed distance per atlas texel, so a glyph
+pixel reads a `float` and skips the target when coverage is zero.
 
 `Swordfish/UI/Reef/ReefBatch.cs` owns the per-frame instance array and the run
 table. A quad is one 64-byte instance of a four-vertex fan, so its color and

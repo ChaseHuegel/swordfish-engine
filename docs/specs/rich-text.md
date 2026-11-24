@@ -67,7 +67,7 @@ element fade its colored runs too. The method is `Reef/Text/GlyphLayout.cs:15`.
 
 The two renderers call `ResolveColor` on each glyph:
 
-- The pixel renderer: `Reef/PixelRenderer.cs:144`.
+- The pixel renderer: `Reef/PixelRenderer.cs:309`.
 - The OpenGL renderer: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:161`.
 
 Both re-run layout from the source string. They use the same strip-then-layout
