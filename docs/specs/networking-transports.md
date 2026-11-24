@@ -13,7 +13,7 @@ The wire catalog lives in [networking-rpc](networking-rpc.md).
 | loopback | the game | in-process server for singleplayer and host mode |
 
 `WaywardBeyond.Networking` references `NsdRpc`, `NsdRpc.Tcp`, and
-`NsdRpc.Generators` at 0.3.1. The game no longer owns a wire envelope, type
+`NsdRpc.Generators` at 0.3.2. The game no longer owns a wire envelope, type
 tags, per-type receive queues, or FIFO request matching.
 
 ## TCP
@@ -30,6 +30,10 @@ tags, per-type receive queues, or FIFO request matching.
 - `ConnectTimeoutMs` bounds a connect attempt with `TimeoutException`.
 - `SendBatchIntervalMs` coalesces queued frames into one socket write, up to
   `SendBatchMaxBytes`.
+- `ReceiveQueueBytes` bounds frames that arrive before the peer attaches
+  `FrameReceived`. The buffer keeps arrival order, and the first subscriber
+  drains it before later frames arrive. Exceeding the cap closes the connection
+  with `BacklogLimit`.
 - `RpcPeer.Stats` reports frames, bytes, queued and peak bytes, writes, and
   rejected sends.
 - nsd-rpc drop and error events go to `RpcOptions.LogSink`.

@@ -46,44 +46,24 @@ internal sealed class ServerPingService
             var client = new RpcClient(connection, _emptyRegistry, rpcOptions);
             var api = new GameServerApiClient(client);
 
-            //  Retry once on an early timeout because a frame sent immediately after connect can
-            //  race the server's accept loop on fast links.
-            int attemptBudgetMs = Math.Min(250, timeoutMs);
-            while (!cts.IsCancellationRequested && connection.IsConnected)
+            long started = Stopwatch.GetTimestamp();
+            RpcResult<ServerDiscovery> response = await api
+                .DiscoverAsync(new ServerDiscoveryRequest(), cts.Token)
+                .WaitAsync(cts.Token)
+                .ConfigureAwait(false);
+
+            double elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            if (!response.IsSuccess || response.Value.ProtocolVersion != GameRpc.PROTOCOL_VERSION)
             {
-                using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
-                attemptCts.CancelAfter(attemptBudgetMs);
-
-                long started = Stopwatch.GetTimestamp();
-                RpcResult<ServerDiscovery> response;
-                try
-                {
-                    response = await api
-                        .DiscoverAsync(new ServerDiscoveryRequest(), attemptCts.Token)
-                        .WaitAsync(attemptCts.Token)
-                        .ConfigureAwait(false);
-                }
-                catch (OperationCanceledException) when (!cts.IsCancellationRequested && connection.IsConnected)
-                {
-                    attemptBudgetMs = timeoutMs;
-                    continue;
-                }
-
-                double elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-                if (!response.IsSuccess || response.Value.ProtocolVersion != GameRpc.PROTOCOL_VERSION)
-                {
-                    return new ServerProbeResult(false, string.Empty, 0, 0);
-                }
-
-                return new ServerProbeResult(
-                    Reachable: true,
-                    ServerName: response.Value.ServerName ?? string.Empty,
-                    PlayerCount: response.Value.PlayerCount,
-                    PingMs: (int)Math.Round(elapsedMs)
-                );
+                return new ServerProbeResult(false, string.Empty, 0, 0);
             }
 
-            return new ServerProbeResult(false, string.Empty, 0, 0);
+            return new ServerProbeResult(
+                Reachable: true,
+                ServerName: response.Value.ServerName ?? string.Empty,
+                PlayerCount: response.Value.PlayerCount,
+                PingMs: (int)Math.Round(elapsedMs)
+            );
         }
         catch
         {
