@@ -12,6 +12,8 @@ namespace Reef;
 public sealed class PixelRenderer
 {
     private readonly IntRect _screenBounds;
+
+    //  The frame is stored with premultiplied alpha so blending needs no division.
     private readonly PixelTexture _renderTexture;
     private readonly ITextEngine _textEngine;
     private readonly IDictionary<string, PixelFontSDF> _fonts;
@@ -26,9 +28,26 @@ public sealed class PixelRenderer
         _renderTexture = new PixelTexture(width, height);
     }
     
+    /// <summary>
+    ///     Returns a copy of the frame with straight (unpremultiplied) alpha.
+    /// </summary>
     public ReadOnlyCollection<Vector4> GetPixels()
     {
-        return _renderTexture.GetPixels();
+        ReadOnlySpan<Vector4> premultiplied = _renderTexture.AsSpan();
+        var pixels = new Vector4[premultiplied.Length];
+        for (var i = 0; i < premultiplied.Length; i++)
+        {
+            Vector4 pixel = premultiplied[i];
+            if (pixel.W <= 0f || pixel.W >= 1f)
+            {
+                pixels[i] = pixel;
+                continue;
+            }
+
+            pixels[i] = new Vector4(pixel.X / pixel.W, pixel.Y / pixel.W, pixel.Z / pixel.W, pixel.W);
+        }
+
+        return Array.AsReadOnly(pixels);
     }
     
     public void Render(List<RenderCommand<PixelTexture>> renderCommands)
@@ -102,7 +121,7 @@ public sealed class PixelRenderer
     private void DrawColorRect(in RenderCommand<PixelTexture> renderCommand, IntRect clipped)
     {
         //  A text element paints its background color behind the glyphs.
-        Vector4 rectColor = renderCommand.Text == null ? renderCommand.Color : renderCommand.BackgroundColor;
+        Vector4 rectColor = ToPremultiplied(renderCommand.Text == null ? renderCommand.Color : renderCommand.BackgroundColor);
         if (rectColor.W <= 0f)
         {
             return;
@@ -169,6 +188,7 @@ public sealed class PixelRenderer
         bool rounded = topRadius > 0 || bottomRadius > 0;
         int textureWidth = texture.Width;
         int textureHeight = texture.Height;
+        Vector4 backgroundColorPremultiplied = ToPremultiplied(backgroundColor);
 
         //  The clip test above guarantees a positive size, so both steps stay finite.
         float uStep = (float)textureWidth / rect.Size.X;
@@ -189,9 +209,9 @@ public sealed class PixelRenderer
                 }
 
                 int u = Math.Clamp((int)((x - rect.Left) * uStep), 0, textureWidth - 1);
-                Vector4 sample = MultiplyBlend(textureRow[u], color);
+                Vector4 sample = ToPremultiplied(MultiplyBlend(textureRow[u], color));
                 //  Blend in any texture background color
-                sample = AlphaBlend(backgroundColor, sample);
+                sample = AlphaBlend(backgroundColorPremultiplied, sample);
                 if (sample.W <= 0f)
                 {
                     continue;
@@ -360,7 +380,8 @@ public sealed class PixelRenderer
         int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
-        bool opaque = color.W >= 1f;
+        Vector4 premultiplied = ToPremultiplied(color);
+        bool opaque = premultiplied.W >= 1f;
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
@@ -372,13 +393,13 @@ public sealed class PixelRenderer
             {
                 if (opaque)
                 {
-                    row.Slice(clipped.Left, clipped.Size.X).Fill(color);
+                    row.Slice(clipped.Left, clipped.Size.X).Fill(premultiplied);
                     continue;
                 }
 
                 for (int x = clipped.Left; x < clipped.Right; x++)
                 {
-                    row[x] = AlphaBlend(row[x], color);
+                    row[x] = AlphaBlend(row[x], premultiplied);
                 }
 
                 continue;
@@ -391,7 +412,7 @@ public sealed class PixelRenderer
                     continue;
                 }
 
-                row[x] = opaque ? color : AlphaBlend(row[x], color);
+                row[x] = opaque ? premultiplied : AlphaBlend(row[x], premultiplied);
             }
         }
     }
@@ -463,27 +484,32 @@ public sealed class PixelRenderer
                     continue;
                 }
 
-                Vector4 sample = color * weight;
+                Vector4 sample = ToPremultiplied(color * weight);
                 row[x] = sample.W >= 1f ? sample : AlphaBlend(row[x], sample);
             }
         }
     }
 
+    /// <summary>
+    ///     Converts a straight color to premultiplied alpha.
+    /// </summary>
+    private static Vector4 ToPremultiplied(Vector4 color)
+    {
+        return new Vector4(color.X * color.W, color.Y * color.W, color.Z * color.W, color.W);
+    }
+
+    /// <summary>
+    ///     Composites a premultiplied foreground over a premultiplied background.
+    ///     Both operands are premultiplied, so no division is needed.
+    /// </summary>
     private static Vector4 AlphaBlend(Vector4 background, Vector4 foreground)
     {
-        float af = foreground.W;
-        float ab = background.W;
-        float a = af + ab * (1 - af);
-
-        if (a <= 0)
-        {
-            return Vector4.Zero;
-        }
-
-        float r = (foreground.X * af + background.X * ab * (1 - af)) / a;
-        float g = (foreground.Y * af + background.Y * ab * (1 - af)) / a;
-        float b = (foreground.Z * af + background.Z * ab * (1 - af)) / a;
-        return new Vector4(r, g, b, a);
+        float inverseAlpha = 1f - foreground.W;
+        return new Vector4(
+            foreground.X + background.X * inverseAlpha,
+            foreground.Y + background.Y * inverseAlpha,
+            foreground.Z + background.Z * inverseAlpha,
+            foreground.W + background.W * inverseAlpha);
     }
     
     private static Vector4 MultiplyBlend(Vector4 background, Vector4 foreground)
