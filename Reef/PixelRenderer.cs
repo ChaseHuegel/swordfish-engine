@@ -71,7 +71,13 @@ public sealed class PixelRenderer
         ReadOnlySpan<RenderCommand<PixelTexture>> commands = CollectionsMarshal.AsSpan(renderCommands);
         _frameCommands = renderCommands;
 
-        _renderTexture.Clear();
+        //  An opaque command that covers the screen overwrites every earlier
+        //  command, so the frame does not need to start transparent.
+        if (!HasOpaqueScreenCover(commands))
+        {
+            _renderTexture.Clear();
+        }
+
         ResolveTextLayouts(commands);
         BinCommands(commands);
 
@@ -87,6 +93,46 @@ public sealed class PixelRenderer
         {
             RenderTile(tileIndex);
         }
+    }
+
+    private bool HasOpaqueScreenCover(ReadOnlySpan<RenderCommand<PixelTexture>> commands)
+    {
+        for (var i = 0; i < commands.Length; i++)
+        {
+            RenderCommand<PixelTexture> command = commands[i];
+            if (command.RendererData != null)
+            {
+                continue;
+            }
+
+            //  A text element paints its background color behind the glyphs.
+            Vector4 color = command.Text == null ? command.Color : command.BackgroundColor;
+            if (color.W < 1f)
+            {
+                continue;
+            }
+
+            CornerRadius radius = command.CornerRadius;
+            if (radius.TopLeft > 0 || radius.TopRight > 0 || radius.BottomLeft > 0 || radius.BottomRight > 0)
+            {
+                continue;
+            }
+
+            if (CoversScreen(command.Rect) && CoversScreen(command.ClipRect))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool CoversScreen(IntRect rect)
+    {
+        return rect.Left <= _screenBounds.Left
+            && rect.Top <= _screenBounds.Top
+            && rect.Right >= _screenBounds.Right
+            && rect.Bottom >= _screenBounds.Bottom;
     }
 
     private void ResolveTextLayouts(ReadOnlySpan<RenderCommand<PixelTexture>> commands)
