@@ -96,6 +96,7 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
         return Result.FromSuccess();
     }
 
+    /// <summary>Formats a round-trip latency in milliseconds for the debug overlay.</summary>
     internal static string FormatPing(double pingMs)
     {
         if (pingMs < 10d)

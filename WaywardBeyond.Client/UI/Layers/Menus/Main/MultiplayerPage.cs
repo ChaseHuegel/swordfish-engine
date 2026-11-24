@@ -150,29 +150,13 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             for (var i = 0; i < _savedServers.Count; i++)
             {
                 SavedServer server = _savedServers[i];
-                string name = server.Name;
-                string players = "-";
-                int? pingMs = null;
-
-                if (_probes.TryGetValue(EndpointKey(server.Host, server.Port), out ServerProbeResult probe) && probe.Reachable)
-                {
-                    if (!string.IsNullOrWhiteSpace(probe.ServerName))
-                    {
-                        name = probe.ServerName;
-                    }
-
-                    players = probe.PlayerCount.ToString();
-                    pingMs = probe.PingMs;
-                }
-
-                rows.Add(new ServerRowState(
-                    name,
+                rows.Add(BuildServerRow(
+                    server.Name,
                     server.Host,
                     server.Port,
-                    players,
-                    i == _selectedFavorite,
-                    Favorite: false,
-                    PingMs: pingMs
+                    fallbackPlayers: "-",
+                    selected: i == _selectedFavorite,
+                    favorite: false
                 ));
             }
         }
@@ -181,36 +165,13 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             for (var i = 0; i < _discoveredServers.Count; i++)
             {
                 DiscoveredServer server = _discoveredServers[i];
-                string name = server.Name;
-                string players = server.Players.ToString();
-                int? pingMs = null;
-
-                if (_probes.TryGetValue(EndpointKey(server.Host, server.Port), out ServerProbeResult probe))
-                {
-                    if (probe.Reachable)
-                    {
-                        if (!string.IsNullOrWhiteSpace(probe.ServerName))
-                        {
-                            name = probe.ServerName;
-                        }
-
-                        players = probe.PlayerCount.ToString();
-                        pingMs = probe.PingMs;
-                    }
-                    else
-                    {
-                        players = "-";
-                    }
-                }
-
-                rows.Add(new ServerRowState(
-                    name,
+                rows.Add(BuildServerRow(
+                    server.Name,
                     server.Host,
                     server.Port,
-                    players,
-                    i == _selectedLan,
-                    Favorite: true,
-                    PingMs: pingMs
+                    fallbackPlayers: server.Players.ToString(),
+                    selected: i == _selectedLan,
+                    favorite: true
                 ));
             }
         }
@@ -627,10 +588,50 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         }
     }
 
+    private ServerRowState BuildServerRow(
+        string fallbackName,
+        string host,
+        int port,
+        string fallbackPlayers,
+        bool selected,
+        bool favorite
+    ) {
+        string name = fallbackName;
+        string players = fallbackPlayers;
+        int? pingMs = null;
+
+        if (_probes.TryGetValue(EndpointKey(host, port), out ServerProbeResult probe))
+        {
+            if (probe.Reachable)
+            {
+                if (!string.IsNullOrWhiteSpace(probe.ServerName))
+                {
+                    name = probe.ServerName;
+                }
+
+                players = probe.PlayerCount.ToString();
+                pingMs = probe.PingMs;
+            }
+            else
+            {
+                players = "-";
+            }
+        }
+
+        return new ServerRowState(name, host, port, players, selected, favorite, pingMs);
+    }
+
     private async Task ProbeSingleAsync(string host, int port)
     {
-        ServerProbeResult result = await _pingService.ProbeAsync(host, port).ConfigureAwait(false);
-        _probes[EndpointKey(host, port)] = result;
+        try
+        {
+            ServerProbeResult result = await _pingService.ProbeAsync(host, port).ConfigureAwait(false);
+            _probes[EndpointKey(host, port)] = result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Server discovery probe failed for {host}:{port}.", host, port);
+        }
     }
 
     private string ResolveLiveName(string host, int port, string fallback)

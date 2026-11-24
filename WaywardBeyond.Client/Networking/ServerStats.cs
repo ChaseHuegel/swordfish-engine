@@ -21,6 +21,7 @@ internal sealed class ServerStats
     public uint TPS => _tps;
     public uint PlayerCount => _playerCount;
     public uint ServerTick => _serverTick;
+    /// <summary>The latest measured round-trip ping in milliseconds.</summary>
     public double PingMs => Volatile.Read(ref _pingMs);
 
     public void Record(in ServerHeartbeatMessage heartbeat)

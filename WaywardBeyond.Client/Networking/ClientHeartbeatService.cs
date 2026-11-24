@@ -11,12 +11,7 @@ using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Client.Networking;
 
-/// <summary>
-/// Session heartbeats and active-connection ping measurement, client side. Sends
-/// <see cref="ClientHeartbeatMessage"/> at a timer-driven cadence, clamped below the idle timeout, so
-/// the heartbeat doubles as the transport keepalive, and measures round-trip latency with
-/// <see cref="GameServerApiClient.DiscoverAsync"/> for both remote and local connections.
-/// </summary>
+/// <summary>Sends periodic session heartbeats and measures round-trip ping for the active connection.</summary>
 internal sealed class ClientHeartbeatService : IDisposable, IAutoActivate
 {
     private readonly ClientRpcHost _host;

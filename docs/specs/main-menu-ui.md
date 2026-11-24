@@ -154,7 +154,7 @@ A save is a galaxy. The game stores levels and characters.
 - Saved signals is `ProfileSettings.SavedServers`.
 - Local signals is `LanDiscoveryService`.
 - The server table shows name, address, players, and ping. `MultiplayerPage`
-  probes both saved and discovered servers over TCP via `ServerPingService` on
+  probes both saved and discovered servers via `ServerPingService` on
   `Discovery.PingIntervalMs` while the page is rendered, updating server name,
   player count, and ping live.
 - Direct uplink is a left-aligned toolbar with address, port, and Uplink.

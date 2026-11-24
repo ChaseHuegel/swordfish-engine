@@ -166,15 +166,15 @@ internal partial class MultiplayerView : UiViewBase
         return pingMs.Value < 1 ? "<1 ms" : $"{pingMs.Value} ms";
     }
 
-    /// <summary>True when the ping is in the green band (below 60 ms).</summary>
+    /// <summary>True when the ping is below 60 ms.</summary>
     public static bool IsPingGood(int? pingMs) => pingMs.HasValue && pingMs.Value < 60;
 
-    /// <summary>True when the ping is in the yellow band (60 to 99 ms).</summary>
+    /// <summary>True when the ping is between 60 and 99 ms.</summary>
     public static bool IsPingFair(int? pingMs) => pingMs.HasValue && pingMs.Value >= 60 && pingMs.Value < 100;
 
-    /// <summary>True when the ping is in the orange band (100 to 149 ms).</summary>
+    /// <summary>True when the ping is between 100 and 149 ms.</summary>
     public static bool IsPingPoor(int? pingMs) => pingMs.HasValue && pingMs.Value >= 100 && pingMs.Value < 150;
 
-    /// <summary>True when the ping is in the red band (150 ms or more).</summary>
+    /// <summary>True when the ping is 150 ms or more.</summary>
     public static bool IsPingBad(int? pingMs) => pingMs.HasValue && pingMs.Value >= 150;
 }
