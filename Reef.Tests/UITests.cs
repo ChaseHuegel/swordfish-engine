@@ -5,8 +5,8 @@ using Reef.Constraints;
 using Reef.MSDF;
 using Reef.Text;
 using Reef.UI;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using StbImageNext;
+using StbImageNext.Encoders;
 
 namespace Reef.Tests;
 
@@ -92,50 +92,41 @@ public class UITests
 
     private static void SavePixels(int width, int height, ReadOnlyCollection<Vector4> pixels, string path)
     {
-        using var image = new Image<Rgba32>(width, height);
-        image.ProcessPixelRows(accessor =>
+        var data = new byte[width * height * 4];
+        for (var i = 0; i < pixels.Count; i++)
         {
-            for (var y = 0; y < height; y++)
-            {
-                Span<Rgba32> row = accessor.GetRowSpan(y);
-                int rowOffset = y * width;
-                for (var x = 0; x < width; x++)
-                {
-                    Vector4 pixel = pixels[rowOffset + x];
-                    row[x] = new Rgba32(
-                        (byte)(pixel.X * 255),
-                        (byte)(pixel.Y * 255),
-                        (byte)(pixel.Z * 255),
-                        (byte)(pixel.W * 255)
-                    );
-                }
-            }
-        });
+            Vector4 pixel = pixels[i];
+            int offset = i * 4;
+            data[offset] = (byte)(pixel.X * 255);
+            data[offset + 1] = (byte)(pixel.Y * 255);
+            data[offset + 2] = (byte)(pixel.Z * 255);
+            data[offset + 3] = (byte)(pixel.W * 255);
+        }
 
-        image.Save(path);
+        using FileStream stream = File.Create(path);
+        BmpEncoder.EncodeToStream(stream, data, width, height, ColorComponents.RedGreenBlueAlpha);
     }
     
     private static PixelTexture LoadPixelTexture(string path)
     {
-        using Image<Rgba32> image = Image.Load<Rgba32>(path);
+        using FileStream stream = File.OpenRead(path);
+        ImageResult image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
         var texture = new PixelTexture(image.Width, image.Height);
-        image.ProcessPixelRows(accessor =>
+        byte[] data = image.Data;
+        for (var y = 0; y < image.Height; y++)
         {
-            for (var y = 0; y < accessor.Height; y++)
+            int rowOffset = y * image.Width * 4;
+            for (var x = 0; x < image.Width; x++)
             {
-                Span<Rgba32> row = accessor.GetRowSpan(y);
-                for (var x = 0; x < row.Length; x++)
-                {
-                    Rgba32 color = row[x];
-                    texture.SetPixel(x, y, new Vector4(
-                        color.R / 255f,
-                        color.G / 255f,
-                        color.B / 255f,
-                        color.A / 255f
-                    ));
-                }
+                int offset = rowOffset + x * 4;
+                texture.SetPixel(x, y, new Vector4(
+                    data[offset] / 255f,
+                    data[offset + 1] / 255f,
+                    data[offset + 2] / 255f,
+                    data[offset + 3] / 255f
+                ));
             }
-        });
+        }
 
         return texture;
     }

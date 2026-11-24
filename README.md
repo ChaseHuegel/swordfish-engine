@@ -58,7 +58,7 @@ Currents / CRNT (My UDP protocol) https://github.com/ChaseHuegel/Currents
 
 Silk.NET (OpenGL and ImGui wrappers) https://github.com/dotnet/Silk.NET
 
-ImageSharp (Image loading) https://github.com/SixLabors/ImageSharp
+StbImageNext (Image loading) https://github.com/StbSharp/StbImageNext
 
 glTF2Loader (GLTF parsing) https://github.com/KhronosGroup/glTF-CSharp-Loader
 
