@@ -43,8 +43,8 @@ internal sealed record IconParameters(
     /// <summary>Gets whether the icon uses the primary tone.</summary>
     public bool Primary => Tone == IconTone.Primary;
 
-    /// <summary>Gets whether the icon uses the orange tone.</summary>
-    public bool Orange => Tone == IconTone.Orange;
+    /// <summary>Gets whether the icon uses the caution tone.</summary>
+    public bool Caution => Tone == IconTone.Caution;
 
     /// <summary>Gets whether the icon uses the success tone.</summary>
     public bool Success => Tone == IconTone.Success;

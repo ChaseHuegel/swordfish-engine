@@ -619,7 +619,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Server discovery probe pass ended with an error.");
+            _logger.LogError(ex, "Server discovery probe pass ended with an error.");
         }
         finally
         {

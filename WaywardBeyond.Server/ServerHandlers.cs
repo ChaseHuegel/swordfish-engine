@@ -26,7 +26,7 @@ public sealed class ServerHandlers : GameServerApiHandler
     private readonly ServerPeers _peers;
     private readonly ServerHostCommands _commands;
     private readonly NetworkingConfig _config;
-    private readonly LanHostInfo? _hostInfo;
+    private readonly ServerHostInfo? _hostInfo;
     private readonly ILogger<ServerHandlers> _logger;
     private readonly int _inboundRatePerSecond;
     private readonly int _inboundBurst;
@@ -38,7 +38,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         ServerHostCommands commands,
         NetworkingConfig config,
         ILogger<ServerHandlers> logger,
-        LanHostInfo? hostInfo = null
+        ServerHostInfo? hostInfo = null
     ) {
         _peers = peers;
         _commands = commands;
@@ -110,7 +110,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         {
             ServerName = _config.Server.Name.Get(),
             TcpPort = _hostInfo?.ListenPort ?? 0,
-            ProtocolVersion = LanDiscovery.PROTOCOL_VERSION,
+            ProtocolVersion = GameRpc.PROTOCOL_VERSION,
             PlayerCount = _hostInfo?.PlayerCount ?? 0,
         };
         return new ValueTask<RpcResult<ServerDiscovery>>(RpcResult<ServerDiscovery>.Success(response));

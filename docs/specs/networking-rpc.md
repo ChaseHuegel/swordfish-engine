@@ -32,6 +32,8 @@ larger value fails serialization instead of truncating the length header. See
 
 Source of truth: `WaywardBeyond.Networking/Rpc/GameRpc.cs`.
 
+`GameRpc.PROTOCOL_VERSION` is 3. Hosts and clients must match.
+
 A method id is a wire contract. Never change or reuse one between builds.
 
 | Range | Subject |

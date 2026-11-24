@@ -56,7 +56,7 @@ internal static class Program
             return 1;
         }
 
-        if (engine.Container.Resolve<LanHostInfo>().ListenPort == 0)
+        if (engine.Container.Resolve<ServerHostInfo>().ListenPort == 0)
         {
             Console.Error.WriteLine("Failed to start the dedicated server: the LAN listener did not bind.");
             engine.Dispose();

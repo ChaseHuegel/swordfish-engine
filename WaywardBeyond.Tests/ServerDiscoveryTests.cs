@@ -34,7 +34,7 @@ public class ServerDiscoveryTests
     {
         var config = new NetworkingConfig();
         config.Server.Name.Set("Outpost Alpha");
-        var hostInfo = new LanHostInfo { ListenPort = 7777, PlayerCount = 3 };
+        var hostInfo = new ServerHostInfo { ListenPort = 7777, PlayerCount = 3 };
         var transport = new LoopbackRpcServerTransport();
         var peers = new ServerPeers();
         ServerHandlers handlers = CreateHandlers(peers, config, hostInfo);
@@ -55,7 +55,7 @@ public class ServerDiscoveryTests
         Assert.True(first.IsSuccess, first.ErrorMessage);
         Assert.Equal("Outpost Alpha", first.Value.ServerName);
         Assert.Equal(7777, first.Value.TcpPort);
-        Assert.Equal(LanDiscovery.PROTOCOL_VERSION, first.Value.ProtocolVersion);
+        Assert.Equal(GameRpc.PROTOCOL_VERSION, first.Value.ProtocolVersion);
         Assert.Equal(3, first.Value.PlayerCount);
 
         config.Server.Name.Set("Outpost Beta");
@@ -75,7 +75,7 @@ public class ServerDiscoveryTests
         var config = new NetworkingConfig();
         config.Server.Name.Set("Frontier Relay");
         config.Discovery.PingTimeoutMs.Set(2000);
-        var hostInfo = new LanHostInfo { PlayerCount = 2 };
+        var hostInfo = new ServerHostInfo { PlayerCount = 2 };
         var transport = new LoopbackRpcServerTransport();
         var peers = new ServerPeers();
         ServerHandlers handlers = CreateHandlers(peers, config, hostInfo);
@@ -123,7 +123,7 @@ public class ServerDiscoveryTests
         var config = new NetworkingConfig();
         config.Protocol.HeartbeatIntervalMs.Set(250);
         config.Discovery.PingTimeoutMs.Set(2000);
-        var hostInfo = new LanHostInfo();
+        var hostInfo = new ServerHostInfo();
         var transport = new LoopbackRpcServerTransport();
         var peers = new ServerPeers();
         ServerHandlers handlers = CreateHandlers(peers, config, hostInfo);
@@ -177,7 +177,7 @@ public class ServerDiscoveryTests
         Assert.Equal(expected, NetworkStatsOverlay.FormatPing(pingMs));
     }
 
-    private static ServerHandlers CreateHandlers(ServerPeers peers, NetworkingConfig config, LanHostInfo hostInfo)
+    private static ServerHandlers CreateHandlers(ServerPeers peers, NetworkingConfig config, ServerHostInfo hostInfo)
     {
         var manager = new ServerLevelManager(
             new EmptyLevelCatalog(),

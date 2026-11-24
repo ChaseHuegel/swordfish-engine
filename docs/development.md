@@ -164,7 +164,9 @@ Keep the shape of the code readable.
 
 ### Type files
 
-A file is named for the type it declares.
+Each `.cs` file declares at most one top-level type. Never place two top-level
+types in the same file. Nested types inside an owning type are allowed. A file
+is named for the type it declares.
 
 A generic type adds its type parameters to the file name after `Of`. This
 follows the Microsoft convention for generic type names.
@@ -378,6 +380,7 @@ Document the contract. Do not document the implementation.
 
 ### What not to do
 
+- No multiple top-level types in one file. Extract each top-level type to its own file.
 - No prose XML docs on every member. Use `<inheritdoc/>` instead.
 - No `TODO`/`FIXME`/`HACK` comments.
 - No commented-out code.

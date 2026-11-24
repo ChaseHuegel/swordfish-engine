@@ -8,6 +8,7 @@ using System.Threading;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Discovery;
+using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Client.Networking;
 
@@ -27,9 +28,9 @@ internal sealed class LanDiscoveryService
 {
     private static readonly HashSet<IPAddress> _localAddresses = GetLocalAddresses();
     private readonly NetworkingConfig _config;
-    private readonly LanHostInfo _hostInfo;
+    private readonly ServerHostInfo _hostInfo;
 
-    public LanDiscoveryService(in NetworkingConfig config, in LanHostInfo hostInfo)
+    public LanDiscoveryService(in NetworkingConfig config, in ServerHostInfo hostInfo)
     {
         _config = config;
         _hostInfo = hostInfo;
@@ -99,7 +100,7 @@ internal sealed class LanDiscoveryService
         try
         {
             ServerDiscovery beacon = ServerDiscovery.Deserialize(datagram.Buffer);
-            if (beacon.ProtocolVersion != LanDiscovery.PROTOCOL_VERSION || beacon.TcpPort < 1 || beacon.TcpPort > 65535)
+            if (beacon.ProtocolVersion != GameRpc.PROTOCOL_VERSION || beacon.TcpPort < 1 || beacon.TcpPort > 65535)
             {
                 return null;
             }

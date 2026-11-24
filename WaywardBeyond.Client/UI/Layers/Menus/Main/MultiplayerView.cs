@@ -149,7 +149,7 @@ internal partial class MultiplayerView : UiViewBase
 
         if (value < 150)
         {
-            return IconTone.Orange;
+            return IconTone.Caution;
         }
 
         return IconTone.Danger;

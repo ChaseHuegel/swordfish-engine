@@ -38,7 +38,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private readonly ServerHostCommands _commands;
     private readonly PendingConnectionHeartbeat _hostHeartbeat;
     private readonly ServerPeers _peers;
-    private readonly LanHostInfo? _hostInfo;
+    private readonly ServerHostInfo? _hostInfo;
     private readonly ILogger _logger;
     private readonly long _idleUnloadMs;
     private readonly ThreadWorker _threadWorker;
@@ -55,7 +55,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         ServerPeers peers,
         NetworkingConfig config,
         ILoggerFactory loggerFactory,
-        LanHostInfo? hostInfo = null
+        ServerHostInfo? hostInfo = null
     ) {
         _container = container;
         _commands = commands;

@@ -6,6 +6,7 @@ using Shoal.Modularity;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Discovery;
+using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Server;
 
@@ -19,7 +20,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
     private readonly ServerRpcHost _rpcHost;
     private readonly ServerWorldHost _worldHost;
     private readonly NetworkingConfig _config;
-    private readonly LanHostInfo _hostInfo;
+    private readonly ServerHostInfo _hostInfo;
     private readonly ILogger<LanHost> _logger;
     private UdpClient? _beacon;
     private volatile bool _beaconRunning;
@@ -29,7 +30,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         ServerRpcHost rpcHost,
         ServerWorldHost worldHost,
         NetworkingConfig config,
-        LanHostInfo hostInfo,
+        ServerHostInfo hostInfo,
         ILoggerFactory loggerFactory
     ) {
         _rpcHost = rpcHost;
@@ -110,7 +111,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
                 {
                     ServerName = serverName,
                     TcpPort = tcpPort,
-                    ProtocolVersion = LanDiscovery.PROTOCOL_VERSION,
+                    ProtocolVersion = GameRpc.PROTOCOL_VERSION,
                     PlayerCount = _worldHost.PlayerCount,
                 }.Serialize();
 

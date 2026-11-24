@@ -144,16 +144,16 @@ state.
   sends an nsd `ServerDiscovery` to `255.255.255.255` every
   `Discovery.BroadcastSeconds`. `PlayerCount` is the sum of world session
   counts, published by the server thread once per tick to `ServerWorldHost` and
-  `LanHostInfo` so the beacon thread and `ServerHandlers.DiscoverAsync` never
+  `ServerHostInfo` so the beacon thread and `ServerHandlers.DiscoverAsync` never
   walk the world table.
 - `LanDiscoveryService` listens on the discovery port for
   `Discovery.ScanDurationSeconds`, drops non-matching protocol versions, dedupes
   by endpoint, and ignores its own server by source address and TCP port.
-- `ServerPingService` opens a short-lived TCP connection to a server, sends a
+- `ServerPingService` opens a short-lived connection to a server, sends a
   `Discover` RPC call, measures round-trip ping, and returns live server name,
   player count, and latency. `MultiplayerPage` probes both saved and discovered
   servers on `Discovery.PingIntervalMs` while the page is rendered.
-- `LanDiscovery.PROTOCOL_VERSION` is 3. An old client cannot join a new server.
+- `GameRpc.PROTOCOL_VERSION` is 3. An old client cannot join a new server.
 - `MultiplayerPage` pre-fills host and port and uses the normal
   `ClientRpcHost.ConnectRemote` path.
 
@@ -261,6 +261,6 @@ disposal. A LAN listen failure exits non-zero.
 - `WaywardBeyond.Server/PendingConnectionHeartbeat.cs`
 - `WaywardBeyond.Server/LanHost.cs`
 - `WaywardBeyond.Server/SessionManager.cs`
-- `WaywardBeyond.Client/Networking/{ClientRpcHost,ClientInbound,ClientHandlers,ClientHeartbeatService,LanDiscoveryService,ServerPingService}.cs`
+- `WaywardBeyond.Client/Networking/{ClientRpcHost,ClientInbound,ClientHandlers,ClientHeartbeatService,LanDiscoveryService,ServerPingService,ServerProbeResult}.cs`
 - `WaywardBeyond.Config/{NetworkingConfig,NetworkingConfigExtensions,TransportConfig,ProtocolConfig,ServerConfig}.cs`
 - `WaywardBeyond.Server.Launcher/config/network.toml`

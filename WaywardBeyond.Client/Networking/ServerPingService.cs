@@ -6,29 +6,17 @@ using NsdRpc;
 using NsdRpc.Tcp;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
-using WaywardBeyond.Networking.Discovery;
 using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Client.Networking;
 
-/// <summary>Result of probing a remote server with a TCP <see cref="ServerDiscoveryRequest"/>.</summary>
-internal readonly record struct ServerProbeResult(
-    bool Reachable,
-    string ServerName,
-    int PlayerCount,
-    int PingMs
-);
-
-/// <summary>
-/// Probes remote servers over TCP using <see cref="GameServerApiClient.DiscoverAsync"/> to measure
-/// round-trip ping and fetch live server metadata (name and player count).
-/// </summary>
+/// <summary>Probes remote servers to measure round-trip latency and fetch live server metadata.</summary>
 internal sealed class ServerPingService
 {
     private readonly NetworkingConfig _config;
     private readonly RpcRegistry _emptyRegistry;
 
-    /// <summary>Creates the TCP discovery probe service.</summary>
+    /// <summary>Creates the server discovery probe service.</summary>
     public ServerPingService(in NetworkingConfig config)
     {
         _config = config;
@@ -36,7 +24,7 @@ internal sealed class ServerPingService
         _emptyRegistry.Freeze();
     }
 
-    /// <summary>Connects to <paramref name="host"/>:<paramref name="port"/>, sends a discovery request, measures RTT, and closes.</summary>
+    /// <summary>Probes <paramref name="host"/>:<paramref name="port"/> and returns reachability, metadata, and latency.</summary>
     public async Task<ServerProbeResult> ProbeAsync(string host, int port, CancellationToken cancellationToken = default)
     {
         int timeoutMs = Math.Max(250, _config.Discovery.PingTimeoutMs.Get());
@@ -58,9 +46,8 @@ internal sealed class ServerPingService
             var client = new RpcClient(connection, _emptyRegistry, rpcOptions);
             var api = new GameServerApiClient(client);
 
-            //  NsdRpc.Tcp starts the socket receive loop before AcceptAsync hands the connection
-            //  to RpcServer, so a frame sent immediately after ConnectAsync can be dropped on fast
-            //  local links. Retry once on an early timeout with a fresh RTT measurement.
+            //  Retry once on an early timeout because a frame sent immediately after connect can
+            //  race the server's accept loop on fast links.
             int attemptBudgetMs = Math.Min(250, timeoutMs);
             while (!cts.IsCancellationRequested && connection.IsConnected)
             {
@@ -83,7 +70,7 @@ internal sealed class ServerPingService
                 }
 
                 double elapsedMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-                if (!response.IsSuccess || response.Value.ProtocolVersion != LanDiscovery.PROTOCOL_VERSION)
+                if (!response.IsSuccess || response.Value.ProtocolVersion != GameRpc.PROTOCOL_VERSION)
                 {
                     return new ServerProbeResult(false, string.Empty, 0, 0);
                 }

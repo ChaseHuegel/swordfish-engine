@@ -1,12 +1,12 @@
 namespace WaywardBeyond.Networking.Discovery;
 
-/// <summary>Live host metadata shared between the server host, LAN beacon, and discovery handlers.</summary>
-public sealed class LanHostInfo
+/// <summary>Live host metadata shared between the server host, discovery handlers, and LAN beacon.</summary>
+public sealed class ServerHostInfo
 {
     private volatile int _listenPort;
     private volatile int _playerCount;
 
-    /// <summary>The bound TCP port, or zero when this process does not host a server.</summary>
+    /// <summary>The bound listen port, or zero when this process does not host a server.</summary>
     public int ListenPort
     {
         get => _listenPort;

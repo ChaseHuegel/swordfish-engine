@@ -137,7 +137,7 @@
     color: var(--wb-primary-bright);
 }
 
-.wb-icon-orange {
+.wb-icon-caution {
     color: var(--wb-primary);
 }
 

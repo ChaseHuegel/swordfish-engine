@@ -39,6 +39,6 @@ public static class HostComposition
 
         container.Register<StoragePaths>(Reuse.Singleton);
 
-        container.Register<LanHostInfo>(Reuse.Singleton);
+        container.Register<ServerHostInfo>(Reuse.Singleton);
     }
 }
