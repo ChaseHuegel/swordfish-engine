@@ -183,6 +183,32 @@ public class LoopbackRpcTests
         Assert.False(connection.IsConnected);
     }
 
+    [Fact]
+    public async Task ClosingTheListenerDisconnectsQueuedAndAcceptedClientsBeforeItReturns()
+    {
+        var transport = new LoopbackRpcServerTransport();
+        var accepted = new LoopbackRpcClientConnection(transport);
+        Assert.True(accepted.Connect().Success);
+        RpcServerConnection serverConnection = Assert.IsType<LoopbackRpcServerConnection>(
+            await transport.AcceptAsync().WaitAsync(TimeSpan.FromSeconds(5)));
+        var queued = new LoopbackRpcClientConnection(transport);
+        Assert.True(queued.Connect().Success);
+
+        int closingThread = Environment.CurrentManagedThreadId;
+        int acceptedThread = 0;
+        int queuedThread = 0;
+        accepted.Disconnected += _ => Volatile.Write(ref acceptedThread, Environment.CurrentManagedThreadId);
+        queued.Disconnected += _ => Volatile.Write(ref queuedThread, Environment.CurrentManagedThreadId);
+
+        transport.Close();
+
+        Assert.False(serverConnection.IsConnected);
+        Assert.False(accepted.IsConnected);
+        Assert.False(queued.IsConnected);
+        Assert.Equal(closingThread, Volatile.Read(ref acceptedThread));
+        Assert.Equal(closingThread, Volatile.Read(ref queuedThread));
+    }
+
     private static RpcServer CreateServer(LoopbackRpcServerTransport transport, TestServerHandler handler)
     {
         var registry = new RpcRegistry();

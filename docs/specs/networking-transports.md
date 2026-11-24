@@ -56,7 +56,12 @@ transport interfaces for the in-process host.
   a callback.
 - The pending buffer is capped. A peer that exceeds it is closed with
   `ProtocolViolation`.
-- `AcceptAsync` returns null once the transport is closed.
+- `AcceptAsync` returns null once the transport is closed. It never closes a
+  connection itself, so every close that a listener shutdown triggers runs on
+  the thread that calls `Close`.
+- `Close` closes the listener, every accepted client, and every client still
+  waiting in the accept queue. A client therefore observes its `Disconnected`
+  event before `Close` returns.
 - `Disconnected` fires once. The closing side passes its reason. The peer sees
   `PeerClosed`.
 - Each side reports its own `IRpcConnectionStats` counters.
@@ -82,7 +87,9 @@ transport interfaces for the in-process host.
   before `ClientRpcHost.Dispose` runs, `OnDisconnected` sees
   `LoopbackRpcServerTransport.IsClosed`, marks the host closed, and returns
   silently without raising `RemoteDisconnected`, attempting a loopback restore,
-  or logging an error.
+  or logging an error. The client host reaches that terminal state before
+  `ServerRpcHost.Dispose` returns, so a caller never observes a live loopback
+  connection against a closing server.
 - `Poll` enforces call deadlines once per client tick.
 - `Stats` is the active connection's `RpcConnectionStats` or zeros.
 - `ClientInbound` clears on every connection switch.
