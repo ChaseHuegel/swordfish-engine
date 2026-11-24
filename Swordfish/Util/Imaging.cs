@@ -1,10 +1,7 @@
 using System.Drawing;
 using Silk.NET.Core;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using StbImageNext;
 using Swordfish.Library.IO;
-
-using Image = SixLabors.ImageSharp.Image;
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
 
@@ -48,8 +45,9 @@ public static class Imaging
     /// <returns>The <see cref="RawImage"/> that was loaded.</returns>
     public static RawImage Load(PathInfo path)
     {
-        Image<Rgba32>? image = Image.Load<Rgba32>(path.Value);
-        return image.ToRawImage();
+        using Stream stream = path.Open();
+        ImageResult image = DecodeRgba(stream);
+        return new RawImage(image.Width, image.Height, image.Data);
     }
 
     /// <summary>
@@ -58,7 +56,21 @@ public static class Imaging
     /// <returns>The <see cref="RawImage"/> that was loaded.</returns>
     public static RawImage Load(byte[] buffer)
     {
-        Image<Rgba32>? image = Image.Load<Rgba32>(buffer);
-        return image.ToRawImage();
+        ImageResult image = ImageResult.FromMemory(buffer, ColorComponents.RedGreenBlueAlpha);
+        return new RawImage(image.Width, image.Height, image.Data);
+    }
+
+    /// <summary>Decodes an image stream as RGBA, buffering non-seekable streams first.</summary>
+    internal static ImageResult DecodeRgba(Stream stream)
+    {
+        if (stream.CanSeek)
+        {
+            return ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+        }
+
+        using var memoryStream = new MemoryStream();
+        stream.CopyTo(memoryStream);
+        memoryStream.Position = 0;
+        return ImageResult.FromStream(memoryStream, ColorComponents.RedGreenBlueAlpha);
     }
 }

@@ -1,8 +1,7 @@
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using StbImageNext;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Util;
 
 namespace Swordfish.IO
 {
@@ -15,19 +14,14 @@ namespace Swordfish.IO
         ];
 
         object IFileParser.Parse(PathInfo file) => Parse(file);
-        public unsafe Texture Parse(PathInfo file)
+        public Texture Parse(PathInfo file)
         {
             using Stream stream = file.Open();
-            using StreamReader reader = new(stream);
-            using Image<Rgba32> image = Image.Load<Rgba32>(stream);
-            image.Mutate(context => context.Flip(FlipMode.Vertical));
+            ImageResult image = Imaging.DecodeRgba(stream);
+            image.VerticalFlip();
 
             string name = file.GetFileNameWithoutExtension();
-
-            var pixels = new byte[sizeof(Rgba32) * image.Width * image.Height];
-            image.CopyPixelDataTo(pixels);
-
-            return new Texture(name, pixels, image.Width, image.Height, true);
+            return new Texture(name, image.Data, image.Width, image.Height, true);
         }
     }
 }
