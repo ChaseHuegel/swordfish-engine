@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Reef.Text;
 using Reef.UI;
 
@@ -10,20 +11,18 @@ namespace Reef;
 
 public sealed class PixelRenderer
 {
-    private readonly int _width;
-    private readonly int _height;
     private readonly IntRect _screenBounds;
     private readonly PixelTexture _renderTexture;
     private readonly ITextEngine _textEngine;
     private readonly IDictionary<string, PixelFontSDF> _fonts;
+    private readonly PixelFontSDF? _defaultFont;
     
     public PixelRenderer(int width, int height, ITextEngine textEngine, IDictionary<string, PixelFontSDF> fonts)
     {
-        _width = width;
-        _height = height;
         _screenBounds = new IntRect(0, 0, width, height);
         _textEngine = textEngine;
         _fonts = fonts;
+        _defaultFont = fonts.Count > 0 ? fonts.Values.First() : null;
         _renderTexture = new PixelTexture(width, height);
     }
     
@@ -36,45 +35,51 @@ public sealed class PixelRenderer
     {
         _renderTexture.Clear();
 
-        foreach (RenderCommand<PixelTexture> renderCommand in renderCommands)
+        foreach (ref readonly RenderCommand<PixelTexture> renderCommand in CollectionsMarshal.AsSpan(renderCommands))
         {
-            Draw(renderCommand);
+            Draw(in renderCommand);
         }
     }
     
-    private void Draw(RenderCommand<PixelTexture> renderCommand)
+    private void Draw(in RenderCommand<PixelTexture> renderCommand)
     {
-        Vector4 color = renderCommand.Color;
-
         //  Render rects.
         //  IntRect right and bottom bounds are exclusive, matching IntRect.Contains.
         IntRect clipped = ClipToScreen(renderCommand.Rect, renderCommand.ClipRect);
         if (renderCommand.RendererData != null)
         {
-            DrawTexturedRect(renderCommand, clipped);
+            DrawTexturedRect(in renderCommand, clipped);
         }
         else
         {
-            DrawColorRect(renderCommand, clipped);
+            DrawColorRect(in renderCommand, clipped);
         }
 
-        DrawBorder(renderCommand);
-        DrawCornerCaps(renderCommand);
-        
-        if (renderCommand.Text == null)
+        DrawBorder(in renderCommand);
+        DrawCornerCaps(in renderCommand);
+
+        if (renderCommand.Text != null)
         {
-            return;
+            DrawText(in renderCommand);
         }
+    }
 
-        //  Render text
-        TextLayout textLayout = renderCommand.TextLayout ?? _textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
-        
+    private void DrawText(in RenderCommand<PixelTexture> renderCommand)
+    {
+        TextLayout textLayout = renderCommand.TextLayout ?? _textEngine.Layout(renderCommand.FontOptions, renderCommand.Text!, renderCommand.Rect.Size.X);
+
         string? fontID = renderCommand.FontOptions.ID;
         if (fontID == null || !_fonts.TryGetValue(fontID, out PixelFontSDF font))
         {
-            font = _fonts.Values.First();
+            if (_defaultFont == null)
+            {
+                return;
+            }
+
+            font = _defaultFont.Value;
         }
-        
+
+        Vector4 color = renderCommand.Color;
         for (var i = 0; i < textLayout.Glyphs.Length; i++)
         {
             GlyphLayout glyph = textLayout.Glyphs[i];
@@ -82,7 +87,7 @@ public sealed class PixelRenderer
             {
                 continue;
             }
-                
+
             var bbox = new IntRect(
                 renderCommand.Rect.Left + glyph.BBOX.Left,
                 renderCommand.Rect.Top + glyph.BBOX.Top,
@@ -90,11 +95,11 @@ public sealed class PixelRenderer
                 renderCommand.Rect.Top + glyph.BBOX.Bottom
             );
 
-            DrawCharacter(bbox, renderCommand.ClipRect, glyph.UV, glyph.ResolveColor(color), font);
+            DrawCharacter(bbox, renderCommand.ClipRect, glyph.UV, glyph.ResolveColor(color), in font);
         }
     }
 
-    private void DrawColorRect(RenderCommand<PixelTexture> renderCommand, IntRect clipped)
+    private void DrawColorRect(in RenderCommand<PixelTexture> renderCommand, IntRect clipped)
     {
         //  A text element paints its background color behind the glyphs.
         Vector4 rectColor = renderCommand.Text == null ? renderCommand.Color : renderCommand.BackgroundColor;
@@ -134,7 +139,7 @@ public sealed class PixelRenderer
 
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                if (IsOutsideCornerRadius(renderCommand, x, y))
+                if (IsOutsideCornerRadius(in renderCommand, x, y))
                 {
                     continue;
                 }
@@ -144,7 +149,7 @@ public sealed class PixelRenderer
         }
     }
 
-    private void DrawTexturedRect(RenderCommand<PixelTexture> renderCommand, IntRect clipped)
+    private void DrawTexturedRect(in RenderCommand<PixelTexture> renderCommand, IntRect clipped)
     {
         Vector4 color = renderCommand.Color;
         Vector4 backgroundColor = renderCommand.BackgroundColor;
@@ -165,21 +170,25 @@ public sealed class PixelRenderer
         int textureWidth = texture.Width;
         int textureHeight = texture.Height;
 
+        //  The clip test above guarantees a positive size, so both steps stay finite.
+        float uStep = (float)textureWidth / rect.Size.X;
+        float vStep = (float)textureHeight / rect.Size.Y;
+
         for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
             Span<Vector4> row = _renderTexture.GetRowSpan(y);
-            int v = Math.Clamp((int)RangeToRange(y, rect.Top, rect.Bottom, 0, textureHeight), 0, textureHeight - 1);
+            int v = Math.Clamp((int)((y - rect.Top) * vStep), 0, textureHeight - 1);
             Span<Vector4> textureRow = texture.GetRowSpan(v);
             bool straightRow = !rounded || (y >= rect.Top + topRadius && y < rect.Bottom - bottomRadius);
 
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                if (!straightRow && IsOutsideCornerRadius(renderCommand, x, y))
+                if (!straightRow && IsOutsideCornerRadius(in renderCommand, x, y))
                 {
                     continue;
                 }
 
-                int u = Math.Clamp((int)RangeToRange(x, rect.Left, rect.Right, 0, textureWidth), 0, textureWidth - 1);
+                int u = Math.Clamp((int)((x - rect.Left) * uStep), 0, textureWidth - 1);
                 Vector4 sample = MultiplyBlend(textureRow[u], color);
                 //  Blend in any texture background color
                 sample = AlphaBlend(backgroundColor, sample);
@@ -193,7 +202,7 @@ public sealed class PixelRenderer
         }
     }
     
-    private void DrawBorder(RenderCommand<PixelTexture> renderCommand)
+    private void DrawBorder(in RenderCommand<PixelTexture> renderCommand)
     {
         BorderStyle border = renderCommand.Border;
         IntRect rect = renderCommand.Rect;
@@ -216,32 +225,32 @@ public sealed class PixelRenderer
         if (drawTop)
         {
             int limit = drawBottom ? rect.Size.Y / 2 : rect.Size.Y;
-            DrawHorizontalSide(renderCommand, border, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
+            DrawHorizontalSide(in renderCommand, border, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
         }
 
         if (drawBottom)
         {
             int limit = drawTop ? rect.Size.Y / 2 : rect.Size.Y;
             int thickness = Math.Min(bottomThickness, limit);
-            DrawHorizontalSide(renderCommand, border, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
+            DrawHorizontalSide(in renderCommand, border, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
         }
 
         if (drawLeft)
         {
             int limit = drawRight ? rect.Size.X / 2 : rect.Size.X;
-            DrawVerticalSide(renderCommand, border, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
+            DrawVerticalSide(in renderCommand, border, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
         }
 
         if (drawRight)
         {
             int limit = drawLeft ? rect.Size.X / 2 : rect.Size.X;
             int thickness = Math.Min(rightThickness, limit);
-            DrawVerticalSide(renderCommand, border, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
+            DrawVerticalSide(in renderCommand, border, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
         }
     }
 
     private void DrawHorizontalSide(
-        RenderCommand<PixelTexture> command,
+        in RenderCommand<PixelTexture> command,
         in BorderStyle border,
         int left,
         int right,
@@ -257,7 +266,7 @@ public sealed class PixelRenderer
         BorderDash.Resolve(border, thickness, out int dash, out int gap);
         if (dash <= 0)
         {
-            DrawSolidRect(command, new IntRect(left, top, right, top + thickness), color);
+            DrawSolidRect(in command, new IntRect(left, top, right, top + thickness), color);
             return;
         }
 
@@ -265,12 +274,12 @@ public sealed class PixelRenderer
         while (segments.MoveNext())
         {
             int start = left + segments.Offset;
-            DrawSolidRect(command, new IntRect(start, top, start + segments.SegmentLength, top + thickness), color);
+            DrawSolidRect(in command, new IntRect(start, top, start + segments.SegmentLength, top + thickness), color);
         }
     }
 
     private void DrawVerticalSide(
-        RenderCommand<PixelTexture> command,
+        in RenderCommand<PixelTexture> command,
         in BorderStyle border,
         int top,
         int bottom,
@@ -286,7 +295,7 @@ public sealed class PixelRenderer
         BorderDash.Resolve(border, thickness, out int dash, out int gap);
         if (dash <= 0)
         {
-            DrawSolidRect(command, new IntRect(left, top, left + thickness, bottom), color);
+            DrawSolidRect(in command, new IntRect(left, top, left + thickness, bottom), color);
             return;
         }
 
@@ -294,7 +303,7 @@ public sealed class PixelRenderer
         while (segments.MoveNext())
         {
             int start = top + segments.Offset;
-            DrawSolidRect(command, new IntRect(left, start, left + thickness, start + segments.SegmentLength), color);
+            DrawSolidRect(in command, new IntRect(left, start, left + thickness, start + segments.SegmentLength), color);
         }
     }
 
@@ -308,7 +317,7 @@ public sealed class PixelRenderer
         return sideColor.W > 0f ? sideColor : fallback;
     }
 
-    private void DrawCornerCaps(RenderCommand<PixelTexture> renderCommand)
+    private void DrawCornerCaps(in RenderCommand<PixelTexture> renderCommand)
     {
         CornerCapStyle caps = renderCommand.CornerCaps;
         IntRect rect = renderCommand.Rect;
@@ -322,20 +331,20 @@ public sealed class PixelRenderer
         }
 
         //  Top left
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color);
+        DrawSolidRect(in renderCommand, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color);
+        DrawSolidRect(in renderCommand, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color);
 
         //  Top right
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color);
+        DrawSolidRect(in renderCommand, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color);
+        DrawSolidRect(in renderCommand, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color);
 
         //  Bottom left
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color);
+        DrawSolidRect(in renderCommand, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color);
+        DrawSolidRect(in renderCommand, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color);
 
         //  Bottom right
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color);
+        DrawSolidRect(in renderCommand, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color);
+        DrawSolidRect(in renderCommand, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color);
     }
 
     private IntRect ClipToScreen(IntRect rect, IntRect clipRect)
@@ -343,7 +352,7 @@ public sealed class PixelRenderer
         return rect.Intersect(clipRect).Intersect(_screenBounds);
     }
 
-    private void DrawSolidRect(RenderCommand<PixelTexture> renderCommand, IntRect rect, Vector4 color)
+    private void DrawSolidRect(in RenderCommand<PixelTexture> renderCommand, IntRect rect, Vector4 color)
     {
         IntRect clipped = ClipToScreen(rect, renderCommand.ClipRect);
         IntRect commandRect = renderCommand.Rect;
@@ -377,7 +386,7 @@ public sealed class PixelRenderer
 
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                if (IsOutsideCornerRadius(renderCommand, x, y))
+                if (IsOutsideCornerRadius(in renderCommand, x, y))
                 {
                     continue;
                 }
@@ -387,7 +396,7 @@ public sealed class PixelRenderer
         }
     }
 
-    private static bool IsOutsideCornerRadius(RenderCommand<PixelTexture> renderCommand, int x, int y)
+    private static bool IsOutsideCornerRadius(in RenderCommand<PixelTexture> renderCommand, int x, int y)
     {
         CornerRadius radius = renderCommand.CornerRadius;
         IntRect rect = renderCommand.Rect;
@@ -425,18 +434,24 @@ public sealed class PixelRenderer
         return false;
     }
 
-    private void DrawCharacter(IntRect bbox, IntRect clipRect, IntRect uv, Vector4 color, PixelFontSDF font)
+    private void DrawCharacter(IntRect bbox, IntRect clipRect, IntRect uv, Vector4 color, in PixelFontSDF font)
     {
         IntRect clipped = ClipToScreen(bbox, clipRect);
+        int atlasWidth = font.Texture.Width;
+        int atlasHeight = font.Texture.Height;
+
+        //  The clip test guarantees a positive bbox size, so both steps stay finite.
+        float uStep = (float)(uv.Right - uv.Left) / bbox.Size.X;
+        float vStep = (float)(uv.Bottom - uv.Top) / bbox.Size.Y;
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
             Span<Vector4> row = _renderTexture.GetRowSpan(y);
-            int v = (int)RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
+            int v = Math.Clamp((int)(uv.Top + (y - bbox.Top) * vStep), 0, atlasHeight - 1);
 
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                int u = (int)RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
+                int u = Math.Clamp((int)(uv.Left + (x - bbox.Left) * uStep), 0, atlasWidth - 1);
 
                 Vector4 sample = SampleSdf(font.Texture, font.Fwidth, u, v, Vector4.Zero, color);
 
@@ -509,10 +524,5 @@ public sealed class PixelRenderer
             color1.Z + (color2.Z - color1.Z) * t,
             color1.W + (color2.W - color1.W) * t
         );
-    }
-    
-    private static float RangeToRange(float input, float low, float high, float newLow, float newHigh)
-    {
-        return ((input - low) / (high - low)) * (newHigh - newLow) + newLow;
     }
 }
