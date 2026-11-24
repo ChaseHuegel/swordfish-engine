@@ -10,8 +10,8 @@ fragment rule, the loopback behavior, and the threading model. Read
 
 Source of truth: `WaywardBeyond.Networking/WaywardBeyond.Networking.csproj`.
 
-The game references `NsdRpc`, `NsdRpc.Tcp`, and `NsdRpc.Generators` at 0.3.1.
-The generator is an analyzer. The 0.3.1 package ships its assembly under
+The game references `NsdRpc`, `NsdRpc.Tcp`, and `NsdRpc.Generators` at 0.3.2.
+The generator is an analyzer. The 0.3.2 package ships its assembly under
 `lib/`, so the project adds it with an explicit `Analyzer` item.
 
 No game code writes the envelope, the frame format, the correlation table, or
