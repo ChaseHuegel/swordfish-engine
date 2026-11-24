@@ -172,7 +172,7 @@ This is not used by the game's save path, which uses SQLite directly in
 - **Currents/CRNT** — UDP protocol (custom)
 - **Tomlet** 6.2.0 — TOML parsing
 - **SmartFormat.NET** — localization formatting
-- **ImageSharp** — image loading
+- **StbImageNext** 1.2.1 — image decoding and encoding
 - **SoundFlow** — audio
 - **msdf-atlas-gen** — font atlases (external tool, Windows-only at runtime;
   other platforms reuse pre-generated atlas `.png` and `.json` files)

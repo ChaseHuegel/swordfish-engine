@@ -1,8 +1,8 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using StbImageNext;
+using StbImageNext.Encoders;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Globalization;
@@ -58,8 +58,13 @@ internal sealed class ScreenshotShortcut(
         PathInfo path;
         await using (FileStream fileStream = CreateUniqueFile(screenshotsDirectory, screenshotTexture.Name, out path))
         {
-            using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels, screenshotTexture.Width, screenshotTexture.Height);
-            await image.SaveAsPngAsync(fileStream);
+            byte[] pngBytes = PngEncoder.EncodeToByteArray(
+                screenshotTexture.Pixels,
+                screenshotTexture.Width,
+                screenshotTexture.Height,
+                ColorComponents.RedGreenBlue
+            );
+            await fileStream.WriteAsync(pngBytes);
         }
 
         _notificationService.Push(new Notification(
