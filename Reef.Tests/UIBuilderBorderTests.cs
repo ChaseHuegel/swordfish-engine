@@ -105,6 +105,52 @@ public class UIBuilderBorderTests
         AssertColor(background, GetPixel(pixels, WIDTH - 1, HEIGHT - 1));
     }
 
+    [Fact]
+    public void BorderClipsAtViewportEdge()
+    {
+        UIBuilder<PixelTexture> ui = CreateBuilder();
+        var rootColor = new Vector4(0f, 0f, 0f, 1f);
+        var background = new Vector4(0f, 0f, 1f, 1f);
+        var border = new Vector4(1f, 0f, 0f, 1f);
+
+        using (ui.Element())
+        {
+            ui.Color = rootColor;
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Constraints = new UI.Constraints
+            {
+                Width = new Fixed(WIDTH),
+                Height = new Fixed(HEIGHT),
+            };
+
+            using (ui.Element())
+            {
+                ui.Color = background;
+                ui.Constraints = new UI.Constraints
+                {
+                    X = new Fixed(-WIDTH / 2),
+                    Y = new Fixed(-HEIGHT / 2),
+                    Width = new Fixed(WIDTH),
+                    Height = new Fixed(HEIGHT),
+                };
+                ui.Border = new BorderStyle
+                {
+                    Thickness = 2,
+                    Color = border,
+                };
+            }
+        }
+
+        ReadOnlyCollection<Vector4> pixels = Render(ui);
+
+        //  Only the right and bottom borders of the offset element stay on screen.
+        AssertColor(background, GetPixel(pixels, 0, 0));
+        AssertColor(border, GetPixel(pixels, WIDTH / 2 - 1, 0));
+        AssertColor(border, GetPixel(pixels, 0, HEIGHT / 2 - 1));
+        AssertColor(border, GetPixel(pixels, WIDTH / 2 - 1, HEIGHT / 2 - 1));
+        AssertColor(rootColor, GetPixel(pixels, WIDTH - 1, HEIGHT - 1));
+    }
+
     private static UIBuilder<PixelTexture> CreateBuilder()
     {
         return new UIBuilder<PixelTexture>(WIDTH, HEIGHT, new StubTextEngine(), new UIController());
@@ -125,10 +171,15 @@ public class UIBuilderBorderTests
 
     private static void AssertColor(Vector4 expected, Vector4 actual)
     {
-        Assert.Equal(expected.X, actual.X, precision: 3);
-        Assert.Equal(expected.Y, actual.Y, precision: 3);
-        Assert.Equal(expected.Z, actual.Z, precision: 3);
-        Assert.Equal(expected.W, actual.W, precision: 3);
+        Assert.Equal(ToByte(expected.X), ToByte(actual.X));
+        Assert.Equal(ToByte(expected.Y), ToByte(actual.Y));
+        Assert.Equal(ToByte(expected.Z), ToByte(actual.Z));
+        Assert.Equal(ToByte(expected.W), ToByte(actual.W));
+    }
+
+    private static byte ToByte(float value)
+    {
+        return (byte)(Math.Clamp(value, 0f, 1f) * 255f + 0.5f);
     }
 
     private sealed class StubTextEngine : ITextEngine

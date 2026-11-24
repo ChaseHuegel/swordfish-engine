@@ -158,15 +158,15 @@ public class VisualGalleryTests(VisualGalleryTests.GalleryAssetsFixture assets) 
 
     private static void AssertColor(Vector4 expected, Vector4 actual)
     {
-        Assert.Equal(expected.X, actual.X, 3);
-        Assert.Equal(expected.Y, actual.Y, 3);
-        Assert.Equal(expected.Z, actual.Z, 3);
-        Assert.Equal(expected.W, actual.W, 3);
+        Assert.Equal(ToByte(expected.X), ToByte(actual.X));
+        Assert.Equal(ToByte(expected.Y), ToByte(actual.Y));
+        Assert.Equal(ToByte(expected.Z), ToByte(actual.Z));
+        Assert.Equal(ToByte(expected.W), ToByte(actual.W));
     }
 
     private static byte ToByte(float value)
     {
-        return (byte)(Math.Clamp(value, 0f, 1f) * 255f);
+        return (byte)(Math.Clamp(value, 0f, 1f) * 255f + 0.5f);
     }
 
     private static void SavePixels(string path, int width, int height, ReadOnlyCollection<Vector4> pixels)
@@ -176,10 +176,10 @@ public class VisualGalleryTests(VisualGalleryTests.GalleryAssetsFixture assets) 
         {
             Vector4 pixel = pixels[i];
             int offset = i * 4;
-            data[offset] = (byte)(pixel.X * 255);
-            data[offset + 1] = (byte)(pixel.Y * 255);
-            data[offset + 2] = (byte)(pixel.Z * 255);
-            data[offset + 3] = (byte)(pixel.W * 255);
+            data[offset] = ToByte(pixel.X);
+            data[offset + 1] = ToByte(pixel.Y);
+            data[offset + 2] = ToByte(pixel.Z);
+            data[offset + 3] = ToByte(pixel.W);
         }
 
         using FileStream stream = File.Create(path);
