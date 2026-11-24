@@ -5,8 +5,8 @@ using Reef;
 using Reef.MSDF;
 using Reef.Text;
 using Reef.UI;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using StbImageNext;
+using StbImageNext.Encoders;
 
 namespace Reef.Markup.Tests;
 
@@ -88,47 +88,50 @@ public class VisualGalleryTests(VisualGalleryTests.GalleryAssetsFixture assets) 
             return;
         }
 
-        using Image<Rgba32> expected = Image.Load<Rgba32>(goldenPath);
+        ImageResult expected;
+        using (FileStream stream = File.OpenRead(goldenPath))
+        {
+            expected = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+        }
+
         var mismatches = 0;
         var firstX = -1;
         var firstY = -1;
-        expected.ProcessPixelRows(accessor =>
+        byte[] expectedData = expected.Data;
+        for (var y = 0; y < HEIGHT; y++)
         {
-            for (var y = 0; y < HEIGHT; y++)
+            if (y >= expected.Height)
             {
-                if (y >= accessor.Height)
+                mismatches += WIDTH;
+                continue;
+            }
+
+            int expectedRowOffset = y * expected.Width * 4;
+            int rowOffset = y * WIDTH;
+            for (var x = 0; x < WIDTH; x++)
+            {
+                if (x >= expected.Width)
                 {
-                    mismatches += WIDTH;
+                    mismatches++;
                     continue;
                 }
 
-                Span<Rgba32> row = accessor.GetRowSpan(y);
-                int rowOffset = y * WIDTH;
-                for (var x = 0; x < WIDTH; x++)
+                int offset = expectedRowOffset + x * 4;
+                Vector4 actualColor = pixels[rowOffset + x];
+                if (expectedData[offset] != ToByte(actualColor.X)
+                    || expectedData[offset + 1] != ToByte(actualColor.Y)
+                    || expectedData[offset + 2] != ToByte(actualColor.Z)
+                    || expectedData[offset + 3] != ToByte(actualColor.W))
                 {
-                    if (x >= row.Length)
+                    mismatches++;
+                    if (firstX < 0)
                     {
-                        mismatches++;
-                        continue;
-                    }
-
-                    Rgba32 expectedColor = row[x];
-                    Vector4 actualColor = pixels[rowOffset + x];
-                    if (expectedColor.R != ToByte(actualColor.X)
-                        || expectedColor.G != ToByte(actualColor.Y)
-                        || expectedColor.B != ToByte(actualColor.Z)
-                        || expectedColor.A != ToByte(actualColor.W))
-                    {
-                        mismatches++;
-                        if (firstX < 0)
-                        {
-                            firstX = x;
-                            firstY = y;
-                        }
+                        firstX = x;
+                        firstY = y;
                     }
                 }
             }
-        });
+        }
 
         if (mismatches > 0)
         {
@@ -168,20 +171,19 @@ public class VisualGalleryTests(VisualGalleryTests.GalleryAssetsFixture assets) 
 
     private static void SavePixels(string path, int width, int height, ReadOnlyCollection<Vector4> pixels)
     {
-        using var image = new Image<Rgba32>(width, height);
+        var data = new byte[width * height * 4];
         for (var i = 0; i < pixels.Count; i++)
         {
-            int x = i % width;
-            int y = i / width;
             Vector4 pixel = pixels[i];
-            image[x, y] = new Rgba32(
-                (byte)(pixel.X * 255),
-                (byte)(pixel.Y * 255),
-                (byte)(pixel.Z * 255),
-                (byte)(pixel.W * 255));
+            int offset = i * 4;
+            data[offset] = (byte)(pixel.X * 255);
+            data[offset + 1] = (byte)(pixel.Y * 255);
+            data[offset + 2] = (byte)(pixel.Z * 255);
+            data[offset + 3] = (byte)(pixel.W * 255);
         }
 
-        image.Save(path);
+        using FileStream stream = File.Create(path);
+        PngEncoder.EncodeToStream(stream, data, width, height, ColorComponents.RedGreenBlueAlpha);
     }
 
     /// <summary>Loads the immutable font atlases and textures shared across gallery frames.</summary>
@@ -216,24 +218,23 @@ public class VisualGalleryTests(VisualGalleryTests.GalleryAssetsFixture assets) 
 
         private static PixelTexture LoadPixelTexture(string path)
         {
-            using Image<Rgba32> image = Image.Load<Rgba32>(path);
+            using FileStream stream = File.OpenRead(path);
+            ImageResult image = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
             var texture = new PixelTexture(image.Width, image.Height);
-            image.ProcessPixelRows(accessor =>
+            byte[] data = image.Data;
+            for (var y = 0; y < image.Height; y++)
             {
-                for (var y = 0; y < accessor.Height; y++)
+                int rowOffset = y * image.Width * 4;
+                for (var x = 0; x < image.Width; x++)
                 {
-                    Span<Rgba32> row = accessor.GetRowSpan(y);
-                    for (var x = 0; x < row.Length; x++)
-                    {
-                        Rgba32 color = row[x];
-                        texture.SetPixel(x, y, new Vector4(
-                            color.R / 255f,
-                            color.G / 255f,
-                            color.B / 255f,
-                            color.A / 255f));
-                    }
+                    int offset = rowOffset + x * 4;
+                    texture.SetPixel(x, y, new Vector4(
+                        data[offset] / 255f,
+                        data[offset + 1] / 255f,
+                        data[offset + 2] / 255f,
+                        data[offset + 3] / 255f));
                 }
-            });
+            }
 
             return texture;
         }
