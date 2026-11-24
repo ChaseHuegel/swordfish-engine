@@ -370,6 +370,7 @@ public sealed class PixelRenderer
         int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
+        bool spanCorners = rounded && !CornersOverlap(radius, rect);
         bool opaque = rectColor.W >= 1f;
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
@@ -387,6 +388,27 @@ public sealed class PixelRenderer
                 }
 
                 BlendRow(row.Slice(clipped.Left, clipped.Size.X), rectColor);
+                continue;
+            }
+
+            //  A corner row still paints one contiguous run between the two radii.
+            if (spanCorners)
+            {
+                ResolveRadiusSpan(radius, rect, y, out int rowLeft, out int rowRight);
+                int start = Math.Max(clipped.Left, rowLeft);
+                int end = Math.Min(clipped.Right, rowRight);
+                if (end <= start)
+                {
+                    continue;
+                }
+
+                if (opaque)
+                {
+                    row.Slice(start, end - start).Fill(rectColor);
+                    continue;
+                }
+
+                BlendRow(row.Slice(start, end - start), rectColor);
                 continue;
             }
 
@@ -420,6 +442,7 @@ public sealed class PixelRenderer
         int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
+        bool spanCorners = rounded && !CornersOverlap(radius, rect);
         int textureWidth = texture.Width;
         int textureHeight = texture.Height;
         Vector4 backgroundColorPremultiplied = ToPremultiplied(backgroundColor);
@@ -434,10 +457,20 @@ public sealed class PixelRenderer
             int v = Math.Clamp((int)((y - rect.Top) * vStep), 0, textureHeight - 1);
             Span<Vector4> textureRow = texture.GetRowSpan(v);
             bool straightRow = !rounded || (y >= rect.Top + topRadius && y < rect.Bottom - bottomRadius);
+            int start = clipped.Left;
+            int end = clipped.Right;
 
-            for (int x = clipped.Left; x < clipped.Right; x++)
+            //  A corner row still paints one contiguous run between the two radii.
+            if (!straightRow && spanCorners)
             {
-                if (!straightRow && IsOutsideCornerRadius(in context, x, y))
+                ResolveRadiusSpan(radius, rect, y, out int rowLeft, out int rowRight);
+                start = Math.Max(start, rowLeft);
+                end = Math.Min(end, rowRight);
+            }
+
+            for (int x = start; x < end; x++)
+            {
+                if (!straightRow && !spanCorners && IsOutsideCornerRadius(in context, x, y))
                 {
                     continue;
                 }
@@ -619,6 +652,7 @@ public sealed class PixelRenderer
         int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
+        bool spanCorners = rounded && !CornersOverlap(radius, commandRect);
         Vector4 premultiplied = ToPremultiplied(color);
         bool opaque = premultiplied.W >= 1f;
 
@@ -640,6 +674,27 @@ public sealed class PixelRenderer
                 continue;
             }
 
+            //  A corner row still paints one contiguous run between the two radii.
+            if (spanCorners)
+            {
+                ResolveRadiusSpan(radius, commandRect, y, out int rowLeft, out int rowRight);
+                int start = Math.Max(clipped.Left, rowLeft);
+                int end = Math.Min(clipped.Right, rowRight);
+                if (end <= start)
+                {
+                    continue;
+                }
+
+                if (opaque)
+                {
+                    row.Slice(start, end - start).Fill(premultiplied);
+                    continue;
+                }
+
+                BlendRow(row.Slice(start, end - start), premultiplied);
+                continue;
+            }
+
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
                 if (IsOutsideCornerRadius(in context, x, y))
@@ -650,6 +705,62 @@ public sealed class PixelRenderer
                 row[x] = opaque ? premultiplied : AlphaBlend(row[x], premultiplied);
             }
         }
+    }
+
+    private static bool CornersOverlap(in CornerRadius radius, in IntRect rect)
+    {
+        int width = rect.Size.X;
+        int height = rect.Size.Y;
+        int smallest = Math.Min(width, height);
+
+        return radius.TopLeft + radius.TopRight > width
+            || radius.BottomLeft + radius.BottomRight > width
+            || radius.TopLeft + radius.BottomLeft > height
+            || radius.TopRight + radius.BottomRight > height
+            || radius.TopLeft + radius.BottomRight > smallest
+            || radius.TopRight + radius.BottomLeft > smallest;
+    }
+
+    /// <summary>
+    ///     Returns the horizontal run of a scanline that the corner radii leave visible.
+    ///     Call it only when <see cref="CornersOverlap" /> is false.
+    /// </summary>
+    private static void ResolveRadiusSpan(in CornerRadius radius, in IntRect rect, int y, out int left, out int right)
+    {
+        left = rect.Left;
+        right = rect.Right;
+        int rightEdge = rect.Right - 1;
+        int bottomEdge = rect.Bottom - 1;
+
+        if (y < rect.Top + radius.TopLeft)
+        {
+            int offset = RadiusOffset(radius.TopLeft, y - (rect.Top + radius.TopLeft));
+            left = Math.Max(left, rect.Left + radius.TopLeft - offset);
+        }
+
+        if (y > bottomEdge - radius.BottomLeft)
+        {
+            int offset = RadiusOffset(radius.BottomLeft, y - (bottomEdge - radius.BottomLeft));
+            left = Math.Max(left, rect.Left + radius.BottomLeft - offset);
+        }
+
+        if (y < rect.Top + radius.TopRight)
+        {
+            int offset = RadiusOffset(radius.TopRight, y - (rect.Top + radius.TopRight));
+            right = Math.Min(right, rightEdge - radius.TopRight + offset + 1);
+        }
+
+        if (y > bottomEdge - radius.BottomRight)
+        {
+            int offset = RadiusOffset(radius.BottomRight, y - (bottomEdge - radius.BottomRight));
+            right = Math.Min(right, rightEdge - radius.BottomRight + offset + 1);
+        }
+    }
+
+    private static int RadiusOffset(int radius, int dy)
+    {
+        int squared = radius * radius - dy * dy;
+        return squared > 0 ? (int)Math.Sqrt(squared) : 0;
     }
 
     private static bool IsOutsideCornerRadius(in DrawContext context, int x, int y)
