@@ -3,7 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using DryIoc;
 using Microsoft.Extensions.Logging.Abstractions;
-using SixLabors.ImageSharp;
+using StbImageNext;
 using SmartFormat;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
@@ -56,7 +56,11 @@ public class ScreenshotShortcutTests
             string expectedPath = Path.Combine(tempRoot, "screenshots", "26-11-21_12.00.00.png");
             Assert.True(File.Exists(expectedPath));
 
-            ImageInfo info = Image.Identify(expectedPath);
+            ImageInfo info;
+            using (FileStream stream = File.OpenRead(expectedPath))
+            {
+                info = ImageInfo.FromStream(stream);
+            }
             Assert.Equal(2, info.Width);
             Assert.Equal(2, info.Height);
 

@@ -4,9 +4,8 @@ using System.IO;
 using Microsoft.Extensions.Logging;
 using Shoal.CommandLine;
 using Shoal.DependencyInjection;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using StbImageNext;
+using StbImageNext.Encoders;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
@@ -189,9 +188,9 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
             {
                 string fileName = SanitizeFileName(brickID) + ".png";
                 string outputPath = Path.Combine(directory, fileName);
-                using Image<Rgba32> image = Image.LoadPixelData<Rgba32>(texture.Pixels, texture.Width, texture.Height);
-                image.Mutate(context => context.Flip(FlipMode.Vertical));
-                image.SaveAsPng(outputPath);
+                byte[] flipped = FlipVerticalRgba(texture.Pixels, texture.Width, texture.Height);
+                using FileStream stream = File.Create(outputPath);
+                PngEncoder.EncodeToStream(stream, flipped, texture.Width, texture.Height, ColorComponents.RedGreenBlueAlpha);
             }
 
             _logger.LogInformation("Dumped {count} rendered brick icons to \"{directory}\".", rendered.Count, Path.GetFullPath(directory));
@@ -200,6 +199,18 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
         {
             _logger.LogError(ex, "Failed to dump rendered brick icons to \"{directory}\".", directory);
         }
+    }
+
+    private static byte[] FlipVerticalRgba(byte[] pixels, int width, int height)
+    {
+        int rowBytes = width * 4;
+        var flipped = new byte[pixels.Length];
+        for (var y = 0; y < height; y++)
+        {
+            Buffer.BlockCopy(pixels, (height - 1 - y) * rowBytes, flipped, y * rowBytes, rowBytes);
+        }
+
+        return flipped;
     }
 
     /// <summary>Replaces path-unsafe characters in a brick id for PNG file names.</summary>

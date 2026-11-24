@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Reef;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
+using StbImageNext;
+using StbImageNext.Encoders;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Globalization;
@@ -122,12 +122,13 @@ internal sealed class FeedbackModal : IMenuPage<Modal>
             Texture screenshotTexture = _renderer.Screenshot();
 
             await using var screenshotStream = new MemoryStream();
-            using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(
+            PngEncoder.EncodeToStream(
+                screenshotStream,
                 screenshotTexture.Pixels,
                 screenshotTexture.Width,
-                screenshotTexture.Height
+                screenshotTexture.Height,
+                ColorComponents.RedGreenBlue
             );
-            await image.SaveAsPngAsync(screenshotStream);
             screenshotStream.Position = 0;
 
             await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);

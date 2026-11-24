@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
@@ -66,10 +64,10 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
         List<Texture> normalTextures = normalFiles.Select(_textureParser.Parse).ToList();
         List<Texture> emissiveTextures = emissiveFiles.Select(_textureParser.Parse).ToList();
 
-        GenerateMissingTextures(albedoTextures, metallicTextures, ".m", new Rgba32(r: 0, g: 0, b: 0, a: 255));
-        GenerateMissingTextures(albedoTextures, smoothnessTextures, ".s", new Rgba32(r: 0, g: 0, b: 0, a: 255));
-        GenerateMissingTextures(albedoTextures, normalTextures, ".n", new Rgba32(r: 0, g: 0, b: 255, a: 255));
-        GenerateMissingTextures(albedoTextures, emissiveTextures, ".e", new Rgba32(r: 0, g: 0, b: 0, a: 0));
+        GenerateMissingTextures(albedoTextures, metallicTextures, ".m", r: 0, g: 0, b: 0, a: 255);
+        GenerateMissingTextures(albedoTextures, smoothnessTextures, ".s", r: 0, g: 0, b: 0, a: 255);
+        GenerateMissingTextures(albedoTextures, normalTextures, ".n", r: 0, g: 0, b: 255, a: 255);
+        GenerateMissingTextures(albedoTextures, emissiveTextures, ".e", r: 0, g: 0, b: 0, a: 0);
 
         Texture[] sortedAlbedo = albedoTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] sortedMetallic = metallicTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
@@ -81,10 +79,10 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
         int height = sortedAlbedo.Length > 0 ? sortedAlbedo[0].Height : 16;
 
         Texture missingAlbedo = CreateMissingAlbedoTexture(width, height);
-        Texture missingMetallic = CreateSolidTexture("missing.m", width, height, new Rgba32(r: 0, g: 0, b: 0, a: 255));
-        Texture missingSmoothness = CreateSolidTexture("missing.s", width, height, new Rgba32(r: 0, g: 0, b: 0, a: 255));
-        Texture missingNormal = CreateSolidTexture("missing.n", width, height, new Rgba32(r: 0, g: 0, b: 255, a: 255));
-        Texture missingEmissive = CreateSolidTexture("missing.e", width, height, new Rgba32(r: 0, g: 0, b: 0, a: 0));
+        Texture missingMetallic = CreateSolidTexture("missing.m", width, height, r: 0, g: 0, b: 0, a: 255);
+        Texture missingSmoothness = CreateSolidTexture("missing.s", width, height, r: 0, g: 0, b: 0, a: 255);
+        Texture missingNormal = CreateSolidTexture("missing.n", width, height, r: 0, g: 0, b: 255, a: 255);
+        Texture missingEmissive = CreateSolidTexture("missing.e", width, height, r: 0, g: 0, b: 0, a: 0);
 
         Texture[] albedoTexturesArray = [missingAlbedo, .. sortedAlbedo];
         Texture[] metallicTexturesArray = [missingMetallic, .. sortedMetallic];
@@ -103,45 +101,56 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
     /// <summary>Creates a magenta and black checkerboard placeholder texture for missing or unresolved bricks.</summary>
     private static Texture CreateMissingAlbedoTexture(int width, int height)
     {
-        using var image = new Image<Rgba32>(width, height);
+        var pixels = new byte[width * height * 4];
         int blockWidth = Math.Max(width / 2, 1);
         int blockHeight = Math.Max(height / 2, 1);
         for (var y = 0; y < height; y++)
         {
+            int rowOffset = y * width * 4;
             for (var x = 0; x < width; x++)
             {
                 bool magenta = (x / blockWidth + y / blockHeight) % 2 == 0;
-                image[x, y] = magenta ? new Rgba32(r: 255, g: 0, b: 255, a: 255) : new Rgba32(r: 0, g: 0, b: 0, a: 255);
+                int offset = rowOffset + x * 4;
+                pixels[offset] = magenta ? (byte)255 : (byte)0;
+                pixels[offset + 1] = 0;
+                pixels[offset + 2] = magenta ? (byte)255 : (byte)0;
+                pixels[offset + 3] = 255;
             }
         }
 
-        var pixels = new byte[width * height * 4];
-        image.CopyPixelDataTo(pixels);
         return new Texture("missing", pixels, width, height, mipmaps: true);
     }
 
     /// <summary>Creates a solid-color fallback texture layer.</summary>
-    private static Texture CreateSolidTexture(string name, int width, int height, Rgba32 color)
+    private static Texture CreateSolidTexture(string name, int width, int height, byte r, byte g, byte b, byte a)
     {
-        using var image = new Image<Rgba32>(width, height, color);
-        var pixels = new byte[width * height * 4];
-        image.CopyPixelDataTo(pixels);
+        byte[] pixels = CreateSolidPixels(width, height, r, g, b, a);
         return new Texture(name, pixels, width, height, mipmaps: true);
     }
 
-    private static void GenerateMissingTextures(List<Texture> albedoTextures, List<Texture> textures, string suffix, Rgba32 color)
+    private static void GenerateMissingTextures(List<Texture> albedoTextures, List<Texture> textures, string suffix, byte r, byte g, byte b, byte a)
     {
         IEnumerable<Texture> missingTextures = albedoTextures.Except(textures, new TextureNameComparer(suffix));
         foreach (Texture albedoTexture in missingTextures)
         {
-            var pixels = new byte[albedoTexture.Pixels.Length];
-            
-            var image = new Image<Rgba32>(albedoTexture.Width, albedoTexture.Height, color);
-            image.CopyPixelDataTo(pixels);
-            
+            byte[] pixels = CreateSolidPixels(albedoTexture.Width, albedoTexture.Height, r, g, b, a);
             var texture = new Texture(albedoTexture.Name + suffix, pixels, albedoTexture.Width, albedoTexture.Height, albedoTexture.Mipmaps);
             textures.Add(texture);
         }
+    }
+
+    private static byte[] CreateSolidPixels(int width, int height, byte r, byte g, byte b, byte a)
+    {
+        var pixels = new byte[width * height * 4];
+        for (var i = 0; i < pixels.Length; i += 4)
+        {
+            pixels[i] = r;
+            pixels[i + 1] = g;
+            pixels[i + 2] = b;
+            pixels[i + 3] = a;
+        }
+
+        return pixels;
     }
 
     private static bool IsMetallic(PathInfo file) => file.Value.EndsWith(".m.png");
