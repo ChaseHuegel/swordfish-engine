@@ -218,7 +218,8 @@ public class PayloadFragmenterTests
         Assert.True(partCount > 1);
 
         var assembler = new FragmentAssembler();
-        WorldSnapshot? joined = null;
+        WorldSnapshot joined = default;
+        var completed = false;
         for (var index = 0; index < partCount; index++)
         {
             FragmentState state = assembler.Append(
@@ -231,15 +232,17 @@ public class PayloadFragmenterTests
             if (state == FragmentState.Complete)
             {
                 joined = WorldSnapshot.Deserialize(joinedPayload);
+                completed = true;
             }
         }
 
-        Assert.NotNull(joined);
-        Assert.Equal(7u, joined.Value.TickNumber);
-        Assert.Equal(3u, joined.Value.LastProcessedInput);
-        Assert.Equal(1UL, joined.Value.Components[0].Entity);
-        Assert.Equal(PayloadFragmenter.FRAGMENT_BUDGET, joined.Value.Components[0].Payload.Length);
-        Assert.Equal(9UL, joined.Value.RemovedEntities[0]);
+        Assert.True(completed);
+        Assert.Equal(7u, joined.TickNumber);
+        Assert.Equal(3u, joined.LastProcessedInput);
+        ComponentSnapshot component = joined.Components![0];
+        Assert.Equal(1UL, component.Entity);
+        Assert.Equal(PayloadFragmenter.FRAGMENT_BUDGET, component.Payload!.Length);
+        Assert.Equal(9UL, joined.RemovedEntities![0]);
     }
 
     [Fact]

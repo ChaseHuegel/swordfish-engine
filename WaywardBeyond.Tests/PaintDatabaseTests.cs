@@ -26,7 +26,7 @@ public class PaintDatabaseTests
         Assert.Equal(PaintKind.Texture, panel.Value.Kind);
         Assert.Equal(BrickAlpha.Opaque, panel.Value.Alpha);
         Assert.True(panel.Value.Connected);
-        Assert.Equal(["panel.0"], panel.Value.Textures);
+        Assert.Equal("panel.0", Assert.Single(panel.Value.Textures!));
 
         Result<Paint> grate = database.Get("wb:grate");
         Assert.True(grate.Success);

@@ -1,8 +1,6 @@
 using System;
 using Reef.Constraints;
 
-using System;
-
 namespace WaywardBeyond.Client.UI.Components;
 
 /// <summary>Parameters for the shared slider control.</summary>

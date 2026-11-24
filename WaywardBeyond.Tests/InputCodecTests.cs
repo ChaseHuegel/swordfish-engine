@@ -1,3 +1,4 @@
+using System;
 using Krill;
 using Swordfish.Library.Util;
 using Xunit;
@@ -132,10 +133,10 @@ public class NetworkComponentCodecTests
         Assert.Equal(11u, result.SequenceNumber);
         Assert.Equal(9u, result.ServerTickAtSample);
         Assert.Equal(InteractionKind.PrimaryPressed, result.Kind);
-        Assert.NotNull(result.Brick);
-        Assert.Equal(-2, result.Brick.Value.TargetX);
-        Assert.Equal(5, result.Brick.Value.TargetY);
-        Assert.Equal(1, result.Brick.Value.TargetZ);
+        BrickInteraction brick = result.Brick ?? throw new InvalidOperationException("The decoded interaction has no brick.");
+        Assert.Equal(-2, brick.TargetX);
+        Assert.Equal(5, brick.TargetY);
+        Assert.Equal(1, brick.TargetZ);
     }
 
     [Fact]

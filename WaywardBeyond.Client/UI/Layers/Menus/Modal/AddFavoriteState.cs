@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
 /// <summary>Editable values for the add-favorite modal.</summary>
@@ -13,5 +15,6 @@ internal sealed class AddFavoriteState(TextBoxState host, TextBoxState port)
     public string? ErrorKey;
 
     /// <summary>Gets whether the state has a validation message.</summary>
+    [MemberNotNullWhen(true, nameof(ErrorKey))]
     public bool HasError => ErrorKey != null;
 }

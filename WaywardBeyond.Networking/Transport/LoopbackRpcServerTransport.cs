@@ -113,9 +113,9 @@ public sealed class LoopbackRpcServerTransport : IRpcServerTransport
             connection.Close(RpcDisconnectReason.LocalClose);
         }
 
-        while (_pending.Reader.TryRead(out LoopbackRpcServerConnection queued))
+        while (_pending.Reader.TryRead(out LoopbackRpcServerConnection? queued))
         {
-            queued.Close(RpcDisconnectReason.LocalClose);
+            queued?.Close(RpcDisconnectReason.LocalClose);
         }
     }
 

@@ -510,7 +510,7 @@ public class ServerWorldIntegrationTests
         {
             WorldHost.Dispose();
             RpcHost.Dispose();
-            container.Dispose();
+            Container.Dispose();
         }
     }
 

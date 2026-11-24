@@ -45,7 +45,7 @@ internal partial class SettingsShellView(ILocalization localization) : UiViewBas
     /// <summary>Gets the row list as component context.</summary>
     public SettingsRowsState RowsState => new(
         Rows,
-        localization,
+        Localization,
         ChoiceRequested,
         StepRequested,
         SliderDragRequested,

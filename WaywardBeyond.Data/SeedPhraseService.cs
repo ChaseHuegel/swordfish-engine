@@ -109,10 +109,10 @@ public sealed class SeedPhraseService
             _verbIndices.TryGetValue(tokens[2], out int verbIdx) &&
             _destinationIndices.TryGetValue(tokens[3], out int destIdx))
         {
-            ulong reconstructed = (ulong)adjIdx |
-                                  ((ulong)subjIdx << 10) |
-                                  ((ulong)verbIdx << 20) |
-                                  ((ulong)destIdx << 30);
+            ulong reconstructed = (ulong)(uint)adjIdx |
+                                  ((ulong)(uint)subjIdx << 10) |
+                                  ((ulong)(uint)verbIdx << 20) |
+                                  ((ulong)(uint)destIdx << 30);
 
             return (long)reconstructed;
         }

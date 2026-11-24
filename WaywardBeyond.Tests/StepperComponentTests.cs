@@ -53,14 +53,17 @@ public class StepperComponentTests
         Render(ui, parameters, controller, 20, 20, UIController.MouseButtons.None);
         System.Collections.Generic.List<RenderCommand<Material>> commands = ui.Build(0.1f);
 
-        RenderCommand<Material> glyph = commands.Find(command => command.Text == "<");
-        Assert.NotNull(glyph);
-        Assert.Equal(0.6471f, glyph!.Color.X, 3);
+        RenderCommand<Material> glyph = Assert.Single(commands, command => command.Text == "<");
+        Assert.Equal(0.6471f, glyph.Color.X, 3);
 
-        RenderCommand<Material> arrow = commands.Find(
-            command => command.Rect.Size.X == 32 && command.Rect.Size.Y == 30 && command.Color.X > 0.05f && command.Color.X < 0.09f
+        List<RenderCommand<Material>> arrows = commands.FindAll(
+            command => command.Rect.Size.X == 32 && command.Rect.Size.Y == 30
         );
-        Assert.NotNull(arrow);
+
+        //  --wb-button-hover is #1b2538, applied only to the hovered arrow.
+        const float hoverFillRed = 27f / 255f;
+        Assert.Equal(2, arrows.Count);
+        Assert.Single(arrows, arrow => Math.Abs(arrow.Color.X - hoverFillRed) < 0.0005f);
     }
 
     [Fact]

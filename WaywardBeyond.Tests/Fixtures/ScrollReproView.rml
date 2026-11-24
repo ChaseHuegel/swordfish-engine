@@ -23,7 +23,7 @@
                                  width="200"
                                  height="30" />
                         <Element visible="@context.ShowChoice" layout="horizontal" width="fill" height="44" spacing="16" clip="true">
-                            <Text text="Label" class="wb-text" width="fill" height="fill" />
+                            <Text text="Label" width="fill" height="fill" />
                             <wb:Choice id="repro_choice"
                                        options="@Options"
                                        value="@context.Index"

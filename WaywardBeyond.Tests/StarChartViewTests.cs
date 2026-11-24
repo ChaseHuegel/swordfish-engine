@@ -21,8 +21,8 @@ public class StarChartViewTests
             State(Node("aaaa", "Vela", 200, 200), Node("bbbb", "Antila", 400, 120))
         );
 
-        Assert.NotNull(commands.Find(command => command.Text == "Vela"));
-        Assert.NotNull(commands.Find(command => command.Text == "Antila"));
+        Assert.Contains(commands, command => command.Text == "Vela");
+        Assert.Contains(commands, command => command.Text == "Antila");
         Assert.Equal(2, commands.FindAll(command => command.Text == "\uf219").Count);
     }
 
@@ -40,8 +40,8 @@ public class StarChartViewTests
     {
         List<RenderCommand<Material>> commands = Render(State(Node("aaaa", "Vela", 200, 200, selected: true)));
 
-        Assert.NotNull(commands.Find(command => command.Text == "["));
-        Assert.NotNull(commands.Find(command => command.Text == "]"));
+        Assert.Contains(commands, command => command.Text == "[");
+        Assert.Contains(commands, command => command.Text == "]");
 
         RenderCommand<Material> label = Assert.Single(commands, command => command.Text == "Vela");
         Assert.Equal(0.6471f, label.Color.X, 3);
@@ -72,16 +72,31 @@ public class StarChartViewTests
     {
         var controller = new UIController();
         StarChartState state = State(Node("aaaa", "Vela", 200, 200));
+        var ui = new UIBuilder<Material>(WIDTH, HEIGHT, new StubTextEngine(), controller);
 
-        Render(state, controller);
-        controller.UpdateMouse(200, 200, UIController.MouseButtons.None);
-        List<RenderCommand<Material>> commands = Render(state, controller);
+        List<RenderCommand<Material>> commands = [];
+        for (var frame = 0; frame < 3; frame++)
+        {
+            controller.UpdateMouse(200, 200, UIController.MouseButtons.None);
+            new StarChart().Render(
+                ui,
+                context: state,
+                callerConstraints: new ConstraintsOverride
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                },
+                idPrefix: "SelectSave.Chart"
+            );
 
-        Assert.NotNull(commands.Find(command => command.Text == "ui.label.level.mode"));
-        Assert.NotNull(commands.Find(command => command.Text == "Creative"));
-        Assert.NotNull(commands.Find(command => command.Text == "seed phrase"));
-        Assert.NotNull(commands.Find(command => command.Text == "["));
-        Assert.NotNull(commands.Find(command => command.Text == "]"));
+            commands = ui.Build(0d);
+        }
+
+        Assert.Contains(commands, command => command.Text == "ui.label.level.mode");
+        Assert.Contains(commands, command => command.Text == "Creative");
+        Assert.Contains(commands, command => command.Text == "seed phrase");
+        Assert.Contains(commands, command => command.Text == "[");
+        Assert.Contains(commands, command => command.Text == "]");
     }
 
     /// <summary>The node owns its hit id and the label owns its measurement id.</summary>
@@ -142,8 +157,8 @@ public class StarChartViewTests
             State(Node("aaaa", "Vela", 200, 200, selected: true, passthrough: true))
         );
 
-        Assert.NotNull(commands.Find(command => command.Text == "Vela"));
-        Assert.NotNull(commands.Find(command => command.Text == "\uf219"));
+        Assert.Contains(commands, command => command.Text == "Vela");
+        Assert.Contains(commands, command => command.Text == "\uf219");
     }
 
     [Fact]
