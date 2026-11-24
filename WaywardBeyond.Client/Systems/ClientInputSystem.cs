@@ -152,7 +152,7 @@ internal sealed class ClientInputSystem : IEntitySystem
                 store.AddOrUpdate(entity, pending);
             }
 
-            pending.Ring.Add(Input);
+            pending.Ring!.Add(Input);
         }
     }
 

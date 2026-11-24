@@ -3,6 +3,6 @@ namespace WaywardBeyond.Items;
 public struct ToolDefinition()
 {
     public ToolType Type;
-    public string Target;
-    public string[] Tags;
+    public string Target = string.Empty;
+    public string[] Tags = [];
 }

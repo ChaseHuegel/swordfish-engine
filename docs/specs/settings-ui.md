@@ -150,7 +150,7 @@ The `Settings.Monitor` stepper is editable only in Fullscreen mode. It selects
 supported mode, `SettingsPage.ApplySettings` syncs the draft to the applied mode
 and shows `ui.settings.status.displayFallback`.
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:408` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:405` keeps the display
 mode, monitor, and resolution rows in sync when a shortcut or a manual resize
 changes the window while the page is open.
 
@@ -218,8 +218,8 @@ existing spacer layout.
   `ControlSettingsCategory.cs:8`
 - Audio output row: `WaywardBeyond.Client/UI/Settings/AudioSettingsCategory.cs:23`,
   `:71`, `:96`
-- Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:70`,
-  `:117`, `:318`, `:384`, `:389`
+- Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:69`,
+  `:115`, `:315`, `:381`, `:386`
 - Audio preference: `WaywardBeyond.Client/Configuration/VolumeSettings.cs:14`,
   `WaywardBeyond.Client/Configuration/ConfigManager.cs:53`
 - Draft: `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:11`
@@ -230,7 +230,7 @@ existing spacer layout.
 - Choice component: `WaywardBeyond.Client/UI/Components/SegmentedControl.rml:1`,
   `SegmentedControlParameters.cs:6`
 - Slider component: `WaywardBeyond.Client/UI/Components/Slider.rml:1`,
-  `SliderParameters.cs:9`
+  `SliderParameters.cs:7`
 - Slider entry: `WaywardBeyond.Client/UI/Settings/SliderEntry.cs:6`
 - Stepper component: `WaywardBeyond.Client/UI/Components/Stepper.rml:1`,
   `StepperParameters.cs:8`

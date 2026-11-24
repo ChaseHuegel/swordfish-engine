@@ -184,7 +184,7 @@ redo earlier work.
 
 - [x] **DEAD-4 — Remove the unused settings reset label**
   - Finding: `SettingsShellView.cs:19` declares `ResetLabel`.
-    `SettingsPage.cs:165` assigns it every frame. No markup reads it. The reset
+    `SettingsPage.cs:163` assigns it every frame. No markup reads it. The reset
     rows hardcode `@L('ui.settings.action.reset')` at `SettingsShellView.rml:149`
     and `:268`.
   - Fix: delete the property and the per-frame localization lookup that fills it.
@@ -195,7 +195,7 @@ redo earlier work.
 
 - [x] **DEAD-5 — Remove the unused multiplayer label helper and audit the repeated localization field**
   - Finding: `MultiplayerView.cs:114` `Label` has no callers. It uses
-    `GetRequired`, while the base `UiViewBase.L` at `UiViewBase.cs:9` returns the
+    `GetRequired`, while the base `UiViewBase.L` at `UiViewBase.cs:29` returns the
     key on a miss. Two contracts for one job invite drift. Sixteen view and page
     files also store `_localization` over the base field.
   - Fix: delete `Label`. Then audit the sixteen files. Keep the field only where

@@ -79,8 +79,8 @@ converts user input into a `long` seed:
   sets the seed input box maximum length to 40 characters. The random seed dice
   button and empty-seed fallback generate a random four-word phrase with
   `SeedPhraseService.SeedToPhrase(Random.Shared.NextInt64())`.
-- `SelectSavePage` (`WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:377`)
-  and `HomePage` (`WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:343`)
+- `SelectSavePage` (`WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSavePage.cs:109`)
+  and `HomePage` (`WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:232`)
   display `SeedPhraseService.SeedToPhrase(save.Level.Seed)`.
 
 ## Source of truth

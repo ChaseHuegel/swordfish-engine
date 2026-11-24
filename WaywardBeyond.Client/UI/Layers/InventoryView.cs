@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Reef.Constraints;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
@@ -17,7 +18,7 @@ internal readonly record struct InventoryViewState(
     IReadOnlyList<InventorySlotRowState> CargoRows,
     IReadOnlyList<InventorySlotViewState> Hotbar,
     ItemTooltipState Tooltip,
-    bool HasDrag,
+    [property: MemberNotNullWhen(true, nameof(InventoryViewState.DragCount))] bool HasDrag,
     Material DragIcon,
     string? DragCount,
     int DragX,

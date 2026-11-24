@@ -59,7 +59,6 @@ internal sealed class SettingsPage<TIdentifier>(
     private bool _rowsDirty = true;
     private int _playbackDevicesDirty;
     private int _categoryIndex;
-    private int _scrollY;
     private string _statusKey = string.Empty;
     private double _statusUntil;
 
@@ -82,7 +81,6 @@ internal sealed class SettingsPage<TIdentifier>(
         _rowsDirty = true;
         _playbackDevicesDirty = 0;
         _categoryIndex = 0;
-        _scrollY = 0;
         _statusKey = string.Empty;
         _statusUntil = 0d;
     }
@@ -251,7 +249,6 @@ internal sealed class SettingsPage<TIdentifier>(
 
         _categoryIndex = index;
         _rowsDirty = true;
-        _scrollY = 0;
         Play(WidgetInteraction.InterfaceSound.Toggle);
     }
 

@@ -137,7 +137,7 @@ public class RemeshBenchmarks
 
         public Result<Brick> Get(ushort id)
         {
-            return Bricks.TryGetValue(id, out Brick brick)
+            return Bricks.TryGetValue(id, out Brick? brick)
                 ? Result<Brick>.FromSuccess(brick)
                 : Result<Brick>.FromFailure((string?)null);
         }
@@ -151,7 +151,7 @@ public class RemeshBenchmarks
                 return false;
             }
 
-            if (Bricks.TryGetValue(voxel.ID, out Brick brick))
+            if (Bricks.TryGetValue(voxel.ID, out Brick? brick))
             {
                 return brick.Alpha == BrickAlpha.Opaque && !brick.Passable;
             }

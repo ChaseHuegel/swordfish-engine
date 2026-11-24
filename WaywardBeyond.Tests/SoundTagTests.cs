@@ -48,8 +48,8 @@ public class SoundTagTests
 
     private static void AssertResolves(Fixture fixture, string tag, string owner)
     {
-        IReadOnlyList<string>? clips = fixture.Tags.GetValues(tag);
-        Assert.NotNull(clips);
+        IReadOnlyList<string>? resolved = fixture.Tags.GetValues(tag);
+        IReadOnlyList<string> clips = resolved ?? throw new InvalidOperationException($"No audio clips resolve for {owner}.");
         Assert.NotEmpty(clips);
 
         foreach (string clip in clips)

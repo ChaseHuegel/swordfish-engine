@@ -108,7 +108,7 @@ internal class DebugOverlayRenderer : IUILayer
                 using (ui.Element())
                 {
                     ui.Color = new Vector4(0f, 0f, 0f, 128f / 255f);
-                    using (ui.Text($"SAO debug: {saoDebugView}"));
+                    using (ui.Text($"SAO debug: {saoDebugView}")) { }
                 }
             }
 

@@ -10,6 +10,9 @@ internal abstract class UiViewBase(ILocalization localization)
     private const int WIDE_WIDTH = 1220;
     private const int TALL_HEIGHT = 720;
 
+    /// <summary>Gets the localization service.</summary>
+    protected ILocalization Localization => localization;
+
     /// <summary>Gets whether the width uses the compact layout.</summary>
     protected static bool UsesCompactLayout(int width) => width >= COMPACT_WIDTH;
 
@@ -23,5 +26,5 @@ internal abstract class UiViewBase(ILocalization localization)
     protected static bool UsesTallLayout(int height) => height >= TALL_HEIGHT;
 
     /// <summary>Returns a localized string, or the key when the string is missing.</summary>
-    protected string L(string key) => localization.GetString(key) ?? key;
+    protected string L(string key) => Localization.GetString(key) ?? key;
 }

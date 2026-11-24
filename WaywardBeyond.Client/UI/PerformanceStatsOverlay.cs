@@ -38,7 +38,7 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
         _tickSampler.Record(tps);
         Sample tpsSample = _tickSampler.GetSnapshot();
 
-        using (ui.Text($"Draw calls: {_renderer.DrawCalls.Get()}"));
+        using (ui.Text($"Draw calls: {_renderer.DrawCalls.Get()}")) { }
 
         _lines.Clear();
         _lines.Add(Line("FPS", fpsSample, warningBelow: 45d));

@@ -44,11 +44,11 @@ public sealed class ServerHostCommands(
     /// <summary>Drains host calls and advances every active level stream. Called on the server thread.</summary>
     public void Tick(ServerWorldHost host)
     {
-        while (_calls.TryDequeue(out HostCall call))
+        while (_calls.TryDequeue(out HostCall? call))
         {
             try
             {
-                call.Execute(this, host);
+                call?.Execute(this, host);
             }
             catch (Exception ex)
             {

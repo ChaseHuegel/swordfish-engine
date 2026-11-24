@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Swordfish.Graphics;
 
 namespace WaywardBeyond.Client.UI.Components;
@@ -17,6 +18,7 @@ internal readonly record struct ItemSlotState(
     public bool HasItem => Icon != null;
 
     /// <summary>Gets whether the slot shows a count badge.</summary>
+    [MemberNotNullWhen(true, nameof(Count))]
     public bool HasCount => Count != null;
 
     /// <summary>Gets whether the slot shows a slot number.</summary>

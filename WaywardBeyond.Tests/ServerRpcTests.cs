@@ -61,15 +61,15 @@ public class ServerRpcTests
     }
 
     [Fact]
-    public void RecordingTransportReturnsTheOriginalConnectionAndRecordsTheReason()
+    public async Task RecordingTransportReturnsTheOriginalConnectionAndRecordsTheReason()
     {
         var inner = new WaywardBeyond.Networking.Transport.LoopbackRpcServerTransport();
         var recorder = new RecordingRpcServerTransport(inner);
         var client = new WaywardBeyond.Networking.Transport.LoopbackRpcClientConnection(inner);
-        client.ConnectAsync().GetAwaiter().GetResult();
+        await client.ConnectAsync();
 
         RpcServerConnection connection = Assert.IsType<WaywardBeyond.Networking.Transport.LoopbackRpcServerConnection>(
-            recorder.AcceptAsync().GetAwaiter().GetResult());
+            await recorder.AcceptAsync());
 
         client.Close(RpcDisconnectReason.LocalClose);
 

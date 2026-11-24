@@ -11,7 +11,7 @@ namespace WaywardBeyond.Client.UI.Settings;
 internal sealed class SettingsDraft
 {
     public SettingsDisplayMode DisplayMode;
-    public string Monitor;
+    public string Monitor = string.Empty;
     public SettingsResolution Resolution;
     public float UiScale;
     public bool VSync;
@@ -28,7 +28,7 @@ internal sealed class SettingsDraft
     public float MusicVolume;
     public float EffectsVolume;
     public float InterfaceVolume;
-    public string OutputDevice;
+    public string OutputDevice = string.Empty;
     public bool Autosave;
     public int AutosaveIntervalMinutes;
     public bool ControlHints;

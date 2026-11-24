@@ -2,8 +2,8 @@ namespace WaywardBeyond.Items;
 
 public struct ItemDefinition()
 {
-    public string ID;
-    public string Name;
+    public string ID = string.Empty;
+    public string Name = string.Empty;
     public string? Description;
     public string? Icon;
     public int? MaxStack;

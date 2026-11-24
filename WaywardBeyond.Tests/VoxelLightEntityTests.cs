@@ -27,7 +27,7 @@ public class VoxelLightEntityTests
 
         public Result<Brick> Get(ushort id)
         {
-            return Bricks.TryGetValue(id, out Brick brick)
+            return Bricks.TryGetValue(id, out Brick? brick)
                 ? Result<Brick>.FromSuccess(brick)
                 : Result<Brick>.FromFailure((string?)null);
         }
@@ -41,7 +41,7 @@ public class VoxelLightEntityTests
                 return false;
             }
 
-            return Bricks.TryGetValue(voxel.ID, out Brick brick)
+            return Bricks.TryGetValue(voxel.ID, out Brick? brick)
                 && brick.Alpha == BrickAlpha.Opaque
                 && !brick.Passable;
         }

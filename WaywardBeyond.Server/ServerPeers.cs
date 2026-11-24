@@ -55,7 +55,7 @@ public sealed class ServerPeers
 
         lock (_gate)
         {
-            if (_byRpc.TryGetValue((host, rpc.ClientId), out ServerPeer existing))
+            if (_byRpc.TryGetValue((host, rpc.ClientId), out ServerPeer? existing) && existing != null)
             {
                 return existing;
             }

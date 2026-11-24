@@ -135,7 +135,7 @@ the preference. The host owns persistence. Wayward Beyond stores the value in
 - `Swordfish/Settings/PlaybackSettings.cs:5` — format settings.
 - `WaywardBeyond.Client/Configuration/VolumeSettings.cs:14` — persisted preference.
 - `WaywardBeyond.Client/Configuration/ConfigManager.cs:53` — startup apply.
-- `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:303` — apply from the page.
+- `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:300` — apply from the page.
 
 ## Tests
 

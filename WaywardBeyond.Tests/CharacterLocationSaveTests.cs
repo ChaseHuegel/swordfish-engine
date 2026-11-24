@@ -307,7 +307,7 @@ public class CharacterLocationSaveTests
         public async Task<RpcResult<JoinAccept>> JoinAsync(ServerPeer peer, JoinRequest request)
         {
             var completion = new TaskCompletionSource<RpcResult<JoinAccept>>(TaskCreationOptions.RunContinuationsAsynchronously);
-            joinQueue.Enqueue(peer, request, completion, CancellationToken.None);
+            JoinQueue.Enqueue(peer, request, completion, CancellationToken.None);
             joinSystem.Tick(1f / 60f, store);
             return await completion.Task.WaitAsync(TimeSpan.FromSeconds(5));
         }
@@ -325,7 +325,7 @@ public class CharacterLocationSaveTests
 
         public void Dispose()
         {
-            saveService.Dispose();
+            SaveService.Dispose();
         }
     }
 
