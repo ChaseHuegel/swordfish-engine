@@ -128,7 +128,7 @@ The builder exposes both fields at `Reef/UIBuilder.cs:98` and `:104`.
 Game pages do not use raw styles. They use the shared theme, metrics, and
 classes in [ui-theme](ui-theme.md).
 
-The pixel renderer draws both at `Reef/PixelRenderer.cs:413` and `:528`. The
+The pixel renderer draws both at `Reef/PixelRenderer.cs:493` and `:608`. The
 OpenGL renderer adds both to the command's rect quads at
 `Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:240` and `:345`.
 
@@ -202,23 +202,30 @@ name an element.
 
 ### CPU pixel renderer
 
-`PixelRenderer` keeps its frame with premultiplied alpha, so blending is one
-multiply-add per channel and never divides. `GetPixels` converts back to
-straight alpha for callers that read the frame.
+`PixelTexture` stores each pixel as a four-byte `PixelRgba8`, so a 1920 by 1080
+frame uses 8.29 MB instead of 33.18 MB. `PixelRenderer` keeps that frame with
+premultiplied alpha, so compositing is a multiply-add per channel with no
+division. `PixelRgba8.FromVector4` rounds to the nearest level, and
+`GetPixels` converts back to straight alpha with a copy.
 
-Each frame is cleared with `Array.Clear` and split into 64 by 64 pixel tiles.
-Every render command bins into each tile its clipped bounds touch, including
-glyph overhangs. Commands visit the tiles in paint order, so a tile keeps the
-painter's algorithm on its own. Text layouts resolve once on the calling
-thread before any tile runs, because `ITextEngine` is not thread-safe. Tiles
-rasterize through `Parallel.For` when the runtime reports more than one
-processor and is not a browser. A single-threaded runtime keeps the tiling and
-runs the tiles in order.
+A frame that includes an opaque command covering the screen skips the clear,
+because that command overwrites every earlier pixel. Other frames clear with
+`Array.Clear` and split into 64 by 64 pixel tiles. Every render command bins
+into each tile its clipped bounds touch, including glyph overhangs. Commands
+visit the tiles in paint order, so a tile keeps the painter's algorithm on its
+own. Text layouts resolve once on the calling thread before any tile runs,
+because `ITextEngine` is not thread-safe. Tiles rasterize through
+`Parallel.For` when the runtime reports more than one processor and is not a
+browser. A single-threaded runtime keeps the tiling and runs the tiles in
+order.
 
 Draw rects intersect the command rect, the clip rect, and the screen once
 before the pixel loop. Color rects skip transparent fills and write opaque
-fills as one row `Fill`. Translucent rows go through `BlendRow`, which uses
-`System.Numerics.Vector<T>` and falls back to a scalar tail.
+fills as one row `Fill`. Translucent rows go through `BlendRow`, which widens
+bytes to `System.Numerics.Vector<ushort>` lanes, blends with the rounding
+divide by 255, and falls back to a scalar tail. A rounded rect resolves one
+horizontal span per corner scanline and keeps the per-pixel radius test only
+when the radii overlap.
 
 `PixelFontSDF` stores one precomputed distance per atlas texel, so a glyph
 pixel reads a `float` and skips the target when coverage is zero.
@@ -266,7 +273,11 @@ native resolution.
 
 - `Reef.Tests/StyleOverrideTests.cs` checks nullable override values.
 - `Reef.Tests/UIBuilderBorderTests.cs:15` checks border and cap pixels.
-- `Reef.Tests/UIBuilderBorderTests.cs:57` checks that zero styles change nothing.
+- `Reef.Tests/UIBuilderBorderTests.cs:86` checks that zero styles change nothing.
+- `Reef.Tests/UIBuilderBorderTests.cs:109` checks a border that hangs off the
+  viewport edge.
+- `Reef.Tests/PixelRendererTests.cs:15` checks that an empty frame clears, an
+  opaque frame replaces, and a translucent frame draws over a cleared target.
 - `Reef.Tests/TextLayoutTests.cs:12` checks `NoWrap`.
 - `Reef.Tests/TextLayoutTests.cs:28` checks the default wrap behavior.
 - `Reef.Tests/UIControllerClipTests.cs:8` checks clipping hit testing.

@@ -21,11 +21,11 @@ public readonly struct PixelFontSDF
         InvFwidth = fwidth != 0f ? 1f / fwidth : 0f;
         Distances = new float[texture.Width * texture.Height];
 
-        ReadOnlySpan<Vector4> pixels = texture.AsSpan();
+        ReadOnlySpan<PixelRgba8> pixels = texture.AsSpan();
         for (var i = 0; i < pixels.Length; i++)
         {
-            Vector4 s = pixels[i];
-            Distances[i] = Median(s.X, s.Y, s.Z) - 0.5f;
+            PixelRgba8 s = pixels[i];
+            Distances[i] = Median(s.R, s.G, s.B) / 255f - 0.5f;
         }
     }
 

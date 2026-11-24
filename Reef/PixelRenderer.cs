@@ -49,18 +49,19 @@ public sealed class PixelRenderer
     /// </summary>
     public ReadOnlyCollection<Vector4> GetPixels()
     {
-        ReadOnlySpan<Vector4> premultiplied = _renderTexture.AsSpan();
+        ReadOnlySpan<PixelRgba8> premultiplied = _renderTexture.AsSpan();
         var pixels = new Vector4[premultiplied.Length];
         for (var i = 0; i < premultiplied.Length; i++)
         {
-            Vector4 pixel = premultiplied[i];
-            if (pixel.W <= 0f || pixel.W >= 1f)
+            PixelRgba8 pixel = premultiplied[i];
+            if (pixel.A == 0 || pixel.A == 255)
             {
-                pixels[i] = pixel;
+                pixels[i] = pixel.ToVector4();
                 continue;
             }
 
-            pixels[i] = new Vector4(pixel.X / pixel.W, pixel.Y / pixel.W, pixel.Z / pixel.W, pixel.W);
+            float alpha = pixel.A / 255f;
+            pixels[i] = new Vector4(pixel.R / 255f / alpha, pixel.G / 255f / alpha, pixel.B / 255f / alpha, alpha);
         }
 
         return Array.AsReadOnly(pixels);
@@ -359,8 +360,8 @@ public sealed class PixelRenderer
     private void DrawColorRect(in DrawContext context, IntRect clipped)
     {
         //  A text element paints its background color behind the glyphs.
-        Vector4 rectColor = ToPremultiplied(context.Command.Text == null ? context.Command.Color : context.Command.BackgroundColor);
-        if (rectColor.W <= 0f)
+        PixelRgba8 rectColor = ToPremultiplied(context.Command.Text == null ? context.Command.Color : context.Command.BackgroundColor);
+        if (rectColor.A == 0)
         {
             return;
         }
@@ -371,11 +372,11 @@ public sealed class PixelRenderer
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
         bool spanCorners = rounded && !CornersOverlap(radius, rect);
-        bool opaque = rectColor.W >= 1f;
+        bool opaque = rectColor.A == 255;
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
-            Span<Vector4> row = _renderTexture.GetRowSpan(y);
+            Span<PixelRgba8> row = _renderTexture.GetRowSpan(y);
 
             //  Corners only reach the top and bottom scanlines, so every other
             //  row is a contiguous run with no per-pixel corner test.
@@ -419,7 +420,7 @@ public sealed class PixelRenderer
                     continue;
                 }
 
-                row[x] = opaque ? rectColor : AlphaBlend(row[x], rectColor);
+                row[x] = opaque ? rectColor : Blend(row[x], rectColor);
             }
         }
     }
@@ -445,7 +446,7 @@ public sealed class PixelRenderer
         bool spanCorners = rounded && !CornersOverlap(radius, rect);
         int textureWidth = texture.Width;
         int textureHeight = texture.Height;
-        Vector4 backgroundColorPremultiplied = ToPremultiplied(backgroundColor);
+        Vector4 backgroundColorPremultiplied = ToPremultipliedFloat(backgroundColor);
 
         //  The clip test above guarantees a positive size, so both steps stay finite.
         float uStep = (float)textureWidth / rect.Size.X;
@@ -453,9 +454,9 @@ public sealed class PixelRenderer
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
-            Span<Vector4> row = _renderTexture.GetRowSpan(y);
+            Span<PixelRgba8> row = _renderTexture.GetRowSpan(y);
             int v = Math.Clamp((int)((y - rect.Top) * vStep), 0, textureHeight - 1);
-            Span<Vector4> textureRow = texture.GetRowSpan(v);
+            Span<PixelRgba8> textureRow = texture.GetRowSpan(v);
             bool straightRow = !rounded || (y >= rect.Top + topRadius && y < rect.Bottom - bottomRadius);
             int start = clipped.Left;
             int end = clipped.Right;
@@ -476,15 +477,15 @@ public sealed class PixelRenderer
                 }
 
                 int u = Math.Clamp((int)((x - rect.Left) * uStep), 0, textureWidth - 1);
-                Vector4 sample = ToPremultiplied(MultiplyBlend(textureRow[u], color));
+                Vector4 sample = ToPremultipliedFloat(MultiplyBlend(textureRow[u].ToVector4(), color));
                 //  Blend in any texture background color
-                sample = AlphaBlend(backgroundColorPremultiplied, sample);
+                sample = AlphaBlendFloat(backgroundColorPremultiplied, sample);
                 if (sample.W <= 0f)
                 {
                     continue;
                 }
 
-                row[x] = sample.W >= 1f ? sample : AlphaBlend(row[x], sample);
+                row[x] = sample.W >= 1f ? FromPremultiplied(sample) : FromPremultiplied(AlphaBlendFloat(row[x].ToVector4(), sample));
             }
         }
     }
@@ -653,12 +654,12 @@ public sealed class PixelRenderer
         int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
         bool rounded = topRadius > 0 || bottomRadius > 0;
         bool spanCorners = rounded && !CornersOverlap(radius, commandRect);
-        Vector4 premultiplied = ToPremultiplied(color);
-        bool opaque = premultiplied.W >= 1f;
+        PixelRgba8 premultiplied = ToPremultiplied(color);
+        bool opaque = premultiplied.A == 255;
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
-            Span<Vector4> row = _renderTexture.GetRowSpan(y);
+            Span<PixelRgba8> row = _renderTexture.GetRowSpan(y);
 
             //  Corners only reach the top and bottom scanlines, so every other
             //  row is a contiguous run with no per-pixel corner test.
@@ -702,7 +703,7 @@ public sealed class PixelRenderer
                     continue;
                 }
 
-                row[x] = opaque ? premultiplied : AlphaBlend(row[x], premultiplied);
+                row[x] = opaque ? premultiplied : Blend(row[x], premultiplied);
             }
         }
     }
@@ -820,7 +821,7 @@ public sealed class PixelRenderer
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
-            Span<Vector4> row = _renderTexture.GetRowSpan(y);
+            Span<PixelRgba8> row = _renderTexture.GetRowSpan(y);
             int v = Math.Clamp((int)(uv.Top + (y - bbox.Top) * vStep), 0, atlasHeight - 1);
             int atlasRowOffset = v * atlasWidth;
 
@@ -835,79 +836,114 @@ public sealed class PixelRenderer
                     continue;
                 }
 
-                Vector4 sample = ToPremultiplied(color * weight);
-                row[x] = sample.W >= 1f ? sample : AlphaBlend(row[x], sample);
+                PixelRgba8 sample = ToPremultiplied(color * weight);
+                row[x] = sample.A == 255 ? sample : Blend(row[x], sample);
             }
         }
     }
 
     /// <summary>
     ///     Composites one premultiplied color over a scanline. The vector path
-    ///     maps to whatever SIMD width the runtime provides, and a scalar tail
-    ///     covers runtimes without hardware acceleration.
+    ///     widens bytes to 16-bit lanes, blends, and narrows again. A scalar
+    ///     tail covers runtimes without hardware acceleration.
     /// </summary>
-    private static void BlendRow(Span<Vector4> row, Vector4 foreground)
+    private static void BlendRow(Span<PixelRgba8> row, PixelRgba8 foreground)
     {
-        float inverseAlpha = 1f - foreground.W;
-        Span<float> lanes = MemoryMarshal.Cast<Vector4, float>(row);
-        int laneWidth = Vector<float>.Count;
+        Span<byte> bytes = MemoryMarshal.AsBytes(row);
+        int laneWidth = Vector<byte>.Count;
         var lane = 0;
 
-        if (Vector.IsHardwareAccelerated && lanes.Length >= laneWidth)
+        if (Vector.IsHardwareAccelerated && bytes.Length >= laneWidth)
         {
-            Span<float> foregroundLanes = stackalloc float[laneWidth];
-            Span<float> inverseLanes = stackalloc float[laneWidth];
-            for (var channel = 0; channel < laneWidth; channel++)
+            int channelCount = Vector<ushort>.Count;
+            Span<ushort> foregroundLanes = stackalloc ushort[channelCount];
+            Span<ushort> inverseLanes = stackalloc ushort[channelCount];
+            for (var channel = 0; channel < channelCount; channel++)
             {
                 foregroundLanes[channel] = ResolveChannel(foreground, channel % 4);
-                inverseLanes[channel] = inverseAlpha;
+                inverseLanes[channel] = (ushort)(255 - foreground.A);
             }
 
-            var foregroundVector = new Vector<float>(foregroundLanes);
-            var inverseVector = new Vector<float>(inverseLanes);
-            for (; lane <= lanes.Length - laneWidth; lane += laneWidth)
+            var foregroundVector = new Vector<ushort>(foregroundLanes);
+            var inverseVector = new Vector<ushort>(inverseLanes);
+            for (; lane <= bytes.Length - laneWidth; lane += laneWidth)
             {
-                var background = new Vector<float>(lanes.Slice(lane, laneWidth));
-                (foregroundVector + background * inverseVector).CopyTo(lanes.Slice(lane, laneWidth));
+                var packed = new Vector<byte>(bytes.Slice(lane, laneWidth));
+                Vector.Widen(packed, out Vector<ushort> low, out Vector<ushort> high);
+                Vector.Narrow(
+                    BlendLanes(low, foregroundVector, inverseVector),
+                    BlendLanes(high, foregroundVector, inverseVector)).CopyTo(bytes.Slice(lane, laneWidth));
             }
         }
 
-        for (; lane < lanes.Length; lane += 4)
+        for (; lane < bytes.Length; lane += 4)
         {
             int pixel = lane / 4;
-            Vector4 background = row[pixel];
-            row[pixel] = new Vector4(
-                foreground.X + background.X * inverseAlpha,
-                foreground.Y + background.Y * inverseAlpha,
-                foreground.Z + background.Z * inverseAlpha,
-                foreground.W + background.W * inverseAlpha);
+            row[pixel] = Blend(row[pixel], foreground);
         }
     }
 
-    private static float ResolveChannel(Vector4 color, int channel)
+    private static Vector<ushort> BlendLanes(Vector<ushort> background, Vector<ushort> foreground, Vector<ushort> inverse)
+    {
+        //  The division by 255 rounds in 16-bit lanes and never overflows:
+        //  the product is at most 255 * 255 + 128 + 254.
+        var product = background * inverse + new Vector<ushort>(128);
+        product = (product + (product >> 8)) >> 8;
+        return foreground + product;
+    }
+
+    private static ushort ResolveChannel(in PixelRgba8 color, int channel)
     {
         return channel switch
         {
-            0 => color.X,
-            1 => color.Y,
-            2 => color.Z,
-            _ => color.W,
+            0 => color.R,
+            1 => color.G,
+            2 => color.B,
+            _ => color.A,
         };
     }
 
     /// <summary>
-    ///     Converts a straight color to premultiplied alpha.
+    ///     Converts a straight color to a premultiplied pixel.
     /// </summary>
-    private static Vector4 ToPremultiplied(Vector4 color)
+    private static PixelRgba8 ToPremultiplied(Vector4 color)
+    {
+        return PixelRgba8.FromVector4(ToPremultipliedFloat(color));
+    }
+
+    private static Vector4 ToPremultipliedFloat(Vector4 color)
     {
         return new Vector4(color.X * color.W, color.Y * color.W, color.Z * color.W, color.W);
     }
 
+    private static PixelRgba8 FromPremultiplied(Vector4 color)
+    {
+        return PixelRgba8.FromVector4(color);
+    }
+
     /// <summary>
     ///     Composites a premultiplied foreground over a premultiplied background.
-    ///     Both operands are premultiplied, so no division is needed.
     /// </summary>
-    private static Vector4 AlphaBlend(Vector4 background, Vector4 foreground)
+    private static PixelRgba8 Blend(in PixelRgba8 background, in PixelRgba8 foreground)
+    {
+        int inverseAlpha = 255 - foreground.A;
+        return new PixelRgba8(
+            (byte)(foreground.R + DivideBy255(background.R * inverseAlpha)),
+            (byte)(foreground.G + DivideBy255(background.G * inverseAlpha)),
+            (byte)(foreground.B + DivideBy255(background.B * inverseAlpha)),
+            (byte)(foreground.A + DivideBy255(background.A * inverseAlpha)));
+    }
+
+    /// <summary>
+    ///     Returns the nearest integer to <paramref name="value" /> divided by 255.
+    /// </summary>
+    private static int DivideBy255(int value)
+    {
+        int rounded = value + 128;
+        return (rounded + (rounded >> 8)) >> 8;
+    }
+
+    private static Vector4 AlphaBlendFloat(Vector4 background, Vector4 foreground)
     {
         float inverseAlpha = 1f - foreground.W;
         return new Vector4(
@@ -916,7 +952,7 @@ public sealed class PixelRenderer
             foreground.Z + background.Z * inverseAlpha,
             foreground.W + background.W * inverseAlpha);
     }
-    
+
     private static Vector4 MultiplyBlend(Vector4 background, Vector4 foreground)
     {
         float af = foreground.W;

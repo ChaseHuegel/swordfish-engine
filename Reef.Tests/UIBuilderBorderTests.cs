@@ -171,10 +171,15 @@ public class UIBuilderBorderTests
 
     private static void AssertColor(Vector4 expected, Vector4 actual)
     {
-        Assert.Equal(expected.X, actual.X, precision: 3);
-        Assert.Equal(expected.Y, actual.Y, precision: 3);
-        Assert.Equal(expected.Z, actual.Z, precision: 3);
-        Assert.Equal(expected.W, actual.W, precision: 3);
+        Assert.Equal(ToByte(expected.X), ToByte(actual.X));
+        Assert.Equal(ToByte(expected.Y), ToByte(actual.Y));
+        Assert.Equal(ToByte(expected.Z), ToByte(actual.Z));
+        Assert.Equal(ToByte(expected.W), ToByte(actual.W));
+    }
+
+    private static byte ToByte(float value)
+    {
+        return (byte)(Math.Clamp(value, 0f, 1f) * 255f + 0.5f);
     }
 
     private sealed class StubTextEngine : ITextEngine
