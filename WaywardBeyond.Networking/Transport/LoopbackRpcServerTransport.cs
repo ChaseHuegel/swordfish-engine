@@ -76,9 +76,10 @@ public sealed class LoopbackRpcServerTransport : IRpcServerTransport
                 return null;
             }
 
+            //  Close owns every accepted connection. Leaving this one to Close keeps the shutdown on the
+            //  closing thread, so a client observes its disconnect before Close returns.
             if (_closed)
             {
-                connection.Close(RpcDisconnectReason.LocalClose);
                 return null;
             }
 
