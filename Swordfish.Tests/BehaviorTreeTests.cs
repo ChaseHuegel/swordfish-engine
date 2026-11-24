@@ -44,13 +44,13 @@ public class BehaviorTreeTests : TestBase
     [Fact]
     public void BenchmarkEntryTick()
     {
-        TestTarget target = null;
+        TestTarget? target = null;
 
         Stopwatch sw = Stopwatch.StartNew();
         //  1k behaviors being ticked 60x/sec assuming 60fps
         for (int i = 0; i < 60 * 1000; i++)
         {
-            Tree.Tick(target, 0f);
+            Tree.Tick(target!, 0f);
         }
 
         Output.WriteLine($"Elapsed: {sw.Elapsed.TotalMilliseconds} ms");
@@ -75,7 +75,7 @@ public class BehaviorTreeTests : TestBase
     public void BehaviorGateSuccess() => Assert.Equal(BehaviorState.SUCCESS, Tree.Tick(new TestTarget(TestTarget.State.TEST), 0f));
 
     [Fact]
-    public void BehaviorSequencedConditionSuccess() => Assert.Equal(BehaviorState.SUCCESS, Tree.Tick(null, 0f));
+    public void BehaviorSequencedConditionSuccess() => Assert.Equal(BehaviorState.SUCCESS, Tree.Tick(null!, 0f));
 
     [Fact]
     public void BehaviorTreeTickFailed() => Assert.Equal(BehaviorState.FAILED, Tree.Tick(new TestTarget(), 0f));

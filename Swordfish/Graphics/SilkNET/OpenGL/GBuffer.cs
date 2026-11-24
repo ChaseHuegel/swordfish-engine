@@ -21,26 +21,28 @@ internal sealed class GBuffer : GLHandle
 
         Bind();
         
+        int nearestFilter = (int)TextureMinFilter.Nearest;
+
         //  Attach color buffers
         _positionBuffer = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, _positionBuffer);
         _gl.TexImage2D(GLEnum.Texture2D, 0, InternalFormat.Rgba16f, width, height, 0, GLEnum.Rgba, GLEnum.Float, null);
-        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMinFilter, in nearestFilter);
+        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMagFilter, in nearestFilter);
         _gl.FramebufferTexture2D(GLEnum.Framebuffer, FramebufferAttachment.ColorAttachment0, GLEnum.Texture2D, _positionBuffer, 0);
         
         _normalBuffer = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, _normalBuffer);
         _gl.TexImage2D(GLEnum.Texture2D, 0, InternalFormat.Rgba16f, width, height, 0, GLEnum.Rgba, GLEnum.Float, null);
-        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMinFilter, in nearestFilter);
+        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMagFilter, in nearestFilter);
         _gl.FramebufferTexture2D(GLEnum.Framebuffer, FramebufferAttachment.ColorAttachment1, GLEnum.Texture2D, _normalBuffer, 0);        
         
         _colorBuffer = _gl.GenTexture();
         _gl.BindTexture(TextureTarget.Texture2D, _colorBuffer);
         _gl.TexImage2D(GLEnum.Texture2D, 0, InternalFormat.Rgba, width, height, 0, GLEnum.Rgba, GLEnum.UnsignedByte, null);
-        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMinFilter, in nearestFilter);
+        _gl.TexParameterI(GLEnum.Texture2D, GLEnum.TextureMagFilter, in nearestFilter);
         _gl.FramebufferTexture2D(GLEnum.Framebuffer, FramebufferAttachment.ColorAttachment2, GLEnum.Texture2D, _colorBuffer, 0);
         
         _gl.DrawBuffers(3, [GLEnum.ColorAttachment0, GLEnum.ColorAttachment1, GLEnum.ColorAttachment2]);
