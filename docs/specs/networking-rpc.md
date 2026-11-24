@@ -82,6 +82,10 @@ Source of truth: `WaywardBeyond.Networking/Rpc/`.
 one `GameClientApiClient` per peer in `ServerPeer.Client`. `ClientHandlers`
 derives from `GameClientApiHandler`.
 
+The `IGameClientApi` notification invocations and `IGameServerApi.SendSnapshot`
+return `bool`: `true` when the peer accepts the frame, `false` when it rejects
+it. Handler shapes stay `void`. `RSG1012` rejects a handler that returns `bool`.
+
 Both interfaces name the snapshot notifications `SendSnapshot`. The direction is
 the contract: `SEND_SNAPSHOT` (20) uploads the client's components,
 `SEND_WORLD_SNAPSHOT` (300) delivers the authoritative delta.
@@ -119,11 +123,10 @@ snapshot queue.
   reconnects and receives a fresh join and full state.
 - `RpcPeer.Stats` reports frames, bytes, queued bytes, peak queued bytes,
   writes, and rejected sends.
-- A rejected server notification closes the peer. The generated client proxy
-  discards the send result, so the server paths that must observe rejection
-  (heartbeat, chat relay, notification, skill update, voxel edit) call
-  `RpcPeer.Notify` directly and treat a rejection as a peer failure instead of
-  silently dropping the frame.
+- A rejected server notification closes the peer. The typed proxies return the
+  send result, so the server paths (snapshot, heartbeat, chat relay,
+  notification, skill update, voxel edit) and the client snapshot upload treat a
+  rejection as a peer failure instead of silently dropping the frame.
 - Send batching is opt-in. With `SendBatchIntervalMs` positive, the transport
   coalesces queued frames into one write, up to `SendBatchMaxBytes`. A frame
   larger than the limit is written alone.

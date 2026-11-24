@@ -3,7 +3,6 @@ using Krill;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Voxels;
 
@@ -90,7 +89,7 @@ public sealed class VoxelFaceWriteCommitter(
                 Sequence = peerSequence,
             };
 
-            if (!peer.Rpc.Notify(GameRpc.Methods.VOXEL_FACE_EDIT, in message))
+            if (!peer.Client.VoxelFaceEdit(message))
             {
                 peer.CloseOnRejectedSend(logger);
             }

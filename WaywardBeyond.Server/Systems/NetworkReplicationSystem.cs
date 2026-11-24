@@ -348,7 +348,7 @@ public sealed class NetworkReplicationSystem
     {
         if (snapshot.GetSize() <= PayloadFragmenter.FRAGMENT_BUDGET)
         {
-            return peer.Rpc.Notify(GameRpc.Methods.SEND_WORLD_SNAPSHOT, in snapshot);
+            return peer.Client.SendSnapshot(snapshot);
         }
 
         byte[] payload = snapshot.Serialize();
@@ -364,7 +364,7 @@ public sealed class NetworkReplicationSystem
                 Payload = PayloadFragmenter.Slice(payload, partIndex),
             };
 
-            if (!peer.Rpc.Notify(GameRpc.Methods.SNAPSHOT_BATCH, in batch))
+            if (!peer.Client.SnapshotBatch(batch))
             {
                 return false;
             }

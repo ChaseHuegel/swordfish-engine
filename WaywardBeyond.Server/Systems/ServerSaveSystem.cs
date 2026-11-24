@@ -107,7 +107,7 @@ public sealed class ServerSaveSystem(
                 Args = [],
             };
 
-            if (!peer.Rpc.Notify(GameRpc.Methods.NOTIFICATION, in denied))
+            if (!peer.Client.Notification(denied))
             {
                 peer.CloseOnRejectedSend(_logger);
             }
@@ -155,7 +155,7 @@ public sealed class ServerSaveSystem(
 
         foreach (Uuid clientId in sessions.Clients)
         {
-            if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.NOTIFICATION, in message))
+            if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Client.Notification(message))
             {
                 peer.CloseOnRejectedSend(_logger);
             }

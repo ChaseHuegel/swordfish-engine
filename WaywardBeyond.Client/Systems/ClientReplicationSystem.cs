@@ -10,7 +10,6 @@ using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Codecs;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Registry;
-using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -87,7 +86,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
         //  Edges and ops are consumed exactly once: the outbound buffers are cleared only after the
         //  containing snapshot is accepted by the reliable send path. A rejected send is a peer
         //  failure: the teardown runs on the next client tick.
-        if (!_host.Notify(GameRpc.Methods.SEND_SNAPSHOT, in snapshot))
+        if (_host.Api?.SendSnapshot(snapshot) is not true)
         {
             _disconnectSystem.RequestDisconnect();
             return;

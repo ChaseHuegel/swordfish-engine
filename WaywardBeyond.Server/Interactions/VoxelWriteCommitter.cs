@@ -6,7 +6,6 @@ using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Voxels;
@@ -96,7 +95,7 @@ public sealed class VoxelWriteCommitter(
                 continue;
             }
 
-            if (!peer.Rpc.Notify(GameRpc.Methods.VOXEL_EDIT, in message))
+            if (!peer.Client.VoxelEdit(message))
             {
                 peer.CloseOnRejectedSend(logger);
             }

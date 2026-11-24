@@ -89,6 +89,38 @@ public class RpcProtocolTests
         Assert.Equal(handlerIds.OrderBy(id => id), invocationIds.OrderBy(id => id));
     }
 
+    [Fact]
+    public void NotificationProxiesReturnTheSendResult()
+    {
+        var acceptingPeer = new RpcPeer(new FakeConnection(acceptsFrames: true));
+        Assert.True(new GameClientApiClient(acceptingPeer).Notification(TestNotification()));
+        Assert.True(new GameServerApiClient(acceptingPeer).SendSnapshot(TestSnapshot()));
+
+        var rejectingPeer = new RpcPeer(new FakeConnection(acceptsFrames: false));
+        Assert.False(new GameClientApiClient(rejectingPeer).Notification(TestNotification()));
+        Assert.False(new GameServerApiClient(rejectingPeer).SendSnapshot(TestSnapshot()));
+    }
+
+    private static NotificationMessage TestNotification()
+    {
+        return new NotificationMessage
+        {
+            Type = NotificationType.Toast,
+            Key = "notification.test",
+            Args = [],
+        };
+    }
+
+    private static WorldSnapshot TestSnapshot()
+    {
+        return new WorldSnapshot
+        {
+            Components = [],
+            RemovedEntities = [],
+            RemovedComponents = [],
+        };
+    }
+
     private static bool IsInRange(ulong method)
     {
         return method is >= 1 and <= 19
@@ -104,6 +136,19 @@ public class RpcProtocolTests
     private sealed class EmptyServerHandler : GameServerApiHandler { }
 
     private sealed class EmptyClientHandler : GameClientApiHandler { }
+
+    private sealed class FakeConnection(bool acceptsFrames) : IRpcConnection
+    {
+        public bool IsConnected => true;
+
+        public void Close(RpcDisconnectReason reason = RpcDisconnectReason.LocalClose) { }
+
+        public bool TrySend(ReadOnlySpan<byte> frame) => acceptsFrames;
+
+        public event Action<RpcDisconnectReason>? Disconnected { add { } remove { } }
+
+        public event RpcFrameHandler? FrameReceived { add { } remove { } }
+    }
 }
 
 public class PayloadFragmenterTests
