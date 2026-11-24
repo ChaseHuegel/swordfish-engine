@@ -10,6 +10,7 @@ using Swordfish.Library.Threading;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Networking.Discovery;
 
 namespace WaywardBeyond.Server;
 
@@ -37,6 +38,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private readonly ServerHostCommands _commands;
     private readonly PendingConnectionHeartbeat _hostHeartbeat;
     private readonly ServerPeers _peers;
+    private readonly LanHostInfo? _hostInfo;
     private readonly ILogger _logger;
     private readonly long _idleUnloadMs;
     private readonly ThreadWorker _threadWorker;
@@ -52,12 +54,14 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         PendingConnectionHeartbeat hostHeartbeat,
         ServerPeers peers,
         NetworkingConfig config,
-        ILoggerFactory loggerFactory
+        ILoggerFactory loggerFactory,
+        LanHostInfo? hostInfo = null
     ) {
         _container = container;
         _commands = commands;
         _hostHeartbeat = hostHeartbeat;
         _peers = peers;
+        _hostInfo = hostInfo;
         _logger = loggerFactory.CreateLogger<ServerWorldHost>();
         _idleUnloadMs = Math.Max(1, config.Server.IdleUnloadMs.Get());
         _threadWorker = new ThreadWorker(Update, "Server");
@@ -196,6 +200,11 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
             }
 
             Volatile.Write(ref _playerCount, playerCount);
+            if (_hostInfo != null)
+            {
+                _hostInfo.PlayerCount = playerCount;
+            }
+
             _hostHeartbeat.Tick((uint)playerCount);
 
             //  Unloads are deferred until after the world iteration: removing from _worlds during the

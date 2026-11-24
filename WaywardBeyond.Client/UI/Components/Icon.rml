@@ -13,6 +13,8 @@
           class:wb-icon-bright="@param.Bright"
           class:wb-icon-danger="@param.Danger"
           class:wb-icon-primary="@param.Primary"
+          class:wb-icon-orange="@param.Orange"
+          class:wb-icon-success="@param.Success"
           class:wb-icon-warning="@param.Warning"
           font-size="@param.Size" />
 </Reef>

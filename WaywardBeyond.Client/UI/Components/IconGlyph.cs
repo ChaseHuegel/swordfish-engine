@@ -8,6 +8,7 @@ internal enum IconGlyph
     Server,
     Star,
     Signal,
+    XMark,
     Rotate,
     Shapes,
     Lightbulb,

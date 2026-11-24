@@ -23,5 +23,6 @@ internal readonly record struct ServerRowState(
     int Port,
     string Players,
     bool Selected,
-    bool Favorite
+    bool Favorite,
+    int? PingMs = null
 );

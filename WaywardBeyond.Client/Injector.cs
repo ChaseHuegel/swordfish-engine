@@ -147,6 +147,7 @@ public class Injector : IDryIocInjector
         container.Register<ClientNotificationSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientNotificationSystem>();
         container.Register<LanDiscoveryService>(Reuse.Singleton);
+        container.Register<ServerPingService>(Reuse.Singleton);
     }
 
     private void RegisterShortcuts(IContainer container)

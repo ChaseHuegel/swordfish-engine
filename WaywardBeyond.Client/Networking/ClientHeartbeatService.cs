@@ -1,34 +1,47 @@
 using System;
+using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
+using NsdRpc;
 using Shoal.DependencyInjection;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Client.Networking;
 
 /// <summary>
-/// Session heartbeats, client side. Sends <see cref="ClientHeartbeatMessage"/> at a timer-driven cadence,
-/// clamped below the idle timeout, so the heartbeat doubles as the transport keepalive.
+/// Session heartbeats and active-connection ping measurement, client side. Sends
+/// <see cref="ClientHeartbeatMessage"/> at a timer-driven cadence, clamped below the idle timeout, so
+/// the heartbeat doubles as the transport keepalive, and measures round-trip latency with
+/// <see cref="GameServerApiClient.DiscoverAsync"/> for both remote and local connections.
 /// </summary>
 internal sealed class ClientHeartbeatService : IDisposable, IAutoActivate
 {
     private readonly ClientRpcHost _host;
     private readonly SnapshotAckTracker _snapshotAck;
-    private readonly ClientPlayerMotionProcessor _motionProcessor;
+    private readonly ClientPlayerMotionProcessor? _motionProcessor;
+    private readonly ServerStats _serverStats;
+    private readonly int _pingTimeoutMs;
     private readonly Timer _timer;
+    private GameServerApiClient? _lastApi;
+    private int _pingInFlight;
     private bool _disposed;
 
     /// <summary>Creates the timer-driven client heartbeat service.</summary>
     public ClientHeartbeatService(
         in ClientRpcHost host,
         in SnapshotAckTracker snapshotAck,
-        in ClientPlayerMotionProcessor motionProcessor,
-        in NetworkingConfig config
+        in ClientPlayerMotionProcessor? motionProcessor,
+        in NetworkingConfig config,
+        in ServerStats serverStats
     ) {
         _host = host;
         _snapshotAck = snapshotAck;
         _motionProcessor = motionProcessor;
+        _serverStats = serverStats;
+        _pingTimeoutMs = Math.Max(250, config.Discovery.PingTimeoutMs.Get());
         int intervalMs = GetServerHeartbeatInterval(config);
         _timer = new Timer(OnHeartbeatTick, null, intervalMs, intervalMs);
     }
@@ -40,17 +53,60 @@ internal sealed class ClientHeartbeatService : IDisposable, IAutoActivate
             return;
         }
 
+        GameServerApiClient? api = _host.Api;
+        if (!ReferenceEquals(api, _lastApi))
+        {
+            _lastApi = api;
+            _serverStats.ClearPing();
+        }
+
+        if (api == null)
+        {
+            return;
+        }
+
         try
         {
-            _host.Api?.ClientHeartbeat(new ClientHeartbeatMessage
+            api.ClientHeartbeat(new ClientHeartbeatMessage
             {
-                TickNumber = _motionProcessor.Step?.CurrentSimTick ?? 0,
+                TickNumber = _motionProcessor?.Step?.CurrentSimTick ?? 0,
                 LastAppliedSnapshotTick = _snapshotAck.LastAppliedSnapshotTick,
             });
         }
         catch
         {
             //  A failed heartbeat send during disconnection is non-fatal.
+        }
+
+        if (Interlocked.CompareExchange(ref _pingInFlight, 1, 0) == 0)
+        {
+            _ = MeasurePingAsync(api);
+        }
+    }
+
+    private async Task MeasurePingAsync(GameServerApiClient api)
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(_pingTimeoutMs);
+            long started = Stopwatch.GetTimestamp();
+            RpcResult<ServerDiscovery> response = await api
+                .DiscoverAsync(new ServerDiscoveryRequest(), cts.Token)
+                .WaitAsync(cts.Token)
+                .ConfigureAwait(false);
+
+            if (response.IsSuccess && !_disposed && ReferenceEquals(_host.Api, api))
+            {
+                _serverStats.RecordPing(Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            }
+        }
+        catch
+        {
+            //  A failed or timed-out ping during disconnection is non-fatal.
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _pingInFlight, 0);
         }
     }
 

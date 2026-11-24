@@ -137,6 +137,14 @@
     color: var(--wb-primary-bright);
 }
 
+.wb-icon-orange {
+    color: var(--wb-primary);
+}
+
+.wb-icon-success {
+    color: var(--wb-success);
+}
+
 .wb-icon-warning {
     color: var(--wb-warning);
 }
@@ -699,6 +707,22 @@
     font-family: var(--wb-font-ui);
     font-size: 14px;
     vertical-align: middle;
+}
+
+.wb-ping-good {
+    color: var(--wb-success);
+}
+
+.wb-ping-fair {
+    color: var(--wb-warning);
+}
+
+.wb-ping-poor {
+    color: var(--wb-primary);
+}
+
+.wb-ping-bad {
+    color: var(--wb-danger);
 }
 
 .wb-body-frame {

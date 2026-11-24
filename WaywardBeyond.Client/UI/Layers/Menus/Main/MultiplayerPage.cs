@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,6 +31,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly NetworkingConfig _networkingConfig;
     private readonly ProfileSettings _profileSettings;
     private readonly LanDiscoveryService _discovery;
+    private readonly ServerPingService _pingService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
     private readonly ModalMenu _modalMenu;
@@ -39,6 +41,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly ILogger<MultiplayerPage> _logger;
     private readonly ScrollAreaState _scroll = new();
     private readonly MultiplayerView _view;
+    private readonly ConcurrentDictionary<string, ServerProbeResult> _probes = new(StringComparer.OrdinalIgnoreCase);
 
     private Menu<MenuPage>? _menu;
     private bool _favoritesTab = true;
@@ -49,6 +52,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private string _discoverKey = string.Empty;
     private IReadOnlyList<DiscoveredServer> _discoveredServers = [];
     private List<SavedServer> _savedServers = [];
+    private long _nextProbeTicks;
+    private int _probePassRunning;
 
     /// <summary>Creates the multiplayer page.</summary>
     public MultiplayerPage(
@@ -59,6 +64,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         in NetworkingConfig networkingConfig,
         in ProfileSettings profileSettings,
         in LanDiscoveryService discovery,
+        in ServerPingService pingService,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
@@ -75,6 +81,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _networkingConfig = networkingConfig;
         _profileSettings = profileSettings;
         _discovery = discovery;
+        _pingService = pingService;
         _soundEffectService = soundEffectService;
         _localization = localization;
         _modalMenu = modalMenu;
@@ -108,6 +115,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         _menu = menu;
+        MaybeStartProbePass();
         HandleFieldState();
 
         _scroll.Measure(ui, "Multiplayer.Servers");
@@ -142,13 +150,29 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             for (var i = 0; i < _savedServers.Count; i++)
             {
                 SavedServer server = _savedServers[i];
+                string name = server.Name;
+                string players = "-";
+                int? pingMs = null;
+
+                if (_probes.TryGetValue(EndpointKey(server.Host, server.Port), out ServerProbeResult probe) && probe.Reachable)
+                {
+                    if (!string.IsNullOrWhiteSpace(probe.ServerName))
+                    {
+                        name = probe.ServerName;
+                    }
+
+                    players = probe.PlayerCount.ToString();
+                    pingMs = probe.PingMs;
+                }
+
                 rows.Add(new ServerRowState(
-                    server.Name,
+                    name,
                     server.Host,
                     server.Port,
-                    "-",
+                    players,
                     i == _selectedFavorite,
-                    Favorite: false
+                    Favorite: false,
+                    PingMs: pingMs
                 ));
             }
         }
@@ -157,13 +181,36 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             for (var i = 0; i < _discoveredServers.Count; i++)
             {
                 DiscoveredServer server = _discoveredServers[i];
+                string name = server.Name;
+                string players = server.Players.ToString();
+                int? pingMs = null;
+
+                if (_probes.TryGetValue(EndpointKey(server.Host, server.Port), out ServerProbeResult probe))
+                {
+                    if (probe.Reachable)
+                    {
+                        if (!string.IsNullOrWhiteSpace(probe.ServerName))
+                        {
+                            name = probe.ServerName;
+                        }
+
+                        players = probe.PlayerCount.ToString();
+                        pingMs = probe.PingMs;
+                    }
+                    else
+                    {
+                        players = "-";
+                    }
+                }
+
                 rows.Add(new ServerRowState(
-                    server.Name,
+                    name,
                     server.Host,
                     server.Port,
-                    server.Players.ToString(),
+                    players,
                     i == _selectedLan,
-                    Favorite: true
+                    Favorite: true,
+                    PingMs: pingMs
                 ));
             }
         }
@@ -243,9 +290,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         }
 
         DiscoveredServer server = _discoveredServers[index];
+        string name = ResolveLiveName(server.Host, server.Port, server.Name);
         AddFavorite(new SavedServer
         {
-            Name = string.IsNullOrWhiteSpace(server.Name) ? server.Host : server.Name,
+            Name = string.IsNullOrWhiteSpace(name) ? server.Host : name,
             Host = server.Host,
             Port = server.Port,
         });
@@ -271,12 +319,14 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private void ViewSaves()
     {
+        Volatile.Write(ref _nextProbeTicks, 0);
         _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(MenuPage.SelectSave);
     }
 
     private void Back()
     {
+        Volatile.Write(ref _nextProbeTicks, 0);
         _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoToPage(MenuPage.Home);
     }
@@ -304,7 +354,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             SavedServer server = _savedServers[_selectedFavorite];
             SetFields(server.Host, server.Port);
-            serverName = server.Name;
+            serverName = ResolveLiveName(server.Host, server.Port, server.Name);
         }
         else
         {
@@ -315,7 +365,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
             DiscoveredServer server = _discoveredServers[_selectedLan];
             SetFields(server.Host, server.Port);
-            serverName = server.Name;
+            serverName = ResolveLiveName(server.Host, server.Port, server.Name);
         }
 
         TryConnect(serverName);
@@ -338,6 +388,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 found.Add(server);
                 _discoveredServers = [.. found];
                 _discoverKey = string.Empty;
+                _ = Task.Run(() => ProbeSingleAsync(server.Host, server.Port));
             }
         }
         catch (Exception ex)
@@ -461,6 +512,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
         PersistSavedServers();
         _errorKey = string.Empty;
+        _ = Task.Run(() => ProbeSingleAsync(entry.Host, entry.Port));
     }
 
     /// <summary>Asks for confirmation, then removes the favorite at the index.</summary>
@@ -498,4 +550,100 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _profileSettings.SavedServers.Set([.. _savedServers]);
         _profileSettings.Save();
     }
+
+    private void MaybeStartProbePass()
+    {
+        long now = Environment.TickCount64;
+        if (now < Volatile.Read(ref _nextProbeTicks))
+        {
+            return;
+        }
+
+        if (Interlocked.CompareExchange(ref _probePassRunning, 1, 0) != 0)
+        {
+            return;
+        }
+
+        List<(string Host, int Port)> targets = CollectProbeTargets();
+        int intervalMs = Math.Max(1000, _networkingConfig.Discovery.PingIntervalMs.Get());
+        Volatile.Write(ref _nextProbeTicks, now + intervalMs);
+
+        if (targets.Count == 0)
+        {
+            Interlocked.Exchange(ref _probePassRunning, 0);
+            return;
+        }
+
+        _ = Task.Run(() => ProbeTargetsAsync(targets));
+    }
+
+    private List<(string Host, int Port)> CollectProbeTargets()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var targets = new List<(string Host, int Port)>(_savedServers.Count + _discoveredServers.Count);
+
+        for (var i = 0; i < _savedServers.Count; i++)
+        {
+            SavedServer server = _savedServers[i];
+            if (seen.Add(EndpointKey(server.Host, server.Port)))
+            {
+                targets.Add((server.Host, server.Port));
+            }
+        }
+
+        IReadOnlyList<DiscoveredServer> discovered = _discoveredServers;
+        for (var i = 0; i < discovered.Count; i++)
+        {
+            DiscoveredServer server = discovered[i];
+            if (seen.Add(EndpointKey(server.Host, server.Port)))
+            {
+                targets.Add((server.Host, server.Port));
+            }
+        }
+
+        return targets;
+    }
+
+    private async Task ProbeTargetsAsync(List<(string Host, int Port)> targets)
+    {
+        try
+        {
+            var tasks = new Task[targets.Count];
+            for (var i = 0; i < targets.Count; i++)
+            {
+                (string host, int port) = targets[i];
+                tasks[i] = ProbeSingleAsync(host, port);
+            }
+
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Server discovery probe pass ended with an error.");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _probePassRunning, 0);
+        }
+    }
+
+    private async Task ProbeSingleAsync(string host, int port)
+    {
+        ServerProbeResult result = await _pingService.ProbeAsync(host, port).ConfigureAwait(false);
+        _probes[EndpointKey(host, port)] = result;
+    }
+
+    private string ResolveLiveName(string host, int port, string fallback)
+    {
+        if (_probes.TryGetValue(EndpointKey(host, port), out ServerProbeResult probe)
+            && probe.Reachable
+            && !string.IsNullOrWhiteSpace(probe.ServerName))
+        {
+            return probe.ServerName;
+        }
+
+        return fallback;
+    }
+
+    private static string EndpointKey(string host, int port) => $"{host}:{port}";
 }

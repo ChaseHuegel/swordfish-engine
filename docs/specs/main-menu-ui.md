@@ -153,8 +153,10 @@ A save is a galaxy. The game stores levels and characters.
   stays out because no asset backs it.
 - Saved signals is `ProfileSettings.SavedServers`.
 - Local signals is `LanDiscoveryService`.
-- The server table shows name, address, players, and ping. Ping currently renders
-  the unknown state (`-`) until the transport exposes a reading.
+- The server table shows name, address, players, and ping. `MultiplayerPage`
+  probes both saved and discovered servers over TCP via `ServerPingService` on
+  `Discovery.PingIntervalMs` while the page is rendered, updating server name,
+  player count, and ping live.
 - Direct uplink is a left-aligned toolbar with address, port, and Uplink.
   Connection errors render centered in the footer between Back and Establish
   uplink, so the page does not shift.
@@ -216,7 +218,7 @@ Do not add fake menu controls.
 - Game Mode selection is omitted. Level creation and colonist registration still
   use Creative mode.
 - Keybindings stay deferred by issue 0086.
-- Server ping and description columns have no backing data.
+- Server description has no backing data.
 - The settings page keeps its existing controls and four categories.
 
 ## Source

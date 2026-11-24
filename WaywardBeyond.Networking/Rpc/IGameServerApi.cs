@@ -32,6 +32,15 @@ public interface IGameServerApi
     [RpcMethod(GameRpc.Methods.CLIENT_HEARTBEAT, RpcDirection.ClientToServer)]
     void OnClientHeartbeat(ClientHeartbeatMessage message, RpcContext context, CancellationToken cancellationToken);
 
+    [RpcMethod(GameRpc.Methods.DISCOVER, RpcDirection.ClientToServer)]
+    Task<RpcResult<ServerDiscovery>> DiscoverAsync(
+        ServerDiscoveryRequest request,
+        CancellationToken cancellationToken = default);
+
+    [RpcMethod(GameRpc.Methods.DISCOVER, RpcDirection.ClientToServer)]
+    ValueTask<RpcResult<ServerDiscovery>> DiscoverAsync(
+        ServerDiscoveryRequest request, RpcContext context, CancellationToken cancellationToken);
+
     [RpcMethod(GameRpc.Methods.SEND_SNAPSHOT, RpcDirection.ClientToServer)]
     void SendSnapshot(WorldSnapshot snapshot);
 

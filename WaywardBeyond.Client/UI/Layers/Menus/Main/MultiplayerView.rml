@@ -179,12 +179,20 @@
                                                 min-width="90"
                                                 height="fill">
                                                 <Icon
-                                                    param:glyph="signal"
-                                                    param:tone="dim"
+                                                    param:glyph="@PingGlyph(row.PingMs)"
+                                                    param:tone="@PingTone(row.PingMs)"
                                                     param:size="14"
                                                     width="20"
                                                     height="fill" />
-                                                <Text class="wb-ping-text" text="-" width="fill" height="fill" />
+                                                <Text
+                                                    class="wb-ping-text"
+                                                    class:wb-ping-good="@IsPingGood(row.PingMs)"
+                                                    class:wb-ping-fair="@IsPingFair(row.PingMs)"
+                                                    class:wb-ping-poor="@IsPingPoor(row.PingMs)"
+                                                    class:wb-ping-bad="@IsPingBad(row.PingMs)"
+                                                    text="@PingText(row.PingMs)"
+                                                    width="fill"
+                                                    height="fill" />
                                             </Element>
                                             <IconButton id="RemoveSavedServer_{i}"
                                                         visible="@(!row.Favorite)"

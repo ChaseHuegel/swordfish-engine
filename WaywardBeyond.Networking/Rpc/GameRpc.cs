@@ -10,6 +10,7 @@ public static class GameRpc
         public const ulong CLIENT_HELLO = 1;
         public const ulong LEAVE_GAME = 2;
         public const ulong CLIENT_HEARTBEAT = 3;
+        public const ulong DISCOVER = 4;
 
         //  Replication
         public const ulong SEND_SNAPSHOT = 20;

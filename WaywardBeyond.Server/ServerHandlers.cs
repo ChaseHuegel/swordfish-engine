@@ -7,6 +7,7 @@ using NsdRpc;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Networking.Discovery;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Permissions;
 
@@ -24,16 +25,25 @@ public sealed class ServerHandlers : GameServerApiHandler
 
     private readonly ServerPeers _peers;
     private readonly ServerHostCommands _commands;
+    private readonly NetworkingConfig _config;
+    private readonly LanHostInfo? _hostInfo;
     private readonly ILogger<ServerHandlers> _logger;
     private readonly int _inboundRatePerSecond;
     private readonly int _inboundBurst;
     private readonly int _inboundQueueDepth;
 
     /// <summary>Creates the handler set with the per-peer inbound budget from the protocol config.</summary>
-    public ServerHandlers(ServerPeers peers, ServerHostCommands commands, NetworkingConfig config, ILogger<ServerHandlers> logger)
-    {
+    public ServerHandlers(
+        ServerPeers peers,
+        ServerHostCommands commands,
+        NetworkingConfig config,
+        ILogger<ServerHandlers> logger,
+        LanHostInfo? hostInfo = null
+    ) {
         _peers = peers;
         _commands = commands;
+        _config = config;
+        _hostInfo = hostInfo;
         _logger = logger;
         _inboundRatePerSecond = Math.Max(1, config.Protocol.InboundRatePerSecond.Get());
         _inboundBurst = Math.Max(1, config.Protocol.InboundBurst.Get());
@@ -83,6 +93,27 @@ public sealed class ServerHandlers : GameServerApiHandler
         {
             TryStage(peer, peer.Heartbeats, message);
         }
+    }
+
+    /// <inheritdoc/>
+    public override ValueTask<RpcResult<ServerDiscovery>> DiscoverAsync(
+        ServerDiscoveryRequest request,
+        RpcContext context,
+        CancellationToken cancellationToken
+    ) {
+        if (!TryGetPeer(in context, out _))
+        {
+            return Failed<ServerDiscovery>();
+        }
+
+        var response = new ServerDiscovery
+        {
+            ServerName = _config.Server.Name.Get(),
+            TcpPort = _hostInfo?.ListenPort ?? 0,
+            ProtocolVersion = LanDiscovery.PROTOCOL_VERSION,
+            PlayerCount = _hostInfo?.PlayerCount ?? 0,
+        };
+        return new ValueTask<RpcResult<ServerDiscovery>>(RpcResult<ServerDiscovery>.Success(response));
     }
 
     /// <inheritdoc/>

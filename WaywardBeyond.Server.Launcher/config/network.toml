@@ -12,6 +12,8 @@ Enabled = true
 Port = 47777
 BroadcastSeconds = 5
 ScanDurationSeconds = 20
+PingIntervalMs = 5000
+PingTimeoutMs = 3000
 
 [Transport]
 ConnectTimeoutMs = 5000

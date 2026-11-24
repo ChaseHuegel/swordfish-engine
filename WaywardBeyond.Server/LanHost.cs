@@ -11,7 +11,7 @@ namespace WaywardBeyond.Server;
 
 /// <summary>
 /// Opens the authoritative server to LAN peers. Calls <see cref="ServerRpcHost.StartLan"/> on the
-/// configured port and, when discovery is enabled, broadcasts a <see cref="LanBeacon"/> so LAN clients
+/// configured port and, when discovery is enabled, broadcasts a <see cref="ServerDiscovery"/> so LAN clients
 /// can auto-detect the server on the discovery port.
 /// </summary>
 public sealed class LanHost : IEntryPoint, IDisposable
@@ -106,7 +106,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         {
             try
             {
-                byte[] payload = new LanBeacon
+                byte[] payload = new ServerDiscovery
                 {
                     ServerName = serverName,
                     TcpPort = tcpPort,
