@@ -39,8 +39,6 @@ public class Editor : IEntryPoint, IAutoActivate
     // private readonly ILogger _logger;
     private readonly WindowSettings _windowSettings;
 
-    private Action? _fileWrite;
-
     public Editor(IWindowContext windowContext,
         // IECSContext ecsContext,
         IRenderContext renderContext,

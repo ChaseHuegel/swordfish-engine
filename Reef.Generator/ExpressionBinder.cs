@@ -1251,11 +1251,13 @@ internal sealed class ExpressionBinder
 
                 if (method.TypeParameters.Length > 0)
                 {
-                    method = ConstructGenericMethod(method, arguments);
-                    if (method == null)
+                    IMethodSymbol? constructed = ConstructGenericMethod(method, arguments);
+                    if (constructed == null)
                     {
                         continue;
                     }
+
+                    method = constructed;
                 }
 
                 int required = method.Parameters.Length;
@@ -1323,7 +1325,7 @@ internal sealed class ExpressionBinder
             return null;
         }
 
-        var inferred = new Dictionary<ITypeParameterSymbol, ITypeSymbol>();
+        var inferred = new Dictionary<ITypeParameterSymbol, ITypeSymbol>(SymbolEqualityComparer.Default);
         for (var i = 0; i < arguments.Count; i++)
         {
             if (arguments[i] != null && !InferType(method.Parameters[i].Type, arguments[i]!, inferred))
