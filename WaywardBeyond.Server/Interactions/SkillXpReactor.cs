@@ -4,7 +4,6 @@ using Krill;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Skills;
 
@@ -138,7 +137,7 @@ public sealed class SkillXpReactor(
 
     private void SendOrLog(Uuid clientId, in SkillStateUpdateMessage message)
     {
-        if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.SKILL_UPDATE, in message))
+        if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Client.SkillUpdate(message))
         {
             peer.CloseOnRejectedSend(logger);
         }
@@ -146,7 +145,7 @@ public sealed class SkillXpReactor(
 
     private void SendOrLog(Uuid clientId, in NotificationMessage message)
     {
-        if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Rpc.Notify(GameRpc.Methods.NOTIFICATION, in message))
+        if (peers.TryGet(clientId, out ServerPeer peer) && !peer.Client.Notification(message))
         {
             peer.CloseOnRejectedSend(logger);
         }

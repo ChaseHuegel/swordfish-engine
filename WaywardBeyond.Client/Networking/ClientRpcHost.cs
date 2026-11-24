@@ -167,13 +167,6 @@ internal sealed class ClientRpcHost : IDisposable
         RestoreLoopback();
     }
 
-    /// <summary>Sends a typed notification on the active client. Returns false when the send is rejected.</summary>
-    public bool Notify<TRequest>(ulong method, in TRequest request)
-        where TRequest : struct
-    {
-        return _client?.Notify(method, in request) ?? false;
-    }
-
     /// <summary>Marks the host closed and closes the active connection without restoring the loopback.</summary>
     public void Close()
     {

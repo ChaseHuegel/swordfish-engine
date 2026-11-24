@@ -42,7 +42,7 @@ public interface IGameServerApi
         ServerDiscoveryRequest request, RpcContext context, CancellationToken cancellationToken);
 
     [RpcMethod(GameRpc.Methods.SEND_SNAPSHOT, RpcDirection.ClientToServer)]
-    void SendSnapshot(WorldSnapshot snapshot);
+    bool SendSnapshot(WorldSnapshot snapshot);
 
     [RpcMethod(GameRpc.Methods.SEND_SNAPSHOT, RpcDirection.ClientToServer)]
     void OnSendSnapshot(WorldSnapshot snapshot, RpcContext context, CancellationToken cancellationToken);
