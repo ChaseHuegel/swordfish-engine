@@ -32,11 +32,13 @@ larger value fails serialization instead of truncating the length header. See
 
 Source of truth: `WaywardBeyond.Networking/Rpc/GameRpc.cs`.
 
+`GameRpc.PROTOCOL_VERSION` is 3. Hosts and clients must match.
+
 A method id is a wire contract. Never change or reuse one between builds.
 
 | Range | Subject |
 |---|---|
-| 1–19 | connection: hello, leave, client heartbeat |
+| 1–19 | connection: hello, leave, client heartbeat, server discovery |
 | 20–59 | replication: client snapshot |
 | 60–99 | gameplay commands: chat |
 | 100–149 | menu: list, create, delete, save |
@@ -50,6 +52,7 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 1 | `ClientHello` | client → server | notification | `ClientHello` |
 | 2 | `LeaveGame` | client → server | notification | `LeaveGameRequest` |
 | 3 | `ClientHeartbeat` | client → server | notification | `ClientHeartbeatMessage` |
+| 4 | `Discover` | client → server | call | `ServerDiscoveryRequest` → `ServerDiscovery` |
 | 20 | `SendSnapshot` | client → server | notification | `WorldSnapshot` |
 | 60 | `Chat` | client → server | notification | `ChatMessage` |
 | 100 | `ListLevels` | client → server | call | `ListLevelsRequest` → `ListLevelsResponse` |

@@ -124,6 +124,8 @@ Route a goal to the right doc:
   unearned abstractions.
 - **Expected failure returns `Result<T>`.** Do not throw, and do not add a
   `bool TryGet(out T)` on a non-hot-path API.
+- **One top-level type per file.** Never declare multiple top-level types in one
+  `.cs` file. Nested types inside an owning type are allowed.
 - **No `TODO`/`FIXME`/`HACK`.** Capture the work as an issue under
   `docs/issues/`.
 - **Contract-only docs.** One-line summaries, `<inheritdoc/>` on

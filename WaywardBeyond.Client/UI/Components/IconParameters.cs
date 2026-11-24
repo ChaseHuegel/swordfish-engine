@@ -17,6 +17,7 @@ internal sealed record IconParameters(
         IconGlyph.Server => "\uf233",
         IconGlyph.Star => "\uf005",
         IconGlyph.Signal => "\uf012",
+        IconGlyph.XMark => "\uf00d",
         IconGlyph.Rotate => "\uf021",
         IconGlyph.Shapes => "\uf61f",
         IconGlyph.Lightbulb => "\uf0eb",
@@ -41,6 +42,12 @@ internal sealed record IconParameters(
 
     /// <summary>Gets whether the icon uses the primary tone.</summary>
     public bool Primary => Tone == IconTone.Primary;
+
+    /// <summary>Gets whether the icon uses the caution tone.</summary>
+    public bool Caution => Tone == IconTone.Caution;
+
+    /// <summary>Gets whether the icon uses the success tone.</summary>
+    public bool Success => Tone == IconTone.Success;
 
     /// <summary>Gets whether the icon uses the warning tone.</summary>
     public bool Warning => Tone == IconTone.Warning;

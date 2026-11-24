@@ -124,7 +124,9 @@ Session heartbeats are RPC notifications, not transport keepalives.
   `ServerHeartbeatService`, and to unbound menu peers from
   `PendingConnectionHeartbeat`.
 - The client sends `ClientHeartbeat` from `ClientHeartbeatService` on a
-  timer-driven service, decoupled from the ECS tick loop.
+  timer-driven service, decoupled from the ECS tick loop. Each tick also sends
+  a `Discover` RPC call (at most one in flight) and records round-trip latency
+  on `ServerStats` for both remote TCP and local loopback connections.
 - Inbound `ServerHeartbeat` frames record `ServerStats` immediately on the
   network receive thread.
 - Every inbound handler stamps `ServerPeer.LastInboundTicks`.
@@ -139,14 +141,19 @@ the multiplayer page. The beacon is a control plane and never carries game
 state.
 
 - `LanHost` starts the LAN RPC listener and a `"LAN BEACON"` thread. The thread
-  sends an nsd `LanBeacon` to `255.255.255.255` every
+  sends an nsd `ServerDiscovery` to `255.255.255.255` every
   `Discovery.BroadcastSeconds`. `PlayerCount` is the sum of world session
-  counts, published by the server thread once per tick so the beacon thread
-  never walks the world table.
+  counts, published by the server thread once per tick to `ServerWorldHost` and
+  `ServerHostInfo` so the beacon thread and `ServerHandlers.DiscoverAsync` never
+  walk the world table.
 - `LanDiscoveryService` listens on the discovery port for
   `Discovery.ScanDurationSeconds`, drops non-matching protocol versions, dedupes
   by endpoint, and ignores its own server by source address and TCP port.
-- `LanDiscovery.PROTOCOL_VERSION` is 3. An old client cannot join a new server.
+- `ServerPingService` opens a short-lived connection to a server, sends a
+  `Discover` RPC call, measures round-trip ping, and returns live server name,
+  player count, and latency. `MultiplayerPage` probes both saved and discovered
+  servers on `Discovery.PingIntervalMs` while the page is rendered.
+- `GameRpc.PROTOCOL_VERSION` is 3. An old client cannot join a new server.
 - `MultiplayerPage` pre-fills host and port and uses the normal
   `ClientRpcHost.ConnectRemote` path.
 
@@ -184,6 +191,8 @@ Top-level:
 | `Port` | `47777` |
 | `BroadcastSeconds` | `5` |
 | `ScanDurationSeconds` | `20` |
+| `PingIntervalMs` | `5000` |
+| `PingTimeoutMs` | `3000` |
 
 `[Transport]`:
 
@@ -252,6 +261,6 @@ disposal. A LAN listen failure exits non-zero.
 - `WaywardBeyond.Server/PendingConnectionHeartbeat.cs`
 - `WaywardBeyond.Server/LanHost.cs`
 - `WaywardBeyond.Server/SessionManager.cs`
-- `WaywardBeyond.Client/Networking/{ClientRpcHost,ClientInbound,ClientHandlers,ClientHeartbeatService,LanDiscoveryService}.cs`
+- `WaywardBeyond.Client/Networking/{ClientRpcHost,ClientInbound,ClientHandlers,ClientHeartbeatService,LanDiscoveryService,ServerPingService,ServerProbeResult}.cs`
 - `WaywardBeyond.Config/{NetworkingConfig,NetworkingConfigExtensions,TransportConfig,ProtocolConfig,ServerConfig}.cs`
 - `WaywardBeyond.Server.Launcher/config/network.toml`

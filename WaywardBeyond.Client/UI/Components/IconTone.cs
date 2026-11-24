@@ -9,5 +9,7 @@ internal enum IconTone
     Bright,
     Danger,
     Primary,
+    Caution,
+    Success,
     Warning,
 }

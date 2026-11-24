@@ -384,13 +384,16 @@ contract. `ClientNotificationSystem`
 writes each `SkillStateUpdateMessage` total into the client-owned character save.
 See [skills](skills.md) for the authority model.
 
-## LAN beacon
+## Server discovery
 
 ```nsd
-message LanBeacon { string ServerName; int TcpPort; int ProtocolVersion; int PlayerCount; }
+message ServerDiscoveryRequest { byte Dummy = 0; }
+message ServerDiscovery { string ServerName = 0; int TcpPort = 1; int ProtocolVersion = 2; int PlayerCount = 3; }
 ```
 
-A UDP control-plane beacon only. See [transports](networking-transports.md).
+`ServerDiscovery` serves both UDP LAN broadcasts and TCP RPC discovery calls
+(method `4`). See [transports](networking-transports.md) and
+[rpc](networking-rpc.md).
 
 ## Source of truth
 

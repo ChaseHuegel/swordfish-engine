@@ -6,12 +6,13 @@ using Shoal.Modularity;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Discovery;
+using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Server;
 
 /// <summary>
 /// Opens the authoritative server to LAN peers. Calls <see cref="ServerRpcHost.StartLan"/> on the
-/// configured port and, when discovery is enabled, broadcasts a <see cref="LanBeacon"/> so LAN clients
+/// configured port and, when discovery is enabled, broadcasts a <see cref="ServerDiscovery"/> so LAN clients
 /// can auto-detect the server on the discovery port.
 /// </summary>
 public sealed class LanHost : IEntryPoint, IDisposable
@@ -19,7 +20,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
     private readonly ServerRpcHost _rpcHost;
     private readonly ServerWorldHost _worldHost;
     private readonly NetworkingConfig _config;
-    private readonly LanHostInfo _hostInfo;
+    private readonly ServerHostInfo _hostInfo;
     private readonly ILogger<LanHost> _logger;
     private UdpClient? _beacon;
     private volatile bool _beaconRunning;
@@ -29,7 +30,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         ServerRpcHost rpcHost,
         ServerWorldHost worldHost,
         NetworkingConfig config,
-        LanHostInfo hostInfo,
+        ServerHostInfo hostInfo,
         ILoggerFactory loggerFactory
     ) {
         _rpcHost = rpcHost;
@@ -106,11 +107,11 @@ public sealed class LanHost : IEntryPoint, IDisposable
         {
             try
             {
-                byte[] payload = new LanBeacon
+                byte[] payload = new ServerDiscovery
                 {
                     ServerName = serverName,
                     TcpPort = tcpPort,
-                    ProtocolVersion = LanDiscovery.PROTOCOL_VERSION,
+                    ProtocolVersion = GameRpc.PROTOCOL_VERSION,
                     PlayerCount = _worldHost.PlayerCount,
                 }.Serialize();
 

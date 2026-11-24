@@ -83,14 +83,28 @@ internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerSta
         _lines.Add(new StatLine($"   BYTES  {Format(bytesIn)} in / {Format(bytesOut)} out"));
         _lines.Add(new StatLine($"   PKTS   {packetsIn} in / {packetsOut} out"));
 
-        //  Session heartbeat signal: live server TPS and player count, never stale.
+        //  Session heartbeat signal: live server TPS, player count, and measured round-trip ping.
         _lines.Add(_serverStats.IsStale(2000)
             ? new StatLine("No server signal", Danger: true)
             : new StatLine($"   SERVER {_serverStats.TPS} tps / tick {_serverStats.ServerTick} / {_serverStats.PlayerCount} players"));
+        _lines.Add(_serverStats.IsPingStale(5000)
+            ? new StatLine("   PING   -")
+            : new StatLine($"   PING   {FormatPing(_serverStats.PingMs)}"));
 
         _statLines.Render(ui, new StatLinesState(_lines));
 
         return Result.FromSuccess();
+    }
+
+    /// <summary>Formats a round-trip latency in milliseconds for the debug overlay.</summary>
+    internal static string FormatPing(double pingMs)
+    {
+        if (pingMs < 10d)
+        {
+            return $"{pingMs:F1} ms";
+        }
+
+        return $"{Math.Round(pingMs):F0} ms";
     }
 
     private static string Format(double bytesPerSecond)

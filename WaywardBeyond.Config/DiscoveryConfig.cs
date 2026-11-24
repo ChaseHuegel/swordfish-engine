@@ -16,4 +16,10 @@ public sealed record DiscoveryConfig
     
     /// <summary>The duration in seconds at which to scan for LAN servers.</summary>
     public DataBinding<int> ScanDurationSeconds { get; private set; } = new(20);
+
+    /// <summary>The interval in milliseconds between live server list discovery probes.</summary>
+    public DataBinding<int> PingIntervalMs { get; private set; } = new(5000);
+
+    /// <summary>The timeout in milliseconds for one server discovery probe.</summary>
+    public DataBinding<int> PingTimeoutMs { get; private set; } = new(3000);
 }

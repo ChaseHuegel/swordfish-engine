@@ -144,10 +144,15 @@ message ClientHeartbeatMessage
     uint LastAppliedSnapshotTick = 1;
 }
 
-message LanBeacon
+message ServerDiscoveryRequest
 {
-    string ServerName    = 0;
-    int    TcpPort       = 1;
+    byte Dummy = 0;
+}
+
+message ServerDiscovery
+{
+    string ServerName      = 0;
+    int    TcpPort         = 1;
     int    ProtocolVersion = 2;
-    int    PlayerCount   = 3;
+    int    PlayerCount     = 3;
 }

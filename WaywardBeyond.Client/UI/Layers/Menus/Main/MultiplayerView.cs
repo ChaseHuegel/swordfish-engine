@@ -121,4 +121,60 @@ internal partial class MultiplayerView : UiViewBase
 
         return discoverKey.Length > 0 ? L(discoverKey) : L("ui.message.server.discover.empty");
     }
+
+    /// <summary>Returns the ping icon glyph for a measured latency.</summary>
+    public static IconGlyph PingGlyph(int? pingMs)
+    {
+        return pingMs.HasValue && pingMs.Value >= 250 ? IconGlyph.XMark : IconGlyph.Signal;
+    }
+
+    /// <summary>Returns the ping icon tone for a measured latency.</summary>
+    public static IconTone PingTone(int? pingMs)
+    {
+        if (!pingMs.HasValue)
+        {
+            return IconTone.Dim;
+        }
+
+        int value = pingMs.Value;
+        if (value < 60)
+        {
+            return IconTone.Success;
+        }
+
+        if (value < 100)
+        {
+            return IconTone.Warning;
+        }
+
+        if (value < 150)
+        {
+            return IconTone.Caution;
+        }
+
+        return IconTone.Danger;
+    }
+
+    /// <summary>Formats a ping reading for the server list.</summary>
+    public static string PingText(int? pingMs)
+    {
+        if (!pingMs.HasValue)
+        {
+            return "-";
+        }
+
+        return pingMs.Value < 1 ? "<1 ms" : $"{pingMs.Value} ms";
+    }
+
+    /// <summary>True when the ping is below 60 ms.</summary>
+    public static bool IsPingGood(int? pingMs) => pingMs.HasValue && pingMs.Value < 60;
+
+    /// <summary>True when the ping is between 60 and 99 ms.</summary>
+    public static bool IsPingFair(int? pingMs) => pingMs.HasValue && pingMs.Value >= 60 && pingMs.Value < 100;
+
+    /// <summary>True when the ping is between 100 and 149 ms.</summary>
+    public static bool IsPingPoor(int? pingMs) => pingMs.HasValue && pingMs.Value >= 100 && pingMs.Value < 150;
+
+    /// <summary>True when the ping is 150 ms or more.</summary>
+    public static bool IsPingBad(int? pingMs) => pingMs.HasValue && pingMs.Value >= 150;
 }

@@ -3,6 +3,9 @@ namespace WaywardBeyond.Networking.Rpc;
 /// <summary>The game wire contract for nsd-rpc. Method ids are stable; never reuse or renumber one.</summary>
 public static class GameRpc
 {
+    /// <summary>The wire protocol version. Hosts and clients must match.</summary>
+    public const int PROTOCOL_VERSION = 3;
+
     /// <summary>Method ids grouped by subject. Each id is a wire contract.</summary>
     public static class Methods
     {
@@ -10,6 +13,7 @@ public static class GameRpc
         public const ulong CLIENT_HELLO = 1;
         public const ulong LEAVE_GAME = 2;
         public const ulong CLIENT_HEARTBEAT = 3;
+        public const ulong DISCOVER = 4;
 
         //  Replication
         public const ulong SEND_SNAPSHOT = 20;

@@ -48,6 +48,8 @@ adjacent-problem rule in [specs/issues](issues.md).
 
 ## Structure
 
+- More than one top-level type in a file. Extract each top-level type to its
+  own file.
 - A thin wrapper that only forwards a call. Inline it.
 - An abstraction with one implementation and no churn pressure. Inline it.
 - Parallel state. Keep one representation.
