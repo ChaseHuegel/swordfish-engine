@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Numerics;
 
@@ -31,5 +32,22 @@ public class PixelTexture
     public void SetPixel(int x, int y, Vector4 color)
     {
         _pixels[y * Width + x] = color;
+    }
+
+    /// <summary>
+    ///     Returns the pixels of one scanline in place, so a caller can read or
+    ///     write a whole row without recomputing the row offset per pixel.
+    /// </summary>
+    public Span<Vector4> GetRowSpan(int y)
+    {
+        return _pixels.AsSpan(y * Width, Width);
+    }
+
+    /// <summary>
+    ///     Resets every pixel to transparent black.
+    /// </summary>
+    public void Clear()
+    {
+        Array.Clear(_pixels);
     }
 }

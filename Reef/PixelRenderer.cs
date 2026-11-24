@@ -34,12 +34,8 @@ public sealed class PixelRenderer
     
     public void Render(List<RenderCommand<PixelTexture>> renderCommands)
     {
-        for (var y = 0; y < _height; y++)
-        for (var x = 0; x < _width; x++)
-        {
-            _renderTexture.SetPixel(x, y, Vector4.Zero);
-        }
-        
+        _renderTexture.Clear();
+
         foreach (RenderCommand<PixelTexture> renderCommand in renderCommands)
         {
             Draw(renderCommand);
@@ -49,42 +45,17 @@ public sealed class PixelRenderer
     private void Draw(RenderCommand<PixelTexture> renderCommand)
     {
         Vector4 color = renderCommand.Color;
-        Vector4 backgroundColor = renderCommand.BackgroundColor;
-        
+
         //  Render rects.
         //  IntRect right and bottom bounds are exclusive, matching IntRect.Contains.
         IntRect clipped = ClipToScreen(renderCommand.Rect, renderCommand.ClipRect);
-
-        for (int y = clipped.Top; y < clipped.Bottom; y++)
-        for (int x = clipped.Left; x < clipped.Right; x++)
+        if (renderCommand.RendererData != null)
         {
-            //  Skip pixels that are outside the corner radii
-            if (IsOutsideCornerRadius(renderCommand, x, y))
-            {
-                continue;
-            }
-
-            Vector4 currentColor = _renderTexture.GetPixel(x, y);
-
-            //  Render a textured rect
-            if (renderCommand.RendererData != null)
-            {
-                var u = Math.Clamp((int)RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.RendererData.Width), 0, renderCommand.RendererData.Width - 1);
-                var v = Math.Clamp((int)RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.RendererData.Height), 0, renderCommand.RendererData.Height - 1);
-                Vector4 sample = renderCommand.RendererData.GetPixel(u, v);
-                sample = MultiplyBlend(sample, color);
-                //  Blend in any texture background color
-                sample = AlphaBlend(backgroundColor, sample);
-                
-                _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, sample));
-            }
-            //  Render a color rect
-            else
-            {
-                //  If text is present, treat this as a background.
-                Vector4 rectColor = renderCommand.Text == null ? color : backgroundColor;
-                _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, rectColor));
-            }
+            DrawTexturedRect(renderCommand, clipped);
+        }
+        else
+        {
+            DrawColorRect(renderCommand, clipped);
         }
 
         DrawBorder(renderCommand);
@@ -120,6 +91,105 @@ public sealed class PixelRenderer
             );
 
             DrawCharacter(bbox, renderCommand.ClipRect, glyph.UV, glyph.ResolveColor(color), font);
+        }
+    }
+
+    private void DrawColorRect(RenderCommand<PixelTexture> renderCommand, IntRect clipped)
+    {
+        //  A text element paints its background color behind the glyphs.
+        Vector4 rectColor = renderCommand.Text == null ? renderCommand.Color : renderCommand.BackgroundColor;
+        if (rectColor.W <= 0f)
+        {
+            return;
+        }
+
+        IntRect rect = renderCommand.Rect;
+        CornerRadius radius = renderCommand.CornerRadius;
+        int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
+        int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
+        bool rounded = topRadius > 0 || bottomRadius > 0;
+        bool opaque = rectColor.W >= 1f;
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
+        {
+            Span<Vector4> row = _renderTexture.GetRowSpan(y);
+
+            //  Corners only reach the top and bottom scanlines, so every other
+            //  row is a contiguous run with no per-pixel corner test.
+            if (!rounded || (y >= rect.Top + topRadius && y < rect.Bottom - bottomRadius))
+            {
+                if (opaque)
+                {
+                    row.Slice(clipped.Left, clipped.Size.X).Fill(rectColor);
+                    continue;
+                }
+
+                for (int x = clipped.Left; x < clipped.Right; x++)
+                {
+                    row[x] = AlphaBlend(row[x], rectColor);
+                }
+
+                continue;
+            }
+
+            for (int x = clipped.Left; x < clipped.Right; x++)
+            {
+                if (IsOutsideCornerRadius(renderCommand, x, y))
+                {
+                    continue;
+                }
+
+                row[x] = opaque ? rectColor : AlphaBlend(row[x], rectColor);
+            }
+        }
+    }
+
+    private void DrawTexturedRect(RenderCommand<PixelTexture> renderCommand, IntRect clipped)
+    {
+        Vector4 color = renderCommand.Color;
+        Vector4 backgroundColor = renderCommand.BackgroundColor;
+
+        //  The background color is blended over the modulated texture, so a
+        //  rect with a fully transparent color and background keeps the target.
+        if (color.W <= 0f && backgroundColor.W <= 0f)
+        {
+            return;
+        }
+
+        PixelTexture texture = renderCommand.RendererData!;
+        IntRect rect = renderCommand.Rect;
+        CornerRadius radius = renderCommand.CornerRadius;
+        int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
+        int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
+        bool rounded = topRadius > 0 || bottomRadius > 0;
+        int textureWidth = texture.Width;
+        int textureHeight = texture.Height;
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
+        {
+            Span<Vector4> row = _renderTexture.GetRowSpan(y);
+            int v = Math.Clamp((int)RangeToRange(y, rect.Top, rect.Bottom, 0, textureHeight), 0, textureHeight - 1);
+            Span<Vector4> textureRow = texture.GetRowSpan(v);
+            bool straightRow = !rounded || (y >= rect.Top + topRadius && y < rect.Bottom - bottomRadius);
+
+            for (int x = clipped.Left; x < clipped.Right; x++)
+            {
+                if (!straightRow && IsOutsideCornerRadius(renderCommand, x, y))
+                {
+                    continue;
+                }
+
+                int u = Math.Clamp((int)RangeToRange(x, rect.Left, rect.Right, 0, textureWidth), 0, textureWidth - 1);
+                Vector4 sample = MultiplyBlend(textureRow[u], color);
+                //  Blend in any texture background color
+                sample = AlphaBlend(backgroundColor, sample);
+                if (sample.W <= 0f)
+                {
+                    continue;
+                }
+
+                row[x] = sample.W >= 1f ? sample : AlphaBlend(row[x], sample);
+            }
         }
     }
     
@@ -276,9 +346,35 @@ public sealed class PixelRenderer
     private void DrawSolidRect(RenderCommand<PixelTexture> renderCommand, IntRect rect, Vector4 color)
     {
         IntRect clipped = ClipToScreen(rect, renderCommand.ClipRect);
+        IntRect commandRect = renderCommand.Rect;
+        CornerRadius radius = renderCommand.CornerRadius;
+        int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
+        int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
+        bool rounded = topRadius > 0 || bottomRadius > 0;
+        bool opaque = color.W >= 1f;
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
         {
+            Span<Vector4> row = _renderTexture.GetRowSpan(y);
+
+            //  Corners only reach the top and bottom scanlines, so every other
+            //  row is a contiguous run with no per-pixel corner test.
+            if (!rounded || (y >= commandRect.Top + topRadius && y < commandRect.Bottom - bottomRadius))
+            {
+                if (opaque)
+                {
+                    row.Slice(clipped.Left, clipped.Size.X).Fill(color);
+                    continue;
+                }
+
+                for (int x = clipped.Left; x < clipped.Right; x++)
+                {
+                    row[x] = AlphaBlend(row[x], color);
+                }
+
+                continue;
+            }
+
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
                 if (IsOutsideCornerRadius(renderCommand, x, y))
@@ -286,8 +382,7 @@ public sealed class PixelRenderer
                     continue;
                 }
 
-                Vector4 currentColor = _renderTexture.GetPixel(x, y);
-                _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, color));
+                row[x] = opaque ? color : AlphaBlend(row[x], color);
             }
         }
     }
@@ -335,15 +430,18 @@ public sealed class PixelRenderer
         IntRect clipped = ClipToScreen(bbox, clipRect);
 
         for (int y = clipped.Top; y < clipped.Bottom; y++)
-        for (int x = clipped.Left; x < clipped.Right; x++)
         {
-            var u = (int)RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
-            var v = (int)RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
-            
-            Vector4 currentColor = _renderTexture.GetPixel(x, y);
-            Vector4 sample = SampleSdf(font.Texture, font.Fwidth, u, v, Vector4.Zero, color);
-            
-            _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, sample));
+            Span<Vector4> row = _renderTexture.GetRowSpan(y);
+            int v = (int)RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
+
+            for (int x = clipped.Left; x < clipped.Right; x++)
+            {
+                int u = (int)RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
+
+                Vector4 sample = SampleSdf(font.Texture, font.Fwidth, u, v, Vector4.Zero, color);
+
+                row[x] = AlphaBlend(row[x], sample);
+            }
         }
     }
 
