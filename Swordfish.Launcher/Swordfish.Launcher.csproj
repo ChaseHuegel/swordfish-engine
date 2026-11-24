@@ -28,4 +28,40 @@
       </None>
     </ItemGroup>
 
+    <!--
+        The launcher owns assets/config. A referenced module ships its own copy of the launcher
+        config, so both files map to the same output path. Keep the launcher's copy and drop the
+        module's, otherwise the publish step fails with NETSDK1152.
+    -->
+    <Target Name="_ExcludeModuleConfigFromLauncherRootOutput"
+            BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectory;_CopyOutOfDateSourceItemsToOutputDirectoryAlways;_CopyDifferingSourceItemsToOutputDirectory">
+        <PropertyGroup>
+            <_LauncherProjectRoot>$([MSBuild]::EnsureTrailingSlash('$(MSBuildProjectDirectory)'))</_LauncherProjectRoot>
+        </PropertyGroup>
+        <ItemGroup>
+            <_ModuleConfigOutput Include="@(_SourceItemsToCopyToOutputDirectory);@(_SourceItemsToCopyToOutputDirectoryAlways);@(_SourceItemsToCopyToOutputDirectoryIfDifferent)"
+                                 Condition="($([System.String]::Copy('%(TargetPath)').StartsWith('assets\config\', System.StringComparison.OrdinalIgnoreCase))
+                                             or $([System.String]::Copy('%(TargetPath)').StartsWith('assets/config/', System.StringComparison.OrdinalIgnoreCase)))
+                                            and !$([System.String]::Copy('%(FullPath)').StartsWith('$(_LauncherProjectRoot)', System.StringComparison.OrdinalIgnoreCase))" />
+            <_SourceItemsToCopyToOutputDirectory Remove="@(_ModuleConfigOutput)" />
+            <_SourceItemsToCopyToOutputDirectoryAlways Remove="@(_ModuleConfigOutput)" />
+            <_SourceItemsToCopyToOutputDirectoryIfDifferent Remove="@(_ModuleConfigOutput)" />
+        </ItemGroup>
+    </Target>
+
+    <Target Name="_ExcludeModuleConfigFromLauncherRootPublish"
+            AfterTargets="ComputeFilesToPublish"
+            BeforeTargets="_HandleFileConflictsForPublish;_GetCurrentAndPriorPublishFileWrites;_ComputeResolvedFilesToPublishTypes">
+        <PropertyGroup>
+            <_LauncherProjectRoot>$([MSBuild]::EnsureTrailingSlash('$(MSBuildProjectDirectory)'))</_LauncherProjectRoot>
+        </PropertyGroup>
+        <ItemGroup>
+            <_ModuleConfigPublish Include="@(ResolvedFileToPublish)"
+                                  Condition="($([System.String]::Copy('%(RelativePath)').StartsWith('assets\config\', System.StringComparison.OrdinalIgnoreCase))
+                                              or $([System.String]::Copy('%(RelativePath)').StartsWith('assets/config/', System.StringComparison.OrdinalIgnoreCase)))
+                                             and !$([System.String]::Copy('%(FullPath)').StartsWith('$(_LauncherProjectRoot)', System.StringComparison.OrdinalIgnoreCase))" />
+            <ResolvedFileToPublish Remove="@(_ModuleConfigPublish)" />
+        </ItemGroup>
+    </Target>
+
 </Project>
