@@ -43,6 +43,11 @@ public class PixelTexture
         return _pixels.AsSpan(y * Width, Width);
     }
 
+    internal ReadOnlySpan<Vector4> AsSpan()
+    {
+        return _pixels;
+    }
+
     /// <summary>
     ///     Resets every pixel to transparent black.
     /// </summary>

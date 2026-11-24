@@ -439,6 +439,8 @@ public sealed class PixelRenderer
         IntRect clipped = ClipToScreen(bbox, clipRect);
         int atlasWidth = font.Texture.Width;
         int atlasHeight = font.Texture.Height;
+        float[] distances = font.Distances;
+        float invFwidth = font.InvFwidth;
 
         //  The clip test guarantees a positive bbox size, so both steps stay finite.
         float uStep = (float)(uv.Right - uv.Left) / bbox.Size.X;
@@ -448,33 +450,23 @@ public sealed class PixelRenderer
         {
             Span<Vector4> row = _renderTexture.GetRowSpan(y);
             int v = Math.Clamp((int)(uv.Top + (y - bbox.Top) * vStep), 0, atlasHeight - 1);
+            int atlasRowOffset = v * atlasWidth;
 
             for (int x = clipped.Left; x < clipped.Right; x++)
             {
                 int u = Math.Clamp((int)(uv.Left + (x - bbox.Left) * uStep), 0, atlasWidth - 1);
+                float weight = Math.Clamp(distances[atlasRowOffset + u] * invFwidth + 0.5f, 0f, 1f);
 
-                Vector4 sample = SampleSdf(font.Texture, font.Fwidth, u, v, Vector4.Zero, color);
+                //  Most of a glyph quad lies outside the stroke, so leave the target alone.
+                if (weight <= 0f)
+                {
+                    continue;
+                }
 
-                row[x] = AlphaBlend(row[x], sample);
+                Vector4 sample = color * weight;
+                row[x] = sample.W >= 1f ? sample : AlphaBlend(row[x], sample);
             }
         }
-    }
-
-    private static Vector4 SampleSdf(PixelTexture sdf, float fwidth, int u, int v, Vector4 outsideColor, Vector4 insideColor)
-    {
-        //  Clamp to the atlas bounds; glyph quads can touch or cross the edge
-        u = Math.Clamp(u, 0, sdf.Width - 1);
-        v = Math.Clamp(v, 0, sdf.Height - 1);
-
-        Vector4 s = sdf.GetPixel(u, v);
-        float d = Median(s.X, s.Y, s.Z) - 0.5f;
-        float w = Math.Clamp(d / fwidth + 0.5f, 0f, 1f);
-        return Mix(outsideColor, insideColor, w);
-    }
-
-    private static float Median(float a, float b, float c)
-    {
-        return Math.Max(Math.Min(a, b), Math.Min(Math.Max(a, b), c));
     }
 
     private static Vector4 AlphaBlend(Vector4 background, Vector4 foreground)
@@ -514,15 +506,5 @@ public sealed class PixelRenderer
         float b = bf * bb;
 
         return new Vector4(r, g, b, a);
-    }
-    
-    private static Vector4 Mix(Vector4 color1, Vector4 color2, float t)
-    {
-        return new Vector4(
-            color1.X + (color2.X - color1.X) * t,
-            color1.Y + (color2.Y - color1.Y) * t,
-            color1.Z + (color2.Z - color1.Z) * t,
-            color1.W + (color2.W - color1.W) * t
-        );
     }
 }
