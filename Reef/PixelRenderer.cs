@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Reef.Text;
 using Reef.UI;
 
@@ -10,108 +12,332 @@ namespace Reef;
 
 public sealed class PixelRenderer
 {
-    private readonly int _width;
-    private readonly int _height;
+    private const int TileSize = 64;
+
+    private readonly IntRect _screenBounds;
+
+    //  The frame is stored with premultiplied alpha so blending needs no division.
     private readonly PixelTexture _renderTexture;
     private readonly ITextEngine _textEngine;
     private readonly IDictionary<string, PixelFontSDF> _fonts;
+    private readonly PixelFontSDF? _defaultFont;
+    private readonly int _tilesX;
+    private readonly int _tilesY;
+    private readonly int _tileCount;
+
+    private List<RenderCommand<PixelTexture>>? _frameCommands;
+    private TextLayout?[] _textLayouts = [];
+    private IntRect[] _commandBounds = [];
+    private int[] _tileCounts = [];
+    private int[] _tileOffsets = [];
+    private int[] _binnedCommands = [];
     
     public PixelRenderer(int width, int height, ITextEngine textEngine, IDictionary<string, PixelFontSDF> fonts)
     {
-        _width = width;
-        _height = height;
+        _screenBounds = new IntRect(0, 0, width, height);
         _textEngine = textEngine;
         _fonts = fonts;
+        _defaultFont = fonts.Count > 0 ? fonts.Values.First() : null;
         _renderTexture = new PixelTexture(width, height);
+        _tilesX = (width + TileSize - 1) / TileSize;
+        _tilesY = (height + TileSize - 1) / TileSize;
+        _tileCount = _tilesX * _tilesY;
     }
     
+    /// <summary>
+    ///     Returns a copy of the frame with straight (unpremultiplied) alpha.
+    /// </summary>
     public ReadOnlyCollection<Vector4> GetPixels()
     {
-        return _renderTexture.GetPixels();
+        ReadOnlySpan<PixelRgba8> premultiplied = _renderTexture.AsSpan();
+        var pixels = new Vector4[premultiplied.Length];
+        for (var i = 0; i < premultiplied.Length; i++)
+        {
+            PixelRgba8 pixel = premultiplied[i];
+            if (pixel.A == 0 || pixel.A == 255)
+            {
+                pixels[i] = pixel.ToVector4();
+                continue;
+            }
+
+            float alpha = pixel.A / 255f;
+            pixels[i] = new Vector4(pixel.R / 255f / alpha, pixel.G / 255f / alpha, pixel.B / 255f / alpha, alpha);
+        }
+
+        return Array.AsReadOnly(pixels);
     }
     
     public void Render(List<RenderCommand<PixelTexture>> renderCommands)
     {
-        for (var y = 0; y < _height; y++)
-        for (var x = 0; x < _width; x++)
+        ReadOnlySpan<RenderCommand<PixelTexture>> commands = CollectionsMarshal.AsSpan(renderCommands);
+        _frameCommands = renderCommands;
+
+        //  An opaque command that covers the screen overwrites every earlier
+        //  command, so the frame does not need to start transparent.
+        if (!HasOpaqueScreenCover(commands))
         {
-            _renderTexture.SetPixel(x, y, Vector4.Zero);
+            _renderTexture.Clear();
         }
-        
-        foreach (RenderCommand<PixelTexture> renderCommand in renderCommands)
+
+        ResolveTextLayouts(commands);
+        BinCommands(commands);
+
+        if (Environment.ProcessorCount > 1 && !OperatingSystem.IsBrowser())
         {
-            Draw(renderCommand);
+            Parallel.For(0, _tileCount, RenderTile);
+            return;
+        }
+
+        //  A single-threaded runtime keeps the tiling, because a tile still fits
+        //  in cache while its commands rasterize.
+        for (var tileIndex = 0; tileIndex < _tileCount; tileIndex++)
+        {
+            RenderTile(tileIndex);
         }
     }
-    
-    private void Draw(RenderCommand<PixelTexture> renderCommand)
+
+    private bool HasOpaqueScreenCover(ReadOnlySpan<RenderCommand<PixelTexture>> commands)
     {
-        Vector4 color = renderCommand.Color;
-        Vector4 backgroundColor = renderCommand.BackgroundColor;
-        
-        //  Render rects.
-        //  IntRect right and bottom bounds are exclusive, matching IntRect.Contains.
-        for (int y = renderCommand.Rect.Top; y < renderCommand.Rect.Bottom; y++)
-        for (int x = renderCommand.Rect.Left; x < renderCommand.Rect.Right; x++)
+        for (var i = 0; i < commands.Length; i++)
         {
-            //  Skip pixels that are outside the clip rect
-            if (!renderCommand.ClipRect.Contains(x, y))
-            {
-                continue;
-            }
-            
-            //  Skip pixels that are outside the corner radii
-            if (IsOutsideCornerRadius(renderCommand, x, y))
+            RenderCommand<PixelTexture> command = commands[i];
+            if (command.RendererData != null)
             {
                 continue;
             }
 
-            //  Skip pixels that are outside the render target
-            if (x < 0 || y < 0 || x >= _width || y >= _height)
+            //  A text element paints its background color behind the glyphs.
+            Vector4 color = command.Text == null ? command.Color : command.BackgroundColor;
+            if (color.W < 1f)
             {
                 continue;
             }
 
-            Vector4 currentColor = _renderTexture.GetPixel(x, y);
-
-            //  Render a textured rect
-            if (renderCommand.RendererData != null)
+            CornerRadius radius = command.CornerRadius;
+            if (radius.TopLeft > 0 || radius.TopRight > 0 || radius.BottomLeft > 0 || radius.BottomRight > 0)
             {
-                var u = Math.Clamp((int)RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.RendererData.Width), 0, renderCommand.RendererData.Width - 1);
-                var v = Math.Clamp((int)RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.RendererData.Height), 0, renderCommand.RendererData.Height - 1);
-                Vector4 sample = renderCommand.RendererData.GetPixel(u, v);
-                sample = MultiplyBlend(sample, color);
-                //  Blend in any texture background color
-                sample = AlphaBlend(backgroundColor, sample);
-                
-                _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, sample));
+                continue;
             }
-            //  Render a color rect
-            else
+
+            if (CoversScreen(command.Rect) && CoversScreen(command.ClipRect))
             {
-                //  If text is present, treat this as a background.
-                Vector4 rectColor = renderCommand.Text == null ? color : backgroundColor;
-                _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, rectColor));
+                return true;
             }
         }
 
-        DrawBorder(renderCommand);
-        DrawCornerCaps(renderCommand);
-        
-        if (renderCommand.Text == null)
+        return false;
+    }
+
+    private bool CoversScreen(IntRect rect)
+    {
+        return rect.Left <= _screenBounds.Left
+            && rect.Top <= _screenBounds.Top
+            && rect.Right >= _screenBounds.Right
+            && rect.Bottom >= _screenBounds.Bottom;
+    }
+
+    private void ResolveTextLayouts(ReadOnlySpan<RenderCommand<PixelTexture>> commands)
+    {
+        EnsureCommandCapacity(commands.Length);
+
+        for (var i = 0; i < commands.Length; i++)
+        {
+            RenderCommand<PixelTexture> command = commands[i];
+            _textLayouts[i] = command.Text == null
+                ? null
+                : command.TextLayout ?? _textEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
+        }
+    }
+
+    private void BinCommands(ReadOnlySpan<RenderCommand<PixelTexture>> commands)
+    {
+        if (_tileCounts.Length < _tileCount)
+        {
+            _tileCounts = new int[_tileCount];
+        }
+
+        if (_tileOffsets.Length < _tileCount + 1)
+        {
+            _tileOffsets = new int[_tileCount + 1];
+        }
+
+        Array.Clear(_tileCounts, 0, _tileCount);
+
+        var requiredCommands = 0;
+        for (var i = 0; i < commands.Length; i++)
+        {
+            IntRect bounds = ResolveCommandBounds(commands[i], _textLayouts[i]);
+            _commandBounds[i] = bounds;
+            if (bounds.Size.X <= 0 || bounds.Size.Y <= 0)
+            {
+                continue;
+            }
+
+            int minTileX = bounds.Left / TileSize;
+            int maxTileX = (bounds.Right - 1) / TileSize;
+            int minTileY = bounds.Top / TileSize;
+            int maxTileY = (bounds.Bottom - 1) / TileSize;
+
+            for (int tileY = minTileY; tileY <= maxTileY; tileY++)
+            for (int tileX = minTileX; tileX <= maxTileX; tileX++)
+            {
+                _tileCounts[tileY * _tilesX + tileX]++;
+            }
+
+            requiredCommands += (maxTileX - minTileX + 1) * (maxTileY - minTileY + 1);
+        }
+
+        if (_binnedCommands.Length < requiredCommands)
+        {
+            _binnedCommands = new int[requiredCommands];
+        }
+
+        var offset = 0;
+        for (var tileIndex = 0; tileIndex < _tileCount; tileIndex++)
+        {
+            _tileOffsets[tileIndex] = offset;
+            offset += _tileCounts[tileIndex];
+            _tileCounts[tileIndex] = _tileOffsets[tileIndex];
+        }
+
+        _tileOffsets[_tileCount] = offset;
+
+        //  Commands are visited in paint order, so every tile keeps painter's order.
+        for (var i = 0; i < commands.Length; i++)
+        {
+            IntRect bounds = _commandBounds[i];
+            if (bounds.Size.X <= 0 || bounds.Size.Y <= 0)
+            {
+                continue;
+            }
+
+            int minTileX = bounds.Left / TileSize;
+            int maxTileX = (bounds.Right - 1) / TileSize;
+            int minTileY = bounds.Top / TileSize;
+            int maxTileY = (bounds.Bottom - 1) / TileSize;
+
+            for (int tileY = minTileY; tileY <= maxTileY; tileY++)
+            for (int tileX = minTileX; tileX <= maxTileX; tileX++)
+            {
+                _binnedCommands[_tileCounts[tileY * _tilesX + tileX]++] = i;
+            }
+        }
+    }
+
+    private void EnsureCommandCapacity(int commandCount)
+    {
+        if (_textLayouts.Length >= commandCount)
         {
             return;
         }
 
-        //  Render text
-        TextLayout textLayout = renderCommand.TextLayout ?? _textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
-        
-        string? fontID = renderCommand.FontOptions.ID;
+        _textLayouts = new TextLayout?[commandCount];
+        _commandBounds = new IntRect[commandCount];
+    }
+
+    private void RenderTile(int tileIndex)
+    {
+        ReadOnlySpan<RenderCommand<PixelTexture>> commands = CollectionsMarshal.AsSpan(_frameCommands!);
+        IntRect tileRect = ResolveTileRect(tileIndex);
+
+        int start = _tileOffsets[tileIndex];
+        int end = _tileOffsets[tileIndex + 1];
+        for (var i = start; i < end; i++)
+        {
+            int commandIndex = _binnedCommands[i];
+            var context = new DrawContext(commands[commandIndex], commands[commandIndex].ClipRect.Intersect(tileRect), _textLayouts[commandIndex]);
+            Draw(in context);
+        }
+    }
+
+    private IntRect ResolveTileRect(int tileIndex)
+    {
+        int tileX = tileIndex % _tilesX;
+        int tileY = tileIndex / _tilesX;
+        int left = tileX * TileSize;
+        int top = tileY * TileSize;
+        return new IntRect(
+            left,
+            top,
+            Math.Min(left + TileSize, _renderTexture.Width),
+            Math.Min(top + TileSize, _renderTexture.Height));
+    }
+
+    private IntRect ResolveCommandBounds(in RenderCommand<PixelTexture> command, TextLayout? textLayout)
+    {
+        IntRect bounds = command.Rect;
+        if (textLayout == null)
+        {
+            return ClipToScreen(bounds, command.ClipRect);
+        }
+
+        //  Glyph bounds are element-local and can overhang the rect when text does not wrap.
+        GlyphLayout[] glyphs = textLayout.Value.Glyphs;
+        for (var i = 0; i < glyphs.Length; i++)
+        {
+            GlyphLayout glyph = glyphs[i];
+            if (glyph.IsWhitespace)
+            {
+                continue;
+            }
+
+            bounds = bounds.Union(new IntRect(
+                command.Rect.Left + glyph.BBOX.Left,
+                command.Rect.Top + glyph.BBOX.Top,
+                command.Rect.Left + glyph.BBOX.Right,
+                command.Rect.Top + glyph.BBOX.Bottom));
+        }
+
+        return ClipToScreen(bounds, command.ClipRect);
+    }
+
+    private void Draw(in DrawContext context)
+    {
+        //  Render rects.
+        //  IntRect right and bottom bounds are exclusive, matching IntRect.Contains.
+        IntRect clipped = ClipToScreen(context.Command.Rect, context.ClipRect);
+        if (clipped.Size.X > 0 && clipped.Size.Y > 0)
+        {
+            if (context.Command.RendererData != null)
+            {
+                DrawTexturedRect(in context, clipped);
+            }
+            else
+            {
+                DrawColorRect(in context, clipped);
+            }
+        }
+
+        DrawBorder(in context);
+        DrawCornerCaps(in context);
+
+        if (context.Command.Text != null)
+        {
+            DrawText(in context);
+        }
+    }
+
+    private void DrawText(in DrawContext context)
+    {
+        if (context.TextLayout == null)
+        {
+            return;
+        }
+
+        TextLayout textLayout = context.TextLayout.Value;
+
+        string? fontID = context.Command.FontOptions.ID;
         if (fontID == null || !_fonts.TryGetValue(fontID, out PixelFontSDF font))
         {
-            font = _fonts.Values.First();
+            if (_defaultFont == null)
+            {
+                return;
+            }
+
+            font = _defaultFont.Value;
         }
-        
+
+        Vector4 color = context.Command.Color;
         for (var i = 0; i < textLayout.Glyphs.Length; i++)
         {
             GlyphLayout glyph = textLayout.Glyphs[i];
@@ -119,22 +345,155 @@ public sealed class PixelRenderer
             {
                 continue;
             }
-                
+
             var bbox = new IntRect(
-                renderCommand.Rect.Left + glyph.BBOX.Left,
-                renderCommand.Rect.Top + glyph.BBOX.Top,
-                renderCommand.Rect.Left + glyph.BBOX.Right,
-                renderCommand.Rect.Top + glyph.BBOX.Bottom
+                context.Command.Rect.Left + glyph.BBOX.Left,
+                context.Command.Rect.Top + glyph.BBOX.Top,
+                context.Command.Rect.Left + glyph.BBOX.Right,
+                context.Command.Rect.Top + glyph.BBOX.Bottom
             );
 
-            DrawCharacter(bbox, renderCommand.ClipRect, glyph.UV, glyph.ResolveColor(color), font);
+            DrawCharacter(bbox, context.ClipRect, glyph.UV, glyph.ResolveColor(color), in font);
+        }
+    }
+
+    private void DrawColorRect(in DrawContext context, IntRect clipped)
+    {
+        //  A text element paints its background color behind the glyphs.
+        PixelRgba8 rectColor = ToPremultiplied(context.Command.Text == null ? context.Command.Color : context.Command.BackgroundColor);
+        if (rectColor.A == 0)
+        {
+            return;
+        }
+
+        IntRect rect = context.Command.Rect;
+        CornerRadius radius = context.Command.CornerRadius;
+        int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
+        int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
+        bool rounded = topRadius > 0 || bottomRadius > 0;
+        bool spanCorners = rounded && !CornersOverlap(radius, rect);
+        bool opaque = rectColor.A == 255;
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
+        {
+            Span<PixelRgba8> row = _renderTexture.GetRowSpan(y);
+
+            //  Corners only reach the top and bottom scanlines, so every other
+            //  row is a contiguous run with no per-pixel corner test.
+            if (!rounded || (y >= rect.Top + topRadius && y < rect.Bottom - bottomRadius))
+            {
+                if (opaque)
+                {
+                    row.Slice(clipped.Left, clipped.Size.X).Fill(rectColor);
+                    continue;
+                }
+
+                BlendRow(row.Slice(clipped.Left, clipped.Size.X), rectColor);
+                continue;
+            }
+
+            //  A corner row still paints one contiguous run between the two radii.
+            if (spanCorners)
+            {
+                ResolveRadiusSpan(radius, rect, y, out int rowLeft, out int rowRight);
+                int start = Math.Max(clipped.Left, rowLeft);
+                int end = Math.Min(clipped.Right, rowRight);
+                if (end <= start)
+                {
+                    continue;
+                }
+
+                if (opaque)
+                {
+                    row.Slice(start, end - start).Fill(rectColor);
+                    continue;
+                }
+
+                BlendRow(row.Slice(start, end - start), rectColor);
+                continue;
+            }
+
+            for (int x = clipped.Left; x < clipped.Right; x++)
+            {
+                if (IsOutsideCornerRadius(in context, x, y))
+                {
+                    continue;
+                }
+
+                row[x] = opaque ? rectColor : Blend(row[x], rectColor);
+            }
+        }
+    }
+
+    private void DrawTexturedRect(in DrawContext context, IntRect clipped)
+    {
+        Vector4 color = context.Command.Color;
+        Vector4 backgroundColor = context.Command.BackgroundColor;
+
+        //  The background color is blended over the modulated texture, so a
+        //  rect with a fully transparent color and background keeps the target.
+        if (color.W <= 0f && backgroundColor.W <= 0f)
+        {
+            return;
+        }
+
+        PixelTexture texture = context.Command.RendererData!;
+        IntRect rect = context.Command.Rect;
+        CornerRadius radius = context.Command.CornerRadius;
+        int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
+        int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
+        bool rounded = topRadius > 0 || bottomRadius > 0;
+        bool spanCorners = rounded && !CornersOverlap(radius, rect);
+        int textureWidth = texture.Width;
+        int textureHeight = texture.Height;
+        Vector4 backgroundColorPremultiplied = ToPremultipliedFloat(backgroundColor);
+
+        //  The clip test above guarantees a positive size, so both steps stay finite.
+        float uStep = (float)textureWidth / rect.Size.X;
+        float vStep = (float)textureHeight / rect.Size.Y;
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
+        {
+            Span<PixelRgba8> row = _renderTexture.GetRowSpan(y);
+            int v = Math.Clamp((int)((y - rect.Top) * vStep), 0, textureHeight - 1);
+            Span<PixelRgba8> textureRow = texture.GetRowSpan(v);
+            bool straightRow = !rounded || (y >= rect.Top + topRadius && y < rect.Bottom - bottomRadius);
+            int start = clipped.Left;
+            int end = clipped.Right;
+
+            //  A corner row still paints one contiguous run between the two radii.
+            if (!straightRow && spanCorners)
+            {
+                ResolveRadiusSpan(radius, rect, y, out int rowLeft, out int rowRight);
+                start = Math.Max(start, rowLeft);
+                end = Math.Min(end, rowRight);
+            }
+
+            for (int x = start; x < end; x++)
+            {
+                if (!straightRow && !spanCorners && IsOutsideCornerRadius(in context, x, y))
+                {
+                    continue;
+                }
+
+                int u = Math.Clamp((int)((x - rect.Left) * uStep), 0, textureWidth - 1);
+                Vector4 sample = ToPremultipliedFloat(MultiplyBlend(textureRow[u].ToVector4(), color));
+                //  Blend in any texture background color
+                sample = AlphaBlendFloat(backgroundColorPremultiplied, sample);
+                if (sample.W <= 0f)
+                {
+                    continue;
+                }
+
+                row[x] = sample.W >= 1f ? FromPremultiplied(sample) : FromPremultiplied(AlphaBlendFloat(row[x].ToVector4(), sample));
+            }
         }
     }
     
-    private void DrawBorder(RenderCommand<PixelTexture> renderCommand)
+    private void DrawBorder(in DrawContext context)
     {
-        BorderStyle border = renderCommand.Border;
-        IntRect rect = renderCommand.Rect;
+        BorderStyle border = context.Command.Border;
+        IntRect rect = context.Command.Rect;
 
         int topThickness = ResolveThickness(border.TopThickness, border.Thickness);
         int rightThickness = ResolveThickness(border.RightThickness, border.Thickness);
@@ -154,32 +513,32 @@ public sealed class PixelRenderer
         if (drawTop)
         {
             int limit = drawBottom ? rect.Size.Y / 2 : rect.Size.Y;
-            DrawHorizontalSide(renderCommand, border, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
+            DrawHorizontalSide(in context, border, rect.Left, rect.Right, rect.Top, Math.Min(topThickness, limit), topColor);
         }
 
         if (drawBottom)
         {
             int limit = drawTop ? rect.Size.Y / 2 : rect.Size.Y;
             int thickness = Math.Min(bottomThickness, limit);
-            DrawHorizontalSide(renderCommand, border, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
+            DrawHorizontalSide(in context, border, rect.Left, rect.Right, rect.Bottom - thickness, thickness, bottomColor);
         }
 
         if (drawLeft)
         {
             int limit = drawRight ? rect.Size.X / 2 : rect.Size.X;
-            DrawVerticalSide(renderCommand, border, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
+            DrawVerticalSide(in context, border, rect.Top, rect.Bottom, rect.Left, Math.Min(leftThickness, limit), leftColor);
         }
 
         if (drawRight)
         {
             int limit = drawLeft ? rect.Size.X / 2 : rect.Size.X;
             int thickness = Math.Min(rightThickness, limit);
-            DrawVerticalSide(renderCommand, border, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
+            DrawVerticalSide(in context, border, rect.Top, rect.Bottom, rect.Right - thickness, thickness, rightColor);
         }
     }
 
     private void DrawHorizontalSide(
-        RenderCommand<PixelTexture> command,
+        in DrawContext context,
         in BorderStyle border,
         int left,
         int right,
@@ -195,7 +554,7 @@ public sealed class PixelRenderer
         BorderDash.Resolve(border, thickness, out int dash, out int gap);
         if (dash <= 0)
         {
-            DrawSolidRect(command, new IntRect(left, top, right, top + thickness), color);
+            DrawSolidRect(in context, new IntRect(left, top, right, top + thickness), color);
             return;
         }
 
@@ -203,12 +562,12 @@ public sealed class PixelRenderer
         while (segments.MoveNext())
         {
             int start = left + segments.Offset;
-            DrawSolidRect(command, new IntRect(start, top, start + segments.SegmentLength, top + thickness), color);
+            DrawSolidRect(in context, new IntRect(start, top, start + segments.SegmentLength, top + thickness), color);
         }
     }
 
     private void DrawVerticalSide(
-        RenderCommand<PixelTexture> command,
+        in DrawContext context,
         in BorderStyle border,
         int top,
         int bottom,
@@ -224,7 +583,7 @@ public sealed class PixelRenderer
         BorderDash.Resolve(border, thickness, out int dash, out int gap);
         if (dash <= 0)
         {
-            DrawSolidRect(command, new IntRect(left, top, left + thickness, bottom), color);
+            DrawSolidRect(in context, new IntRect(left, top, left + thickness, bottom), color);
             return;
         }
 
@@ -232,7 +591,7 @@ public sealed class PixelRenderer
         while (segments.MoveNext())
         {
             int start = top + segments.Offset;
-            DrawSolidRect(command, new IntRect(left, start, left + thickness, start + segments.SegmentLength), color);
+            DrawSolidRect(in context, new IntRect(left, start, left + thickness, start + segments.SegmentLength), color);
         }
     }
 
@@ -246,10 +605,10 @@ public sealed class PixelRenderer
         return sideColor.W > 0f ? sideColor : fallback;
     }
 
-    private void DrawCornerCaps(RenderCommand<PixelTexture> renderCommand)
+    private void DrawCornerCaps(in DrawContext context)
     {
-        CornerCapStyle caps = renderCommand.CornerCaps;
-        IntRect rect = renderCommand.Rect;
+        CornerCapStyle caps = context.Command.CornerCaps;
+        IntRect rect = context.Command.Rect;
         int maxLength = Math.Min(rect.Size.X, rect.Size.Y) / 2;
         int length = Math.Min(caps.Length, maxLength);
         int thickness = Math.Min(caps.Thickness, length);
@@ -260,53 +619,155 @@ public sealed class PixelRenderer
         }
 
         //  Top left
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Left, rect.Top, rect.Left + length, rect.Top + thickness), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Left, rect.Top + thickness, rect.Left + thickness, rect.Top + length), caps.Color);
 
         //  Top right
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Right - length, rect.Top, rect.Right, rect.Top + thickness), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Right - thickness, rect.Top + thickness, rect.Right, rect.Top + length), caps.Color);
 
         //  Bottom left
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Left, rect.Bottom - thickness, rect.Left + length, rect.Bottom), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Left, rect.Bottom - length, rect.Left + thickness, rect.Bottom - thickness), caps.Color);
 
         //  Bottom right
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color);
-        DrawSolidRect(renderCommand, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Right - length, rect.Bottom - thickness, rect.Right, rect.Bottom), caps.Color);
+        DrawSolidRect(in context, new IntRect(rect.Right - thickness, rect.Bottom - length, rect.Right, rect.Bottom - thickness), caps.Color);
     }
 
-    private void DrawSolidRect(RenderCommand<PixelTexture> renderCommand, IntRect rect, Vector4 color)
+    private IntRect ClipToScreen(IntRect rect, IntRect clipRect)
     {
-        for (int y = rect.Top; y < rect.Bottom; y++)
+        return rect.Intersect(clipRect).Intersect(_screenBounds);
+    }
+
+    private void DrawSolidRect(in DrawContext context, IntRect rect, Vector4 color)
+    {
+        IntRect clipped = ClipToScreen(rect, context.ClipRect);
+        if (clipped.Size.X <= 0 || clipped.Size.Y <= 0)
         {
-            for (int x = rect.Left; x < rect.Right; x++)
+            return;
+        }
+
+        IntRect commandRect = context.Command.Rect;
+        CornerRadius radius = context.Command.CornerRadius;
+        int topRadius = Math.Max(radius.TopLeft, radius.TopRight);
+        int bottomRadius = Math.Max(radius.BottomLeft, radius.BottomRight);
+        bool rounded = topRadius > 0 || bottomRadius > 0;
+        bool spanCorners = rounded && !CornersOverlap(radius, commandRect);
+        PixelRgba8 premultiplied = ToPremultiplied(color);
+        bool opaque = premultiplied.A == 255;
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
+        {
+            Span<PixelRgba8> row = _renderTexture.GetRowSpan(y);
+
+            //  Corners only reach the top and bottom scanlines, so every other
+            //  row is a contiguous run with no per-pixel corner test.
+            if (!rounded || (y >= commandRect.Top + topRadius && y < commandRect.Bottom - bottomRadius))
             {
-                if (!renderCommand.ClipRect.Contains(x, y))
+                if (opaque)
+                {
+                    row.Slice(clipped.Left, clipped.Size.X).Fill(premultiplied);
+                    continue;
+                }
+
+                BlendRow(row.Slice(clipped.Left, clipped.Size.X), premultiplied);
+                continue;
+            }
+
+            //  A corner row still paints one contiguous run between the two radii.
+            if (spanCorners)
+            {
+                ResolveRadiusSpan(radius, commandRect, y, out int rowLeft, out int rowRight);
+                int start = Math.Max(clipped.Left, rowLeft);
+                int end = Math.Min(clipped.Right, rowRight);
+                if (end <= start)
                 {
                     continue;
                 }
 
-                if (IsOutsideCornerRadius(renderCommand, x, y))
+                if (opaque)
+                {
+                    row.Slice(start, end - start).Fill(premultiplied);
+                    continue;
+                }
+
+                BlendRow(row.Slice(start, end - start), premultiplied);
+                continue;
+            }
+
+            for (int x = clipped.Left; x < clipped.Right; x++)
+            {
+                if (IsOutsideCornerRadius(in context, x, y))
                 {
                     continue;
                 }
 
-                if (x < 0 || y < 0 || x >= _width || y >= _height)
-                {
-                    continue;
-                }
-
-                Vector4 currentColor = _renderTexture.GetPixel(x, y);
-                _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, color));
+                row[x] = opaque ? premultiplied : Blend(row[x], premultiplied);
             }
         }
     }
 
-    private static bool IsOutsideCornerRadius(RenderCommand<PixelTexture> renderCommand, int x, int y)
+    private static bool CornersOverlap(in CornerRadius radius, in IntRect rect)
     {
-        CornerRadius radius = renderCommand.CornerRadius;
-        IntRect rect = renderCommand.Rect;
+        int width = rect.Size.X;
+        int height = rect.Size.Y;
+        int smallest = Math.Min(width, height);
+
+        return radius.TopLeft + radius.TopRight > width
+            || radius.BottomLeft + radius.BottomRight > width
+            || radius.TopLeft + radius.BottomLeft > height
+            || radius.TopRight + radius.BottomRight > height
+            || radius.TopLeft + radius.BottomRight > smallest
+            || radius.TopRight + radius.BottomLeft > smallest;
+    }
+
+    /// <summary>
+    ///     Returns the horizontal run of a scanline that the corner radii leave visible.
+    ///     Call it only when <see cref="CornersOverlap" /> is false.
+    /// </summary>
+    private static void ResolveRadiusSpan(in CornerRadius radius, in IntRect rect, int y, out int left, out int right)
+    {
+        left = rect.Left;
+        right = rect.Right;
+        int rightEdge = rect.Right - 1;
+        int bottomEdge = rect.Bottom - 1;
+
+        if (y < rect.Top + radius.TopLeft)
+        {
+            int offset = RadiusOffset(radius.TopLeft, y - (rect.Top + radius.TopLeft));
+            left = Math.Max(left, rect.Left + radius.TopLeft - offset);
+        }
+
+        if (y > bottomEdge - radius.BottomLeft)
+        {
+            int offset = RadiusOffset(radius.BottomLeft, y - (bottomEdge - radius.BottomLeft));
+            left = Math.Max(left, rect.Left + radius.BottomLeft - offset);
+        }
+
+        if (y < rect.Top + radius.TopRight)
+        {
+            int offset = RadiusOffset(radius.TopRight, y - (rect.Top + radius.TopRight));
+            right = Math.Min(right, rightEdge - radius.TopRight + offset + 1);
+        }
+
+        if (y > bottomEdge - radius.BottomRight)
+        {
+            int offset = RadiusOffset(radius.BottomRight, y - (bottomEdge - radius.BottomRight));
+            right = Math.Min(right, rightEdge - radius.BottomRight + offset + 1);
+        }
+    }
+
+    private static int RadiusOffset(int radius, int dy)
+    {
+        int squared = radius * radius - dy * dy;
+        return squared > 0 ? (int)Math.Sqrt(squared) : 0;
+    }
+
+    private static bool IsOutsideCornerRadius(in DrawContext context, int x, int y)
+    {
+        CornerRadius radius = context.Command.CornerRadius;
+        IntRect rect = context.Command.Rect;
         int rightEdge = rect.Right - 1;
         int bottomEdge = rect.Bottom - 1;
 
@@ -341,67 +802,157 @@ public sealed class PixelRenderer
         return false;
     }
 
-    private void DrawCharacter(IntRect bbox, IntRect clipRect, IntRect uv, Vector4 color, PixelFontSDF font)
+    private void DrawCharacter(IntRect bbox, IntRect clipRect, IntRect uv, Vector4 color, in PixelFontSDF font)
     {
-        for (int y = bbox.Top; y < bbox.Bottom; y++)
-        for (int x = bbox.Left; x < bbox.Right; x++)
+        IntRect clipped = ClipToScreen(bbox, clipRect);
+        if (clipped.Size.X <= 0 || clipped.Size.Y <= 0)
         {
-            //  Skip pixels that are outside the clip rect
-            if (!clipRect.Contains(x, y))
+            return;
+        }
+
+        int atlasWidth = font.Texture.Width;
+        int atlasHeight = font.Texture.Height;
+        float[] distances = font.Distances;
+        float invFwidth = font.InvFwidth;
+
+        //  The clip test guarantees a positive bbox size, so both steps stay finite.
+        float uStep = (float)(uv.Right - uv.Left) / bbox.Size.X;
+        float vStep = (float)(uv.Bottom - uv.Top) / bbox.Size.Y;
+
+        for (int y = clipped.Top; y < clipped.Bottom; y++)
+        {
+            Span<PixelRgba8> row = _renderTexture.GetRowSpan(y);
+            int v = Math.Clamp((int)(uv.Top + (y - bbox.Top) * vStep), 0, atlasHeight - 1);
+            int atlasRowOffset = v * atlasWidth;
+
+            for (int x = clipped.Left; x < clipped.Right; x++)
             {
-                continue;
+                int u = Math.Clamp((int)(uv.Left + (x - bbox.Left) * uStep), 0, atlasWidth - 1);
+                float weight = Math.Clamp(distances[atlasRowOffset + u] * invFwidth + 0.5f, 0f, 1f);
+
+                //  Most of a glyph quad lies outside the stroke, so leave the target alone.
+                if (weight <= 0f)
+                {
+                    continue;
+                }
+
+                PixelRgba8 sample = ToPremultiplied(color * weight);
+                row[x] = sample.A == 255 ? sample : Blend(row[x], sample);
             }
-            
-            //  Skip pixels that are outside the render target
-            if (x < 0 || y < 0 || x >= _width || y >= _height)
-            {
-                continue;
-            }
-            
-            var u = (int)RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
-            var v = (int)RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
-            
-            Vector4 currentColor = _renderTexture.GetPixel(x, y);
-            Vector4 sample = SampleSdf(font.Texture, font.Fwidth, u, v, Vector4.Zero, color);
-            
-            _renderTexture.SetPixel(x, y, AlphaBlend(currentColor, sample));
         }
     }
 
-    private static Vector4 SampleSdf(PixelTexture sdf, float fwidth, int u, int v, Vector4 outsideColor, Vector4 insideColor)
+    /// <summary>
+    ///     Composites one premultiplied color over a scanline. The vector path
+    ///     widens bytes to 16-bit lanes, blends, and narrows again. A scalar
+    ///     tail covers runtimes without hardware acceleration.
+    /// </summary>
+    private static void BlendRow(Span<PixelRgba8> row, PixelRgba8 foreground)
     {
-        //  Clamp to the atlas bounds; glyph quads can touch or cross the edge
-        u = Math.Clamp(u, 0, sdf.Width - 1);
-        v = Math.Clamp(v, 0, sdf.Height - 1);
+        Span<byte> bytes = MemoryMarshal.AsBytes(row);
+        int laneWidth = Vector<byte>.Count;
+        var lane = 0;
 
-        Vector4 s = sdf.GetPixel(u, v);
-        float d = Median(s.X, s.Y, s.Z) - 0.5f;
-        float w = Math.Clamp(d / fwidth + 0.5f, 0f, 1f);
-        return Mix(outsideColor, insideColor, w);
-    }
-
-    private static float Median(float a, float b, float c)
-    {
-        return Math.Max(Math.Min(a, b), Math.Min(Math.Max(a, b), c));
-    }
-
-    private static Vector4 AlphaBlend(Vector4 background, Vector4 foreground)
-    {
-        float af = foreground.W;
-        float ab = background.W;
-        float a = af + ab * (1 - af);
-
-        if (a <= 0)
+        if (Vector.IsHardwareAccelerated && bytes.Length >= laneWidth)
         {
-            return Vector4.Zero;
+            int channelCount = Vector<ushort>.Count;
+            Span<ushort> foregroundLanes = stackalloc ushort[channelCount];
+            Span<ushort> inverseLanes = stackalloc ushort[channelCount];
+            for (var channel = 0; channel < channelCount; channel++)
+            {
+                foregroundLanes[channel] = ResolveChannel(foreground, channel % 4);
+                inverseLanes[channel] = (ushort)(255 - foreground.A);
+            }
+
+            var foregroundVector = new Vector<ushort>(foregroundLanes);
+            var inverseVector = new Vector<ushort>(inverseLanes);
+            for (; lane <= bytes.Length - laneWidth; lane += laneWidth)
+            {
+                var packed = new Vector<byte>(bytes.Slice(lane, laneWidth));
+                Vector.Widen(packed, out Vector<ushort> low, out Vector<ushort> high);
+                Vector.Narrow(
+                    BlendLanes(low, foregroundVector, inverseVector),
+                    BlendLanes(high, foregroundVector, inverseVector)).CopyTo(bytes.Slice(lane, laneWidth));
+            }
         }
 
-        float r = (foreground.X * af + background.X * ab * (1 - af)) / a;
-        float g = (foreground.Y * af + background.Y * ab * (1 - af)) / a;
-        float b = (foreground.Z * af + background.Z * ab * (1 - af)) / a;
-        return new Vector4(r, g, b, a);
+        for (; lane < bytes.Length; lane += 4)
+        {
+            int pixel = lane / 4;
+            row[pixel] = Blend(row[pixel], foreground);
+        }
     }
-    
+
+    private static Vector<ushort> BlendLanes(Vector<ushort> background, Vector<ushort> foreground, Vector<ushort> inverse)
+    {
+        //  The division by 255 rounds in 16-bit lanes and never overflows:
+        //  the product is at most 255 * 255 + 128 + 254.
+        var product = background * inverse + new Vector<ushort>(128);
+        product = (product + (product >> 8)) >> 8;
+        return foreground + product;
+    }
+
+    private static ushort ResolveChannel(in PixelRgba8 color, int channel)
+    {
+        return channel switch
+        {
+            0 => color.R,
+            1 => color.G,
+            2 => color.B,
+            _ => color.A,
+        };
+    }
+
+    /// <summary>
+    ///     Converts a straight color to a premultiplied pixel.
+    /// </summary>
+    private static PixelRgba8 ToPremultiplied(Vector4 color)
+    {
+        return PixelRgba8.FromVector4(ToPremultipliedFloat(color));
+    }
+
+    private static Vector4 ToPremultipliedFloat(Vector4 color)
+    {
+        return new Vector4(color.X * color.W, color.Y * color.W, color.Z * color.W, color.W);
+    }
+
+    private static PixelRgba8 FromPremultiplied(Vector4 color)
+    {
+        return PixelRgba8.FromVector4(color);
+    }
+
+    /// <summary>
+    ///     Composites a premultiplied foreground over a premultiplied background.
+    /// </summary>
+    private static PixelRgba8 Blend(in PixelRgba8 background, in PixelRgba8 foreground)
+    {
+        int inverseAlpha = 255 - foreground.A;
+        return new PixelRgba8(
+            (byte)(foreground.R + DivideBy255(background.R * inverseAlpha)),
+            (byte)(foreground.G + DivideBy255(background.G * inverseAlpha)),
+            (byte)(foreground.B + DivideBy255(background.B * inverseAlpha)),
+            (byte)(foreground.A + DivideBy255(background.A * inverseAlpha)));
+    }
+
+    /// <summary>
+    ///     Returns the nearest integer to <paramref name="value" /> divided by 255.
+    /// </summary>
+    private static int DivideBy255(int value)
+    {
+        int rounded = value + 128;
+        return (rounded + (rounded >> 8)) >> 8;
+    }
+
+    private static Vector4 AlphaBlendFloat(Vector4 background, Vector4 foreground)
+    {
+        float inverseAlpha = 1f - foreground.W;
+        return new Vector4(
+            foreground.X + background.X * inverseAlpha,
+            foreground.Y + background.Y * inverseAlpha,
+            foreground.Z + background.Z * inverseAlpha,
+            foreground.W + background.W * inverseAlpha);
+    }
+
     private static Vector4 MultiplyBlend(Vector4 background, Vector4 foreground)
     {
         float af = foreground.W;
@@ -423,19 +974,18 @@ public sealed class PixelRenderer
 
         return new Vector4(r, g, b, a);
     }
-    
-    private static Vector4 Mix(Vector4 color1, Vector4 color2, float t)
+
+    /// <summary>
+    ///     One render command resolved for a tile: the command itself, the clip
+    ///     rect for the tile, and the text layout resolved on the calling thread.
+    /// </summary>
+    private readonly struct DrawContext(
+        RenderCommand<PixelTexture> command,
+        IntRect clipRect,
+        TextLayout? textLayout)
     {
-        return new Vector4(
-            color1.X + (color2.X - color1.X) * t,
-            color1.Y + (color2.Y - color1.Y) * t,
-            color1.Z + (color2.Z - color1.Z) * t,
-            color1.W + (color2.W - color1.W) * t
-        );
-    }
-    
-    private static float RangeToRange(float input, float low, float high, float newLow, float newHigh)
-    {
-        return ((input - low) / (high - low)) * (newHigh - newLow) + newLow;
+        public readonly RenderCommand<PixelTexture> Command = command;
+        public readonly IntRect ClipRect = clipRect;
+        public readonly TextLayout? TextLayout = textLayout;
     }
 }
