@@ -1117,8 +1117,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
         shader.SetUniform("uEnableAO", _renderSettings.SAO.Enabled.Get() ? 1f : 0f);
 
-        _ssaoChain.Front.Activate(TextureUnit.Texture5);
-        shader.SetUniform("uAO", 5);
+        _ssaoChain.Front.Activate(TextureUnit.Texture10);
+        shader.SetUniform("uAO", 10);
 
         bool shadowsEnabled = _renderSettings.Shadows.Enabled.Get();
         shader.SetUniform("uShadowsEnabled", shadowsEnabled ? 1 : 0);
