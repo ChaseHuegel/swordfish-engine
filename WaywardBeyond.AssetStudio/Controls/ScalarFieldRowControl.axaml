@@ -1,0 +1,146 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             xmlns:conv="clr-namespace:WaywardBeyond.AssetStudio.Converters"
+             x:Class="WaywardBeyond.AssetStudio.Controls.ScalarFieldRowControl"
+             x:DataType="vm:StudioFieldViewModel">
+  <Border x:Name="PART_RootBorder"
+          CornerRadius="6"
+          Padding="6,3"
+          Classes.highlighted="{Binding IsHighlighted}">
+    <Border.Styles>
+      <Style Selector="Border.highlighted">
+        <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource StudioDangerBrush}" />
+        <Setter Property="BorderThickness" Value="3,0,0,0" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="8,4,6,4" />
+      </Style>
+    </Border.Styles>
+
+    <StackPanel Spacing="4">
+      <Grid x:Name="PART_FieldGrid" ColumnDefinitions="192,*,30" RowDefinitions="Auto,Auto">
+        <!-- Label & Grammar Hint -->
+        <StackPanel x:Name="PART_LabelPanel" Grid.Row="0" Grid.Column="0" VerticalAlignment="Top" Spacing="1" Margin="0,5,10,0">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <TextBlock Text="{Binding Label}"
+                       FontSize="12"
+                       FontWeight="Medium"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            <Border Classes="studio-badge info"
+                    Padding="4,1"
+                    IsVisible="{Binding ShowUnreadBadge}">
+              <TextBlock Text="unread"
+                         FontSize="9"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource StudioInfoBrush}" />
+            </Border>
+          </StackPanel>
+          <TextBlock Text="{Binding GrammarHint}"
+                     IsVisible="{Binding HasGrammarHint}"
+                     Classes="mono"
+                     FontSize="10"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+
+        <!-- Friendly or Raw Token Editor -->
+        <Grid x:Name="PART_EditorHost" Grid.Row="0" Grid.Column="1" VerticalAlignment="Top">
+          <!-- Raw TOML Token Mode -->
+          <TextBox IsVisible="{Binding IsRawMode}"
+                   Text="{Binding RawTokenText, Mode=TwoWay}"
+                   IsReadOnly="{Binding IsReadOnly}"
+                   Classes="studio-input mono"
+                   Classes.danger="{Binding IsDanger}"
+                   ToolTip.Tip="Raw TOML token exactly as stored in file" />
+
+          <!-- Friendly Controls (when not in raw mode) -->
+          <Grid IsVisible="{Binding !IsRawMode}">
+            <!-- Standard Text -->
+            <TextBox IsVisible="{Binding IsTextField}"
+                     Text="{Binding Value, Mode=TwoWay}"
+                     IsReadOnly="{Binding IsReadOnly}"
+                     Classes="studio-input mono"
+                     Classes.danger="{Binding IsDanger}" />
+
+            <!-- Boolean -->
+            <CheckBox IsVisible="{Binding IsBoolField}"
+                      IsChecked="{Binding BoolValue, Mode=TwoWay}"
+                      IsEnabled="{Binding !IsReadOnly}"
+                      Content="{Binding Value}"
+                      FontSize="12"
+                      Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+
+            <!-- Enum Combo -->
+            <ComboBox IsVisible="{Binding IsComboField}"
+                      ItemsSource="{Binding Choices}"
+                      SelectedItem="{Binding Value, Mode=TwoWay}"
+                      IsEnabled="{Binding !IsReadOnly}"
+                      Classes="studio-combo" />
+
+            <!-- Hex Color Swatch + Input -->
+            <Grid IsVisible="{Binding IsColorField}" ColumnDefinitions="28,*">
+              <Button Grid.Column="0"
+                      Classes="studio-color-swatch"
+                      Background="{Binding Value, Converter={x:Static conv:HexToBrushConverter.INSTANCE}}"
+                      IsEnabled="{Binding !IsReadOnly}"
+                      VerticalAlignment="Center"
+                      ToolTip.Tip="Click to pick color">
+                <Button.Flyout>
+                  <Flyout Placement="BottomEdgeAlignedLeft">
+                    <controls:StudioColorPickerControl HexColor="{Binding Value, Mode=TwoWay}" />
+                  </Flyout>
+                </Button.Flyout>
+              </Button>
+              <TextBox Grid.Column="1"
+                       Margin="6,0,0,0"
+                       Text="{Binding Value, Mode=TwoWay}"
+                       IsReadOnly="{Binding IsReadOnly}"
+                       Classes="studio-input mono" />
+            </Grid>
+
+            <!-- Searchable Reference Picker -->
+            <controls:ReferencePickerControl IsVisible="{Binding IsReferenceField}" />
+          </Grid>
+        </Grid>
+
+        <!-- Raw TOML Token {} Toggle (hidden on non-TOML binary metadata fields) -->
+        <Button x:Name="PART_RawButton"
+                Grid.Row="0"
+                Grid.Column="2"
+                Margin="4,1,0,0"
+                VerticalAlignment="Top"
+                IsVisible="{Binding ShowRawTokenToggle}"
+                Classes="raw-toggle"
+                Classes.active="{Binding IsRawMode}"
+                Command="{Binding ToggleRawModeCommand}"
+                ToolTip.Tip="Toggle raw TOML token view ({})">
+          <TextBlock Text="{}{}" />
+        </Button>
+      </Grid>
+
+      <!-- Danger Validation Banner (never clears invalid value) -->
+      <Border x:Name="PART_DangerBanner"
+              IsVisible="{Binding HasDangerMessage}"
+              Classes="studio-banner-danger"
+              Margin="192,0,30,0"
+              Padding="8,5">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="{Binding DangerMessage}"
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     VerticalAlignment="Center"
+                     Foreground="{DynamicResource StudioDangerBrush}" />
+          <Button Grid.Column="1"
+                  Margin="8,0,0,0"
+                  IsVisible="{Binding HasQuickFix}"
+                  Classes="studio-btn-compact"
+                  Command="{Binding ApplyQuickFixCommand}"
+                  Content="{Binding QuickFixLabel}" />
+        </Grid>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

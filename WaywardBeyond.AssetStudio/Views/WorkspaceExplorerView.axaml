@@ -1,0 +1,180 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:conv="clr-namespace:WaywardBeyond.AssetStudio.Converters"
+             x:Class="WaywardBeyond.AssetStudio.Views.WorkspaceExplorerView"
+             x:DataType="vm:MainWindowViewModel">
+  <Border Background="{DynamicResource StudioCanvasBrush}">
+    <DockPanel>
+      <!-- Explorer Header -->
+      <Border DockPanel.Dock="Top"
+              Height="36"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="12,0,8,0">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="WORKSPACE"
+                     Classes="pane-title"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding OpenNewAssetDialogCommand}"
+                  Content="+ New" />
+        </Grid>
+      </Border>
+
+      <!-- Filter Box -->
+      <Border DockPanel.Dock="Top"
+              Padding="8"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1">
+        <TextBox Text="{Binding TreeFilterText, Mode=TwoWay}"
+                 Classes="studio-input"
+                 Watermark="Filter assets, paths..." />
+      </Border>
+
+      <!-- Grouped Asset Tree & Empty Hint -->
+      <Grid Background="Transparent">
+        <Grid.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Paste"
+                      IsEnabled="{Binding CanPasteAsset}"
+                      Command="{Binding PasteAssetCommand}" />
+          </ContextMenu>
+        </Grid.ContextMenu>
+        <ScrollViewer IsVisible="{Binding !ShowExplorerEmptyHint}" VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding TreeGroups}" Margin="0,4,0,12">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:AssetTreeGroupViewModel">
+              <StackPanel Margin="0,2,0,4">
+                <Button Command="{Binding ToggleExpandedCommand}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="10,5,10,4"
+                        Cursor="Hand">
+                  <Button.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="Paste"
+                                IsEnabled="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CanPasteAsset}"
+                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).PasteAssetCommand}"
+                                CommandParameter="{Binding}" />
+                    </ContextMenu>
+                  </Button.ContextMenu>
+                  <Grid ColumnDefinitions="14,*,Auto">
+                    <Grid Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Left">
+                      <Path IsVisible="{Binding IsExpanded}"
+                            Data="M 1,2 L 4.5,5.5 L 8,2"
+                            Stroke="{DynamicResource StudioTextMutedBrush}"
+                            StrokeThickness="1.4"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                      <Path IsVisible="{Binding !IsExpanded}"
+                            Data="M 2,1 L 5.5,4.5 L 2,8"
+                            Stroke="{DynamicResource StudioTextMutedBrush}"
+                            StrokeThickness="1.4"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Grid>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Title}"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding CountText}"
+                               Classes="mono"
+                               FontSize="10"
+                               Foreground="{DynamicResource StudioTextMutedBrush}"
+                               VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+
+                <ItemsControl ItemsSource="{Binding Items}" IsVisible="{Binding IsExpanded}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:AssetDocumentViewModel">
+                      <Button Classes="tree-row"
+                              Classes.selected="{Binding IsSelected}"
+                              Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).SelectAssetCommand}"
+                              CommandParameter="{Binding}">
+                        <Button.ContextMenu>
+                          <ContextMenu>
+                            <MenuItem Header="Copy"
+                                      Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CopyAssetCommand}"
+                                      CommandParameter="{Binding}" />
+                            <MenuItem Header="Paste"
+                                      IsEnabled="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CanPasteAsset}"
+                                      Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).PasteAssetCommand}"
+                                      CommandParameter="{Binding}" />
+                            <MenuItem Header="Duplicate"
+                                      IsEnabled="{Binding !IsReadOnly}"
+                                      Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).DuplicateAssetCommand}"
+                                      CommandParameter="{Binding}" />
+                            <Separator />
+                            <MenuItem Header="Rename ID..."
+                                      IsEnabled="{Binding CanRenameId}"
+                                      Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).OpenRenameDialogForAssetCommand}"
+                                      CommandParameter="{Binding}" />
+                            <Separator />
+                            <MenuItem Header="Delete Asset..."
+                                      Classes="danger"
+                                      IsEnabled="{Binding !IsReadOnly}"
+                                      Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).RequestDeleteAssetCommand}"
+                                      CommandParameter="{Binding}" />
+                          </ContextMenu>
+                        </Button.ContextMenu>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                          <!-- Dirty indicator dot -->
+                          <Ellipse Grid.Column="0"
+                                   Width="6"
+                                   Height="6"
+                                   Fill="{DynamicResource StudioWarningBrush}"
+                                   IsVisible="{Binding IsDirty}"
+                                   VerticalAlignment="Center" />
+                          <!-- Asset ID -->
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding Id}"
+                                     Classes="mono"
+                                     FontSize="11.5"
+                                     Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                                     TextTrimming="CharacterEllipsis"
+                                     VerticalAlignment="Center" />
+                          <!-- Color-Coded Provenance Badge (ovr=info, pack=success, base=neutral) -->
+                          <Border Grid.Column="2"
+                                  Classes="studio-badge"
+                                  Classes.info="{Binding IsOverrideProvenance}"
+                                  Classes.success="{Binding IsPackProvenance}"
+                                  Padding="5,1">
+                            <TextBlock Text="{Binding Provenance, Converter={x:Static conv:ProvenanceToLabelConverter.INSTANCE}}"
+                                       FontSize="9.5"
+                                       FontWeight="SemiBold" />
+                          </Border>
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        </ScrollViewer>
+
+        <TextBlock IsVisible="{Binding ShowExplorerEmptyHint}"
+                   Text="{Binding ExplorerEmptyHintText}"
+                   FontSize="11.5"
+                   LineHeight="17"
+                   TextAlignment="Center"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Margin="16" />
+      </Grid>
+    </DockPanel>
+  </Border>
+</UserControl>

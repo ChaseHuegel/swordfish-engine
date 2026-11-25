@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             x:Class="WaywardBeyond.AssetStudio.Views.Dialogs.DeleteRecentWorkspaceDialog"
+             x:DataType="vm:DeleteRecentWorkspaceDialogViewModel">
+  <Border Classes="studio-dialog" Width="480" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="True">
+    <StackPanel>
+      <!-- Header -->
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="20,14">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Text="Remove Recent Workspace" FontSize="15" FontWeight="Bold" />
+            <TextBlock Text="Confirm removing this workspace from the start screen."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+          <Button Grid.Column="1" VerticalAlignment="Top" Classes="studio-btn-ghost" Command="{Binding CancelCommand}" Content="×" FontSize="16" />
+        </Grid>
+      </Border>
+
+      <!-- Body -->
+      <StackPanel Margin="20,16" Spacing="12">
+        <Border CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="12,10">
+          <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <TextBlock Text="{Binding WorkspaceName}"
+                           FontSize="13.5"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+                <Border Classes="studio-badge info">
+                  <TextBlock Text="{Binding Mode}" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource StudioInfoBrush}" />
+                </Border>
+              </StackPanel>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding AssetCount, StringFormat='{}{0} assets'}"
+                         FontSize="11"
+                         Foreground="{DynamicResource StudioTextMutedBrush}"
+                         VerticalAlignment="Center" />
+            </Grid>
+            <TextBlock Text="{Binding RootPath}"
+                       Classes="mono"
+                       FontSize="11"
+                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding ActionSummary}"
+                       FontSize="11.5"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Disk Deletion Toggle (Unchecked by Default) -->
+        <StackPanel Spacing="4">
+          <CheckBox IsChecked="{Binding DeleteFromDisk, Mode=TwoWay}"
+                    IsEnabled="{Binding CanDeleteFromDisk}"
+                    Content="Also delete workspace folder on disk recursively"
+                    FontSize="12"
+                    Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+          <TextBlock IsVisible="{Binding HasDiskDeleteDisabledReason}"
+                     Text="{Binding DiskDeleteDisabledReason}"
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioWarningBrush}" />
+        </StackPanel>
+
+        <!-- Permanent Recursive Disk Deletion Warning -->
+        <Border IsVisible="{Binding DeleteFromDisk}" Classes="studio-banner-danger">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Permanent Recursive Deletion"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource StudioDangerBrush}" />
+            <TextBlock Text="Every file and subfolder inside the directory below will be permanently deleted and cannot be undone:"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            <TextBlock Text="{Binding RootPath}"
+                       Classes="mono"
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- Footer -->
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="20,12">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Classes="studio-btn" Command="{Binding CancelCommand}" Content="Cancel" />
+          <Button IsVisible="{Binding !DeleteFromDisk}"
+                  Classes="studio-btn-primary"
+                  Command="{Binding ConfirmCommand}"
+                  Content="{Binding ConfirmButtonLabel}" />
+          <Button IsVisible="{Binding DeleteFromDisk}"
+                  Classes="studio-btn-danger"
+                  Command="{Binding ConfirmCommand}"
+                  Content="{Binding ConfirmButtonLabel}" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

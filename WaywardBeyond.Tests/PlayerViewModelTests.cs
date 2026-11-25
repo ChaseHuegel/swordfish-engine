@@ -21,6 +21,7 @@ using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Items;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
 using GameState = WaywardBeyond.Client.GameState;
@@ -138,7 +139,12 @@ public class PlayerViewModelTests
             );
             var textureArrays = new PBRTextureArrays(albedo, other, other, other, other, other);
 
-            BrickMeshBuilder = new BrickPreviewMeshBuilder(Registry, Bricks, textureArrays, Meshes);
+            BrickMeshBuilder = new BrickPreviewMeshBuilder(
+                Registry,
+                Bricks,
+                new TextureArrayLayerLookup(albedo),
+                new EngineMeshPreviewDatabase(Meshes)
+            );
             VoxelMaterials = new VoxelMaterials(new Shader("lightedArray"), textureArrays);
             PlayerData = new PlayerData(Items);
             System = new PlayerViewModelSystem(

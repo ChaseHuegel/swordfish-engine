@@ -1,0 +1,302 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:models="clr-namespace:WaywardBeyond.AssetStudio.Models"
+             x:Class="WaywardBeyond.AssetStudio.Views.StartScreenView"
+             x:DataType="vm:MainWindowViewModel">
+  <Grid Background="{DynamicResource StudioCanvasBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <Border MaxWidth="980"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Padding="36,32">
+        <StackPanel Spacing="24">
+          <!-- Brand Header Row -->
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Border Width="34"
+                        Height="34"
+                        CornerRadius="8"
+                        Background="{DynamicResource StudioAccentBrush}">
+                  <TextBlock Text="WB"
+                             FontSize="13"
+                             FontWeight="Bold"
+                             Foreground="{DynamicResource StudioAccentForegroundBrush}"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Spacing="1">
+                  <TextBlock Text="Wayward Beyond Asset Studio"
+                             FontSize="22"
+                             FontWeight="Bold"
+                             Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                  <TextBlock Text="Author packs, bricks, items, paints, skills, bodies, tags, localization, and blueprints."
+                             FontSize="13"
+                             Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                </StackPanel>
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+              <!-- Crisp 3-Icon Segmented Theme Switcher (System / Light / Dark) -->
+              <Border CornerRadius="7"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Padding="2">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                  <Button Classes="studio-icon-btn"
+                          Classes.active="{Binding IsSystemTheme}"
+                          Command="{Binding SelectSystemThemeCommand}"
+                          ToolTip.Tip="System theme">
+                    <Path Width="14"
+                          Height="14"
+                          Stretch="Uniform"
+                          Data="M 1.5,2.5 L 12.5,2.5 L 12.5,10 L 1.5,10 Z M 5,12.5 L 9,12.5 M 7,10 L 7,12.5"
+                          Stroke="{Binding $parent[Button].Foreground}"
+                          StrokeThickness="1.4"
+                          StrokeLineCap="Round"
+                          StrokeJoin="Round" />
+                  </Button>
+                  <Button Classes="studio-icon-btn"
+                          Classes.active="{Binding IsLightTheme}"
+                          Command="{Binding SelectLightThemeCommand}"
+                          ToolTip.Tip="Light theme">
+                    <Path Width="14"
+                          Height="14"
+                          Stretch="Uniform"
+                          Data="M 7,4.2 A 2.8,2.8 0 1 1 6.99,4.2 Z M 7,1 L 7,2.4 M 7,11.6 L 7,13 M 1,7 L 2.4,7 M 11.6,7 L 13,7 M 2.75,2.75 L 3.75,3.75 M 10.25,10.25 L 11.25,11.25 M 11.25,2.75 L 10.25,3.75 M 3.75,10.25 L 2.75,11.25"
+                          Stroke="{Binding $parent[Button].Foreground}"
+                          StrokeThickness="1.35"
+                          StrokeLineCap="Round"
+                          StrokeJoin="Round" />
+                  </Button>
+                  <Button Classes="studio-icon-btn"
+                          Classes.active="{Binding IsDarkTheme}"
+                          Command="{Binding SelectDarkThemeCommand}"
+                          ToolTip.Tip="Dark theme">
+                    <Path Width="13"
+                          Height="13"
+                          Stretch="Uniform"
+                          Data="M 11.2,8.4 A 4.8,4.8 0 1 1 5.6,2.8 A 3.8,3.8 0 0 0 11.2,8.4 Z"
+                          Stroke="{Binding $parent[Button].Foreground}"
+                          StrokeThickness="1.4"
+                          StrokeLineCap="Round"
+                          StrokeJoin="Round" />
+                  </Button>
+                </StackPanel>
+              </Border>
+
+              <Button Classes="studio-btn"
+                      Height="32"
+                      MinHeight="32"
+                      Command="{Binding OpenSettingsDialogCommand}"
+                      Content="Settings" />
+              <Button Classes="studio-btn"
+                      Height="32"
+                      MinHeight="32"
+                      Command="{Binding OpenAboutDialogCommand}"
+                      Content="About" />
+            </StackPanel>
+          </Grid>
+
+          <!-- Two-Column Workspace Entry Grid -->
+          <Grid ColumnDefinitions="1.15*,24,0.85*">
+            <!-- Left: Recent Workspaces -->
+            <Border Grid.Column="0" Classes="studio-card" Padding="20,18">
+              <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Grid.Column="0"
+                             Text="RECENT WORKSPACES"
+                             Classes="pane-title"
+                             VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding StartScreen.RecentWorkspaces.Count, StringFormat='{}{0} recent'}"
+                             FontSize="11"
+                             Foreground="{DynamicResource StudioTextMutedBrush}" />
+                </Grid>
+
+                <ItemsControl ItemsSource="{Binding StartScreen.RecentWorkspaces}"
+                              IsVisible="{Binding StartScreen.HasRecentWorkspaces}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:RecentWorkspaceEntry">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,8">
+                        <Button Grid.Column="0"
+                                Classes="card-action"
+                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).StartScreen.OpenRecentCommand}"
+                                CommandParameter="{Binding}">
+                          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+                            <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                              <TextBlock Grid.Column="0"
+                                         Text="{Binding Name}"
+                                         FontSize="13.5"
+                                         FontWeight="SemiBold"
+                                         TextTrimming="CharacterEllipsis"
+                                         Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                              <Border Grid.Column="1" Classes="studio-badge info">
+                                <TextBlock Text="{Binding Mode}"
+                                           FontSize="10"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource StudioInfoBrush}" />
+                              </Border>
+                            </Grid>
+                            <TextBlock Grid.Row="0" Grid.Column="1"
+                                       Text="{Binding LastOpenedLabel}"
+                                       FontSize="11"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                                       VerticalAlignment="Center" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       Text="{Binding RootPath}"
+                                       Classes="mono"
+                                       FontSize="11"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource StudioTextMutedBrush}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                       Text="{Binding AssetCount, StringFormat='{}{0} assets'}"
+                                       FontSize="11"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                          </Grid>
+                        </Button>
+
+                        <Button Grid.Column="1"
+                                Width="34"
+                                Height="34"
+                                MinWidth="34"
+                                MinHeight="34"
+                                VerticalAlignment="Center"
+                                Classes="studio-icon-btn"
+                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).StartScreen.RequestDeleteRecentCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="Remove from recents...">
+                          <Path Width="14"
+                                Height="14"
+                                Stretch="Uniform"
+                                Data="M 2.5,4 L 13.5,4 M 5.5,4 L 6,2.2 L 10,2.2 L 10.5,4 M 4,4 L 4.8,13.5 L 11.2,13.5 L 12,4 M 6.6,6.5 L 6.6,11 M 9.4,6.5 L 9.4,11"
+                                Stroke="{Binding $parent[Button].Foreground}"
+                                StrokeThickness="1.35"
+                                StrokeLineCap="Round"
+                                StrokeJoin="Round" />
+                        </Button>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border IsVisible="{Binding StartScreen.HasNoRecentWorkspaces}"
+                        CornerRadius="6"
+                        Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                        BorderBrush="{DynamicResource StudioBorderBrush}"
+                        BorderThickness="1"
+                        Padding="18,22">
+                  <StackPanel Spacing="4" HorizontalAlignment="Center">
+                    <TextBlock Text="No recent workspaces"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                    <TextBlock Text="Create a pack or open an existing folder using the options on the right."
+                               FontSize="11.5"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </Border>
+
+            <!-- Right: Start / Open Workspace Cards -->
+            <StackPanel Grid.Column="2" Spacing="10">
+              <TextBlock Text="START OR OPEN WORKSPACE"
+                         Classes="pane-title"
+                         Margin="2,2,0,4" />
+
+              <Button Classes="card-action" Command="{Binding StartScreen.NewPackCommand}">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="New Content Pack"
+                               FontSize="13.5"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource StudioAccentBrush}" />
+                    <Border Classes="studio-badge success">
+                      <TextBlock Text="Recommended" FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioSuccessBrush}" />
+                    </Border>
+                  </StackPanel>
+                  <TextBlock Text="Create a new content pack folder backed by a game install."
+                             FontSize="11.5"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                </StackPanel>
+              </Button>
+
+              <Button Classes="card-action" Command="{Binding StartScreen.OpenPackCommand}">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="Open Pack Folder..."
+                             FontSize="13.5"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                  <TextBlock Text="Edit a mod pack with overrides against a game install."
+                             FontSize="11.5"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                </StackPanel>
+              </Button>
+
+              <Button Classes="card-action" Command="{Binding StartScreen.OpenRepoCommand}">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="Open Repository Checkout..."
+                             FontSize="13.5"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                  <TextBlock Text="Edit content modules directly in a Wayward Beyond checkout."
+                             FontSize="11.5"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                </StackPanel>
+              </Button>
+
+              <Button Classes="card-action" Command="{Binding StartScreen.OpenInstallCommand}">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="Open Game Install (Browse)..."
+                             FontSize="13.5"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                  <TextBlock Text="Browse shipped assets from a Steam, Proton, or local install."
+                             FontSize="11.5"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                </StackPanel>
+              </Button>
+
+              <!-- Compact Workspace Default Namespace Option -->
+              <Border Classes="studio-card" Padding="14,10" Margin="0,4,0,0">
+                <StackPanel Spacing="6">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <TextBlock Grid.Column="0"
+                               Text="Default Namespace"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                               VerticalAlignment="Center" />
+                    <TextBox Grid.Column="1"
+                             Text="{Binding StartScreen.DefaultNamespace, Mode=TwoWay}"
+                             Classes="studio-input mono"
+                             Watermark="e.g. wb or mypack" />
+                  </Grid>
+                  <TextBlock Text="Saved per workspace and pre-filled when creating new assets."
+                             FontSize="10.5"
+                             TextWrapping="Wrap"
+                             Foreground="{DynamicResource StudioTextMutedBrush}" />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Border>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

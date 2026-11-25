@@ -11,6 +11,7 @@ using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Benchmarks;
@@ -70,11 +71,14 @@ public class RemeshBenchmarks
         var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
         var textureArrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo, albedo);
 
+        var meshDatabase = new FakeMeshDatabase();
         var container = new Container();
         container.RegisterInstance<IBrickDatabase>(brickDatabase);
         container.RegisterInstance<IPaintDatabase>(paintDatabase);
         container.RegisterInstance<PBRTextureArrays>(textureArrays);
-        container.RegisterInstance<IAssetDatabase<Mesh>>(new FakeMeshDatabase());
+        container.RegisterInstance<ITextureLayerLookup>(new TextureArrayLayerLookup(albedo));
+        container.RegisterInstance<IAssetDatabase<Mesh>>(meshDatabase);
+        container.RegisterInstance<IAssetDatabase<PreviewMesh>>(new EngineMeshPreviewDatabase(meshDatabase));
         container.Register<MeshState>(Reuse.Scoped);
         container.Register<EntityState>(Reuse.Scoped);
         container.Register<CollisionState>(Reuse.Scoped);

@@ -61,7 +61,7 @@ non-shadow-casting batch and skip the shadow pass. The point light relies on
 the adjacent structural face for occlusion. The mesh pass emits that face
 because a non-shadow-casting brick is not a culler
 (`WaywardBeyond.Bricks/BrickDatabase.cs:57`,
-`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:138-153`). A lamp with
+`WaywardBeyond.Meshing/MeshPostPass.cs:183-203`). A lamp with
 no non-culling neighbour creates no point light
 (`WaywardBeyond.Client/Voxels/Building/LightEntityDecorator.cs`).
 

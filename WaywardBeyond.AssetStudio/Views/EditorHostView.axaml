@@ -1,0 +1,274 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:views="clr-namespace:WaywardBeyond.AssetStudio.Views"
+             xmlns:forms="clr-namespace:WaywardBeyond.AssetStudio.Views.Forms"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.EditorHostView"
+             x:DataType="vm:MainWindowViewModel">
+  <Border Background="{DynamicResource StudioSurfaceBrush}">
+    <Grid>
+      <!-- Empty Workspace / Uninitialized Folder Guidance State -->
+      <Border IsVisible="{Binding HasNoSelectedAsset}"
+              Background="{DynamicResource StudioCanvasBrush}"
+              Padding="24">
+        <Grid>
+        <!-- Valid Empty Pack -->
+        <Border IsVisible="{Binding !IsUninitializedFolder}"
+                Classes="studio-empty-state-card"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+          <StackPanel Spacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+              <Border Width="32"
+                      Height="32"
+                      CornerRadius="8"
+                      Background="{DynamicResource StudioAccentSurfaceBrush}"
+                      BorderBrush="{DynamicResource StudioAccentBorderBrush}"
+                      BorderThickness="1">
+                <TextBlock Text="+"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource StudioAccentBrush}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+              </Border>
+              <StackPanel Spacing="2" VerticalAlignment="Center">
+                <TextBlock Text="No assets in this workspace yet"
+                           FontSize="15.5"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                <TextBlock Text="{Binding WorkspaceName}"
+                           Classes="mono"
+                           FontSize="11"
+                           Foreground="{DynamicResource StudioTextMutedBrush}" />
+              </StackPanel>
+            </StackPanel>
+
+            <TextBlock Text="This content pack is ready for authoring. Create your first brick, item, paint, body, material, tag, or localization file to get started."
+                       FontSize="12"
+                       LineHeight="18"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+              <Button Classes="studio-btn-primary"
+                      Command="{Binding OpenNewAssetDialogCommand}"
+                      Content="+ Create First Asset" />
+              <Button Classes="studio-btn"
+                      Command="{Binding ShowStartScreenCommand}"
+                      Content="Start Screen" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Uninitialized Non-Pack Folder -->
+        <Border IsVisible="{Binding IsUninitializedFolder}"
+                Classes="studio-empty-state-card"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+          <StackPanel Spacing="12">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+              <Border Width="32"
+                      Height="32"
+                      CornerRadius="8"
+                      Background="{DynamicResource StudioWarningSurfaceBrush}"
+                      BorderBrush="{DynamicResource StudioWarningBorderBrush}"
+                      BorderThickness="1">
+                <TextBlock Text="!"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource StudioWarningBrush}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+              </Border>
+              <TextBlock Text="This folder is not a content pack yet"
+                         FontSize="15.5"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                         VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Border CornerRadius="6"
+                    Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                    BorderBrush="{DynamicResource StudioBorderBrush}"
+                    BorderThickness="1"
+                    Padding="10,7">
+              <TextBlock Text="{Binding CurrentWorkspaceRootPath}"
+                         Classes="mono"
+                         FontSize="11"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            </Border>
+
+            <TextBlock Text="No manifest.toml, pack.toml, or assets/ folder was found in this directory. Initialize a content pack here to scaffold metadata and start authoring assets."
+                       FontSize="12"
+                       LineHeight="18"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+              <Button Classes="studio-btn-primary"
+                      Command="{Binding InitializeCurrentFolderAsPackCommand}"
+                      Content="Initialize Content Pack Here" />
+              <Button Classes="studio-btn"
+                      Command="{Binding ShowStartScreenCommand}"
+                      Content="Start Screen" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+        </Grid>
+      </Border>
+
+      <!-- Active Asset Editor -->
+      <DockPanel IsVisible="{Binding HasSelectedAsset}">
+      <!-- Editor Breadcrumb & Form | TOML Segmented Toggle (or Binary Pill for Blueprints) -->
+      <Border DockPanel.Dock="Top"
+              Height="36"
+              Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="14,0">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <TextBlock Text="{Binding SelectedAsset.RootName}"
+                       Classes="mono"
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Text="/"
+                       Classes="mono"
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Text="{Binding SelectedAsset.RelativeFile}"
+                       Classes="mono"
+                       FontSize="11.5"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+          </StackPanel>
+
+          <!-- Form | TOML Segmented Control (TOML-backed assets) -->
+          <Border Grid.Column="1"
+                  IsVisible="{Binding SelectedAsset.SupportsTomlView}"
+                  CornerRadius="6"
+                  Background="{DynamicResource StudioCanvasBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  Padding="2"
+                  VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="2">
+              <Button Classes="seg-btn"
+                      Classes.active="{Binding IsFormViewActive}"
+                      IsEnabled="{Binding SelectedAsset.CanShowForm}"
+                      Command="{Binding ShowFormViewCommand}"
+                      Content="Form" />
+              <Button Classes="seg-btn"
+                      Classes.active="{Binding IsTomlViewActive}"
+                      Command="{Binding ShowTomlViewCommand}"
+                      Content="TOML" />
+            </StackPanel>
+          </Border>
+
+          <!-- Binary Record Pill (Blueprints) -->
+          <Border Grid.Column="1"
+                  IsVisible="{Binding SelectedAsset.IsBlueprint}"
+                  Classes="studio-badge info"
+                  VerticalAlignment="Center">
+            <TextBlock Text="Binary (.wbp)" Classes="mono" FontSize="10.5" FontWeight="SemiBold" />
+          </Border>
+        </Grid>
+      </Border>
+
+      <!-- PINNED Fixed Identity Header (always stays fixed above the scrollable form body!) -->
+      <Border DockPanel.Dock="Top"
+              Background="{DynamicResource StudioCanvasBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="16,10"
+              DataContext="{Binding SelectedAsset}">
+        <StackPanel Spacing="6">
+          <!-- Syntax-Error Raw Mode Banner -->
+          <Border IsVisible="{Binding HasSyntaxError}" Classes="studio-banner-danger" Margin="0,0,0,4">
+            <StackPanel Spacing="2">
+              <TextBlock Text="TOML Syntax Error — Form View Disabled (Auto-Opened in Editable Raw Text)"
+                         FontSize="12"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource StudioDangerBrush}" />
+              <TextBlock Text="{Binding SyntaxErrorMessage}"
+                         FontSize="11.5"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            </StackPanel>
+          </Border>
+
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Id}"
+                         Classes="mono"
+                         FontSize="15"
+                         FontWeight="Bold"
+                         Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                         VerticalAlignment="Center" />
+              <Border Classes="studio-badge info" IsVisible="{Binding HasNamespaceBadge}">
+                <TextBlock Text="{Binding NamespaceBadge}" Classes="mono" FontSize="10" FontWeight="SemiBold" />
+              </Border>
+              <Border Classes="studio-badge"
+                      IsVisible="{Binding ShowProvenanceBadge}"
+                      Classes.info="{Binding IsOverrideProvenance}">
+                <TextBlock Text="{Binding ProvenanceDetailLabel}" FontSize="10" FontWeight="SemiBold" />
+              </Border>
+              <Border Classes="studio-badge" IsVisible="{Binding HasMultiEntry}">
+                <TextBlock Text="{Binding MultiEntryLabel}" Classes="mono" FontSize="10" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+              </Border>
+              <Border Classes="studio-badge warning" IsVisible="{Binding IsDirty}">
+                <TextBlock Text="Unsaved draft" FontSize="10" FontWeight="SemiBold" />
+              </Border>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Classes="studio-btn"
+                    Height="26"
+                    MinHeight="26"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding CanRenameId}"
+                    Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).OpenRenameDialogCommand}"
+                    Content="Rename ID..." />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- Scrollable Editor Body -->
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="14,10,14,16" Spacing="8" DataContext="{Binding SelectedAsset}">
+          <!-- Applicable Identity Fields (Name, Description, Icon) inside compact card -->
+          <Border Classes="studio-card"
+                  Padding="8,5"
+                  IsVisible="{Binding HasNameField}">
+            <StackPanel Spacing="1">
+              <controls:ScalarFieldRowControl DataContext="{Binding NameField}" IsVisible="{Binding $parent[StackPanel].((vm:AssetDocumentViewModel)DataContext).HasNameField}" />
+              <controls:ScalarFieldRowControl DataContext="{Binding DescriptionField}" IsVisible="{Binding $parent[StackPanel].((vm:AssetDocumentViewModel)DataContext).HasDescriptionField}" />
+              <controls:ScalarFieldRowControl DataContext="{Binding IconField}" IsVisible="{Binding $parent[StackPanel].((vm:AssetDocumentViewModel)DataContext).HasIconField}" />
+            </StackPanel>
+          </Border>
+
+          <!-- Form View Presenter (per-kind structured editors) -->
+          <Grid IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsFormViewActive}">
+            <forms:BrickFormView IsVisible="{Binding IsBrick}" />
+            <forms:ItemFormView IsVisible="{Binding IsItem}" />
+            <forms:PaintFormView IsVisible="{Binding IsPaint}" />
+            <forms:SkillFormView IsVisible="{Binding IsSkill}" />
+            <forms:BodyFormView IsVisible="{Binding IsBody}" />
+            <forms:MaterialFormView IsVisible="{Binding IsMaterial}" />
+            <views:TagEditorView IsVisible="{Binding IsTag}" />
+            <views:LocalizationEditorView IsVisible="{Binding IsLocalization}" />
+            <forms:BlueprintFormView IsVisible="{Binding IsBlueprint}" />
+          </Grid>
+
+          <!-- Raw TOML Source View -->
+          <views:TomlSourceView IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsTomlViewActive}"
+                                MinHeight="380" />
+        </StackPanel>
+      </ScrollViewer>
+      </DockPanel>
+    </Grid>
+  </Border>
+</UserControl>

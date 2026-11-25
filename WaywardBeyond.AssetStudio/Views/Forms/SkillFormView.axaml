@@ -1,0 +1,221 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.SkillFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel>
+    <!-- Level Curve & Sparkline (most frequently tuned) -->
+    <controls:CollapsibleSectionCard Title="Level Curve &amp; Sparkline" Subtitle="{Binding SkillCurveSummary}">
+      <controls:CollapsibleSectionCard.HeaderAction>
+        <StackPanel Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center">
+          <Button Classes="studio-btn-compact"
+                  Padding="8,0"
+                  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).CopySkillLevelCurveCommand}"
+                  ToolTip.Tip="Copy all level curve XP values">
+            <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+              <Path Width="11"
+                    Height="11"
+                    Stretch="Uniform"
+                    Data="M 2,8.5 L 2,2.5 L 8,2.5 M 4.5,4.5 L 10.5,4.5 L 10.5,10.5 L 4.5,10.5 Z"
+                    Stroke="{Binding $parent[Button].Foreground}"
+                    StrokeThickness="1.3"
+                    StrokeLineCap="Round"
+                    StrokeJoin="Round" />
+              <TextBlock Text="Copy Curve" FontSize="11" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <Button Classes="studio-btn-compact"
+                  Padding="8,0"
+                  IsEnabled="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).CanPasteSkillLevelCurve, FallbackValue=False}"
+                  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).PasteSkillLevelCurveCommand}"
+                  ToolTip.Tip="Paste copied level curve onto this skill">
+            <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+              <Path Width="11"
+                    Height="11"
+                    Stretch="Uniform"
+                    Data="M 4.5,1.5 L 7.5,1.5 L 7.5,3.5 L 4.5,3.5 Z M 4.5,2.5 L 2.5,2.5 L 2.5,10.5 L 9.5,10.5 L 9.5,2.5 L 7.5,2.5 M 4.5,6 L 7.5,6 M 4.5,8 L 7.5,8"
+                    Stroke="{Binding $parent[Button].Foreground}"
+                    StrokeThickness="1.3"
+                    StrokeLineCap="Round"
+                    StrokeJoin="Round" />
+              <TextBlock Text="Paste Curve" FontSize="11" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </controls:CollapsibleSectionCard.HeaderAction>
+      <StackPanel Spacing="8">
+        <!-- Custom-drawn Sparkline Card -->
+        <Border CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="10,7">
+          <StackPanel Spacing="4">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0"
+                         Text="XP Required Per Level Step"
+                         FontSize="11.5"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+              <TextBlock Grid.Column="1"
+                         Text="{Binding SkillCurveSummary}"
+                         Classes="mono"
+                         FontSize="10.5"
+                         Foreground="{DynamicResource StudioTextMutedBrush}" />
+            </Grid>
+            <controls:SparklineControl Height="80"
+                                       Values="{Binding SkillSparklineValues}"
+                                       AccentBrush="{DynamicResource StudioAccentBrush}"
+                                       GridBrush="{DynamicResource StudioBorderBrush}"
+                                       LabelBrush="{DynamicResource StudioTextMutedBrush}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Editable Level Table (aligned header & scrollable body so XP Sources fits right below!) -->
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="Each value specifies XP required to advance past the previous level (must be ≥ 1)."
+                     FontSize="11"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddSkillLevelCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Level" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True">
+          <StackPanel>
+            <!-- Aligned Table Header matching row column grid (68, 140, *, 28) -->
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,5">
+              <Grid ColumnDefinitions="68,140,*,28" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Text="LEVEL" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="XP STEP" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="CUMULATIVE TOTAL" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+
+            <ScrollViewer MaxHeight="76" VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding SkillLevels}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SkillLevelRowViewModel">
+                    <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                      <Grid ColumnDefinitions="68,140,*,28" ColumnSpacing="8">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Level, StringFormat='Lv {0}'}"
+                                   Classes="mono"
+                                   FontSize="11.5"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding XpRequired, Mode=TwoWay}"
+                                 Classes="studio-input mono" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding CumulativeXp, StringFormat='{}{0:N0} XP total'}"
+                                   Classes="mono"
+                                   FontSize="11.5"
+                                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="3"
+                                Classes="studio-btn-ghost"
+                                Width="26"
+                                Height="26"
+                                MinHeight="26"
+                                Padding="0"
+                                Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveSkillLevelCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="Remove level row">
+                          <TextBlock Text="×" FontSize="14" />
+                        </Button>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- XP Sources Map (visible right below Level Curve!) -->
+    <controls:CollapsibleSectionCard Title="XP Sources" Subtitle="Place / Break brick ID or tag:* → XP">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="Tag entries (tag:brick.buildable) expand through invariant tag lists at load."
+                     FontSize="11"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddSkillSourceCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Source" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+              <Grid ColumnDefinitions="104,*,80,28" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Text="TRIGGER" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="BRICK OR TAG TARGET" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="XP" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+            <ItemsControl ItemsSource="{Binding SkillSources}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SkillSourceRowViewModel">
+                  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                    <Grid ColumnDefinitions="104,*,80,28" ColumnSpacing="8">
+                      <ComboBox Grid.Column="0"
+                                ItemsSource="{x:Static vm:SkillSourceRowViewModel.TRIGGERS}"
+                                SelectedItem="{Binding Trigger, Mode=TwoWay}"
+                                Classes="studio-combo" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding Target, Mode=TwoWay}"
+                               Classes="studio-input mono" />
+                      <TextBox Grid.Column="2"
+                               Text="{Binding XpAmount, Mode=TwoWay}"
+                               Classes="studio-input mono" />
+                      <Button Grid.Column="3"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveSkillSourceCommand}"
+                              CommandParameter="{Binding}">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Informational metadata (unread today) -->
+    <controls:CollapsibleSectionCard Title="Display Metadata"
+                                     BadgeText="Informational · unread"
+                                     Subtitle="Reserved for future skill panel"
+                                     IsExpanded="False">
+      <StackPanel Spacing="4">
+        <controls:ScalarFieldRowControl DataContext="{Binding SkillCategoryField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

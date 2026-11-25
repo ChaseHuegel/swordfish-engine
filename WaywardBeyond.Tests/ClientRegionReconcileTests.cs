@@ -23,6 +23,7 @@ using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Voxels;
@@ -257,7 +258,9 @@ public class ClientRegionReconcileTests
             _container.RegisterInstance<IContainer>(_container);
             _container.RegisterInstance<IBrickDatabase>(Bricks);
             _container.RegisterInstance(textures);
+            _container.RegisterInstance<ITextureLayerLookup>(new TextureArrayLayerLookup(albedo));
             _container.RegisterInstance<IAssetDatabase<Mesh>>(new EmptyMeshDatabase());
+            _container.RegisterInstance<IAssetDatabase<VoxelMesh>>(new EngineMeshPreviewDatabase(new EmptyMeshDatabase()));
             _container.Register<MeshState>(Reuse.Scoped);
             _container.Register<EntityState>(Reuse.Scoped);
             _container.Register<CollisionState>(Reuse.Scoped);

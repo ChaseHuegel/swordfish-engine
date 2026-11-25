@@ -1,0 +1,363 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:models="clr-namespace:WaywardBeyond.AssetStudio.Models"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             xmlns:rendering="clr-namespace:WaywardBeyond.AssetStudio.Rendering"
+             x:Class="WaywardBeyond.AssetStudio.Views.InspectorPaneView"
+             x:DataType="vm:MainWindowViewModel">
+  <Border Background="{DynamicResource StudioCanvasBrush}">
+    <Grid>
+      <!-- Empty Inspector State (No Asset Selected) -->
+      <DockPanel IsVisible="{Binding HasNoSelectedAsset}">
+        <Border DockPanel.Dock="Top"
+                Height="36"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="12,0">
+          <TextBlock Text="PREVIEW"
+                     Classes="pane-title"
+                     VerticalAlignment="Center" />
+        </Border>
+        <TextBlock Text="Select or create an asset to preview it."
+                   FontSize="11.5"
+                   TextAlignment="Center"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Margin="20" />
+      </DockPanel>
+
+      <!-- Active Asset Preview & References -->
+      <DockPanel IsVisible="{Binding HasSelectedAsset}">
+      <!-- Preview / Document Summary Section -->
+      <StackPanel DockPanel.Dock="Top">
+        <Border Height="36"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="12,0">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0"
+                       IsVisible="{Binding HasVisualPreview}"
+                       Text="PREVIEW"
+                       Classes="pane-title"
+                       VerticalAlignment="Center" />
+            <TextBlock Grid.Column="0"
+                       IsVisible="{Binding IsDataDocumentPreview}"
+                       Text="DOCUMENT SUMMARY"
+                       Classes="pane-title"
+                       VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+
+        <!-- Graphical Viewport Card (Bricks, Items, Paints, Bodies, Materials, Blueprints) -->
+        <StackPanel IsVisible="{Binding HasVisualPreview}" Margin="10,10,10,12" Spacing="8">
+          <Border CornerRadius="8"
+                  Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  Height="186"
+                  ClipToBounds="True">
+            <Grid>
+              <rendering:GlViewport x:Name="LiveGlViewport"
+                                    IsVisible="{Binding ShouldMountGlViewport}" />
+              <controls:PreviewViewportControl x:Name="FallbackPreviewViewport"
+                                               Descriptor="{Binding ActivePreviewDescriptor}"
+                                               LabelBrush="{DynamicResource StudioTextMutedBrush}"
+                                               GridBrush="{DynamicResource StudioBorderBrush}"
+                                               IsVisible="{Binding ShowFallbackPreviewViewport}" />
+            </Grid>
+          </Border>
+
+          <!-- Body Preview Frame Stepper & Slider Strip -->
+          <StackPanel IsVisible="{Binding ShowBodyPreviewControls}" Spacing="4">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+              <Button Grid.Column="0"
+                      Classes="studio-btn-compact"
+                      Width="24"
+                      Padding="0"
+                      IsEnabled="{Binding CanStepBodyPreviewFrames}"
+                      Command="{Binding PreviousBodyPreviewFrameCommand}"
+                      ToolTip.Tip="Previous sprite frame">
+                <TextBlock Text="‹" FontSize="15" Margin="0,-2,0,0" />
+              </Button>
+              <Slider Grid.Column="1"
+                      Classes="studio-color-slider"
+                      Foreground="{DynamicResource StudioAccentBrush}"
+                      Minimum="0"
+                      Maximum="{Binding BodyPreviewMaxIndex}"
+                      Value="{Binding BodyPreviewFrameIndex, Mode=TwoWay}"
+                      IsSnapToTickEnabled="True"
+                      TickFrequency="1"
+                      IsEnabled="{Binding CanStepBodyPreviewFrames}"
+                      ToolTip.Tip="Scrub body state and direction sprites" />
+              <Button Grid.Column="2"
+                      Classes="studio-btn-compact"
+                      Width="24"
+                      Padding="0"
+                      IsEnabled="{Binding CanStepBodyPreviewFrames}"
+                      Command="{Binding NextBodyPreviewFrameCommand}"
+                      ToolTip.Tip="Next sprite frame">
+                <TextBlock Text="›" FontSize="15" Margin="0,-2,0,0" />
+              </Button>
+            </Grid>
+            <TextBlock Text="{Binding BodyPreviewLabel}"
+                       Classes="mono"
+                       FontSize="10.5"
+                       HorizontalAlignment="Center"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+
+          <!-- Preview Controls Row -->
+          <StackPanel Spacing="6" IsVisible="{Binding Has3DPreviewControls}">
+            <!-- Clear Segmented Item Framing Preset (ViewModel | WorldModel) -->
+            <Grid IsVisible="{Binding ShowItemFramingToggle}" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+              <TextBlock Grid.Column="0"
+                         Text="Framing"
+                         FontSize="11"
+                         Foreground="{DynamicResource StudioTextMutedBrush}"
+                         VerticalAlignment="Center" />
+              <Border Grid.Column="1"
+                      CornerRadius="6"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Padding="2"
+                      HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                  <Button Classes="seg-btn"
+                          Height="20"
+                          MinHeight="20"
+                          Padding="8,0"
+                          FontSize="10.5"
+                          Classes.active="{Binding UseItemViewModelPreset}"
+                          Command="{Binding SelectItemViewModelPresetCommand}"
+                          Content="ViewModel" />
+                  <Button Classes="seg-btn"
+                          Height="20"
+                          MinHeight="20"
+                          Padding="8,0"
+                          FontSize="10.5"
+                          Classes.active="{Binding UseItemWorldModelPreset}"
+                          Command="{Binding SelectItemWorldModelPresetCommand}"
+                          Content="WorldModel" />
+                </StackPanel>
+              </Border>
+            </Grid>
+
+            <!-- Clear Segmented Connected Brick Showcase Toggle (Shape | Connected Block) -->
+            <Grid IsVisible="{Binding ShowConnectedShowcaseToggle}" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+              <TextBlock Grid.Column="0"
+                         Text="Preview"
+                         FontSize="11"
+                         Foreground="{DynamicResource StudioTextMutedBrush}"
+                         VerticalAlignment="Center" />
+              <Border Grid.Column="1"
+                      CornerRadius="6"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Padding="2"
+                      HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                  <Button Classes="seg-btn"
+                          Height="20"
+                          MinHeight="20"
+                          Padding="8,0"
+                          FontSize="10.5"
+                          Classes.active="{Binding IsShapePreviewMode}"
+                          Command="{Binding SelectStandardBrickPreviewCommand}"
+                          Content="Shape" />
+                  <Button Classes="seg-btn"
+                          Height="20"
+                          MinHeight="20"
+                          Padding="8,0"
+                          FontSize="10.5"
+                          Classes.active="{Binding IsConnectedShowcaseMode}"
+                          Command="{Binding SelectConnectedShowcasePreviewCommand}"
+                          ToolTip.Tip="Preview all 16 connected-texture combinations"
+                          Content="Connected Block" />
+                </StackPanel>
+              </Border>
+            </Grid>
+
+            <!-- Segmented Material Preview Shape Switcher (Sphere | Plane | Cube) -->
+            <Grid IsVisible="{Binding IsMaterialPreviewSelected}" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+              <TextBlock Grid.Column="0"
+                         Text="Surface"
+                         FontSize="11"
+                         Foreground="{DynamicResource StudioTextMutedBrush}"
+                         VerticalAlignment="Center" />
+              <Border Grid.Column="1"
+                      CornerRadius="6"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Padding="2"
+                      HorizontalAlignment="Left">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                  <Button Classes="seg-btn"
+                          Height="20"
+                          MinHeight="20"
+                          Padding="8,0"
+                          FontSize="10.5"
+                          Classes.active="{Binding IsMaterialShapeSphere}"
+                          Command="{Binding SetMaterialPreviewShapeCommand}"
+                          CommandParameter="{x:Static models:MaterialPreviewShape.Sphere}"
+                          Content="Sphere" />
+                  <Button Classes="seg-btn"
+                          Height="20"
+                          MinHeight="20"
+                          Padding="8,0"
+                          FontSize="10.5"
+                          Classes.active="{Binding IsMaterialShapePlane}"
+                          Command="{Binding SetMaterialPreviewShapeCommand}"
+                          CommandParameter="{x:Static models:MaterialPreviewShape.Plane}"
+                          Content="Plane" />
+                  <Button Classes="seg-btn"
+                          Height="20"
+                          MinHeight="20"
+                          Padding="8,0"
+                          FontSize="10.5"
+                          Classes.active="{Binding IsMaterialShapeCube}"
+                          Command="{Binding SetMaterialPreviewShapeCommand}"
+                          CommandParameter="{x:Static models:MaterialPreviewShape.Cube}"
+                          Content="Cube" />
+                </StackPanel>
+              </Border>
+            </Grid>
+
+            <WrapPanel Orientation="Horizontal">
+              <Button Classes="studio-btn-compact"
+                      IsVisible="{Binding ShowOrientationButton}"
+                      Margin="0,0,5,4"
+                      Command="{Binding CycleOrientationCommand}"
+                      Content="{Binding OrientationShortLabel, StringFormat='Orient: {0}'}" />
+              <Button Classes="studio-btn-compact"
+                      Classes.active="{Binding IsShapeGridMode}"
+                      IsVisible="{Binding ShowShapeGridToggle}"
+                      Margin="0,0,5,4"
+                      Command="{Binding ToggleShapeGridModeCommand}"
+                      Content="Any Grid" />
+              <Button Classes="studio-btn-compact"
+                      Classes.active="{Binding IsPreviewOrbiting}"
+                      Margin="0,0,5,4"
+                      Command="{Binding ToggleOrbitCommand}"
+                      Content="Orbit" />
+              <Button Classes="studio-btn-compact"
+                      Margin="0,0,0,4"
+                      Command="{Binding ResetPreviewCameraCommand}"
+                      Content="Reset" />
+            </WrapPanel>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Compact Purposeful Metadata Summary Card for Non-3D Data Documents (Skill, Tag, Localization) -->
+        <Grid IsVisible="{Binding IsDataDocumentPreview}">
+          <Border Margin="10,10,10,12"
+                  CornerRadius="8"
+                  Background="{DynamicResource StudioSurfaceBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  Padding="12,10"
+                  DataContext="{Binding SelectedAsset}">
+            <StackPanel Spacing="7">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Id}"
+                           Classes="mono"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis" />
+                <Border Grid.Column="1" Classes="studio-badge info">
+                  <TextBlock Text="{Binding Kind}" FontSize="9.5" FontWeight="SemiBold" />
+                </Border>
+              </Grid>
+              <TextBlock Text="{Binding DataSummaryMetric}"
+                         FontSize="12"
+                         FontWeight="Medium"
+                         Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+              <TextBlock Text="{Binding DataSummaryDetail}"
+                         FontSize="11"
+                         TextWrapping="Wrap"
+                         Foreground="{DynamicResource StudioTextMutedBrush}" />
+              <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,2" />
+              <Grid ColumnDefinitions="56,*" RowDefinitions="Auto,Auto" RowSpacing="4">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Root" FontSize="10.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding RootName}" Classes="mono" FontSize="10.5" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="File" FontSize="10.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding RelativeFile}" Classes="mono" FontSize="10.5" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </StackPanel>
+
+      <!-- References Header -->
+      <Border DockPanel.Dock="Top"
+              Height="32"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,1"
+              Padding="12,0">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="{Binding SelectedAsset.ReferencesSectionTitle, FallbackValue='INBOUND REFERENCES'}"
+                     Classes="pane-title"
+                     VerticalAlignment="Center" />
+          <TextBlock Grid.Column="1"
+                     Text="{Binding SelectedAsset.InboundReferences.Count}"
+                     Classes="mono"
+                     FontSize="10.5"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+        </Grid>
+      </Border>
+
+      <!-- Clickable References List -->
+      <Grid>
+        <TextBlock IsVisible="{Binding SelectedAsset.HasNoInboundReferences}"
+                   Text="{Binding SelectedAsset.EmptyReferencesMessage, FallbackValue='No inbound references in workspace.'}"
+                   FontSize="11.5"
+                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                   Margin="12,12" />
+        <ScrollViewer IsVisible="{Binding !SelectedAsset.HasNoInboundReferences}" VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding SelectedAsset.InboundReferences}" Margin="10,8,10,12">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:InboundReferenceItem">
+                <Button Classes="card-action"
+                        Padding="10,8"
+                        Margin="0,0,0,6"
+                        Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).NavigateInboundReferenceCommand}"
+                        CommandParameter="{Binding}">
+                  <StackPanel Spacing="3">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Grid.Column="0"
+                                 Text="{Binding SourceAssetId}"
+                                 Classes="mono"
+                                 FontSize="11.5"
+                                 FontWeight="SemiBold"
+                                 Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                                 TextTrimming="CharacterEllipsis" />
+                      <Border Grid.Column="1" Classes="studio-badge" Padding="4,1">
+                        <TextBlock Text="{Binding SourceKind}"
+                                   FontSize="9.5"
+                                   Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                      </Border>
+                    </Grid>
+                    <TextBlock Text="{Binding FieldPath}"
+                               Classes="mono"
+                               FontSize="10"
+                               Foreground="{DynamicResource StudioTextMutedBrush}"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+      </DockPanel>
+    </Grid>
+  </Border>
+</UserControl>

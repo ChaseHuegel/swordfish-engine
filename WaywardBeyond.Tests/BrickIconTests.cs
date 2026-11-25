@@ -14,6 +14,7 @@ using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
 using WaywardBeyond.Items;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
 
@@ -106,7 +107,13 @@ public class BrickIconTests
         });
 
         var offscreen = new FakeOffscreenRenderer();
-        var meshBuilder = new BrickPreviewMeshBuilder(registry, brickDb, CreateTextureArrays(), new TestMeshDatabase());
+        var textureArrays = CreateTextureArrays();
+        var meshBuilder = new BrickPreviewMeshBuilder(
+            registry,
+            brickDb,
+            new TextureArrayLayerLookup(textureArrays.Albedo),
+            new EngineMeshPreviewDatabase(new TestMeshDatabase())
+        );
         var uiShader = new Shader("ui", []);
         var iconShader = new Shader("icon", []);
         var voxelMaterials = new VoxelMaterials(iconShader, CreateTextureArrays());

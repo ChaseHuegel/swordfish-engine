@@ -139,7 +139,7 @@ fallback face. Per-face entries override it.
 
 Non-block shapes (`Slab`, `Stair`, `Slope`, `Column`, `Plate`, `Custom`) also
 apply per-face textures in `MeshPostPass`
-(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:209-327`). Each vertex
+(`WaywardBeyond.Meshing/MeshPostPass.cs:601`). Each vertex
 classifies its brick-local normal against the six cardinal faces in descending
 axis magnitude, breaking ties in Z (`Front`/`Back`), Y (`Top`/`Bottom`), X
 (`Right`/`Left`) order. When the primary face is unset, secondary axes with at
@@ -163,7 +163,7 @@ texture-painted face uses the paint texture as authored, so a paint always shows
 its exact color over the greyscale texture.
 
 The tint reaches all voxel surfaces that resolve through
-`ConnectedTextureResolver` (`WaywardBeyond.Client/Voxels/Processing/ConnectedTextureResolver.cs`):
+`ConnectedTextureResolver` (`WaywardBeyond.Meshing/ConnectedTextureResolver.cs`):
 world chunks through `MeshPostPass`, and placement previews, held-item view
 models, and baked brick item icons through `BrickPreviewMeshBuilder`. A light
 brick emits `LightEntityDecorator.DefaultColor` multiplied by `Color` when

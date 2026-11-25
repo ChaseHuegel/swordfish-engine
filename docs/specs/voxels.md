@@ -108,7 +108,7 @@ An unpainted face is tinted by its brick's default color
 painted face uses the paint instead. See
 [asset-definitions](asset-definitions.md#color).
 `ConnectedTextureResolver`
-(`WaywardBeyond.Client/Voxels/Processing/ConnectedTextureResolver.cs:10`)
+(`WaywardBeyond.Meshing/ConnectedTextureResolver.cs:10`)
 resolves 4-bit connected-texture adjacency for `CubeMeshBuilder` and
 `MeshPostPass`. It connects native bricks and painted faces by comparing
 effective resolved surfaces on coplanar neighbor faces. Built-in non-block
@@ -118,7 +118,7 @@ with the same shape and compatible orientation (ignoring symmetric yaw on
 shape geometry meets flush, including diagonal ramp neighbors for `Slope`
 `Front` faces. `MeshPostPass` also culls flush boundary triangles on built-in
 non-block shapes when covered by an adjacent culler block or a same-shape
-compatible-orientation neighbor (`MeshPostPass.cs:212`). `Custom` meshes remain
+compatible-orientation neighbor (`MeshPostPass.cs:247`). `Custom` meshes remain
 unconnected.
 `lightedArray.glsl` applies `VertexColor.rgb` as linear albedo and emissive
 tint (including bloom `BrightColor`) and `VertexColor.a` as voxel light. The
@@ -176,7 +176,7 @@ A rebuild pools a `ChunkBuildContext` (`VoxelObjectBuilder.cs:22-31, 75-119`)
 so it reuses the DI scope, `VoxelSurfaceCache`, and mesh, entity, and collision
 buffers across edits. `CubeMeshBuilder` precomputes rotated cube faces across
 all 64 discrete orientations and resolves surface layers through
-`VoxelSurfaceCache` (`WaywardBeyond.Client/Voxels/Processing/VoxelSurfaceCache.cs`)
+`VoxelSurfaceCache` (`WaywardBeyond.Meshing/VoxelSurfaceCache.cs`)
 and `FaceOrientationLookup` (`WaywardBeyond.Voxels/FaceOrientationLookup.cs`).
 `MeshBatch` (`Swordfish/Graphics/MeshBatch.cs:72-199`) allocates range capacity
 headroom and reuses backing arrays so small edits update in place without
@@ -249,7 +249,7 @@ ambient, otherwise one less. Open air never decays. A tunnel or a cavity does.
 
 Light bricks (`wb:light`, `wb:small_light`) use `Alpha = Blend`. They are not
 cullers, so the mesh pass emits the neighbouring solid's face against the lamp
-(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:127-142`). The point
+(`WaywardBeyond.Meshing/MeshPostPass.cs:183-203`). The point
 shadow pass uses that face as the occluder instead of the lamp mesh. The lamp
 mesh lands in the transparent bucket with `CastShadows = false`
 (`WaywardBeyond.Client/Voxels/Building/VoxelMaterials.cs:47-54`), so it does
@@ -288,7 +288,7 @@ update on the ECS thread. It stays visible while the game is paused and releases
 on menu or loading.
 
 `BrickPreviewMeshBuilder`
-(`WaywardBeyond.Client/Voxels/Building/BrickPreviewMeshBuilder.cs:48`) builds one
+(`WaywardBeyond.Meshing/BrickPreviewMeshBuilder.cs:43`) builds one
 isolated brick mesh. It reuses `MeshPostPass`, so the preview matches placed
 geometry, textures, alpha mode, and custom meshes. The builder bakes the
 voxel-local orientation through `BrickExtensions.ToVoxel`, which applies the

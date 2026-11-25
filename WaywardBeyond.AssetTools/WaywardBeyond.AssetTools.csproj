@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>13</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FuzzySharp" Version="2.0.2" />
+    <PackageReference Include="Tomlyn" Version="2.11.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
+    <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Items\WaywardBeyond.Items.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Localization\Strings.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+      <StronglyTypedLanguage>C#</StronglyTypedLanguage>
+      <StronglyTypedNamespace>WaywardBeyond.AssetTools.Localization</StronglyTypedNamespace>
+      <StronglyTypedClassName>Strings</StronglyTypedClassName>
+      <StronglyTypedFileName>$(IntermediateOutputPath)Strings.Designer.cs</StronglyTypedFileName>
+      <PublicClass>true</PublicClass>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WaywardBeyond.AssetTools.Tests" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' != 'Debug'">
+    <EmbeddedResource Remove="Localization\Strings.qps-ploc.resx" />
+    <None Include="Localization\Strings.qps-ploc.resx" />
+  </ItemGroup>
+
+</Project>

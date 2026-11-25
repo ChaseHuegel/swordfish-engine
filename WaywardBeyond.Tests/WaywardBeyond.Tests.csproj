@@ -34,6 +34,7 @@
     <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Items\WaywardBeyond.Items.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Meshing\WaywardBeyond.Meshing.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Permissions\WaywardBeyond.Permissions.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" />
@@ -52,6 +53,8 @@
     <None Include="..\WaywardBeyond.Client\assets\particles\*.toml" Link="TestFiles\Client\assets\particles\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Client\assets\shaders\laser_beam.glsl" Link="TestFiles\Client\assets\shaders\laser_beam.glsl" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Client\assets\materials\effects\laser_beam.toml" Link="TestFiles\Client\assets\materials\effects\laser_beam.toml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Client\assets\meshes\*.obj" Link="TestFiles\Meshing\meshes\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Client\assets\textures\block\*.png" Link="TestFiles\Meshing\textures\block\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Client\assets\audio\sounds\**\*.*" Link="assets\audio\sounds\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="_ExcludeUnusedGameAssetsFromTests"

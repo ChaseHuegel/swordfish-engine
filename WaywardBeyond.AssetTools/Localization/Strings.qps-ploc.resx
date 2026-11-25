@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="App.Title" xml:space="preserve">
+    <value>[!! Wåÿwård Bëÿønd Ässët Stüdïø ~~~~~~~~~~ !!]</value>
+  </data>
+  <data name="StartScreen.OpenRepo" xml:space="preserve">
+    <value>[!! Øpën Rëpøsïtørÿ ~~~~~~ !!]</value>
+  </data>
+  <data name="StartScreen.OpenPack" xml:space="preserve">
+    <value>[!! Øpën Çøntënt Päçk ~~~~~~~ !!]</value>
+  </data>
+  <data name="StartScreen.OpenInstall" xml:space="preserve">
+    <value>[!! Øpën Gämë Ïnställ ~~~~~~~ !!]</value>
+  </data>
+  <data name="StartScreen.NewPack" xml:space="preserve">
+    <value>[!! Nëw Çøntënt Päçk ~~~~~~ !!]</value>
+  </data>
+  <data name="StartScreen.RecentWorkspaces" xml:space="preserve">
+    <value>[!! Rëçënt Wørkspäçës ~~~~~~~ !!]</value>
+  </data>
+  <data name="ItemForm.Title" xml:space="preserve">
+    <value>[!! Ïtëm ~~ !!]</value>
+  </data>
+  <data name="BrickForm.Title" xml:space="preserve">
+    <value>[!! Brïçk ~~~ !!]</value>
+  </data>
+  <data name="PaintForm.Title" xml:space="preserve">
+    <value>[!! Päïnt ~~~ !!]</value>
+  </data>
+  <data name="SkillForm.Title" xml:space="preserve">
+    <value>[!! Skïll ~~~ !!]</value>
+  </data>
+  <data name="BodyForm.Title" xml:space="preserve">
+    <value>[!! Bødÿ ~~ !!]</value>
+  </data>
+  <data name="MaterialForm.Title" xml:space="preserve">
+    <value>[!! Mätërïäl ~~~~ !!]</value>
+  </data>
+  <data name="BlueprintForm.Title" xml:space="preserve">
+    <value>[!! Blüëprïnt ~~~~ !!]</value>
+  </data>
+  <data name="Search.Placeholder" xml:space="preserve">
+    <value>[!! Sëärçh ässëts, rësøürçës, änd äçtïøns... ~~~~~~~~~~~~~ !!]</value>
+  </data>
+  <data name="Validation.PanelTitle" xml:space="preserve">
+    <value>[!! Välïdätïøn ~~~~ !!]</value>
+  </data>
+  <data name="Drafts.RecoveryTitle" xml:space="preserve">
+    <value>[!! Rëçøvër Ünsävëd Dräfts ~~~~~~~~ !!]</value>
+  </data>
+  <data name="Save.ExternalConflict" xml:space="preserve">
+    <value>[!! Fïlë çhängëd øn dïsk sïnçë ëdïtïng bëgän. ~~~~~~~~~~~~~~ !!]</value>
+  </data>
+  <data name="Settings.Title" xml:space="preserve">
+    <value>[!! Sëttïngs ~~~~ !!]</value>
+  </data>
+  <data name="About.Title" xml:space="preserve">
+    <value>[!! Äbøüt ~~~ !!]</value>
+  </data>
+  <data name="Actions.Save" xml:space="preserve">
+    <value>[!! Sävë ~~ !!]</value>
+  </data>
+  <data name="Actions.SaveAll" xml:space="preserve">
+    <value>[!! Sävë Äll ~~~~ !!]</value>
+  </data>
+  <data name="Actions.Format" xml:space="preserve">
+    <value>[!! Førmät ~~~ !!]</value>
+  </data>
+  <data name="Actions.Validate" xml:space="preserve">
+    <value>[!! Välïdätë ~~~~ !!]</value>
+  </data>
+  <data name="Actions.Cancel" xml:space="preserve">
+    <value>[!! Çänçël ~~~ !!]</value>
+  </data>
+</root>

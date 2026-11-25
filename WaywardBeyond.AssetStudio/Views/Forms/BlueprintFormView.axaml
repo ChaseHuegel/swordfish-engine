@@ -1,0 +1,145 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:models="clr-namespace:WaywardBeyond.AssetStudio.Models"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.BlueprintFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel Spacing="10">
+    <!-- Action Toolbar -->
+    <Border Classes="studio-card" Padding="12,10">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
+            <Button Classes="studio-btn" Command="{Binding DuplicateBlueprintCommand}" Content="Duplicate" />
+            <Button Classes="studio-btn" Command="{Binding ImportBlueprintCommand}" Content="Import from Library..." />
+            <Button Classes="studio-btn" Command="{Binding ExportBlueprintCommand}" Content="Export to Library..." />
+            <Button Classes="studio-btn" Command="{Binding MoveBlueprintCommand}" Content="Move Path..." />
+          </StackPanel>
+
+          <!-- 2-Step Delete -->
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+            <Button IsVisible="{Binding !IsBlueprintDeleteConfirming}"
+                    Classes="studio-btn-danger"
+                    Command="{Binding BeginBlueprintDeleteCommand}"
+                    Content="Delete" />
+            <StackPanel IsVisible="{Binding IsBlueprintDeleteConfirming}"
+                        Orientation="Horizontal"
+                        Spacing="6">
+              <TextBlock Text="Confirm permanent delete?"
+                         FontSize="11.5"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource StudioDangerBrush}"
+                         VerticalAlignment="Center" />
+              <Button Classes="studio-btn-danger"
+                      Command="{Binding ConfirmBlueprintDeleteCommand}"
+                      Content="Yes, Delete" />
+              <Button Classes="studio-btn"
+                      Command="{Binding CancelBlueprintDeleteCommand}"
+                      Content="Cancel" />
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+
+        <TextBlock Text="Rename updates the display name without changing the blueprint ID. Move Path changes the blueprint ID."
+                   FontSize="11"
+                   Foreground="{DynamicResource StudioTextMutedBrush}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Editable Name + Read-Only Blueprint Metadata -->
+    <controls:CollapsibleSectionCard Title="Blueprint Metadata">
+      <StackPanel Spacing="10">
+        <controls:ScalarFieldRowControl DataContext="{Binding BlueprintNameField}" />
+
+        <Border CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="12,10">
+          <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bounds Size" FontSize="11.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding BlueprintSizeLabel}" Classes="mono" FontSize="12" FontWeight="SemiBold" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Brick Count" FontSize="11.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BlueprintBrickCountLabel}" Classes="mono" FontSize="12" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Binary Size" FontSize="11.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding BlueprintFileSizeLabel}" Classes="mono" FontSize="12" />
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Created" FontSize="11.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding BlueprintCreatedAtLabel}" Classes="mono" FontSize="12" />
+
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Last Modified" FontSize="11.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding BlueprintModifiedAtLabel}" Classes="mono" FontSize="12" />
+          </Grid>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Brick & Paint Palette -->
+    <controls:CollapsibleSectionCard Title="Brick &amp; Paint Palette">
+      <StackPanel Spacing="8">
+        <TextBlock IsVisible="{Binding HasBlueprintPalette}"
+                   Text="{Binding BlueprintPaletteSummary}"
+                   FontSize="11.5"
+                   Foreground="{DynamicResource StudioTextMutedBrush}" />
+
+        <Border IsVisible="{Binding HasNoBlueprintPalette}"
+                CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="12,10">
+          <TextBlock Text="No brick or paint palette entries were found in this blueprint file."
+                     FontSize="11.5"
+                     Foreground="{DynamicResource StudioTextMutedBrush}" />
+        </Border>
+
+        <ItemsControl IsVisible="{Binding HasBlueprintPalette}"
+                      ItemsSource="{Binding BlueprintPalette}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="models:BlueprintPaletteItem">
+              <Button Classes="card-action"
+                      Padding="10,7"
+                      Margin="0,0,0,5"
+                      Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigatePaletteItemCommand}"
+                      CommandParameter="{Binding}">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                  <TextBlock Grid.Column="0"
+                             Text="{Binding AssetId}"
+                             Classes="mono"
+                             FontSize="12"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                             TextTrimming="CharacterEllipsis"
+                             VerticalAlignment="Center" />
+                  <Border Grid.Column="1" Classes="studio-badge" Padding="6,2">
+                    <TextBlock Text="{Binding Kind}"
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                  </Border>
+                  <TextBlock Grid.Column="2"
+                             Text="{Binding SummaryLabel}"
+                             Classes="mono"
+                             FontSize="11"
+                             Foreground="{DynamicResource StudioTextMutedBrush}"
+                             VerticalAlignment="Center" />
+                  <Grid Grid.Column="3" VerticalAlignment="Center">
+                    <Border IsVisible="{Binding IsResolved}" Classes="studio-badge success" Padding="6,2">
+                      <TextBlock Text="Resolved" FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                    <Border IsVisible="{Binding !IsResolved}" Classes="studio-badge danger" Padding="6,2">
+                      <TextBlock Text="Missing" FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                  </Grid>
+                </Grid>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

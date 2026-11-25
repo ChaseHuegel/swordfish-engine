@@ -1,0 +1,373 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+        xmlns:views="clr-namespace:WaywardBeyond.AssetStudio.Views"
+        xmlns:overlays="clr-namespace:WaywardBeyond.AssetStudio.Views.Overlays"
+        xmlns:dialogs="clr-namespace:WaywardBeyond.AssetStudio.Views.Dialogs"
+        x:Class="WaywardBeyond.AssetStudio.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Wayward Beyond Asset Studio"
+        Width="1280"
+        Height="800"
+        MinWidth="960"
+        MinHeight="640">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="F1" Command="{Binding OpenCommandPaletteCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveAllCommand}" />
+    <KeyBinding Gesture="Alt+Left" Command="{Binding NavigateBackCommand}" />
+    <KeyBinding Gesture="Alt+Right" Command="{Binding NavigateForwardCommand}" />
+    <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}" />
+    <KeyBinding Gesture="Ctrl+Add" Command="{Binding ZoomInCommand}" />
+    <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOutCommand}" />
+    <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding ZoomOutCommand}" />
+    <KeyBinding Gesture="Ctrl+D0" Command="{Binding ResetZoomCommand}" />
+    <KeyBinding Gesture="Ctrl+NumPad0" Command="{Binding ResetZoomCommand}" />
+    <KeyBinding Gesture="Escape" Command="{Binding HandleEscapeKeyCommand}" />
+  </Window.KeyBindings>
+
+  <LayoutTransformControl>
+    <LayoutTransformControl.LayoutTransform>
+      <ScaleTransform ScaleX="{Binding UiScale}" ScaleY="{Binding UiScale}" />
+    </LayoutTransformControl.LayoutTransform>
+
+    <Grid>
+      <!-- Start Screen -->
+      <views:StartScreenView IsVisible="{Binding IsStartScreenVisible}" />
+
+      <!-- Main Workbench Shell -->
+      <DockPanel IsVisible="{Binding IsWorkbenchVisible}">
+        <!-- Top Command Bar -->
+        <Border DockPanel.Dock="Top"
+                Height="44"
+                Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="10,0">
+          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+            <!-- Left: App Mark, History Nav, Undo/Redo, Workspace Mode Pill -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Button Classes="studio-btn-ghost"
+                      Padding="6,0"
+                      Command="{Binding ShowStartScreenCommand}"
+                      ToolTip.Tip="Return to Start Screen">
+                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                  <Border Width="20" Height="20" CornerRadius="5" Background="{DynamicResource StudioAccentBrush}">
+                    <TextBlock Text="W"
+                               FontSize="10.5"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource StudioAccentForegroundBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                  </Border>
+                  <TextBlock Text="Asset Studio"
+                             FontSize="12.5"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                             VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+
+              <Border Width="1" Height="18" Background="{DynamicResource StudioBorderBrush}" Margin="2,0" />
+
+              <!-- Back / Forward History -->
+              <Button Classes="studio-icon-btn"
+                      IsEnabled="{Binding CanNavigateBack}"
+                      Command="{Binding NavigateBackCommand}"
+                      ToolTip.Tip="Back (Alt+Left)">
+                <TextBlock Text="‹" FontSize="17" Margin="0,-2,0,0" />
+              </Button>
+              <Button Classes="studio-icon-btn"
+                      IsEnabled="{Binding CanNavigateForward}"
+                      Command="{Binding NavigateForwardCommand}"
+                      ToolTip.Tip="Forward (Alt+Right)">
+                <TextBlock Text="›" FontSize="17" Margin="0,-2,0,0" />
+              </Button>
+
+              <Border Width="1" Height="18" Background="{DynamicResource StudioBorderBrush}" Margin="1,0" />
+
+              <!-- Undo / Redo -->
+              <Button Classes="studio-icon-btn"
+                      IsEnabled="{Binding CanUndo}"
+                      Command="{Binding UndoCommand}"
+                      ToolTip.Tip="{Binding UndoTooltip}">
+                <Path Width="14"
+                      Height="14"
+                      Stretch="Uniform"
+                      Data="M 6,4 L 2,8 L 6,12 M 2.5,8 L 9.5,8 C 11.7,8 13,9.3 13,11.2 C 13,12.1 12.6,12.8 12,13.3"
+                      Stroke="{Binding $parent[Button].Foreground}"
+                      StrokeThickness="1.6"
+                      StrokeLineCap="Round"
+                      StrokeJoin="Round" />
+              </Button>
+              <Button Classes="studio-icon-btn"
+                      IsEnabled="{Binding CanRedo}"
+                      Command="{Binding RedoCommand}"
+                      ToolTip.Tip="{Binding RedoTooltip}">
+                <Path Width="14"
+                      Height="14"
+                      Stretch="Uniform"
+                      Data="M 9,4 L 13,8 L 9,12 M 12.5,8 L 5.5,8 C 3.3,8 2,9.3 2,11.2 C 2,12.1 2.4,12.8 3,13.3"
+                      Stroke="{Binding $parent[Button].Foreground}"
+                      StrokeThickness="1.6"
+                      StrokeLineCap="Round"
+                      StrokeJoin="Round" />
+              </Button>
+
+              <!-- Workspace Mode Pill -->
+              <Button Classes="studio-btn"
+                      CornerRadius="999"
+                      Height="26"
+                      MinHeight="26"
+                      Padding="10,0"
+                      Command="{Binding ToggleWorkspaceModeCommand}"
+                      ToolTip.Tip="Click to switch between Pack and Repo workspace mode">
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                  <Ellipse Width="7"
+                           Height="7"
+                           Fill="{DynamicResource StudioSuccessBrush}"
+                           IsVisible="{Binding !IsUninitializedFolder}"
+                           VerticalAlignment="Center" />
+                  <Ellipse Width="7"
+                           Height="7"
+                           Fill="{DynamicResource StudioWarningBrush}"
+                           IsVisible="{Binding IsUninitializedFolder}"
+                           VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding WorkspaceModeLabel}"
+                             FontSize="11.5"
+                             FontWeight="SemiBold"
+                             VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+
+            <!-- Center: F1 Command Palette Trigger -->
+            <Button Grid.Column="1"
+                    HorizontalAlignment="Center"
+                    Width="300"
+                    Height="28"
+                    CornerRadius="6"
+                    Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                    BorderBrush="{DynamicResource StudioBorderBrush}"
+                    BorderThickness="1"
+                    Padding="10,0"
+                    Command="{Binding OpenCommandPaletteCommand}"
+                    Cursor="Hand"
+                    ToolTip.Tip="Open Command Palette (F1)">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="Search assets, resources, actions..."
+                           FontSize="11.5"
+                           Foreground="{DynamicResource StudioTextMutedBrush}"
+                           VerticalAlignment="Center" />
+                <Border Grid.Column="1"
+                        CornerRadius="4"
+                        Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                        BorderBrush="{DynamicResource StudioBorderBrush}"
+                        BorderThickness="1"
+                        Padding="5,1"
+                        VerticalAlignment="Center">
+                  <TextBlock Text="F1"
+                             Classes="mono"
+                             FontSize="10"
+                             Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                </Border>
+              </Grid>
+            </Button>
+
+            <!-- Right: Recovery Pill, Settings, About, Export, Save/Discard SplitButton -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Button IsVisible="{Binding HasPendingRecoveryDrafts}"
+                      Classes="studio-btn-compact"
+                      Height="28"
+                      Command="{Binding OpenDraftRecoveryDialogCommand}"
+                      ToolTip.Tip="Unclean-exit drafts detected">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Ellipse Width="6" Height="6" Fill="{DynamicResource StudioWarningBrush}" VerticalAlignment="Center" />
+                  <TextBlock Text="Recover Drafts" FontSize="11" Foreground="{DynamicResource StudioWarningBrush}" FontWeight="SemiBold" />
+                </StackPanel>
+              </Button>
+
+              <Button Classes="studio-btn-ghost"
+                      Command="{Binding OpenSettingsDialogCommand}"
+                      ToolTip.Tip="Studio Settings"
+                      Content="Settings" />
+              <Button Classes="studio-btn-ghost"
+                      Command="{Binding OpenAboutDialogCommand}"
+                      ToolTip.Tip="About &amp; Diagnostics"
+                      Content="About" />
+              <Button Classes="studio-btn"
+                      Command="{Binding OpenExportDialogCommand}"
+                      ToolTip.Tip="Validate and stage pack archive"
+                      Content="Export" />
+              <SplitButton Classes="studio-split-primary"
+                           Content="{Binding SaveAllButtonLabel}"
+                           Command="{Binding SaveAllCommand}"
+                           IsEnabled="{Binding HasDirtyDocuments}"
+                           ToolTip.Tip="Save all dirty drafts (Ctrl+S) or open Save / Discard actions">
+                <SplitButton.Flyout>
+                  <MenuFlyout Placement="BottomEdgeAlignedRight">
+                    <MenuItem Header="Save Current Asset"
+                              Command="{Binding SaveCurrentAssetCommand}"
+                              IsEnabled="{Binding CanSaveCurrentAsset}" />
+                    <MenuItem Header="Save All"
+                              Command="{Binding SaveAllCommand}"
+                              IsEnabled="{Binding HasDirtyDocuments}" />
+                    <Separator />
+                    <MenuItem Header="Discard Changes to Current Asset"
+                              Command="{Binding DiscardCurrentAssetCommand}"
+                              IsEnabled="{Binding CanDiscardCurrentAsset}" />
+                    <MenuItem Header="Discard All Changes"
+                              Command="{Binding DiscardAllChangesCommand}"
+                              IsEnabled="{Binding HasDirtyDocuments}" />
+                  </MenuFlyout>
+                </SplitButton.Flyout>
+              </SplitButton>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- Bottom Status Bar -->
+        <Border DockPanel.Dock="Bottom"
+                Height="28"
+                Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,0">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+              <TextBlock Text="{Binding StatusSummaryLabel}"
+                         FontSize="11"
+                         FontWeight="Medium"
+                         Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+              <TextBlock Text="{Binding DraftStatusLabel}"
+                         FontSize="11"
+                         Foreground="{DynamicResource StudioTextMutedBrush}" />
+            </StackPanel>
+
+            <!-- Compact UI Zoom Control -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+              <Button Classes="studio-btn-ghost"
+                      Width="22"
+                      Height="20"
+                      MinHeight="20"
+                      Padding="0"
+                      Command="{Binding ZoomOutCommand}"
+                      ToolTip.Tip="Zoom out (Ctrl+-)"
+                      Content="−"
+                      FontSize="13" />
+              <Slider Width="76"
+                      Minimum="0.75"
+                      Maximum="1.75"
+                      SmallChange="0.05"
+                      LargeChange="0.1"
+                      Classes="studio-color-slider"
+                      Foreground="{DynamicResource StudioAccentBrush}"
+                      Value="{Binding UiScale, Mode=TwoWay}"
+                      ToolTip.Tip="UI zoom level" />
+              <Button Classes="studio-btn-ghost"
+                      Width="22"
+                      Height="20"
+                      MinHeight="20"
+                      Padding="0"
+                      Command="{Binding ZoomInCommand}"
+                      ToolTip.Tip="Zoom in (Ctrl++)"
+                      Content="+"
+                      FontSize="13" />
+              <Button Classes="studio-btn-ghost"
+                      Height="20"
+                      MinHeight="20"
+                      Padding="5,0"
+                      Command="{Binding ResetZoomCommand}"
+                      ToolTip.Tip="Reset UI zoom (Ctrl+0)">
+                <TextBlock Text="{Binding UiScalePercentLabel}"
+                           Classes="mono"
+                           FontSize="10.5"
+                           Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+              </Button>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- Main Resizable Grid vs Full-Workbench Visual Model Editor -->
+        <Grid>
+          <Grid RowDefinitions="*,Auto,176" IsVisible="{Binding IsStandardWorkbenchVisible}">
+            <!-- 3-Column Workbench -->
+            <Grid Grid.Row="0" ColumnDefinitions="236,Auto,*,Auto,272">
+              <!-- Left Asset Explorer -->
+              <views:WorkspaceExplorerView Grid.Column="0" IsVisible="{Binding IsExplorerVisible}" />
+              <GridSplitter Grid.Column="1" Classes="studio-splitter-v" IsVisible="{Binding IsExplorerVisible}" />
+
+              <!-- Center Editor -->
+              <views:EditorHostView Grid.Column="2" />
+
+              <!-- Right Preview & Inbound References -->
+              <GridSplitter Grid.Column="3" Classes="studio-splitter-v" IsVisible="{Binding IsInspectorVisible}" />
+              <views:InspectorPaneView Grid.Column="4" IsVisible="{Binding IsInspectorVisible}" />
+            </Grid>
+
+            <!-- Horizontal Splitter -->
+            <GridSplitter Grid.Row="1" Classes="studio-splitter-h" IsVisible="{Binding IsValidationDockVisible}" />
+
+            <!-- Bottom Validation Dock -->
+            <views:ValidationDockView Grid.Row="2" IsVisible="{Binding IsValidationDockVisible}" />
+          </Grid>
+
+          <!-- Full-Workbench Visual Item ViewModel / WorldModel Editor -->
+          <views:ItemModelEditorView DataContext="{Binding ActiveModelEditor}"
+                                     IsVisible="{Binding $parent[DockPanel].((vm:MainWindowViewModel)DataContext).IsModelEditorVisible}" />
+        </Grid>
+      </DockPanel>
+
+      <!-- Floating Toast Notification -->
+      <Border IsVisible="{Binding HasToast}"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Bottom"
+              Margin="0,0,18,40"
+              CornerRadius="8"
+              Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioAccentBorderBrush}"
+              BorderThickness="1"
+              Padding="12,8"
+              BoxShadow="0 8 24 0 #44000000">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="{Binding ToastMessage}"
+                     FontSize="12"
+                     Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                     VerticalAlignment="Center" />
+          <Button Classes="studio-btn-ghost"
+                  Height="20"
+                  MinHeight="20"
+                  Padding="4,0"
+                  Command="{Binding DismissToastCommand}"
+                  Content="×" />
+        </StackPanel>
+      </Border>
+
+      <!-- Modal Overlay & Dialog Layer -->
+      <Grid IsVisible="{Binding IsAnyOverlayOpen}"
+            Background="{DynamicResource StudioModalBackdropBrush}">
+        <overlays:CommandPaletteOverlay DataContext="{Binding ActiveCommandPalette}"
+                                        IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveCommandPalette, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:NewAssetDialog DataContext="{Binding ActiveNewAssetDialog}"
+                                IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveNewAssetDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:RenamePreviewDialog DataContext="{Binding ActiveRenameDialog}"
+                                     IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveRenameDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:DeleteAssetDialog DataContext="{Binding ActiveDeleteAssetDialog}"
+                                   IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveDeleteAssetDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:DeleteRecentWorkspaceDialog DataContext="{Binding ActiveDeleteRecentWorkspaceDialog}"
+                                             IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveDeleteRecentWorkspaceDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:CreateLocalizationKeyDialog DataContext="{Binding ActiveCreateLocKeyDialog}"
+                                             IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveCreateLocKeyDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:SettingsDialog DataContext="{Binding ActiveSettingsDialog}"
+                                IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveSettingsDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:AboutDialog DataContext="{Binding ActiveAboutDialog}"
+                             IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveAboutDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:ExportDialog DataContext="{Binding ActiveExportDialog}"
+                              IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveExportDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <dialogs:DraftRecoveryDialog DataContext="{Binding ActiveDraftRecoveryDialog}"
+                                     IsVisible="{Binding $parent[Grid].((vm:MainWindowViewModel)DataContext).ActiveDraftRecoveryDialog, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </Grid>
+    </Grid>
+  </LayoutTransformControl>
+</Window>

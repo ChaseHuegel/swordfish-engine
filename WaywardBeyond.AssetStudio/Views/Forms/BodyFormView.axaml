@@ -1,0 +1,198 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             xmlns:conv="clr-namespace:WaywardBeyond.AssetStudio.Converters"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.BodyFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel>
+    <!-- Species & Gender -->
+    <controls:CollapsibleSectionCard Title="Species &amp; Gender">
+      <StackPanel Spacing="2">
+        <controls:ScalarFieldRowControl DataContext="{Binding BodySpeciesField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BodyGenderField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- State & Directional 2D Sprite Map -->
+    <controls:CollapsibleSectionCard Title="State &amp; Direction Sprites">
+      <StackPanel Spacing="10">
+        <!-- State Switcher Chips + Remove State -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="State:"
+                       FontSize="12"
+                       FontWeight="Medium"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,8,4" />
+            <ItemsControl ItemsSource="{Binding BodyStateChips}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:FilterChipViewModel">
+                  <Button Classes="studio-btn-compact"
+                          Classes.active="{Binding IsSelected}"
+                          Margin="0,0,6,4"
+                          Content="{Binding Label}"
+                          Command="{Binding SelectCommand}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </WrapPanel>
+
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  VerticalAlignment="Top"
+                  Command="{Binding RemoveSelectedBodyStateCommand}"
+                  IsEnabled="{Binding CanRemoveSelectedBodyState}"
+                  ToolTip.Tip="Remove the active state and its sprites"
+                  Content="Remove State" />
+        </Grid>
+
+        <!-- Inline Add State Row -->
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <TextBox Grid.Column="0"
+                   Text="{Binding NewBodyStateName, Mode=TwoWay}"
+                   IsReadOnly="{Binding IsReadOnly}"
+                   Classes="studio-input mono"
+                   Watermark="New state name (e.g. walking, sitting)..." />
+          <Button Grid.Column="1"
+                  Classes="studio-btn"
+                  Command="{Binding AddBodyStateCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add State" />
+        </Grid>
+
+        <!-- Empty State Hint -->
+        <Border IsVisible="{Binding HasNoVisibleBodySprites}"
+                CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="12,10">
+          <TextBlock Text="No directional sprites defined for this state yet. Add one below."
+                     FontSize="11.5"
+                     Foreground="{DynamicResource StudioTextMutedBrush}" />
+        </Border>
+
+        <!-- 2x2 Directional Sprite Thumbnail Grid with Full-Width Unclipped PNG Paths -->
+        <ItemsControl ItemsSource="{Binding VisibleBodySprites}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="2" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:BodySpriteSlotViewModel">
+              <Border CornerRadius="8"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Padding="10"
+                      Margin="0,0,8,8">
+                <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                  <!-- Top Row: 2D Sprite Thumbnail + Direction Metadata + Remove Sprite -->
+                  <Grid Grid.Row="0" ColumnDefinitions="46,*,Auto" ColumnSpacing="10">
+                    <Border Grid.Column="0"
+                            Width="46"
+                            Height="48"
+                            CornerRadius="6"
+                            Background="{DynamicResource StudioCanvasBrush}"
+                            BorderBrush="{DynamicResource StudioBorderStrongBrush}"
+                            BorderThickness="1"
+                            ClipToBounds="True">
+                      <Grid>
+                        <Image Source="{Binding SpriteBitmap}"
+                               IsVisible="{Binding HasSpriteBitmap}"
+                               Stretch="Uniform"
+                               Margin="3"
+                               RenderOptions.BitmapInterpolationMode="None" />
+                        <StackPanel IsVisible="{Binding !HasSpriteBitmap}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="2">
+                          <Border Width="14"
+                                  Height="12"
+                                  CornerRadius="3"
+                                  Background="{Binding SwatchHex, Converter={x:Static conv:HexToBrushConverter.INSTANCE}}"
+                                  HorizontalAlignment="Center" />
+                          <Border Width="18"
+                                  Height="16"
+                                  CornerRadius="3"
+                                  Background="{Binding SwatchHex, Converter={x:Static conv:HexToBrushConverter.INSTANCE}}"
+                                  Opacity="0.85"
+                                  HorizontalAlignment="Center" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Direction}"
+                               Classes="mono"
+                               FontSize="12.5"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+
+                    <Button Grid.Column="2"
+                            Classes="studio-btn-ghost"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            VerticalAlignment="Top"
+                            IsEnabled="{Binding !$parent[UserControl].((vm:AssetDocumentViewModel)DataContext).IsReadOnly}"
+                            Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveBodySpriteCommand}"
+                            CommandParameter="{Binding}"
+                            ToolTip.Tip="Remove sprite">
+                      <TextBlock Text="×" FontSize="14" />
+                    </Button>
+                  </Grid>
+
+                  <!-- Bottom Row: Sprite Picker (Text Input + Workspace Thumbnail Grid + Disk File Picker) -->
+                  <controls:BodySpritePickerControl Grid.Row="1"
+                                                    TexturePath="{Binding TexturePath, Mode=TwoWay}"
+                                                    Images="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).WorkspaceImages}"
+                                                    IsReadOnly="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).IsReadOnly}"
+                                                    Watermark="characters/..."
+                                                    BrowseFileCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).BrowseBodySpriteFileCommand}"
+                                                    BrowseFileCommandParameter="{Binding}" />
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Inline Add Sprite Bar -->
+        <Border CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="10,8">
+          <Grid ColumnDefinitions="96,*,Auto" ColumnSpacing="6">
+            <ComboBox Grid.Column="0"
+                      ItemsSource="{x:Static vm:AssetDocumentViewModel.BODY_DIRECTIONS}"
+                      SelectedItem="{Binding NewBodySpriteDirection, Mode=TwoWay}"
+                      IsEnabled="{Binding !IsReadOnly}"
+                      Classes="studio-combo" />
+            <controls:BodySpritePickerControl Grid.Column="1"
+                                              TexturePath="{Binding NewBodySpriteTexturePath, Mode=TwoWay}"
+                                              Images="{Binding WorkspaceImages}"
+                                              IsReadOnly="{Binding IsReadOnly}"
+                                              Watermark="characters/human_m_standing.png"
+                                              BrowseFileCommand="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).BrowseBodySpriteFileCommand}" />
+            <Button Grid.Column="2"
+                    Classes="studio-btn-primary"
+                    Command="{Binding AddBodySpriteCommand}"
+                    IsEnabled="{Binding !IsReadOnly}"
+                    Content="+ Add Sprite" />
+          </Grid>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

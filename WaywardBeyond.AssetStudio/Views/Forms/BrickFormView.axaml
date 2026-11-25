@@ -1,0 +1,100 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.BrickFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel>
+    <!-- Shape & Appearance -->
+    <controls:CollapsibleSectionCard Title="Shape &amp; Appearance">
+      <StackPanel Spacing="4">
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickShapeField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickColorField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickAlphaField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickCastShadowsField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickPassableField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Mesh & Per-Face Textures -->
+    <controls:CollapsibleSectionCard Title="Mesh &amp; Per-Face Textures">
+      <StackPanel Spacing="4">
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickTexDefaultField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickMeshField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickConnectedField}" />
+        <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,6" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickTexTopField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickTexBottomField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickTexFrontField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickTexBackField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickTexLeftField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickTexRightField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Sounds -->
+    <controls:CollapsibleSectionCard Title="Sounds">
+      <StackPanel Spacing="4">
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickSoundPlaceField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickSoundBreakField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Colliders -->
+    <controls:CollapsibleSectionCard Title="Colliders">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="Explicit [[Bricks.Colliders]] override built-in shape colliders."
+                     FontSize="11.5"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddColliderCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Collider" />
+        </Grid>
+
+        <ItemsControl ItemsSource="{Binding Colliders}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ColliderEntryViewModel">
+              <Border CornerRadius="6"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Padding="10,8"
+                      Margin="0,0,0,6">
+                <Grid ColumnDefinitions="96,*,*,Auto" ColumnSpacing="8">
+                  <StackPanel Grid.Column="0" Spacing="3">
+                    <TextBlock Text="Type" FontSize="10" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                    <ComboBox ItemsSource="{x:Static vm:ColliderEntryViewModel.COLLIDER_TYPES}"
+                              SelectedItem="{Binding ColliderType, Mode=TwoWay}"
+                              Classes="studio-combo" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="Size (X, Y, Z)" FontSize="10" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                    <TextBox Text="{Binding Size, Mode=TwoWay}" Classes="studio-input mono" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Spacing="3">
+                    <TextBlock Text="Offset (X, Y, Z)" FontSize="10" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                    <TextBox Text="{Binding Offset, Mode=TwoWay}" Classes="studio-input mono" />
+                  </StackPanel>
+                  <Button Grid.Column="3"
+                          VerticalAlignment="Bottom"
+                          Classes="studio-btn-ghost"
+                          Width="28"
+                          Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveColliderCommand}"
+                          CommandParameter="{Binding}"
+                          ToolTip.Tip="Remove collider">
+                    <TextBlock Text="×" FontSize="14" />
+                  </Button>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

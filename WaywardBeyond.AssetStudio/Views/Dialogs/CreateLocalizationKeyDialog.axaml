@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             x:Class="WaywardBeyond.AssetStudio.Views.Dialogs.CreateLocalizationKeyDialog"
+             x:DataType="vm:CreateLocalizationKeyDialogViewModel">
+  <Border Classes="studio-dialog" Width="480" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="True">
+    <StackPanel>
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="20,14">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Text="Create Localization Key" FontSize="15" FontWeight="Bold" />
+            <TextBlock Text="Adds a new dot key to a target localization TOML table and binds it to the field."
+                       FontSize="11.5"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+          <Button Grid.Column="1" VerticalAlignment="Top" Classes="studio-btn-ghost" Command="{Binding CancelCommand}" Content="×" FontSize="16" />
+        </Grid>
+      </Border>
+
+      <StackPanel Margin="20,18" Spacing="12">
+        <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="12">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="Dot Key" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding KeyName, Mode=TwoWay}" Classes="studio-input mono" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="Target Lang File" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <ComboBox Grid.Row="1" Grid.Column="1" ItemsSource="{Binding TargetFiles}" SelectedItem="{Binding TargetFile, Mode=TwoWay}" Classes="studio-combo" />
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="Initial English Text" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding InitialText, Mode=TwoWay}" Classes="studio-input" />
+        </Grid>
+      </StackPanel>
+
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="20,12">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Classes="studio-btn" Command="{Binding CancelCommand}" Content="Cancel" />
+          <Button Classes="studio-btn-primary" Command="{Binding CreateKeyCommand}" Content="Create Key" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

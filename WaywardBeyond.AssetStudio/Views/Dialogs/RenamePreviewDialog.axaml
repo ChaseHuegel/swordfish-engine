@@ -1,0 +1,100 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:models="clr-namespace:WaywardBeyond.AssetStudio.Models"
+             x:Class="WaywardBeyond.AssetStudio.Views.Dialogs.RenamePreviewDialog"
+             x:DataType="vm:RenamePreviewDialogViewModel">
+  <Border Classes="studio-dialog" Width="580" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="True">
+    <StackPanel>
+      <!-- Header -->
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="20,14">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Text="Rename Asset ID" FontSize="15" FontWeight="Bold" />
+            <TextBlock Text="Review references that will be updated before renaming."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="studio-btn-ghost" Command="{Binding CancelCommand}" Content="×" FontSize="16" />
+        </Grid>
+      </Border>
+
+      <!-- Body -->
+      <StackPanel Margin="20,16" Spacing="12">
+        <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="Current ID" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CurrentId}" IsReadOnly="True" Classes="studio-input mono" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="New ID" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+          <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding NewId, Mode=TwoWay}" Classes="studio-input mono" />
+        </Grid>
+
+        <!-- Brick Legacy Save Hash Warning -->
+        <Border IsVisible="{Binding ShowBrickLegacyHashWarning}" Classes="studio-banner-warning">
+          <StackPanel Spacing="2">
+            <TextBlock Text="Brick ID Rename Warning"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource StudioWarningBrush}" />
+            <TextBlock Text="Renaming a shipped brick ID can break older saves."
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Affected Files & Spans List -->
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding ImpactSummary}" FontSize="11.5" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <Border CornerRadius="6"
+                  Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  MaxHeight="276">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding AffectedSpans}" Margin="8">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="models:RenameAffectedSpan">
+                    <Border CornerRadius="5"
+                            Background="{DynamicResource StudioSurfaceBrush}"
+                            BorderBrush="{DynamicResource StudioBorderBrush}"
+                            BorderThickness="1"
+                            Padding="10,6"
+                            Margin="0,0,0,5">
+                      <StackPanel Spacing="2">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Grid.Column="0" Text="{Binding RelativeFile}" Classes="mono" FontSize="11.5" FontWeight="SemiBold" />
+                          <TextBlock Grid.Column="1" Text="{Binding LineNumber, StringFormat='Line {0}'}" Classes="mono" FontSize="10.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                        </Grid>
+                        <TextBlock Text="{Binding FieldPath}" Classes="mono" FontSize="10" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <TextBlock Text="{Binding BeforeText}" Classes="mono" FontSize="11" Foreground="{DynamicResource StudioDangerBrush}" />
+                          <TextBlock Text="→" FontSize="11" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                          <TextBlock Text="{Binding AfterText}" Classes="mono" FontSize="11" Foreground="{DynamicResource StudioSuccessBrush}" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Border>
+        </StackPanel>
+      </StackPanel>
+
+      <!-- Footer -->
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="20,12">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Classes="studio-btn" Command="{Binding CancelCommand}" Content="Cancel" />
+          <Button Classes="studio-btn-primary" Command="{Binding ApplyRenameCommand}" Content="Rename" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

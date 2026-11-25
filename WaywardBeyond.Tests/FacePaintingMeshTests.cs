@@ -9,8 +9,9 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Voxels;
-using WaywardBeyond.Client.Voxels.Processing;
+using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
 
@@ -111,7 +112,13 @@ public class FacePaintingMeshTests
         paints.Add(3, Paint.CreateColor("wb:red", "red", new Vector3(1f, 0f, 0f)));
 
         var state = new MeshState();
-        var pass = new MeshPostPass(state, bricks, arrays, new StubMeshDatabase(), paints);
+        var pass = new MeshPostPass(
+            state,
+            bricks,
+            new TextureArrayLayerLookup(albedo),
+            new EngineMeshPreviewDatabase(new StubMeshDatabase()),
+            paints
+        );
         return (state, pass, albedo, bricks, paints);
     }
 

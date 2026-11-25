@@ -23,6 +23,7 @@ using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
 using WaywardBeyondGameState = WaywardBeyond.Client.WaywardBeyond;
@@ -359,8 +360,11 @@ public class MainMenuAnimationSystemTests : IDisposable
         var shader = new Shader("test");
 
         container.RegisterInstance<IBrickDatabase>(bricks);
-        container.RegisterInstance<IAssetDatabase<Mesh>>(new StubMeshDatabase());
+        var meshDatabase = new StubMeshDatabase();
+        container.RegisterInstance<IAssetDatabase<Mesh>>(meshDatabase);
+        container.RegisterInstance<IAssetDatabase<VoxelMesh>>(new EngineMeshPreviewDatabase(meshDatabase));
         container.RegisterInstance(textures);
+        container.RegisterInstance<ITextureLayerLookup>(new TextureArrayLayerLookup(array));
         container.RegisterInstance(shader);
         container.Register<VoxelMaterials>(Reuse.Singleton);
         container.Register<VoxelObjectBuilder>(Reuse.Singleton);
@@ -377,7 +381,6 @@ public class MainMenuAnimationSystemTests : IDisposable
         container.Register<VoxelObjectProcessor.ISamplePass, DepthPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, LightPropagationPrePass>(Reuse.Scoped);
         container.Register<MeshPostPass>(Reuse.Scoped);
-        container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);
         container.Register<CollisionPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
         container.Register<VoxelEntityPostPass>(Reuse.Scoped);

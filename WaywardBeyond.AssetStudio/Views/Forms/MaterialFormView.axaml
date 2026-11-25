@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.MaterialFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel>
+    <controls:CollapsibleSectionCard Title="Material Properties">
+      <StackPanel Spacing="6">
+        <Border Classes="studio-banner-info" Padding="10,7">
+          <TextBlock Text="Material shaders are preserved as written on disk; viewport previews render unlit albedo."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioInfoBrush}" />
+        </Border>
+        <controls:ScalarFieldRowControl DataContext="{Binding MaterialShaderField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding MaterialTexturesField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding MaterialAlphaModeField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding MaterialAlphaCutoffField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>
