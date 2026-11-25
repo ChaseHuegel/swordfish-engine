@@ -6,4 +6,5 @@ public enum ToolType
     Mining,
     Sprayer,
     Drill,
+    Blueprint,
 }

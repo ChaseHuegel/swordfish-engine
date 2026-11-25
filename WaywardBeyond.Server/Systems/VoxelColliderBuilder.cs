@@ -78,6 +78,28 @@ public static class VoxelColliderBuilder
         return CombineCollisions(world.ChunkColliders.Values);
     }
 
+    /// <summary>Rebuilds every chunk in <paramref name="dirtyChunks"/> once and returns the combined compound shape.</summary>
+    public static CompoundShape RebuildDirtyChunks(
+        in VoxelWorldComponent world,
+        IReadOnlyCollection<Short3> dirtyChunks,
+        IBrickDatabase? brickDatabase = null
+    )
+    {
+        VoxelObject voxelObject = world.VoxelObject;
+        if (world.ChunkColliders.Count == 0 && voxelObject.ChunkCount > 0)
+        {
+            return BuildCollision(in world, brickDatabase);
+        }
+
+        ScratchLists scratch = GetScratch();
+        foreach (Short3 chunkCoords in dirtyChunks)
+        {
+            UpdateChunk(voxelObject, world.ChunkColliders, chunkCoords, brickDatabase, scratch);
+        }
+
+        return CombineCollisions(world.ChunkColliders.Values);
+    }
+
     /// <summary>Builds the collision shape for a voxel structure from serialized chunks.</summary>
     public static CompoundShape BuildCollision(ChunkInfo[] chunks, IBrickDatabase? brickDatabase = null)
     {

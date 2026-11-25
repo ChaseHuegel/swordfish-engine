@@ -53,6 +53,24 @@ public interface IGameServerApi
     [RpcMethod(GameRpc.Methods.CHAT, RpcDirection.ClientToServer)]
     void OnChat(ChatMessage message, RpcContext context, CancellationToken cancellationToken);
 
+    [RpcMethod(GameRpc.Methods.CUT_REGION, RpcDirection.ClientToServer)]
+    Task<RpcResult<RegionOpResponse>> CutRegionAsync(
+        CutRegionRequest request,
+        CancellationToken cancellationToken = default);
+
+    [RpcMethod(GameRpc.Methods.CUT_REGION, RpcDirection.ClientToServer)]
+    ValueTask<RpcResult<RegionOpResponse>> CutRegionAsync(
+        CutRegionRequest request, RpcContext context, CancellationToken cancellationToken);
+
+    [RpcMethod(GameRpc.Methods.PASTE_REGION_PART, RpcDirection.ClientToServer)]
+    Task<RpcResult<RegionOpResponse>> PasteRegionPartAsync(
+        RegionUploadPart request,
+        CancellationToken cancellationToken = default);
+
+    [RpcMethod(GameRpc.Methods.PASTE_REGION_PART, RpcDirection.ClientToServer)]
+    ValueTask<RpcResult<RegionOpResponse>> PasteRegionPartAsync(
+        RegionUploadPart request, RpcContext context, CancellationToken cancellationToken);
+
     [RpcMethod(GameRpc.Methods.LIST_LEVELS, RpcDirection.ClientToServer)]
     Task<RpcResult<ListLevelsResponse>> ListLevelsAsync(
         ListLevelsRequest request,

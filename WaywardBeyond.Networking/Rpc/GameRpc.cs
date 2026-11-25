@@ -4,7 +4,7 @@ namespace WaywardBeyond.Networking.Rpc;
 public static class GameRpc
 {
     /// <summary>The wire protocol version. Hosts and clients must match.</summary>
-    public const int PROTOCOL_VERSION = 3;
+    public const int PROTOCOL_VERSION = 4;
 
     /// <summary>Method ids grouped by subject. Each id is a wire contract.</summary>
     public static class Methods
@@ -20,6 +20,8 @@ public static class GameRpc
 
         //  Gameplay commands
         public const ulong CHAT = 60;
+        public const ulong CUT_REGION = 61;
+        public const ulong PASTE_REGION_PART = 62;
 
         //  Level information
         public const ulong LIST_LEVELS = 100;
@@ -38,6 +40,8 @@ public static class GameRpc
         //  Server interactions
         public const ulong VOXEL_EDIT = 350;
         public const ulong VOXEL_FACE_EDIT = 351;
+        public const ulong VOXEL_REGION_EDIT = 352;
+        public const ulong VOXEL_ENTITY_SPAWN = 353;
         
         //  Server events
         public const ulong SERVER_HEARTBEAT = 400;

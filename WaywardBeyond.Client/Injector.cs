@@ -30,6 +30,7 @@ using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers;
+using WaywardBeyond.Client.UI.Layers.Blueprints;
 using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
@@ -41,6 +42,7 @@ using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
@@ -93,6 +95,7 @@ public class Injector : IDryIocInjector
         container.Register<ActiveCharacterSave>(Reuse.Singleton);
         container.Register<ICharacterStorage, SqliteCharacterStorage>(Reuse.Singleton);
         container.Register<ILevelMetadataStorage, SqliteLevelMetadataStorage>(Reuse.Singleton);
+        container.Register<IBlueprintStorage, FileBlueprintStorage>(Reuse.Singleton);
 
         container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
 
@@ -135,6 +138,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientReconcileSystem>();
         container.Register<IEntitySystem, ClientParticleReplicationSystem>();
         container.Register<IEntitySystem, ClientVoxelReconcileSystem>();
+        container.Register<IEntitySystem, ClientRegionReconcileSystem>();
         container.Register<ChatService>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientChatSystem>();
 
@@ -147,6 +151,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntitySystem, ClientDisconnectSystem>();
 
         container.Register<LevelsClient>(Reuse.Singleton);
+        container.Register<RegionClient>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientLevelServiceSystem>();
         container.Register<ClientNotificationSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientNotificationSystem>();
@@ -238,6 +243,10 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IUILayer, PaintTextureSelector>();
         container.RegisterMapping<IActionIndicator, PaintTextureSelector>();
 
+        container.Register<RegionToolRadial>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, RegionToolRadial>();
+        container.RegisterMapping<IActionIndicator, RegionToolRadial>();
+
         //  Nameplates are world-correlated UI: ordered below the HUD layers (hotbar, inventory,
         //  notifications) so player tags render behind the widgets.
         container.Register<NameplateSnapshot>(Reuse.Singleton);
@@ -278,6 +287,9 @@ public class Injector : IDryIocInjector
 
         container.Register<Inventory>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Inventory>();
+
+        container.Register<BlueprintLibraryLayer>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, BlueprintLibraryLayer>();
 
         container.Register<ControlHints>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ControlHints>();
@@ -325,6 +337,11 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
         container.RegisterMapping<IEntitySystem, PlayerInteractionService>();
         container.RegisterMapping<IDebugOverlay, PlayerInteractionService>();
+
+        container.Register<RegionToolState>(Reuse.Singleton);
+        container.Register<RegionToolService>(Reuse.Singleton);
+        container.RegisterMapping<IEntryPoint, RegionToolService>();
+        container.RegisterMapping<IEntitySystem, RegionToolService>();
         //  Runs after the voxel-edit producers so the dirty flags it consumes reflect this tick.
         container.Register<IEntitySystem, VoxelEntityRebuildSystem>();
 
@@ -386,11 +403,21 @@ public class Injector : IDryIocInjector
         container.Register<IVoxelEntityDecorator, LightEntityDecorator>(Reuse.Transient);
         container.Register<IVoxelEntityDecorator, ThrusterEntityDecorator>(Reuse.Transient);
 
-        container.Register<VoxelMaterials>(Reuse.Singleton);
+        container.RegisterDelegate(
+            context => new VoxelMaterials(
+                context.Resolve<Shader>(),
+                context.Resolve<PBRTextureArrays>(),
+                context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("voxelGhost.glsl"))
+            ),
+            Reuse.Singleton
+        );
         container.Register<BrickPreviewMeshBuilder>(Reuse.Singleton);
+        container.Register<RegionPreviewMeshBuilder>(Reuse.Singleton);
         container.Register<BrickPreviewState>(Reuse.Singleton);
         container.Register<BrickPreviewSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, BrickPreviewSystem>();
+        container.Register<RegionPreviewSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, RegionPreviewSystem>();
 
         container.Register<VoxelObjectBuilder>(Reuse.Singleton);
         container.Register<VoxelLightingService>(Reuse.Singleton);

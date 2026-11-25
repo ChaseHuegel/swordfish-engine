@@ -336,6 +336,13 @@ The system renders two bounding boxes:
 The system preallocates line handles and reuses them each frame with zero heap
 allocations per tick.
 
+## Region operations
+
+Multi-cell region extraction, mirror and rotation transforms, bulk apply, and
+palette codec round-trips live in `VoxelRegionExtractor`,
+`VoxelRegionTransform`, `VoxelRegionApplier`, and `VoxelCodec`. See
+[region-blueprints](region-blueprints.md).
+
 ## Chunk collision caching
 
 `VoxelCollision.AppendChunk` (`WaywardBeyond.Voxels/VoxelCollision.cs:16-75`)

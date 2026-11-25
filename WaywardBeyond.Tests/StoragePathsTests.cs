@@ -18,6 +18,7 @@ public class StoragePathsTests
 
         Assert.Equal(Path.Combine(userRoot, "saves/", "profile.db"), storagePaths.GetProfileDatabase().Value);
         Assert.Equal(Path.Combine(userRoot, "saves/", "level-1", "level.db"), storagePaths.GetLevelDatabase("level-1").Value);
+        Assert.Equal(Path.Combine(userRoot, "blueprints/"), storagePaths.GetBlueprintsDirectory().Value);
     }
 
     [Fact]

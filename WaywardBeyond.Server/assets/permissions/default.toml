@@ -2,7 +2,7 @@
 # own files under permissions/ or config/permissions/. See docs/specs/permissions.md.
 
 [Groups.default]
-Permissions = []
+Permissions = ["waywardbeyond.region.*"]
 
 # Convenience role for trusted operators. Assign it to a user id in your own file.
 [Groups.admin]

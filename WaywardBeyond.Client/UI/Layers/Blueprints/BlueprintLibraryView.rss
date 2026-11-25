@@ -1,0 +1,47 @@
+.wb-blueprint-header {
+    layout: horizontal;
+    gap: 8px;
+}
+
+.wb-blueprint-body {
+    layout: vertical;
+    gap: 10px;
+}
+
+.wb-blueprint-list {
+    layout: vertical;
+    gap: 6px;
+}
+
+.wb-blueprint-meta {
+    layout: vertical;
+    gap: 2px;
+}
+
+.wb-blueprint-section {
+    layout: vertical;
+    gap: 6px;
+}
+
+.wb-blueprint-row {
+    layout: horizontal;
+    gap: 8px;
+}
+
+.wb-blueprint-card-body {
+    layout: horizontal;
+    gap: 8px;
+    padding: 8px 4px 8px 4px;
+}
+
+.wb-blueprint-actions {
+    layout: horizontal;
+    gap: 6px;
+}
+
+.wb-blueprint-hint {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}

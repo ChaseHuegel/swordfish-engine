@@ -1,0 +1,29 @@
+#version 1.0;
+#namespace WaywardBeyond.Data;
+#include "voxels.nsd";
+#include "saves.nsd";
+
+message VoxelRegionData
+{
+    int SizeX = 0;
+    int SizeY = 1;
+    int SizeZ = 2;
+    ChunkInfo[] Chunks = 3;
+    string[]? BrickPalette = 4;
+    string[]? PaintPalette = 5;
+}
+
+message BlueprintData
+{
+    Version Version = 0;
+    string Name = 1;
+    long CreatedAtMs = 2;
+    long ModifiedAtMs = 3;
+    int BrickCount = 4;
+    int SizeX = 5;
+    int SizeY = 6;
+    int SizeZ = 7;
+    ChunkInfo[] Chunks = 8;
+    string[]? BrickPalette = 9;
+    string[]? PaintPalette = 10;
+}

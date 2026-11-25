@@ -49,6 +49,52 @@ internal sealed class VoxelEntityBuilder(
     )
     {
         int entity = store.Alloc(uuid);
+        return Attach(store, entity, voxelObject, position, orientation, scale, tag, withPhysics);
+    }
+
+    public Entity CreateOrAttach(
+        DataStore store,
+        Uuid uuid,
+        VoxelObject voxelObject,
+        Vector3 position,
+        Quaternion orientation,
+        Vector3 scale,
+        string tag = "game",
+        bool withPhysics = true
+    )
+    {
+        if (store.TryGet(uuid, out int existing))
+        {
+            if (store.TryGet(existing, out VoxelComponent _))
+            {
+                return new Entity(existing, store);
+            }
+
+            if (store.TryGet(existing, out TransformComponent existingTransform))
+            {
+                position = existingTransform.Position;
+                orientation = existingTransform.Orientation;
+                scale = existingTransform.Scale;
+            }
+
+            return Attach(store, existing, voxelObject, position, orientation, scale, tag, withPhysics);
+        }
+
+        int entity = store.Alloc(uuid);
+        return Attach(store, entity, voxelObject, position, orientation, scale, tag, withPhysics);
+    }
+
+    private Entity Attach(
+        DataStore store,
+        int entity,
+        VoxelObject voxelObject,
+        Vector3 position,
+        Quaternion orientation,
+        Vector3 scale,
+        string tag,
+        bool withPhysics
+    )
+    {
         store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: tag));
 
         var transform = new TransformComponent(position, orientation, scale);
@@ -56,7 +102,7 @@ internal sealed class VoxelEntityBuilder(
         var voxelComponent = new VoxelComponent(voxelObject, registry);
 
         store.AddOrUpdate(entity, transform);
-        if (withPhysics)
+        if (withPhysics && !store.TryGet(entity, out PhysicsComponent _))
         {
             store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
         }

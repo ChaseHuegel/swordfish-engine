@@ -31,6 +31,7 @@ public static class PlayerInitialInventory
             new ItemData("laser", 1, 1),
             new ItemData("wb:sprayer", 1, 1),
             new ItemData("wb:drill", 1, 1),
+            new ItemData("wb:projector", 1, 1),
             new ItemData("wb:panel", 100, 100),
             new ItemData("wb:thruster", 100, 100),
             new ItemData("wb:display_control", 100, 100),

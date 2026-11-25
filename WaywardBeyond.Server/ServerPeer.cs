@@ -10,6 +10,7 @@ using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Permissions;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server;
 
@@ -98,6 +99,15 @@ public sealed class ServerPeer
     /// <summary>Inbound save requests staged for the world tick.</summary>
     public ConcurrentQueue<SaveLevelCall> SaveCalls { get; } = new();
 
+    /// <summary>Inbound cut region requests staged for the world tick.</summary>
+    public ConcurrentQueue<CutRegionCall> CutRegionCalls { get; } = new();
+
+    /// <summary>Inbound fragmented paste region uploads staged for the world tick.</summary>
+    public ConcurrentQueue<PasteRegionPartCall> PasteRegionParts { get; } = new();
+
+    /// <summary>Reassembles multi-part paste region uploads for this peer on the world tick.</summary>
+    public FragmentAssembler RegionUploadAssembler { get; } = new(RegionLimits.MAX_PAYLOAD_BYTES);
+
     /// <summary>Stamps the last inbound message time. Called for every inbound message.</summary>
     public void Touch()
     {
@@ -175,6 +185,20 @@ public sealed class ServerPeer
             call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Failure(
                 GameRpcErrors.INVALID_STATE, "the peer left the world"));
         }
+
+        while (CutRegionCalls.TryDequeue(out CutRegionCall cutCall))
+        {
+            cutCall.Completion.TrySetResult(RpcResult<RegionOpResponse>.Failure(
+                GameRpcErrors.INVALID_STATE, "the peer left the world"));
+        }
+
+        while (PasteRegionParts.TryDequeue(out PasteRegionPartCall pasteCall))
+        {
+            pasteCall.Completion.TrySetResult(RpcResult<RegionOpResponse>.Failure(
+                GameRpcErrors.INVALID_STATE, "the peer left the world"));
+        }
+
+        RegionUploadAssembler.Reset();
     }
 
     /// <summary>One in-world save request waiting for the world tick.</summary>
@@ -183,6 +207,28 @@ public sealed class ServerPeer
         CancellationToken cancellationToken
     ) {
         public readonly TaskCompletionSource<RpcResult<SaveLevelResponse>> Completion = completion;
+        public readonly CancellationToken CancellationToken = cancellationToken;
+    }
+
+    /// <summary>One in-world cut region request waiting for the world tick.</summary>
+    public readonly struct CutRegionCall(
+        CutRegionRequest request,
+        TaskCompletionSource<RpcResult<RegionOpResponse>> completion,
+        CancellationToken cancellationToken
+    ) {
+        public readonly CutRegionRequest Request = request;
+        public readonly TaskCompletionSource<RpcResult<RegionOpResponse>> Completion = completion;
+        public readonly CancellationToken CancellationToken = cancellationToken;
+    }
+
+    /// <summary>One in-world fragmented paste upload part waiting for the world tick.</summary>
+    public readonly struct PasteRegionPartCall(
+        RegionUploadPart part,
+        TaskCompletionSource<RpcResult<RegionOpResponse>> completion,
+        CancellationToken cancellationToken
+    ) {
+        public readonly RegionUploadPart Part = part;
+        public readonly TaskCompletionSource<RpcResult<RegionOpResponse>> Completion = completion;
         public readonly CancellationToken CancellationToken = cancellationToken;
     }
 }

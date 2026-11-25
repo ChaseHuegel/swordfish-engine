@@ -184,6 +184,16 @@ everything. A denied call returns
 level, and deletes nothing. The stock client does not know the verdict in
 advance, so a denied client sees the failure from the call itself.
 
+### Region authorization
+
+`ServerRegionSystem` checks `GamePermissions.REGION_CUT`
+(`waywardbeyond.region.cut`), `GamePermissions.REGION_PASTE`
+(`waywardbeyond.region.paste`), and `GamePermissions.REGION_SPAWN`
+(`waywardbeyond.region.spawn`) alongside `GameMode.Creative`.
+`WaywardBeyond.Server/assets/permissions/default.toml` grants
+`waywardbeyond.region.*` to `[Groups.default]`. See
+[region-blueprints](region-blueprints.md).
+
 ## Tests that pin this
 
 - `WaywardBeyond.Tests/Permissions/PermissionCompilerTests.cs` — merging, layering,

@@ -9,6 +9,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Shortcuts;
+using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Config;
 using WaywardBeyond.Items;
 
@@ -29,6 +30,7 @@ internal sealed class ControlHints : IUILayer
     private readonly ILocalization _localization;
     private readonly GameplayConfig _gameplayConfig;
     private readonly IShortcutService _shortcutService;
+    private readonly RegionToolState? _regionToolState;
 
     private HintViewState _feedbackHint;
     private HintViewState _changeShapeHint;
@@ -37,6 +39,20 @@ internal sealed class ControlHints : IUILayer
     private HintViewState _pickBrickHint;
     private HintViewState _changeColorHint;
     private HintViewState _changeTextureHint;
+    private HintViewState _regionCornerAHint;
+    private HintViewState _regionCornerBHint;
+    private HintViewState _regionCopyHint;
+    private HintViewState _regionCutHint;
+    private HintViewState _regionPasteModeHint;
+    private HintViewState _regionPasteHint;
+    private HintViewState _regionCancelPasteHint;
+    private HintViewState _regionRotateHint;
+    private HintViewState _regionMirrorHint;
+    private HintViewState _regionOverwriteAirHint;
+    private HintViewState _regionDistanceHint;
+    private HintViewState _regionEmbedHint;
+    private HintViewState _regionRadialHint;
+    private HintViewState _regionLibraryHint;
     private HintViewState _inventoryHint;
     private HintViewState _inventoryMoveHint;
     private HintViewState _inventorySplitHint;
@@ -56,7 +72,8 @@ internal sealed class ControlHints : IUILayer
         in IECSContext ecsContext,
         in ILocalization localization,
         in GameplayConfig gameplayConfig,
-        in IShortcutService shortcutService
+        in IShortcutService shortcutService,
+        RegionToolState? regionToolState = null
     )
     {
         _orientationSelector = orientationSelector;
@@ -69,6 +86,7 @@ internal sealed class ControlHints : IUILayer
         _localization = localization;
         _gameplayConfig = gameplayConfig;
         _shortcutService = shortcutService;
+        _regionToolState = regionToolState;
 
         _shortcutService.BindingsChanged += OnBindingsChanged;
         RefreshHints();
@@ -95,7 +113,12 @@ internal sealed class ControlHints : IUILayer
         {
             Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
             bool holdingPlaceable = mainHandResult.Success && mainHandResult.Value.Item.Placeable != null;
-            if (holdingPlaceable)
+            bool holdingProjector = mainHandResult.Success && mainHandResult.Value.Item.Tool?.Type == ToolType.Blueprint;
+            if (holdingProjector)
+            {
+                hints = BuildProjectorHints();
+            }
+            else if (holdingPlaceable)
             {
                 hints = BuildPlaceableHints();
             }
@@ -132,6 +155,20 @@ internal sealed class ControlHints : IUILayer
         _pickBrickHint = CreateDynamicHint(GameShortcuts.PICK_BRICK, "ui.hint.brick.pick", "MMB");
         _changeColorHint = CreateDynamicHint(GameShortcuts.SELECT_PAINT_COLOR, "ui.hint.sprayer.changeColor", "R");
         _changeTextureHint = CreateDynamicHint(GameShortcuts.SELECT_PAINT_TEXTURE, "ui.hint.drill.changeTexture", "R");
+        _regionCornerAHint = CreateDynamicHint(GameShortcuts.PRIMARY_ACTION, "ui.hint.region.cornerA", "LMB");
+        _regionCornerBHint = CreateDynamicHint(GameShortcuts.SECONDARY_ACTION, "ui.hint.region.cornerB", "RMB");
+        _regionCopyHint = new HintViewState("C", GetHintAction("ui.hint.region.copy"));
+        _regionCutHint = new HintViewState("X", GetHintAction("ui.hint.region.cut"));
+        _regionPasteModeHint = new HintViewState("V", GetHintAction("ui.hint.region.pasteMode"));
+        _regionPasteHint = CreateDynamicHint(GameShortcuts.PRIMARY_ACTION, "ui.hint.region.paste", "LMB");
+        _regionCancelPasteHint = CreateDynamicHint(GameShortcuts.SECONDARY_ACTION, "ui.hint.region.cancelPaste", "RMB");
+        _regionRotateHint = new HintViewState("T", GetHintAction("ui.hint.region.rotate"));
+        _regionMirrorHint = new HintViewState("F", GetHintAction("ui.hint.region.mirror"));
+        _regionOverwriteAirHint = new HintViewState("G", GetHintAction("ui.hint.region.overwriteAir"));
+        _regionDistanceHint = new HintViewState("Shift+Scroll", GetHintAction("ui.hint.region.distance"));
+        _regionEmbedHint = CreateDynamicHint(GameShortcuts.SNAP_PLACEMENT, "ui.hint.region.embed", "Shift");
+        _regionRadialHint = new HintViewState("R", GetHintAction("ui.hint.region.radial"));
+        _regionLibraryHint = new HintViewState("B", GetHintAction("ui.hint.region.library"));
         _inventoryHint = CreateDynamicHint(GameShortcuts.INVENTORY, "ui.hint.inventory.toggle", "Tab");
 
         _inventoryMoveHint = CreateDynamicHint(GameShortcuts.INVENTORY_MOVE_STACK, "ui.hint.inventory.move", "LMB");
@@ -289,6 +326,37 @@ internal sealed class ControlHints : IUILayer
     private List<HintViewState> BuildDrillHints()
     {
         return [_changeTextureHint, _inventoryHint, _feedbackHint];
+    }
+
+    /// <summary>Builds the hints for the Blueprint Projector in Select or Paste mode.</summary>
+    private List<HintViewState> BuildProjectorHints()
+    {
+        if (_regionToolState?.Mode == RegionToolMode.Paste)
+        {
+            return
+            [
+                _regionPasteHint,
+                _regionCancelPasteHint,
+                _regionRotateHint,
+                _regionMirrorHint,
+                _regionOverwriteAirHint,
+                _regionEmbedHint,
+                _regionDistanceHint,
+                _regionRadialHint,
+                _regionLibraryHint,
+            ];
+        }
+
+        return
+        [
+            _regionCornerAHint,
+            _regionCornerBHint,
+            _regionCopyHint,
+            _regionCutHint,
+            _regionPasteModeHint,
+            _regionRadialHint,
+            _regionLibraryHint,
+        ];
     }
 
     /// <summary>Builds the hints for a main hand that holds no placeable item.</summary>

@@ -1,0 +1,202 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      xmlns:wb="WaywardBeyond.Client.UI.Controls"
+      Class="BlueprintLibraryView"
+      Context="BlueprintLibraryState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Blueprints">
+
+    <Element class="wb-scrim" layout="none" width="100%" height="100%">
+        <Element class="wb-modal-center" layout="none" width="100%" height="100%" clip="true">
+            <Modal param:size="feedback">
+                <Content name="header">
+                    <Element class="wb-blueprint-header" width="fill" height="30">
+                        <Text text="@L('ui.blueprint.title')" class="wb-modal-title" width="fill" height="30" />
+                        <IconButton id="Button_CloseBlueprintsHeader"
+                                    anchor="Center"
+                                    param:glyph="xmark"
+                                    param:size="28"
+                                    param:glyphSize="18"
+                                    onclick="OnClose" />
+                    </Element>
+                </Content>
+
+                <Element class="wb-blueprint-body" width="fill" height="fill">
+                    <Element class="wb-blueprint-section" visible="@context.CanSave" width="fill" height="fit">
+                        <Text text="@L('ui.blueprint.save.section')" class="wb-field-label" width="fill" height="18" />
+                        <Element class="wb-blueprint-row" width="fill" height="32">
+                            <wb:TextInput id="TextBox_BlueprintSaveName"
+                                          bind="context.SaveName"
+                                          input-service="@InputService"
+                                          placeholder="@L('ui.blueprint.save.placeholder')"
+                                          class="wb-field-frame"
+                                          width="fill"
+                                          height="32" />
+                            <Button id="Button_SaveBlueprint"
+                                    param:variant="primary"
+                                    param:compact="true"
+                                    param:doubleBorder="false"
+                                    param:enabled="@(!context.IsSaving)"
+                                    disabled="@context.IsSaving"
+                                    onclick="OnSave"
+                                    width="120"
+                                    height="32">
+                                <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.save.button')" anchor="Center" />
+                            </Button>
+                        </Element>
+                    </Element>
+
+                    <Text text="@L(context.ErrorKey)"
+                          class="wb-field-error"
+                          width="fill"
+                          height="18"
+                          visible="@context.HasError" />
+
+                    <wb:TextInput id="TextBox_BlueprintSearch"
+                                  bind="context.Search"
+                                  input-service="@InputService"
+                                  placeholder="@L('ui.blueprint.search.placeholder')"
+                                  class="wb-field-frame"
+                                  width="fill"
+                                  height="32" />
+
+                    <EmptyState visible="@(context.Items.Count == 0)">
+                        <Text text="@L('ui.blueprint.empty')"
+                              class="wb-text-body wb-text-dim"
+                              width="fill"
+                              height="fill"
+                              text-align="center"
+                              vertical-align="middle" />
+                    </EmptyState>
+
+                    <ScrollArea id="Blueprints.List"
+                                context="@Scroll"
+                                visible="@(context.Items.Count &gt; 0)"
+                                width="fill"
+                                height="fill">
+                        <Element id="Blueprints.ListContent" class="wb-blueprint-list" width="fill" height="fit">
+                            <ForEach in="@context.Items" as="item">
+                                <Card id="Card_Blueprint_{item.Id}" width="fill" height="56">
+                                    <Element layout="none" width="fill" height="fill">
+                                        <Element class="wb-blueprint-card-body"
+                                                 visible="@(!item.IsRenaming)"
+                                                 width="fill"
+                                                 height="fill">
+                                            <Element class="wb-blueprint-meta" width="fill" height="fill">
+                                                <Text text="@item.Name"
+                                                      class="wb-text-body"
+                                                      width="fill"
+                                                      height="22" />
+                                                <Text text="@DimensionsText(item)"
+                                                      class="wb-save-meta"
+                                                      width="fill"
+                                                      height="16" />
+                                            </Element>
+                                            <Element class="wb-blueprint-actions"
+                                                     visible="@(!item.ConfirmingDelete)"
+                                                     width="fit"
+                                                     height="fill">
+                                                <Button id="Button_LoadBlueprint_{item.Id}"
+                                                        anchor="Center"
+                                                        param:variant="primary"
+                                                        param:compact="true"
+                                                        param:doubleBorder="false"
+                                                        onclick="OnLoad(item.Id)"
+                                                        width="76"
+                                                        height="28">
+                                                    <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.load')" anchor="Center" />
+                                                </Button>
+                                                <Button id="Button_RenameBlueprint_{item.Id}"
+                                                        anchor="Center"
+                                                        param:variant="secondary"
+                                                        param:compact="true"
+                                                        param:doubleBorder="false"
+                                                        onclick="OnStartRename(item.Id)"
+                                                        width="82"
+                                                        height="28">
+                                                    <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.rename')" anchor="Center" />
+                                                </Button>
+                                                <IconButton id="Button_DeleteBlueprint_{item.Id}"
+                                                            anchor="Center"
+                                                            param:glyph="trash"
+                                                            param:tone="danger"
+                                                            param:size="28"
+                                                            param:glyphSize="18"
+                                                            onclick="OnRequestDelete(item.Id)" />
+                                            </Element>
+                                            <Element class="wb-blueprint-actions"
+                                                     visible="@item.ConfirmingDelete"
+                                                     width="fit"
+                                                     height="fill">
+                                                <Button id="Button_ConfirmDeleteBlueprint_{item.Id}"
+                                                        anchor="Center"
+                                                        param:variant="danger"
+                                                        param:compact="true"
+                                                        param:doubleBorder="false"
+                                                        onclick="OnConfirmDelete(item.Id)"
+                                                        width="96"
+                                                        height="28">
+                                                    <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.confirmDelete')" anchor="Center" />
+                                                </Button>
+                                                <Button id="Button_CancelDeleteBlueprint_{item.Id}"
+                                                        anchor="Center"
+                                                        param:variant="secondary"
+                                                        param:compact="true"
+                                                        param:doubleBorder="false"
+                                                        onclick="OnCancelDelete"
+                                                        width="82"
+                                                        height="28">
+                                                    <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.cancel')" anchor="Center" />
+                                                </Button>
+                                            </Element>
+                                        </Element>
+                                        <Element class="wb-blueprint-card-body"
+                                                 visible="@item.IsRenaming"
+                                                 width="fill"
+                                                 height="fill">
+                                            <wb:TextInput id="TextBox_BlueprintRename_{item.Id}"
+                                                          bind="context.RenameText"
+                                                          input-service="@InputService"
+                                                          placeholder="@L('ui.blueprint.save.placeholder')"
+                                                          class="wb-field-frame"
+                                                          width="fill"
+                                                          height="32" />
+                                            <Button id="Button_ConfirmRenameBlueprint_{item.Id}"
+                                                    anchor="Center"
+                                                    param:variant="primary"
+                                                    param:compact="true"
+                                                    param:doubleBorder="false"
+                                                    onclick="OnCommitRename(item.Id)"
+                                                    width="64"
+                                                    height="28">
+                                                <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.saveRename')" anchor="Center" />
+                                            </Button>
+                                            <Button id="Button_CancelRenameBlueprint_{item.Id}"
+                                                    anchor="Center"
+                                                    param:variant="secondary"
+                                                    param:compact="true"
+                                                    param:doubleBorder="false"
+                                                    onclick="OnCancelRename"
+                                                    width="82"
+                                                    height="28">
+                                                <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.cancel')" anchor="Center" />
+                                            </Button>
+                                        </Element>
+                                    </Element>
+                                </Card>
+                            </ForEach>
+                        </Element>
+                    </ScrollArea>
+                </Element>
+
+                <Content name="actions">
+                    <Text text="@L('ui.blueprint.hint')" class="wb-blueprint-hint" width="fill" height="40" />
+                    <Button id="Button_CloseBlueprints" param:variant="secondary" onclick="OnClose" width="150" height="40">
+                        <Text class="wb-button-label" text="@L('ui.blueprint.close')" anchor="Center" />
+                    </Button>
+                </Content>
+            </Modal>
+        </Element>
+    </Element>
+</Reef>

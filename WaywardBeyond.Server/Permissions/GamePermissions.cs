@@ -11,4 +11,13 @@ public static class GamePermissions
 
     /// <summary>Delete a saved level.</summary>
     public const string LEVEL_DELETE = "waywardbeyond.level.delete";
+
+    /// <summary>Cut a selected voxel region on an existing structure.</summary>
+    public const string REGION_CUT = "waywardbeyond.region.cut";
+
+    /// <summary>Paste a voxel region or blueprint into an existing structure.</summary>
+    public const string REGION_PASTE = "waywardbeyond.region.paste";
+
+    /// <summary>Paste a voxel region or blueprint as a new standalone structure.</summary>
+    public const string REGION_SPAWN = "waywardbeyond.region.spawn";
 }

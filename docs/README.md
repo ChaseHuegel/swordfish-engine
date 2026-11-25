@@ -42,6 +42,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Asset art style guide: Endesga-32 palette, 3D tool models, planes, UV density, icons | [specs/asset-art-style](specs/asset-art-style.md) |
 | Brick identity, voxel ids, the palette, and data versioning | [specs/brick-identity](specs/brick-identity.md) |
 | Voxel container: chunk addressing, sampling, out-of-bounds, palette counts | [specs/voxels](specs/voxels.md) |
+| Region cut, copy, paste, structure spawn, and blueprint library | [specs/region-blueprints](specs/region-blueprints.md) |
 | Native resource lifetime: component, GPU handle, and Jolt shape disposal | [specs/resource-lifetime](specs/resource-lifetime.md) |
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |
 | Reef element layout, styling, borders, no-wrap text, clipping | [specs/reef-ui](specs/reef-ui.md) |

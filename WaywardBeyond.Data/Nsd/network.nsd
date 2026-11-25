@@ -176,3 +176,92 @@ message ServerDiscovery
     int    ProtocolVersion = 2;
     int    PlayerCount     = 3;
 }
+
+enum PasteTargetKind
+{
+    IntoStructure = 0;
+    NewStructure = 1;
+}
+
+message CutRegionRequest
+{
+    ulong TargetEntity = 0;
+    int MinX = 1;
+    int MinY = 2;
+    int MinZ = 3;
+    int MaxX = 4;
+    int MaxY = 5;
+    int MaxZ = 6;
+}
+
+message PasteRegionRequest
+{
+    PasteTargetKind TargetKind = 0;
+    ulong TargetEntity = 1;
+    int OriginX = 2;
+    int OriginY = 3;
+    int OriginZ = 4;
+    float SpawnX = 5;
+    float SpawnY = 6;
+    float SpawnZ = 7;
+    float SpawnOrientationX = 8;
+    float SpawnOrientationY = 9;
+    float SpawnOrientationZ = 10;
+    float SpawnOrientationW = 11;
+    bool OverwriteAir = 12;
+    int SizeX = 13;
+    int SizeY = 14;
+    int SizeZ = 15;
+    ChunkInfo[] Chunks = 16;
+    string[]? BrickPalette = 17;
+    string[]? PaintPalette = 18;
+}
+
+message RegionUploadPart
+{
+    uint BatchId = 0;
+    uint PartIndex = 1;
+    uint PartCount = 2;
+    byte[] Payload = 3;
+}
+
+message RegionOpResponse
+{
+    bool Success = 0;
+    bool Completed = 1;
+    string? ErrorKey = 2;
+    ulong SpawnedEntityUuid = 3;
+    int AffectedBricks = 4;
+    int SkippedUnknownBricks = 5;
+}
+
+message VoxelRegionEditMessage
+{
+    ulong EntityUuid = 0;
+    int OriginX = 1;
+    int OriginY = 2;
+    int OriginZ = 3;
+    bool OverwriteAir = 4;
+    int SizeX = 5;
+    int SizeY = 6;
+    int SizeZ = 7;
+    ChunkInfo[] Chunks = 8;
+    string[]? BrickPalette = 9;
+    string[]? PaintPalette = 10;
+}
+
+message VoxelRegionEditPart
+{
+    uint BatchId = 0;
+    uint PartIndex = 1;
+    uint PartCount = 2;
+    byte[] Payload = 3;
+}
+
+message VoxelEntitySpawnPart
+{
+    uint BatchId = 0;
+    uint PartIndex = 1;
+    uint PartCount = 2;
+    byte[] Payload = 3;
+}

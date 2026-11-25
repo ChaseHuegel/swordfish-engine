@@ -66,6 +66,63 @@ public static class VoxelCodec
         );
     }
 
+    /// <summary>Encodes voxel region data from the local format into the persistent format.</summary>
+    public static VoxelRegionData Encode(in VoxelRegionData source, IBrickRegistry map, IPaintRegistry? paintMap = null)
+    {
+        bool hasBrickPalette = HasPalette(source.BrickPalette);
+        bool hasPaintPalette = HasPalette(source.PaintPalette);
+        if (hasBrickPalette && (paintMap == null || hasPaintPalette))
+        {
+            return source;
+        }
+
+        string[]? brickPalette = hasBrickPalette ? source.BrickPalette : BuildBrickPalette(source.Chunks, map.Name);
+        string[]? paintPalette = hasPaintPalette
+            ? source.PaintPalette
+            : (paintMap != null ? BuildPaintPalette(source.Chunks, paintMap.Name) : null);
+
+        return new VoxelRegionData(
+            source.SizeX,
+            source.SizeY,
+            source.SizeZ,
+            source.Chunks,
+            brickPalette,
+            paintPalette
+        );
+    }
+
+    /// <summary>Decodes voxel region data from the persistent format into the local format.</summary>
+    public static VoxelRegionData Decode(in VoxelRegionData source, IBrickRegistry map, IPaintRegistry? paintMap = null)
+    {
+        bool hasBrickPalette = HasPalette(source.BrickPalette);
+        bool hasPaintPalette = HasPalette(source.PaintPalette);
+        bool decodePaint = hasPaintPalette && paintMap != null;
+        if (!hasBrickPalette && !decodePaint)
+        {
+            return source;
+        }
+
+        string[]? brickPalette = hasBrickPalette ? source.BrickPalette : null;
+        string[]? paintPalette = decodePaint ? source.PaintPalette : null;
+
+        Func<ushort, ushort>? remapBrick = brickPalette != null
+            ? id => PaletteIdToLocalId(id, brickPalette, map.Resolve)
+            : null;
+        Func<ushort, ushort>? remapPaint = paintPalette != null
+            ? id => PaletteIdToLocalId(id, paintPalette, paintMap!.Resolve)
+            : null;
+
+        ChunkInfo[] chunks = RemapChunks(source.Chunks, remapBrick, remapPaint);
+        return new VoxelRegionData(
+            source.SizeX,
+            source.SizeY,
+            source.SizeZ,
+            chunks,
+            null,
+            decodePaint ? null : source.PaintPalette
+        );
+    }
+
     private static bool HasPalette(string[]? palette)
     {
         return palette != null && palette.Length > 0;
@@ -83,10 +140,15 @@ public static class VoxelCodec
     }
 
     private static ChunkInfo[] RemapChunks(
-        ChunkInfo[] source,
+        ChunkInfo[]? source,
         Func<ushort, ushort>? remapBrick,
         Func<ushort, ushort>? remapPaint
     ) {
+        if (source == null || source.Length == 0)
+        {
+            return [];
+        }
+
         var result = new ChunkInfo[source.Length];
         for (var c = 0; c < source.Length; c++)
         {
@@ -140,8 +202,13 @@ public static class VoxelCodec
         return result;
     }
 
-    private static string[]? BuildBrickPalette(ChunkInfo[] source, Func<ushort, string?> nameById)
+    private static string[]? BuildBrickPalette(ChunkInfo[]? source, Func<ushort, string?> nameById)
     {
+        if (source == null || source.Length == 0)
+        {
+            return null;
+        }
+
         //  One pass to find the highest id so the palette is sized to the used space.
         ushort maxId = 0;
         for (var c = 0; c < source.Length; c++)
@@ -194,8 +261,13 @@ public static class VoxelCodec
         return palette;
     }
 
-    private static string[]? BuildPaintPalette(ChunkInfo[] source, Func<ushort, string?> nameById)
+    private static string[]? BuildPaintPalette(ChunkInfo[]? source, Func<ushort, string?> nameById)
     {
+        if (source == null || source.Length == 0)
+        {
+            return null;
+        }
+
         ushort maxId = 0;
         for (var c = 0; c < source.Length; c++)
         {

@@ -50,6 +50,9 @@ internal readonly record struct ItemTooltipState(
     /// <summary>Gets whether the hovered item is a texture tool.</summary>
     public bool IsTextureTool => Kind == ItemTooltipKind.TextureTool;
 
+    /// <summary>Gets whether the hovered item is a blueprint projector tool.</summary>
+    public bool IsBlueprintTool => Kind == ItemTooltipKind.BlueprintTool;
+
     /// <summary>Gets whether the tooltip displays a debug item id subtitle row.</summary>
     public bool HasDebugID => !string.IsNullOrEmpty(DebugID);
 

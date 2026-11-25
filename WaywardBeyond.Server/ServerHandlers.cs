@@ -168,6 +168,82 @@ public sealed class ServerHandlers : GameServerApiHandler
     }
 
     /// <inheritdoc/>
+    public override ValueTask<RpcResult<RegionOpResponse>> CutRegionAsync(
+        CutRegionRequest request,
+        RpcContext context,
+        CancellationToken cancellationToken
+    ) {
+        if (!TryGetPeer(in context, out ServerPeer peer) || peer.World == null)
+        {
+            return new ValueTask<RpcResult<RegionOpResponse>>(
+                RpcResult<RegionOpResponse>.Failure(GameRpcErrors.NOT_JOINED, "the peer has not joined a world"));
+        }
+
+        var completion = new TaskCompletionSource<RpcResult<RegionOpResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationTokenRegistration registration = cancellationToken.CanBeCanceled
+            ? cancellationToken.Register(
+                static state => ((TaskCompletionSource<RpcResult<RegionOpResponse>>)state!).TrySetResult(
+                    RpcResult<RegionOpResponse>.Failure(GameRpcErrors.INVALID_STATE, "the cut region request was cancelled")),
+                completion)
+            : default;
+
+        if (!TryStage(peer, peer.CutRegionCalls, new ServerPeer.CutRegionCall(request, completion, cancellationToken)))
+        {
+            registration.Dispose();
+            return new ValueTask<RpcResult<RegionOpResponse>>(
+                RpcResult<RegionOpResponse>.Failure(GameRpcErrors.INVALID_STATE, "the server is behind on this client's requests"));
+        }
+
+        return cancellationToken.CanBeCanceled
+            ? AwaitAndDisposeAsync(completion.Task, registration)
+            : new ValueTask<RpcResult<RegionOpResponse>>(completion.Task);
+    }
+
+    /// <inheritdoc/>
+    public override ValueTask<RpcResult<RegionOpResponse>> PasteRegionPartAsync(
+        RegionUploadPart request,
+        RpcContext context,
+        CancellationToken cancellationToken
+    ) {
+        if (!TryGetPeer(in context, out ServerPeer peer) || peer.World == null)
+        {
+            return new ValueTask<RpcResult<RegionOpResponse>>(
+                RpcResult<RegionOpResponse>.Failure(GameRpcErrors.NOT_JOINED, "the peer has not joined a world"));
+        }
+
+        var completion = new TaskCompletionSource<RpcResult<RegionOpResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationTokenRegistration registration = cancellationToken.CanBeCanceled
+            ? cancellationToken.Register(
+                static state => ((TaskCompletionSource<RpcResult<RegionOpResponse>>)state!).TrySetResult(
+                    RpcResult<RegionOpResponse>.Failure(GameRpcErrors.INVALID_STATE, "the paste region request was cancelled")),
+                completion)
+            : default;
+
+        if (!TryStage(peer, peer.PasteRegionParts, new ServerPeer.PasteRegionPartCall(request, completion, cancellationToken)))
+        {
+            registration.Dispose();
+            return new ValueTask<RpcResult<RegionOpResponse>>(
+                RpcResult<RegionOpResponse>.Failure(GameRpcErrors.INVALID_STATE, "the server is behind on this client's requests"));
+        }
+
+        return cancellationToken.CanBeCanceled
+            ? AwaitAndDisposeAsync(completion.Task, registration)
+            : new ValueTask<RpcResult<RegionOpResponse>>(completion.Task);
+    }
+
+    private static async ValueTask<T> AwaitAndDisposeAsync<T>(Task<T> task, CancellationTokenRegistration registration)
+    {
+        try
+        {
+            return await task.ConfigureAwait(false);
+        }
+        finally
+        {
+            await registration.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    /// <inheritdoc/>
     public override ValueTask<RpcResult<SaveLevelResponse>> SaveLevelAsync(
         SaveLevelRequest request,
         RpcContext context,
