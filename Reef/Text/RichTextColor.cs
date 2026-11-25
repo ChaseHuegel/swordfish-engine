@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Numerics;
 
 namespace Reef.Text;
@@ -96,37 +95,18 @@ public static class RichTextColor
                 continue;
             }
 
-            var valid = true;
-            for (var i = 0; i < digitCount; i++)
-            {
-                if (!IsHexDigit(text[valueStart + i]))
-                {
-                    valid = false;
-                    break;
-                }
-            }
-
-            if (!valid)
-            {
-                continue;
-            }
-
             //  The character after the hex run must not be a hex digit.
             int after = valueStart + digitCount;
-            if (after < end && IsHexDigit(text[after]))
+            if (after < end && HexColor.IsHexDigit(text[after]))
             {
                 continue;
             }
 
-            bool hasAlpha = digitCount == 8;
-            uint r = ParseHexByte(text, valueStart);
-            uint g = ParseHexByte(text, valueStart + 2);
-            uint b = ParseHexByte(text, valueStart + 4);
-            float a = hasAlpha ? ParseHexByte(text, valueStart + 6) / 255f : 1f;
-
-            color = new Vector4(r / 255f, g / 255f, b / 255f, a);
-            consumed = digitCount;
-            return true;
+            if (HexColor.TryParseSlice(text, valueStart, digitCount, out color))
+            {
+                consumed = digitCount;
+                return true;
+            }
         }
 
         return false;
@@ -177,16 +157,6 @@ public static class RichTextColor
         }
 
         return false;
-    }
-
-    private static bool IsHexDigit(char c)
-    {
-        return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F';
-    }
-
-    private static uint ParseHexByte(string text, int index)
-    {
-        return uint.Parse(text.AsSpan(index, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
     }
 
     private static Vector4 ToVector4(uint rgb)

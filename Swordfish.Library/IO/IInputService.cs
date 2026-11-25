@@ -14,6 +14,7 @@ public interface IInputService
     InputDevice[] UnknownDevices { get; }
 
     EventHandler<ClickedEventArgs> Clicked { get; set; }
+    EventHandler<ClickedEventArgs> MouseReleased { get; set; }
     EventHandler<ClickedEventArgs> DoubleClicked { get; set; }
     EventHandler<ScrolledEventArgs> Scrolled { get; set; }
     EventHandler<CharEventArgs> CharInput { get; set; }

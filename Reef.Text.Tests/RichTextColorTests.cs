@@ -105,4 +105,24 @@ public class RichTextColorTests
 
         Assert.False(parsed);
     }
+
+    [Fact]
+    public void ParsesHexFollowedByNonHexText()
+    {
+        bool parsed = RichTextColor.TryParseValue("#FF0000Hello", HASH, valueLength: 11, out Vector4? color, out int consumed);
+
+        Assert.True(parsed);
+        Assert.Equal(6, consumed);
+        Assert.Equal(1f, color!.Value.X, 3);
+        Assert.Equal(0f, color!.Value.Y, 3);
+        Assert.Equal(0f, color!.Value.Z, 3);
+        Assert.Equal(1f, color!.Value.W, 3);
+    }
+
+    [Fact]
+    public void RejectsNineDigitHexAndEmbeddedSpaces()
+    {
+        Assert.False(RichTextColor.TryParseValue("#123456789", HASH, valueLength: 9, out _, out _));
+        Assert.False(RichTextColor.TryParseValue("#12 456", HASH, valueLength: 6, out _, out _));
+    }
 }

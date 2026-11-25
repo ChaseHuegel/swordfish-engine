@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
+using Reef;
 
 namespace Reef.Generator;
 
@@ -217,39 +218,19 @@ internal static class ColorParser
             return false;
         }
 
-        string hex = text.Substring(1);
-        if (hex.Length == 3 || hex.Length == 4)
-        {
-            var expanded = new char[hex.Length * 2];
-            for (var i = 0; i < hex.Length; i++)
-            {
-                expanded[i * 2] = hex[i];
-                expanded[i * 2 + 1] = hex[i];
-            }
-
-            hex = new string(expanded);
-        }
-
-        if (hex.Length != 6 && hex.Length != 8)
+        int digitCount = text.Length - 1;
+        if (digitCount != 3 && digitCount != 4 && digitCount != 6 && digitCount != 8)
         {
             error = "Hex colors must have 3, 4, 6, or 8 digits.";
             return false;
         }
 
-        if (!uint.TryParse(hex.Substring(0, 6), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
+        if (!HexColor.TryParseSlice(text, 1, digitCount, out color))
         {
             error = "Hex color contains an invalid digit.";
             return false;
         }
 
-        byte alpha = 255;
-        if (hex.Length == 8 && !byte.TryParse(hex.Substring(6, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out alpha))
-        {
-            error = "Hex alpha contains an invalid digit.";
-            return false;
-        }
-
-        color = FromBytes((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, alpha);
         return true;
     }
 
