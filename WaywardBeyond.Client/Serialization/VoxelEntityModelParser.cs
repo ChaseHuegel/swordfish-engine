@@ -1,22 +1,23 @@
 using Swordfish.Library.IO;
-using Swordfish.Library.Serialization;
-using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Client.Serialization;
 
-internal class VoxelEntityModelParser(in ISerializer<VoxelEntityModel> serializer) : IFileParser<VoxelEntityModel>
+/// <summary>Parses binary <c>.dat</c> blueprint files into raw <see cref="VoxelEntityData"/>.</summary>
+internal sealed class VoxelEntityModelParser : IFileParser<VoxelEntityData>
 {
-    private readonly ISerializer<VoxelEntityModel> _serializer = serializer;
-
+    /// <inheritdoc/>
     public string[] SupportedExtensions { get; } =
     [
         ".dat",
     ];
-    
+
     object IFileParser.Parse(PathInfo path) => Parse(path);
-    public VoxelEntityModel Parse(PathInfo file)
+
+    /// <inheritdoc/>
+    public VoxelEntityData Parse(PathInfo file)
     {
         byte[] data = file.ReadBytes();
-        return _serializer.Deserialize(data);
+        return VoxelEntityData.Deserialize(data);
     }
 }

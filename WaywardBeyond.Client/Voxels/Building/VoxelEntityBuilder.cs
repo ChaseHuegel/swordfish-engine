@@ -36,17 +36,30 @@ internal sealed class VoxelEntityBuilder(
     private static List<Short3>? _dirtyList;
     private static List<Short3> DirtyList => _dirtyList ??= [];
 
-    public Entity Create(DataStore store, Uuid uuid, VoxelObject voxelObject, Vector3 position, Quaternion orientation, Vector3 scale)
+    /// <summary>Creates a voxel entity with batch renderers, decorators, and optional physics collision.</summary>
+    public Entity Create(
+        DataStore store,
+        Uuid uuid,
+        VoxelObject voxelObject,
+        Vector3 position,
+        Quaternion orientation,
+        Vector3 scale,
+        string tag = "game",
+        bool withPhysics = true
+    )
     {
         int entity = store.Alloc(uuid);
-        store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
+        store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: tag));
 
         var transform = new TransformComponent(position, orientation, scale);
         var registry = new VoxelChunkRegistry();
         var voxelComponent = new VoxelComponent(voxelObject, registry);
 
         store.AddOrUpdate(entity, transform);
-        store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
+        if (withPhysics)
+        {
+            store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
+        }
 
         _voxelObjectBuilder.InitializeLighting(voxelObject, registry.DepthState);
         registry.DepthStateInitialized = true;
@@ -69,25 +82,31 @@ internal sealed class VoxelEntityBuilder(
                 continue;
             }
 
-            UpdateChunkRanges(store, entity, parentUuid, voxelComponent, chunk, buildContext, reconcileEntities: true);
+            UpdateChunkRanges(store, entity, parentUuid, voxelComponent, chunk, buildContext, reconcileEntities: true, tag: tag);
 
-            ChunkCollisionData chunkCollision = _voxelObjectBuilder.BuildChunkCollision(buildContext, chunk);
-            if (!chunkCollision.IsEmpty)
+            if (withPhysics)
             {
-                registry.ChunkColliders[chunk.Coords] = chunkCollision;
+                ChunkCollisionData chunkCollision = _voxelObjectBuilder.BuildChunkCollision(buildContext, chunk);
+                if (!chunkCollision.IsEmpty)
+                {
+                    registry.ChunkColliders[chunk.Coords] = chunkCollision;
+                }
             }
         }
 
         //  Attach the renderers only after the ranges are filled. The scene does not see a
         //  partial batch during the load build.
-        AttachBatchRenderer(store, parentUuid, in transform, registry.OpaqueBatch, _materials.Opaque, _materials.OpaqueOptions, registry);
-        AttachBatchRenderer(store, parentUuid, in transform, registry.OpaqueNoShadowBatch, _materials.Opaque, _materials.OpaqueNoShadowOptions, registry);
-        AttachBatchRenderer(store, parentUuid, in transform, registry.MaskedBatch, _materials.Masked, _materials.MaskedOptions, registry);
-        AttachBatchRenderer(store, parentUuid, in transform, registry.TransparentBatch, _materials.Transparent, _materials.TransparentOptions, registry);
+        AttachBatchRenderer(store, parentUuid, in transform, registry.OpaqueBatch, _materials.Opaque, _materials.OpaqueOptions, registry, tag);
+        AttachBatchRenderer(store, parentUuid, in transform, registry.OpaqueNoShadowBatch, _materials.Opaque, _materials.OpaqueNoShadowOptions, registry, tag);
+        AttachBatchRenderer(store, parentUuid, in transform, registry.MaskedBatch, _materials.Masked, _materials.MaskedOptions, registry, tag);
+        AttachBatchRenderer(store, parentUuid, in transform, registry.TransparentBatch, _materials.Transparent, _materials.TransparentOptions, registry, tag);
 
-        CompoundShape collisionShape = VoxelObjectBuilder.CombineCollisions(registry.ChunkColliders.Values);
         store.AddOrUpdate(entity, voxelComponent);
-        store.AddOrUpdate(entity, new ColliderComponent(collisionShape));
+        if (withPhysics)
+        {
+            CompoundShape collisionShape = VoxelObjectBuilder.CombineCollisions(registry.ChunkColliders.Values);
+            store.AddOrUpdate(entity, new ColliderComponent(collisionShape));
+        }
 
         // Clear the component dirty flag so the first-build isn't mistaken for a pending edit rebuild.
         store.ClearDirty<VoxelComponent>(entity);
@@ -102,7 +121,8 @@ internal sealed class VoxelEntityBuilder(
         MeshBatch? batch,
         Material material,
         RenderOptions renderOptions,
-        VoxelChunkRegistry registry
+        VoxelChunkRegistry registry,
+        string tag
     )
     {
         if (batch == null)
@@ -112,7 +132,7 @@ internal sealed class VoxelEntityBuilder(
 
         var renderer = new MeshBatchRenderer(batch, material, renderOptions);
         int entity = store.Alloc();
-        store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
+        store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: tag));
         store.AddOrUpdate(entity, transform);
         store.AddOrUpdate(entity, new ChildComponent(parentUuid));
         store.AddOrUpdate(entity, new MeshBatchRendererComponent(renderer));
@@ -238,7 +258,8 @@ internal sealed class VoxelEntityBuilder(
         VoxelComponent voxelComponent,
         ChunkData chunk,
         VoxelObjectBuilder.ChunkBuildContext buildContext,
-        bool reconcileEntities
+        bool reconcileEntities,
+        string tag = "game"
     )
     {
         VoxelObjectBuilder.ChunkMeshData data = _voxelObjectBuilder.BuildChunk(buildContext, chunk);
@@ -253,7 +274,7 @@ internal sealed class VoxelEntityBuilder(
 
         if (reconcileEntities)
         {
-            ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, data.VoxelEntities);
+            ReconcileVoxelEntities(store, parentEntity, parentUuid, voxelComponent, chunkOffset, data.VoxelEntities, tag);
         }
     }
 
@@ -364,13 +385,44 @@ internal sealed class VoxelEntityBuilder(
         registry.ChunkColliders.Clear();
     }
 
+    /// <summary>Frees a voxel entity together with its batch renderers and decorator children.</summary>
+    public static void Destroy(DataStore store, int entity)
+    {
+        Uuid parentUuid = store.GetUuid(entity);
+        FreeChunks(store, entity);
+
+        if (parentUuid != Uuid.Null)
+        {
+            var freeChildren = new FreeChildrenAction { ParentUuid = parentUuid };
+            store.Query<ChildComponent, FreeChildrenAction>(0f, ref freeChildren);
+        }
+
+        store.Free(entity);
+    }
+
+    private struct FreeChildrenAction : IForEach<ChildComponent>
+    {
+        public Uuid ParentUuid;
+
+        public void Execute(float delta, DataStore store, int entity, in ChildComponent child)
+        {
+            if (child.Parent != ParentUuid)
+            {
+                return;
+            }
+
+            store.Free(entity);
+        }
+    }
+
     private void ReconcileVoxelEntities(
         DataStore store,
         int parentEntity,
         Uuid parentUuid,
         VoxelComponent voxelComponent,
         Short3 chunkOffset,
-        List<VoxelInfo> chunkVoxelEntities
+        List<VoxelInfo> chunkVoxelEntities,
+        string tag = "game"
     )
     {
         if (chunkVoxelEntities.Count == 0 && !voxelComponent.Registry.ChunksWithEntities.Contains(chunkOffset))
@@ -407,7 +459,7 @@ internal sealed class VoxelEntityBuilder(
             VoxelInfo voxelInfo = chunkVoxelEntities[i];
 
             int voxelEntity = store.Alloc();
-            store.AddOrUpdate(voxelEntity, new IdentifierComponent(name: null, tag: "game"));
+            store.AddOrUpdate(voxelEntity, new IdentifierComponent(name: null, tag: tag));
             store.AddOrUpdate(voxelEntity, new VoxelIdentifierComponent(voxelInfo.X, voxelInfo.Y, voxelInfo.Z));
             store.AddOrUpdate(voxelEntity, new TransformComponent());
             store.AddOrUpdate(voxelEntity, new ChildComponent(parentUuid)

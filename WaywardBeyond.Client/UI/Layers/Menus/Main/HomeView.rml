@@ -5,7 +5,7 @@
       RendererData="Swordfish.Graphics.Material"
       Namespace="WaywardBeyond.Client.UI.Layers.Menus.Main">
 
-    <Element layout="none" anchor="Center" width="264" height="fit">
+    <Element layout="none" anchor="Left" width="264" height="fit">
         <Element layout="vertical" width="264" height="fit">
             <Button id="Button_Continue"
                     param:variant="primary"

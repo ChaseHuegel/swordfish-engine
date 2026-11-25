@@ -35,7 +35,7 @@ internal sealed class Entry : IAutoActivate
 
         int sun = dataStore.Alloc();
         dataStore.AddOrUpdate(sun, new DirectionalLightComponent(
-            direction: Vector3.Normalize(new Vector3(-0.35f, -0.85f, -0.4f)),
+            direction: Vector3.Normalize(new Vector3(0.35f, -0.85f, -0.4f)),
             color: new Vector3(1.0f, 0.95f, 0.9f),
             intensity: 1.2f,
             castShadows: true

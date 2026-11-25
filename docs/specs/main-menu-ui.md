@@ -221,9 +221,22 @@ Do not add fake menu controls.
 - The settings page exposes five categories (Display, Audio, Gameplay, Controls,
   and Keybindings). See [settings-ui](settings-ui.md).
 
+## Background spaceship
+
+`MainMenuAnimationSystem` (`WaywardBeyond.Client/Systems/MainMenuAnimationSystem.cs:15`)
+manages the 3D background while `WaywardBeyond.GameState` is `GameState.MainMenu`.
+
+- On entry to the main menu, it detaches any player `ChildComponent` from the camera, resets the camera to origin, and resumes the slow starfield drift.
+- It loads the `builtin/mainMenu` blueprint from `BlueprintDatabase` (`WaywardBeyond.Client/assets/blueprints/builtin/mainMenu.dat`) and spawns it as a non-physics voxel entity tagged `menu`, parented to the camera at a right-side offset behind the menu.
+- Each tick, it applies the `GentleBob` floating motion (`x = sin(t) * strength * cos(t)`, `y = sin(t) * strength`) to the spaceship's local offset.
+- When the blueprint fails to load, the system logs one error and leaves the menu usable.
+- When the client leaves the main menu, the system destroys the spaceship entity and all of its batch renderer and decorator children.
+
 ## Source
 
 - Flow: `WaywardBeyond.Client/UI/Layers/Menus/Main/MenuPage.cs:3`
+- Background spaceship: `WaywardBeyond.Client/Systems/MainMenuAnimationSystem.cs:15`
+- Blueprint database: `WaywardBeyond.Client/Voxels/BlueprintDatabase.cs:17`
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
 - Continue: `WaywardBeyond.Client/Saves/ContinueService.cs:18`
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:14`
@@ -257,4 +270,7 @@ Do not add fake menu controls.
 - `WaywardBeyond.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.
 - `WaywardBeyond.Tests/MenuClickAudioTests.cs` clicks the Home page-change buttons
   and asserts the interface click sound plays before the page changes.
+- `WaywardBeyond.Tests/MainMenuAnimationSystemTests.cs` covers blueprint spawning,
+  `GentleBob` floating motion, single-error failure logging, teardown on menu exit,
+  camera reset on re-entry, and palette deserialization of `mainMenu.dat`.
 - `Reef.Tests/UIBuilderDefaultFontTests.cs` covers the default font contract.
