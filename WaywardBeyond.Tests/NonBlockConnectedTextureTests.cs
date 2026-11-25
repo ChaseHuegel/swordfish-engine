@@ -421,6 +421,163 @@ public class NonBlockConnectedTextureTests
         Assert.Equal(panelBase, GetLayerForVoxelFace(state.Opaque, new Vector3(3, 2, 2), Vector3.UnitY));
     }
 
+    [Fact]
+    public void ConnectedGlassSlopesCullInnerTouchingSideFaces()
+    {
+        var texList = new List<Texture> { CreateTex("missing") };
+        for (var i = 0; i < 16; i++)
+        {
+            texList.Add(CreateTex($"glass.{i}"));
+        }
+
+        var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
+        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo);
+        var bricks = new StubBrickDatabase();
+        bricks.Add(1, new Brick("wb:glass", BrickAlpha.Blend, false, null, BrickShape.Any, new BrickTextures { Connected = true, Default = ["glass.0"] }));
+
+        var meshDb = new BoundaryMeshDatabase();
+        var state = new MeshState();
+        var pass = new MeshPostPass(state, bricks, arrays, meshDb);
+
+        var voxels = new VoxelObject(8);
+        var glassSlope = new Voxel(1, new ShapeLight(BrickShape.Slope, 15), 0);
+        voxels.Set(1, 2, 2, glassSlope);
+        voxels.Set(2, 2, 2, glassSlope);
+        voxels.Set(3, 2, 2, glassSlope);
+
+        RunPass(voxels, pass);
+
+        //  Leftmost slope keeps Left (-X), culls Right (+X).
+        Assert.True(HasFaceAtVoxel(state.Transparent, new Vector3(1, 2, 2), -Vector3.UnitX));
+        Assert.False(HasFaceAtVoxel(state.Transparent, new Vector3(1, 2, 2), Vector3.UnitX));
+
+        //  Middle slope culls both Left (-X) and Right (+X), keeps diagonal Front, Back, and Bottom.
+        Assert.False(HasFaceAtVoxel(state.Transparent, new Vector3(2, 2, 2), -Vector3.UnitX));
+        Assert.False(HasFaceAtVoxel(state.Transparent, new Vector3(2, 2, 2), Vector3.UnitX));
+        Assert.True(HasFaceAtVoxel(state.Transparent, new Vector3(2, 2, 2), Vector3.Normalize(new Vector3(0f, 1f, 1f))));
+        Assert.True(HasFaceAtVoxel(state.Transparent, new Vector3(2, 2, 2), -Vector3.UnitZ));
+        Assert.True(HasFaceAtVoxel(state.Transparent, new Vector3(2, 2, 2), -Vector3.UnitY));
+
+        //  Rightmost slope culls Left (-X), keeps Right (+X).
+        Assert.False(HasFaceAtVoxel(state.Transparent, new Vector3(3, 2, 2), -Vector3.UnitX));
+        Assert.True(HasFaceAtVoxel(state.Transparent, new Vector3(3, 2, 2), Vector3.UnitX));
+    }
+
+    [Fact]
+    public void ConnectedGlassSlabsCullInnerSidesAcrossSymmetricYawButKeepTopAndBottom()
+    {
+        var texList = new List<Texture> { CreateTex("missing") };
+        for (var i = 0; i < 16; i++)
+        {
+            texList.Add(CreateTex($"glass.{i}"));
+        }
+
+        var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
+        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo);
+        var bricks = new StubBrickDatabase();
+        bricks.Add(1, new Brick("wb:glass", BrickAlpha.Blend, false, null, BrickShape.Any, new BrickTextures { Connected = true, Default = ["glass.0"] }));
+
+        var meshDb = new BoundaryMeshDatabase();
+        var state = new MeshState();
+        var pass = new MeshPostPass(state, bricks, arrays, meshDb);
+
+        var voxels = new VoxelObject(8);
+        byte yaw90 = new Orientation(pitch: 0, yaw: 1, roll: 0).ToByte();
+        voxels.Set(2, 2, 2, new Voxel(1, new ShapeLight(BrickShape.Slab, 15), 0));
+        voxels.Set(3, 2, 2, new Voxel(1, new ShapeLight(BrickShape.Slab, 15), yaw90));
+        voxels.Set(2, 1, 2, new Voxel(1, new ShapeLight(BrickShape.Slab, 15), 0));
+
+        RunPass(voxels, pass);
+
+        //  Shared side between (2,2,2) and (3,2,2) is culled; Top (y=0) and Bottom (air gap to slab below) are kept.
+        Assert.False(HasFaceAtVoxel(state.Transparent, new Vector3(2, 2, 2), Vector3.UnitX));
+        Assert.False(HasFaceAtVoxel(state.Transparent, new Vector3(3, 2, 2), -Vector3.UnitX));
+        Assert.True(HasFaceAtVoxel(state.Transparent, new Vector3(2, 2, 2), Vector3.UnitY));
+        Assert.True(HasFaceAtVoxel(state.Transparent, new Vector3(2, 2, 2), -Vector3.UnitY));
+    }
+
+    private sealed class BoundaryMeshDatabase : IAssetDatabase<Mesh>
+    {
+        private readonly Mesh _slopeMesh;
+        private readonly Mesh _slabMesh;
+
+        public BoundaryMeshDatabase()
+        {
+            _slopeMesh = CreateBoundaryTriangles(
+                (new Vector3(0.5f, -0.5f, -0.5f), new Vector3(0.5f, 0.5f, -0.5f), new Vector3(0.5f, -0.5f, 0.5f), Vector3.UnitX),
+                (new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(-0.5f, -0.5f, 0.5f), new Vector3(-0.5f, 0.5f, -0.5f), -Vector3.UnitX),
+                (new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(0.5f, -0.5f, -0.5f), new Vector3(0.5f, 0.5f, -0.5f), -Vector3.UnitZ),
+                (new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(0.5f, -0.5f, 0.5f), new Vector3(0.5f, -0.5f, -0.5f), -Vector3.UnitY),
+                (new Vector3(-0.5f, 0.5f, -0.5f), new Vector3(-0.5f, -0.5f, 0.5f), new Vector3(0.5f, -0.5f, 0.5f), Vector3.Normalize(new Vector3(0f, 1f, 1f)))
+            );
+
+            _slabMesh = CreateBoundaryTriangles(
+                (new Vector3(0.5f, -0.5f, -0.5f), new Vector3(0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, 0.5f), Vector3.UnitX),
+                (new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(-0.5f, 0f, 0.5f), new Vector3(-0.5f, 0f, -0.5f), -Vector3.UnitX),
+                (new Vector3(-0.5f, 0f, -0.5f), new Vector3(0.5f, 0f, 0.5f), new Vector3(0.5f, 0f, -0.5f), Vector3.UnitY),
+                (new Vector3(-0.5f, -0.5f, -0.5f), new Vector3(0.5f, -0.5f, 0.5f), new Vector3(0.5f, -0.5f, -0.5f), -Vector3.UnitY)
+            );
+        }
+
+        public Result<Mesh> Get(string id) =>
+            Result<Mesh>.FromSuccess(id == "slope.obj" ? _slopeMesh : _slabMesh);
+
+        private static Mesh CreateBoundaryTriangles(params (Vector3 V0, Vector3 V1, Vector3 V2, Vector3 Normal)[] tris)
+        {
+            var vertices = new Vector3[tris.Length * 3];
+            var normals = new Vector3[tris.Length * 3];
+            var colors = new Vector4[tris.Length * 3];
+            var uv = new Vector3[tris.Length * 3];
+            var indices = new uint[tris.Length * 3];
+
+            for (var t = 0; t < tris.Length; t++)
+            {
+                int b = t * 3;
+                vertices[b + 0] = tris[t].V0;
+                vertices[b + 1] = tris[t].V1;
+                vertices[b + 2] = tris[t].V2;
+                normals[b + 0] = tris[t].Normal;
+                normals[b + 1] = tris[t].Normal;
+                normals[b + 2] = tris[t].Normal;
+                colors[b + 0] = Vector4.One;
+                colors[b + 1] = Vector4.One;
+                colors[b + 2] = Vector4.One;
+                indices[b + 0] = (uint)(b + 0);
+                indices[b + 1] = (uint)(b + 1);
+                indices[b + 2] = (uint)(b + 2);
+            }
+
+            return new Mesh(indices, vertices, colors, uv, normals);
+        }
+    }
+
+    private static bool HasFaceAtVoxel(MeshState.MeshData meshData, Vector3 voxelOrigin, Vector3 worldNormal)
+    {
+        for (var i = 0; i < meshData.Triangles.Count; i += 3)
+        {
+            int i0 = (int)meshData.Triangles[i];
+            int i1 = (int)meshData.Triangles[i + 1];
+            int i2 = (int)meshData.Triangles[i + 2];
+            Vector3 centroid = (meshData.Vertices[i0] + meshData.Vertices[i1] + meshData.Vertices[i2]) / 3f;
+            if (MathF.Abs(centroid.X - voxelOrigin.X) <= 0.51f &&
+                MathF.Abs(centroid.Y - voxelOrigin.Y) <= 0.51f &&
+                MathF.Abs(centroid.Z - voxelOrigin.Z) <= 0.51f &&
+                Vector3.Dot(meshData.Normals[i0], worldNormal) > 0.99f)
+            {
+                //  Confirm the triangle belongs to voxelOrigin and not an adjacent voxel sharing the boundary plane.
+                Vector3 inside = centroid - (worldNormal * 0.01f);
+                if (MathF.Abs(inside.X - voxelOrigin.X) < 0.5f &&
+                    MathF.Abs(inside.Y - voxelOrigin.Y) < 0.5f &&
+                    MathF.Abs(inside.Z - voxelOrigin.Z) < 0.5f)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private static int GetLayerForVoxelFace(MeshState.MeshData meshData, Vector3 voxelOrigin, Vector3 worldNormal)
     {
         for (var i = 0; i < meshData.Vertices.Count; i++)

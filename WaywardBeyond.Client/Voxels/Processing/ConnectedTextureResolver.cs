@@ -288,7 +288,8 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         return false;
     }
 
-    private static bool AreOrientationsCompatible(BrickShape shape, Orientation centerOrientation, Orientation neighborOrientation)
+    /// <summary>Returns true when <paramref name="neighborOrientation"/> is geometrically compatible with <paramref name="centerOrientation"/> for <paramref name="shape"/>.</summary>
+    public static bool AreOrientationsCompatible(BrickShape shape, Orientation centerOrientation, Orientation neighborOrientation)
     {
         if (centerOrientation == neighborOrientation)
         {
