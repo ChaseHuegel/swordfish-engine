@@ -432,7 +432,6 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
 
         int neighborTextureIndex;
         string? neighborTextureName;
-        bool neighborConnected;
 
         var foundOverride = false;
         FaceOverride neighborOverride = default;
@@ -454,30 +453,30 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         if (foundOverride && neighborOverride.TexturePaintId != 0)
         {
             ref readonly VoxelSurfaceCache.CachedPaint paint = ref surfaceCache.GetPaint(neighborOverride.TexturePaintId);
-            if (!paint.Exists || paint.Kind != PaintKind.Texture)
+            if (!paint.Exists || paint.Kind != PaintKind.Texture || !paint.Connected)
             {
                 return;
             }
 
             paint.Textures.Resolve(neighborOrigin, out neighborTextureIndex, out neighborTextureName);
-            neighborConnected = paint.Connected;
         }
         else
         {
             ref readonly VoxelSurfaceCache.CachedBrick neighborBrick = ref surfaceCache.GetBrick(neighbor.ID);
-            if (!neighborBrick.Exists)
+            if (!neighborBrick.Exists || !neighborBrick.Connected)
             {
                 return;
             }
 
-            VoxelSurfaceCache.CachedBrick.GetFaceTextures(in neighborBrick, neighborFace).Resolve(neighborOrigin, out neighborTextureIndex, out neighborTextureName);
-            neighborConnected = neighborBrick.Connected;
+            ref readonly VoxelSurfaceCache.ResolvedTextureList neighborTextures = ref neighborBrick.HasPerFaceTextures
+                ? ref VoxelSurfaceCache.CachedBrick.GetFaceTextures(in neighborBrick, neighborFace)
+                : ref neighborBrick.DefaultTextures;
+            neighborTextures.Resolve(neighborOrigin, out neighborTextureIndex, out neighborTextureName);
         }
 
-        if (neighborConnected &&
-            (neighborTextureIndex >= 0 && context.Surface.RawTextureIndex >= 0
+        if (neighborTextureIndex >= 0 && context.Surface.RawTextureIndex >= 0
                 ? neighborTextureIndex == context.Surface.RawTextureIndex
-                : string.Equals(neighborTextureName, context.Surface.TextureName, StringComparison.Ordinal)))
+                : string.Equals(neighborTextureName, context.Surface.TextureName, StringComparison.Ordinal))
         {
             mask |= bit;
         }

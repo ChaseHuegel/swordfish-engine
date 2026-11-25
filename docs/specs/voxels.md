@@ -114,7 +114,7 @@ with the same shape and compatible orientation (ignoring symmetric yaw on
 shape geometry meets flush, including diagonal ramp neighbors for `Slope`
 `Front` faces. `MeshPostPass` also culls flush boundary triangles on built-in
 non-block shapes when covered by an adjacent culler block or a same-shape
-compatible-orientation neighbor (`MeshPostPass.cs:225`). `Custom` meshes remain
+compatible-orientation neighbor (`MeshPostPass.cs:212`). `Custom` meshes remain
 unconnected.
 `lightedArray.glsl` applies `VertexColor.rgb` as linear albedo and emissive
 tint (including bloom `BrightColor`) and `VertexColor.a` as voxel light.
