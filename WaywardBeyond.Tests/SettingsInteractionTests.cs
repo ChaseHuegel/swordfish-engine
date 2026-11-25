@@ -7,6 +7,7 @@ using Swordfish.Library.Util;
 using Swordfish.Settings;
 using Swordfish.Tests;
 using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Config;
@@ -97,6 +98,27 @@ public class SettingsInteractionTests
     }
 
     [Fact]
+    public void SwitchingCategoryResetsTheRowScroll()
+    {
+        AssertCategorySwitchResetsScroll(1920, 1080, "Settings.Category.audio");
+        AssertCategorySwitchResetsScroll(800, 600, "Settings.Tab.audio");
+    }
+
+    [Fact]
+    public void ReopeningThePageResetsTheRowScroll()
+    {
+        var harness = new Harness();
+
+        harness.ScrollRows();
+        Assert.True(harness.RowScroll.Offset > 0, "The rows did not scroll.");
+
+        harness.Reopen();
+
+        Assert.Equal(0, harness.RowScroll.Offset);
+        Assert.InRange(harness.RowScroll.Bar.ThumbOffset, 0f, 0.001f);
+    }
+
+    [Fact]
     public void UnsupportedDisplayFallbackUpdatesResolutionAndShowsStatus()
     {
         var harness = new Harness();
@@ -130,11 +152,25 @@ public class SettingsInteractionTests
         Assert.True(harness.HasText("ui.settings.status.displayFallback"));
     }
 
+    private static void AssertCategorySwitchResetsScroll(int width, int height, string categoryId)
+    {
+        var harness = new Harness(width, height);
+
+        harness.ScrollRows();
+        Assert.True(harness.RowScroll.Offset > 0, "The rows did not scroll.");
+
+        harness.Click(harness.Find(categoryId));
+
+        Assert.Equal(0, harness.RowScroll.Offset);
+        Assert.InRange(harness.RowScroll.Bar.ThumbOffset, 0f, 0.001f);
+    }
+
     private sealed class Harness
     {
         private readonly UIController _controller = new();
         private readonly UIBuilder<Material> _ui;
         private readonly SettingsPage<MenuPage> _page;
+        private readonly string _scrollAreaId;
         private List<RenderCommand<Material>> _last = [];
         private double _delta;
 
@@ -142,9 +178,10 @@ public class SettingsInteractionTests
         public FakeWindowContext WindowContext { get; } = new();
         public WindowSettings WindowSettings { get; } = new();
 
-        public Harness()
+        public Harness(int width = 1920, int height = 1080)
         {
-            _ui = new UIBuilder<Material>(1920, 1080, new StubTextEngine(), _controller);
+            _scrollAreaId = width < 900 ? "Settings.RowsTabs" : "Settings.Rows";
+            _ui = new UIBuilder<Material>(width, height, new StubTextEngine(), _controller);
             _page = new SettingsPage<MenuPage>(
                 MenuPage.Settings,
                 configManager: null!,
@@ -163,6 +200,29 @@ public class SettingsInteractionTests
             );
 
             _page.OnEnter();
+            Frame();
+        }
+
+        public ScrollAreaState RowScroll => _page.Shell.Scroll;
+
+        public void Reopen()
+        {
+            _page.OnExit();
+            _page.OnEnter();
+            Frame();
+        }
+
+        public void ScrollRows()
+        {
+            IntRect list = Find(_scrollAreaId);
+            int x = list.Left + list.Size.X / 2;
+            int y = list.Top + list.Size.Y / 2;
+
+            _controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+            Frame();
+            _controller.UpdateMouse(x, y, UIController.MouseButtons.None, scrollDeltaY: -3f);
+            Frame();
+            _controller.UpdateMouse(x, y, UIController.MouseButtons.None);
             Frame();
         }
 

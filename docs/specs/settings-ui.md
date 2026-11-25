@@ -44,7 +44,9 @@ overflow work in
 The pane list scrolls with the mouse wheel through the `ScrollArea` markup
 component. The scrollbar thumb drags, and a track click jumps toward the click.
 A drag keeps its hold after the cursor leaves the rail, and a release ends it.
-The list clips its rows.
+The list clips its rows. Selecting another category resets the list to the top,
+and reopening the page starts at the top. `SettingsPage` calls
+`ScrollAreaState.Reset` in `OnEnter` and `OnCategorySelected`.
 
 ## Rows and controls
 
@@ -157,7 +159,7 @@ an unsupported fullscreen resolution falls back to a supported mode,
 `SettingsPage.ApplySettings` syncs the draft to the applied mode and shows
 `ui.settings.status.displayFallback`.
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:734` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:737` keeps the display
 mode, monitor, and resolution rows in sync when a shortcut or a manual resize
 changes the window while the page is open.
 
@@ -273,7 +275,7 @@ existing spacer layout.
 - Audio output row: `WaywardBeyond.Client/UI/Settings/AudioSettingsCategory.cs:24`,
   `:71`, `:96`
 - Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:78`,
-  `:129`, `:286`, `:523`, `:673`, `:711`
+  `:130`, `:288`, `:526`, `:676`, `:714`
 - Keybinding entry and shortcuts: `WaywardBeyond.Client/UI/Settings/KeybindingEntry.cs:7`,
   `WaywardBeyond.Client/UI/Settings/KeybindingScope.cs:4`,
   `WaywardBeyond.Client/Shortcuts/GameShortcuts.cs:7`
@@ -304,8 +306,8 @@ existing spacer layout.
 - `WaywardBeyond.Tests/SettingsShellViewTests.cs` covers the shell layout
   snapshots across wide, medium, and tab breakpoints.
 - `WaywardBeyond.Tests/SettingsInteractionTests.cs` covers click, scroll,
-  slider button, playback device refresh, display fallback, and callback
-  behavior.
+  slider button, playback device refresh, display fallback, callback behavior,
+  and the row scroll reset on category switch and page reopen.
 - `WaywardBeyond.Tests/InventoryViewTests.cs` covers inventory layout snapshots,
   stack drag and distribution, scroll transfers, and rebound inventory actions.
 - `WaywardBeyond.Tests/KeybindingSettingsTests.cs` covers TOML override round
