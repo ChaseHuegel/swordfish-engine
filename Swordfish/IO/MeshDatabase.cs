@@ -3,6 +3,7 @@ using Shoal.DependencyInjection;
 using Shoal.Modularity;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 
 namespace Swordfish.IO;
 
@@ -20,6 +21,13 @@ internal sealed class MeshDatabase : SimpleVirtualAssetDatabase<Mesh>, IAutoActi
         Load();
     }
     
+    /// <inheritdoc/>
+    protected override Result<Mesh> LoadAsset(string id, Resource<Mesh> assetInfo)
+    {
+        assetInfo.Value.Shared = true;
+        return Result<Mesh>.FromSuccess(assetInfo.Value);
+    }
+
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".obj");
 

@@ -83,10 +83,136 @@ public class DataStoreDirtyTests
         store.QueryRemoved<TestComponent>(0f, (float delta, DataStore s, int e, in TestComponent component) => visited++);
         Assert.Equal(1, visited);
 
-        store.ClearDirty<TestComponent>(entity);
+        store.ClearRemoved<TestComponent>(entity);
         visited = 0;
         store.QueryRemoved<TestComponent>(0f, (float delta, DataStore s, int e, in TestComponent component) => visited++);
         Assert.Equal(0, visited);
+    }
+
+    [Fact]
+    public void QueryRemovedClearingDirtyDoesNotAcknowledgeRemoval()
+    {
+        DataStore store = new();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new TestComponent());
+        store.Remove<TestComponent>(entity);
+
+        //  A live component's dirty flag and a pending removal are separate signals, so a
+        //  replication-style ClearDirty must not drop the removal.
+        store.ClearDirty<TestComponent>(entity);
+
+        int visited = 0;
+        store.QueryRemoved<TestComponent>(0f, (float delta, DataStore s, int e, in TestComponent component) => visited++);
+        Assert.Equal(1, visited);
+    }
+
+    [Fact]
+    public void QueryRemovedSurvivesRecycledSlot()
+    {
+        DataStore store = new();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new TestComponent { Value = 42 });
+        store.Free(entity);
+
+        //  A freed index is reused immediately. The live value must not overwrite the removal.
+        int recycled = store.Alloc();
+        Assert.Equal(entity, recycled);
+        store.AddOrUpdate(recycled, new TestComponent { Value = 7 });
+
+        int value = 0;
+        store.QueryRemoved<TestComponent>(0f, (float delta, DataStore s, int e, in TestComponent component) => value = component.Value);
+        Assert.Equal(42, value);
+    }
+
+    [Fact]
+    public void QueryRemovedSurvivesReAdd()
+    {
+        DataStore store = new();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new TestComponent { Value = 42 });
+        store.Remove<TestComponent>(entity);
+        store.AddOrUpdate(entity, new TestComponent { Value = 7 });
+
+        int value = 0;
+        store.QueryRemoved<TestComponent>(0f, (float delta, DataStore s, int e, in TestComponent component) => value = component.Value);
+        Assert.Equal(42, value);
+
+        //  Acknowledgment works even though the component exists again.
+        store.ClearRemoved<TestComponent>(entity);
+        int visited = 0;
+        store.QueryRemoved<TestComponent>(0f, (float delta, DataStore s, int e, in TestComponent component) => visited++);
+        Assert.Equal(0, visited);
+        Assert.Equal(7, store.TryGet(entity, out TestComponent live) ? live.Value : -1);
+    }
+
+    [Fact]
+    public void RemoveOfMissingComponentIsNotReported()
+    {
+        DataStore store = new();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new TestComponent());
+        store.Remove<TestComponent>(entity);
+        store.ClearRemoved<TestComponent>(entity);
+
+        //  Removing an absent component keeps its old value but must not create a new removal.
+        Assert.True(store.Remove<TestComponent>(entity));
+
+        int visited = 0;
+        store.QueryRemoved<TestComponent>(0f, (float delta, DataStore s, int e, in TestComponent component) => visited++);
+        Assert.Equal(0, visited);
+    }
+
+    private sealed class DisposeCounter
+    {
+        public int Count;
+    }
+
+    private struct DisposableComponent(DisposeCounter counter) : IDataComponent, IDisposable
+    {
+        public readonly DisposeCounter Counter = counter;
+
+        public void Dispose()
+        {
+            Counter.Count++;
+        }
+    }
+
+    [Fact]
+    public void DisposeRemovedDisposesRemovedDisposableComponentsOnce()
+    {
+        DataStore store = new();
+        DisposeCounter first = new();
+        DisposeCounter live = new();
+
+        int e1 = store.Alloc(new DisposableComponent(first));
+        int e2 = store.Alloc(new DisposableComponent(live));
+        store.Remove<DisposableComponent>(e1);
+
+        store.DisposeRemoved();
+        store.DisposeRemoved();
+
+        Assert.Equal(1, first.Count);
+        Assert.Equal(0, live.Count);
+        Assert.True(store.Has(typeof(DisposableComponent), e2));
+    }
+
+    [Fact]
+    public void DisposeRemovedSurvivesRecycledSlot()
+    {
+        DataStore store = new();
+        DisposeCounter first = new();
+        DisposeCounter second = new();
+
+        int entity = store.Alloc(new DisposableComponent(first));
+        store.Free(entity);
+
+        int recycled = store.Alloc(new DisposableComponent(second));
+        Assert.Equal(entity, recycled);
+
+        store.DisposeRemoved();
+
+        Assert.Equal(1, first.Count);
+        Assert.Equal(0, second.Count);
     }
 
     [Fact]

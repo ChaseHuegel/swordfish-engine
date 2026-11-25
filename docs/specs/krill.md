@@ -52,6 +52,17 @@ Query families: `Query`, `QueryRef`, `QueryDirty`, `QueryRefDirty`,
 `QueryRemoved`, `QueryParallel`, `QueryDirtyParallel`. Use the struct-action
 overload in hot paths. It avoids a delegate allocation.
 
+`QueryRemoved<T>` reads the value captured when a live component was removed.
+Captures live in a sparse per-store table keyed by entity index, so a recycled
+entity index that adds the same component before the removal is acknowledged
+cannot overwrite it and idle queries return in O(1). The query repeats the
+removal until `ClearRemoved<T>(entity)` acknowledges it and releases the
+captured value. `ClearDirty<T>` only clears the write flag. `DisposeRemoved()`
+disposes and clears every pending removal whose component type implements
+`IDisposable`, without boxing, on removal and entity free (not `AddOrUpdate`).
+The engine uses this to release native resources from removed components; see
+[resource-lifetime](resource-lifetime.md).
+
 ## Boundary rule
 
 `Krill/` references no other project in this repo. Do not add an engine,

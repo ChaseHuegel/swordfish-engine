@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -9,6 +10,7 @@ public partial class DataStore
     private readonly int _chunkBitWidth;
     private readonly int _chunkSize;
     private readonly Dictionary<Type, ChunkedStore> _stores = [];
+    private readonly List<ChunkedStore> _disposableStores = [];
     private readonly List<Uuid[]> _uuids = [];
     private readonly Dictionary<Uuid, int> _slotByUuid = [];
     private readonly object _chunkAndStoreLock = new();
@@ -267,6 +269,20 @@ public partial class DataStore
         }
     }
 
+    /// <summary>Acknowledges every pending removal of <paramref name="type"/> for one entity.</summary>
+    public void ClearRemoved(Type type, int entity)
+    {
+        lock (_chunkAndStoreLock)
+        {
+            if (!_stores.TryGetValue(type, out ChunkedStore? store))
+            {
+                return;
+            }
+
+            store.ClearRemoved(entity);
+        }
+    }
+
     public bool IsDirty<T1>(int entity) where T1 : struct, IDataComponent
     {
         return IsDirty(typeof(T1), entity);
@@ -280,6 +296,45 @@ public partial class DataStore
     public void ClearDirty<T1>(int entity) where T1 : struct, IDataComponent
     {
         ClearDirty(typeof(T1), entity);
+    }
+
+    /// <summary>Acknowledges every pending removal of <typeparamref name="T1"/> for one entity.</summary>
+    public void ClearRemoved<T1>(int entity) where T1 : struct, IDataComponent
+    {
+        ClearRemoved(typeof(T1), entity);
+    }
+
+    /// <summary>Disposes and clears every pending removal whose component type implements <see cref="IDisposable"/>.</summary>
+    public void DisposeRemoved()
+    {
+        ChunkedStore[] stores;
+        int count;
+        lock (_chunkAndStoreLock)
+        {
+            count = _disposableStores.Count;
+            if (count == 0)
+            {
+                return;
+            }
+
+            stores = ArrayPool<ChunkedStore>.Shared.Rent(count);
+            for (var i = 0; i < count; i++)
+            {
+                stores[i] = _disposableStores[i];
+            }
+        }
+
+        try
+        {
+            for (var i = 0; i < count; i++)
+            {
+                stores[i].DisposeRemoved(_chunkAndStoreLock);
+            }
+        }
+        finally
+        {
+            ArrayPool<ChunkedStore>.Shared.Return(stores, clearArray: true);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -348,6 +403,10 @@ public partial class DataStore
         {
             store1 = new ChunkedStore<T1>(_chunkSize);
             _stores.Add(typeof(T1), store1);
+            if (store1.IsDisposable)
+            {
+                _disposableStores.Add(store1);
+            }
         }
         else
         {

@@ -104,6 +104,10 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
         container.Register<IEntitySystem, RectRendererSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
+        //  Native resources owned by components are released by engine processors and generic IDisposable cleanup.
+        container.Register<IComponentResourceProcessor, MeshRendererComponentProcessor>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<IEntitySystem, ResourceLifetimeSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+
         container.RegisterInstance<IInputContext>(inputContext);
         container.Register<IInputService, SilkInputService>(Reuse.Singleton);
         container.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
