@@ -6,6 +6,7 @@ using Shoal.Modularity;
 using Krill;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Interactions;
+using WaywardBeyond.Server.Particles;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Server.Systems;
@@ -14,6 +15,7 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Permissions;
 using WaywardBeyond.Skills;
@@ -28,7 +30,8 @@ namespace WaywardBeyond.Server;
 /// <see cref="IEntitySystem"/>), so the client's ECS context cannot resolve them; third-party modules
 /// contribute world systems through <see cref="RegisterServerSystem{T}"/>, which appends them after
 /// the built-ins. Registration order is the world's tick order: join/disconnect → saves →
-/// replication apply → inventory → heartbeats → physics → interaction → chat → replication publish.
+/// replication apply → inventory → heartbeats → physics → interaction → laser beam → paint sprayer →
+/// chat → particle flush → replication publish.
 /// </summary>
 public static class ServerComposition
 {
@@ -71,6 +74,8 @@ public static class ServerComposition
         container.Register<LevelSaveService>(setup: Setup.With(allowDisposableTransient: true));
         container.Register<ServerJoinQueue>();
         container.Register<NetworkReplicationSystem>();
+        container.Register<ServerParticleService>();
+        container.RegisterDelegate<IServerParticleService>(context => context.Resolve<ServerParticleService>());
         //  The world physics bundle is created directly (it owns the engine's Jolt system) and exposed
         //  under the game-owned identity, so nothing resolves the engine's concrete JoltPhysicsSystem
         //  (which the engine also registers as a root singleton).
@@ -100,7 +105,10 @@ public static class ServerComposition
             ))
         );
         container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
+        RegisterServerSystem<ServerLaserBeamSystem>(container);
+        RegisterServerSystem<ServerPaintSprayerSystem>(container);
         RegisterServerSystem<ServerChatSystem>(container);
+        RegisterServerSystem<ServerParticleFlushSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);
 
         //  Interaction handlers declare their own stage and priority, so the composition only decides
@@ -134,6 +142,7 @@ public static class ServerComposition
         container.Resolve<ServerPeers>();
         container.Resolve<IBrickRegistry>();
         container.Resolve<IBrickDatabase>();
+        container.Resolve<IItemDatabase>();
         container.Resolve<IPaintRegistry>(IfUnresolved.ReturnDefault);
         container.Resolve<IPaintDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<ISkillDatabase>();

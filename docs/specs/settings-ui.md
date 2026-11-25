@@ -102,15 +102,15 @@ or `IShortcutService` for keybindings, so no builder dereferences the page.
 
 ## Draft state
 
-`SettingsDraft` is at `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:11`.
+`SettingsDraft` is at `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:13`.
 It copies every editable config value when the page opens.
 
 The client applies its declared render defaults at composition, before any
 page reads the render config. `SettingsDefaults.ApplyRenderDefaults` at
-`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:68` sets the bloom quality
-when the config has no saved file. A saved `render.toml` keeps the user's
-values. The snapshot fixture composes a fresh render config through the same
-method.
+`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:80` sets the bloom
+quality and particle density when the config has no saved file. A saved
+`render.toml` keeps the user's values. The snapshot fixture composes a fresh
+render config through the same method.
 
 Each entry keeps its baseline value. The page compares the draft against the
 baselines to decide whether changes exist. `Apply changes` commits the draft,
@@ -159,7 +159,7 @@ an unsupported fullscreen resolution falls back to a supported mode,
 `SettingsPage.ApplySettings` syncs the draft to the applied mode and shows
 `ui.settings.status.displayFallback`.
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:737` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:738` keeps the display
 mode, monitor, and resolution rows in sync when a shortcut or a manual resize
 changes the window while the page is open.
 
@@ -214,7 +214,7 @@ The page exposes only options that the engine supports:
 
 - Display & Video: display mode, monitor, resolution, UI scale, V-sync, frame
   limit, field of view, view distance, anti-aliasing, ambient occlusion, AO
-  quality, bloom, and bloom quality.
+  quality, bloom, bloom quality, and particle density.
 - Audio: output device, master, music, effects, and interface volume.
 - Gameplay: autosave, autosave interval, control hints, crosshair, and name tag
   distance.
@@ -222,9 +222,9 @@ The page exposes only options that the engine supports:
 - Keybindings: movement keys, interaction and tool actions, hotbar/inventory
   slots 1-9, chat and general UI shortcuts, and developer debug toggles.
 
-The page does not expose FXAA, particle density, dynamic lighting, or an
-environment audio channel. The engine has no such settings. View distance is
-the camera far plane, so the page shows meters or kilometers, not chunks.
+The page does not expose FXAA, dynamic lighting, or an environment audio
+channel. The engine has no such settings. View distance is the camera far
+plane, so the page shows meters or kilometers, not chunks.
 
 ## Audio output device
 
@@ -274,14 +274,16 @@ existing spacer layout.
   `ControlSettingsCategory.cs:10`, `KeybindingsSettingsCategory.cs:36`
 - Audio output row: `WaywardBeyond.Client/UI/Settings/AudioSettingsCategory.cs:24`,
   `:71`, `:96`
-- Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:78`,
-  `:130`, `:288`, `:526`, `:676`, `:714`
+- Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:81`,
+  `:146`, `:579`, `:677`, `:715`
 - Keybinding entry and shortcuts: `WaywardBeyond.Client/UI/Settings/KeybindingEntry.cs:7`,
   `WaywardBeyond.Client/UI/Settings/KeybindingScope.cs:4`,
   `WaywardBeyond.Client/Shortcuts/GameShortcuts.cs:7`
 - Keybinding persistence and hints: `WaywardBeyond.Client/Configuration/KeybindingSettings.cs:10`,
   `WaywardBeyond.Client/Configuration/ConfigManager.cs:62`, `:74`,
   `WaywardBeyond.Client/UI/Layers/ControlHints.cs:18`
+- Particle density preset: `WaywardBeyond.Client/UI/Settings/ParticleDensity.cs:4`,
+  `ParticleDensityExtensions.cs:7`
 - Audio preference: `WaywardBeyond.Client/Configuration/VolumeSettings.cs:14`,
   `WaywardBeyond.Client/Configuration/ConfigManager.cs:63`
 - Draft: `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:13`
@@ -332,8 +334,8 @@ existing spacer layout.
 - `WaywardBeyond.Tests/SettingsControlTests.cs` covers the coded choice and
   slider controls.
 - `WaywardBeyond.Tests/SettingsEntryTests.cs` covers dirty tracking, reset, slider
-  steps and drag changes, dynamic option providers, and the bloom, shadow, and
-  AO preset round trips.
+  steps and drag changes, dynamic option providers, and the bloom, shadow, AO,
+  and particle density preset round trips.
 - `WaywardBeyond.Tests/AudioSettingsCategoryTests.cs` covers the output device
   option order, the missing-device label, and reset.
 - `WaywardBeyond.Tests/DisplaySettingsTests.cs` covers fullscreen video mode

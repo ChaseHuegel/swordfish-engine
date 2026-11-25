@@ -19,6 +19,7 @@ internal static class SettingsDefaults
     public const AoQuality AO_QUALITY = AoQuality.Medium;
     public const bool BLOOM = true;
     public const BloomQuality BLOOM_QUALITY = BloomQuality.Medium;
+    public const ParticleDensity PARTICLE_DENSITY = ParticleDensity.Ultra;
     public const float MASTER_VOLUME = 0.5f;
     public const float MUSIC_VOLUME = 0.5f;
     public const float EFFECTS_VOLUME = 0.5f;
@@ -66,6 +67,14 @@ internal static class SettingsDefaults
         ShadowQuality.High,
         ShadowQuality.Ultra,
     ];
+    private static readonly ParticleDensity[] _particleDensities =
+    [
+        ParticleDensity.Off,
+        ParticleDensity.Low,
+        ParticleDensity.Medium,
+        ParticleDensity.High,
+        ParticleDensity.Ultra,
+    ];
 
     /// <summary>Applies the recommended render values to a render config with no saved file.</summary>
     public static void ApplyRenderDefaults(in RenderSettings renderSettings)
@@ -76,6 +85,7 @@ internal static class SettingsDefaults
         }
 
         BLOOM_QUALITY.Apply(renderSettings);
+        PARTICLE_DENSITY.Apply(renderSettings);
     }
 
     /// <summary>Gets a UI scale list that includes the current value.</summary>
@@ -118,6 +128,12 @@ internal static class SettingsDefaults
     public static IReadOnlyList<BloomQuality> GetBloomQualities(BloomQuality current)
     {
         return WithValue(_bloomQualities, current);
+    }
+
+    /// <summary>Gets a particle density list that includes the current value.</summary>
+    public static IReadOnlyList<ParticleDensity> GetParticleDensities(ParticleDensity current)
+    {
+        return WithValue(_particleDensities, current);
     }
 
     private static IReadOnlyList<T> WithValue<T>(T[] values, T current)

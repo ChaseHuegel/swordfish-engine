@@ -80,6 +80,7 @@ retirement disposes the renderer and leaves the mesh alone.
 - `MeshDatabase` marks every loaded `.obj` mesh `Shared = true`
   (`Swordfish/IO/MeshDatabase.cs:27`).
 - `BillboardSystem` marks its shared quad mesh `Shared = true`.
+- `MiningLaserEffectSystem` marks its shared `LaserBeamMesh` `Shared = true`.
 - `Swordfish.Demo` marks its shared cube and test meshes `Shared = true`.
 - Brick placement previews and procedural brick view models build a mesh per
   renderer and leave `Shared = false`.

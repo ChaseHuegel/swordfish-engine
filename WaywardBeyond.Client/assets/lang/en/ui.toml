@@ -198,6 +198,7 @@
 "ui.settings.option.aoQuality" = "AO quality"
 "ui.settings.option.bloom" = "Bloom"
 "ui.settings.option.bloomQuality" = "Bloom quality"
+"ui.settings.option.particleDensity" = "Particle density"
 
 "ui.settings.option.outputDevice" = "Output device"
 "ui.settings.option.masterVolume" = "Master"

@@ -51,4 +51,9 @@ internal sealed class ClientHandlers(ClientInbound inbound, ServerStats? serverS
     {
         serverStats?.Record(message);
     }
+
+    public override void OnParticleBursts(ParticleBurstBatchMessage message, RpcContext context, CancellationToken cancellationToken)
+    {
+        inbound.ParticleBursts.Enqueue(message);
+    }
 }

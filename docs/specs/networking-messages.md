@@ -135,11 +135,14 @@ message InputComponent
     uint  ServerTickAtSample = 7;
     bool  PrimaryHeld        = 9;   // continuous held state
     bool  SecondaryHeld      = 10;  // continuous held state
+    string? PaintId          = 11;  // active color swatch while primary spraying
 }
 ```
 
 Mouse sensitivity is a client-local setting, never networked. The wire carries
-resolved look, not config.
+resolved look, not config. `NetworkReplicationSystem.ApplyComponent`
+(`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:30,497-507`) clears
+inbound `PaintId` values longer than `128` characters to `null` before staging.
 
 Look totals are relative to the current session. A join resets them on the
 client and forgets the identity's last applied totals on the receiver, so a
@@ -383,6 +386,49 @@ message SkillStateUpdateMessage
 contract. `ClientNotificationSystem`
 writes each `SkillStateUpdateMessage` total into the client-owned character save.
 See [skills](skills.md) for the authority model.
+
+## Particle effects
+
+Replicated continuous emitters and batched server burst notifications travel in
+`ParticleEmitterMessage`, `ParticleEmitterBindingComponent`
+(`WaywardBeyond.Data/Nsd/components.nsd`), `ParticleBurstEntry`, and
+`ParticleBurstBatchMessage` (`WaywardBeyond.Data/Nsd/network.nsd`).
+
+```nsd
+message ParticleEmitterMessage
+{
+    string EffectId = 0;
+    bool Playing = 1;
+    float RateScale = 2;
+    float OffsetX/Y/Z;
+    float LocalDirectionX/Y/Z;
+    uint TintRgba = 9;
+}
+
+message ParticleEmitterBindingComponent
+{
+    ulong ParentEntity = 0;
+    ulong ExcludeEntity = 1;
+}
+
+message ParticleBurstEntry
+{
+    string EffectId = 0;
+    float PositionX/Y/Z;
+    float DirectionX/Y/Z;
+    int? Count = 7;
+    float SpeedScale = 8;
+    float SizeScale = 9;
+    uint TintRgba = 10;
+}
+
+message ParticleBurstBatchMessage
+{
+    ParticleBurstEntry[] Bursts = 0;
+}
+```
+
+See [networking-particles](networking-particles.md) for validation bounds, per-tick batching, and owner suppression.
 
 ## Server discovery
 

@@ -44,5 +44,6 @@ public static class GameRpc
         public const ulong CHAT_RELAY = 401;
         public const ulong NOTIFICATION = 402;
         public const ulong SKILL_UPDATE = 403;
+        public const ulong PARTICLE_BURSTS = 404;
     }
 }

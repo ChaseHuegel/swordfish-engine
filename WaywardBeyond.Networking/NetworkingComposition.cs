@@ -2,6 +2,7 @@ using System;
 using DryIoc;
 using Krill;
 using Swordfish.ECS;
+using Swordfish.Graphics.Particles;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Networking.Codecs;
@@ -38,6 +39,9 @@ public static class NetworkingComposition
             new ColliderCodec(),
             static (store, entity) => store.Has(typeof(BodyViewComponent), entity)
         ));
+        Require(registry.Register<LaserBeamComponent>(Uuid.FromValue(18), NetworkDirection.ServerOwned, new NsdComponentCodec<LaserBeamComponent>()));
+        Require(registry.Register<ParticleEmitterComponent>(Uuid.FromValue(19), NetworkDirection.ServerOwned, new ParticleEmitterCodec()));
+        Require(registry.Register<ParticleEmitterBindingComponent>(Uuid.FromValue(20), NetworkDirection.ServerOwned, new NsdComponentCodec<ParticleEmitterBindingComponent>()));
 
         registry.Freeze();
     }

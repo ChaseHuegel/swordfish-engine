@@ -277,6 +277,9 @@ See [rendering-shadows](rendering-shadows.md) and [rendering-sao](rendering-sao.
 | `Shadows.MaxPointShadows` | int | `2` | maximum shadowed point lights near the camera |
 | `Shadows.NormalBias` | float | `0.02` | normal offset bias to eliminate shadow acne |
 | `Shadows.DepthBias` | float | `0.005` | slope-scaled depth bias for depth comparisons |
+| `Particles.Enabled` | bool | `true` | enables CPU particle simulation and rendering |
+| `Particles.MaxParticles` | int | `4096` | maximum live particles across all emitters and bursts |
+| `Particles.Density` | float | `1.0` | multiplier for emitter emission rates and burst particle counts, clamped to 0..float.MaxValue |
 
 ## `logging.toml` (per app)
 

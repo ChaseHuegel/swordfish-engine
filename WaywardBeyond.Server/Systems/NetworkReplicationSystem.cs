@@ -27,6 +27,8 @@ namespace WaywardBeyond.Server.Systems;
 /// </summary>
 public sealed class NetworkReplicationSystem
 {
+    private const int MAX_INPUT_PAINT_ID_LENGTH = 128;
+
     private readonly ServerPeers _peers;
     private readonly SessionManager _sessions;
     private readonly ILogger<NetworkReplicationSystem> _logger;
@@ -148,6 +150,9 @@ public sealed class NetworkReplicationSystem
 
     /// <summary>The number of clients whose join stream is still gated.</summary>
     internal int StreamingClientCount => _streamingClients.Count;
+
+    /// <summary>Whether <paramref name="clientId"/> is still receiving its initial level stream.</summary>
+    internal bool IsStreaming(Uuid clientId) => _streamingClients.ContainsKey(clientId);
 
     private void ExpireStalledStreams()
     {
@@ -491,6 +496,12 @@ public sealed class NetworkReplicationSystem
 
         if (info.Type == typeof(InputComponent) && store.TryGet(sessionEntity, out InputComponent input))
         {
+            if (input.PaintId != null && input.PaintId.Length > MAX_INPUT_PAINT_ID_LENGTH)
+            {
+                input.PaintId = null;
+                store.AddOrUpdate(sessionEntity, input);
+            }
+
             var stage = new StageInput(in input);
             store.QueryRef<NetworkComponent, StageInput>(sessionEntity, 0f, ref stage);
         }

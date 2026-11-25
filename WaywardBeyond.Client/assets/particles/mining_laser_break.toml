@@ -1,0 +1,22 @@
+BlendMode           = "Additive"
+Rate                = 0.0
+BurstCount          = 24
+MaxParticles        = 256
+LifetimeMin         = 0.20
+LifetimeMax         = 0.45
+SpeedMin            = 2.0
+SpeedMax            = 6.5
+SpreadDegrees       = 110.0
+SpawnRadius         = 0.18
+StartSizeMin        = 0.05
+StartSizeMax        = 0.10
+EndSizeMin          = 0.01
+EndSizeMax          = 0.025
+StartColor          = "#feae34"
+SecondaryStartColor = "#fee761"
+EndColor            = "#e43b44"
+StartAlpha          = 1.0
+EndAlpha            = 0.0
+EmissiveIntensity   = 3.6
+Drag                = 2.6
+Gravity             = { X = 0.0, Y = 0.0, Z = 0.0 }

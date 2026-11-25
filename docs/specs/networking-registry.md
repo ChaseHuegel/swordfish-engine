@@ -43,7 +43,7 @@ drains.
   message. It binds the generated `Serialize()` and
   `Deserialize(ReadOnlySpan<byte>)` through delegates.
 - Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`/
-  `ColliderCodec`.
+  `ColliderCodec`/`ParticleEmitterCodec`.
 
 `PhysicsCodec` carries the body configuration (`Layer`, `BodyType`,
 `CollisionDetection`) with velocity and angular velocity. `Apply` creates the
@@ -58,6 +58,11 @@ the client uses for a remote player's locally simulated body.
 
 `ColliderCodec` carries a compound collider as packed shapes, offsets, and
 orientations. A single shape travels as a one-part compound.
+
+`ParticleEmitterCodec` carries `EffectId`, `Playing`, `RateScale`, `Offset`,
+`LocalDirection`, and `TintRgba` as `ParticleEmitterMessage`. `Apply` rejects an
+empty, whitespace, or overlong `EffectId` (`> 128`), a negative or non-finite
+`RateScale`, and non-finite vector fields, and leaves unchanged emitters clean.
 
 A registration may pass a replication filter. The publisher consults it before
 it collects a delta or a full sync, so a component that only some entities carry
@@ -87,9 +92,12 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `InteractionEvent` | 15 | ClientOwned | `NsdComponentCodec<InteractionEvent>` |
 | `InventoryEvent` | 16 | ClientOwned | `NsdComponentCodec<InventoryEvent>` |
 | `ColliderComponent` | 17 | ServerOwned | `ColliderCodec` (character bodies only) |
+| `LaserBeamComponent` | 18 | ServerOwned | `NsdComponentCodec<LaserBeamComponent>` |
+| `ParticleEmitterComponent` | 19 | ServerOwned | `ParticleEmitterCodec` |
+| `ParticleEmitterBindingComponent` | 20 | ServerOwned | `NsdComponentCodec<ParticleEmitterBindingComponent>` |
 
 Uuid allocation is stable and intentional. The sequence-gap at 4–9 and the
-grouping of 10–17 are reserved; do not reuse.
+assigned ids starting at 10 are reserved. Do not reuse these ids.
 
 ## Remote player public view
 
@@ -116,7 +124,7 @@ consumes items against its values. See [join](networking-join.md) and
 ## Source of truth
 
 - `WaywardBeyond.Networking/Registry/{NetworkRegistry,NetworkComponentInfo,NetworkDirection}.cs`
-- `WaywardBeyond.Networking/Codecs/{IPayloadCodec,IPayloadCodecOfT,NsdComponentCodec,TransformCodec,PhysicsCodec,IdentifierCodec,ColliderCodec}.cs`
+- `WaywardBeyond.Networking/Codecs/{IPayloadCodec,IPayloadCodecOfT,NsdComponentCodec,TransformCodec,PhysicsCodec,IdentifierCodec,ColliderCodec,ParticleEmitterCodec}.cs`
 - `WaywardBeyond.Networking/NetworkingComposition.cs`
 - Component declarations: `WaywardBeyond.Data/Components/`
 - Schemas: `WaywardBeyond.Data/Nsd/components.nsd`

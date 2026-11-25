@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Krill;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Graphics.Particles;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Voxels.Building;
 
@@ -18,11 +19,13 @@ namespace WaywardBeyond.Client.Systems;
 internal sealed class ClientCleanupSystem : IEntitySystem
 {
     private readonly ILogger<ClientCleanupSystem> _logger;
+    private readonly IParticleService? _particleService;
     private readonly ConcurrentQueue<byte> _requests = new();
 
-    public ClientCleanupSystem(in ILogger<ClientCleanupSystem> logger)
+    public ClientCleanupSystem(in ILogger<ClientCleanupSystem> logger, IParticleService? particleService = null)
     {
         _logger = logger;
+        _particleService = particleService;
     }
 
     /// <summary>Queues a full world teardown to run on the ECS thread.</summary>
@@ -37,6 +40,8 @@ internal sealed class ClientCleanupSystem : IEntitySystem
         {
             return;
         }
+
+        _particleService?.Clear();
 
         FreeGameAction game = new();
         store.Query<IdentifierComponent, FreeGameAction>(0f, ref game);

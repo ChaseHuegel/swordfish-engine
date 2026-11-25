@@ -144,6 +144,26 @@ message ClientHeartbeatMessage
     uint LastAppliedSnapshotTick = 1;
 }
 
+message ParticleBurstEntry
+{
+    string EffectId   = 0;
+    float  PositionX  = 1;
+    float  PositionY  = 2;
+    float  PositionZ  = 3;
+    float  DirectionX = 4;
+    float  DirectionY = 5;
+    float  DirectionZ = 6;
+    int?   Count      = 7;
+    float  SpeedScale = 8;
+    float  SizeScale  = 9;
+    uint   TintRgba   = 10;
+}
+
+message ParticleBurstBatchMessage
+{
+    ParticleBurstEntry[] Bursts = 0;
+}
+
 message ServerDiscoveryRequest
 {
     byte Dummy = 0;
