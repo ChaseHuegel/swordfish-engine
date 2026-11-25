@@ -56,11 +56,11 @@ public sealed class VoxelWriteCommitter(
 
         voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, voxel);
 
-        //  Rebuild the structure's collider so subsequent authority raycasts see the change. The live
+        //  Rebuild the affected chunk's cached collider so subsequent authority raycasts see the change. The live
         //  VoxelObject is the single voxel representation; saves and streams re-derive chunks from it.
         context.Store.AddOrUpdate(
             resolution.Entity,
-            new ColliderComponent(VoxelColliderBuilder.BuildCollision(voxelObject, brickDatabase)));
+            new ColliderComponent(VoxelColliderBuilder.RebuildDirtyChunks(in voxelWorldComponent, coordinate.X, coordinate.Y, coordinate.Z, brickDatabase)));
 
         Voxel written = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
         Broadcast(context.Store, resolution.Entity, coordinate, in written, context.Sequence);

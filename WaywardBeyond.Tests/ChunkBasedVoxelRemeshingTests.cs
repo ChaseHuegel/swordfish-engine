@@ -972,4 +972,59 @@ public class ChunkBasedVoxelRemeshingTests
         // The adjacent tunnel neighbor at (8, 8, 12) must STILL be lit!
         Assert.True(voxelObject.Get(8, 8, 12).GetLightLevel() > 0);
     }
+
+    [Fact]
+    public void ServerColliderBuilder_RebuildDirtyChunks_UpdatesBoundaryAndEmptyState()
+    {
+        var voxels = new VoxelObject(16);
+        var stone = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(BrickShape.Block, 0), _OrientationFlags: 0);
+
+        //  Create a 2x2x2 cube straddling the chunk boundary along X (x=15 in chunk 0, x=16 in chunk 1).
+        for (int x = 15; x <= 16; x++)
+        for (int y = 4; y <= 5; y++)
+        for (int z = 4; z <= 5; z++)
+        {
+            voxels.Set(x, y, z, stone);
+        }
+
+        var world = new WaywardBeyond.Server.Components.VoxelWorldComponent(voxels);
+        CompoundShape initial = WaywardBeyond.Server.Systems.VoxelColliderBuilder.BuildCollision(in world);
+        Assert.Equal(2, world.ChunkColliders.Count);
+        Assert.InRange(initial.Shapes.Length, 2, 8);
+
+        //  Remove an interior-boundary voxel at x=16, y=4, z=4 and verify both chunks remain consistent.
+        voxels.Set(16, 4, 4, default);
+        CompoundShape afterBreak = WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 16, 4, 4);
+        Assert.Equal(2, world.ChunkColliders.Count);
+        Assert.True(afterBreak.Shapes.Length > 0);
+
+        //  Clear the remaining voxels in chunk (1,0,0) -> chunk (1,0,0) entry must be removed.
+        voxels.Set(16, 4, 5, default);
+        WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 16, 4, 5);
+        voxels.Set(16, 5, 4, default);
+        WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 16, 5, 4);
+        voxels.Set(16, 5, 5, default);
+        CompoundShape afterChunkCleared = WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 16, 5, 5);
+        Assert.Single(world.ChunkColliders);
+        Assert.True(world.ChunkColliders.ContainsKey(new Short3(0, 0, 0)));
+        Assert.True(afterChunkCleared.Shapes.Length > 0);
+
+        //  Clear chunk (0,0,0) completely -> empty compound shape and empty cache.
+        voxels.Set(15, 4, 4, default);
+        WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 15, 4, 4);
+        voxels.Set(15, 4, 5, default);
+        WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 15, 4, 5);
+        voxels.Set(15, 5, 4, default);
+        WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 15, 5, 4);
+        voxels.Set(15, 5, 5, default);
+        CompoundShape empty = WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 15, 5, 5);
+        Assert.Empty(world.ChunkColliders);
+        Assert.Empty(empty.Shapes);
+
+        //  Place a new voxel back into the empty structure -> cache repopulates cleanly.
+        voxels.Set(16, 4, 4, stone);
+        CompoundShape repopulated = WaywardBeyond.Server.Systems.VoxelColliderBuilder.RebuildDirtyChunks(in world, 16, 4, 4);
+        Assert.Single(world.ChunkColliders);
+        Assert.Single(repopulated.Shapes);
+    }
 }

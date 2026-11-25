@@ -110,14 +110,26 @@ public class VoxelCollisionTests
             voxels.Set(x, y, z, fullBlock);
         }
 
-        //  3x3x3 solid cube has 26 surface blocks and 1 interior block.
+        //  3x3x3 solid cube has 26 surface blocks (merged into fewer boxes) and 1 sealed interior block.
         CompoundShape solidCube = VoxelCollision.BuildCompound(voxels);
-        Assert.Equal(26, solidCube.Shapes.Length);
+        Assert.InRange(solidCube.Shapes.Length, 1, 25);
+        Assert.False(ContainsPoint(solidCube, new Vector3(1, 1, 1)));
+        for (int x = 0; x < 3; x++)
+        for (int y = 0; y < 3; y++)
+        for (int z = 0; z < 3; z++)
+        {
+            if (x == 1 && y == 1 && z == 1)
+            {
+                continue;
+            }
 
-        //  Replacing one face neighbor with a slab exposes the center voxel, so all 27 voxels emit shapes.
+            Assert.True(ContainsPoint(solidCube, new Vector3(x, y, z)), $"Expected surface cell ({x},{y},{z}) to be covered.");
+        }
+
+        //  Replacing one face neighbor with a slab exposes the center voxel, so all 27 voxels are covered.
         voxels.Set(1, 2, 1, new Voxel(1, new ShapeLight(BrickShape.Slab, 0), 0));
         CompoundShape exposedCenter = VoxelCollision.BuildCompound(voxels);
-        Assert.Equal(27, exposedCenter.Shapes.Length);
+        Assert.True(ContainsPoint(exposedCenter, new Vector3(1, 1, 1)));
     }
 
     [Fact]
@@ -148,7 +160,27 @@ public class VoxelCollisionTests
         //  Even if stored with BrickShape.Block, a brick with custom colliders is not a full-cell blocker.
         voxels.Set(1, 2, 1, new Voxel(2, new ShapeLight(BrickShape.Block, 0), 0));
         CompoundShape compound = VoxelCollision.BuildCompound(voxels, bricks);
-        Assert.Equal(27, compound.Shapes.Length);
+        Assert.True(ContainsPoint(compound, new Vector3(1, 1, 1)));
+    }
+
+    private static bool ContainsPoint(CompoundShape compound, Vector3 point)
+    {
+        for (var i = 0; i < compound.Shapes.Length; i++)
+        {
+            if (compound.Shapes[i].Type != ShapeType.Box3)
+            {
+                continue;
+            }
+
+            Vector3 halfExtents = compound.Shapes[i].Box3.Extents * 0.5f;
+            Vector3 delta = Vector3.Abs(point - compound.Positions[i]);
+            if (delta.X <= halfExtents.X && delta.Y <= halfExtents.Y && delta.Z <= halfExtents.Z)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private sealed class FakeBrickDatabase : IBrickDatabase

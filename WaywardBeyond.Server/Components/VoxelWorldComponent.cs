@@ -1,4 +1,5 @@
-﻿using Krill;
+﻿using System.Collections.Generic;
+using Krill;
 using WaywardBeyond.Data;
 using WaywardBeyond.Voxels;
 
@@ -15,4 +16,7 @@ public readonly struct VoxelWorldComponent(in VoxelObject voxelObject) : IDataCo
 {
     /// <summary>The live, mutable voxel container the server owns.</summary>
     public readonly VoxelObject VoxelObject = voxelObject;
+
+    /// <summary>Per-chunk cached collision primitives for incremental server collider rebuilds.</summary>
+    public readonly Dictionary<Short3, ChunkColliderData> ChunkColliders = [];
 }

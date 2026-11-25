@@ -32,6 +32,10 @@ internal sealed class VoxelEntityBuilder(
     private static HashSet<int>? _updatedEntities;
     private static HashSet<int> UpdatedEntities => _updatedEntities ??= [];
 
+    [ThreadStatic]
+    private static List<Short3>? _dirtyList;
+    private static List<Short3> DirtyList => _dirtyList ??= [];
+
     public Entity Create(DataStore store, Uuid uuid, VoxelObject voxelObject, Vector3 position, Quaternion orientation, Vector3 scale)
     {
         int entity = store.Alloc(uuid);
@@ -166,7 +170,9 @@ internal sealed class VoxelEntityBuilder(
             }
         }
 
-        var dirtyList = new List<Short3>(registry.DirtyChunks);
+        List<Short3> dirtyList = DirtyList;
+        dirtyList.Clear();
+        dirtyList.AddRange(registry.DirtyChunks);
         var collisionChanged = false;
         for (var i = 0; i < dirtyList.Count; i++)
         {
@@ -277,13 +283,15 @@ internal sealed class VoxelEntityBuilder(
 
         if (!mesh.IsEmpty)
         {
+            ReadOnlySpan<float> vertices = mesh.VertexData.AsSpan(0, mesh.VertexCount * MeshBatch.VERTEX_STRIDE);
+            ReadOnlySpan<uint> indices = mesh.Indices.AsSpan(0, mesh.IndexCount);
             if (ranges.TryGetValue(chunkOffset, out MeshRangeHandle handle))
             {
-                batch.UpdateRange(handle, mesh.VertexData, mesh.VertexCount, mesh.Indices, mesh.Bounds, sortCenter);
+                batch.UpdateRange(handle, vertices, mesh.VertexCount, indices, mesh.Bounds, sortCenter);
             }
             else
             {
-                ranges[chunkOffset] = batch.AddRange(mesh.VertexData, mesh.VertexCount, mesh.Indices, mesh.Bounds, sortCenter);
+                ranges[chunkOffset] = batch.AddRange(vertices, mesh.VertexCount, indices, mesh.Bounds, sortCenter);
             }
         }
         else if (ranges.Remove(chunkOffset, out MeshRangeHandle handle))
@@ -361,6 +369,7 @@ internal sealed class VoxelEntityBuilder(
         registry.GeometryDirtyChunks.Clear();
         registry.LightDirtyChunks.Clear();
         registry.EntityDirtyChunks.Clear();
+        registry.ChunksWithEntities.Clear();
         registry.KnownChunks.Clear();
         registry.ChunkColliders.Clear();
     }
@@ -374,50 +383,29 @@ internal sealed class VoxelEntityBuilder(
         List<VoxelInfo> chunkVoxelEntities
     )
     {
+        if (chunkVoxelEntities.Count == 0 && !voxelComponent.Registry.ChunksWithEntities.Contains(chunkOffset))
+        {
+            return;
+        }
+
         HashSet<int> updatedEntities = UpdatedEntities;
         updatedEntities.Clear();
 
         byte chunkSize = voxelComponent.VoxelObject.ChunkSize;
         int chunkShift = int.TrailingZeroCount(chunkSize);
 
-        store.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
-        void ForEachVoxelEntity(float delta, DataStore s, int voxelEntity, in VoxelIdentifierComponent voxelIdentifier, in ChildComponent child)
+        var action = new ReconcileEntityAction
         {
-            if (child.Parent != parentUuid)
-            {
-                return;
-            }
-
-            var entityChunk = new Short3(
-                (short)(voxelIdentifier.X >> chunkShift),
-                (short)(voxelIdentifier.Y >> chunkShift),
-                (short)(voxelIdentifier.Z >> chunkShift)
-            );
-
-            if (entityChunk != chunkOffset)
-            {
-                return;
-            }
-
-            for (var i = 0; i < chunkVoxelEntities.Count; i++)
-            {
-                VoxelInfo voxelInfo = chunkVoxelEntities[i];
-                if (voxelInfo.X != voxelIdentifier.X || voxelInfo.Y != voxelIdentifier.Y || voxelInfo.Z != voxelIdentifier.Z)
-                {
-                    continue;
-                }
-
-                for (var n = 0; n < _decorators.Length; n++)
-                {
-                    _decorators[n].Process(store, parent: parentEntity, voxelEntity, voxelComponent, voxelInfo);
-                }
-
-                updatedEntities.Add(i);
-                return;
-            }
-
-            store.Free(voxelEntity);
-        }
+            Owner = this,
+            ParentEntity = parentEntity,
+            ParentUuid = parentUuid,
+            VoxelComponent = voxelComponent,
+            ChunkOffset = chunkOffset,
+            ChunkShift = chunkShift,
+            ChunkVoxelEntities = chunkVoxelEntities,
+            UpdatedEntities = updatedEntities,
+        };
+        store.Query<VoxelIdentifierComponent, ChildComponent, ReconcileEntityAction>(0f, ref action);
 
         for (var i = 0; i < chunkVoxelEntities.Count; i++)
         {
@@ -443,6 +431,65 @@ internal sealed class VoxelEntityBuilder(
             }
         }
 
+        if (chunkVoxelEntities.Count > 0)
+        {
+            voxelComponent.Registry.ChunksWithEntities.Add(chunkOffset);
+        }
+        else
+        {
+            voxelComponent.Registry.ChunksWithEntities.Remove(chunkOffset);
+        }
+
         updatedEntities.Clear();
+    }
+
+    private struct ReconcileEntityAction : IForEach<VoxelIdentifierComponent, ChildComponent>
+    {
+        public VoxelEntityBuilder Owner;
+        public int ParentEntity;
+        public Uuid ParentUuid;
+        public VoxelComponent VoxelComponent;
+        public Short3 ChunkOffset;
+        public int ChunkShift;
+        public List<VoxelInfo> ChunkVoxelEntities;
+        public HashSet<int> UpdatedEntities;
+
+        public void Execute(float delta, DataStore store, int voxelEntity, in VoxelIdentifierComponent voxelIdentifier, in ChildComponent child)
+        {
+            if (child.Parent != ParentUuid)
+            {
+                return;
+            }
+
+            var entityChunk = new Short3(
+                (short)(voxelIdentifier.X >> ChunkShift),
+                (short)(voxelIdentifier.Y >> ChunkShift),
+                (short)(voxelIdentifier.Z >> ChunkShift)
+            );
+
+            if (entityChunk != ChunkOffset)
+            {
+                return;
+            }
+
+            for (var i = 0; i < ChunkVoxelEntities.Count; i++)
+            {
+                VoxelInfo voxelInfo = ChunkVoxelEntities[i];
+                if (voxelInfo.X != voxelIdentifier.X || voxelInfo.Y != voxelIdentifier.Y || voxelInfo.Z != voxelIdentifier.Z)
+                {
+                    continue;
+                }
+
+                for (var n = 0; n < Owner._decorators.Length; n++)
+                {
+                    Owner._decorators[n].Process(store, parent: ParentEntity, voxelEntity, VoxelComponent, voxelInfo);
+                }
+
+                UpdatedEntities.Add(i);
+                return;
+            }
+
+            store.Free(voxelEntity);
+        }
     }
 }

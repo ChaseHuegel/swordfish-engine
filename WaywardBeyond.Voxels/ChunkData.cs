@@ -378,10 +378,16 @@ public readonly struct ChunkData
     
     public ref struct SampleEnumerator(ChunkData chunkData)
     {
-        public VoxelSample Current => _chunkData.SampleAt(_voxelIndex);
+        public VoxelSample Current => _chunkData.SampleAt(_voxelIndex, _leftVoxels, _rightVoxels, _aheadVoxels, _behindVoxels, _aboveVoxels, _belowVoxels);
 
         private readonly ChunkData _chunkData = chunkData;
         private readonly int _count = chunkData.Data.Voxels.Length;
+        private readonly Voxel[]? _leftVoxels = chunkData.GetNeighborVoxels(-1, 0, 0);
+        private readonly Voxel[]? _rightVoxels = chunkData.GetNeighborVoxels(1, 0, 0);
+        private readonly Voxel[]? _aheadVoxels = chunkData.GetNeighborVoxels(0, 0, 1);
+        private readonly Voxel[]? _behindVoxels = chunkData.GetNeighborVoxels(0, 0, -1);
+        private readonly Voxel[]? _aboveVoxels = chunkData.GetNeighborVoxels(0, 1, 0);
+        private readonly Voxel[]? _belowVoxels = chunkData.GetNeighborVoxels(0, -1, 0);
         private int _voxelIndex = -1;
 
         public bool MoveNext()
@@ -398,10 +404,16 @@ public readonly struct ChunkData
 
     public ref struct OccupiedEnumerator(ChunkData chunkData, ulong[] mask)
     {
-        public VoxelSample Current => _chunkData.SampleAt(_voxelIndex);
+        public VoxelSample Current => _chunkData.SampleAt(_voxelIndex, _leftVoxels, _rightVoxels, _aheadVoxels, _behindVoxels, _aboveVoxels, _belowVoxels);
 
         private readonly ChunkData _chunkData = chunkData;
         private readonly ulong[] _mask = mask;
+        private readonly Voxel[]? _leftVoxels = chunkData.GetNeighborVoxels(-1, 0, 0);
+        private readonly Voxel[]? _rightVoxels = chunkData.GetNeighborVoxels(1, 0, 0);
+        private readonly Voxel[]? _aheadVoxels = chunkData.GetNeighborVoxels(0, 0, 1);
+        private readonly Voxel[]? _behindVoxels = chunkData.GetNeighborVoxels(0, 0, -1);
+        private readonly Voxel[]? _aboveVoxels = chunkData.GetNeighborVoxels(0, 1, 0);
+        private readonly Voxel[]? _belowVoxels = chunkData.GetNeighborVoxels(0, -1, 0);
         private int _wordIndex = -1;
         private ulong _word;
         private int _voxelIndex = -1;
@@ -429,7 +441,25 @@ public readonly struct ChunkData
         }
     }
 
-    internal VoxelSample SampleAt(int voxelIndex)
+    internal Voxel[]? GetNeighborVoxels(int dx, int dy, int dz)
+    {
+        return _voxelObject.TryGetChunk(
+            new Short3((short)(Coords.X + dx), (short)(Coords.Y + dy), (short)(Coords.Z + dz)),
+            out ChunkData neighbor
+        )
+            ? neighbor.Data.Voxels
+            : null;
+    }
+
+    internal VoxelSample SampleAt(
+        int voxelIndex,
+        Voxel[]? leftVoxels,
+        Voxel[]? rightVoxels,
+        Voxel[]? aheadVoxels,
+        Voxel[]? behindVoxels,
+        Voxel[]? aboveVoxels,
+        Voxel[]? belowVoxels
+    )
     {
         int shift = _voxelObject._chunkShift;
         int shift2 = _voxelObject._chunkShift2;
@@ -445,6 +475,8 @@ public readonly struct ChunkData
         int worldZ = Coords.Z * size;
 
         ref Voxel center = ref Data.Voxels[voxelIndex];
+        Voxel[] centerVoxels = Data.Voxels;
+        VoxelObject voxelObject = _voxelObject;
 
         //  Orientation arrives from disk and the wire as a raw byte, so mask it to the 64 stored values.
         int orientation = center.GetOrientation().ToByte();
@@ -461,32 +493,98 @@ public readonly struct ChunkData
             chunkCoords: new Int3(Coords.X, Coords.Y, Coords.Z),
             coords: new Int3(x, y, z),
             center: ref center,
-            left:   ref GetNeighbor(x, y, z, worldX, worldY, worldZ, leftOffset.X,   leftOffset.Y,   leftOffset.Z),
-            right:  ref GetNeighbor(x, y, z, worldX, worldY, worldZ, rightOffset.X,  rightOffset.Y,  rightOffset.Z),
-            ahead:  ref GetNeighbor(x, y, z, worldX, worldY, worldZ, aheadOffset.X,  aheadOffset.Y,  aheadOffset.Z),
-            behind: ref GetNeighbor(x, y, z, worldX, worldY, worldZ, behindOffset.X, behindOffset.Y, behindOffset.Z),
-            above:  ref GetNeighbor(x, y, z, worldX, worldY, worldZ, aboveOffset.X,  aboveOffset.Y,  aboveOffset.Z),
-            below:  ref GetNeighbor(x, y, z, worldX, worldY, worldZ, belowOffset.X,  belowOffset.Y,  belowOffset.Z),
+            left:   ref GetNeighbor(centerVoxels, voxelObject, size, shift, shift2, x, y, z, leftOffset.X,   leftOffset.Y,   leftOffset.Z,   leftVoxels, rightVoxels, aheadVoxels, behindVoxels, aboveVoxels, belowVoxels),
+            right:  ref GetNeighbor(centerVoxels, voxelObject, size, shift, shift2, x, y, z, rightOffset.X,  rightOffset.Y,  rightOffset.Z,  leftVoxels, rightVoxels, aheadVoxels, behindVoxels, aboveVoxels, belowVoxels),
+            ahead:  ref GetNeighbor(centerVoxels, voxelObject, size, shift, shift2, x, y, z, aheadOffset.X,  aheadOffset.Y,  aheadOffset.Z,  leftVoxels, rightVoxels, aheadVoxels, behindVoxels, aboveVoxels, belowVoxels),
+            behind: ref GetNeighbor(centerVoxels, voxelObject, size, shift, shift2, x, y, z, behindOffset.X, behindOffset.Y, behindOffset.Z, leftVoxels, rightVoxels, aheadVoxels, behindVoxels, aboveVoxels, belowVoxels),
+            above:  ref GetNeighbor(centerVoxels, voxelObject, size, shift, shift2, x, y, z, aboveOffset.X,  aboveOffset.Y,  aboveOffset.Z,  leftVoxels, rightVoxels, aheadVoxels, behindVoxels, aboveVoxels, belowVoxels),
+            below:  ref GetNeighbor(centerVoxels, voxelObject, size, shift, shift2, x, y, z, belowOffset.X,  belowOffset.Y,  belowOffset.Z,  leftVoxels, rightVoxels, aheadVoxels, behindVoxels, aboveVoxels, belowVoxels),
             chunkData: this,
-            voxelObject: _voxelObject,
+            voxelObject: voxelObject,
             voxelIndex: voxelIndex
         );
     }
 
-    private ref Voxel GetNeighbor(int x, int y, int z, int worldX, int worldY, int worldZ, int offsetX, int offsetY, int offsetZ)
+    private static ref Voxel GetNeighbor(
+        Voxel[] centerVoxels,
+        VoxelObject voxelObject,
+        int size,
+        int shift,
+        int shift2,
+        int lx,
+        int ly,
+        int lz,
+        int offsetX,
+        int offsetY,
+        int offsetZ,
+        Voxel[]? leftVoxels,
+        Voxel[]? rightVoxels,
+        Voxel[]? aheadVoxels,
+        Voxel[]? behindVoxels,
+        Voxel[]? aboveVoxels,
+        Voxel[]? belowVoxels
+    )
     {
-        int nX = x + offsetX;
-        int nY = y + offsetY;
-        int nZ = z + offsetZ;
-        int size = _voxelObject._chunkSize;
+        int nX = lx + offsetX;
+        int nY = ly + offsetY;
+        int nZ = lz + offsetZ;
 
-        if (nX < 0 || nY < 0 || nZ < 0 || nX >= size || nY >= size || nZ >= size)
+        if ((uint)nX < (uint)size && (uint)nY < (uint)size && (uint)nZ < (uint)size)
         {
-            return ref _voxelObject.GetUnsafe(nX + worldX, nY + worldY, nZ + worldZ);
+            return ref centerVoxels[nX + (nY << shift) + (nZ << shift2)];
         }
 
-        int neighborIndex = nX + (nY << _voxelObject._chunkShift) + (nZ << _voxelObject._chunkShift2);
-        return ref Data.Voxels[neighborIndex];
+        if (nX < 0)
+        {
+            return ref leftVoxels != null
+                ? ref leftVoxels[(size - 1) + (nY << shift) + (nZ << shift2)]
+                : ref voxelObject.GetOutOfBoundsVoxel();
+        }
+
+        if (nX >= size)
+        {
+            return ref rightVoxels != null
+                ? ref rightVoxels[(nY << shift) + (nZ << shift2)]
+                : ref voxelObject.GetOutOfBoundsVoxel();
+        }
+
+        if (nY < 0)
+        {
+            return ref belowVoxels != null
+                ? ref belowVoxels[nX + ((size - 1) << shift) + (nZ << shift2)]
+                : ref voxelObject.GetOutOfBoundsVoxel();
+        }
+
+        if (nY >= size)
+        {
+            return ref aboveVoxels != null
+                ? ref aboveVoxels[nX + (nZ << shift2)]
+                : ref voxelObject.GetOutOfBoundsVoxel();
+        }
+
+        if (nZ < 0)
+        {
+            return ref behindVoxels != null
+                ? ref behindVoxels[nX + (nY << shift) + ((size - 1) << shift2)]
+                : ref voxelObject.GetOutOfBoundsVoxel();
+        }
+
+        return ref aheadVoxels != null
+            ? ref aheadVoxels[nX + (nY << shift)]
+            : ref voxelObject.GetOutOfBoundsVoxel();
+    }
+
+    internal VoxelSample SampleAt(int voxelIndex)
+    {
+        return SampleAt(
+            voxelIndex,
+            GetNeighborVoxels(-1, 0, 0),
+            GetNeighborVoxels(1, 0, 0),
+            GetNeighborVoxels(0, 0, 1),
+            GetNeighborVoxels(0, 0, -1),
+            GetNeighborVoxels(0, 1, 0),
+            GetNeighborVoxels(0, -1, 0)
+        );
     }
 
     internal void SetOccupied(int voxelIndex, bool occupied)

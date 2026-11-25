@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using DryIoc;
 using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
@@ -14,11 +16,18 @@ namespace WaywardBeyond.Client.Voxels.Building;
 public sealed class VoxelObjectBuilder(in IContainer container)
 {
     private readonly IContainer _container = container;
+    private readonly ConcurrentBag<ChunkBuildContext> _contextPool = [];
 
     /// <summary>Opens one resolver scope for a sequence of chunk builds.</summary>
     public ChunkBuildContext OpenChunkBuildContext()
     {
-        return new ChunkBuildContext(_container.OpenScope());
+        if (_contextPool.TryTake(out ChunkBuildContext? context))
+        {
+            context.PrepareReuse();
+            return context;
+        }
+
+        return new ChunkBuildContext(_container.OpenScope(), this);
     }
 
     /// <summary>Builds mesh data and voxel entities for a single chunk.</summary>
@@ -48,15 +57,11 @@ public sealed class VoxelObjectBuilder(in IContainer container)
     public ChunkCollisionData BuildChunkCollision(ChunkBuildContext context, ChunkData chunkData)
     {
         context.CollisionState.Clear();
+        context.CollisionPostPass.ProcessChunk(chunkData);
 
-        if (!context.CollisionPostPass.ShouldProcessChunk(chunkData))
+        if (context.CollisionState.Shapes.Count == 0)
         {
             return new ChunkCollisionData([], [], []);
-        }
-
-        foreach (VoxelSample sample in chunkData.GetOccupiedSampler())
-        {
-            context.CollisionPostPass.Process(sample);
         }
 
         return new ChunkCollisionData(
@@ -70,6 +75,8 @@ public sealed class VoxelObjectBuilder(in IContainer container)
     public sealed class ChunkBuildContext : IDisposable
     {
         private readonly IResolverContext _scope;
+        private readonly VoxelObjectBuilder _owner;
+        private int _returned;
 
         internal readonly MeshPostPass MeshPostPass;
         internal readonly VoxelEntityPostPass VoxelEntityPostPass;
@@ -78,9 +85,10 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         internal readonly EntityState EntityState;
         internal readonly CollisionState CollisionState;
 
-        internal ChunkBuildContext(IResolverContext scope)
+        internal ChunkBuildContext(IResolverContext scope, VoxelObjectBuilder owner)
         {
             _scope = scope;
+            _owner = owner;
             MeshPostPass = scope.Resolve<MeshPostPass>();
             VoxelEntityPostPass = scope.Resolve<VoxelEntityPostPass>();
             CollisionPostPass = scope.Resolve<CollisionPostPass>();
@@ -89,10 +97,24 @@ public sealed class VoxelObjectBuilder(in IContainer container)
             CollisionState = scope.Resolve<CollisionState>();
         }
 
+        internal void PrepareReuse()
+        {
+            MeshState.Clear();
+            EntityState.Clear();
+            CollisionState.Clear();
+            Volatile.Write(ref _returned, 0);
+        }
+
         /// <inheritdoc/>
         public void Dispose()
         {
-            _scope.Dispose();
+            if (Interlocked.Exchange(ref _returned, 1) == 0)
+            {
+                MeshState.Clear();
+                EntityState.Clear();
+                CollisionState.Clear();
+                _owner._contextPool.Add(this);
+            }
         }
     }
 
@@ -140,23 +162,44 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         voxelObjectProcessor.ProcessLighting(voxelObject);
     }
 
-    private static ChunkMesh GenerateChunkMesh(in MeshState.MeshData meshData)
+    private static ChunkMesh GenerateChunkMesh(MeshState.MeshData meshData)
     {
-        if (meshData.Triangles.Count == 0 || meshData.Vertices.Count == 0)
+        int triCount = meshData.Triangles.Count;
+        int count = meshData.Vertices.Count;
+        if (triCount == 0 || count == 0)
         {
             return default;
         }
 
-        BoundingBox bounds = BoundingBox.FromVertices(CollectionsMarshal.AsSpan(meshData.Vertices));
+        int requiredFloats = count * MeshBatch.VERTEX_STRIDE;
+        if (meshData.VertexBuffer.Length < requiredFloats)
+        {
+            meshData.VertexBuffer = new float[Math.Max(requiredFloats, meshData.VertexBuffer.Length * 2)];
+        }
 
-        int count = meshData.Vertices.Count;
-        var vertexData = new float[count * MeshBatch.VERTEX_STRIDE];
+        if (meshData.IndexBuffer.Length < triCount)
+        {
+            meshData.IndexBuffer = new uint[Math.Max(triCount, meshData.IndexBuffer.Length * 2)];
+        }
+
+        float[] vertexData = meshData.VertexBuffer;
+        Span<Vector3> vertices = CollectionsMarshal.AsSpan(meshData.Vertices);
+        Span<Vector4> colors = CollectionsMarshal.AsSpan(meshData.Colors);
+        Span<Vector3> uvs = CollectionsMarshal.AsSpan(meshData.UV);
+        Span<Vector3> normals = CollectionsMarshal.AsSpan(meshData.Normals);
+
+        Vector3 min = vertices[0];
+        Vector3 max = vertices[0];
+
         for (var i = 0; i < count; i++)
         {
-            Vector3 position = meshData.Vertices[i];
-            Vector4 color = meshData.Colors[i];
-            Vector3 uv = meshData.UV[i];
-            Vector3 normal = meshData.Normals[i];
+            Vector3 position = vertices[i];
+            min = Vector3.Min(min, position);
+            max = Vector3.Max(max, position);
+
+            Vector4 color = colors[i];
+            Vector3 uv = uvs[i];
+            Vector3 normal = normals[i];
 
             int offset = i * MeshBatch.VERTEX_STRIDE;
             vertexData[offset] = position.X;
@@ -174,7 +217,12 @@ public sealed class VoxelObjectBuilder(in IContainer container)
             vertexData[offset + 12] = normal.Z;
         }
 
-        return new ChunkMesh(vertexData, meshData.Triangles.ToArray(), bounds);
+        Vector3 center = (min + max) * 0.5f;
+        Vector3 extents = (max - min) * 0.5f;
+        var bounds = new BoundingBox(center, extents, extents.Length());
+
+        CollectionsMarshal.AsSpan(meshData.Triangles).CopyTo(meshData.IndexBuffer);
+        return new ChunkMesh(vertexData, count, meshData.IndexBuffer, triCount, bounds);
     }
 
     /// <summary>Holds opaque, non-shadow-casting opaque, masked, and transparent mesh ranges and entities for a single chunk.</summary>
@@ -187,14 +235,35 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         public readonly List<VoxelInfo> VoxelEntities = voxelEntities;
     }
 
-    /// <summary>Holds packed vertex and index data for one chunk range.</summary>
-    public readonly struct ChunkMesh(in float[] vertexData, in uint[] indices, in BoundingBox bounds)
+    /// <summary>Holds packed vertex and index data for one chunk range. Pooled buffers are only valid until the next <see cref="BuildChunk"/> on the same context.</summary>
+    public readonly struct ChunkMesh
     {
-        public readonly float[] VertexData = vertexData;
-        public readonly uint[] Indices = indices;
-        public readonly BoundingBox Bounds = bounds;
+        public readonly float[] VertexData;
+        public readonly uint[] Indices;
+        public readonly int VertexCount;
+        public readonly int IndexCount;
+        public readonly BoundingBox Bounds;
 
-        public bool IsEmpty => VertexData == null || VertexData.Length == 0 || Indices == null || Indices.Length == 0;
-        public int VertexCount => VertexData == null ? 0 : VertexData.Length / MeshBatch.VERTEX_STRIDE;
+        /// <summary>Wraps owned vertex and index arrays whose full lengths define the element counts.</summary>
+        public ChunkMesh(in float[] vertexData, in uint[] indices, in BoundingBox bounds)
+        {
+            VertexData = vertexData;
+            Indices = indices;
+            VertexCount = vertexData == null ? 0 : vertexData.Length / MeshBatch.VERTEX_STRIDE;
+            IndexCount = indices == null ? 0 : indices.Length;
+            Bounds = bounds;
+        }
+
+        /// <summary>Wraps pooled vertex and index buffers with explicit active <paramref name="vertexCount"/> and <paramref name="indexCount"/>.</summary>
+        public ChunkMesh(float[] vertexData, int vertexCount, uint[] indices, int indexCount, in BoundingBox bounds)
+        {
+            VertexData = vertexData;
+            VertexCount = vertexCount;
+            Indices = indices;
+            IndexCount = indexCount;
+            Bounds = bounds;
+        }
+
+        public bool IsEmpty => VertexCount == 0 || IndexCount == 0 || VertexData == null || Indices == null;
     }
 }

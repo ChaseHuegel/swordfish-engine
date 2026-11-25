@@ -52,9 +52,10 @@ public static class VoxelWorldEntityFactory
             new Quaternion(data.OrientationX, data.OrientationY, data.OrientationZ, data.OrientationW),
             new Vector3(data.ScaleX, data.ScaleY, data.ScaleZ)
         ));
+        var voxelWorld = new VoxelWorldComponent(voxelObject);
         store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
-        store.AddOrUpdate(entity, new ColliderComponent(VoxelColliderBuilder.BuildCollision(voxelObject, brickDatabase)));
-        store.AddOrUpdate(entity, new VoxelWorldComponent(voxelObject));
+        store.AddOrUpdate(entity, new ColliderComponent(VoxelColliderBuilder.BuildCollision(in voxelWorld, brickDatabase)));
+        store.AddOrUpdate(entity, voxelWorld);
 
         store.AddOrUpdate(entity, new NetworkComponent());
 

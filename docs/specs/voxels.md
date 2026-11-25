@@ -13,12 +13,12 @@ creates a chunk on the first write that lands in it.
 - `Set(x, y, z, voxel)` writes one cell and creates the chunk when absent
   (`VoxelObject.cs:116`).
 - `SetLight(x, y, z, lightLevel)` updates the light level of a resident cell
-  without modifying palette counts (`VoxelObject.cs:155`).
-- `Get(x, y, z)` returns one cell by value (`VoxelObject.cs:286`).
+  without modifying palette counts (`VoxelObject.cs:140`).
+- `Get(x, y, z)` returns one cell by value (`VoxelObject.cs:241`).
 - `Sample(x, y, z)` returns the cell and its six neighbours
-  (`VoxelObject.cs:326`).
+  (`VoxelObject.cs:266`).
 - `GetChunkInfos()` returns a copy of every resident chunk. The caller owns the
-  voxel arrays (`VoxelObject.cs:428`).
+  voxel arrays (`VoxelObject.cs:353`).
 
 A chunk holds `chunkSize³` voxels. `chunkSize` is a power of two and the
 constructor rejects any chunk whose `Size`, voxel count, or array does not match
@@ -42,9 +42,9 @@ A world coordinate maps to a chunk offset and a local coordinate:
 | local coordinate | `world & chunkMask` |
 | local index | `x + (y << chunkShift) + (z << chunkShift2)` |
 
-`chunkShift` is `log2(chunkSize)` and `chunkShift2` is twice that. A negative
-world coordinate shifts forward by its chunk span before the mask applies, so
-`-1` lands on the last cell of chunk `-1`.
+`chunkShift` is `log2(chunkSize)` and `chunkShift2` is twice that. Two's
+complement masking handles negative world coordinates directly, so `-1` lands
+on the last cell of chunk `-1`.
 
 ### Out of bounds
 
@@ -152,11 +152,18 @@ marks the orthogonal neighbor chunk dirty. A light-only write marks
 `LightDirtyChunks` and leaves `GeometryDirtyChunks` empty, so the rebuild skips
 collision and voxel-entity reconciliation for that chunk.
 
-A rebuild opens one resolver scope for every dirty chunk. It reuses the mesh,
-entity, and collision buffers between chunks. It stops after
-`VoxelSettings.RebuildBudgetMs` (10 ms by default). Unprocessed chunks stay dirty
-and resume on the next tick. A chunk mesh uses bounds computed from the chunk
-coordinates, so the build does not scan every vertex.
+A rebuild pools a `ChunkBuildContext` (`VoxelObjectBuilder.cs:22-31, 75-119`)
+so it reuses the DI scope, `VoxelSurfaceCache`, and mesh, entity, and collision
+buffers across edits. `CubeMeshBuilder` precomputes rotated cube faces across
+all 64 discrete orientations and resolves surface layers through
+`VoxelSurfaceCache` (`WaywardBeyond.Client/Voxels/Processing/VoxelSurfaceCache.cs`)
+and `FaceOrientationLookup` (`WaywardBeyond.Voxels/FaceOrientationLookup.cs`).
+`MeshBatch` (`Swordfish/Graphics/MeshBatch.cs:72-199`) allocates range capacity
+headroom and reuses backing arrays so small edits update in place without
+triggering arena compaction. A rebuild stops after `VoxelSettings.RebuildBudgetMs`
+(10 ms by default). Unprocessed chunks stay dirty and resume on the next tick.
+`VoxelEntityBuilder.ReconcileVoxelEntities` tracks chunks with voxel entities in
+`VoxelChunkRegistry.ChunksWithEntities` and skips empty chunks.
 
 `VoxelEntityBuilder` is the only owner of the batch renderer child entities.
 Each entry stores the entity index and its `Uuid`. A mismatch means the index
@@ -236,7 +243,7 @@ it counts as exposed.
 
 
 `VoxelEntityBuilder.RebuildDirtyChunks`
-(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:138-222`) rebuilds
+(`WaywardBeyond.Client/Voxels/Building/VoxelEntityBuilder.cs:145-232`) rebuilds
 only dirty chunks. Untouched chunks keep their existing ranges.
 
 `ClientVoxelReconcileSystem`
@@ -310,18 +317,28 @@ allocations per tick.
 
 ## Chunk collision caching
 
+`VoxelCollision.AppendChunk` (`WaywardBeyond.Voxels/VoxelCollision.cs:16-75`)
+culls interior full blocks and merges exposed full blocks into 3D greedy `Box3`
+primitives.
+
 `VoxelObjectBuilder.BuildChunkCollision`
-(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:57-83`) computes
+(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:57-72`) computes
 surface collision boxes for one chunk.
 
 `VoxelChunkRegistry.ChunkColliders` caches `ChunkCollisionData`
-(`WaywardBeyond.Client/Voxels/ChunkCollisionData.cs:10`) for each resident chunk.
+(`WaywardBeyond.Client/Voxels/ChunkCollisionData.cs:7`) for each resident chunk.
 
 When a chunk becomes dirty, `VoxelEntityBuilder.RebuildDirtyChunks` resamples
 collision boxes only for that chunk. `VoxelObjectBuilder.CombineCollisions`
-(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:109-144`) merges
+(`WaywardBeyond.Client/Voxels/Building/VoxelObjectBuilder.cs:122-150`) merges
 the cached chunk boxes into one `CompoundShape`. The builder skips the collider
 update when dirty chunks produce no collision changes.
+
+On the server, `VoxelWorldComponent.ChunkColliders`
+(`WaywardBeyond.Server/Components/VoxelWorldComponent.cs:20`) caches
+`ChunkColliderData` per chunk. `VoxelColliderBuilder.RebuildDirtyChunks`
+(`WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs:46-79`) rebuilds only
+the edited chunk and any orthogonal boundary neighbor chunk before combining.
 
 `JoltPhysicsSystem.TryGetJoltShape`
 (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:206-241`) deduplicates child shapes

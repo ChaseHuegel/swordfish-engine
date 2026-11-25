@@ -20,6 +20,9 @@ public sealed class VoxelChunkRegistry
     public readonly HashSet<Short3> GeometryDirtyChunks = [];
     public readonly HashSet<Short3> LightDirtyChunks = [];
     public readonly HashSet<Short3> EntityDirtyChunks = [];
+
+    /// <summary>Chunk offsets that currently own spawned voxel child entities.</summary>
+    public readonly HashSet<Short3> ChunksWithEntities = [];
     public readonly HashSet<Short3> KnownChunks = [];
     public readonly DepthState DepthState = new();
 

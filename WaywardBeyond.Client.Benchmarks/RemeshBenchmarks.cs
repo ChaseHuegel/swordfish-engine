@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
 using DryIoc;
 using Swordfish.Graphics;
@@ -17,13 +19,18 @@ namespace WaywardBeyond.Client.Benchmarks;
 public class RemeshBenchmarks
 {
     private readonly Voxel _stone = new(_ID: 1, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
+    private readonly Voxel _panel = new(_ID: 2, _ShapeLight: new ShapeLight(default, 0), _OrientationFlags: 0);
 
     private VoxelObjectBuilder _builder = null!;
     private VoxelObjectBuilder.ChunkBuildContext _context = null!;
     private ChunkData _denseChunk;
     private ChunkData _sparseChunk;
+    private ChunkData _denseConnectedChunk;
+    private ChunkData _densePaintedConnectedChunk;
     private VoxelObject _dense = null!;
     private VoxelObject _sparse = null!;
+    private VoxelObject _denseConnected = null!;
+    private VoxelObject _densePaintedConnected = null!;
     private VoxelObjectProcessor _lightProcessor = null!;
 
     [GlobalSetup]
@@ -39,13 +46,34 @@ public class RemeshBenchmarks
             textures: default,
             tags: []
         );
+        brickDatabase.Bricks[2] = new Brick(
+            "panel",
+            alpha: BrickAlpha.Opaque,
+            passable: false,
+            meshID: null,
+            BrickShape.Block,
+            textures: new BrickTextures { Connected = true, Default = ["panel.0"] },
+            tags: ["paintable"]
+        );
 
-        var stoneTexture = new Texture("stone", [255, 255, 255, 255], 1, 1, mipmaps: false);
-        var albedo = new TextureArray("albedo", [stoneTexture], mipmaps: false);
+        var paintDatabase = new FakePaintDatabase();
+        var panelPaint = Paint.CreateTexture("wb:panel", "panel", BrickAlpha.Opaque, connected: true, ["panel.0"]);
+        paintDatabase.Paints[1] = panelPaint;
+        var redPaint = Paint.CreateColor("wb:red", "red", new System.Numerics.Vector3(1f, 0f, 0f));
+        paintDatabase.Paints[2] = redPaint;
+
+        var texList = new List<Texture> { new Texture("stone", [255, 255, 255, 255], 1, 1, mipmaps: false) };
+        for (var i = 0; i < 16; i++)
+        {
+            texList.Add(new Texture($"panel.{i}", [255, 255, 255, 255], 1, 1, mipmaps: false));
+        }
+
+        var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
         var textureArrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo);
 
         var container = new Container();
         container.RegisterInstance<IBrickDatabase>(brickDatabase);
+        container.RegisterInstance<IPaintDatabase>(paintDatabase);
         container.RegisterInstance<PBRTextureArrays>(textureArrays);
         container.RegisterInstance<IAssetDatabase<Mesh>>(new FakeMeshDatabase());
         container.Register<MeshState>(Reuse.Scoped);
@@ -77,6 +105,28 @@ public class RemeshBenchmarks
 
         _sparse.TryGetChunk(new Short3(0, 0, 0), out _sparseChunk);
 
+        //  Checkerboard hollow surface with connected-texture bricks so interior culling does not hide all faces.
+        _denseConnected = new VoxelObject(16);
+        for (int x = 0; x < 16; x++)
+        for (int y = 0; y < 16; y += 2)
+        for (int z = 0; z < 16; z++)
+        {
+            _denseConnected.Set(x, y, z, _panel);
+        }
+
+        _denseConnected.TryGetChunk(new Short3(0, 0, 0), out _denseConnectedChunk);
+
+        _densePaintedConnected = new VoxelObject(16);
+        for (int x = 0; x < 16; x++)
+        for (int y = 0; y < 16; y += 2)
+        for (int z = 0; z < 16; z++)
+        {
+            _densePaintedConnected.Set(x, y, z, _stone);
+            _densePaintedConnected.SetFaceOverride(x, y, z, BrickFaceMask.All, new FaceOverride(texturePaintId: 1, colorPaintId: 2));
+        }
+
+        _densePaintedConnected.TryGetChunk(new Short3(0, 0, 0), out _densePaintedConnectedChunk);
+
         var lightingState = new LightingState();
         var depthState = new DepthState();
         VoxelObjectProcessor.IPass[] passes = [new AmbientLightPass(lightingState, depthState, brickDatabase)];
@@ -101,6 +151,18 @@ public class RemeshBenchmarks
     public VoxelObjectBuilder.ChunkMeshData BuildChunk_Sparse()
     {
         return _builder.BuildChunk(_context, _sparseChunk);
+    }
+
+    [Benchmark]
+    public VoxelObjectBuilder.ChunkMeshData BuildChunk_DenseConnected()
+    {
+        return _builder.BuildChunk(_context, _denseConnectedChunk);
+    }
+
+    [Benchmark]
+    public VoxelObjectBuilder.ChunkMeshData BuildChunk_DensePaintedConnected()
+    {
+        return _builder.BuildChunk(_context, _densePaintedConnectedChunk);
     }
 
     [Benchmark]
@@ -158,6 +220,25 @@ public class RemeshBenchmarks
 
             return true;
         }
+    }
+
+    private sealed class FakePaintDatabase : IPaintDatabase
+    {
+        public readonly Dictionary<ushort, Paint> Paints = [];
+
+        public IReadOnlyList<Paint> TexturePaints => [];
+        public IReadOnlyList<Paint> ColorPaints => [];
+
+        public Result<Paint> Get(string id) => Result<Paint>.FromFailure((string?)null);
+
+        public Result<Paint> Get(ushort id)
+        {
+            return Paints.TryGetValue(id, out Paint? paint)
+                ? Result<Paint>.FromSuccess(paint)
+                : Result<Paint>.FromFailure((string?)null);
+        }
+
+        public List<Paint> Get(Func<Paint, bool> predicate) => [];
     }
 
     private sealed class FakeMeshDatabase : IAssetDatabase<Mesh>
