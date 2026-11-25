@@ -95,8 +95,14 @@ The engine parses `.obj` meshes in `Swordfish/IO/ObjParser.cs:22-124`.
 | Item material | `WaywardBeyond.Client/assets/materials/items/<name>.toml` | `Shader = "lighted"`, `AlphaMode = "Masked"`, `Textures = ["items/<name>_uv.png"]` |
 | Item icon | `WaywardBeyond.Client/assets/textures/items/<name>.png` | `96x96` transparent RGBA PNG, isometric front-left 3/4 view pointing up-left (match `laser.png`) |
 | Block texture | `WaywardBeyond.Client/assets/textures/block/<name>.png` | `16x16` PNG, Endesga-32 colors (`<name>.0` through `<name>.15` for connected tiles). A brick that declares `Color` may use a greyscale texture instead, because the color multiplies it |
+| Block tint mask (optional) | `WaywardBeyond.Client/assets/textures/block/<name>.t.png` | `16x16` grayscale PNG; white lets painted colors tint the texel, black keeps the authored color |
 | Item definition | `WaywardBeyond.Items/assets/items/<name>.toml` | Set `Icon`, `[Items.ViewModel]`, and `[Items.WorldModel]` to the asset paths |
 | Item copy | `WaywardBeyond.Client/assets/lang/en/item.toml` | Add display name and description localization keys |
+
+Author a block tint mask for every block texture that has an emissive map,
+except `light` and `small_light`. Set the mask black on every emissive texel and
+white elsewhere. Paint then keeps emitter colors. Light bricks stay tintable so
+paint recolors their glow.
 
 Placeable brick items omit `Icon` so `BrickIconRenderer` renders their isometric
 icon at startup.

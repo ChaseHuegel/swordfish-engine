@@ -164,7 +164,7 @@ public class BrickIconTests
     {
         Texture sample = new(TEXTURE_ID, new byte[4], 1, 1, mipmaps: false);
         TextureArray array = new("test", [sample], mipmaps: false);
-        return new PBRTextureArrays(array, array, array, array, array);
+        return new PBRTextureArrays(array, array, array, array, array, array);
     }
 
     private sealed class FakeOffscreenRenderer : IOffscreenRenderer

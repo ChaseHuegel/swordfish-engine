@@ -28,7 +28,8 @@ sRGB transfer function once when writing to the back buffer.
   `ColorSpace.Linear` textures as `TextureFormat.Rgba` (`InternalFormat.Rgba8`).
 - `PBRTextureArraysParser` sets `ColorSpace.Srgb` on the `bricks_albedo` and
   `bricks_emissive` arrays. It sets `ColorSpace.Linear` on `bricks_metallic`,
-  `bricks_smoothness`, and `bricks_normal`.
+  `bricks_smoothness`, `bricks_normal`, and `bricks_tint`. The tint mask is
+  data, not color, so it skips the sRGB decode.
 - `ReefRenderer` packs the MSDF typeface bitmaps and solid white region into
   `ui_atlas` with `ColorSpace.Linear` so glyph distance fields are not decoded
   as color.
@@ -82,7 +83,7 @@ sRGB transfer function once when writing to the back buffer.
 - Composite, tonemap, and encode shader: `Swordfish/assets/shaders/bloom.glsl:14-52`
 - UI textured shaders: `Swordfish/assets/shaders/ui_reef_textured.glsl:38-57`, `Swordfish/assets/shaders/ui_default.glsl:10-24`
 - GLSL preprocessor `BrightColor` alpha default and block wrapping: `Swordfish/IO/GlslParser.cs:129-136, 245-264`
-- Client PBR texture arrays: `WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs:79-85`
+- Client PBR texture arrays: `WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs:75-109, 113-133`
 
 ## Tests That Pin This
 

@@ -98,7 +98,7 @@ public class FacePaintingMeshTests
         }
 
         var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
-        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo);
+        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo, albedo);
         var bricks = new StubBrickDatabase();
         var paints = new StubPaintDatabase();
 

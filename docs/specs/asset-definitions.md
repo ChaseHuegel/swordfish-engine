@@ -156,11 +156,11 @@ with an optional leading `#`. `BrickDatabase` parses it once at load
 fully colored textures keep their authored appearance. An invalid color logs a
 warning and also falls back to white.
 
-The tint multiplies every unpainted face by the brick texture, so an artist can
-author a greyscale texture and let `Color` supply the hue and value. A
-color-painted face uses its paint color, and a texture-painted face uses the
-paint texture as authored, so a paint always shows its exact color over the
-greyscale texture.
+The tint multiplies every unpainted face by the brick texture, except where a
+tint mask blocks it, so an artist can author a greyscale texture and let `Color`
+supply the hue and value. A color-painted face uses its paint color, and a
+texture-painted face uses the paint texture as authored, so a paint always shows
+its exact color over the greyscale texture.
 
 The tint reaches all voxel surfaces that resolve through
 `ConnectedTextureResolver` (`WaywardBeyond.Client/Voxels/Processing/ConnectedTextureResolver.cs`):
@@ -178,6 +178,16 @@ Color = "#4A6B8A"
 [Bricks.Textures]
 Default = ["panel"]
 ```
+
+### Texture channels
+
+Texture channel files use a suffix before `.png`: `.m` metallic, `.s`
+smoothness, `.n` normal, `.e` emissive, and `.t` tint mask. The parser generates
+a missing channel for every albedo texture, so each array has the same layer
+order as `bricks_albedo`. A missing tint mask is white, which lets paint tint
+every texel. Author a tint mask to keep painted colors off authored details.
+See [asset-art-style](asset-art-style.md) and
+[rendering-color](rendering-color.md).
 
 ### Colliders
 
@@ -353,6 +363,7 @@ bits. See [seed-phrases](seed-phrases.md).
 - `WaywardBeyond.Data/Localization/LocalizedTagValues.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`
+- `WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
 - Parser registration: `WaywardBeyond.Skills/Injector.cs:16`,
   `WaywardBeyond.Client/Injector.cs:343`, `WaywardBeyond.Bricks/Injector.cs:14`,

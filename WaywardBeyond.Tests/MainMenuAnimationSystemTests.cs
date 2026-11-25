@@ -293,7 +293,7 @@ public class MainMenuAnimationSystemTests : IDisposable
         var container = new Container();
         var bricks = new StubBrickDatabase();
         var array = new TextureArray("test", [new Texture("test", [255, 255, 255, 255], 1, 1, mipmaps: false)], mipmaps: false);
-        var textures = new PBRTextureArrays(array, array, array, array, array);
+        var textures = new PBRTextureArrays(array, array, array, array, array, array);
         var shader = new Shader("test");
 
         container.RegisterInstance<IBrickDatabase>(bricks);

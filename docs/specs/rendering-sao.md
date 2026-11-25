@@ -26,8 +26,9 @@ and the forward pass.
 3. Blur the chain with `Blur(_blurShader, _ssaoChain, SAO.BlurPasses)`.
    Each separable pass reads front and writes back, then swaps. The result ends
    in `Front` for any pass count. Two passes are the default.
-4. Bind `_ssaoChain.Front` to texture unit 5 in `ShaderActivationCallback`
-   (`ForwardPlusRenderingPipeline.cs:1113`).
+4. Bind `_ssaoChain.Front` to texture unit 10 in `ShaderActivationCallback`
+   (`ForwardPlusRenderingPipeline.cs:1120`). Unit 10 keeps AO clear of the
+   material texture units 0 through 5.
 
 The blur is a separable Gaussian with a 9-tap kernel at a stride of 1 AO texel.
 The stride must be 1: a larger stride under-samples the per-pixel rotation and
@@ -73,11 +74,12 @@ resolution is hidden by the blur and the filter.
   curve. The base is floored before `pow`, so a zero or negative exponent is
   defined.
 
-`WaywardBeyond.Client/assets/shaders/lightedArray.glsl:44-45` applies the result:
+`WaywardBeyond.Client/assets/shaders/lightedArray.glsl:50-52` applies the result:
 
 ```glsl
-vec4 shaded = vec4(shade(albedo.rgb).rgb, albedo.a);
-vec4 color = max(shaded * VertexColor * ao(albedo), emissive);
+vec3 tintedAlbedo = albedo.rgb * tint;
+vec4 shaded = vec4(shade(tintedAlbedo).rgb, albedo.a);
+vec4 color = max(vec4(shaded.rgb * VertexColor.a, shaded.a) * ao(albedo), emissive);
 ```
 
 `shade()` returns ambient plus direct light multiplied by `albedo`, so `ao()` multiplies both. The

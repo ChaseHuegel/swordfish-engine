@@ -142,7 +142,7 @@ public class NonBlockConnectedTextureTests
         }
 
         var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
-        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo);
+        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo, albedo);
         var bricks = new StubBrickDatabase();
         var paints = new StubPaintDatabase();
 
@@ -431,7 +431,7 @@ public class NonBlockConnectedTextureTests
         }
 
         var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
-        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo);
+        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo, albedo);
         var bricks = new StubBrickDatabase();
         bricks.Add(1, new Brick("wb:glass", BrickAlpha.Blend, false, null, BrickShape.Any, new BrickTextures { Connected = true, Default = ["glass.0"] }));
 
@@ -473,7 +473,7 @@ public class NonBlockConnectedTextureTests
         }
 
         var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
-        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo);
+        var arrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo, albedo);
         var bricks = new StubBrickDatabase();
         bricks.Add(1, new Brick("wb:glass", BrickAlpha.Blend, false, null, BrickShape.Any, new BrickTextures { Connected = true, Default = ["glass.0"] }));
 

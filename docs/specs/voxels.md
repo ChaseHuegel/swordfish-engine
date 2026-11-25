@@ -121,7 +121,12 @@ non-block shapes when covered by an adjacent culler block or a same-shape
 compatible-orientation neighbor (`MeshPostPass.cs:212`). `Custom` meshes remain
 unconnected.
 `lightedArray.glsl` applies `VertexColor.rgb` as linear albedo and emissive
-tint (including bloom `BrightColor`) and `VertexColor.a` as voxel light.
+tint (including bloom `BrightColor`) and `VertexColor.a` as voxel light. The
+`bricks_tint` layer masks that color multiplication: a black mask texel keeps
+the authored albedo and emissive color, and a white texel applies the full
+paint tint. Every albedo layer has a matching tint layer, so painted and
+connected textures resolve both from the same texture coordinate.
+See [asset-definitions](asset-definitions.md) for authoring.
 
 ## Palette maintenance
 
