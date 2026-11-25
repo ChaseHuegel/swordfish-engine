@@ -76,10 +76,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private MeshOutline? _activeOutline;
     private readonly Line[] _debugLines;
     private readonly DebugSettings _debugSettings;
-    private readonly SoundEffectService _soundEffectService;
     private readonly VoxelLightingService _voxelLightingService;
     private readonly EventInvoker<PlaceEvent> _placeEvent;
     private readonly EventInvoker<BreakEvent> _breakEvent;
+    private readonly EventInvoker<BrickEditEvent> _brickEditEvent;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly NotificationService _notificationService;
     private readonly ILocalization _localization;
@@ -117,10 +117,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in DebugSettings debugSettings,
         in IAssetDatabase<Mesh> meshDatabase,
         in IShortcutService shortcutService,
-        in SoundEffectService soundEffectService,
         in VoxelLightingService voxelLightingService,
         in EventInvoker<PlaceEvent> placeEvent,
         in EventInvoker<BreakEvent> breakEvent,
+        in EventInvoker<BrickEditEvent> brickEditEvent,
         in SnapshotAckTracker snapshotAck,
         in NotificationService notificationService,
         in ILocalization localization,
@@ -142,10 +142,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _itemDatabase = itemDatabase;
         _meshDatabase = meshDatabase;
         _debugSettings = debugSettings;
-        _soundEffectService = soundEffectService;
         _voxelLightingService = voxelLightingService;
         _placeEvent = placeEvent;
         _breakEvent = breakEvent;
+        _brickEditEvent = brickEditEvent;
         _snapshotAck = snapshotAck;
         _notificationService = notificationService;
         _localization = localization;
@@ -404,7 +404,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         //  Presentation hooks (ghost/SFX) fire before the prediction; a cancel skips the local prediction
         //  (the server still validates the sent intent). Unconsumed inventory is the server's job.
-        if (!FirePresentationHook(in resolution))
+        if (!FirePresentationHook(in resolution, _brickDatabase, _breakEvent, _placeEvent, _brickEditEvent))
         {
             return;
         }
@@ -648,9 +648,15 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return orientation.ToByte();
     }
 
-    private bool FirePresentationHook(in InteractionResolution resolution)
-    {
-        Result<Brick> brickInfoResult = _brickDatabase.Get(resolution.Voxel.ID);
+    /// <summary>Invokes local gameplay and presentation events for a resolved brick interaction.</summary>
+    internal static bool FirePresentationHook(
+        in InteractionResolution resolution,
+        IBrickDatabase brickDatabase,
+        EventInvoker<BreakEvent> breakEvent,
+        EventInvoker<PlaceEvent> placeEvent,
+        EventInvoker<BrickEditEvent> brickEditEvent
+    ) {
+        Result<Brick> brickInfoResult = brickDatabase.Get(resolution.Voxel.ID);
         if (!brickInfoResult.Success)
         {
             return true;
@@ -658,21 +664,21 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         if (resolution.Action == InteractionAction.Break)
         {
-            if (!_breakEvent.Invoke(new BreakEvent(brickInfoResult.Value)).Success)
+            if (!breakEvent.Invoke(new BreakEvent(brickInfoResult.Value)).Success)
             {
                 return false;
             }
 
-            _soundEffectService.PlayEffect(brickInfoResult.Value, BrickSoundEvent.Break);
+            brickEditEvent.Invoke(new BrickEditEvent(resolution.Voxel.ID, BrickSoundEvent.Break));
         }
         else
         {
-            if (!_placeEvent.Invoke(new PlaceEvent(brickInfoResult.Value)).Success)
+            if (!placeEvent.Invoke(new PlaceEvent(brickInfoResult.Value)).Success)
             {
                 return false;
             }
 
-            _soundEffectService.PlayEffect(brickInfoResult.Value, BrickSoundEvent.Place);
+            brickEditEvent.Invoke(new BrickEditEvent(resolution.Voxel.ID, BrickSoundEvent.Place));
         }
 
         return true;

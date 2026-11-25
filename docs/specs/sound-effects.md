@@ -34,6 +34,23 @@ channel (`SoundEffectService.cs:40`). A request names tags, never clip ids.
 A request that carries several tags uses every value from every tag as a
 candidate. Each candidate clip is equally likely.
 
+## Brick triggers
+
+`BrickEditEvent` carries a brick's voxel id and a `BrickSoundEvent`
+(`WaywardBeyond.Client/Events/BrickEditEvent.cs:6`). Two paths raise it:
+
+- `PlayerInteractionService.FirePresentationHook` raises it after `PlaceEvent`
+  or `BreakEvent` succeeds (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:652`).
+- `ClientVoxelReconcileSystem.RaiseEditEvent` raises it for unpredicted
+  authoritative edits (`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:157`).
+
+`BrickSoundListener` handles `BrickEditEvent`, resolves the `Brick` from
+`IBrickDatabase`, and calls `SoundEffectService.PlayEffect`
+(`WaywardBeyond.Client/Services/BrickSoundListener.cs:9`). Neither producer
+calls `SoundEffectService` for brick audio. Raising `BrickEditEvent` does not
+invoke `PlaceEvent` or `BreakEvent`, so remote edits do not change local
+character statistics.
+
 ## Brick declarations
 
 Brick tomls map each `BrickSoundEvent` to sound tags in a `[Bricks.Sounds]`
@@ -65,6 +82,10 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 
 ## Source of truth
 
+- `WaywardBeyond.Client/Events/BrickEditEvent.cs:6` — brick presentation event.
+- `WaywardBeyond.Client/Services/BrickSoundListener.cs:9` — brick sound event listener.
+- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs:652` — local prediction trigger.
+- `WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:157` — unpredicted authoritative edit trigger.
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:12` — playback service.
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:29` — brick effect request.
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:40` — interface request.
@@ -80,6 +101,9 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 
 ## Tests
 
+- `WaywardBeyond.Tests/BrickSoundListenerTests.cs` covers local prediction
+  triggers, unpredicted authoritative triggers, prediction echo silence, and
+  statistic isolation.
 - `WaywardBeyond.Tests/SoundTagTests.cs` covers the shipped brick and interface
   sound tags, their clip resolution, and the presence of every clip file.
 - `WaywardBeyond.Tests/BrickDatabaseTests.cs` covers specific shipped brick
