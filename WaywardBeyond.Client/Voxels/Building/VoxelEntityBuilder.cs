@@ -385,7 +385,7 @@ internal sealed class VoxelEntityBuilder(
         registry.ChunkColliders.Clear();
     }
 
-    /// <summary>Frees a voxel entity together with its batch renderers, decorator children, and physics body.</summary>
+    /// <summary>Frees a voxel entity together with its batch renderers and decorator children.</summary>
     public static void Destroy(DataStore store, int entity)
     {
         Uuid parentUuid = store.GetUuid(entity);
@@ -395,11 +395,6 @@ internal sealed class VoxelEntityBuilder(
         {
             var freeChildren = new FreeChildrenAction { ParentUuid = parentUuid };
             store.Query<ChildComponent, FreeChildrenAction>(0f, ref freeChildren);
-        }
-
-        if (store.TryGet(entity, out PhysicsComponent physics))
-        {
-            physics.Dispose();
         }
 
         store.Free(entity);
@@ -414,22 +409,6 @@ internal sealed class VoxelEntityBuilder(
             if (child.Parent != ParentUuid)
             {
                 return;
-            }
-
-            if (store.TryGet(entity, out MeshRendererCleanup cleanup))
-            {
-                cleanup.DisposeAll();
-            }
-
-            if (store.TryGet(entity, out MeshRendererComponent mesh) && mesh.MeshRenderer != null)
-            {
-                mesh.MeshRenderer.Dispose();
-                mesh.MeshRenderer.Mesh.Dispose();
-            }
-
-            if (store.TryGet(entity, out PhysicsComponent physics))
-            {
-                physics.Dispose();
             }
 
             store.Free(entity);
