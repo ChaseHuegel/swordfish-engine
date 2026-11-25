@@ -301,6 +301,13 @@ localization tables and are not tags. The tag list is shared and general purpose
 hosted in `WaywardBeyond.Data/Localization/`. Sound tags also live here, and
 their values are audio clip ids. See [sound-effects](sound-effects.md).
 
+Each tag stores its values in an ordered set. A value appears once, in the order
+the files first declare it. `LocalizedTagsDatabase` deduplicates on merge and
+appends the invariant values after the language's own values. `LocalizedTags.Contains`
+is an O(1) set lookup used by the invariant brick, paint, and item tag checks.
+`SeedPhraseService` depends on the order because it indexes the values by seed
+bits. See [seed-phrases](seed-phrases.md).
+
 ## Source of truth
 
 - `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,PlaceableDefinition,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
@@ -309,6 +316,7 @@ their values are audio clip ids. See [sound-effects](sound-effects.md).
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
 - `WaywardBeyond.Bricks/BrickEventKind.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
+- `WaywardBeyond.Data/Localization/LocalizedTagValues.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
@@ -333,3 +341,5 @@ shapes.
 `WaywardBeyond.Tests/PlayerViewModelTests.cs` pins optional `ViewModel` mesh and
 material fields, placeable brick view-model inference, shape updates, PBR shadow
 options, and the placeholder checkerboard fallback.
+`WaywardBeyond.Tests/LocalizedTagsTests.cs` pins tag value deduplication, first
+occurrence order, and the invariant merge into each language.

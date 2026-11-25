@@ -92,7 +92,7 @@ to 10 and leave `Color` null so `Bars.cs` uses the default accent fill.
 - `WaywardBeyond.Skills/*.cs`
 - `WaywardBeyond.Skills/assets/skills/**`
 - `WaywardBeyond.Bricks/assets/lang/tags/bricks.toml`
-- `WaywardBeyond.Data/Localization/{LocalizedTagsDefinition,LocalizedTags,LocalizedTagsDatabase,LocalizedTagDefinitionParser,ILocalizedTagsDatabase,LocalizationComposition}.cs`
+- `WaywardBeyond.Data/Localization/{LocalizedTagsDefinition,LocalizedTags,LocalizedTagValues,LocalizedTagsDatabase,LocalizedTagDefinitionParser,ILocalizedTagsDatabase,LocalizationComposition}.cs`
 - `WaywardBeyond.Server/Components/SkillStateComponent.cs`
 - `WaywardBeyond.Server/Interactions/SkillXpReactor.cs`
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` (seed)

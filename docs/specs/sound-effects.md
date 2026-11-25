@@ -98,7 +98,8 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 - `WaywardBeyond.Bricks/BrickDatabase.cs:91` — brick sound wiring.
 - `WaywardBeyond.Data/Localization/ILocalizedTagsDatabase.cs:6` — tag contract.
 - `WaywardBeyond.Data/Localization/LocalizedTagsDatabase.cs:13` — tag loader.
-- `WaywardBeyond.Data/Localization/LocalizedTags.cs:11` — tag lookup.
+- `WaywardBeyond.Data/Localization/LocalizedTags.cs:17` — tag value lookup.
+- `WaywardBeyond.Data/Localization/LocalizedTagValues.cs:6` — ordered tag value set.
 
 ## Tests
 

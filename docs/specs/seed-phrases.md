@@ -43,6 +43,10 @@ Every word in the four dictionaries satisfies these rules:
   exceeds 39 characters.
 - Lookups are case-insensitive (`StringComparer.OrdinalIgnoreCase`).
 
+The 10-bit slot index is the word's position in the tag values.
+`LocalizedTags` keeps tag values in first-declaration order, so the CSV row
+order defines the mapping. Reordering the rows changes every generated phrase.
+
 `SeedPhraseService` (`WaywardBeyond.Data/SeedPhraseService.cs:49`) takes
 `IAssetDatabase<LocalizedTags>` in its constructor and resolves the four tag
 lists from the active culture (falling back to `"en"`).
