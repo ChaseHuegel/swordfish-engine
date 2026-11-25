@@ -104,7 +104,7 @@ internal sealed class PaintDatabase : VirtualAssetDatabase<PaintDefinitions, Pai
         Paint paint;
         if (hasTextures)
         {
-            paint = Paint.CreateTexture(id, assetInfo.Name, assetInfo.Alpha, assetInfo.Connected, assetInfo.Textures!, assetInfo.Tags);
+            paint = Paint.CreateTexture(id, assetInfo.Name, assetInfo.Alpha, assetInfo.Connected, assetInfo.Textures!);
         }
         else
         {
@@ -114,7 +114,7 @@ internal sealed class PaintDatabase : VirtualAssetDatabase<PaintDefinitions, Pai
                 return Result<Paint>.FromFailure($"Paint \"{id}\" has invalid hex color \"{assetInfo.Color}\".");
             }
 
-            paint = Paint.CreateColor(id, assetInfo.Name, color, assetInfo.Tags);
+            paint = Paint.CreateColor(id, assetInfo.Name, color);
         }
 
         _loaded.Add(paint);

@@ -43,8 +43,7 @@ public class RemeshBenchmarks
             passable: false,
             meshID: null,
             BrickShape.Block,
-            textures: default,
-            tags: []
+            textures: default
         );
         brickDatabase.Bricks[2] = new Brick(
             "panel",
@@ -53,7 +52,7 @@ public class RemeshBenchmarks
             meshID: null,
             BrickShape.Block,
             textures: new BrickTextures { Connected = true, Default = ["panel.0"] },
-            tags: ["paintable"]
+            paintable: true
         );
 
         var paintDatabase = new FakePaintDatabase();

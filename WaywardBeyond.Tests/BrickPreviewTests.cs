@@ -147,8 +147,7 @@ public class BrickPreviewTests
             string id,
             BrickShape shape,
             BrickAlpha alpha = BrickAlpha.Opaque,
-            string? meshID = null,
-            string[]? tags = null
+            string? meshID = null
         ) {
             var brick = new Brick(
                 id,
@@ -156,8 +155,7 @@ public class BrickPreviewTests
                 passable: false,
                 meshID,
                 shape,
-                new BrickTextures { Default = [TEXTURE_ID] },
-                tags
+                new BrickTextures { Default = [TEXTURE_ID] }
             );
             ushort dataID = Registry.Bind(id);
             brick.BindDataID(dataID);
@@ -294,8 +292,7 @@ public class BrickPreviewTests
             passable: false,
             meshID: null,
             BrickShape.Any,
-            new BrickTextures { Default = [TEXTURE_ID] },
-            tags: null
+            new BrickTextures { Default = [TEXTURE_ID] }
         );
 
         Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);

@@ -11,6 +11,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Items;
@@ -155,10 +156,12 @@ public class ServerInteractionHandlerTests
         [
             new TomlParser<BrickDefinitions>(),
             new TomlParser<ItemDefinitions>(),
+            new LocalizedTagDefinitionParser(),
         ];
         var parser = new VirtualFileParseService(parsers, vfs);
 
-        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
         var items = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
         return (items, bricks);
     }

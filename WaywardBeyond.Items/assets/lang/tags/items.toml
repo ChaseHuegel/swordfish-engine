@@ -1,7 +1,27 @@
+# Invariant item group tags.
+
 "Language" = ""
 
 [Tags]
-"manufactured" = [
+"item.tool" = [
+    "laser",
+    "wb:drill",
+    "wb:sprayer",
+]
+
+"item.tool.mining" = [
+    "laser",
+]
+
+"item.tool.sprayer" = [
+    "wb:sprayer",
+]
+
+"item.tool.drill" = [
+    "wb:drill",
+]
+
+"item.placeable" = [
     "wb:caution_panel",
     "wb:control_buttons",
     "wb:control_panel",
@@ -11,9 +31,11 @@
     "wb:display_monitor",
     "wb:glass",
     "wb:grate",
+    "wb:ice",
     "wb:light",
     "wb:panel",
     "wb:porthole",
+    "wb:rock",
     "wb:small_light",
     "wb:storage",
     "wb:thruster",

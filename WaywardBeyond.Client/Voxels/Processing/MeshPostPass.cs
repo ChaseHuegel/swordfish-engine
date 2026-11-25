@@ -21,8 +21,7 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         passable: false,
         meshID: null,
         shape: BrickShape.Any,
-        textures: default,
-        tags: null
+        textures: default
     );
 
     private readonly MeshState _meshState;

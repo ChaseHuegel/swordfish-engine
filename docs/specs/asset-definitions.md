@@ -28,7 +28,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `Icon` | string? | `ItemDefinition.Icon` (optional override. Brick placeables without `Icon` render an isometric 3D icon at startup through `BrickIconRenderer`) |
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
-| `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`, `Tags`) |
+| `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
 | `[Items.ViewModel]` | sub-table | `ModelDefinition` |
 | `[Items.WorldModel]` | sub-table | `ModelDefinition` |
 
@@ -47,7 +47,10 @@ ID = "wb:core"
 
 ### Tool
 
-`ToolDefinition` (`ToolDefinition.cs`): `Type` (`ToolType`), `Target`, `Tags[]`.
+`ToolDefinition` (`ToolDefinition.cs`): `Type` (`ToolType`), `Target`. Item
+group membership (`item.tool`, `item.tool.mining`, `item.tool.sprayer`,
+`item.tool.drill`, `item.placeable`) lives in the invariant tag list
+`WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
 
 ### Model
 
@@ -87,9 +90,15 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Mesh` | string? | |
 | `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
 | `Textures` | sub-table | `BrickTextures` |
-| `Tags` | string[] | |
 | `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickEventKind` (`Place`, `Break`) |
 | `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
+
+Brick property and group membership (`brick.light`, `brick.entity`,
+`brick.orientable`, `brick.paintable`, `brick.thruster`, `brick.buildable`,
+`brick.environment`, `brick.manufactured`) lives in the invariant tag list
+`WaywardBeyond.Bricks/assets/lang/tags/bricks.toml` (`BrickTags`). Brick TOMLs
+do not declare inline `Tags`. `BrickDatabase` resolves `LightSource`, `Entity`,
+`Paintable`, and `IsOrientable` once at load from `ILocalizedTagsDatabase.Invariant`.
 
 Base-game brick ids are prefixed with the `wb` namespace. A mod uses its own
 namespace so no two content authors can collide by name. A brick's voxel id is
@@ -106,7 +115,6 @@ Example:
 [[Bricks]]
 ID      = "wb:core"
 Shape   = "block"
-Tags    = ["metal", "buildable", "convertable_truss"]
 [Bricks.Sounds]
 Place = ["metal_place"]
 Break = ["metal_break"]
@@ -192,10 +200,12 @@ swatch (`Color`). A row that sets both or neither logs a warning and is skipped.
 | `Connected` | bool | enables 4-bit connected-texture adjacency on painted faces |
 | `Textures` | string?[]? | deterministic texture variant list (texture paints) |
 | `Color` | string? | 6-digit hex RGB swatch (color paints) |
-| `Tags` | string[]? | case-insensitive tags |
 
-Bricks opt in to player painting by carrying the `paintable` tag in their
-`Tags` list (`Brick.Paintable`).
+Paint palette and material group membership (`paint.endesga-32`, `paint.warm`,
+`paint.metal`, and related groups) lives in the invariant tag list
+`WaywardBeyond.Bricks/assets/lang/tags/paints.toml`. Paint TOMLs do not declare
+inline `Tags`. Bricks opt in to player painting through the `brick.paintable`
+invariant tag (`Brick.Paintable`).
 
 ## Materials (`assets/materials/**/*.toml`)
 
@@ -225,8 +235,9 @@ Each row is a `[[Skills]]` table:
 | `[Skills.Levels]` | map: level → XP to advance past the previous level | a level is reached only when total XP exceeds the running sum of requirements, and it is sorted on load |
 
 Tags expand through the invariant `lang/tags/*.toml` lists into brick data ids
-on load. The lists live in `WaywardBeyond.Skills/assets/lang/tags/`. `Name` and
-`Category` are localization keys. The server sends `Name` in notifications and
+on load. The brick tag lists live in `WaywardBeyond.Bricks/assets/lang/tags/bricks.toml`
+under `brick.*` keys (`brick.buildable`, `brick.environment`, `brick.manufactured`).
+`Name` and `Category` are localization keys. The server sends `Name` in notifications and
 the client resolves it. `Icon` and `Category` have no reader yet (see
 [0068](../issues/0068-skill-panel.md)).
 
@@ -292,8 +303,8 @@ their values are audio clip ids. See [sound-effects](sound-effects.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
-- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
+- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,PlaceableDefinition,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
+- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
 - `WaywardBeyond.Bricks/BrickEventKind.cs`

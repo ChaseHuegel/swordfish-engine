@@ -1,12 +1,6 @@
 [[Bricks]]
 ID      = "wb:panel"
 Shape   = "any"
-Tags    = [
-    "metal",
-    "buildable",
-    "paintable",
-    "convertable_truss",
-]
 [Bricks.Sounds]
 Place = ["metal_place"]
 Break = ["metal_break"]

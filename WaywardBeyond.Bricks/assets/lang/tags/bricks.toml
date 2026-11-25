@@ -1,0 +1,98 @@
+# Invariant brick property and group tags.
+
+"Language" = ""
+
+[Tags]
+"brick.light" = [
+    "wb:light",
+    "wb:small_light",
+]
+
+"brick.entity" = [
+    "wb:light",
+    "wb:small_light",
+    "wb:thruster",
+]
+
+"brick.orientable" = [
+    "wb:control_buttons",
+    "wb:control_panel",
+    "wb:display_console",
+    "wb:display_control",
+    "wb:display_monitor",
+    "wb:storage",
+    "wb:thruster",
+]
+
+"brick.paintable" = [
+    "wb:caution_panel",
+    "wb:control_buttons",
+    "wb:control_panel",
+    "wb:core",
+    "wb:display_console",
+    "wb:display_control",
+    "wb:display_monitor",
+    "wb:glass",
+    "wb:grate",
+    "wb:ice",
+    "wb:light",
+    "wb:panel",
+    "wb:porthole",
+    "wb:rock",
+    "wb:small_light",
+    "wb:storage",
+    "wb:thruster",
+    "wb:truss",
+    "wb:vent",
+]
+
+"brick.thruster" = [
+    "wb:thruster",
+]
+
+"brick.buildable" = [
+    "wb:caution_panel",
+    "wb:control_buttons",
+    "wb:control_panel",
+    "wb:core",
+    "wb:display_console",
+    "wb:display_control",
+    "wb:display_monitor",
+    "wb:glass",
+    "wb:grate",
+    "wb:ice",
+    "wb:light",
+    "wb:panel",
+    "wb:porthole",
+    "wb:rock",
+    "wb:small_light",
+    "wb:storage",
+    "wb:thruster",
+    "wb:truss",
+    "wb:vent",
+]
+
+"brick.environment" = [
+    "wb:ice",
+    "wb:rock",
+]
+
+"brick.manufactured" = [
+    "wb:caution_panel",
+    "wb:control_buttons",
+    "wb:control_panel",
+    "wb:core",
+    "wb:display_console",
+    "wb:display_control",
+    "wb:display_monitor",
+    "wb:glass",
+    "wb:grate",
+    "wb:light",
+    "wb:panel",
+    "wb:porthole",
+    "wb:small_light",
+    "wb:storage",
+    "wb:thruster",
+    "wb:truss",
+    "wb:vent",
+]

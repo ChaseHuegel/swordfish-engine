@@ -156,8 +156,7 @@ public class BrickIconTests
             passable: false,
             meshID: null,
             shape,
-            new BrickTextures { Default = [TEXTURE_ID] },
-            tags: null
+            new BrickTextures { Default = [TEXTURE_ID] }
         );
     }
 

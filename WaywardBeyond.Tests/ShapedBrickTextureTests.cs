@@ -14,6 +14,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Voxels;
 using Xunit;
 
@@ -141,8 +142,7 @@ public class ShapedBrickTextureTests
                 passable: false,
                 meshID,
                 shape,
-                textures,
-                tags: null
+                textures
             );
             ushort dataID = Registry.Bind(brickID);
             brick.BindDataID(dataID);
@@ -416,9 +416,10 @@ public class ShapedBrickTextureTests
     {
         var vfs = new VirtualFileSystem();
         vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Bricks", "assets")));
-        IFileParser[] parsers = [new TomlParser<BrickDefinitions>()];
+        IFileParser[] parsers = [new TomlParser<BrickDefinitions>(), new LocalizedTagDefinitionParser()];
         var parser = new VirtualFileParseService(parsers, vfs);
-        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
 
         Result<Brick> brickResult = bricks.Get("wb:display_console");
         Assert.True(brickResult.Success);

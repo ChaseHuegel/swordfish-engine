@@ -240,8 +240,7 @@ public class InteractionResolverTests
             passable: false,
             meshID: null,
             shape: BrickShape.Any,
-            textures: default,
-            tags: null
+            textures: default
         );
     }
 

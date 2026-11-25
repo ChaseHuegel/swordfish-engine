@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Collections;
@@ -5,6 +7,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Items;
 using Xunit;
 
@@ -58,6 +61,49 @@ public class ItemPlaceablesTests
         Assert.Equal("item.base.thruster.description", thruster.Value.Description);
     }
 
+    [Fact]
+    public void ShippedItemTagsResolveToKnownItems()
+    {
+        var vfs = new VirtualFileSystem();
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Items", "assets")));
+
+        IFileParser[] parsers =
+        [
+            new TomlParser<ItemDefinitions>(),
+            new LocalizedTagDefinitionParser(),
+        ];
+        var parser = new VirtualFileParseService(parsers, vfs);
+        var items = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        LocalizedTags invariant = tags.Invariant ?? throw new InvalidOperationException("No invariant tags loaded.");
+
+        Assert.True(invariant.Contains(ItemTags.TOOL, "wb:drill"));
+        Assert.True(invariant.Contains(ItemTags.TOOL, "wb:sprayer"));
+        Assert.True(invariant.Contains(ItemTags.TOOL_MINING, "laser"));
+        Assert.True(invariant.Contains(ItemTags.TOOL_SPRAYER, "wb:sprayer"));
+        Assert.True(invariant.Contains(ItemTags.TOOL_DRILL, "wb:drill"));
+        Assert.True(invariant.Contains(ItemTags.PLACEABLE, "wb:rock"));
+        Assert.False(invariant.Contains(ItemTags.PLACEABLE, "wb:sprayer"));
+
+        foreach (string tag in new[]
+        {
+            ItemTags.TOOL,
+            ItemTags.TOOL_MINING,
+            ItemTags.TOOL_SPRAYER,
+            ItemTags.TOOL_DRILL,
+            ItemTags.PLACEABLE,
+        })
+        {
+            IReadOnlyList<string>? entries = invariant.GetValues(tag);
+            Assert.NotNull(entries);
+            Assert.NotEmpty(entries!);
+            foreach (string itemId in entries!)
+            {
+                Assert.True(items.Get(itemId).Success, $"Tag \"{tag}\" references unknown item \"{itemId}\".");
+            }
+        }
+    }
+
     private static (IAssetDatabase<Item> Items, IBrickDatabase Bricks) Load()
     {
         var vfs = new VirtualFileSystem();
@@ -68,10 +114,12 @@ public class ItemPlaceablesTests
         [
             new TomlParser<BrickDefinitions>(),
             new TomlParser<ItemDefinitions>(),
+            new LocalizedTagDefinitionParser(),
         ];
         var parser = new VirtualFileParseService(parsers, vfs);
 
-        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
         var items = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
         return (items, bricks);
     }

@@ -48,7 +48,7 @@ public class VoxelLightModelTests
     private static TestBrickDatabase CreateBrickDatabase()
     {
         var db = new TestBrickDatabase();
-        db.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        db.Bricks[1] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default);
         return db;
     }
 

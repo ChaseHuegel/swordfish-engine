@@ -5,7 +5,7 @@ Category = "skill.category.misc"
 Icon     = "items/panel.png"
 
 [Skills.Sources.Place]
-"tag:buildable" = 1
+"tag:brick.buildable" = 1
 
 [Skills.Levels]
 1 = 61

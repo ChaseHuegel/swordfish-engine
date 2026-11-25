@@ -1,9 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data.Localization;
 using Xunit;
 
 namespace WaywardBeyond.Tests;
@@ -127,14 +130,57 @@ public class PaintDatabaseTests
     {
         var vfs = new VirtualFileSystem();
         vfs.Mount(new PathInfo(BricksAssetsRoot));
-        IFileParser[] parsers = [new TomlParser<BrickDefinitions>()];
+        IFileParser[] parsers = [new TomlParser<BrickDefinitions>(), new LocalizedTagDefinitionParser()];
         var parser = new VirtualFileParseService(parsers, vfs);
-        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
 
         Assert.NotEmpty(bricks.Get(_ => true));
         foreach (Brick brick in bricks.Get(_ => true))
         {
             Assert.True(brick.Paintable, $"Brick {brick.ID} must be paintable.");
+        }
+    }
+
+    [Fact]
+    public void ShippedPaintTagsResolveToKnownPaints()
+    {
+        var vfs = new VirtualFileSystem();
+        vfs.Mount(new PathInfo(BricksAssetsRoot));
+        IFileParser[] parsers = [new TomlParser<PaintDefinitions>(), new LocalizedTagDefinitionParser()];
+        var parser = new VirtualFileParseService(parsers, vfs);
+        var paints = new PaintDatabase(NullLogger<PaintDatabase>.Instance, parser, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        LocalizedTags invariant = tags.Invariant ?? throw new InvalidOperationException("No invariant tags loaded.");
+
+        IReadOnlyList<string>? palette = invariant.GetValues("paint.endesga-32");
+        Assert.NotNull(palette);
+        Assert.Equal(paints.ColorPaints.Count, palette!.Count);
+
+        foreach (string tag in new[]
+        {
+            "paint.endesga-32",
+            "paint.warm",
+            "paint.dark",
+            "paint.red",
+            "paint.green",
+            "paint.blue",
+            "paint.neutral",
+            "paint.cool",
+            "paint.purple",
+            "paint.metal",
+            "paint.light",
+            "paint.environment",
+            "paint.glass",
+        })
+        {
+            IReadOnlyList<string>? entries = invariant.GetValues(tag);
+            Assert.NotNull(entries);
+            Assert.NotEmpty(entries!);
+            foreach (string paintId in entries!)
+            {
+                Assert.True(paints.Get(paintId).Success, $"Tag \"{tag}\" references unknown paint \"{paintId}\".");
+            }
         }
     }
 

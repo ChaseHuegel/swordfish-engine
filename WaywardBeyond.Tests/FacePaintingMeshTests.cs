@@ -102,8 +102,8 @@ public class FacePaintingMeshTests
         var bricks = new StubBrickDatabase();
         var paints = new StubPaintDatabase();
 
-        bricks.Add(1, new Brick("wb:rock", BrickAlpha.Opaque, false, null, BrickShape.Any, new BrickTextures { Default = ["rock"] }, ["paintable"]));
-        bricks.Add(2, new Brick("wb:panel", BrickAlpha.Opaque, false, null, BrickShape.Any, new BrickTextures { Connected = true, Default = ["panel.0"] }, ["paintable"]));
+        bricks.Add(1, new Brick("wb:rock", BrickAlpha.Opaque, false, null, BrickShape.Any, new BrickTextures { Default = ["rock"] }, paintable: true));
+        bricks.Add(2, new Brick("wb:panel", BrickAlpha.Opaque, false, null, BrickShape.Any, new BrickTextures { Connected = true, Default = ["panel.0"] }, paintable: true));
 
         paints.Add(1, Paint.CreateTexture("wb:panel", "panel", BrickAlpha.Opaque, connected: true, ["panel.0"]));
         paints.Add(2, Paint.CreateTexture("wb:caution", "caution", BrickAlpha.Opaque, connected: false, ["caution"]));

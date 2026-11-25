@@ -4,190 +4,158 @@
 ID    = "wb:rust"
 Name  = "paint.rust.name"
 Color = "#be4a2f"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:terracotta"
 Name  = "paint.terracotta.name"
 Color = "#d77643"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:cream"
 Name  = "paint.cream.name"
 Color = "#ead4aa"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:sand"
 Name  = "paint.sand.name"
 Color = "#e4a672"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:clay"
 Name  = "paint.clay.name"
 Color = "#b86f50"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:umber"
 Name  = "paint.umber.name"
 Color = "#733e39"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:espresso"
 Name  = "paint.espresso.name"
 Color = "#3e2731"
-Tags  = ["endesga-32", "dark"]
 
 [[Paints]]
 ID    = "wb:crimson"
 Name  = "paint.crimson.name"
 Color = "#a22633"
-Tags  = ["endesga-32", "red"]
 
 [[Paints]]
 ID    = "wb:red"
 Name  = "paint.red.name"
 Color = "#e43b44"
-Tags  = ["endesga-32", "red"]
 
 [[Paints]]
 ID    = "wb:orange"
 Name  = "paint.orange.name"
 Color = "#f77622"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:amber"
 Name  = "paint.amber.name"
 Color = "#feae34"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:yellow"
 Name  = "paint.yellow.name"
 Color = "#fee761"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:lime"
 Name  = "paint.lime.name"
 Color = "#63c74d"
-Tags  = ["endesga-32", "green"]
 
 [[Paints]]
 ID    = "wb:green"
 Name  = "paint.green.name"
 Color = "#3e8948"
-Tags  = ["endesga-32", "green"]
 
 [[Paints]]
 ID    = "wb:forest"
 Name  = "paint.forest.name"
 Color = "#265c42"
-Tags  = ["endesga-32", "green"]
 
 [[Paints]]
 ID    = "wb:pine"
 Name  = "paint.pine.name"
 Color = "#193c3e"
-Tags  = ["endesga-32", "green"]
 
 [[Paints]]
 ID    = "wb:cobalt"
 Name  = "paint.cobalt.name"
 Color = "#124e89"
-Tags  = ["endesga-32", "blue"]
 
 [[Paints]]
 ID    = "wb:azure"
 Name  = "paint.azure.name"
 Color = "#0099db"
-Tags  = ["endesga-32", "blue"]
 
 [[Paints]]
 ID    = "wb:cyan"
 Name  = "paint.cyan.name"
 Color = "#2ce8f5"
-Tags  = ["endesga-32", "blue"]
 
 [[Paints]]
 ID    = "wb:white"
 Name  = "paint.white.name"
 Color = "#ffffff"
-Tags  = ["endesga-32", "neutral"]
 
 [[Paints]]
 ID    = "wb:silver"
 Name  = "paint.silver.name"
 Color = "#c0cbdc"
-Tags  = ["endesga-32", "neutral"]
 
 [[Paints]]
 ID    = "wb:steel"
 Name  = "paint.steel.name"
 Color = "#8b9bb4"
-Tags  = ["endesga-32", "neutral"]
 
 [[Paints]]
 ID    = "wb:slate"
 Name  = "paint.slate.name"
 Color = "#5a6988"
-Tags  = ["endesga-32", "neutral"]
 
 [[Paints]]
 ID    = "wb:indigo"
 Name  = "paint.indigo.name"
 Color = "#3a4466"
-Tags  = ["endesga-32", "cool"]
 
 [[Paints]]
 ID    = "wb:navy"
 Name  = "paint.navy.name"
 Color = "#262b44"
-Tags  = ["endesga-32", "dark"]
 
 [[Paints]]
 ID    = "wb:obsidian"
 Name  = "paint.obsidian.name"
 Color = "#181425"
-Tags  = ["endesga-32", "dark"]
 
 [[Paints]]
 ID    = "wb:magenta"
 Name  = "paint.magenta.name"
 Color = "#ff0044"
-Tags  = ["endesga-32", "red"]
 
 [[Paints]]
 ID    = "wb:plum"
 Name  = "paint.plum.name"
 Color = "#68386c"
-Tags  = ["endesga-32", "purple"]
 
 [[Paints]]
 ID    = "wb:mauve"
 Name  = "paint.mauve.name"
 Color = "#b55088"
-Tags  = ["endesga-32", "purple"]
 
 [[Paints]]
 ID    = "wb:coral"
 Name  = "paint.coral.name"
 Color = "#f6757a"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:peach"
 Name  = "paint.peach.name"
 Color = "#e8b796"
-Tags  = ["endesga-32", "warm"]
 
 [[Paints]]
 ID    = "wb:tan"
 Name  = "paint.tan.name"
 Color = "#c28569"
-Tags  = ["endesga-32", "warm"]

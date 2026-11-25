@@ -417,7 +417,6 @@ public class BrickSoundListenerTests
                 meshID: null,
                 BrickShape.Block,
                 textures: default,
-                tags: [],
                 sounds: sounds
             );
             brick.BindDataID(dataID);

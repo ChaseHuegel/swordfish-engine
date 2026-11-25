@@ -2,6 +2,7 @@ using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Swordfish.Library.Collections;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Bricks;
 
@@ -11,6 +12,8 @@ public sealed class Injector : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
+        container.RegisterTags();
+
         container.RegisterTomlParser<BrickDefinitions>();
         container.Register<BrickDatabase>(Reuse.Singleton);
         container.RegisterMapping<IBrickRegistry, BrickDatabase>();
