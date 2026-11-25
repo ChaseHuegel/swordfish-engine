@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Threading;
 using Krill;
@@ -24,6 +25,7 @@ internal sealed class BlueprintDatabase : ResourceVirtualAssetDatabase<Blueprint
 {
     private readonly IBrickRegistry _brickRegistry;
     private readonly IPaintRegistry? _paintRegistry;
+    private readonly string? _userBlueprintsPrefix;
     private readonly Lock _catalogLock = new();
     private readonly Dictionary<string, BlueprintData> _blueprints = new(StringComparer.Ordinal);
     private readonly List<BlueprintSummary> _summaries = [];
@@ -33,11 +35,19 @@ internal sealed class BlueprintDatabase : ResourceVirtualAssetDatabase<Blueprint
         in IFileParseService fileParseService,
         in VirtualFileSystem vfs,
         in IBrickRegistry brickRegistry,
-        IPaintRegistry? paintRegistry = null)
+        IPaintRegistry? paintRegistry = null,
+        StoragePaths? storagePaths = null)
         : base(logger, fileParseService, vfs)
     {
         _brickRegistry = brickRegistry;
         _paintRegistry = paintRegistry;
+        if (storagePaths != null)
+        {
+            string full = Path.GetFullPath(storagePaths.GetBlueprintsDirectory().Value)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            _userBlueprintsPrefix = full + Path.DirectorySeparatorChar;
+        }
+
         Load();
     }
 
@@ -68,7 +78,27 @@ internal sealed class BlueprintDatabase : ResourceVirtualAssetDatabase<Blueprint
     protected override bool ExcludeExtensionFromID => true;
 
     /// <inheritdoc/>
-    protected override bool IsValidFile(PathInfo path) => path.HasExtension(FileBlueprintStorage.FILE_EXTENSION);
+    protected override bool IsValidFile(PathInfo path)
+    {
+        if (!path.HasExtension(FileBlueprintStorage.FILE_EXTENSION))
+        {
+            return false;
+        }
+
+        if (_userBlueprintsPrefix != null && !string.Equals(path.Scheme, "zip", StringComparison.OrdinalIgnoreCase))
+        {
+            string fullPath = Path.GetFullPath(path.Value);
+            StringComparison comparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+            if (fullPath.StartsWith(_userBlueprintsPrefix, comparison))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /// <inheritdoc/>
     protected override PathInfo GetRootPath() => AssetPaths.Root.At("blueprints");
