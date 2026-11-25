@@ -118,11 +118,29 @@ public static class KeyExtensions
 {
     public static string ToDisplayString(this Key key)
     {
-        if (key >= Key.D0 && key <= Key.D9)
+        return key switch
         {
-            return (key - Key.D0).ToString();
-        }
-
-        return key.ToString().Replace('_', ' ');
+            Key.None => string.Empty,
+            >= Key.D0 and <= Key.D9 => (key - Key.D0).ToString(),
+            Key.Control => "Ctrl",
+            Key.Capslock => "Caps Lock",
+            Key.LeftArrow => "Left",
+            Key.RightArrow => "Right",
+            Key.UpArrow => "Up",
+            Key.DownArrow => "Down",
+            Key.PageUp => "Page Up",
+            Key.PageDown => "Page Down",
+            Key.PrintScreen => "Print Screen",
+            Key.ScrollLock => "Scroll Lock",
+            Key.Numlock => "Num Lock",
+            >= Key.Numpad0 and <= Key.Numpad9 => $"Num {key - Key.Numpad0}",
+            Key.Multiply => "Num *",
+            Key.Add => "Num +",
+            Key.Subtract => "Num -",
+            Key.Decimal => "Num .",
+            Key.Divide => "Num /",
+            Key.Slash => "/",
+            _ => key.ToString().Replace('_', ' '),
+        };
     }
 }

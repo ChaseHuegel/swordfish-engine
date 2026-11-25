@@ -1,3 +1,4 @@
+using System.Numerics;
 using Microsoft.CodeAnalysis;
 using Xunit;
 
@@ -249,5 +250,39 @@ public class RssParserTests
             out List<MarkupAssignment> fillHeight,
             out _);
         Assert.Equal(MarkupConstraintKind.Fill, ((MarkupConstraint)fillHeight[0].Value).Kind);
+    }
+
+    [Fact]
+    public void HexColorParsingSupportsShorthandAndRejectsInvalidForms()
+    {
+        Assert.True(ColorParser.TryParseHex("#f08c", out Vector4 shortAlpha, out string shortError));
+        Assert.Equal(string.Empty, shortError);
+        Assert.Equal(1f, shortAlpha.X, 3);
+        Assert.Equal(0f, shortAlpha.Y, 3);
+        Assert.Equal(0x88 / 255f, shortAlpha.Z, 3);
+        Assert.Equal(0xCC / 255f, shortAlpha.W, 3);
+
+        Assert.True(ColorParser.TryParseHex("#123456", out Vector4 sixDigit, out string sixError));
+        Assert.Equal(string.Empty, sixError);
+        Assert.Equal(0x12 / 255f, sixDigit.X, 3);
+        Assert.Equal(0x34 / 255f, sixDigit.Y, 3);
+        Assert.Equal(0x56 / 255f, sixDigit.Z, 3);
+        Assert.Equal(1f, sixDigit.W, 3);
+
+        Assert.False(ColorParser.TryParseHex("123456", out _, out string missingHashError));
+        Assert.Equal("Hex colors must start with '#'.", missingHashError);
+
+        Assert.False(ColorParser.TryParseHex("#12345", out _, out string badLengthError));
+        Assert.Equal("Hex colors must have 3, 4, 6, or 8 digits.", badLengthError);
+
+        Assert.False(ColorParser.TryParseHex("# 12345", out _, out string spaceRgbError));
+        Assert.Equal("Hex color contains an invalid digit.", spaceRgbError);
+
+        Assert.False(ColorParser.TryParseHex("#123456 8", out _, out string spaceAlphaError));
+        Assert.Equal("Hex color contains an invalid digit.", spaceAlphaError);
+
+        Assert.False(Reef.HexColor.TryParseSlice("ffffff", -1, 6, out _));
+        Assert.False(Reef.HexColor.TryParseSlice("ffffff", 0, -1, out _));
+        Assert.False(Reef.HexColor.TryParseSlice("ffffff", 4, 6, out _));
     }
 }

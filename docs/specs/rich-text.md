@@ -49,8 +49,8 @@ remaining character. A null color means inherit the element color. The parser
 is `Reef/Text/RichText.cs:22`.
 
 `RichTextColor.TryParseValue` tokenizes one value and returns the color and
-the length it consumed. It is `Reef/Text/RichTextColor.cs:58`. The hex, name,
-and reset matchers are at `Reef/Text/RichTextColor.cs:85`, `:134`, and `:161`.
+the length it consumed. It is `Reef/Text/RichTextColor.cs:57`. The hex, name,
+and reset matchers are at `Reef/Text/RichTextColor.cs:84`, `:115`, and `:142`.
 
 `Typeface` runs measure, wrap, and layout on the stripped text. Control
 sequences take zero width. A color is not added to the glyph count.
@@ -82,6 +82,7 @@ mapping is unchanged. Color tags in an editable text box are not supported.
 
 ## Source of truth
 
+- `Reef/HexColor.cs`
 - `Reef/Text/RichText.cs`
 - `Reef/Text/RichTextColor.cs`
 - `Reef/Text/GlyphLayout.cs`

@@ -29,6 +29,7 @@ public class SilkInputService : IInputService
     public InputDevice[] UnknownDevices { get; }
 
     public EventHandler<ClickedEventArgs>? Clicked { get; set; }
+    public EventHandler<ClickedEventArgs>? MouseReleased { get; set; }
     public EventHandler<ClickedEventArgs>? DoubleClicked { get; set; }
     public EventHandler<ScrolledEventArgs>? Scrolled { get; set; }
     public EventHandler<CharEventArgs>? CharInput { get; set; }
@@ -314,15 +315,14 @@ public class SilkInputService : IInputService
     private void OnMouseDown(IMouse mouse, Silk.NET.Input.MouseButton button)
     {
         MouseButton swordfishButton = button.ToSwordfishMouseButton();
-        
+        InputRecord inputRecord = _mouseInputMap[swordfishButton];
+        inputRecord.Count += 1;
+        inputRecord.LastInput.Restart();
+
         Clicked?.Invoke(
             new InputDevice(mouse.Index, mouse.Name),
             new ClickedEventArgs(swordfishButton, mouse.Position)
         );
-        
-        InputRecord inputRecord = _mouseInputMap[swordfishButton];
-        inputRecord.Count += 1;
-        inputRecord.LastInput.Restart();
     }
 
     private void OnMouseUp(IMouse mouse, Silk.NET.Input.MouseButton button)
@@ -331,6 +331,11 @@ public class SilkInputService : IInputService
         InputRecord inputRecord = _mouseInputMap[swordfishButton];
         inputRecord.Count = Math.Max(0, inputRecord.Count - 1);
         inputRecord.LastRelease.Restart();
+
+        MouseReleased?.Invoke(
+            new InputDevice(mouse.Index, mouse.Name),
+            new ClickedEventArgs(swordfishButton, mouse.Position)
+        );
     }
 
     private void OnWindowUpdate(double delta)
