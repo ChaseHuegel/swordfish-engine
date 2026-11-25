@@ -13,6 +13,8 @@ public sealed class MeshBatch : Handle
 
     private const int MAX_ARENA_VERTICES = 1_000_000;
     private const int MAX_ARENA_INDICES = 2_000_000;
+    private const int MIN_VERTEX_HEADROOM = 64;
+    private const int MIN_INDEX_HEADROOM = 96;
 
     private readonly List<int> _freeSlots = [];
     private readonly List<int> _slotGenerations = [];
@@ -94,7 +96,17 @@ public sealed class MeshBatch : Handle
                 _slotGenerations.Add(generation);
             }
 
-            MeshBatchArena arena = Allocate(vertexCount, indices.Length);
+            int vertexCapacity = ComputeCapacity(vertexCount, MIN_VERTEX_HEADROOM, MAX_ARENA_VERTICES);
+            int indexCapacity = ComputeCapacity(indices.Length, MIN_INDEX_HEADROOM, MAX_ARENA_INDICES);
+            MeshBatchArena arena = Allocate(vertexCapacity, indexCapacity);
+
+            int floatCount = vertexCount * VERTEX_STRIDE;
+            var rangeVertexData = new float[vertexCapacity * VERTEX_STRIDE];
+            vertexData[..floatCount].CopyTo(rangeVertexData);
+
+            var rangeIndices = new uint[indexCapacity];
+            indices.CopyTo(rangeIndices);
+
             var range = new MeshRange
             {
                 Active = true,
@@ -102,19 +114,19 @@ public sealed class MeshBatch : Handle
                 Arena = Arenas.IndexOf(arena),
                 VertexOffset = arena.UsedVertices,
                 IndexOffset = arena.UsedIndices,
-                VertexCapacity = vertexCount,
-                IndexCapacity = indices.Length,
+                VertexCapacity = vertexCapacity,
+                IndexCapacity = indexCapacity,
                 VertexCount = vertexCount,
                 IndexCount = indices.Length,
                 Bounds = bounds,
                 SortCenter = sortCenter ?? bounds.Center,
-                VertexData = [.. vertexData],
-                Indices = [.. indices],
+                VertexData = rangeVertexData,
+                Indices = rangeIndices,
                 Version = 1,
             };
 
-            arena.UsedVertices += vertexCount;
-            arena.UsedIndices += indices.Length;
+            arena.UsedVertices += vertexCapacity;
+            arena.UsedIndices += indexCapacity;
             Ranges[slot] = range;
             return new MeshRangeHandle(slot, generation);
         }
@@ -143,27 +155,49 @@ public sealed class MeshBatch : Handle
             {
                 arena.WasteVertices += range.VertexCapacity;
                 arena.WasteIndices += range.IndexCapacity;
-                arena = Allocate(vertexCount, indices.Length);
+                int newVertexCapacity = ComputeCapacity(vertexCount, MIN_VERTEX_HEADROOM, MAX_ARENA_VERTICES);
+                int newIndexCapacity = ComputeCapacity(indices.Length, MIN_INDEX_HEADROOM, MAX_ARENA_INDICES);
+                arena = Allocate(newVertexCapacity, newIndexCapacity);
                 range.Arena = Arenas.IndexOf(arena);
                 range.VertexOffset = arena.UsedVertices;
                 range.IndexOffset = arena.UsedIndices;
-                range.VertexCapacity = vertexCount;
-                range.IndexCapacity = indices.Length;
-                arena.UsedVertices += vertexCount;
-                arena.UsedIndices += indices.Length;
+                range.VertexCapacity = newVertexCapacity;
+                range.IndexCapacity = newIndexCapacity;
+                arena.UsedVertices += newVertexCapacity;
+                arena.UsedIndices += newIndexCapacity;
             }
+
+            int floatCount = vertexCount * VERTEX_STRIDE;
+            if (range.VertexData == null || range.VertexData.Length < floatCount)
+            {
+                range.VertexData = new float[range.VertexCapacity * VERTEX_STRIDE];
+            }
+
+            vertexData[..floatCount].CopyTo(range.VertexData);
+
+            if (range.Indices == null || range.Indices.Length < indices.Length)
+            {
+                range.Indices = new uint[range.IndexCapacity];
+            }
+
+            indices.CopyTo(range.Indices);
 
             range.VertexCount = vertexCount;
             range.IndexCount = indices.Length;
             range.Bounds = bounds;
             range.SortCenter = sortCenter ?? bounds.Center;
-            range.VertexData = [.. vertexData];
-            range.Indices = [.. indices];
             range.Version++;
             Ranges[handle.Slot] = range;
             TryCompact();
             return true;
         }
+    }
+
+    private static int ComputeCapacity(int count, int minHeadroom, int maxArena)
+    {
+        int headroom = Math.Max(minHeadroom, count >> 2);
+        long desired = (long)count + headroom;
+        return Math.Max(count, (int)Math.Min(maxArena, desired));
     }
 
     /// <summary>Removes a live range. Returns false for a stale handle.</summary>
