@@ -104,6 +104,7 @@ internal sealed class SettingsPage<TIdentifier>(
         _categoryIndex = 0;
         _statusKey = string.Empty;
         _statusUntil = 0d;
+        _shell?.Scroll.Reset();
     }
 
     /// <inheritdoc/>
@@ -217,7 +218,8 @@ internal sealed class SettingsPage<TIdentifier>(
         statusError = false;
     }
 
-    private SettingsShellView Shell => _shell ??= CreateShell();
+    /// <summary>Gets the shell view, created on first use.</summary>
+    internal SettingsShellView Shell => _shell ??= CreateShell();
 
     private SettingsShellView CreateShell()
     {
@@ -409,6 +411,7 @@ internal sealed class SettingsPage<TIdentifier>(
         CancelActiveCapture();
         _categoryIndex = index;
         _rowsDirty = true;
+        _shell?.Scroll.Reset();
         Play(WidgetInteraction.InterfaceSound.Toggle);
     }
 
