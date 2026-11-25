@@ -20,10 +20,11 @@ internal sealed class MainMenuAnimationSystem(
 {
     internal const string MENU_BLUEPRINT_ID = "builtin/mainMenu";
     internal const string MENU_ENTITY_TAG = "menu";
-    internal const float BOB_STRENGTH = 0.1f;
+    internal const float BOB_STRENGTH = 0.05f;
 
-    internal static readonly Vector3 BaseOffset = new(5f, 0f, -20f);
-    internal static readonly Quaternion BaseOrientation = Quaternion.CreateFromYawPitchRoll(yaw: -0.55f, pitch: 0.2f, roll: -0.1f);
+    internal static readonly Vector3 BaseOffset = new(7f, -0.5f, -8f);
+    
+    private static readonly Quaternion _baseOrientation = Quaternion.CreateFromYawPitchRoll(yaw: -0.9f, pitch: 0.1f, roll: -0.1f);
 
     private readonly ILogger<MainMenuAnimationSystem> _logger = logger;
     private readonly IAssetDatabase<VoxelEntityModel> _blueprintDatabase = blueprintDatabase;
@@ -122,7 +123,7 @@ internal sealed class MainMenuAnimationSystem(
         VoxelEntityModel model = blueprintResult.Value;
         Vector3 scale = model.Scale == Vector3.Zero ? Vector3.One : model.Scale;
         Vector3 worldPosition = cameraTransform.Position + Vector3.Transform(BaseOffset, cameraTransform.Orientation);
-        Quaternion worldOrientation = cameraTransform.Orientation * BaseOrientation;
+        Quaternion worldOrientation = cameraTransform.Orientation * _baseOrientation;
 
         Entity entity = _voxelEntityBuilder.Create(
             store,
@@ -142,7 +143,7 @@ internal sealed class MainMenuAnimationSystem(
         store.AddOrUpdate(_spaceshipEntity, new ChildComponent(cameraUuid)
         {
             LocalPosition = BaseOffset,
-            LocalOrientation = BaseOrientation,
+            LocalOrientation = _baseOrientation,
             LocalScale = scale,
         });
     }
@@ -152,12 +153,12 @@ internal sealed class MainMenuAnimationSystem(
         store.AddOrUpdate(_spaceshipEntity, new ChildComponent(cameraUuid)
         {
             LocalPosition = localPosition,
-            LocalOrientation = BaseOrientation,
+            LocalOrientation = _baseOrientation,
             LocalScale = _spaceshipScale,
         });
 
         Vector3 worldPosition = cameraTransform.Position + Vector3.Transform(localPosition, cameraTransform.Orientation);
-        Quaternion worldOrientation = cameraTransform.Orientation * BaseOrientation;
+        Quaternion worldOrientation = cameraTransform.Orientation * _baseOrientation;
         store.AddOrUpdate(_spaceshipEntity, new TransformComponent(worldPosition, worldOrientation, _spaceshipScale));
     }
 
