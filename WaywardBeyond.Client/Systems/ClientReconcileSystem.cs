@@ -13,6 +13,7 @@ using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Networking.Codecs;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Networking.Rpc;
 
@@ -319,13 +320,23 @@ internal sealed class ClientReconcileSystem(
         }
     }
 
-    private static void ApplyRemoteTransform(
+    private void ApplyRemoteTransform(
         DataStore store,
         int entity,
         in Vector3 position,
         in Quaternion orientation,
         in Vector3 scale
     ) {
+        //  A remote body is simulated locally, so a bad snapshot must not reach the solver: keep the
+        //  last good transform and drop the frame.
+        if (!TransformCodec.IsValid(in position, in orientation, in scale))
+        {
+            logger.LogWarning(
+                "Dropping {component} snapshot for entity {entity}: the transform is non-finite or its orientation is degenerate.",
+                nameof(TransformComponent), entity);
+            return;
+        }
+
         if (!store.TryGet(entity, out TransformComponent _))
         {
             store.AddOrUpdate(entity, new TransformComponent(position, orientation, scale));

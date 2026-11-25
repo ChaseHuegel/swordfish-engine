@@ -51,6 +51,11 @@ component when the entity has none, which is how a client materializes a body it
 did not build itself. An existing component keeps its configuration and takes
 only the motion values.
 
+`TransformCodec` carries position, orientation, and scale. `Apply` rejects a
+non-finite value and an orientation at or below the minimum squared length, so a
+zero quaternion never reaches a body. `TransformCodec.IsValid` is the same check
+the client uses for a remote player's locally simulated body.
+
 `ColliderCodec` carries a compound collider as packed shapes, offsets, and
 orientations. A single shape travels as a one-part compound.
 
@@ -61,8 +66,9 @@ entity with `BodyViewComponent` (a character body) replicates its collider. The
 client derives a world structure's voxel collider from the level data, so those
 never cross the wire.
 
-Every failure in `PhysicsCodec` and `ColliderCodec` carries a message that names
-the entity and the invalid field. The caller writes that message into its log.
+Every failure in `TransformCodec`, `PhysicsCodec`, and `ColliderCodec` carries a
+message that names the entity and the invalid field. The caller writes that
+message into its log.
 
 ## Registered components
 
