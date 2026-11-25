@@ -868,6 +868,47 @@
     color: var(--wb-text);
 }
 
+.wb-keybind {
+    color: var(--wb-control);
+    border: 1px var(--wb-border);
+    padding: 2px;
+    text-color: var(--wb-text);
+}
+
+.wb-keybind:hover {
+    color: var(--wb-button-hover);
+    border-color: var(--wb-border-hover);
+}
+
+.wb-keybind-listening {
+    color: var(--wb-accent-dark);
+    border-color: var(--wb-accent);
+    text-color: var(--wb-accent-bright);
+}
+
+.wb-keybind-listening:hover {
+    color: var(--wb-accent-dark);
+    border-color: var(--wb-accent);
+}
+
+.wb-keybind-conflict {
+    color: var(--wb-danger-dark);
+    border-color: var(--wb-danger);
+    text-color: var(--wb-danger-bright);
+}
+
+.wb-keybind-conflict:hover {
+    color: var(--wb-danger-dark);
+    border-color: var(--wb-danger);
+}
+
+.wb-keybind-label {
+    font-family: var(--wb-font-ui);
+    font-size: 16px;
+    text-align: center;
+    vertical-align: middle;
+}
+
 .wb-info-box-label {
     color: var(--wb-text);
     font-family: var(--wb-font-ui);

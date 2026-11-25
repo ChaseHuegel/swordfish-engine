@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using DryIoc;
 using Krill;
+using Shoal.CommandLine;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
@@ -171,6 +172,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IAutoActivate, ConfigManager>();
 
         container.RegisterConfig<ControlSettings>(file: "control.toml");
+        container.RegisterConfig<KeybindingSettings>(file: "keybindings.toml");
         container.RegisterConfig<VolumeSettings>(file: "volume.toml");
         container.RegisterConfig<DebugSettings>(file: "debug.toml");
         container.RegisterConfig<UISettings>(file: "ui.toml");
@@ -196,6 +198,7 @@ public class Injector : IDryIocInjector
             id,
             context.Resolve<ConfigManager>(),
             context.Resolve<ControlSettings>(),
+            context.Resolve<KeybindingSettings>(),
             context.Resolve<Swordfish.Settings.WindowSettings>(),
             context.Resolve<Swordfish.Settings.RenderSettings>(),
             context.Resolve<VolumeSettings>(),
@@ -204,8 +207,9 @@ public class Injector : IDryIocInjector
             context.Resolve<UISettings>(),
             context.Resolve<SoundEffectService>(),
             context.Resolve<IWindowContext>(),
-            context.Resolve<IInputService>(),
-            context.Resolve<Swordfish.Library.Globalization.ILocalization>()
+            context.Resolve<IShortcutService>(),
+            context.Resolve<Swordfish.Library.Globalization.ILocalization>(),
+            KeybindingsSettingsCategory.IsDeveloperModeEnabled(context.Resolve<CommandLineArgs>())
         );
     }
 

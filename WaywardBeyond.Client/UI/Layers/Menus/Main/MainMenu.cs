@@ -9,6 +9,7 @@ using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using System.Threading.Tasks;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
@@ -42,15 +43,12 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
             SteamRequested = OpenSteam
         };
 
-        Shortcut backShortcut = new(
-            name: "Go back",
-            category: "General",
-            ShortcutModifiers.None,
-            Key.Esc,
-            isEnabled: IsVisible,
-            action: () => GoBack()
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateBack(),
+            IsVisible,
+            () => GoBack()
         );
-        shortcutService.RegisterShortcut(backShortcut);
 
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
     }

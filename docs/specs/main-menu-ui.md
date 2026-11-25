@@ -217,9 +217,9 @@ Do not add fake menu controls.
 - Sandbox rules have no per-save engine support.
 - Game Mode selection is omitted. Level creation and colonist registration still
   use Creative mode.
-- Keybindings stay deferred by issue 0086.
 - Server description has no backing data.
-- The settings page keeps its existing controls and four categories.
+- The settings page exposes five categories (Display, Audio, Gameplay, Controls,
+  and Keybindings). See [settings-ui](settings-ui.md).
 
 ## Source
 

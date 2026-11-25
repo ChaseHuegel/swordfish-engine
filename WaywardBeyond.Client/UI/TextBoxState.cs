@@ -74,5 +74,6 @@ internal struct TextBoxState(in string initialValue, in TextBoxState.Options opt
     {
         Submit,
         NewLine,
+        None,
     }
 }

@@ -432,7 +432,7 @@ internal static partial class Widgets
                             submitted = true;
                             ui.Unfocus();
                         }
-                        else
+                        else if (state.Settings.SubmitBehavior == TextBoxState.SubmitBehavior.NewLine)
                         {
                             if (currentlyHasSelection)
                             {

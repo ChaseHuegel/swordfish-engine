@@ -33,6 +33,7 @@ public class SettingsShellViewTests
                 MenuPage.Settings,
                 configManager: null!,
                 controlSettings: new ControlSettings(),
+                keybindingSettings: new KeybindingSettings(),
                 windowSettings: new WindowSettings(),
                 renderSettings: renderSettings,
                 volumeSettings: new VolumeSettings(),
@@ -41,7 +42,7 @@ public class SettingsShellViewTests
                 uiSettings: new UISettings(),
                 soundEffectService: null!,
                 windowContext: new FakeWindowContext(),
-                inputService: new FakeInputService(),
+                shortcutService: new StubShortcutService(),
                 localization: new TestLocalization()
             );
 

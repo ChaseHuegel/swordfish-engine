@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Reef.Constraints;
 using Reef.UI;
 
@@ -11,6 +10,7 @@ internal readonly record struct SettingsRowState(
     bool IsChoice,
     bool IsStepper,
     bool IsSlider,
+    bool IsKeybind,
     bool IsReset,
     string Id,
     string LabelKey,
@@ -25,7 +25,11 @@ internal readonly record struct SettingsRowState(
     float Min,
     float Max,
     float Step,
-    string Display
+    string Display,
+    bool IsCapturing,
+    bool HasConflict,
+    bool IsUnbound,
+    bool CanReset
 ) {
     /// <summary>Gets the slider fill width for the current value.</summary>
     public IConstraint Fill => new Relative(Max > Min ? Math.Clamp((SliderValue - Min) / (Max - Min), 0f, 1f) : 0f);
@@ -34,9 +38,10 @@ internal readonly record struct SettingsRowState(
     public static SettingsRowState Section(string labelKey)
     {
         return new SettingsRowState(
-            true, false, false, false, false,
+            true, false, false, false, false, false,
             string.Empty, labelKey, true,
-            [], 0, string.Empty, string.Empty, false, false, 0f, 0f, 1f, 0f, string.Empty
+            [], 0, string.Empty, string.Empty, false, false, 0f, 0f, 1f, 0f, string.Empty,
+            false, false, false, false
         );
     }
 
@@ -50,9 +55,10 @@ internal readonly record struct SettingsRowState(
     )
     {
         return new SettingsRowState(
-            false, true, false, false, false,
+            false, true, false, false, false, false,
             id, labelKey, enabled,
-            optionKeys, index, string.Empty, string.Empty, false, false, 0f, 0f, 1f, 0f, string.Empty
+            optionKeys, index, string.Empty, string.Empty, false, false, 0f, 0f, 1f, 0f, string.Empty,
+            false, false, false, false
         );
     }
 
@@ -68,9 +74,10 @@ internal readonly record struct SettingsRowState(
     )
     {
         return new SettingsRowState(
-            false, false, true, false, false,
+            false, false, true, false, false, false,
             id, labelKey, enabled,
-            [], 0, value, valueKey, canDecrease, canIncrease, 0f, 0f, 1f, 0f, string.Empty
+            [], 0, value, valueKey, canDecrease, canIncrease, 0f, 0f, 1f, 0f, string.Empty,
+            false, false, false, false
         );
     }
 
@@ -87,9 +94,29 @@ internal readonly record struct SettingsRowState(
     )
     {
         return new SettingsRowState(
-            false, false, false, true, false,
+            false, false, false, true, false, false,
             id, labelKey, enabled,
-            [], 0, string.Empty, string.Empty, false, false, value, min, max, step, display
+            [], 0, string.Empty, string.Empty, false, false, value, min, max, step, display,
+            false, false, false, false
+        );
+    }
+
+    /// <summary>Creates a keybinding row.</summary>
+    public static SettingsRowState Keybind(
+        string id,
+        string labelKey,
+        string value,
+        bool isCapturing,
+        bool hasConflict,
+        bool isUnbound,
+        bool canReset
+    )
+    {
+        return new SettingsRowState(
+            false, false, false, false, true, false,
+            id, labelKey, true,
+            [], 0, value, string.Empty, false, false, 0f, 0f, 1f, 0f, string.Empty,
+            isCapturing, hasConflict, isUnbound, canReset
         );
     }
 
@@ -97,9 +124,10 @@ internal readonly record struct SettingsRowState(
     public static SettingsRowState Reset(string id)
     {
         return new SettingsRowState(
-            false, false, false, false, true,
+            false, false, false, false, false, true,
             id, string.Empty, true,
-            [], 0, string.Empty, string.Empty, false, false, 0f, 0f, 1f, 0f, string.Empty
+            [], 0, string.Empty, string.Empty, false, false, 0f, 0f, 1f, 0f, string.Empty,
+            false, false, false, false
         );
     }
 }

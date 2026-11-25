@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using WaywardBeyond.Client.UI.Components;
 using Swordfish.Library.Globalization;
+using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Settings;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus;
@@ -27,6 +27,15 @@ internal partial class SettingsShellView(ILocalization localization) : UiViewBas
     /// <summary>Forwarded when a reset row is clicked.</summary>
     public Action<string>? ResetRequested { get; set; }
 
+    /// <summary>Forwarded when a keybinding button is clicked.</summary>
+    public Action<string>? KeybindClickRequested { get; set; }
+
+    /// <summary>Forwarded when a keybinding clear button is clicked.</summary>
+    public Action<string>? KeybindClearRequested { get; set; }
+
+    /// <summary>Forwarded when a keybinding per-action reset button is clicked.</summary>
+    public Action<string>? KeybindResetRequested { get; set; }
+
     /// <summary>Raised when a category is selected.</summary>
     public Action<int>? CategoryRequested { get; set; }
 
@@ -49,6 +58,9 @@ internal partial class SettingsShellView(ILocalization localization) : UiViewBas
         ChoiceRequested,
         StepRequested,
         SliderDragRequested,
-        ResetRequested
+        ResetRequested,
+        KeybindClickRequested,
+        KeybindClearRequested,
+        KeybindResetRequested
     );
 }

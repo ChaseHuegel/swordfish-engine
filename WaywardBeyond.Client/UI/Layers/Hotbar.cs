@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Krill;
 using Reef;
 using Swordfish.ECS;
@@ -10,6 +11,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Data;
@@ -26,11 +28,14 @@ internal sealed class Hotbar
     /// <summary>The number of equipped hotbar slots.</summary>
     public const int SLOT_COUNT = 9;
 
+    private readonly IShortcutService _shortcutService;
     private readonly ItemIconDatabase _itemIcons;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
     private readonly InteractionState _interactionState;
     private readonly ControlSettings _controlSettings;
+    private readonly string[] _slotLabels = new string[SLOT_COUNT];
+    private int _slotLabelsDirty = 1;
 
     /// <summary>Initializes a new instance of the <see cref="Hotbar"/> class.</summary>
     public Hotbar(
@@ -43,6 +48,7 @@ internal sealed class Hotbar
         in ControlSettings controlSettings
     )
     {
+        _shortcutService = shortcutService;
         _itemIcons = itemIcons;
         _playerData = playerData;
         _ecsContext = ecsContext;
@@ -51,20 +57,18 @@ internal sealed class Hotbar
 
         for (var i = 0; i < SLOT_COUNT; i++)
         {
-            int slotNumber = i + 1;
             int slotIndex = i;
-            var shortcut = new Shortcut
-            {
-                Name = $"Slot {slotNumber}",
-                Category = "Inventory",
-                Modifiers = ShortcutModifiers.None,
-                Key = Key.D1 + slotIndex,
-                IsEnabled = IsInputAllowed,
-                Action = () => SetActiveSlot(slotIndex),
-            };
-
-            shortcutService.RegisterShortcut(shortcut);
+            GameShortcuts.RegisterOrAddHandler(
+                shortcutService,
+                GameShortcuts.CreateSlot(slotIndex),
+                IsInputAllowed,
+                () => SetActiveSlot(slotIndex)
+            );
         }
+
+        _shortcutService.BindingsChanged += OnBindingsChanged;
+        GameShortcuts.ResolveSlotLabels(_shortcutService, _slotLabels);
+        _slotLabelsDirty = 0;
 
         inputService.Scrolled += OnScrolled;
     }
@@ -75,6 +79,11 @@ internal sealed class Hotbar
     /// <summary>Renders the hotbar container and its nine item slots.</summary>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        if (Interlocked.Exchange(ref _slotLabelsDirty, 0) == 1)
+        {
+            GameShortcuts.ResolveSlotLabels(_shortcutService, _slotLabels);
+        }
+
         Result<InventoryComponent> inventoryResult = _playerData.GetInventory(_ecsContext.World.DataStore);
         Result<int> activeSlotResult = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
         if (!inventoryResult.Success || !activeSlotResult.Success)
@@ -98,7 +107,7 @@ internal sealed class Hotbar
             Material? icon = hasItem ? _itemIcons.Get(itemStack.ID!) : null;
             slots.Add(new ItemSlotState(
                 icon!,
-                (slotIndex + 1).ToString(),
+                _slotLabels[slotIndex],
                 hasItem ? itemStack.Count.ToString() : null,
                 Selected: activeSlot == slotIndex
             ));
@@ -107,6 +116,11 @@ internal sealed class Hotbar
         _view.Render(ui, new HotbarState(slots));
 
         return Result.FromSuccess();
+    }
+
+    private void OnBindingsChanged()
+    {
+        Interlocked.Exchange(ref _slotLabelsDirty, 1);
     }
 
     private bool IsInputAllowed()

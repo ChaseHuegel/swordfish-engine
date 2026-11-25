@@ -1,11 +1,15 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
+using System.Threading;
 using Reef;
 using Reef.Text;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Extensions;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Config;
 
@@ -13,10 +17,12 @@ namespace WaywardBeyond.Client.UI.Layers;
 
 /// <summary>
 /// The chat overlay. One fixed-geometry box renders in both states: a 200px scroll viewport over the
-/// send box's reserved slot. Pressing Enter opens a text box that blocks gameplay interaction (the
-/// cursor is freed so it can work the box), Enter sends non-empty text and closes the box, and Escape
-/// or an empty Enter closes it without sending. Closed chat sticks to the newest message and ignores
-/// the wheel. Open chat starts stuck, the wheel breaks the stick, and scrolling back to the bottom
+/// send box's reserved slot. The <see cref="GameShortcuts.OPEN_CHAT"/> shortcut opens a text box that
+/// blocks gameplay interaction (the cursor is freed so it can work the box),
+/// <see cref="GameShortcuts.SEND_CHAT"/> sends non-empty text and closes the box, and
+/// <see cref="GameShortcuts.BACK"/> or an empty send closes it without sending. Closed chat sticks
+/// to the newest message and ignores the
+/// wheel. Open chat starts stuck, the wheel breaks the stick, and scrolling back to the bottom
 /// re-sticks it. While open, the send box keeps focus even when the user clicks elsewhere, and every
 /// message shows at full alpha. When closed, each message fades on its own clock: full alpha for
 /// <see cref="ChatConfig.StaleMs"/> after arrival, then a one-second fade.
@@ -25,14 +31,19 @@ internal sealed class ChatLayer : IUILayer
 {
     private const double FADE_DURATION = 1d;
 
+    private readonly IShortcutService _shortcutService;
     private readonly IInputService _inputService;
     private readonly InteractionState _interactionState;
     private readonly ChatService _chat;
     private readonly ChatConfig _config;
+    private readonly ILocalization _localization;
     private readonly ChatView _view;
 
     private bool _open;
-    private bool _skipNextSubmit;
+    private int _submitPending;
+    private int _hintsDirty = 1;
+    private string _sendHint = string.Empty;
+    private string _closeHint = string.Empty;
     private bool _stuckToBottom = true;
     private int _scrollY;
     private InteractionState.InteractionBlocker? _interactionBlocker;
@@ -47,10 +58,12 @@ internal sealed class ChatLayer : IUILayer
         in ILocalization localization
     )
     {
+        _shortcutService = shortcutService;
         _inputService = inputService;
         _interactionState = interactionState;
         _chat = chat;
         _config = config;
+        _localization = localization;
         _view = new ChatView(localization)
         {
             Input = inputService,
@@ -64,17 +77,28 @@ internal sealed class ChatLayer : IUILayer
             IsEnabled = IsOpenEnabled,
             Action = OpenChat,
         };
-        shortcutService.RegisterShortcut(openShortcut);
+        _shortcutService.RegisterShortcut(openShortcut);
 
-        var closeShortcut = new Shortcut
+        var sendShortcut = new Shortcut
         {
-            Name = "Close Chat",
+            Name = "Send Chat",
             Category = "Chat",
-            Key = Key.Esc,
-            IsEnabled = () => IsVisible() && _open,
-            Action = CloseChat,
+            Key = Key.Enter,
+            IsEnabled = IsSendEnabled,
+            Action = RequestSubmit,
         };
-        shortcutService.RegisterShortcut(closeShortcut);
+        _shortcutService.RegisterShortcut(sendShortcut);
+
+        GameShortcuts.RegisterOrAddHandler(
+            _shortcutService,
+            GameShortcuts.CreateBack(),
+            () => IsVisible() && _open,
+            CloseChat
+        );
+
+        _shortcutService.BindingsChanged += OnBindingsChanged;
+        RefreshHints();
+        _hintsDirty = 0;
     }
 
     /// <inheritdoc/>
@@ -116,13 +140,18 @@ internal sealed class ChatLayer : IUILayer
             );
         }
 
+        if (Interlocked.Exchange(ref _hintsDirty, 0) == 1)
+        {
+            RefreshHints();
+        }
+
         GetScrollbarMetrics(contentHeight, maxScroll, out bool showThumb, out float thumbRatio, out float thumbOffset);
         _view.Render(
             ui,
-            new ChatViewState(_open, rows, showThumb, thumbRatio, thumbOffset, viewportOffsetY)
+            new ChatViewState(_open, rows, showThumb, thumbRatio, thumbOffset, viewportOffsetY, _sendHint, _closeHint)
         );
 
-        if (_open && _view.TakeSubmit())
+        if (_open && Interlocked.Exchange(ref _submitPending, 0) == 1)
         {
             HandleSubmit();
         }
@@ -183,13 +212,6 @@ internal sealed class ChatLayer : IUILayer
 
     private void HandleSubmit()
     {
-        if (_skipNextSubmit)
-        {
-            //  The Enter that opened the box arrives in the same input stream; consume the first submit after opening.
-            _skipNextSubmit = false;
-            return;
-        }
-
         string text = _view.ChatBox.Text.ToString().Trim();
         _view.ResetInput();
 
@@ -282,6 +304,40 @@ internal sealed class ChatLayer : IUILayer
         return !_open && IsVisible() && !_interactionState.IsInteractionBlocked();
     }
 
+    private bool IsSendEnabled()
+    {
+        return _open && IsVisible();
+    }
+
+    private void RequestSubmit()
+    {
+        Interlocked.Exchange(ref _submitPending, 1);
+    }
+
+    private void OnBindingsChanged()
+    {
+        Interlocked.Exchange(ref _hintsDirty, 1);
+    }
+
+    private void RefreshHints()
+    {
+        _sendHint = FormatHint(GameShortcuts.SEND_CHAT, "ui.hint.chat.send");
+        _closeHint = FormatHint(GameShortcuts.BACK, "ui.hint.chat.close");
+    }
+
+    private string FormatHint(string shortcutId, string localizationKey)
+    {
+        Result<ShortcutBinding> result = _shortcutService.GetBinding(shortcutId);
+        if (!result.Success || !result.Value.IsBound)
+        {
+            return string.Empty;
+        }
+
+        string bindingLabel = result.Value.ToDisplayString().ToUpperInvariant();
+        string format = _localization.GetRequired(localizationKey);
+        return string.Format(CultureInfo.InvariantCulture, format, bindingLabel);
+    }
+
     private void OpenChat()
     {
         if (!_interactionState.TryBlockInteractionExclusive(out _interactionBlocker))
@@ -289,12 +345,13 @@ internal sealed class ChatLayer : IUILayer
             return;
         }
 
+        Interlocked.Exchange(ref _submitPending, 0);
         _open = true;
-        _skipNextSubmit = true;
     }
 
     private void CloseChat()
     {
+        Interlocked.Exchange(ref _submitPending, 0);
         _interactionBlocker?.Dispose();
         _interactionBlocker = null;
         _open = false;

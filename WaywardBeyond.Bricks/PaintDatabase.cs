@@ -108,7 +108,7 @@ internal sealed class PaintDatabase : VirtualAssetDatabase<PaintDefinitions, Pai
         }
         else
         {
-            if (!Paint.TryParseHexColor(assetInfo.Color, out Vector3 color))
+            if (!HexColor.TryParseRgb(assetInfo.Color, out Vector3 color))
             {
                 _logger.LogWarning("Skipping paint \"{PaintId}\": invalid hex color \"{Color}\".", id, assetInfo.Color);
                 return Result<Paint>.FromFailure($"Paint \"{id}\" has invalid hex color \"{assetInfo.Color}\".");

@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Numerics;
 
 namespace WaywardBeyond.Bricks;
@@ -80,37 +79,6 @@ public sealed class Paint
     internal void BindDataID(ushort dataID)
     {
         DataID = dataID;
-    }
-
-    /// <summary>Parses a 6-digit hex color string (with optional leading '#') into normalized sRGB (0..1).</summary>
-    public static bool TryParseHexColor(string? value, out Vector3 color)
-    {
-        color = Vector3.One;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        ReadOnlySpan<char> span = value.AsSpan().Trim();
-        if (span.Length > 0 && span[0] == '#')
-        {
-            span = span[1..];
-        }
-
-        if (span.Length != 6)
-        {
-            return false;
-        }
-
-        if (!byte.TryParse(span[0..2], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte r) ||
-            !byte.TryParse(span[2..4], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte g) ||
-            !byte.TryParse(span[4..6], NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte b))
-        {
-            return false;
-        }
-
-        color = new Vector3(r / 255f, g / 255f, b / 255f);
-        return true;
     }
 
     private static float SrgbToLinear(float c)

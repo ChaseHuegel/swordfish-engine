@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using Krill;
 using Reef;
 using Swordfish.ECS;
@@ -13,6 +14,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Data;
@@ -37,22 +39,21 @@ internal sealed class Inventory : IUILayer
     private const int PANEL_HEIGHT_CHROME = 137;
     private const int TRAITS_PER_ROW = 2;
 
-    private static readonly string[] _slotNumbers = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
     /// <summary>The inputs that every slot of one row shares.</summary>
     private readonly record struct SlotRowContext(
         int RowIndex,
         int ActiveSlot,
-        bool LeftPressed,
-        bool LeftHeld,
-        bool RightPressed,
-        bool RightDown,
-        bool ShiftHeld,
+        bool MovePressed,
+        bool SplitPressed,
+        bool SplitDown,
+        bool QuickMovePressed,
+        bool QuickMoveDown,
         bool HandledDragClick,
         float Scroll,
         InventoryComponent Inventory
     );
 
+    private readonly IShortcutService _shortcutService;
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly IBrickDatabase _brickDatabase;
     private readonly LocalizedTags? _invariantTags;
@@ -64,10 +65,16 @@ internal sealed class Inventory : IUILayer
     private readonly ILocalization _localization;
     private readonly DebugSettings _debugSettings;
     private readonly InventoryView _view;
+    private readonly string[] _slotLabels = new string[SLOTS_PER_ROW];
+    private int _slotLabelsDirty = 1;
 
     private bool _open;
     private int _selectedSlot = -1;
     private InteractionState.InteractionBlocker? _interactionBlocker;
+    private int _moveStackPressed;
+    private int _splitStackPressed;
+    private int _quickMovePressed;
+    private int _lastQuickMoveSlot = -1;
 
     private bool _dragging;
     private int _draggingSlot = -1;
@@ -94,6 +101,7 @@ internal sealed class Inventory : IUILayer
         in DebugSettings debugSettings
     )
     {
+        _shortcutService = shortcutService;
         _itemDatabase = itemDatabase;
         _brickDatabase = brickDatabase;
         _invariantTags = tagDatabase.Invariant;
@@ -117,32 +125,22 @@ internal sealed class Inventory : IUILayer
         };
         shortcutService.RegisterShortcut(toggleShortcut);
 
-        var closeShortcut = new Shortcut
-        {
-            Name = "Close",
-            Category = "Inventory",
-            Modifiers = ShortcutModifiers.None,
-            Key = Key.Esc,
-            IsEnabled = IsVisible,
-            Action = OnCloseInventoryPressed,
-        };
-        shortcutService.RegisterShortcut(closeShortcut);
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateBack(),
+            IsVisible,
+            OnCloseInventoryPressed
+        );
 
         for (var i = 0; i < SLOTS_PER_ROW; i++)
         {
-            int slotNumber = i + 1;
             int slotIndex = i;
-
-            var slotShortcut = new Shortcut
-            {
-                Name = $"Move to slot {slotNumber}",
-                Category = "Inventory",
-                Modifiers = ShortcutModifiers.None,
-                Key = Key.D1 + slotIndex,
-                IsEnabled = IsVisible,
-                Action = SwapSlots,
-            };
-            shortcutService.RegisterShortcut(slotShortcut);
+            GameShortcuts.RegisterOrAddHandler(
+                shortcutService,
+                GameShortcuts.CreateSlot(slotIndex),
+                IsVisible,
+                SwapSlots
+            );
 
             void SwapSlots()
             {
@@ -165,6 +163,29 @@ internal sealed class Inventory : IUILayer
                 });
             }
         }
+
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateInventoryMoveStack(),
+            IsVisible,
+            OnMoveStackPressed
+        );
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateInventorySplitStack(),
+            IsVisible,
+            OnSplitStackPressed
+        );
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateInventoryQuickMove(),
+            IsVisible,
+            OnQuickMovePressed
+        );
+
+        _shortcutService.BindingsChanged += OnBindingsChanged;
+        GameShortcuts.ResolveSlotLabels(_shortcutService, _slotLabels);
+        _slotLabelsDirty = 0;
     }
 
     /// <inheritdoc/>
@@ -173,6 +194,11 @@ internal sealed class Inventory : IUILayer
     /// <inheritdoc/>
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        if (Interlocked.Exchange(ref _slotLabelsDirty, 0) == 1)
+        {
+            GameShortcuts.ResolveSlotLabels(_shortcutService, _slotLabels);
+        }
+
         Result<InventoryComponent> inventoryResult = _playerData.GetInventory(_ecsContext.World.DataStore);
         Result<int> activeSlotResult = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
         if (!inventoryResult.Success || !activeSlotResult.Success)
@@ -184,11 +210,16 @@ internal sealed class Inventory : IUILayer
         int activeSlot = activeSlotResult.Value;
         int rowCount = inventory.Contents.Length / SLOTS_PER_ROW;
 
-        bool leftPressed = ui.LeftPressed();
-        bool leftHeld = ui.LeftHeld();
-        bool rightPressed = ui.RightPressed();
-        bool rightDown = rightPressed || ui.RightHeld();
-        bool shiftHeld = _inputService.IsKeyHeld(Key.Shift);
+        bool movePressed = Interlocked.Exchange(ref _moveStackPressed, 0) == 1;
+        bool splitPressed = Interlocked.Exchange(ref _splitStackPressed, 0) == 1;
+        bool splitDown = splitPressed || _shortcutService.IsHeld(GameShortcuts.INVENTORY_SPLIT_STACK);
+        bool quickMovePressed = Interlocked.Exchange(ref _quickMovePressed, 0) == 1;
+        bool quickMoveDown = quickMovePressed || _shortcutService.IsHeld(GameShortcuts.INVENTORY_QUICK_MOVE);
+        if (!quickMoveDown)
+        {
+            _lastQuickMoveSlot = -1;
+        }
+
         float scroll = _inputService.GetMouseScroll();
 
         ItemData dragItemStack = GetSlotStack(in inventory, _draggingSlot);
@@ -197,7 +228,7 @@ internal sealed class Inventory : IUILayer
             ResetDragState();
         }
 
-        if (_dragging && rightPressed && !_rightDistributing)
+        if (_dragging && splitPressed && !_rightDistributing)
         {
             _rightDistributing = true;
             _rightOriginSlot = _selectedSlot;
@@ -205,7 +236,7 @@ internal sealed class Inventory : IUILayer
             _distributedSlotCount = 0;
         }
 
-        if (_rightDistributing && !rightDown)
+        if (_rightDistributing && !splitDown)
         {
             CommitRightDistribution(in inventory);
             inventoryResult = _playerData.GetInventory(_ecsContext.World.DataStore);
@@ -223,7 +254,7 @@ internal sealed class Inventory : IUILayer
         }
 
         ItemData selectedItemStack = GetSlotStack(in inventory, _selectedSlot);
-        bool handledDragClick = ResolveDragClick(leftPressed, in dragItemStack, in selectedItemStack);
+        bool handledDragClick = ResolveDragClick(movePressed, in dragItemStack, in selectedItemStack);
 
         if (_rightDistributing)
         {
@@ -234,11 +265,11 @@ internal sealed class Inventory : IUILayer
         var slotRow = new SlotRowContext(
             RowIndex: 0,
             ActiveSlot: activeSlot,
-            LeftPressed: leftPressed,
-            LeftHeld: leftHeld,
-            RightPressed: rightPressed,
-            RightDown: rightDown,
-            ShiftHeld: shiftHeld,
+            MovePressed: movePressed,
+            SplitPressed: splitPressed,
+            SplitDown: splitDown,
+            QuickMovePressed: quickMovePressed,
+            QuickMoveDown: quickMoveDown,
             HandledDragClick: handledDragClick,
             Scroll: scroll,
             Inventory: inventory
@@ -619,6 +650,30 @@ internal sealed class Inventory : IUILayer
         _rightLeftOrigin = false;
         _distributedSlotCount = 0;
         _distributedRemainder = 0;
+        _lastQuickMoveSlot = -1;
+    }
+
+    private void ClearPendingInput()
+    {
+        Interlocked.Exchange(ref _moveStackPressed, 0);
+        Interlocked.Exchange(ref _splitStackPressed, 0);
+        Interlocked.Exchange(ref _quickMovePressed, 0);
+        _lastQuickMoveSlot = -1;
+    }
+
+    private void OnMoveStackPressed()
+    {
+        Interlocked.Exchange(ref _moveStackPressed, 1);
+    }
+
+    private void OnSplitStackPressed()
+    {
+        Interlocked.Exchange(ref _splitStackPressed, 1);
+    }
+
+    private void OnQuickMovePressed()
+    {
+        Interlocked.Exchange(ref _quickMovePressed, 1);
     }
 
     /// <summary>Resolves one row of slots' interactions and display state.</summary>
@@ -638,9 +693,6 @@ internal sealed class Inventory : IUILayer
             string elementID = $"inventorySlot{inventorySlot}";
 
             bool hovering = ui.Hovering(elementID);
-            bool clicked = ui.Clicked(elementID);
-            bool rightClicked = hovering && context.RightPressed;
-            bool held = hovering && context.LeftHeld;
 
             if (!slotIsSelected && hovering)
             {
@@ -648,7 +700,7 @@ internal sealed class Inventory : IUILayer
                 slotIsSelected = true;
             }
 
-            if (_rightDistributing && hovering && context.RightDown)
+            if (_rightDistributing && hovering && context.SplitDown)
             {
                 if (inventorySlot != _rightOriginSlot)
                 {
@@ -670,7 +722,7 @@ internal sealed class Inventory : IUILayer
 
             slotStates[inventorySlot] = new ItemSlotState(
                 Icon: hasDisplayItem ? _itemIcons.Get(displayStack.ID!) : null!,
-                Number: inventorySlot < SLOTS_PER_ROW ? _slotNumbers[slotIndex] : string.Empty,
+                Number: inventorySlot < SLOTS_PER_ROW ? _slotLabels[slotIndex] : string.Empty,
                 Count: hasDisplayItem ? displayStack.Count.ToString() : null,
                 Equipped: isEquippedHotbar,
                 Hovered: isHovered,
@@ -681,7 +733,7 @@ internal sealed class Inventory : IUILayer
 
             if (itemStack.Count > 0 && itemStack.ID != null)
             {
-                ApplyClickInteraction(in context, inventorySlot, clicked, held, rightClicked, in itemStack);
+                ApplyClickInteraction(in context, inventorySlot, hovering, in itemStack);
             }
         }
     }
@@ -714,12 +766,17 @@ internal sealed class Inventory : IUILayer
 
         slotStates[inventorySlot] = new ItemSlotState(
             Icon: hasDisplayItem ? _itemIcons.Get(displayStack.ID!) : null!,
-            Number: inventorySlot < SLOTS_PER_ROW ? _slotNumbers[inventorySlot] : string.Empty,
+            Number: inventorySlot < SLOTS_PER_ROW ? _slotLabels[inventorySlot] : string.Empty,
             Count: hasDisplayItem ? displayStack.Count.ToString() : null,
             Equipped: isEquippedHotbar,
             Hovered: isHovered,
             Dragging: isDraggingSource || isDistributedSlot
         );
+    }
+
+    private void OnBindingsChanged()
+    {
+        Interlocked.Exchange(ref _slotLabelsDirty, 1);
     }
 
     private ItemData GetDisplayStack(
@@ -787,29 +844,27 @@ internal sealed class Inventory : IUILayer
         });
     }
 
-    /// <summary>Applies the click gestures that move, split, or pick up a stack.</summary>
+    /// <summary>Applies the slot gestures that quick-move, split, or pick up a stack.</summary>
     private void ApplyClickInteraction(
         in SlotRowContext context,
         int inventorySlot,
-        bool clicked,
-        bool held,
-        bool rightClicked,
+        bool hovering,
         in ItemData itemStack
     )
     {
-        if (context.HandledDragClick)
+        if (context.HandledDragClick || !hovering || _dragging)
         {
             return;
         }
 
-        if (context.ShiftHeld)
+        if (context.QuickMoveDown)
         {
-            //  Shift + click quick moves items via the server-resolved AutoStack op.
-            if (!clicked && !held)
+            if (!context.QuickMovePressed && inventorySlot == _lastQuickMoveSlot)
             {
                 return;
             }
 
+            _lastQuickMoveSlot = inventorySlot;
             ApplyMove(new SlotMoveOp
             {
                 Mode = SlotMoveOpMode.AutoStack,
@@ -820,16 +875,13 @@ internal sealed class Inventory : IUILayer
             return;
         }
 
-        //  Right-clicking a slot splits the stack: move half to the first
-        //  empty slot (client-computed target, server revalidated).
-        if (!_dragging && rightClicked)
+        if (context.SplitPressed)
         {
             ApplySplitMove(in context, inventorySlot, in itemStack);
             return;
         }
 
-        //  Click to pick up this slot onto the cursor
-        if (!_dragging && !context.HandledDragClick && clicked)
+        if (context.MovePressed)
         {
             _dragging = true;
             _draggingSlot = inventorySlot;
@@ -879,6 +931,7 @@ internal sealed class Inventory : IUILayer
         if (_open)
         {
             ResetDragState();
+            ClearPendingInput();
             _interactionBlocker?.Dispose();
             _interactionBlocker = null;
             _open = false;
@@ -890,12 +943,14 @@ internal sealed class Inventory : IUILayer
             return;
         }
 
+        ClearPendingInput();
         _open = true;
     }
 
     private void OnCloseInventoryPressed()
     {
         ResetDragState();
+        ClearPendingInput();
         _interactionBlocker?.Dispose();
         _interactionBlocker = null;
         _open = false;

@@ -23,6 +23,7 @@ using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers;
 using WaywardBeyond.Data;
@@ -57,9 +58,16 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private static readonly Vector4 _invalidOutlineColor = new(0.95f, 0.25f, 0.25f, 0.9f);
     private static readonly Vector3[] _worldAxes = [Vector3.UnitX, -Vector3.UnitX, Vector3.UnitY, -Vector3.UnitY, Vector3.UnitZ, -Vector3.UnitZ];
 
+    private enum InteractionTrigger
+    {
+        Primary,
+        Secondary,
+        Pick,
+    }
+
     private readonly InteractionState _interactionState;
     private readonly BrickPreviewState _brickPreviewState;
-    private readonly IInputService _inputService;
+    private readonly IShortcutService _shortcutService;
     private readonly IPhysics _physics;
     private readonly ILineRenderer _lineRenderer;
     private readonly IRenderContext _renderContext;
@@ -86,10 +94,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
     private uint _interactionSequence;
 
-    //  Click edges are pushed here from the window/input thread and drained on the ECS thread in Tick,
+    //  Press edges are pushed here from shortcut callbacks and drained on the ECS thread in Tick,
     //  because every interaction path (resolution + store mutation + VoxelObject/Rebuild + SFX hooks)
     //  must run on the ECS thread, never off-thread.
-    private readonly ConcurrentQueue<MouseButton> _pendingClicks = new();
+    private readonly ConcurrentQueue<InteractionTrigger> _pendingTriggers = new();
 
     private readonly InteractionRepeatTimer _primaryRepeat = new(INTERACTION_REPEAT_SECONDS);
     private readonly InteractionRepeatTimer _secondaryRepeat = new(INTERACTION_REPEAT_SECONDS);
@@ -105,7 +113,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     public PlayerInteractionService(
         in InteractionState interactionState,
         in BrickPreviewState brickPreviewState,
-        in IInputService inputService,
         in IPhysics physics,
         in ILineRenderer lineRenderer,
         in IRenderContext renderContext,
@@ -129,7 +136,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     ) {
         _interactionState = interactionState;
         _brickPreviewState = brickPreviewState;
-        _inputService = inputService;
+        _shortcutService = shortcutService;
         _physics = physics;
         _lineRenderer = lineRenderer;
         _renderContext = renderContext;
@@ -175,17 +182,42 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
 
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreatePrimaryAction(),
+            IsGameplayActionEnabled,
+            () => _pendingTriggers.Enqueue(InteractionTrigger.Primary)
+        );
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateSecondaryAction(),
+            IsGameplayActionEnabled,
+            () => _pendingTriggers.Enqueue(InteractionTrigger.Secondary)
+        );
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreatePickBrick(),
+            IsGameplayActionEnabled,
+            () => _pendingTriggers.Enqueue(InteractionTrigger.Pick)
+        );
+
         var snapModeShortcut = new Shortcut
         {
             Name = "Snap Placement",
             Category = "Interaction",
             Modifiers = ShortcutModifiers.None,
             Key = Key.Shift,
+            IgnoreUnboundModifiers = true,
             IsEnabled = WaywardBeyond.IsPlaying,
             Action = OnSnapPlacementPressed,
             Released = OnSnapPlacementReleased,
         };
         shortcutService.RegisterShortcut(snapModeShortcut);
+    }
+
+    private bool IsGameplayActionEnabled()
+    {
+        return WaywardBeyond.GameState == GameState.Playing && !_interactionState.IsInteractionBlocked();
     }
     
     private void OnSnapPlacementPressed()
@@ -201,7 +233,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     public void Run()
     {
         _physics.FixedUpdate += OnFixedUpdate;
-        _inputService.Clicked += OnClicked;
     }
     
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
@@ -209,32 +240,28 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _interactionState.SetInteractionEnabled(e.NewValue == GameState.Playing);
     }
 
-    private void OnClicked(object? sender, ClickedEventArgs e)
-    {
-        if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
-        {
-            return;
-        }
-
-        _pendingClicks.Enqueue(e.MouseButton);
-    }
-
     /// <summary>
-    /// Drains click edges on the ECS thread and repeats a held primary or secondary button. The
+    /// Drains press edges on the ECS thread and repeats a held primary or secondary action. The
     /// interaction resolution and its store mutations, voxel prediction/rebuild, and presentation hooks
     /// all mutate ECS-owned state, so they must never run on the window/input thread.
     /// </summary>
     public void Tick(float delta, DataStore store)
     {
         _store = store;
-        while (_pendingClicks.TryDequeue(out MouseButton button))
+        while (_pendingTriggers.TryDequeue(out InteractionTrigger trigger))
         {
+            MouseButton button = trigger switch
+            {
+                InteractionTrigger.Primary => MouseButton.Left,
+                InteractionTrigger.Secondary => MouseButton.Right,
+                _ => MouseButton.Middle,
+            };
             DispatchButton(button, InteractionSource.Press);
             BeginRepeat(button);
         }
 
-        AdvanceRepeat(_primaryRepeat, MouseButton.Left, delta);
-        AdvanceRepeat(_secondaryRepeat, MouseButton.Right, delta);
+        AdvanceRepeat(_primaryRepeat, GameShortcuts.PRIMARY_ACTION, MouseButton.Left, delta);
+        AdvanceRepeat(_secondaryRepeat, GameShortcuts.SECONDARY_ACTION, MouseButton.Right, delta);
 
         if (_debugSettings.OverlayVisible)
         {
@@ -281,14 +308,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     }
 
     /// <summary>
-    /// Dispatches a repeat when the button is still held during play with interaction enabled. A held
+    /// Dispatches a repeat when the binding is still held during play with interaction enabled. A held
     /// press that stops qualifying, such as on release or when a blocker opens, stops repeating.
     /// </summary>
-    private void AdvanceRepeat(InteractionRepeatTimer repeat, MouseButton button, float delta)
+    private void AdvanceRepeat(InteractionRepeatTimer repeat, string shortcutId, MouseButton button, float delta)
     {
-        bool eligible = WaywardBeyond.GameState == GameState.Playing
-            && !_interactionState.IsInteractionBlocked()
-            && _inputService.IsMouseHeld(button);
+        bool eligible = IsGameplayActionEnabled() && _shortcutService.IsHeld(shortcutId);
 
         if (repeat.Advance(delta, eligible))
         {

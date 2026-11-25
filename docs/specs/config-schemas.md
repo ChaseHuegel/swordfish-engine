@@ -221,6 +221,22 @@ Schema: `WaywardBeyond.Client/Configuration/VolumeSettings.cs`.
 | `Interface` | float | `0.5` | interface channel volume, 0-1 |
 | `OutputDevice` | string | `""` | preferred playback device name, empty follows the system default |
 
+## `keybindings.toml` (per app)
+
+Non-default client keybinding overrides, registered via
+`RegisterConfig<KeybindingSettings>`. Schema:
+`WaywardBeyond.Client/Configuration/KeybindingSettings.cs`. `ConfigManager`
+reads overrides through `ParseBindings` and applies them to `IShortcutService`
+on startup (`WaywardBeyond.Client/Configuration/ConfigManager.cs:62`). Cleared
+actions store `"Unbound"` and unbind again at startup. Empty values skip cleanly,
+and invalid or unparseable values log a warning and skip cleanly. `SetOverrides`
+updates the map when settings apply or on shutdown (`ConfigManager.cs:74`). See
+[input-shortcuts](input-shortcuts.md) and [settings-ui](settings-ui.md).
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `Bindings` | `Dictionary<string, string>` | `{}` | maps each shortcut id (for example `"Movement/Move forward"`) to its serialized `ShortcutBinding` string (for example `"UpArrow"`, `"Ctrl+S"`, or `"RMB"`) or `"Unbound"` |
+
 ## `render.toml` (per app)
 
 Runtime rendering settings, registered via `RegisterConfig<RenderSettings>`.
