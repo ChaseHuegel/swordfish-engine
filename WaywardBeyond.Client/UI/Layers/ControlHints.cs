@@ -59,6 +59,8 @@ internal sealed class ControlHints : IUILayer
     private HintViewState _inventoryQuickMoveHint;
     private HintViewState _inventoryHotbarHint;
     private HintViewState _inventoryCloseHint;
+    private List<HintViewState> _projectorSelectHints = [];
+    private List<HintViewState> _projectorPasteHints = [];
     private int _hintsDirty = 1;
 
     /// <summary>Initializes a new instance of the <see cref="ControlHints"/> class.</summary>
@@ -176,6 +178,30 @@ internal sealed class ControlHints : IUILayer
         _inventoryQuickMoveHint = CreateDynamicHint(GameShortcuts.INVENTORY_QUICK_MOVE, "ui.hint.inventory.quickMove", "Shift+LMB");
         _inventoryHotbarHint = new HintViewState(FormatHotbarRangeKey(), GetHintAction("ui.hint.inventory.hotbar"));
         _inventoryCloseHint = new HintViewState(FormatInventoryCloseKey(), GetHintAction("ui.hint.inventory.close"));
+
+        _projectorSelectHints =
+        [
+            _regionCornerAHint,
+            _regionCornerBHint,
+            _regionCopyHint,
+            _regionCutHint,
+            _regionPasteModeHint,
+            _regionRadialHint,
+            _regionLibraryHint,
+        ];
+
+        _projectorPasteHints =
+        [
+            _regionPasteHint,
+            _regionCancelPasteHint,
+            _regionRotateHint,
+            _regionMirrorHint,
+            _regionOverwriteAirHint,
+            _regionEmbedHint,
+            _regionDistanceHint,
+            _regionRadialHint,
+            _regionLibraryHint,
+        ];
     }
 
     private HintViewState CreateDynamicHint(string shortcutId, string localizationKey, string fallbackKey)
@@ -331,32 +357,9 @@ internal sealed class ControlHints : IUILayer
     /// <summary>Builds the hints for the Blueprint Projector in Select or Paste mode.</summary>
     private List<HintViewState> BuildProjectorHints()
     {
-        if (_regionToolState?.Mode == RegionToolMode.Paste)
-        {
-            return
-            [
-                _regionPasteHint,
-                _regionCancelPasteHint,
-                _regionRotateHint,
-                _regionMirrorHint,
-                _regionOverwriteAirHint,
-                _regionEmbedHint,
-                _regionDistanceHint,
-                _regionRadialHint,
-                _regionLibraryHint,
-            ];
-        }
-
-        return
-        [
-            _regionCornerAHint,
-            _regionCornerBHint,
-            _regionCopyHint,
-            _regionCutHint,
-            _regionPasteModeHint,
-            _regionRadialHint,
-            _regionLibraryHint,
-        ];
+        return _regionToolState?.Mode == RegionToolMode.Paste
+            ? _projectorPasteHints
+            : _projectorSelectHints;
     }
 
     /// <summary>Builds the hints for a main hand that holds no placeable item.</summary>

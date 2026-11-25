@@ -52,6 +52,10 @@ internal sealed class RegionPreviewSystem(
     private Uuid _uuid = Uuid.Null;
     private MeshKey? _activeKey;
     private MeshRenderer? _activeRenderer;
+    private bool _hasGhostTransform;
+    private Vector3 _lastGhostPosition;
+    private Quaternion _lastGhostOrientation;
+    private Vector3 _lastGhostScale;
     private bool _disposed;
 
     /// <inheritdoc/>
@@ -146,7 +150,17 @@ internal sealed class RegionPreviewSystem(
         }
 
         Vector3 ghostPosition = worldPosition + Vector3.Transform(localOffset * worldScale, worldOrientation);
-        store.AddOrUpdate(_entity, new TransformComponent(ghostPosition, worldOrientation, worldScale));
+        if (!_hasGhostTransform
+            || _lastGhostPosition != ghostPosition
+            || _lastGhostOrientation != worldOrientation
+            || _lastGhostScale != worldScale)
+        {
+            store.AddOrUpdate(_entity, new TransformComponent(ghostPosition, worldOrientation, worldScale));
+            _lastGhostPosition = ghostPosition;
+            _lastGhostOrientation = worldOrientation;
+            _lastGhostScale = worldScale;
+            _hasGhostTransform = true;
+        }
     }
 
     private bool IsHoldingProjector(DataStore store)
@@ -175,7 +189,7 @@ internal sealed class RegionPreviewSystem(
 
     private bool TrySetGhostRenderer(DataStore store, in VoxelRegionData region, bool valid, in MeshKey key)
     {
-        Result<Mesh> meshResult = _meshBuilder.Build(in region, valid);
+        Result<Mesh> meshResult = _meshBuilder.Build(in region, key.Revision, key.Rotation, key.Mirror, valid);
         if (!meshResult.Success)
         {
             return false;
@@ -231,6 +245,7 @@ internal sealed class RegionPreviewSystem(
         _uuid = Uuid.Null;
         _activeKey = null;
         _activeRenderer = null;
+        _hasGhostTransform = false;
     }
 
     private void DrawTransformedBox(

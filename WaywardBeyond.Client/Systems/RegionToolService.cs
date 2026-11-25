@@ -847,6 +847,28 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             return false;
         }
 
+        if (_overlapCacheShape.Shapes.Length > 1)
+        {
+            var localCenter = new Vector3(
+                origin.X + (region.SizeX - 1) * 0.5f,
+                origin.Y + (region.SizeY - 1) * 0.5f,
+                origin.Z + (region.SizeZ - 1) * 0.5f);
+            Vector3 broadPos = Vector3.Transform(localCenter * targetTransform.Scale, targetTransform.Orientation)
+                + targetTransform.Position;
+            var broadQuery = new ShapeOverlapQuery(
+                new Box3(new Vector3(region.SizeX, region.SizeY, region.SizeZ)),
+                broadPos,
+                targetTransform.Orientation,
+                targetTransform.Scale,
+                ignoredEntity: ignoredEntity,
+                minPenetration: OVERLAP_PENETRATION_EPSILON);
+
+            if (!_physics.Overlaps(in broadQuery))
+            {
+                return false;
+            }
+        }
+
         var originVec = new Vector3(origin.X, origin.Y, origin.Z);
         for (var i = 0; i < _overlapCacheShape.Shapes.Length; i++)
         {
@@ -909,11 +931,9 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
 
     private bool EnsureCreativeMode(DataStore store)
     {
-        GameMode mode = GameMode.Adventure;
-        store.Query<PlayerComponent, GameModeComponent>(
-            0f,
-            (float _, DataStore _, int _, in PlayerComponent _, in GameModeComponent gm) => mode = gm.Mode);
-        if (mode == GameMode.Creative)
+        var query = new FindGameModeAction { Mode = GameMode.Adventure };
+        store.Query<PlayerComponent, GameModeComponent, FindGameModeAction>(0f, ref query);
+        if (query.Mode == GameMode.Creative)
         {
             return true;
         }
@@ -955,17 +975,10 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
 
     private static bool TryGetPlayerPosition(DataStore store, out Vector3 position)
     {
-        var found = false;
-        Vector3 pos = Vector3.Zero;
-        store.Query<PlayerComponent, TransformComponent>(
-            0f,
-            (float _, DataStore _, int _, in PlayerComponent _, in TransformComponent t) =>
-            {
-                pos = t.Position;
-                found = true;
-            });
-        position = pos;
-        return found;
+        var query = new FindPlayerPositionAction();
+        store.Query<PlayerComponent, TransformComponent, FindPlayerPositionAction>(0f, ref query);
+        position = query.Position;
+        return query.Found;
     }
 
     private void DrainIgnoredQueues()
@@ -973,6 +986,28 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         while (_pendingClicks.TryDequeue(out _)) { }
         while (_pendingScrolls.TryDequeue(out _)) { }
         while (_pendingActions.TryDequeue(out _)) { }
+    }
+
+    private struct FindGameModeAction : IForEach<PlayerComponent, GameModeComponent>
+    {
+        public GameMode Mode;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in GameModeComponent gameMode)
+        {
+            Mode = gameMode.Mode;
+        }
+    }
+
+    private struct FindPlayerPositionAction : IForEach<PlayerComponent, TransformComponent>
+    {
+        public Vector3 Position;
+        public bool Found;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in TransformComponent transform)
+        {
+            Position = transform.Position;
+            Found = true;
+        }
     }
 
     private readonly struct PendingSaveRequest(string name, Action<Result<BlueprintSummary>> onCompleted)

@@ -28,6 +28,17 @@ internal sealed class RegionPreviewMeshBuilder
 
     private readonly MeshState _meshState = new();
     private readonly MeshPostPass _meshPostPass;
+    private readonly List<Int3> _occupied = [];
+
+    private bool _hasCachedBase;
+    private int _cachedRevision;
+    private Orientation _cachedRotation;
+    private MirrorAxes _cachedMirror;
+    private Vector3[] _cachedVertices = [];
+    private Vector4[] _cachedBaseColors = [];
+    private Vector3[] _cachedUv = [];
+    private Vector3[] _cachedNormals = [];
+    private uint[] _cachedTriangles = [];
 
     /// <summary>Creates a preview mesh builder over the client's brick, paint, mesh, and texture databases.</summary>
     public RegionPreviewMeshBuilder(
@@ -40,19 +51,60 @@ internal sealed class RegionPreviewMeshBuilder
         _meshPostPass = new MeshPostPass(_meshState, brickDatabase, textureArrays, meshDatabase, paintDatabase);
     }
 
+    /// <summary>Builds a combined ghost mesh for <paramref name="region"/> in local region space, caching untinted base geometry across validity flips.</summary>
+    public Result<Mesh> Build(
+        in VoxelRegionData region,
+        int revision,
+        Orientation rotation,
+        MirrorAxes mirror,
+        bool valid
+    )
+    {
+        if (!_hasCachedBase || _cachedRevision != revision || _cachedRotation != rotation || _cachedMirror != mirror)
+        {
+            Result rebuilt = RebuildBaseGeometry(in region);
+            if (!rebuilt.Success)
+            {
+                _hasCachedBase = false;
+                return Result<Mesh>.FromFailure(rebuilt.Message);
+            }
+
+            _cachedRevision = revision;
+            _cachedRotation = rotation;
+            _cachedMirror = mirror;
+            _hasCachedBase = true;
+        }
+
+        Vector4 tint = valid ? _validTint : _invalidTint;
+        return CreateTintedMesh(tint);
+    }
+
     /// <summary>Builds a combined ghost mesh for <paramref name="region"/> in local region space.</summary>
     public Result<Mesh> Build(in VoxelRegionData region, bool valid)
     {
+        _hasCachedBase = false;
+        Result rebuilt = RebuildBaseGeometry(in region);
+        if (!rebuilt.Success)
+        {
+            return Result<Mesh>.FromFailure(rebuilt.Message);
+        }
+
+        Vector4 tint = valid ? _validTint : _invalidTint;
+        return CreateTintedMesh(tint);
+    }
+
+    private Result RebuildBaseGeometry(in VoxelRegionData region)
+    {
         if (region.SizeX <= 0 || region.SizeY <= 0 || region.SizeZ <= 0 || region.Chunks == null || region.Chunks.Length == 0)
         {
-            return Result<Mesh>.FromFailure("Region contains no geometry.");
+            return Result.FromFailure("Region contains no geometry.");
         }
 
         byte sourceChunkSize = GetValidChunkSize(region.Chunks);
         var sourceObject = new VoxelObject(sourceChunkSize, region.Chunks);
         var tempObject = new VoxelObject(VoxelObject.DEFAULT_CHUNK_EDGE);
 
-        var occupied = new List<(int x, int y, int z, Voxel voxel, ChunkData srcChunk, int srcIndex)>();
+        _occupied.Clear();
         int shift = BitOperations.TrailingZeroCount(sourceChunkSize);
         int shift2 = shift * 2;
         int mask = sourceChunkSize - 1;
@@ -90,7 +142,7 @@ internal sealed class RegionPreviewMeshBuilder
                     new ShapeLight(voxel.GetShapeLight().Shape, PREVIEW_LIGHT_LEVEL),
                     new OrientationFlags(voxel.GetOrientation(), hasFaceOverrides: false));
                 tempObject.Set(x, y, z, litVoxel);
-                occupied.Add((x, y, z, voxel, chunk, i));
+                _occupied.Add(new Int3(x, y, z));
 
                 if (!voxel.HasFaceOverrides())
                 {
@@ -108,21 +160,21 @@ internal sealed class RegionPreviewMeshBuilder
             }
         }
 
-        if (occupied.Count == 0)
+        if (_occupied.Count == 0)
         {
-            return Result<Mesh>.FromFailure("Region contains no solid bricks.");
+            return Result.FromFailure("Region contains no solid bricks.");
         }
 
         // Light exposed empty neighbors so exterior preview faces receive full brightness without propagating interior AO.
-        for (var i = 0; i < occupied.Count; i++)
+        for (var i = 0; i < _occupied.Count; i++)
         {
-            (int x, int y, int z, _, _, _) = occupied[i];
-            SetAirIfEmpty(tempObject, x - 1, y, z);
-            SetAirIfEmpty(tempObject, x + 1, y, z);
-            SetAirIfEmpty(tempObject, x, y - 1, z);
-            SetAirIfEmpty(tempObject, x, y + 1, z);
-            SetAirIfEmpty(tempObject, x, y, z - 1);
-            SetAirIfEmpty(tempObject, x, y, z + 1);
+            Int3 cell = _occupied[i];
+            SetAirIfEmpty(tempObject, cell.X - 1, cell.Y, cell.Z);
+            SetAirIfEmpty(tempObject, cell.X + 1, cell.Y, cell.Z);
+            SetAirIfEmpty(tempObject, cell.X, cell.Y - 1, cell.Z);
+            SetAirIfEmpty(tempObject, cell.X, cell.Y + 1, cell.Z);
+            SetAirIfEmpty(tempObject, cell.X, cell.Y, cell.Z - 1);
+            SetAirIfEmpty(tempObject, cell.X, cell.Y, cell.Z + 1);
         }
 
         _meshState.Clear();
@@ -139,11 +191,10 @@ internal sealed class RegionPreviewMeshBuilder
             }
         }
 
-        Vector4 tint = valid ? _validTint : _invalidTint;
-        return CreateCombinedMesh(_meshState, tint);
+        return CacheCombinedBaseGeometry(_meshState);
     }
 
-    private static Result<Mesh> CreateCombinedMesh(MeshState state, Vector4 tint)
+    private Result CacheCombinedBaseGeometry(MeshState state)
     {
         MeshState.MeshData[] buckets = [state.Opaque, state.OpaqueNoShadow, state.Masked, state.Transparent];
         var totalVertices = 0;
@@ -157,7 +208,7 @@ internal sealed class RegionPreviewMeshBuilder
 
         if (totalVertices == 0 || totalTriangles == 0)
         {
-            return Result<Mesh>.FromFailure("Region produced no preview geometry.");
+            return Result.FromFailure("Region produced no preview geometry.");
         }
 
         var vertices = new Vector3[totalVertices];
@@ -182,7 +233,7 @@ internal sealed class RegionPreviewMeshBuilder
             for (var i = 0; i < vCount; i++)
             {
                 vertices[vertexBase + i] = bucket.Vertices[i];
-                colors[vertexBase + i] = bucket.Colors[i] * tint;
+                colors[vertexBase + i] = bucket.Colors[i];
                 uv[vertexBase + i] = bucket.UV[i];
                 normals[vertexBase + i] = bucket.Normals[i];
             }
@@ -196,7 +247,24 @@ internal sealed class RegionPreviewMeshBuilder
             triBase += tCount;
         }
 
-        return Result<Mesh>.FromSuccess(new Mesh(triangles, vertices, colors, uv, normals));
+        _cachedVertices = vertices;
+        _cachedBaseColors = colors;
+        _cachedUv = uv;
+        _cachedNormals = normals;
+        _cachedTriangles = triangles;
+        return Result.FromSuccess();
+    }
+
+    private Result<Mesh> CreateTintedMesh(Vector4 tint)
+    {
+        int vCount = _cachedBaseColors.Length;
+        var tintedColors = new Vector4[vCount];
+        for (var i = 0; i < vCount; i++)
+        {
+            tintedColors[i] = _cachedBaseColors[i] * tint;
+        }
+
+        return Result<Mesh>.FromSuccess(new Mesh(_cachedTriangles, _cachedVertices, tintedColors, _cachedUv, _cachedNormals));
     }
 
     private static void SetAirIfEmpty(VoxelObject voxelObject, int x, int y, int z)

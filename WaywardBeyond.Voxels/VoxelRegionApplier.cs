@@ -27,42 +27,77 @@ public static class VoxelRegionApplier
 
         if (overwriteAir)
         {
-            for (var sz = 0; sz < region.SizeZ; sz++)
-            for (var sy = 0; sy < region.SizeY; sy++)
-            for (var sx = 0; sx < region.SizeX; sx++)
+            int minX = origin.X;
+            int minY = origin.Y;
+            int minZ = origin.Z;
+            int maxX = origin.X + region.SizeX - 1;
+            int maxY = origin.Y + region.SizeY - 1;
+            int maxZ = origin.Z + region.SizeZ - 1;
+
+            byte targetChunkSize = target.ChunkSize;
+            int targetShift = BitOperationsShift(targetChunkSize);
+            int targetShift2 = targetShift * 2;
+
+            foreach (ChunkData chunk in target)
             {
-                int tx = origin.X + sx;
-                int ty = origin.Y + sy;
-                int tz = origin.Z + sz;
-
-                Voxel srcVoxel = sourceObject.IsResident(sx, sy, sz) ? sourceObject.Get(sx, sy, sz) : default;
-                if (srcVoxel.ID == 0)
+                if (chunk.Palette.Only(0))
                 {
-                    if (!target.IsResident(tx, ty, tz))
-                    {
-                        continue;
-                    }
-
-                    Voxel existing = target.Get(tx, ty, tz);
-                    if (existing.ID == 0 && !existing.HasFaceOverrides())
-                    {
-                        continue;
-                    }
-
-                    target.Set(tx, ty, tz, new Voxel());
-                    dirtyChunks?.AddRange(tx, ty, tz, target.ChunkSize);
-                    if (existing.ID != 0)
-                    {
-                        written++;
-                    }
                     continue;
                 }
 
-                WriteVoxelWithOverrides(sourceObject, sx, sy, sz, in srcVoxel, target, tx, ty, tz, dirtyChunks);
-                written++;
-            }
+                int bx = chunk.Coords.X * targetChunkSize;
+                int by = chunk.Coords.Y * targetChunkSize;
+                int bz = chunk.Coords.Z * targetChunkSize;
+                if (bx + targetChunkSize - 1 < minX || bx > maxX
+                    || by + targetChunkSize - 1 < minY || by > maxY
+                    || bz + targetChunkSize - 1 < minZ || bz > maxZ)
+                {
+                    continue;
+                }
 
-            return written;
+                int startX = Math.Max(0, minX - bx);
+                int endX = Math.Min(targetChunkSize - 1, maxX - bx);
+                int startY = Math.Max(0, minY - by);
+                int endY = Math.Min(targetChunkSize - 1, maxY - by);
+                int startZ = Math.Max(0, minZ - bz);
+                int endZ = Math.Min(targetChunkSize - 1, maxZ - bz);
+                Voxel[] voxels = chunk.Data.Voxels;
+
+                for (int lz = startZ; lz <= endZ; lz++)
+                {
+                    int tz = bz + lz;
+                    int sz = tz - origin.Z;
+                    int zIndex = lz << targetShift2;
+                    for (int ly = startY; ly <= endY; ly++)
+                    {
+                        int ty = by + ly;
+                        int sy = ty - origin.Y;
+                        int yzIndex = zIndex | (ly << targetShift);
+                        for (int lx = startX; lx <= endX; lx++)
+                        {
+                            Voxel existing = voxels[yzIndex | lx];
+                            if (existing.ID == 0 && !existing.HasFaceOverrides())
+                            {
+                                continue;
+                            }
+
+                            int tx = bx + lx;
+                            int sx = tx - origin.X;
+                            if (sourceObject.IsResident(sx, sy, sz) && sourceObject.Get(sx, sy, sz).ID != 0)
+                            {
+                                continue;
+                            }
+
+                            target.Set(tx, ty, tz, new Voxel());
+                            dirtyChunks?.AddRange(tx, ty, tz, targetChunkSize);
+                            if (existing.ID != 0)
+                            {
+                                written++;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         foreach (ChunkData chunk in sourceObject)
@@ -123,24 +158,58 @@ public static class VoxelRegionApplier
         int maxZ = Math.Max(cornerA.Z, cornerB.Z);
 
         var cleared = 0;
-        for (int z = minZ; z <= maxZ; z++)
-        for (int y = minY; y <= maxY; y++)
-        for (int x = minX; x <= maxX; x++)
+        byte chunkSize = target.ChunkSize;
+        int shift = BitOperationsShift(chunkSize);
+        int shift2 = shift * 2;
+
+        foreach (ChunkData chunk in target)
         {
-            if (!target.IsResident(x, y, z))
+            if (chunk.Palette.Only(0))
             {
                 continue;
             }
 
-            Voxel existing = target.Get(x, y, z);
-            if (existing.ID == 0)
+            int bx = chunk.Coords.X * chunkSize;
+            int by = chunk.Coords.Y * chunkSize;
+            int bz = chunk.Coords.Z * chunkSize;
+            if (bx + chunkSize - 1 < minX || bx > maxX
+                || by + chunkSize - 1 < minY || by > maxY
+                || bz + chunkSize - 1 < minZ || bz > maxZ)
             {
                 continue;
             }
 
-            target.Set(x, y, z, new Voxel());
-            dirtyChunks?.AddRange(x, y, z, target.ChunkSize);
-            cleared++;
+            int startX = Math.Max(0, minX - bx);
+            int endX = Math.Min(chunkSize - 1, maxX - bx);
+            int startY = Math.Max(0, minY - by);
+            int endY = Math.Min(chunkSize - 1, maxY - by);
+            int startZ = Math.Max(0, minZ - bz);
+            int endZ = Math.Min(chunkSize - 1, maxZ - bz);
+            Voxel[] voxels = chunk.Data.Voxels;
+
+            for (int lz = startZ; lz <= endZ; lz++)
+            {
+                int z = bz + lz;
+                int zIndex = lz << shift2;
+                for (int ly = startY; ly <= endY; ly++)
+                {
+                    int y = by + ly;
+                    int yzIndex = zIndex | (ly << shift);
+                    for (int lx = startX; lx <= endX; lx++)
+                    {
+                        Voxel existing = voxels[yzIndex | lx];
+                        if (existing.ID == 0)
+                        {
+                            continue;
+                        }
+
+                        int x = bx + lx;
+                        target.Set(x, y, z, new Voxel());
+                        dirtyChunks?.AddRange(x, y, z, chunkSize);
+                        cleared++;
+                    }
+                }
+            }
         }
 
         return cleared;

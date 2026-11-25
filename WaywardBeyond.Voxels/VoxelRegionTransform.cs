@@ -42,96 +42,114 @@ public static class VoxelRegionTransform
         Span<FaceOverride> faces = stackalloc FaceOverride[6];
         Span<FaceOverride> remappedFaces = stackalloc FaceOverride[6];
 
-        for (int sz = 0; sz < source.SizeZ; sz++)
-        for (int sy = 0; sy < source.SizeY; sy++)
-        for (int sx = 0; sx < source.SizeX; sx++)
+        int shift = BitOperations.TrailingZeroCount(chunkSize);
+        int shift2 = shift * 2;
+        int mask = chunkSize - 1;
+
+        foreach (ChunkData chunk in sourceObject)
         {
-            if (!sourceObject.IsResident(sx, sy, sz))
+            if (chunk.Palette.Only(0))
             {
                 continue;
             }
 
-            Voxel voxel = sourceObject.Get(sx, sy, sz);
-            if (voxel.ID == 0)
-            {
-                continue;
-            }
+            int bx = chunk.Coords.X * chunkSize;
+            int by = chunk.Coords.Y * chunkSize;
+            int bz = chunk.Coords.Z * chunkSize;
+            Voxel[] voxels = chunk.Data.Voxels;
 
-            faces.Clear();
-            bool hasOverrides = voxel.HasFaceOverrides();
-            if (hasOverrides)
+            for (var i = 0; i < voxels.Length; i++)
             {
-                for (var f = 0; f < 6; f++)
+                Voxel voxel = voxels[i];
+                if (voxel.ID == 0)
                 {
-                    sourceObject.TryGetFaceOverride(sx, sy, sz, (BrickFace)f, out faces[f]);
+                    continue;
                 }
-            }
 
-            BrickShape shape = voxel.GetShapeLight().Shape;
-            Orientation voxelOrientation = voxel.GetOrientation();
-            bool isOrientable = IsOrientable(brickDatabase, voxel.ID, shape, voxelOrientation);
-
-            int mx = (mirror & MirrorAxes.X) != 0 ? (source.SizeX - 1) - sx : sx;
-            int my = (mirror & MirrorAxes.Y) != 0 ? (source.SizeY - 1) - sy : sy;
-            int mz = (mirror & MirrorAxes.Z) != 0 ? (source.SizeZ - 1) - sz : sz;
-
-            if (mirror != MirrorAxes.None)
-            {
-                ApplyMirrorAxis(MirrorAxes.X, mirror, isOrientable, ref voxelOrientation, faces);
-                ApplyMirrorAxis(MirrorAxes.Y, mirror, isOrientable, ref voxelOrientation, faces);
-                ApplyMirrorAxis(MirrorAxes.Z, mirror, isOrientable, ref voxelOrientation, faces);
-            }
-
-            Int3 rotatedCoord = RotateInt3(new Int3(mx, my, mz), rotation);
-            int nx = rotatedCoord.X - minRotated.X;
-            int ny = rotatedCoord.Y - minRotated.Y;
-            int nz = rotatedCoord.Z - minRotated.Z;
-
-            if (rotation != Orientation.Identity)
-            {
-                if (isOrientable)
+                int sx = bx + (i & mask);
+                int sy = by + ((i >> shift) & mask);
+                int sz = bz + (i >> shift2);
+                if ((uint)sx >= (uint)source.SizeX || (uint)sy >= (uint)source.SizeY || (uint)sz >= (uint)source.SizeZ)
                 {
-                    voxelOrientation = new Orientation(rotation.ToQuaternion() * voxelOrientation.ToQuaternion());
+                    continue;
                 }
-                else
+
+                faces.Clear();
+                bool hasOverrides = voxel.HasFaceOverrides();
+                if (hasOverrides)
                 {
-                    voxelOrientation = Orientation.Identity;
-                    if (hasOverrides)
+                    for (var f = 0; f < 6; f++)
                     {
-                        remappedFaces.Clear();
-                        for (var f = 0; f < 6; f++)
-                        {
-                            if (!faces[f].IsEmpty)
-                            {
-                                BrickFace worldFace = FaceOrientationLookup.ToWorldFace(rotation, (BrickFace)f);
-                                remappedFaces[(int)worldFace] = faces[f];
-                            }
-                        }
-
-                        remappedFaces.CopyTo(faces);
+                        chunk.TryGetFaceOverride(i, (BrickFace)f, out faces[f]);
                     }
                 }
-            }
 
-            if (!isOrientable)
-            {
-                voxelOrientation = Orientation.Identity;
-            }
+                BrickShape shape = voxel.GetShapeLight().Shape;
+                Orientation voxelOrientation = voxel.GetOrientation();
+                bool isOrientable = IsOrientable(brickDatabase, voxel.ID, shape, voxelOrientation);
 
-            var transformed = new Voxel(
-                voxel.ID,
-                new ShapeLight(shape, voxel.GetLightLevel()),
-                new OrientationFlags(voxelOrientation, hasFaceOverrides: false)
-            );
-            destObject.Set(nx, ny, nz, transformed);
+                int mx = (mirror & MirrorAxes.X) != 0 ? (source.SizeX - 1) - sx : sx;
+                int my = (mirror & MirrorAxes.Y) != 0 ? (source.SizeY - 1) - sy : sy;
+                int mz = (mirror & MirrorAxes.Z) != 0 ? (source.SizeZ - 1) - sz : sz;
 
-            if (hasOverrides)
-            {
-                for (var f = 0; f < 6; f++)
+                if (mirror != MirrorAxes.None)
                 {
-                    if (!faces[f].IsEmpty)
+                    ApplyMirrorAxis(MirrorAxes.X, mirror, isOrientable, ref voxelOrientation, faces);
+                    ApplyMirrorAxis(MirrorAxes.Y, mirror, isOrientable, ref voxelOrientation, faces);
+                    ApplyMirrorAxis(MirrorAxes.Z, mirror, isOrientable, ref voxelOrientation, faces);
+                }
+
+                Int3 rotatedCoord = RotateInt3(new Int3(mx, my, mz), rotation);
+                int nx = rotatedCoord.X - minRotated.X;
+                int ny = rotatedCoord.Y - minRotated.Y;
+                int nz = rotatedCoord.Z - minRotated.Z;
+
+                if (rotation != Orientation.Identity)
+                {
+                    if (isOrientable)
                     {
-                        destObject.SetFaceOverride(nx, ny, nz, ((BrickFace)f).ToMask(), faces[f]);
+                        voxelOrientation = new Orientation(rotation.ToQuaternion() * voxelOrientation.ToQuaternion());
+                    }
+                    else
+                    {
+                        voxelOrientation = Orientation.Identity;
+                        if (hasOverrides)
+                        {
+                            remappedFaces.Clear();
+                            for (var f = 0; f < 6; f++)
+                            {
+                                if (!faces[f].IsEmpty)
+                                {
+                                    BrickFace worldFace = FaceOrientationLookup.ToWorldFace(rotation, (BrickFace)f);
+                                    remappedFaces[(int)worldFace] = faces[f];
+                                }
+                            }
+
+                            remappedFaces.CopyTo(faces);
+                        }
+                    }
+                }
+
+                if (!isOrientable)
+                {
+                    voxelOrientation = Orientation.Identity;
+                }
+
+                var transformed = new Voxel(
+                    voxel.ID,
+                    new ShapeLight(shape, voxel.GetLightLevel()),
+                    new OrientationFlags(voxelOrientation, hasFaceOverrides: false)
+                );
+                destObject.Set(nx, ny, nz, transformed);
+
+                if (hasOverrides)
+                {
+                    for (var f = 0; f < 6; f++)
+                    {
+                        if (!faces[f].IsEmpty)
+                        {
+                            destObject.SetFaceOverride(nx, ny, nz, ((BrickFace)f).ToMask(), faces[f]);
+                        }
                     }
                 }
             }

@@ -103,6 +103,28 @@ public static class RegionPlacementResolver
             return false;
         }
 
+        if (compound.Shapes.Length > 1)
+        {
+            var localCenter = new Vector3(
+                origin.X + (region.SizeX - 1) * 0.5f,
+                origin.Y + (region.SizeY - 1) * 0.5f,
+                origin.Z + (region.SizeZ - 1) * 0.5f);
+            Vector3 broadPos = Vector3.Transform(localCenter * targetTransform.Scale, targetTransform.Orientation)
+                + targetTransform.Position;
+            var broadQuery = new ShapeOverlapQuery(
+                new Box3(new Vector3(region.SizeX, region.SizeY, region.SizeZ)),
+                broadPos,
+                targetTransform.Orientation,
+                targetTransform.Scale,
+                ignoredEntity: ignoredEntity,
+                minPenetration: PLACEMENT_PENETRATION_EPSILON);
+
+            if (!physics.Overlaps(in broadQuery))
+            {
+                return false;
+            }
+        }
+
         for (var i = 0; i < compound.Shapes.Length; i++)
         {
             Vector3 worldPosition = Vector3.Transform(compound.Positions[i] * targetTransform.Scale, targetTransform.Orientation)

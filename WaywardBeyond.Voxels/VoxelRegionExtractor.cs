@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Voxels;
@@ -23,44 +24,75 @@ public static class VoxelRegionExtractor
         var target = new VoxelObject(VoxelObject.DEFAULT_CHUNK_EDGE);
         var brickCount = 0;
 
-        for (int z = minZ; z <= maxZ; z++)
-        for (int y = minY; y <= maxY; y++)
-        for (int x = minX; x <= maxX; x++)
+        byte chunkSize = source.ChunkSize;
+        int shift = BitOperations.TrailingZeroCount(chunkSize);
+        int shift2 = shift * 2;
+
+        foreach (ChunkData chunk in source)
         {
-            if (!source.IsResident(x, y, z))
+            if (chunk.Palette.Only(0))
             {
                 continue;
             }
 
-            Voxel voxel = source.Get(x, y, z);
-            if (voxel.ID == 0)
+            int bx = chunk.Coords.X * chunkSize;
+            int by = chunk.Coords.Y * chunkSize;
+            int bz = chunk.Coords.Z * chunkSize;
+            if (bx + chunkSize - 1 < minX || bx > maxX
+                || by + chunkSize - 1 < minY || by > maxY
+                || bz + chunkSize - 1 < minZ || bz > maxZ)
             {
                 continue;
             }
 
-            int dx = x - minX;
-            int dy = y - minY;
-            int dz = z - minZ;
+            int startX = Math.Max(0, minX - bx);
+            int endX = Math.Min(chunkSize - 1, maxX - bx);
+            int startY = Math.Max(0, minY - by);
+            int endY = Math.Min(chunkSize - 1, maxY - by);
+            int startZ = Math.Max(0, minZ - bz);
+            int endZ = Math.Min(chunkSize - 1, maxZ - bz);
+            Voxel[] voxels = chunk.Data.Voxels;
 
-            var clean = new Voxel(
-                voxel.ID,
-                new ShapeLight(voxel.GetShapeLight().Shape, lightLevel: 0),
-                new OrientationFlags(voxel.OrientationFlags).WithFaceOverrides(false)
-            );
-            target.Set(dx, dy, dz, clean);
-            brickCount++;
-
-            if (!voxel.HasFaceOverrides())
+            for (int lz = startZ; lz <= endZ; lz++)
             {
-                continue;
-            }
-
-            for (var f = 0; f < 6; f++)
-            {
-                var face = (BrickFace)f;
-                if (source.TryGetFaceOverride(x, y, z, face, out FaceOverride faceOverride) && !faceOverride.IsEmpty)
+                int dz = (bz + lz) - minZ;
+                int zIndex = lz << shift2;
+                for (int ly = startY; ly <= endY; ly++)
                 {
-                    target.SetFaceOverride(dx, dy, dz, face.ToMask(), faceOverride);
+                    int dy = (by + ly) - minY;
+                    int yzIndex = zIndex | (ly << shift);
+                    for (int lx = startX; lx <= endX; lx++)
+                    {
+                        int index = yzIndex | lx;
+                        Voxel voxel = voxels[index];
+                        if (voxel.ID == 0)
+                        {
+                            continue;
+                        }
+
+                        int dx = (bx + lx) - minX;
+                        var clean = new Voxel(
+                            voxel.ID,
+                            new ShapeLight(voxel.GetShapeLight().Shape, lightLevel: 0),
+                            new OrientationFlags(voxel.OrientationFlags).WithFaceOverrides(false)
+                        );
+                        target.Set(dx, dy, dz, clean);
+                        brickCount++;
+
+                        if (!voxel.HasFaceOverrides())
+                        {
+                            continue;
+                        }
+
+                        for (var f = 0; f < 6; f++)
+                        {
+                            var face = (BrickFace)f;
+                            if (chunk.TryGetFaceOverride(index, face, out FaceOverride faceOverride) && !faceOverride.IsEmpty)
+                            {
+                                target.SetFaceOverride(dx, dy, dz, face.ToMask(), faceOverride);
+                            }
+                        }
+                    }
                 }
             }
         }
