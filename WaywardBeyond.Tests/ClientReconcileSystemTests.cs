@@ -125,6 +125,46 @@ public class ClientReconcileSystemTests
     }
 
     [Fact]
+    public void RemotePlayerTransformCorrectionSnapsBeyondSnapDistance()
+    {
+        TestContext context = CreateContext();
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var initial = new Vector3(1f, 2f, 3f);
+        var serverPosition = initial + new Vector3(10f, 0f, 0f);
+        var serverOrientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 1.5f);
+        int remote = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(remote, new TransformComponent(initial, Quaternion.Identity, Vector3.One));
+        context.Store.AddOrUpdate(remote, new BodyViewComponent { Body = "wb:human_m" });
+
+        EnqueueTransform(context, remoteUuid, serverPosition, serverOrientation, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(serverPosition, transform.Position);
+        Assert.Equal(serverOrientation, transform.Orientation);
+    }
+
+    [Fact]
+    public void LocalPlayerTransformCorrectionSnapsBeyondSnapDistance()
+    {
+        TestContext context = CreateContext();
+        Assert.True(context.Store.TryGet(context.Player, out TransformComponent spawn));
+        var nearby = spawn.Position + new Vector3(0.5f, 0f, 0f);
+        var farPosition = nearby + new Vector3(10f, 0f, 0f);
+
+        //  The first snapshot seeds the reconciler and always snaps, so a second one reaches the
+        //  blend path's upper bound.
+        EnqueueTransform(context, context.PlayerUuid, nearby, Quaternion.Identity, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        EnqueueTransform(context, context.PlayerUuid, farPosition, Quaternion.Identity, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(context.Player, out TransformComponent transform));
+        Assert.Equal(farPosition, transform.Position);
+    }
+
+    [Fact]
     public void WorldTransformSnapshotSnapsExactly()
     {
         TestContext context = CreateContext();

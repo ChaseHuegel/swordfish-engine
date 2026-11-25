@@ -48,15 +48,18 @@ aligns the shared step (`AlignTo` the snapshot's sim tick).
 
 For the local player, position and linear velocity are authority. Small position
 errors are ignored and larger ones are blended over a few snapshots, so prediction
-error does not visibly jitter. Orientation targets the server orientation plus the
-look applied after the snapshot's ack, and angular velocity is authority only while
-look is idle.
+error does not visibly jitter. An error past `CharacterDefaults.RECONCILE_SNAP_DISTANCE`
+(2 m) is a discontinuity, not prediction error, so the position snaps. Orientation
+targets the server orientation plus the look applied after the snapshot's ack, and
+angular velocity is authority only while look is idle.
 
 Remote player bodies run in the client's Jolt world too. The server replicates
 their body configuration and collider, so the local prediction collides with
 them the same way the authoritative world does. Their position correction uses
-the same deadband and blend as the local player's position. Orientation and
-scale are authoritative.
+the same deadband, blend, and snap distance as the local player's position.
+Orientation and scale are authoritative. Both reconcilers share the one distance
+constant, so a respawn, teleport, or large server correction snaps for either
+side instead of gliding across the world.
 
 Replay is per-sim-tick resolution, not a separate phase: the shared step's
 command resolver reads the pending ring (`StageRingExtensions.GetCommand`)
@@ -125,6 +128,7 @@ incoming, correct local-player orientation) → render reads final `Transform`.
 
 - `WaywardBeyond.Client/Systems/{ClientInputSystem,ClientJoinSystem,ClientReconcileSystem,ClientReplicationSystem}.cs`
 - `WaywardBeyond.Client/Player/LocalPlayerReconciler.cs` — local-player orientation and angular reconciliation
+- `WaywardBeyond.Gameplay/CharacterDefaults.cs` — `RECONCILE_SNAP_DISTANCE`, shared by both reconcilers
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` — seats the mirror and forgets its prior look history
 - `WaywardBeyond.Gameplay/SimulationStep.cs` — the shared simulation step
 - `WaywardBeyond.Client/Components/PendingInputComponent.cs`

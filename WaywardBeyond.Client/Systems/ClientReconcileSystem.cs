@@ -11,6 +11,7 @@ using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Networking.Rpc;
@@ -34,9 +35,12 @@ internal sealed class ClientReconcileSystem(
     ILogger<ClientReconcileSystem> logger
 ) : IEntitySystem
 {
-    //  Remote bodies correct like the local player: ignore sub-centimeter drift and blend larger errors.
+    //  Remote bodies correct like the local player: ignore sub-centimeter drift, blend larger errors, and
+    //  snap past the correction distance so a respawn or teleport does not glide across the world.
     private const float REMOTE_POSITION_CORRECTION_BLEND = 0.5f;
     private const float REMOTE_POSITION_DEADBAND_SQ = 0.0001f;
+    private const float REMOTE_POSITION_SNAP_DISTANCE_SQ =
+        CharacterDefaults.RECONCILE_SNAP_DISTANCE * CharacterDefaults.RECONCILE_SNAP_DISTANCE;
 
     private readonly FragmentAssembler _snapshotAssembler = new();
     private readonly List<WorldSnapshot> _snapshots = [];
@@ -333,7 +337,8 @@ internal sealed class ClientReconcileSystem(
         {
             ref readonly TransformComponent current = ref transform.Read;
             Vector3 offset = _position - current.Position;
-            bool positionChanged = offset.LengthSquared() > REMOTE_POSITION_DEADBAND_SQ;
+            float offsetSq = offset.LengthSquared();
+            bool positionChanged = offsetSq > REMOTE_POSITION_DEADBAND_SQ;
             bool poseChanged = current.Orientation != _orientation || current.Scale != _scale;
             if (!positionChanged && !poseChanged)
             {
@@ -343,7 +348,9 @@ internal sealed class ClientReconcileSystem(
             ref TransformComponent value = ref transform.Write;
             if (positionChanged)
             {
-                value.Position = current.Position + offset * REMOTE_POSITION_CORRECTION_BLEND;
+                value.Position = offsetSq > REMOTE_POSITION_SNAP_DISTANCE_SQ
+                    ? _position
+                    : current.Position + offset * REMOTE_POSITION_CORRECTION_BLEND;
             }
 
             value.Orientation = _orientation;
