@@ -68,7 +68,15 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     }
 
     public void Bind(Shader shader) => BindShader(shader);
-    public void Bind(Texture texture) => BindTexture(texture);
+    public void Bind(Texture texture)
+    {
+        if (texture.IsDisposed)
+        {
+            return;
+        }
+
+        BindTexture(texture);
+    }
     public void Bind(Mesh mesh) => BindMesh(mesh);
     public void Bind(Material material) => BindMaterial(material);
     public void Bind(MeshRenderer meshRenderer, Uuid entity) => BindMeshRenderer(meshRenderer, entity);
@@ -201,6 +209,12 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         return Unsafe.As<ShaderProgram>(handle);
+    }
+
+    /// <summary>Binds <paramref name="texture"/> for OpenGL use, or returns null when disposed.</summary>
+    internal IGLTexture? TryBindTexture(Texture texture)
+    {
+        return texture.IsDisposed ? null : BindTexture(texture);
     }
 
     private IGLTexture BindTexture(Texture texture)

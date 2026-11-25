@@ -86,12 +86,16 @@ public class ConfigSerializationTests
         settings.Shadows.FilterMode.Set(ShadowFilterMode.Soft);
         settings.Shadows.CascadeCount.Set(4);
         settings.Shadows.MaxPointShadows.Set(4);
+        settings.Particles.Enabled.Set(false);
+        settings.Particles.MaxParticles.Set(2048);
+        settings.Particles.Density.Set(0.75f);
         settings.VSync.Set(true);
 
         string toml = settings.ToString();
 
         Assert.False(string.IsNullOrWhiteSpace(toml));
         Assert.Contains("Shadows", toml);
+        Assert.Contains("Particles", toml);
 
         RenderSettings loaded = RenderSettings.FromString(toml);
         Assert.True(loaded.Shadows.Enabled.Get());
@@ -99,6 +103,9 @@ public class ConfigSerializationTests
         Assert.Equal(2048, loaded.Shadows.Resolution.Get());
         Assert.Equal(4, loaded.Shadows.CascadeCount.Get());
         Assert.Equal(4, loaded.Shadows.MaxPointShadows.Get());
+        Assert.False(loaded.Particles.Enabled.Get());
+        Assert.Equal(2048, loaded.Particles.MaxParticles.Get());
+        Assert.Equal(0.75f, loaded.Particles.Density.Get());
         Assert.Equal(0.35f, loaded.SAO.Radius.Get());
         Assert.Equal(1f, loaded.SAO.Intensity.Get());
         Assert.Equal(0.02f, loaded.SAO.Bias.Get());
@@ -139,6 +146,24 @@ public class ConfigSerializationTests
         RenderSettings loaded = RenderSettings.FromString(settings.ToString());
 
         Assert.Equal(float.MaxValue, loaded.SAO.MaxDistance.Get());
+    }
+
+    [Fact]
+    public void RenderSettings_ParticleDensityDefaultsAndMaxValueRoundTrip()
+    {
+        RegisterPrimitiveMappers();
+        new DataBindingTomlMapper<AntiAliasing>().Register();
+        new DataBindingTomlMapper<ShadowFilterMode>().Register();
+
+        RenderSettings defaults = RenderSettings.FromString("[Particles]\nEnabled = true\n");
+        Assert.Equal(1f, defaults.Particles.Density.Get());
+
+        var settings = new RenderSettings();
+        settings.Particles.Density.Set(float.MaxValue);
+
+        RenderSettings loaded = RenderSettings.FromString(settings.ToString());
+
+        Assert.Equal(float.MaxValue, loaded.Particles.Density.Get());
     }
 
     [Fact]
