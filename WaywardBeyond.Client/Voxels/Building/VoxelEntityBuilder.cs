@@ -324,7 +324,7 @@ internal sealed class VoxelEntityBuilder(
         registry.EntityDirtyChunks.Remove(chunkOffset);
     }
 
-    /// <summary>Frees every batch renderer and range that belongs to the voxel entity.</summary>
+    /// <summary>Frees every batch child entity and range that belongs to the voxel entity.</summary>
     public static void FreeChunks(DataStore store, int entity)
     {
         if (!store.TryGet(entity, out VoxelComponent voxelComponent))
@@ -334,11 +334,6 @@ internal sealed class VoxelEntityBuilder(
 
         VoxelChunkRegistry registry = voxelComponent.Registry;
 
-        if (store.TryGet(entity, out MeshRendererCleanup cleanup))
-        {
-            cleanup.DisposeAll();
-        }
-
         for (var i = 0; i < registry.BatchEntities.Count; i++)
         {
             ChunkEntity entry = registry.BatchEntities[i];
@@ -347,12 +342,7 @@ internal sealed class VoxelEntityBuilder(
                 continue;
             }
 
-            if (store.TryGet(entry.Entity, out MeshBatchRendererComponent component) && component.Renderer != null)
-            {
-                component.Renderer.Dispose();
-                component.Renderer.MeshBatch.Dispose();
-            }
-
+            //  Free captures the batch renderer removal; the engine releases the renderer and batch.
             store.Free(entry.Entity);
         }
 

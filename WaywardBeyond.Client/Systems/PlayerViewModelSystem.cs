@@ -42,15 +42,13 @@ internal sealed class PlayerViewModelSystem(
 
     private Entity? _viewModelEntity;
     private ViewModelKey? _currentKey;
-    private Mesh? _ownedMesh;
 
     private readonly record struct ViewModelKey(string ItemID, ModelDefinition Model, BrickShape Shape);
 
     private readonly record struct ResolvedVisuals(
         Mesh Mesh,
         Material Material,
-        RenderOptions RenderOptions,
-        bool OwnsMesh
+        RenderOptions RenderOptions
     );
 
     private struct ForEachAction : IForEach<PlayerComponent, InventoryComponent>
@@ -92,7 +90,6 @@ internal sealed class PlayerViewModelSystem(
             Owner.ClearRenderer();
 
             ResolvedVisuals visuals = Owner.ResolveVisuals(item, viewModel, shape);
-            Owner._ownedMesh = visuals.OwnsMesh ? visuals.Mesh : null;
 
             var meshRenderer = new MeshRenderer(visuals.Mesh, visuals.Material, visuals.RenderOptions);
             Owner._viewModelEntity.Value.AddOrUpdate(new MeshRendererComponent(meshRenderer));
@@ -155,7 +152,7 @@ internal sealed class PlayerViewModelSystem(
                     CastShadows = false,
                     ReceiveShadows = true,
                 };
-                return new ResolvedVisuals(meshResult.Value, materialResult.Value, options, OwnsMesh: false);
+                return new ResolvedVisuals(meshResult.Value, materialResult.Value, options);
             }
         }
 
@@ -171,7 +168,7 @@ internal sealed class PlayerViewModelSystem(
                     RenderOptions options = _voxelMaterials.GetRenderOptions(brick.Alpha);
                     options.CastShadows = false;
                     options.ReceiveShadows = true;
-                    return new ResolvedVisuals(brickMesh.Value, _voxelMaterials.GetMaterial(brick.Alpha), options, OwnsMesh: true);
+                    return new ResolvedVisuals(brickMesh.Value, _voxelMaterials.GetMaterial(brick.Alpha), options);
                 }
             }
         }
@@ -180,7 +177,7 @@ internal sealed class PlayerViewModelSystem(
         RenderOptions fallbackOptions = _voxelMaterials.OpaqueOptions;
         fallbackOptions.CastShadows = false;
         fallbackOptions.ReceiveShadows = true;
-        return new ResolvedVisuals(fallbackMesh, _voxelMaterials.Opaque, fallbackOptions, OwnsMesh: true);
+        return new ResolvedVisuals(fallbackMesh, _voxelMaterials.Opaque, fallbackOptions);
     }
 
     private void ClearRenderer()
@@ -190,26 +187,19 @@ internal sealed class PlayerViewModelSystem(
             MeshRendererComponent? meshRendererComponent = _viewModelEntity.Value.Get<MeshRendererComponent>();
             if (meshRendererComponent != null)
             {
-                meshRendererComponent.Value.MeshRenderer?.Dispose();
+                //  The engine retires the renderer and any mesh it owns once its component is gone.
                 _viewModelEntity.Value.Remove<MeshRendererComponent>();
             }
         }
-
-        _ownedMesh?.Dispose();
-        _ownedMesh = null;
     }
 
     private void FreeViewModel(DataStore store)
     {
         if (_viewModelEntity.HasValue)
         {
-            MeshRendererComponent? meshRenderer = _viewModelEntity.Value.Get<MeshRendererComponent>();
-            meshRenderer?.MeshRenderer?.Dispose();
             store.Free(_viewModelEntity.Value.Ptr);
         }
 
-        _ownedMesh?.Dispose();
-        _ownedMesh = null;
         _viewModelEntity = null;
         _currentKey = null;
     }
@@ -217,8 +207,6 @@ internal sealed class PlayerViewModelSystem(
     /// <inheritdoc/>
     public void Dispose()
     {
-        _ownedMesh?.Dispose();
-        _ownedMesh = null;
         _viewModelEntity = null;
         _currentKey = null;
     }

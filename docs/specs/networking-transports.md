@@ -123,9 +123,10 @@ the claim, the bound world, and the last inbound stamp.
 - `ServerJoinSystem` allocates a `Session` per peer and calls `Register`.
 - `NetworkReplicationSystem` reads each peer's acked input through
   `SessionManager.TryGetEntity`.
-- Disconnect teardown runs on the server thread. It disposes the mirror's
-  physics body, captures the uuid before `DataStore.Free`, frees the entity,
-  and clears the mapping. The despawn broadcasts in `RemovedEntities`.
+- Disconnect teardown runs on the server thread. It captures the uuid before
+  `DataStore.Free`, frees the entity, and clears the mapping. The engine
+  releases the mirror's physics body from the captured removal. The despawn
+  broadcasts in `RemovedEntities`.
 
 ## Heartbeats
 

@@ -366,10 +366,15 @@ Document the contract. Do not document the implementation.
 - Explicit `store.MarkDirty<T>(entity)` is only needed for reference-content
   mutation (e.g. `VoxelComponent`, arrays/collections inside a component) where
   no `Ref<T>` write occurs.
-- `QueryDirty<T>`/`QueryDirty<T1,T2>`/`QueryRemoved<T>` iterate matching dirty
-  components WITHOUT clearing; callers must explicitly `ClearDirty<T>(entity)`.
-- Component removals are auto-flagged so `QueryRemoved` detects them; the value
-  is preserved on removal so readers access last-known data.
+- `QueryDirty<T>`/`QueryDirty<T1,T2>` iterate matching dirty components WITHOUT
+  clearing; callers must explicitly `ClearDirty<T>(entity)`.
+- `QueryRemoved<T>` iterates unacknowledged removals WITHOUT clearing; callers
+  must explicitly `ClearRemoved<T>(entity)`. `ClearDirty<T>` does not
+  acknowledge a removal.
+- Component removals are captured sparsely by entity index, so `QueryRemoved`
+  still reports the removed value when a freed entity index takes the same
+  component again in the same tick. Components that implement `IDisposable` are
+  disposed without boxing by `DataStore.DisposeRemoved()` on `Remove` and `Free`.
 - Change-gate hot-path writebacks. Read the current value first. Use `Write`
   only when the new value differs. A write of an unchanged value still marks the
   component dirty, so an idle system defeats delta replication and dirty polls.

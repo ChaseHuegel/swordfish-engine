@@ -382,8 +382,9 @@ public class BrickPreviewTests
             Assert.Equal(1, CountTagged(store, "game"));
             Assert.False(firstRenderer.IsDisposed);
 
-            var cleanupSystem = new CleanupMeshRendererSystem();
-            cleanupSystem.Tick(0f, store);
+            var processor = new MeshRendererComponentProcessor();
+            processor.Process(store, 0f);
+            processor.Process(store, 0f);
             Assert.True(firstRenderer.IsDisposed);
             Assert.True(firstRenderer.Mesh.IsDisposed);
 
@@ -430,6 +431,9 @@ public class BrickPreviewTests
             system.Tick(0.016f, store);
             MeshRenderer firstRenderer = GetRenderer(store)!;
 
+            var processor = new MeshRendererComponentProcessor();
+            processor.Process(store, 0f);
+
             state.Show(brick, BrickShape.Slab, Orientation.Identity, Vector3.Zero, Quaternion.Identity);
             system.Tick(0.016f, store);
             MeshRenderer secondRenderer = GetRenderer(store)!;
@@ -437,12 +441,11 @@ public class BrickPreviewTests
             Assert.NotSame(firstRenderer, secondRenderer);
             Assert.False(firstRenderer.IsDisposed);
 
-            var cleanupSystem = new CleanupMeshRendererSystem();
-            cleanupSystem.Tick(0f, store);
+            processor.Process(store, 0f);
             Assert.False(firstRenderer.IsDisposed);
 
             secondRenderer.IsBound = true;
-            cleanupSystem.Tick(0f, store);
+            processor.Process(store, 0f);
             Assert.True(firstRenderer.IsDisposed);
             Assert.True(firstRenderer.Mesh.IsDisposed);
             Assert.False(secondRenderer.IsDisposed);

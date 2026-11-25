@@ -167,9 +167,10 @@ triggering arena compaction. A rebuild stops after `VoxelSettings.RebuildBudgetM
 
 `VoxelEntityBuilder` is the only owner of the batch renderer child entities.
 Each entry stores the entity index and its `Uuid`. A mismatch means the index
-was recycled, so the entry is dropped. `VoxelEntityBuilder.FreeChunks` disposes
-the batch renderers and their batches, then clears the registry before a parent
-voxel entity is freed.
+was recycled, so the entry is dropped. `VoxelEntityBuilder.FreeChunks` frees the
+batch child entities, then clears the registry before a parent voxel entity is
+freed. The engine releases each child's renderer and batch from the captured
+removal.
 
 `ChunkData.GetOccupiedSampler` visits only non-empty voxels. The chunk keeps a
 lazy `ulong` bitmask of non-empty cells. The mask is 512 bytes for a 16-cubed
@@ -282,8 +283,8 @@ the mesh. It replaces the previous triangle-web gizmo.
 
 The system keeps one active `MeshRenderer` for the current brick, shape, and
 local orientation. It rebuilds only when that key changes and updates only the
-`TransformComponent` otherwise. A replaced or hidden renderer enters the
-deferred `MeshRendererCleanup` queue, so the system keeps no cache of meshes for
+`TransformComponent` otherwise. A replaced or hidden renderer is retired by the
+engine's removed-component processor, so the system keeps no cache of meshes for
 previous keys or hidden previews. The preview entity carries the `game` tag, so
 world teardown frees it. The preview does not collide, emit light, or replicate.
 

@@ -22,7 +22,7 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
     private readonly Dictionary<Uuid, BillboardState> _billboards = [];
     private readonly HashSet<Uuid> _seenOwners = [];
     private readonly List<Uuid> _staleOwners = [];
-    private readonly Billboard _mesh = new();
+    private readonly Billboard _mesh = new() { Shared = true };
 
     public void Tick(float delta, DataStore store)
     {
@@ -45,7 +45,6 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         foreach (Uuid owner in _staleOwners)
         {
             BillboardState billboardState = _billboards[owner];
-            billboardState.Renderer.Dispose();
             store.Free(billboardState.Entity);
             _billboards.Remove(owner);
         }
@@ -79,8 +78,8 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         }
         else if (!ReferenceEquals(state.Directions, directions) || activeIndex != state.ActiveIndex)
         {
-            //  Update the billboard's renderer if its material set or selected sector changed
-            state.Renderer.Dispose();
+            //  Update the billboard's renderer if its material set or selected sector changed.
+            //  The engine retires the previous renderer once this one binds.
             state.Renderer = new MeshRenderer(_mesh, directions[activeIndex], new RenderOptions { DoubleFaced = true, CastShadows = false, ReceiveShadows = false });
             state.Directions = directions;
             state.ActiveIndex = activeIndex;

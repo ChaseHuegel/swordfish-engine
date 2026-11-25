@@ -113,6 +113,7 @@ public class PlayerViewModelTests
         public readonly InteractionState InteractionState = new(null!);
         public readonly PlayerData PlayerData;
         public readonly PlayerViewModelSystem System;
+        public readonly MeshRendererComponentProcessor RendererProcessor = new();
 
         public Fixture(string? meshId = null, Mesh? mesh = null)
         {
@@ -149,6 +150,11 @@ public class PlayerViewModelTests
                 VoxelMaterials,
                 InteractionState
             );
+        }
+
+        public void ProcessRetirements(DataStore store)
+        {
+            RendererProcessor.Process(store, 0f);
         }
 
         public Brick AddBrick(
@@ -320,12 +326,18 @@ public class PlayerViewModelTests
             fixture.System.Tick(0.016f, store);
             MeshRenderer firstRenderer = GetRenderer(store)!;
             Assert.Equal(24, firstRenderer.Mesh.Vertices.Length);
+            fixture.ProcessRetirements(store);
 
             fixture.InteractionState.SelectedShape.Set(BrickShape.Slope);
             fixture.System.Tick(0.016f, store);
 
             MeshRenderer secondRenderer = GetRenderer(store)!;
             Assert.NotSame(firstRenderer, secondRenderer);
+
+            //  The retired renderer waits for its replacement to bind before it releases.
+            secondRenderer.IsBound = true;
+            fixture.ProcessRetirements(store);
+
             Assert.True(firstRenderer.IsDisposed);
             Assert.True(firstRenderer.Mesh.IsDisposed);
             Assert.Contains(secondRenderer.Mesh.Vertices, v => Vector3.Distance(v, slopeSentinel) < 1e-5f);
@@ -357,12 +369,15 @@ public class PlayerViewModelTests
             fixture.System.Tick(0.016f, store);
             MeshRenderer firstRenderer = GetRenderer(store)!;
             Assert.All(firstRenderer.Mesh.Uv, uv => Assert.Equal(1f, uv.Z));
+            fixture.ProcessRetirements(store);
 
             store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 1 });
             fixture.System.Tick(0.016f, store);
             MeshRenderer secondRenderer = GetRenderer(store)!;
 
             Assert.NotSame(firstRenderer, secondRenderer);
+            secondRenderer.IsBound = true;
+            fixture.ProcessRetirements(store);
             Assert.True(firstRenderer.IsDisposed);
             Assert.True(firstRenderer.Mesh.IsDisposed);
             Assert.All(secondRenderer.Mesh.Uv, uv => Assert.Equal(2f, uv.Z));
@@ -380,6 +395,7 @@ public class PlayerViewModelTests
     {
         var fixture = new Fixture();
         Mesh sharedMesh = SentinelMesh(new Vector3(1f, 2f, 3f));
+        sharedMesh.Shared = true;
         var sharedMaterial = new Material(new Shader("lighted"));
         fixture.Meshes.Assets["items/laser.obj"] = sharedMesh;
         fixture.Materials.Assets["items/laser"] = sharedMaterial;
@@ -407,6 +423,8 @@ public class PlayerViewModelTests
             fixture.System.Tick(0.016f, store);
 
             Assert.Null(GetRenderer(store));
+            fixture.ProcessRetirements(store);
+            fixture.ProcessRetirements(store);
             Assert.True(renderer.IsDisposed);
             Assert.False(sharedMesh.IsDisposed);
         }

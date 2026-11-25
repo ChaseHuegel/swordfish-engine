@@ -62,13 +62,14 @@ which flow as `VoxelEdit` notifications rather than snapshots.
   inventory) survives a motion-superseding burst.
 - Applies each snapshot in order: `RemovedEntities`, then `Components`, then
   `RemovedComponents`.
-  - `RemovedEntities` disposes each despawned entity's physics body and frees
-    the entity first. A same-tick despawn and reallocation of one uuid frees the
-    old remote entity before `Components` allocates and populates the new one
-    with its one-shot components. The server collects components only from live
-    entities, so a normal despawn carries no components that could resurrect it.
-    `RemovedEntities` skips entities carrying `PlayerComponent` so a same-tick
-    rejoin never frees the freshly seated local player.
+  - `RemovedEntities` frees each despawned entity first, and the engine releases
+    its native resources from the captured removals. A same-tick despawn and
+    reallocation of one uuid frees the old remote entity before `Components`
+    allocates and populates the new one with its one-shot components. The server
+    collects components only from live entities, so a normal despawn carries no
+    components that could resurrect it. `RemovedEntities` skips entities
+    carrying `PlayerComponent` so a same-tick rejoin never frees the freshly
+    seated local player.
   - `Components` applies `ServerOwned` components.
   - `RemovedComponents` runs after `Components` so a pre-removal delta does not
     overwrite a component removal in the same snapshot. Bare entities persist

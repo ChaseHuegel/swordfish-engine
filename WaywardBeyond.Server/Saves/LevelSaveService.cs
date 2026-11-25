@@ -25,7 +25,7 @@ namespace WaywardBeyond.Server.Saves;
 /// entities, and per-character location. Bodies and level entities are built from the database
 /// (mirroring the client's view level over the same persisted data, so entity uuids line up for
 /// reconcile). On a level switch the previous level - including the previous player mirror - is fully
-/// unloaded and its physics bodies disposed before the new level is built.
+/// unloaded. The engine releases the freed physics bodies before the solver runs.
 /// </summary>
 public sealed class LevelSaveService : IDisposable
 {
@@ -132,8 +132,8 @@ public sealed class LevelSaveService : IDisposable
     }
 
     /// <summary>
-    /// Frees every server entity carrying a <see cref="NetworkComponent"/> (players and level entities),
-    /// disposing their physics bodies first so teardown is marshalled to the physics thread.
+    /// Frees every server entity carrying a <see cref="NetworkComponent"/> (players and level entities).
+    /// The engine releases their physics bodies before the solver runs.
     /// </summary>
     public void Unload(DataStore store)
     {
@@ -543,11 +543,6 @@ public sealed class LevelSaveService : IDisposable
     {
         public void Execute(float delta, DataStore store, int entity, in NetworkComponent component)
         {
-            if (store.TryGet(entity, out PhysicsComponent physics))
-            {
-                physics.Dispose();
-            }
-
             store.Free(entity);
         }
     }
