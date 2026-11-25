@@ -25,6 +25,8 @@ internal sealed class ClientInbound : IChunkSink<LevelStreamChunk>
 
     public ConcurrentQueue<ChatMessage> Chats { get; } = new();
 
+    public ConcurrentQueue<ParticleBurstBatchMessage> ParticleBursts { get; } = new();
+
     public ConcurrentQueue<LevelStreamChunk> LevelChunks { get; } = new();
 
     public void OnChunk(in LevelStreamChunk chunk)
@@ -40,6 +42,7 @@ internal sealed class ClientInbound : IChunkSink<LevelStreamChunk>
         while (Notifications.TryDequeue(out _)) { }
         while (SkillUpdates.TryDequeue(out _)) { }
         while (Chats.TryDequeue(out _)) { }
+        while (ParticleBursts.TryDequeue(out _)) { }
         while (LevelChunks.TryDequeue(out _)) { }
     }
 

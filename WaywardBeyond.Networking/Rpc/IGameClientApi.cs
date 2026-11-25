@@ -60,4 +60,10 @@ public interface IGameClientApi
 
     [RpcMethod(GameRpc.Methods.SERVER_HEARTBEAT, RpcDirection.ServerToClient)]
     void OnServerHeartbeat(ServerHeartbeatMessage message, RpcContext context, CancellationToken cancellationToken);
+
+    [RpcMethod(GameRpc.Methods.PARTICLE_BURSTS, RpcDirection.ServerToClient)]
+    bool ParticleBursts(ParticleBurstBatchMessage message);
+
+    [RpcMethod(GameRpc.Methods.PARTICLE_BURSTS, RpcDirection.ServerToClient)]
+    void OnParticleBursts(ParticleBurstBatchMessage message, RpcContext context, CancellationToken cancellationToken);
 }

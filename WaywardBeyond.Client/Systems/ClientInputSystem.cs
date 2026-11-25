@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Krill;
 using Swordfish.Library.IO;
@@ -25,6 +26,7 @@ internal sealed class ClientInputSystem : IEntitySystem
     private readonly IShortcutService _shortcutService;
     private readonly ControlSettings _controlSettings;
     private readonly SnapshotAckTracker _snapshotAck;
+    private readonly InteractionState? _interactionState;
 
     private uint _sequenceNumber;
     private InputComponent _lastSent;
@@ -42,12 +44,14 @@ internal sealed class ClientInputSystem : IEntitySystem
         in ClientPlayerMotionProcessor motionProcessor,
         in IShortcutService shortcutService,
         in ControlSettings controlSettings,
-        SnapshotAckTracker snapshotAck
+        SnapshotAckTracker snapshotAck,
+        InteractionState? interactionState = null
     ) {
         _motionProcessor = motionProcessor;
         _shortcutService = shortcutService;
         _controlSettings = controlSettings;
         _snapshotAck = snapshotAck;
+        _interactionState = interactionState;
 
         shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move forward", Key.W));
         shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move backward", Key.S));
@@ -88,6 +92,8 @@ internal sealed class ClientInputSystem : IEntitySystem
 
         bool primaryHeld = _shortcutService.IsHeld(GameShortcuts.PRIMARY_ACTION);
         bool secondaryHeld = _shortcutService.IsHeld(GameShortcuts.SECONDARY_ACTION);
+        bool activePrimary = inputEnabled && primaryHeld;
+        bool activeSecondary = inputEnabled && secondaryHeld;
 
         var input = new InputComponent
         {
@@ -98,8 +104,9 @@ internal sealed class ClientInputSystem : IEntitySystem
             LookYaw = _lookYaw,
             LookRoll = _lookRoll,
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,
-            PrimaryHeld = inputEnabled && primaryHeld,
-            SecondaryHeld = inputEnabled && secondaryHeld,
+            PrimaryHeld = activePrimary,
+            SecondaryHeld = activeSecondary,
+            PaintId = activePrimary ? _interactionState?.SelectedColorPaintId.Get() : null,
         };
 
         //  The first sample after construction is always written. Afterwards an identical sample is
@@ -146,7 +153,8 @@ internal sealed class ClientInputSystem : IEntitySystem
             && a.LookYaw == b.LookYaw
             && a.LookRoll == b.LookRoll
             && a.PrimaryHeld == b.PrimaryHeld
-            && a.SecondaryHeld == b.SecondaryHeld;
+            && a.SecondaryHeld == b.SecondaryHeld
+            && string.Equals(a.PaintId, b.PaintId, StringComparison.Ordinal);
     }
 
     /// <summary>

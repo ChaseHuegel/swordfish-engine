@@ -49,6 +49,9 @@
     <None Include="..\WaywardBeyond.Bodies\assets\textures\characters\*.png" Link="TestFiles\Bodies\assets\textures\characters\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bricks\assets\bricks\*.toml" Link="assets\bricks\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bricks\assets\lang\tags\*.toml" Link="assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Client\assets\particles\*.toml" Link="TestFiles\Client\assets\particles\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Client\assets\shaders\laser_beam.glsl" Link="TestFiles\Client\assets\shaders\laser_beam.glsl" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Client\assets\materials\effects\laser_beam.toml" Link="TestFiles\Client\assets\materials\effects\laser_beam.toml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Client\assets\audio\sounds\**\*.*" Link="assets\audio\sounds\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="_ExcludeUnusedGameAssetsFromTests"

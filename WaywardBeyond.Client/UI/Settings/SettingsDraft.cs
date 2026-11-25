@@ -26,6 +26,7 @@ internal sealed class SettingsDraft
     public AoQuality AoQuality;
     public bool Bloom;
     public BloomQuality BloomQuality;
+    public ParticleDensity ParticleDensity;
     public float MasterVolume;
     public float MusicVolume;
     public float EffectsVolume;
@@ -72,6 +73,7 @@ internal sealed class SettingsDraft
             AoQuality = AoQualityExtensions.FromSettings(renderSettings.SAO),
             Bloom = renderSettings.Bloom.Enabled.Get(),
             BloomQuality = BloomQualityExtensions.FromSettings(renderSettings.Bloom),
+            ParticleDensity = ParticleDensityExtensions.FromSettings(renderSettings.Particles),
             MasterVolume = volumeSettings.Master.Get(),
             MusicVolume = volumeSettings.Music.Get(),
             EffectsVolume = volumeSettings.Effects.Get(),
@@ -119,6 +121,7 @@ internal sealed class SettingsDraft
             AoQuality = SettingsDefaults.AO_QUALITY,
             Bloom = SettingsDefaults.BLOOM,
             BloomQuality = SettingsDefaults.BLOOM_QUALITY,
+            ParticleDensity = SettingsDefaults.PARTICLE_DENSITY,
             MasterVolume = SettingsDefaults.MASTER_VOLUME,
             MusicVolume = SettingsDefaults.MUSIC_VOLUME,
             EffectsVolume = SettingsDefaults.EFFECTS_VOLUME,

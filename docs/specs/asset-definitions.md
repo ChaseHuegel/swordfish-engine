@@ -259,6 +259,12 @@ discard threshold for `Masked` materials and defaults to `0.5`. Example at
 `assets/materials/bricks/glass.toml`. These are engine-side material
 definitions, not game content tables.
 
+## Particles (`assets/particles/**/*.toml`)
+
+Particle effect TOML definitions load through `ParticleEffectDatabase`. See
+[particles](particles.md) for the schema, color decoding, blend modes, and
+simulation limits.
+
 ## Skills (`assets/skills/*.toml`)
 
 Skills moved to the shared `WaywardBeyond.Skills` module; the client no

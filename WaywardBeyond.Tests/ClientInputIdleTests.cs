@@ -119,6 +119,64 @@ public class ClientInputIdleTests
         Assert.True(reboundKeys.PrimaryHeld);
     }
 
+    [Fact]
+    public void PrimaryHeldCarriesSelectedColorPaintAndRedirtiesOnSwatchChange()
+    {
+        var inputService = new FakeInputService();
+        var shortcutService = new ShortcutService(inputService, NullLogger.Instance);
+        var windowContext = new FakeWindowContext();
+        var physics = new FakePhysics();
+        var motionProcessor = new ClientPlayerMotionProcessor(
+            inputService,
+            windowContext,
+            physics,
+            new EventInvoker<PlayerMovedEvent>([])
+        );
+        motionProcessor.SetInputEnabled(true);
+        var interactionState = new InteractionState(in motionProcessor);
+        interactionState.SelectColorPaint("wb:red");
+
+        var store = new DataStore();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new PlayerComponent());
+        store.AddOrUpdate(entity, new InputComponent());
+        store.AddOrUpdate(entity, new PendingInputComponent());
+
+        var system = new ClientInputSystem(motionProcessor, shortcutService, new ControlSettings(), new SnapshotAckTracker(), interactionState);
+
+        system.Tick(1f / 64f, store);
+        Assert.True(store.TryGet(entity, out InputComponent idle));
+        Assert.False(idle.PrimaryHeld);
+        Assert.Null(idle.PaintId);
+
+        store.ClearDirty<InputComponent>(entity);
+        inputService.HeldButtons.Add(MouseButton.Left);
+        system.Tick(1f / 64f, store);
+        Assert.True(store.IsDirty<InputComponent>(entity));
+        Assert.True(store.TryGet(entity, out InputComponent firingRed));
+        Assert.True(firingRed.PrimaryHeld);
+        Assert.Equal("wb:red", firingRed.PaintId);
+
+        store.ClearDirty<InputComponent>(entity);
+        system.Tick(1f / 64f, store);
+        Assert.False(store.IsDirty<InputComponent>(entity));
+
+        interactionState.SelectColorPaint("wb:cyan");
+        system.Tick(1f / 64f, store);
+        Assert.True(store.IsDirty<InputComponent>(entity));
+        Assert.True(store.TryGet(entity, out InputComponent firingCyan));
+        Assert.Equal("wb:cyan", firingCyan.PaintId);
+
+        store.ClearDirty<InputComponent>(entity);
+        inputService.HeldButtons.Remove(MouseButton.Left);
+        inputService.HeldButtons.Add(MouseButton.Right);
+        system.Tick(1f / 64f, store);
+        Assert.True(store.IsDirty<InputComponent>(entity));
+        Assert.True(store.TryGet(entity, out InputComponent solvent));
+        Assert.True(solvent.SecondaryHeld);
+        Assert.Null(solvent.PaintId);
+    }
+
     private static TestContext CreateContext()
     {
         var inputService = new FakeInputService();

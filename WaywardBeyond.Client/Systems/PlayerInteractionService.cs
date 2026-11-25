@@ -88,6 +88,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly EventInvoker<PlaceEvent> _placeEvent;
     private readonly EventInvoker<BreakEvent> _breakEvent;
     private readonly EventInvoker<BrickEvent> _brickEvent;
+    private readonly EventInvoker<PaintFaceEvent>? _paintFaceEvent;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly NotificationService _notificationService;
     private readonly ILocalization _localization;
@@ -132,7 +133,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in NotificationService notificationService,
         in ILocalization localization,
         IPaintDatabase? paintDatabase = null,
-        IPaintRegistry? paintRegistry = null
+        IPaintRegistry? paintRegistry = null,
+        EventInvoker<PaintFaceEvent>? paintFaceEvent = null
     ) {
         _interactionState = interactionState;
         _brickPreviewState = brickPreviewState;
@@ -153,6 +155,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _placeEvent = placeEvent;
         _breakEvent = breakEvent;
         _brickEvent = brickEvent;
+        _paintFaceEvent = paintFaceEvent;
         _snapshotAck = snapshotAck;
         _notificationService = notificationService;
         _localization = localization;
@@ -393,7 +396,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         //  Resolve the target structure + cell and the placement orientation from the same screen-space
         //  raycast the ghost preview uses, so the placed brick always matches the previewed orientation.
-        if (!TryGetBrickFromScreenSpace(isPlace, reachAround: true, out Entity entity, out Voxel targetVoxel, out Int3 coordinate, out _, out TransformComponent targetTransform, out Vector3 clickedPoint))
+        if (!TryGetBrickFromScreenSpace(isPlace, reachAround: true, out Entity entity, out Voxel targetVoxel, out Int3 coordinate, out _, out TransformComponent targetTransform, out Vector3 clickedPoint, out Vector3 hitNormal))
         {
             return;
         }
@@ -429,7 +432,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         //  Presentation hooks (ghost/SFX) fire before the prediction; a cancel skips the local prediction
         //  (the server still validates the sent intent). Unconsumed inventory is the server's job.
-        if (!FirePresentationHook(in resolution, _brickDatabase, _breakEvent, _placeEvent, _brickEvent))
+        if (!FirePresentationHook(in resolution, _brickDatabase, _breakEvent, _placeEvent, _brickEvent, clickedPoint, hitNormal))
         {
             return;
         }
@@ -480,7 +483,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             out Int3 coordinate,
             out VoxelComponent voxelComponent,
             out TransformComponent targetTransform,
-            out _,
+            out Vector3 clickedPoint,
             out Vector3 hitNormal
         );
         if (!hit || targetVoxel.ID == 0)
@@ -545,7 +548,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return;
         }
 
-        ApplyFacePaintPrediction(store, playerEntity, kind, in resolution, in paintHint, voxelComponent);
+        ApplyFacePaintPrediction(store, playerEntity, kind, in resolution, in paintHint, voxelComponent, clickedPoint, hitNormal);
     }
 
     private string? GetActiveOrDefaultPaintId(PaintKind paintMode)
@@ -588,7 +591,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         InteractionKind kind,
         in InteractionResolution resolution,
         in PaintInteraction hint,
-        VoxelComponent voxelComponent
+        VoxelComponent voxelComponent,
+        Vector3 clickedPoint,
+        Vector3 hitNormal
     ) {
         VoxelObject voxelObject = voxelComponent.VoxelObject;
         Int3 coordinate = resolution.Coordinate;
@@ -637,6 +642,42 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         pending.Outbound.Stage(interaction);
         store.AddOrUpdate(playerEntity, pending);
+
+        FirePaintFaceEvent(kind, in paint, originalOverrides, clickedPoint, hitNormal, _paintFaceEvent);
+    }
+
+    /// <summary>Invokes <see cref="PaintFaceEvent"/> for a resolved local color paint apply or clear interaction.</summary>
+    internal static void FirePaintFaceEvent(
+        InteractionKind kind,
+        in PaintResolution paint,
+        FaceOverride[] originalOverrides,
+        Vector3 clickedPoint,
+        Vector3 hitNormal,
+        EventInvoker<PaintFaceEvent>? paintFaceEvent
+    ) {
+        if (paint.Mode != PaintKind.Color || paintFaceEvent == null)
+        {
+            return;
+        }
+
+        PaintFaceAction action = kind == InteractionKind.SecondaryPressed ? PaintFaceAction.Clear : PaintFaceAction.Apply;
+        ushort eventPaintId = action == PaintFaceAction.Clear
+            ? FindFirstColorPaintId(originalOverrides, paint.FaceMask)
+            : paint.PaintId;
+        paintFaceEvent.Invoke(new PaintFaceEvent(paint.Mode, action, eventPaintId, clickedPoint, hitNormal));
+    }
+
+    private static ushort FindFirstColorPaintId(FaceOverride[] originalOverrides, BrickFaceMask faceMask)
+    {
+        for (var f = 0; f < 6 && f < originalOverrides.Length; f++)
+        {
+            if (faceMask.HasFace((BrickFace)f) && originalOverrides[f].ColorPaintId != 0)
+            {
+                return originalOverrides[f].ColorPaintId;
+            }
+        }
+
+        return 0;
     }
 
     private BrickInteraction BuildInteractionHint(bool isPlace, Brick? placeable, DataStore store, Int3 coordinate, int targetEntity, in TransformComponent targetTransform, Vector3 clickedPoint)
@@ -679,7 +720,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         IBrickDatabase brickDatabase,
         EventInvoker<BreakEvent> breakEvent,
         EventInvoker<PlaceEvent> placeEvent,
-        EventInvoker<BrickEvent> brickEvent
+        EventInvoker<BrickEvent> brickEvent,
+        Vector3? worldPosition = null,
+        Vector3? normal = null
     ) {
         Result<Brick> brickInfoResult = brickDatabase.Get(resolution.Voxel.ID);
         if (!brickInfoResult.Success)
@@ -694,7 +737,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 return false;
             }
 
-            brickEvent.Invoke(new BrickEvent(resolution.Voxel.ID, BrickEventKind.Break));
+            brickEvent.Invoke(new BrickEvent(resolution.Voxel.ID, BrickEventKind.Break, worldPosition, normal));
         }
         else
         {
@@ -703,7 +746,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 return false;
             }
 
-            brickEvent.Invoke(new BrickEvent(resolution.Voxel.ID, BrickEventKind.Place));
+            brickEvent.Invoke(new BrickEvent(resolution.Voxel.ID, BrickEventKind.Place, worldPosition, normal));
         }
 
         return true;

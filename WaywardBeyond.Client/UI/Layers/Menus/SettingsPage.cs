@@ -569,6 +569,7 @@ internal sealed class SettingsPage<TIdentifier>(
         draft.AoQuality.Apply(_renderSettings);
         _renderSettings.Bloom.Enabled.Set(draft.Bloom);
         draft.BloomQuality.Apply(_renderSettings);
+        draft.ParticleDensity.Apply(_renderSettings);
 
         _volumeSettings.Master.Set(draft.MasterVolume);
         _volumeSettings.Music.Set(draft.MusicVolume);

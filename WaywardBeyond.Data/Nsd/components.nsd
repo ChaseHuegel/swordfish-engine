@@ -14,11 +14,43 @@ message InputComponent
     uint  ServerTickAtSample  = 7;
     bool  PrimaryHeld         = 9;
     bool  SecondaryHeld       = 10;
+    string? PaintId           = 11;
 }
 
 message BodyViewComponent
 {
     string Body = 0;
+}
+
+message LaserBeamComponent
+{
+    float TargetX = 0;
+    float TargetY = 1;
+    float TargetZ = 2;
+    float NormalX = 3;
+    float NormalY = 4;
+    float NormalZ = 5;
+    bool  Hit     = 6;
+}
+
+message ParticleEmitterMessage
+{
+    string EffectId        = 0;
+    bool   Playing         = 1;
+    float  RateScale       = 2;
+    float  OffsetX         = 3;
+    float  OffsetY         = 4;
+    float  OffsetZ         = 5;
+    float  LocalDirectionX = 6;
+    float  LocalDirectionY = 7;
+    float  LocalDirectionZ = 8;
+    uint   TintRgba        = 9;
+}
+
+message ParticleEmitterBindingComponent
+{
+    ulong ParentEntity  = 0;
+    ulong ExcludeEntity = 1;
 }
 
 message ColliderMessage

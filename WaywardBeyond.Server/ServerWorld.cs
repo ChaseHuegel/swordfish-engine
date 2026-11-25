@@ -1,6 +1,7 @@
 ﻿using System;
 using DryIoc;
 using Krill;
+using WaywardBeyond.Server.Particles;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Server.Systems;
@@ -31,6 +32,8 @@ public sealed class ServerWorld : IDisposable
     public ServerJoinQueue JoinQueue { get; }
     /// <summary>The world replication stages.</summary>
     public NetworkReplicationSystem Replication { get; }
+    /// <summary>The world particle replication and burst service.</summary>
+    public IServerParticleService Particles { get; }
 
     /// <summary>The shared interaction handler registry this world resolves through.</summary>
     internal IInteractionHandlerRegistry HandlerRegistry { get; }
@@ -46,6 +49,9 @@ public sealed class ServerWorld : IDisposable
         SaveService = Pin<LevelSaveService>(container);
         JoinQueue = Pin<ServerJoinQueue>(container);
         Replication = Pin<NetworkReplicationSystem>(container);
+        ServerParticleService particles = Pin<ServerParticleService>(container);
+        container.RegisterInstance<IServerParticleService>(particles, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
+        Particles = particles;
         //  Shared with every other world, so resolve it from the root instead of pinning a child copy.
         HandlerRegistry = container.Resolve<IInteractionHandlerRegistry>();
         Pin<IUserPermissionService>(container);

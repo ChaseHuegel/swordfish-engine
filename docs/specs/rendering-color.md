@@ -75,10 +75,11 @@ sRGB transfer function once when writing to the back buffer.
 - Brick default tint sRGB transfer (mirrors `Tonemapper`): `WaywardBeyond.Bricks/Srgb.cs:10-19`
 - OpenGL texture formats: `Swordfish/Graphics/SilkNET/OpenGL/TextureFormat.cs:5-21`
 - Texture asset types: `Swordfish/Graphics/Texture.cs:5-25`, `Swordfish/Graphics/TextureArray.cs:5-12`, `Swordfish/Graphics/TextureCubemap.cs:3-8`
-- Texture upload binding: `Swordfish/Graphics/SilkNET/OpenGL/GLRenderContext.cs:205-242`
+- Texture upload binding: `Swordfish/Graphics/SilkNET/OpenGL/GLRenderContext.cs:220-259`
 - Reef UI atlas color space: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/ReefRenderer.cs:103-105`
-- Forward+ resolve, bloom, and composite: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:71-75, 261-265, 352-353, 579, 618-698, 743-746, 1115, 1132, 1244-1253, 1269-1276`
+- Forward+ resolve, bloom, and composite: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:72-76, 263-267, 354-359, 586, 625-705, 750-753, 1122, 1140, 1252-1261, 1277-1284`
 - Forward+ linear shading: `Swordfish/assets/shaders/pbr_plus.glsl:109-128, 227-273`, `WaywardBeyond.Client/assets/shaders/lighted.glsl:20-23`, `WaywardBeyond.Client/assets/shaders/lightedArray.glsl:32-58`
+- Particle HDR emissive path: `Swordfish/assets/shaders/particles.glsl:37-54`, `Swordfish/Graphics/Particles/ParticleEffect.cs:118-162`
 - Bloom extraction shader: `Swordfish/assets/shaders/bloom_extract.glsl:14-29`
 - Composite, tonemap, and encode shader: `Swordfish/assets/shaders/bloom.glsl:14-52`
 - UI textured shaders: `Swordfish/assets/shaders/ui_reef_textured.glsl:38-57`, `Swordfish/assets/shaders/ui_default.glsl:10-24`

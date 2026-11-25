@@ -1,0 +1,26 @@
+BlendMode           = "Alpha"
+Rate                = 48.0
+BurstCount          = 6
+MaxParticles        = 128
+LifetimeMin         = 0.18
+LifetimeMax         = 0.36
+SpeedMin            = 0.8
+SpeedMax            = 2.4
+SpreadDegrees       = 72.0
+SpawnRadius         = 0.08
+StartSizeMin        = 0.03
+StartSizeMax        = 0.06
+EndSizeMin          = 0.08
+EndSizeMax          = 0.14
+StartColor          = "#ffffff"
+SecondaryStartColor = "#c0cbdc"
+EndColor            = "#2ce8f5"
+StartAlpha          = 0.65
+EndAlpha            = 0.0
+EmissiveIntensity   = 0.0
+Drag                = 4.0
+Gravity             = { X = 0.0, Y = -0.45, Z = 0.0 }
+InitialRotationMin  = 0.0
+InitialRotationMax  = 360.0
+AngularVelocityMin  = -120.0
+AngularVelocityMax  = 120.0

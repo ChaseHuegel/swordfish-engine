@@ -45,6 +45,7 @@ internal sealed class ClientReconcileSystem(
 
     private readonly FragmentAssembler _snapshotAssembler = new();
     private readonly List<WorldSnapshot> _snapshots = [];
+    private readonly Dictionary<ulong, int> _latestTransformSnapshots = [];
 
     private bool _wasBelowPlaying = true;
 
@@ -73,12 +74,18 @@ internal sealed class ClientReconcileSystem(
             {
                 //  Defensive: a burst queued during Loading is coalesced to the newest frame so the first
                 //  play tick performs exactly one full ApplySnapshot. One-shot server state (e.g. the seeded
-                //  inventory) rides only the early frames and must not be dropped, so each frame that is
-                //  superseded has its non-motion components applied first; the newest applies fully and its
-                //  transform/physics win (the per-frame motion history is otherwise useless).
-                for (var index = 0; index < _snapshots.Count - 1; index++)
+                //  inventory or stationary entity transforms) rides only early frames and must not be dropped,
+                //  so each frame that is superseded applies non-motion components plus any final non-player
+                //  transform absent from later frames; the newest applies fully and wins on moving entities.
+                if (_snapshots.Count > 1)
                 {
-                    ApplyOneShotComponents(_snapshots[index], store);
+                    CollectLatestTransformSnapshots();
+                    for (var index = 0; index < _snapshots.Count - 1; index++)
+                    {
+                        ApplyOneShotComponents(_snapshots[index], index, store);
+                    }
+
+                    _latestTransformSnapshots.Clear();
                 }
 
                 ApplySnapshot(_snapshots[^1], store);
@@ -371,23 +378,49 @@ internal sealed class ClientReconcileSystem(
         }
     }
 
+    private void CollectLatestTransformSnapshots()
+    {
+        _latestTransformSnapshots.Clear();
+        for (var snapshotIndex = 0; snapshotIndex < _snapshots.Count; snapshotIndex++)
+        {
+            ComponentSnapshot[] components = _snapshots[snapshotIndex].Components;
+            for (var i = 0; i < components.Length; i++)
+            {
+                Result<NetworkComponentInfo> lookup = registry.GetInfo(Uuid.FromValue(components[i].TypeUuid));
+                if (lookup.Success && lookup.Value.Type == typeof(TransformComponent))
+                {
+                    _latestTransformSnapshots[components[i].Entity] = snapshotIndex;
+                }
+            }
+        }
+    }
+
     /// <summary>
-    /// Applies every component of a superseded burst frame except the continuously-dirty motion pair,
-    /// so one-shot server state seeded early in the join burst (the starter inventory, seeded context)
-    /// survives the entering-play coalesce. The local player's spawn is seeded at join, so a dropped
-    /// motion frame cannot lose its seat.
+    /// Applies every component of a superseded burst frame except velocity physics and superseded or
+    /// local-player transforms, so one-shot server state and stationary world-space entity transforms
+    /// seeded early in the join burst survive the entering-play coalesce.
     /// </summary>
-    private void ApplyOneShotComponents(WorldSnapshot snapshot, DataStore store)
+    private void ApplyOneShotComponents(WorldSnapshot snapshot, int snapshotIndex, DataStore store)
     {
         ComponentSnapshot[] components = snapshot.Components;
         for (var i = 0; i < components.Length; i++)
         {
             Result<NetworkComponentInfo> lookup = registry.GetInfo(Uuid.FromValue(components[i].TypeUuid));
-            if (!lookup.Success
-                || lookup.Value.Type == typeof(TransformComponent)
-                || lookup.Value.Type == typeof(PhysicsComponent))
+            if (!lookup.Success || lookup.Value.Type == typeof(PhysicsComponent))
             {
                 continue;
+            }
+
+            if (lookup.Value.Type == typeof(TransformComponent))
+            {
+                bool isNewestTransformForEntity = _latestTransformSnapshots.TryGetValue(components[i].Entity, out int newestIndex)
+                    && newestIndex == snapshotIndex;
+                bool isLocalPlayer = store.TryGet(Uuid.FromValue(components[i].Entity), out int existingEntity)
+                    && store.Has(typeof(PlayerComponent), existingEntity);
+                if (!isNewestTransformForEntity || isLocalPlayer)
+                {
+                    continue;
+                }
             }
 
             ApplyComponent(components[i], store);

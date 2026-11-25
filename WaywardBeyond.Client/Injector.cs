@@ -111,6 +111,7 @@ public class Injector : IDryIocInjector
         container.Register<EventInvoker<PlaceEvent>>();
         container.Register<EventInvoker<BreakEvent>>();
         container.Register<EventInvoker<BrickEvent>>();
+        container.Register<EventInvoker<PaintFaceEvent>>();
         container.Register<EventInvoker<PlayerMovedEvent>>();
     }
 
@@ -132,6 +133,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
+        container.Register<IEntitySystem, ClientParticleReplicationSystem>();
         container.Register<IEntitySystem, ClientVoxelReconcileSystem>();
         container.Register<ChatService>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientChatSystem>();
@@ -356,6 +358,10 @@ public class Injector : IDryIocInjector
     {
         container.Register<PlayerViewModelSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, PlayerViewModelSystem>();
+        container.Register<MiningLaserEffectSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, MiningLaserEffectSystem>();
+        container.Register<PaintSprayerEffectSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, PaintSprayerEffectSystem>();
         container.Register<IEntitySystem, MainMenuAnimationSystem>();
         container.Register<IEntitySystem, ActiveSlotNotificationSystem>();
 

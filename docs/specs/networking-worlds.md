@@ -63,13 +63,15 @@ on current runtimes.
 ## What is per-world
 
 - `World`/`DataStore`, `SessionManager`, `LevelSaveService`, `SimulationStep`,
-  physics, `NetworkReplicationSystem`, `ServerInteractionSystem`,
-  `ServerJoinQueue`, `IUserPermissionService`, and the interaction world
-  factory.
+  physics, `NetworkReplicationSystem`, `IServerParticleService`,
+  `ServerInteractionSystem`, `ServerJoinQueue`, `IUserPermissionService`, and the
+  interaction world factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
   `ServerInventorySystem` → `ServerHeartbeatService` → physics →
-  `ServerInteractionSystem` → `ServerChatSystem` → `NetworkPublishSystem`.
+  `ServerInteractionSystem` → `ServerLaserBeamSystem` →
+  `ServerPaintSprayerSystem` → `ServerChatSystem` →
+  `ServerParticleFlushSystem` → `NetworkPublishSystem`.
 - Replication state is per world, so full-sync sets, streaming gates, pending
   snapshots, and acks cannot leak between worlds.
 

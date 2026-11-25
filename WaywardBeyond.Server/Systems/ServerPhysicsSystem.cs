@@ -39,7 +39,13 @@ public sealed class ServerPhysicsSystem : IServerWorldSystem, IServerWorldPhysic
     /// <inheritdoc/>
     public RaycastResult Raycast(in Ray ray)
     {
-        return _physics.Raycast(ray);
+        return _physics.Raycast(in ray);
+    }
+
+    /// <inheritdoc/>
+    public RaycastResult Raycast(in Ray ray, int ignoreEntity)
+    {
+        return _physics.Raycast(in ray, ignoreEntity);
     }
 
     /// <inheritdoc/>

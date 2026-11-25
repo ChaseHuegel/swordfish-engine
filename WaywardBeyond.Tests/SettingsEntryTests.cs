@@ -40,6 +40,7 @@ public class SettingsEntryTests
         Assert.Contains(BloomQuality.High, SettingsDefaults.GetBloomQualities(BloomQuality.High));
         Assert.Contains(1.33f, SettingsDefaults.GetUiScales(1.33f));
         Assert.Contains(ShadowQuality.Custom, SettingsDefaults.GetShadowQualities(ShadowQuality.Custom));
+        Assert.Contains(ParticleDensity.Custom, SettingsDefaults.GetParticleDensities(ParticleDensity.Custom));
     }
 
     [Fact]
@@ -307,6 +308,75 @@ public class SettingsEntryTests
             SettingsDefaults.ApplyRenderDefaults(settings);
 
             Assert.Equal(BloomQuality.High, BloomQualityExtensions.FromSettings(settings.Bloom));
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void ParticleDensity_PresetsApplyAndDetectCorrectly()
+    {
+        var settings = new Swordfish.Settings.RenderSettings();
+
+        ParticleDensity.Off.Apply(settings);
+        Assert.False(settings.Particles.Enabled.Get());
+        Assert.Equal(ParticleDensity.Off, ParticleDensityExtensions.FromSettings(settings.Particles));
+
+        ParticleDensity.Low.Apply(settings);
+        Assert.True(settings.Particles.Enabled.Get());
+        Assert.Equal(0.25f, settings.Particles.Density.Get());
+        Assert.Equal(ParticleDensity.Low, ParticleDensityExtensions.FromSettings(settings.Particles));
+
+        ParticleDensity.Medium.Apply(settings);
+        Assert.True(settings.Particles.Enabled.Get());
+        Assert.Equal(0.5f, settings.Particles.Density.Get());
+        Assert.Equal(ParticleDensity.Medium, ParticleDensityExtensions.FromSettings(settings.Particles));
+
+        ParticleDensity.High.Apply(settings);
+        Assert.True(settings.Particles.Enabled.Get());
+        Assert.Equal(0.75f, settings.Particles.Density.Get());
+        Assert.Equal(ParticleDensity.High, ParticleDensityExtensions.FromSettings(settings.Particles));
+
+        ParticleDensity.Ultra.Apply(settings);
+        Assert.True(settings.Particles.Enabled.Get());
+        Assert.Equal(1f, settings.Particles.Density.Get());
+        Assert.Equal(ParticleDensity.Ultra, ParticleDensityExtensions.FromSettings(settings.Particles));
+
+        settings.Particles.Density.Set(1.5f);
+        Assert.Equal(ParticleDensity.Custom, ParticleDensityExtensions.FromSettings(settings.Particles));
+
+        ParticleDensity.Custom.Apply(settings);
+        Assert.True(settings.Particles.Enabled.Get());
+        Assert.Equal(1.5f, settings.Particles.Density.Get());
+    }
+
+    [Fact]
+    public void ParticleDensity_FreshSettingsMatchTheDeclaredDefault()
+    {
+        Assert.Equal(ParticleDensity.Ultra, SettingsDefaults.PARTICLE_DENSITY);
+
+        var settings = new Swordfish.Settings.RenderSettings();
+        SettingsDefaults.ApplyRenderDefaults(settings);
+
+        Assert.Equal(
+            SettingsDefaults.PARTICLE_DENSITY,
+            ParticleDensityExtensions.FromSettings(settings.Particles)
+        );
+
+        string path = System.IO.Path.GetTempFileName();
+        try
+        {
+            var saved = new Swordfish.Settings.RenderSettings
+            {
+                Path = new Swordfish.Library.IO.PathInfo(path),
+            };
+            ParticleDensity.Low.Apply(saved);
+
+            SettingsDefaults.ApplyRenderDefaults(saved);
+
+            Assert.Equal(ParticleDensity.Low, ParticleDensityExtensions.FromSettings(saved.Particles));
         }
         finally
         {

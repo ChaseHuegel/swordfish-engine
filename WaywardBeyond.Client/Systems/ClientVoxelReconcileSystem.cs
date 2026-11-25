@@ -1,4 +1,6 @@
+using System.Numerics;
 using Krill;
+using Swordfish.ECS;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Events;
@@ -6,6 +8,7 @@ using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
@@ -32,6 +35,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     private readonly IPaintRegistry? _paintRegistry;
     private readonly VoxelLightingService _voxelLightingService;
     private readonly EventInvoker<BrickEvent> _brickEvent;
+    private readonly EventInvoker<PaintFaceEvent>? _paintFaceEvent;
 
     public ClientVoxelReconcileSystem(
         in ClientInbound inbound,
@@ -39,7 +43,8 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         IBrickRegistry brickRegistry,
         in VoxelLightingService voxelLightingService,
         in EventInvoker<BrickEvent> brickEvent,
-        IPaintRegistry? paintRegistry = null
+        IPaintRegistry? paintRegistry = null,
+        EventInvoker<PaintFaceEvent>? paintFaceEvent = null
     ) {
         _inbound = inbound;
         _snapshotAck = snapshotAck;
@@ -47,6 +52,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         _paintRegistry = paintRegistry;
         _voxelLightingService = voxelLightingService;
         _brickEvent = brickEvent;
+        _paintFaceEvent = paintFaceEvent;
     }
 
     public void Tick(float delta, DataStore store)
@@ -145,7 +151,10 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         //  echo does not because the prediction path already raised it.
         if (pending == null)
         {
-            RaiseEditEvent(in previous, in authority);
+            Vector3? worldPosition = store.TryGet(entity, out TransformComponent targetTransform)
+                ? InteractionResolver.BrickToWorldSpace(coordinate, targetTransform.Position, targetTransform.Orientation)
+                : null;
+            RaiseEditEvent(in previous, in authority, worldPosition);
         }
     }
 
@@ -154,7 +163,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     /// break (empty) vs place (filled); the brick id comes from the pre-edit voxel for a break and the
     /// result voxel for a place.
     /// </summary>
-    private void RaiseEditEvent(in Voxel previous, in Voxel result)
+    private void RaiseEditEvent(in Voxel previous, in Voxel result, Vector3? worldPosition)
     {
         bool isBreak = result.ID == 0;
         ushort brickID = isBreak ? previous.ID : result.ID;
@@ -163,7 +172,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             return;
         }
 
-        _brickEvent.Invoke(new BrickEvent(brickID, isBreak ? BrickEventKind.Break : BrickEventKind.Place));
+        _brickEvent.Invoke(new BrickEvent(brickID, isBreak ? BrickEventKind.Break : BrickEventKind.Place, worldPosition, Vector3.UnitY));
     }
 
     private static PendingEdit? FindPending(
@@ -253,8 +262,10 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             ? _paintRegistry.Resolve(serverPaintId)
             : (ushort)0;
 
+        var wasPredicted = false;
         if (queue != null && message.Sequence != 0 && queue.TryFindFaceEditBySequence(message.Sequence, out PendingFaceEdit pending))
         {
+            wasPredicted = true;
             queue.RemoveFaceEdit(pending.Sequence);
             queue.RemoveSupersededFaceEdits(entity, in coordinate, faceMask, mode, message.Sequence);
             if (pending.Entity == entity &&
@@ -276,10 +287,16 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             }
         }
 
-        if (voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z).ID == 0)
+        Voxel voxel = voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
+        if (voxel.ID == 0)
         {
             return;
         }
+
+        bool isClear = serverPaintId == null;
+        ushort strippedPaintId = !wasPredicted && mode == PaintKind.Color && isClear
+            ? FindFirstColorPaintId(voxelComponent.VoxelObject, in coordinate, faceMask)
+            : (ushort)0;
 
         if (mode == PaintKind.Texture)
         {
@@ -292,6 +309,37 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 
         voxelComponent.Registry.MarkFaceModified(coordinate.X, coordinate.Y, coordinate.Z, voxelComponent.VoxelObject.ChunkSize);
         store.MarkDirty<VoxelComponent>(entity);
+
+        if (!wasPredicted && mode == PaintKind.Color && _paintFaceEvent != null && store.TryGet(entity, out TransformComponent targetTransform))
+        {
+            PaintSprayerGeometry.ComputeFaceWorldNormalAndOffset(
+                faceMask,
+                targetTransform.Orientation,
+                voxel.GetOrientation(),
+                out Vector3 worldNormal,
+                out Vector3 surfaceOffset
+            );
+            Vector3 worldPos = InteractionResolver.BrickToWorldSpace(coordinate, targetTransform.Position, targetTransform.Orientation) + surfaceOffset;
+            PaintFaceAction action = isClear ? PaintFaceAction.Clear : PaintFaceAction.Apply;
+            ushort eventPaintId = isClear ? strippedPaintId : localPaintId;
+            _paintFaceEvent.Invoke(new PaintFaceEvent(mode, action, eventPaintId, worldPos, worldNormal));
+        }
+    }
+
+    private static ushort FindFirstColorPaintId(VoxelObject voxelObject, in Int3 coordinate, BrickFaceMask faceMask)
+    {
+        for (var f = 0; f < 6; f++)
+        {
+            var face = (BrickFace)f;
+            if (faceMask.HasFace(face) &&
+                voxelObject.TryGetFaceOverride(coordinate.X, coordinate.Y, coordinate.Z, face, out FaceOverride current) &&
+                current.ColorPaintId != 0)
+            {
+                return current.ColorPaintId;
+            }
+        }
+
+        return 0;
     }
 
     private static bool FacesMatchPaint(VoxelObject voxelObject, in Int3 coordinate, BrickFaceMask faceMask, PaintKind mode, ushort expectedPaintId)

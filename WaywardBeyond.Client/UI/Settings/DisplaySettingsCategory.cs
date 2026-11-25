@@ -168,6 +168,16 @@ internal static class DisplaySettingsCategory
                     valueKey: BloomQualityKey,
                     isEnabled: () => draft.Bloom
                 ),
+                new StepperEntry<ParticleDensity>(
+                    id: "Settings.ParticleDensity",
+                    labelKey: "ui.settings.option.particleDensity",
+                    get: () => draft.ParticleDensity,
+                    set: value => draft.ParticleDensity = value,
+                    defaultValue: () => SettingsDefaults.PARTICLE_DENSITY,
+                    options: () => SettingsDefaults.GetParticleDensities(draft.ParticleDensity),
+                    format: value => value.ToString(),
+                    valueKey: ParticleDensityKey
+                ),
                 new SettingsResetRow("Settings.Reset.display", reset),
             ]
         );
@@ -362,6 +372,20 @@ internal static class DisplaySettingsCategory
             AoQuality.High => "ui.settings.value.high",
             AoQuality.Ultra => "ui.settings.value.ultra",
             AoQuality.Custom => "ui.settings.value.custom",
+            _ => string.Empty,
+        };
+    }
+
+    private static string ParticleDensityKey(ParticleDensity density)
+    {
+        return density switch
+        {
+            ParticleDensity.Off => "ui.settings.value.off",
+            ParticleDensity.Low => "ui.settings.value.low",
+            ParticleDensity.Medium => "ui.settings.value.medium",
+            ParticleDensity.High => "ui.settings.value.high",
+            ParticleDensity.Ultra => "ui.settings.value.ultra",
+            ParticleDensity.Custom => "ui.settings.value.custom",
             _ => string.Empty,
         };
     }

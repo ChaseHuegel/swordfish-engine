@@ -27,10 +27,14 @@ change touches a subject, run the docs pass (see `development.md`).
 | Server-authoritative interactions and voxel edits | [specs/networking-voxel-edits](specs/networking-voxel-edits.md) |
 | Interaction pipeline: stages, priority, decisions, handler composition | [specs/interaction-pipeline](specs/interaction-pipeline.md) |
 | Server-authoritative inventory moves | [specs/networking-inventory](specs/networking-inventory.md) |
+| Generic particle emitter and burst replication | [specs/networking-particles](specs/networking-particles.md) |
 | Multiple server worlds: per-world DI graphs, routing, idle unload | [specs/networking-worlds](specs/networking-worlds.md) |
 | Dynamic shadows: Forward+ CSM, point cubemap arrays, filtering, quality presets | [specs/rendering-shadows](specs/rendering-shadows.md) |
 | Ambient occlusion: half-resolution SAO, ping-pong blur, distance clip, presets | [specs/rendering-sao](specs/rendering-sao.md) |
 | Color space, texture decoding, HDR bloom resolve, tonemapping, and sRGB transfer | [specs/rendering-color](specs/rendering-color.md) |
+| Particle system: asset TOML format, emitters, burst API, GPU instanced renderer | [specs/particles](specs/particles.md) |
+| Mining laser beam, impact particles and light, replication, break spark bursts | [specs/mining-laser-effects](specs/mining-laser-effects.md) |
+| Paint sprayer nozzle mist streams, swatch tinting, solvent strip, coat splatter bursts | [specs/paint-sprayer-effects](specs/paint-sprayer-effects.md) |
 | Chat wire message, relay, logging, and UI | [specs/chat](specs/chat.md) |
 | Persistence: SQLite layout, level databases, storage services | [specs/persistence](specs/persistence.md) |
 | Seed phrase generation, 40-bit dictionary encoding, and 64-bit seed resolution | [specs/seed-phrases](specs/seed-phrases.md) |
