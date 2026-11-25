@@ -29,13 +29,19 @@ One subject: dirty-driven replication between server and client.
   `TickNumber`/`LastProcessedInput` semantics are unchanged. Send batching
   coalesces frames into one socket write per
   `Transport.SendBatchIntervalMs`.
-- **Join-stream gating.** `BeginStream` opens when the join seats the session.
-  The publish stage sends no per-tick deltas until `EndStream` after the level
-  stream completes. The one-shot full-sync publish is exempt and stays the
-  client's first snapshot. `CancelStream` lifts the gate when a client leaves,
-  disconnects, or rejoins, and a gate older than
-  `Protocol.JoinStreamTimeoutMs` closes its peer, so the table tracks live
-  joins only.
+- **Join-stream gating.** `BeginStream` opens a gate when the join seats the
+  session. The publish stage sends no per-tick deltas to a gated client until
+  `EndStream` runs after the level stream completes. The one-shot full-sync
+  publish is exempt and stays the client's first snapshot. `EndStream` queues
+  the gate lift for the end of the current publish stage, so the completion tick
+  still publishes no deltas to that client. `PublishStage` drains queued gate
+  lifts unconditionally at the end of every tick, including cadence-skipped
+  ticks and idle ticks with no dirty components, removals, despawns, or
+  full-sync requests. `BeginStream` and `CancelStream` clear any pending lift
+  for that client. `CancelStream` lifts the gate when a client leaves,
+  disconnects, or rejoins. A gate older than `Protocol.JoinStreamTimeoutMs`
+  closes its peer only when `EndStream` was never received. A gate whose
+  `EndStream` is already queued is lifted instead of closing the peer.
 - **World/voxel bodies.** Server-authoritative structures carrying a
   `NetworkComponent` flow through the same path. The Jolt sync writes their
   `TransformComponent`/`PhysicsComponent` only when the body state actually

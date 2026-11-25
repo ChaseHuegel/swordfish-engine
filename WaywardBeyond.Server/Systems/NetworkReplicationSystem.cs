@@ -55,9 +55,9 @@ public sealed class NetworkReplicationSystem
     private readonly Dictionary<Uuid, long> _streamingClients = [];
     private readonly List<Uuid> _expiredStreams = [];
 
-    //  Stream-complete notices queued by the join system; applied at the END of the publish stage so
-    //  the tick that enqueues the complete still publishes no deltas.
-    private readonly Queue<Uuid> _streamEnds = new();
+    //  Stream-complete notices queued by the join system; drained at the end of every publish stage
+    //  so the tick that enqueues the complete still publishes no deltas, even on an idle tick.
+    private readonly HashSet<Uuid> _streamEnds = [];
 
     /// <summary>The sim tick stamped on the next published snapshot. Set by the publish system.</summary>
     public uint SimTick { get; set; }
@@ -113,6 +113,7 @@ public sealed class NetworkReplicationSystem
     public void BeginStream(Uuid clientId)
     {
         _streamingClients[clientId] = Environment.TickCount64;
+        _streamEnds.Remove(clientId);
     }
 
     /// <summary>
@@ -121,7 +122,17 @@ public sealed class NetworkReplicationSystem
     /// </summary>
     public void EndStream(Uuid clientId)
     {
-        _streamEnds.Enqueue(clientId);
+        if (!_streamingClients.TryGetValue(clientId, out long startedMs))
+        {
+            return;
+        }
+
+        if (_streamEnds.Add(clientId))
+        {
+            _logger.LogDebug(
+                "Join stream ended for client {clientId} after {elapsed} ms; queued gate lift.",
+                clientId, Environment.TickCount64 - startedMs);
+        }
     }
 
     /// <summary>
@@ -131,6 +142,7 @@ public sealed class NetworkReplicationSystem
     public void CancelStream(Uuid clientId)
     {
         _streamingClients.Remove(clientId);
+        _streamEnds.Remove(clientId);
         _fullSync.Remove(clientId);
     }
 
@@ -150,23 +162,34 @@ public sealed class NetworkReplicationSystem
         _expiredStreams.Clear();
         foreach ((Uuid clientId, long startedMs) in _streamingClients)
         {
-            if (now - startedMs >= timeoutMs)
+            long elapsedMs = now - startedMs;
+            if (elapsedMs < timeoutMs)
             {
-                _expiredStreams.Add(clientId);
+                continue;
             }
+
+            if (_streamEnds.Contains(clientId))
+            {
+                _logger.LogWarning(
+                    "Client {clientId} completed its join stream after {elapsed} ms (timeout {timeout} ms); lifting the pending gate instead of closing the peer.",
+                    clientId, elapsedMs, timeoutMs);
+                continue;
+            }
+
+            _expiredStreams.Add(clientId);
         }
 
         for (var index = 0; index < _expiredStreams.Count; index++)
         {
             Uuid clientId = _expiredStreams[index];
-            _streamingClients.Remove(clientId);
+            long elapsedMs = _streamingClients.Remove(clientId, out long startedMs) ? now - startedMs : timeoutMs;
             _fullSync.Remove(clientId);
 
             if (_peers.TryGet(clientId, out ServerPeer peer))
             {
                 _logger.LogWarning(
-                    "Client {clientId} did not complete its join stream within {timeout} ms; closing the peer.",
-                    clientId, timeoutMs);
+                    "Client {clientId} did not complete its join stream within {timeout} ms (gate open {elapsed} ms, EndStream not received); closing the peer.",
+                    clientId, timeoutMs, elapsedMs);
                 peer.Rpc.Close();
             }
         }
@@ -239,6 +262,12 @@ public sealed class NetworkReplicationSystem
         //  the tick, not the publish cadence, so the check runs even when nothing else is published.
         ExpireStalledStreams();
 
+        PublishSnapshots(delta, store);
+        DrainStreamEnds();
+    }
+
+    private void PublishSnapshots(float delta, DataStore store)
+    {
         //  Snapshot cadence: publish once per SnapshotHz, measured from the tick deltas so it does not
         //  depend on the server tick rate. Subtracting, not resetting, keeps the average exact. All
         //  publish effects ride the cadence, so nothing on the wire waits more than one interval.
@@ -329,14 +358,29 @@ public sealed class NetworkReplicationSystem
             }
         }
 
-        //  Lift the streaming gates recorded this tick, so the next publish sends deltas again.
-        while (_streamEnds.TryDequeue(out Uuid clientId))
-        {
-            _streamingClients.Remove(clientId);
-        }
-
         //  Drop full-sync requests whose client disconnected before the publish.
         _fullSync.Clear();
+    }
+
+    private void DrainStreamEnds()
+    {
+        if (_streamEnds.Count == 0)
+        {
+            return;
+        }
+
+        long now = Environment.TickCount64;
+        foreach (Uuid clientId in _streamEnds)
+        {
+            if (_streamingClients.Remove(clientId, out long startedMs))
+            {
+                _logger.LogDebug(
+                    "Lifted join-stream gate for client {clientId} after {elapsed} ms.",
+                    clientId, now - startedMs);
+            }
+        }
+
+        _streamEnds.Clear();
     }
 
     /// <summary>
