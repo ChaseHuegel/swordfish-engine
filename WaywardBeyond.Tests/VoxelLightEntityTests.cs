@@ -50,9 +50,9 @@ public class VoxelLightEntityTests
     private static TestBrickDatabase CreateBrickDatabase()
     {
         var db = new TestBrickDatabase();
-        db.Bricks[StoneId] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
-        db.Bricks[LampId] = new Brick("lamp", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, tags: ["light"]);
-        db.Bricks[GlassId] = new Brick("glass", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, tags: []);
+        db.Bricks[StoneId] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default);
+        db.Bricks[LampId] = new Brick("lamp", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, lightSource: true);
+        db.Bricks[GlassId] = new Brick("glass", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default);
         return db;
     }
 

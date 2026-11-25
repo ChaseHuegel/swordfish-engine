@@ -55,7 +55,7 @@ public class VoxelCollisionTests
     [Fact]
     public void CustomShapeWithoutExplicitCollidersFallsBackToUnitCube()
     {
-        var brick = new Brick("mod:custom", BrickAlpha.Opaque, false, "custom.obj", BrickShape.Custom, default, null);
+        var brick = new Brick("mod:custom", BrickAlpha.Opaque, false, "custom.obj", BrickShape.Custom, default);
 
         ReadOnlySpan<BrickColliderShape> parts = BrickColliders.ForShape(BrickShape.Custom, brick);
         Assert.Equal(1, parts.Length);
@@ -71,7 +71,7 @@ public class VoxelCollisionTests
             new(new Box3(new Vector3(1f, 1f, 0.1875f)), new Vector3(0f, 0f, -0.40625f), Quaternion.Identity),
             new(new Box3(new Vector3(0.75f, 0.75f, 0.8125f)), new Vector3(0f, 0f, 0.09375f), Quaternion.Identity),
         ];
-        var brick = new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, null, colliders: customParts);
+        var brick = new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, colliders: customParts);
 
         ReadOnlySpan<BrickColliderShape> parts = BrickColliders.ForShape(BrickShape.Custom, brick);
         Assert.Equal(2, parts.Length);
@@ -143,7 +143,6 @@ public class VoxelCollisionTests
             "thruster.obj",
             BrickShape.Custom,
             default,
-            null,
             colliders: [new BrickColliderShape(new Box3(new Vector3(0.5f, 0.5f, 0.5f)), Vector3.Zero, Quaternion.Identity)]
         );
         bricks.ById[2] = thruster;

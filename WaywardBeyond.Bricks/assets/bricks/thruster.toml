@@ -2,15 +2,6 @@
 ID      = "wb:thruster"
 Shape   = "custom"
 Mesh    = "thruster.obj"
-Tags    = [
-    "entity",
-    "metal",
-    "thruster",
-    "buildable",
-    "paintable",
-    "orientable",
-    "convertable_truss",
-]
 [Bricks.Sounds]
 Place = ["metal_place"]
 Break = ["metal_break"]

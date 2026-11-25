@@ -1,13 +1,6 @@
 [[Bricks]]
 ID      = "wb:display_control"
 Shape   = "any"
-Tags    = [
-    "metal",
-    "buildable",
-    "paintable",
-    "orientable",
-    "convertable_truss",
-]
 [Bricks.Sounds]
 Place = ["metal_place"]
 Break = ["metal_break"]

@@ -23,6 +23,7 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Items;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Layers;
@@ -405,10 +406,15 @@ public class InventoryViewTests
             _world.DataStore.AddOrUpdate(_player, new PendingInventoryComponent());
 
             DebugSettings = new DebugSettings();
+            var tags = new InventoryTagDatabase(new Dictionary<string, List<string>>
+            {
+                [BrickTags.THRUSTER] = ["wb:thruster"],
+            });
             _inventory = new Inventory(
                 _shortcuts,
                 items,
                 bricks,
+                tags,
                 icons,
                 PlayerData,
                 new TestEcsContext(_world),
@@ -655,12 +661,21 @@ public class InventoryViewTests
         {
             return
             [
-                new Brick("wb:rock", BrickAlpha.Opaque, false, null, BrickShape.Any, default, null),
-                new Brick("wb:caution", BrickAlpha.Opaque, false, null, BrickShape.Any, default, null),
-                new Brick("wb:control_buttons", BrickAlpha.Opaque, false, null, BrickShape.Block, default, ["orientable"]),
-                new Brick("wb:light", BrickAlpha.Blend, false, null, BrickShape.Any, default, ["light"]),
-                new Brick("wb:thruster", BrickAlpha.Opaque, false, null, BrickShape.Custom, default, ["orientable", "thruster"]),
+                new Brick("wb:rock", BrickAlpha.Opaque, false, null, BrickShape.Any, default),
+                new Brick("wb:caution", BrickAlpha.Opaque, false, null, BrickShape.Any, default),
+                new Brick("wb:control_buttons", BrickAlpha.Opaque, false, null, BrickShape.Block, default, orientable: true),
+                new Brick("wb:light", BrickAlpha.Blend, false, null, BrickShape.Any, default, lightSource: true),
+                new Brick("wb:thruster", BrickAlpha.Opaque, false, null, BrickShape.Custom, default, orientable: true),
             ];
+        }
+
+        private sealed class InventoryTagDatabase(Dictionary<string, List<string>> tags) : ILocalizedTagsDatabase
+        {
+            private readonly LocalizedTags _tags = new(tags);
+
+            public LocalizedTags? Invariant => _tags;
+
+            public Result<LocalizedTags> Get(string id) => Result<LocalizedTags>.FromSuccess(_tags);
         }
 
         private static Item[] Items()

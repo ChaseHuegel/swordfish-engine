@@ -8,6 +8,7 @@ using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Voxels;
 using Xunit;
@@ -26,9 +27,10 @@ public class BrickColliderTests
         var vfs = new VirtualFileSystem();
         vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Bricks", "assets")));
 
-        IFileParser[] parsers = [new TomlParser<BrickDefinitions>()];
+        IFileParser[] parsers = [new TomlParser<BrickDefinitions>(), new LocalizedTagDefinitionParser()];
         var parser = new VirtualFileParseService(parsers, vfs);
-        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
 
         Result<Brick> result = bricks.Get("wb:thruster");
         Assert.True(result.Success, "Shipped wb:thruster must load.");
@@ -87,9 +89,10 @@ public class BrickColliderTests
             var vfs = new VirtualFileSystem();
             vfs.Mount(new PathInfo(tempDir));
 
-            IFileParser[] parsers = [new TomlParser<BrickDefinitions>()];
+            IFileParser[] parsers = [new TomlParser<BrickDefinitions>(), new LocalizedTagDefinitionParser()];
             var parser = new VirtualFileParseService(parsers, vfs);
-            var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
+            var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+            var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
 
             Result<Brick> result = bricks.Get("mod:antenna");
             Assert.True(result.Success);

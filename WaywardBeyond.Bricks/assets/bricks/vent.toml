@@ -1,10 +1,6 @@
 [[Bricks]]
 ID          = "wb:vent"
 Shape       = "any"
-Tags        = [
-    "metal",
-    "paintable",
-]
 [Bricks.Sounds]
 Place = ["metal_place"]
 Break = ["metal_break"]

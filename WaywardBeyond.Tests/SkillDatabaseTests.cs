@@ -147,8 +147,8 @@ public class SkillDatabaseTests
         ];
         var parser = new VirtualFileParseService(parsers, vfs);
 
-        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
         var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
         var skills = new SkillDatabase(NullLogger<SkillDatabase>.Instance, parser, vfs, bricks, tags);
         return new Fixture(skills, bricks);
     }

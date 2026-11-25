@@ -1,9 +1,19 @@
+using System;
 using System.IO;
+using System.Linq;
+using Krill;
 using Microsoft.Extensions.Logging.Abstractions;
+using Swordfish.ECS;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Localization;
+using WaywardBeyond.Voxels;
 using Xunit;
 
 namespace WaywardBeyond.Tests;
@@ -11,15 +21,19 @@ namespace WaywardBeyond.Tests;
 /// <summary>Tests for <see cref="BrickDatabase"/> and <see cref="BrickAlpha"/> over shipped brick definitions.</summary>
 public class BrickDatabaseTests
 {
-    private static BrickDatabase Load()
+    private static (BrickDatabase Bricks, LocalizedTagsDatabase Tags) LoadWithTags()
     {
         var vfs = new VirtualFileSystem();
         vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Bricks", "assets")));
 
-        IFileParser[] parsers = [new TomlParser<BrickDefinitions>()];
+        IFileParser[] parsers = [new TomlParser<BrickDefinitions>(), new LocalizedTagDefinitionParser()];
         var parser = new VirtualFileParseService(parsers, vfs);
-        return new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
+        return (bricks, tags);
     }
+
+    private static BrickDatabase Load() => LoadWithTags().Bricks;
 
     [Fact]
     public void LoadsShippedBrickAlphaModes()
@@ -81,5 +95,84 @@ public class BrickDatabaseTests
         Assert.False(database.IsCuller(glassVoxel, BrickShape.Block));
         Assert.False(database.IsCuller(lightVoxel, BrickShape.Block));
         Assert.False(database.IsCuller(smallLightVoxel, BrickShape.Block));
+    }
+
+    [Fact]
+    public void ShippedBricksResolveInvariantTagProperties()
+    {
+        (BrickDatabase database, LocalizedTagsDatabase tags) = LoadWithTags();
+        LocalizedTags invariant = tags.Invariant ?? throw new InvalidOperationException("No invariant tags loaded.");
+
+        //  Light and entity flags come from brick.light and brick.entity.
+        Assert.True(database.Get("wb:light").Value.LightSource);
+        Assert.Equal(15, database.Get("wb:light").Value.Brightness);
+        Assert.True(database.Get("wb:light").Value.Entity);
+        Assert.True(database.Get("wb:small_light").Value.LightSource);
+        Assert.True(database.Get("wb:small_light").Value.Entity);
+        Assert.False(database.Get("wb:panel").Value.LightSource);
+        Assert.False(database.Get("wb:panel").Value.Entity);
+
+        //  Thruster is an entity, orientable, and listed under brick.thruster.
+        Brick thruster = database.Get("wb:thruster").Value;
+        Assert.True(thruster.Entity);
+        Assert.False(thruster.LightSource);
+        Assert.True(thruster.IsOrientable(BrickShape.Custom));
+        Assert.True(invariant.Contains(BrickTags.THRUSTER, "wb:thruster"));
+        Assert.False(invariant.Contains(BrickTags.THRUSTER, "wb:panel"));
+
+        //  Orientable blocks carry brick.orientable; non-orientable blocks do not.
+        Assert.True(database.Get("wb:storage").Value.IsOrientable(BrickShape.Block));
+        Assert.True(database.Get("wb:control_buttons").Value.IsOrientable(BrickShape.Block));
+        Assert.False(database.Get("wb:core").Value.IsOrientable(BrickShape.Block));
+        Assert.False(database.Get("wb:panel").Value.IsOrientable(BrickShape.Block));
+        Assert.True(database.Get("wb:panel").Value.IsOrientable(BrickShape.Slope));
+
+        //  Environment, buildable, and manufactured groups match shipped bricks.
+        Assert.Equal(["wb:ice", "wb:rock"], invariant.GetValues(BrickTags.ENVIRONMENT)!.OrderBy(id => id).ToArray());
+        Assert.Equal(database.Get(_ => true).Count, invariant.GetValues(BrickTags.BUILDABLE)!.Count);
+        Assert.Equal(database.Get(_ => true).Count - 2, invariant.GetValues(BrickTags.MANUFACTURED)!.Count);
+
+        //  Every entry in every brick.* tag resolves to a real shipped brick.
+        foreach (string tag in new[]
+        {
+            BrickTags.LIGHT,
+            BrickTags.ENTITY,
+            BrickTags.ORIENTABLE,
+            BrickTags.PAINTABLE,
+            BrickTags.THRUSTER,
+            BrickTags.BUILDABLE,
+            BrickTags.ENVIRONMENT,
+            BrickTags.MANUFACTURED,
+        })
+        {
+            var entries = invariant.GetValues(tag);
+            Assert.NotNull(entries);
+            foreach (string brickId in entries!)
+            {
+                Assert.True(database.Get(brickId).Success, $"Tag \"{tag}\" references unknown brick \"{brickId}\".");
+            }
+        }
+    }
+
+    [Fact]
+    public void ThrusterEntityDecoratorResolvesThrustersFromInvariantTags()
+    {
+        (BrickDatabase database, LocalizedTagsDatabase tags) = LoadWithTags();
+        var decorator = new ThrusterEntityDecorator(database, tags);
+
+        var store = new DataStore();
+        int parent = store.Alloc();
+        int thrusterEntity = store.Alloc();
+        int panelEntity = store.Alloc();
+        var voxelComponent = new VoxelComponent(new VoxelObject(16), new VoxelChunkRegistry());
+
+        var thrusterVoxel = new Voxel { ID = database.Id("wb:thruster") };
+        var panelVoxel = new Voxel { ID = database.Id("wb:panel") };
+
+        decorator.Process(store, parent, thrusterEntity, voxelComponent, new VoxelInfo(0, 0, 0, thrusterVoxel));
+        decorator.Process(store, parent, panelEntity, voxelComponent, new VoxelInfo(1, 0, 0, panelVoxel));
+
+        Assert.True(store.TryGet(thrusterEntity, out LightComponent _));
+        Assert.False(store.TryGet(panelEntity, out LightComponent _));
     }
 }

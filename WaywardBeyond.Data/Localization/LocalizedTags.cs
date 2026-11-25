@@ -12,4 +12,10 @@ public sealed class LocalizedTags(in Dictionary<string, List<string>> tags)
     {
         return Tags.GetValueOrDefault(tag);
     }
+
+    /// <summary>Returns whether a tag contains the specified value.</summary>
+    public bool Contains(string tag, string value)
+    {
+        return Tags.TryGetValue(tag, out List<string>? values) && values.Contains(value);
+    }
 }

@@ -1,0 +1,134 @@
+# Invariant paint palette and material group tags.
+
+"Language" = ""
+
+[Tags]
+"paint.endesga-32" = [
+    "wb:amber",
+    "wb:azure",
+    "wb:clay",
+    "wb:cobalt",
+    "wb:coral",
+    "wb:cream",
+    "wb:crimson",
+    "wb:cyan",
+    "wb:espresso",
+    "wb:forest",
+    "wb:green",
+    "wb:indigo",
+    "wb:lime",
+    "wb:magenta",
+    "wb:mauve",
+    "wb:navy",
+    "wb:obsidian",
+    "wb:orange",
+    "wb:peach",
+    "wb:pine",
+    "wb:plum",
+    "wb:red",
+    "wb:rust",
+    "wb:sand",
+    "wb:silver",
+    "wb:slate",
+    "wb:steel",
+    "wb:tan",
+    "wb:terracotta",
+    "wb:umber",
+    "wb:white",
+    "wb:yellow",
+]
+
+"paint.warm" = [
+    "wb:amber",
+    "wb:clay",
+    "wb:coral",
+    "wb:cream",
+    "wb:orange",
+    "wb:peach",
+    "wb:rust",
+    "wb:sand",
+    "wb:tan",
+    "wb:terracotta",
+    "wb:umber",
+    "wb:yellow",
+]
+
+"paint.dark" = [
+    "wb:espresso",
+    "wb:navy",
+    "wb:obsidian",
+]
+
+"paint.red" = [
+    "wb:crimson",
+    "wb:magenta",
+    "wb:red",
+]
+
+"paint.green" = [
+    "wb:forest",
+    "wb:green",
+    "wb:lime",
+    "wb:pine",
+]
+
+"paint.blue" = [
+    "wb:azure",
+    "wb:cobalt",
+    "wb:cyan",
+]
+
+"paint.neutral" = [
+    "wb:silver",
+    "wb:slate",
+    "wb:steel",
+    "wb:white",
+]
+
+"paint.cool" = [
+    "wb:indigo",
+]
+
+"paint.purple" = [
+    "wb:mauve",
+    "wb:plum",
+]
+
+"paint.metal" = [
+    "wb:caution_panel",
+    "wb:control_buttons",
+    "wb:control_panel",
+    "wb:core",
+    "wb:display_console",
+    "wb:display_control",
+    "wb:display_monitor",
+    "wb:display_screen",
+    "wb:grate",
+    "wb:greeble",
+    "wb:light",
+    "wb:panel",
+    "wb:porthole",
+    "wb:small_light",
+    "wb:storage_back",
+    "wb:storage_bottom",
+    "wb:storage_front",
+    "wb:storage_side",
+    "wb:storage_top",
+    "wb:truss",
+    "wb:vent",
+]
+
+"paint.light" = [
+    "wb:light",
+    "wb:small_light",
+]
+
+"paint.environment" = [
+    "wb:ice",
+    "wb:rock",
+]
+
+"paint.glass" = [
+    "wb:glass",
+    "wb:glass_plain",
+]

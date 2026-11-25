@@ -67,11 +67,11 @@ public class PaintInteractionTests
     private static (StubBrickDatabase bricks, StubPaintDatabase paints, VoxelObject voxels, StubWorld world, Uuid uuid) CreateHarness()
     {
         var bricks = new StubBrickDatabase();
-        bricks.Add(1, new Brick("wb:panel", BrickAlpha.Opaque, false, null, BrickShape.Any, default, ["paintable"]));
-        bricks.Add(2, new Brick("wb:rock", BrickAlpha.Opaque, false, null, BrickShape.Any, default, ["environment"]));
-        bricks.Add(3, new Brick("wb:glass", BrickAlpha.Blend, false, null, BrickShape.Any, default, ["paintable"]));
-        bricks.Add(4, new Brick("wb:grate", BrickAlpha.Masked, false, null, BrickShape.Any, default, ["paintable"]));
-        bricks.Add(5, new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, ["paintable"]));
+        bricks.Add(1, new Brick("wb:panel", BrickAlpha.Opaque, false, null, BrickShape.Any, default, paintable: true));
+        bricks.Add(2, new Brick("wb:rock", BrickAlpha.Opaque, false, null, BrickShape.Any, default));
+        bricks.Add(3, new Brick("wb:glass", BrickAlpha.Blend, false, null, BrickShape.Any, default, paintable: true));
+        bricks.Add(4, new Brick("wb:grate", BrickAlpha.Masked, false, null, BrickShape.Any, default, paintable: true));
+        bricks.Add(5, new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, paintable: true));
 
         var paints = new StubPaintDatabase();
         paints.Add(1, Paint.CreateTexture("wb:caution", "caution", BrickAlpha.Opaque, false, ["caution"]));
@@ -241,9 +241,9 @@ public class PaintInteractionTests
             null,
             BrickShape.Any,
             new BrickTextures { Connected = true, Default = ["panel.0"], Top = ["caution"] },
-            ["paintable"]
+            paintable: true
         ));
-        bricks.Add(2, new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, ["paintable"]));
+        bricks.Add(2, new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, paintable: true));
 
         var paints = new StubPaintDatabase();
         paints.Add(1, Paint.CreateTexture("wb:caution", "caution", BrickAlpha.Opaque, false, ["caution"]));
@@ -294,9 +294,9 @@ public class PaintInteractionTests
     public void LightEntityDecoratorMixesPaintedFaceColorsForLightBricksOnly()
     {
         var bricks = new StubBrickDatabase();
-        bricks.Add(1, new Brick("wb:light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, ["entity", "light", "paintable"]));
-        bricks.Add(2, new Brick("wb:small_light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, ["entity", "light", "paintable"]));
-        bricks.Add(3, new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, ["entity", "thruster", "paintable"]));
+        bricks.Add(1, new Brick("wb:light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, entity: true, paintable: true));
+        bricks.Add(2, new Brick("wb:small_light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, entity: true, paintable: true));
+        bricks.Add(3, new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, entity: true, paintable: true));
 
         var paints = new StubPaintDatabase();
         paints.Add(1, Paint.CreateTexture("wb:caution", "caution", BrickAlpha.Opaque, false, ["caution"]));

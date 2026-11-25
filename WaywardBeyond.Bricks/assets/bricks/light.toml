@@ -2,16 +2,6 @@
 ID          = "wb:light"
 Shape       = "any"
 CastShadows = false
-Tags    = [
-    "entity",
-    "light",
-    "metal",
-    "glass",
-    "decoration",
-    "buildable",
-    "paintable",
-    "convertable_truss",
-]
 [Bricks.Sounds]
 Place = ["metal_place"]
 Break = ["metal_break"]

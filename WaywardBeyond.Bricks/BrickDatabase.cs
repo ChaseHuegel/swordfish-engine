@@ -7,6 +7,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Bricks;
 
@@ -14,6 +15,7 @@ namespace WaywardBeyond.Bricks;
 internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, Brick>, IAutoActivate, IBrickDatabase, IBrickRegistry
 {
     private readonly ILogger<BrickDatabase> _logger;
+    private readonly LocalizedTags? _invariantTags;
     private readonly List<Brick> _loaded = [];
     private readonly BrickRegistry _registry;
     private readonly Brick?[] _byId;
@@ -22,10 +24,12 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     public BrickDatabase(
         in ILogger<BrickDatabase> logger,
         in IFileParseService fileParseService,
-        in VirtualFileSystem vfs
+        in VirtualFileSystem vfs,
+        in ILocalizedTagsDatabase tagDatabase
     ) : base(logger, fileParseService, vfs)
     {
         _logger = logger;
+        _invariantTags = tagDatabase.Invariant;
         Load();
 
         _registry = BrickRegistry.FromNames([.. _loaded.Select(brick => brick.ID)]);
@@ -88,7 +92,25 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     protected override Result<Brick> LoadAsset(string id, BrickDefinition assetInfo)
     {
         BrickColliderShape[] colliders = BuildColliders(id, assetInfo.Colliders);
-        var brick = new Brick(id, assetInfo.Alpha, assetInfo.Passable, assetInfo.Mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags, assetInfo.CastShadows, colliders, assetInfo.Sounds);
+        bool lightSource = _invariantTags?.Contains(BrickTags.LIGHT, id) ?? false;
+        bool entity = _invariantTags?.Contains(BrickTags.ENTITY, id) ?? false;
+        bool paintable = _invariantTags?.Contains(BrickTags.PAINTABLE, id) ?? false;
+        bool orientable = _invariantTags?.Contains(BrickTags.ORIENTABLE, id) ?? false;
+        var brick = new Brick(
+            id,
+            assetInfo.Alpha,
+            assetInfo.Passable,
+            assetInfo.Mesh,
+            assetInfo.Shape,
+            assetInfo.Textures,
+            assetInfo.CastShadows,
+            colliders,
+            assetInfo.Sounds,
+            lightSource,
+            entity,
+            paintable,
+            orientable
+        );
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
     }

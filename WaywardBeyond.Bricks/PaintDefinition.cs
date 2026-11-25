@@ -9,5 +9,4 @@ internal struct PaintDefinition()
     public bool Connected;
     public string?[]? Textures;
     public string? Color;
-    public string[]? Tags;
 }

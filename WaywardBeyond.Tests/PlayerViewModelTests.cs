@@ -164,8 +164,7 @@ public class PlayerViewModelTests
                 passable: false,
                 meshId,
                 shape,
-                new BrickTextures { Default = [textureId] },
-                tags: null
+                new BrickTextures { Default = [textureId] }
             );
             ushort dataId = Registry.Bind(id);
             brick.BindDataID(dataId);

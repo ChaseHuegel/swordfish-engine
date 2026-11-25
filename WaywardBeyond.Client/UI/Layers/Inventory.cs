@@ -17,6 +17,7 @@ using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Items;
 
@@ -54,6 +55,7 @@ internal sealed class Inventory : IUILayer
 
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly IBrickDatabase _brickDatabase;
+    private readonly LocalizedTags? _invariantTags;
     private readonly ItemIconDatabase _itemIcons;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
@@ -82,6 +84,7 @@ internal sealed class Inventory : IUILayer
         in IShortcutService shortcutService,
         in IAssetDatabase<Item> itemDatabase,
         in IBrickDatabase brickDatabase,
+        in ILocalizedTagsDatabase tagDatabase,
         in ItemIconDatabase itemIcons,
         in PlayerData playerData,
         in IECSContext ecsContext,
@@ -93,6 +96,7 @@ internal sealed class Inventory : IUILayer
     {
         _itemDatabase = itemDatabase;
         _brickDatabase = brickDatabase;
+        _invariantTags = tagDatabase.Invariant;
         _itemIcons = itemIcons;
         _playerData = playerData;
         _ecsContext = ecsContext;
@@ -436,7 +440,7 @@ internal sealed class Inventory : IUILayer
             traits.Add(ItemTooltipTrait.LightSource);
         }
 
-        if (brick.Tags.Contains("thruster"))
+        if (_invariantTags?.Contains(BrickTags.THRUSTER, brick.ID) == true)
         {
             traits.Add(ItemTooltipTrait.Propulsion);
         }

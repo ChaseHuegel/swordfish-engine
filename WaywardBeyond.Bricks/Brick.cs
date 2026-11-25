@@ -18,9 +18,6 @@ public sealed class Brick
     /// <summary>The voxel id for this brick. Bound once at database load.</summary>
     public ushort DataID { get; private set; }
 
-    /// <summary>All brick tags are case-insensitive.</summary>
-    public readonly IReadOnlySet<string> Tags;
-
     /// <summary>The sound tags declared per <see cref="BrickEventKind"/>, or empty when the brick is silent.</summary>
     public readonly IReadOnlyDictionary<BrickEventKind, string[]> Sounds;
 
@@ -41,7 +38,7 @@ public sealed class Brick
     public readonly bool Entity;
     public readonly bool Paintable;
 
-    private readonly bool _hasOrientableTag;
+    private readonly bool _orientable;
 
     public Brick(
         in string id,
@@ -50,10 +47,13 @@ public sealed class Brick
         in string? meshID,
         in BrickShape shape,
         in BrickTextures textures,
-        in string[]? tags,
         in bool castShadows = true,
         in BrickColliderShape[]? colliders = null,
-        in Dictionary<BrickEventKind, string[]>? sounds = null
+        in Dictionary<BrickEventKind, string[]>? sounds = null,
+        in bool lightSource = false,
+        in bool entity = false,
+        in bool paintable = false,
+        in bool orientable = false
     ) {
         ID = id;
         Alpha = alpha;
@@ -63,20 +63,19 @@ public sealed class Brick
         Shape = shape;
         Textures = textures;
         _colliders = colliders ?? [];
-        Tags = new HashSet<string>(tags ?? [], StringComparer.OrdinalIgnoreCase);
         Sounds = sounds ?? _noSounds;
         Shapeable = shape == BrickShape.Any;
-        LightSource = Tags.Contains("light");
+        LightSource = lightSource;
         Brightness = LightSource ? 15 : 0;
-        Entity = Tags.Contains("entity");
-        Paintable = Tags.Contains("paintable");
-        _hasOrientableTag = Tags.Contains("orientable");
+        Entity = entity;
+        Paintable = paintable;
+        _orientable = orientable;
     }
 
     /// <summary>Returns whether the provided shape is orientable for this brick.</summary>
     public bool IsOrientable(BrickShape shape)
     {
-        if (_hasOrientableTag)
+        if (_orientable)
         {
             return true;
         }

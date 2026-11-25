@@ -5,7 +5,7 @@ Category = "skill.category.gathering"
 Icon     = "block/rock.png"
 
 [Skills.Sources.Break]
-"tag:environment" = 1
+"tag:brick.environment" = 1
 
 [Skills.Levels]
 1 = 61

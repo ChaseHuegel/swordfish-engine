@@ -1,10 +1,6 @@
 [[Bricks]]
 ID      = "wb:ice"
 Shape   = "any"
-Tags    = [
-    "environment",
-    "paintable",
-]
 [Bricks.Sounds]
 Place = ["rock_place"]
 Break = ["rock_break"]

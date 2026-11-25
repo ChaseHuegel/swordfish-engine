@@ -2,10 +2,6 @@
 ID          = "wb:grate"
 Shape       = "any"
 Alpha       = "Masked"
-Tags        = [
-    "metal",
-    "paintable",
-]
 [Bricks.Sounds]
 Place = ["metal_place"]
 Break = ["metal_break"]

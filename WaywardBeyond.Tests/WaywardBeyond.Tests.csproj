@@ -40,13 +40,15 @@
     <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
     <None Include="..\WaywardBeyond.Skills\assets\skills\*.toml" Link="TestFiles\Skills\assets\skills\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\WaywardBeyond.Skills\assets\lang\tags\*.toml" Link="TestFiles\Skills\assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bricks\assets\bricks\*.toml" Link="TestFiles\Bricks\assets\bricks\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Bricks\assets\lang\tags\*.toml" Link="TestFiles\Bricks\assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bricks\assets\paints\*.toml" Link="TestFiles\Bricks\assets\paints\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Items\assets\items\*.toml" Link="TestFiles\Items\assets\items\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Items\assets\lang\tags\*.toml" Link="TestFiles\Items\assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bodies\assets\bodies\*.toml" Link="TestFiles\Bodies\assets\bodies\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bodies\assets\textures\characters\*.png" Link="TestFiles\Bodies\assets\textures\characters\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bricks\assets\bricks\*.toml" Link="assets\bricks\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Bricks\assets\lang\tags\*.toml" Link="assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Client\assets\audio\sounds\**\*.*" Link="assets\audio\sounds\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="_ExcludeUnusedGameAssetsFromTests"

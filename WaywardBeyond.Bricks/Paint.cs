@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 
@@ -38,29 +37,24 @@ public sealed class Paint
     /// <summary>Swatch color in linear RGB (0..1) for PBR shading.</summary>
     public readonly Vector3 LinearColor;
 
-    /// <summary>All paint tags are case-insensitive.</summary>
-    public readonly IReadOnlySet<string> Tags;
-
     /// <summary>Creates a texture paint asset.</summary>
     public static Paint CreateTexture(
         string id,
         string? name,
         BrickAlpha alpha,
         bool connected,
-        string?[] textures,
-        string[]? tags = null
+        string?[] textures
     ) {
-        return new Paint(id, name, PaintKind.Texture, alpha, connected, textures, Vector3.One, tags);
+        return new Paint(id, name, PaintKind.Texture, alpha, connected, textures, Vector3.One);
     }
 
     /// <summary>Creates a color swatch paint asset from normalized sRGB components (0..1).</summary>
     public static Paint CreateColor(
         string id,
         string? name,
-        Vector3 color,
-        string[]? tags = null
+        Vector3 color
     ) {
-        return new Paint(id, name, PaintKind.Color, BrickAlpha.Opaque, connected: false, textures: null, color, tags);
+        return new Paint(id, name, PaintKind.Color, BrickAlpha.Opaque, connected: false, textures: null, color);
     }
 
     private Paint(
@@ -70,8 +64,7 @@ public sealed class Paint
         BrickAlpha alpha,
         bool connected,
         string?[]? textures,
-        Vector3 color,
-        string[]? tags
+        Vector3 color
     ) {
         ID = id;
         Name = string.IsNullOrWhiteSpace(name) ? id : name;
@@ -81,7 +74,6 @@ public sealed class Paint
         Textures = textures;
         Color = color;
         LinearColor = new Vector3(SrgbToLinear(color.X), SrgbToLinear(color.Y), SrgbToLinear(color.Z));
-        Tags = new HashSet<string>(tags ?? [], StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>Binds the numeric ID assigned by the sorted registry. Called once at database load.</summary>

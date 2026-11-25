@@ -24,7 +24,7 @@ that owns the headless models and the tomls:
 
 - `XPSource.cs` — `XPSource { Place, Break }`.
 - `SkillDefinition.cs`, `SkillDefinitions.cs` — the TOML schema.
-  Sources stay readable as `"wb:rock" = 1` or `"tag:buildable" = 1`.
+  Sources stay readable as `"wb:rock" = 1` or `"tag:brick.buildable" = 1`.
 - `Skill.cs` — the runtime asset: ID, name/category localization keys, icon
   path, level curve (`SortedDictionary`), and sources keyed by brick
   **data id**. `GetXP(XPSource, ushort)` resolves the XP for a brick.
@@ -47,11 +47,12 @@ that owns the headless models and the tomls:
   `WaywardBeyond.Server/Components/SkillStateComponent.cs`. It is never
   persisted and never replicated as a component.
 
-Assets: `assets/skills/*.toml` (skill definitions) and `assets/lang/tags/*.toml`
-(invariant gameplay tag lists, empty-language). Tag list files are general
+Assets: `assets/skills/*.toml` (skill definitions). Invariant brick tag lists
+live in `WaywardBeyond.Bricks/assets/lang/tags/bricks.toml` (`brick.buildable`,
+`brick.environment`, `brick.manufactured`). Tag list files are general
 purpose: the shared tag schema, database, and parser live in
-`WaywardBeyond.Data/Localization/` and serve gameplay (skills), client
-presentation (name generation, load screen), and sound effects.
+`WaywardBeyond.Data/Localization/` and serve bricks, paints, items, skills,
+client presentation (name generation, load screen), and sound effects.
 
 The `Name`/`Category` fields are **localization keys**, not display strings. The
 client's `assets/lang/en/skills.toml` holds the display strings.
@@ -89,7 +90,8 @@ to 10 and leave `Color` null so `Bars.cs` uses the default accent fill.
 ## Source of truth
 
 - `WaywardBeyond.Skills/*.cs`
-- `WaywardBeyond.Skills/assets/{skills,lang/tags}/**`
+- `WaywardBeyond.Skills/assets/skills/**`
+- `WaywardBeyond.Bricks/assets/lang/tags/bricks.toml`
 - `WaywardBeyond.Data/Localization/{LocalizedTagsDefinition,LocalizedTags,LocalizedTagsDatabase,LocalizedTagDefinitionParser,ILocalizedTagsDatabase,LocalizationComposition}.cs`
 - `WaywardBeyond.Server/Components/SkillStateComponent.cs`
 - `WaywardBeyond.Server/Interactions/SkillXpReactor.cs`

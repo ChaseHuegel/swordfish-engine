@@ -70,8 +70,8 @@ public class SoundTagTests
         ];
         var parser = new VirtualFileParseService(parsers, vfs);
 
-        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs);
         var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
         LocalizedTags invariant = tags.Invariant ?? throw new InvalidOperationException("No invariant tags were loaded.");
         return new Fixture(vfs, bricks, invariant);
     }
