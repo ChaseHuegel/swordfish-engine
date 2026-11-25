@@ -103,6 +103,11 @@ public sealed class SimulationStep : IDisposable
 
         StepAction action = new() { Owner = this };
         _store.QueryRef<InputComponent, PhysicsComponent, TransformComponent, StepAction>(0f, ref action);
+
+        //  Character bodies without an InputComponent are remote player mirrors on the client. They get
+        //  the same damping as the server's input-driven bodies, but never apply client input.
+        RemoteBodyDampAction remoteAction = new() { Owner = this };
+        _store.QueryRef<BodyViewComponent, PhysicsComponent, TransformComponent, RemoteBodyDampAction>(0f, ref remoteAction);
     }
 
     private void DrainLookForgets()
@@ -128,6 +133,22 @@ public sealed class SimulationStep : IDisposable
         }
     }
 
+    private struct RemoteBodyDampAction : IForEachRef<BodyViewComponent, PhysicsComponent, TransformComponent>
+    {
+        public SimulationStep Owner;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<BodyViewComponent> body, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
+        {
+            //  Input-driven bodies already damped in the command pass above.
+            if (store.Has(typeof(InputComponent), entity))
+            {
+                return;
+            }
+
+            Owner.Damp(ref physics);
+        }
+    }
+
     private void Execute(int entity, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
     {
         ref readonly TransformComponent transformValue = ref transform.Read;
@@ -139,22 +160,8 @@ public sealed class SimulationStep : IDisposable
         //  the write. A Write marks the component dirty even when the value is unchanged, and the
         //  server replicates this component to every client.
         PhysicsComponent current = physics.Read;
-        Vector3 torque = current.Torque;
-        Vector3 velocity = current.Velocity;
-
-        //  Damping runs every step, with or without a command. A tick without a command is idle input,
-        //  not a frozen body: skipping the damping would let a stalled input stream coast forever.
-        torque += -torque * fixedTimestamp * CharacterDefaults.ANGULAR_DECELERATION;
-        if (torque.LengthSquared() <= CharacterDefaults.STOP_EPSILON)
-        {
-            torque = Vector3.Zero;
-        }
-
-        velocity += -velocity * fixedTimestamp * CharacterDefaults.DECELERATION;
-        if (velocity.LengthSquared() <= CharacterDefaults.STOP_EPSILON)
-        {
-            velocity = Vector3.Zero;
-        }
+        Vector3 torque = DampAngular(current.Torque, fixedTimestamp);
+        Vector3 velocity = DampLinear(current.Velocity, fixedTimestamp);
 
         //  The command for the current sim tick. Newest-for-tick collapse is handled by the resolver;
         //  a missing command leaves the damping above as the whole step.
@@ -199,6 +206,49 @@ public sealed class SimulationStep : IDisposable
         {
             physics.Write.Velocity = velocity;
         }
+    }
+
+    /// <summary>Damps a body that applies no input, matching the command pass's commandless step.</summary>
+    private void Damp(ref Ref<PhysicsComponent> physics)
+    {
+        float fixedTimestamp = _physics.FixedTimestamp;
+        PhysicsComponent current = physics.Read;
+        Vector3 torque = DampAngular(current.Torque, fixedTimestamp);
+        Vector3 velocity = DampLinear(current.Velocity, fixedTimestamp);
+
+        if (torque != current.Torque)
+        {
+            physics.Write.Torque = torque;
+        }
+
+        if (velocity != current.Velocity)
+        {
+            physics.Write.Velocity = velocity;
+        }
+    }
+
+    /// <summary>Applies the per-step angular damping and snaps a resting body to zero.</summary>
+    private static Vector3 DampAngular(Vector3 torque, float fixedTimestamp)
+    {
+        torque += -torque * fixedTimestamp * CharacterDefaults.ANGULAR_DECELERATION;
+        if (torque.LengthSquared() <= CharacterDefaults.STOP_EPSILON)
+        {
+            torque = Vector3.Zero;
+        }
+
+        return torque;
+    }
+
+    /// <summary>Applies the per-step linear damping and snaps a resting body to zero.</summary>
+    private static Vector3 DampLinear(Vector3 velocity, float fixedTimestamp)
+    {
+        velocity += -velocity * fixedTimestamp * CharacterDefaults.DECELERATION;
+        if (velocity.LengthSquared() <= CharacterDefaults.STOP_EPSILON)
+        {
+            velocity = Vector3.Zero;
+        }
+
+        return velocity;
     }
 
     /// <summary>
