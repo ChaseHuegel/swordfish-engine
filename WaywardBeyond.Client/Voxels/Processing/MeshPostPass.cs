@@ -26,6 +26,7 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
 
     private readonly MeshState _meshState;
     private readonly VoxelSurfaceCache _surfaceCache;
+    private readonly ConnectedTextureResolver _connectedTextureResolver;
     private readonly CubeMeshBuilder _opaqueCubeMeshBuilder;
     private readonly CubeMeshBuilder _opaqueNoShadowCubeMeshBuilder;
     private readonly CubeMeshBuilder _maskedCubeMeshBuilder;
@@ -45,10 +46,11 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
     ) {
         _meshState = meshState;
         _surfaceCache = new VoxelSurfaceCache(brickDatabase, textureArrays.Albedo, meshDatabase, paintDatabase);
-        _opaqueCubeMeshBuilder = new CubeMeshBuilder(meshState.Opaque, _surfaceCache);
-        _opaqueNoShadowCubeMeshBuilder = new CubeMeshBuilder(meshState.OpaqueNoShadow, _surfaceCache);
-        _maskedCubeMeshBuilder = new CubeMeshBuilder(meshState.Masked, _surfaceCache);
-        _transparentCubeMeshBuilder = new CubeMeshBuilder(meshState.Transparent, _surfaceCache);
+        _connectedTextureResolver = new ConnectedTextureResolver(_surfaceCache);
+        _opaqueCubeMeshBuilder = new CubeMeshBuilder(meshState.Opaque, _connectedTextureResolver);
+        _opaqueNoShadowCubeMeshBuilder = new CubeMeshBuilder(meshState.OpaqueNoShadow, _connectedTextureResolver);
+        _maskedCubeMeshBuilder = new CubeMeshBuilder(meshState.Masked, _connectedTextureResolver);
+        _transparentCubeMeshBuilder = new CubeMeshBuilder(meshState.Transparent, _connectedTextureResolver);
         _slope = meshDatabase.Get("slope.obj").Value;
         _stair = meshDatabase.Get("stair.obj").Value;
         _slab = meshDatabase.Get("slab.obj").Value;
@@ -92,19 +94,19 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         switch (shapeLight.Shape)
         {
             case BrickShape.Slab:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, in cachedBrick, _slab, new Orientation(orientationByte).ToQuaternion(), shapeLight.LightLevel);
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _slab);
                 break;
             case BrickShape.Stair:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, in cachedBrick, _stair, new Orientation(orientationByte).ToQuaternion(), shapeLight.LightLevel);
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _stair);
                 break;
             case BrickShape.Slope:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, in cachedBrick, _slope, new Orientation(orientationByte).ToQuaternion(), shapeLight.LightLevel);
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _slope);
                 break;
             case BrickShape.Column:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, in cachedBrick, _column, new Orientation(orientationByte).ToQuaternion(), shapeLight.LightLevel);
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _column);
                 break;
             case BrickShape.Plate:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, in cachedBrick, _plate, new Orientation(orientationByte).ToQuaternion(), shapeLight.LightLevel);
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _plate);
                 break;
             case BrickShape.Custom:
                 if (cachedBrick.CustomMesh == null)
@@ -114,7 +116,7 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
                     break;
                 }
 
-                AddMesh(GetMeshData(brickInfo), in sample, offset, in cachedBrick, cachedBrick.CustomMesh, new Orientation(orientationByte).ToQuaternion(), shapeLight.LightLevel);
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, cachedBrick.CustomMesh);
                 break;
             case BrickShape.Block:
             default:
@@ -220,15 +222,16 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         MeshState.MeshData meshData,
         in VoxelSample sample,
         Vector3 offset,
+        byte orientationByte,
+        ShapeLight shapeLight,
         in VoxelSurfaceCache.CachedBrick cachedBrick,
-        Mesh mesh,
-        Quaternion orientation,
-        int lightLevel
+        Mesh mesh
     ) {
         Vector3 origin = offset + new Vector3(sample.Coords.X, sample.Coords.Y, sample.Coords.Z);
-        float light = Math.Clamp(lightLevel / 15f, 0.1f, 1f);
+        Quaternion orientation = new Orientation(orientationByte).ToQuaternion();
+        float light = Math.Clamp(shapeLight.LightLevel / 15f, 0.1f, 1f);
 
-        ResolveFaceStyles(in sample, origin, in cachedBrick, out FaceTextureIndices faceTextures, out FaceColorTints faceTints);
+        ResolveFaceStyles(in sample, origin, orientationByte, shapeLight.Shape, in cachedBrick, out FaceTextureIndices faceTextures, out FaceColorTints faceTints);
 
         if (faceTints.HasAnyTint)
         {
@@ -288,44 +291,30 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
     private void ResolveFaceStyles(
         in VoxelSample sample,
         Vector3 origin,
+        byte orientationByte,
+        BrickShape shape,
         in VoxelSurfaceCache.CachedBrick cachedBrick,
         out FaceTextureIndices faceTextures,
         out FaceColorTints faceTints
     ) {
         int defaultIndex = cachedBrick.DefaultTextures.ResolveRequiredLayerIndex(origin);
         bool hasOverrides = sample.Center.HasFaceOverrides() && sample.VoxelIndex >= 0;
+        bool supportsConnected = ConnectedTextureResolver.SupportsConnectedTextures(shape);
 
-        if (!hasOverrides && !cachedBrick.HasPerFaceTextures)
+        if (!hasOverrides && !cachedBrick.HasPerFaceTextures && !(cachedBrick.Connected && supportsConnected))
         {
             faceTextures = new FaceTextureIndices(defaultIndex, -1, -1, -1, -1, -1, -1);
             faceTints = new FaceColorTints(Vector3.One, Vector3.One, Vector3.One, Vector3.One, Vector3.One, Vector3.One, hasAnyTint: false);
             return;
         }
 
-        int topIndex = cachedBrick.TopTextures.ResolveOptionalLayerIndex(origin);
-        int bottomIndex = cachedBrick.BottomTextures.ResolveOptionalLayerIndex(origin);
-        int frontIndex = cachedBrick.FrontTextures.ResolveOptionalLayerIndex(origin);
-        int backIndex = cachedBrick.BackTextures.ResolveOptionalLayerIndex(origin);
-        int leftIndex = cachedBrick.LeftTextures.ResolveOptionalLayerIndex(origin);
-        int rightIndex = cachedBrick.RightTextures.ResolveOptionalLayerIndex(origin);
-
-        Vector3 topTint = Vector3.One;
-        Vector3 bottomTint = Vector3.One;
-        Vector3 frontTint = Vector3.One;
-        Vector3 backTint = Vector3.One;
-        Vector3 leftTint = Vector3.One;
-        Vector3 rightTint = Vector3.One;
         var hasAnyTint = false;
-
-        if (hasOverrides)
-        {
-            ApplyFaceOverride(in sample, origin, BrickFace.Top, ref topIndex, ref topTint, ref hasAnyTint);
-            ApplyFaceOverride(in sample, origin, BrickFace.Bottom, ref bottomIndex, ref bottomTint, ref hasAnyTint);
-            ApplyFaceOverride(in sample, origin, BrickFace.Front, ref frontIndex, ref frontTint, ref hasAnyTint);
-            ApplyFaceOverride(in sample, origin, BrickFace.Back, ref backIndex, ref backTint, ref hasAnyTint);
-            ApplyFaceOverride(in sample, origin, BrickFace.Left, ref leftIndex, ref leftTint, ref hasAnyTint);
-            ApplyFaceOverride(in sample, origin, BrickFace.Right, ref rightIndex, ref rightTint, ref hasAnyTint);
-        }
+        int topIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Top, out Vector3 topTint, ref hasAnyTint);
+        int bottomIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Bottom, out Vector3 bottomTint, ref hasAnyTint);
+        int frontIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Front, out Vector3 frontTint, ref hasAnyTint);
+        int backIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Back, out Vector3 backTint, ref hasAnyTint);
+        int leftIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Left, out Vector3 leftTint, ref hasAnyTint);
+        int rightIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Right, out Vector3 rightTint, ref hasAnyTint);
 
         faceTextures = new FaceTextureIndices(
             defaultIndex: defaultIndex,
@@ -340,36 +329,30 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         faceTints = new FaceColorTints(topTint, bottomTint, frontTint, backTint, leftTint, rightTint, hasAnyTint);
     }
 
-    private void ApplyFaceOverride(
+    private int ResolveMeshFaceStyle(
         in VoxelSample sample,
         Vector3 origin,
+        byte orientationByte,
+        BrickShape shape,
+        in VoxelSurfaceCache.CachedBrick cachedBrick,
         BrickFace face,
-        ref int textureIndex,
-        ref Vector3 tint,
+        out Vector3 tint,
         ref bool hasAnyTint
     ) {
-        if (!sample.ChunkData.TryGetFaceOverride(sample.VoxelIndex, face, out FaceOverride faceOverride))
+        ConnectedTextureResolver.FaceSurface surface = _connectedTextureResolver.ResolveFaceSurface(in sample, origin, in cachedBrick, face);
+        tint = surface.Tint;
+        if (surface.HasTint)
         {
-            return;
+            hasAnyTint = true;
         }
 
-        if (faceOverride.TexturePaintId != 0)
+        bool shouldConnect = surface.IsConnected && ConnectedTextureResolver.GetAllowedEdgeMask(shape, face) != 0;
+        if (!surface.HasTextureOverride && !surface.HasDeclaredFaceTexture && !shouldConnect)
         {
-            ref readonly VoxelSurfaceCache.CachedPaint texturePaint = ref _surfaceCache.GetPaint(faceOverride.TexturePaintId);
-            textureIndex = texturePaint.Exists && texturePaint.Kind == PaintKind.Texture
-                ? texturePaint.Textures.ResolveRequiredLayerIndex(origin)
-                : 0;
+            return -1;
         }
 
-        if (faceOverride.ColorPaintId != 0)
-        {
-            ref readonly VoxelSurfaceCache.CachedPaint colorPaint = ref _surfaceCache.GetPaint(faceOverride.ColorPaintId);
-            if (colorPaint.Exists && colorPaint.Kind == PaintKind.Color)
-            {
-                tint = colorPaint.LinearColor;
-                hasAnyTint = true;
-            }
-        }
+        return _connectedTextureResolver.ResolveTextureIndex(in sample, orientationByte, in surface, face);
     }
 
     private static Vector3 ResolveFaceTint(in Vector3 normal, in FaceColorTints tints)

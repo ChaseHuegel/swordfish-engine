@@ -103,8 +103,14 @@ bit `6`. `VoxelChunkRegistry.MarkFaceModified`
 (`WaywardBeyond.Client/Voxels/VoxelChunkRegistry.cs:42`) marks the chunk and
 orthogonal boundary neighbors mesh-only dirty so face edits skip collision and
 lighting passes, and marks `EntityDirtyChunks` so light decorators refresh.
-`CubeMeshBuilder` connects textures across native bricks and painted faces by
-comparing effective resolved surfaces on coplanar neighbor faces.
+`ConnectedTextureResolver`
+(`WaywardBeyond.Client/Voxels/Processing/ConnectedTextureResolver.cs:10`)
+resolves 4-bit connected-texture adjacency for `CubeMeshBuilder` and
+`MeshPostPass`. It connects native bricks and painted faces by comparing
+effective resolved surfaces on coplanar neighbor faces. Built-in non-block
+shapes (`Slab`, `Stair`, `Slope`, `Column`, `Plate`) connect only to neighbors
+with the same shape and matching orientation, and only along edges where the
+shape geometry meets flush. `Custom` meshes remain unconnected.
 `lightedArray.glsl` applies `VertexColor.rgb` as linear albedo and emissive
 tint (including bloom `BrightColor`) and `VertexColor.a` as voxel light.
 
