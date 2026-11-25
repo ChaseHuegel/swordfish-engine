@@ -19,6 +19,9 @@ public sealed class StoragePaths(StorageConfig config, AppPaths appPaths)
     /// <summary>Gets the path to the client profile database.</summary>
     public PathInfo GetProfileDatabase() => DataRoot.At(PROFILE_DATABASE_NAME);
 
+    /// <summary>Gets the directory holding player-saved blueprint files.</summary>
+    public PathInfo GetBlueprintsDirectory() => appPaths.ResolveDataPath(config.BlueprintRoot.Get());
+
     /// <summary>Gets the directory holding a level's server database.</summary>
     public PathInfo GetLevelDirectory(string levelGuid) => DataRoot.At(levelGuid);
 

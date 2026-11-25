@@ -37,6 +37,18 @@ public interface IGameClientApi
     [RpcMethod(GameRpc.Methods.VOXEL_FACE_EDIT, RpcDirection.ServerToClient)]
     void OnVoxelFaceEdit(VoxelFaceEditMessage message, RpcContext context, CancellationToken cancellationToken);
 
+    [RpcMethod(GameRpc.Methods.VOXEL_REGION_EDIT, RpcDirection.ServerToClient)]
+    bool VoxelRegionEdit(VoxelRegionEditPart message);
+
+    [RpcMethod(GameRpc.Methods.VOXEL_REGION_EDIT, RpcDirection.ServerToClient)]
+    void OnVoxelRegionEdit(VoxelRegionEditPart message, RpcContext context, CancellationToken cancellationToken);
+
+    [RpcMethod(GameRpc.Methods.VOXEL_ENTITY_SPAWN, RpcDirection.ServerToClient)]
+    bool VoxelEntitySpawn(VoxelEntitySpawnPart message);
+
+    [RpcMethod(GameRpc.Methods.VOXEL_ENTITY_SPAWN, RpcDirection.ServerToClient)]
+    void OnVoxelEntitySpawn(VoxelEntitySpawnPart message, RpcContext context, CancellationToken cancellationToken);
+
     [RpcMethod(GameRpc.Methods.NOTIFICATION, RpcDirection.ServerToClient)]
     bool Notification(NotificationMessage message);
 

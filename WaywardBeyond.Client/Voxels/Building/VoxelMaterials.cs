@@ -1,3 +1,4 @@
+using System;
 using Swordfish.Graphics;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Graphics;
@@ -7,25 +8,34 @@ namespace WaywardBeyond.Client.Voxels.Building;
 /// <summary>
 ///     Owns the shared materials and render state used by voxel geometry and the placement preview.
 /// </summary>
-internal sealed class VoxelMaterials
+internal sealed class VoxelMaterials : IDisposable
 {
     public readonly Material Opaque;
     public readonly Material Masked;
     public readonly Material Transparent;
+    public readonly Material Ghost;
     public readonly RenderOptions OpaqueOptions;
     public readonly RenderOptions OpaqueNoShadowOptions;
     public readonly RenderOptions MaskedOptions;
     public readonly RenderOptions TransparentOptions;
+    public readonly RenderOptions GhostOptions;
 
-    /// <summary>Creates the shared material set from the client's voxel shader and texture arrays.</summary>
-    public VoxelMaterials(in Shader shader, in PBRTextureArrays textureArrays)
+    private readonly Shader? _ownedGhostShader;
+
+    /// <summary>Creates the shared material set from the client's voxel shader, optional ghost shader, and texture arrays.</summary>
+    public VoxelMaterials(in Shader shader, in PBRTextureArrays textureArrays, Shader? ghostShader = null)
     {
+        _ownedGhostShader = ghostShader;
         Opaque = new Material(shader, textureArrays.ToArray());
         Masked = new Material(shader, textureArrays.ToArray())
         {
             AlphaMode = AlphaMode.Masked,
         };
         Transparent = new Material(shader, textureArrays.ToArray())
+        {
+            AlphaMode = AlphaMode.Blend,
+        };
+        Ghost = new Material(ghostShader ?? shader, textureArrays.ToArray())
         {
             AlphaMode = AlphaMode.Blend,
         };
@@ -61,6 +71,15 @@ internal sealed class VoxelMaterials
             CastShadows = false,
             ReceiveShadows = true,
         };
+
+        GhostOptions = new RenderOptions
+        {
+            AlphaMode = AlphaMode.Blend,
+            DoubleFaced = true,
+            Wireframe = false,
+            CastShadows = false,
+            ReceiveShadows = false,
+        };
     }
 
     /// <summary>Returns the material that renders the provided brick alpha mode.</summary>
@@ -83,5 +102,11 @@ internal sealed class VoxelMaterials
             BrickAlpha.Blend => TransparentOptions,
             _ => OpaqueOptions,
         };
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _ownedGhostShader?.Dispose();
     }
 }

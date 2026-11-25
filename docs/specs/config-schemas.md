@@ -92,6 +92,9 @@ Gameplay tunables shared by the client and the server, registered via
 | `ControlHints` | bool | `true` | show the control hints overlay |
 | `Crosshair` | bool | `true` | show the crosshair |
 | `DefaultSpawnPosition` | float[3] | `[0, 1, 5]` | the position a character spawns at; the level-creation spawn row derives from it |
+| `Regions.MaxEdge` | int | `64` | maximum region edge length in voxels; `0` means unlimited |
+| `Regions.MaxVolume` | int | `65536` | maximum region bounding volume in voxels; `0` means unlimited |
+| `Regions.MaxPayloadBytes` | int | `4194304` | maximum serialized region upload or `.wbp` blueprint file size in bytes; `0` means unlimited |
 
 ## `levelgen.toml` (per app)
 

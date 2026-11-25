@@ -107,6 +107,7 @@ public static class ServerComposition
         container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
         RegisterServerSystem<ServerLaserBeamSystem>(container);
         RegisterServerSystem<ServerPaintSprayerSystem>(container);
+        RegisterServerSystem<ServerRegionSystem>(container);
         RegisterServerSystem<ServerChatSystem>(container);
         RegisterServerSystem<ServerParticleFlushSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);

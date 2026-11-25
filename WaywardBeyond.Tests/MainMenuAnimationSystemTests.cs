@@ -203,7 +203,7 @@ public class MainMenuAnimationSystemTests : IDisposable
         string blueprintPath = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
             "..", "..", "..", "..",
-            "WaywardBeyond.Client", "assets", "blueprints", "builtin", "mainMenu.dat"
+            "WaywardBeyond.Client", "assets", "blueprints", "builtin", "mainMenu.wbp"
         ));
         Assert.True(File.Exists(blueprintPath), $"Expected built-in blueprint at {blueprintPath}");
 
@@ -215,12 +215,13 @@ public class MainMenuAnimationSystemTests : IDisposable
             "wb:small_light", "wb:storage", "wb:thruster", "wb:truss", "wb:vent",
         ];
         IBrickRegistry registry = BrickRegistry.FromNames(knownBricks);
-        var serializer = new VoxelEntityModelSerializer(registry);
-
-        VoxelEntityModel model = serializer.Deserialize(File.ReadAllBytes(blueprintPath));
+        BlueprintData raw = BlueprintData.Deserialize(File.ReadAllBytes(blueprintPath));
+        VoxelRegionData encoded = new(raw.SizeX, raw.SizeY, raw.SizeZ, raw.Chunks ?? [], raw.BrickPalette, raw.PaintPalette);
+        VoxelRegionData decoded = VoxelCodec.Decode(in encoded, registry);
+        VoxelObject voxelObject = VoxelRegionApplier.ToCenteredVoxelObject(in decoded, out _);
 
         int nonEmptyCount = 0;
-        foreach (ChunkData chunk in model.VoxelObject)
+        foreach (ChunkData chunk in voxelObject)
         {
             foreach (VoxelSample sample in chunk.GetOccupiedSampler())
             {
@@ -230,12 +231,14 @@ public class MainMenuAnimationSystemTests : IDisposable
                 }
 
                 nonEmptyCount++;
-                Assert.True(sample.Center.ID <= knownBricks.Length, $"Unresolved brick id {sample.Center.ID} in mainMenu.dat");
+                Assert.True(sample.Center.ID <= knownBricks.Length, $"Unresolved brick id {sample.Center.ID} in mainMenu.wbp");
             }
         }
 
         Assert.Equal(130, nonEmptyCount);
-        Assert.Equal(Vector3.One, model.Scale);
+        Assert.Equal(11, raw.SizeX);
+        Assert.Equal(7, raw.SizeY);
+        Assert.Equal(16, raw.SizeZ);
     }
 
     [Fact]
@@ -263,7 +266,7 @@ public class MainMenuAnimationSystemTests : IDisposable
         di.RegisterInstance<ILogger<BlueprintDatabase>>(new RecordingLogger<BlueprintDatabase>());
         di.RegisterInstance<IBrickRegistry>(BrickRegistry.FromNames(knownBricks));
         di.RegisterInstance(vfs);
-        di.RegisterMany<VoxelEntityModelParser>();
+        di.RegisterMany<BlueprintDataParser>();
         di.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
         di.Register<BlueprintDatabase>(Reuse.Singleton);
         di.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
@@ -274,6 +277,65 @@ public class MainMenuAnimationSystemTests : IDisposable
         Assert.True(result.Success, result.Message);
         Assert.NotNull(result.Value.VoxelObject);
         Assert.Equal(Vector3.One, result.Value.Scale);
+
+        BlueprintDatabase concreteDb = di.Resolve<BlueprintDatabase>();
+        Assert.Contains(concreteDb.ListSummaries(), s => s.Id == MainMenuAnimationSystem.MENU_BLUEPRINT_ID && s.BrickCount == 130);
+        Assert.True(concreteDb.GetBlueprint(MainMenuAnimationSystem.MENU_BLUEPRINT_ID).Success);
+    }
+
+    [Fact]
+    public void BlueprintDatabaseExcludesUserBlueprintsWhenDataRootIsMountedInVfs()
+    {
+        string assetsRoot = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..", "..",
+            "WaywardBeyond.Client", "assets"
+        ));
+        string mainMenuPath = Path.Combine(assetsRoot, "blueprints", "builtin", "mainMenu.wbp");
+
+        string tempDataRoot = Path.Combine(Path.GetTempPath(), $"wb-bpdb-{Guid.NewGuid():N}");
+        string userBpDir = Path.Combine(tempDataRoot, "blueprints");
+        Directory.CreateDirectory(userBpDir);
+        try
+        {
+            File.Copy(mainMenuPath, Path.Combine(userBpDir, "my-custom-ship.wbp"));
+
+            string[] knownBricks =
+            [
+                "wb:caution_panel", "wb:control_buttons", "wb:control_panel", "wb:core",
+                "wb:display_console", "wb:display_control", "wb:display_monitor", "wb:glass",
+                "wb:grate", "wb:ice", "wb:light", "wb:panel", "wb:porthole", "wb:rock",
+                "wb:small_light", "wb:storage", "wb:thruster", "wb:truss", "wb:vent",
+            ];
+
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(assetsRoot));
+            vfs.Mount(new PathInfo(tempDataRoot));
+
+            AppPaths appPaths = AppPaths.ForDirectory(new PathInfo(tempDataRoot));
+            var storagePaths = new StoragePaths(new WaywardBeyond.Config.StorageConfig(), appPaths);
+
+            using var di = new Container();
+            di.RegisterInstance<ILogger<VirtualFileParseService>>(new RecordingLogger<VirtualFileParseService>());
+            di.RegisterInstance<ILogger<BlueprintDatabase>>(new RecordingLogger<BlueprintDatabase>());
+            di.RegisterInstance<IBrickRegistry>(BrickRegistry.FromNames(knownBricks));
+            di.RegisterInstance(vfs);
+            di.RegisterInstance(storagePaths);
+            di.RegisterMany<BlueprintDataParser>();
+            di.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
+            di.Register<BlueprintDatabase>(Reuse.Singleton);
+
+            BlueprintDatabase db = di.Resolve<BlueprintDatabase>();
+            Assert.Contains(db.ListSummaries(), s => s.Id == MainMenuAnimationSystem.MENU_BLUEPRINT_ID);
+            Assert.DoesNotContain(db.ListSummaries(), s => s.Id == "my-custom-ship");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDataRoot))
+            {
+                Directory.Delete(tempDataRoot, recursive: true);
+            }
+        }
     }
 
     private MainMenuAnimationSystem CreateSystem(ILogger<MainMenuAnimationSystem> logger, IAssetDatabase<VoxelEntityModel> blueprints)

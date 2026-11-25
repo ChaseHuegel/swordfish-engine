@@ -965,6 +965,13 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_store);
+        if (mainHandResult.Success && mainHandResult.Value.Item.Tool?.Type == ToolType.Blueprint)
+        {
+            _debugInfo = default;
+            HideInteractionVisuals();
+            return;
+        }
+
         Result<Brick> placeableResult = TryGetPlaceableBrick(mainHandResult);
         bool holdingPlaceable = placeableResult.Success;
         PaintKind? paintToolMode = !holdingPlaceable && mainHandResult.Success

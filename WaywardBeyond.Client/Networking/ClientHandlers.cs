@@ -32,6 +32,16 @@ internal sealed class ClientHandlers(ClientInbound inbound, ServerStats? serverS
         inbound.VoxelFaceEdits.Enqueue(message);
     }
 
+    public override void OnVoxelRegionEdit(VoxelRegionEditPart message, RpcContext context, CancellationToken cancellationToken)
+    {
+        inbound.VoxelRegionEdits.Enqueue(message);
+    }
+
+    public override void OnVoxelEntitySpawn(VoxelEntitySpawnPart message, RpcContext context, CancellationToken cancellationToken)
+    {
+        inbound.VoxelEntitySpawns.Enqueue(message);
+    }
+
     public override void OnNotification(NotificationMessage message, RpcContext context, CancellationToken cancellationToken)
     {
         inbound.Notifications.Enqueue(message);

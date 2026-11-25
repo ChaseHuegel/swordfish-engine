@@ -19,6 +19,10 @@ internal sealed class ClientInbound : IChunkSink<LevelStreamChunk>
 
     public ConcurrentQueue<VoxelFaceEditMessage> VoxelFaceEdits { get; } = new();
 
+    public ConcurrentQueue<VoxelRegionEditPart> VoxelRegionEdits { get; } = new();
+
+    public ConcurrentQueue<VoxelEntitySpawnPart> VoxelEntitySpawns { get; } = new();
+
     public ConcurrentQueue<NotificationMessage> Notifications { get; } = new();
 
     public ConcurrentQueue<SkillStateUpdateMessage> SkillUpdates { get; } = new();
@@ -39,6 +43,8 @@ internal sealed class ClientInbound : IChunkSink<LevelStreamChunk>
         while (Snapshots.TryDequeue(out _)) { }
         while (VoxelEdits.TryDequeue(out _)) { }
         while (VoxelFaceEdits.TryDequeue(out _)) { }
+        while (VoxelRegionEdits.TryDequeue(out _)) { }
+        while (VoxelEntitySpawns.TryDequeue(out _)) { }
         while (Notifications.TryDequeue(out _)) { }
         while (SkillUpdates.TryDequeue(out _)) { }
         while (Chats.TryDequeue(out _)) { }

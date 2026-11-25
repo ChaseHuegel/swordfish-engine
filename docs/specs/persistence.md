@@ -40,6 +40,10 @@ and a 5 second busy timeout.
 |---|---|---|
 | `saves/profile.db` | Client | `characters`, `level_metadata` |
 | `saves/<levelGuid>/level.db` | Server | `level`, `entities`, `character_locations` |
+| `blueprints/*.wbp` | Client | Binary nsd `BlueprintData` files (`FileBlueprintStorage`) |
+
+See [region-blueprints](region-blueprints.md) for the client blueprint storage
+contract and `StorageConfig.BlueprintRoot`.
 
 The client owns `profile.db`. `characters` stores one raw nsd blob per
 character uuid. `level_metadata` stores one raw nsd blob per level guid; the
@@ -186,12 +190,13 @@ no shared broker process to manage.
 - `WaywardBeyond.Data/Levels/SqliteLevelStorage.cs`
 - `WaywardBeyond.Data/Characters/SqliteCharacterStorage.cs`
 - `WaywardBeyond.Data/Levels/SqliteLevelMetadataStorage.cs`
+- `WaywardBeyond.Data/Blueprints/FileBlueprintStorage.cs`
 - `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
 - `WaywardBeyond.Server/Saves/LevelSaveService.cs`
 - `WaywardBeyond.Server/ServerLevelManager.cs`
 - `WaywardBeyond.Server/ServerHostCommands.cs`
 - `WaywardBeyond.Server/ServerWorldHost.cs`
-- `WaywardBeyond.Data/Nsd/{saves,voxels,levels}.nsd`
+- `WaywardBeyond.Data/Nsd/{saves,voxels,levels,blueprints}.nsd`
 
 ## Tests that pin this
 

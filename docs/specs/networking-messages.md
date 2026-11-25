@@ -248,6 +248,15 @@ Voxel edits use server-to-client RPC notification method `350`. Face paint edits
 use server-to-client RPC notification method `351` (`VOXEL_FACE_EDIT`). Both
 ride the reliable send queue with every other server event.
 
+## Region operations
+
+`WaywardBeyond.Data/Nsd/network.nsd:160-247` defines `PasteTargetKind`,
+`CutRegionRequest`, `PasteRegionRequest`, `RegionUploadPart`, `RegionOpResponse`,
+`VoxelRegionEditMessage`, `VoxelRegionEditPart`, and `VoxelEntitySpawnPart`.
+Both `PasteRegionRequest` and `VoxelRegionEditMessage` inline flattened region
+dimensions, chunks, and palettes at the root to stay clear of the 65,535-byte
+nested sub-message limit. See [region-blueprints](region-blueprints.md).
+
 ## Session heartbeats
 
 `ServerHeartbeatMessage` (server → client, notification 400) and
@@ -444,7 +453,7 @@ message ServerDiscovery { string ServerName = 0; int TcpPort = 1; int ProtocolVe
 ## Source of truth
 
 - Schema files:
-  `WaywardBeyond.Data/Nsd/{network,components,voxels,levels,saves}.nsd`.
+  `WaywardBeyond.Data/Nsd/{network,components,voxels,blueprints,levels,saves}.nsd`.
 - Generator wiring: `WaywardBeyond.Data/WaywardBeyond.Data.csproj`.
 - Generated namespaces: `WaywardBeyond.Data.Networking` for wire messages,
   `WaywardBeyond.Data.Components` for networked components.

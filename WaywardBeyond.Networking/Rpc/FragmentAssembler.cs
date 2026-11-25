@@ -5,12 +5,26 @@ namespace WaywardBeyond.Networking.Rpc;
 /// <summary>Reassembles one fragmented payload at a time. Parts must arrive in order.</summary>
 public sealed class FragmentAssembler
 {
+    private readonly int _maxPayloadBytes;
+    private readonly int _maxParts;
     private uint _groupId;
     private int _partCount;
     private byte[][]? _parts;
     private int _received;
     private int _bytes;
     private bool _active;
+
+    /// <summary>Creates a fragment assembler capped at <paramref name="maxPayloadBytes"/>.</summary>
+    public FragmentAssembler(int maxPayloadBytes = PayloadFragmenter.MAX_PAYLOAD_BYTES)
+    {
+        if (maxPayloadBytes <= 0 || maxPayloadBytes > PayloadFragmenter.MAX_PAYLOAD_BYTES)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxPayloadBytes));
+        }
+
+        _maxPayloadBytes = maxPayloadBytes;
+        _maxParts = Math.Min(PayloadFragmenter.MAX_PARTS, PayloadFragmenter.PartCount(maxPayloadBytes));
+    }
 
     /// <summary>True while a group is incomplete.</summary>
     public bool IsActive => _active;
@@ -21,7 +35,7 @@ public sealed class FragmentAssembler
         payload = [];
 
         if (partCount < 1
-            || partCount > PayloadFragmenter.MAX_PARTS
+            || partCount > _maxParts
             || partIndex < 0
             || partIndex >= partCount
             || part.Length > PayloadFragmenter.FRAGMENT_BUDGET)
@@ -47,7 +61,7 @@ public sealed class FragmentAssembler
         }
 
         _bytes += part.Length;
-        if (_bytes > PayloadFragmenter.MAX_PAYLOAD_BYTES)
+        if (_bytes > _maxPayloadBytes)
         {
             Reset();
             return FragmentState.Rejected;

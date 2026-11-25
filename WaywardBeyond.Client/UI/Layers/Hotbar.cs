@@ -16,6 +16,7 @@ using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Items;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.UI.Layers;
@@ -35,6 +36,7 @@ internal sealed class Hotbar
     private readonly InteractionState _interactionState;
     private readonly ControlSettings _controlSettings;
     private readonly string[] _slotLabels = new string[SLOT_COUNT];
+    private readonly IInputService _inputService;
     private int _slotLabelsDirty = 1;
 
     /// <summary>Initializes a new instance of the <see cref="Hotbar"/> class.</summary>
@@ -54,6 +56,7 @@ internal sealed class Hotbar
         _ecsContext = ecsContext;
         _interactionState = interactionState;
         _controlSettings = controlSettings;
+        _inputService = inputService;
 
         for (var i = 0; i < SLOT_COUNT; i++)
         {
@@ -133,6 +136,15 @@ internal sealed class Hotbar
         if (!IsInputAllowed())
         {
             return;
+        }
+
+        if (_inputService.IsKeyHeld(Key.Shift))
+        {
+            Result<global::WaywardBeyond.Items.ItemSlot> mainHand = _playerData.GetMainHand(_ecsContext.World.DataStore);
+            if (mainHand.Success && mainHand.Value.Item.Tool?.Type == ToolType.Blueprint)
+            {
+                return;
+            }
         }
 
         double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);

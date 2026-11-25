@@ -40,11 +40,11 @@ A method id is a wire contract. Never change or reuse one between builds.
 |---|---|
 | 1–19 | connection: hello, leave, client heartbeat, server discovery |
 | 20–59 | replication: client snapshot |
-| 60–99 | gameplay commands: chat |
+| 60–99 | gameplay commands: chat, region cut, region paste |
 | 100–149 | menu: list, create, delete, save |
 | 200–249 | join: join, stream level |
 | 300–349 | server state: snapshot, snapshot batch |
-| 350–399 | server interactions: voxel edit, voxel face edit |
+| 350–399 | server interactions: voxel edit, voxel face edit, region edit, entity spawn |
 | 400–449 | server events: heartbeat, chat relay, notification, skill update, particle bursts |
 
 | Id | Method | Direction | Kind | Payload |
@@ -55,6 +55,8 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 4 | `Discover` | client → server | call | `ServerDiscoveryRequest` → `ServerDiscovery` |
 | 20 | `SendSnapshot` | client → server | notification | `WorldSnapshot` |
 | 60 | `Chat` | client → server | notification | `ChatMessage` |
+| 61 | `CutRegion` | client → server | call | `CutRegionRequest` → `RegionOpResponse` |
+| 62 | `PasteRegionPart` | client → server | call | `RegionUploadPart` → `RegionOpResponse` |
 | 100 | `ListLevels` | client → server | call | `ListLevelsRequest` → `ListLevelsResponse` |
 | 101 | `CreateLevel` | client → server | call | `NewLevelRequest` → `NewLevelResponse` |
 | 102 | `DeleteLevel` | client → server | call | `DeleteLevelRequest` → `DeleteLevelResponse` |
@@ -65,6 +67,8 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 301 | `SnapshotBatch` | server → client | notification | `SnapshotBatch` |
 | 350 | `VoxelEdit` | server → client | notification | `VoxelEditMessage` |
 | 351 | `VoxelFaceEdit` | server → client | notification | `VoxelFaceEditMessage` |
+| 352 | `VoxelRegionEdit` | server → client | notification | `VoxelRegionEditPart` |
+| 353 | `VoxelEntitySpawn` | server → client | notification | `VoxelEntitySpawnPart` |
 | 400 | `ServerHeartbeat` | server → client | notification | `ServerHeartbeatMessage` |
 | 401 | `ChatRelay` | server → client | notification | `ChatMessage` |
 | 402 | `Notification` | server → client | notification | `NotificationMessage` |
@@ -160,13 +164,17 @@ cap. A zero-length payload is one empty part.
 `SnapshotBatch` carries `BatchId`, `PartIndex`, `PartCount`, and `Payload`.
 `LevelStreamChunk` carries `PartIndex`, `PartCount`, and the payload bytes. A
 level chunk payload is a serialized `VoxelEntityData`, never a `LevelEntityAdd`
-wrapper.
+wrapper. Region paste uploads and authoritative region broadcasts fragment
+through `RegionUploadPart`, `VoxelRegionEditPart`, and `VoxelEntitySpawnPart`
+under the same budget. See [region-blueprints](region-blueprints.md).
 
 Parts must arrive in order. A new batch id, a repeated first part, an
 out-of-order part, or a changed part count drops the stale incomplete group and
-reports `FragmentState.Rejected`. A group over `MAX_PARTS` or
-`MAX_PAYLOAD_BYTES` is rejected before it can allocate. A stale group never
-joins with a later group.
+reports `FragmentState.Rejected`. `FragmentAssembler` defaults to `MAX_PARTS`
+and `MAX_PAYLOAD_BYTES` (16 MiB) and accepts a tighter byte cap such as the
+4 MiB cap on `ServerPeer.RegionUploadAssembler`. A group over the configured
+limit is rejected before it can allocate. A stale group never joins with a later
+group.
 
 ## Join and level stream
 
@@ -211,8 +219,9 @@ reason, raises `RemoteDisconnected`, and restores a fresh loopback session.
 See [transports](networking-transports.md#loopback).
 
 `ClientInbound` holds one ordered snapshot stream (full snapshots and fragment
-batches) plus per-kind queues for heartbeats, voxel edits, notifications, skill
-updates, chat, and level chunks. It clears on every connection switch.
+batches) plus per-kind queues for heartbeats, voxel edits, region edits, region
+entity spawns, notifications, skill updates, chat, and level chunks. It clears
+on every connection switch.
 
 The loopback endpoint buffers frames until the peer subscribes to
 `FrameReceived`. A hello sent before the server peer is wired is not lost.

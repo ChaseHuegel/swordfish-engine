@@ -11,4 +11,9 @@ public sealed class StorageConfig : Config<StorageConfig>
     /// The save data root path.
     /// </summary>
     public DataBinding<PathInfo> SaveRoot { get; private set; } = new("saves/");
+
+    /// <summary>
+    /// The portable blueprints root path.
+    /// </summary>
+    public DataBinding<PathInfo> BlueprintRoot { get; private set; } = new("blueprints/");
 }

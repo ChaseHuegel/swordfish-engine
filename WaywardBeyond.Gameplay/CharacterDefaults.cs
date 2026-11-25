@@ -18,6 +18,21 @@ public static class CharacterDefaults
     
     /// <summary>The default interaction reach from the origin.</summary>
     public const float DEFAULT_REACH = 9.5f;
+
+    /// <summary>The maximum selection raycast reach for the blueprint projector tool.</summary>
+    public const float REGION_TOOL_REACH = 32f;
+
+    /// <summary>The maximum distance from the player origin at which a server-authoritative region cut or paste is accepted.</summary>
+    public const float REGION_PASTE_MAX_REACH = 128f;
+
+    /// <summary>The minimum free-space placement distance when pasting a new standalone structure.</summary>
+    public const float REGION_FREE_DISTANCE_MIN = 4f;
+
+    /// <summary>The maximum free-space placement distance when pasting a new standalone structure.</summary>
+    public const float REGION_FREE_DISTANCE_MAX = 64f;
+
+    /// <summary>The default free-space placement distance when pasting a new standalone structure.</summary>
+    public const float REGION_FREE_DISTANCE_DEFAULT = 12f;
     
     /// <summary>The base movement speed in meters per second.</summary>
     public const float BASE_SPEED = 10f;

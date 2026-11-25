@@ -1,0 +1,20 @@
+[[Items]]
+ID          = "wb:projector"
+Name        = "item.base.projector"
+Description = "item.base.projector.description"
+Icon        = "items/projector.png"
+MaxStack    = 1
+[Items.Tool]
+Type        = "blueprint"
+[Items.ViewModel]
+Mesh        = "items/projector.obj"
+Material    = "items/projector"
+Position.X  = 0.5
+Position.Y  = -0.5
+Position.Z  = -0.3
+Rotation.X  = 0
+Rotation.Y  = 5
+Rotation.Z  = 0
+[Items.WorldModel]
+Mesh        = "items/projector.obj"
+Material    = "items/projector"

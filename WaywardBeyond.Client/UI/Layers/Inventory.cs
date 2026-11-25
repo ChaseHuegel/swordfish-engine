@@ -433,6 +433,7 @@ internal sealed class Inventory : IUILayer
                 ToolType.Convert => ItemTooltipKind.ConversionTool,
                 ToolType.Sprayer => ItemTooltipKind.PaintTool,
                 ToolType.Drill => ItemTooltipKind.TextureTool,
+                ToolType.Blueprint => ItemTooltipKind.BlueprintTool,
                 _ => ItemTooltipKind.Item,
             };
         }

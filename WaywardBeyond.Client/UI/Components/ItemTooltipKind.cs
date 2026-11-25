@@ -8,6 +8,7 @@ internal enum ItemTooltipKind
     ConversionTool,
     PaintTool,
     TextureTool,
+    BlueprintTool,
     Item,
     Unknown,
 }

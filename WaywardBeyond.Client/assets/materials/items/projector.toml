@@ -1,0 +1,5 @@
+Shader    = "lighted"
+AlphaMode = "Masked"
+Textures  = [
+    "items/projector_uv.png",
+]
