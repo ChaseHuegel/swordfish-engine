@@ -178,13 +178,7 @@ internal sealed class ClientReconcileSystem(
                 VoxelEntityBuilder.FreeChunks(store, entity);
             }
 
-            //  Free clears the components, so the body must be released first or the solver keeps
-            //  a ghost body for the freed entity.
-            if (store.TryGet(entity, out PhysicsComponent physics))
-            {
-                physics.Dispose();
-            }
-
+            //  Free captures every component removal; the engine releases their native resources.
             store.Free(entity);
         }
 
@@ -204,11 +198,6 @@ internal sealed class ClientReconcileSystem(
             if (!lookup.Success || !store.TryGet(Uuid.FromValue(removal.Entity), out int entity))
             {
                 continue;
-            }
-
-            if (lookup.Value.Type == typeof(PhysicsComponent) && store.TryGet(entity, out PhysicsComponent physics))
-            {
-                physics.Dispose();
             }
 
             store.Remove(lookup.Value.Type, entity);

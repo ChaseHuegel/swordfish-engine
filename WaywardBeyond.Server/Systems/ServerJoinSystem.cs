@@ -81,9 +81,9 @@ public sealed class ServerJoinSystem(
     }
 
     /// <summary>
-    /// Ends dropped client sessions: disposes the mirror's physics body (marshalled to the physics thread
-    /// via its <see cref="PhysicsComponent.Dispose"/>) before freeing the entity so the subsequent publish
-    /// stage replicates its despawn to remaining clients, then clears the session mappings.
+    /// Ends dropped client sessions: frees the mirror entity so the engine releases its physics body
+    /// before the subsequent publish stage replicates its despawn to remaining clients, then clears
+    /// the session mappings.
     /// </summary>
     private void HandleDisconnects(DataStore store)
     {
@@ -148,11 +148,7 @@ public sealed class ServerJoinSystem(
     {
         saveService.QueueSaveCharacterLocation(store, entity);
 
-        if (store.TryGet(entity, out PhysicsComponent physics))
-        {
-            physics.Dispose();
-        }
-
+        //  Free captures every component removal; the engine releases the physics body.
         //  Capture the uuid before Free (which clears it) so the despawn can replicate.
         replication.RequestDespawn(store.GetUuid(entity).ToValue());
         store.Free(entity);

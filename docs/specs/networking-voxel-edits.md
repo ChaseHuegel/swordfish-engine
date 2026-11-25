@@ -149,8 +149,8 @@ chunks dirty in `VoxelChunkRegistry`. `VoxelEntityRebuildSystem` rebuilds only
 dirty chunks and the surface collider on the ECS thread. It stops after
 `VoxelSettings.RebuildBudgetMs` (10 ms by default) and resumes on the next tick.
 A light-only chunk skips collision and voxel-entity reconciliation. The rebuild
-queues replaced chunk renderers for disposal. See
-[resource-lifetime](resource-lifetime.md).
+frees replaced chunk entities and the engine releases their renderers and
+batches. See [resource-lifetime](resource-lifetime.md).
 
 ## Per-face paint interactions
 

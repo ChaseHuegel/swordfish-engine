@@ -5,7 +5,6 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Voxels;
 
@@ -31,7 +30,6 @@ internal sealed class BrickPreviewSystem(
     private Uuid _uuid = Uuid.Null;
     private PreviewKey? _activeKey;
     private MeshRenderer? _activeRenderer;
-    private MeshRendererCleanup? _cleanup;
     private double _time;
 
     /// <inheritdoc/>
@@ -83,10 +81,6 @@ internal sealed class BrickPreviewSystem(
         _uuid = store.GetUuid(_entity);
         store.AddOrUpdate(_entity, new IdentifierComponent(name: null, tag: "game"));
         store.AddOrUpdate(_entity, new TransformComponent());
-
-        var cleanup = new MeshRendererCleanup();
-        _cleanup = cleanup;
-        store.AddOrUpdate(_entity, cleanup);
     }
 
     private bool TrySetRenderer(DataStore store, Brick brick, in PreviewKey key)
@@ -100,11 +94,6 @@ internal sealed class BrickPreviewSystem(
         RenderOptions options = _materials.GetRenderOptions(brick.Alpha);
         options.CastShadows = false;
         var renderer = new MeshRenderer(meshResult.Value, _materials.GetMaterial(brick.Alpha), options);
-
-        if (_activeRenderer != null)
-        {
-            EnsureCleanup(store).Pending.Enqueue(new MeshRendererCleanup.PendingEntry(_activeRenderer, renderer));
-        }
 
         _activeKey = key;
         _activeRenderer = renderer;
@@ -129,7 +118,6 @@ internal sealed class BrickPreviewSystem(
 
         if (_activeRenderer != null)
         {
-            EnsureCleanup(store).MeshRenderers.Add(_activeRenderer);
             store.Remove(typeof(MeshRendererComponent), _entity);
             _activeRenderer = null;
         }
@@ -144,11 +132,6 @@ internal sealed class BrickPreviewSystem(
 
         if (_entity != Entity.Null && store.GetUuid(_entity) == _uuid)
         {
-            if (store.TryGet(_entity, out MeshRendererCleanup cleanup))
-            {
-                cleanup.DisposeAll();
-            }
-
             store.Free(_entity);
         }
 
@@ -156,7 +139,6 @@ internal sealed class BrickPreviewSystem(
         _uuid = Uuid.Null;
         _activeKey = null;
         _activeRenderer = null;
-        _cleanup = null;
     }
 
     private void ResetEntity()
@@ -164,22 +146,7 @@ internal sealed class BrickPreviewSystem(
         _entity = Entity.Null;
         _uuid = Uuid.Null;
         _activeKey = null;
-        _cleanup = null;
-        DisposeActiveRenderer();
-    }
-
-    private MeshRendererCleanup EnsureCleanup(DataStore store)
-    {
-        if (store.TryGet(_entity, out MeshRendererCleanup cleanup))
-        {
-            _cleanup = cleanup;
-            return cleanup;
-        }
-
-        cleanup = new MeshRendererCleanup();
-        _cleanup = cleanup;
-        store.AddOrUpdate(_entity, cleanup);
-        return cleanup;
+        _activeRenderer = null;
     }
 
     private void DisposeActiveRenderer()
@@ -197,8 +164,6 @@ internal sealed class BrickPreviewSystem(
     /// <inheritdoc/>
     public void Dispose()
     {
-        _cleanup?.DisposeAll();
-        _cleanup = null;
         DisposeActiveRenderer();
         _entity = Entity.Null;
         _uuid = Uuid.Null;

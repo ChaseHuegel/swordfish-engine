@@ -37,6 +37,9 @@ public class VoxelChunkLifetimeTests
 
         VoxelEntityBuilder.FreeChunks(store, parent);
 
+        //  The engine disposes the freed batch renderers on the next tick.
+        store.DisposeRemoved();
+
         Assert.Empty(registry.BatchEntities);
         Assert.Empty(registry.OpaqueRanges);
         Assert.Null(registry.OpaqueBatch);

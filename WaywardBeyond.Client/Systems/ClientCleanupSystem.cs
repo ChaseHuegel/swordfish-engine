@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using Krill;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
-using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Voxels.Building;
 
@@ -10,13 +9,11 @@ namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
 /// Tears down the client world when the player returns to the menu. The teardown must run on the ECS
-/// thread (its Tick), never the UI thread: it frees every entity tagged "game" while disposing their
-/// renderers and physics bodies. The tag covers the local player, the remote player mirrors, and the
-/// world geometry, so one query tears the whole gameplay world down. Disposing bodies posts their native
-/// destruction to the physics <see cref="System.Threading.ThreadContext"/> on the same thread, and
-/// freeing entities here avoids racing the ECS physics/render systems - a UI-thread teardown that raced
-/// the solver corrupted Jolt and crashed on rejoin. <see cref="ClientReconcileSystem"/> is already gated
-/// off by the menu state, so nothing re-allocates entities during this clean.
+/// thread (its Tick), never the UI thread: it frees every entity tagged "game". The tag covers the
+/// local player, the remote player mirrors, and the world geometry. Component resources (renderers,
+/// meshes, batches, and physics bodies) are released by the engine's removed-component processors on
+/// the following tick, after <see cref="DataStore.Free"/> has captured them. <see cref="ClientReconcileSystem"/>
+/// is already gated off by the menu state, so nothing re-allocates entities during this clean.
 /// </summary>
 internal sealed class ClientCleanupSystem : IEntitySystem
 {
@@ -59,28 +56,6 @@ internal sealed class ClientCleanupSystem : IEntitySystem
             if (store.TryGet(entity, out VoxelComponent _))
             {
                 VoxelEntityBuilder.FreeChunks(store, entity);
-            }
-
-            if (store.TryGet(entity, out MeshBatchRendererComponent batch) && batch.Renderer != null)
-            {
-                batch.Renderer.Dispose();
-                batch.Renderer.MeshBatch.Dispose();
-            }
-
-            if (store.TryGet(entity, out MeshRendererCleanup cleanup))
-            {
-                cleanup.DisposeAll();
-            }
-
-            if (store.TryGet(entity, out MeshRendererComponent mesh) && mesh.MeshRenderer != null)
-            {
-                mesh.MeshRenderer.Dispose();
-                mesh.MeshRenderer.Mesh.Dispose();
-            }
-
-            if (store.TryGet(entity, out PhysicsComponent physics))
-            {
-                physics.Dispose();
             }
 
             store.Free(entity);
