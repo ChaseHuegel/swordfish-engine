@@ -54,6 +54,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     private readonly BodyFilter _bodyFilter = new SimpleBodyFilter();
     private readonly IgnoreBodyFilter _ignoreBodyFilter = new();
     private readonly List<CollideShapeResult> _overlapResults = [];
+    private readonly PhysicsComponentProcessor _removedPhysics = new();
     private readonly JobSystem _jobSystem;
 
     private ThreadContext? _context;
@@ -176,6 +177,14 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         _store ??= store;
         _context ??= ThreadContext.FromCurrentThread();
         _context.SwitchToCurrentThread();
+
+        //  Release removed bodies before the solver runs. The removal query preserves the body
+        //  reference, so a recycled entity index cannot leave a ghost body behind. Body
+        //  destruction takes the solver lock because it touches Jolt's shared temp allocator.
+        lock (_solverLock)
+        {
+            _removedPhysics.Process(store, delta);
+        }
 
         _accumulator += delta;
 

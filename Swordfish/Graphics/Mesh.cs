@@ -12,6 +12,9 @@ public class Mesh : Handle
     public Vector3[] Normals = [];
     public BoundingBox Bounds { get; }
 
+    /// <summary>True when this mesh is shared across renderers or owned by a cache and must not be disposed when a renderer retires.</summary>
+    public bool Shared { get; set; }
+
     public Mesh(uint[] triangles, Vector3[] vertices, Vector4[] colors, Vector3[] uv, Vector3[] normals)
     {
         Triangles = triangles;
