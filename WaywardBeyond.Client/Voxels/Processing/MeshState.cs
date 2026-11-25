@@ -25,6 +25,8 @@ internal sealed class MeshState
         public readonly List<Vector4> Colors = [];
         public readonly List<Vector3> UV = [];
         public readonly List<Vector3> Normals = [];
+        internal float[] VertexBuffer = [];
+        internal uint[] IndexBuffer = [];
 
         public void Clear()
         {

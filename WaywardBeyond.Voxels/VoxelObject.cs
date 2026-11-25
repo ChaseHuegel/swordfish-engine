@@ -127,21 +127,6 @@ public sealed class VoxelObject
             _chunks[chunkOffset] = chunkData;
         }
         
-        if (x < 0)
-        {
-            x += _chunkSize * Math.Abs((int)chunkX);
-        }
-
-        if (y < 0)
-        {
-            y += _chunkSize * Math.Abs((int)chunkY);
-        }
-
-        if (z < 0)
-        {
-            z += _chunkSize * Math.Abs((int)chunkZ);
-        }
-        
         int localX = x & _chunkMask;
         int localY = y & _chunkMask;
         int localZ = z & _chunkMask;
@@ -164,21 +149,6 @@ public sealed class VoxelObject
         if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
             return;
-        }
-        
-        if (x < 0)
-        {
-            x += _chunkSize * Math.Abs((int)chunkX);
-        }
-
-        if (y < 0)
-        {
-            y += _chunkSize * Math.Abs((int)chunkY);
-        }
-
-        if (z < 0)
-        {
-            z += _chunkSize * Math.Abs((int)chunkZ);
         }
         
         int localX = x & _chunkMask;
@@ -260,21 +230,6 @@ public sealed class VoxelObject
             return false;
         }
 
-        if (x < 0)
-        {
-            x += _chunkSize * Math.Abs((int)chunkX);
-        }
-
-        if (y < 0)
-        {
-            y += _chunkSize * Math.Abs((int)chunkY);
-        }
-
-        if (z < 0)
-        {
-            z += _chunkSize * Math.Abs((int)chunkZ);
-        }
-
         int localX = x & _chunkMask;
         int localY = y & _chunkMask;
         int localZ = z & _chunkMask;
@@ -298,21 +253,6 @@ public sealed class VoxelObject
         if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
             return ref GetOutOfBoundsVoxel();
-        }
-        
-        if (x < 0)
-        {
-            x += _chunkSize * Math.Abs((int)chunkX);
-        }
-
-        if (y < 0)
-        {
-            y += _chunkSize * Math.Abs((int)chunkY);
-        }
-
-        if (z < 0)
-        {
-            z += _chunkSize * Math.Abs((int)chunkZ);
         }
         
         int localX = x & _chunkMask;
@@ -349,21 +289,6 @@ public sealed class VoxelObject
         int localX = x & _chunkMask;
         int localY = y & _chunkMask;
         int localZ = z & _chunkMask;
-        
-        if (localX < 0)
-        {
-            localX += _chunkSize;
-        }
-
-        if (localY < 0)
-        {
-            localY += _chunkSize;
-        }
-
-        if (localZ < 0)
-        {
-            localZ += _chunkSize;
-        }
 
         Voxel[] voxels = chunkData.Data.Voxels;
         
@@ -401,7 +326,7 @@ public sealed class VoxelObject
     }
 
     /// <summary>Returns a ref to a voxel that does not exist in any resident chunk.</summary>
-    private ref Voxel GetOutOfBoundsVoxel()
+    internal ref Voxel GetOutOfBoundsVoxel()
     {
         _outOfBoundsScratch = _outOfBoundsVoxel;
         return ref _outOfBoundsScratch;

@@ -27,6 +27,23 @@ internal sealed class CollisionPostPass(CollisionState collisionState, IBrickDat
         return true;
     }
 
+    /// <summary>Appends merged collision primitives for every exposed solid voxel in <paramref name="chunkData"/>.</summary>
+    public void ProcessChunk(ChunkData chunkData)
+    {
+        if (!ShouldProcessChunk(chunkData))
+        {
+            return;
+        }
+
+        VoxelCollision.AppendChunk(
+            chunkData,
+            brickDatabase,
+            collisionState.Shapes,
+            collisionState.Positions,
+            collisionState.Orientations
+        );
+    }
+
     public void Process(VoxelSample sample)
     {
         VoxelCollision.AppendVoxel(
