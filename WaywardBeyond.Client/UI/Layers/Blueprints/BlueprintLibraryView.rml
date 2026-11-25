@@ -108,6 +108,7 @@
                                                     <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.load')" anchor="Center" />
                                                 </Button>
                                                 <Button id="Button_RenameBlueprint_{item.Id}"
+                                                        visible="@(!item.IsReadOnly)"
                                                         anchor="Center"
                                                         param:variant="secondary"
                                                         param:compact="true"
@@ -118,6 +119,7 @@
                                                     <Text class="wb-button-label wb-button-label-compact" text="@L('ui.blueprint.rename')" anchor="Center" />
                                                 </Button>
                                                 <IconButton id="Button_DeleteBlueprint_{item.Id}"
+                                                            visible="@(!item.IsReadOnly)"
                                                             anchor="Center"
                                                             param:glyph="trash"
                                                             param:tone="danger"

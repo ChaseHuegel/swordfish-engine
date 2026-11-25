@@ -337,6 +337,7 @@
 "ui.blueprint.cancel" = "Cancel"
 "ui.blueprint.confirmDelete" = "Confirm?"
 "ui.blueprint.bricksSuffix" = "bricks"
+"ui.blueprint.builtIn" = "Built-in"
 "ui.blueprint.hint" = "B / Esc: Close"
 "ui.blueprint.error.nameRequired" = "Enter a blueprint name"
 "ui.blueprint.error.saveFailed" = "Could not save blueprint"

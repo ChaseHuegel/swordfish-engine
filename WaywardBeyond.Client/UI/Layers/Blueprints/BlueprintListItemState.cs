@@ -9,5 +9,6 @@ internal readonly record struct BlueprintListItemState(
     int SizeZ,
     int BrickCount,
     bool IsRenaming,
-    bool ConfirmingDelete
+    bool ConfirmingDelete,
+    bool IsReadOnly = false
 );

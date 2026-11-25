@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data.Migrations;
 
 namespace WaywardBeyond.Data.Blueprints;
@@ -13,7 +14,8 @@ namespace WaywardBeyond.Data.Blueprints;
 public sealed class FileBlueprintStorage(
     ILogger<FileBlueprintStorage> logger,
     StoragePaths paths,
-    Migrator migrator
+    Migrator migrator,
+    GameplayConfig? gameplayConfig = null
 ) : IBlueprintStorage
 {
     /// <summary>File extension for portable blueprint files.</summary>
@@ -42,6 +44,7 @@ public sealed class FileBlueprintStorage(
     private readonly ILogger<FileBlueprintStorage> _logger = logger;
     private readonly StoragePaths _paths = paths;
     private readonly Migrator _migrator = migrator;
+    private readonly GameplayConfig? _gameplayConfig = gameplayConfig;
     private readonly Lock _cacheLock = new();
     private readonly Dictionary<string, CachedSummary> _summaryCache = new(GetPathComparer());
 
@@ -172,9 +175,10 @@ public sealed class FileBlueprintStorage(
             );
 
             byte[] bytes = data.Serialize();
-            if (bytes.Length > MAX_FILE_BYTES)
+            int maxBytes = GetMaxFileBytes();
+            if (maxBytes > 0 && bytes.Length > maxBytes)
             {
-                return Result<BlueprintSummary>.FromFailure($"Blueprint exceeds maximum file size of {MAX_FILE_BYTES} bytes.");
+                return Result<BlueprintSummary>.FromFailure($"Blueprint exceeds maximum file size of {maxBytes} bytes.");
             }
 
             string rootDir = GetNormalizedRootDirectory();
@@ -292,10 +296,11 @@ public sealed class FileBlueprintStorage(
         try
         {
             var info = new FileInfo(filePath);
-            if (info.Length > MAX_FILE_BYTES)
+            int maxBytes = GetMaxFileBytes();
+            if (maxBytes > 0 && info.Length > maxBytes)
             {
                 return Result<BlueprintData>.FromFailure(
-                    $"Blueprint '{id}' exceeds maximum file size of {MAX_FILE_BYTES} bytes.");
+                    $"Blueprint '{id}' exceeds maximum file size of {maxBytes} bytes.");
             }
 
             byte[] bytes = File.ReadAllBytes(filePath);
@@ -430,19 +435,36 @@ public sealed class FileBlueprintStorage(
         }
     }
 
-    private static bool IsValidRegionSize(int sizeX, int sizeY, int sizeZ)
+    private int GetMaxRegionEdge() => _gameplayConfig?.Regions.MaxEdge.Get() ?? MAX_REGION_EDGE;
+
+    private int GetMaxRegionVolume() => _gameplayConfig?.Regions.MaxVolume.Get() ?? MAX_REGION_VOLUME;
+
+    private int GetMaxFileBytes() => _gameplayConfig?.Regions.MaxPayloadBytes.Get() ?? MAX_FILE_BYTES;
+
+    private bool IsValidRegionSize(int sizeX, int sizeY, int sizeZ)
     {
         if (sizeX <= 0 || sizeY <= 0 || sizeZ <= 0)
         {
             return false;
         }
 
-        if (sizeX > MAX_REGION_EDGE || sizeY > MAX_REGION_EDGE || sizeZ > MAX_REGION_EDGE)
+        int maxEdge = GetMaxRegionEdge();
+        if (maxEdge > 0 && (sizeX > maxEdge || sizeY > maxEdge || sizeZ > maxEdge))
         {
             return false;
         }
 
-        return (long)sizeX * sizeY * sizeZ <= MAX_REGION_VOLUME;
+        int maxVolume = GetMaxRegionVolume();
+        if (maxVolume > 0)
+        {
+            long xy = (long)sizeX * sizeY;
+            if (xy > maxVolume || xy * sizeZ > maxVolume)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static void WriteAtomic(string rootDir, string targetPath, byte[] bytes)

@@ -29,7 +29,7 @@
 
 "notification.region.creativeOnly" = "#E04F7A Region and blueprint tools require Creative mode"
 "notification.region.permissionDenied" = "#E04F7A You do not have permission for this region action"
-"notification.region.invalidBounds" = "#E04F7A Region exceeds maximum size limits (max 64 edge, 65,536 volume)"
+"notification.region.invalidBounds" = "#E04F7A Region exceeds maximum size limits"
 "notification.region.invalidTarget" = "#E04F7A Target structure is no longer valid"
 "notification.region.outOfReach" = "#E04F7A Region target is out of reach"
 "notification.region.empty" = "#E04F7A Selection contains no valid bricks"

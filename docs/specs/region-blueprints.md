@@ -4,7 +4,7 @@ One subject: cut, copy, paste, dynamic structure spawning, and client-local blue
 
 ## Data model and transforms
 
-Regions share the same chunk and palette model as persisted voxel structures. `RegionLimits` (`WaywardBeyond.Voxels/RegionLimits.cs:4`) enforces a 64-voxel maximum edge, a 65,536-voxel maximum volume, a 64-character blueprint name cap, a 4 MiB serialized payload cap, overflow-safe paste bounds, and `short` chunk-offset range checks.
+Regions share the same chunk and palette model as persisted voxel structures. `RegionLimits` (`WaywardBeyond.Voxels/RegionLimits.cs:4`) provides the default limits (64-voxel edge, 65,536-voxel volume, 64-character blueprint name, 4 MiB serialized payload), overflow-safe paste bounds, and `short` chunk-offset range checks. `GameplayConfig.Regions` (`WaywardBeyond.Config/RegionConfig.cs:6`) makes `MaxEdge`, `MaxVolume`, and `MaxPayloadBytes` configurable for both client and server (`0` disables a cap). The server enforces its own configured limits authoritatively and returns failure notifications when a client exceeds them.
 
 - `VoxelRegionData` (`WaywardBeyond.Data/Nsd/blueprints.nsd:6`) stores dimensions, sparse `ChunkInfo[]` chunks, `BrickPalette`, and `PaintPalette`.
 - `VoxelRegionExtractor.Extract` (`WaywardBeyond.Voxels/VoxelRegionExtractor.cs:10`) copies bricks, orientations, and per-face paint overrides into normalized `[0..size-1]` bounds.
@@ -19,7 +19,8 @@ Blueprints live on the client as portable `.wbp` binary nsd files.
 
 - `StorageConfig.BlueprintRoot` (`WaywardBeyond.Config/StorageConfig.cs:18`) defaults to `blueprints/`. `StoragePaths.GetBlueprintsDirectory` (`WaywardBeyond.Data/StoragePaths.cs:23`) resolves it relative to `AppPaths.DataRoot`.
 - `IBlueprintStorage` (`WaywardBeyond.Data/Blueprints/IBlueprintStorage.cs:7`) defines `List`, `Load`, `Save`, `Rename`, and `Delete` operations returning `Result` or `Result<T>`.
-- `FileBlueprintStorage` (`WaywardBeyond.Data/Blueprints/FileBlueprintStorage.cs:12`) writes version-guarded `BlueprintData` (`WaywardBeyond.Data/Nsd/blueprints.nsd:16`) records via temp-file replace, enforces region size and 4 MiB file limits on save and load, caches summaries by file size and timestamp, assigns collision-safe slug IDs, and rejects path traversal names.
+- `FileBlueprintStorage` (`WaywardBeyond.Data/Blueprints/FileBlueprintStorage.cs:13`) writes version-guarded `BlueprintData` (`WaywardBeyond.Data/Nsd/blueprints.nsd:16`) records via temp-file replace, enforces configured region size and file byte limits (`GameplayConfig.Regions`) on save and load, caches summaries by file size and timestamp, assigns collision-safe slug IDs, and rejects path traversal names.
+- `BlueprintDatabase` (`WaywardBeyond.Client/Voxels/BlueprintDatabase.cs:23`) and `BlueprintDataParser` (`WaywardBeyond.Client/Serialization/BlueprintDataParser.cs:8`) load bundled read-only `.wbp` assets under `assets/blueprints/` (including `builtin/mainMenu.wbp`), exposing them as `IAssetDatabase<VoxelEntityModel>` for runtime scenes and as read-only summaries/data in the Blueprint Library.
 - `BlueprintData`, `PasteRegionRequest`, and `VoxelRegionEditMessage` inline `SizeX`, `SizeY`, `SizeZ`, `Chunks`, `BrickPalette`, and `PaintPalette` at the message root so large multi-chunk regions avoid Needlefish's 65,535-byte uint16 nested sub-message limit.
 - `BlueprintDataExtensions.ToRegion` (`WaywardBeyond.Data/Blueprints/BlueprintDataExtensions.cs:7`) and `RegionMessageExtensions.ToRegion` (`WaywardBeyond.Data/Networking/RegionMessageExtensions.cs:7,19`) convert flat messages into `VoxelRegionData`.
 
@@ -48,7 +49,7 @@ Blueprints live on the client as portable `.wbp` binary nsd files.
 - `RegionPreviewMeshBuilder` (`WaywardBeyond.Client/Voxels/Building/RegionPreviewMeshBuilder.cs:18`), `voxelGhost.glsl` (`WaywardBeyond.Client/assets/shaders/voxelGhost.glsl`), `VoxelMaterials.Ghost`, and `RegionPreviewSystem` (`WaywardBeyond.Client/Systems/RegionPreviewSystem.cs:22`) render selection/paste wireframes and the translucent 3D holographic ghost mesh positioned via `TransformComponent`.
 - `ClientRegionReconcileSystem` (`WaywardBeyond.Client/Systems/ClientRegionReconcileSystem.cs:24`) reassembles `VoxelRegionEditPart` and `VoxelEntitySpawnPart` queues, resets `DepthState`, recalculates lighting in one pass, marks affected geometry chunks, scopes light-only dirty chunks to intersecting orthogonal columns and light radius, prunes emptied chunks from `KnownChunks`, and calls `VoxelEntityBuilder.CreateOrAttach` so snapshot-preallocated entities keep their `TransformComponent`.
 - `RegionToolRadial` (`WaywardBeyond.Client/UI/Layers/RegionToolRadial.cs:19`) binds hold-`R` radial actions (dispatching on release rather than hover) and `IActionIndicator` icons.
-- `BlueprintLibraryLayer` (`WaywardBeyond.Client/UI/Layers/Blueprints/BlueprintLibraryLayer.cs:20`) and passive `BlueprintLibraryView` (`WaywardBeyond.Client/UI/Layers/Blueprints/BlueprintLibraryView.cs:10`) expose the `B` modal to save, search, paste, inline rename, and two-step delete blueprints.
+- `BlueprintLibraryLayer` (`WaywardBeyond.Client/UI/Layers/Blueprints/BlueprintLibraryLayer.cs:21`) and passive `BlueprintLibraryView` (`WaywardBeyond.Client/UI/Layers/Blueprints/BlueprintLibraryView.cs:10`) expose the `B` modal to save, search, paste, inline rename, and two-step delete user blueprints, and list bundled `.wbp` blueprints from `BlueprintDatabase` as read-only entries (paste only).
 
 ## Tests
 

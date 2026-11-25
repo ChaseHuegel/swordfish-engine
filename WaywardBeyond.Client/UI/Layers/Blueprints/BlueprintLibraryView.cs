@@ -56,7 +56,8 @@ internal partial class BlueprintLibraryView : UiViewBase
     /// <summary>Formats the dimensions and brick count line for a blueprint row.</summary>
     public string DimensionsText(in BlueprintListItemState item)
     {
-        return $"{item.SizeX}x{item.SizeY}x{item.SizeZ} - {item.BrickCount} {L("ui.blueprint.bricksSuffix")}";
+        string baseText = $"{item.SizeX}x{item.SizeY}x{item.SizeZ} - {item.BrickCount} {L("ui.blueprint.bricksSuffix")}";
+        return item.IsReadOnly ? $"{baseText} - {L("ui.blueprint.builtIn")}" : baseText;
     }
 
     partial void OnClose() => CloseRequested?.Invoke();

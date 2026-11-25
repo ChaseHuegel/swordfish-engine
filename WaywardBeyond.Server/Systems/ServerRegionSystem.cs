@@ -8,6 +8,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
@@ -39,14 +40,18 @@ public sealed class ServerRegionSystem(
     IBrickDatabase brickDatabase,
     ILogger<ServerRegionSystem> logger,
     IPaintRegistry? paintRegistry = null,
-    IPaintDatabase? paintDatabase = null
+    IPaintDatabase? paintDatabase = null,
+    GameplayConfig? gameplayConfig = null
 ) : IServerWorldSystem
 {
-    private const int MAX_REGION_CHUNKS = 512;
     private const float MIN_QUATERNION_LEN_SQ = 1e-4f;
 
     private readonly HashSet<Short3> _dirtyChunks = [];
     private uint _nextBatchId;
+
+    private int MaxRegionEdge => gameplayConfig?.Regions.MaxEdge.Get() ?? RegionLimits.MAX_REGION_EDGE;
+    private int MaxRegionVolume => gameplayConfig?.Regions.MaxVolume.Get() ?? RegionLimits.MAX_REGION_VOLUME;
+    private int MaxRegionPayloadBytes => gameplayConfig?.Regions.MaxPayloadBytes.Get() ?? RegionLimits.MAX_PAYLOAD_BYTES;
 
     /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
@@ -88,7 +93,7 @@ public sealed class ServerRegionSystem(
         CutRegionRequest request = call.Request;
         var min = new Int3(request.MinX, request.MinY, request.MinZ);
         var max = new Int3(request.MaxX, request.MaxY, request.MaxZ);
-        if (!RegionLimits.IsValidBounds(min, max))
+        if (!RegionLimits.IsValidBounds(min, max, MaxRegionEdge, MaxRegionVolume))
         {
             call.Completion.TrySetResult(FailOp("notification.region.invalidBounds"));
             return;
@@ -169,6 +174,14 @@ public sealed class ServerRegionSystem(
         }
 
         RegionUploadPart part = call.Part;
+        int maxPayloadBytes = MaxRegionPayloadBytes;
+        if (maxPayloadBytes > 0 && part.PartCount > (uint)PayloadFragmenter.PartCount(maxPayloadBytes))
+        {
+            peer.RegionUploadAssembler.Reset();
+            call.Completion.TrySetResult(FailOp("notification.region.invalidBounds"));
+            return;
+        }
+
         FragmentState state = peer.RegionUploadAssembler.Append(
             part.BatchId,
             (int)part.PartIndex,
@@ -193,7 +206,7 @@ public sealed class ServerRegionSystem(
             return;
         }
 
-        if (payload.Length > RegionLimits.MAX_PAYLOAD_BYTES)
+        if (!RegionLimits.IsValidPayloadSize(payload.Length, maxPayloadBytes))
         {
             call.Completion.TrySetResult(FailOp("notification.region.invalidBounds"));
             return;
@@ -222,7 +235,7 @@ public sealed class ServerRegionSystem(
             return;
         }
 
-        if (!RegionLimits.IsValidSize(request.SizeX, request.SizeY, request.SizeZ))
+        if (!RegionLimits.IsValidSize(request.SizeX, request.SizeY, request.SizeZ, MaxRegionEdge, MaxRegionVolume))
         {
             call.Completion.TrySetResult(FailOp("notification.region.invalidBounds"));
             return;
@@ -266,7 +279,7 @@ public sealed class ServerRegionSystem(
         }
 
         var origin = new Int3(request.OriginX, request.OriginY, request.OriginZ);
-        if (!RegionLimits.TryComputePasteMax(origin, sanitized.SizeX, sanitized.SizeY, sanitized.SizeZ, out Int3 max)
+        if (!RegionLimits.TryComputePasteMax(origin, sanitized.SizeX, sanitized.SizeY, sanitized.SizeZ, out Int3 max, MaxRegionEdge, MaxRegionVolume)
             || !RegionLimits.IsWithinChunkRange(origin, max, world.VoxelObject.ChunkSize))
         {
             return FailOp("notification.region.invalidBounds", skippedUnknownBricks);
@@ -515,14 +528,18 @@ public sealed class ServerRegionSystem(
             return true;
         }
 
-        if (chunks.Length > MAX_REGION_CHUNKS)
+        byte chunkSize = chunks[0].Chunk.Size;
+        if (chunkSize == 0 || chunkSize > 64 || (chunkSize & (chunkSize - 1)) != 0)
         {
             sanitized = default;
             return false;
         }
 
-        byte chunkSize = chunks[0].Chunk.Size;
-        if (chunkSize == 0 || chunkSize > 64 || (chunkSize & (chunkSize - 1)) != 0)
+        long maxChunksX = ((long)source.SizeX + chunkSize - 1) / chunkSize;
+        long maxChunksY = ((long)source.SizeY + chunkSize - 1) / chunkSize;
+        long maxChunksZ = ((long)source.SizeZ + chunkSize - 1) / chunkSize;
+        long maxChunks = Math.Min(ushort.MaxValue, maxChunksX * maxChunksY * maxChunksZ);
+        if (chunks.Length > maxChunks)
         {
             sanitized = default;
             return false;

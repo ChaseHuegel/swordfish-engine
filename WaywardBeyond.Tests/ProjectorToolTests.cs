@@ -132,6 +132,7 @@ public class ProjectorToolTests
             "ui.blueprint.cancel",
             "ui.blueprint.confirmDelete",
             "ui.blueprint.bricksSuffix",
+            "ui.blueprint.builtIn",
             "ui.blueprint.hint",
             "ui.blueprint.error.nameRequired",
             "ui.blueprint.error.saveFailed",

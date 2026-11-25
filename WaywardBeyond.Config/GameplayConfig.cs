@@ -21,4 +21,7 @@ public sealed class GameplayConfig : Config<GameplayConfig>
 
     /// <summary>The position a character spawns at.</summary>
     public DataBinding<Vector3> DefaultSpawnPosition { get; private set; } = new(new Vector3(0f, 1f, 5f));
+
+    /// <inheritdoc cref="RegionConfig"/>
+    public RegionConfig Regions { get; private set; } = new();
 }

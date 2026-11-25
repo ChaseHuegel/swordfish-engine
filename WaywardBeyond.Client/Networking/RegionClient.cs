@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Voxels;
@@ -11,10 +12,11 @@ namespace WaywardBeyond.Client.Networking;
 /// <summary>
 /// Client RPC wrapper for authoritative region cut and fragmented paste/spawn uploads.
 /// </summary>
-internal sealed class RegionClient(ClientRpcHost host, ILogger<RegionClient> logger)
+internal sealed class RegionClient(ClientRpcHost host, ILogger<RegionClient> logger, GameplayConfig? gameplayConfig = null)
 {
     private readonly ClientRpcHost _host = host;
     private readonly ILogger _logger = logger;
+    private readonly GameplayConfig? _gameplayConfig = gameplayConfig;
     private int _nextBatchId;
 
     /// <summary>Requests that the server clear the selected voxel box on a structure.</summary>
@@ -47,10 +49,15 @@ internal sealed class RegionClient(ClientRpcHost host, ILogger<RegionClient> log
         }
 
         byte[] payload = request.Serialize();
-        if (payload.Length > RegionLimits.MAX_PAYLOAD_BYTES)
+        int maxPayloadBytes = _gameplayConfig?.Regions.MaxPayloadBytes.Get() ?? RegionLimits.MAX_PAYLOAD_BYTES;
+        if (!RegionLimits.IsValidPayloadSize(payload.Length, maxPayloadBytes) || payload.Length > PayloadFragmenter.MAX_PAYLOAD_BYTES)
         {
-            return RpcResult<RegionOpResponse>.Failure(
-                GameRpcErrors.INVALID_STATE, "region payload exceeds maximum upload size");
+            return RpcResult<RegionOpResponse>.Success(new RegionOpResponse
+            {
+                Success = false,
+                Completed = true,
+                ErrorKey = "notification.region.invalidBounds",
+            });
         }
 
         uint batchId = unchecked((uint)Interlocked.Increment(ref _nextBatchId));

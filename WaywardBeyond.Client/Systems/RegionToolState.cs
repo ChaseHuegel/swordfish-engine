@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Threading;
 using Krill;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
@@ -14,9 +15,13 @@ namespace WaywardBeyond.Client.Systems;
 /// Shared state between <see cref="RegionToolService"/>, <see cref="RegionPreviewSystem"/>,
 /// <see cref="RegionToolRadial"/>, <see cref="ControlHints"/>, and the Blueprint Library UI.
 /// </summary>
-internal sealed class RegionToolState
+internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
 {
     private readonly Lock _gate = new();
+    private readonly GameplayConfig? _gameplayConfig = gameplayConfig;
+
+    private int MaxRegionEdge => _gameplayConfig?.Regions.MaxEdge.Get() ?? RegionLimits.MAX_REGION_EDGE;
+    private int MaxRegionVolume => _gameplayConfig?.Regions.MaxVolume.Get() ?? RegionLimits.MAX_REGION_VOLUME;
 
     private RegionToolMode _mode = RegionToolMode.Select;
     private Uuid _selectionEntityUuid = Uuid.Null;
@@ -202,7 +207,7 @@ internal sealed class RegionToolState
             Int3 b = _hasAnchorB ? _anchorB : _anchorA;
             min = new Int3(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
             max = new Int3(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
-            withinLimits = RegionLimits.IsValidBounds(min, max);
+            withinLimits = RegionLimits.IsValidBounds(min, max, MaxRegionEdge, MaxRegionVolume);
             return true;
         }
     }
@@ -229,7 +234,7 @@ internal sealed class RegionToolState
                 Math.Max(_anchorA.Y, _anchorB.Y),
                 Math.Max(_anchorA.Z, _anchorB.Z));
             entityUuid = _selectionEntityUuid;
-            return RegionLimits.IsValidBounds(min, max);
+            return RegionLimits.IsValidBounds(min, max, MaxRegionEdge, MaxRegionVolume);
         }
     }
 

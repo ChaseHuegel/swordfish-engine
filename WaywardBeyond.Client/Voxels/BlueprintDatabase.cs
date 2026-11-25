@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using Krill;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
@@ -8,17 +11,22 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels;
 
 /// <summary>
-///     Provides access to <see cref="VoxelEntityModel"/>s from virtual resources.
+/// Provides read-only access to bundled <c>.wbp</c> blueprints as both <see cref="VoxelEntityModel"/>
+/// assets and raw <see cref="BlueprintData"/> / <see cref="BlueprintSummary"/> entries.
 /// </summary>
-internal sealed class BlueprintDatabase : ResourceVirtualAssetDatabase<VoxelEntityData, VoxelEntityModel>, IAutoActivate
+internal sealed class BlueprintDatabase : ResourceVirtualAssetDatabase<BlueprintData, VoxelEntityModel>, IAutoActivate
 {
     private readonly IBrickRegistry _brickRegistry;
     private readonly IPaintRegistry? _paintRegistry;
+    private readonly Lock _catalogLock = new();
+    private readonly Dictionary<string, BlueprintData> _blueprints = new(StringComparer.Ordinal);
+    private readonly List<BlueprintSummary> _summaries = [];
 
     public BlueprintDatabase(
         in ILogger<BlueprintDatabase> logger,
@@ -33,39 +41,87 @@ internal sealed class BlueprintDatabase : ResourceVirtualAssetDatabase<VoxelEnti
         Load();
     }
 
+    /// <summary>Returns metadata summaries for all loaded bundled blueprints.</summary>
+    public IReadOnlyList<BlueprintSummary> ListSummaries()
+    {
+        lock (_catalogLock)
+        {
+            return [.. _summaries];
+        }
+    }
+
+    /// <summary>Gets the raw palette-encoded <see cref="BlueprintData"/> for a bundled blueprint by ID.</summary>
+    public Result<BlueprintData> GetBlueprint(string id)
+    {
+        lock (_catalogLock)
+        {
+            if (!string.IsNullOrEmpty(id) && _blueprints.TryGetValue(id, out BlueprintData data))
+            {
+                return Result<BlueprintData>.FromSuccess(data);
+            }
+
+            return Result<BlueprintData>.FromFailure($"Unknown bundled blueprint \"{id}\"");
+        }
+    }
+
     /// <inheritdoc/>
     protected override bool ExcludeExtensionFromID => true;
 
     /// <inheritdoc/>
-    protected override bool IsValidFile(PathInfo path) => path.HasExtension(".dat");
+    protected override bool IsValidFile(PathInfo path) => path.HasExtension(FileBlueprintStorage.FILE_EXTENSION);
 
     /// <inheritdoc/>
     protected override PathInfo GetRootPath() => AssetPaths.Root.At("blueprints");
 
     /// <inheritdoc/>
-    protected override Result<VoxelEntityModel> LoadAsset(string id, Resource<VoxelEntityData> assetInfo)
+    protected override Result<VoxelEntityModel> LoadAsset(string id, Resource<BlueprintData> assetInfo)
     {
-        VoxelEntityData raw = assetInfo.Value;
-        VoxelEntityData decoded = VoxelCodec.Decode(in raw, _brickRegistry, _paintRegistry);
-
-        var position = new Vector3((float)decoded.X, (float)decoded.Y, (float)decoded.Z);
-        var orientation = new Quaternion(decoded.OrientationX, decoded.OrientationY, decoded.OrientationZ, decoded.OrientationW);
-        var scale = new Vector3(decoded.ScaleX, decoded.ScaleY, decoded.ScaleZ);
-        if (scale == Vector3.Zero)
+        BlueprintData raw = assetInfo.Value;
+        if (raw.SizeX <= 0 || raw.SizeY <= 0 || raw.SizeZ <= 0 || raw.Chunks == null)
         {
-            scale = Vector3.One;
+            return Result<VoxelEntityModel>.FromFailure($"Bundled blueprint \"{id}\" has invalid bounds.");
         }
 
-        byte chunkSize = decoded.Chunks.Length > 0 ? decoded.Chunks[0].Chunk.Size : (byte)0;
-        if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
+        VoxelRegionData encoded = raw.ToRegion();
+        VoxelRegionData decoded = VoxelCodec.Decode(in encoded, _brickRegistry, _paintRegistry);
+        VoxelObject voxelObject = VoxelRegionApplier.ToCenteredVoxelObject(in decoded, out _);
+
+        int brickCount = raw.BrickCount > 0 ? raw.BrickCount : VoxelRegionApplier.CountSolidVoxels(in decoded);
+        string displayName = string.IsNullOrWhiteSpace(raw.Name) ? id : raw.Name;
+        var summary = new BlueprintSummary(
+            id,
+            displayName,
+            raw.SizeX,
+            raw.SizeY,
+            raw.SizeZ,
+            brickCount,
+            raw.CreatedAtMs,
+            raw.ModifiedAtMs);
+
+        lock (_catalogLock)
         {
-            chunkSize = VoxelObject.DEFAULT_CHUNK_EDGE;
+            _blueprints[id] = raw;
+            int existing = _summaries.FindIndex(s => string.Equals(s.Id, id, StringComparison.Ordinal));
+            if (existing >= 0)
+            {
+                _summaries[existing] = summary;
+            }
+            else
+            {
+                _summaries.Add(summary);
+                _summaries.Sort(static (left, right) =>
+                {
+                    int nameCompare = StringComparer.OrdinalIgnoreCase.Compare(left.Name, right.Name);
+                    return nameCompare != 0
+                        ? nameCompare
+                        : StringComparer.Ordinal.Compare(left.Id, right.Id);
+                });
+            }
         }
 
-        var voxelObject = new VoxelObject(chunkSize, decoded.Chunks);
-        var model = new VoxelEntityModel(Uuid.FromValue(decoded.Uuid), position, orientation, voxelObject)
+        var model = new VoxelEntityModel(Uuid.NewUuid(), Vector3.Zero, Quaternion.Identity, voxelObject)
         {
-            Scale = scale,
+            Scale = Vector3.One,
         };
 
         return Result<VoxelEntityModel>.FromSuccess(model);

@@ -11,6 +11,7 @@ using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Components;
+using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Blueprints;
 
@@ -20,9 +21,11 @@ namespace WaywardBeyond.Client.UI.Layers.Blueprints;
 internal sealed class BlueprintLibraryLayer : IUILayer
 {
     private const int MAX_NAME_CHARS = 64;
+    private const string BUNDLED_ID_PREFIX = "bundled:";
 
     private readonly InteractionState _interactionState;
     private readonly IBlueprintStorage _blueprintStorage;
+    private readonly BlueprintDatabase? _blueprintDatabase;
     private readonly RegionToolState _toolState;
     private readonly RegionToolService _toolService;
     private readonly NotificationService _notificationService;
@@ -36,6 +39,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
     private bool _open;
     private InteractionState.InteractionBlocker? _interactionBlocker;
     private IReadOnlyList<BlueprintSummary> _summaries = [];
+    private IReadOnlyList<BlueprintSummary> _bundledSummaries = [];
     private string? _renamingId;
     private string? _confirmDeleteId;
     private string _lastSearch = string.Empty;
@@ -53,11 +57,13 @@ internal sealed class BlueprintLibraryLayer : IUILayer
         in NotificationService notificationService,
         in LocalizedFormatter formatter,
         in ILocalization localization,
-        in ILogger<BlueprintLibraryLayer> logger
+        in ILogger<BlueprintLibraryLayer> logger,
+        BlueprintDatabase? blueprintDatabase = null
     )
     {
         _interactionState = interactionState;
         _blueprintStorage = blueprintStorage;
+        _blueprintDatabase = blueprintDatabase;
         _toolState = toolState;
         _toolService = toolService;
         _notificationService = notificationService;
@@ -239,7 +245,9 @@ internal sealed class BlueprintLibraryLayer : IUILayer
 
     private void OnLoadRequested(string id)
     {
-        Result<BlueprintData> loaded = _toolService.LoadBlueprintToClipboard(id);
+        Result<BlueprintData> loaded = id.StartsWith(BUNDLED_ID_PREFIX, StringComparison.Ordinal)
+            ? _toolService.LoadBundledBlueprintToClipboard(id[BUNDLED_ID_PREFIX.Length..])
+            : _toolService.LoadBlueprintToClipboard(id);
         if (!loaded.Success)
         {
             _state.ErrorKey = "ui.blueprint.error.loadFailed";
@@ -251,6 +259,11 @@ internal sealed class BlueprintLibraryLayer : IUILayer
 
     private void OnStartRenameRequested(string id)
     {
+        if (id.StartsWith(BUNDLED_ID_PREFIX, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         string currentName = string.Empty;
         for (var i = 0; i < _summaries.Count; i++)
         {
@@ -270,6 +283,10 @@ internal sealed class BlueprintLibraryLayer : IUILayer
 
     private void OnCommitRenameRequested(string id)
     {
+        if (id.StartsWith(BUNDLED_ID_PREFIX, StringComparison.Ordinal))
+        {
+            return;
+        }
         string nextName = _state.RenameText.Text.ToString().Trim();
         if (string.IsNullOrWhiteSpace(nextName))
         {
@@ -306,6 +323,11 @@ internal sealed class BlueprintLibraryLayer : IUILayer
 
     private void OnRequestDeleteRequested(string id)
     {
+        if (id.StartsWith(BUNDLED_ID_PREFIX, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         _renamingId = null;
         _confirmDeleteId = id;
         _state.ErrorKey = string.Empty;
@@ -314,6 +336,10 @@ internal sealed class BlueprintLibraryLayer : IUILayer
 
     private void OnConfirmDeleteRequested(string id)
     {
+        if (id.StartsWith(BUNDLED_ID_PREFIX, StringComparison.Ordinal))
+        {
+            return;
+        }
         Result deleted = _blueprintStorage.Delete(id);
         if (!deleted.Success)
         {
@@ -357,13 +383,14 @@ internal sealed class BlueprintLibraryLayer : IUILayer
             _summaries = [];
         }
 
+        _bundledSummaries = _blueprintDatabase?.ListSummaries() ?? [];
         _listRevision++;
     }
 
     private IReadOnlyList<BlueprintListItemState> BuildFilteredItems(string filter)
     {
         string query = filter.Trim();
-        var items = new List<BlueprintListItemState>(_summaries.Count);
+        var items = new List<BlueprintListItemState>(_summaries.Count + _bundledSummaries.Count);
 
         for (var i = 0; i < _summaries.Count; i++)
         {
@@ -381,7 +408,28 @@ internal sealed class BlueprintLibraryLayer : IUILayer
                 summary.SizeZ,
                 summary.BrickCount,
                 IsRenaming: string.Equals(summary.Id, _renamingId, StringComparison.Ordinal),
-                ConfirmingDelete: string.Equals(summary.Id, _confirmDeleteId, StringComparison.Ordinal)));
+                ConfirmingDelete: string.Equals(summary.Id, _confirmDeleteId, StringComparison.Ordinal),
+                IsReadOnly: false));
+        }
+
+        for (var i = 0; i < _bundledSummaries.Count; i++)
+        {
+            BlueprintSummary summary = _bundledSummaries[i];
+            if (query.Length > 0 && !summary.Name.Contains(query, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            items.Add(new BlueprintListItemState(
+                BUNDLED_ID_PREFIX + summary.Id,
+                summary.Name,
+                summary.SizeX,
+                summary.SizeY,
+                summary.SizeZ,
+                summary.BrickCount,
+                IsRenaming: false,
+                ConfirmingDelete: false,
+                IsReadOnly: true));
         }
 
         return items;

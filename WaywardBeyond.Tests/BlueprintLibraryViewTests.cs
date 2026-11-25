@@ -76,6 +76,32 @@ public class BlueprintLibraryViewTests
     }
 
     [Fact]
+    public void ReadOnlyBundledBlueprintHidesRenameAndDeleteButtonsAndShowsBuiltInTag()
+    {
+        var controller = new UIController();
+        var ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), controller);
+        var view = new BlueprintLibraryView(new TestLocalization(), new FakeInputService(), new ScrollAreaState());
+
+        var state = new BlueprintLibraryState(
+            new TextBoxState(string.Empty),
+            new TextBoxState(string.Empty),
+            new TextBoxState(string.Empty))
+        {
+            Items =
+            [
+                new BlueprintListItemState("bundled:builtin/mainMenu", "Main Menu Ship", 11, 7, 16, 130, IsRenaming: false, ConfirmingDelete: false, IsReadOnly: true),
+            ],
+        };
+
+        view.Render(ui, state);
+        List<RenderCommand<Material>> commands = ui.Build(0.1d);
+
+        Assert.Contains(commands, c => c.Text == "ui.blueprint.load");
+        Assert.DoesNotContain(commands, c => c.Text == "ui.blueprint.rename");
+        Assert.Contains(commands, c => c.Text != null && c.Text.Contains("ui.blueprint.builtIn", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ViewButtonsInvokeSaveLoadRenameDeleteConfirmationAndCloseCallbacks()
     {
         var controller = new UIController();

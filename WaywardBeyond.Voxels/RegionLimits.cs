@@ -15,24 +15,44 @@ public static class RegionLimits
     /// <summary>Maximum serialized region payload size in bytes.</summary>
     public const int MAX_PAYLOAD_BYTES = 4 * 1024 * 1024;
 
-    /// <summary>Returns whether the region dimensions are positive and within configured bounds.</summary>
-    public static bool IsValidSize(int sizeX, int sizeY, int sizeZ)
+    /// <summary>Returns whether the region dimensions are positive and within configured bounds. Non-positive caps mean unlimited.</summary>
+    public static bool IsValidSize(
+        int sizeX,
+        int sizeY,
+        int sizeZ,
+        int maxEdge = MAX_REGION_EDGE,
+        int maxVolume = MAX_REGION_VOLUME
+    )
     {
         if (sizeX <= 0 || sizeY <= 0 || sizeZ <= 0)
         {
             return false;
         }
 
-        if (sizeX > MAX_REGION_EDGE || sizeY > MAX_REGION_EDGE || sizeZ > MAX_REGION_EDGE)
+        if (maxEdge > 0 && (sizeX > maxEdge || sizeY > maxEdge || sizeZ > maxEdge))
         {
             return false;
         }
 
-        return (long)sizeX * sizeY * sizeZ <= MAX_REGION_VOLUME;
+        if (maxVolume > 0)
+        {
+            long xy = (long)sizeX * sizeY;
+            if (xy > maxVolume || xy * sizeZ > maxVolume)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    /// <summary>Returns whether the inclusive min/max cell bounds are non-empty and within configured limits.</summary>
-    public static bool IsValidBounds(Int3 min, Int3 max)
+    /// <summary>Returns whether the inclusive min/max cell bounds are non-empty and within configured limits. Non-positive caps mean unlimited.</summary>
+    public static bool IsValidBounds(
+        Int3 min,
+        Int3 max,
+        int maxEdge = MAX_REGION_EDGE,
+        int maxVolume = MAX_REGION_VOLUME
+    )
     {
         if (max.X < min.X || max.Y < min.Y || max.Z < min.Z)
         {
@@ -42,18 +62,51 @@ public static class RegionLimits
         long sizeX = (long)max.X - min.X + 1;
         long sizeY = (long)max.Y - min.Y + 1;
         long sizeZ = (long)max.Z - min.Z + 1;
-        if (sizeX > MAX_REGION_EDGE || sizeY > MAX_REGION_EDGE || sizeZ > MAX_REGION_EDGE)
+        if (sizeX > int.MaxValue || sizeY > int.MaxValue || sizeZ > int.MaxValue)
         {
             return false;
         }
 
-        return sizeX * sizeY * sizeZ <= MAX_REGION_VOLUME;
+        if (maxEdge > 0 && (sizeX > maxEdge || sizeY > maxEdge || sizeZ > maxEdge))
+        {
+            return false;
+        }
+
+        if (maxVolume > 0)
+        {
+            long xy = sizeX * sizeY;
+            if (xy > maxVolume || xy * sizeZ > maxVolume)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Returns whether a serialized payload or blueprint file size is within the configured byte cap. Non-positive caps mean unlimited.</summary>
+    public static bool IsValidPayloadSize(long bytes, int maxPayloadBytes = MAX_PAYLOAD_BYTES)
+    {
+        if (bytes < 0)
+        {
+            return false;
+        }
+
+        return maxPayloadBytes <= 0 || bytes <= maxPayloadBytes;
     }
 
     /// <summary>Computes inclusive paste bounds without signed integer overflow.</summary>
-    public static bool TryComputePasteMax(Int3 origin, int sizeX, int sizeY, int sizeZ, out Int3 max)
+    public static bool TryComputePasteMax(
+        Int3 origin,
+        int sizeX,
+        int sizeY,
+        int sizeZ,
+        out Int3 max,
+        int maxEdge = MAX_REGION_EDGE,
+        int maxVolume = MAX_REGION_VOLUME
+    )
     {
-        if (!IsValidSize(sizeX, sizeY, sizeZ))
+        if (!IsValidSize(sizeX, sizeY, sizeZ, maxEdge, maxVolume))
         {
             max = default;
             return false;

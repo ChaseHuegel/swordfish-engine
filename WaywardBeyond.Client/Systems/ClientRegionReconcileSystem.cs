@@ -134,7 +134,7 @@ internal sealed class ClientRegionReconcileSystem(
             return;
         }
 
-        if (!RegionLimits.IsValidSize(message.SizeX, message.SizeY, message.SizeZ))
+        if (!RegionLimits.IsValidSize(message.SizeX, message.SizeY, message.SizeZ, maxEdge: 0, maxVolume: 0))
         {
             logger.LogWarning("Dropping VoxelRegionEditMessage with invalid dimensions {x}x{y}x{z}.", message.SizeX, message.SizeY, message.SizeZ);
             return;

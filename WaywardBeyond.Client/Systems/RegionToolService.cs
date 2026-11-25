@@ -20,6 +20,8 @@ using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Components;
@@ -58,6 +60,8 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
     private readonly NotificationService _notificationService;
     private readonly LocalizedFormatter _formatter;
     private readonly ILogger<RegionToolService> _logger;
+    private readonly GameplayConfig? _gameplayConfig;
+    private readonly BlueprintDatabase? _blueprintDatabase;
 
     private readonly ConcurrentQueue<MouseButton> _pendingClicks = new();
     private readonly ConcurrentQueue<float> _pendingScrolls = new();
@@ -94,7 +98,9 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         in NotificationService notificationService,
         in LocalizedFormatter formatter,
         in ILogger<RegionToolService> logger,
-        IPaintRegistry? paintRegistry = null
+        IPaintRegistry? paintRegistry = null,
+        GameplayConfig? gameplayConfig = null,
+        BlueprintDatabase? blueprintDatabase = null
     )
     {
         _inputService = inputService;
@@ -112,6 +118,8 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         _notificationService = notificationService;
         _formatter = formatter;
         _logger = logger;
+        _gameplayConfig = gameplayConfig;
+        _blueprintDatabase = blueprintDatabase;
 
         RegisterShortcut(shortcutService, "Region Copy", Key.C, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Copy));
         RegisterShortcut(shortcutService, "Region Cut", Key.X, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Cut));
@@ -142,10 +150,23 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         _pendingSaves.Enqueue(new PendingSaveRequest(name, onCompleted));
     }
 
-    /// <summary>Loads <paramref name="blueprintId"/> onto the clipboard, switches to Paste mode, and selects the projector in the hotbar if present.</summary>
+    /// <summary>Loads <paramref name="blueprintId"/> from user storage onto the clipboard, switches to Paste mode, and selects the projector in the hotbar if present.</summary>
     public Result<BlueprintData> LoadBlueprintToClipboard(string blueprintId)
     {
-        Result<BlueprintData> loaded = _blueprintStorage.Load(blueprintId);
+        return LoadBlueprintResultToClipboard(_blueprintStorage.Load(blueprintId));
+    }
+
+    /// <summary>Loads bundled <paramref name="blueprintId"/> from <see cref="BlueprintDatabase"/> onto the clipboard, switches to Paste mode, and selects the projector in the hotbar if present.</summary>
+    public Result<BlueprintData> LoadBundledBlueprintToClipboard(string blueprintId)
+    {
+        Result<BlueprintData> loaded = _blueprintDatabase != null
+            ? _blueprintDatabase.GetBlueprint(blueprintId)
+            : Result<BlueprintData>.FromFailure("Bundled blueprint database is unavailable.");
+        return LoadBlueprintResultToClipboard(loaded);
+    }
+
+    private Result<BlueprintData> LoadBlueprintResultToClipboard(Result<BlueprintData> loaded)
+    {
         if (!loaded.Success)
         {
             _notificationService.Push(new Notification(_formatter.GetString("notification.blueprint.loadFailed")));
@@ -595,7 +616,9 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             bool embed = _inputService.IsKeyHeld(Key.Shift);
             Int3 origin = RegionPlacementResolver.ComputeFlushOrigin(hitCell, localNormal, regionSize, embed);
 
-            bool boundsValid = RegionLimits.TryComputePasteMax(origin, regionSize.X, regionSize.Y, regionSize.Z, out Int3 maxCell)
+            int maxEdge = _gameplayConfig?.Regions.MaxEdge.Get() ?? RegionLimits.MAX_REGION_EDGE;
+            int maxVolume = _gameplayConfig?.Regions.MaxVolume.Get() ?? RegionLimits.MAX_REGION_VOLUME;
+            bool boundsValid = RegionLimits.TryComputePasteMax(origin, regionSize.X, regionSize.Y, regionSize.Z, out Int3 maxCell, maxEdge, maxVolume)
                 && (!entity.TryGet(out VoxelComponent targetVoxelComp)
                     || RegionLimits.IsWithinChunkRange(origin, maxCell, targetVoxelComp.VoxelObject.ChunkSize));
             bool inReach = boundsValid

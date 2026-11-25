@@ -106,7 +106,7 @@ public sealed class ServerPeer
     public ConcurrentQueue<PasteRegionPartCall> PasteRegionParts { get; } = new();
 
     /// <summary>Reassembles multi-part paste region uploads for this peer on the world tick.</summary>
-    public FragmentAssembler RegionUploadAssembler { get; } = new(RegionLimits.MAX_PAYLOAD_BYTES);
+    public FragmentAssembler RegionUploadAssembler { get; } = new(PayloadFragmenter.MAX_PAYLOAD_BYTES);
 
     /// <summary>Stamps the last inbound message time. Called for every inbound message.</summary>
     public void Touch()

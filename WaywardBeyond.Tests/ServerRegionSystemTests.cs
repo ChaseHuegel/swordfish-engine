@@ -436,8 +436,9 @@ public class ServerRegionSystemTests
         harness.System.Tick(1f / 60f, harness.Store);
 
         RpcResult<RegionOpResponse> tooManyResult = await tooManyPartsTask;
-        Assert.False(tooManyResult.IsSuccess);
-        Assert.Equal(GameRpcErrors.INVALID_STATE, tooManyResult.ErrorCode);
+        Assert.True(tooManyResult.IsSuccess);
+        Assert.False(tooManyResult.Value.Success);
+        Assert.Equal("notification.region.invalidBounds", tooManyResult.Value.ErrorKey);
         Assert.False(harness.Peer.RegionUploadAssembler.IsActive);
 
         var fullChunk = new byte[PayloadFragmenter.FRAGMENT_BUDGET];
@@ -468,8 +469,9 @@ public class ServerRegionSystemTests
         harness.System.Tick(1f / 60f, harness.Store);
 
         RpcResult<RegionOpResponse> overCapResult = await finalOverCapTask;
-        Assert.False(overCapResult.IsSuccess);
-        Assert.Equal(GameRpcErrors.INVALID_STATE, overCapResult.ErrorCode);
+        Assert.True(overCapResult.IsSuccess);
+        Assert.False(overCapResult.Value.Success);
+        Assert.Equal("notification.region.invalidBounds", overCapResult.Value.ErrorKey);
         Assert.False(harness.Peer.RegionUploadAssembler.IsActive);
     }
 
@@ -548,6 +550,34 @@ public class ServerRegionSystemTests
         // At scale 2, voxel cell 10 spans [19..21] in world X.
         Assert.True(RegionPlacementResolver.IsBoxWithinReach(cell, cell, new Vector3(25f, 0f, 0f), in scaledTransform, 5f));
         Assert.False(RegionPlacementResolver.IsBoxWithinReach(cell, cell, new Vector3(10f, 0f, 0f), in scaledTransform, 5f));
+    }
+
+    [Fact]
+    public async Task ConfigurableRegionCapsEnforceServerLimitsAndSupportZeroUnlimited()
+    {
+        var strictConfig = new GameplayConfig();
+        strictConfig.Regions.MaxEdge.Set(4);
+        strictConfig.Regions.MaxVolume.Set(16);
+
+        using TestHarness strictHarness = CreateHarness(GameMode.Creative, gameplayConfig: strictConfig);
+        Task<RpcResult<RegionOpResponse>> rejectedCut = EnqueueCut(strictHarness, strictHarness.StructureUuid, new Int3(0, 0, 0), new Int3(4, 0, 0));
+        strictHarness.System.Tick(1f / 60f, strictHarness.Store);
+        RpcResult<RegionOpResponse> strictResult = await rejectedCut;
+        Assert.True(strictResult.IsSuccess);
+        Assert.False(strictResult.Value.Success);
+        Assert.Equal("notification.region.invalidBounds", strictResult.Value.ErrorKey);
+
+        var unlimitedConfig = new GameplayConfig();
+        unlimitedConfig.Regions.MaxEdge.Set(0);
+        unlimitedConfig.Regions.MaxVolume.Set(0);
+        unlimitedConfig.Regions.MaxPayloadBytes.Set(0);
+
+        using TestHarness unlimitedHarness = CreateHarness(GameMode.Creative, gameplayConfig: unlimitedConfig);
+        Task<RpcResult<RegionOpResponse>> allowedCut = EnqueueCut(unlimitedHarness, unlimitedHarness.StructureUuid, new Int3(0, 0, 0), new Int3(80, 0, 0));
+        unlimitedHarness.System.Tick(1f / 60f, unlimitedHarness.Store);
+        RpcResult<RegionOpResponse> unlimitedResult = await allowedCut;
+        Assert.True(unlimitedResult.IsSuccess);
+        Assert.True(unlimitedResult.Value.Success);
     }
 
     private static Task<RpcResult<RegionOpResponse>> EnqueueCut(
@@ -642,7 +672,12 @@ public class ServerRegionSystemTests
         return VoxelCodec.Encode(in raw, brickRegistry, paintRegistry);
     }
 
-    private static TestHarness CreateHarness(GameMode mode, bool isLocalHost = true, string? permissionsToml = null)
+    private static TestHarness CreateHarness(
+        GameMode mode,
+        bool isLocalHost = true,
+        string? permissionsToml = null,
+        GameplayConfig? gameplayConfig = null
+    )
     {
         var peers = new ServerPeers();
         var sessions = new SessionManager();
@@ -730,7 +765,8 @@ public class ServerRegionSystemTests
             brickDb,
             NullLogger<ServerRegionSystem>.Instance,
             paintDb,
-            paintDb);
+            paintDb,
+            gameplayConfig);
 
         return new TestHarness(ecsWorld.DataStore, peer, world, system, connection, structureUuid, structureVoxels, brickRegistry, paintDb, physics);
     }
