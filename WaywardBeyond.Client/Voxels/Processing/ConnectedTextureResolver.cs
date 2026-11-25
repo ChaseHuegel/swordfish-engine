@@ -37,7 +37,7 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         //  Stair
         EDGE_HORIZONTAL, EDGE_ALL, EDGE_HORIZONTAL, EDGE_ALL, EDGE_NONE, EDGE_NONE,
         //  Slope
-        EDGE_NONE, EDGE_ALL, EDGE_HORIZONTAL, EDGE_ALL, EDGE_NONE, EDGE_NONE,
+        EDGE_NONE, EDGE_ALL, EDGE_ALL, EDGE_ALL, EDGE_NONE, EDGE_NONE,
         //  Column
         EDGE_NONE, EDGE_NONE, EDGE_VERTICAL, EDGE_VERTICAL, EDGE_VERTICAL, EDGE_VERTICAL,
         //  Plate
@@ -180,7 +180,14 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
                 ConnectEdges(in sample, in context, allowedEdgeMask, in sample.Above, NEIGHBOR_ABOVE, in sample.Ahead, NEIGHBOR_AHEAD, in sample.Behind, NEIGHBOR_BEHIND, in sample.Below, NEIGHBOR_BELOW, ref connectedTextureMask);
                 break;
             case BrickFace.Front:
-                ConnectEdges(in sample, in context, allowedEdgeMask, in sample.Above, NEIGHBOR_ABOVE, in sample.Left, NEIGHBOR_LEFT, in sample.Right, NEIGHBOR_RIGHT, in sample.Below, NEIGHBOR_BELOW, ref connectedTextureMask);
+                if (shapeLight.Shape == BrickShape.Slope)
+                {
+                    ConnectSlopeDiagonalEdges(in sample, in context, ref connectedTextureMask);
+                }
+                else
+                {
+                    ConnectEdges(in sample, in context, allowedEdgeMask, in sample.Above, NEIGHBOR_ABOVE, in sample.Left, NEIGHBOR_LEFT, in sample.Right, NEIGHBOR_RIGHT, in sample.Below, NEIGHBOR_BELOW, ref connectedTextureMask);
+                }
                 break;
             case BrickFace.Back:
                 ConnectEdges(in sample, in context, allowedEdgeMask, in sample.Above, NEIGHBOR_ABOVE, in sample.Right, NEIGHBOR_RIGHT, in sample.Left, NEIGHBOR_LEFT, in sample.Below, NEIGHBOR_BELOW, ref connectedTextureMask);
@@ -227,11 +234,101 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         }
     }
 
+    private void ConnectSlopeDiagonalEdges(
+        in VoxelSample sample,
+        in ConnectionContext context,
+        ref int mask
+    ) {
+        Int3 aboveOffset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, NEIGHBOR_ABOVE);
+        Int3 behindOffset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, NEIGHBOR_BEHIND);
+        var upRampOffset = new Int3(aboveOffset.X + behindOffset.X, aboveOffset.Y + behindOffset.Y, aboveOffset.Z + behindOffset.Z);
+        if (TryGetNeighborAtOffset(in sample, upRampOffset, out Voxel upRampNeighbor))
+        {
+            ConnectToNeighborAtOffset(in sample, in context, in upRampNeighbor, upRampOffset, EDGE_UP, ref mask);
+        }
+
+        ConnectToNeighbor(in sample, in context, in sample.Left, NEIGHBOR_LEFT, EDGE_LEFT, ref mask);
+        ConnectToNeighbor(in sample, in context, in sample.Right, NEIGHBOR_RIGHT, EDGE_RIGHT, ref mask);
+
+        Int3 belowOffset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, NEIGHBOR_BELOW);
+        Int3 aheadOffset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, NEIGHBOR_AHEAD);
+        var downRampOffset = new Int3(belowOffset.X + aheadOffset.X, belowOffset.Y + aheadOffset.Y, belowOffset.Z + aheadOffset.Z);
+        if (TryGetNeighborAtOffset(in sample, downRampOffset, out Voxel downRampNeighbor))
+        {
+            ConnectToNeighborAtOffset(in sample, in context, in downRampNeighbor, downRampOffset, EDGE_DOWN, ref mask);
+        }
+    }
+
+    private static bool TryGetNeighborAtOffset(in VoxelSample sample, Int3 offset, out Voxel neighbor)
+    {
+        int localNx = sample.Coords.X + offset.X;
+        int localNy = sample.Coords.Y + offset.Y;
+        int localNz = sample.Coords.Z + offset.Z;
+
+        Voxel[]? voxels = sample.ChunkData.Data.Voxels;
+        if (voxels != null)
+        {
+            int chunkSize = sample.ChunkData.Data.Size;
+            if ((uint)localNx < (uint)chunkSize && (uint)localNy < (uint)chunkSize && (uint)localNz < (uint)chunkSize)
+            {
+                int shift = BitOperations.TrailingZeroCount(chunkSize);
+                int neighborIndex = localNx + (localNy << shift) + (localNz << (shift * 2));
+                neighbor = voxels[neighborIndex];
+                return true;
+            }
+        }
+
+        if (sample.VoxelObject != null)
+        {
+            neighbor = sample.VoxelObject.Get(sample.ChunkOffset.X + localNx, sample.ChunkOffset.Y + localNy, sample.ChunkOffset.Z + localNz);
+            return true;
+        }
+
+        neighbor = default;
+        return false;
+    }
+
+    private static bool AreOrientationsCompatible(BrickShape shape, Orientation centerOrientation, Orientation neighborOrientation)
+    {
+        if (centerOrientation == neighborOrientation)
+        {
+            return true;
+        }
+
+        switch (shape)
+        {
+            case BrickShape.Block:
+                return true;
+            case BrickShape.Slab:
+            case BrickShape.Plate:
+                return FaceOrientationLookup.ToWorldFace(centerOrientation, BrickFace.Top) ==
+                    FaceOrientationLookup.ToWorldFace(neighborOrientation, BrickFace.Top);
+            case BrickShape.Column:
+                BrickFace centerTop = FaceOrientationLookup.ToWorldFace(centerOrientation, BrickFace.Top);
+                BrickFace neighborTop = FaceOrientationLookup.ToWorldFace(neighborOrientation, BrickFace.Top);
+                return ((int)centerTop >> 1) == ((int)neighborTop >> 1);
+            default:
+                return false;
+        }
+    }
+
     private void ConnectToNeighbor(
         in VoxelSample sample,
         in ConnectionContext context,
         in Voxel neighbor,
         int neighborDirIndex,
+        int bit,
+        ref int mask
+    ) {
+        Int3 offset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, neighborDirIndex);
+        ConnectToNeighborAtOffset(in sample, in context, in neighbor, offset, bit, ref mask);
+    }
+
+    private void ConnectToNeighborAtOffset(
+        in VoxelSample sample,
+        in ConnectionContext context,
+        in Voxel neighbor,
+        Int3 offset,
         int bit,
         ref int mask
     ) {
@@ -247,7 +344,7 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         }
 
         Orientation neighborOrientation = neighbor.GetOrientation();
-        if (context.ShapeLight.Shape != BrickShape.Block && neighborOrientation != context.CenterOrientation)
+        if (!AreOrientationsCompatible(context.ShapeLight.Shape, context.CenterOrientation, neighborOrientation))
         {
             return;
         }
@@ -267,7 +364,6 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
             return;
         }
 
-        Int3 offset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, neighborDirIndex);
         int localNx = sample.Coords.X + offset.X;
         int localNy = sample.Coords.Y + offset.Y;
         int localNz = sample.Coords.Z + offset.Z;

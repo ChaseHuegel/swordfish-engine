@@ -109,8 +109,10 @@ resolves 4-bit connected-texture adjacency for `CubeMeshBuilder` and
 `MeshPostPass`. It connects native bricks and painted faces by comparing
 effective resolved surfaces on coplanar neighbor faces. Built-in non-block
 shapes (`Slab`, `Stair`, `Slope`, `Column`, `Plate`) connect only to neighbors
-with the same shape and matching orientation, and only along edges where the
-shape geometry meets flush. `Custom` meshes remain unconnected.
+with the same shape and compatible orientation (ignoring symmetric yaw on
+`Slab`/`Plate` and axis flips on `Column`), and only along edges where the
+shape geometry meets flush, including diagonal ramp neighbors for `Slope`
+`Front` faces. `Custom` meshes remain unconnected.
 `lightedArray.glsl` applies `VertexColor.rgb` as linear albedo and emissive
 tint (including bloom `BrightColor`) and `VertexColor.a` as voxel light.
 

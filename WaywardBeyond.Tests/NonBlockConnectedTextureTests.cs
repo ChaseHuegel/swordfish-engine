@@ -265,15 +265,93 @@ public class NonBlockConnectedTextureTests
     }
 
     [Fact]
-    public void NonBlockShapesRequireMatchingOrientationAndSameShape()
+    public void SlopeConnectsAlongDiagonalRamp()
     {
         var (state, pass, panelBase, _) = CreateHarness();
         var voxels = new VoxelObject(8);
-        byte rotatedOrientation = new Orientation(pitch: 0, yaw: 1, roll: 0).ToByte();
+        var slope = new Voxel(2, new ShapeLight(BrickShape.Slope, 15), 0);
 
-        //  (2,2,2) is Slab orientation 0; (3,2,2) is Slab with rotated orientation; (1,2,2) is Block.
+        //  Three-step diagonal ramp along (0, +1, -1) with a lower-right neighbor.
+        voxels.Set(2, 1, 3, slope);
+        voxels.Set(2, 2, 2, slope);
+        voxels.Set(2, 3, 1, slope);
+        voxels.Set(3, 2, 2, slope);
+
+        RunPass(voxels, pass);
+
+        Vector3 diagonalNormal = Vector3.Normalize(new Vector3(0f, 1f, 1f));
+        Assert.Equal(panelBase + EDGE_UP, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 1, 3), diagonalNormal));
+        Assert.Equal(panelBase + (EDGE_UP | EDGE_RIGHT | EDGE_DOWN), GetLayerForVoxelFace(state.Opaque, new Vector3(2, 2, 2), diagonalNormal));
+        Assert.Equal(panelBase + EDGE_DOWN, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 3, 1), diagonalNormal));
+        Assert.Equal(panelBase + EDGE_LEFT, GetLayerForVoxelFace(state.Opaque, new Vector3(3, 2, 2), diagonalNormal));
+    }
+
+    [Fact]
+    public void SlopeConnectsAlongDiagonalRampAcrossChunkBoundary()
+    {
+        var (state, pass, panelBase, _) = CreateHarness();
+        var voxels = new VoxelObject(8);
+        var slope = new Voxel(2, new ShapeLight(BrickShape.Slope, 15), 0);
+
+        //  Crosses the Y=7 -> Y=8 chunk boundary diagonally.
+        voxels.Set(2, 7, 3, slope);
+        voxels.Set(2, 8, 2, slope);
+
+        RunPass(voxels, pass);
+
+        Vector3 diagonalNormal = Vector3.Normalize(new Vector3(0f, 1f, 1f));
+        Assert.Equal(panelBase + EDGE_UP, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 7, 3), diagonalNormal));
+        Assert.Equal(panelBase + EDGE_DOWN, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 8, 2), diagonalNormal));
+    }
+
+    [Theory]
+    [InlineData(BrickShape.Slab)]
+    [InlineData(BrickShape.Plate)]
+    public void SlabAndPlateConnectAcrossDifferentYawsOnSamePlane(BrickShape shape)
+    {
+        var (state, pass, panelBase, _) = CreateHarness();
+        var voxels = new VoxelObject(8);
+        byte yaw90 = new Orientation(pitch: 0, yaw: 1, roll: 0).ToByte();
+
+        voxels.Set(2, 2, 2, new Voxel(2, new ShapeLight(shape, 15), 0));
+        voxels.Set(3, 2, 2, new Voxel(2, new ShapeLight(shape, 15), yaw90));
+
+        RunPass(voxels, pass);
+
+        //  (2,2,2) connects Right on Top/Bottom/Front; (3,2,2) rotated 90 deg yaw still connects its coplanar faces.
+        Assert.Equal(panelBase + EDGE_RIGHT, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 2, 2), Vector3.UnitY));
+        Assert.Equal(panelBase + EDGE_RIGHT, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 2, 2), -Vector3.UnitY));
+        Assert.Equal(panelBase + EDGE_RIGHT, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 2, 2), Vector3.UnitZ));
+        Assert.NotEqual(panelBase, GetLayerForVoxelFace(state.Opaque, new Vector3(3, 2, 2), Vector3.UnitY));
+        Assert.NotEqual(panelBase, GetLayerForVoxelFace(state.Opaque, new Vector3(3, 2, 2), Vector3.UnitZ));
+    }
+
+    [Fact]
+    public void ColumnConnectsAcrossSymmetricYawAndFlip()
+    {
+        var (state, pass, panelBase, _) = CreateHarness();
+        var voxels = new VoxelObject(8);
+        byte flipped = new Orientation(pitch: 2, yaw: 1, roll: 0).ToByte();
+
+        voxels.Set(2, 2, 2, new Voxel(2, new ShapeLight(BrickShape.Column, 15), 0));
+        voxels.Set(2, 3, 2, new Voxel(2, new ShapeLight(BrickShape.Column, 15), flipped));
+
+        RunPass(voxels, pass);
+
+        Assert.Equal(panelBase + EDGE_UP, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 2, 2), Vector3.UnitZ));
+        Assert.NotEqual(panelBase, GetLayerForVoxelFace(state.Opaque, new Vector3(2, 3, 2), Vector3.UnitZ));
+    }
+
+    [Fact]
+    public void NonBlockShapesRequireCompatibleOrientationAndSameShape()
+    {
+        var (state, pass, panelBase, _) = CreateHarness();
+        var voxels = new VoxelObject(8);
+        byte wallOrientation = new Orientation(pitch: 1, yaw: 0, roll: 0).ToByte();
+
+        //  (2,2,2) is floor Slab; (3,2,2) is wall-mounted Slab; (1,2,2) is Block.
         voxels.Set(2, 2, 2, new Voxel(2, new ShapeLight(BrickShape.Slab, 15), 0));
-        voxels.Set(3, 2, 2, new Voxel(2, new ShapeLight(BrickShape.Slab, 15), rotatedOrientation));
+        voxels.Set(3, 2, 2, new Voxel(2, new ShapeLight(BrickShape.Slab, 15), wallOrientation));
         voxels.Set(1, 2, 2, new Voxel(2, new ShapeLight(BrickShape.Block, 15), 0));
 
         RunPass(voxels, pass);
