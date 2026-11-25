@@ -75,6 +75,60 @@
                 </Element>
             </ElseIf>
 
+            <ElseIf condition="@row.IsKeybind">
+                <Element layout="horizontal" width="fill" height="44" spacing="16" clip="true">
+                    <Text text="@context.Label(row)"
+                          wrap="false"
+                          class="wb-row-label"
+                          class:wb-text-accent="@row.IsCapturing"
+                          class:wb-text-danger="@(!row.IsCapturing &amp;&amp; (row.HasConflict || row.IsUnbound))"
+                          width="fill"
+                          height="fill" />
+                    <Element layout="horizontal"
+                             width="33.334%"
+                             min-width="220"
+                             max-width="340"
+                             height="32"
+                             spacing="6"
+                             anchor="Center">
+                        <Element class="wb-keybind"
+                                 class:wb-keybind-listening="@row.IsCapturing"
+                                 class:wb-keybind-conflict="@(!row.IsCapturing &amp;&amp; (row.HasConflict || row.IsUnbound))"
+                                 id="{row.Id}.bind"
+                                 clip="true"
+                                 onclick="@context.OnKeybindClick(row.Id)"
+                                 width="fill"
+                                 height="fill">
+                            <Text text="@context.KeybindText(row)"
+                                  wrap="false"
+                                  class="wb-keybind-label"
+                                  class:wb-text-accent="@row.IsCapturing"
+                                  class:wb-text-danger="@(!row.IsCapturing &amp;&amp; (row.HasConflict || row.IsUnbound))"
+                                  width="fill"
+                                  height="fill" />
+                        </Element>
+                        <IconButton id="{row.Id}.clear"
+                                    anchor="Center"
+                                    param:glyph="xMark"
+                                    param:tone="danger"
+                                    param:size="28"
+                                    param:glyphSize="16"
+                                    param:dim="@row.IsUnbound"
+                                    disabled="@row.IsUnbound"
+                                    onclick="@context.OnKeybindClear(row.Id)" />
+                        <IconButton id="{row.Id}.reset"
+                                    anchor="Center"
+                                    param:glyph="rotate"
+                                    param:tone="muted"
+                                    param:size="28"
+                                    param:glyphSize="16"
+                                    param:dim="@(!row.CanReset)"
+                                    disabled="@(!row.CanReset)"
+                                    onclick="@context.OnKeybindReset(row.Id)" />
+                    </Element>
+                </Element>
+            </ElseIf>
+
             <ElseIf condition="@row.IsReset">
                 <Element class="wb-divider-inner" width="fill" height="1" />
                 <Element height="4" />

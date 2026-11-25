@@ -9,7 +9,10 @@ internal readonly record struct SettingsShellState(
     string TitleKey,
     bool Dirty,
     string StatusKey,
-    string CancelLabelKey
+    string CancelLabelKey,
+    bool CanApply = false,
+    bool Capturing = false,
+    bool StatusError = false
 );
 
 /// <summary>One category shown in the tray or tab strip.</summary>

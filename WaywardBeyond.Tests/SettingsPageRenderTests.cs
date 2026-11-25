@@ -176,6 +176,7 @@ public class SettingsPageRenderTests
             MenuPage.Settings,
             configManager: null!,
             controlSettings: new ControlSettings(),
+            keybindingSettings: new KeybindingSettings(),
             windowSettings: new WindowSettings(),
             renderSettings: new RenderSettings(),
             volumeSettings: new VolumeSettings(),
@@ -184,7 +185,7 @@ public class SettingsPageRenderTests
             uiSettings: new UISettings(),
             soundEffectService: null!,
             windowContext: new FakeWindowContext(),
-            inputService: new FakeInputService(),
+            shortcutService: new StubShortcutService(),
             localization: localization ?? new StubLocalization()
         );
 

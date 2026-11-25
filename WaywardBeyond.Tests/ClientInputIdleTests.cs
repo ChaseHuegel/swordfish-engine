@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Krill;
+using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Graphics;
+using Swordfish.Input;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Physics;
@@ -13,6 +15,7 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data.Components;
 
@@ -93,9 +96,33 @@ public class ClientInputIdleTests
         Assert.True(context.Store.IsDirty<InputComponent>(context.Entity), "The reset must force a first sample.");
     }
 
+    [Fact]
+    public void MovementAndPrimaryActionFollowReboundShortcuts()
+    {
+        TestContext context = CreateContext();
+
+        Assert.True(context.ShortcutService.Rebind(GameShortcuts.MOVE_FORWARD, new ShortcutBinding(Key.UpArrow)).Success);
+        Assert.True(context.ShortcutService.Rebind(GameShortcuts.PRIMARY_ACTION, new ShortcutBinding(Key.F)).Success);
+
+        context.InputService.HeldKeys.Add(Key.W);
+        context.InputService.HeldButtons.Add(MouseButton.Left);
+        context.System.Tick(1f / 64f, context.Store);
+        Assert.True(context.Store.TryGet(context.Entity, out InputComponent oldKeys));
+        Assert.Equal(0f, oldKeys.MovementZ);
+        Assert.False(oldKeys.PrimaryHeld);
+
+        context.InputService.HeldKeys.Add(Key.UpArrow);
+        context.InputService.HeldKeys.Add(Key.F);
+        context.System.Tick(1f / 64f, context.Store);
+        Assert.True(context.Store.TryGet(context.Entity, out InputComponent reboundKeys));
+        Assert.Equal(-1f, reboundKeys.MovementZ);
+        Assert.True(reboundKeys.PrimaryHeld);
+    }
+
     private static TestContext CreateContext()
     {
         var inputService = new FakeInputService();
+        var shortcutService = new ShortcutService(inputService, NullLogger.Instance);
         var windowContext = new FakeWindowContext();
         var physics = new FakePhysics();
         var motionProcessor = new ClientPlayerMotionProcessor(
@@ -112,8 +139,8 @@ public class ClientInputIdleTests
         store.AddOrUpdate(entity, new InputComponent());
         store.AddOrUpdate(entity, new PendingInputComponent());
 
-        var system = new ClientInputSystem(motionProcessor, inputService, new ControlSettings(), new SnapshotAckTracker());
-        return new TestContext(store, entity, system, inputService, motionProcessor);
+        var system = new ClientInputSystem(motionProcessor, shortcutService, new ControlSettings(), new SnapshotAckTracker());
+        return new TestContext(store, entity, system, inputService, shortcutService, motionProcessor);
     }
 
     private static int PendingCount(TestContext context)
@@ -127,12 +154,14 @@ public class ClientInputIdleTests
         int entity,
         ClientInputSystem system,
         FakeInputService inputService,
+        ShortcutService shortcutService,
         ClientPlayerMotionProcessor motionProcessor
     ) {
         public DataStore Store { get; } = store;
         public int Entity { get; } = entity;
         public ClientInputSystem System { get; } = system;
         public FakeInputService InputService { get; } = inputService;
+        public ShortcutService ShortcutService { get; } = shortcutService;
         public ClientPlayerMotionProcessor MotionProcessor { get; } = motionProcessor;
     }
 }

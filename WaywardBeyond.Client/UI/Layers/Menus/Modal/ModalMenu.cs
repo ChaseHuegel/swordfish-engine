@@ -5,6 +5,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Modal;
@@ -25,15 +26,12 @@ internal sealed class ModalMenu : Menu<Modal>
     {
         _interactionState = interactionState;
 
-        Shortcut closeShortcut = new(
-            name: "Close modal",
-            category: "Modals",
-            ShortcutModifiers.None,
-            Key.Esc,
-            isEnabled: IsVisible,
-            action: () => GoBack()
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateBack(),
+            IsVisible,
+            () => GoBack()
         );
-        shortcutService.RegisterShortcut(closeShortcut);
     }
 
     public override bool IsVisible()

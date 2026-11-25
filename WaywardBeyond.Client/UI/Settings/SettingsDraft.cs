@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Graphics;
+using Swordfish.Library.IO;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Config;
@@ -37,6 +39,7 @@ internal sealed class SettingsDraft
     public int MouseSensitivity;
     public bool RememberShape;
     public bool RememberOrientation;
+    public Dictionary<string, ShortcutBinding> Keybindings { get; } = new(StringComparer.Ordinal);
 
     /// <summary>Copies the current configuration into a draft.</summary>
     public static SettingsDraft FromConfigs(
@@ -46,10 +49,11 @@ internal sealed class SettingsDraft
         in VolumeSettings volumeSettings,
         in GameplayConfig gameplayConfig,
         in UISettings uiSettings,
-        in IWindowContext windowContext
+        in IWindowContext windowContext,
+        in IShortcutService shortcutService
     )
     {
-        return new SettingsDraft
+        var draft = new SettingsDraft
         {
             DisplayMode = SettingsDisplayModeExtensions.FromWindowSettings(
                 windowSettings.Mode.Get(),
@@ -82,6 +86,18 @@ internal sealed class SettingsDraft
             RememberShape = controlSettings.RememberShape.Get(),
             RememberOrientation = controlSettings.RememberOrientation.Get(),
         };
+
+        IReadOnlyList<ShortcutInfo> shortcuts = shortcutService.GetShortcuts();
+        for (var i = 0; i < shortcuts.Count; i++)
+        {
+            ShortcutInfo info = shortcuts[i];
+            if (info.Rebindable)
+            {
+                draft.Keybindings[info.Id] = info.CurrentBinding;
+            }
+        }
+
+        return draft;
     }
 
     /// <summary>Creates a draft with the settings page's recommended defaults.</summary>

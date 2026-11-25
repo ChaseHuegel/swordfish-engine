@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using Reef;
 using Reef.UI;
@@ -22,6 +21,7 @@ internal sealed class SettingsPage<TIdentifier>(
     TIdentifier id,
     in ConfigManager configManager,
     in ControlSettings controlSettings,
+    in KeybindingSettings keybindingSettings,
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
@@ -30,14 +30,16 @@ internal sealed class SettingsPage<TIdentifier>(
     in UISettings uiSettings,
     in SoundEffectService soundEffectService,
     in IWindowContext windowContext,
-    in IInputService inputService,
-    in ILocalization localization
+    in IShortcutService shortcutService,
+    in ILocalization localization,
+    bool showDeveloperKeybindings = true
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
 {
     public TIdentifier ID { get; } = id;
 
     private readonly ConfigManager _configManager = configManager;
     private readonly ControlSettings _controlSettings = controlSettings;
+    private readonly KeybindingSettings _keybindingSettings = keybindingSettings;
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
@@ -46,27 +48,42 @@ internal sealed class SettingsPage<TIdentifier>(
     private readonly UISettings _uiSettings = uiSettings;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
     private readonly IWindowContext _windowContext = windowContext;
-    private readonly IInputService _inputService = inputService;
+    private readonly IShortcutService _shortcutService = shortcutService;
     private readonly ILocalization _localization = localization;
+    private readonly bool _showDeveloperKeybindings = showDeveloperKeybindings;
+    private readonly Lock _captureLock = new();
 
     private SettingsShellView? _shell;
     private Menu<TIdentifier>? _menu;
     private double _time;
     private SettingsDraft? _draft;
     private SettingsCategory[]? _categories;
+    private SettingsCategory? _keybindingsCategory;
+    private ShortcutBinding[] _fixedBindings = [];
     private SettingsCategoryEntry[] _entries = [];
     private SettingsRowState[] _rows = [];
     private bool _rowsDirty = true;
     private int _playbackDevicesDirty;
+    private int _externalBindingsDirty;
     private int _categoryIndex;
     private string _statusKey = string.Empty;
     private double _statusUntil;
+    private string? _capturingRowId;
+    private int _captureGeneration;
+    private bool _hasPendingCapture;
+    private ShortcutCaptureResult _pendingCapture;
+    private int _suppressClicksFrames;
 
     /// <inheritdoc/>
     public void OnEnter()
     {
         _playbackDeviceService.PlaybackDevicesChanged -= OnPlaybackDevicesChanged;
         _playbackDeviceService.PlaybackDevicesChanged += OnPlaybackDevicesChanged;
+        _shortcutService.BindingsChanged -= OnShortcutBindingsChanged;
+        _shortcutService.BindingsChanged += OnShortcutBindingsChanged;
+
+        CancelActiveCapture();
+        _suppressClicksFrames = 0;
         _draft = SettingsDraft.FromConfigs(
             _controlSettings,
             _windowSettings,
@@ -74,12 +91,16 @@ internal sealed class SettingsPage<TIdentifier>(
             _volumeSettings,
             _gameplayConfig,
             _uiSettings,
-            _windowContext
+            _windowContext,
+            _shortcutService
         );
         _categories = BuildCategories();
+        _keybindingsCategory = FindCategory("keybindings");
+        _fixedBindings = KeybindingsSettingsCategory.CollectFixedBindings(_shortcutService);
         _entries = BuildEntries(_categories);
         _rowsDirty = true;
         _playbackDevicesDirty = 0;
+        _externalBindingsDirty = 0;
         _categoryIndex = 0;
         _statusKey = string.Empty;
         _statusUntil = 0d;
@@ -89,12 +110,18 @@ internal sealed class SettingsPage<TIdentifier>(
     public void OnExit()
     {
         _playbackDeviceService.PlaybackDevicesChanged -= OnPlaybackDevicesChanged;
+        _shortcutService.BindingsChanged -= OnShortcutBindingsChanged;
+        CancelActiveCapture();
+        _suppressClicksFrames = 0;
         _draft = null;
         _categories = null;
+        _keybindingsCategory = null;
+        _fixedBindings = [];
         _entries = [];
         _rows = [];
         _rowsDirty = true;
         _playbackDevicesDirty = 0;
+        _externalBindingsDirty = 0;
         _statusKey = string.Empty;
     }
 
@@ -105,6 +132,8 @@ internal sealed class SettingsPage<TIdentifier>(
         {
             return Result.FromFailure("The settings page is not prepared.");
         }
+
+        DrainPendingCapture();
 
         if (RefreshExternalDisplaySettings())
         {
@@ -117,23 +146,75 @@ internal sealed class SettingsPage<TIdentifier>(
             _rowsDirty = true;
         }
 
+        if (Interlocked.Exchange(ref _externalBindingsDirty, 0) == 1)
+        {
+            RefreshExternalKeybindings();
+            _rowsDirty = true;
+        }
+
+        bool hasConflicts = SyncKeybindingValidation();
+
         _menu = menu;
         RenderRows(ui);
         _time = ui.Time;
 
         bool dirty = IsDirty();
-        string statusKey = _statusKey.Length > 0 && ui.Time < _statusUntil ? _statusKey : string.Empty;
+        bool capturing = _capturingRowId != null;
+        bool canApply = dirty && !hasConflicts && !capturing;
+        ResolveStatus(ui.Time, dirty, capturing, hasConflicts, out string statusKey, out bool statusError);
 
         Shell.Render(ui, new SettingsShellState(
             _entries,
             _categoryIndex,
             _categories[_categoryIndex].TitleKey,
             dirty,
-            dirty ? "ui.settings.status.unsaved" : statusKey,
-            dirty ? "ui.button.cancel" : "ui.button.back"
+            statusKey,
+            dirty ? "ui.button.cancel" : "ui.button.back",
+            canApply,
+            capturing,
+            statusError
         ));
 
+        if (_suppressClicksFrames > 0)
+        {
+            _suppressClicksFrames--;
+        }
+
         return Result.FromSuccess();
+    }
+
+    private void ResolveStatus(
+        double time,
+        bool dirty,
+        bool capturing,
+        bool hasConflicts,
+        out string statusKey,
+        out bool statusError
+    )
+    {
+        if (capturing)
+        {
+            statusKey = "ui.settings.status.keybindListening";
+            statusError = false;
+            return;
+        }
+
+        if (hasConflicts)
+        {
+            statusKey = "ui.settings.status.keybindConflict";
+            statusError = true;
+            return;
+        }
+
+        if (dirty)
+        {
+            statusKey = "ui.settings.status.unsaved";
+            statusError = false;
+            return;
+        }
+
+        statusKey = _statusKey.Length > 0 && time < _statusUntil ? _statusKey : string.Empty;
+        statusError = false;
     }
 
     private SettingsShellView Shell => _shell ??= CreateShell();
@@ -149,6 +230,9 @@ internal sealed class SettingsPage<TIdentifier>(
             StepRequested = OnStep,
             SliderDragRequested = OnSliderDrag,
             ResetRequested = OnReset,
+            KeybindClickRequested = OnKeybindClick,
+            KeybindClearRequested = OnKeybindClear,
+            KeybindResetRequested = OnKeybindReset,
         };
     }
 
@@ -187,6 +271,11 @@ internal sealed class SettingsPage<TIdentifier>(
 
     private void OnChoice(string id, int index)
     {
+        if (_suppressClicksFrames > 0)
+        {
+            return;
+        }
+
         if (FindEntry(id)?.TrySetOptionIndex(index) == true)
         {
             _rowsDirty = true;
@@ -196,6 +285,11 @@ internal sealed class SettingsPage<TIdentifier>(
 
     private void OnStep(string id, int delta)
     {
+        if (_suppressClicksFrames > 0)
+        {
+            return;
+        }
+
         int applied = FindEntry(id)?.Step(delta) ?? 0;
         if (applied != 0)
         {
@@ -206,6 +300,11 @@ internal sealed class SettingsPage<TIdentifier>(
 
     private void OnSliderDrag(string id, float ratio)
     {
+        if (_suppressClicksFrames > 0)
+        {
+            return;
+        }
+
         int applied = FindEntry(id)?.TrySetSliderRatio(ratio) ?? 0;
         if (applied == 0)
         {
@@ -216,13 +315,73 @@ internal sealed class SettingsPage<TIdentifier>(
         Play(applied > 0 ? WidgetInteraction.InterfaceSound.Increase : WidgetInteraction.InterfaceSound.Decrease);
     }
 
-    private void OnReset(string id)
+    private void OnKeybindClick(string id)
     {
-        if (_categories == null)
+        if (_suppressClicksFrames > 0 || FindEntry(id) is not KeybindingEntry)
         {
             return;
         }
 
+        CancelActiveCapture();
+
+        int generation;
+        lock (_captureLock)
+        {
+            generation = ++_captureGeneration;
+            _hasPendingCapture = false;
+            _pendingCapture = default;
+        }
+
+        _capturingRowId = id;
+        _shortcutService.BeginCapture(result => OnBindingCaptured(generation, result));
+        _rowsDirty = true;
+        Play(WidgetInteraction.InterfaceSound.Click);
+    }
+
+    private void OnKeybindClear(string id)
+    {
+        if (_suppressClicksFrames > 0)
+        {
+            return;
+        }
+
+        CancelActiveCapture();
+        if (FindEntry(id) is not KeybindingEntry entry || entry.IsUnbound)
+        {
+            return;
+        }
+
+        entry.SetValue(ShortcutBinding.Unbound);
+        _rowsDirty = true;
+        Play(WidgetInteraction.InterfaceSound.Toggle);
+    }
+
+    private void OnKeybindReset(string id)
+    {
+        if (_suppressClicksFrames > 0)
+        {
+            return;
+        }
+
+        CancelActiveCapture();
+        if (FindEntry(id) is not KeybindingEntry entry || !entry.CanReset)
+        {
+            return;
+        }
+
+        entry.ResetToDefault();
+        _rowsDirty = true;
+        Play(WidgetInteraction.InterfaceSound.Toggle);
+    }
+
+    private void OnReset(string id)
+    {
+        if (_suppressClicksFrames > 0 || _categories == null)
+        {
+            return;
+        }
+
+        CancelActiveCapture();
         for (var i = 0; i < _categories.Length; i++)
         {
             SettingsRow[] rows = _categories[i].Rows;
@@ -242,11 +401,12 @@ internal sealed class SettingsPage<TIdentifier>(
 
     private void OnCategorySelected(int index)
     {
-        if (index == _categoryIndex || _categories == null)
+        if (_suppressClicksFrames > 0 || index == _categoryIndex || _categories == null)
         {
             return;
         }
 
+        CancelActiveCapture();
         _categoryIndex = index;
         _rowsDirty = true;
         Play(WidgetInteraction.InterfaceSound.Toggle);
@@ -254,18 +414,121 @@ internal sealed class SettingsPage<TIdentifier>(
 
     private void OnCancel()
     {
+        if (_suppressClicksFrames > 0)
+        {
+            return;
+        }
+
+        CancelActiveCapture();
         Play(WidgetInteraction.InterfaceSound.Click);
         _menu?.GoBack();
     }
 
     private void OnApply()
     {
+        if (_suppressClicksFrames > 0)
+        {
+            return;
+        }
+
         ApplySettings(_time);
+    }
+
+    private void OnBindingCaptured(int generation, ShortcutCaptureResult result)
+    {
+        lock (_captureLock)
+        {
+            if (generation != _captureGeneration)
+            {
+                return;
+            }
+
+            _pendingCapture = result;
+            _hasPendingCapture = true;
+        }
+    }
+
+    private void DrainPendingCapture()
+    {
+        ShortcutCaptureResult captured;
+        bool hasCapture;
+        lock (_captureLock)
+        {
+            hasCapture = _hasPendingCapture;
+            captured = _pendingCapture;
+            _hasPendingCapture = false;
+            _pendingCapture = default;
+        }
+
+        if (!hasCapture)
+        {
+            return;
+        }
+
+        string? rowId = _capturingRowId;
+        _capturingRowId = null;
+        _rowsDirty = true;
+        //  Reef reports clicks on the frame after UpdateInteraction sees the press, so suppress two frames for mouse capture.
+        _suppressClicksFrames = Math.Max(_suppressClicksFrames, !captured.Cancelled && captured.Binding.IsMouseButton ? 2 : 1);
+
+        if (!captured.Cancelled && rowId != null && FindEntry(rowId) is KeybindingEntry entry)
+        {
+            entry.SetValue(captured.Binding);
+            Play(WidgetInteraction.InterfaceSound.Toggle);
+        }
+        else
+        {
+            Play(WidgetInteraction.InterfaceSound.Click);
+        }
+    }
+
+    private void CancelActiveCapture()
+    {
+        bool wasCapturing = _capturingRowId != null;
+        _capturingRowId = null;
+
+        lock (_captureLock)
+        {
+            _captureGeneration++;
+            _hasPendingCapture = false;
+            _pendingCapture = default;
+        }
+
+        if (wasCapturing || _shortcutService.IsCapturing)
+        {
+            _shortcutService.CancelCapture();
+            _rowsDirty = true;
+        }
+    }
+
+    private bool SyncKeybindingValidation()
+    {
+        if (_keybindingsCategory == null)
+        {
+            return false;
+        }
+
+        SettingsEntry[] entries = _keybindingsCategory.Entries;
+        for (var i = 0; i < entries.Length; i++)
+        {
+            if (entries[i] is KeybindingEntry entry)
+            {
+                entry.IsCapturing = string.Equals(entry.Id, _capturingRowId, StringComparison.Ordinal);
+            }
+        }
+
+        return KeybindingsSettingsCategory.UpdateConflicts(_keybindingsCategory, _fixedBindings);
     }
 
     private void ApplySettings(double time)
     {
         SettingsDraft draft = _draft ?? throw new InvalidOperationException("The settings draft is not initialized.");
+
+        bool hasConflicts = SyncKeybindingValidation();
+        if (hasConflicts || _capturingRowId != null)
+        {
+            return;
+        }
 
         Result displayResult = Result.FromSuccess();
         bool displayChanged = IsEntryDirty("Settings.DisplayMode")
@@ -322,6 +585,20 @@ internal sealed class SettingsPage<TIdentifier>(
         _controlSettings.RememberShape.Set(draft.RememberShape);
         _controlSettings.RememberOrientation.Set(draft.RememberOrientation);
 
+        if (_keybindingsCategory != null)
+        {
+            SettingsEntry[] keybindEntries = _keybindingsCategory.Entries;
+            for (var i = 0; i < keybindEntries.Length; i++)
+            {
+                if (keybindEntries[i] is KeybindingEntry entry && entry.IsDirty)
+                {
+                    _shortcutService.Rebind(entry.ShortcutId, entry.Value);
+                }
+            }
+        }
+
+        _keybindingSettings?.SetOverrides(_shortcutService.GetOverrides());
+
         if (_configManager != null)
         {
             _configManager.ApplySettings();
@@ -371,12 +648,64 @@ internal sealed class SettingsPage<TIdentifier>(
             AudioSettingsCategory.Build(draft, _playbackDeviceService, _localization, () => ResetCategory("audio")),
             GameplaySettingsCategory.Build(draft, _localization, () => ResetCategory("gameplay")),
             ControlSettingsCategory.Build(draft, _localization, () => ResetCategory("controls")),
+            KeybindingsSettingsCategory.Build(draft, _shortcutService, () => ResetCategory("keybindings"), _showDeveloperKeybindings),
         ];
+    }
+
+    private SettingsCategory? FindCategory(string categoryId)
+    {
+        if (_categories == null)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < _categories.Length; i++)
+        {
+            if (_categories[i].Id == categoryId)
+            {
+                return _categories[i];
+            }
+        }
+
+        return null;
     }
 
     private void OnPlaybackDevicesChanged(object? sender, PlaybackDevicesChangedEventArgs e)
     {
         Interlocked.Exchange(ref _playbackDevicesDirty, 1);
+    }
+
+    private void OnShortcutBindingsChanged()
+    {
+        Interlocked.Exchange(ref _externalBindingsDirty, 1);
+    }
+
+    private void RefreshExternalKeybindings()
+    {
+        if (_draft == null || _keybindingsCategory == null)
+        {
+            return;
+        }
+
+        _fixedBindings = KeybindingsSettingsCategory.CollectFixedBindings(_shortcutService);
+
+        SettingsEntry[] entries = _keybindingsCategory.Entries;
+        for (var i = 0; i < entries.Length; i++)
+        {
+            if (entries[i] is not KeybindingEntry entry || entry.IsDirty)
+            {
+                continue;
+            }
+
+            Result<ShortcutBinding> live = _shortcutService.GetBinding(entry.ShortcutId);
+            if (!live.Success || entry.Value == live.Value)
+            {
+                continue;
+            }
+
+            entry.SetValue(live.Value);
+            entry.CaptureBaseline();
+        }
     }
 
     private void RefreshPlaybackDeviceSettings()
@@ -507,10 +836,5 @@ internal sealed class SettingsPage<TIdentifier>(
                 return;
             }
         }
-    }
-
-    private string L(string key)
-    {
-        return _localization.GetString(key) ?? key;
     }
 }

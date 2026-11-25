@@ -11,7 +11,10 @@ internal readonly record struct SettingsRowsState(
     Action<string, int>? OnChoice,
     Action<string, int>? OnStep,
     Action<string, float>? OnDrag,
-    Action<string>? OnReset
+    Action<string>? OnReset,
+    Action<string>? OnKeybindClick = null,
+    Action<string>? OnKeybindClear = null,
+    Action<string>? OnKeybindReset = null
 )
 {
     /// <summary>Returns a localized string, or the key when the string is missing.</summary>
@@ -32,6 +35,22 @@ internal readonly record struct SettingsRowsState(
         return row.ValueKey.Length > 0
             ? Localization.GetString(row.ValueKey) ?? row.ValueKey
             : row.Value;
+    }
+
+    /// <summary>Formats a keybinding row button label for listening, unbound, or bound states.</summary>
+    public string KeybindText(SettingsRowState row)
+    {
+        if (row.IsCapturing)
+        {
+            return Text("ui.settings.keybind.listening");
+        }
+
+        if (row.IsUnbound)
+        {
+            return Text("ui.settings.keybind.unbound");
+        }
+
+        return row.Value;
     }
 
     /// <summary>Resolves a list of localization keys.</summary>

@@ -158,11 +158,6 @@ public class LegacyHomeTests
         );
     }
 
-    private sealed class StubShortcutService : IShortcutService
-    {
-        public bool RegisterShortcut(Shortcut shortcut) => true;
-    }
-
     private sealed class StubModalPage(Modal id) : IMenuPage<Modal>
     {
         public Modal ID => id;

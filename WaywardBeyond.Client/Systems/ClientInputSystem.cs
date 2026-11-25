@@ -5,6 +5,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Networking;
 
@@ -21,7 +22,7 @@ internal sealed class ClientInputSystem : IEntitySystem
     private const float IDLE_KEEPALIVE_SECONDS = 1f;
 
     private readonly ClientPlayerMotionProcessor _motionProcessor;
-    private readonly IInputService _inputService;
+    private readonly IShortcutService _shortcutService;
     private readonly ControlSettings _controlSettings;
     private readonly SnapshotAckTracker _snapshotAck;
 
@@ -39,14 +40,26 @@ internal sealed class ClientInputSystem : IEntitySystem
 
     public ClientInputSystem(
         in ClientPlayerMotionProcessor motionProcessor,
-        in IInputService inputService,
+        in IShortcutService shortcutService,
         in ControlSettings controlSettings,
         SnapshotAckTracker snapshotAck
     ) {
         _motionProcessor = motionProcessor;
-        _inputService = inputService;
+        _shortcutService = shortcutService;
         _controlSettings = controlSettings;
         _snapshotAck = snapshotAck;
+
+        shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move forward", Key.W));
+        shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move backward", Key.S));
+        shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Strafe left", Key.A));
+        shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Strafe right", Key.D));
+        shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move up", Key.Space));
+        shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move down", Key.Control));
+        shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Roll left", Key.Q));
+        shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Roll right", Key.E));
+
+        GameShortcuts.RegisterOrAddHandler(shortcutService, GameShortcuts.CreatePrimaryAction());
+        GameShortcuts.RegisterOrAddHandler(shortcutService, GameShortcuts.CreateSecondaryAction());
     }
 
     public void Tick(float delta, DataStore store)
@@ -68,11 +81,13 @@ internal sealed class ClientInputSystem : IEntitySystem
             _lookPitch += -cursorDelta.Y * MOUSE_SENSITIVITY * sensitivityModifier;
         }
 
-        float rollDirection = inputEnabled ? (_inputService.IsKeyHeld(Key.Q) ? 1f : 0f) - (_inputService.IsKeyHeld(Key.E) ? 1f : 0f) : 0f;
+        float rollDirection = inputEnabled
+            ? (_shortcutService.IsHeld(GameShortcuts.ROLL_LEFT) ? 1f : 0f) - (_shortcutService.IsHeld(GameShortcuts.ROLL_RIGHT) ? 1f : 0f)
+            : 0f;
         _lookRoll += rollDirection * ROLL_RATE * MathS.DEGREES_TO_RADIANS * delta;
 
-        bool primaryHeld = _inputService.IsMouseHeld(MouseButton.Left);
-        bool secondaryHeld = _inputService.IsMouseHeld(MouseButton.Right);
+        bool primaryHeld = _shortcutService.IsHeld(GameShortcuts.PRIMARY_ACTION);
+        bool secondaryHeld = _shortcutService.IsHeld(GameShortcuts.SECONDARY_ACTION);
 
         var input = new InputComponent
         {
@@ -160,33 +175,32 @@ internal sealed class ClientInputSystem : IEntitySystem
     {
         var movement = new Vector3();
 
-        if (_inputService.IsKeyHeld(Key.W))
+        if (_shortcutService.IsHeld(GameShortcuts.MOVE_FORWARD))
         {
-            
             movement -= Vector3.UnitZ;
         }
-        
-        if (_inputService.IsKeyHeld(Key.S))
+
+        if (_shortcutService.IsHeld(GameShortcuts.MOVE_BACKWARD))
         {
             movement += Vector3.UnitZ;
         }
-        
-        if (_inputService.IsKeyHeld(Key.D))
+
+        if (_shortcutService.IsHeld(GameShortcuts.STRAFE_RIGHT))
         {
             movement += Vector3.UnitX;
         }
-        
-        if (_inputService.IsKeyHeld(Key.A))
+
+        if (_shortcutService.IsHeld(GameShortcuts.STRAFE_LEFT))
         {
             movement -= Vector3.UnitX;
         }
-        
-        if (_inputService.IsKeyHeld(Key.Space))
+
+        if (_shortcutService.IsHeld(GameShortcuts.MOVE_UP))
         {
             movement += Vector3.UnitY;
         }
-        
-        if (_inputService.IsKeyHeld(Key.Control))
+
+        if (_shortcutService.IsHeld(GameShortcuts.MOVE_DOWN))
         {
             movement -= Vector3.UnitY;
         }

@@ -25,7 +25,9 @@ internal readonly record struct ChatViewState(
     bool ShowThumb,
     float ThumbRatio,
     float ThumbOffset,
-    int ViewportOffsetY
+    int ViewportOffsetY,
+    string SendHint = "[ENTER]",
+    string CloseHint = "[ESC] CLOSE"
 )
 {
     /// <summary>Gets whether any messages are present.</summary>
@@ -69,7 +71,8 @@ internal partial class ChatView : UiViewBase
             initialValue: string.Empty,
             new TextBoxState.Options(
                 MaxCharacters: MAX_INPUT_CHARACTERS,
-                DisallowedCharacters: ['\t']
+                DisallowedCharacters: ['\t'],
+                SubmitBehavior: TextBoxState.SubmitBehavior.None
             )
         );
     }
@@ -79,18 +82,6 @@ internal partial class ChatView : UiViewBase
 
     /// <summary>Gets or sets the input service the send box reads.</summary>
     public IInputService Input { get; set; } = null!;
-
-    /// <summary>Returns true once when the send box submitted this frame.</summary>
-    public bool TakeSubmit()
-    {
-        if (!ChatBox.Submitted)
-        {
-            return false;
-        }
-
-        ChatBox.Submitted = false;
-        return true;
-    }
 
     /// <summary>Clears the send box and its editing state together.</summary>
     public void ResetInput()

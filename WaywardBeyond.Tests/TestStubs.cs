@@ -68,7 +68,37 @@ internal sealed class StubTextEngine : ITextEngine
 /// <summary>A shortcut service that discards registrations.</summary>
 internal sealed class StubShortcutService : IShortcutService
 {
+    public event Action? BindingsChanged
+    {
+        add { }
+        remove { }
+    }
+
+    public bool IsCapturing => false;
+
     public bool RegisterShortcut(Shortcut shortcut) => true;
+
+    public bool AddHandler(string id, Func<bool>? isEnabled, Action action, Action? released = null) => true;
+
+    public IReadOnlyList<ShortcutInfo> GetShortcuts() => [];
+
+    public Result<ShortcutBinding> GetBinding(string id) => Result<ShortcutBinding>.FromFailure("Not registered.");
+
+    public bool IsHeld(string id) => false;
+
+    public Result Rebind(string id, ShortcutBinding binding) => Result.FromSuccess();
+
+    public Result ResetBinding(string id) => Result.FromSuccess();
+
+    public void ResetAllBindings() { }
+
+    public void ApplyOverrides(IReadOnlyDictionary<string, ShortcutBinding> overrides) { }
+
+    public IReadOnlyDictionary<string, ShortcutBinding> GetOverrides() => new Dictionary<string, ShortcutBinding>();
+
+    public void BeginCapture(Action<ShortcutCaptureResult> onCompleted) { }
+
+    public void CancelCapture() { }
 }
 
 /// <summary>A tag database with a full seed phrase dictionary.</summary>

@@ -92,6 +92,10 @@ public class PaintDatabaseTests
                 Color = "#336699"
 
                 [[Paints]]
+                ID = "wb:valid_color_no_hash"
+                Color = "336699"
+
+                [[Paints]]
                 ID = "wb:invalid_both"
                 Textures = ["panel.0"]
                 Color = "#FFFFFF"
@@ -102,6 +106,18 @@ public class PaintDatabaseTests
                 [[Paints]]
                 ID = "wb:invalid_hex"
                 Color = "not-a-color"
+
+                [[Paints]]
+                ID = "wb:invalid_short_hex"
+                Color = "#336"
+
+                [[Paints]]
+                ID = "wb:invalid_alpha_hex"
+                Color = "#336699FF"
+
+                [[Paints]]
+                ID = "wb:invalid_spaced_hex"
+                Color = "12 4 6"
                 """
             );
 
@@ -113,11 +129,15 @@ public class PaintDatabaseTests
 
             Assert.True(database.Get("wb:valid_tex").Success);
             Assert.True(database.Get("wb:valid_color").Success);
+            Assert.True(database.Get("wb:valid_color_no_hash").Success);
             Assert.False(database.Get("wb:invalid_both").Success);
             Assert.False(database.Get("wb:invalid_neither").Success);
             Assert.False(database.Get("wb:invalid_hex").Success);
+            Assert.False(database.Get("wb:invalid_short_hex").Success);
+            Assert.False(database.Get("wb:invalid_alpha_hex").Success);
+            Assert.False(database.Get("wb:invalid_spaced_hex").Success);
             Assert.Single(database.TexturePaints);
-            Assert.Single(database.ColorPaints);
+            Assert.Equal(2, database.ColorPaints.Count);
         }
         finally
         {

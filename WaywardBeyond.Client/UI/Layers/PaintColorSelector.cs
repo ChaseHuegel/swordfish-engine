@@ -10,6 +10,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Items;
 
@@ -70,6 +71,7 @@ internal sealed class PaintColorSelector : IUILayer, IActionIndicator
             Category = "Interaction",
             Modifiers = ShortcutModifiers.None,
             Key = Key.R,
+            SharedBindingGroup = GameShortcuts.TOOL_RADIAL_GROUP,
             IsEnabled = Shortcut.DefaultEnabled,
             Action = OnPressed,
             Released = OnReleased,

@@ -11,6 +11,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Items;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 
 namespace WaywardBeyond.Client.UI.Layers;
@@ -74,6 +75,7 @@ internal sealed class ShapeSelector : IUILayer, IActionIndicator
             Category = "Interaction",
             Modifiers = ShortcutModifiers.None,
             Key = Key.R,
+            SharedBindingGroup = GameShortcuts.TOOL_RADIAL_GROUP,
             IsEnabled = Shortcut.DefaultEnabled,
             Action = OnChangeShapePressed,
             Released = OnChangeShapeReleased,

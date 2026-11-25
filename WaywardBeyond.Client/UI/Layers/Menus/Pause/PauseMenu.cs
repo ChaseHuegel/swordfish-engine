@@ -5,6 +5,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Pause;
@@ -25,25 +26,18 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
     {
         _interactionState = interactionState;
 
-        Shortcut pauseShortcut = new(
-            name: "Toggle paused",
-            category: "General",
-            ShortcutModifiers.None,
-            Key.Esc,
-            isEnabled: () => WaywardBeyond.GameState >= GameState.Playing,
-            action: OnPauseToggled
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateBack(),
+            () => WaywardBeyond.GameState >= GameState.Playing,
+            OnPauseToggled
         );
-        shortcutService.RegisterShortcut(pauseShortcut);
-
-        Shortcut backShortcut = new(
-            name: "Go back",
-            category: "Pause",
-            ShortcutModifiers.None,
-            Key.Esc,
-            isEnabled: IsVisible,
-            action: () => GoBack()
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateBack(),
+            IsVisible,
+            () => GoBack()
         );
-        shortcutService.RegisterShortcut(backShortcut);
     }
 
     public override bool IsVisible()

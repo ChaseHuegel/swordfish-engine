@@ -1,6 +1,8 @@
+using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Audio;
 using Swordfish.Graphics;
+using Swordfish.Library.IO;
 using Swordfish.Settings;
 using WaywardBeyond.Config;
 
@@ -9,6 +11,8 @@ namespace WaywardBeyond.Client.Configuration;
 internal sealed class ConfigManager : IAutoActivate
 {
     private readonly ControlSettings _controlSettings;
+    private readonly KeybindingSettings _keybindingSettings;
+    private readonly IShortcutService _shortcutService;
     private readonly WindowSettings _windowSettings;
     private readonly RenderSettings _renderSettings;
     private readonly AudioSettings _audioSettings;
@@ -22,8 +26,11 @@ internal sealed class ConfigManager : IAutoActivate
     private readonly VoxelSettings _voxelSettings;
 
     public ConfigManager(
+        in ILogger<ConfigManager> logger,
         in IWindowContext windowContext,
         in ControlSettings controlSettings,
+        in KeybindingSettings keybindingSettings,
+        in IShortcutService shortcutService,
         in WindowSettings windowSettings,
         in RenderSettings renderSettings,
         in AudioSettings audioSettings,
@@ -38,6 +45,8 @@ internal sealed class ConfigManager : IAutoActivate
         in VoxelSettings voxelSettings
     ) {
         _controlSettings = controlSettings;
+        _keybindingSettings = keybindingSettings;
+        _shortcutService = shortcutService;
         _windowSettings = windowSettings;
         _renderSettings = renderSettings;
         _audioSettings = audioSettings;
@@ -50,6 +59,7 @@ internal sealed class ConfigManager : IAutoActivate
         _storageConfig = storageConfig;
         _voxelSettings = voxelSettings;
 
+        _shortcutService.ApplyOverrides(_keybindingSettings.ParseBindings(logger));
         playbackDeviceService.SetPreferredPlaybackDevice(volumeSettings.OutputDevice.Get());
 
         windowContext.Closed += OnWindowClosed;
@@ -61,6 +71,8 @@ internal sealed class ConfigManager : IAutoActivate
         _windowSettings.Save();
         _renderSettings.Save();
         _controlSettings.Save();
+        _keybindingSettings.SetOverrides(_shortcutService.GetOverrides());
+        _keybindingSettings.Save();
         _audioSettings.Save();
         _volumeSettings.Save();
         _gameplayConfig.Save();

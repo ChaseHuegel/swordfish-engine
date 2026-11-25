@@ -12,6 +12,7 @@ using Reef;
 using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
+using Swordfish.Input;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
@@ -25,6 +26,7 @@ using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Layers;
 using WaywardBeyond.Data;
@@ -35,8 +37,18 @@ using Xunit;
 namespace WaywardBeyond.Tests;
 
 /// <summary>Pins the markup inventory's layout, footer, and slot gestures.</summary>
-public class InventoryViewTests
+[Collection("ClientGameState")]
+public sealed class InventoryViewTests : IDisposable
 {
+    public InventoryViewTests()
+    {
+        WaywardBeyond.Client.WaywardBeyond.GameState.Set(WaywardBeyond.Client.GameState.Playing);
+    }
+
+    public void Dispose()
+    {
+        WaywardBeyond.Client.WaywardBeyond.GameState.Set(WaywardBeyond.Client.GameState.MainMenu);
+    }
     private static readonly int[] _widths = [800, 1280, 1920];
     private static readonly int[] _heights = [600, 720, 1080];
 
@@ -98,7 +110,7 @@ public class InventoryViewTests
     [Fact]
     public void ToggleOpensWithAnExclusiveInteractionBlockerAndCloses()
     {
-        var harness = new Harness();
+        var harness = new Harness(open: false);
 
         harness.InvokeShortcut("Inventory");
         Assert.True(harness.InteractionState.IsInteractionBlocked());
@@ -318,6 +330,81 @@ public class InventoryViewTests
         Assert.Equal(1, harness.Slot(10).Count);
     }
 
+    [Fact]
+    public void ReboundQuickMoveKeyAutoStacksOnPressAndSweep()
+    {
+        var harness = new Harness();
+        harness.Populate();
+        Assert.True(harness.Shortcuts.Rebind(GameShortcuts.INVENTORY_QUICK_MOVE, new ShortcutBinding(Key.Q)).Success);
+
+        //  Default Shift+LMB no longer quick-moves slot 0; it picks up onto cursor instead.
+        harness.HoldKey(Key.Shift);
+        harness.Click("inventorySlot0");
+        harness.ReleaseKey(Key.Shift);
+        Assert.Equal(12, harness.Slot(0).Count);
+        harness.Click("inventorySlot0");
+
+        //  Press and hold Q to quick-move slot 0, then sweep over slot 1 while still holding Q.
+        harness.Hover("inventorySlot0");
+        harness.HoldKey(Key.Q);
+        harness.Step();
+        Assert.True(IsEmpty(harness.Slot(0)));
+        Assert.Equal(17, harness.Slot(9).Count);
+
+        harness.Hover("inventorySlot1");
+        harness.ReleaseKey(Key.Q);
+        Assert.True(IsEmpty(harness.Slot(1)));
+        Assert.Equal(3, harness.Slot(10).Count);
+    }
+
+    [Fact]
+    public void ReboundSplitStackKeySplitsAndDistributesAcrossSlots()
+    {
+        var harness = new Harness();
+        harness.Populate();
+        Assert.True(harness.Shortcuts.Rebind(GameShortcuts.INVENTORY_SPLIT_STACK, new ShortcutBinding(Key.X)).Success);
+
+        //  Hover slot 9 and press X to split half into first empty slot (slot 2).
+        harness.Hover("inventorySlot9");
+        harness.PressKey(Key.X);
+        harness.Step();
+        Assert.Equal(3, harness.Slot(9).Count);
+        Assert.Equal(2, harness.Slot(2).Count);
+
+        //  Pick up slot 9 (count 3), hold X to distribute across origin plus empty slots 10 and 11, then release X.
+        harness.Hold("inventorySlot9");
+        harness.HoldKey(Key.X);
+        harness.Step();
+        harness.DragOver("inventorySlot10");
+        harness.DragOver("inventorySlot11");
+        harness.ReleaseKey(Key.X);
+        harness.Step();
+
+        Assert.Equal(1, harness.Slot(9).Count);
+        Assert.Equal(1, harness.Slot(10).Count);
+        Assert.Equal(1, harness.Slot(11).Count);
+    }
+
+    [Fact]
+    public void SwappedMoveAndSplitBindingsFollowReboundTriggers()
+    {
+        var harness = new Harness();
+        harness.Populate();
+        Assert.True(harness.Shortcuts.Rebind(GameShortcuts.INVENTORY_MOVE_STACK, new ShortcutBinding(MouseButton.Right)).Success);
+        Assert.True(harness.Shortcuts.Rebind(GameShortcuts.INVENTORY_SPLIT_STACK, new ShortcutBinding(MouseButton.Left)).Success);
+
+        //  LMB now splits slot 9 into slot 2.
+        harness.Click("inventorySlot9");
+        Assert.Equal(3, harness.Slot(9).Count);
+        Assert.Equal(2, harness.Slot(2).Count);
+
+        //  RMB now picks up slot 2 and drops it onto empty slot 10.
+        harness.RightClick("inventorySlot2");
+        harness.RightClick("inventorySlot10");
+        Assert.True(IsEmpty(harness.Slot(2)));
+        Assert.Equal(2, harness.Slot(10).Count);
+    }
+
     private static bool IsEmpty(ItemData item)
     {
         return item.Count <= 0 || string.IsNullOrEmpty(item.ID);
@@ -365,7 +452,6 @@ public class InventoryViewTests
 
         private readonly UIController _controller = new();
         private readonly UIBuilder<Material> _ui;
-        private readonly RecordingShortcutService _shortcuts = new();
         private readonly FakeInputService _input = new();
         private readonly World _world = new();
         private readonly int _player;
@@ -376,9 +462,10 @@ public class InventoryViewTests
         private int _cursorY;
         private UIController.MouseButtons _buttons;
 
-        public Harness(int width = 1280, int height = 720)
+        public Harness(int width = 1280, int height = 720, bool open = true)
         {
             _ui = new UIBuilder<Material>(width, height, new StubTextEngine(), _controller);
+            Shortcuts = new ShortcutService(_input, NullLogger.Instance);
 
             var bricks = new FakeBrickDatabase(Bricks());
             var items = new FakeItemDatabase(Items());
@@ -411,7 +498,7 @@ public class InventoryViewTests
                 [BrickTags.THRUSTER] = ["wb:thruster"],
             });
             _inventory = new Inventory(
-                _shortcuts,
+                Shortcuts,
                 items,
                 bricks,
                 tags,
@@ -423,7 +510,14 @@ public class InventoryViewTests
                 new InventoryLocalization(),
                 DebugSettings
             );
+
+            if (open)
+            {
+                InvokeShortcut("Inventory");
+            }
         }
+
+        public ShortcutService Shortcuts { get; }
 
         public InteractionState InteractionState { get; }
 
@@ -434,17 +528,48 @@ public class InventoryViewTests
         /// <summary>Advances the pointer state and renders one frame, like the renderer does.</summary>
         public List<RenderCommand<Material>> Step(UIController.MouseButtons? buttons = null)
         {
+            UIController.MouseButtons previous = _buttons;
             if (buttons.HasValue)
             {
                 _buttons = buttons.Value;
             }
 
-            _controller.UpdateMouse(_cursorX, _cursorY, _buttons);
             _input.CursorPosition = new Vector2(_cursorX, _cursorY);
+            DispatchMouseTransition(previous, _buttons, UIController.MouseButtons.Left, MouseButton.Left);
+            DispatchMouseTransition(previous, _buttons, UIController.MouseButtons.Right, MouseButton.Right);
+            DispatchMouseTransition(previous, _buttons, UIController.MouseButtons.Middle, MouseButton.Middle);
+
+            _controller.UpdateMouse(_cursorX, _cursorY, _buttons);
             _delta += 0.05d;
             _inventory.RenderUI(_delta, _ui);
             _last = _ui.Build(_delta);
             return _last;
+        }
+
+        private void DispatchMouseTransition(
+            UIController.MouseButtons previous,
+            UIController.MouseButtons current,
+            UIController.MouseButtons uiButton,
+            MouseButton inputButton
+        )
+        {
+            bool wasDown = (previous & uiButton) != 0;
+            bool isDown = (current & uiButton) != 0;
+            if (wasDown == isDown)
+            {
+                return;
+            }
+
+            if (isDown)
+            {
+                _input.HeldButtons.Add(inputButton);
+                _input.Clicked?.Invoke(_input, new ClickedEventArgs(inputButton, new Vector2(_cursorX, _cursorY)));
+            }
+            else
+            {
+                _input.HeldButtons.Remove(inputButton);
+                _input.MouseReleased?.Invoke(_input, new ClickedEventArgs(inputButton, new Vector2(_cursorX, _cursorY)));
+            }
         }
 
         public void Populate()
@@ -541,17 +666,14 @@ public class InventoryViewTests
 
         public void InvokeShortcut(string name)
         {
-            for (var i = 0; i < _shortcuts.Shortcuts.Count; i++)
+            string id = string.Equals(name, "Inventory", StringComparison.Ordinal) ? GameShortcuts.INVENTORY : name;
+            Result<ShortcutBinding> binding = Shortcuts.GetBinding(id);
+            if (!binding.Success || !binding.Value.IsKey)
             {
-                Shortcut shortcut = _shortcuts.Shortcuts[i];
-                if (string.Equals(shortcut.Name, name, StringComparison.Ordinal))
-                {
-                    shortcut.Action();
-                    return;
-                }
+                throw new Xunit.Sdk.XunitException($"No shortcut named \"{name}\".");
             }
 
-            throw new Xunit.Sdk.XunitException($"No shortcut named \"{name}\".");
+            PressKey(binding.Value.Key);
         }
 
         public void Hover(string id)
@@ -625,9 +747,23 @@ public class InventoryViewTests
             _input.Scroll = 0f;
         }
 
-        public void HoldKey(Key key) => _input.HeldKeys.Add(key);
+        public void HoldKey(Key key)
+        {
+            _input.HeldKeys.Add(key);
+            _input.KeyPressed?.Invoke(_input, new KeyEventArgs(key));
+        }
 
-        public void ReleaseKey(Key key) => _input.HeldKeys.Remove(key);
+        public void ReleaseKey(Key key)
+        {
+            _input.HeldKeys.Remove(key);
+            _input.KeyReleased?.Invoke(_input, new KeyEventArgs(key));
+        }
+
+        public void PressKey(Key key)
+        {
+            HoldKey(key);
+            ReleaseKey(key);
+        }
 
         private void MoveTo(string id)
         {
@@ -768,17 +904,6 @@ public class InventoryViewTests
                     "item.base.thruster.description"
                 ),
             ];
-        }
-    }
-
-    private sealed class RecordingShortcutService : IShortcutService
-    {
-        public List<Shortcut> Shortcuts { get; } = [];
-
-        public bool RegisterShortcut(Shortcut shortcut)
-        {
-            Shortcuts.Add(shortcut);
-            return true;
         }
     }
 

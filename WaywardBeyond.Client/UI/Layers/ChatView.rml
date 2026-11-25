@@ -28,7 +28,7 @@
                          padding="10 0 10 10">
                     <Text class="wb-chat-header" text="@L('ui.label.chat.header')" />
                     <Element width="fill" />
-                    <Text class="wb-chat-close-hint" text="@L('ui.hint.chat.close')" />
+                    <Text class="wb-chat-close-hint" text="@context.CloseHint" />
                 </Element>
 
                 <Element class="wb-divider-inner" x="3" y="28" width="594" height="1" />
@@ -124,7 +124,7 @@
                 <Element layout="horizontal" y="5" width="fill" height="fill">
                     <Text class="wb-chat-prompt" text="&gt;" />
                     <Element width="fill" />
-                    <Text class="wb-chat-send-hint" text="@L('ui.hint.chat.send')" />
+                    <Text class="wb-chat-send-hint" text="@context.SendHint" />
                 </Element>
             </Element>
         </If>

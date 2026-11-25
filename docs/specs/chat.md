@@ -80,11 +80,15 @@ the faded color helpers.
 One fixed-geometry box renders in both states. Opening or closing changes only
 the outer chrome and the scroll behavior. The messages never shift.
 
-The Enter key opens the chat box. Escape closes it. While the box is open,
-gameplay interaction is blocked through `InteractionState` (the cursor is
-free), and the send box stays focused even when the user clicks elsewhere.
-Enter with non-empty text sends and closes the box. Escape or Enter with
-empty text closes without sending.
+Rebindable `Chat/Open Chat` and `Chat/Send Chat` shortcuts both default to
+`Enter`. Shared `General/Back` (`Back / close`) handles closing chat and
+defaults to `Esc`. While the box is open, gameplay interaction is blocked
+through `InteractionState` (the cursor is free), and the send box stays focused
+even when the user clicks elsewhere. The send box uses
+`TextBoxState.SubmitBehavior.None`, and `Send Chat` queues a pending submit
+that runs after `RenderUI` processes same-frame typed characters. Non-empty
+text sends and closes the box. Triggering `General/Back` or an empty send
+closes without sending.
 
 Each message wraps to the viewport width. Its full wrapped height counts toward
 the scroll extent. The layer measures a row from the previous frame's
@@ -111,26 +115,31 @@ with a 2-pixel vertical `--wb-accent` bar on the left edge. The sender run uses
 
 The open overlay draws a `--wb-panel` surface with `--wb-border-hover` corner
 caps, an inset `--wb-border-inner` border, a `SUBSPACE COMMS // LOCAL` header
-bar with an `[ESC] CLOSE` hint, a 4-pixel scrollbar rail beside the 200-pixel
-history viewport, and a send bar (`>` prompt, chromeless text input, and
-`[ENTER]` hint). The styles live in `Components.rss`. An open-only hit area
-over the history viewport blocks clicks and wheel input from the HUD.
+bar with a dynamic `ui.hint.chat.close` hint such as `[ESC] CLOSE`, a 4-pixel
+scrollbar rail beside the 200-pixel history viewport, and a send bar (`>` prompt,
+chromeless text input, and dynamic `ui.hint.chat.send` hint such as `[ENTER]`).
+Both hints update when `IShortcutService.BindingsChanged` fires and turn empty
+when their shortcut is unbound. The styles live in `Components.rss`. An open-only
+hit area over the history viewport blocks clicks and wheel input from the HUD.
 
 The chat box focuses programmatically when it opens. A `FocusTarget` directive
 sets focus on `TextBox_Chat` each open frame, so a click elsewhere cannot
-strand the box unfocused. The Enter key that opens the box is consumed by the
-box's first frame, so it does not submit an empty message. Clearing the send
-box also resets its caret, selection, modifier, and submit state. Leaving those
-stale would crash the text box on the next edit.
+strand the box unfocused. Opening the box disables `Open Chat` before
+`Send Chat` checks run, and `TextBoxState.SubmitBehavior.None` ignores raw Enter
+so the opening key never submits an empty message. Clearing the send box also
+resets its caret, selection, modifier, and submit state. Leaving those stale
+would crash the text box on the next edit.
 
 ## Source of truth
 
 - `WaywardBeyond.Data/Nsd/network.nsd`
 - `WaywardBeyond.Server/Systems/ServerChatSystem.cs`
+- `WaywardBeyond.Client/Shortcuts/GameShortcuts.cs`
 - `WaywardBeyond.Client/Systems/ChatService.cs`
 - `WaywardBeyond.Client/Systems/ClientChatSystem.cs`
 - `WaywardBeyond.Client/UI/Layers/ChatLayer.cs`
 - `WaywardBeyond.Client/UI/Layers/ChatView.rml`
 - `WaywardBeyond.Client/UI/Layers/ChatView.cs`
+- `WaywardBeyond.Client/UI/TextBoxState.cs`
 - `WaywardBeyond.Client/UI/Components/Components.rss`
 - `WaywardBeyond.Config/ChatConfig.cs`

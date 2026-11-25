@@ -125,7 +125,7 @@ public class ChatViewTests
     }
 
     [Fact]
-    public void OpenChatKeepsFocusAndReportsSubmit()
+    public void OpenChatKeepsFocusAndIgnoresRawEnterSubmit()
     {
         var controller = new UIController();
         var ui = new UIBuilder<Material>(800, 600, new StubTextEngine(), controller);
@@ -146,7 +146,9 @@ public class ChatViewTests
 
         controller.UpdateInputBuffer([new UIController.Input(UIController.Key.Enter, true)]);
         Frame(ui, view, state, 0.048d);
-        Assert.True(view.TakeSubmit());
+        Assert.Equal("hi", view.ChatBox.Text.ToString());
+        Assert.False(view.ChatBox.Submitted);
+        Assert.True(controller.IsKeyboardCaptured);
     }
 
     private static void Frame(
