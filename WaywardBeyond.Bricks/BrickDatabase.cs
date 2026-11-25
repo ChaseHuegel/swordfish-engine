@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Library.Collections;
@@ -109,10 +110,27 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             lightSource,
             entity,
             paintable,
-            orientable
+            orientable,
+            ResolveColor(id, assetInfo.Color)
         );
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
+    }
+
+    private Vector3 ResolveColor(string id, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Vector3.One;
+        }
+
+        if (!HexColor.TryParseRgb(value, out Vector3 color))
+        {
+            _logger.LogWarning("Brick \"{BrickId}\" has invalid hex color \"{Color}\". Using white.", id, value);
+            return Vector3.One;
+        }
+
+        return color;
     }
 
     private BrickColliderShape[] BuildColliders(string brickId, List<BrickColliderDefinition>? definitions)

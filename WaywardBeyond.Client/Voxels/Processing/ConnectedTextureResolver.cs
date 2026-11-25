@@ -75,13 +75,17 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         in VoxelSurfaceCache.CachedBrick cachedBrick,
         BrickFace face
     ) {
-        Vector3 tint = Vector3.One;
-        var hasTint = false;
+        Vector3 tint = cachedBrick.HasDefaultTint ? cachedBrick.DefaultTint : Vector3.One;
+        var hasTint = cachedBrick.HasDefaultTint;
 
         if (sample.Center.HasFaceOverrides() &&
             sample.VoxelIndex >= 0 &&
             sample.ChunkData.TryGetFaceOverride(sample.VoxelIndex, face, out FaceOverride faceOverride))
         {
+            //  A painted face shows the paint as authored instead of the brick color.
+            tint = Vector3.One;
+            hasTint = false;
+
             if (faceOverride.ColorPaintId != 0)
             {
                 ref readonly VoxelSurfaceCache.CachedPaint colorPaint = ref surfaceCache.GetPaint(faceOverride.ColorPaintId);

@@ -370,6 +370,40 @@ public class PaintInteractionTests
     }
 
     [Fact]
+    public void LightBrickColorDrivesUnpaintedLightsAndPaintReplacesIt()
+    {
+        var bricks = new StubBrickDatabase();
+        bricks.Add(1, new Brick("wb:amber_light", BrickAlpha.Opaque, false, null, BrickShape.Any, default, lightSource: true, entity: true, paintable: true, color: new Vector3(1f, 0.5f, 0f)));
+
+        var paints = new StubPaintDatabase();
+        paints.Add(1, Paint.CreateColor("wb:red", "red", new Vector3(1f, 0f, 0f)));
+
+        var voxels = new VoxelObject(16);
+        var registry = new VoxelChunkRegistry();
+        var voxelComponent = new VoxelComponent(voxels, registry);
+        var store = new DataStore();
+        int parent = store.Alloc();
+        int entity = store.Alloc();
+
+        var lightVoxel = new Voxel(1, new ShapeLight(BrickShape.Block, 15), 0);
+        voxels.Set(1, 2, 3, lightVoxel);
+        var voxelInfo = new VoxelInfo(1, 2, 3, lightVoxel);
+
+        var decorator = new LightEntityDecorator(bricks, paints);
+
+        //  Unpainted light brick emits its authored color.
+        decorator.Process(store, parent, entity, voxelComponent, voxelInfo);
+        Assert.True(store.TryGet(entity, out LightComponent defaultLight));
+        Assert.Equal(LightEntityDecorator.DefaultColor * new Vector3(1f, 0.5f, 0f), defaultLight.Color);
+
+        //  A painted face replaces the authored color.
+        voxels.SetFaceColor(1, 2, 3, BrickFaceMask.Front, 1);
+        decorator.Process(store, parent, entity, voxelComponent, voxelInfo);
+        Assert.True(store.TryGet(entity, out LightComponent paintedLight));
+        Assert.Equal(LightEntityDecorator.DefaultColor * new Vector3(1f, 0f, 0f), paintedLight.Color);
+    }
+
+    [Fact]
     public void PaintHintResolverAuthorizesHeldToolAgainstRequestedPaintMode()
     {
         var (bricks, paints, voxels, world, uuid) = CreateHarness();

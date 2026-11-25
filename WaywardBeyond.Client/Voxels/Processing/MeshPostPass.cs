@@ -483,7 +483,8 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         if (!hasOverrides && !cachedBrick.HasPerFaceTextures && !(cachedBrick.Connected && supportsConnected))
         {
             faceTextures = new FaceTextureIndices(defaultIndex, -1, -1, -1, -1, -1, -1);
-            faceTints = new FaceColorTints(Vector3.One, Vector3.One, Vector3.One, Vector3.One, Vector3.One, Vector3.One, hasAnyTint: false);
+            Vector3 defaultTint = cachedBrick.HasDefaultTint ? cachedBrick.DefaultTint : Vector3.One;
+            faceTints = new FaceColorTints(defaultTint, defaultTint, defaultTint, defaultTint, defaultTint, defaultTint, cachedBrick.HasDefaultTint);
             return;
         }
 

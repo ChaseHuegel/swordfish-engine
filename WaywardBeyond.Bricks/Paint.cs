@@ -1,4 +1,3 @@
-using System;
 using System.Numerics;
 
 namespace WaywardBeyond.Bricks;
@@ -72,17 +71,12 @@ public sealed class Paint
         Connected = connected;
         Textures = textures;
         Color = color;
-        LinearColor = new Vector3(SrgbToLinear(color.X), SrgbToLinear(color.Y), SrgbToLinear(color.Z));
+        LinearColor = Srgb.ToLinear(color);
     }
 
     /// <summary>Binds the numeric ID assigned by the sorted registry. Called once at database load.</summary>
     internal void BindDataID(ushort dataID)
     {
         DataID = dataID;
-    }
-
-    private static float SrgbToLinear(float c)
-    {
-        return c <= 0.04045f ? c / 12.92f : MathF.Pow((c + 0.055f) / 1.055f, 2.4f);
     }
 }
