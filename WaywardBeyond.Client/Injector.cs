@@ -109,6 +109,7 @@ public class Injector : IDryIocInjector
     {
         container.Register<EventInvoker<PlaceEvent>>();
         container.Register<EventInvoker<BreakEvent>>();
+        container.Register<EventInvoker<BrickEvent>>();
         container.Register<EventInvoker<PlayerMovedEvent>>();
     }
 

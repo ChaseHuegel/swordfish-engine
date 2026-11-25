@@ -88,7 +88,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
 | `Textures` | sub-table | `BrickTextures` |
 | `Tags` | string[] | |
-| `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickSoundEvent` (`Place`, `Break`) |
+| `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickEventKind` (`Place`, `Break`) |
 | `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
 
 Base-game brick ids are prefixed with the `wb` namespace. A mod uses its own
@@ -116,8 +116,8 @@ Default = ["core"]
 
 ### Sounds
 
-`BrickDefinition.Sounds` is a map keyed by `BrickSoundEvent`
-(`WaywardBeyond.Bricks/BrickSoundEvent.cs`) to invariant sound tags. The
+`BrickDefinition.Sounds` is a map keyed by `BrickEventKind`
+(`WaywardBeyond.Bricks/BrickEventKind.cs`) to invariant sound tags. The
 `LocalizedTagsDatabase` list defines the tags, and each value is an audio clip
 id. A brick without a declaration is silent. See
 [sound-effects](sound-effects.md).
@@ -296,7 +296,7 @@ their values are audio clip ids. See [sound-effects](sound-effects.md).
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
-- `WaywardBeyond.Bricks/BrickSoundEvent.cs`
+- `WaywardBeyond.Bricks/BrickEventKind.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`

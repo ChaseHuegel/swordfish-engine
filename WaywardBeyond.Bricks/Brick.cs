@@ -9,8 +9,8 @@ public sealed class Brick
     /// <summary>The minimum ID value.</summary>
     public const ushort MIN_ID = 1;
 
-    private static readonly IReadOnlyDictionary<BrickSoundEvent, string[]> _noSounds =
-        new Dictionary<BrickSoundEvent, string[]>();
+    private static readonly IReadOnlyDictionary<BrickEventKind, string[]> _noSounds =
+        new Dictionary<BrickEventKind, string[]>();
     
     /// <inheritdoc cref="BrickDefinition.ID"/>
     public readonly string ID;
@@ -21,8 +21,8 @@ public sealed class Brick
     /// <summary>All brick tags are case-insensitive.</summary>
     public readonly IReadOnlySet<string> Tags;
 
-    /// <summary>The sound tags declared per <see cref="BrickSoundEvent"/>, or empty when the brick is silent.</summary>
-    public readonly IReadOnlyDictionary<BrickSoundEvent, string[]> Sounds;
+    /// <summary>The sound tags declared per <see cref="BrickEventKind"/>, or empty when the brick is silent.</summary>
+    public readonly IReadOnlyDictionary<BrickEventKind, string[]> Sounds;
 
     public readonly BrickAlpha Alpha;
     public readonly bool CastShadows;
@@ -53,7 +53,7 @@ public sealed class Brick
         in string[]? tags,
         in bool castShadows = true,
         in BrickColliderShape[]? colliders = null,
-        in Dictionary<BrickSoundEvent, string[]>? sounds = null
+        in Dictionary<BrickEventKind, string[]>? sounds = null
     ) {
         ID = id;
         Alpha = alpha;

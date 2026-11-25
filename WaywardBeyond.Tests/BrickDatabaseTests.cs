@@ -46,16 +46,16 @@ public class BrickDatabaseTests
         BrickDatabase database = Load();
 
         Brick panel = database.Get(database.Id("wb:panel")).Value;
-        Assert.Equal(new[] { "metal_place" }, panel.Sounds[BrickSoundEvent.Place]);
-        Assert.Equal(new[] { "metal_break" }, panel.Sounds[BrickSoundEvent.Break]);
+        Assert.Equal(new[] { "metal_place" }, panel.Sounds[BrickEventKind.Place]);
+        Assert.Equal(new[] { "metal_break" }, panel.Sounds[BrickEventKind.Break]);
 
         Brick rock = database.Get(database.Id("wb:rock")).Value;
-        Assert.Equal(new[] { "rock_place" }, rock.Sounds[BrickSoundEvent.Place]);
-        Assert.Equal(new[] { "rock_break" }, rock.Sounds[BrickSoundEvent.Break]);
+        Assert.Equal(new[] { "rock_place" }, rock.Sounds[BrickEventKind.Place]);
+        Assert.Equal(new[] { "rock_break" }, rock.Sounds[BrickEventKind.Break]);
 
         Brick ice = database.Get(database.Id("wb:ice")).Value;
-        Assert.Equal(new[] { "rock_place" }, ice.Sounds[BrickSoundEvent.Place]);
-        Assert.Equal(new[] { "rock_break" }, ice.Sounds[BrickSoundEvent.Break]);
+        Assert.Equal(new[] { "rock_place" }, ice.Sounds[BrickEventKind.Place]);
+        Assert.Equal(new[] { "rock_break" }, ice.Sounds[BrickEventKind.Break]);
     }
 
     [Fact]

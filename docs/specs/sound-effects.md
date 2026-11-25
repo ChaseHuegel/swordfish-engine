@@ -25,7 +25,7 @@ silent at playback. See [asset-definitions](asset-definitions.md).
 
 ## Requests
 
-`SoundEffectService.PlayEffect(brick, soundEvent)` reads the brick's declared
+`SoundEffectService.PlayEffect(brick, eventKind)` reads the brick's declared
 tags and plays a random clip on the `effects` channel
 (`WaywardBeyond.Client/Services/SoundEffectService.cs:29`).
 `SoundEffectService.PlayInterface(tag)` plays a random clip on the `interface`
@@ -34,9 +34,27 @@ channel (`SoundEffectService.cs:40`). A request names tags, never clip ids.
 A request that carries several tags uses every value from every tag as a
 candidate. Each candidate clip is equally likely.
 
+## Brick triggers
+
+`BrickEvent` carries a brick's voxel id and a `BrickEventKind`
+(`WaywardBeyond.Client/Events/BrickEvent.cs:6`). Two paths raise it:
+
+- `PlayerInteractionService.FirePresentationHook` raises it after `PlaceEvent`
+  or `BreakEvent` succeeds (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:652`).
+- `ClientVoxelReconcileSystem.RaiseEditEvent` raises it for unpredicted
+  authoritative edits (`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:157`).
+
+`BrickSoundListener` handles `BrickEvent`, returns early when `Kind` is not
+`Place` or `Break`, resolves the `Brick` from `IBrickDatabase`, and calls
+`SoundEffectService.PlayEffect`
+(`WaywardBeyond.Client/Services/BrickSoundListener.cs:9`). Neither producer
+calls `SoundEffectService` for brick audio. Raising `BrickEvent` does not
+invoke `PlaceEvent` or `BreakEvent`, so remote edits do not change local
+character statistics.
+
 ## Brick declarations
 
-Brick tomls map each `BrickSoundEvent` to sound tags in a `[Bricks.Sounds]`
+Brick tomls map each `BrickEventKind` to sound tags in a `[Bricks.Sounds]`
 table:
 
 ```toml
@@ -65,12 +83,16 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 
 ## Source of truth
 
+- `WaywardBeyond.Client/Events/BrickEvent.cs:6` — brick presentation event.
+- `WaywardBeyond.Client/Services/BrickSoundListener.cs:9` — brick sound event listener.
+- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs:652` — local prediction trigger.
+- `WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:157` — unpredicted authoritative edit trigger.
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:12` — playback service.
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:29` — brick effect request.
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:40` — interface request.
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:45` — shared tag lookup.
 - `WaywardBeyond.Client/UI/WidgetInteraction.cs:16` — interface tag mapping.
-- `WaywardBeyond.Bricks/BrickSoundEvent.cs:4` — brick event enum.
+- `WaywardBeyond.Bricks/BrickEventKind.cs:4` — brick event kind enum.
 - `WaywardBeyond.Bricks/BrickDefinition.cs:16` — brick sound declaration.
 - `WaywardBeyond.Bricks/Brick.cs:25` — loaded brick sound map.
 - `WaywardBeyond.Bricks/BrickDatabase.cs:91` — brick sound wiring.
@@ -80,6 +102,9 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 
 ## Tests
 
+- `WaywardBeyond.Tests/BrickSoundListenerTests.cs` covers local prediction
+  triggers, unpredicted authoritative triggers, prediction echo silence, and
+  statistic isolation.
 - `WaywardBeyond.Tests/SoundTagTests.cs` covers the shipped brick and interface
   sound tags, their clip resolution, and the presence of every clip file.
 - `WaywardBeyond.Tests/BrickDatabaseTests.cs` covers specific shipped brick

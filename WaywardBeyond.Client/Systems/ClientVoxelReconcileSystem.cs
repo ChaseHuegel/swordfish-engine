@@ -1,8 +1,8 @@
 using Krill;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Networking;
-using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
@@ -17,10 +17,9 @@ namespace WaywardBeyond.Client.Systems;
 /// (no-op, already applied), a differing echo snaps it to authority, and a prediction that ages past a
 /// bound with no echo (the server rejected it) is reverted to the pre-prediction voxel. Applied edits
 /// publish via the voxel component's dirty flag, which the <see cref="VoxelEntityRebuildSystem"/>
-/// consumes to rebuild the mesh/collider. Unpredicted (remote or authoritative) edits play the matching
-/// break/place sound; edits correlating to the local player's own predictions play none - the prediction
-/// already sounded. Gated on <see cref="GameState.Playing"/> so it never races the
-/// load-thread world build.
+/// consumes to rebuild the mesh/collider. Unpredicted (remote or authoritative) edits raise
+/// <see cref="BrickEvent"/>; edits correlating to the local player's own predictions do not.
+/// Gated on <see cref="GameState.Playing"/> so it never races the load-thread world build.
 /// </summary>
 internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 {
@@ -31,26 +30,23 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly IBrickRegistry _brickRegistry;
     private readonly IPaintRegistry? _paintRegistry;
-    private readonly SoundEffectService _soundEffectService;
-    private readonly IBrickDatabase _brickDatabase;
     private readonly VoxelLightingService _voxelLightingService;
+    private readonly EventInvoker<BrickEvent> _brickEvent;
 
     public ClientVoxelReconcileSystem(
         in ClientInbound inbound,
         in SnapshotAckTracker snapshotAck,
         IBrickRegistry brickRegistry,
-        in SoundEffectService soundEffectService,
-        in IBrickDatabase brickDatabase,
         in VoxelLightingService voxelLightingService,
+        in EventInvoker<BrickEvent> brickEvent,
         IPaintRegistry? paintRegistry = null
     ) {
         _inbound = inbound;
         _snapshotAck = snapshotAck;
         _brickRegistry = brickRegistry;
         _paintRegistry = paintRegistry;
-        _soundEffectService = soundEffectService;
-        _brickDatabase = brickDatabase;
         _voxelLightingService = voxelLightingService;
+        _brickEvent = brickEvent;
     }
 
     public void Tick(float delta, DataStore store)
@@ -135,8 +131,8 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             authority.ID = _brickRegistry.Resolve(message.BrickId);
         }
 
-        //  The pre-edit voxel survives only for an unpredicted edit's sound material: a break's result is
-        //  empty, so the broken brick's material must come from the cell before the write.
+        //  The pre-edit voxel survives only for an unpredicted edit's presentation event: a break's result
+        //  is empty, so the broken brick id must come from the cell before the write.
         Voxel previous = default;
         if (pending == null && store.TryGet(entity, out VoxelComponent previousComponent))
         {
@@ -145,34 +141,29 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 
         WriteVoxel(store, entity, in coordinate, in authority);
 
-        //  An unpredicted (remote or authoritative) edit is audible; an own prediction's echo is not -
-        //  the prediction already played its sound.
+        //  An unpredicted (remote or authoritative) edit raises the presentation event; an own prediction's
+        //  echo does not because the prediction path already raised it.
         if (pending == null)
         {
-            PlayEditSound(in previous, in authority);
+            RaiseEditEvent(in previous, in authority);
         }
     }
 
     /// <summary>
-    /// Plays the break or place sound for an unpredicted authoritative edit, using the sound tags the brick
-    /// declares for that event. The result voxel decides break (empty) vs place (filled); the brick comes
-    /// from the pre-edit voxel for a break and the result voxel for a place.
+    /// Raises <see cref="BrickEvent"/> for an unpredicted authoritative edit. The result voxel decides
+    /// break (empty) vs place (filled); the brick id comes from the pre-edit voxel for a break and the
+    /// result voxel for a place.
     /// </summary>
-    private void PlayEditSound(in Voxel previous, in Voxel result)
+    private void RaiseEditEvent(in Voxel previous, in Voxel result)
     {
         bool isBreak = result.ID == 0;
-        Voxel brickVoxel = isBreak ? previous : result;
-        if (brickVoxel.ID == 0)
+        ushort brickID = isBreak ? previous.ID : result.ID;
+        if (brickID == 0)
         {
             return;
         }
 
-        if (_brickDatabase.Get(brickVoxel.ID) is not { Success: true } brickInfo)
-        {
-            return;
-        }
-
-        _soundEffectService.PlayEffect(brickInfo.Value, isBreak ? BrickSoundEvent.Break : BrickSoundEvent.Place);
+        _brickEvent.Invoke(new BrickEvent(brickID, isBreak ? BrickEventKind.Break : BrickEventKind.Place));
     }
 
     private static PendingEdit? FindPending(

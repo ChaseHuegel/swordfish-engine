@@ -122,14 +122,15 @@ even when its registry ids differ from the server's. See
 
 ### Edit audio
 
-`ClientVoxelReconcileSystem.ApplyAuthoritativeEdit` plays the matching
-break/place sound for **unpredicted** edits only: a remote player's mining and
-construction is audible to everyone else. Edits correlating to the local
-player's own pending predictions (confirm, snap, or revert) play nothing — the
-prediction path already sounded (`PlayerInteractionService`). Break vs place is
-decided by the resulting voxel (empty = break, filled = place). The brick comes
-from the cell before the write for a break (a break's result is empty). The
-sound tags come from that brick's `[Bricks.Sounds]` declaration. See
+`ClientVoxelReconcileSystem.ApplyAuthoritativeEdit` raises `BrickEvent` for
+**unpredicted** edits only: a remote player's mining and construction is audible
+to everyone else. Edits correlating to the local player's own pending
+predictions (confirm, snap, or revert) raise nothing because the prediction path
+already raised `BrickEvent` (`PlayerInteractionService.FirePresentationHook`).
+Break vs place is decided by the resulting voxel (empty = break, filled = place).
+The brick id comes from the cell before the write for a break (a break's result
+is empty). `BrickSoundListener` resolves the brick and plays its
+`[Bricks.Sounds]` tags without touching local character statistics. See
 [sound-effects](sound-effects.md).
 
 `ClientVoxelReconcileSystem` (`WaywardBeyond.Client/Systems/`, gated on

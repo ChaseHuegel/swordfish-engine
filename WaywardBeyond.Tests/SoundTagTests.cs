@@ -21,15 +21,15 @@ public class SoundTagTests
 
         foreach (Brick brick in fixture.Bricks.Get(_ => true))
         {
-            Assert.True(brick.Sounds.ContainsKey(BrickSoundEvent.Place), $"Brick \"{brick.ID}\" declares no place sound.");
-            Assert.True(brick.Sounds.ContainsKey(BrickSoundEvent.Break), $"Brick \"{brick.ID}\" declares no break sound.");
+            Assert.True(brick.Sounds.ContainsKey(BrickEventKind.Place), $"Brick \"{brick.ID}\" declares no place sound.");
+            Assert.True(brick.Sounds.ContainsKey(BrickEventKind.Break), $"Brick \"{brick.ID}\" declares no break sound.");
 
-            foreach ((BrickSoundEvent soundEvent, string[] tags) in brick.Sounds)
+            foreach ((BrickEventKind eventKind, string[] tags) in brick.Sounds)
             {
                 Assert.NotEmpty(tags);
                 foreach (string tag in tags)
                 {
-                    AssertResolves(fixture, tag, $"brick \"{brick.ID}\" {soundEvent}");
+                    AssertResolves(fixture, tag, $"brick \"{brick.ID}\" {eventKind}");
                 }
             }
         }
