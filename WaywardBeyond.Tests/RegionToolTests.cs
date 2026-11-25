@@ -36,6 +36,7 @@ using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Voxels;
@@ -120,7 +121,8 @@ public class RegionToolTests
         Assert.Equal(2, harness.PlayerData.GetActiveSlot(harness.World.DataStore));
         Assert.Contains(
             harness.Notifications.GetActiveNotifications(),
-            n => n.Notification.Text.Contains("Shuttle", StringComparison.Ordinal));
+            n => n.Notification.Type == NotificationType.Action
+                && n.Notification.Text.Contains("Shuttle", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -198,7 +200,8 @@ public class RegionToolTests
         Assert.False(harness.ToolState.HasClipboard);
         Assert.Contains(
             harness.Notifications.GetActiveNotifications(),
-            n => n.Notification.Text.Contains("notification.region.creativeOnly", StringComparison.Ordinal));
+            n => n.Notification.Type == NotificationType.Action
+                && n.Notification.Text.Contains("notification.region.creativeOnly", StringComparison.Ordinal));
 
         Result<BlueprintSummary>? pendingResult = null;
         harness.ToolService.QueueSaveBlueprint("Stale Save", res => pendingResult = res);
@@ -207,6 +210,50 @@ public class RegionToolTests
 
         Assert.True(pendingResult.HasValue);
         Assert.False(pendingResult.Value.Success);
+    }
+
+    [Fact]
+    public void ToggleOverwriteEmptyEmitsActionNotificationAndFreeSpacePoseMatchesPlayerUp()
+    {
+        using var dir = new TempDirectory();
+        using var harness = new Harness(dir.Path);
+        harness.SelectProjectorSlot();
+
+        harness.ToolService.QueueAction(RegionToolAction.ToggleOverwriteAir);
+        harness.TickPlaying();
+        harness.FlushNotifications();
+
+        Assert.True(harness.ToolState.OverwriteAir);
+        Assert.Contains(
+            harness.Notifications.GetActiveNotifications(),
+            n => n.Notification.Type == NotificationType.Action
+                && n.Notification.Text.Contains("notification.region.overwriteAirOn", StringComparison.Ordinal));
+
+        Quaternion rolledPlayer = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathF.PI * 0.5f)
+            * Quaternion.CreateFromAxisAngle(Vector3.UnitX, 0.4f);
+        Vector3 cameraPos = new(10f, 20f, 30f);
+        Int3 regionSize = new(4, 2, 6);
+
+        RegionPlacementResolver.ComputeFreeSpacePose(
+            cameraPos,
+            rolledPlayer,
+            distance: 12f,
+            regionSize,
+            out Vector3 spawnPosition,
+            out Quaternion spawnOrientation);
+
+        Vector3 expectedUp = Vector3.Transform(Vector3.UnitY, Quaternion.Normalize(rolledPlayer));
+        Vector3 actualUp = Vector3.Transform(Vector3.UnitY, spawnOrientation);
+        Assert.True(Vector3.Distance(expectedUp, actualUp) < 1e-4f, $"Expected up {expectedUp}, got {actualUp}.");
+
+        Vector3 expectedCenter = cameraPos + Vector3.Transform(-Vector3.UnitZ, Quaternion.Normalize(rolledPlayer)) * 12f;
+        var centerOffset = new Int3(-(regionSize.X / 2), -(regionSize.Y / 2), -(regionSize.Z / 2));
+        var localBoundsCenter = new Vector3(
+            centerOffset.X + (regionSize.X - 1) * 0.5f,
+            centerOffset.Y + (regionSize.Y - 1) * 0.5f,
+            centerOffset.Z + (regionSize.Z - 1) * 0.5f);
+        Vector3 actualCenter = spawnPosition + Vector3.Transform(localBoundsCenter, spawnOrientation);
+        Assert.True(Vector3.Distance(expectedCenter, actualCenter) < 1e-4f, $"Expected center {expectedCenter}, got {actualCenter}.");
     }
 
     [Fact]

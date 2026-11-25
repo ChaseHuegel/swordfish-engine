@@ -158,13 +158,13 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         int brickCount = VoxelRegionApplier.CountSolidVoxels(in decoded);
         if (brickCount <= 0)
         {
-            _notificationService.Push(new Notification(_formatter.GetString("notification.region.empty")));
+            NotifyAction(_formatter.GetString("notification.region.empty"));
             return Result<BlueprintData>.FromFailure("Blueprint contains no bricks.");
         }
 
         _toolState.SetClipboard(in decoded, brickCount, data.Name, enterPasteMode: true);
         _pendingEquipProjector = true;
-        _notificationService.Push(new Notification(_formatter.GetString("notification.blueprint.loaded", data.Name)));
+        NotifyAction(_formatter.GetString("notification.blueprint.loaded", data.Name));
         return loaded;
     }
 
@@ -351,7 +351,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         {
             if (!_toolState.SetAnchorB(entityUuid, cell))
             {
-                _notificationService.Push(new Notification(_formatter.GetString("notification.region.differentStructure")));
+                NotifyAction(_formatter.GetString("notification.region.differentStructure"));
             }
         }
     }
@@ -381,7 +381,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             case RegionToolAction.TogglePasteMode:
                 if (EnsureCreativeMode(store) && !_toolState.TogglePasteMode())
                 {
-                    _notificationService.Push(new Notification(_formatter.GetString("notification.region.noClipboard")));
+                    NotifyAction(_formatter.GetString("notification.region.noClipboard"));
                 }
                 break;
 
@@ -392,7 +392,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 }
                 else
                 {
-                    _notificationService.Push(new Notification(_formatter.GetString("notification.region.noClipboard")));
+                    NotifyAction(_formatter.GetString("notification.region.noClipboard"));
                 }
                 break;
 
@@ -403,7 +403,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 }
                 else
                 {
-                    _notificationService.Push(new Notification(_formatter.GetString("notification.region.noClipboard")));
+                    NotifyAction(_formatter.GetString("notification.region.noClipboard"));
                 }
                 break;
 
@@ -419,7 +419,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             {
                 bool enabled = _toolState.ToggleOverwriteAir();
                 string key = enabled ? "notification.region.overwriteAirOn" : "notification.region.overwriteAirOff";
-                _notificationService.Push(new Notification(_formatter.GetString(key)));
+                NotifyAction(_formatter.GetString(key));
                 break;
             }
         }
@@ -429,7 +429,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
     {
         if (!_toolState.HasClipboard)
         {
-            _notificationService.Push(new Notification(_formatter.GetString("notification.region.noClipboard")));
+            NotifyAction(_formatter.GetString("notification.region.noClipboard"));
             return;
         }
 
@@ -471,20 +471,20 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         extracted = default;
         if (!_toolState.TryGetCompleteSelection(out entityUuid, out min, out max))
         {
-            _notificationService.Push(new Notification(_formatter.GetString("notification.region.invalidBounds")));
+            NotifyAction(_formatter.GetString("notification.region.invalidBounds"));
             return false;
         }
 
         if (!store.TryGet(entityUuid, out int entity) || !store.TryGet(entity, out VoxelComponent voxelComponent))
         {
-            _notificationService.Push(new Notification(_formatter.GetString("notification.region.invalidTarget")));
+            NotifyAction(_formatter.GetString("notification.region.invalidTarget"));
             return false;
         }
 
         extracted = VoxelRegionExtractor.Extract(voxelComponent.VoxelObject, min, max);
         if (extracted.BrickCount <= 0)
         {
-            _notificationService.Push(new Notification(_formatter.GetString("notification.region.empty")));
+            NotifyAction(_formatter.GetString("notification.region.empty"));
             return false;
         }
 
@@ -501,7 +501,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         VoxelRegionData copiedRegion = extracted.Region;
         _toolState.SetClipboard(in copiedRegion, extracted.BrickCount, enterPasteMode: false);
         string dims = $"{extracted.Region.SizeX}x{extracted.Region.SizeY}x{extracted.Region.SizeZ}";
-        _notificationService.Push(new Notification(_formatter.GetString("notification.region.copied", extracted.BrickCount, dims)));
+        NotifyAction(_formatter.GetString("notification.region.copied", extracted.BrickCount, dims));
     }
 
     private void ExecuteCut(DataStore store)
@@ -545,7 +545,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 _cutInFlight = false;
                 if (task.IsFaulted || task.IsCanceled)
                 {
-                    _notificationService.Push(new Notification(_formatter.GetString("notification.region.invalidTarget")));
+                    NotifyAction(_formatter.GetString("notification.region.invalidTarget"));
                     return;
                 }
 
@@ -555,7 +555,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                     string key = result.ErrorCode == GameRpcErrors.PERMISSION_DENIED
                         ? "notification.region.permissionDenied"
                         : "notification.region.invalidTarget";
-                    _notificationService.Push(new Notification(_formatter.GetString(key)));
+                    NotifyAction(_formatter.GetString(key));
                     return;
                 }
 
@@ -564,12 +564,12 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                     string errKey = string.IsNullOrEmpty(result.Value.ErrorKey)
                         ? "notification.region.invalidTarget"
                         : result.Value.ErrorKey!;
-                    _notificationService.Push(new Notification(_formatter.GetString(errKey)));
+                    NotifyAction(_formatter.GetString(errKey));
                     return;
                 }
 
                 _toolState.ClearSelection();
-                _notificationService.Push(new Notification(_formatter.GetString("notification.region.cut", result.Value.AffectedBricks, dims)));
+                NotifyAction(_formatter.GetString("notification.region.cut", result.Value.AffectedBricks, dims));
             });
         });
     }
@@ -671,15 +671,15 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 out Quaternion worldRot,
                 out _))
         {
-            _notificationService.Push(new Notification(_formatter.GetString("notification.region.noClipboard")));
+            NotifyAction(_formatter.GetString("notification.region.noClipboard"));
             return;
         }
 
         if (!valid)
         {
             string invalidKey = _toolState.PreviewInvalidErrorKey;
-            _notificationService.Push(new Notification(_formatter.GetString(
-                string.IsNullOrEmpty(invalidKey) ? "notification.placement.occupied" : invalidKey)));
+            NotifyAction(_formatter.GetString(
+                string.IsNullOrEmpty(invalidKey) ? "notification.placement.occupied" : invalidKey));
             return;
         }
 
@@ -727,7 +727,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 _pasteInFlight = false;
                 if (task.IsFaulted || task.IsCanceled)
                 {
-                    _notificationService.Push(new Notification(_formatter.GetString("notification.region.invalidTarget")));
+                    NotifyAction(_formatter.GetString("notification.region.invalidTarget"));
                     return;
                 }
 
@@ -737,7 +737,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                     string key = result.ErrorCode == GameRpcErrors.PERMISSION_DENIED
                         ? "notification.region.permissionDenied"
                         : "notification.region.invalidTarget";
-                    _notificationService.Push(new Notification(_formatter.GetString(key)));
+                    NotifyAction(_formatter.GetString(key));
                     return;
                 }
 
@@ -746,7 +746,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                     string errKey = string.IsNullOrEmpty(result.Value.ErrorKey)
                         ? "notification.region.invalidTarget"
                         : result.Value.ErrorKey!;
-                    _notificationService.Push(new Notification(_formatter.GetString(errKey)));
+                    NotifyAction(_formatter.GetString(errKey));
                     return;
                 }
 
@@ -758,7 +758,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 string okKey = sentKind == PasteTargetKind.NewStructure
                     ? "notification.region.spawned"
                     : "notification.region.pasted";
-                _notificationService.Push(new Notification(_formatter.GetString(okKey, result.Value.AffectedBricks)));
+                NotifyAction(_formatter.GetString(okKey, result.Value.AffectedBricks));
             });
         });
     }
@@ -780,7 +780,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         else
         {
             Result<BlueprintSummary> noSource = Result<BlueprintSummary>.FromFailure(_formatter.GetString("notification.region.noClipboard"));
-            _notificationService.Push(new Notification(noSource.Message!));
+            NotifyAction(noSource.Message!);
             saveReq.OnCompleted(noSource);
             return;
         }
@@ -895,8 +895,13 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             return true;
         }
 
-        _notificationService.Push(new Notification(_formatter.GetString("notification.region.creativeOnly")));
+        NotifyAction(_formatter.GetString("notification.region.creativeOnly"));
         return false;
+    }
+
+    private void NotifyAction(string message)
+    {
+        _notificationService.Push(new Notification(message, NotificationType.Action));
     }
 
     private bool IsHoldingProjector(DataStore store)

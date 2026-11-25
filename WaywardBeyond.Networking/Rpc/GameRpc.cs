@@ -4,7 +4,7 @@ namespace WaywardBeyond.Networking.Rpc;
 public static class GameRpc
 {
     /// <summary>The wire protocol version. Hosts and clients must match.</summary>
-    public const int PROTOCOL_VERSION = 4;
+    public const int PROTOCOL_VERSION = 3;
 
     /// <summary>Method ids grouped by subject. Each id is a wire contract.</summary>
     public static class Methods

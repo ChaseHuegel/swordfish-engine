@@ -320,7 +320,7 @@
 "ui.label.region.paste" = "Paste"
 "ui.label.region.rotate" = "Rotate 90°"
 "ui.label.region.mirror" = "Mirror"
-"ui.label.region.overwriteAir" = "Overwrite air"
+"ui.label.region.overwriteAir" = "Overwrite empty"
 "ui.label.region.blueprints" = "Blueprints"
 
 "ui.blueprint.title" = "Blueprint library"
@@ -357,7 +357,7 @@
 "ui.hint.region.cancelPaste" = "Cancel paste"
 "ui.hint.region.rotate" = "Rotate 90°"
 "ui.hint.region.mirror" = "Mirror"
-"ui.hint.region.overwriteAir" = "Toggle overwrite air"
+"ui.hint.region.overwriteAir" = "Toggle overwrite empty"
 "ui.hint.region.distance" = "Distance"
 "ui.hint.region.embed" = "Embed at cell"
 "ui.hint.region.radial" = "Actions"

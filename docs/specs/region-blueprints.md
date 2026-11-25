@@ -25,7 +25,7 @@ Blueprints live on the client as portable `.wbp` binary nsd files.
 
 ## Wire protocol and server authority
 
-`GameRpc.PROTOCOL_VERSION` (`WaywardBeyond.Networking/Rpc/GameRpc.cs:7`) is `4`.
+`GameRpc.PROTOCOL_VERSION` (`WaywardBeyond.Networking/Rpc/GameRpc.cs:7`) is `3`.
 
 | Method | ID | Direction | Kind | Notes |
 |---|---|---|---|---|
@@ -36,15 +36,15 @@ Blueprints live on the client as portable `.wbp` binary nsd files.
 
 - `PayloadFragmenter` (`WaywardBeyond.Networking/Rpc/PayloadFragmenter.cs`) splits serialized `PasteRegionRequest`, `VoxelRegionEditMessage`, and `VoxelEntityData` payloads over 60,000 bytes into ordered parts.
 - `ServerRegionSystem` (`WaywardBeyond.Server/Systems/ServerRegionSystem.cs:32`) drains peer calls on the server tick and enforces `GameMode.Creative` (defaulting missing `GameModeComponent` to `GameMode.Adventure`) and permission nodes (`GamePermissions.REGION_CUT`, `GamePermissions.REGION_PASTE`, `GamePermissions.REGION_SPAWN` in `WaywardBeyond.Server/Permissions/GamePermissions.cs:16-22`). Paste upload parts validate Creative mode, permission, and the 4 MiB cap on `ServerPeer.RegionUploadAssembler` (`WaywardBeyond.Server/ServerPeer.cs:109`) before buffering.
-- `RegionPlacementResolver` (`WaywardBeyond.Gameplay/Interactions/RegionPlacementResolver.cs:13`) and `CharacterDefaults` (`WaywardBeyond.Gameplay/CharacterDefaults.cs:23-26`) resolve flush or shifted-embed origins, free-space poses, 32-voxel tool reach, 128-voxel paste max reach, and world collider intersections.
+- `RegionPlacementResolver` (`WaywardBeyond.Gameplay/Interactions/RegionPlacementResolver.cs:13`) and `CharacterDefaults` (`WaywardBeyond.Gameplay/CharacterDefaults.cs:23-26`) resolve flush or shifted-embed origins, free-space poses aligned to the player's up orientation, 32-voxel tool reach, 128-voxel paste max reach, and world collider intersections.
 - Server paste decodes incoming palettes without auto-registering unknown bricks (`IBrickRegistry.Id`), treats missing or empty palettes as empty maps instead of raw IDs, counts missing entries in `RegionOpResponse.SkippedUnknownBricks` (`notification.region.pasteSkippedUnknown`), and rejects zero-brick pastes when spawning a new structure or pasting without `OverwriteAir`.
-- When a cut or air-overwrite paste clears every solid brick on an entity, `ServerRegionSystem` requests entity despawn and frees the server entity. Otherwise it rebuilds dirty colliders in one batch via `VoxelColliderBuilder.RebuildDirtyChunks` and broadcasts fragmented edits or spawns.
+- When a cut or empty-cell overwrite paste clears every solid brick on an entity, `ServerRegionSystem` requests entity despawn and frees the server entity. Otherwise it rebuilds dirty colliders in one batch via `VoxelColliderBuilder.RebuildDirtyChunks` and broadcasts fragmented edits or spawns.
 
 ## Client projector tool, preview, and UI
 
 - `wb:projector` (`WaywardBeyond.Items/assets/items/projector.toml`) declares `ToolType.Blueprint` (`WaywardBeyond.Items/ToolType.cs`) and ships in `PlayerInitialInventory.StarterInventory()` (`WaywardBeyond.Server/Systems/PlayerInitialInventory.cs`).
 - `RegionToolState` (`WaywardBeyond.Client/Systems/RegionToolState.cs:17`) stores the active entity, anchors, clipboard region, rotation, mirror mask, `OverwriteAir`, free-space distance, cached transformed region, and preview pose. Disconnect clears selection and preview while keeping the clipboard.
-- `RegionToolService` (`WaywardBeyond.Client/Systems/RegionToolService.cs:40`) reads LMB/RMB clicks, `C`, `X`, `V`, `T`, `Shift+T`, `F`, `Shift+F`, `G`, `Shift` embed, and `Shift+Scroll` distance adjustments on the ECS thread and invokes `RegionClient` (`WaywardBeyond.Client/Networking/RegionClient.cs:14`). Session generation guards discard stale RPC callbacks and queued saves on disconnect.
+- `RegionToolService` (`WaywardBeyond.Client/Systems/RegionToolService.cs:40`) reads LMB/RMB clicks, `C`, `X`, `V`, `T`, `Shift+T`, `F`, `Shift+F`, `G`, `Shift` embed, and `Shift+Scroll` distance adjustments on the ECS thread and invokes `RegionClient` (`WaywardBeyond.Client/Networking/RegionClient.cs:14`). Session generation guards discard stale RPC callbacks and queued saves on disconnect. Validation errors, mode toggles, and transient tool actions emit `NotificationType.Action`; blueprint save/rename/delete events and skipped-brick warnings emit `NotificationType.Toast`.
 - `RegionPreviewMeshBuilder` (`WaywardBeyond.Client/Voxels/Building/RegionPreviewMeshBuilder.cs:18`), `voxelGhost.glsl` (`WaywardBeyond.Client/assets/shaders/voxelGhost.glsl`), `VoxelMaterials.Ghost`, and `RegionPreviewSystem` (`WaywardBeyond.Client/Systems/RegionPreviewSystem.cs:22`) render selection/paste wireframes and the translucent 3D holographic ghost mesh positioned via `TransformComponent`.
 - `ClientRegionReconcileSystem` (`WaywardBeyond.Client/Systems/ClientRegionReconcileSystem.cs:24`) reassembles `VoxelRegionEditPart` and `VoxelEntitySpawnPart` queues, resets `DepthState`, recalculates lighting in one pass, marks affected geometry chunks, scopes light-only dirty chunks to intersecting orthogonal columns and light radius, prunes emptied chunks from `KnownChunks`, and calls `VoxelEntityBuilder.CreateOrAttach` so snapshot-preallocated entities keep their `TransformComponent`.
 - `RegionToolRadial` (`WaywardBeyond.Client/UI/Layers/RegionToolRadial.cs:19`) binds hold-`R` radial actions (dispatching on release rather than hover) and `IActionIndicator` icons.

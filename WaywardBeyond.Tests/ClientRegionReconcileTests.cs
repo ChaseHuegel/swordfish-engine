@@ -252,7 +252,7 @@ public class ClientRegionReconcileTests
                 "other",
                 [new Texture("other", [0, 0, 0, 255], 1, 1, mipmaps: false)],
                 mipmaps: false);
-            var textures = new PBRTextureArrays(albedo, other, other, other, other);
+            var textures = new PBRTextureArrays(albedo, other, other, other, other, other);
 
             _container.RegisterInstance<IContainer>(_container);
             _container.RegisterInstance<IBrickDatabase>(Bricks);

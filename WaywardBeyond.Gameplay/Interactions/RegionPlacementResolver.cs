@@ -45,7 +45,10 @@ public static class RegionPlacementResolver
         return new Int3(originX, originY, originZ);
     }
 
-    /// <summary>Computes the world-space transform for spawning a centered standalone structure in front of the camera.</summary>
+    /// <summary>
+    /// Computes the world-space transform for spawning a centered standalone structure in front of the camera,
+    /// aligned so the blueprint's base up axis matches the player's up orientation.
+    /// </summary>
     public static void ComputeFreeSpacePose(
         Vector3 cameraPosition,
         Quaternion cameraOrientation,
@@ -56,7 +59,10 @@ public static class RegionPlacementResolver
     )
     {
         float clampedDistance = Math.Clamp(distance, CharacterDefaults.REGION_FREE_DISTANCE_MIN, CharacterDefaults.REGION_FREE_DISTANCE_MAX);
-        Vector3 forward = Vector3.Transform(-Vector3.UnitZ, cameraOrientation);
+        spawnOrientation = cameraOrientation.LengthSquared() > 1e-6f
+            ? Quaternion.Normalize(cameraOrientation)
+            : Quaternion.Identity;
+        Vector3 forward = Vector3.Transform(-Vector3.UnitZ, spawnOrientation);
         Vector3 targetCenter = cameraPosition + forward * clampedDistance;
 
         var centerOffset = new Int3(-(regionSize.X / 2), -(regionSize.Y / 2), -(regionSize.Z / 2));
@@ -66,7 +72,6 @@ public static class RegionPlacementResolver
             centerOffset.Z + (regionSize.Z - 1) * 0.5f
         );
 
-        spawnOrientation = Quaternion.Identity;
         spawnPosition = targetCenter - Vector3.Transform(localBoundsCenter, spawnOrientation);
     }
 

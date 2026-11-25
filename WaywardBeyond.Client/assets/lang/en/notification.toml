@@ -40,8 +40,8 @@
 "notification.region.pasted" = "Pasted {0} bricks"
 "notification.region.spawned" = "Placed new structure ({0} bricks)"
 "notification.region.pasteSkippedUnknown" = "#F2CC4A Skipped {0} unrecognized brick(s)"
-"notification.region.overwriteAirOn" = "Paste air mode: Overwrite existing bricks"
-"notification.region.overwriteAirOff" = "Paste air mode: Skip air"
+"notification.region.overwriteAirOn" = "Empty cells: Overwrite existing bricks"
+"notification.region.overwriteAirOff" = "Empty cells: Keep existing bricks"
 
 "notification.blueprint.saved" = "Saved blueprint \"{0}\""
 "notification.blueprint.loaded" = "Loaded blueprint \"{0}\" for placement"
