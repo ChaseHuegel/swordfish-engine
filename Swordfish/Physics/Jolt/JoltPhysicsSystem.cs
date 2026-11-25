@@ -117,12 +117,21 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     public RaycastResult Raycast(in Ray ray)
     {
+        return Raycast(in ray, ignoreEntity: -1);
+    }
+
+    /// <inheritdoc/>
+    public RaycastResult Raycast(in Ray ray, int ignoreEntity)
+    {
         if (_context == null || _store == null)
         {
             return default;
         }
 
-        return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(_store, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
+        return _context.WaitForResult(
+            JoltRaycastRequest.Invoke,
+            new JoltRaycastRequest(_store, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter, _ignoreBodyFilter, ignoreEntity)
+        );
     }
 
     /// <inheritdoc/>

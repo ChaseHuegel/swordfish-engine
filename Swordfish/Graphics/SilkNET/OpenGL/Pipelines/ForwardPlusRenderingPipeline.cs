@@ -117,6 +117,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private DirectionalLightComponent? _stagedDirectionalLight;
     private DirectionalLightComponent? _activeDirectionalLight;
     private readonly object _dirLightLock = new();
+    private double _elapsedTime;
     
     private readonly float[] _screenQuadVertices =
     [
@@ -368,6 +369,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     protected override int PreRender(double delta, RenderScene renderScene)
     {
+        if (delta > 0.0 && double.IsFinite(delta))
+        {
+            _elapsedTime += delta;
+        }
+
         if (_renderSamples != GetRenderSamples())
         {
             RebuildRenderTargets();
@@ -1114,6 +1120,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         shader.SetUniform("uTileSize", TILE_WIDTH, TILE_HEIGHT);
         shader.SetUniform("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
         shader.SetUniform("uAmbientLight", Tonemapper.SrgbToLinear(_renderSettings.AmbientLight.Get()));
+        shader.SetUniform("uTime", (float)_elapsedTime);
 
         shader.SetUniform("uEnableAO", _renderSettings.SAO.Enabled.Get() ? 1f : 0f);
 
