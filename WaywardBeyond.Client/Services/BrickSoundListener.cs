@@ -9,14 +9,19 @@ namespace WaywardBeyond.Client.Services;
 internal sealed class BrickSoundListener(
     in IBrickDatabase brickDatabase,
     in SoundEffectService soundEffectService
-) : IEventProcessor<BrickEditEvent>
+) : IEventProcessor<BrickEvent>
 {
     private readonly IBrickDatabase _brickDatabase = brickDatabase;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
 
     /// <inheritdoc/>
-    public Result<EventBehavior> ProcessEvent(object sender, BrickEditEvent e)
+    public Result<EventBehavior> ProcessEvent(object sender, BrickEvent e)
     {
+        if (e.Kind != BrickEventKind.Place && e.Kind != BrickEventKind.Break)
+        {
+            return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
+        }
+
         if (e.BrickID != 0)
         {
             Result<Brick> brick = _brickDatabase.Get(e.BrickID);

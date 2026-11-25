@@ -18,7 +18,7 @@ namespace WaywardBeyond.Client.Systems;
 /// bound with no echo (the server rejected it) is reverted to the pre-prediction voxel. Applied edits
 /// publish via the voxel component's dirty flag, which the <see cref="VoxelEntityRebuildSystem"/>
 /// consumes to rebuild the mesh/collider. Unpredicted (remote or authoritative) edits raise
-/// <see cref="BrickEditEvent"/>; edits correlating to the local player's own predictions do not.
+/// <see cref="BrickEvent"/>; edits correlating to the local player's own predictions do not.
 /// Gated on <see cref="GameState.Playing"/> so it never races the load-thread world build.
 /// </summary>
 internal sealed class ClientVoxelReconcileSystem : IEntitySystem
@@ -31,14 +31,14 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     private readonly IBrickRegistry _brickRegistry;
     private readonly IPaintRegistry? _paintRegistry;
     private readonly VoxelLightingService _voxelLightingService;
-    private readonly EventInvoker<BrickEditEvent> _brickEditEvent;
+    private readonly EventInvoker<BrickEvent> _brickEvent;
 
     public ClientVoxelReconcileSystem(
         in ClientInbound inbound,
         in SnapshotAckTracker snapshotAck,
         IBrickRegistry brickRegistry,
         in VoxelLightingService voxelLightingService,
-        in EventInvoker<BrickEditEvent> brickEditEvent,
+        in EventInvoker<BrickEvent> brickEvent,
         IPaintRegistry? paintRegistry = null
     ) {
         _inbound = inbound;
@@ -46,7 +46,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         _brickRegistry = brickRegistry;
         _paintRegistry = paintRegistry;
         _voxelLightingService = voxelLightingService;
-        _brickEditEvent = brickEditEvent;
+        _brickEvent = brickEvent;
     }
 
     public void Tick(float delta, DataStore store)
@@ -150,7 +150,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     }
 
     /// <summary>
-    /// Raises <see cref="BrickEditEvent"/> for an unpredicted authoritative edit. The result voxel decides
+    /// Raises <see cref="BrickEvent"/> for an unpredicted authoritative edit. The result voxel decides
     /// break (empty) vs place (filled); the brick id comes from the pre-edit voxel for a break and the
     /// result voxel for a place.
     /// </summary>
@@ -163,7 +163,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             return;
         }
 
-        _brickEditEvent.Invoke(new BrickEditEvent(brickID, isBreak ? BrickSoundEvent.Break : BrickSoundEvent.Place));
+        _brickEvent.Invoke(new BrickEvent(brickID, isBreak ? BrickEventKind.Break : BrickEventKind.Place));
     }
 
     private static PendingEdit? FindPending(

@@ -122,11 +122,11 @@ even when its registry ids differ from the server's. See
 
 ### Edit audio
 
-`ClientVoxelReconcileSystem.ApplyAuthoritativeEdit` raises `BrickEditEvent` for
+`ClientVoxelReconcileSystem.ApplyAuthoritativeEdit` raises `BrickEvent` for
 **unpredicted** edits only: a remote player's mining and construction is audible
 to everyone else. Edits correlating to the local player's own pending
 predictions (confirm, snap, or revert) raise nothing because the prediction path
-already raised `BrickEditEvent` (`PlayerInteractionService.FirePresentationHook`).
+already raised `BrickEvent` (`PlayerInteractionService.FirePresentationHook`).
 Break vs place is decided by the resulting voxel (empty = break, filled = place).
 The brick id comes from the cell before the write for a break (a break's result
 is empty). `BrickSoundListener` resolves the brick and plays its

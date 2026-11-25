@@ -25,10 +25,10 @@ internal class SoundEffectService
         _randomizer = new Randomizer();
     }
 
-    /// <summary>Plays the brick's declared sound for the provided interaction event.</summary>
-    public void PlayEffect(Brick brick, BrickSoundEvent soundEvent)
+    /// <summary>Plays the brick's declared sound for the provided brick event.</summary>
+    public void PlayEffect(Brick brick, BrickEventKind eventKind)
     {
-        if (!brick.Sounds.TryGetValue(soundEvent, out string[]? tags))
+        if (!brick.Sounds.TryGetValue(eventKind, out string[]? tags))
         {
             return;
         }

@@ -79,7 +79,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly VoxelLightingService _voxelLightingService;
     private readonly EventInvoker<PlaceEvent> _placeEvent;
     private readonly EventInvoker<BreakEvent> _breakEvent;
-    private readonly EventInvoker<BrickEditEvent> _brickEditEvent;
+    private readonly EventInvoker<BrickEvent> _brickEvent;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly NotificationService _notificationService;
     private readonly ILocalization _localization;
@@ -120,7 +120,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in VoxelLightingService voxelLightingService,
         in EventInvoker<PlaceEvent> placeEvent,
         in EventInvoker<BreakEvent> breakEvent,
-        in EventInvoker<BrickEditEvent> brickEditEvent,
+        in EventInvoker<BrickEvent> brickEvent,
         in SnapshotAckTracker snapshotAck,
         in NotificationService notificationService,
         in ILocalization localization,
@@ -145,7 +145,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _voxelLightingService = voxelLightingService;
         _placeEvent = placeEvent;
         _breakEvent = breakEvent;
-        _brickEditEvent = brickEditEvent;
+        _brickEvent = brickEvent;
         _snapshotAck = snapshotAck;
         _notificationService = notificationService;
         _localization = localization;
@@ -404,7 +404,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         //  Presentation hooks (ghost/SFX) fire before the prediction; a cancel skips the local prediction
         //  (the server still validates the sent intent). Unconsumed inventory is the server's job.
-        if (!FirePresentationHook(in resolution, _brickDatabase, _breakEvent, _placeEvent, _brickEditEvent))
+        if (!FirePresentationHook(in resolution, _brickDatabase, _breakEvent, _placeEvent, _brickEvent))
         {
             return;
         }
@@ -654,7 +654,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         IBrickDatabase brickDatabase,
         EventInvoker<BreakEvent> breakEvent,
         EventInvoker<PlaceEvent> placeEvent,
-        EventInvoker<BrickEditEvent> brickEditEvent
+        EventInvoker<BrickEvent> brickEvent
     ) {
         Result<Brick> brickInfoResult = brickDatabase.Get(resolution.Voxel.ID);
         if (!brickInfoResult.Success)
@@ -669,7 +669,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 return false;
             }
 
-            brickEditEvent.Invoke(new BrickEditEvent(resolution.Voxel.ID, BrickSoundEvent.Break));
+            brickEvent.Invoke(new BrickEvent(resolution.Voxel.ID, BrickEventKind.Break));
         }
         else
         {
@@ -678,7 +678,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 return false;
             }
 
-            brickEditEvent.Invoke(new BrickEditEvent(resolution.Voxel.ID, BrickSoundEvent.Place));
+            brickEvent.Invoke(new BrickEvent(resolution.Voxel.ID, BrickEventKind.Place));
         }
 
         return true;

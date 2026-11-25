@@ -56,7 +56,7 @@ public class BrickSoundListenerTests
             fixture.Bricks,
             fixture.BreakEvent,
             fixture.PlaceEvent,
-            fixture.BrickEditEvent
+            fixture.BrickEvent
         );
 
         Assert.True(succeeded);
@@ -82,7 +82,7 @@ public class BrickSoundListenerTests
             fixture.Bricks,
             fixture.BreakEvent,
             fixture.PlaceEvent,
-            fixture.BrickEditEvent
+            fixture.BrickEvent
         );
 
         Assert.True(succeeded);
@@ -108,7 +108,7 @@ public class BrickSoundListenerTests
             fixture.Bricks,
             fixture.BreakEvent,
             fixture.PlaceEvent,
-            fixture.BrickEditEvent
+            fixture.BrickEvent
         );
 
         Assert.False(succeeded);
@@ -131,7 +131,7 @@ public class BrickSoundListenerTests
             fixture.Bricks,
             fixture.BreakEvent,
             fixture.PlaceEvent,
-            fixture.BrickEditEvent
+            fixture.BrickEvent
         );
 
         Assert.False(succeeded);
@@ -242,7 +242,16 @@ public class BrickSoundListenerTests
     public void BrickWithoutDeclaredSoundsStaysSilent()
     {
         Fixture fixture = CreateFixture();
-        fixture.BrickEditEvent.Invoke(new BrickEditEvent(SILENT_BRICK_ID, BrickSoundEvent.Place));
+        fixture.BrickEvent.Invoke(new BrickEvent(SILENT_BRICK_ID, BrickEventKind.Place));
+
+        Assert.Empty(fixture.DrainPlayedClips());
+    }
+
+    [Fact]
+    public void ListenerIgnoresNonPlaceOrBreakEventKind()
+    {
+        Fixture fixture = CreateFixture();
+        fixture.BrickEvent.Invoke(new BrickEvent(METAL_BRICK_ID, (BrickEventKind)99));
 
         Assert.Empty(fixture.DrainPlayedClips());
     }
@@ -250,15 +259,15 @@ public class BrickSoundListenerTests
     private static Fixture CreateFixture(bool cancelPlace = false, bool cancelBreak = false)
     {
         var bricks = new StubBrickDatabase();
-        bricks.Add(METAL_BRICK_ID, "wb:panel", new Dictionary<BrickSoundEvent, string[]>
+        bricks.Add(METAL_BRICK_ID, "wb:panel", new Dictionary<BrickEventKind, string[]>
         {
-            [BrickSoundEvent.Place] = ["metal_place"],
-            [BrickSoundEvent.Break] = ["metal_break"],
+            [BrickEventKind.Place] = ["metal_place"],
+            [BrickEventKind.Break] = ["metal_break"],
         });
-        bricks.Add(ROCK_BRICK_ID, "wb:rock", new Dictionary<BrickSoundEvent, string[]>
+        bricks.Add(ROCK_BRICK_ID, "wb:rock", new Dictionary<BrickEventKind, string[]>
         {
-            [BrickSoundEvent.Place] = ["rock_place"],
-            [BrickSoundEvent.Break] = ["rock_break"],
+            [BrickEventKind.Place] = ["rock_place"],
+            [BrickEventKind.Break] = ["rock_break"],
         });
         bricks.Add(SILENT_BRICK_ID, "wb:silent", sounds: null);
 
@@ -276,7 +285,7 @@ public class BrickSoundListenerTests
 
         var soundEffects = new SoundEffectService(audioChannels, tags);
         var listener = new BrickSoundListener(bricks, soundEffects);
-        var brickEditEvent = new EventInvoker<BrickEditEvent>([listener]);
+        var brickEvent = new EventInvoker<BrickEvent>([listener]);
 
         var activeSave = new ActiveCharacterSave
         {
@@ -313,7 +322,7 @@ public class BrickSoundListenerTests
         var inbound = new ClientInbound();
         var snapshotAck = new SnapshotAckTracker();
         var lighting = new VoxelLightingService(bricks);
-        var reconcile = new ClientVoxelReconcileSystem(inbound, snapshotAck, bricks, lighting, brickEditEvent);
+        var reconcile = new ClientVoxelReconcileSystem(inbound, snapshotAck, bricks, lighting, brickEvent);
 
         return new Fixture(
             store,
@@ -322,7 +331,7 @@ public class BrickSoundListenerTests
             saveManager,
             placeEvent,
             breakEvent,
-            brickEditEvent,
+            brickEvent,
             inbound,
             reconcile,
             voxelObject,
@@ -339,7 +348,7 @@ public class BrickSoundListenerTests
         CharacterSaveManager saveManager,
         EventInvoker<PlaceEvent> placeEvent,
         EventInvoker<BreakEvent> breakEvent,
-        EventInvoker<BrickEditEvent> brickEditEvent,
+        EventInvoker<BrickEvent> brickEvent,
         ClientInbound inbound,
         ClientVoxelReconcileSystem reconcile,
         VoxelObject voxelObject,
@@ -352,7 +361,7 @@ public class BrickSoundListenerTests
         public readonly StubBrickDatabase Bricks = bricks;
         public readonly EventInvoker<PlaceEvent> PlaceEvent = placeEvent;
         public readonly EventInvoker<BreakEvent> BreakEvent = breakEvent;
-        public readonly EventInvoker<BrickEditEvent> BrickEditEvent = brickEditEvent;
+        public readonly EventInvoker<BrickEvent> BrickEvent = brickEvent;
         public readonly ClientInbound Inbound = inbound;
         public readonly VoxelObject VoxelObject = voxelObject;
         public readonly int StructureEntity = structureEntity;
@@ -399,7 +408,7 @@ public class BrickSoundListenerTests
         private readonly Dictionary<ushort, Brick> _byDataID = [];
         private readonly Dictionary<string, Brick> _byID = new(StringComparer.Ordinal);
 
-        public void Add(ushort dataID, string id, Dictionary<BrickSoundEvent, string[]>? sounds)
+        public void Add(ushort dataID, string id, Dictionary<BrickEventKind, string[]>? sounds)
         {
             var brick = new Brick(
                 id,

@@ -1,7 +1,7 @@
 namespace WaywardBeyond.Bricks;
 
-/// <summary>The brick interaction events that can declare sound tags.</summary>
-public enum BrickSoundEvent
+/// <summary>The events that can occur on a brick in the world.</summary>
+public enum BrickEventKind
 {
     /// <summary>The brick is placed.</summary>
     Place,
