@@ -76,9 +76,10 @@ routes to the world it names. A peer can switch saves without reconnecting.
 ## `Playing` as the gate
 
 `Playing` keeps `ClientReconcileSystem` inert until the world is fully streamed.
-The server opens a snapshot gate at join (`BeginStream`) and lifts it after the
-stream response (`EndStream`). The one-shot full-sync snapshot is exempt and
-stays the client's first snapshot.
+The server opens a snapshot gate at join (`BeginStream`) and queues its lift
+after the stream response (`EndStream`). The publish stage drains queued lifts
+at the end of every tick, even when the world has no deltas to publish. The
+one-shot full-sync snapshot is exempt and stays the client's first snapshot.
 
 The client coalesces any queued snapshot burst on entering `Playing`: the newest
 frame applies fully, and each superseded frame still applies its non-motion
@@ -113,9 +114,10 @@ The server bounds the other side with the same key. The RPC call deadline resets
 on every stream chunk, and a peer that cannot drain its send backlog is closed
 with `BacklogLimit` (see [rpc](networking-rpc.md#backlog-and-idle-policy)). A
 stream that exceeds `Protocol.JoinStreamTimeoutMs` aborts and closes the peer.
-A client that opens the gate at join and never starts a stream is reaped on the
-same deadline. Leaving or disconnecting clears the gate immediately, so an
-abandoned join cannot leak a gated session.
+A client that opens the gate at join and never completes its stream is reaped on
+the same deadline. A client whose stream already completed is not reaped.
+Leaving or disconnecting clears the gate immediately, so an abandoned join
+cannot leak a gated session.
 
 ## Character ownership nuance
 
