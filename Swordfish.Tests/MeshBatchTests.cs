@@ -120,4 +120,23 @@ public class MeshBatchTests
         Assert.True(batch.UpdateRange(handle, Vertices(3), 3, Indices(3), bounds, explicitCenter));
         Assert.Equal(explicitCenter, batch.Ranges[handle.Slot].SortCenter);
     }
+
+    [Fact]
+    public void SmallGrowthUpdatesInPlaceWithoutCompaction()
+    {
+        var batch = new MeshBatch();
+        MeshRangeHandle handle = batch.AddRange(Vertices(4), 4, Indices(6), default);
+        MeshRange before = batch.Ranges[handle.Slot];
+        int generationBefore = batch.Generation;
+
+        Assert.True(batch.UpdateRange(handle, Vertices(20), 20, Indices(30), default));
+
+        MeshRange after = batch.Ranges[handle.Slot];
+        Assert.Equal(before.VertexOffset, after.VertexOffset);
+        Assert.Equal(before.IndexOffset, after.IndexOffset);
+        Assert.Equal(generationBefore, batch.Generation);
+        Assert.True(after.Version > before.Version);
+        Assert.Equal(20, after.VertexCount);
+        Assert.Equal(30, after.IndexCount);
+    }
 }
