@@ -27,6 +27,7 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
         var smoothnessFiles = new List<PathInfo>();
         var normalFiles = new List<PathInfo>();
         var emissiveFiles = new List<PathInfo>();
+        var tintFiles = new List<PathInfo>();
         
         IEnumerable<PathInfo> files = _vfs.GetFiles(path, SearchOption.AllDirectories);
         foreach (PathInfo file in files)
@@ -54,6 +55,12 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
                 emissiveFiles.Add(file);
                 continue;
             }
+
+            if (IsTint(file))
+            {
+                tintFiles.Add(file);
+                continue;
+            }
             
             albedoFiles.Add(file);
         }
@@ -63,6 +70,7 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
         List<Texture> smoothnessTextures = smoothnessFiles.Select(_textureParser.Parse).ToList();
         List<Texture> normalTextures = normalFiles.Select(_textureParser.Parse).ToList();
         List<Texture> emissiveTextures = emissiveFiles.Select(_textureParser.Parse).ToList();
+        List<Texture> tintTextures = tintFiles.Select(_textureParser.Parse).ToList();
 
         GenerateMissingTextures(albedoTextures, metallicTextures, ".m", r: 0, g: 0, b: 0, a: 255);
         GenerateMissingTextures(albedoTextures, smoothnessTextures, ".s", r: 0, g: 0, b: 0, a: 255);
@@ -83,19 +91,45 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
         Texture missingSmoothness = CreateSolidTexture("missing.s", width, height, r: 0, g: 0, b: 0, a: 255);
         Texture missingNormal = CreateSolidTexture("missing.n", width, height, r: 0, g: 0, b: 255, a: 255);
         Texture missingEmissive = CreateSolidTexture("missing.e", width, height, r: 0, g: 0, b: 0, a: 0);
+        Texture missingTint = CreateSolidTexture("missing.t", width, height, r: 255, g: 255, b: 255, a: 255);
 
         Texture[] albedoTexturesArray = [missingAlbedo, .. sortedAlbedo];
         Texture[] metallicTexturesArray = [missingMetallic, .. sortedMetallic];
         Texture[] smoothnessTexturesArray = [missingSmoothness, .. sortedSmoothness];
         Texture[] normalTexturesArray = [missingNormal, .. sortedNormal];
         Texture[] emissiveTexturesArray = [missingEmissive, .. sortedEmissive];
+        Texture[] tintTexturesArray = BuildTintTextures(sortedAlbedo, tintTextures, missingTint);
 
         var albedoTextureArray = new TextureArray("bricks_albedo", albedoTexturesArray, mipmaps: true, ColorSpace.Srgb);
         var metallicTextureArray = new TextureArray("bricks_metallic", metallicTexturesArray, mipmaps: true, ColorSpace.Linear);
         var smoothnessTextureArray = new TextureArray("bricks_smoothness", smoothnessTexturesArray, mipmaps: true, ColorSpace.Linear);
         var normalTextureArray = new TextureArray("bricks_normal", normalTexturesArray, mipmaps: true, ColorSpace.Linear);
         var emissiveTextureArray = new TextureArray("bricks_emissive", emissiveTexturesArray, mipmaps: true, ColorSpace.Srgb);
-        return new PBRTextureArrays(albedoTextureArray, metallicTextureArray, smoothnessTextureArray, normalTextureArray, emissiveTextureArray);
+        var tintTextureArray = new TextureArray("bricks_tint", tintTexturesArray, mipmaps: true, ColorSpace.Linear);
+        return new PBRTextureArrays(albedoTextureArray, metallicTextureArray, smoothnessTextureArray, normalTextureArray, emissiveTextureArray, tintTextureArray);
+    }
+
+    /// <summary>Builds tint layers in albedo order and fills each missing layer with white.</summary>
+    private static Texture[] BuildTintTextures(Texture[] sortedAlbedo, List<Texture> tintTextures, Texture missingTint)
+    {
+        var byName = new Dictionary<string, Texture>(tintTextures.Count, StringComparer.Ordinal);
+        foreach (Texture tint in tintTextures)
+        {
+            byName[tint.Name] = tint;
+        }
+
+        var textures = new Texture[sortedAlbedo.Length + 1];
+        textures[0] = missingTint;
+        for (var i = 0; i < sortedAlbedo.Length; i++)
+        {
+            Texture albedo = sortedAlbedo[i];
+            string name = albedo.Name + ".t";
+            textures[i + 1] = byName.TryGetValue(name, out Texture? tint)
+                ? tint
+                : CreateSolidTexture(name, albedo.Width, albedo.Height, r: 255, g: 255, b: 255, a: 255);
+        }
+
+        return textures;
     }
 
     /// <summary>Creates a magenta and black checkerboard placeholder texture for missing or unresolved bricks.</summary>
@@ -157,6 +191,7 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
     private static bool IsSmoothness(PathInfo file) => file.Value.EndsWith(".s.png");
     private static bool IsNormal(PathInfo file) => file.Value.EndsWith(".n.png");
     private static bool IsEmissive(PathInfo file) => file.Value.EndsWith(".e.png");
+    private static bool IsTint(PathInfo file) => file.Value.EndsWith(".t.png");
     
     private class TextureNameComparer(string suffix) : IEqualityComparer<Texture>
     {

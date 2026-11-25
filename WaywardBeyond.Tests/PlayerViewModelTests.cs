@@ -136,7 +136,7 @@ public class PlayerViewModelTests
                 [new Texture("other", [0, 0, 0, 255], 1, 1, mipmaps: false)],
                 mipmaps: false
             );
-            var textureArrays = new PBRTextureArrays(albedo, other, other, other, other);
+            var textureArrays = new PBRTextureArrays(albedo, other, other, other, other, other);
 
             BrickMeshBuilder = new BrickPreviewMeshBuilder(Registry, Bricks, textureArrays, Meshes);
             VoxelMaterials = new VoxelMaterials(new Shader("lightedArray"), textureArrays);

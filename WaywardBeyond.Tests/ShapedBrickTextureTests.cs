@@ -128,7 +128,7 @@ public class ShapedBrickTextureTests
                 mipmaps: false
             );
             var other = new TextureArray("other", [CreateTexture("other")], mipmaps: false);
-            var textureArrays = new PBRTextureArrays(Albedo, other, other, other, other);
+            var textureArrays = new PBRTextureArrays(Albedo, other, other, other, other, other);
 
             Builder = new BrickPreviewMeshBuilder(Registry, Bricks, textureArrays, Meshes);
         }
@@ -440,7 +440,7 @@ public class ShapedBrickTextureTests
         var other = new TextureArray("other", [new Texture("other", [255, 255, 255, 255], 1, 1, mipmaps: false)], mipmaps: false);
         var meshes = new TestMeshDatabase();
         meshes.Meshes["slope.obj"] = CreateSlopeLikeMesh();
-        var builder = new BrickPreviewMeshBuilder(bricks, bricks, new PBRTextureArrays(albedo, other, other, other, other), meshes);
+        var builder = new BrickPreviewMeshBuilder(bricks, bricks, new PBRTextureArrays(albedo, other, other, other, other, other), meshes);
 
         Result<Mesh> result = builder.Build(console, BrickShape.Slope, Orientation.Identity);
 

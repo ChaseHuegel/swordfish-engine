@@ -68,7 +68,7 @@ public class RemeshBenchmarks
         }
 
         var albedo = new TextureArray("albedo", [.. texList], mipmaps: false);
-        var textureArrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo);
+        var textureArrays = new PBRTextureArrays(albedo, albedo, albedo, albedo, albedo, albedo);
 
         var container = new Container();
         container.RegisterInstance<IBrickDatabase>(brickDatabase);

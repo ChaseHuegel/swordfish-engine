@@ -7,6 +7,7 @@ uniform sampler2DArray texture1;
 uniform sampler2DArray texture2;
 uniform sampler2DArray texture3;
 uniform sampler2DArray texture4;
+uniform sampler2DArray texture5;
 
 uniform float uBloomThreshold = 1.5;
 uniform float uBloomSoftness = 0.5;
@@ -40,9 +41,13 @@ vec4 fragment()
     Metallic = texture(texture1, TextureCoord).r;
     Roughness = 1.0 - texture(texture2, TextureCoord).r;
     Normal = GetNormal();
+
+    //  The tint mask preserves authored colors where the artist masks the vertex tint.
+    vec3 tint = mix(vec3(1.0), VertexColor.rgb, clamp(texture(texture5, TextureCoord).r, 0.0, 1.0));
+
     vec4 emissive = texture(texture4, TextureCoord);
-    emissive.rgb *= VertexColor.rgb;
-    vec3 tintedAlbedo = albedo.rgb * VertexColor.rgb;
+    emissive.rgb *= tint;
+    vec3 tintedAlbedo = albedo.rgb * tint;
     vec4 shaded = vec4(shade(tintedAlbedo).rgb, albedo.a);
     vec4 color = max(vec4(shaded.rgb * VertexColor.a, shaded.a) * ao(albedo), emissive);
     
