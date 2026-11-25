@@ -186,8 +186,8 @@ echoing `Sequence` only to the originating client and `0` to witness peers.
 `ClientVoxelReconcileSystem` reconciles echoes by canonical `PaintId` and marks
 affected chunks mesh-only dirty via `MarkFaceModified`. `MarkFaceModified` also
 flags the edited chunk in `EntityDirtyChunks` so `LightEntityDecorator` updates
-light bricks (`Brick.LightSource`) to mix their default color with the average
-of their painted face colors without rebuilding colliders.
+light bricks (`Brick.LightSource`) to use the average of their painted face
+colors in place of the brick color, without rebuilding colliders.
 
 ## Interaction handlers
 

@@ -103,6 +103,10 @@ bit `6`. `VoxelChunkRegistry.MarkFaceModified`
 (`WaywardBeyond.Client/Voxels/VoxelChunkRegistry.cs:42`) marks the chunk and
 orthogonal boundary neighbors mesh-only dirty so face edits skip collision and
 lighting passes, and marks `EntityDirtyChunks` so light decorators refresh.
+An unpainted face is tinted by its brick's default color
+(`Brick.LinearColor`), which is white unless the brick authors `Color`. A
+painted face uses the paint instead. See
+[asset-definitions](asset-definitions.md#color).
 `ConnectedTextureResolver`
 (`WaywardBeyond.Client/Voxels/Processing/ConnectedTextureResolver.cs:10`)
 resolves 4-bit connected-texture adjacency for `CubeMeshBuilder` and

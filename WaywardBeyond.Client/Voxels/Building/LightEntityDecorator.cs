@@ -31,15 +31,17 @@ internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase, IPaintD
 
     internal Vector3 ResolveLightColor(VoxelObject voxelObject, in VoxelInfo voxelInfo)
     {
-        if (paintDatabase == null)
-        {
-            return DefaultColor;
-        }
-
         Result<Brick> brickResult = brickDatabase.Get(voxelInfo.Voxel.ID);
         if (!brickResult.Success || !brickResult.Value.LightSource)
         {
             return DefaultColor;
+        }
+
+        //  An unpainted light brick emits its authored color, a painted one emits the paint color.
+        Vector3 defaultColor = DefaultColor * brickResult.Value.Color;
+        if (paintDatabase == null)
+        {
+            return defaultColor;
         }
 
         Vector3 colorSum = Vector3.Zero;
@@ -65,7 +67,7 @@ internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase, IPaintD
 
         if (paintedFaceCount == 0)
         {
-            return DefaultColor;
+            return defaultColor;
         }
 
         Vector3 mixedPaintColor = colorSum / paintedFaceCount;

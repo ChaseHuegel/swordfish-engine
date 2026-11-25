@@ -155,6 +155,8 @@ internal sealed class VoxelSurfaceCache
         public readonly bool IsCullerBlock;
         public readonly bool Connected;
         public readonly bool HasPerFaceTextures;
+        public readonly Vector3 DefaultTint;
+        public readonly bool HasDefaultTint;
         public readonly Mesh? CustomMesh;
         public readonly ResolvedTextureList DefaultTextures;
         public readonly ResolvedTextureList TopTextures;
@@ -183,6 +185,8 @@ internal sealed class VoxelSurfaceCache
             {
                 Connected = false;
                 HasPerFaceTextures = false;
+                DefaultTint = Vector3.One;
+                HasDefaultTint = false;
                 DefaultTextures = default;
                 TopTextures = default;
                 BottomTextures = default;
@@ -195,6 +199,8 @@ internal sealed class VoxelSurfaceCache
 
             BrickTextures textures = brick.Textures;
             Connected = textures.Connected;
+            DefaultTint = brick.LinearColor;
+            HasDefaultTint = DefaultTint != Vector3.One;
             DefaultTextures = new ResolvedTextureList(albedo, textures.Default);
             TopTextures = new ResolvedTextureList(albedo, textures.Top);
             BottomTextures = new ResolvedTextureList(albedo, textures.Bottom);

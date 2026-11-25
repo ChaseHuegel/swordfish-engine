@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using Krill;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
@@ -70,6 +71,67 @@ public class BrickDatabaseTests
         Brick ice = database.Get(database.Id("wb:ice")).Value;
         Assert.Equal(new[] { "rock_place" }, ice.Sounds[BrickEventKind.Place]);
         Assert.Equal(new[] { "rock_break" }, ice.Sounds[BrickEventKind.Break]);
+    }
+
+    [Fact]
+    public void LoadsBrickColorAndFallsBackToWhite()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"wb-brick-tests-{Path.GetRandomFileName()}");
+        string bricksDir = Path.Combine(tempDir, "bricks");
+        Directory.CreateDirectory(bricksDir);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(bricksDir, "colors.toml"),
+                """
+                [[Bricks]]
+                ID = "wb:amber"
+                Color = "#FF8000"
+
+                [[Bricks]]
+                ID = "wb:plain"
+
+                [[Bricks]]
+                ID = "wb:invalid"
+                Color = "not-a-color"
+                """
+            );
+
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(tempDir));
+            IFileParser[] parsers = [new TomlParser<BrickDefinitions>(), new LocalizedTagDefinitionParser()];
+            var parser = new VirtualFileParseService(parsers, vfs);
+            var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+            var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
+
+            Brick amber = bricks.Get(bricks.Id("wb:amber")).Value;
+            Assert.Equal(1f, amber.Color.X);
+            Assert.Equal(128f / 255f, amber.Color.Y);
+            Assert.Equal(0f, amber.Color.Z);
+            Assert.Equal(1f, amber.LinearColor.X, precision: 3);
+            Assert.Equal(0.216f, amber.LinearColor.Y, precision: 3);
+            Assert.Equal(0f, amber.LinearColor.Z);
+
+            Assert.Equal(Vector3.One, bricks.Get(bricks.Id("wb:plain")).Value.Color);
+            Assert.Equal(Vector3.One, bricks.Get(bricks.Id("wb:invalid")).Value.Color);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ShippedBricksDefaultToWhite()
+    {
+        BrickDatabase database = Load();
+
+        foreach (Brick brick in database.Get(_ => true))
+        {
+            Assert.Equal(Vector3.One, brick.Color);
+            Assert.Equal(Vector3.One, brick.LinearColor);
+        }
     }
 
     [Fact]

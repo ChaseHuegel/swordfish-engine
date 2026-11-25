@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace WaywardBeyond.Bricks;
 
@@ -27,6 +28,12 @@ public sealed class Brick
     public readonly string? MeshID;
     public readonly BrickShape Shape;
     public readonly BrickTextures Textures;
+
+    /// <summary>Default albedo color in normalized sRGB (0..1) for unpainted faces. Defaults to white.</summary>
+    public readonly Vector3 Color;
+
+    /// <summary>Default albedo color in linear RGB (0..1) for unpainted faces.</summary>
+    public readonly Vector3 LinearColor;
     private readonly BrickColliderShape[] _colliders;
 
     /// <summary>Optional custom collider primitives declared on this brick, or empty for shape presets.</summary>
@@ -53,7 +60,8 @@ public sealed class Brick
         in bool lightSource = false,
         in bool entity = false,
         in bool paintable = false,
-        in bool orientable = false
+        in bool orientable = false,
+        in Vector3? color = null
     ) {
         ID = id;
         Alpha = alpha;
@@ -62,6 +70,8 @@ public sealed class Brick
         MeshID = meshID;
         Shape = shape;
         Textures = textures;
+        Color = color ?? Vector3.One;
+        LinearColor = Srgb.ToLinear(Color);
         _colliders = colliders ?? [];
         Sounds = sounds ?? _noSounds;
         Shapeable = shape == BrickShape.Any;

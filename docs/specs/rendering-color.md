@@ -11,6 +11,7 @@ sRGB transfer function once when writing to the back buffer.
 | Color textures (albedo, emissive, skybox, 2D icons) | sRGB | `Srgb8Alpha8` | Hardware decodes sRGB to linear on sample. Alpha stays linear. |
 | Data textures (normal, metallic, smoothness, MSDF atlas) | Linear | `Rgba8` | Sampled without conversion. |
 | Light and ambient values (`AmbientLight`, `DirectionalLightComponent.Color`, `LightComponent.Color`) | sRGB to Linear HDR | `Vector3` | Authored in sRGB `[0, 1]`. `ForwardPlusRenderingPipeline` decodes via `Tonemapper.SrgbToLinear` and multiplies by `Intensity` on GPU upload. `shade(albedo)` multiplies `albedo` once across ambient, directional, and point light contributions. |
+| Brick default tint (`Brick.Color` to `Brick.LinearColor`) | sRGB to Linear | `Vector3` | `WaywardBeyond.Bricks/Srgb.cs` converts once at asset load. `lightedArray.glsl` multiplies `VertexColor.rgb` as linear albedo. |
 | Scene color (`_colorRBO`, `_colorResolveTex`) | Linear HDR | `Rgba16f` | Direct light, ambient light, shadows, SAO, skybox, and alpha-blended meshes composite in linear HDR space. |
 | Emissive source (`_bloomRBO`, `_bloomResolveTex`) | Linear HDR | `R11fG11fB10f` | Scene shaders write linear HDR emissive values to `BrightColor` without clamping at `1.0`. `GlslParser` defaults `BrightColor.a` to `FragColor.a` so alpha-blended draws preserve background bloom where transparent. |
 | Bloom mip chain (`_bloomChain[0..3]`) | Linear HDR | `Rgba16f` | Extracts, blurs, and accumulates in linear HDR space. Alpha holds the linear non-emissive mask. |
@@ -70,6 +71,7 @@ sRGB transfer function once when writing to the back buffer.
 
 - Color space enum: `Swordfish/Graphics/ColorSpace.cs:6-17`
 - CPU sRGB transfer function: `Swordfish/Graphics/Tonemapper.cs:6-23`
+- Brick default tint sRGB transfer (mirrors `Tonemapper`): `WaywardBeyond.Bricks/Srgb.cs:10-19`
 - OpenGL texture formats: `Swordfish/Graphics/SilkNET/OpenGL/TextureFormat.cs:5-21`
 - Texture asset types: `Swordfish/Graphics/Texture.cs:5-25`, `Swordfish/Graphics/TextureArray.cs:5-12`, `Swordfish/Graphics/TextureCubemap.cs:3-8`
 - Texture upload binding: `Swordfish/Graphics/SilkNET/OpenGL/GLRenderContext.cs:205-242`

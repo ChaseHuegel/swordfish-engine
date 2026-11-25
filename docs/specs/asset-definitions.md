@@ -89,6 +89,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Passable` | bool | |
 | `Mesh` | string? | |
 | `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
+| `Color` | string? | optional 6-digit hex RGB default albedo color. White when omitted |
 | `Textures` | sub-table | `BrickTextures` |
 | `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickEventKind` (`Place`, `Break`) |
 | `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
@@ -145,6 +146,38 @@ axis magnitude, breaking ties in Z (`Front`/`Back`), Y (`Top`/`Bottom`), X
 least half the dominant magnitude act as fallbacks before `Default`. A 45-degree
 slope angled face therefore uses `Front`, falls back to `Top`, and then falls
 back to `Default`.
+
+### Color
+
+`Color` is the brick's default albedo tint, authored as a 6-digit hex RGB string
+with an optional leading `#`. `BrickDatabase` parses it once at load
+(`WaywardBeyond.Bricks/BrickDatabase.cs`) into `Brick.Color` (sRGB) and
+`Brick.LinearColor` (linear). An omitted color loads as white, so existing
+fully colored textures keep their authored appearance. An invalid color logs a
+warning and also falls back to white.
+
+The tint multiplies every unpainted face by the brick texture, so an artist can
+author a greyscale texture and let `Color` supply the hue and value. A
+color-painted face uses its paint color, and a texture-painted face uses the
+paint texture as authored, so a paint always shows its exact color over the
+greyscale texture.
+
+The tint reaches all voxel surfaces that resolve through
+`ConnectedTextureResolver` (`WaywardBeyond.Client/Voxels/Processing/ConnectedTextureResolver.cs`):
+world chunks through `MeshPostPass`, and placement previews, held-item view
+models, and baked brick item icons through `BrickPreviewMeshBuilder`. A light
+brick emits `LightEntityDecorator.DefaultColor` multiplied by `Color` when
+unpainted, and by the painted face color when painted.
+
+Example (greyscale texture tinted steel blue):
+
+```toml
+[[Bricks]]
+ID    = "wb:panel"
+Color = "#4A6B8A"
+[Bricks.Textures]
+Default = ["panel"]
+```
 
 ### Colliders
 
@@ -312,6 +345,7 @@ bits. See [seed-phrases](seed-phrases.md).
 
 - `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,PlaceableDefinition,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
+- `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
 - `WaywardBeyond.Bricks/BrickEventKind.cs`

@@ -104,6 +104,7 @@ public class FacePaintingMeshTests
 
         bricks.Add(1, new Brick("wb:rock", BrickAlpha.Opaque, false, null, BrickShape.Any, new BrickTextures { Default = ["rock"] }, paintable: true));
         bricks.Add(2, new Brick("wb:panel", BrickAlpha.Opaque, false, null, BrickShape.Any, new BrickTextures { Connected = true, Default = ["panel.0"] }, paintable: true));
+        bricks.Add(3, new Brick("wb:steel", BrickAlpha.Opaque, false, null, BrickShape.Any, new BrickTextures { Default = ["rock"] }, paintable: true, color: new Vector3(0.5f, 0.25f, 0.75f)));
 
         paints.Add(1, Paint.CreateTexture("wb:panel", "panel", BrickAlpha.Opaque, connected: true, ["panel.0"]));
         paints.Add(2, Paint.CreateTexture("wb:caution", "caution", BrickAlpha.Opaque, connected: false, ["caution"]));
@@ -238,6 +239,57 @@ public class FacePaintingMeshTests
         Assert.Equal(paints.Get(3).Value.LinearColor.X, state.Opaque.Colors[0].X, precision: 3);
         Assert.Equal(albedo.IndexOf("rock"), (int)state.Opaque.UV[1].Z);
         Assert.Equal(1f, state.Opaque.Colors[1].X, precision: 3);
+    }
+
+    [Fact]
+    public void UnpaintedFacesUseBrickDefaultColorAndPaintOverridesIt()
+    {
+        var (state, pass, _, bricks, paints) = CreateHarness();
+        var voxels = new VoxelObject(8);
+        voxels.Set(2, 2, 2, new Voxel(3, new ShapeLight(BrickShape.Block, 15), 0));
+        voxels.SetFaceColor(2, 2, 2, BrickFaceMask.Front, 3);
+        voxels.SetFaceTexture(2, 2, 2, BrickFaceMask.Top, 2);
+
+        RunPass(voxels, pass);
+
+        Vector3 steelLinear = bricks.Get(3).Value.LinearColor;
+        Vector3 redLinear = paints.Get(3).Value.LinearColor;
+        Assert.NotEqual(Vector3.One, steelLinear);
+
+        var frontFound = false;
+        var topFound = false;
+        var unpaintedFound = false;
+        for (var i = 0; i < state.Opaque.Normals.Count; i++)
+        {
+            Vector3 normal = state.Opaque.Normals[i];
+            Vector3 expected = normal switch
+            {
+                { Y: > 0f } => Vector3.One,
+                { Z: > 0f } => redLinear,
+                _ => steelLinear,
+            };
+
+            if (normal.Y > 0f)
+            {
+                topFound = true;
+            }
+            else if (normal.Z > 0f)
+            {
+                frontFound = true;
+            }
+            else
+            {
+                unpaintedFound = true;
+            }
+
+            Assert.Equal(expected.X, state.Opaque.Colors[i].X, precision: 3);
+            Assert.Equal(expected.Y, state.Opaque.Colors[i].Y, precision: 3);
+            Assert.Equal(expected.Z, state.Opaque.Colors[i].Z, precision: 3);
+        }
+
+        Assert.True(frontFound);
+        Assert.True(topFound);
+        Assert.True(unpaintedFound);
     }
 
     [Fact]
