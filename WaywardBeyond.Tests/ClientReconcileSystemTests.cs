@@ -349,6 +349,68 @@ public class ClientReconcileSystemTests
         return serialized.Value;
     }
 
+    [Fact]
+    public void RemotePlayerNonFiniteTransformLeavesTheTransformUnchanged()
+    {
+        var logger = new RecordingLogger();
+        TestContext context = CreateContext(logger);
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var initial = new Vector3(1f, 2f, 3f);
+        var initialOrientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.5f);
+        var initialScale = new Vector3(2f, 2f, 2f);
+        int remote = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(remote, new TransformComponent(initial, initialOrientation, initialScale));
+        context.Store.AddOrUpdate(remote, new BodyViewComponent { Body = "wb:human_m" });
+
+        EnqueueTransform(context, remoteUuid, new Vector3(float.NaN, 2f, 3f), Quaternion.Identity, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(initial, transform.Position);
+        Assert.Equal(initialOrientation, transform.Orientation);
+        Assert.Equal(initialScale, transform.Scale);
+        Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Warning);
+    }
+
+    [Fact]
+    public void RemotePlayerZeroOrientationLeavesTheTransformUnchanged()
+    {
+        var logger = new RecordingLogger();
+        TestContext context = CreateContext(logger);
+        Uuid remoteUuid = Uuid.FromValue(77);
+        var initial = new Vector3(1f, 2f, 3f);
+        var initialOrientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.5f);
+        int remote = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(remote, new TransformComponent(initial, initialOrientation, Vector3.One));
+        context.Store.AddOrUpdate(remote, new BodyViewComponent { Body = "wb:human_m" });
+
+        EnqueueTransform(context, remoteUuid, initial + Vector3.One, new Quaternion(0f, 0f, 0f, 0f), Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(initial, transform.Position);
+        Assert.Equal(initialOrientation, transform.Orientation);
+        Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Warning);
+    }
+
+    [Fact]
+    public void WorldNonFiniteTransformSnapshotLeavesTheTransformUnchanged()
+    {
+        var logger = new RecordingLogger();
+        TestContext context = CreateContext(logger);
+        Uuid structureUuid = Uuid.FromValue(88);
+        var initial = new Vector3(1f, 2f, 3f);
+        int structure = context.Store.Alloc(structureUuid);
+        context.Store.AddOrUpdate(structure, new TransformComponent(initial, Quaternion.Identity, Vector3.One));
+
+        EnqueueTransform(context, structureUuid, new Vector3(float.PositiveInfinity, 2f, 3f), Quaternion.Identity, Vector3.One);
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(structure, out TransformComponent transform));
+        Assert.Equal(initial, transform.Position);
+        Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Warning);
+    }
+
     private static TestContext CreateContext(ILogger<ClientReconcileSystem>? logger = null)
     {
         var inbound = new ClientInbound();

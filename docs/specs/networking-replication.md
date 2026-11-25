@@ -85,6 +85,10 @@ which flow as `VoxelEdit` notifications rather than snapshots.
   centimeter is ignored. A larger error moves halfway per snapshot. An error
   beyond `CharacterDefaults.RECONCILE_SNAP_DISTANCE` snaps. Orientation and scale
   stay authoritative.
+- Drops a transform snapshot whose position, orientation, or scale is non-finite,
+  or whose orientation is degenerate, and logs a warning. The last good transform
+  stays in place. A remote player skips the frame before it reaches its locally
+  simulated body. A world body's `TransformCodec` rejects it the same way.
 - Applies the local player's authoritative position and scale. Small position
   errors are deadbanded and larger ones are blended over a few snapshots, and an
   error beyond the same snap distance snaps. Its orientation targets the server
