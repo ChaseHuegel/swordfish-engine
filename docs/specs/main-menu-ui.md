@@ -236,7 +236,7 @@ manages the 3D background while `WaywardBeyond.GameState` is `GameState.MainMenu
 
 - Flow: `WaywardBeyond.Client/UI/Layers/Menus/Main/MenuPage.cs:3`
 - Background spaceship: `WaywardBeyond.Client/Systems/MainMenuAnimationSystem.cs:15`
-- Blueprint serializer: `WaywardBeyond.Client/Serialization/VoxelEntityModelSerializer.cs:12`
+- Blueprint database: `WaywardBeyond.Client/Voxels/BlueprintDatabase.cs:17`
 - Main: `WaywardBeyond.Client/UI/Layers/Menus/Main/HomePage.cs:24`
 - Continue: `WaywardBeyond.Client/Saves/ContinueService.cs:18`
 - Message modal: `WaywardBeyond.Client/UI/Layers/Menus/Modal/MessageModal.cs:14`

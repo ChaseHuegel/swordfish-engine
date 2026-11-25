@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Bricks;
@@ -235,6 +236,44 @@ public class MainMenuAnimationSystemTests : IDisposable
 
         Assert.Equal(130, nonEmptyCount);
         Assert.Equal(Vector3.One, model.Scale);
+    }
+
+    [Fact]
+    public void BlueprintDatabaseLoadsMainMenuThroughFileParseServiceWithoutCircularDependency()
+    {
+        string assetsRoot = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..", "..", "..", "..",
+            "WaywardBeyond.Client", "assets"
+        ));
+
+        string[] knownBricks =
+        [
+            "wb:caution_panel", "wb:control_buttons", "wb:control_panel", "wb:core",
+            "wb:display_console", "wb:display_control", "wb:display_monitor", "wb:glass",
+            "wb:grate", "wb:ice", "wb:light", "wb:panel", "wb:porthole", "wb:rock",
+            "wb:small_light", "wb:storage", "wb:thruster", "wb:truss", "wb:vent",
+        ];
+
+        var vfs = new VirtualFileSystem();
+        vfs.Mount(new PathInfo(assetsRoot));
+
+        using var di = new Container();
+        di.RegisterInstance<ILogger<VirtualFileParseService>>(new RecordingLogger<VirtualFileParseService>());
+        di.RegisterInstance<ILogger<BlueprintDatabase>>(new RecordingLogger<BlueprintDatabase>());
+        di.RegisterInstance<IBrickRegistry>(BrickRegistry.FromNames(knownBricks));
+        di.RegisterInstance(vfs);
+        di.RegisterMany<VoxelEntityModelParser>();
+        di.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
+        di.Register<BlueprintDatabase>(Reuse.Singleton);
+        di.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
+
+        IAssetDatabase<VoxelEntityModel> db = di.Resolve<IAssetDatabase<VoxelEntityModel>>();
+        Result<VoxelEntityModel> result = db.Get(MainMenuAnimationSystem.MENU_BLUEPRINT_ID);
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotNull(result.Value.VoxelObject);
+        Assert.Equal(Vector3.One, result.Value.Scale);
     }
 
     private MainMenuAnimationSystem CreateSystem(ILogger<MainMenuAnimationSystem> logger, IAssetDatabase<VoxelEntityModel> blueprints)

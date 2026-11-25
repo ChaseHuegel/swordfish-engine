@@ -11,7 +11,6 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
-using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Diagnostics;
@@ -346,7 +345,6 @@ public class Injector : IDryIocInjector
         container.RegisterTomlParser<ItemDefinitions>();
 
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
-        container.Register<ISerializer<VoxelEntityModel>, VoxelEntityModelSerializer>(Reuse.Singleton);
         container.RegisterMany<VoxelEntityModelParser>();
     }
 
