@@ -61,6 +61,17 @@ Orientation and scale are authoritative. Both reconcilers share the one distance
 constant, so a respawn, teleport, or large server correction snaps for either
 side instead of gliding across the world.
 
+Remote mirrors have a `BodyViewComponent` but no `InputComponent`. The shared
+step runs a second pass over `BodyViewComponent` bodies that skips any entity
+with an `InputComponent`, so a remote mirror gets the identical damping as a
+commandless server mirror without resolving client input or look history. The
+server's own mirrors are input-driven, so its second pass is empty. The Jolt
+solver applies world gravity to dynamic bodies in both worlds, so gravity stays
+in parity without per-side code. A remote mirror's velocity is still
+server-owned and refreshed by each snapshot; the between-snapshot damping keeps
+the client's local integration on the same curve instead of coasting until the
+next correction.
+
 Replay is per-sim-tick resolution, not a separate phase: the shared step's
 command resolver reads the pending ring (`StageRingExtensions.GetCommand`)
 instead of the newest live component, so every step after an `AlignTo` applies
