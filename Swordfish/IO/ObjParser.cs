@@ -4,14 +4,19 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.IO;
 
-internal class ObjParser : IFileParser<Mesh>
+/// <summary>Parses Wavefront OBJ files into <see cref="Mesh"/> instances.</summary>
+public sealed class ObjParser : IFileParser<Mesh>
 {
+    /// <inheritdoc/>
     public string[] SupportedExtensions { get; } =
     [
         ".obj",
     ];
 
+    /// <inheritdoc/>
     object IFileParser.Parse(PathInfo file) => Parse(file);
+
+    /// <inheritdoc/>
     public Mesh Parse(PathInfo file)
     {
         using Stream stream = file.Open();
