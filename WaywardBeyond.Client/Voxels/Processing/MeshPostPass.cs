@@ -76,14 +76,15 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         ref readonly VoxelSurfaceCache.CachedBrick cachedBrick = ref _surfaceCache.GetBrick(sample.Center.ID);
         Brick brickInfo = cachedBrick.Exists ? cachedBrick.Brick : _unresolvedBrick;
         
-        bool culledRight = IsCulledBy(target: sample.Center, neighbor: sample.Right);
-        bool culledLeft = IsCulledBy(target: sample.Center, neighbor: sample.Left);
-        bool culledAbove = IsCulledBy(target: sample.Center, neighbor: sample.Above);
-        bool culledBelow = IsCulledBy(target: sample.Center, neighbor: sample.Below);
-        bool culledAhead = IsCulledBy(target: sample.Center, neighbor: sample.Ahead);
-        bool culledBehind = IsCulledBy(target: sample.Center, neighbor: sample.Behind);
-        
-        if (culledRight && culledLeft && culledAbove && culledBelow && culledAhead && culledBehind)
+        BrickFaceMask blockCulledFaces = BrickFaceMask.None;
+        if (IsCulledBy(target: sample.Center, neighbor: sample.Above)) blockCulledFaces |= BrickFaceMask.Top;
+        if (IsCulledBy(target: sample.Center, neighbor: sample.Below)) blockCulledFaces |= BrickFaceMask.Bottom;
+        if (IsCulledBy(target: sample.Center, neighbor: sample.Ahead)) blockCulledFaces |= BrickFaceMask.Front;
+        if (IsCulledBy(target: sample.Center, neighbor: sample.Behind)) blockCulledFaces |= BrickFaceMask.Back;
+        if (IsCulledBy(target: sample.Center, neighbor: sample.Left)) blockCulledFaces |= BrickFaceMask.Left;
+        if (IsCulledBy(target: sample.Center, neighbor: sample.Right)) blockCulledFaces |= BrickFaceMask.Right;
+
+        if (blockCulledFaces == BrickFaceMask.All)
         {
             return;
         }
@@ -95,25 +96,25 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         switch (shapeLight.Shape)
         {
             case BrickShape.Slab:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _slab, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, culledAbove, culledBelow, culledAhead, culledBehind, culledLeft, culledRight));
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _slab, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, blockCulledFaces));
                 break;
             case BrickShape.Stair:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _stair, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, culledAbove, culledBelow, culledAhead, culledBehind, culledLeft, culledRight));
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _stair, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, blockCulledFaces));
                 break;
             case BrickShape.Slope:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _slope, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, culledAbove, culledBelow, culledAhead, culledBehind, culledLeft, culledRight));
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _slope, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, blockCulledFaces));
                 break;
             case BrickShape.Column:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _column, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, culledAbove, culledBelow, culledAhead, culledBehind, culledLeft, culledRight));
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _column, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, blockCulledFaces));
                 break;
             case BrickShape.Plate:
-                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _plate, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, culledAbove, culledBelow, culledAhead, culledBehind, culledLeft, culledRight));
+                AddMesh(GetMeshData(brickInfo), in sample, offset, orientationByte, shapeLight, in cachedBrick, _plate, GetNonBlockCulledFaces(in sample, orientationByte, shapeLight.Shape, blockCulledFaces));
                 break;
             case BrickShape.Custom:
                 if (cachedBrick.CustomMesh == null)
                 {
                     ref readonly CubeMeshBuilder customFallbackBuilder = ref GetCubeMeshBuilder(brickInfo);
-                    AddCube(in customFallbackBuilder, sample.Coords, offset, orientationByte, in sample, in cachedBrick, culledAbove, culledBelow, culledAhead, culledBehind, culledRight, culledLeft);
+                    AddCube(in customFallbackBuilder, sample.Coords, offset, orientationByte, in sample, in cachedBrick, blockCulledFaces);
                     break;
                 }
 
@@ -122,7 +123,7 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
             case BrickShape.Block:
             default:
                 ref readonly CubeMeshBuilder cubeMeshBuilder = ref GetCubeMeshBuilder(brickInfo);
-                AddCube(in cubeMeshBuilder, sample.Coords, offset, orientationByte, in sample, in cachedBrick, culledAbove, culledBelow, culledAhead, culledBehind, culledRight, culledLeft);
+                AddCube(in cubeMeshBuilder, sample.Coords, offset, orientationByte, in sample, in cachedBrick, blockCulledFaces);
                 break;
         }
     }
@@ -179,41 +180,36 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         byte orientationByte,
         in VoxelSample sample,
         in VoxelSurfaceCache.CachedBrick cachedBrick,
-        bool culledAbove,
-        bool culledBelow,
-        bool culledAhead,
-        bool culledBehind,
-        bool culledRight,
-        bool culledLeft
+        BrickFaceMask culledFaces
     ) {
         Vector3 origin = offset + new Vector3(coords.X, coords.Y, coords.Z);
-        
-        if (!culledAbove)
+
+        if ((culledFaces & BrickFaceMask.Top) == 0)
         {
             cubeMeshBuilder.AddTopFace(origin, orientationByte, in sample, in cachedBrick);
         }
-        
-        if (!culledBelow)
+
+        if ((culledFaces & BrickFaceMask.Bottom) == 0)
         {
             cubeMeshBuilder.AddBottomFace(origin, orientationByte, in sample, in cachedBrick);
         }
-        
-        if (!culledAhead)
+
+        if ((culledFaces & BrickFaceMask.Front) == 0)
         {
             cubeMeshBuilder.AddFrontFace(origin, orientationByte, in sample, in cachedBrick);
         }
-        
-        if (!culledBehind)
+
+        if ((culledFaces & BrickFaceMask.Back) == 0)
         {
             cubeMeshBuilder.AddBackFace(origin, orientationByte, in sample, in cachedBrick);
         }
-        
-        if (!culledRight)
+
+        if ((culledFaces & BrickFaceMask.Right) == 0)
         {
             cubeMeshBuilder.AddRightFace(origin, orientationByte, in sample, in cachedBrick);
         }
-        
-        if (!culledLeft)
+
+        if ((culledFaces & BrickFaceMask.Left) == 0)
         {
             cubeMeshBuilder.AddLeftFace(origin, orientationByte, in sample, in cachedBrick);
         }
@@ -223,43 +219,43 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         in VoxelSample sample,
         byte centerOrientationByte,
         BrickShape shape,
-        bool culledAbove,
-        bool culledBelow,
-        bool culledAhead,
-        bool culledBehind,
-        bool culledLeft,
-        bool culledRight
+        BrickFaceMask blockCulledFaces
     ) {
-        BrickFaceMask mask = BrickFaceMask.None;
-        BrickFaceMask sameShapeFaces = GetSameShapeCullableFaces(shape);
+        BrickFaceMask mask = blockCulledFaces;
+        BrickFaceMask sameShapeFaces = GetSameShapeCullableFaces(shape) & ~blockCulledFaces;
+        if (sameShapeFaces == BrickFaceMask.None)
+        {
+            return mask;
+        }
+
         var centerOrientation = new Orientation(centerOrientationByte);
 
-        if (culledAbove || ((sameShapeFaces & BrickFaceMask.Top) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Above)))
+        if ((sameShapeFaces & BrickFaceMask.Top) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Above))
         {
             mask |= BrickFaceMask.Top;
         }
 
-        if (culledBelow || ((sameShapeFaces & BrickFaceMask.Bottom) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Below)))
+        if ((sameShapeFaces & BrickFaceMask.Bottom) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Below))
         {
             mask |= BrickFaceMask.Bottom;
         }
 
-        if (culledAhead || ((sameShapeFaces & BrickFaceMask.Front) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Ahead)))
+        if ((sameShapeFaces & BrickFaceMask.Front) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Ahead))
         {
             mask |= BrickFaceMask.Front;
         }
 
-        if (culledBehind || ((sameShapeFaces & BrickFaceMask.Back) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Behind)))
+        if ((sameShapeFaces & BrickFaceMask.Back) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Behind))
         {
             mask |= BrickFaceMask.Back;
         }
 
-        if (culledLeft || ((sameShapeFaces & BrickFaceMask.Left) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Left)))
+        if ((sameShapeFaces & BrickFaceMask.Left) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Left))
         {
             mask |= BrickFaceMask.Left;
         }
 
-        if (culledRight || ((sameShapeFaces & BrickFaceMask.Right) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Right)))
+        if ((sameShapeFaces & BrickFaceMask.Right) != 0 && IsCulledBySameShape(in sample.Center, centerOrientation, shape, in sample.Right))
         {
             mask |= BrickFaceMask.Right;
         }
@@ -311,16 +307,18 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         BrickFaceMask culledFaces
     ) {
         Mesh mesh = cullableMesh.Mesh;
+        BrickFaceMask effectiveCulledFaces = culledFaces & cullableMesh.BoundaryFaces;
+        BrickFaceMask fullyCulledFaces = effectiveCulledFaces & cullableMesh.FullBoundaryFaces;
         Vector3 origin = offset + new Vector3(sample.Coords.X, sample.Coords.Y, sample.Coords.Z);
         Quaternion orientation = new Orientation(orientationByte).ToQuaternion();
         float light = Math.Clamp(shapeLight.LightLevel / 15f, 0.1f, 1f);
 
-        ResolveFaceStyles(in sample, origin, orientationByte, shapeLight.Shape, in cachedBrick, out FaceTextureIndices faceTextures, out FaceColorTints faceTints);
+        ResolveFaceStyles(in sample, origin, orientationByte, shapeLight.Shape, in cachedBrick, fullyCulledFaces, out FaceTextureIndices faceTextures, out FaceColorTints faceTints);
 
         BrickFaceMask[]? triangleFaces = cullableMesh.TriangleFaces;
-        if (culledFaces != BrickFaceMask.None && triangleFaces != null)
+        if (effectiveCulledFaces != BrickFaceMask.None && triangleFaces != null)
         {
-            AppendFilteredMesh(meshData, mesh, triangleFaces, culledFaces, origin, orientation, light, in faceTextures, in faceTints);
+            AppendFilteredMesh(meshData, in cullableMesh, triangleFaces, effectiveCulledFaces, origin, orientation, light, in faceTextures, in faceTints);
             return;
         }
 
@@ -381,7 +379,7 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
 
     private static void AppendFilteredMesh(
         MeshState.MeshData meshData,
-        Mesh mesh,
+        in CullableMesh cullableMesh,
         BrickFaceMask[] triangleFaces,
         BrickFaceMask culledFaces,
         Vector3 origin,
@@ -390,7 +388,10 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         in FaceTextureIndices faceTextures,
         in FaceColorTints faceTints
     ) {
+        Mesh mesh = cullableMesh.Mesh;
+        bool uniformNormals = cullableMesh.HasUniformTriangleNormals;
         int triangleCount = triangleFaces.Length;
+
         for (var t = 0; t < triangleCount; t++)
         {
             if ((triangleFaces[t] & culledFaces) != 0)
@@ -399,10 +400,42 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
             }
 
             int triOffset = t * 3;
+            int i0 = (int)mesh.Triangles[triOffset + 0];
+            int i1 = (int)mesh.Triangles[triOffset + 1];
+            int i2 = (int)mesh.Triangles[triOffset + 2];
             var vertexBase = (uint)meshData.Vertices.Count;
-            AppendMeshVertex(meshData, mesh, (int)mesh.Triangles[triOffset + 0], origin, orientation, light, in faceTextures, in faceTints);
-            AppendMeshVertex(meshData, mesh, (int)mesh.Triangles[triOffset + 1], origin, orientation, light, in faceTextures, in faceTints);
-            AppendMeshVertex(meshData, mesh, (int)mesh.Triangles[triOffset + 2], origin, orientation, light, in faceTextures, in faceTints);
+
+            if (uniformNormals && i0 < mesh.Normals.Length)
+            {
+                Vector3 localNormal = mesh.Normals[i0];
+                Vector3 tint = faceTints.HasAnyTint ? ResolveFaceTint(localNormal, in faceTints) : Vector3.One;
+                int textureIndex = faceTextures.HasPerFace ? ResolveFaceTextureIndex(localNormal, faceTextures) : faceTextures.Default;
+                var color = new Vector4(tint.X, tint.Y, tint.Z, light);
+                Vector3 worldNormal = Vector3.Transform(localNormal, orientation);
+
+                meshData.Colors.Add(color);
+                meshData.Colors.Add(color);
+                meshData.Colors.Add(color);
+
+                meshData.UV.Add(mesh.Uv[i0] with { Z = textureIndex });
+                meshData.UV.Add(mesh.Uv[i1] with { Z = textureIndex });
+                meshData.UV.Add(mesh.Uv[i2] with { Z = textureIndex });
+
+                meshData.Normals.Add(worldNormal);
+                meshData.Normals.Add(worldNormal);
+                meshData.Normals.Add(worldNormal);
+
+                meshData.Vertices.Add(Vector3.Transform(mesh.Vertices[i0], orientation) + origin);
+                meshData.Vertices.Add(Vector3.Transform(mesh.Vertices[i1], orientation) + origin);
+                meshData.Vertices.Add(Vector3.Transform(mesh.Vertices[i2], orientation) + origin);
+            }
+            else
+            {
+                AppendMeshVertex(meshData, mesh, i0, origin, orientation, light, in faceTextures, in faceTints);
+                AppendMeshVertex(meshData, mesh, i1, origin, orientation, light, in faceTextures, in faceTints);
+                AppendMeshVertex(meshData, mesh, i2, origin, orientation, light, in faceTextures, in faceTints);
+            }
+
             meshData.Triangles.Add(vertexBase + 0);
             meshData.Triangles.Add(vertexBase + 1);
             meshData.Triangles.Add(vertexBase + 2);
@@ -439,6 +472,7 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         byte orientationByte,
         BrickShape shape,
         in VoxelSurfaceCache.CachedBrick cachedBrick,
+        BrickFaceMask fullyCulledFaces,
         out FaceTextureIndices faceTextures,
         out FaceColorTints faceTints
     ) {
@@ -454,12 +488,12 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         }
 
         var hasAnyTint = false;
-        int topIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Top, out Vector3 topTint, ref hasAnyTint);
-        int bottomIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Bottom, out Vector3 bottomTint, ref hasAnyTint);
-        int frontIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Front, out Vector3 frontTint, ref hasAnyTint);
-        int backIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Back, out Vector3 backTint, ref hasAnyTint);
-        int leftIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Left, out Vector3 leftTint, ref hasAnyTint);
-        int rightIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Right, out Vector3 rightTint, ref hasAnyTint);
+        int topIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Top, fullyCulledFaces, out Vector3 topTint, ref hasAnyTint);
+        int bottomIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Bottom, fullyCulledFaces, out Vector3 bottomTint, ref hasAnyTint);
+        int frontIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Front, fullyCulledFaces, out Vector3 frontTint, ref hasAnyTint);
+        int backIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Back, fullyCulledFaces, out Vector3 backTint, ref hasAnyTint);
+        int leftIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Left, fullyCulledFaces, out Vector3 leftTint, ref hasAnyTint);
+        int rightIndex = ResolveMeshFaceStyle(in sample, origin, orientationByte, shape, in cachedBrick, BrickFace.Right, fullyCulledFaces, out Vector3 rightTint, ref hasAnyTint);
 
         faceTextures = new FaceTextureIndices(
             defaultIndex: defaultIndex,
@@ -481,9 +515,16 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
         BrickShape shape,
         in VoxelSurfaceCache.CachedBrick cachedBrick,
         BrickFace face,
+        BrickFaceMask fullyCulledFaces,
         out Vector3 tint,
         ref bool hasAnyTint
     ) {
+        if ((fullyCulledFaces & face.ToMask()) != 0)
+        {
+            tint = Vector3.One;
+            return -1;
+        }
+
         ConnectedTextureResolver.FaceSurface surface = _connectedTextureResolver.ResolveFaceSurface(in sample, origin, in cachedBrick, face);
         tint = surface.Tint;
         if (surface.HasTint)
@@ -581,26 +622,42 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
     {
         public readonly Mesh Mesh;
         public readonly BrickFaceMask[]? TriangleFaces;
+        public readonly BrickFaceMask BoundaryFaces;
+        public readonly BrickFaceMask FullBoundaryFaces;
+        public readonly bool HasUniformTriangleNormals;
 
         public CullableMesh(Mesh mesh)
         {
             Mesh = mesh;
-            TriangleFaces = BuildTriangleFaceMasks(mesh);
+            TriangleFaces = BuildTriangleFaceMasks(mesh, out BoundaryFaces, out FullBoundaryFaces, out HasUniformTriangleNormals);
         }
 
         public CullableMesh(Mesh mesh, BrickFaceMask[]? triangleFaces)
         {
             Mesh = mesh;
             TriangleFaces = triangleFaces;
+            BoundaryFaces = BrickFaceMask.None;
+            FullBoundaryFaces = BrickFaceMask.None;
+            HasUniformTriangleNormals = false;
         }
 
-        private static BrickFaceMask[]? BuildTriangleFaceMasks(Mesh? mesh)
-        {
+        private static BrickFaceMask[]? BuildTriangleFaceMasks(
+            Mesh? mesh,
+            out BrickFaceMask boundaryFaces,
+            out BrickFaceMask fullBoundaryFaces,
+            out bool hasUniformTriangleNormals
+        ) {
+            boundaryFaces = BrickFaceMask.None;
+            fullBoundaryFaces = BrickFaceMask.None;
+            hasUniformTriangleNormals = true;
+
             if (mesh == null)
             {
+                hasUniformTriangleNormals = false;
                 return null;
             }
 
+            BrickFaceMask interiorFaces = BrickFaceMask.None;
             int triangleCount = mesh.Triangles.Length / 3;
             var masks = new BrickFaceMask[triangleCount];
             for (var t = 0; t < triangleCount; t++)
@@ -612,17 +669,34 @@ internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
                 if (i0 >= mesh.Vertices.Length || i1 >= mesh.Vertices.Length || i2 >= mesh.Vertices.Length ||
                     i0 >= mesh.Normals.Length || i1 >= mesh.Normals.Length || i2 >= mesh.Normals.Length)
                 {
+                    hasUniformTriangleNormals = false;
                     continue;
                 }
 
-                masks[t] = ClassifyBoundaryTriangle(
+                Vector3 n0 = mesh.Normals[i0];
+                if (n0 != mesh.Normals[i1] || n0 != mesh.Normals[i2])
+                {
+                    hasUniformTriangleNormals = false;
+                }
+
+                BrickFaceMask boundaryFace = ClassifyBoundaryTriangle(
                     mesh.Vertices[i0],
                     mesh.Vertices[i1],
                     mesh.Vertices[i2],
-                    mesh.Normals[i0]
+                    n0
                 );
+                masks[t] = boundaryFace;
+                if (boundaryFace != BrickFaceMask.None)
+                {
+                    boundaryFaces |= boundaryFace;
+                }
+                else
+                {
+                    interiorFaces |= BrickFaceExtensions.FromLocalNormal(n0).ToMask();
+                }
             }
 
+            fullBoundaryFaces = boundaryFaces & ~interiorFaces;
             return masks;
         }
 

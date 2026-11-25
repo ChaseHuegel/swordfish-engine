@@ -124,8 +124,18 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
             }
         }
 
-        bool isDeclaredFace = VoxelSurfaceCache.CachedBrick.HasDeclaredFaceTextures(in cachedBrick, face);
-        ref readonly VoxelSurfaceCache.ResolvedTextureList textures = ref VoxelSurfaceCache.CachedBrick.GetFaceTextures(in cachedBrick, face);
+        bool isDeclaredFace;
+        ref readonly VoxelSurfaceCache.ResolvedTextureList textures = ref cachedBrick.DefaultTextures;
+        if (cachedBrick.HasPerFaceTextures)
+        {
+            isDeclaredFace = VoxelSurfaceCache.CachedBrick.HasDeclaredFaceTextures(in cachedBrick, face);
+            textures = ref VoxelSurfaceCache.CachedBrick.GetFaceTextures(in cachedBrick, face);
+        }
+        else
+        {
+            isDeclaredFace = false;
+        }
+
         textures.Resolve(origin, out int textureIndex, out string? textureName);
         return new FaceSurface(
             rawTextureIndex: textureIndex,
@@ -250,9 +260,7 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         ConnectToNeighbor(in sample, in context, in sample.Left, NEIGHBOR_LEFT, EDGE_LEFT, ref mask);
         ConnectToNeighbor(in sample, in context, in sample.Right, NEIGHBOR_RIGHT, EDGE_RIGHT, ref mask);
 
-        Int3 belowOffset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, NEIGHBOR_BELOW);
-        Int3 aheadOffset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, NEIGHBOR_AHEAD);
-        var downRampOffset = new Int3(belowOffset.X + aheadOffset.X, belowOffset.Y + aheadOffset.Y, belowOffset.Z + aheadOffset.Z);
+        var downRampOffset = new Int3(-upRampOffset.X, -upRampOffset.Y, -upRampOffset.Z);
         if (TryGetNeighborAtOffset(in sample, downRampOffset, out Voxel downRampNeighbor))
         {
             ConnectToNeighborAtOffset(in sample, in context, in downRampNeighbor, downRampOffset, EDGE_DOWN, ref mask);
@@ -321,8 +329,19 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         int bit,
         ref int mask
     ) {
+        if (!TryMatchNeighborFast(in sample, in context, in neighbor, out BrickFace neighborFace, out bool neighborHasOverrides, out bool connectedFast))
+        {
+            return;
+        }
+
+        if (connectedFast)
+        {
+            mask |= bit;
+            return;
+        }
+
         Int3 offset = ChunkData.GetRotatedNeighborOffset(context.CenterOrientation, neighborDirIndex);
-        ConnectToNeighborAtOffset(in sample, in context, in neighbor, offset, bit, ref mask);
+        ConnectToNeighborSlow(in sample, in context, in neighbor, offset, neighborFace, neighborHasOverrides, bit, ref mask);
     }
 
     private void ConnectToNeighborAtOffset(
@@ -333,38 +352,76 @@ internal readonly struct ConnectedTextureResolver(VoxelSurfaceCache surfaceCache
         int bit,
         ref int mask
     ) {
-        if (neighbor.ID == 0)
+        if (!TryMatchNeighborFast(in sample, in context, in neighbor, out BrickFace neighborFace, out bool neighborHasOverrides, out bool connectedFast))
         {
             return;
+        }
+
+        if (connectedFast)
+        {
+            mask |= bit;
+            return;
+        }
+
+        ConnectToNeighborSlow(in sample, in context, in neighbor, offset, neighborFace, neighborHasOverrides, bit, ref mask);
+    }
+
+    private static bool TryMatchNeighborFast(
+        in VoxelSample sample,
+        in ConnectionContext context,
+        in Voxel neighbor,
+        out BrickFace neighborFace,
+        out bool neighborHasOverrides,
+        out bool connectedFast
+    ) {
+        neighborFace = default;
+        neighborHasOverrides = false;
+        connectedFast = false;
+
+        if (neighbor.ID == 0)
+        {
+            return false;
         }
 
         ShapeLight neighborShapeLight = neighbor.ShapeLight;
         if (neighborShapeLight.Shape != context.ShapeLight.Shape)
         {
-            return;
+            return false;
         }
 
         Orientation neighborOrientation = neighbor.GetOrientation();
         if (!AreOrientationsCompatible(context.ShapeLight.Shape, context.CenterOrientation, neighborOrientation))
         {
-            return;
+            return false;
         }
 
-        BrickFace neighborFace = neighborOrientation == context.CenterOrientation
+        neighborFace = neighborOrientation == context.CenterOrientation
             ? context.CenterFace
             : FaceOrientationLookup.ToLocalFace(neighborOrientation, context.WorldFace);
 
-        bool neighborHasOverrides = neighbor.HasFaceOverrides();
+        neighborHasOverrides = neighbor.HasFaceOverrides();
         if (!context.Surface.HasTextureOverride &&
             !neighborHasOverrides &&
             neighbor.ID == sample.Center.ID &&
             neighborFace == context.CenterFace &&
             context.Surface.IsSingleVariant)
         {
-            mask |= bit;
-            return;
+            connectedFast = true;
         }
 
+        return true;
+    }
+
+    private void ConnectToNeighborSlow(
+        in VoxelSample sample,
+        in ConnectionContext context,
+        in Voxel neighbor,
+        Int3 offset,
+        BrickFace neighborFace,
+        bool neighborHasOverrides,
+        int bit,
+        ref int mask
+    ) {
         int localNx = sample.Coords.X + offset.X;
         int localNy = sample.Coords.Y + offset.Y;
         int localNz = sample.Coords.Z + offset.Z;
