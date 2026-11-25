@@ -17,18 +17,15 @@ internal sealed class BrickSoundListener(
     /// <inheritdoc/>
     public Result<EventBehavior> ProcessEvent(object sender, BrickEvent e)
     {
-        if (e.Kind != BrickEventKind.Place && e.Kind != BrickEventKind.Break)
+        if (e.BrickID == 0 || (e.Kind != BrickEventKind.Place && e.Kind != BrickEventKind.Break))
         {
             return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
         }
 
-        if (e.BrickID != 0)
+        Result<Brick> brick = _brickDatabase.Get(e.BrickID);
+        if (brick.Success)
         {
-            Result<Brick> brick = _brickDatabase.Get(e.BrickID);
-            if (brick.Success)
-            {
-                _soundEffectService.PlayEffect(brick.Value, e.Kind);
-            }
+            _soundEffectService.PlayEffect(brick.Value, e.Kind);
         }
 
         return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
