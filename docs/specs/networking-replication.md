@@ -60,9 +60,21 @@ which flow as `VoxelEdit` notifications rather than snapshots.
   fully, and every superseded frame still has its non-motion components applied
   first, so one-shot state seeded early in the join burst (the starter
   inventory) survives a motion-superseding burst.
-- Applies `ServerOwned` components, disposes a despawned entity's physics body,
-  frees despawned entities, trims `PendingInputComponent` by
-  `LastProcessedInput`, and aligns the shared step with the snapshot tick.
+- Applies each snapshot in order: `RemovedEntities`, then `Components`, then
+  `RemovedComponents`.
+  - `RemovedEntities` disposes each despawned entity's physics body and frees
+    the entity first. A same-tick despawn and reallocation of one uuid frees the
+    old remote entity before `Components` allocates and populates the new one
+    with its one-shot components. The server collects components only from live
+    entities, so a normal despawn carries no components that could resurrect it.
+    `RemovedEntities` skips entities carrying `PlayerComponent` so a same-tick
+    rejoin never frees the freshly seated local player.
+  - `Components` applies `ServerOwned` components.
+  - `RemovedComponents` runs after `Components` so a pre-removal delta does not
+    overwrite a component removal in the same snapshot. Bare entities persist
+    until `RemovedEntities` frees them.
+- Trims `PendingInputComponent` by `LastProcessedInput`, and aligns the shared
+  step with the snapshot tick.
 - Creates a missing `PhysicsComponent` from the snapshot's body configuration
   and motion values. A body the client did not build itself (a remote player)
   materializes this way.
