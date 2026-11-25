@@ -1,0 +1,216 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             x:Class="WaywardBeyond.AssetStudio.Views.TagEditorView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel Spacing="10">
+    <!-- One-time Semantic Order Warning Banner -->
+    <Border IsVisible="{Binding ShowTagOrderWarning}" Classes="studio-banner-warning">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <StackPanel Grid.Column="0" Spacing="2">
+          <TextBlock Text="Semantic Tag Order Changed"
+                     FontSize="12"
+                     FontWeight="SemiBold"
+                     Foreground="{DynamicResource StudioWarningBrush}" />
+          <TextBlock Text="Tag order matters — reordering can affect generated content. Prefer appending new entries at the end."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+        </StackPanel>
+        <Button Grid.Column="1"
+                Classes="studio-btn-compact"
+                VerticalAlignment="Center"
+                Command="{Binding DismissTagOrderWarningCommand}"
+                Content="Dismiss" />
+      </Grid>
+    </Border>
+
+    <!-- Duplicate Flag Warning -->
+    <Border IsVisible="{Binding HasDuplicateTags}" Classes="studio-banner-danger">
+      <TextBlock Text="Duplicate tag entries detected in file order. Duplicates are flagged for manual review and are never auto-merged."
+                 FontSize="11.5"
+                 Foreground="{DynamicResource StudioDangerBrush}" />
+    </Border>
+
+    <!-- Two-Pane Side-by-Side Tag Editor -->
+    <Grid ColumnDefinitions="*,12,*">
+      <!-- Left Pane: Editable File Order -->
+      <Border Grid.Column="0" Classes="studio-card" ClipToBounds="True">
+        <StackPanel>
+          <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="0,0,0,1"
+                  Padding="12,8">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="1">
+                <TextBlock Text="File Order (Editable)" Classes="section-title" />
+                <TextBlock Text="Drag rows or use arrows · append by default"
+                           FontSize="10.5"
+                           Foreground="{DynamicResource StudioTextMutedBrush}" />
+              </StackPanel>
+              <Border Grid.Column="1" Classes="studio-badge" VerticalAlignment="Center">
+                <TextBlock Text="{Binding TagFileEntries.Count, StringFormat='{}{0} local'}"
+                           FontSize="10"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <!-- Append Row -->
+          <Grid ColumnDefinitions="*,Auto" Margin="10,10,10,6" ColumnSpacing="6">
+            <TextBox Grid.Column="0"
+                     Text="{Binding NewTagValue, Mode=TwoWay}"
+                     IsReadOnly="{Binding IsReadOnly}"
+                     Classes="studio-input mono"
+                     Watermark="Add tag ID (e.g. wb:core)..." />
+            <Button Grid.Column="1"
+                    Classes="studio-btn-primary"
+                    Command="{Binding AppendTagCommand}"
+                    IsEnabled="{Binding !IsReadOnly}"
+                    Content="+ Append" />
+          </Grid>
+
+          <!-- File Order List (Drag-and-Drop Enabled) -->
+          <ItemsControl x:Name="TagFileItemsControl" ItemsSource="{Binding TagFileEntries}" Margin="10,2,10,10">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:TagListEntryViewModel">
+                <Border CornerRadius="6"
+                        Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                        BorderBrush="{DynamicResource StudioBorderBrush}"
+                        BorderThickness="1"
+                        Padding="6,5,8,5"
+                        Margin="0,0,0,5"
+                        DragDrop.AllowDrop="True"
+                        Loaded="HandleTagRowLoaded">
+                  <Grid ColumnDefinitions="16,30,*,Auto,Auto" ColumnSpacing="6">
+                    <!-- 6-dot Drag Grip Handle -->
+                    <Border Grid.Column="0"
+                            Width="14"
+                            Height="20"
+                            Background="Transparent"
+                            Cursor="SizeNorthSouth"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="Drag to reorder"
+                            PointerPressed="HandleGripPointerPressed"
+                            PointerMoved="HandleGripPointerMoved"
+                            PointerReleased="HandleGripPointerReleased">
+                      <Path Width="8"
+                            Height="12"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Fill="{DynamicResource StudioTextMutedBrush}"
+                            Data="M 1,1 A 1,1 0 1 1 1,3 A 1,1 0 1 1 1,1 Z M 6,1 A 1,1 0 1 1 6,3 A 1,1 0 1 1 6,1 Z M 1,5 A 1,1 0 1 1 1,7 A 1,1 0 1 1 1,5 Z M 6,5 A 1,1 0 1 1 6,7 A 1,1 0 1 1 6,5 Z M 1,9 A 1,1 0 1 1 1,11 A 1,1 0 1 1 1,9 Z M 6,9 A 1,1 0 1 1 6,11 A 1,1 0 1 1 6,9 Z" />
+                    </Border>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding IndexLabel}"
+                               Classes="mono"
+                               FontSize="10.5"
+                               Foreground="{DynamicResource StudioTextMutedBrush}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding Value}"
+                               Classes="mono"
+                               FontSize="11.5"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <Border Grid.Column="3"
+                            Classes="studio-badge danger"
+                            IsVisible="{Binding IsDuplicate}"
+                            Margin="0,0,4,0">
+                      <TextBlock Text="duplicate" FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioDangerBrush}" />
+                    </Border>
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="3">
+                      <Button Classes="studio-btn-compact"
+                              Padding="6,0"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).MoveTagUpCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Move up (semantic order)">
+                        <TextBlock Text="↑" FontSize="11" />
+                      </Button>
+                      <Button Classes="studio-btn-compact"
+                              Padding="6,0"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).MoveTagDownCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Move down (semantic order)">
+                        <TextBlock Text="↓" FontSize="11" />
+                      </Button>
+                      <Button Classes="studio-btn-compact"
+                              Padding="6,0"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).DeleteTagCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove entry">
+                        <TextBlock Text="×" FontSize="12" />
+                      </Button>
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Right Pane: Live Read-Only Effective Order -->
+      <Border Grid.Column="2" Classes="studio-card" ClipToBounds="True">
+        <StackPanel>
+          <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="0,0,0,1"
+                  Padding="12,8">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel Grid.Column="0" Spacing="1">
+                <TextBlock Text="Effective Order (Read-Only)" Classes="section-title" />
+                <TextBlock Text="Live merged result with first-occurrence provenance"
+                           FontSize="10.5"
+                           Foreground="{DynamicResource StudioTextMutedBrush}" />
+              </StackPanel>
+              <Border Grid.Column="1" Classes="studio-badge info" VerticalAlignment="Center">
+                <TextBlock Text="{Binding TagEffectiveEntries.Count, StringFormat='{}{0} merged'}"
+                           FontSize="10"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource StudioInfoBrush}" />
+              </Border>
+            </Grid>
+          </Border>
+
+          <ItemsControl ItemsSource="{Binding TagEffectiveEntries}" Margin="10,10">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:TagListEntryViewModel">
+                <Border CornerRadius="6"
+                        Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                        BorderBrush="{DynamicResource StudioBorderBrush}"
+                        BorderThickness="1"
+                        Padding="8,6"
+                        Margin="0,0,0,5">
+                  <Grid ColumnDefinitions="30,*,Auto" ColumnSpacing="6">
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding IndexLabel}"
+                               Classes="mono"
+                               FontSize="10.5"
+                               Foreground="{DynamicResource StudioTextMutedBrush}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Value}"
+                               Classes="mono"
+                               FontSize="11.5"
+                               VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <Border Grid.Column="2"
+                            Classes="studio-badge"
+                            Classes.success="{Binding !IsBaseProvider}">
+                      <TextBlock Text="{Binding Provider}"
+                                 FontSize="9.5"
+                                 FontWeight="SemiBold" />
+                    </Border>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </StackPanel>
+</UserControl>

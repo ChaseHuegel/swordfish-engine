@@ -1,0 +1,1129 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls">
+
+  <!-- Collapsible Section Card Template -->
+  <Style Selector="controls|CollapsibleSectionCard">
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border CornerRadius="8"
+                Background="{DynamicResource StudioSurfaceBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Margin="0,0,0,8"
+                ClipToBounds="True">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                    BorderThickness="0,0,0,1"
+                    BorderBrush="{DynamicResource StudioBorderBrush}">
+              <Grid ColumnDefinitions="*,Auto">
+                <Button x:Name="PART_HeaderButton"
+                        Grid.Column="0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="12,7"
+                        CornerRadius="0"
+                        Cursor="Hand">
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <Grid Grid.Column="0" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center">
+                      <Path IsVisible="{TemplateBinding IsExpanded}"
+                            Data="M 1,3 L 5,7 L 9,3"
+                            Stroke="{DynamicResource StudioTextMutedBrush}"
+                            StrokeThickness="1.6"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                      <Path IsVisible="{Binding !IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                            Data="M 3,1 L 7,5 L 3,9"
+                            Stroke="{DynamicResource StudioTextMutedBrush}"
+                            StrokeThickness="1.6"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <TextBlock Text="{TemplateBinding Title}"
+                                 Classes="section-title"
+                                 VerticalAlignment="Center" />
+                      <Border Classes="studio-badge info"
+                              IsVisible="{TemplateBinding HasBadge}">
+                        <TextBlock Text="{TemplateBinding BadgeText}"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource StudioInfoBrush}" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Grid.Column="2"
+                               Text="{TemplateBinding Subtitle}"
+                               FontSize="11"
+                               Foreground="{DynamicResource StudioTextMutedBrush}"
+                               VerticalAlignment="Center" />
+                  </Grid>
+                </Button>
+                <ContentPresenter Grid.Column="1"
+                                  Content="{TemplateBinding HeaderAction}"
+                                  IsVisible="{TemplateBinding HasHeaderAction}"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+            <ContentPresenter Content="{TemplateBinding Content}"
+                              IsVisible="{TemplateBinding IsExpanded}"
+                              Margin="12,8,12,10" />
+          </StackPanel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <!-- Base Typography -->
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="{StaticResource StudioFontSans}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Background" Value="{DynamicResource StudioCanvasBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.mono">
+    <Setter Property="FontFamily" Value="{StaticResource StudioFontMono}" />
+  </Style>
+
+  <Style Selector="TextBlock.pane-title">
+    <Setter Property="FontSize" Value="10.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="0.8" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.section-title">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+  </Style>
+
+  <!-- Buttons -->
+  <Style Selector="Button.studio-btn">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.studio-btn:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+  </Style>
+  <Style Selector="Button.studio-btn:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.studio-btn:disabled">
+    <Setter Property="Opacity" Value="0.52" />
+  </Style>
+  <!-- Active toggle state placed AFTER base studio-btn so it takes precedence -->
+  <Style Selector="Button.studio-btn.active">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.studio-btn.active /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <Style Selector="Button.studio-btn-primary">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.studio-btn-primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentHoverBrush}" />
+  </Style>
+  <Style Selector="Button.studio-btn-primary:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Button.studio-btn-primary:disabled">
+    <Setter Property="Opacity" Value="0.68" />
+  </Style>
+
+  <!-- Primary SplitButton (Save All + Dropdown Actions) -->
+  <Style Selector="Button.studio-split-part">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="{TemplateBinding Background}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Foreground="{TemplateBinding Foreground}"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            RecognizesAccessKey="True" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.studio-split-part:pointerover">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentHoverBrush}" />
+  </Style>
+  <Style Selector="Button.studio-split-part:pressed">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentPressedBrush}" />
+  </Style>
+  <Style Selector="Button.studio-split-part:disabled">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="SplitButton.studio-split-primary">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="11,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_RootBorder"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                ClipToBounds="True">
+          <Grid ColumnDefinitions="*,1,24">
+            <Button x:Name="PART_PrimaryButton"
+                    Grid.Column="0"
+                    Classes="studio-split-part"
+                    Padding="{TemplateBinding Padding}"
+                    Content="{TemplateBinding Content}"
+                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                    Foreground="{TemplateBinding Foreground}"
+                    FontFamily="{TemplateBinding FontFamily}"
+                    FontSize="{TemplateBinding FontSize}"
+                    FontWeight="{TemplateBinding FontWeight}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+            <Border x:Name="PART_Separator"
+                    Grid.Column="1"
+                    Width="1"
+                    Margin="0,5"
+                    Background="#48FFFFFF" />
+            <Button x:Name="PART_SecondaryButton"
+                    Grid.Column="2"
+                    Classes="studio-split-part"
+                    Padding="0"
+                    Foreground="{TemplateBinding Foreground}"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center">
+              <Path Data="M 1,2 L 4.5,5.5 L 8,2"
+                    Stroke="{TemplateBinding Foreground}"
+                    StrokeThickness="1.6"
+                    StrokeLineCap="Round"
+                    StrokeJoin="Round"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+            </Button>
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="SplitButton.studio-split-primary:flyout-open /template/ Button#PART_SecondaryButton">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentPressedBrush}" />
+  </Style>
+  <Style Selector="SplitButton.studio-split-primary:disabled">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+    <Setter Property="Opacity" Value="0.68" />
+  </Style>
+  <Style Selector="SplitButton.studio-split-primary:disabled /template/ Border#PART_Separator">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentBorderBrush}" />
+  </Style>
+
+  <!-- Compact 28x28 Square Icon Button -->
+  <Style Selector="Button.studio-icon-btn">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinWidth" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.studio-icon-btn:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.studio-icon-btn:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceSunkenBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.studio-icon-btn:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.studio-icon-btn:disabled">
+    <Setter Property="Opacity" Value="0.38" />
+  </Style>
+  <!-- Active state placed AFTER base icon button selectors for Avalonia style precedence -->
+  <Style Selector="Button.studio-icon-btn.active">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+  <Style Selector="Button.studio-icon-btn.active /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+  <Style Selector="Button.studio-icon-btn.active:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <Style Selector="Button.studio-btn-danger">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource StudioDangerSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioDangerBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioDangerBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="Button.studio-btn-ghost">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.studio-btn-ghost:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.studio-btn-ghost:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.studio-btn-ghost:disabled">
+    <Setter Property="Opacity" Value="0.35" />
+  </Style>
+
+  <Style Selector="Button.studio-btn-compact">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.studio-btn-compact:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+  </Style>
+  <Style Selector="Button.studio-btn-compact:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.studio-btn-compact:disabled">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+  <Style Selector="Button.studio-btn-compact.active">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.studio-btn-compact.active /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <!-- Compact ToggleButton -->
+  <Style Selector="ToggleButton.studio-btn-compact">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="9,0" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="ToggleButton.studio-btn-compact:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.studio-btn-compact:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <Style Selector="Button.raw-toggle">
+    <Setter Property="Width" Value="26" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="MinWidth" Value="26" />
+    <Setter Property="MinHeight" Value="26" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontFamily" Value="{StaticResource StudioFontMono}" />
+    <Setter Property="FontSize" Value="10.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.raw-toggle:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.raw-toggle.active /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <!-- Segmented Buttons -->
+  <Style Selector="Button.seg-btn">
+    <Setter Property="Height" Value="24" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.seg-btn:disabled /template/ ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+  <Style Selector="Button.seg-btn:disabled">
+    <Setter Property="Opacity" Value="0.36" />
+  </Style>
+  <Style Selector="Button.seg-btn.active /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <!-- Inputs -->
+  <Style Selector="TextBox">
+    <Setter Property="IsUndoEnabled" Value="False" />
+  </Style>
+  <Style Selector="TextBox.studio-input">
+    <Setter Property="IsUndoEnabled" Value="False" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceSunkenBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBox.studio-input:read-only /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+  </Style>
+  <Style Selector="TextBox.studio-input:read-only">
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBox.studio-input.mono">
+    <Setter Property="FontFamily" Value="{StaticResource StudioFontMono}" />
+    <Setter Property="FontSize" Value="11.5" />
+  </Style>
+  <Style Selector="TextBox.studio-input.danger">
+    <Setter Property="Background" Value="{DynamicResource StudioDangerSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioDangerBrush}" />
+  </Style>
+
+  <Style Selector="ComboBox.studio-combo">
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceSunkenBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="ComboBox.studio-combo:disabled /template/ Border#Background">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+  </Style>
+  <Style Selector="ComboBox.studio-combo:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+    <Setter Property="Opacity" Value="0.72" />
+  </Style>
+
+  <!-- Badges & Pills -->
+  <Style Selector="Border.studio-badge">
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.studio-badge.info">
+    <Setter Property="Background" Value="{DynamicResource StudioInfoSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioInfoBorderBrush}" />
+  </Style>
+  <Style Selector="Border.studio-badge.info > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StudioInfoBrush}" />
+  </Style>
+  <Style Selector="Border.studio-badge.success">
+    <Setter Property="Background" Value="{DynamicResource StudioSuccessSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioSuccessBorderBrush}" />
+  </Style>
+  <Style Selector="Border.studio-badge.success > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StudioSuccessBrush}" />
+  </Style>
+  <Style Selector="Border.studio-badge.warning">
+    <Setter Property="Background" Value="{DynamicResource StudioWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioWarningBorderBrush}" />
+  </Style>
+  <Style Selector="Border.studio-badge.warning > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StudioWarningBrush}" />
+  </Style>
+  <Style Selector="Border.studio-badge.danger">
+    <Setter Property="Background" Value="{DynamicResource StudioDangerSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioDangerBorderBrush}" />
+  </Style>
+  <Style Selector="Border.studio-badge.danger > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource StudioDangerBrush}" />
+  </Style>
+
+  <!-- Clickable Validation Severity Filter Pill Buttons -->
+  <Style Selector="Button.studio-badge-btn">
+    <Setter Property="Height" Value="21" />
+    <Setter Property="MinHeight" Value="21" />
+    <Setter Property="Padding" Value="7,0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_PillBorder"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Foreground="{TemplateBinding Foreground}"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.studio-badge-btn:pointerover">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn:disabled">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+
+  <Style Selector="Button.studio-badge-btn.info">
+    <Setter Property="Background" Value="{DynamicResource StudioInfoSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioInfoBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioInfoBrush}" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.info:pointerover">
+    <Setter Property="Background" Value="{DynamicResource StudioInfoSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioInfoBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioInfoBrush}" />
+  </Style>
+
+  <Style Selector="Button.studio-badge-btn.warning">
+    <Setter Property="Background" Value="{DynamicResource StudioWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioWarningBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioWarningBrush}" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.warning:pointerover">
+    <Setter Property="Background" Value="{DynamicResource StudioWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioWarningBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioWarningBrush}" />
+  </Style>
+
+  <Style Selector="Button.studio-badge-btn.danger">
+    <Setter Property="Background" Value="{DynamicResource StudioDangerSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioDangerBorderBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioDangerBrush}" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.danger:pointerover">
+    <Setter Property="Background" Value="{DynamicResource StudioDangerSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioDangerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioDangerBrush}" />
+  </Style>
+
+  <!-- Active filter badge states placed AFTER base and semantic variants -->
+  <Style Selector="Button.studio-badge-btn.active">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.active /template/ Border#PART_PillBorder">
+    <Setter Property="BoxShadow" Value="0 0 0 1 #554F8CFF" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.info.active">
+    <Setter Property="Background" Value="{DynamicResource StudioInfoSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioInfoBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioInfoBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.info.active /template/ Border#PART_PillBorder">
+    <Setter Property="BoxShadow" Value="0 0 0 1 #5560A5FA" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.warning.active">
+    <Setter Property="Background" Value="{DynamicResource StudioWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioWarningBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioWarningBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.warning.active /template/ Border#PART_PillBorder">
+    <Setter Property="BoxShadow" Value="0 0 0 1 #55F5B749" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.danger.active">
+    <Setter Property="Background" Value="{DynamicResource StudioDangerSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioDangerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioDangerBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Button.studio-badge-btn.danger.active /template/ Border#PART_PillBorder">
+    <Setter Property="BoxShadow" Value="0 0 0 1 #55F87171" />
+  </Style>
+
+  <!-- Color Swatch Picker Trigger, Palette Swatches, Sliders, and Flyout Surfaces -->
+  <Style Selector="Button.studio-color-swatch">
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="MinWidth" Value="24" />
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_SwatchBorder"
+                Width="{TemplateBinding Width}"
+                Height="{TemplateBinding Height}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" />
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.studio-color-swatch:pointerover">
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Button.studio-color-swatch:disabled">
+    <Setter Property="Opacity" Value="0.72" />
+    <Setter Property="Cursor" Value="Arrow" />
+  </Style>
+
+  <Style Selector="Button.studio-palette-swatch">
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="MinWidth" Value="16" />
+    <Setter Property="MinHeight" Value="16" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_PaletteSwatchBorder"
+                Width="{TemplateBinding Width}"
+                Height="{TemplateBinding Height}"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" />
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.studio-palette-swatch:pointerover">
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentHoverBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Button.studio-palette-swatch.active">
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="Slider.studio-color-slider">
+    <Setter Property="Height" Value="20" />
+    <Setter Property="MinHeight" Value="20" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid VerticalAlignment="Center" Height="20" Background="Transparent">
+          <Border Height="4"
+                  CornerRadius="2"
+                  Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  VerticalAlignment="Center" />
+          <Track Name="PART_Track"
+                 Minimum="{TemplateBinding Minimum}"
+                 Maximum="{TemplateBinding Maximum}"
+                 Value="{TemplateBinding Value, Mode=TwoWay}"
+                 Orientation="Horizontal"
+                 IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+            <Track.DecreaseButton>
+              <RepeatButton Name="PART_DecreaseButton"
+                            Background="{TemplateBinding Foreground}"
+                            Focusable="False"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Center"
+                            Height="4"
+                            CornerRadius="2,0,0,2"
+                            Padding="0"
+                            BorderThickness="0">
+                <RepeatButton.Template>
+                  <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Height="4" />
+                  </ControlTemplate>
+                </RepeatButton.Template>
+              </RepeatButton>
+            </Track.DecreaseButton>
+            <Track.IncreaseButton>
+              <RepeatButton Name="PART_IncreaseButton"
+                            Background="Transparent"
+                            Focusable="False"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Center"
+                            Height="16"
+                            Padding="0"
+                            BorderThickness="0">
+                <RepeatButton.Template>
+                  <ControlTemplate>
+                    <Border Background="Transparent" />
+                  </ControlTemplate>
+                </RepeatButton.Template>
+              </RepeatButton>
+            </Track.IncreaseButton>
+            <Track.Thumb>
+              <Thumb Width="12"
+                     Height="12"
+                     VerticalAlignment="Center">
+                <Thumb.Template>
+                  <ControlTemplate>
+                    <Border Width="12"
+                            Height="12"
+                            CornerRadius="6"
+                            Background="{DynamicResource StudioTextPrimaryBrush}"
+                            BorderBrush="{DynamicResource StudioSurfaceSunkenBrush}"
+                            BorderThickness="1.5" />
+                  </ControlTemplate>
+                </Thumb.Template>
+              </Thumb>
+            </Track.Thumb>
+          </Track>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="FlyoutPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="12" />
+  </Style>
+
+  <Style Selector="ContextMenu, MenuFlyoutPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="4" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="ContextMenu /template/ Border#LayoutRoot, MenuFlyoutPresenter /template/ Border#LayoutRoot">
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="BoxShadow" Value="0 10 28 0 #55000000" />
+  </Style>
+
+  <Style Selector="MenuItem">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Padding" Value="10,6" />
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="MenuItem /template/ Border#PART_LayoutRoot">
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="MenuItem /template/ TextBlock#PART_InputGestureText">
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+  <Style Selector="MenuItem:pointerover /template/ Border#PART_LayoutRoot, MenuItem:selected /template/ Border#PART_LayoutRoot, MenuItem:pressed /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+  </Style>
+  <Style Selector="MenuItem:pointerover /template/ ContentPresenter#PART_HeaderPresenter, MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter, MenuItem:pressed /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextPrimaryBrush}" />
+  </Style>
+  <Style Selector="MenuItem.danger">
+    <Setter Property="Foreground" Value="{DynamicResource StudioDangerBrush}" />
+  </Style>
+  <Style Selector="MenuItem.danger /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource StudioDangerBrush}" />
+  </Style>
+  <Style Selector="MenuItem.danger:pointerover /template/ Border#PART_LayoutRoot, MenuItem.danger:selected /template/ Border#PART_LayoutRoot, MenuItem.danger:pressed /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource StudioDangerSurfaceBrush}" />
+  </Style>
+  <Style Selector="MenuItem.danger:pointerover /template/ ContentPresenter#PART_HeaderPresenter, MenuItem.danger:selected /template/ ContentPresenter#PART_HeaderPresenter, MenuItem.danger:pressed /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource StudioDangerBrush}" />
+  </Style>
+  <Style Selector="MenuItem:disabled">
+    <Setter Property="Opacity" Value="0.48" />
+  </Style>
+  <Style Selector="MenuItem:disabled /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="MenuItem:disabled /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+  <Style Selector="MenuItem.danger:disabled /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="MenuItem.danger:disabled /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextMutedBrush}" />
+  </Style>
+  <Style Selector="ContextMenu Separator, MenuFlyoutPresenter Separator">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="MinHeight" Value="1" />
+    <Setter Property="Margin" Value="6,4" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="{DynamicResource StudioBorderBrush}" />
+  </Style>
+
+  <!-- Cards & Banners -->
+  <Style Selector="Border.studio-card">
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Border.studio-dialog">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BoxShadow" Value="0 16 48 0 #55000000" />
+  </Style>
+
+  <Style Selector="Border.studio-banner-danger">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="Background" Value="{DynamicResource StudioDangerSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioDangerBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Border.studio-banner-warning">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="Background" Value="{DynamicResource StudioWarningSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioWarningBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Border.studio-banner-info">
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="Background" Value="{DynamicResource StudioInfoSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioInfoBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <!-- Generous 7px Grab-Target GridSplitters with Crisp 1px Structural Hairline -->
+  <Style Selector="GridSplitter.studio-splitter-v">
+    <Setter Property="Width" Value="7" />
+    <Setter Property="MinWidth" Value="7" />
+    <Setter Property="Margin" Value="-3,0" />
+    <Setter Property="ZIndex" Value="20" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="ResizeDirection" Value="Columns" />
+    <Setter Property="Cursor" Value="SizeWestEast" />
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="Transparent">
+          <Border x:Name="PART_VisualLine"
+                  Width="1"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Stretch"
+                  Background="{DynamicResource StudioBorderBrush}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="GridSplitter.studio-splitter-v:pointerover /template/ Border#PART_VisualLine">
+    <Setter Property="Width" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+  <Style Selector="GridSplitter.studio-splitter-v:pressed /template/ Border#PART_VisualLine">
+    <Setter Property="Width" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource StudioAccentHoverBrush}" />
+  </Style>
+
+  <Style Selector="GridSplitter.studio-splitter-h">
+    <Setter Property="Height" Value="7" />
+    <Setter Property="MinHeight" Value="7" />
+    <Setter Property="Margin" Value="0,-3" />
+    <Setter Property="ZIndex" Value="20" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="ResizeDirection" Value="Rows" />
+    <Setter Property="Cursor" Value="SizeNorthSouth" />
+    <Setter Property="ClipToBounds" Value="False" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Background="Transparent">
+          <Border x:Name="PART_VisualLine"
+                  Height="1"
+                  HorizontalAlignment="Stretch"
+                  VerticalAlignment="Center"
+                  Background="{DynamicResource StudioBorderBrush}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="GridSplitter.studio-splitter-h:pointerover /template/ Border#PART_VisualLine">
+    <Setter Property="Height" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+  <Style Selector="GridSplitter.studio-splitter-h:pressed /template/ Border#PART_VisualLine">
+    <Setter Property="Height" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource StudioAccentHoverBrush}" />
+  </Style>
+
+  <!-- Tree & Palette row buttons -->
+  <Style Selector="Button.tree-row">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="2,0,0,0" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Padding" Value="10,5,8,5" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.tree-row:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+  </Style>
+  <Style Selector="Button.tree-row.selected">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+  <Style Selector="Button.tree-row.selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+
+  <!-- Clickable Card Button -->
+  <Style Selector="Button.card-action">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.card-action:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+  </Style>
+
+  <!-- Image Thumbnail Picker Tiles -->
+  <Style Selector="Button.studio-image-tile">
+    <Setter Property="Padding" Value="4,5" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceSunkenBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource StudioTextSecondaryBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_TileBorder"
+                CornerRadius="{TemplateBinding CornerRadius}"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                Padding="{TemplateBinding Padding}">
+          <ContentPresenter Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.studio-image-tile:pointerover">
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceElevatedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBorderBrush}" />
+  </Style>
+  <Style Selector="Button.studio-image-tile:pressed">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+  </Style>
+  <Style Selector="Button.studio-image-tile.active">
+    <Setter Property="Background" Value="{DynamicResource StudioAccentSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+  <Style Selector="Button.studio-image-tile:disabled">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+
+  <!-- Empty Workspace / Uninitialized Folder Guidance Card -->
+  <Style Selector="Border.studio-empty-state-card">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{DynamicResource StudioSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="24,22" />
+    <Setter Property="MaxWidth" Value="480" />
+  </Style>
+
+</Styles>

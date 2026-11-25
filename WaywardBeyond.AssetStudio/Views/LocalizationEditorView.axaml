@@ -1,0 +1,111 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             x:Class="WaywardBeyond.AssetStudio.Views.LocalizationEditorView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel Spacing="10">
+    <!-- Locale & Filter Toolbar -->
+    <Border Classes="studio-card" Padding="10,8">
+      <Grid ColumnDefinitions="Auto,140,*,Auto" ColumnSpacing="10">
+        <TextBlock Grid.Column="0"
+                   Text="Content Locale"
+                   FontSize="12"
+                   FontWeight="Medium"
+                   Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                   VerticalAlignment="Center" />
+        <ComboBox Grid.Column="1"
+                  ItemsSource="{x:Static vm:AssetDocumentViewModel.LOCALE_OPTIONS}"
+                  SelectedItem="{Binding SelectedLocale, Mode=TwoWay}"
+                  Classes="studio-combo" />
+        <TextBox Grid.Column="2"
+                 Text="{Binding LocalizationFilterText, Mode=TwoWay}"
+                 Classes="studio-input"
+                 Watermark="Filter keys or translations..." />
+        <Button Grid.Column="3"
+                Classes="studio-btn-primary"
+                Command="{Binding AddLocalizationRowCommand}"
+                IsEnabled="{Binding !IsReadOnly}"
+                Content="+ Add Key" />
+      </Grid>
+    </Border>
+
+    <!-- Key-Value Editable Table -->
+    <Border Classes="studio-card" ClipToBounds="True">
+      <StackPanel>
+        <Grid ColumnDefinitions="285,*,36"
+              Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              Height="30">
+          <TextBlock Grid.Column="0" Text="TRANSLATION KEY" Classes="pane-title" VerticalAlignment="Center" Margin="12,0" />
+          <TextBlock Grid.Column="1"
+                     Text="{Binding SelectedLocale, StringFormat='VALUE ({0})'}"
+                     Classes="pane-title"
+                     VerticalAlignment="Center"
+                     Margin="8,0" />
+        </Grid>
+
+        <ItemsControl ItemsSource="{Binding FilteredLocalizationRows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:LocalizationRowViewModel">
+              <Border BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="0,1,0,0"
+                      Padding="10,6">
+                <Grid ColumnDefinitions="275,*,28" ColumnSpacing="8">
+                  <TextBox Grid.Column="0"
+                           Text="{Binding Key, Mode=TwoWay}"
+                           IsReadOnly="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).IsReadOnly}"
+                           Classes="studio-input mono"
+                           Classes.danger="{Binding IsDuplicateKey}"
+                           ToolTip.Tip="Edit translation key" />
+                  <TextBox Grid.Column="1"
+                           Text="{Binding ActiveValue, Mode=TwoWay}"
+                           IsReadOnly="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).IsReadOnly}"
+                           Classes="studio-input" />
+                  <Button Grid.Column="2"
+                          Classes="studio-btn-ghost"
+                          Width="26"
+                          Height="26"
+                          MinHeight="26"
+                          Padding="0"
+                          IsEnabled="{Binding !$parent[UserControl].((vm:AssetDocumentViewModel)DataContext).IsReadOnly}"
+                          Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).DeleteLocalizationRowCommand}"
+                          CommandParameter="{Binding}"
+                          ToolTip.Tip="Delete translation key">
+                    <TextBlock Text="×" FontSize="14" />
+                  </Button>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Bottom Inline + Add Key Row -->
+        <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="10,8">
+          <Grid ColumnDefinitions="275,*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="NewLocalizationKeyInput"
+                     Grid.Column="0"
+                     Text="{Binding NewLocalizationKey, Mode=TwoWay}"
+                     IsReadOnly="{Binding IsReadOnly}"
+                     Classes="studio-input mono"
+                     Watermark="new.translation.key"
+                     KeyDown="HandleNewKeyInputKeyDown" />
+            <TextBox x:Name="NewLocalizationValueInput"
+                     Grid.Column="1"
+                     Text="{Binding NewLocalizationValue, Mode=TwoWay}"
+                     IsReadOnly="{Binding IsReadOnly}"
+                     Classes="studio-input"
+                     Watermark="Initial translation text..."
+                     KeyDown="HandleNewKeyInputKeyDown" />
+            <Button Grid.Column="2"
+                    Classes="studio-btn-primary"
+                    Command="{Binding AddLocalizationRowCommand}"
+                    IsEnabled="{Binding !IsReadOnly}"
+                    Content="+ Add Key" />
+          </Grid>
+        </Border>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

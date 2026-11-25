@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.TomlSourceView"
+             x:DataType="vm:AssetDocumentViewModel"
+             x:Name="RootTomlView">
+  <Border Classes="studio-card" ClipToBounds="True">
+    <DockPanel>
+      <!-- Code View Header -->
+      <Border DockPanel.Dock="Top"
+              Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="12,7">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBlock Text="TOML Source"
+                       FontSize="11.5"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            <Border Classes="studio-badge" IsVisible="{Binding !HasSyntaxError}">
+              <TextBlock Text="Comments &amp; formatting preserved"
+                         FontSize="10"
+                         Foreground="{DynamicResource StudioTextMutedBrush}" />
+            </Border>
+            <Border Classes="studio-badge danger" IsVisible="{Binding HasSyntaxError}">
+              <TextBlock Text="{Binding SyntaxErrorLineNumber, StringFormat='Line {0} · Syntax Error · Raw Edit Active'}"
+                         Classes="mono"
+                         FontSize="10"
+                         FontWeight="SemiBold" />
+            </Border>
+          </StackPanel>
+
+          <ToggleButton Grid.Column="1"
+                        Classes="studio-btn-compact"
+                        IsChecked="{Binding IsEditingRawToml, Mode=TwoWay}"
+                        Content="Edit Raw Text" />
+        </Grid>
+      </Border>
+
+      <!-- Highlighted Read View vs Direct Raw Text Editor (syntax-error files open straight in raw edit!) -->
+      <Grid Background="{DynamicResource StudioSurfaceSunkenBrush}">
+        <ScrollViewer IsVisible="{Binding !IsEditingRawToml}"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+          <controls:TomlSyntaxTextView SourceText="{Binding TomlText}"
+                                       ErrorLineNumber="{Binding SyntaxErrorLineNumber}"
+                                       TextBrush="{DynamicResource StudioTextPrimaryBrush}"
+                                       CommentBrush="{DynamicResource StudioCodeCommentBrush}"
+                                       SectionBrush="{DynamicResource StudioCodeSectionBrush}"
+                                       KeyBrush="{DynamicResource StudioCodeKeyBrush}"
+                                       StringBrush="{DynamicResource StudioCodeStringBrush}"
+                                       NumberBrush="{DynamicResource StudioCodeNumberBrush}"
+                                       GutterBrush="{DynamicResource StudioTextMutedBrush}"
+                                       ErrorBackgroundBrush="{DynamicResource StudioDangerSurfaceBrush}" />
+        </ScrollViewer>
+
+        <TextBox IsVisible="{Binding IsEditingRawToml}"
+                 Text="{Binding TomlText, Mode=TwoWay}"
+                 IsReadOnly="{Binding IsReadOnly}"
+                 IsUndoEnabled="False"
+                 AcceptsReturn="True"
+                 AcceptsTab="True"
+                 TextWrapping="NoWrap"
+                 FontFamily="{StaticResource StudioFontMono}"
+                 FontSize="12"
+                 Padding="14,12"
+                 BorderThickness="0"
+                 Background="Transparent"
+                 Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+      </Grid>
+    </DockPanel>
+  </Border>
+</UserControl>

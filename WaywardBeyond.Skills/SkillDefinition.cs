@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace WaywardBeyond.Skills;
 
 /// <summary>Defines a skill asset.</summary>
-internal struct SkillDefinition()
+public struct SkillDefinition()
 {
     /// <summary>The unique ID of the skill.</summary>
     public string? ID;

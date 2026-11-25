@@ -1,0 +1,13 @@
+{
+  "solution": {
+    "path": "Swordfish.sln",
+    "projects": [
+      "WaywardBeyond.AssetStudio.Tests\\WaywardBeyond.AssetStudio.Tests.csproj",
+      "WaywardBeyond.AssetStudio\\WaywardBeyond.AssetStudio.csproj",
+      "WaywardBeyond.AssetTools.Cli\\WaywardBeyond.AssetTools.Cli.csproj",
+      "WaywardBeyond.AssetTools.Tests\\WaywardBeyond.AssetTools.Tests.csproj",
+      "WaywardBeyond.AssetTools\\WaywardBeyond.AssetTools.csproj",
+      "WaywardBeyond.Meshing\\WaywardBeyond.Meshing.csproj"
+    ]
+  }
+}

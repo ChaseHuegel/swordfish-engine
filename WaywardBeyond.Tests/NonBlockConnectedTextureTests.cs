@@ -8,8 +8,9 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Graphics;
-using WaywardBeyond.Client.Voxels.Processing;
+using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
 
@@ -154,7 +155,13 @@ public class NonBlockConnectedTextureTests
         paints.Add(2, Paint.CreateTexture("wb:caution", "caution", BrickAlpha.Opaque, connected: false, ["caution"]));
 
         var state = new MeshState();
-        var pass = new MeshPostPass(state, bricks, arrays, new StubMeshDatabase(), paints);
+        var pass = new MeshPostPass(
+            state,
+            bricks,
+            new TextureArrayLayerLookup(albedo),
+            new EngineMeshPreviewDatabase(new StubMeshDatabase()),
+            paints
+        );
         return (state, pass, albedo.IndexOf("panel.0"), albedo.IndexOf("caution"));
     }
 
@@ -437,7 +444,12 @@ public class NonBlockConnectedTextureTests
 
         var meshDb = new BoundaryMeshDatabase();
         var state = new MeshState();
-        var pass = new MeshPostPass(state, bricks, arrays, meshDb);
+        var pass = new MeshPostPass(
+            state,
+            bricks,
+            new TextureArrayLayerLookup(albedo),
+            new EngineMeshPreviewDatabase(meshDb)
+        );
 
         var voxels = new VoxelObject(8);
         var glassSlope = new Voxel(1, new ShapeLight(BrickShape.Slope, 15), 0);
@@ -479,7 +491,12 @@ public class NonBlockConnectedTextureTests
 
         var meshDb = new BoundaryMeshDatabase();
         var state = new MeshState();
-        var pass = new MeshPostPass(state, bricks, arrays, meshDb);
+        var pass = new MeshPostPass(
+            state,
+            bricks,
+            new TextureArrayLayerLookup(albedo),
+            new EngineMeshPreviewDatabase(meshDb)
+        );
 
         var voxels = new VoxelObject(8);
         byte yaw90 = new Orientation(pitch: 0, yaw: 1, roll: 0).ToByte();

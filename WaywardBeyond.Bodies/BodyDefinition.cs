@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace WaywardBeyond.Bodies;
 
 /// <summary>Defines a visual body asset.</summary>
-internal struct BodyDefinition()
+public struct BodyDefinition()
 {
     /// <summary>The unique ID of the body.</summary>
     public string? ID;

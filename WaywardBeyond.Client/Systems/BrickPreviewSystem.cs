@@ -6,6 +6,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
@@ -85,7 +86,7 @@ internal sealed class BrickPreviewSystem(
 
     private bool TrySetRenderer(DataStore store, Brick brick, in PreviewKey key)
     {
-        Result<Mesh> meshResult = _meshBuilder.Build(brick, _state.Shape, _state.Orientation);
+        Result<VoxelMesh> meshResult = _meshBuilder.Build(brick, _state.Shape, _state.Orientation);
         if (!meshResult.Success)
         {
             return false;
@@ -93,7 +94,7 @@ internal sealed class BrickPreviewSystem(
 
         RenderOptions options = _materials.GetRenderOptions(brick.Alpha);
         options.CastShadows = false;
-        var renderer = new MeshRenderer(meshResult.Value, _materials.GetMaterial(brick.Alpha), options);
+        var renderer = new MeshRenderer(meshResult.Value.ToEngineMesh(), _materials.GetMaterial(brick.Alpha), options);
 
         _activeKey = key;
         _activeRenderer = renderer;

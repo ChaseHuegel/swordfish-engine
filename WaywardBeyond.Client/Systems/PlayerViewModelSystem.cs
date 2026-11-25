@@ -11,6 +11,7 @@ using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Items;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
@@ -162,18 +163,18 @@ internal sealed class PlayerViewModelSystem(
             if (brickResult.Success)
             {
                 Brick brick = brickResult.Value;
-                Result<Mesh> brickMesh = _brickMeshBuilder.Build(brick, shape, Orientation.Identity);
+                Result<VoxelMesh> brickMesh = _brickMeshBuilder.Build(brick, shape, Orientation.Identity);
                 if (brickMesh.Success)
                 {
                     RenderOptions options = _voxelMaterials.GetRenderOptions(brick.Alpha);
                     options.CastShadows = false;
                     options.ReceiveShadows = true;
-                    return new ResolvedVisuals(brickMesh.Value, _voxelMaterials.GetMaterial(brick.Alpha), options);
+                    return new ResolvedVisuals(brickMesh.Value.ToEngineMesh(), _voxelMaterials.GetMaterial(brick.Alpha), options);
                 }
             }
         }
 
-        Mesh fallbackMesh = _brickMeshBuilder.BuildFallback();
+        Mesh fallbackMesh = _brickMeshBuilder.BuildFallback().ToEngineMesh();
         RenderOptions fallbackOptions = _voxelMaterials.OpaqueOptions;
         fallbackOptions.CastShadows = false;
         fallbackOptions.ReceiveShadows = true;

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>13</LangVersion>
+        <Version>0.1.0-alpha</Version>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
+        <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
+    </ItemGroup>
+
+</Project>

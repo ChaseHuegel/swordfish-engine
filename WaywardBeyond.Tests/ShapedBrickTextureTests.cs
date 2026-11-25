@@ -15,6 +15,7 @@ using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Localization;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
 
@@ -130,7 +131,12 @@ public class ShapedBrickTextureTests
             var other = new TextureArray("other", [CreateTexture("other")], mipmaps: false);
             var textureArrays = new PBRTextureArrays(Albedo, other, other, other, other, other);
 
-            Builder = new BrickPreviewMeshBuilder(Registry, Bricks, textureArrays, Meshes);
+            Builder = new BrickPreviewMeshBuilder(
+                Registry,
+                Bricks,
+                new TextureArrayLayerLookup(Albedo),
+                new EngineMeshPreviewDatabase(Meshes)
+            );
         }
 
         public Brick AddBrick(BrickShape shape, BrickTextures textures, string? meshID = null)
@@ -211,7 +217,7 @@ public class ShapedBrickTextureTests
             }
         );
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
 
         Assert.True(result.Success);
         Vector3[] uvs = result.Value.Uv;
@@ -237,7 +243,7 @@ public class ShapedBrickTextureTests
             }
         );
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
 
         Assert.True(result.Success);
         Vector3[] uvs = result.Value.Uv;
@@ -265,7 +271,7 @@ public class ShapedBrickTextureTests
             }
         );
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
 
         Assert.True(result.Success);
         Vector3[] uvs = result.Value.Uv;
@@ -298,7 +304,7 @@ public class ShapedBrickTextureTests
             }
         );
 
-        Result<Mesh> result = fixture.Builder.Build(brick, shape, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, shape, Orientation.Identity);
 
         Assert.True(result.Success);
         Vector3[] uvs = result.Value.Uv;
@@ -329,7 +335,7 @@ public class ShapedBrickTextureTests
         );
 
         var rotated = new Orientation(pitch: 1, yaw: 2, roll: 0);
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Slope, rotated);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Slope, rotated);
 
         Assert.True(result.Success);
         Vector3[] uvs = result.Value.Uv;
@@ -360,7 +366,7 @@ public class ShapedBrickTextureTests
             meshID: "custom.obj"
         );
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Custom, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Custom, Orientation.Identity);
 
         Assert.True(result.Success);
         Vector3[] uvs = result.Value.Uv;
@@ -381,7 +387,7 @@ public class ShapedBrickTextureTests
             }
         );
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
 
         Assert.True(result.Success);
         int expected = fixture.IndexOf(DEFAULT_TEX);
@@ -401,7 +407,7 @@ public class ShapedBrickTextureTests
             }
         );
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Slope, Orientation.Identity);
 
         Assert.True(result.Success);
         float frontLayer = result.Value.Uv[4].Z;
@@ -440,9 +446,14 @@ public class ShapedBrickTextureTests
         var other = new TextureArray("other", [new Texture("other", [255, 255, 255, 255], 1, 1, mipmaps: false)], mipmaps: false);
         var meshes = new TestMeshDatabase();
         meshes.Meshes["slope.obj"] = CreateSlopeLikeMesh();
-        var builder = new BrickPreviewMeshBuilder(bricks, bricks, new PBRTextureArrays(albedo, other, other, other, other, other), meshes);
+        var builder = new BrickPreviewMeshBuilder(
+            bricks,
+            bricks,
+            new TextureArrayLayerLookup(albedo),
+            new EngineMeshPreviewDatabase(meshes)
+        );
 
-        Result<Mesh> result = builder.Build(console, BrickShape.Slope, Orientation.Identity);
+        Result<VoxelMesh> result = builder.Build(console, BrickShape.Slope, Orientation.Identity);
 
         Assert.True(result.Success);
         Vector3[] uvs = result.Value.Uv;

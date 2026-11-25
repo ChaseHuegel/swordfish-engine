@@ -29,6 +29,7 @@
         <ProjectReference Include="..\WaywardBeyond.Items\WaywardBeyond.Items.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <ProjectReference Include="..\WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Meshing\WaywardBeyond.Meshing.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
     <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />

@@ -10,6 +10,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Items;
@@ -77,14 +78,14 @@ internal sealed class BrickIconRenderer : IDisposable
             {
                 Brick brick = bricks[i];
                 BrickShape shape = GetIconShape(brick);
-                Result<Mesh> meshResult = _meshBuilder.Build(brick, shape, Orientation.Identity);
+                Result<VoxelMesh> meshResult = _meshBuilder.Build(brick, shape, Orientation.Identity);
                 if (!meshResult.Success)
                 {
                     _logger.LogError(meshResult, "Failed to build icon mesh for brick \"{brick}\".", brick.ID);
                     continue;
                 }
 
-                Mesh mesh = meshResult.Value;
+                Mesh mesh = meshResult.Value.ToEngineMesh();
                 (Matrix4x4 view, Matrix4x4 projection) = ComputeIsometricCamera(mesh.Vertices);
 
                 brickIds.Add(brick.ID);

@@ -1,0 +1,236 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <FontFamily x:Key="StudioFontSans">avares://Avalonia.Fonts.Inter/Assets#Inter, Segoe UI, Liberation Sans</FontFamily>
+  <FontFamily x:Key="StudioFontMono">Cascadia Mono, Consolas, Liberation Mono, Monospace</FontFamily>
+
+  <CornerRadius x:Key="StudioRadiusSm">4</CornerRadius>
+  <CornerRadius x:Key="StudioRadiusMd">6</CornerRadius>
+  <CornerRadius x:Key="StudioRadiusLg">10</CornerRadius>
+  <CornerRadius x:Key="StudioRadiusPill">999</CornerRadius>
+
+  <ResourceDictionary.ThemeDictionaries>
+    <ResourceDictionary x:Key="Dark">
+      <Color x:Key="StudioCanvasColor">#12151C</Color>
+      <Color x:Key="StudioSurfaceColor">#181C25</Color>
+      <Color x:Key="StudioSurfaceElevatedColor">#1F2533</Color>
+      <Color x:Key="StudioSurfaceSunkenColor">#0E1117</Color>
+      <Color x:Key="StudioBorderColor">#2A3244</Color>
+      <Color x:Key="StudioBorderStrongColor">#3B465E</Color>
+
+      <Color x:Key="StudioTextPrimaryColor">#EEF2F8</Color>
+      <Color x:Key="StudioTextSecondaryColor">#A8B5CC</Color>
+      <Color x:Key="StudioTextMutedColor">#7886A0</Color>
+
+      <Color x:Key="StudioAccentColor">#4F8CFF</Color>
+      <Color x:Key="StudioAccentHoverColor">#689DFF</Color>
+      <Color x:Key="StudioAccentPressedColor">#3A76E8</Color>
+      <Color x:Key="StudioAccentForegroundColor">#FFFFFF</Color>
+      <Color x:Key="StudioAccentSurfaceColor">#1A2B48</Color>
+      <Color x:Key="StudioAccentBorderColor">#3761AE</Color>
+
+      <Color x:Key="StudioSuccessColor">#34D399</Color>
+      <Color x:Key="StudioSuccessSurfaceColor">#122A22</Color>
+      <Color x:Key="StudioSuccessBorderColor">#1F5946</Color>
+
+      <Color x:Key="StudioWarningColor">#F5B749</Color>
+      <Color x:Key="StudioWarningSurfaceColor">#2E2312</Color>
+      <Color x:Key="StudioWarningBorderColor">#6B4E1B</Color>
+
+      <Color x:Key="StudioDangerColor">#F87171</Color>
+      <Color x:Key="StudioDangerSurfaceColor">#33181C</Color>
+      <Color x:Key="StudioDangerBorderColor">#782D36</Color>
+
+      <Color x:Key="StudioInfoColor">#60A5FA</Color>
+      <Color x:Key="StudioInfoSurfaceColor">#17273E</Color>
+      <Color x:Key="StudioInfoBorderColor">#2E548A</Color>
+
+      <Color x:Key="StudioCodeCommentColor">#7C8BA5</Color>
+      <Color x:Key="StudioCodeSectionColor">#7AA8FF</Color>
+      <Color x:Key="StudioCodeKeyColor">#9CD6FE</Color>
+      <Color x:Key="StudioCodeStringColor">#7AE0A3</Color>
+      <Color x:Key="StudioCodeNumberColor">#F6C177</Color>
+
+      <Color x:Key="StudioModalBackdropColor">#A807090E</Color>
+      <Color x:Key="StudioViewportGlowColor">#244F8CFF</Color>
+
+      <SolidColorBrush x:Key="StudioCanvasBrush" Color="{StaticResource StudioCanvasColor}" />
+      <SolidColorBrush x:Key="StudioSurfaceBrush" Color="{StaticResource StudioSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioSurfaceElevatedBrush" Color="{StaticResource StudioSurfaceElevatedColor}" />
+      <SolidColorBrush x:Key="StudioSurfaceSunkenBrush" Color="{StaticResource StudioSurfaceSunkenColor}" />
+      <SolidColorBrush x:Key="StudioBorderBrush" Color="{StaticResource StudioBorderColor}" />
+      <SolidColorBrush x:Key="StudioBorderStrongBrush" Color="{StaticResource StudioBorderStrongColor}" />
+
+      <SolidColorBrush x:Key="StudioTextPrimaryBrush" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="StudioTextSecondaryBrush" Color="{StaticResource StudioTextSecondaryColor}" />
+      <SolidColorBrush x:Key="StudioTextMutedBrush" Color="{StaticResource StudioTextMutedColor}" />
+
+      <SolidColorBrush x:Key="StudioAccentBrush" Color="{StaticResource StudioAccentColor}" />
+      <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="{StaticResource StudioAccentHoverColor}" />
+      <SolidColorBrush x:Key="StudioAccentPressedBrush" Color="{StaticResource StudioAccentPressedColor}" />
+      <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="{StaticResource StudioAccentForegroundColor}" />
+      <SolidColorBrush x:Key="StudioAccentSurfaceBrush" Color="{StaticResource StudioAccentSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioAccentBorderBrush" Color="{StaticResource StudioAccentBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioSuccessBrush" Color="{StaticResource StudioSuccessColor}" />
+      <SolidColorBrush x:Key="StudioSuccessSurfaceBrush" Color="{StaticResource StudioSuccessSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioSuccessBorderBrush" Color="{StaticResource StudioSuccessBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioWarningBrush" Color="{StaticResource StudioWarningColor}" />
+      <SolidColorBrush x:Key="StudioWarningSurfaceBrush" Color="{StaticResource StudioWarningSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioWarningBorderBrush" Color="{StaticResource StudioWarningBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioDangerBrush" Color="{StaticResource StudioDangerColor}" />
+      <SolidColorBrush x:Key="StudioDangerSurfaceBrush" Color="{StaticResource StudioDangerSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioDangerBorderBrush" Color="{StaticResource StudioDangerBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioInfoBrush" Color="{StaticResource StudioInfoColor}" />
+      <SolidColorBrush x:Key="StudioInfoSurfaceBrush" Color="{StaticResource StudioInfoSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioInfoBorderBrush" Color="{StaticResource StudioInfoBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioCodeCommentBrush" Color="{StaticResource StudioCodeCommentColor}" />
+      <SolidColorBrush x:Key="StudioCodeSectionBrush" Color="{StaticResource StudioCodeSectionColor}" />
+      <SolidColorBrush x:Key="StudioCodeKeyBrush" Color="{StaticResource StudioCodeKeyColor}" />
+      <SolidColorBrush x:Key="StudioCodeStringBrush" Color="{StaticResource StudioCodeStringColor}" />
+      <SolidColorBrush x:Key="StudioCodeNumberBrush" Color="{StaticResource StudioCodeNumberColor}" />
+
+      <SolidColorBrush x:Key="StudioModalBackdropBrush" Color="{StaticResource StudioModalBackdropColor}" />
+      <SolidColorBrush x:Key="StudioViewportGlowBrush" Color="{StaticResource StudioViewportGlowColor}" />
+
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="{StaticResource StudioSurfaceElevatedColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource StudioBorderStrongColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemBackground" Color="Transparent" />
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="{StaticResource StudioAccentSurfaceColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="{StaticResource StudioAccentSurfaceColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundDisabled" Color="Transparent" />
+      <SolidColorBrush x:Key="MenuFlyoutItemForeground" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundDisabled" Color="{StaticResource StudioTextMutedColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemBackgroundPointerOver" Color="{StaticResource StudioAccentSurfaceColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemForegroundPointerOver" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevron" Color="{StaticResource StudioTextSecondaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevronPointerOver" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevronPressed" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevronSubMenuOpened" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevronDisabled" Color="{StaticResource StudioTextMutedColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSeparatorBackground" Color="{StaticResource StudioBorderColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" Color="{StaticResource StudioTextMutedColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" Color="{StaticResource StudioTextSecondaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" Color="{StaticResource StudioTextSecondaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled" Color="{StaticResource StudioTextMutedColor}" />
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Light">
+      <Color x:Key="StudioCanvasColor">#F2F4F8</Color>
+      <Color x:Key="StudioSurfaceColor">#FFFFFF</Color>
+      <Color x:Key="StudioSurfaceElevatedColor">#E9EEF6</Color>
+      <Color x:Key="StudioSurfaceSunkenColor">#F8FAFC</Color>
+      <Color x:Key="StudioBorderColor">#D4DCE9</Color>
+      <Color x:Key="StudioBorderStrongColor">#B5C2D6</Color>
+
+      <Color x:Key="StudioTextPrimaryColor">#151B26</Color>
+      <Color x:Key="StudioTextSecondaryColor">#465469</Color>
+      <Color x:Key="StudioTextMutedColor">#66748A</Color>
+
+      <Color x:Key="StudioAccentColor">#2563EB</Color>
+      <Color x:Key="StudioAccentHoverColor">#1D4ED8</Color>
+      <Color x:Key="StudioAccentPressedColor">#1E40AF</Color>
+      <Color x:Key="StudioAccentForegroundColor">#FFFFFF</Color>
+      <Color x:Key="StudioAccentSurfaceColor">#EAF1FF</Color>
+      <Color x:Key="StudioAccentBorderColor">#93B8FA</Color>
+
+      <Color x:Key="StudioSuccessColor">#0E8A5C</Color>
+      <Color x:Key="StudioSuccessSurfaceColor">#E6F7F0</Color>
+      <Color x:Key="StudioSuccessBorderColor">#94D8BC</Color>
+
+      <Color x:Key="StudioWarningColor">#B3680C</Color>
+      <Color x:Key="StudioWarningSurfaceColor">#FEF5E4</Color>
+      <Color x:Key="StudioWarningBorderColor">#ECC170</Color>
+
+      <Color x:Key="StudioDangerColor">#C82832</Color>
+      <Color x:Key="StudioDangerSurfaceColor">#FDECEE</Color>
+      <Color x:Key="StudioDangerBorderColor">#EEA2A8</Color>
+
+      <Color x:Key="StudioInfoColor">#1E5ED6</Color>
+      <Color x:Key="StudioInfoSurfaceColor">#EAF1FF</Color>
+      <Color x:Key="StudioInfoBorderColor">#A1C1F8</Color>
+
+      <Color x:Key="StudioCodeCommentColor">#69778F</Color>
+      <Color x:Key="StudioCodeSectionColor">#1D4ED8</Color>
+      <Color x:Key="StudioCodeKeyColor">#0D5B8A</Color>
+      <Color x:Key="StudioCodeStringColor">#0E7A48</Color>
+      <Color x:Key="StudioCodeNumberColor">#B45309</Color>
+
+      <Color x:Key="StudioModalBackdropColor">#70111827</Color>
+      <Color x:Key="StudioViewportGlowColor">#1E2563EB</Color>
+
+      <SolidColorBrush x:Key="StudioCanvasBrush" Color="{StaticResource StudioCanvasColor}" />
+      <SolidColorBrush x:Key="StudioSurfaceBrush" Color="{StaticResource StudioSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioSurfaceElevatedBrush" Color="{StaticResource StudioSurfaceElevatedColor}" />
+      <SolidColorBrush x:Key="StudioSurfaceSunkenBrush" Color="{StaticResource StudioSurfaceSunkenColor}" />
+      <SolidColorBrush x:Key="StudioBorderBrush" Color="{StaticResource StudioBorderColor}" />
+      <SolidColorBrush x:Key="StudioBorderStrongBrush" Color="{StaticResource StudioBorderStrongColor}" />
+
+      <SolidColorBrush x:Key="StudioTextPrimaryBrush" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="StudioTextSecondaryBrush" Color="{StaticResource StudioTextSecondaryColor}" />
+      <SolidColorBrush x:Key="StudioTextMutedBrush" Color="{StaticResource StudioTextMutedColor}" />
+
+      <SolidColorBrush x:Key="StudioAccentBrush" Color="{StaticResource StudioAccentColor}" />
+      <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="{StaticResource StudioAccentHoverColor}" />
+      <SolidColorBrush x:Key="StudioAccentPressedBrush" Color="{StaticResource StudioAccentPressedColor}" />
+      <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="{StaticResource StudioAccentForegroundColor}" />
+      <SolidColorBrush x:Key="StudioAccentSurfaceBrush" Color="{StaticResource StudioAccentSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioAccentBorderBrush" Color="{StaticResource StudioAccentBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioSuccessBrush" Color="{StaticResource StudioSuccessColor}" />
+      <SolidColorBrush x:Key="StudioSuccessSurfaceBrush" Color="{StaticResource StudioSuccessSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioSuccessBorderBrush" Color="{StaticResource StudioSuccessBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioWarningBrush" Color="{StaticResource StudioWarningColor}" />
+      <SolidColorBrush x:Key="StudioWarningSurfaceBrush" Color="{StaticResource StudioWarningSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioWarningBorderBrush" Color="{StaticResource StudioWarningBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioDangerBrush" Color="{StaticResource StudioDangerColor}" />
+      <SolidColorBrush x:Key="StudioDangerSurfaceBrush" Color="{StaticResource StudioDangerSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioDangerBorderBrush" Color="{StaticResource StudioDangerBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioInfoBrush" Color="{StaticResource StudioInfoColor}" />
+      <SolidColorBrush x:Key="StudioInfoSurfaceBrush" Color="{StaticResource StudioInfoSurfaceColor}" />
+      <SolidColorBrush x:Key="StudioInfoBorderBrush" Color="{StaticResource StudioInfoBorderColor}" />
+
+      <SolidColorBrush x:Key="StudioCodeCommentBrush" Color="{StaticResource StudioCodeCommentColor}" />
+      <SolidColorBrush x:Key="StudioCodeSectionBrush" Color="{StaticResource StudioCodeSectionColor}" />
+      <SolidColorBrush x:Key="StudioCodeKeyBrush" Color="{StaticResource StudioCodeKeyColor}" />
+      <SolidColorBrush x:Key="StudioCodeStringBrush" Color="{StaticResource StudioCodeStringColor}" />
+      <SolidColorBrush x:Key="StudioCodeNumberBrush" Color="{StaticResource StudioCodeNumberColor}" />
+
+      <SolidColorBrush x:Key="StudioModalBackdropBrush" Color="{StaticResource StudioModalBackdropColor}" />
+      <SolidColorBrush x:Key="StudioViewportGlowBrush" Color="{StaticResource StudioViewportGlowColor}" />
+
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="{StaticResource StudioSurfaceElevatedColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="{StaticResource StudioBorderStrongColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemBackground" Color="Transparent" />
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="{StaticResource StudioAccentSurfaceColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="{StaticResource StudioAccentSurfaceColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemBackgroundDisabled" Color="Transparent" />
+      <SolidColorBrush x:Key="MenuFlyoutItemForeground" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemForegroundDisabled" Color="{StaticResource StudioTextMutedColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemBackgroundPointerOver" Color="{StaticResource StudioAccentSurfaceColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemForegroundPointerOver" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevron" Color="{StaticResource StudioTextSecondaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevronPointerOver" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevronPressed" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevronSubMenuOpened" Color="{StaticResource StudioTextPrimaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSubItemChevronDisabled" Color="{StaticResource StudioTextMutedColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutSeparatorBackground" Color="{StaticResource StudioBorderColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForeground" Color="{StaticResource StudioTextMutedColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver" Color="{StaticResource StudioTextSecondaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed" Color="{StaticResource StudioTextSecondaryColor}" />
+      <SolidColorBrush x:Key="MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled" Color="{StaticResource StudioTextMutedColor}" />
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+
+</ResourceDictionary>

@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.PaintFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel Spacing="10">
+    <!-- Multi-Entry File Context Switcher -->
+    <Border IsVisible="{Binding HasMultiEntry}"
+            Classes="studio-card"
+            Background="{DynamicResource StudioSurfaceElevatedBrush}"
+            Padding="12,8">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Border Classes="studio-badge info">
+            <TextBlock Text="Multi-Entry TOML" FontSize="10" FontWeight="SemiBold" />
+          </Border>
+          <TextBlock Text="{Binding MultiEntryLabel}"
+                     Classes="mono"
+                     FontSize="11.5"
+                     FontWeight="SemiBold"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5">
+          <Button Classes="studio-btn-compact"
+                  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SwitchPaintEntryCommand}"
+                  Content="Switch Paint File (colors / textures)" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <controls:CollapsibleSectionCard Title="Paint Properties">
+      <StackPanel Spacing="6">
+        <Border Classes="studio-banner-info" Padding="10,7">
+          <TextBlock Text="A paint defines either a color swatch or texture variants (never both)."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioInfoBrush}" />
+        </Border>
+        <controls:ScalarFieldRowControl DataContext="{Binding PaintKindField}" />
+        <Border IsVisible="{Binding IsPaintColorKind}">
+          <controls:ScalarFieldRowControl DataContext="{Binding PaintColorField}" />
+        </Border>
+        <Border IsVisible="{Binding IsPaintTextureKind}">
+          <controls:ScalarFieldRowControl DataContext="{Binding PaintAlphaField}" />
+        </Border>
+        <controls:ScalarFieldRowControl DataContext="{Binding PaintConnectedField}" />
+        <Border IsVisible="{Binding IsPaintTextureKind}">
+          <controls:ScalarFieldRowControl DataContext="{Binding PaintVariantsField}" />
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

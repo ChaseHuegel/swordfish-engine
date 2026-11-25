@@ -1,0 +1,158 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             x:Class="WaywardBeyond.AssetStudio.Views.Dialogs.SettingsDialog"
+             x:DataType="vm:SettingsDialogViewModel">
+  <Border Classes="studio-dialog" Width="520" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="True">
+    <StackPanel>
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="20,14">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Text="Studio Settings" FontSize="15" FontWeight="Bold" />
+            <TextBlock Text="Preferences for theme, namespace, language, renderer, and workspace layout."
+                       FontSize="11.5"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+          <Button Grid.Column="1" VerticalAlignment="Top" Classes="studio-btn-ghost" Command="{Binding CancelCommand}" Content="×" FontSize="16" />
+        </Grid>
+      </Border>
+
+      <StackPanel Margin="20,18" Spacing="14">
+        <!-- Theme Selector (3-Icon Segmented Switcher: System / Light / Dark) -->
+        <Grid ColumnDefinitions="140,*" ColumnSpacing="12">
+          <TextBlock Grid.Column="0" Text="Appearance Theme" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <Border Grid.Column="1"
+                  HorizontalAlignment="Left"
+                  CornerRadius="7"
+                  Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  Padding="2">
+            <StackPanel Orientation="Horizontal" Spacing="2">
+              <Button Classes="studio-icon-btn"
+                      Classes.active="{Binding IsSystemTheme}"
+                      Command="{Binding SelectSystemThemeCommand}"
+                      ToolTip.Tip="System theme">
+                <Path Width="14"
+                      Height="14"
+                      Stretch="Uniform"
+                      Data="M 1.5,2.5 L 12.5,2.5 L 12.5,10 L 1.5,10 Z M 5,12.5 L 9,12.5 M 7,10 L 7,12.5"
+                      Stroke="{Binding $parent[Button].Foreground}"
+                      StrokeThickness="1.4"
+                      StrokeLineCap="Round"
+                      StrokeJoin="Round" />
+              </Button>
+              <Button Classes="studio-icon-btn"
+                      Classes.active="{Binding IsLightTheme}"
+                      Command="{Binding SelectLightThemeCommand}"
+                      ToolTip.Tip="Light theme">
+                <Path Width="14"
+                      Height="14"
+                      Stretch="Uniform"
+                      Data="M 7,4.2 A 2.8,2.8 0 1 1 6.99,4.2 Z M 7,1 L 7,2.4 M 7,11.6 L 7,13 M 1,7 L 2.4,7 M 11.6,7 L 13,7 M 2.75,2.75 L 3.75,3.75 M 10.25,10.25 L 11.25,11.25 M 11.25,2.75 L 10.25,3.75 M 3.75,10.25 L 2.75,11.25"
+                      Stroke="{Binding $parent[Button].Foreground}"
+                      StrokeThickness="1.35"
+                      StrokeLineCap="Round"
+                      StrokeJoin="Round" />
+              </Button>
+              <Button Classes="studio-icon-btn"
+                      Classes.active="{Binding IsDarkTheme}"
+                      Command="{Binding SelectDarkThemeCommand}"
+                      ToolTip.Tip="Dark theme">
+                <Path Width="13"
+                      Height="13"
+                      Stretch="Uniform"
+                      Data="M 11.2,8.4 A 4.8,4.8 0 1 1 5.6,2.8 A 3.8,3.8 0 0 0 11.2,8.4 Z"
+                      Stroke="{Binding $parent[Button].Foreground}"
+                      StrokeThickness="1.4"
+                      StrokeLineCap="Round"
+                      StrokeJoin="Round" />
+              </Button>
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <!-- Default Workspace Namespace -->
+        <Grid ColumnDefinitions="140,*" ColumnSpacing="12">
+          <StackPanel Grid.Column="0" VerticalAlignment="Center">
+            <TextBlock Text="Default Namespace" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            <TextBlock Text="Active workspace" FontSize="10" Foreground="{DynamicResource StudioTextMutedBrush}" />
+          </StackPanel>
+          <TextBox Grid.Column="1"
+                   Text="{Binding DefaultNamespace, Mode=TwoWay}"
+                   Classes="studio-input mono"
+                   Watermark="e.g. wb or mypack" />
+        </Grid>
+
+        <!-- Language -->
+        <Grid ColumnDefinitions="140,*" ColumnSpacing="12">
+          <StackPanel Grid.Column="0" VerticalAlignment="Center">
+            <TextBlock Text="Language" FontSize="12" FontWeight="Medium" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            <TextBlock Text="Applies on next launch" FontSize="10" Foreground="{DynamicResource StudioTextMutedBrush}" />
+          </StackPanel>
+          <ComboBox Grid.Column="1"
+                    ItemsSource="{x:Static vm:SettingsDialogViewModel.CULTURE_OPTIONS}"
+                    SelectedItem="{Binding CultureOverride, Mode=TwoWay}"
+                    Classes="studio-combo" />
+        </Grid>
+
+        <!-- Graphics Renderer -->
+        <Grid ColumnDefinitions="140,*" ColumnSpacing="12">
+          <TextBlock Grid.Column="0" Text="Graphics Renderer" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <ComboBox Grid.Column="1"
+                    ItemsSource="{x:Static vm:SettingsDialogViewModel.GL_OPTIONS}"
+                    SelectedItem="{Binding GlPreference, Mode=TwoWay}"
+                    Classes="studio-combo" />
+        </Grid>
+
+        <!-- Log Level -->
+        <Grid ColumnDefinitions="140,*" ColumnSpacing="12">
+          <TextBlock Grid.Column="0" Text="Log Level" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <ComboBox Grid.Column="1"
+                    ItemsSource="{x:Static vm:SettingsDialogViewModel.LOG_LEVEL_OPTIONS}"
+                    SelectedItem="{Binding LogLevel, Mode=TwoWay}"
+                    Classes="studio-combo" />
+        </Grid>
+
+        <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
+
+        <!-- Portable Mode Indicator & Panel Layout Reset -->
+        <Border CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="12,10">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Storage Location" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            <TextBlock Text="{Binding PortableModeLabel}" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Text="{Binding SettingsPath}" Classes="mono" FontSize="11" Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+          </StackPanel>
+        </Border>
+
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <TextBlock Grid.Column="0"
+                     Text="Restore explorer, inspector, and validation dock sizes and visibility."
+                     FontSize="11.5"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="studio-btn" Command="{Binding ResetPanelLayoutCommand}" Content="Reset Panel Layout" />
+        </Grid>
+      </StackPanel>
+
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="20,12">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Classes="studio-btn" Command="{Binding CancelCommand}" Content="Cancel" />
+          <Button Classes="studio-btn-primary" Command="{Binding SaveCommand}" Content="Save Settings" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

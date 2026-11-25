@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             x:Class="WaywardBeyond.AssetStudio.Views.Dialogs.NewAssetDialog"
+             x:DataType="vm:NewAssetDialogViewModel">
+  <Border Classes="studio-dialog" Width="500" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="True">
+    <StackPanel>
+      <!-- Dialog Header -->
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="20,14">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Text="New Asset" FontSize="15" FontWeight="Bold" />
+            <TextBlock Text="Choose asset kind, unique namespaced ID, and target TOML file."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="studio-btn-ghost" Command="{Binding CancelCommand}" Content="×" FontSize="16" />
+        </Grid>
+      </Border>
+
+      <!-- Body -->
+      <StackPanel Margin="20,18" Spacing="14">
+        <Grid ColumnDefinitions="120,*" ColumnSpacing="12">
+          <TextBlock Grid.Column="0" Text="Asset Kind" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <ComboBox Grid.Column="1"
+                    ItemsSource="{x:Static vm:NewAssetDialogViewModel.AVAILABLE_KINDS}"
+                    SelectedItem="{Binding SelectedKind, Mode=TwoWay}"
+                    Classes="studio-combo" />
+        </Grid>
+
+        <Grid ColumnDefinitions="120,*" ColumnSpacing="12">
+          <TextBlock Grid.Column="0" Text="Asset ID" FontSize="12" FontWeight="Medium" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <TextBox Grid.Column="1" Text="{Binding AssetId, Mode=TwoWay}" Classes="studio-input mono" />
+        </Grid>
+
+        <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,2" />
+
+        <!-- Explicit Choice: New File vs Existing File -->
+        <StackPanel Spacing="10">
+          <TextBlock Text="TARGET FILE PLACEMENT" Classes="pane-title" />
+
+          <RadioButton GroupName="TargetFileMode"
+                       IsChecked="{Binding CreateNewFile, Mode=TwoWay}"
+                       Content="Create a new file" />
+          <Grid ColumnDefinitions="96,*" ColumnSpacing="12" IsEnabled="{Binding CreateNewFile}" Margin="24,0,0,0">
+            <TextBlock Grid.Column="0" Text="File Name" FontSize="11.5" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBox Grid.Column="1" Text="{Binding NewFileName, Mode=TwoWay}" Classes="studio-input mono" />
+          </Grid>
+
+          <RadioButton GroupName="TargetFileMode"
+                       IsChecked="{Binding AppendToExistingFile, Mode=TwoWay}"
+                       Content="Add to an existing file" />
+          <Grid ColumnDefinitions="96,*" ColumnSpacing="12" IsEnabled="{Binding AppendToExistingFile}" Margin="24,0,0,0">
+            <TextBlock Grid.Column="0" Text="Existing File" FontSize="11.5" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding ExistingFiles}"
+                      SelectedItem="{Binding SelectedExistingFile, Mode=TwoWay}"
+                      Classes="studio-combo" />
+          </Grid>
+        </StackPanel>
+
+        <!-- Destination Path Preview -->
+        <Border CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="12,9">
+          <StackPanel Spacing="2">
+            <TextBlock Text="Destination Path" FontSize="10.5" Foreground="{DynamicResource StudioTextMutedBrush}" />
+            <TextBlock Text="{Binding ComputedTargetPath}" Classes="mono" FontSize="12" FontWeight="SemiBold" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- Footer -->
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="20,12">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Classes="studio-btn" Command="{Binding CancelCommand}" Content="Cancel" />
+          <Button Classes="studio-btn-primary" Command="{Binding CreateCommand}" Content="Create Asset" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -1,0 +1,244 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:models="clr-namespace:WaywardBeyond.AssetStudio.Models"
+             xmlns:conv="clr-namespace:WaywardBeyond.AssetStudio.Converters"
+             x:Class="WaywardBeyond.AssetStudio.Controls.ReferencePickerControl"
+             x:DataType="vm:StudioFieldViewModel">
+  <StackPanel Spacing="6">
+    <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+      <TextBox Grid.Column="0"
+               Text="{Binding Value, Mode=TwoWay}"
+               IsReadOnly="{Binding IsReadOnly}"
+               Classes="studio-input mono"
+               Classes.danger="{Binding IsDanger}"
+               Watermark="{Binding GrammarHint}" />
+
+      <Button Grid.Column="1"
+              Margin="4,0,0,0"
+              Classes="studio-btn-compact"
+              Classes.active="{Binding IsPickerOpen}"
+              Width="28"
+              Height="28"
+              MinWidth="28"
+              MinHeight="28"
+              Padding="0"
+              Command="{Binding TogglePickerCommand}"
+              IsEnabled="{Binding !IsReadOnly}"
+              ToolTip.Tip="Browse workspace references">
+        <Path Data="M 1,2 L 5,6 L 9,2"
+              Stroke="{DynamicResource StudioTextSecondaryBrush}"
+              StrokeThickness="1.5"
+              StrokeLineCap="Round"
+              StrokeJoin="Round"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center" />
+      </Button>
+
+      <Button Grid.Column="2"
+              Margin="4,0,0,0"
+              Classes="studio-btn-compact"
+              Width="28"
+              Height="28"
+              MinWidth="28"
+              MinHeight="28"
+              Padding="0"
+              IsVisible="{Binding AllowBrowseDiskFile}"
+              IsEnabled="{Binding !IsReadOnly}"
+              Command="{Binding BrowseDiskFileCommand}"
+              ToolTip.Tip="{Binding BrowseFileTooltip}">
+        <Path Width="14"
+              Height="12"
+              Data="M 1,2.5 Q 1,1 2.5,1 L 5.2,1 L 6.6,2.6 L 11.5,2.6 Q 13,2.6 13,4.1 L 13,9.5 Q 13,11 11.5,11 L 2.5,11 Q 1,11 1,9.5 Z"
+              Stroke="{DynamicResource StudioTextSecondaryBrush}"
+              StrokeThickness="1.35"
+              StrokeLineCap="Round"
+              StrokeJoin="Round"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center" />
+      </Button>
+
+      <Button Grid.Column="3"
+              Margin="4,0,0,0"
+              Classes="studio-btn-compact"
+              Height="28"
+              IsVisible="{Binding AllowCreateLocalizationKey}"
+              IsEnabled="{Binding !IsReadOnly}"
+              Command="{Binding RequestCreateLocalizationKeyCommand}"
+              ToolTip.Tip="Create new localization key in target lang file">
+        <TextBlock Text="+ Key" FontSize="11" FontWeight="SemiBold" />
+      </Button>
+    </Grid>
+
+    <!-- Searchable candidate dropdown panel -->
+    <Border IsVisible="{Binding IsPickerOpen}"
+            CornerRadius="6"
+            Background="{DynamicResource StudioSurfaceBrush}"
+            BorderBrush="{DynamicResource StudioBorderStrongBrush}"
+            BorderThickness="1"
+            Padding="8">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBox Grid.Column="0"
+                   MinWidth="110"
+                   Text="{Binding PickerFilterText, Mode=TwoWay}"
+                   Classes="studio-input"
+                   Watermark="Filter workspace candidates..." />
+          <TextBlock Grid.Column="1"
+                     Text="{Binding VisualPickerCountLabel}"
+                     IsVisible="{Binding IsVisualPickerField}"
+                     FontSize="10.5"
+                     FontWeight="Medium"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     MaxWidth="185"
+                     TextTrimming="CharacterEllipsis"
+                     VerticalAlignment="Center" />
+        </Grid>
+
+        <!-- Empty state for visual thumbnail-grid fields -->
+        <Border IsVisible="{Binding HasNoVisualCandidates}"
+                CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="12,14">
+          <TextBlock Text="{Binding VisualPickerCountLabel}"
+                     FontSize="11.5"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     HorizontalAlignment="Center" />
+        </Border>
+
+        <!-- Visual thumbnail grid for texture, block-layer, and mesh reference fields -->
+        <ScrollViewer IsVisible="{Binding HasVisualCandidates}"
+                      MaxHeight="230"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding FilteredCandidates}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <WrapPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:ReferenceCandidate">
+                <Button Classes="studio-image-tile"
+                        Width="98"
+                        Height="90"
+                        Margin="0,0,6,6"
+                        Command="{Binding $parent[UserControl].((vm:StudioFieldViewModel)DataContext).SelectCandidateCommand}"
+                        CommandParameter="{Binding}"
+                        ToolTip.Tip="{Binding Value}">
+                  <Grid RowDefinitions="58,*" RowSpacing="4">
+                    <Border Grid.Row="0"
+                            Width="56"
+                            Height="56"
+                            CornerRadius="5"
+                            Background="{DynamicResource StudioCanvasBrush}"
+                            BorderBrush="{DynamicResource StudioBorderBrush}"
+                            BorderThickness="1"
+                            ClipToBounds="True"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                      <Grid>
+                        <Path IsVisible="{Binding !HasThumbnail}"
+                              Width="22"
+                              Height="22"
+                              Stretch="Uniform"
+                              Data="M 6,1 L 11,3.8 L 11,8.8 L 6,11.5 L 1,8.8 L 1,3.8 Z M 1,3.8 L 6,6.5 L 11,3.8 M 6,6.5 L 6,11.5"
+                              Stroke="{DynamicResource StudioTextMutedBrush}"
+                              StrokeThickness="1.2"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                        <Grid IsVisible="{Binding HasThumbnail}" Margin="2">
+                          <Image Source="{Binding ThumbnailPath, Converter={x:Static conv:PathToThumbnailConverter.INSTANCE}}"
+                                 Stretch="Uniform"
+                                 IsVisible="{Binding $parent[UserControl].((vm:StudioFieldViewModel)DataContext).IsTexturePickerField}"
+                                 RenderOptions.BitmapInterpolationMode="None" />
+                          <Image Source="{Binding ThumbnailPath, Converter={x:Static conv:PathToThumbnailConverter.INSTANCE}}"
+                                 Stretch="Uniform"
+                                 IsVisible="{Binding $parent[UserControl].((vm:StudioFieldViewModel)DataContext).IsMeshPickerField}"
+                                 RenderOptions.BitmapInterpolationMode="HighQuality" />
+                        </Grid>
+                      </Grid>
+                    </Border>
+                    <TextBlock Grid.Row="1"
+                               Text="{Binding DisplayFileName}"
+                               Classes="mono"
+                               FontSize="10"
+                               Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                               TextTrimming="CharacterEllipsis"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               MaxWidth="88" />
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Standard reference list for non-texture references -->
+        <ScrollViewer IsVisible="{Binding IsStandardReferenceList}"
+                      MaxHeight="188"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding FilteredCandidates}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="models:ReferenceCandidate">
+                <Button Classes="tree-row"
+                        Padding="8,5"
+                        ToolTip.Tip="{Binding Value}"
+                        Command="{Binding $parent[UserControl].((vm:StudioFieldViewModel)DataContext).SelectCandidateCommand}"
+                        CommandParameter="{Binding}">
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Border Grid.Column="0"
+                            Width="22"
+                            Height="22"
+                            Margin="0,0,8,0"
+                            CornerRadius="4"
+                            Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                            BorderBrush="{DynamicResource StudioBorderBrush}"
+                            BorderThickness="1"
+                            ClipToBounds="True"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding HasThumbnail}">
+                      <Image Source="{Binding ThumbnailPath, Converter={x:Static conv:PathToThumbnailConverter.INSTANCE}}"
+                             Stretch="Uniform"
+                             RenderOptions.BitmapInterpolationMode="None" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Value}"
+                                 Classes="mono"
+                                 FontSize="11.5"
+                                 FontWeight="SemiBold"
+                                 Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Detail}"
+                                 FontSize="10.5"
+                                 Foreground="{DynamicResource StudioTextMutedBrush}"
+                                 TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Border Grid.Column="2" Classes="studio-badge" Margin="6,0,4,0">
+                      <TextBlock Text="{Binding Provenance, Converter={x:Static conv:ProvenanceToLabelConverter.INSTANCE}}"
+                                 FontSize="9.5"
+                                 FontWeight="SemiBold"
+                                 Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                    </Border>
+                    <Border Grid.Column="3" Classes="studio-badge success">
+                      <TextBlock Text="{Binding ResolutionState}"
+                                 FontSize="9.5"
+                                 FontWeight="SemiBold"
+                                 Foreground="{DynamicResource StudioSuccessBrush}" />
+                    </Border>
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

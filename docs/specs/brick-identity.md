@@ -80,9 +80,9 @@ from invariant lang tag lists in `WaywardBeyond.Bricks/assets/lang/tags/bricks.t
 ### Missing-brick placeholder rendering
 
 An extension id has no `Brick` entry in `BrickDatabase`. When `MeshPostPass`
-(`WaywardBeyond.Client/Voxels/Processing/MeshPostPass.cs:51`) samples a non-zero
+(`WaywardBeyond.Meshing/MeshPostPass.cs:69`) samples a non-zero
 voxel id that `BrickDatabase.Get` does not know, it falls back to a static
-opaque placeholder `Brick` (`MeshPostPass.cs:24`) with empty textures. Both cube
+opaque placeholder `Brick` (`MeshPostPass.cs:18`) with empty textures. Both cube
 and custom-shape mesh builders map a missing texture name to layer `0` of the
 brick `TextureArray`. `PBRTextureArraysParser`
 (`WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs:83`) reserves layer

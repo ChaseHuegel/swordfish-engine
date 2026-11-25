@@ -13,6 +13,7 @@ using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
+using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
 using GameState = WaywardBeyond.Client.GameState;
@@ -139,7 +140,12 @@ public class BrickPreviewTests
             );
             var textureArrays = new PBRTextureArrays(albedo, other, other, other, other, other);
 
-            Builder = new BrickPreviewMeshBuilder(Registry, Bricks, textureArrays, Meshes);
+            Builder = new BrickPreviewMeshBuilder(
+                Registry,
+                Bricks,
+                new TextureArrayLayerLookup(albedo),
+                new EngineMeshPreviewDatabase(Meshes)
+            );
             Materials = new VoxelMaterials(new Shader("test"), textureArrays);
         }
 
@@ -236,10 +242,10 @@ public class BrickPreviewTests
         var fixture = new Fixture();
         Brick brick = fixture.AddBrick(BRICK_ID, BrickShape.Any);
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);
 
         Assert.True(result.Success);
-        Mesh mesh = result.Value;
+        Mesh mesh = result.Value.ToEngineMesh();
         Assert.Equal(24, mesh.Vertices.Length);
         Assert.Equal(36, mesh.Triangles.Length);
         Assert.Equal(0f, mesh.Bounds.Center.X, 4);
@@ -262,7 +268,7 @@ public class BrickPreviewTests
         var fixture = new Fixture(meshID, SentinelsMesh(sentinel));
         Brick brick = fixture.AddBrick(BRICK_ID, BrickShape.Any);
 
-        Result<Mesh> result = fixture.Builder.Build(brick, shape, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, shape, Orientation.Identity);
 
         Assert.True(result.Success);
         Assert.Contains(result.Value.Vertices, vertex => Vector3.Distance(vertex, sentinel) < 1e-5f);
@@ -276,7 +282,7 @@ public class BrickPreviewTests
         var fixture = new Fixture("custom.obj", SentinelsMesh(sentinel));
         Brick brick = fixture.AddBrick(BRICK_ID, BrickShape.Custom, meshID: "custom.obj");
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Custom, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Custom, Orientation.Identity);
 
         Assert.True(result.Success);
         Assert.Contains(result.Value.Vertices, vertex => Vector3.Distance(vertex, sentinel) < 1e-5f);
@@ -295,7 +301,7 @@ public class BrickPreviewTests
             new BrickTextures { Default = [TEXTURE_ID] }
         );
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);
 
         Assert.False(result.Success);
     }
@@ -307,8 +313,8 @@ public class BrickPreviewTests
         Brick brick = fixture.AddBrick(BRICK_ID, BrickShape.Block);
         var rotated = new Orientation(pitch: 1, yaw: 0, roll: 0);
 
-        Result<Mesh> identity = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);
-        Result<Mesh> turned = fixture.Builder.Build(brick, BrickShape.Block, rotated);
+        Result<VoxelMesh> identity = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);
+        Result<VoxelMesh> turned = fixture.Builder.Build(brick, BrickShape.Block, rotated);
 
         Assert.True(identity.Success);
         Assert.True(turned.Success);
@@ -322,7 +328,7 @@ public class BrickPreviewTests
         Brick brick = fixture.AddBrick(BRICK_ID, BrickShape.Any);
         var rotated = new Orientation(pitch: 1, yaw: 0, roll: 0);
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Slope, rotated);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Slope, rotated);
 
         Assert.True(result.Success);
         Assert.Contains(result.Value.Vertices, vertex => Vector3.Distance(vertex, Vector3.UnitZ) < 1e-5f);
@@ -349,7 +355,7 @@ public class BrickPreviewTests
         var fixture = new Fixture();
         Brick brick = fixture.AddBrick(BRICK_ID, BrickShape.Any, alpha);
 
-        Result<Mesh> result = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);
+        Result<VoxelMesh> result = fixture.Builder.Build(brick, BrickShape.Block, Orientation.Identity);
 
         Assert.True(result.Success);
         Assert.NotEmpty(result.Value.Vertices);

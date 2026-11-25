@@ -7,14 +7,27 @@ using Swordfish.Library.Util;
 namespace WaywardBeyond.Bricks;
 
 /// <summary>TOML schema for one collider primitive declared under <c>[[Bricks.Colliders]]</c>.</summary>
-internal struct BrickColliderDefinition()
+public struct BrickColliderDefinition()
 {
+    /// <summary>The primitive shape kind (<c>box</c>, <c>sphere</c>, <c>capsule</c>, <c>cylinder</c>, or <c>hull</c>).</summary>
     public string? Type;
+
+    /// <summary>The box dimensions along X, Y, and Z.</summary>
     public Float3 Size = new(1f, 1f, 1f);
+
+    /// <summary>The local position offset from the voxel center.</summary>
     public Float3 Offset;
+
+    /// <summary>The local Euler rotation in degrees.</summary>
     public Float3 Rotation;
+
+    /// <summary>The radius for sphere, capsule, or cylinder primitives.</summary>
     public float Radius;
+
+    /// <summary>The height for capsule or cylinder primitives.</summary>
     public float Height;
+
+    /// <summary>The vertex list for a convex hull primitive.</summary>
     public List<Float3>? Points;
 
     /// <summary>Builds a validated runtime <see cref="BrickColliderShape"/> from this TOML definition.</summary>
@@ -168,10 +181,16 @@ internal struct BrickColliderDefinition()
     /// <summary>A three-component float vector for brick collider TOML tables.</summary>
     public record struct Float3()
     {
+        /// <summary>The X component.</summary>
         public float X;
+
+        /// <summary>The Y component.</summary>
         public float Y;
+
+        /// <summary>The Z component.</summary>
         public float Z;
 
+        /// <summary>Creates a vector from explicit X, Y, and Z components.</summary>
         public Float3(float x, float y, float z) : this()
         {
             X = x;
@@ -179,10 +198,13 @@ internal struct BrickColliderDefinition()
             Z = z;
         }
 
+        /// <summary>True when all components are zero.</summary>
         public readonly bool IsZero => X == 0f && Y == 0f && Z == 0f;
 
+        /// <summary>True when all components are finite numbers.</summary>
         public readonly bool IsFinite => float.IsFinite(X) && float.IsFinite(Y) && float.IsFinite(Z);
 
+        /// <summary>Converts this vector to a <see cref="Vector3"/>.</summary>
         public readonly Vector3 ToVector3() => new(X, Y, Z);
     }
 }

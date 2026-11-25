@@ -1,0 +1,151 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:conv="clr-namespace:WaywardBeyond.AssetStudio.Converters"
+             x:Class="WaywardBeyond.AssetStudio.Views.Overlays.CommandPaletteOverlay"
+             x:DataType="vm:CommandPaletteViewModel">
+  <Border Classes="studio-dialog"
+          Width="640"
+          VerticalAlignment="Top"
+          Margin="0,56,0,0"
+          ClipToBounds="True">
+    <DockPanel>
+      <!-- Search Input & Filter Chips Header -->
+      <Border DockPanel.Dock="Top"
+              Padding="14,12"
+              Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1">
+        <StackPanel Spacing="9">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox Grid.Column="0"
+                     Text="{Binding Query, Mode=TwoWay}"
+                     Classes="studio-input"
+                     Height="34"
+                     FontSize="13.5"
+                     Watermark="Search assets by ID, display name, resources, or actions..." />
+            <Button Grid.Column="1"
+                    Classes="studio-btn-ghost"
+                    Command="{Binding CloseCommand}"
+                    Content="Esc" />
+          </Grid>
+
+          <!-- Scope & Kind Filter Chips (active chip highlighted directly, zero duplicate badge!) -->
+          <StackPanel Spacing="6">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Scope:" FontSize="11" Foreground="{DynamicResource StudioTextMutedBrush}" VerticalAlignment="Center" Margin="0,0,2,0" />
+              <ItemsControl ItemsSource="{Binding ScopeChips}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="5" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FilterChipViewModel">
+                    <Button Classes="studio-btn-compact"
+                            Classes.active="{Binding IsSelected}"
+                            Content="{Binding Label}"
+                            Command="{Binding SelectCommand}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+
+            <WrapPanel Orientation="Horizontal">
+              <TextBlock Text="Kind:" FontSize="11" Foreground="{DynamicResource StudioTextMutedBrush}" VerticalAlignment="Center" Margin="0,0,8,4" />
+              <ItemsControl ItemsSource="{Binding KindChips}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FilterChipViewModel">
+                    <Button Classes="studio-btn-compact"
+                            Classes.active="{Binding IsSelected}"
+                            Margin="0,0,4,4"
+                            Content="{Binding Label}"
+                            Command="{Binding SelectCommand}" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </WrapPanel>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Footer Hint Bar -->
+      <Border DockPanel.Dock="Bottom"
+              Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="14,8">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="14">
+            <TextBlock Text="Enter — Open winning file" FontSize="11" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+            <TextBlock Text="Shift+Enter — Open shadowed base source" FontSize="11" Foreground="{DynamicResource StudioTextMutedBrush}" />
+          </StackPanel>
+          <TextBlock Grid.Column="1"
+                     Text="{Binding ResultCountLabel}"
+                     Classes="mono"
+                     FontSize="10.5"
+                     Foreground="{DynamicResource StudioTextMutedBrush}" />
+        </Grid>
+      </Border>
+
+      <!-- Ranked Results List (exact height for 7 complete rows with zero peeking sliver!) -->
+      <ScrollViewer MaxHeight="326" VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding ResultRows}" Margin="8,4,8,4">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CommandPaletteRowViewModel">
+              <Button Classes="tree-row"
+                      Classes.selected="{Binding IsSelected}"
+                      Height="44"
+                      Padding="10,6"
+                      Margin="0,0,0,2"
+                      Command="{Binding $parent[UserControl].((vm:CommandPaletteViewModel)DataContext).ExecuteRowWinningCommand}"
+                      CommandParameter="{Binding}">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+                  <StackPanel Grid.Column="0" Spacing="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Entry.Title}"
+                               Classes="mono"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                    <TextBlock Text="{Binding Entry.Subtitle}"
+                               FontSize="10.5"
+                               Foreground="{DynamicResource StudioTextMutedBrush}"
+                               TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <Border Grid.Column="1" Classes="studio-badge" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Entry.Category}" FontSize="10" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                  </Border>
+                  <Border Grid.Column="2"
+                          Classes="studio-badge"
+                          Classes.info="{Binding IsOverrideProvenance}"
+                          Classes.success="{Binding IsPackProvenance}"
+                          IsVisible="{Binding HasProvenance}"
+                          VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Entry.Provenance, Converter={x:Static conv:ProvenanceToLabelConverter.INSTANCE}}"
+                               FontSize="10"
+                               FontWeight="SemiBold" />
+                  </Border>
+                  <Border Grid.Column="3"
+                          Classes="studio-badge"
+                          Classes.success="{Binding IsResolutionSuccess}"
+                          Classes.warning="{Binding IsResolutionWarning}"
+                          Classes.danger="{Binding IsResolutionDanger}"
+                          VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Entry.ResolutionLabel}"
+                               FontSize="10"
+                               FontWeight="SemiBold" />
+                  </Border>
+                </Grid>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

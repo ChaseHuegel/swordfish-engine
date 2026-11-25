@@ -47,6 +47,7 @@ using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Items;
+using WaywardBeyond.Meshing;
 
 namespace WaywardBeyond.Client;
 
@@ -411,7 +412,16 @@ public class Injector : IDryIocInjector
             ),
             Reuse.Singleton
         );
+        container.RegisterDelegate<ITextureLayerLookup>(
+            context => new TextureArrayLayerLookup(context.Resolve<PBRTextureArrays>().Albedo),
+            Reuse.Singleton
+        );
+        container.RegisterDelegate<IAssetDatabase<VoxelMesh>>(
+            context => new EngineMeshPreviewDatabase(context.Resolve<IAssetDatabase<Mesh>>()),
+            Reuse.Singleton
+        );
         container.Register<BrickPreviewMeshBuilder>(Reuse.Singleton);
+        container.Register<RegionMeshBuilder>(Reuse.Singleton);
         container.Register<RegionPreviewMeshBuilder>(Reuse.Singleton);
         container.Register<BrickPreviewState>(Reuse.Singleton);
         container.Register<BrickPreviewSystem>(Reuse.Singleton);
@@ -437,7 +447,6 @@ public class Injector : IDryIocInjector
         container.Register<VoxelObjectProcessor.ISamplePass, DepthPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, LightPropagationPrePass>(Reuse.Scoped);
         container.Register<MeshPostPass>(Reuse.Scoped);
-        container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);
         container.Register<CollisionPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
         container.Register<VoxelEntityPostPass>(Reuse.Scoped);

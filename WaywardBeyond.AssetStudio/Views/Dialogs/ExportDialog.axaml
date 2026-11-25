@@ -1,0 +1,101 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Dialogs.ExportDialog"
+             x:DataType="vm:ExportDialogViewModel">
+  <Border Classes="studio-dialog" Width="540" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="True">
+    <StackPanel>
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="20,14">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Text="Export Pack Archive" FontSize="15" FontWeight="Bold" />
+            <TextBlock Text="Exports an archive without modifying your workspace files."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="studio-btn-ghost" Command="{Binding CancelCommand}" Content="×" FontSize="16" />
+        </Grid>
+      </Border>
+
+      <StackPanel Margin="20,16" Spacing="12">
+        <!-- Pre-flight Validation Gate Summary -->
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Border Classes="studio-badge danger">
+            <TextBlock Text="{Binding FatalCount, StringFormat='{}{0} Fatal'}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioDangerBrush}" />
+          </Border>
+          <Border Classes="studio-badge danger">
+            <TextBlock Text="{Binding BrokenCount, StringFormat='{}{0} Broken'}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioDangerBrush}" />
+          </Border>
+          <Border Classes="studio-badge warning">
+            <TextBlock Text="{Binding CrossPlatformCount, StringFormat='{}{0} Cross-platform'}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioWarningBrush}" />
+          </Border>
+          <Border Classes="studio-badge">
+            <TextBlock Text="{Binding StyleCount, StringFormat='{}{0} Style'}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </Border>
+        </StackPanel>
+
+        <!-- Blocker Banner (Fatal / Broken) -->
+        <Border IsVisible="{Binding IsBlocked}" Classes="studio-banner-danger">
+          <StackPanel Spacing="2">
+            <TextBlock Text="Export Blocked by Pre-Flight Validation" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource StudioDangerBrush}" />
+            <TextBlock Text="Resolve all Fatal and Broken findings in the Validation dock before exporting a distributable archive."
+                       FontSize="11"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Warning Acknowledgement -->
+        <Border IsVisible="{Binding HasWarnings}" Classes="studio-banner-warning">
+          <CheckBox IsChecked="{Binding AcknowledgeWarnings, Mode=TwoWay}"
+                    Content="I understand non-blocking Cross-platform / Style warnings are present."
+                    FontSize="11.5" />
+        </Border>
+
+        <!-- Output Format & Artifact Name -->
+        <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="Archive Format" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{x:Static vm:ExportDialogViewModel.FORMAT_OPTIONS}" SelectedItem="{Binding SelectedFormat, Mode=TwoWay}" Classes="studio-combo" />
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="Artifact Filename" FontSize="12" VerticalAlignment="Center" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ArtifactFileName}" IsReadOnly="True" Classes="studio-input mono" />
+        </Grid>
+
+        <!-- Pack metadata preview -->
+        <StackPanel Spacing="4">
+          <TextBlock Text="PACK METADATA (PACK.TOML)" Classes="pane-title" />
+          <Border CornerRadius="6"
+                  Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  ClipToBounds="True">
+            <controls:TomlSyntaxTextView SourceText="{Binding StagedPackToml}"
+                                         Height="122"
+                                         TextBrush="{DynamicResource StudioTextPrimaryBrush}"
+                                         CommentBrush="{DynamicResource StudioCodeCommentBrush}"
+                                         SectionBrush="{DynamicResource StudioCodeSectionBrush}"
+                                         KeyBrush="{DynamicResource StudioCodeKeyBrush}"
+                                         StringBrush="{DynamicResource StudioCodeStringBrush}"
+                                         NumberBrush="{DynamicResource StudioCodeNumberBrush}"
+                                         GutterBrush="{DynamicResource StudioTextMutedBrush}"
+                                         ErrorBackgroundBrush="{DynamicResource StudioDangerSurfaceBrush}" />
+          </Border>
+        </StackPanel>
+      </StackPanel>
+
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="20,12">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Classes="studio-btn" Command="{Binding CancelCommand}" Content="Cancel" />
+          <Button Classes="studio-btn-primary" IsEnabled="{Binding CanExport}" Command="{Binding ConfirmExportCommand}" Content="Export Archive" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

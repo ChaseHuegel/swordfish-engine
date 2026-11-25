@@ -1,0 +1,772 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:models="clr-namespace:WaywardBeyond.AssetStudio.Models"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             xmlns:rendering="clr-namespace:WaywardBeyond.AssetStudio.Rendering"
+             x:Class="WaywardBeyond.AssetStudio.Views.ItemModelEditorView"
+             x:DataType="vm:ItemModelEditorViewModel">
+  <DockPanel Background="{DynamicResource StudioCanvasBrush}">
+    <!-- Top Mode & Return Sub-Header -->
+    <Border DockPanel.Dock="Top"
+            Height="40"
+            Background="{DynamicResource StudioSurfaceBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="12,0">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+        <!-- Back to Item + Item Breadcrumb -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Classes="studio-btn"
+                  Height="26"
+                  MinHeight="26"
+                  Padding="10,0"
+                  Command="{Binding ExitCommand}"
+                  ToolTip.Tip="Return to Item Form (Esc)">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Path Width="11"
+                    Height="11"
+                    Stretch="Uniform"
+                    Data="M 7,2 L 2,6.5 L 7,11 M 2.5,6.5 L 11,6.5"
+                    Stroke="{Binding $parent[Button].Foreground}"
+                    StrokeThickness="1.6"
+                    StrokeLineCap="Round"
+                    StrokeJoin="Round" />
+              <TextBlock Text="Back to Item" FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+
+          <Border Width="1" Height="16" Background="{DynamicResource StudioBorderBrush}" />
+
+          <TextBlock Text="{Binding Document.Id}"
+                     Classes="mono"
+                     FontSize="12.5"
+                     FontWeight="Bold"
+                     Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                     VerticalAlignment="Center" />
+
+          <Border Classes="studio-badge warning"
+                  IsVisible="{Binding Document.IsDirty}">
+            <TextBlock Text="Unsaved draft" FontSize="10" FontWeight="SemiBold" />
+          </Border>
+
+          <Border Classes="studio-badge"
+                  IsVisible="{Binding IsReadOnly}">
+            <TextBlock Text="Read-only" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </Border>
+        </StackPanel>
+
+        <!-- Center Segmented Mode Switcher (View Model | World Model) -->
+        <Border Grid.Column="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                CornerRadius="6"
+                Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="2">
+          <StackPanel Orientation="Horizontal" Spacing="2">
+            <Button Classes="seg-btn"
+                    Height="22"
+                    MinHeight="22"
+                    Padding="12,0"
+                    Classes.active="{Binding IsViewModelMode}"
+                    Command="{Binding SelectViewModelModeCommand}"
+                    Content="View Model" />
+            <Button Classes="seg-btn"
+                    Height="22"
+                    MinHeight="22"
+                    Padding="12,0"
+                    Classes.active="{Binding IsWorldModelMode}"
+                    Command="{Binding SelectWorldModelModeCommand}"
+                    Content="World Model" />
+          </StackPanel>
+        </Border>
+
+        <!-- Right Compact Shortcut Hint -->
+        <TextBlock Grid.Column="2"
+                   Text="W Move · E Rotate · R Scale · Esc Back"
+                   Classes="mono"
+                   FontSize="10.5"
+                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <!-- Main 70/30 Split: Interactive 3D Viewport + Inspector Sidebar -->
+    <Grid ColumnDefinitions="*,1,348">
+      <!-- Left: 3D Viewport Canvas -->
+      <Grid Grid.Column="0" Background="{DynamicResource StudioSurfaceSunkenBrush}">
+        <Grid Margin="14">
+          <controls:AspectRatioFrameControl AspectRatio="{Binding ActiveViewportAspectRatio}">
+            <Border CornerRadius="8"
+                    BorderBrush="{DynamicResource StudioBorderStrongBrush}"
+                    BorderThickness="1"
+                    Background="#0B0E14"
+                    ClipToBounds="True">
+              <Grid>
+                <rendering:ModelEditorViewport x:Name="LiveModelViewport"
+                                               IsVisible="{Binding ShowLiveGlViewport}" />
+                <controls:ModelEditorFallbackControl x:Name="FallbackModelViewport"
+                                                     IsVisible="{Binding ShowFallbackViewport, FallbackValue=False}" />
+
+                <!-- First-Person Center Crosshair Reticle -->
+                <Canvas Width="18"
+                        Height="18"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsHitTestVisible="False"
+                        IsVisible="{Binding ShowCrosshairOverlay}">
+                  <Path Data="M 9,1 L 9,6 M 9,12 L 9,17 M 1,9 L 6,9 M 12,9 L 17,9"
+                        Stroke="#99000000"
+                        StrokeThickness="3"
+                        StrokeLineCap="Round" />
+                  <Path Data="M 9,1 L 9,6 M 9,12 L 9,17 M 1,9 L 6,9 M 12,9 L 17,9"
+                        Stroke="#E8FFFFFF"
+                        StrokeThickness="1.5"
+                        StrokeLineCap="Round" />
+                </Canvas>
+
+                <!-- Floating Top-Left Gizmo & Manipulation Bar -->
+                <Border HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="10"
+                        CornerRadius="7"
+                        Background="{DynamicResource StudioSurfaceBrush}"
+                        BorderBrush="{DynamicResource StudioBorderStrongBrush}"
+                        BorderThickness="1"
+                        Padding="4">
+                  <StackPanel Orientation="Horizontal" Spacing="3">
+                    <Button Classes="studio-btn-compact"
+                            Classes.active="{Binding IsTranslateMode}"
+                            Command="{Binding SetGizmoModeCommand}"
+                            CommandParameter="{x:Static rendering:TransformGizmoMode.Translate}"
+                            ToolTip.Tip="Translate tool (W)">
+                      <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        <Path Width="11" Height="11" Stretch="Uniform"
+                              Data="M 6,1 L 6,11 M 1,6 L 11,6 M 4,3 L 6,1 L 8,3 M 4,9 L 6,11 L 8,9 M 3,4 L 1,6 L 3,8 M 9,4 L 11,6 L 9,8"
+                              Stroke="{Binding $parent[Button].Foreground}"
+                              StrokeThickness="1.2"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round" />
+                        <TextBlock Text="Move" FontSize="11" />
+                      </StackPanel>
+                    </Button>
+
+                    <Button Classes="studio-btn-compact"
+                            Classes.active="{Binding IsRotateMode}"
+                            Command="{Binding SetGizmoModeCommand}"
+                            CommandParameter="{x:Static rendering:TransformGizmoMode.Rotate}"
+                            ToolTip.Tip="Rotate tool (E)">
+                      <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        <Path Width="11" Height="11" Stretch="Uniform"
+                              Data="M 9.5,3.5 A 4.5,4.5 0 1 0 10.5,6.5 M 7.5,3.5 L 10,3.5 L 10,1"
+                              Stroke="{Binding $parent[Button].Foreground}"
+                              StrokeThickness="1.3"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round" />
+                        <TextBlock Text="Rotate" FontSize="11" />
+                      </StackPanel>
+                    </Button>
+
+                    <Button Classes="studio-btn-compact"
+                            Classes.active="{Binding IsScaleMode}"
+                            Command="{Binding SetGizmoModeCommand}"
+                            CommandParameter="{x:Static rendering:TransformGizmoMode.Scale}"
+                            ToolTip.Tip="Scale tool (R)">
+                      <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        <Path Width="11" Height="11" Stretch="Uniform"
+                              Data="M 2,10 L 10,2 M 6,2 L 10,2 L 10,6 M 2,6 L 2,10 L 6,10"
+                              Stroke="{Binding $parent[Button].Foreground}"
+                              StrokeThickness="1.3"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round" />
+                        <TextBlock Text="Scale" FontSize="11" />
+                      </StackPanel>
+                    </Button>
+
+                    <Border Width="1"
+                            Height="16"
+                            Background="{DynamicResource StudioBorderBrush}"
+                            Margin="3,0"
+                            IsVisible="{Binding ShowSpaceToggle}" />
+
+                    <Button Classes="studio-btn-compact"
+                            Classes.active="{Binding IsWorldSpace}"
+                            IsVisible="{Binding ShowSpaceToggle}"
+                            Command="{Binding ToggleGizmoSpaceCommand}"
+                            ToolTip.Tip="Toggle Local / World gizmo axes (Q)"
+                            Content="{Binding GizmoSpaceLabel}" />
+
+                    <Button Classes="studio-btn-compact"
+                            Classes.active="{Binding SnapEnabled}"
+                            Command="{Binding ToggleSnapCommand}"
+                            ToolTip.Tip="Snap to 0.05 m / 5° / 0.05 scale increments"
+                            Content="Snap" />
+
+                    <Border Width="1"
+                            Height="16"
+                            Background="{DynamicResource StudioBorderBrush}"
+                            Margin="3,0"
+                            IsVisible="{Binding IsWorldModelMode}" />
+
+                    <Button Classes="studio-btn-compact"
+                            IsVisible="{Binding IsWorldModelMode}"
+                            Command="{Binding ResetCameraCommand}"
+                            ToolTip.Tip="Reset orbit camera (or double-click viewport)"
+                            Content="Reset Camera" />
+                  </StackPanel>
+                </Border>
+
+                <!-- Floating Top-Right Framing Summary Pill -->
+                <Border HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="10"
+                        CornerRadius="6"
+                        Background="{DynamicResource StudioSurfaceBrush}"
+                        BorderBrush="{DynamicResource StudioBorderBrush}"
+                        BorderThickness="1"
+                        Padding="8,4"
+                        IsHitTestVisible="False">
+                  <TextBlock Text="{Binding ViewportOverlayBadge}"
+                             Classes="mono"
+                             FontSize="10.5"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                </Border>
+
+                <!-- Bottom-Center Active Gizmo Drag Delta Badge -->
+                <Border HorizontalAlignment="Center"
+                        VerticalAlignment="Bottom"
+                        Margin="12"
+                        CornerRadius="999"
+                        Background="{DynamicResource StudioAccentSurfaceBrush}"
+                        BorderBrush="{DynamicResource StudioAccentBrush}"
+                        BorderThickness="1"
+                        Padding="12,5"
+                        IsVisible="{Binding HasActiveDragReadout}"
+                        IsHitTestVisible="False">
+                  <TextBlock Text="{Binding ActiveDragReadout}"
+                             Classes="mono"
+                             FontSize="11.5"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource StudioAccentBrush}" />
+                </Border>
+
+                <!-- Bottom-Left Subtle Placeholder Caption -->
+                <Border HorizontalAlignment="Left"
+                        VerticalAlignment="Bottom"
+                        Margin="10"
+                        CornerRadius="6"
+                        Background="{DynamicResource StudioSurfaceBrush}"
+                        BorderBrush="{DynamicResource StudioBorderBrush}"
+                        BorderThickness="1"
+                        Padding="8,4"
+                        IsVisible="{Binding ShowPlaceholderNotice}"
+                        IsHitTestVisible="False">
+                  <TextBlock Text="Preview cube active — set a Mesh or Placeable Brick ID in Model Source"
+                             FontSize="10.5"
+                             Foreground="{DynamicResource StudioTextMutedBrush}" />
+                </Border>
+              </Grid>
+            </Border>
+          </controls:AspectRatioFrameControl>
+        </Grid>
+      </Grid>
+
+      <!-- Crisp Divider -->
+      <Border Grid.Column="1" Background="{DynamicResource StudioBorderBrush}" />
+
+      <!-- Right: Camera / Reference & Transform Inspector -->
+      <ScrollViewer x:Name="InspectorScrollViewer"
+                    Grid.Column="2"
+                    Background="{DynamicResource StudioCanvasBrush}"
+                    VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="12,12,12,16" Spacing="10">
+          <!-- Camera & Framing Card (ViewModel Mode) -->
+          <Border Classes="studio-card"
+                  Padding="12,10"
+                  IsVisible="{Binding IsViewModelMode}">
+            <StackPanel Spacing="9">
+              <TextBlock Text="FIRST-PERSON CAMERA" Classes="pane-title" />
+
+              <!-- FOV Slider & Numeric Box -->
+              <StackPanel Spacing="5">
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                  <TextBlock Grid.Column="0"
+                             Text="Field of View"
+                             FontSize="11.5"
+                             FontWeight="Medium"
+                             Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                             VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1"
+                           Classes="studio-input mono"
+                           Width="56"
+                           Height="24"
+                           MinHeight="24"
+                           Padding="6,2"
+                           Text="{Binding FovText, Mode=TwoWay}"
+                           HorizontalContentAlignment="Right" />
+                  <TextBlock Grid.Column="2"
+                             Text="°"
+                             Classes="mono"
+                             FontSize="11.5"
+                             Foreground="{DynamicResource StudioTextMutedBrush}"
+                             VerticalAlignment="Center" />
+                </Grid>
+
+                <Slider Classes="studio-color-slider"
+                        Minimum="60"
+                        Maximum="120"
+                        SmallChange="1"
+                        LargeChange="5"
+                        Foreground="{DynamicResource StudioAccentBrush}"
+                        Value="{Binding FovDegrees, Mode=TwoWay}" />
+
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                  <Button Classes="studio-btn-compact" Classes.active="{Binding IsFov60}" Command="{Binding SetFovPresetCommand}" CommandParameter="60" Content="60°" />
+                  <Button Classes="studio-btn-compact" Classes.active="{Binding IsFov75}" Command="{Binding SetFovPresetCommand}" CommandParameter="75" Content="75°" />
+                  <Button Classes="studio-btn-compact" Classes.active="{Binding IsFov90}" Command="{Binding SetFovPresetCommand}" CommandParameter="90" Content="90°" />
+                  <Button Classes="studio-btn-compact" Classes.active="{Binding IsFov110}" Command="{Binding SetFovPresetCommand}" CommandParameter="110" Content="110°" />
+                </StackPanel>
+              </StackPanel>
+
+              <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
+
+              <!-- Viewport Aspect Frame -->
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <TextBlock Grid.Column="0"
+                           Text="Frame"
+                           FontSize="11.5"
+                           Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                           VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
+                  <Button Classes="studio-btn-compact"
+                          Classes.active="{Binding IsRatio16x9}"
+                          Command="{Binding SetAspectPresetCommand}"
+                          CommandParameter="{x:Static models:ItemModelAspectPreset.Ratio16x9}"
+                          Content="16:9" />
+                  <Button Classes="studio-btn-compact"
+                          Classes.active="{Binding IsRatio16x10}"
+                          Command="{Binding SetAspectPresetCommand}"
+                          CommandParameter="{x:Static models:ItemModelAspectPreset.Ratio16x10}"
+                          Content="16:10" />
+                  <Button Classes="studio-btn-compact"
+                          Classes.active="{Binding IsRatio4x3}"
+                          Command="{Binding SetAspectPresetCommand}"
+                          CommandParameter="{x:Static models:ItemModelAspectPreset.Ratio4x3}"
+                          Content="4:3" />
+                  <Button Classes="studio-btn-compact"
+                          Classes.active="{Binding IsRatioFill}"
+                          Command="{Binding SetAspectPresetCommand}"
+                          CommandParameter="{x:Static models:ItemModelAspectPreset.Fill}"
+                          Content="Fill" />
+                </StackPanel>
+              </Grid>
+
+              <!-- Crosshair Toggle -->
+              <CheckBox IsChecked="{Binding ShowCrosshair, Mode=TwoWay}"
+                        FontSize="11.5"
+                        Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                        Content="Show Center Crosshair" />
+            </StackPanel>
+          </Border>
+
+          <!-- Reference Aids Card (WorldModel Mode) -->
+          <Border Classes="studio-card"
+                  Padding="12,10"
+                  IsVisible="{Binding IsWorldModelMode}">
+            <StackPanel Spacing="8">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="WORLD REFERENCE" Classes="pane-title" VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Classes="studio-btn-compact"
+                        Command="{Binding ResetCameraCommand}"
+                        Content="Reset Orbit" />
+              </Grid>
+
+              <CheckBox IsChecked="{Binding ShowFloorPlane, Mode=TwoWay}"
+                        FontSize="11.5"
+                        Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                        Content="1.0 m Floor Plane at (0, 0, 0)" />
+
+              <CheckBox IsChecked="{Binding ShowBodyReference, Mode=TwoWay}"
+                        FontSize="11.5"
+                        Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                        Content="Body Scale Reference at (0, 0, -1)" />
+
+              <Border CornerRadius="5"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Padding="8,5">
+                <TextBlock Text="{Binding ReferenceBodyLabel}"
+                           Classes="mono"
+                           FontSize="10.5"
+                           Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+              </Border>
+            </StackPanel>
+          </Border>
+
+          <!-- Optional Brick Shape Selector for BrickShape.Any Placeables -->
+          <Border Classes="studio-card"
+                  Padding="12,9"
+                  IsVisible="{Binding ShowBrickShapeSelector}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <TextBlock Grid.Column="0"
+                         Text="Brick Shape"
+                         FontSize="11.5"
+                         FontWeight="Medium"
+                         Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                         VerticalAlignment="Center" />
+              <ComboBox Grid.Column="1"
+                        Classes="studio-combo"
+                        ItemsSource="{Binding PreviewBrickShapes}"
+                        SelectedItem="{Binding SelectedPreviewBrickShape, Mode=TwoWay}" />
+            </Grid>
+          </Border>
+
+          <!-- Transform Sliders & Numeric Inputs Card -->
+          <Border Classes="studio-card" Padding="12,10">
+            <StackPanel Spacing="10">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="5">
+                <TextBlock Grid.Column="0" Text="TRANSFORM" Classes="pane-title" VerticalAlignment="Center" />
+                <Button Grid.Column="1"
+                        Classes="studio-btn-compact"
+                        IsEnabled="{Binding IsEditable}"
+                        Command="{Binding CopyFromOtherModelCommand}"
+                        Content="{Binding CopyFromOtherModelLabel}" />
+                <Button Grid.Column="2"
+                        Classes="studio-btn-compact"
+                        IsEnabled="{Binding IsEditable}"
+                        Command="{Binding ResetTransformCommand}"
+                        Content="Reset" />
+              </Grid>
+
+              <!-- Position (m) -->
+              <StackPanel Spacing="4">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <TextBlock Grid.Column="0" Text="Position (m)" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioTextPrimaryBrush}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            Command="{Binding CopyPositionCommand}"
+                            ToolTip.Tip="Copy Position">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 2,8.5 L 2,2.5 L 8,2.5 M 4.5,4.5 L 10.5,4.5 L 10.5,10.5 L 4.5,10.5 Z"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.3"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            IsEnabled="{Binding CanPastePosition}"
+                            Command="{Binding PastePositionCommand}"
+                            ToolTip.Tip="Paste Position">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 4.5,1.5 L 7.5,1.5 L 7.5,3.5 L 4.5,3.5 Z M 4.5,2.5 L 2.5,2.5 L 2.5,10.5 L 9.5,10.5 L 9.5,2.5 L 7.5,2.5 M 4.5,6 L 7.5,6 M 4.5,8 L 7.5,8"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.3"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            IsEnabled="{Binding CanEdit}"
+                            Command="{Binding ResetPositionCommand}"
+                            ToolTip.Tip="Reset Position">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.35"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#33EF4444" BorderBrush="#77EF4444" BorderThickness="1">
+                    <TextBlock Text="X" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="-2" Maximum="2" SmallChange="0.01" LargeChange="0.1"
+                          Foreground="#EF4444" IsEnabled="{Binding IsEditable}" Value="{Binding PosX, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding PosXText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="PosX" ToolTip.Tip="Reset Position X">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#3322C55E" BorderBrush="#7722C55E" BorderThickness="1">
+                    <TextBlock Text="Y" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="-2" Maximum="2" SmallChange="0.01" LargeChange="0.1"
+                          Foreground="#22C55E" IsEnabled="{Binding IsEditable}" Value="{Binding PosY, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding PosYText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="PosY" ToolTip.Tip="Reset Position Y">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#333B82F6" BorderBrush="#773B82F6" BorderThickness="1">
+                    <TextBlock Text="Z" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#3B82F6" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="-2" Maximum="2" SmallChange="0.01" LargeChange="0.1"
+                          Foreground="#3B82F6" IsEnabled="{Binding IsEditable}" Value="{Binding PosZ, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding PosZText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="PosZ" ToolTip.Tip="Reset Position Z">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+              </StackPanel>
+
+              <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
+
+              <!-- Rotation (deg) -->
+              <StackPanel Spacing="4">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <TextBlock Grid.Column="0" Text="Rotation (°)" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioTextPrimaryBrush}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            Command="{Binding CopyRotationCommand}"
+                            ToolTip.Tip="Copy Rotation">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 2,8.5 L 2,2.5 L 8,2.5 M 4.5,4.5 L 10.5,4.5 L 10.5,10.5 L 4.5,10.5 Z"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.3"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            IsEnabled="{Binding CanPasteRotation}"
+                            Command="{Binding PasteRotationCommand}"
+                            ToolTip.Tip="Paste Rotation">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 4.5,1.5 L 7.5,1.5 L 7.5,3.5 L 4.5,3.5 Z M 4.5,2.5 L 2.5,2.5 L 2.5,10.5 L 9.5,10.5 L 9.5,2.5 L 7.5,2.5 M 4.5,6 L 7.5,6 M 4.5,8 L 7.5,8"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.3"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            IsEnabled="{Binding CanEdit}"
+                            Command="{Binding ResetRotationCommand}"
+                            ToolTip.Tip="Reset Rotation">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.35"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#33EF4444" BorderBrush="#77EF4444" BorderThickness="1">
+                    <TextBlock Text="X" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="-180" Maximum="180" SmallChange="1" LargeChange="15"
+                          Foreground="#EF4444" IsEnabled="{Binding IsEditable}" Value="{Binding RotX, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding RotXText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="RotX" ToolTip.Tip="Reset Rotation X">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#3322C55E" BorderBrush="#7722C55E" BorderThickness="1">
+                    <TextBlock Text="Y" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="-180" Maximum="180" SmallChange="1" LargeChange="15"
+                          Foreground="#22C55E" IsEnabled="{Binding IsEditable}" Value="{Binding RotY, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding RotYText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="RotY" ToolTip.Tip="Reset Rotation Y">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#333B82F6" BorderBrush="#773B82F6" BorderThickness="1">
+                    <TextBlock Text="Z" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#3B82F6" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="-180" Maximum="180" SmallChange="1" LargeChange="15"
+                          Foreground="#3B82F6" IsEnabled="{Binding IsEditable}" Value="{Binding RotZ, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding RotZText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="RotZ" ToolTip.Tip="Reset Rotation Z">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+              </StackPanel>
+
+              <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
+
+              <!-- Scale -->
+              <StackPanel Spacing="4">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <TextBlock Grid.Column="0" Text="Scale" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioTextPrimaryBrush}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <Button Classes="studio-btn-compact"
+                            Classes.active="{Binding UniformScale}"
+                            Command="{Binding ToggleUniformScaleCommand}"
+                            ToolTip.Tip="Lock X/Y/Z scale proportions"
+                            Content="Uniform" />
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            Command="{Binding CopyScaleCommand}"
+                            ToolTip.Tip="Copy Scale">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 2,8.5 L 2,2.5 L 8,2.5 M 4.5,4.5 L 10.5,4.5 L 10.5,10.5 L 4.5,10.5 Z"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.3"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            IsEnabled="{Binding CanPasteScale}"
+                            Command="{Binding PasteScaleCommand}"
+                            ToolTip.Tip="Paste Scale">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 4.5,1.5 L 7.5,1.5 L 7.5,3.5 L 4.5,3.5 Z M 4.5,2.5 L 2.5,2.5 L 2.5,10.5 L 9.5,10.5 L 9.5,2.5 L 7.5,2.5 M 4.5,6 L 7.5,6 M 4.5,8 L 7.5,8"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.3"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                    <Button Classes="studio-btn-compact"
+                            Width="24"
+                            Height="24"
+                            MinHeight="24"
+                            Padding="0"
+                            IsEnabled="{Binding CanEdit}"
+                            Command="{Binding ResetScaleCommand}"
+                            ToolTip.Tip="Reset Scale">
+                      <Path Width="12" Height="12" Stretch="Uniform"
+                            Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                            Stroke="{Binding $parent[Button].Foreground}"
+                            StrokeThickness="1.35"
+                            StrokeLineCap="Round"
+                            StrokeJoin="Round" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#33EF4444" BorderBrush="#77EF4444" BorderThickness="1">
+                    <TextBlock Text="X" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#EF4444" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="0.05" Maximum="2" SmallChange="0.01" LargeChange="0.1"
+                          Foreground="#EF4444" IsEnabled="{Binding IsEditable}" Value="{Binding ScaleX, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding ScaleXText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="ScaleX" ToolTip.Tip="Reset Scale X">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#3322C55E" BorderBrush="#7722C55E" BorderThickness="1">
+                    <TextBlock Text="Y" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#22C55E" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="0.05" Maximum="2" SmallChange="0.01" LargeChange="0.1"
+                          Foreground="#22C55E" IsEnabled="{Binding IsEditable}" Value="{Binding ScaleY, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding ScaleYText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="ScaleY" ToolTip.Tip="Reset Scale Y">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+                <Grid ColumnDefinitions="18,*,58,22" ColumnSpacing="5">
+                  <Border Grid.Column="0" Width="18" Height="22" CornerRadius="4" Background="#333B82F6" BorderBrush="#773B82F6" BorderThickness="1">
+                    <TextBlock Text="Z" Classes="mono" FontSize="10.5" FontWeight="Bold" Foreground="#3B82F6" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <Slider Grid.Column="1" Classes="studio-color-slider" Minimum="0.05" Maximum="2" SmallChange="0.01" LargeChange="0.1"
+                          Foreground="#3B82F6" IsEnabled="{Binding IsEditable}" Value="{Binding ScaleZ, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2" Classes="studio-input mono" Height="24" MinHeight="24" Padding="5,2" HorizontalContentAlignment="Right"
+                           IsReadOnly="{Binding IsReadOnly}" Text="{Binding ScaleZText, Mode=TwoWay}" />
+                  <Button Grid.Column="3" Classes="studio-btn-ghost" Width="22" Height="22" MinWidth="22" MinHeight="22" Padding="0"
+                          IsEnabled="{Binding CanEdit}" Command="{Binding ResetAxisCommand}" CommandParameter="ScaleZ" ToolTip.Tip="Reset Scale Z">
+                    <Path Width="11" Height="11" Stretch="Uniform"
+                          Data="M 3.0,8.8 A 4.2,4.2 0 1 0 3.0,3.2 M 3.0,1.2 L 3.0,3.2 L 5.0,3.2"
+                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.35" StrokeLineCap="Round" StrokeJoin="Round" />
+                  </Button>
+                </Grid>
+              </StackPanel>
+
+              <TextBlock Text="{Binding StatusText}"
+                         IsVisible="{Binding HasStatusText}"
+                         FontSize="10.5"
+                         Foreground="{DynamicResource StudioInfoBrush}"
+                         TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+
+          <!-- Collapsible Mesh & Material Source -->
+          <controls:CollapsibleSectionCard x:Name="ModelSourceCard"
+                                           Title="Model Source"
+                                           Subtitle="{Binding ModelSourceSummary}"
+                                           IsExpanded="False">
+            <StackPanel Spacing="8">
+              <controls:ScalarFieldRowControl DataContext="{Binding ActiveMeshField}" CompactStacked="True" />
+              <controls:ScalarFieldRowControl DataContext="{Binding ActiveMaterialField}" CompactStacked="True" />
+            </StackPanel>
+          </controls:CollapsibleSectionCard>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</UserControl>

@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             x:Class="WaywardBeyond.AssetStudio.Views.Dialogs.DraftRecoveryDialog"
+             x:DataType="vm:DraftRecoveryDialogViewModel">
+  <Border Classes="studio-dialog" Width="560" VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="True">
+    <StackPanel>
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="20,14">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+          <StackPanel Grid.Column="0" Spacing="2">
+            <TextBlock Text="Draft Recovery" FontSize="15" FontWeight="Bold" />
+            <TextBlock Text="Unsaved drafts were detected from an unclean exit. Recover or discard each file explicitly."
+                       FontSize="11.5"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+          </StackPanel>
+          <Button Grid.Column="1" VerticalAlignment="Top" Classes="studio-btn-ghost" Command="{Binding CloseCommand}" Content="×" FontSize="16" />
+        </Grid>
+      </Border>
+
+      <StackPanel Margin="20,16" Spacing="10">
+        <Border Classes="studio-banner-info">
+          <TextBlock Text="Drafts compare stored base file hashes against disk. Files modified externally are never auto-merged."
+                     FontSize="11.5"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioInfoBrush}" />
+        </Border>
+
+        <ItemsControl ItemsSource="{Binding Items}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DraftRecoveryItemViewModel">
+              <Border CornerRadius="6"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Padding="12,10"
+                      Margin="0,0,0,8">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <StackPanel Grid.Column="0" Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <TextBlock Text="{Binding Entry.RelativeFile}" Classes="mono" FontSize="12" FontWeight="SemiBold" />
+                      <Border Classes="studio-badge warning" IsVisible="{Binding BaseHashChanged}">
+                        <TextBlock Text="External edit" FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioWarningBrush}" />
+                      </Border>
+                      <Border Classes="studio-badge info" IsVisible="{Binding IsResolved}">
+                        <TextBlock Text="{Binding ResolutionStatus}" FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource StudioInfoBrush}" />
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Entry.Summary}" FontSize="11" Foreground="{DynamicResource StudioTextSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Entry.SavedAtLabel, StringFormat='Snapshot saved: {0}'}" Classes="mono" FontSize="10" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Button Classes="studio-btn-compact"
+                            Command="{Binding $parent[UserControl].((vm:DraftRecoveryDialogViewModel)DataContext).RecoverItemCommand}"
+                            CommandParameter="{Binding}"
+                            Content="Recover" />
+                    <Button Classes="studio-btn-compact"
+                            Command="{Binding $parent[UserControl].((vm:DraftRecoveryDialogViewModel)DataContext).DiscardItemCommand}"
+                            CommandParameter="{Binding}"
+                            Content="Discard" />
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,1,0,0"
+              Padding="20,12">
+        <Grid ColumnDefinitions="*,Auto">
+          <Button Grid.Column="0" HorizontalAlignment="Left" Classes="studio-btn-danger" Command="{Binding DiscardAllCommand}" Content="Discard All" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+            <Button Classes="studio-btn" Command="{Binding CloseCommand}" Content="Later" />
+            <Button Classes="studio-btn-primary" Command="{Binding RecoverAllCommand}" Content="Recover All" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -1,0 +1,233 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:models="clr-namespace:WaywardBeyond.AssetStudio.Models"
+             xmlns:conv="clr-namespace:WaywardBeyond.AssetStudio.Converters"
+             x:Class="WaywardBeyond.AssetStudio.Views.ValidationDockView"
+             x:DataType="vm:MainWindowViewModel">
+  <Border Background="{DynamicResource StudioCanvasBrush}">
+    <DockPanel>
+      <!-- Dock Header Bar with Clickable Severity Filter Pills & Bulk Actions -->
+      <Border DockPanel.Dock="Top"
+              Height="32"
+              Background="{DynamicResource StudioSurfaceElevatedBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="12,0,10,0">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <TextBlock Text="VALIDATION" Classes="pane-title" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <Button Classes="studio-badge-btn danger"
+                    Classes.active="{Binding IsFatalFilterActive}"
+                    Command="{Binding ToggleValidationSeverityFilterCommand}"
+                    CommandParameter="{x:Static models:ValidationSeverity.Fatal}"
+                    Content="{Binding FatalCount, StringFormat='{}{0} Fatal'}"
+                    ToolTip.Tip="Click to filter Fatal findings" />
+            <Button Classes="studio-badge-btn danger"
+                    Classes.active="{Binding IsBrokenFilterActive}"
+                    Command="{Binding ToggleValidationSeverityFilterCommand}"
+                    CommandParameter="{x:Static models:ValidationSeverity.Broken}"
+                    Content="{Binding BrokenCount, StringFormat='{}{0} Broken'}"
+                    ToolTip.Tip="Click to filter Broken findings" />
+            <Button Classes="studio-badge-btn warning"
+                    Classes.active="{Binding IsCrossPlatformFilterActive}"
+                    Command="{Binding ToggleValidationSeverityFilterCommand}"
+                    CommandParameter="{x:Static models:ValidationSeverity.CrossPlatform}"
+                    Content="{Binding CrossPlatformCount, StringFormat='{}{0} Cross-platform'}"
+                    ToolTip.Tip="Click to filter Cross-platform findings" />
+            <Button Classes="studio-badge-btn"
+                    Classes.active="{Binding IsStyleFilterActive}"
+                    Command="{Binding ToggleValidationSeverityFilterCommand}"
+                    CommandParameter="{x:Static models:ValidationSeverity.Style}"
+                    Content="{Binding StyleCount, StringFormat='{}{0} Style'}"
+                    ToolTip.Tip="Click to filter Style findings" />
+          </StackPanel>
+
+          <!-- Bulk Actions -->
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+            <Button Classes="studio-btn-compact"
+                    Command="{Binding FixAllSafeIssuesCommand}"
+                    IsEnabled="{Binding HasSafeFixes}"
+                    Content="{Binding SafeFixButtonLabel}"
+                    ToolTip.Tip="Apply all deterministic safe fixes across writable files" />
+            <Button Classes="studio-btn-compact" Command="{Binding FixCaseIssuesCommand}" Content="Fix Case" />
+            <Button Classes="studio-btn-compact" Command="{Binding FormatCurrentFileCommand}" Content="Format File" />
+            <Button Classes="studio-btn-compact" Command="{Binding RevalidateWorkspaceCommand}" Content="Revalidate" />
+            <Button Classes="studio-btn-compact" Command="{Binding CopyAllValidationCommand}" Content="Copy All" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Grouped Tree: Severity -> Root -> File (collapsed by default) -> Finding -->
+      <Grid>
+        <StackPanel IsVisible="{Binding ShowValidationEmptyState}"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+          <Border Classes="studio-badge success"
+                  IsVisible="{Binding ShowValidationCleanBadge}"
+                  Padding="7,2">
+            <TextBlock Text="CLEAN" FontSize="10" FontWeight="SemiBold" />
+          </Border>
+          <TextBlock Text="{Binding ValidationEmptyStateMessage}"
+                     FontSize="12"
+                     Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+
+        <ScrollViewer IsVisible="{Binding !ShowValidationEmptyState}" VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding ValidationGroups}" Margin="8,4,8,8">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ValidationSeverityGroupViewModel">
+                <StackPanel Margin="0,0,0,2">
+                  <!-- Severity Row -->
+                  <Button Command="{Binding ToggleExpandedCommand}"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          Padding="6,2"
+                          Cursor="Hand">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <Grid Width="10" Height="10" VerticalAlignment="Center">
+                        <Path IsVisible="{Binding IsExpanded}" Data="M 1,3 L 4.5,6.5 L 8,3" Stroke="{DynamicResource StudioTextMutedBrush}" StrokeThickness="1.4" StrokeLineCap="Round" StrokeJoin="Round" />
+                        <Path IsVisible="{Binding !IsExpanded}" Data="M 2.5,1 L 6,4.5 L 2.5,8" Stroke="{DynamicResource StudioTextMutedBrush}" StrokeThickness="1.4" StrokeLineCap="Round" StrokeJoin="Round" />
+                      </Grid>
+                      <TextBlock Text="{Binding Title}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                      <Border Classes="studio-badge" Padding="5,0">
+                        <TextBlock Text="{Binding TotalCount}" Classes="mono" FontSize="9.5" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                      </Border>
+                    </StackPanel>
+                  </Button>
+
+                  <!-- Root Groups -->
+                  <ItemsControl ItemsSource="{Binding Roots}" IsVisible="{Binding IsExpanded}" Margin="16,0,0,0">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:ValidationRootGroupViewModel">
+                        <StackPanel>
+                          <Button Command="{Binding ToggleExpandedCommand}"
+                                  HorizontalAlignment="Stretch"
+                                  HorizontalContentAlignment="Stretch"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  Padding="6,1"
+                                  Cursor="Hand">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <Grid Width="10" Height="10" VerticalAlignment="Center">
+                                <Path IsVisible="{Binding IsExpanded}" Data="M 1,3 L 4.5,6.5 L 8,3" Stroke="{DynamicResource StudioTextMutedBrush}" StrokeThickness="1.3" StrokeLineCap="Round" StrokeJoin="Round" />
+                                <Path IsVisible="{Binding !IsExpanded}" Data="M 2.5,1 L 6,4.5 L 2.5,8" Stroke="{DynamicResource StudioTextMutedBrush}" StrokeThickness="1.3" StrokeLineCap="Round" StrokeJoin="Round" />
+                              </Grid>
+                              <TextBlock Text="{Binding RootName}" Classes="mono" FontSize="10.5" Foreground="{DynamicResource StudioTextSecondaryBrush}" />
+                            </StackPanel>
+                          </Button>
+
+                          <!-- File Groups (Collapsed by Default) -->
+                          <ItemsControl ItemsSource="{Binding Files}" IsVisible="{Binding IsExpanded}" Margin="16,0,0,0">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="vm:ValidationFileGroupViewModel">
+                                <StackPanel>
+                                  <Button Command="{Binding ToggleExpandedCommand}"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Stretch"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Padding="6,2"
+                                          Cursor="Hand">
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                      <Grid Grid.Column="0" Width="10" Height="10" VerticalAlignment="Center">
+                                        <Path IsVisible="{Binding IsExpanded}" Data="M 1,3 L 4.5,6.5 L 8,3" Stroke="{DynamicResource StudioTextMutedBrush}" StrokeThickness="1.3" StrokeLineCap="Round" StrokeJoin="Round" />
+                                        <Path IsVisible="{Binding !IsExpanded}" Data="M 2.5,1 L 6,4.5 L 2.5,8" Stroke="{DynamicResource StudioTextMutedBrush}" StrokeThickness="1.3" StrokeLineCap="Round" StrokeJoin="Round" />
+                                      </Grid>
+                                      <TextBlock Grid.Column="1" Text="{Binding RelativeFile}" Classes="mono" FontSize="11" FontWeight="Medium" Foreground="{DynamicResource StudioTextPrimaryBrush}" />
+                                      <TextBlock Grid.Column="2" Text="{Binding CountLabel}" FontSize="10" Foreground="{DynamicResource StudioTextMutedBrush}" />
+                                    </Grid>
+                                  </Button>
+
+                                  <!-- Individual Clickable Findings with Right-Click Fix > Context Menu -->
+                                  <ItemsControl ItemsSource="{Binding Findings}" IsVisible="{Binding IsExpanded}" Margin="18,0,0,3">
+                                    <ItemsControl.ItemTemplate>
+                                      <DataTemplate x:DataType="models:ValidationFinding">
+                                        <Button Classes="tree-row"
+                                                Padding="6,3"
+                                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).FocusFindingCommand}"
+                                                CommandParameter="{Binding}">
+                                          <Button.ContextMenu>
+                                            <ContextMenu>
+                                              <MenuItem Header="Fix" IsEnabled="{Binding HasQuickFix}">
+                                                <MenuItem Header="{Binding QuickFixLabel, FallbackValue='No automatic fix available'}"
+                                                          Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).ApplyValidationQuickFixCommand}"
+                                                          CommandParameter="{Binding}"
+                                                          IsEnabled="{Binding HasQuickFix}" />
+                                              </MenuItem>
+                                              <Separator />
+                                              <MenuItem Header="Jump to Asset"
+                                                        Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).FocusFindingCommand}"
+                                                        CommandParameter="{Binding}" />
+                                            </ContextMenu>
+                                          </Button.ContextMenu>
+                                          <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                                            <Border Grid.Column="0"
+                                                    Classes="studio-badge"
+                                                    Classes.danger="{Binding IsDangerSeverity}"
+                                                    Classes.warning="{Binding IsWarningSeverity}"
+                                                    HorizontalAlignment="Left">
+                                              <TextBlock Text="{Binding Severity, Converter={x:Static conv:SeverityToLabelConverter.INSTANCE}}"
+                                                         FontSize="9.5"
+                                                         FontWeight="SemiBold" />
+                                            </Border>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Message}"
+                                                       FontSize="11.5"
+                                                       Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                            <Border Grid.Column="2"
+                                                    Classes="studio-badge info"
+                                                    IsVisible="{Binding HasFieldKey}"
+                                                    Padding="5,1"
+                                                    VerticalAlignment="Center">
+                                              <TextBlock Text="{Binding FieldKey}"
+                                                         Classes="mono"
+                                                         FontSize="9.5"
+                                                         FontWeight="SemiBold" />
+                                            </Border>
+                                            <TextBlock Grid.Column="3"
+                                                       Text="{Binding LineNumber, StringFormat='Line {0}'}"
+                                                       Classes="mono"
+                                                       FontSize="10.5"
+                                                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                                                       VerticalAlignment="Center" />
+                                            <Button Grid.Column="4"
+                                                    Classes="studio-btn-compact"
+                                                    Height="20"
+                                                    MinHeight="20"
+                                                    Padding="7,0"
+                                                    FontSize="10"
+                                                    IsVisible="{Binding HasQuickFix}"
+                                                    Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).ApplyValidationQuickFixCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip.Tip="{Binding QuickFixLabel}"
+                                                    Content="Fix" />
+                                          </Grid>
+                                        </Button>
+                                      </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                  </ItemsControl>
+                                </StackPanel>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </DockPanel>
+  </Border>
+</UserControl>

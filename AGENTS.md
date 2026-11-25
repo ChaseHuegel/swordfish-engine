@@ -14,9 +14,11 @@ dotnet build --no-restore                           # Debug default, runs Needle
 dotnet build Tests.slnf --no-restore                # build only test projects and their dependencies
 dotnet build Engine.slnf --no-restore               # build only engine projects and engine tests
 dotnet build Game.slnf --no-restore                 # build only Wayward Beyond projects and engine deps
+dotnet build Tools.slnf --no-restore                # build Asset Studio, CLI, AssetTools, Meshing, and tool tests
 dotnet build <Project> --no-restore                 # scoped build during iteration
 dotnet test <TestProject> --no-build --filter <X>   # scoped test during iteration
 dotnet test Tests.slnf --no-build                   # all 8 xunit test projects in parallel
+dotnet test Tools.slnf --no-build                   # AssetTools and AssetStudio xunit test projects
 ```
 
 Individual test projects (always pass `--no-build` after a build):
@@ -30,6 +32,8 @@ dotnet test Reef.Generator.Tests --no-build         # xunit Reef markup generato
 dotnet test Reef.Markup.Tests --no-build            # xunit Reef markup runtime and visual gallery
 dotnet test WaywardBeyond.Tests --no-build          # xunit game tests
 dotnet test WaywardBeyond.Voxels.Tests --no-build   # xunit shared voxel container tests
+dotnet test WaywardBeyond.AssetTools.Tests --no-build   # xunit AssetTools and CLI tests
+dotnet test WaywardBeyond.AssetStudio.Tests --no-build  # xunit Asset Studio headless UI and GL tests
 ```
 
 ### Agent build and test rules
@@ -85,6 +89,11 @@ Every top-level path and what it is:
 | `Reef.Markup.TestComponents/` | Shared component and widget fixtures for cross-assembly tests |
 | `Reef.Tests/` | Reef UI and render tests (cross-platform) |
 | `Reef.Text.Tests/` | Reef rich-text parser tests (cross-platform) |
+| `WaywardBeyond.AssetStudio/` | Avalonia 11 desktop Asset Studio app, forms, search, and GL preview |
+| `WaywardBeyond.AssetStudio.Tests/` | Headless Avalonia UI, visual capture, integration, and software GL tests |
+| `WaywardBeyond.AssetTools/` | Lossless Tomlyn CST editor, drafts, atomic saves, validation, packs, blueprints |
+| `WaywardBeyond.AssetTools.Cli/` | Asset Tools CLI (`validate`, `roundtrip`, `format`, `new pack`, `ids`) |
+| `WaywardBeyond.AssetTools.Tests/` | xunit tests for AssetTools, round-trip suite, validation, packs, blueprints, CLI |
 | `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database |
 | `WaywardBeyond.Bricks/` | Shared brick module: definitions, headless database, id registry |
 | `WaywardBeyond.Client/` | Game client module |
@@ -93,6 +102,7 @@ Every top-level path and what it is:
 | `WaywardBeyond.Data/` | Shared data models, nsd schemas, sqlite storage, localization |
 | `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, networked staging state, body config, interactions, save codec |
 | `WaywardBeyond.Items/` | Shared item module: definitions, headless database, item-to-brick resolution |
+| `WaywardBeyond.Meshing/` | Shared CPU voxel meshing, `PreviewMesh`, `ITextureLayerLookup`, region builder |
 | `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations |
 | `WaywardBeyond.Networking/` | Game networking layer: wire contracts, registry, codecs, transports |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader |
@@ -100,6 +110,7 @@ Every top-level path and what it is:
 | `WaywardBeyond.Server.Launcher/` | Game server launcher |
 | `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader, server skill state |
 | `WaywardBeyond.Tests/` | Game tests: client, server, gameplay, networking, and game UI |
+| `tools/` | Self-contained folder packaging scripts for Asset Studio and CLI |
 | `docs/` | Self-documenting doc system (subject index in `docs/README.md`) |
 | `userdocs/` | Human onboarding docs, examples, and quick references |
 | `README.md`, `LICENSE` | Project docs |
@@ -115,6 +126,7 @@ Route a goal to the right doc:
 | Understand the module/process architecture | [docs/architecture.md](docs/architecture.md) |
 | Edit or add config schema | [docs/specs/config-schemas.md](docs/specs/config-schemas.md) |
 | Define game content | [docs/specs/asset-definitions.md](docs/specs/asset-definitions.md) |
+| Work on or package the asset tooling | [docs/specs/asset-tooling.md](docs/specs/asset-tooling.md) |
 | Author 3D models, textures, or icons | [docs/specs/asset-art-style.md](docs/specs/asset-art-style.md) |
 | Change save/persistence | [docs/specs/persistence.md](docs/specs/persistence.md) |
 | Change an nsd message or generated model | [docs/specs/needlefish-codegen.md](docs/specs/needlefish-codegen.md) |

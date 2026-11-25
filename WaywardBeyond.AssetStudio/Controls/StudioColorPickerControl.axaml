@@ -1,0 +1,119 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Controls.StudioColorPickerControl"
+             Width="236">
+  <StackPanel Spacing="10">
+    <!-- 2D Saturation / Value Gradient Plane -->
+    <controls:ColorSvSquareControl x:Name="PART_SvSquare"
+                                   Height="144"
+                                   BorderBrush="{DynamicResource StudioBorderStrongBrush}" />
+
+    <!-- Horizontal Hue Spectrum Bar -->
+    <controls:ColorHueBarControl x:Name="PART_HueBar"
+                                 Height="18"
+                                 BorderBrush="{DynamicResource StudioBorderStrongBrush}" />
+
+    <!-- Live Preview Swatch + Editable Hex Input -->
+    <Grid ColumnDefinitions="36,*" ColumnSpacing="8">
+      <Border x:Name="PART_PreviewSwatch"
+              Grid.Column="0"
+              Width="36"
+              Height="28"
+              CornerRadius="6"
+              Background="#FFFFFF"
+              BorderBrush="{DynamicResource StudioBorderStrongBrush}"
+              BorderThickness="1" />
+      <TextBox x:Name="PART_HexInput"
+               Grid.Column="1"
+               Classes="studio-input mono"
+               MaxLength="9"
+               Watermark="#RRGGBB" />
+    </Grid>
+
+    <!-- Compact R / G / B Channel Sliders -->
+    <StackPanel Spacing="3">
+      <Grid ColumnDefinitions="14,*,28" ColumnSpacing="6">
+        <TextBlock Grid.Column="0"
+                   Text="R"
+                   FontSize="10.5"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                   VerticalAlignment="Center" />
+        <Slider x:Name="PART_RedSlider"
+                Grid.Column="1"
+                Classes="studio-color-slider"
+                Minimum="0"
+                Maximum="255"
+                IsSnapToTickEnabled="True"
+                TickFrequency="1"
+                Foreground="#EF4444" />
+        <TextBlock x:Name="PART_RedValue"
+                   Grid.Column="2"
+                   Text="255"
+                   Classes="mono"
+                   FontSize="10.5"
+                   Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Center" />
+      </Grid>
+
+      <Grid ColumnDefinitions="14,*,28" ColumnSpacing="6">
+        <TextBlock Grid.Column="0"
+                   Text="G"
+                   FontSize="10.5"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                   VerticalAlignment="Center" />
+        <Slider x:Name="PART_GreenSlider"
+                Grid.Column="1"
+                Classes="studio-color-slider"
+                Minimum="0"
+                Maximum="255"
+                IsSnapToTickEnabled="True"
+                TickFrequency="1"
+                Foreground="#22C55E" />
+        <TextBlock x:Name="PART_GreenValue"
+                   Grid.Column="2"
+                   Text="255"
+                   Classes="mono"
+                   FontSize="10.5"
+                   Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Center" />
+      </Grid>
+
+      <Grid ColumnDefinitions="14,*,28" ColumnSpacing="6">
+        <TextBlock Grid.Column="0"
+                   Text="B"
+                   FontSize="10.5"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                   VerticalAlignment="Center" />
+        <Slider x:Name="PART_BlueSlider"
+                Grid.Column="1"
+                Classes="studio-color-slider"
+                Minimum="0"
+                Maximum="255"
+                IsSnapToTickEnabled="True"
+                TickFrequency="1"
+                Foreground="#3B82F6" />
+        <TextBlock x:Name="PART_BlueValue"
+                   Grid.Column="2"
+                   Text="255"
+                   Classes="mono"
+                   FontSize="10.5"
+                   Foreground="{DynamicResource StudioTextSecondaryBrush}"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </StackPanel>
+
+    <!-- Curated Wayward Beyond Palette Swatches -->
+    <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
+    <StackPanel Spacing="5">
+      <TextBlock Text="PALETTE" Classes="pane-title" FontSize="9.5" />
+      <StackPanel x:Name="PART_SwatchesRow" Orientation="Horizontal" Spacing="4" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>
