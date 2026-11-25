@@ -35,7 +35,7 @@ internal sealed class LocalizedTagsDatabase : VirtualAssetDatabase<LocalizedTags
                 continue;
             }
 
-            MergeTags(destination: localizedTags.Tags, source: invariantTags.Tags);
+            localizedTags.Merge(invariantTags);
         }
     }
 
@@ -71,29 +71,8 @@ internal sealed class LocalizedTagsDatabase : VirtualAssetDatabase<LocalizedTags
         }
 
         //  This lang key already exists. Append the tags.
-        MergeTags(destination: localizedTags.Tags, source: assetInfo.Tags);
+        localizedTags.Merge(assetInfo.Tags);
 
         return Result<LocalizedTags>.FromSuccess(localizedTags);
-    }
-
-    private static void MergeTags(Dictionary<string, List<string>> destination, Dictionary<string, List<string>> source)
-    {
-        foreach (KeyValuePair<string, List<string>> tag in source)
-        {
-            if (!destination.TryGetValue(tag.Key, out List<string>? values))
-            {
-                values = [];
-                destination[tag.Key] = values;
-            }
-
-            for (var i = 0; i < tag.Value.Count; i++)
-            {
-                string value = tag.Value[i];
-                if (!values.Contains(value))
-                {
-                    values.Add(value);
-                }
-            }
-        }
     }
 }
