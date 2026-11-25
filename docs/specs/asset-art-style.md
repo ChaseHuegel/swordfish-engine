@@ -99,6 +99,11 @@ The engine parses `.obj` meshes in `Swordfish/IO/ObjParser.cs:22-124`.
 | Item definition | `WaywardBeyond.Items/assets/items/<name>.toml` | Set `Icon`, `[Items.ViewModel]`, and `[Items.WorldModel]` to the asset paths |
 | Item copy | `WaywardBeyond.Client/assets/lang/en/item.toml` | Add display name and description localization keys |
 
+Author a block tint mask for every block texture that has an emissive map,
+except `light` and `small_light`. Set the mask black on every emissive texel and
+white elsewhere. Paint then keeps emitter colors. Light bricks stay tintable so
+paint recolors their glow.
+
 Placeable brick items omit `Icon` so `BrickIconRenderer` renders their isometric
 icon at startup.
 
