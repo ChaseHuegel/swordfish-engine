@@ -28,6 +28,8 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
     private const float MIN_QUATERNION_LENGTH_SQ = 1e-12f;
     private const float POSITION_CORRECTION_BLEND = 0.5f;
     private const float POSITION_DEADBAND_SQ = 0.0001f;
+    private const float POSITION_SNAP_DISTANCE_SQ =
+        CharacterDefaults.RECONCILE_SNAP_DISTANCE * CharacterDefaults.RECONCILE_SNAP_DISTANCE;
 
     private Uuid _player = Uuid.Null;
     private Quaternion _targetOrientation = Quaternion.Identity;
@@ -61,7 +63,7 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
         }
 
         float blend = _hasAuthoritativeTransform ? POSITION_CORRECTION_BLEND : 1f;
-        var write = new SeatTransform(in position, in scale, blend, POSITION_DEADBAND_SQ);
+        var write = new SeatTransform(in position, in scale, blend, POSITION_DEADBAND_SQ, POSITION_SNAP_DISTANCE_SQ);
         store.QueryRef<TransformComponent, SeatTransform>(entity, 0f, ref write);
         _hasAuthoritativeTransform = true;
 
@@ -212,19 +214,27 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
             && float.IsFinite(value.Z) && float.IsFinite(value.W);
     }
 
-    private readonly struct SeatTransform(in Vector3 position, in Vector3 scale, float blend, float deadbandSq) : IForEachRef<TransformComponent>
+    private readonly struct SeatTransform(
+        in Vector3 position,
+        in Vector3 scale,
+        float blend,
+        float deadbandSq,
+        float snapDistanceSq
+    ) : IForEachRef<TransformComponent>
     {
         private readonly Vector3 _position = position;
         private readonly Vector3 _scale = scale;
         private readonly float _blend = blend;
         private readonly float _deadbandSq = deadbandSq;
+        private readonly float _snapDistanceSq = snapDistanceSq;
 
         /// <inheritdoc/>
         public void Execute(float delta, DataStore store, int entity, ref Ref<TransformComponent> transform)
         {
             ref readonly TransformComponent current = ref transform.Read;
             Vector3 offset = _position - current.Position;
-            bool positionChanged = offset.LengthSquared() > _deadbandSq;
+            float offsetSq = offset.LengthSquared();
+            bool positionChanged = offsetSq > _deadbandSq;
             bool scaleChanged = current.Scale != _scale;
             if (!positionChanged && !scaleChanged)
             {
@@ -234,7 +244,9 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
             ref TransformComponent value = ref transform.Write;
             if (positionChanged)
             {
-                value.Position = _blend >= 1f ? _position : current.Position + offset * _blend;
+                value.Position = _blend >= 1f || offsetSq > _snapDistanceSq
+                    ? _position
+                    : current.Position + offset * _blend;
             }
 
             if (scaleChanged)

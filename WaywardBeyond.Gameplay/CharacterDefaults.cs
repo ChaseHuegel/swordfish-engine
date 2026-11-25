@@ -28,6 +28,9 @@ public static class CharacterDefaults
     /// <summary>The per-second angular velocity damping factor.</summary>
     public const float ANGULAR_DECELERATION = 10f;
 
+    /// <summary>A position correction beyond this distance, in meters, snaps instead of blending.</summary>
+    public const float RECONCILE_SNAP_DISTANCE = 2f;
+
     /// <summary>A squared velocity at or below this magnitude snaps to rest.</summary>
     public const float STOP_EPSILON = 0.00001f;
 

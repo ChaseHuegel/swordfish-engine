@@ -70,14 +70,16 @@ which flow as `VoxelEdit` notifications rather than snapshots.
   server publishes it only for entities with `BodyViewComponent`, so a remote
   player gets a local body without shipping world voxel colliders.
 - Blends a remote player's authoritative position. An error at or below one
-  centimeter is ignored. A larger error moves halfway per snapshot. Orientation
-  and scale stay authoritative.
+  centimeter is ignored. A larger error moves halfway per snapshot. An error
+  beyond `CharacterDefaults.RECONCILE_SNAP_DISTANCE` snaps. Orientation and scale
+  stay authoritative.
 - Applies the local player's authoritative position and scale. Small position
-  errors are deadbanded and larger ones are blended over a few snapshots. Its
-  orientation targets the server orientation plus the look applied after the
-  snapshot ack, and slerps toward that target so collision rotation is corrected
-  without rewinding the local look. Angular velocity is applied while look is
-  idle, and the target advances with it.
+  errors are deadbanded and larger ones are blended over a few snapshots, and an
+  error beyond the same snap distance snaps. Its orientation targets the server
+  orientation plus the look applied after the snapshot ack, and slerps toward
+  that target so collision rotation is corrected without rewinding the local
+  look. Angular velocity is applied while look is idle, and the target advances
+  with it.
 
 ## Client → server
 
