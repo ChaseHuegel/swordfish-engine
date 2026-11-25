@@ -734,6 +734,11 @@ public class ServerRegionSystemTests
         worldContainer.RegisterInstance(simStep);
         worldContainer.RegisterInstance(worldFactory);
         worldContainer.RegisterInstance(interactionSystem);
+        worldContainer.RegisterInstance(new WaywardBeyond.Server.Particles.ServerParticleService(
+            peers,
+            sessions,
+            replication,
+            NullLogger<WaywardBeyond.Server.Particles.ServerParticleService>.Instance));
         var world = new ServerWorld(worldContainer);
 
         ServerPeer peer = peers.GetOrAdd(new StubHost(), new RpcPeer(connection), isLocal: isLocalHost);
