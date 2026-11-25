@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 // ReSharper disable UnusedMember.Global
 namespace Swordfish.Library.IO;
 
@@ -11,6 +9,12 @@ public struct Shortcut
     public string Description;
     public ShortcutModifiers Modifiers;
     public Key Key;
+    public MouseButton MouseButton;
+    public bool Fixed;
+    public bool IgnoreUnboundModifiers;
+#nullable enable
+    public string? SharedBindingGroup;
+#nullable disable
     public Func<bool> IsEnabled;
     public Action Action;
     public Action Released;
@@ -25,6 +29,11 @@ public struct Shortcut
 
         Category = null;
         Description = null;
+        MouseButton = MouseButton.Unknown;
+        Fixed = false;
+        IgnoreUnboundModifiers = false;
+        SharedBindingGroup = null;
+        Released = null;
     }
 
     public Shortcut(string name, string category, ShortcutModifiers modifiers, Key key, Func<bool> isEnabled, Action action)
@@ -37,6 +46,11 @@ public struct Shortcut
         Action = action;
 
         Description = null;
+        MouseButton = MouseButton.Unknown;
+        Fixed = false;
+        IgnoreUnboundModifiers = false;
+        SharedBindingGroup = null;
+        Released = null;
     }
 
     public Shortcut(string name, string category, string description, ShortcutModifiers modifiers, Key key, Func<bool> isEnabled, Action action)
@@ -48,6 +62,12 @@ public struct Shortcut
         Key = key;
         IsEnabled = isEnabled;
         Action = action;
+
+        MouseButton = MouseButton.Unknown;
+        Fixed = false;
+        IgnoreUnboundModifiers = false;
+        SharedBindingGroup = null;
+        Released = null;
     }
 
     public static bool DefaultEnabled()
@@ -55,39 +75,31 @@ public struct Shortcut
         return true;
     }
 
+#nullable enable
+    /// <summary>Gets the stable identifier for this shortcut.</summary>
+    public string GetId()
+    {
+        return CreateId(Category, Name);
+    }
+
+    /// <summary>Formats a shortcut identifier from category and action name.</summary>
+    public static string CreateId(string? category, string name)
+    {
+        return string.IsNullOrEmpty(category) ? name : $"{category}/{name}";
+    }
+
+    /// <summary>Gets the binding declared by this shortcut definition.</summary>
+    public ShortcutBinding GetBinding()
+    {
+        return MouseButton != MouseButton.Unknown
+            ? new ShortcutBinding(MouseButton, Modifiers)
+            : new ShortcutBinding(Key, Modifiers);
+    }
+
+    /// <inheritdoc/>
     public override string ToString()
     {
-        if (Key == Key.None)
-        {
-            return string.Empty;
-        }
-
-        var builder = new StringBuilder();
-        var parts = new List<string>();
-
-        if (Modifiers != ShortcutModifiers.None)
-        {
-            if (Modifiers.HasFlag(ShortcutModifiers.Control))
-            {
-                parts.Add("Ctrl");
-            }
-
-            if (Modifiers.HasFlag(ShortcutModifiers.Shift))
-            {
-                parts.Add("Shift");
-            }
-
-            if (Modifiers.HasFlag(ShortcutModifiers.Alt))
-            {
-                parts.Add("Alt");
-            }
-
-            builder.Append(string.Join(", ", parts));
-            builder.Append(" + ");
-        }
-
-        builder.Append(Key.ToDisplayString());
-        return builder.ToString();
-
+        return GetBinding().ToDisplayString();
     }
+#nullable disable
 }

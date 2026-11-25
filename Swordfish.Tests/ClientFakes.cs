@@ -31,6 +31,8 @@ internal sealed class FakeInputService : IInputService
 
     public EventHandler<ClickedEventArgs> Clicked { get; set; } = null!;
 
+    public EventHandler<ClickedEventArgs> MouseReleased { get; set; } = null!;
+
     public EventHandler<ClickedEventArgs> DoubleClicked { get; set; } = null!;
 
     public EventHandler<ScrolledEventArgs> Scrolled { get; set; } = null!;
