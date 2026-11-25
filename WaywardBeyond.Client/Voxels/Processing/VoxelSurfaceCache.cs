@@ -210,6 +210,22 @@ internal sealed class VoxelSurfaceCache
                 || RightTextures.IsDeclared;
         }
 
+        /// <summary>Returns true when <paramref name="brick"/> explicitly declares a texture list for <paramref name="face"/>.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool HasDeclaredFaceTextures(in CachedBrick brick, BrickFace face)
+        {
+            return face switch
+            {
+                BrickFace.Top => brick.TopTextures.IsDeclared,
+                BrickFace.Bottom => brick.BottomTextures.IsDeclared,
+                BrickFace.Front => brick.FrontTextures.IsDeclared,
+                BrickFace.Back => brick.BackTextures.IsDeclared,
+                BrickFace.Left => brick.LeftTextures.IsDeclared,
+                BrickFace.Right => brick.RightTextures.IsDeclared,
+                _ => false,
+            };
+        }
+
         /// <summary>Returns the pre-resolved texture list for <paramref name="face"/> or falls back to default.</summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ref readonly ResolvedTextureList GetFaceTextures(in CachedBrick brick, BrickFace face)
@@ -328,14 +344,6 @@ internal sealed class VoxelSurfaceCache
             int variantIndex = hash % Length;
             textureIndex = VariantIndices![variantIndex];
             textureName = VariantNames![variantIndex];
-        }
-
-        /// <summary>Resolves an optional texture layer index for <paramref name="origin"/>, or -1 when absent.</summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int ResolveOptionalLayerIndex(Vector3 origin)
-        {
-            Resolve(origin, out int rawIndex, out string? name);
-            return name != null ? Math.Max(rawIndex, 0) : -1;
         }
 
         /// <summary>Resolves a texture layer index for <paramref name="origin"/>, falling back to layer 0.</summary>
