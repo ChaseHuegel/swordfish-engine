@@ -153,13 +153,47 @@ internal sealed class ClientReconcileSystem(
 
     private void ApplySnapshot(WorldSnapshot snapshot, DataStore store)
     {
+        //  Despawns apply before components so a same-tick despawn and reallocation of one uuid
+        //  frees the old entity before the new entity's components allocate and populate it. The
+        //  server collects components only from live entities, so a true despawn carries no
+        //  component snapshots that could resurrect it.
+        ulong[] removed = snapshot.RemovedEntities ?? [];
+        for (var i = 0; i < removed.Length; i++)
+        {
+            if (!store.TryGet(Uuid.FromValue(removed[i]), out int entity))
+            {
+                continue;
+            }
+
+            //  The local player is owned by the client session lifecycle, so a same-tick rejoin
+            //  despawn never frees the freshly seated local entity.
+            if (store.TryGet(entity, out PlayerComponent _))
+            {
+                continue;
+            }
+
+            if (store.TryGet(entity, out VoxelComponent _))
+            {
+                VoxelEntityBuilder.FreeChunks(store, entity);
+            }
+
+            //  Free clears the components, so the body must be released first or the solver keeps
+            //  a ghost body for the freed entity.
+            if (store.TryGet(entity, out PhysicsComponent physics))
+            {
+                physics.Dispose();
+            }
+
+            store.Free(entity);
+        }
+
         ComponentSnapshot[] components = snapshot.Components;
         for (var i = 0; i < components.Length; i++)
         {
             ApplyComponent(components[i], store);
         }
 
-        //  Component removals apply before despawns: same snapshot, so a removal can never be
+        //  Component removals apply after components so a removal in the same snapshot can never be
         //  resurrected by a pre-removal delta. Bare entities persist; only RemovedEntities despawns.
         ComponentRemoval[] removedComponents = snapshot.RemovedComponents ?? [];
         for (var i = 0; i < removedComponents.Length; i++)
@@ -177,27 +211,6 @@ internal sealed class ClientReconcileSystem(
             }
 
             store.Remove(lookup.Value.Type, entity);
-        }
-
-        ulong[] removed = snapshot.RemovedEntities ?? [];
-        for (var i = 0; i < removed.Length; i++)
-        {
-            if (store.TryGet(Uuid.FromValue(removed[i]), out int entity))
-            {
-                if (store.TryGet(entity, out VoxelComponent _))
-                {
-                    VoxelEntityBuilder.FreeChunks(store, entity);
-                }
-
-                //  Free clears the components, so the body must be released first or the solver keeps
-                //  a ghost body for the freed entity.
-                if (store.TryGet(entity, out PhysicsComponent physics))
-                {
-                    physics.Dispose();
-                }
-
-                store.Free(entity);
-            }
         }
 
         //  The pending ring has not been trimmed yet, so the reconciler can read the look totals at the

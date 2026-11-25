@@ -231,12 +231,131 @@ public class ClientReconcileSystemTests
         Assert.DoesNotContain(logger.Entries, entry => entry.Level >= LogLevel.Warning);
     }
 
+    [Fact]
+    public void SameTickDespawnAndReallocationPreservesOneShotComponents()
+    {
+        TestContext context = CreateContext();
+        Uuid remoteUuid = Uuid.FromValue(77);
+
+        int existing = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(existing, new TransformComponent(new Vector3(1f, 2f, 3f), Quaternion.Identity, Vector3.One));
+        context.Store.AddOrUpdate(existing, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
+        context.Store.AddOrUpdate(existing, CharacterDefaults.CreateCharacterColliderComponent(Vector3.One));
+        context.Store.AddOrUpdate(existing, new BodyViewComponent { Body = "wb:human_m" });
+
+        var newPosition = new Vector3(10f, 20f, 30f);
+        var newVelocity = new Vector3(0.5f, 0f, -0.5f);
+        var newPhysics = new PhysicsComponent(
+            Layers.MOVING,
+            BodyType.Dynamic,
+            CollisionDetection.Continuous,
+            newVelocity,
+            Vector3.Zero
+        );
+        ColliderComponent newCollider = CharacterDefaults.CreateCharacterColliderComponent(Vector3.One);
+
+        byte[] transformPayload = new TransformCodec().Serialize(new TransformComponent(newPosition, Quaternion.Identity, Vector3.One));
+        byte[] physicsPayload = new PhysicsCodec().Serialize(in newPhysics);
+        byte[] bodyViewPayload = SerializeBodyView("wb:human_f");
+        byte[] colliderPayload = new ColliderCodec().Serialize(in newCollider);
+
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 1,
+            LastProcessedInput = 0,
+            Components =
+            [
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(2).ToValue(), transformPayload),
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(3).ToValue(), physicsPayload),
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(10).ToValue(), bodyViewPayload),
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(17).ToValue(), colliderPayload),
+            ],
+            RemovedEntities = [remoteUuid.ToValue()],
+        };
+        context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
+
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(remoteUuid, out int remote));
+        Assert.True(context.Store.TryGet(remote, out TransformComponent transform));
+        Assert.Equal(newPosition, transform.Position);
+        Assert.True(context.Store.TryGet(remote, out PhysicsComponent physics));
+        Assert.Equal(newVelocity, physics.Velocity);
+        Assert.True(context.Store.TryGet(remote, out BodyViewComponent bodyView));
+        Assert.Equal("wb:human_f", bodyView.Body);
+        Assert.True(context.Store.TryGet(remote, out ColliderComponent collider));
+        Assert.True(collider.CompoundShape.HasValue);
+    }
+
+    [Fact]
+    public void NormalDespawnFreesRemoteEntity()
+    {
+        TestContext context = CreateContext();
+        Uuid remoteUuid = Uuid.FromValue(77);
+
+        int remote = context.Store.Alloc(remoteUuid);
+        context.Store.AddOrUpdate(remote, new TransformComponent(new Vector3(1f, 2f, 3f), Quaternion.Identity, Vector3.One));
+        context.Store.AddOrUpdate(remote, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
+        context.Store.AddOrUpdate(remote, CharacterDefaults.CreateCharacterColliderComponent(Vector3.One));
+        context.Store.AddOrUpdate(remote, new BodyViewComponent { Body = "wb:human_m" });
+
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 1,
+            LastProcessedInput = 0,
+            Components = [],
+            RemovedEntities = [remoteUuid.ToValue()],
+        };
+        context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
+
+        TickWhilePlaying(context, 1);
+
+        Assert.False(context.Store.TryGet(remoteUuid, out _));
+    }
+
+    [Fact]
+    public void SameTickRejoinDespawnPreservesLocalPlayer()
+    {
+        TestContext context = CreateContext();
+        byte[] transformPayload = new TransformCodec().Serialize(
+            new TransformComponent(context.ServerPosition, Quaternion.Identity, Vector3.One));
+
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 1,
+            LastProcessedInput = 0,
+            Components =
+            [
+                new ComponentSnapshot(context.PlayerUuid.ToValue(), Uuid.FromValue(2).ToValue(), transformPayload),
+            ],
+            RemovedEntities = [context.PlayerUuid.ToValue()],
+        };
+        context.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(snapshot));
+
+        TickWhilePlaying(context, 1);
+
+        Assert.True(context.Store.TryGet(context.PlayerUuid, out int player));
+        Assert.True(context.Store.TryGet(player, out PlayerComponent _));
+        Assert.True(context.Store.TryGet(player, out PendingInputComponent _));
+    }
+
+    private static byte[] SerializeBodyView(string body)
+    {
+        var store = new DataStore();
+        int entity = store.Alloc(Uuid.FromValue(1));
+        store.AddOrUpdate(entity, new BodyViewComponent { Body = body });
+        Result<byte[]> serialized = new NsdComponentCodec<BodyViewComponent>().Serialize(store, entity);
+        Assert.True(serialized.Success);
+        return serialized.Value;
+    }
+
     private static TestContext CreateContext(ILogger<ClientReconcileSystem>? logger = null)
     {
         var inbound = new ClientInbound();
         var registry = new NetworkRegistry();
         Assert.True(registry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec()).Success);
         Assert.True(registry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec()).Success);
+        Assert.True(registry.Register<BodyViewComponent>(Uuid.FromValue(10), NetworkDirection.ServerOwned, new NsdComponentCodec<BodyViewComponent>()).Success);
         Assert.True(registry.Register<ColliderComponent>(Uuid.FromValue(17), NetworkDirection.ServerOwned, new ColliderCodec()).Success);
         registry.Freeze();
 
