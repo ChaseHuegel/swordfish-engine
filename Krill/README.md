@@ -87,13 +87,22 @@ world.Tick(0.016f);
 | `QueryRef` | Read and write every matching entity. |
 | `QueryDirty` | Read entities with dirty components. |
 | `QueryRefDirty` | Read and write entities with dirty components. |
-| `QueryRemoved` | Read the last known data of removed components. |
+| `QueryRemoved` | Read the captured last value of removed components. |
 | `QueryParallel` | Read with `Parallel.For` for large sets. |
 | `QueryDirtyParallel` | Dirty variant of `QueryParallel`. |
 
 Each family has a delegate overload and a struct-action overload. Use the
 struct-action overload in hot paths. It avoids a delegate allocation and lets
 the JIT inline the call.
+
+A removal is captured sparsely by entity index when `Remove` or `Free` clears a
+live component. `QueryRemoved` reads that captured value, so a recycled entity
+index that takes the component again before the removal is acknowledged cannot
+overwrite it. A query repeats a removal until `ClearRemoved<T>(entity)`
+acknowledges it, which also releases the captured value. `ClearDirty` only
+clears the write flag and does not acknowledge a removal. Calling
+`DisposeRemoved()` disposes and clears every pending removal whose component
+type implements `IDisposable`, without boxing.
 
 The source generator that builds these APIs runs at build time. The generated
 members are compiled into `Krill.dll`. Consumers do not need the generator.

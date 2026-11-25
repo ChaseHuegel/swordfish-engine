@@ -1056,7 +1056,7 @@ public class Demo : IEntryPoint, IAutoActivate
         var melvinMaterial = new Material(shader, melvinTexture);
         var womanMaterial = new Material(shader, womanTexture);
 
-        var mesh = new Mesh(_triangles, _vertices, _colors, _uv, _normals);
+        var mesh = new Mesh(_triangles, _vertices, _colors, _uv, _normals) { Shared = true };
 
         var renderOptions = new RenderOptions
         {
@@ -1085,7 +1085,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void CreatePhysicsTest()
     {
-        var mesh = new Cube();
+        var mesh = new Cube { Shared = true };
         var renderOptions = new RenderOptions();
         var shader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("textured.glsl"));
 
