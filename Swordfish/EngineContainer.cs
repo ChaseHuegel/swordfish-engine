@@ -16,6 +16,7 @@ using Krill;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.Jolt;
+using Swordfish.Graphics.Particles;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Graphics.SilkNET.OpenGL.Pipelines;
 using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
@@ -83,6 +84,9 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterMapping<ILineRenderer, GLLineRenderer>();
         container.RegisterMapping<IWorldSpaceRenderStage, GLLineRenderer>();
         container.RegisterMapping<IRenderStage, GLLineRenderer>();
+        container.Register<GLParticleRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IWorldSpaceRenderStage, GLParticleRenderer>();
+        container.RegisterMapping<IRenderStage, GLParticleRenderer>();
         container.Register<JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMapping<IWorldSpaceRenderStage, JoltDebugRenderer>();
         container.RegisterMapping<IRenderStage, JoltDebugRenderer>();
@@ -102,6 +106,9 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         
         container.RegisterMany<ECSContext>(Reuse.Singleton);
         container.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
+        container.Register<ParticleSystem>(Reuse.Singleton);
+        container.RegisterMapping<IParticleService, ParticleSystem>();
+        container.RegisterMapping<IEntitySystem, ParticleSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IEntitySystem, RectRendererSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         //  Native resources owned by components are released by engine processors and generic IDisposable cleanup.
@@ -124,12 +131,14 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterMany<ObjParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<LegacyVoxelObjectParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TomlParser<MaterialDefinition>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<TomlParser<ParticleEffectDefinition>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<AudioStreamParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterMany<TextureDatabase>(Reuse.Singleton);
         container.RegisterMany<ShaderDatabase>(Reuse.Singleton);
         container.RegisterMany<MeshDatabase>(Reuse.Singleton);
         container.RegisterMany<MaterialDatabase>(Reuse.Singleton);
+        container.RegisterMany<ParticleEffectDatabase>(Reuse.Singleton);
         container.RegisterMany<AudioStreamDatabase>(Reuse.Singleton);
         
         container.RegisterTomlMapper<Vector3DataBindingTomlMapper>();

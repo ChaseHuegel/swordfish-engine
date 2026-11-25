@@ -11,6 +11,9 @@ public interface IPhysics
 
     RaycastResult Raycast(in Ray ray);
 
+    /// <summary>Casts <paramref name="ray"/> against physics bodies while ignoring <paramref name="ignoreEntity"/> when non-negative.</summary>
+    RaycastResult Raycast(in Ray ray, int ignoreEntity) => Raycast(in ray);
+
     /// <summary>Returns whether any physics body overlaps the queried shape beyond its penetration threshold.</summary>
     bool Overlaps(in ShapeOverlapQuery query);
     
