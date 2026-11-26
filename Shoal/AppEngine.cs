@@ -332,11 +332,11 @@ public sealed class AppEngine : IDisposable
 
         IContainer container = parentContainer.With();
         var loadedAssemblies = new List<Assembly>();
-        parentContainer.Resolve<IModulesLoader>().Load((manifestFile, assembly) =>
+        parentContainer.Resolve<IModulesLoader>().Load((manifestFile, assemblies) =>
         {
             CrashSession.AddLoadedModule($"{manifestFile.Value.Name} ({manifestFile.Value.ID})");
             vfs.Mount(manifestFile.GetRootPath().At("assets"));
-            loadedAssemblies.Add(assembly);
+            loadedAssemblies.AddRange(assemblies);
         });
 
         if (appPaths.MountInVfs && appPaths.DataRoot.DirectoryExists())
