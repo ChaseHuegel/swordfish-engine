@@ -2,7 +2,7 @@
 ID       = "building"
 Name     = "skill.name.building"
 Category = "skill.category.misc"
-Icon     = "items/panel.png"
+Icon     = "skills/building.png"
 
 [Skills.Sources.Place]
 "tag:brick.buildable" = 1

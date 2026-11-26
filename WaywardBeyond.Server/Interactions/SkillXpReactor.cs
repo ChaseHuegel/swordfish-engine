@@ -61,25 +61,25 @@ public sealed class SkillXpReactor(
             mutated = true;
 
             LevelInfo previousLevel = skill.CalculateLevel(previousXP);
-            LevelInfo currentLevel = skill.CalculateLevel(totalXP);
+            SkillProgress currentProgress = skill.CalculateProgress(totalXP);
 
             SendOrLog(context.ClientId, new SkillStateUpdateMessage
             {
                 SkillId = skill.ID,
                 TotalXP = totalXP,
-                Level = currentLevel.Level,
-                XPIntoLevel = currentLevel.XPIntoLevel,
+                Level = currentProgress.Level,
+                XPIntoLevel = currentProgress.XPIntoLevel,
                 GainedXP = gainedXP.Value,
             });
 
-            SendXpBar(context.ClientId, skill, currentLevel, gainedXP.Value);
+            SendXpBar(context.ClientId, skill, currentProgress, gainedXP.Value);
 
-            if (previousLevel.Level != currentLevel.Level)
+            if (previousLevel.Level != currentProgress.Level)
             {
-                SendLevelUp(context.ClientId, skill, previousLevel.Level, currentLevel.Level);
+                SendLevelUp(context.ClientId, skill, previousLevel.Level, currentProgress.Level);
                 logger.LogDebug(
                     "Skill \"{skill}\" for player {player} leveled from {previous} to {level}.",
-                    skill.ID, context.Player, previousLevel.Level, currentLevel.Level);
+                    skill.ID, context.Player, previousLevel.Level, currentProgress.Level);
             }
         }
 
@@ -92,31 +92,16 @@ public sealed class SkillXpReactor(
     }
 
     /// <summary>Displays the XP progress bar for a granted skill. The client formats the message itself.</summary>
-    private void SendXpBar(Uuid clientId, Skill skill, LevelInfo currentLevel, int gainedXP)
+    private void SendXpBar(Uuid clientId, Skill skill, SkillProgress currentProgress, int gainedXP)
     {
-        int nextLevelXP = 0;
-        if (skill.Levels.TryGetValue(currentLevel.Level + 1, out int next))
-        {
-            nextLevelXP = next;
-        }
-
-        float amount;
-        if (nextLevelXP > 0)
-        {
-            amount = (float)currentLevel.XPIntoLevel / nextLevelXP;
-        }
-        else
-        {
-            amount = 1f;
-        }
-
+        float amount = currentProgress.Progress;
         int percent = (int)MathF.Round(Math.Clamp(amount, 0f, 1f) * 100f);
 
         SendOrLog(clientId, new NotificationMessage
         {
             Type = NotificationType.Bar,
             Key = "notification.skill.bar",
-            Args = [skill.Name, currentLevel.Level.ToString()],
+            Args = [skill.Name, currentProgress.Level.ToString()],
             Subtext = "notification.skill.bar.subtext",
             SubtextArgs = [gainedXP.ToString(), percent.ToString()],
             ID = skill.ID,

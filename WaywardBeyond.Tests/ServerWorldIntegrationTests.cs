@@ -544,6 +544,8 @@ public class ServerWorldIntegrationTests
 
     private sealed class FakeSkillDatabase : ISkillDatabase
     {
+        public IReadOnlyList<Skill> All => [];
+
         public Result<Skill> Get(string id) => Result<Skill>.FromFailure((string?)null);
 
         public IReadOnlyList<Skill> Get(XPSource xpSource) => [];

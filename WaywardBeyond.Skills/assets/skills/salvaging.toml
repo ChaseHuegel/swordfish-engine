@@ -2,7 +2,7 @@
 ID       = "salvaging"
 Name     = "skill.name.salvaging"
 Category = "skill.category.gathering"
-Icon     = "items/laser.png"
+Icon     = "skills/salvaging.png"
 
 [Skills.Sources.Break]
 "tag:brick.manufactured" = 1

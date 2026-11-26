@@ -19,6 +19,7 @@
 
 "ui.button.back" = "Back"
 "ui.button.cancel" = "Cancel"
+"ui.button.close" = "Close"
 "ui.button.ok" = "OK"
 "ui.button.confirm" = "Confirm"
 "ui.button.send" = "Send"
@@ -276,6 +277,7 @@
 "ui.settings.keybind.slot8" = "Hotbar slot 8"
 "ui.settings.keybind.slot9" = "Hotbar slot 9"
 "ui.settings.keybind.back" = "Back / close"
+"ui.settings.keybind.skills" = "Skills"
 "ui.settings.keybind.openChat" = "Open chat"
 "ui.settings.keybind.sendChat" = "Send chat"
 "ui.settings.keybind.quicksave" = "Quicksave"
@@ -297,6 +299,15 @@
 "ui.field.chat.input" = "Enter a message"
 
 "ui.label.inventory.title" = "Inventory"
+
+"ui.panel.skill.list" = "Skills"
+"ui.label.skill.totalLevel" = "Total level {0}"
+"ui.label.skill.level" = "Lvl {0}"
+"ui.label.skill.totalXp" = "Total {0} XP"
+"ui.label.skill.xpProgress" = "{0} / {1} XP"
+"ui.label.skill.xpMax" = "{0} XP (Max)"
+"ui.label.skill.uncategorized" = "Other"
+"ui.message.skill.empty" = "No skills available"
 
 "ui.label.item.kind.brick" = "Brick"
 "ui.label.item.kind.miningTool" = "Mining tool"

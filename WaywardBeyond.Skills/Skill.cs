@@ -50,6 +50,37 @@ public sealed class Skill(
         return new LevelInfo(_levelNumbers[reached - 1], totalXP - _thresholds[reached - 1]);
     }
 
+    /// <summary>Resolves level, XP into level, next-level requirement, and normalized bar progress for a total XP amount.</summary>
+    public SkillProgress CalculateProgress(long totalXP)
+    {
+        int reached = CountReachedLevels(totalXP);
+        int level = reached == 0 ? 0 : _levelNumbers[reached - 1];
+        long xpIntoLevel = reached == 0 ? totalXP : totalXP - _thresholds[reached - 1];
+
+        if (reached >= _levelNumbers.Length)
+        {
+            return new SkillProgress(
+                Level: level,
+                TotalXP: totalXP,
+                XPIntoLevel: xpIntoLevel,
+                NextLevelXP: 0,
+                Progress: 1f,
+                IsMaxLevel: true
+            );
+        }
+
+        int nextLevelXP = levels[_levelNumbers[reached]];
+        float progress = nextLevelXP > 0 ? Math.Clamp((float)xpIntoLevel / nextLevelXP, 0f, 1f) : 1f;
+        return new SkillProgress(
+            Level: level,
+            TotalXP: totalXP,
+            XPIntoLevel: xpIntoLevel,
+            NextLevelXP: nextLevelXP,
+            Progress: progress,
+            IsMaxLevel: false
+        );
+    }
+
     private int CountReachedLevels(long totalXP)
     {
         //  An exact threshold match reports the lower level because a level is reached only by exceeding it.

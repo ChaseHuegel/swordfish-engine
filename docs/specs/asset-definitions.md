@@ -267,9 +267,9 @@ simulation limits.
 
 ## Skills (`assets/skills/*.toml`)
 
-Skills moved to the shared `WaywardBeyond.Skills` module; the client no
-longer owns skill definitions or runs any skill logic. Schema:
-`WaywardBeyond.Skills/SkillDefinitions.cs` (collection),
+Skills live in the shared `WaywardBeyond.Skills` module. The server owns XP
+grants and level-up notifications, and the client renders notifications and the
+skill panel. Schema: `WaywardBeyond.Skills/SkillDefinitions.cs` (collection),
 `SkillDefinition.cs` (row), `XPSource.cs` (enum: `Place`, `Break`).
 
 Each row is a `[[Skills]]` table:
@@ -278,17 +278,18 @@ Each row is a `[[Skills]]` table:
 |---|---|---|
 | `ID` | string | |
 | `Name` | string (localization key) | |
-| `Category` | string (localization key) | |
-| `Icon` | string? | |
+| `Category` | string (localization key) | groups rows in the client skill panel (`ui.label.skill.uncategorized` when omitted) |
+| `Icon` | string? | skill artwork texture path under `skills/` (e.g. `skills/mining.png`). `SkillIconDatabase` resolves it through `IAssetDatabase<Texture>`, falls back to `skills/unknown.png`, and logs a warning on an unknown path |
 | `[Skills.Sources.<Source>]` | map: brick id or `tag:X` → XP | keyed by `XPSource` (Place/Break) |
 | `[Skills.Levels]` | map: level → XP to advance past the previous level | a level is reached only when total XP exceeds the running sum of requirements, and it is sorted on load |
 
 Tags expand through the invariant `lang/tags/*.toml` lists into brick data ids
 on load. The brick tag lists live in `WaywardBeyond.Bricks/assets/lang/tags/bricks.toml`
 under `brick.*` keys (`brick.buildable`, `brick.environment`, `brick.manufactured`).
-`Name` and `Category` are localization keys. The server sends `Name` in notifications and
-the client resolves it. `Icon` and `Category` have no reader yet (see
-[0068](../issues/0068-skill-panel.md)).
+`Name` and `Category` are localization keys. The server sends `Name` in
+notifications and the client resolves both `Name` and `Category` in the skill
+panel. `SkillIconDatabase` resolves `Icon` on the client with fallback to
+`skills/unknown.png` and a warning logged for an unknown path.
 
 A skill is rejected at load when it has no `ID`, when its `ID` is already
 declared, when it carries no level curve, or when a level or its requirement is
@@ -363,7 +364,8 @@ bits. See [seed-phrases](seed-phrases.md).
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
-- `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
+- `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill,SkillProgress}.cs`
+- `WaywardBeyond.Client/Skills/SkillIconDatabase.cs`
 - `WaywardBeyond.Bricks/BrickEventKind.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagValues.cs`
