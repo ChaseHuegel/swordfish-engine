@@ -46,7 +46,8 @@ adds `wb-footer-status-error`.
 - Settings uses the shared markup shell and responsive constraints.
 
 Pages render inside the `TitleMenu` content host. The title texture above the
-content stays unchanged.
+content stays unchanged. The home menu column anchors to the left of the content
+host so the background spaceship stays visible on the right.
 
 ## Interaction audio
 
@@ -267,6 +268,9 @@ manages the 3D background while `WaywardBeyond.GameState` is `GameState.MainMenu
   overlap, and card placement. `WaywardBeyond.Tests/StarChartViewTests.cs` renders
   the chart component from a fixed state.
 
+- `WaywardBeyond.Tests/LegacyHomeTests.cs` compares the home menu and its
+  Continue hover card to the legacy goldens at 800x600, 1280x720, and 1920x1080.
+  The goldens follow the left-anchored menu column.
 - `WaywardBeyond.Tests/ConnectingModalTests.cs` covers connecting modal rendering, scanning signal beam, and cancellation flow.
 - `WaywardBeyond.Tests/MenuClickAudioTests.cs` clicks the Home page-change buttons
   and asserts the interface click sound plays before the page changes.
