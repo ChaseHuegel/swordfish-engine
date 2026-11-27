@@ -169,8 +169,9 @@ changes the window while the page is open.
 `IShortcutService.GetShortcuts()` and groups them into `Movement`,
 `Interaction`, `Inventory`, `General`, and `Developer` sections. Shared
 `General/Back` (`Back / close`, default `Esc`, `Global` scope) unifies pause
-toggle, menu navigation back, modal close, inventory close, and chat close, so
-players can rebind or clear it while `Esc` still cancels active key capture.
+toggle, menu navigation back, modal close, inventory close, blueprint library
+close, and chat close, so players can rebind or clear it while `Esc` still
+cancels active key capture.
 Hotbar and inventory share the `Inventory/Slot 1` through `Inventory/Slot 9`
 bindings, and the `Inventory` section also exposes rebindable `Move / stack`
 (`LMB`), `Split / distribute` (`RMB`), and `Quick move` (`Shift+LMB`) actions.
@@ -184,16 +185,22 @@ page. Capturing a mouse button suppresses UI clicks for two frames so binding
 
 `KeybindingsSettingsCategory.UpdateConflicts` validates the draft across all
 active scopes (`KeybindingScope.cs:4`) and reserved fixed bindings on every
-frame. World-only shortcuts (`Movement`, `Interaction`, and `Open chat`),
-modal inventory actions (`Move / stack`, `Split / distribute`, and
-`Quick move`), and `Send chat` (`Chat` scope) live in separate scopes so
-default bindings (`LMB`, `RMB`, `Enter`) do not false-conflict. Global shortcuts
-(including `Inventory`, `Slot 1` through `Slot 9`, `General`, and `Developer`)
-overlap every scope. Two conflicting entries in overlapping
-scopes highlight in danger red unless both share the same `SharedBindingGroup`,
-such as the `ToolRadial` group for tool radials on `R`. A rebindable entry
-matching a `Fixed` shortcut binding also highlights in danger red. Cleared rows
-show `Unbound` in danger red and do not conflict with each other or with fixed bindings.
+frame. World shortcuts (`Movement`, general `Interaction`, `Open chat`, and
+`Blueprint Library`), modal inventory actions (`Move / stack`,
+`Split / distribute`, and `Quick move`), and `Send chat` (`Chat` scope) live in
+separate scopes so default bindings (`LMB`, `RMB`, `Enter`) do not
+false-conflict. Equipped-item sub-scopes (`BrickPlacement` for `Change shape`
+and `Change orientation`, `PaintSprayer` for `Select paint color`, `Drill` for
+`Select paint texture`, and `RegionTool` for `Region tool actions` and
+Blueprint Projector shortcuts) overlap `Global`, `World`, and themselves, and
+stay isolated from each other and from modal `Inventory` and `Chat` scopes so
+default `R` and `T` bindings do not false-conflict. Global shortcuts (including
+`Inventory`, `Slot 1` through `Slot 9`, `General`, and `Developer`) overlap
+every scope. Two conflicting entries in overlapping scopes highlight in danger
+red unless both share the same `SharedBindingGroup`, such as the `ToolRadial`
+group for tool radials on `R`. A rebindable entry matching a `Fixed` shortcut
+binding also highlights in danger red. Cleared rows show `Unbound` in danger
+red and do not conflict with each other or with fixed bindings.
 Only conflicts or active capture disable and block `Apply changes`, leaving
 live `IShortcutService` bindings and `keybindings.toml` untouched until resolved.
 Users can clear any rebindable action, leave it unbound, and save it as
@@ -317,10 +324,11 @@ existing spacer layout.
   `SetOverrides`, and `ApplyOverrides`.
 - `WaywardBeyond.Tests/KeybindingSettingsInteractionTests.cs` covers category
   sections, single-input capture, Esc cancel without triggering `Back / close`,
-  mouse capture click suppression, modal inventory and chat scope isolation,
-  global and fixed-binding conflicts, tool radial shared groups, saving unbound
-  actions, developer section gating via `-debug` and `--debug`, per-action and
-  category reset, and apply.
+  mouse capture click suppression, modal inventory, chat, and equipped-item
+  sub-scope isolation, global and fixed-binding conflicts, tool radial shared
+  groups, fresh default conflict-free validation, saving unbound actions,
+  developer section gating via `-debug` and `--debug`, per-action and category
+  reset, and apply.
 - `WaywardBeyond.Tests/ChatLayerTests.cs` covers `Open Chat`, `Send Chat`, and
   `Back / close` shortcut execution, live close and send hint formatting,
   unbound handling, and same-frame message submission.

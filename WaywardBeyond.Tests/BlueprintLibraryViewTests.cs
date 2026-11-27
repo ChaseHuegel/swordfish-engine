@@ -23,6 +23,7 @@ using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Identity;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Components;
@@ -243,7 +244,8 @@ public class BlueprintLibraryViewTests
                 NullLogger<BlueprintLibraryLayer>.Instance);
 
             Shortcut openShortcut = shortcuts.Find("Blueprint Library");
-            Shortcut closeShortcut = shortcuts.Find("Close Blueprint Library");
+            Shortcut closeShortcut = shortcuts.Find("Back");
+            Assert.Equal(GameShortcuts.BACK, closeShortcut.GetId());
 
             ClientHost.GameState.Set(ClientGameState.Playing);
             try

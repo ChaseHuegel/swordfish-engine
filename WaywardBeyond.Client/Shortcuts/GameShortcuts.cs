@@ -25,6 +25,17 @@ internal static class GameShortcuts
     public const string CHANGE_ORIENTATION = "Interaction/Change orientation";
     public const string SELECT_PAINT_COLOR = "Interaction/Select paint color";
     public const string SELECT_PAINT_TEXTURE = "Interaction/Select paint texture";
+    public const string REGION_TOOL_ACTIONS = "Interaction/Region tool actions";
+
+    public const string BLUEPRINT_LIBRARY = "RegionTool/Blueprint Library";
+    public const string REGION_COPY = "RegionTool/Region Copy";
+    public const string REGION_CUT = "RegionTool/Region Cut";
+    public const string REGION_PASTE_MODE = "RegionTool/Region Paste Mode";
+    public const string REGION_ROTATE_YAW = "RegionTool/Region Rotate Yaw";
+    public const string REGION_ROTATE_PITCH = "RegionTool/Region Rotate Pitch";
+    public const string REGION_MIRROR_HORIZONTAL = "RegionTool/Region Mirror Horizontal";
+    public const string REGION_MIRROR_VERTICAL = "RegionTool/Region Mirror Vertical";
+    public const string REGION_OVERWRITE_AIR = "RegionTool/Region Overwrite Air";
 
     public const string INVENTORY = "UI/Inventory";
     public const string INVENTORY_MOVE_STACK = "Inventory/Move stack";

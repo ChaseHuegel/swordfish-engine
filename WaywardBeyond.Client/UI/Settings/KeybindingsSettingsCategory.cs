@@ -174,13 +174,52 @@ internal static class KeybindingsSettingsCategory
 
     private static bool ScopesOverlap(KeybindingScope left, KeybindingScope right)
     {
-        return left == KeybindingScope.Global
-            || right == KeybindingScope.Global
-            || left == right;
+        if (left == KeybindingScope.Global || right == KeybindingScope.Global || left == right)
+        {
+            return true;
+        }
+
+        return (left == KeybindingScope.World && IsWorldSubScope(right))
+            || (right == KeybindingScope.World && IsWorldSubScope(left));
+    }
+
+    private static bool IsWorldSubScope(KeybindingScope scope)
+    {
+        return scope is KeybindingScope.BrickPlacement
+            or KeybindingScope.PaintSprayer
+            or KeybindingScope.Drill
+            or KeybindingScope.RegionTool;
     }
 
     private static KeybindingScope ResolveScope(in ShortcutInfo info)
     {
+        if (string.Equals(info.Id, GameShortcuts.CHANGE_SHAPE, StringComparison.Ordinal)
+            || string.Equals(info.Id, GameShortcuts.CHANGE_ORIENTATION, StringComparison.Ordinal))
+        {
+            return KeybindingScope.BrickPlacement;
+        }
+
+        if (string.Equals(info.Id, GameShortcuts.SELECT_PAINT_COLOR, StringComparison.Ordinal))
+        {
+            return KeybindingScope.PaintSprayer;
+        }
+
+        if (string.Equals(info.Id, GameShortcuts.SELECT_PAINT_TEXTURE, StringComparison.Ordinal))
+        {
+            return KeybindingScope.Drill;
+        }
+
+        if (string.Equals(info.Id, GameShortcuts.BLUEPRINT_LIBRARY, StringComparison.Ordinal))
+        {
+            return KeybindingScope.World;
+        }
+
+        if (string.Equals(info.Id, GameShortcuts.REGION_TOOL_ACTIONS, StringComparison.Ordinal)
+            || string.Equals(info.Category, "RegionTool", StringComparison.Ordinal))
+        {
+            return KeybindingScope.RegionTool;
+        }
+
         if (string.Equals(info.Category, "Movement", StringComparison.Ordinal)
             || string.Equals(info.Category, "Interaction", StringComparison.Ordinal)
             || string.Equals(info.Id, GameShortcuts.OPEN_CHAT, StringComparison.Ordinal))
@@ -334,6 +373,7 @@ internal static class KeybindingsSettingsCategory
             GameShortcuts.CHANGE_ORIENTATION => 105,
             GameShortcuts.SELECT_PAINT_COLOR => 106,
             GameShortcuts.SELECT_PAINT_TEXTURE => 107,
+            GameShortcuts.REGION_TOOL_ACTIONS => 108,
 
             GameShortcuts.INVENTORY => 200,
             GameShortcuts.INVENTORY_MOVE_STACK => 201,
