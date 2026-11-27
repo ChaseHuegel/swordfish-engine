@@ -30,6 +30,7 @@
     color: var(--wb-accent);
     font-family: var(--wb-font-ui);
     font-size: 14px;
+    text-align: right;
     vertical-align: middle;
 }
 

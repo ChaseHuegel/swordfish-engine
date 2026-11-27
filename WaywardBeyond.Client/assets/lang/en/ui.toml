@@ -379,6 +379,8 @@
 "ui.hint.inventory.quickMove" = "Quick move"
 "ui.hint.inventory.hotbar" = "Move to hotbar"
 "ui.hint.inventory.close" = "Close"
+"ui.hint.skill.toggle" = "Skills"
+"ui.hint.skill.close" = "Close"
 "ui.hint.feedback.send" = "Send feedback"
 
 # Credits

@@ -10,6 +10,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.UI.Layers.Skills;
 using WaywardBeyond.Config;
 using WaywardBeyond.Items;
 
@@ -31,6 +32,7 @@ internal sealed class ControlHints : IUILayer
     private readonly GameplayConfig _gameplayConfig;
     private readonly IShortcutService _shortcutService;
     private readonly RegionToolState? _regionToolState;
+    private readonly SkillsLayer? _skillsLayer;
 
     private HintViewState _feedbackHint;
     private HintViewState _changeShapeHint;
@@ -59,6 +61,8 @@ internal sealed class ControlHints : IUILayer
     private HintViewState _inventoryQuickMoveHint;
     private HintViewState _inventoryHotbarHint;
     private HintViewState _inventoryCloseHint;
+    private HintViewState _skillsHint;
+    private HintViewState _skillsCloseHint;
     private List<HintViewState> _projectorSelectHints = [];
     private List<HintViewState> _projectorPasteHints = [];
     private int _hintsDirty = 1;
@@ -75,7 +79,8 @@ internal sealed class ControlHints : IUILayer
         in ILocalization localization,
         in GameplayConfig gameplayConfig,
         in IShortcutService shortcutService,
-        RegionToolState? regionToolState = null
+        RegionToolState? regionToolState = null,
+        SkillsLayer? skillsLayer = null
     )
     {
         _orientationSelector = orientationSelector;
@@ -89,6 +94,7 @@ internal sealed class ControlHints : IUILayer
         _gameplayConfig = gameplayConfig;
         _shortcutService = shortcutService;
         _regionToolState = regionToolState;
+        _skillsLayer = skillsLayer;
 
         _shortcutService.BindingsChanged += OnBindingsChanged;
         RefreshHints();
@@ -110,6 +116,10 @@ internal sealed class ControlHints : IUILayer
         if (_inventory.IsVisible())
         {
             hints = BuildInventoryHints();
+        }
+        else if (_skillsLayer?.IsVisible() == true)
+        {
+            hints = BuildSkillsHints();
         }
         else
         {
@@ -178,6 +188,8 @@ internal sealed class ControlHints : IUILayer
         _inventoryQuickMoveHint = CreateDynamicHint(GameShortcuts.INVENTORY_QUICK_MOVE, "ui.hint.inventory.quickMove", "Shift+LMB");
         _inventoryHotbarHint = new HintViewState(FormatHotbarRangeKey(), GetHintAction("ui.hint.inventory.hotbar"));
         _inventoryCloseHint = new HintViewState(FormatInventoryCloseKey(), GetHintAction("ui.hint.inventory.close"));
+        _skillsHint = CreateDynamicHint(GameShortcuts.SKILLS, "ui.hint.skill.toggle", "K");
+        _skillsCloseHint = new HintViewState(FormatModalCloseKey(GameShortcuts.SKILLS, "K"), GetHintAction("ui.hint.skill.close"));
 
         _projectorSelectHints =
         [
@@ -290,9 +302,11 @@ internal sealed class ControlHints : IUILayer
         return string.Equals(first, last, StringComparison.Ordinal) ? first : $"{first}-{last}";
     }
 
-    private string FormatInventoryCloseKey()
+    private string FormatInventoryCloseKey() => FormatModalCloseKey(GameShortcuts.INVENTORY, "Tab");
+
+    private string FormatModalCloseKey(string toggleShortcutId, string fallbackToggleKey)
     {
-        string toggle = FormatBindingKey(GameShortcuts.INVENTORY, "Tab");
+        string toggle = FormatBindingKey(toggleShortcutId, fallbackToggleKey);
         string back = FormatBindingKey(GameShortcuts.BACK, "Esc");
         if (toggle.Length == 0)
         {
@@ -305,6 +319,12 @@ internal sealed class ControlHints : IUILayer
         }
 
         return $"{toggle} / {back}";
+    }
+
+    /// <summary>Builds the hints that belong to the open skill panel.</summary>
+    private List<HintViewState> BuildSkillsHints()
+    {
+        return [_skillsCloseHint, _feedbackHint];
     }
 
     /// <summary>Builds the hints that belong to the open inventory.</summary>
@@ -338,6 +358,7 @@ internal sealed class ControlHints : IUILayer
         hints.Add(_snapBrickHint);
         hints.Add(_pickBrickHint);
         hints.Add(_inventoryHint);
+        hints.Add(_skillsHint);
         hints.Add(_feedbackHint);
         return hints;
     }
@@ -345,13 +366,13 @@ internal sealed class ControlHints : IUILayer
     /// <summary>Builds the hints for the paint sprayer in the main hand.</summary>
     private List<HintViewState> BuildSprayerHints()
     {
-        return [_changeColorHint, _inventoryHint, _feedbackHint];
+        return [_changeColorHint, _inventoryHint, _skillsHint, _feedbackHint];
     }
 
     /// <summary>Builds the hints for the drill in the main hand.</summary>
     private List<HintViewState> BuildDrillHints()
     {
-        return [_changeTextureHint, _inventoryHint, _feedbackHint];
+        return [_changeTextureHint, _inventoryHint, _skillsHint, _feedbackHint];
     }
 
     /// <summary>Builds the hints for the Blueprint Projector in Select or Paste mode.</summary>
@@ -365,6 +386,6 @@ internal sealed class ControlHints : IUILayer
     /// <summary>Builds the hints for a main hand that holds no placeable item.</summary>
     private List<HintViewState> BuildIdleHints()
     {
-        return [_inventoryHint, _feedbackHint];
+        return [_inventoryHint, _skillsHint, _feedbackHint];
     }
 }
