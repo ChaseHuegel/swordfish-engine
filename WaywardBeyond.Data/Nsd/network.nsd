@@ -217,6 +217,24 @@ message PasteRegionRequest
     string[]? PaintPalette = 18;
 }
 
+message PlaceBlueprintItemRequest
+{
+    PasteTargetKind TargetKind = 0;
+    ulong TargetEntity = 1;
+    int OriginX = 2;
+    int OriginY = 3;
+    int OriginZ = 4;
+    float SpawnX = 5;
+    float SpawnY = 6;
+    float SpawnZ = 7;
+    float SpawnOrientationX = 8;
+    float SpawnOrientationY = 9;
+    float SpawnOrientationZ = 10;
+    float SpawnOrientationW = 11;
+    byte Rotation = 12;
+    byte Mirror = 13;
+}
+
 message RegionUploadPart
 {
     uint BatchId = 0;

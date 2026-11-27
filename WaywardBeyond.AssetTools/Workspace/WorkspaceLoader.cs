@@ -882,9 +882,16 @@ public sealed class WorkspaceLoader
         AddRefIfPresent(refs, in asset, "Description", item.Description, "localization", isInformational: false);
         AddRefIfPresent(refs, in asset, "Icon", item.Icon, "texture", isInformational: false);
 
-        if (item.Placeable.HasValue && item.Placeable.Value.Type == PlaceableType.Brick)
+        if (item.Placeable.HasValue)
         {
-            AddRefIfPresent(refs, in asset, "Placeable.ID", item.Placeable.Value.ID, "brick", isInformational: false);
+            if (item.Placeable.Value.Type == PlaceableType.Brick)
+            {
+                AddRefIfPresent(refs, in asset, "Placeable.ID", item.Placeable.Value.ID, "brick", isInformational: false);
+            }
+            else if (item.Placeable.Value.Type == PlaceableType.Blueprint)
+            {
+                AddRefIfPresent(refs, in asset, "Placeable.ID", item.Placeable.Value.ID, "blueprint", isInformational: false);
+            }
         }
 
         if (item.ViewModel.HasValue)

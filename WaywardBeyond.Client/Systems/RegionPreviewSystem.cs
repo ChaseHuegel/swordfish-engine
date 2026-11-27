@@ -69,7 +69,9 @@ internal sealed class RegionPreviewSystem(
             return;
         }
 
-        if (!IsHoldingProjector(store))
+        bool holdingProjector = IsHoldingProjector(store);
+        bool holdingBlueprintItem = !holdingProjector && _toolState.IsBlueprintItemActive;
+        if (!holdingProjector && !holdingBlueprintItem)
         {
             HideBox(_selectionLines);
             HideBox(_pasteLines);
@@ -77,8 +79,16 @@ internal sealed class RegionPreviewSystem(
             return;
         }
 
-        UpdateSelectionWireframe(store);
-        UpdatePastePreview(store);
+        if (holdingProjector)
+        {
+            UpdateSelectionWireframe(store);
+        }
+        else
+        {
+            HideBox(_selectionLines);
+        }
+
+        UpdatePastePreview(store, holdingBlueprintItem);
     }
 
     private void UpdateSelectionWireframe(DataStore store)
@@ -108,9 +118,9 @@ internal sealed class RegionPreviewSystem(
         DrawTransformedBox(_selectionLines, localMin, localMax, targetTransform.Position, targetTransform.Orientation, targetTransform.Scale, color);
     }
 
-    private void UpdatePastePreview(DataStore store)
+    private void UpdatePastePreview(DataStore store, bool isBlueprintItem)
     {
-        if (_toolState.Mode != RegionToolMode.Paste
+        if ((!isBlueprintItem && _toolState.Mode != RegionToolMode.Paste)
             || !_toolState.TryGetPreviewPlacement(
                 out bool valid,
                 out _,
@@ -120,7 +130,7 @@ internal sealed class RegionPreviewSystem(
                 out Vector3 worldPosition,
                 out Quaternion worldOrientation,
                 out Vector3 localOffset)
-            || !_toolState.TryGetTransformedClipboard(_brickDatabase, out VoxelRegionData region, out int revision, out Orientation rotation, out MirrorAxes mirror))
+            || !_toolState.TryGetActivePlacementRegion(_brickDatabase, out VoxelRegionData region, out int revision, out Orientation rotation, out MirrorAxes mirror))
         {
             HideBox(_pasteLines);
             HideGhost(store);

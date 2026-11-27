@@ -218,6 +218,41 @@ public class ControlHintsTests
         }
     }
 
+    [Fact]
+    public void ControlHintsShowsBlueprintPlaceableHintsAndHidesBrickAndProjectorHints()
+    {
+        WaywardBeyond.Client.WaywardBeyond.GameState.Set(WaywardBeyond.Client.GameState.Playing);
+        try
+        {
+            var harness = new Harness();
+            harness.EquipItem("wb:core");
+
+            List<string> texts = harness.RenderTexts();
+            Assert.Contains("LMB", texts);
+            Assert.Contains("Place", texts);
+            Assert.Contains("T", texts);
+            Assert.Contains("Rotate", texts);
+            Assert.Contains("F", texts);
+            Assert.Contains("Mirror", texts);
+            Assert.Contains("Shift", texts);
+            Assert.Contains("Embed", texts);
+            Assert.Contains("Shift+Scroll", texts);
+            Assert.Contains("Distance", texts);
+            Assert.Contains("Inventory", texts);
+            Assert.Contains("Skills", texts);
+
+            Assert.DoesNotContain("Change shape", texts);
+            Assert.DoesNotContain("Change orientation", texts);
+            Assert.DoesNotContain("Pick brick", texts);
+            Assert.DoesNotContain("Overwrite air", texts);
+            Assert.DoesNotContain("Library", texts);
+        }
+        finally
+        {
+            WaywardBeyond.Client.WaywardBeyond.GameState.Set(WaywardBeyond.Client.GameState.MainMenu);
+        }
+    }
+
     private sealed class Harness
     {
         private readonly FakeInputService _input = new();
@@ -245,6 +280,7 @@ public class ControlHintsTests
             var items = new FakeItemDatabase(
             [
                 new Item("wb:brick", "Brick", "brick.png", 64, new PlaceableDefinition { Type = PlaceableType.Brick, ID = "wb:brick" }, null, null, null),
+                new Item("wb:core", "Core", "", 1, new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" }, null, null, null),
                 new Item("wb:sprayer", "Sprayer", "sprayer.png", 1, null, new ToolDefinition { Type = ToolType.Sprayer }, null, null),
                 new Item("wb:drill", "Drill", "drill.png", 1, null, new ToolDefinition { Type = ToolType.Drill }, null, null),
             ]);
@@ -384,6 +420,13 @@ public class ControlHintsTests
                 "ui.hint.brick.changeOrientation" => "Change orientation",
                 "ui.hint.brick.snap" => "Snap brick",
                 "ui.hint.brick.pick" => "Pick brick",
+                "ui.hint.blueprint.place" => "Place",
+                "ui.hint.region.rotate" => "Rotate",
+                "ui.hint.region.mirror" => "Mirror",
+                "ui.hint.region.embed" => "Embed",
+                "ui.hint.region.distance" => "Distance",
+                "ui.hint.region.overwriteAir" => "Overwrite air",
+                "ui.hint.region.library" => "Library",
                 "ui.hint.sprayer.changeColor" => "Change color",
                 "ui.hint.drill.changeTexture" => "Change texture",
                 "ui.hint.inventory.toggle" => "Inventory",

@@ -16,13 +16,13 @@ using WaywardBeyond.Client;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Graphics;
-using WaywardBeyond.Client.Serialization;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
@@ -264,11 +264,13 @@ public class MainMenuAnimationSystemTests : IDisposable
 
         using var di = new Container();
         di.RegisterInstance<ILogger<VirtualFileParseService>>(new RecordingLogger<VirtualFileParseService>());
-        di.RegisterInstance<ILogger<BlueprintDatabase>>(new RecordingLogger<BlueprintDatabase>());
+        di.RegisterInstance<ILogger<BundledBlueprintDatabase>>(new RecordingLogger<BundledBlueprintDatabase>());
         di.RegisterInstance<IBrickRegistry>(BrickRegistry.FromNames(knownBricks));
         di.RegisterInstance(vfs);
         di.RegisterMany<BlueprintDataParser>();
         di.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
+        di.Register<BundledBlueprintDatabase>(Reuse.Singleton);
+        di.RegisterMapping<IBundledBlueprintDatabase, BundledBlueprintDatabase>();
         di.Register<BlueprintDatabase>(Reuse.Singleton);
         di.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
 
@@ -318,12 +320,14 @@ public class MainMenuAnimationSystemTests : IDisposable
 
             using var di = new Container();
             di.RegisterInstance<ILogger<VirtualFileParseService>>(new RecordingLogger<VirtualFileParseService>());
-            di.RegisterInstance<ILogger<BlueprintDatabase>>(new RecordingLogger<BlueprintDatabase>());
+            di.RegisterInstance<ILogger<BundledBlueprintDatabase>>(new RecordingLogger<BundledBlueprintDatabase>());
             di.RegisterInstance<IBrickRegistry>(BrickRegistry.FromNames(knownBricks));
             di.RegisterInstance(vfs);
             di.RegisterInstance(storagePaths);
             di.RegisterMany<BlueprintDataParser>();
             di.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
+            di.Register<BundledBlueprintDatabase>(Reuse.Singleton);
+            di.RegisterMapping<IBundledBlueprintDatabase, BundledBlueprintDatabase>();
             di.Register<BlueprintDatabase>(Reuse.Singleton);
 
             BlueprintDatabase db = di.Resolve<BlueprintDatabase>();

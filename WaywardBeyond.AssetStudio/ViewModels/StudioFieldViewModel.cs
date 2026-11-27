@@ -15,8 +15,14 @@ public sealed partial class StudioFieldViewModel : ObservableObject
     private readonly Action<StudioFieldViewModel>? _onCreateLocalizationKey;
     private readonly Action<StudioFieldViewModel>? _onBrowseTextureFile;
     private readonly Action<StudioFieldViewModel>? _onBrowseMeshFile;
-    private readonly IReadOnlyList<ReferenceCandidate> _allCandidates;
+    private IReadOnlyList<ReferenceCandidate> _allCandidates;
     private readonly bool _isNumericToken;
+    private string _label;
+    private string _grammarHint;
+    private ReferenceKind? _referenceKind;
+    private bool _isReferenceField;
+    private bool _isTextField;
+    private bool _allowCreateLocalizationKey;
     private string _value;
     private string _rawTokenText;
     private string _pickerFilterText = string.Empty;
@@ -77,8 +83,8 @@ public sealed partial class StudioFieldViewModel : ObservableObject
         Action<StudioFieldViewModel>? onBrowseMeshFile = null)
     {
         FieldKey = fieldKey;
-        Label = label;
-        GrammarHint = grammarHint;
+        _label = label;
+        _grammarHint = grammarHint;
         IsReadOnly = isReadOnly;
         IsBoolField = isBool;
         IsColorField = isColor;
@@ -87,7 +93,7 @@ public sealed partial class StudioFieldViewModel : ObservableObject
         ShowRawTokenToggle = showRawTokenToggle;
         _isNumericToken = isNumeric;
         Choices = choices ?? [];
-        ReferenceKind = referenceKind;
+        _referenceKind = referenceKind;
         _allCandidates = candidates ?? [];
         _onValueChanged = onValueChanged;
         _onValueTransition = onValueTransition;
@@ -96,9 +102,9 @@ public sealed partial class StudioFieldViewModel : ObservableObject
         _onBrowseMeshFile = onBrowseMeshFile ?? (referenceKind == Models.ReferenceKind.Mesh ? onBrowseTextureFile : null);
 
         IsComboField = Choices.Count > 0;
-        IsReferenceField = referenceKind != null;
-        IsTextField = !IsBoolField && !IsColorField && !IsComboField && !IsReferenceField;
-        AllowCreateLocalizationKey = referenceKind == Models.ReferenceKind.Localization;
+        _isReferenceField = referenceKind != null;
+        _isTextField = !IsBoolField && !IsColorField && !IsComboField && !_isReferenceField;
+        _allowCreateLocalizationKey = referenceKind == Models.ReferenceKind.Localization;
 
         var safeInitial = initialValue ?? string.Empty;
         _value = safeInitial;
@@ -117,17 +123,17 @@ public sealed partial class StudioFieldViewModel : ObservableObject
     /// <summary>
     ///     Human-readable label shown on the left of the form row.
     /// </summary>
-    public string Label { get; }
+    public string Label => _label;
 
     /// <summary>
     ///     Compact type or reference grammar hint displayed below the label.
     /// </summary>
-    public string GrammarHint { get; }
+    public string GrammarHint => _grammarHint;
 
     /// <summary>
     ///     Whether a non-empty grammar hint should be rendered beneath the field label.
     /// </summary>
-    public bool HasGrammarHint => !string.IsNullOrWhiteSpace(GrammarHint);
+    public bool HasGrammarHint => !string.IsNullOrWhiteSpace(_grammarHint);
 
     /// <summary>
     ///     Friendly edited value of the field, defensively coerced to non-null text.
@@ -237,7 +243,7 @@ public sealed partial class StudioFieldViewModel : ObservableObject
     /// <summary>
     ///     Whether the field renders a standard text input when not in raw mode.
     /// </summary>
-    public bool IsTextField { get; }
+    public bool IsTextField => _isTextField;
 
     /// <summary>
     ///     Whether the field renders a boolean checkbox when not in raw mode.
@@ -257,7 +263,7 @@ public sealed partial class StudioFieldViewModel : ObservableObject
     /// <summary>
     ///     Whether the field renders a searchable workspace reference picker.
     /// </summary>
-    public bool IsReferenceField { get; }
+    public bool IsReferenceField => _isReferenceField;
 
     /// <summary>
     ///     Whether this field is marked informational because no runtime reader consumes it today.
@@ -277,7 +283,7 @@ public sealed partial class StudioFieldViewModel : ObservableObject
     /// <summary>
     ///     Whether the picker permits creating a new localization key in a target lang file.
     /// </summary>
-    public bool AllowCreateLocalizationKey { get; }
+    public bool AllowCreateLocalizationKey => _allowCreateLocalizationKey;
 
     /// <summary>
     ///     Whether this reference field uses the visual thumbnail-grid texture picker.
@@ -369,7 +375,53 @@ public sealed partial class StudioFieldViewModel : ObservableObject
     /// <summary>
     ///     Reference category for picker rows and grammar validation.
     /// </summary>
-    public ReferenceKind? ReferenceKind { get; }
+    public ReferenceKind? ReferenceKind => _referenceKind;
+
+    /// <summary>
+    ///     Dynamically updates label, grammar hint, reference kind, and candidate pool for context-dependent fields.
+    /// </summary>
+    public void ReconfigureReference(
+        string label,
+        string grammarHint,
+        ReferenceKind? referenceKind,
+        IReadOnlyList<ReferenceCandidate>? candidates)
+    {
+        _label = label;
+        _grammarHint = grammarHint;
+        _referenceKind = referenceKind;
+        _allCandidates = candidates ?? [];
+        _isReferenceField = referenceKind != null;
+        _isTextField = !IsBoolField && !IsColorField && !IsComboField && !_isReferenceField;
+        _allowCreateLocalizationKey = referenceKind == Models.ReferenceKind.Localization;
+
+        if (!_isReferenceField && IsPickerOpen)
+        {
+            IsPickerOpen = false;
+        }
+
+        OnPropertyChanged(nameof(Label));
+        OnPropertyChanged(nameof(GrammarHint));
+        OnPropertyChanged(nameof(HasGrammarHint));
+        OnPropertyChanged(nameof(ReferenceKind));
+        OnPropertyChanged(nameof(IsReferenceField));
+        OnPropertyChanged(nameof(IsTextField));
+        OnPropertyChanged(nameof(AllowCreateLocalizationKey));
+        OnPropertyChanged(nameof(IsTexturePickerField));
+        OnPropertyChanged(nameof(IsMeshPickerField));
+        OnPropertyChanged(nameof(IsVisualPickerField));
+        OnPropertyChanged(nameof(IsStandardReferenceList));
+        OnPropertyChanged(nameof(AllowBrowseTextureFile));
+        OnPropertyChanged(nameof(AllowBrowseMeshFile));
+        OnPropertyChanged(nameof(AllowBrowseDiskFile));
+        OnPropertyChanged(nameof(BrowseFileTooltip));
+
+        RefreshFilteredCandidates();
+        UpdateResolutionState();
+        if (!_isReferenceField)
+        {
+            SetValidationState(false, null);
+        }
+    }
 
     /// <summary>
     ///     Fixed enum options for combo-box fields.

@@ -41,6 +41,11 @@ public enum ReferenceKind
     BrickId,
 
     /// <summary>
+    ///     Bundled blueprint identifier relative to blueprints/ without .wbp extension.
+    /// </summary>
+    BlueprintId,
+
+    /// <summary>
     ///     Invariant or localized tag list identifier.
     /// </summary>
     Tag,

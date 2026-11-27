@@ -422,7 +422,12 @@ internal sealed class Inventory : IUILayer
     {
         if (item.Placeable != null)
         {
-            return ItemTooltipKind.Brick;
+            return item.Placeable.Value.Type switch
+            {
+                PlaceableType.Brick => ItemTooltipKind.Brick,
+                PlaceableType.Blueprint => ItemTooltipKind.Blueprint,
+                _ => ItemTooltipKind.Item,
+            };
         }
 
         if (item.Tool != null)
@@ -443,12 +448,12 @@ internal sealed class Inventory : IUILayer
 
     private IReadOnlyList<ItemTooltipTraitRowState> ResolveTraitRows(Item item)
     {
-        if (item.Placeable == null)
+        if (!ItemPlaceables.IsBrickPlaceable(item))
         {
             return [];
         }
 
-        Result<Brick> brickResult = _brickDatabase.Get(item.Placeable.Value.ID);
+        Result<Brick> brickResult = _brickDatabase.Get(item.Placeable!.Value.ID);
         if (!brickResult.Success)
         {
             return [];

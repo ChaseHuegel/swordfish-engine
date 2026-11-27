@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Library.Collections;
@@ -134,6 +135,87 @@ public sealed class RegionMeshBuilder
         }
 
         return CombineBuckets(_meshState);
+    }
+
+    /// <summary>Returns the strictest <see cref="BrickAlpha"/> present among solid voxels in a decoded <paramref name="region"/>.</summary>
+    public static BrickAlpha ResolveAlphaMode(in VoxelRegionData region, IBrickDatabase brickDatabase)
+    {
+        if (region.Chunks == null || region.Chunks.Length == 0)
+        {
+            return BrickAlpha.Opaque;
+        }
+
+        BrickAlpha alpha = BrickAlpha.Opaque;
+        for (var c = 0; c < region.Chunks.Length; c++)
+        {
+            Voxel[]? voxels = region.Chunks[c].Chunk.Voxels;
+            if (voxels == null)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < voxels.Length; i++)
+            {
+                ushort id = voxels[i].ID;
+                if (id == 0)
+                {
+                    continue;
+                }
+
+                Result<Brick> brickResult = brickDatabase.Get(id);
+                if (!brickResult.Success)
+                {
+                    continue;
+                }
+
+                if (brickResult.Value.Alpha == BrickAlpha.Blend)
+                {
+                    return BrickAlpha.Blend;
+                }
+
+                if (brickResult.Value.Alpha == BrickAlpha.Masked)
+                {
+                    alpha = BrickAlpha.Masked;
+                }
+            }
+        }
+
+        return alpha;
+    }
+
+    /// <summary>Centers <paramref name="mesh"/> around the origin and scales it down uniformly when larger than one unit.</summary>
+    public static VoxelMesh NormalizeToUnitCube(in VoxelMesh mesh)
+    {
+        if (mesh.Vertices.Length == 0)
+        {
+            return mesh;
+        }
+
+        Vector3 min = new(float.PositiveInfinity);
+        Vector3 max = new(float.NegativeInfinity);
+        for (var i = 0; i < mesh.Vertices.Length; i++)
+        {
+            min = Vector3.Min(min, mesh.Vertices[i]);
+            max = Vector3.Max(max, mesh.Vertices[i]);
+        }
+
+        Vector3 center = (min + max) * 0.5f;
+        Vector3 extent = max - min;
+        float maxExtent = MathF.Max(extent.X, MathF.Max(extent.Y, extent.Z));
+        float scale = maxExtent > 1.0f ? 1.0f / maxExtent : 1.0f;
+
+        if (center.LengthSquared() < 1e-8f && MathF.Abs(scale - 1.0f) < 1e-6f)
+        {
+            return mesh;
+        }
+
+        var normalizedVertices = new Vector3[mesh.Vertices.Length];
+        for (var i = 0; i < mesh.Vertices.Length; i++)
+        {
+            normalizedVertices[i] = (mesh.Vertices[i] - center) * scale;
+        }
+
+        return new VoxelMesh(mesh.Triangles, normalizedVertices, mesh.Colors, mesh.Uv, mesh.Normals);
     }
 
     private static Result<VoxelMesh> CombineBuckets(MeshState state)

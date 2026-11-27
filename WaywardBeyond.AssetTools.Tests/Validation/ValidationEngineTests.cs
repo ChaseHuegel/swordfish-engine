@@ -287,6 +287,48 @@ public sealed class ValidationEngineTests : IDisposable
         Assert.Equal(1, report.Findings.Count(static f => f.Code == "ENUM001" && f.Field == "Items.Placeable.Type"));
     }
 
+    [Fact]
+    public void ValidatesBlueprintPlaceableReferencesWithPath001AndRef001()
+    {
+        string pack = CreateMinimalPack("blueprint_placeable_pack");
+        string assets = Path.Combine(pack, "assets");
+        WriteFile(
+            Path.Combine(assets, "lang", "en", "items.toml"),
+            "\"Language\" = \"en\"\n[Translations]\n\"item.bp.name\" = \"Core\"\n");
+
+        //  Write one bundled blueprint at assets/blueprints/builtin/core.wbp.
+        WriteBytes(Path.Combine(assets, "blueprints", "builtin", "core.wbp"), [1, 2, 3, 4]);
+
+        WriteFile(
+            Path.Combine(assets, "items", "valid_bp.toml"),
+            "[[Items]]\nID = \"wb:core_ok\"\nName = \"item.bp.name\"\n[Items.Placeable]\nType = \"blueprint\"\nID = \"builtin/core\"\n");
+
+        WriteFile(
+            Path.Combine(assets, "items", "case_bp.toml"),
+            "[[Items]]\nID = \"wb:core_case\"\nName = \"item.bp.name\"\n[Items.Placeable]\nType = \"blueprint\"\nID = \"builtin/CORE\"\n");
+
+        WriteFile(
+            Path.Combine(assets, "items", "missing_bp.toml"),
+            "[[Items]]\nID = \"wb:core_missing\"\nName = \"item.bp.name\"\n[Items.Placeable]\nType = \"blueprint\"\nID = \"builtin/cor\"\n");
+
+        WorkspaceIndex ws = new WorkspaceLoader().LoadPack(pack).Value;
+        ValidationReport report = new WorkspaceValidator().Validate(ws);
+
+        Assert.DoesNotContain(report.Findings, static f => f.FilePath.EndsWith("valid_bp.toml", StringComparison.Ordinal));
+
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "PATH001" &&
+            f.Field == "Placeable.ID" &&
+            f.SuggestedFixValue == "builtin/core" &&
+            f.IsSafeBulkFix);
+
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "REF001" &&
+            f.Field == "Placeable.ID" &&
+            f.SuggestedFixValue == "builtin/core" &&
+            !f.IsSafeBulkFix);
+    }
+
     private string CreateMinimalPack(string name)
     {
         string pack = Path.Combine(_tempRoot, name);

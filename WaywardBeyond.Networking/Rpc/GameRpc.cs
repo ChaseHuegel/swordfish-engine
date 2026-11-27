@@ -22,6 +22,7 @@ public static class GameRpc
         public const ulong CHAT = 60;
         public const ulong CUT_REGION = 61;
         public const ulong PASTE_REGION_PART = 62;
+        public const ulong PLACE_BLUEPRINT_ITEM = 63;
 
         //  Level information
         public const ulong LIST_LEVELS = 100;

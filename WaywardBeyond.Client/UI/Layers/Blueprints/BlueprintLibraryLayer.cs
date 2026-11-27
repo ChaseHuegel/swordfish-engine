@@ -26,7 +26,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
 
     private readonly InteractionState _interactionState;
     private readonly IBlueprintStorage _blueprintStorage;
-    private readonly BlueprintDatabase? _blueprintDatabase;
+    private readonly IBundledBlueprintDatabase? _blueprintDatabase;
     private readonly RegionToolState _toolState;
     private readonly RegionToolService _toolService;
     private readonly NotificationService _notificationService;
@@ -59,7 +59,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
         in LocalizedFormatter formatter,
         in ILocalization localization,
         in ILogger<BlueprintLibraryLayer> logger,
-        BlueprintDatabase? blueprintDatabase = null
+        IBundledBlueprintDatabase? blueprintDatabase = null
     )
     {
         _interactionState = interactionState;
@@ -95,7 +95,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
             Category = "Blueprints",
             Modifiers = ShortcutModifiers.None,
             Key = Key.B,
-            IsEnabled = () => WaywardBeyond.IsPlaying() && !_open && !_interactionState.IsInteractionBlocked(),
+            IsEnabled = () => WaywardBeyond.IsPlaying() && !_open && !_toolState.IsBlueprintItemActive && !_interactionState.IsInteractionBlocked(),
             Action = Open,
         });
 
@@ -110,7 +110,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
     /// <summary>Opens the Blueprint Library modal if gameplay interaction can be exclusively acquired.</summary>
     public void Open()
     {
-        if (_open || !WaywardBeyond.IsPlaying())
+        if (_open || !WaywardBeyond.IsPlaying() || _toolState.IsBlueprintItemActive)
         {
             return;
         }

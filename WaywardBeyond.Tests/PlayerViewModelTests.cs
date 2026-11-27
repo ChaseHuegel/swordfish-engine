@@ -19,6 +19,7 @@ using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Items;
 using WaywardBeyond.Meshing;
@@ -110,6 +111,8 @@ public class PlayerViewModelTests
         public readonly TestAssetDatabase<Mesh> Meshes = new();
         public readonly TestAssetDatabase<Material> Materials = new();
         public readonly BrickPreviewMeshBuilder BrickMeshBuilder;
+        public readonly RegionMeshBuilder RegionMeshBuilder;
+        public readonly TestBundledBlueprintDatabase BundledBlueprints = new();
         public readonly VoxelMaterials VoxelMaterials;
         public readonly InteractionState InteractionState = new(null!);
         public readonly PlayerData PlayerData;
@@ -139,12 +142,15 @@ public class PlayerViewModelTests
             );
             var textureArrays = new PBRTextureArrays(albedo, other, other, other, other, other);
 
+            var layerLookup = new TextureArrayLayerLookup(albedo);
+            var previewMeshDb = new EngineMeshPreviewDatabase(Meshes);
             BrickMeshBuilder = new BrickPreviewMeshBuilder(
                 Registry,
                 Bricks,
-                new TextureArrayLayerLookup(albedo),
-                new EngineMeshPreviewDatabase(Meshes)
+                layerLookup,
+                previewMeshDb
             );
+            RegionMeshBuilder = new RegionMeshBuilder(Bricks, layerLookup, previewMeshDb);
             VoxelMaterials = new VoxelMaterials(new Shader("lightedArray"), textureArrays);
             PlayerData = new PlayerData(Items);
             System = new PlayerViewModelSystem(
@@ -154,7 +160,10 @@ public class PlayerViewModelTests
                 Bricks,
                 BrickMeshBuilder,
                 VoxelMaterials,
-                InteractionState
+                InteractionState,
+                BundledBlueprints,
+                Registry,
+                RegionMeshBuilder
             );
         }
 
@@ -539,5 +548,72 @@ public class PlayerViewModelTests
         Assert.NotNull(laser.Value.ViewModel);
         Assert.Equal("items/laser.obj", laser.Value.ViewModel!.Value.Mesh);
         Assert.Equal("items/laser", laser.Value.ViewModel!.Value.Material);
+    }
+
+    [Fact]
+    public void PlaceableBlueprint_WithoutExplicitMeshOrMaterial_RendersResolvedVoxelMesh()
+    {
+        var fixture = new Fixture();
+        Brick coreBrick = fixture.AddBrick("wb:core", BrickShape.Block, TEXTURE_A);
+
+        var voxelObj = new VoxelObject(VoxelObject.DEFAULT_CHUNK_EDGE);
+        voxelObj.Set(0, 0, 0, new Voxel(coreBrick.DataID, new ShapeLight(BrickShape.Block, 0), 0));
+        VoxelRegionData raw = new(1, 1, 1, voxelObj.GetChunkInfos(), null, null);
+        VoxelRegionData encoded = VoxelCodec.Encode(in raw, fixture.Registry);
+        fixture.BundledBlueprints.Add("builtin/core", new BlueprintData(
+            new WaywardBeyond.Data.Version(DataVersion.CURRENT, "Wayward Beyond", "Blueprint"),
+            "Core", 0, 0, 1, 1, 1, 1, encoded.Chunks, encoded.BrickPalette, encoded.PaintPalette));
+
+        fixture.AddItem(
+            "wb:core",
+            placeable: new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" },
+            viewModel: new ModelDefinition { Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f) });
+
+        var world = new World();
+        DataStore store = world.DataStore;
+        int player = store.Alloc();
+        store.AddOrUpdate(player, new PlayerComponent());
+        var inv = new InventoryComponent(9);
+        inv.Contents[0] = new ItemData("wb:core", 1, 100);
+        store.AddOrUpdate(player, inv);
+        store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 0 });
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.System.Tick(0.016f, store);
+
+            MeshRenderer? renderer = null;
+            store.Query<IdentifierComponent, MeshRendererComponent>(0f, (float _, DataStore _, int _, in IdentifierComponent id, in MeshRendererComponent mr) =>
+            {
+                if (id.Name == "PlayerViewModel")
+                {
+                    renderer = mr.MeshRenderer;
+                }
+            });
+
+            Assert.NotNull(renderer);
+            Assert.Same(fixture.VoxelMaterials.Opaque, renderer!.Materials[0]);
+            //  Texture layer 1 is TEXTURE_A (layer 0 is the missing-brick checkerboard).
+            Assert.NotEmpty(renderer.Mesh.Uv);
+            Assert.All(renderer.Mesh.Uv, uv => Assert.Equal(1f, uv.Z));
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    private sealed class TestBundledBlueprintDatabase : IBundledBlueprintDatabase
+    {
+        private readonly Dictionary<string, BlueprintData> _blueprints = new(StringComparer.Ordinal);
+        public void Add(string id, BlueprintData data) => _blueprints[id] = data;
+        public IReadOnlyList<BlueprintSummary> ListSummaries() => [];
+        public Result<BlueprintData> GetBlueprint(string id) =>
+            _blueprints.TryGetValue(id, out BlueprintData data)
+                ? Result<BlueprintData>.FromSuccess(data)
+                : Result<BlueprintData>.FromFailure((string?)null);
     }
 }

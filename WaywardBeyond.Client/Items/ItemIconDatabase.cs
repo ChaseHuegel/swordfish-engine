@@ -12,7 +12,9 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Items;
+using WaywardBeyond.Meshing;
 
 namespace WaywardBeyond.Client.Items;
 
@@ -30,10 +32,11 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
     private readonly Material _unknownIcon;
     private readonly Dictionary<string, Material> _icons = [];
     private readonly Dictionary<string, Material> _brickIcons = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Material> _blueprintIcons = new(StringComparer.Ordinal);
     private readonly List<Texture> _ownedTextures = [];
     private readonly List<Material> _ownedMaterials = [];
 
-    /// <summary>Creates the icon cache and pre-bakes isometric icons for all registered bricks.</summary>
+    /// <summary>Creates the icon cache and pre-bakes isometric icons for all registered bricks and bundled blueprints.</summary>
     public ItemIconDatabase(
         in ILogger<ItemIconDatabase> logger,
         in IFileParseService fileParseService,
@@ -41,7 +44,11 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
         in IAssetDatabase<Item> items,
         in IBrickDatabase bricks,
         in BrickIconRenderer brickIconRenderer,
-        in CommandLineArgs commandLineArgs
+        in CommandLineArgs commandLineArgs,
+        IBundledBlueprintDatabase? bundledBlueprints = null,
+        IBrickRegistry? brickRegistry = null,
+        RegionMeshBuilder? regionMeshBuilder = null,
+        IPaintRegistry? paintRegistry = null
     ) {
         _logger = logger;
         _items = items;
@@ -50,6 +57,7 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
         _unknownIcon = CreateUnknownMaterial(_ownedShader);
 
         BakeBrickIcons(bricks, brickIconRenderer, commandLineArgs);
+        BakeBlueprintIcons(bricks, brickIconRenderer, bundledBlueprints, brickRegistry, regionMeshBuilder, paintRegistry);
     }
 
     /// <summary>Creates the icon cache without brick baking for UI tests.</summary>
@@ -74,7 +82,11 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
         in IAssetDatabase<Item> items,
         in IBrickDatabase bricks,
         in BrickIconRenderer brickIconRenderer,
-        in CommandLineArgs commandLineArgs
+        in CommandLineArgs commandLineArgs,
+        IBundledBlueprintDatabase? bundledBlueprints = null,
+        IBrickRegistry? brickRegistry = null,
+        RegionMeshBuilder? regionMeshBuilder = null,
+        IPaintRegistry? paintRegistry = null
     ) {
         _logger = logger;
         _items = items;
@@ -82,6 +94,7 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
         _unknownIcon = CreateUnknownMaterial(uiShader);
 
         BakeBrickIcons(bricks, brickIconRenderer, commandLineArgs);
+        BakeBlueprintIcons(bricks, brickIconRenderer, bundledBlueprints, brickRegistry, regionMeshBuilder, paintRegistry);
     }
 
     /// <summary>Returns the icon for an item id, falling back to the unknown icon.</summary>
@@ -104,6 +117,12 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
             && _brickIcons.TryGetValue(item.Placeable.Value.ID, out Material? brickIcon))
         {
             return brickIcon;
+        }
+
+        if (item.Placeable?.Type == PlaceableType.Blueprint
+            && _blueprintIcons.TryGetValue(item.Placeable.Value.ID, out Material? blueprintIcon))
+        {
+            return blueprintIcon;
         }
 
         return _unknownIcon;
@@ -165,6 +184,42 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
         if (dumpDirectory != null)
         {
             DumpIcons(rendered, dumpDirectory);
+        }
+    }
+
+    private void BakeBlueprintIcons(
+        IBrickDatabase bricks,
+        BrickIconRenderer brickIconRenderer,
+        IBundledBlueprintDatabase? bundledBlueprints,
+        IBrickRegistry? brickRegistry,
+        RegionMeshBuilder? regionMeshBuilder,
+        IPaintRegistry? paintRegistry
+    )
+    {
+        if (bundledBlueprints == null || brickRegistry == null || regionMeshBuilder == null)
+        {
+            return;
+        }
+
+        IReadOnlyList<BlueprintSummary> summaries = bundledBlueprints.ListSummaries();
+        if (summaries.Count == 0)
+        {
+            return;
+        }
+
+        Dictionary<string, Texture> rendered = brickIconRenderer.RenderBlueprints(
+            summaries,
+            bundledBlueprints,
+            brickRegistry,
+            bricks,
+            regionMeshBuilder,
+            paintRegistry);
+        foreach ((string blueprintId, Texture texture) in rendered)
+        {
+            var material = new Material(_unknownIcon.Shader, texture);
+            _blueprintIcons[blueprintId] = material;
+            _ownedTextures.Add(texture);
+            _ownedMaterials.Add(material);
         }
     }
 

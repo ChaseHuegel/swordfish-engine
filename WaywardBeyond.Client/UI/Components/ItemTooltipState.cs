@@ -38,6 +38,9 @@ internal readonly record struct ItemTooltipState(
     /// <summary>Gets whether the hovered item places a brick.</summary>
     public bool IsBrick => Kind == ItemTooltipKind.Brick;
 
+    /// <summary>Gets whether the hovered item places a blueprint.</summary>
+    public bool IsBlueprint => Kind == ItemTooltipKind.Blueprint;
+
     /// <summary>Gets whether the hovered item is a mining tool.</summary>
     public bool IsMiningTool => Kind == ItemTooltipKind.MiningTool;
 

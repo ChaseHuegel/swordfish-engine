@@ -231,6 +231,38 @@ public sealed class ServerHandlers : GameServerApiHandler
             : new ValueTask<RpcResult<RegionOpResponse>>(completion.Task);
     }
 
+    /// <inheritdoc/>
+    public override ValueTask<RpcResult<RegionOpResponse>> PlaceBlueprintItemAsync(
+        PlaceBlueprintItemRequest request,
+        RpcContext context,
+        CancellationToken cancellationToken
+    ) {
+        if (!TryGetPeer(in context, out ServerPeer peer) || peer.World == null)
+        {
+            return new ValueTask<RpcResult<RegionOpResponse>>(
+                RpcResult<RegionOpResponse>.Failure(GameRpcErrors.NOT_JOINED, "the peer has not joined a world"));
+        }
+
+        var completion = new TaskCompletionSource<RpcResult<RegionOpResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationTokenRegistration registration = cancellationToken.CanBeCanceled
+            ? cancellationToken.Register(
+                static state => ((TaskCompletionSource<RpcResult<RegionOpResponse>>)state!).TrySetResult(
+                    RpcResult<RegionOpResponse>.Failure(GameRpcErrors.INVALID_STATE, "the blueprint placement request was cancelled")),
+                completion)
+            : default;
+
+        if (!TryStage(peer, peer.PlaceBlueprintItemCalls, new ServerPeer.PlaceBlueprintItemCall(request, completion, cancellationToken)))
+        {
+            registration.Dispose();
+            return new ValueTask<RpcResult<RegionOpResponse>>(
+                RpcResult<RegionOpResponse>.Failure(GameRpcErrors.INVALID_STATE, "the server is behind on this client's requests"));
+        }
+
+        return cancellationToken.CanBeCanceled
+            ? AwaitAndDisposeAsync(completion.Task, registration)
+            : new ValueTask<RpcResult<RegionOpResponse>>(completion.Task);
+    }
+
     private static async ValueTask<T> AwaitAndDisposeAsync<T>(Task<T> task, CancellationTokenRegistration registration)
     {
         try

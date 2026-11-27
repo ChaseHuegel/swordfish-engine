@@ -264,7 +264,7 @@
                         Padding="8,4"
                         IsVisible="{Binding ShowPlaceholderNotice}"
                         IsHitTestVisible="False">
-                  <TextBlock Text="Preview cube active — set a Mesh or Placeable Brick ID in Model Source"
+                  <TextBlock Text="Preview cube active — set a Mesh or Placeable ID in Model Source"
                              FontSize="10.5"
                              Foreground="{DynamicResource StudioTextMutedBrush}" />
                 </Border>

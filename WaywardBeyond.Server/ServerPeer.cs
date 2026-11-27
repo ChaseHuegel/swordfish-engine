@@ -105,6 +105,9 @@ public sealed class ServerPeer
     /// <summary>Inbound fragmented paste region uploads staged for the world tick.</summary>
     public ConcurrentQueue<PasteRegionPartCall> PasteRegionParts { get; } = new();
 
+    /// <summary>Inbound blueprint placeable item requests staged for the world tick.</summary>
+    public ConcurrentQueue<PlaceBlueprintItemCall> PlaceBlueprintItemCalls { get; } = new();
+
     /// <summary>Reassembles multi-part paste region uploads for this peer on the world tick.</summary>
     public FragmentAssembler RegionUploadAssembler { get; } = new(PayloadFragmenter.MAX_PAYLOAD_BYTES);
 
@@ -198,6 +201,12 @@ public sealed class ServerPeer
                 GameRpcErrors.INVALID_STATE, "the peer left the world"));
         }
 
+        while (PlaceBlueprintItemCalls.TryDequeue(out PlaceBlueprintItemCall placeCall))
+        {
+            placeCall.Completion.TrySetResult(RpcResult<RegionOpResponse>.Failure(
+                GameRpcErrors.INVALID_STATE, "the peer left the world"));
+        }
+
         RegionUploadAssembler.Reset();
     }
 
@@ -228,6 +237,17 @@ public sealed class ServerPeer
         CancellationToken cancellationToken
     ) {
         public readonly RegionUploadPart Part = part;
+        public readonly TaskCompletionSource<RpcResult<RegionOpResponse>> Completion = completion;
+        public readonly CancellationToken CancellationToken = cancellationToken;
+    }
+
+    /// <summary>One in-world blueprint item placement request waiting for the world tick.</summary>
+    public readonly struct PlaceBlueprintItemCall(
+        PlaceBlueprintItemRequest request,
+        TaskCompletionSource<RpcResult<RegionOpResponse>> completion,
+        CancellationToken cancellationToken
+    ) {
+        public readonly PlaceBlueprintItemRequest Request = request;
         public readonly TaskCompletionSource<RpcResult<RegionOpResponse>> Completion = completion;
         public readonly CancellationToken CancellationToken = cancellationToken;
     }

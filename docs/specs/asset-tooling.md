@@ -357,7 +357,17 @@ Each reference kind has its own grammar, and the field hint states it:
 | Brick face | Bare layer name | `core` |
 | Sound tag | Invariant tag name (`lang/tags/sounds.toml`) | `metal_place` |
 | Audio | Path with extension (inside `sounds.toml`) | `sounds/place/metal/metal_place.1.wav` |
+| Blueprint | Relative path without `.wbp` (`assets/blueprints/`) | `builtin/core` |
 | Localization | Dot key | `item.base.core` |
+
+On Item forms, `Placeable.Type` accepts `none`, `brick`, or `blueprint`. Changing
+the type dynamically reconfigures `Placeable.ID` between `ReferenceKind.BrickId`
+and `ReferenceKind.BlueprintId`
+(`WaywardBeyond.AssetStudio/Models/ReferenceKind.cs:6`,
+`WaywardBeyond.AssetStudio/ViewModels/AssetDocumentViewModel.cs:2615`).
+`AssetTomlEditApplier.ApplyItemPlaceableEdits`
+(`WaywardBeyond.AssetStudio/Services/AssetTomlEditApplier.cs:118`) inserts,
+updates, or removes `[Items.Placeable]` losslessly.
 
 ## Tag editor
 
@@ -403,6 +413,12 @@ Rules that exist because the runtime is forgiving:
 - Wrong-grammar references. Texture ids keep the extension. Material ids drop
   it. Brick face entries are bare layer names.
 - Missing and duplicate localization keys.
+- Item `PlaceableType.Blueprint` IDs against `WorkspaceIndex.WinningBlueprintFiles`
+  (`WaywardBeyond.AssetTools/Workspace/WorkspaceIndex.cs:9` and
+  `WaywardBeyond.AssetTools/Validation/WorkspaceValidator.cs:613`), emitting
+  `PATH001` with a safe bulk fix for case drift and `REF001` for missing
+  blueprints. Inbound references from blueprint placeable items also appear on
+  blueprint documents.
 
 The tool does not report unused localization keys. Keys can come from C# code.
 
@@ -682,7 +698,7 @@ and the metadata form (`BlueprintFormView` at
 is editable. Size, brick count, and timestamps are read-only.
 
 `StudioGlPreviewController.SyncBlueprintPreview`
-(`WaywardBeyond.AssetStudio/Services/StudioGlPreviewController.cs:604`) decodes
+(`WaywardBeyond.AssetStudio/Services/StudioGlPreviewController.cs:704`) decodes
 brick and paint palettes through `VoxelCodec.Decode` using
 `StudioPreviewBrickDatabase`
 (`WaywardBeyond.AssetStudio/Services/StudioPreviewBrickDatabase.cs:12`) and
@@ -690,7 +706,11 @@ brick and paint palettes through `VoxelCodec.Decode` using
 (`WaywardBeyond.AssetStudio/Services/StudioPreviewPaintDatabase.cs:11`), meshes
 regions through `RegionMeshBuilder`, and renders masked alpha cutouts in
 `GlViewport.SetBlueprintPreview`
-(`WaywardBeyond.AssetStudio/Rendering/GlViewport.cs:344`). Blueprint previews
+(`WaywardBeyond.AssetStudio/Rendering/GlViewport.cs:344`).
+`StudioGlPreviewController.TryBuildBlueprintPreviewMesh`
+(`WaywardBeyond.AssetStudio/Services/StudioGlPreviewController.cs:609`) reuses
+the same mesher normalized to a unit cube to render 3D View Model and World
+Model previews for `PlaceableType.Blueprint` items. Blueprint previews
 hide the `Orient` button (`MainWindowViewModel.ShowOrientationButton` at
 `WaywardBeyond.AssetStudio/ViewModels/MainWindowViewModel.cs:654`).
 `AssetSeedProjector.ExtractBlueprintPalette`

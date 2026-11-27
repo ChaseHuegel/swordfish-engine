@@ -21,11 +21,13 @@ using Swordfish.Physics;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Permissions;
@@ -644,6 +646,188 @@ public class ServerRegionSystemTests
         });
     }
 
+    [Fact]
+    public async Task BlueprintItemPlacementWorksInAdventureAndCreativeModesAndConsumesOnlyInAdventure()
+    {
+        //  Adventure mode: grid-attached placement succeeds, broadcasts edit, and consumes 1 item.
+        using (TestHarness adventure = CreateHarness(GameMode.Adventure))
+        {
+            adventure.SetHeldItem("wb:core", count: 3);
+
+            Task<RpcResult<RegionOpResponse>> attachTask = EnqueuePlaceBlueprintItem(
+                adventure,
+                PasteTargetKind.IntoStructure,
+                adventure.StructureUuid,
+                origin: new Int3(1, 0, 0),
+                spawnPos: Vector3.Zero);
+            adventure.System.Tick(1f / 60f, adventure.Store);
+
+            RpcResult<RegionOpResponse> attachResult = await attachTask;
+            Assert.True(attachResult.IsSuccess);
+            Assert.True(attachResult.Value.Success, attachResult.Value.ErrorKey);
+            Assert.Equal(1, attachResult.Value.AffectedBricks);
+            Assert.Equal(adventure.BrickRegistry.Id("wb:core"), adventure.StructureVoxels.Get(1, 0, 0).ID);
+            Assert.Single(adventure.ClientRegionEdits);
+            Assert.False(adventure.ClientRegionEdits[0].OverwriteAir);
+            Assert.Equal(2, adventure.GetHeldItemCount());
+
+            //  Adventure mode: free-floating placement spawns new structure and consumes 1 more item.
+            Task<RpcResult<RegionOpResponse>> spawnTask = EnqueuePlaceBlueprintItem(
+                adventure,
+                PasteTargetKind.NewStructure,
+                targetEntity: 0,
+                origin: default,
+                spawnPos: new Vector3(5f, 0f, 0f));
+            adventure.System.Tick(1f / 60f, adventure.Store);
+
+            RpcResult<RegionOpResponse> spawnResult = await spawnTask;
+            Assert.True(spawnResult.IsSuccess);
+            Assert.True(spawnResult.Value.Success, spawnResult.Value.ErrorKey);
+            Assert.NotEqual(0UL, spawnResult.Value.SpawnedEntityUuid);
+            Assert.Equal(1, spawnResult.Value.AffectedBricks);
+            Assert.Single(adventure.ClientEntitySpawns);
+            Assert.Equal(1, adventure.GetHeldItemCount());
+
+            //  Overlapping an existing brick on target structure is rejected without consuming item.
+            Task<RpcResult<RegionOpResponse>> overlapTask = EnqueuePlaceBlueprintItem(
+                adventure,
+                PasteTargetKind.IntoStructure,
+                adventure.StructureUuid,
+                origin: new Int3(0, 0, 0),
+                spawnPos: Vector3.Zero);
+            adventure.System.Tick(1f / 60f, adventure.Store);
+
+            RpcResult<RegionOpResponse> overlapResult = await overlapTask;
+            Assert.True(overlapResult.IsSuccess);
+            Assert.False(overlapResult.Value.Success);
+            Assert.Equal("notification.placement.occupied", overlapResult.Value.ErrorKey);
+            Assert.Equal(1, adventure.GetHeldItemCount());
+
+            //  World collider overlap is rejected without consuming item.
+            adventure.Physics.OverlapResult = true;
+            Task<RpcResult<RegionOpResponse>> colliderTask = EnqueuePlaceBlueprintItem(
+                adventure,
+                PasteTargetKind.NewStructure,
+                targetEntity: 0,
+                origin: default,
+                spawnPos: new Vector3(8f, 0f, 0f));
+            adventure.System.Tick(1f / 60f, adventure.Store);
+
+            RpcResult<RegionOpResponse> colliderResult = await colliderTask;
+            Assert.True(colliderResult.IsSuccess);
+            Assert.False(colliderResult.Value.Success);
+            Assert.Equal("notification.placement.occupied", colliderResult.Value.ErrorKey);
+            Assert.Equal(1, adventure.GetHeldItemCount());
+            adventure.Physics.OverlapResult = false;
+
+            //  Out of reach is rejected without consuming item.
+            Task<RpcResult<RegionOpResponse>> farTask = EnqueuePlaceBlueprintItem(
+                adventure,
+                PasteTargetKind.NewStructure,
+                targetEntity: 0,
+                origin: default,
+                spawnPos: new Vector3(500f, 0f, 0f));
+            adventure.System.Tick(1f / 60f, adventure.Store);
+
+            RpcResult<RegionOpResponse> farResult = await farTask;
+            Assert.True(farResult.IsSuccess);
+            Assert.False(farResult.Value.Success);
+            Assert.Equal("notification.region.outOfReach", farResult.Value.ErrorKey);
+            Assert.Equal(1, adventure.GetHeldItemCount());
+        }
+
+        //  Creative mode: placement succeeds and does NOT consume the item stack.
+        using (TestHarness creative = CreateHarness(GameMode.Creative))
+        {
+            creative.SetHeldItem("wb:core", count: 5);
+
+            Task<RpcResult<RegionOpResponse>> task = EnqueuePlaceBlueprintItem(
+                creative,
+                PasteTargetKind.NewStructure,
+                targetEntity: 0,
+                origin: default,
+                spawnPos: new Vector3(6f, 0f, 0f));
+            creative.System.Tick(1f / 60f, creative.Store);
+
+            RpcResult<RegionOpResponse> result = await task;
+            Assert.True(result.IsSuccess);
+            Assert.True(result.Value.Success, result.Value.ErrorKey);
+            Assert.Equal(5, creative.GetHeldItemCount());
+        }
+    }
+
+    [Fact]
+    public async Task BlueprintItemPlacementRejectsNonBlueprintHeldItemAndAppliesTransforms()
+    {
+        using TestHarness harness = CreateHarness(GameMode.Adventure);
+        harness.SetHeldItem("wb:panel", count: 5);
+
+        Task<RpcResult<RegionOpResponse>> badItemTask = EnqueuePlaceBlueprintItem(
+            harness,
+            PasteTargetKind.NewStructure,
+            targetEntity: 0,
+            origin: default,
+            spawnPos: new Vector3(4f, 0f, 0f));
+        harness.System.Tick(1f / 60f, harness.Store);
+
+        RpcResult<RegionOpResponse> badItemResult = await badItemTask;
+        Assert.True(badItemResult.IsSuccess);
+        Assert.False(badItemResult.Value.Success);
+        Assert.Equal(5, harness.GetHeldItemCount());
+        Assert.Empty(harness.ClientEntitySpawns);
+
+        //  Multi-brick blueprint with yaw rotation rotates dimensions from 2x1x1 to 1x1x2.
+        harness.SetHeldItem("wb:two_panel", count: 2);
+        var yawRotation = new Orientation(0, 1, 0);
+        Task<RpcResult<RegionOpResponse>> rotTask = EnqueuePlaceBlueprintItem(
+            harness,
+            PasteTargetKind.IntoStructure,
+            harness.StructureUuid,
+            origin: new Int3(3, 0, 0),
+            spawnPos: Vector3.Zero,
+            rotation: yawRotation.ToByte());
+        harness.System.Tick(1f / 60f, harness.Store);
+
+        RpcResult<RegionOpResponse> rotResult = await rotTask;
+        Assert.True(rotResult.IsSuccess);
+        Assert.True(rotResult.Value.Success, rotResult.Value.ErrorKey);
+        Assert.Equal(2, rotResult.Value.AffectedBricks);
+        Assert.Equal(harness.BrickRegistry.Id("wb:panel"), harness.StructureVoxels.Get(3, 0, 0).ID);
+        Assert.Equal(harness.BrickRegistry.Id("wb:panel"), harness.StructureVoxels.Get(3, 0, 1).ID);
+        Assert.Equal(1, harness.GetHeldItemCount());
+    }
+
+    private static Task<RpcResult<RegionOpResponse>> EnqueuePlaceBlueprintItem(
+        TestHarness harness,
+        PasteTargetKind kind,
+        ulong targetEntity,
+        Int3 origin,
+        Vector3 spawnPos,
+        byte rotation = 0,
+        byte mirror = 0
+    )
+    {
+        var tcs = new TaskCompletionSource<RpcResult<RegionOpResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        harness.Peer.PlaceBlueprintItemCalls.Enqueue(new ServerPeer.PlaceBlueprintItemCall(
+            new PlaceBlueprintItemRequest
+            {
+                TargetKind = kind,
+                TargetEntity = targetEntity,
+                OriginX = origin.X,
+                OriginY = origin.Y,
+                OriginZ = origin.Z,
+                SpawnX = spawnPos.X,
+                SpawnY = spawnPos.Y,
+                SpawnZ = spawnPos.Z,
+                SpawnOrientationW = 1f,
+                Rotation = rotation,
+                Mirror = mirror,
+            },
+            tcs,
+            CancellationToken.None));
+        return tcs.Task;
+    }
+
     private static Task<RpcResult<RegionOpResponse>> EnqueuePastePart(TestHarness harness, RegionUploadPart part)
     {
         var tcs = new TaskCompletionSource<RpcResult<RegionOpResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -690,10 +874,13 @@ public class ServerRegionSystemTests
         var brickRegistry = new StubBrickRegistry();
         var panel = new Brick("wb:panel", BrickAlpha.Opaque, false, null, BrickShape.Any, default, paintable: true);
         var thruster = new Brick("wb:thruster", BrickAlpha.Opaque, false, "thruster.obj", BrickShape.Custom, default, orientable: true, paintable: false);
+        var core = new Brick("wb:core", BrickAlpha.Opaque, false, null, BrickShape.Block, default, paintable: false);
         brickRegistry.Register(panel, 1);
         brickDb.Add(1, panel);
         brickRegistry.Register(thruster, 2);
         brickDb.Add(2, thruster);
+        brickRegistry.Register(core, 3);
+        brickDb.Add(3, core);
 
         var paintDb = new StubPaintDatabase();
         paintDb.Add(1, Paint.CreateTexture("wb:glass_blend", "glass", BrickAlpha.Blend, false, ["glass"]));
@@ -749,7 +936,34 @@ public class ServerRegionSystemTests
         ecsWorld.DataStore.AddOrUpdate(playerEntity, new NetworkComponent());
         ecsWorld.DataStore.AddOrUpdate(playerEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
         ecsWorld.DataStore.AddOrUpdate(playerEntity, new GameModeComponent(mode));
+        ecsWorld.DataStore.AddOrUpdate(playerEntity, new InventoryComponent(36));
+        ecsWorld.DataStore.AddOrUpdate(playerEntity, new EquipmentComponent { ActiveInventorySlot = 0 });
         sessions.Register(ecsWorld.DataStore, playerEntity, peer.GameId, new Session(1));
+
+        var itemDb = new StubItemDatabase();
+        itemDb.Add(new Item("wb:panel", "Panel", null, 100, new PlaceableDefinition { Type = PlaceableType.Brick, ID = "wb:panel" }, null, null, null));
+        itemDb.Add(new Item("wb:core", "Core", null, 100, new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" }, null, null, null));
+        itemDb.Add(new Item("wb:two_panel", "Two Panel", null, 100, new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "test/two_panel" }, null, null, null));
+
+        var bundledBlueprints = new StubBundledBlueprintDatabase();
+        VoxelRegionData coreRegion = MakeRegionFromObject(new Vector3(1, 1, 1), obj =>
+        {
+            obj.Set(0, 0, 0, new Voxel(core.DataID, new ShapeLight(BrickShape.Block, 0), 0));
+        }, brickRegistry, null);
+        bundledBlueprints.Add("builtin/core", new BlueprintData(
+            new WaywardBeyond.Data.Version(DataVersion.CURRENT, "Wayward Beyond", "Blueprint"),
+            "Core", 0, 0, 1, coreRegion.SizeX, coreRegion.SizeY, coreRegion.SizeZ,
+            coreRegion.Chunks, coreRegion.BrickPalette, coreRegion.PaintPalette));
+
+        VoxelRegionData twoPanelRegion = MakeRegionFromObject(new Vector3(2, 1, 1), obj =>
+        {
+            obj.Set(0, 0, 0, new Voxel(panel.DataID, new ShapeLight(BrickShape.Block, 0), 0));
+            obj.Set(1, 0, 0, new Voxel(panel.DataID, new ShapeLight(BrickShape.Block, 0), 0));
+        }, brickRegistry, null);
+        bundledBlueprints.Add("test/two_panel", new BlueprintData(
+            new WaywardBeyond.Data.Version(DataVersion.CURRENT, "Wayward Beyond", "Blueprint"),
+            "Two Panel", 0, 0, 2, twoPanelRegion.SizeX, twoPanelRegion.SizeY, twoPanelRegion.SizeZ,
+            twoPanelRegion.Chunks, twoPanelRegion.BrickPalette, twoPanelRegion.PaintPalette));
 
         var structureVoxels = new VoxelObject(VoxelObject.DEFAULT_CHUNK_EDGE);
         structureVoxels.Set(0, 0, 0, new Voxel(panel.DataID, new ShapeLight(BrickShape.Block, 0), 0));
@@ -771,9 +985,11 @@ public class ServerRegionSystemTests
             NullLogger<ServerRegionSystem>.Instance,
             paintDb,
             paintDb,
-            gameplayConfig);
+            gameplayConfig,
+            itemDb,
+            bundledBlueprints);
 
-        return new TestHarness(ecsWorld.DataStore, peer, world, system, connection, structureUuid, structureVoxels, brickRegistry, paintDb, physics);
+        return new TestHarness(ecsWorld.DataStore, peer, world, system, connection, structureUuid, structureVoxels, brickRegistry, paintDb, physics, playerEntity);
     }
 
     private sealed class TestHarness(
@@ -786,7 +1002,8 @@ public class ServerRegionSystemTests
         VoxelObject structureVoxels,
         StubBrickRegistry brickRegistry,
         StubPaintDatabase paintRegistry,
-        StubServerPhysics physics
+        StubServerPhysics physics,
+        int playerEntity
     ) : IDisposable
     {
         private readonly FragmentAssembler _editAssembler = new();
@@ -802,6 +1019,21 @@ public class ServerRegionSystemTests
         public StubServerPhysics Physics { get; } = physics;
         public List<VoxelRegionEditMessage> ClientRegionEdits => DecodeEdits();
         public List<VoxelEntityData> ClientEntitySpawns => DecodeSpawns();
+
+        public void SetHeldItem(string itemId, int count, int slot = 0)
+        {
+            var inv = new InventoryComponent(36);
+            inv.Contents[slot] = new ItemData(itemId, count, 100);
+            Store.AddOrUpdate(playerEntity, inv);
+            Store.AddOrUpdate(playerEntity, new EquipmentComponent { ActiveInventorySlot = slot });
+        }
+
+        public int GetHeldItemCount(int slot = 0)
+        {
+            return Store.TryGet(playerEntity, out InventoryComponent inv) && inv.Contents != null && slot < inv.Contents.Length
+                ? inv.Contents[slot].Count
+                : 0;
+        }
 
         private readonly List<VoxelRegionEditMessage> _decodedEdits = [];
         private readonly List<VoxelEntityData> _decodedSpawns = [];
@@ -948,5 +1180,26 @@ public class ServerRegionSystemTests
         public bool Delete(string levelGuid) => false;
         public bool Exists(string levelGuid) => false;
         public WaywardBeyond.Data.Levels.ILevelStorage? Open(string levelGuid) => null;
+    }
+
+    private sealed class StubItemDatabase : IItemDatabase
+    {
+        private readonly Dictionary<string, Item> _items = new(StringComparer.Ordinal);
+        public void Add(Item item) => _items[item.ID] = item;
+        public Result<Item> Get(string id) =>
+            _items.TryGetValue(id, out Item? item)
+                ? Result<Item>.FromSuccess(item)
+                : Result<Item>.FromFailure((string?)null);
+    }
+
+    private sealed class StubBundledBlueprintDatabase : IBundledBlueprintDatabase
+    {
+        private readonly Dictionary<string, BlueprintData> _blueprints = new(StringComparer.Ordinal);
+        public void Add(string id, BlueprintData data) => _blueprints[id] = data;
+        public IReadOnlyList<BlueprintSummary> ListSummaries() => [];
+        public Result<BlueprintData> GetBlueprint(string id) =>
+            _blueprints.TryGetValue(id, out BlueprintData data)
+                ? Result<BlueprintData>.FromSuccess(data)
+                : Result<BlueprintData>.FromFailure((string?)null);
     }
 }

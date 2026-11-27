@@ -71,6 +71,15 @@ public interface IGameServerApi
     ValueTask<RpcResult<RegionOpResponse>> PasteRegionPartAsync(
         RegionUploadPart request, RpcContext context, CancellationToken cancellationToken);
 
+    [RpcMethod(GameRpc.Methods.PLACE_BLUEPRINT_ITEM, RpcDirection.ClientToServer)]
+    Task<RpcResult<RegionOpResponse>> PlaceBlueprintItemAsync(
+        PlaceBlueprintItemRequest request,
+        CancellationToken cancellationToken = default);
+
+    [RpcMethod(GameRpc.Methods.PLACE_BLUEPRINT_ITEM, RpcDirection.ClientToServer)]
+    ValueTask<RpcResult<RegionOpResponse>> PlaceBlueprintItemAsync(
+        PlaceBlueprintItemRequest request, RpcContext context, CancellationToken cancellationToken);
+
     [RpcMethod(GameRpc.Methods.LIST_LEVELS, RpcDirection.ClientToServer)]
     Task<RpcResult<ListLevelsResponse>> ListLevelsAsync(
         ListLevelsRequest request,

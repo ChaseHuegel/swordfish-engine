@@ -375,7 +375,6 @@ public class Injector : IDryIocInjector
         container.RegisterTomlParser<ItemDefinitions>();
 
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
-        container.RegisterMany<BlueprintDataParser>();
     }
 
     private static void RegisterEntitySystems(IContainer container)

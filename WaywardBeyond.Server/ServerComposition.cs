@@ -13,6 +13,7 @@ using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Items;
@@ -145,6 +146,7 @@ public static class ServerComposition
         container.Resolve<IBrickRegistry>();
         container.Resolve<IBrickDatabase>();
         container.Resolve<IItemDatabase>();
+        container.Resolve<IBundledBlueprintDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<IPaintRegistry>(IfUnresolved.ReturnDefault);
         container.Resolve<IPaintDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<ISkillDatabase>();

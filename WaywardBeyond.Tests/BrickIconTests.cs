@@ -13,6 +13,7 @@ using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Items;
 using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
@@ -144,6 +145,61 @@ public class BrickIconTests
     }
 
     [Fact]
+    public void ItemIconDatabase_BakesIsometricIconForBlueprintPlaceableItems()
+    {
+        var registry = new TestBrickRegistry();
+        var brickDb = new TestBrickDatabase();
+
+        Brick coreBrick = CreateBrick("wb:core", BrickShape.Block);
+        ushort coreId = registry.Bind("wb:core");
+        brickDb.Add(coreId, coreBrick);
+
+        var voxelObj = new VoxelObject(VoxelObject.DEFAULT_CHUNK_EDGE);
+        voxelObj.Set(0, 0, 0, new Voxel(coreId, new ShapeLight(BrickShape.Block, 0), 0));
+        VoxelRegionData raw = new(1, 1, 1, voxelObj.GetChunkInfos(), null, null);
+        VoxelRegionData encoded = VoxelCodec.Encode(in raw, registry);
+        var coreBlueprint = new BlueprintData(
+            new WaywardBeyond.Data.Version(DataVersion.CURRENT, "Wayward Beyond", "Blueprint"),
+            "Core", 0, 0, 1, 1, 1, 1, encoded.Chunks, encoded.BrickPalette, encoded.PaintPalette);
+
+        var bundledBlueprints = new TestBundledBlueprintDatabase("builtin/core", coreBlueprint);
+        var unknownTex = new Texture(UNKNOWN_ICON, new byte[4], 1, 1, mipmaps: false);
+        var textureDb = new TestTextureDatabase(new Dictionary<string, Texture> { [UNKNOWN_ICON] = unknownTex });
+        var itemDb = new TestItemDatabase(new Dictionary<string, Item>
+        {
+            ["wb:core"] = new("wb:core", "Core", iconID: null, 100, new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" }, null, null, null),
+        });
+
+        var offscreen = new FakeOffscreenRenderer();
+        var textureArrays = CreateTextureArrays();
+        var layerLookup = new TextureArrayLayerLookup(textureArrays.Albedo);
+        var meshPreviewDb = new EngineMeshPreviewDatabase(new TestMeshDatabase());
+        var meshBuilder = new BrickPreviewMeshBuilder(registry, brickDb, layerLookup, meshPreviewDb);
+        var regionMeshBuilder = new RegionMeshBuilder(brickDb, layerLookup, meshPreviewDb);
+        var uiShader = new Shader("ui", []);
+        var iconShader = new Shader("icon", []);
+        var voxelMaterials = new VoxelMaterials(iconShader, CreateTextureArrays());
+
+        using var brickIconRenderer = new BrickIconRenderer(NullLogger<BrickIconRenderer>.Instance, meshBuilder, offscreen, voxelMaterials);
+        using var iconDb = new ItemIconDatabase(
+            NullLogger<ItemIconDatabase>.Instance,
+            uiShader,
+            textureDb,
+            itemDb,
+            brickDb,
+            brickIconRenderer,
+            CommandLineArgs.Empty,
+            bundledBlueprints,
+            registry,
+            regionMeshBuilder
+        );
+
+        Material coreMat = iconDb.Get("wb:core");
+        Assert.Equal("blueprint_icon:builtin/core", coreMat.Textures[0].Name);
+        Assert.NotSame(unknownTex, coreMat.Textures[0]);
+    }
+
+    [Fact]
     public void GetDumpDirectory_HandlesFlagOptionAndAbsentArgs()
     {
         Assert.Null(ItemIconDatabase.GetDumpDirectory(CommandLineArgs.Empty));
@@ -262,5 +318,16 @@ public class BrickIconTests
     private sealed class TestMeshDatabase : IAssetDatabase<Mesh>
     {
         public Result<Mesh> Get(string id) => Result<Mesh>.FromFailure((string?)null);
+    }
+
+    private sealed class TestBundledBlueprintDatabase(string id, BlueprintData data) : IBundledBlueprintDatabase
+    {
+        public IReadOnlyList<BlueprintSummary> ListSummaries() =>
+            [new BlueprintSummary(id, data.Name, data.SizeX, data.SizeY, data.SizeZ, data.BrickCount, 0, 0)];
+
+        public Result<BlueprintData> GetBlueprint(string queryId) =>
+            string.Equals(queryId, id, StringComparison.Ordinal)
+                ? Result<BlueprintData>.FromSuccess(data)
+                : Result<BlueprintData>.FromFailure("Unknown blueprint");
     }
 }

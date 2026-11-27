@@ -263,10 +263,31 @@ public sealed class StudioGlPreviewController : IPreviewSurfaceProvider
             }
         }
 
-        string? placeableBrickId = doc.ItemPlaceableIdField?.Value;
-        if (!string.IsNullOrWhiteSpace(placeableBrickId) && _brickDb != null && _brickBuilder != null)
+        string? placeableType = doc.ItemPlaceableTypeField?.Value;
+        string? placeableId = doc.ItemPlaceableIdField?.Value;
+        if (string.Equals(placeableType, "blueprint", StringComparison.OrdinalIgnoreCase)
+            && TryBuildBlueprintPreviewMesh(placeableId, out VoxelMesh blueprintMesh, out BrickAlpha blueprintAlpha, out string blueprintLabel))
         {
-            Result<Brick> brickRes = _brickDb.Get(placeableBrickId);
+            bool doubleSided = blueprintAlpha != BrickAlpha.Opaque;
+            return new ResolvedItemModelVisual(
+                blueprintMesh,
+                PreviewTextureMode.BlockAlbedoArray,
+                blueprintAlpha,
+                0.5f,
+                doubleSided,
+                StandaloneTexture: null,
+                IsPlaceableBrickAny: false,
+                IsPlaceholder: false,
+                SourceLabel: $"{blueprintLabel} (blueprint)",
+                AccentHex: "#38BDF8");
+        }
+
+        if (string.Equals(placeableType, "brick", StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(placeableId)
+            && _brickDb != null
+            && _brickBuilder != null)
+        {
+            Result<Brick> brickRes = _brickDb.Get(placeableId);
             if (brickRes.Success)
             {
                 Brick brick = brickRes.Value;
@@ -309,7 +330,7 @@ public sealed class StudioGlPreviewController : IPreviewSurfaceProvider
             StandaloneTexture: null,
             IsPlaceableBrickAny: false,
             IsPlaceholder: true,
-            SourceLabel: "Fallback Cube (no mesh or placeable brick set)",
+            SourceLabel: "Fallback Cube (no mesh or placeable set)",
             AccentHex: "#64748B");
     }
 
@@ -548,10 +569,23 @@ public sealed class StudioGlPreviewController : IPreviewSurfaceProvider
             }
         }
 
-        var placeableBrickId = doc.ItemPlaceableIdField?.Value;
-        if (!string.IsNullOrWhiteSpace(placeableBrickId))
+        var placeableType = doc.ItemPlaceableTypeField?.Value;
+        var placeableId = doc.ItemPlaceableIdField?.Value;
+        if (string.Equals(placeableType, "blueprint", StringComparison.OrdinalIgnoreCase)
+            && TryBuildBlueprintPreviewMesh(placeableId, out VoxelMesh blueprintMesh, out BrickAlpha blueprintAlpha, out _))
         {
-            var brickRes = _brickDb.Get(placeableBrickId);
+            bool doubleSided = blueprintAlpha != BrickAlpha.Opaque;
+            viewport.SetItemPreview(
+                new PreviewSceneMesh(blueprintMesh, Matrix4x4.Identity, blueprintAlpha, 0.5f, doubleSided),
+                useWorldModelPreset,
+                standaloneTexture: null,
+                preserveCamera);
+            return true;
+        }
+
+        if (string.Equals(placeableType, "brick", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(placeableId))
+        {
+            var brickRes = _brickDb.Get(placeableId);
             if (brickRes.Success)
             {
                 var shape = brickRes.Value.Shape == BrickShape.Any ? BrickShape.Block : brickRes.Value.Shape;
@@ -570,6 +604,72 @@ public sealed class StudioGlPreviewController : IPreviewSurfaceProvider
         }
 
         return false;
+    }
+
+    private bool TryBuildBlueprintPreviewMesh(
+        string? blueprintId,
+        out VoxelMesh mesh,
+        out BrickAlpha alphaMode,
+        out string resolvedLabel)
+    {
+        mesh = default;
+        alphaMode = BrickAlpha.Opaque;
+        resolvedLabel = string.Empty;
+
+        if (_workspace == null || _regionBuilder == null || _brickDb == null || string.IsNullOrWhiteSpace(blueprintId))
+        {
+            return false;
+        }
+
+        string trimmed = blueprintId.Trim().Replace('\\', '/');
+        string? fullPath = null;
+        string canonicalId = trimmed;
+        Result<string> exact = _workspace.GetBlueprintFile(trimmed);
+        if (exact.Success)
+        {
+            fullPath = exact.Value;
+        }
+        else
+        {
+            Result<string> ci = _workspace.FindBlueprintIdCaseInsensitive(trimmed);
+            if (ci.Success)
+            {
+                canonicalId = ci.Value;
+                Result<string> resolved = _workspace.GetBlueprintFile(canonicalId);
+                if (resolved.Success)
+                {
+                    fullPath = resolved.Value;
+                }
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(fullPath) || !File.Exists(fullPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            var bytes = File.ReadAllBytes(fullPath);
+            var data = BlueprintData.Deserialize(bytes);
+            var encoded = data.ToRegion();
+            var decoded = VoxelCodec.Decode(in encoded, _brickDb, _paintDb);
+            Result<VoxelMesh> built = _regionBuilder.Build(in decoded);
+            if (!built.Success)
+            {
+                return false;
+            }
+
+            mesh = RegionMeshBuilder.NormalizeToUnitCube(in built.Value);
+            alphaMode = RegionMeshBuilder.ResolveAlphaMode(in decoded, _brickDb);
+            resolvedLabel = canonicalId;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Trace.TraceWarning($"Failed building blueprint placeable preview '{fullPath}': {ex.Message}");
+            return false;
+        }
     }
 
     private bool SyncMaterialPreview(
