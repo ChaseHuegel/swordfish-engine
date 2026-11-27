@@ -13,6 +13,7 @@ internal static class SettingsDefaults
     public const int FRAME_LIMIT = 0;
     public const int FOV = 90;
     public const float VIEW_DISTANCE = 1000f;
+    public const bool FIRST_PERSON_SWAY = true;
     public const AntiAliasing ANTI_ALIASING_MODE = AntiAliasing.MSAA;
     public const ShadowQuality SHADOW_QUALITY = ShadowQuality.Medium;
     public const bool AMBIENT_OCCLUSION = true;

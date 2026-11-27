@@ -21,6 +21,7 @@ using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Items;
@@ -116,6 +117,7 @@ public class PlayerViewModelTests
         public readonly VoxelMaterials VoxelMaterials;
         public readonly FakeInputService Input = new();
         public readonly InteractionState InteractionState;
+        public readonly GameplayConfig GameplayConfig = new();
         public readonly PlayerData PlayerData;
         public readonly PlayerViewModelSystem System;
         public readonly MeshRendererComponentProcessor RendererProcessor = new();
@@ -166,7 +168,8 @@ public class PlayerViewModelTests
                 BrickMeshBuilder,
                 VoxelMaterials,
                 InteractionState,
-                Input
+                Input,
+                GameplayConfig
             );
         }
 
@@ -1271,6 +1274,864 @@ public class PlayerViewModelTests
             WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
             fixture.System.Tick(0.016f, store);
             laserSystem.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    private static Vector3 ExtractRotationDelta(in Quaternion rest, in Quaternion actual)
+    {
+        Quaternion sway = Quaternion.Normalize(actual * Quaternion.Conjugate(rest));
+        if (sway.W < 0f)
+        {
+            sway = -sway;
+        }
+
+        var imag = new Vector3(sway.X, sway.Y, sway.Z);
+        float sinHalf = imag.Length();
+        if (sinHalf > 1e-6f)
+        {
+            float angle = 2f * MathF.Atan2(sinHalf, sway.W);
+            return imag * (angle / sinHalf);
+        }
+
+        return imag * 2f;
+    }
+
+    [Fact]
+    public void ReactiveMotion_LagsOppositePlayerLocalVelocityAndTiltsSubtly()
+    {
+        var fixture = new Fixture();
+        var viewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.5f, -0.4f, -0.3f),
+            Rotation = new ModelDefinition.Float3(0f, 5f, 0f),
+            Scale = new ModelDefinition.Float3(1f, 1f, 1f),
+        };
+        var restPos = new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z);
+        Quaternion restRot = ExpectedOrientation(in viewModel);
+        fixture.AddItem("test:tool", placeable: null, viewModel: viewModel);
+
+        //  Rotate the player 90 degrees left around Y so local -Z is world -X and local +X is world -Z.
+        Quaternion playerOrientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, MathF.PI * 0.5f);
+
+        static Vector3 MeasurePositionOffset(Fixture f, Quaternion orientation, Vector3 worldVelocity, out Vector3 rotDelta)
+        {
+            var store = new DataStore();
+            int player = CreatePlayer(store, "test:tool");
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+            store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, worldVelocity, Vector3.Zero));
+
+            f.System.Tick(0.016f, store);
+            for (var i = 0; i < 20; i++)
+            {
+                f.System.Tick(0.016f, store);
+            }
+
+            ChildComponent child = Assert.IsType<ChildComponent>(GetChild(store));
+            rotDelta = ExtractRotationDelta(ExpectedOrientation(f.Items.Assets["test:tool"].ViewModel!.Value), child.LocalOrientation);
+            Vector3 rest = new(0.5f, -0.4f, -0.3f);
+            return child.LocalPosition - rest;
+        }
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            Vector3 forwardWorld = Vector3.Transform(-Vector3.UnitZ, playerOrientation) * 5f;
+            Vector3 forwardLag = MeasurePositionOffset(fixture, playerOrientation, forwardWorld, out _);
+            Assert.True(forwardLag.Z > 0.005f, $"Expected +Z lag when thrusting forward, got {forwardLag}");
+            Assert.InRange(MathF.Abs(forwardLag.X), 0f, 1e-4f);
+
+            Vector3 backLag = MeasurePositionOffset(fixture, playerOrientation, -forwardWorld, out _);
+            Assert.True(backLag.Z < -0.005f, $"Expected -Z lag when thrusting backward, got {backLag}");
+
+            Vector3 rightWorld = Vector3.Transform(Vector3.UnitX, playerOrientation) * 5f;
+            Vector3 rightLag = MeasurePositionOffset(fixture, playerOrientation, rightWorld, out Vector3 rightRot);
+            Assert.True(rightLag.X < -0.005f, $"Expected -X lag when strafing right, got {rightLag}");
+            Assert.True(rightRot.Z < -0.005f, $"Expected subtle negative roll when strafing right, got {rightRot}");
+
+            Vector3 leftLag = MeasurePositionOffset(fixture, playerOrientation, -rightWorld, out Vector3 leftRot);
+            Assert.True(leftLag.X > 0.005f, $"Expected +X lag when strafing left, got {leftLag}");
+            Assert.True(leftRot.Z > 0.005f, $"Expected subtle positive roll when strafing left, got {leftRot}");
+
+            Vector3 upLag = MeasurePositionOffset(fixture, playerOrientation, Vector3.UnitY * 5f, out Vector3 upRot);
+            Assert.True(upLag.Y < -0.005f, $"Expected -Y lag when ascending, got {upLag}");
+            Assert.True(upRot.X < -0.005f, $"Expected subtle negative pitch when ascending, got {upRot}");
+
+            Vector3 downLag = MeasurePositionOffset(fixture, playerOrientation, -Vector3.UnitY * 5f, out Vector3 downRot);
+            Assert.True(downLag.Y > 0.005f, $"Expected +Y lag when descending, got {downLag}");
+            Assert.True(downRot.X > 0.005f, $"Expected subtle positive pitch when descending, got {downRot}");
+
+            Assert.Equal(restPos, new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z));
+            Assert.Equal(restRot, ExpectedOrientation(in viewModel));
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_SwaysOnYawPitchAndRollAndSmoothlyReturnsToRest()
+    {
+        var fixture = new Fixture();
+        var viewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.4f, -0.4f, -0.5f),
+            Rotation = new ModelDefinition.Float3(0f, -60f, 0f),
+            Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f),
+        };
+        var restPos = new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z);
+        Quaternion restRot = ExpectedOrientation(in viewModel);
+        fixture.AddItem("test:block", placeable: null, viewModel: viewModel);
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "test:block");
+        Quaternion orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.35f);
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.System.Tick(0.016f, store);
+            ChildComponent initial = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in initial, in viewModel);
+
+            for (var i = 0; i < 6; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, -0.03f));
+                store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent afterYawRight = Assert.IsType<ChildComponent>(GetChild(store));
+            Vector3 yawPosOffset = afterYawRight.LocalPosition - restPos;
+            Vector3 yawRotOffset = ExtractRotationDelta(in restRot, in afterYawRight.LocalOrientation);
+            Assert.True(yawPosOffset.X < -0.002f, $"Expected -X lag on right yaw, got {yawPosOffset}");
+            Assert.True(yawRotOffset.Y > 0.005f, $"Expected +Y yaw lag on right yaw, got {yawRotOffset}");
+
+            for (var i = 0; i < 120; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent settledAfterYaw = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in settledAfterYaw, in viewModel);
+
+            for (var i = 0; i < 6; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitX, 0.03f));
+                store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent afterPitchUp = Assert.IsType<ChildComponent>(GetChild(store));
+            Vector3 pitchPosOffset = afterPitchUp.LocalPosition - restPos;
+            Vector3 pitchRotOffset = ExtractRotationDelta(in restRot, in afterPitchUp.LocalOrientation);
+            Assert.True(pitchPosOffset.Y < -0.002f, $"Expected -Y lag on pitch up, got {pitchPosOffset}");
+            Assert.True(pitchRotOffset.X < -0.005f, $"Expected -X pitch lag on pitch up, got {pitchRotOffset}");
+
+            for (var i = 0; i < 120; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            for (var i = 0; i < 6; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, 0.03f));
+                store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent afterRollLeft = Assert.IsType<ChildComponent>(GetChild(store));
+            Vector3 rollRotOffset = ExtractRotationDelta(in restRot, in afterRollLeft.LocalOrientation);
+            Assert.True(rollRotOffset.Z < -0.005f, $"Expected -Z roll lag when rolling left, got {rollRotOffset}");
+
+            for (var i = 0; i < 120; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent finalSettled = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in finalSettled, in viewModel);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_ClampsExtremeSpeedAndRapidFlicksWithinSafeBounds()
+    {
+        var fixture = new Fixture();
+        var viewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.4f, -0.4f, -0.5f),
+            Rotation = new ModelDefinition.Float3(0f, -60f, 0f),
+            Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f),
+        };
+        var restPos = new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z);
+        Quaternion restRot = ExpectedOrientation(in viewModel);
+        fixture.AddItem("test:block", placeable: null, viewModel: viewModel);
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "test:block");
+        Quaternion orientation = Quaternion.Identity;
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+        store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, new Vector3(1000f, 1000f, -1000f), Vector3.Zero));
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.System.Tick(0.016f, store);
+
+            float maxRotMagnitude = MathF.Sqrt(
+                ViewModelReactiveMotion.MAX_ROTATION_OFFSET_PITCH * ViewModelReactiveMotion.MAX_ROTATION_OFFSET_PITCH
+                + ViewModelReactiveMotion.MAX_ROTATION_OFFSET_YAW * ViewModelReactiveMotion.MAX_ROTATION_OFFSET_YAW
+                + ViewModelReactiveMotion.MAX_ROTATION_OFFSET_ROLL * ViewModelReactiveMotion.MAX_ROTATION_OFFSET_ROLL
+            );
+
+            for (var i = 0; i < 40; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromYawPitchRoll(-1.2f, 1.1f, 0.9f));
+                store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+                fixture.System.Tick(i % 2 == 0 ? 0.016f : 1e-6f, store);
+
+                ChildComponent child = Assert.IsType<ChildComponent>(GetChild(store));
+                Vector3 posOffset = child.LocalPosition - restPos;
+                Assert.True(MathF.Abs(posOffset.X) <= ViewModelReactiveMotion.MAX_POSITION_OFFSET_X + 1e-5f);
+                Assert.True(MathF.Abs(posOffset.Y) <= ViewModelReactiveMotion.MAX_POSITION_OFFSET_Y + 1e-5f);
+                Assert.True(MathF.Abs(posOffset.Z) <= ViewModelReactiveMotion.MAX_POSITION_OFFSET_Z + 1e-5f);
+
+                //  Keep held item well clear of crosshair (X=0, Y=0) and camera near plane (Z=-0.1).
+                Assert.True(child.LocalPosition.X > 0.3f);
+                Assert.True(child.LocalPosition.Y < -0.3f);
+                Assert.True(child.LocalPosition.Z < -0.4f);
+
+                Vector3 rotOffset = ExtractRotationDelta(in restRot, in child.LocalOrientation);
+                Assert.True(rotOffset.Length() <= maxRotMagnitude + 0.01f, $"Rotation offset exceeded bound: {rotOffset.Length()} > {maxRotMagnitude}");
+            }
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_IsFrameRateIndependentForConstantMotion()
+    {
+        static ChildComponent RunScenario(float dt, int steps)
+        {
+            var fixture = new Fixture();
+            var viewModel = new ModelDefinition
+            {
+                Position = new ModelDefinition.Float3(0.5f, -0.4f, -0.3f),
+                Rotation = new ModelDefinition.Float3(0f, 5f, 0f),
+                Scale = new ModelDefinition.Float3(1f, 1f, 1f),
+            };
+            fixture.AddItem("test:tool", placeable: null, viewModel: viewModel);
+
+            var store = new DataStore();
+            int player = CreatePlayer(store, "test:tool");
+            Quaternion orientation = Quaternion.Identity;
+            Vector3 localVelocity = new(3f, -2f, -4f);
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+            store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, localVelocity, Vector3.Zero));
+
+            fixture.System.Tick(dt, store);
+
+            const float yawRate = -1.2f;
+            for (var i = 0; i < steps; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawRate * dt));
+                Vector3 worldVelocity = Vector3.Transform(localVelocity, orientation);
+                store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+                store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, worldVelocity, Vector3.Zero));
+                fixture.System.Tick(dt, store);
+            }
+
+            ChildComponent result = Assert.IsType<ChildComponent>(GetChild(store));
+            fixture.System.Dispose();
+            return result;
+        }
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            ChildComponent coarse = RunScenario(0.016f, steps: 15);
+            ChildComponent fine = RunScenario(0.004f, steps: 60);
+
+            Assert.Equal(coarse.LocalPosition.X, fine.LocalPosition.X, precision: 4);
+            Assert.Equal(coarse.LocalPosition.Y, fine.LocalPosition.Y, precision: 4);
+            Assert.Equal(coarse.LocalPosition.Z, fine.LocalPosition.Z, precision: 4);
+            Assert.True(MathF.Abs(Quaternion.Dot(coarse.LocalOrientation, fine.LocalOrientation)) > 0.99999f);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_HandlesZeroNegativeHugeAndNonFiniteInputsSafely()
+    {
+        var fixture = new Fixture();
+        var viewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.5f, -0.4f, -0.3f),
+            Rotation = new ModelDefinition.Float3(0f, 5f, 0f),
+            Scale = new ModelDefinition.Float3(1f, 1f, 1f),
+        };
+        fixture.AddItem("test:tool", placeable: null, viewModel: viewModel);
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "test:tool");
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, new Vector3(4f, 0f, -4f), Vector3.Zero));
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent beforeBadDelta = Assert.IsType<ChildComponent>(GetChild(store));
+
+            float[] invalidDeltas = [0f, -0.016f, float.NaN, float.PositiveInfinity, float.NegativeInfinity];
+            foreach (float badDelta in invalidDeltas)
+            {
+                fixture.System.Tick(badDelta, store);
+                ChildComponent after = Assert.IsType<ChildComponent>(GetChild(store));
+                Assert.Equal(beforeBadDelta.LocalPosition, after.LocalPosition);
+                Assert.Equal(beforeBadDelta.LocalOrientation, after.LocalOrientation);
+            }
+
+            store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, new Vector3(float.NaN, float.PositiveInfinity, 0f), Vector3.Zero));
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, new Quaternion(0f, 0f, 0f, 0f), Vector3.One));
+            fixture.System.Tick(0.016f, store);
+
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, new Quaternion(float.NaN, 0f, 0f, 1f), Vector3.One));
+            fixture.System.Tick(1000f, store);
+
+            ChildComponent afterBadComponents = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertFinitePose(in afterBadComponents);
+            AssertExactRestingPose(in afterBadComponents, in viewModel);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_ResetsCleanlyOnPauseItemSwitchAndRejoinWithNoSpike()
+    {
+        var fixture = new Fixture();
+        var modelA = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.5f, -0.4f, -0.3f),
+            Rotation = new ModelDefinition.Float3(0f, 5f, 0f),
+            Scale = new ModelDefinition.Float3(1f, 1f, 1f),
+        };
+        var modelB = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.4f, -0.45f, -0.5f),
+            Rotation = new ModelDefinition.Float3(0f, -60f, 0f),
+            Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f),
+        };
+        var restPosA = new Vector3(modelA.Position.X, modelA.Position.Y, modelA.Position.Z);
+
+        fixture.AddItem("test:a", placeable: null, viewModel: modelA);
+        fixture.AddItem("test:b", placeable: null, viewModel: modelB);
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "test:a", "test:b");
+        Quaternion orientation = Quaternion.Identity;
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+        store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, new Vector3(5f, 2f, -5f), Vector3.Zero));
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.System.Tick(0.016f, store);
+            for (var i = 0; i < 8; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, -0.05f));
+                store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+                fixture.System.Tick(0.016f, store);
+            }
+
+            Assert.NotEqual(restPosA, Assert.IsType<ChildComponent>(GetChild(store)).LocalPosition);
+
+            WaywardBeyondGameState.GameState.Set(GameState.Paused);
+            fixture.System.Tick(0.016f, store);
+            AssertExactRestingPose(Assert.IsType<ChildComponent>(GetChild(store)), in modelA);
+
+            orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 2.2f);
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+            store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, Vector3.Zero, Vector3.Zero));
+
+            WaywardBeyondGameState.GameState.Set(GameState.Playing);
+            fixture.System.Tick(0.016f, store);
+            AssertExactRestingPose(Assert.IsType<ChildComponent>(GetChild(store)), in modelA);
+
+            fixture.System.Tick(0.016f, store);
+            AssertExactRestingPose(Assert.IsType<ChildComponent>(GetChild(store)), in modelA);
+
+            for (var i = 0; i < 6; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, -0.05f));
+                store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+                fixture.System.Tick(0.016f, store);
+            }
+
+            Assert.NotEqual(restPosA, Assert.IsType<ChildComponent>(GetChild(store)).LocalPosition);
+
+            orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, 1.5f));
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+            store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 1 });
+            fixture.System.Tick(0.016f, store);
+            AssertExactRestingPose(Assert.IsType<ChildComponent>(GetChild(store)), in modelB);
+
+            fixture.System.Tick(0.016f, store);
+            AssertExactRestingPose(Assert.IsType<ChildComponent>(GetChild(store)), in modelB);
+
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            store.Free(player);
+
+            int rejoinedPlayer = CreatePlayer(store, "test:a");
+            store.AddOrUpdate(rejoinedPlayer, new TransformComponent(Vector3.Zero, Quaternion.CreateFromAxisAngle(Vector3.UnitX, 0.9f), Vector3.One));
+            WaywardBeyondGameState.GameState.Set(GameState.Playing);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Tick(0.016f, store);
+            AssertExactRestingPose(Assert.IsType<ChildComponent>(GetChild(store)), in modelA);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_ComposesCleanlyWithActiveDrillAndMiningLaserAnimations()
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillModel = CreateDrillViewModel();
+        ModelDefinition laserModel = CreateMiningLaserViewModel();
+        fixture.AddItem("wb:drill", viewModel: drillModel, tool: new ToolDefinition { Type = ToolType.Drill });
+        fixture.AddItem("laser", viewModel: laserModel, tool: new ToolDefinition { Type = ToolType.Mining });
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "wb:drill", "laser");
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, new Vector3(4f, 0f, -4f), Vector3.Zero));
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            //  Build up reactive motion while moving with idle drill.
+            fixture.System.Tick(0.016f, store);
+            for (var i = 0; i < 15; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent movingIdle = Assert.IsType<ChildComponent>(GetChild(store));
+            var drillRestPos = new Vector3(drillModel.Position.X, drillModel.Position.Y, drillModel.Position.Z);
+            Assert.True(movingIdle.LocalPosition.X < drillRestPos.X - 0.005f);
+
+            //  Activate drill while still moving: layers vibration on top of reactive motion.
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent movingDrilling = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertFinitePose(in movingDrilling);
+            Assert.NotEqual(movingIdle.LocalPosition, movingDrilling.LocalPosition);
+            Assert.True(movingDrilling.LocalPosition.X < drillRestPos.X - 0.005f);
+
+            //  Release fire while still moving: reactive motion remains intact without snapping to rest.
+            fixture.Input.HeldButtons.Remove(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent movingAfterRelease = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(movingAfterRelease.LocalPosition.X < drillRestPos.X - 0.005f);
+
+            //  Switch to mining laser, move, fire, then stop moving and release: settles cleanly to exact rest with no drift.
+            store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 1 });
+            fixture.System.Tick(0.016f, store);
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            for (var i = 0; i < 10; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent movingFiringLaser = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertFinitePose(in movingFiringLaser);
+            var laserRestPos = new Vector3(laserModel.Position.X, laserModel.Position.Y, laserModel.Position.Z);
+            Assert.True(movingFiringLaser.LocalPosition.X < laserRestPos.X - 0.005f);
+
+            fixture.Input.HeldButtons.Remove(MouseButton.Left);
+            store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, Vector3.Zero, Vector3.Zero));
+            for (var i = 0; i < 120; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            AssertExactRestingPose(Assert.IsType<ChildComponent>(GetChild(store)), in laserModel);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_KeepsFirstPersonLaserMuzzleAndSprayerNozzleAlignedWhileMovingAndTurning()
+    {
+        var fixture = new Fixture();
+        ModelDefinition laserModel = CreateMiningLaserViewModel();
+        var sprayerModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.5f, -0.5f, -0.3f),
+            Rotation = new ModelDefinition.Float3(0f, 5f, 0f),
+            Scale = new ModelDefinition.Float3(1f, 1f, 1f),
+        };
+        fixture.AddItem("laser", viewModel: laserModel, tool: new ToolDefinition { Type = ToolType.Mining });
+        fixture.AddItem("wb:sprayer", viewModel: sprayerModel, tool: new ToolDefinition { Type = ToolType.Sprayer });
+
+        fixture.Materials.Assets["effects/laser_beam"] = new Material(new Shader("laser_beam"), [])
+        {
+            AlphaMode = AlphaMode.Blend,
+        };
+        IAssetDatabase<Material> materialDb = fixture.Materials;
+        IAssetDatabase<Swordfish.Graphics.Particles.ParticleEffect> particleDb = new TestAssetDatabase<Swordfish.Graphics.Particles.ParticleEffect>();
+        IInputService input = fixture.Input;
+        Swordfish.Physics.IPhysics physics = new FakePhysics();
+
+        using var laserSystem = new MiningLaserEffectSystem(
+            in fixture.PlayerData,
+            in fixture.InteractionState,
+            in input,
+            in physics,
+            in materialDb,
+            in particleDb
+        );
+        var sprayerSystem = new PaintSprayerEffectSystem(
+            in fixture.PlayerData,
+            in fixture.InteractionState,
+            in input,
+            in physics
+        );
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "laser", "wb:sprayer");
+        Quaternion orientation = Quaternion.Identity;
+        store.AddOrUpdate(player, new TransformComponent(new Vector3(2f, 1f, -3f), orientation, Vector3.One));
+        store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, new Vector3(4f, 2f, -4f), Vector3.Zero));
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            for (var i = 0; i < 8; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, -0.04f));
+                store.AddOrUpdate(player, new TransformComponent(new Vector3(2f, 1f, -3f), orientation, Vector3.One));
+                fixture.System.Tick(0.016f, store);
+            }
+
+            laserSystem.Tick(0.016f, store);
+
+            Assert.True(store.TryGet(player, out TransformComponent laserPlayerTransform));
+            ChildComponent laserChild = Assert.IsType<ChildComponent>(GetChild(store));
+            Vector3 expectedLaserMuzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in laserPlayerTransform, in laserChild);
+            Vector3 staticLaserMuzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in laserPlayerTransform, laserModel);
+            Assert.NotEqual(staticLaserMuzzle, expectedLaserMuzzle);
+
+            Vector3? actualBeamStart = null;
+            store.Query<MeshRendererComponent, TransformComponent>(
+                0f,
+                (float _, DataStore s, int e, in MeshRendererComponent _, in TransformComponent t) =>
+                {
+                    if (!s.Has(typeof(ViewModelComponent), e))
+                    {
+                        actualBeamStart = t.Position;
+                    }
+                }
+            );
+            Assert.NotNull(actualBeamStart);
+            Assert.Equal(expectedLaserMuzzle.X, actualBeamStart!.Value.X, precision: 4);
+            Assert.Equal(expectedLaserMuzzle.Y, actualBeamStart.Value.Y, precision: 4);
+            Assert.Equal(expectedLaserMuzzle.Z, actualBeamStart.Value.Z, precision: 4);
+
+            store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 1 });
+            fixture.System.Tick(0.016f, store);
+            for (var i = 0; i < 8; i++)
+            {
+                orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitX, 0.04f));
+                store.AddOrUpdate(player, new TransformComponent(new Vector3(2f, 1f, -3f), orientation, Vector3.One));
+                fixture.System.Tick(0.016f, store);
+            }
+
+            laserSystem.Tick(0.016f, store);
+            sprayerSystem.Tick(0.016f, store);
+
+            Assert.True(store.TryGet(player, out TransformComponent sprayerPlayerTransform));
+            ChildComponent sprayerChild = Assert.IsType<ChildComponent>(GetChild(store));
+            Vector3 expectedSprayerNozzle = PaintSprayerGeometry.ComputeFirstPersonNozzle(in sprayerPlayerTransform, in sprayerChild);
+            Vector3 staticSprayerNozzle = PaintSprayerGeometry.ComputeFirstPersonNozzle(in sprayerPlayerTransform, sprayerModel);
+            Assert.NotEqual(staticSprayerNozzle, expectedSprayerNozzle);
+
+            Vector3? actualNozzlePos = null;
+            store.Query<Swordfish.Graphics.Particles.ParticleEmitterComponent, TransformComponent>(
+                0f,
+                (float _, DataStore _, int _, in Swordfish.Graphics.Particles.ParticleEmitterComponent emitter, in TransformComponent t) =>
+                {
+                    if (emitter.EffectId == "paint_sprayer_stream")
+                    {
+                        actualNozzlePos = t.Position;
+                    }
+                }
+            );
+            Assert.NotNull(actualNozzlePos);
+            Assert.Equal(expectedSprayerNozzle.X, actualNozzlePos!.Value.X, precision: 4);
+            Assert.Equal(expectedSprayerNozzle.Y, actualNozzlePos.Value.Y, precision: 4);
+            Assert.Equal(expectedSprayerNozzle.Z, actualNozzlePos.Value.Z, precision: 4);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            laserSystem.Tick(0.016f, store);
+            sprayerSystem.Tick(0.016f, store);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_StaysSmoothUnder128HzEcsWith62HzPhysicsSteps()
+    {
+        const float yawRate = -2.0f;
+        const float physicsDt = 0.016f;
+        const float ecsDt = 0.008f;
+
+        var continuousMotion = new ViewModelReactiveMotion();
+        var steppedMotion = new ViewModelReactiveMotion();
+
+        Quaternion continuousOrientation = Quaternion.Identity;
+        Quaternion steppedOrientation = Quaternion.Identity;
+        continuousMotion.SeedOrientation(in continuousOrientation);
+        steppedMotion.SeedOrientation(in steppedOrientation);
+
+        PhysicsComponent idlePhysics = default;
+        float maxTickToTickRipple = 0f;
+        float previousSteppedYaw = 0f;
+
+        //  Run 0.32s total: continuous updates every 8ms, stepped updates orientation only every 16ms (like Jolt under 128 TPS ECS).
+        for (var tick = 0; tick < 40; tick++)
+        {
+            continuousOrientation = Quaternion.Normalize(
+                continuousOrientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawRate * ecsDt)
+            );
+            var continuousTransform = new TransformComponent(Vector3.Zero, continuousOrientation, Vector3.One);
+            continuousMotion.Update(ecsDt, hasTransform: true, in continuousTransform, hasPhysics: false, in idlePhysics);
+
+            if (tick % 2 == 1)
+            {
+                steppedOrientation = Quaternion.Normalize(
+                    steppedOrientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawRate * physicsDt)
+                );
+            }
+
+            var steppedTransform = new TransformComponent(Vector3.Zero, steppedOrientation, Vector3.One);
+            steppedMotion.Update(ecsDt, hasTransform: true, in steppedTransform, hasPhysics: false, in idlePhysics);
+
+            if (tick >= 20)
+            {
+                float ripple = MathF.Abs(steppedMotion.RotationOffset.Y - previousSteppedYaw);
+                maxTickToTickRipple = MathF.Max(maxTickToTickRipple, ripple);
+            }
+
+            previousSteppedYaw = steppedMotion.RotationOffset.Y;
+        }
+
+        //  Stepped 62.5 Hz physics under 128 Hz ECS must track continuous turning closely without 64 Hz sawtooth collapse.
+        Assert.InRange(steppedMotion.RotationOffset.Y, 0.03f, ViewModelReactiveMotion.MAX_ROTATION_OFFSET_YAW);
+        Assert.True(
+            MathF.Abs(steppedMotion.RotationOffset.Y - continuousMotion.RotationOffset.Y) < 0.004f,
+            $"Stepped yaw {steppedMotion.RotationOffset.Y} diverged from continuous {continuousMotion.RotationOffset.Y}"
+        );
+        Assert.True(
+            MathF.Abs(steppedMotion.PositionOffset.X - continuousMotion.PositionOffset.X) < 0.002f,
+            $"Stepped pos X {steppedMotion.PositionOffset.X} diverged from continuous {continuousMotion.PositionOffset.X}"
+        );
+        Assert.True(maxTickToTickRipple < 0.004f, $"Unexpected tick-to-tick ripple: {maxTickToTickRipple}");
+    }
+
+    [Fact]
+    public void ReactiveMotion_PreservesSwayWhenCyclingBrickShapeMidFlight()
+    {
+        var fixture = new Fixture("slope.obj", SentinelMesh(new Vector3(0.1f, 0.2f, 0.3f)));
+        var brickViewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.4f, -0.4f, -0.5f),
+            Rotation = new ModelDefinition.Float3(0f, -60f, 0f),
+            Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f),
+        };
+        fixture.AddBrick("test:panel", BrickShape.Any, TEXTURE_A);
+        fixture.AddItem(
+            "test:panel",
+            placeable: new PlaceableDefinition { Type = PlaceableType.Brick, ID = "test:panel" },
+            viewModel: brickViewModel
+        );
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "test:panel");
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, new Vector3(5f, 0f, 0f), Vector3.Zero));
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.System.Tick(0.016f, store);
+            for (var i = 0; i < 15; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent beforeShapeChange = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(beforeShapeChange.LocalPosition.X < brickViewModel.Position.X - 0.01f);
+
+            fixture.InteractionState.SelectedShape.Set(BrickShape.Slope);
+            fixture.System.Tick(0.016f, store);
+
+            ChildComponent afterShapeChange = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(afterShapeChange.LocalPosition.X < brickViewModel.Position.X - 0.01f);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_DisabledByFirstPersonSwaySetting_RestoresRestingPoseAndKeepsToolAnimations()
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        fixture.AddItem(
+            "wb:drill",
+            viewModel: drillViewModel,
+            tool: new ToolDefinition { Type = ToolType.Drill }
+        );
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "wb:drill");
+        Quaternion orientation = Quaternion.Identity;
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+        store.AddOrUpdate(
+            player,
+            new PhysicsComponent(
+                0,
+                Swordfish.Physics.BodyType.Dynamic,
+                Swordfish.Physics.CollisionDetection.Discrete,
+                new Vector3(6f, 0f, 0f),
+                Vector3.Zero
+            )
+        );
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            Assert.True(fixture.GameplayConfig.FirstPersonSway.Get());
+
+            fixture.System.Tick(0.016f, store);
+            for (var i = 0; i < 15; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent swaying = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(swaying.LocalPosition.X < drillViewModel.Position.X - 0.01f);
+
+            //  Disabling the setting immediately restores exact resting pose and suppresses sway while moving and turning.
+            fixture.GameplayConfig.FirstPersonSway.Set(false);
+            orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.5f));
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+            fixture.System.Tick(0.016f, store);
+
+            ChildComponent disabledPose = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in disabledPose, in drillViewModel);
+
+            //  Tool use animations stay active when reactive sway is disabled.
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent drillingWhileDisabled = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.NotEqual(
+                new Vector3(drillViewModel.Position.X, drillViewModel.Position.Y, drillViewModel.Position.Z),
+                drillingWhileDisabled.LocalPosition
+            );
+
+            fixture.Input.HeldButtons.Remove(MouseButton.Left);
+            orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, 1.2f));
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+            store.AddOrUpdate(
+                player,
+                new PhysicsComponent(
+                    0,
+                    Swordfish.Physics.BodyType.Dynamic,
+                    Swordfish.Physics.CollisionDetection.Discrete,
+                    Vector3.Zero,
+                    Vector3.Zero
+                )
+            );
+            fixture.System.Tick(0.016f, store);
+            ChildComponent settledWhileDisabled = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in settledWhileDisabled, in drillViewModel);
+
+            //  Re-enabling while stationary must not inject an angular spike from rotations that occurred while disabled.
+            fixture.GameplayConfig.FirstPersonSway.Set(true);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent reenabledStationary = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in reenabledStationary, in drillViewModel);
+
+            //  Subsequent motion resumes reactive sway smoothly.
+            Vector3 localRightVelocity = Vector3.Transform(new Vector3(6f, 0f, 0f), orientation);
+            store.AddOrUpdate(
+                player,
+                new PhysicsComponent(
+                    0,
+                    Swordfish.Physics.BodyType.Dynamic,
+                    Swordfish.Physics.CollisionDetection.Discrete,
+                    localRightVelocity,
+                    Vector3.Zero
+                )
+            );
+            for (var i = 0; i < 15; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent resumedSway = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(resumedSway.LocalPosition.X < drillViewModel.Position.X - 0.01f);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
             fixture.System.Dispose();
         }
     }

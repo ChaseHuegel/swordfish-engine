@@ -107,7 +107,7 @@ It copies every editable config value when the page opens.
 
 The client applies its declared render defaults at composition, before any
 page reads the render config. `SettingsDefaults.ApplyRenderDefaults` at
-`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:80` sets the bloom
+`WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:83` sets the bloom
 quality and particle density when the config has no saved file. A saved
 `render.toml` keeps the user's values. The snapshot fixture composes a fresh
 render config through the same method.
@@ -159,7 +159,7 @@ an unsupported fullscreen resolution falls back to a supported mode,
 `SettingsPage.ApplySettings` syncs the draft to the applied mode and shows
 `ui.settings.status.displayFallback`.
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:740` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:741` keeps the display
 mode, monitor, and resolution rows in sync when a shortcut or a manual resize
 changes the window while the page is open.
 
@@ -221,8 +221,8 @@ and both `ChatLayer` close and send bar hints
 The page exposes only options that the engine supports:
 
 - Display & Video: display mode, monitor, resolution, UI scale, V-sync, frame
-  limit, field of view, view distance, anti-aliasing, ambient occlusion, AO
-  quality, bloom, bloom quality, and particle density.
+  limit, field of view, view distance, first person sway, anti-aliasing, ambient
+  occlusion, AO quality, bloom, bloom quality, and particle density.
 - Audio: output device, master, music, effects, interface, paused volume, and
   background volume.
 - Gameplay: autosave, autosave interval, control hints, crosshair, and name tag
@@ -301,7 +301,7 @@ existing spacer layout.
 - Audio focus and pause rows: `WaywardBeyond.Client/UI/Settings/AudioSettingsCategory.cs:66`,
   `WaywardBeyond.Client/Systems/AudioChannelSystem.cs:12`
 - Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:81`,
-  `:146`, `:581`, `:679`, `:717`
+  `:146`, `:581`, `:680`, `:718`
 - Keybinding entry and shortcuts: `WaywardBeyond.Client/UI/Settings/KeybindingEntry.cs:7`,
   `WaywardBeyond.Client/UI/Settings/KeybindingScope.cs:4`,
   `WaywardBeyond.Client/Shortcuts/GameShortcuts.cs:7`

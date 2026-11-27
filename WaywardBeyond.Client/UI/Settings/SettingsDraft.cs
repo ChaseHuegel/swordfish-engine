@@ -20,6 +20,7 @@ internal sealed class SettingsDraft
     public int FrameLimit;
     public int Fov;
     public float ViewDistance;
+    public bool FirstPersonSway;
     public AntiAliasing AntiAliasingMode;
     public ShadowQuality ShadowQuality;
     public bool AmbientOcclusion;
@@ -69,6 +70,7 @@ internal sealed class SettingsDraft
             FrameLimit = renderSettings.Framerate.Get(),
             Fov = renderSettings.FOV.Get(),
             ViewDistance = renderSettings.FarPlane.Get(),
+            FirstPersonSway = gameplayConfig.FirstPersonSway.Get(),
             AntiAliasingMode = renderSettings.AntiAliasing.Get(),
             ShadowQuality = ShadowQualityExtensions.FromSettings(renderSettings.Shadows),
             AmbientOcclusion = renderSettings.SAO.Enabled.Get(),
@@ -119,6 +121,7 @@ internal sealed class SettingsDraft
             FrameLimit = SettingsDefaults.FRAME_LIMIT,
             Fov = SettingsDefaults.FOV,
             ViewDistance = SettingsDefaults.VIEW_DISTANCE,
+            FirstPersonSway = SettingsDefaults.FIRST_PERSON_SWAY,
             AntiAliasingMode = SettingsDefaults.ANTI_ALIASING_MODE,
             ShadowQuality = SettingsDefaults.SHADOW_QUALITY,
             AmbientOcclusion = SettingsDefaults.AMBIENT_OCCLUSION,
