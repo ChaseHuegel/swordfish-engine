@@ -43,6 +43,7 @@ internal static class KeybindingsSettingsCategory
         var movement = new Bucket("ui.settings.section.movement");
         var interaction = new Bucket("ui.settings.section.interaction");
         var inventory = new Bucket("ui.settings.section.inventory");
+        var blueprints = new Bucket("ui.settings.section.blueprints");
         var general = new Bucket("ui.settings.section.general");
         var developer = new Bucket("ui.settings.section.developer");
         var customBuckets = new List<Bucket>();
@@ -61,7 +62,7 @@ internal static class KeybindingsSettingsCategory
                 draft.Keybindings[info.Id] = info.CurrentBinding;
             }
 
-            Bucket target = ResolveBucket(in info, movement, interaction, inventory, general, developer, customBuckets);
+            Bucket target = ResolveBucket(in info, movement, interaction, inventory, blueprints, general, developer, customBuckets);
             target.Shortcuts.Add(info);
         }
 
@@ -69,12 +70,14 @@ internal static class KeybindingsSettingsCategory
         AppendBucket(rows, draft, movement);
         AppendBucket(rows, draft, interaction);
         AppendBucket(rows, draft, inventory);
+        AppendBucket(rows, draft, blueprints);
         AppendBucket(rows, draft, general);
-        AppendBucket(rows, draft, developer);
         for (var i = 0; i < customBuckets.Count; i++)
         {
             AppendBucket(rows, draft, customBuckets[i]);
         }
+
+        AppendBucket(rows, draft, developer);
 
         rows.Add(new SettingsResetRow("Settings.Reset.keybindings", reset));
 
@@ -188,7 +191,7 @@ internal static class KeybindingsSettingsCategory
         return scope is KeybindingScope.BrickPlacement
             or KeybindingScope.PaintSprayer
             or KeybindingScope.Drill
-            or KeybindingScope.RegionTool;
+            or KeybindingScope.BlueprintTool;
     }
 
     private static KeybindingScope ResolveScope(in ShortcutInfo info)
@@ -214,10 +217,10 @@ internal static class KeybindingsSettingsCategory
             return KeybindingScope.World;
         }
 
-        if (string.Equals(info.Id, GameShortcuts.REGION_TOOL_ACTIONS, StringComparison.Ordinal)
-            || string.Equals(info.Category, "RegionTool", StringComparison.Ordinal))
+        if (string.Equals(info.Id, GameShortcuts.BLUEPRINT_TOOL_ACTIONS, StringComparison.Ordinal)
+            || string.Equals(info.Category, "Blueprints", StringComparison.Ordinal))
         {
-            return KeybindingScope.RegionTool;
+            return KeybindingScope.BlueprintTool;
         }
 
         if (string.Equals(info.Category, "Movement", StringComparison.Ordinal)
@@ -260,6 +263,7 @@ internal static class KeybindingsSettingsCategory
         Bucket movement,
         Bucket interaction,
         Bucket inventory,
+        Bucket blueprints,
         Bucket general,
         Bucket developer,
         List<Bucket> customBuckets
@@ -279,6 +283,11 @@ internal static class KeybindingsSettingsCategory
             || string.Equals(info.Category, "Inventory", StringComparison.Ordinal))
         {
             return inventory;
+        }
+
+        if (string.Equals(info.Category, "Blueprints", StringComparison.Ordinal))
+        {
+            return blueprints;
         }
 
         if (IsDeveloperShortcut(in info))
@@ -373,7 +382,7 @@ internal static class KeybindingsSettingsCategory
             GameShortcuts.CHANGE_ORIENTATION => 105,
             GameShortcuts.SELECT_PAINT_COLOR => 106,
             GameShortcuts.SELECT_PAINT_TEXTURE => 107,
-            GameShortcuts.REGION_TOOL_ACTIONS => 108,
+            GameShortcuts.BLUEPRINT_TOOL_ACTIONS => 108,
 
             GameShortcuts.INVENTORY => 200,
             GameShortcuts.INVENTORY_MOVE_STACK => 201,
@@ -388,6 +397,16 @@ internal static class KeybindingsSettingsCategory
             "Inventory/Slot 7" => 216,
             "Inventory/Slot 8" => 217,
             "Inventory/Slot 9" => 218,
+
+            GameShortcuts.BLUEPRINT_LIBRARY => 250,
+            GameShortcuts.BLUEPRINT_COPY => 251,
+            GameShortcuts.BLUEPRINT_CUT => 252,
+            GameShortcuts.BLUEPRINT_PASTE_MODE => 253,
+            GameShortcuts.BLUEPRINT_ROTATE_YAW => 254,
+            GameShortcuts.BLUEPRINT_ROTATE_PITCH => 255,
+            GameShortcuts.BLUEPRINT_MIRROR_HORIZONTAL => 256,
+            GameShortcuts.BLUEPRINT_MIRROR_VERTICAL => 257,
+            GameShortcuts.BLUEPRINT_OVERWRITE_EMPTY => 258,
 
             GameShortcuts.BACK => 300,
             GameShortcuts.SKILLS => 301,
@@ -431,6 +450,7 @@ internal static class KeybindingsSettingsCategory
             GameShortcuts.CHANGE_ORIENTATION => "ui.settings.keybind.changeOrientation",
             GameShortcuts.SELECT_PAINT_COLOR => "ui.settings.keybind.selectPaintColor",
             GameShortcuts.SELECT_PAINT_TEXTURE => "ui.settings.keybind.selectPaintTexture",
+            GameShortcuts.BLUEPRINT_TOOL_ACTIONS => "ui.settings.keybind.blueprintToolActions",
 
             GameShortcuts.INVENTORY => "ui.settings.keybind.inventory",
             GameShortcuts.INVENTORY_MOVE_STACK => "ui.settings.keybind.inventoryMove",
@@ -445,6 +465,16 @@ internal static class KeybindingsSettingsCategory
             "Inventory/Slot 7" => "ui.settings.keybind.slot7",
             "Inventory/Slot 8" => "ui.settings.keybind.slot8",
             "Inventory/Slot 9" => "ui.settings.keybind.slot9",
+
+            GameShortcuts.BLUEPRINT_LIBRARY => "ui.settings.keybind.blueprintLibrary",
+            GameShortcuts.BLUEPRINT_COPY => "ui.settings.keybind.blueprintCopy",
+            GameShortcuts.BLUEPRINT_CUT => "ui.settings.keybind.blueprintCut",
+            GameShortcuts.BLUEPRINT_PASTE_MODE => "ui.settings.keybind.blueprintPasteMode",
+            GameShortcuts.BLUEPRINT_ROTATE_YAW => "ui.settings.keybind.blueprintRotateYaw",
+            GameShortcuts.BLUEPRINT_ROTATE_PITCH => "ui.settings.keybind.blueprintRotatePitch",
+            GameShortcuts.BLUEPRINT_MIRROR_HORIZONTAL => "ui.settings.keybind.blueprintMirrorHorizontal",
+            GameShortcuts.BLUEPRINT_MIRROR_VERTICAL => "ui.settings.keybind.blueprintMirrorVertical",
+            GameShortcuts.BLUEPRINT_OVERWRITE_EMPTY => "ui.settings.keybind.blueprintOverwriteEmpty",
 
             GameShortcuts.BACK => "ui.settings.keybind.back",
             GameShortcuts.SKILLS => "ui.settings.keybind.skills",

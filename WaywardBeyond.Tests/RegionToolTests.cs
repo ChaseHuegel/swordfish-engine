@@ -295,7 +295,7 @@ public class RegionToolTests
         IReadOnlyList<ShortcutInfo> registered = shortcuts.GetShortcuts();
         Assert.Single(registered, s => string.Equals(s.Id, GameShortcuts.BACK, StringComparison.Ordinal));
         Assert.DoesNotContain(registered, s => string.Equals(s.Name, "Close Blueprint Library", StringComparison.Ordinal));
-        ShortcutInfo radialShortcut = Assert.Single(registered, s => string.Equals(s.Id, GameShortcuts.REGION_TOOL_ACTIONS, StringComparison.Ordinal));
+        ShortcutInfo radialShortcut = Assert.Single(registered, s => string.Equals(s.Id, GameShortcuts.BLUEPRINT_TOOL_ACTIONS, StringComparison.Ordinal));
         Assert.Equal(GameShortcuts.TOOL_RADIAL_GROUP, radialShortcut.SharedBindingGroup);
 
         ClientHost.GameState.Set(ClientGameState.Playing);

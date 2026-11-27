@@ -167,7 +167,8 @@ changes the window while the page is open.
 
 `KeybindingsSettingsCategory.Build` reads all rebindable shortcuts from
 `IShortcutService.GetShortcuts()` and groups them into `Movement`,
-`Interaction`, `Inventory`, `General`, and `Developer` sections. Shared
+`Interaction`, `Inventory`, `Blueprints`, `General`, any custom sections, and
+`Developer` (always last). Shared
 `General/Back` (`Back / close`, default `Esc`, `Global` scope) unifies pause
 toggle, menu navigation back, modal close, inventory close, blueprint library
 close, and chat close, so players can rebind or clear it while `Esc` still
@@ -186,12 +187,12 @@ page. Capturing a mouse button suppresses UI clicks for two frames so binding
 `KeybindingsSettingsCategory.UpdateConflicts` validates the draft across all
 active scopes (`KeybindingScope.cs:4`) and reserved fixed bindings on every
 frame. World shortcuts (`Movement`, general `Interaction`, `Open chat`, and
-`Blueprint Library`), modal inventory actions (`Move / stack`,
+`Open library`), modal inventory actions (`Move / stack`,
 `Split / distribute`, and `Quick move`), and `Send chat` (`Chat` scope) live in
 separate scopes so default bindings (`LMB`, `RMB`, `Enter`) do not
 false-conflict. Equipped-item sub-scopes (`BrickPlacement` for `Change shape`
 and `Change orientation`, `PaintSprayer` for `Select paint color`, `Drill` for
-`Select paint texture`, and `RegionTool` for `Region tool actions` and
+`Select paint texture`, and `BlueprintTool` for `Blueprint tool actions` and
 Blueprint Projector shortcuts) overlap `Global`, `World`, and themselves, and
 stay isolated from each other and from modal `Inventory` and `Chat` scopes so
 default `R` and `T` bindings do not false-conflict. Global shortcuts (including
@@ -227,7 +228,8 @@ The page exposes only options that the engine supports:
   distance.
 - Controls: mouse sensitivity, remember shape, and remember orientation.
 - Keybindings: movement keys, interaction and tool actions, hotbar/inventory
-  slots 1-9, chat and general UI shortcuts, and developer debug toggles.
+  slots 1-9, blueprint shortcuts, chat and general UI shortcuts, and developer
+  debug toggles.
 
 The page does not expose FXAA, dynamic lighting, or an environment audio
 channel. The engine has no such settings. View distance is the camera far
@@ -323,7 +325,8 @@ existing spacer layout.
   trips including saved `"Unbound"` entries, malformed override skipping,
   `SetOverrides`, and `ApplyOverrides`.
 - `WaywardBeyond.Tests/KeybindingSettingsInteractionTests.cs` covers category
-  sections, single-input capture, Esc cancel without triggering `Back / close`,
+  sections, `Developer` last ordering, localized blueprint labels, single-input
+  capture, Esc cancel without triggering `Back / close`,
   mouse capture click suppression, modal inventory, chat, and equipped-item
   sub-scope isolation, global and fixed-binding conflicts, tool radial shared
   groups, fresh default conflict-free validation, saving unbound actions,
