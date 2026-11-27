@@ -88,9 +88,17 @@ internal sealed class MiningLaserEffectSystem(
 
         _seenOwners.Clear();
 
-        if (WaywardBeyond.IsPlaying())
+        if (WaywardBeyond.IsPlaying() && !_interactionState.IsInteractionBlocked() && _inputService.IsMouseHeld(MouseButton.Left))
         {
-            LocalLaserAction localAction = new() { Owner = this };
+            FindViewModelChildAction viewModelAction = default;
+            store.Query<ViewModelComponent, MeshRendererComponent, ChildComponent, FindViewModelChildAction>(0f, ref viewModelAction);
+
+            LocalLaserAction localAction = new()
+            {
+                Owner = this,
+                HasViewModelChild = viewModelAction.Found,
+                ViewModelChild = viewModelAction.Child,
+            };
             store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalLaserAction>(delta, ref localAction);
         }
 
@@ -126,7 +134,9 @@ internal sealed class MiningLaserEffectSystem(
         DataStore store,
         int entity,
         in TransformComponent transform,
-        in InventoryComponent inventory
+        in InventoryComponent inventory,
+        bool hasViewModelChild,
+        in ChildComponent viewModelChild
     ) {
         if (_interactionState.IsInteractionBlocked() || !_inputService.IsMouseHeld(MouseButton.Left))
         {
@@ -149,10 +159,13 @@ internal sealed class MiningLaserEffectSystem(
             out _
         );
 
-        Vector3 muzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in transform, mainHandResult.Value.Item.ViewModel);
+        Uuid playerUuid = store.GetUuid(entity);
+        Vector3 muzzle = hasViewModelChild && viewModelChild.Parent == playerUuid
+            ? LaserBeamGeometry.ComputeFirstPersonMuzzle(in transform, in viewModelChild)
+            : LaserBeamGeometry.ComputeFirstPersonMuzzle(in transform, mainHandResult.Value.Item.ViewModel);
         Vector3 start = ToolAimGeometry.ComputeSafeStart(in transform, muzzle, target);
 
-        AddOrUpdateBeam(store, store.GetUuid(entity), start, target, normal, hit);
+        AddOrUpdateBeam(store, playerUuid, start, target, normal, hit);
     }
 
     private void UpdateRemotePlayer(
@@ -351,13 +364,27 @@ internal sealed class MiningLaserEffectSystem(
         public bool HasLight;
     }
 
+    private struct FindViewModelChildAction : IForEach<ViewModelComponent, MeshRendererComponent, ChildComponent>
+    {
+        public ChildComponent Child;
+        public bool Found;
+
+        public void Execute(float delta, DataStore store, int entity, in ViewModelComponent viewModel, in MeshRendererComponent renderer, in ChildComponent child)
+        {
+            Child = child;
+            Found = true;
+        }
+    }
+
     private struct LocalLaserAction : IForEach<PlayerComponent, TransformComponent, InventoryComponent>
     {
         public MiningLaserEffectSystem Owner;
+        public bool HasViewModelChild;
+        public ChildComponent ViewModelChild;
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in TransformComponent transform, in InventoryComponent inventory)
         {
-            Owner.UpdateLocalPlayer(store, entity, in transform, in inventory);
+            Owner.UpdateLocalPlayer(store, entity, in transform, in inventory, HasViewModelChild, in ViewModelChild);
         }
     }
 

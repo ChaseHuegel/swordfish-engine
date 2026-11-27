@@ -227,11 +227,11 @@ public class PlayerViewModelTests
         }
     }
 
-    private struct CaptureChildAction : IForEach<ChildComponent>
+    private struct CaptureChildAction : IForEach<ViewModelComponent, ChildComponent>
     {
         public ChildComponent? Child;
 
-        public void Execute(float delta, DataStore store, int entity, in ChildComponent component)
+        public void Execute(float delta, DataStore store, int entity, in ViewModelComponent viewModel, in ChildComponent component)
         {
             Child = component;
         }
@@ -267,8 +267,18 @@ public class PlayerViewModelTests
     private static ChildComponent? GetChild(DataStore store)
     {
         var action = new CaptureChildAction();
-        store.Query<ChildComponent, CaptureChildAction>(0f, ref action);
+        store.Query<ViewModelComponent, ChildComponent, CaptureChildAction>(0f, ref action);
         return action.Child;
+    }
+
+    private static ModelDefinition CreateMiningLaserViewModel()
+    {
+        return new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.5f, -0.4f, 0.1f),
+            Rotation = new ModelDefinition.Float3(0f, 5f, 0f),
+            Scale = new ModelDefinition.Float3(1f, 1f, 1f),
+        };
     }
 
     private static ModelDefinition CreateDrillViewModel()
@@ -798,7 +808,7 @@ public class PlayerViewModelTests
     {
         var fixture = new Fixture();
         ModelDefinition drillViewModel = CreateDrillViewModel();
-        var laserViewModel = new ModelDefinition
+        var sprayerViewModel = new ModelDefinition
         {
             Position = new ModelDefinition.Float3(0.35f, -0.45f, -0.4f),
             Rotation = new ModelDefinition.Float3(2f, -15f, 4f),
@@ -810,13 +820,13 @@ public class PlayerViewModelTests
             tool: new ToolDefinition { Type = ToolType.Drill }
         );
         fixture.AddItem(
-            "laser",
-            viewModel: laserViewModel,
-            tool: new ToolDefinition { Type = ToolType.Mining }
+            "wb:sprayer",
+            viewModel: sprayerViewModel,
+            tool: new ToolDefinition { Type = ToolType.Sprayer }
         );
 
         var store = new DataStore();
-        int player = CreatePlayer(store, "wb:drill", "laser");
+        int player = CreatePlayer(store, "wb:drill", "wb:sprayer");
 
         WaywardBeyondGameState.GameState.Set(GameState.Playing);
         try
@@ -831,8 +841,8 @@ public class PlayerViewModelTests
 
             store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 1 });
             fixture.System.Tick(0.016f, store);
-            ChildComponent switchedToLaser = Assert.IsType<ChildComponent>(GetChild(store));
-            AssertExactRestingPose(in switchedToLaser, in laserViewModel);
+            ChildComponent switchedToSprayer = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in switchedToSprayer, in sprayerViewModel);
 
             store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 0 });
             fixture.System.Tick(0.016f, store);
@@ -852,16 +862,11 @@ public class PlayerViewModelTests
     }
 
     [Fact]
-    public void NonDrillItemsAndIdleDrill_KeepExactRestingTransformWithNoDrift()
+    public void NonAnimatedItemsAndIdleTools_KeepExactRestingTransformWithNoDrift()
     {
         var fixture = new Fixture();
         ModelDefinition drillViewModel = CreateDrillViewModel();
-        var laserViewModel = new ModelDefinition
-        {
-            Position = new ModelDefinition.Float3(0.35f, -0.45f, -0.4f),
-            Rotation = new ModelDefinition.Float3(1f, -10f, 3f),
-            Scale = new ModelDefinition.Float3(0.9f, 0.9f, 0.9f),
-        };
+        ModelDefinition laserViewModel = CreateMiningLaserViewModel();
         var sprayerViewModel = new ModelDefinition
         {
             Position = new ModelDefinition.Float3(0.45f, -0.42f, -0.35f),
@@ -898,18 +903,26 @@ public class PlayerViewModelTests
                 AssertExactRestingPose(in idleDrill, in drillViewModel);
             }
 
+            store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 1 });
+            for (var i = 0; i < 10; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+                ChildComponent idleLaser = Assert.IsType<ChildComponent>(GetChild(store));
+                AssertExactRestingPose(in idleLaser, in laserViewModel);
+            }
+
             fixture.Input.HeldButtons.Add(MouseButton.Left);
             fixture.Input.HeldButtons.Add(MouseButton.Right);
 
-            ModelDefinition[] nonDrillModels = [laserViewModel, sprayerViewModel, brickViewModel];
-            for (var slot = 1; slot <= 3; slot++)
+            ModelDefinition[] nonAnimatedModels = [sprayerViewModel, brickViewModel];
+            for (var slot = 2; slot <= 3; slot++)
             {
                 store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = slot });
                 for (var i = 0; i < 10; i++)
                 {
                     fixture.System.Tick(0.016f, store);
                     ChildComponent child = Assert.IsType<ChildComponent>(GetChild(store));
-                    AssertExactRestingPose(in child, in nonDrillModels[slot - 1]);
+                    AssertExactRestingPose(in child, in nonAnimatedModels[slot - 2]);
                 }
             }
         }
@@ -987,6 +1000,278 @@ public class PlayerViewModelTests
             wrappedFixture.System.Dispose();
             referenceFixture.System.Tick(0.016f, referenceStore);
             referenceFixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void MiningLaserPrimaryFire_AppliesSlightShakeLighterThanDrillAndSecondaryStaysAtRest()
+    {
+        ModelDefinition sharedModel = CreateMiningLaserViewModel();
+        var laserFixture = new Fixture();
+        laserFixture.AddItem("test:mining_laser", viewModel: sharedModel, tool: new ToolDefinition { Type = ToolType.Mining });
+        var laserStore = new DataStore();
+        CreatePlayer(laserStore, "test:mining_laser");
+
+        var drillFixture = new Fixture();
+        drillFixture.AddItem("wb:drill", viewModel: sharedModel, tool: new ToolDefinition { Type = ToolType.Drill });
+        var drillStore = new DataStore();
+        CreatePlayer(drillStore, "wb:drill");
+
+        var restingPosition = new Vector3(sharedModel.Position.X, sharedModel.Position.Y, sharedModel.Position.Z);
+        Quaternion restingOrientation = ExpectedOrientation(in sharedModel);
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            //  Idle pose matches the configured resting ViewModel transform.
+            laserFixture.System.Tick(0.016f, laserStore);
+            ChildComponent idleChild = Assert.IsType<ChildComponent>(GetChild(laserStore));
+            AssertExactRestingPose(in idleChild, in sharedModel);
+
+            //  Holding secondary fire alone must not shake a mining laser.
+            laserFixture.Input.HeldButtons.Add(MouseButton.Right);
+            laserFixture.System.Tick(0.016f, laserStore);
+            ChildComponent secondaryChild = Assert.IsType<ChildComponent>(GetChild(laserStore));
+            AssertExactRestingPose(in secondaryChild, in sharedModel);
+            laserFixture.Input.HeldButtons.Remove(MouseButton.Right);
+
+            //  Holding primary fire applies a slight shake noticeably lighter than the drill vibration.
+            laserFixture.Input.HeldButtons.Add(MouseButton.Left);
+            drillFixture.Input.HeldButtons.Add(MouseButton.Left);
+            laserFixture.System.Tick(0.016f, laserStore);
+            drillFixture.System.Tick(0.016f, drillStore);
+
+            ChildComponent firstLaser = Assert.IsType<ChildComponent>(GetChild(laserStore));
+            ChildComponent firstDrill = Assert.IsType<ChildComponent>(GetChild(drillStore));
+            AssertFinitePose(in firstLaser);
+            float laserOffset = Vector3.Distance(firstLaser.LocalPosition, restingPosition);
+            float drillOffset = Vector3.Distance(firstDrill.LocalPosition, restingPosition);
+            Assert.InRange(laserOffset, 0.0005f, 0.006f);
+            Assert.True(laserOffset < drillOffset, $"Expected laser shake ({laserOffset}) lighter than drill vibration ({drillOffset}).");
+            Assert.NotEqual(restingOrientation, firstLaser.LocalOrientation);
+            Assert.Equal(idleChild.LocalScale, firstLaser.LocalScale);
+
+            laserFixture.System.Tick(0.016f, laserStore);
+            ChildComponent secondLaser = Assert.IsType<ChildComponent>(GetChild(laserStore));
+            AssertFinitePose(in secondLaser);
+            Assert.NotEqual(firstLaser.LocalPosition, secondLaser.LocalPosition);
+            Assert.NotEqual(firstLaser.LocalOrientation, secondLaser.LocalOrientation);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            laserFixture.System.Tick(0.016f, laserStore);
+            laserFixture.System.Dispose();
+            drillFixture.System.Tick(0.016f, drillStore);
+            drillFixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void MiningLaserShake_RestoresExactRestingPoseOnReleaseBlockPauseAndItemSwitch()
+    {
+        var fixture = new Fixture();
+        ModelDefinition laserModel = CreateMiningLaserViewModel();
+        var otherModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.3f, -0.35f, -0.25f),
+            Rotation = new ModelDefinition.Float3(2f, -15f, 0f),
+            Scale = new ModelDefinition.Float3(0.5f, 0.5f, 0.5f),
+        };
+        fixture.AddItem("test:laser", viewModel: laserModel, tool: new ToolDefinition { Type = ToolType.Mining });
+        fixture.AddItem("test:other", viewModel: otherModel, tool: null);
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "test:laser", "test:other");
+        var laserRestPos = new Vector3(laserModel.Position.X, laserModel.Position.Y, laserModel.Position.Z);
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            //  Release primary fire restores exact resting pose.
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            Assert.NotEqual(laserRestPos, Assert.IsType<ChildComponent>(GetChild(store)).LocalPosition);
+
+            fixture.Input.HeldButtons.Remove(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent released = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in released, in laserModel);
+
+            //  Opening a blocking UI overlay while holding primary fire restores exact resting pose.
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            Assert.NotEqual(laserRestPos, Assert.IsType<ChildComponent>(GetChild(store)).LocalPosition);
+
+            using (fixture.InteractionState.BlockInteraction())
+            {
+                fixture.System.Tick(0.016f, store);
+                ChildComponent blocked = Assert.IsType<ChildComponent>(GetChild(store));
+                AssertExactRestingPose(in blocked, in laserModel);
+            }
+
+            //  Unblocking resumes shake, then pausing restores exact resting pose.
+            fixture.System.Tick(0.016f, store);
+            Assert.NotEqual(laserRestPos, Assert.IsType<ChildComponent>(GetChild(store)).LocalPosition);
+
+            WaywardBeyondGameState.GameState.Set(GameState.Paused);
+            fixture.System.Tick(0.016f, store);
+            Assert.Null(GetRenderer(store));
+            ChildComponent paused = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in paused, in laserModel);
+
+            //  Resuming restarts shake, then switching to a non-mining item restores that item's exact resting pose.
+            WaywardBeyondGameState.GameState.Set(GameState.Playing);
+            fixture.System.Tick(0.016f, store);
+            Assert.NotEqual(laserRestPos, Assert.IsType<ChildComponent>(GetChild(store)).LocalPosition);
+
+            store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 1 });
+            fixture.System.Tick(0.016f, store);
+            ChildComponent switched = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in switched, in otherModel);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void MiningLaserShake_WrapsAnimationTimeCleanlyAndHandlesInvalidDeltaSafely()
+    {
+        ModelDefinition laserModel = CreateMiningLaserViewModel();
+        var wrappedFixture = new Fixture();
+        wrappedFixture.AddItem("test:laser", viewModel: laserModel, tool: new ToolDefinition { Type = ToolType.Mining });
+        var wrappedStore = new DataStore();
+        CreatePlayer(wrappedStore, "test:laser");
+
+        var referenceFixture = new Fixture();
+        referenceFixture.AddItem("test:laser", viewModel: laserModel, tool: new ToolDefinition { Type = ToolType.Mining });
+        var referenceStore = new DataStore();
+        CreatePlayer(referenceStore, "test:laser");
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            wrappedFixture.Input.HeldButtons.Add(MouseButton.Left);
+            float[] invalidDeltas = [0f, -0.016f, float.NaN, float.PositiveInfinity, float.NegativeInfinity];
+            foreach (float badDelta in invalidDeltas)
+            {
+                wrappedFixture.System.Tick(badDelta, wrappedStore);
+                ChildComponent atRest = Assert.IsType<ChildComponent>(GetChild(wrappedStore));
+                AssertFinitePose(in atRest);
+                AssertExactRestingPose(in atRest, in laserModel);
+            }
+
+            wrappedFixture.System.Tick(0.016f, wrappedStore);
+            var wrapDelta = (float)(MathS.TIME_WRAP_SECONDS + 0.032d);
+            wrappedFixture.System.Tick(wrapDelta, wrappedStore);
+            ChildComponent wrappedChild = Assert.IsType<ChildComponent>(GetChild(wrappedStore));
+            AssertFinitePose(in wrappedChild);
+
+            var expectedWrappedTime = (float)MathS.Repeat(0.016d + wrapDelta, MathS.TIME_WRAP_SECONDS);
+            referenceFixture.Input.HeldButtons.Add(MouseButton.Left);
+            referenceFixture.System.Tick(expectedWrappedTime, referenceStore);
+            ChildComponent referenceChild = Assert.IsType<ChildComponent>(GetChild(referenceStore));
+
+            Assert.Equal(referenceChild.LocalPosition.X, wrappedChild.LocalPosition.X, precision: 5);
+            Assert.Equal(referenceChild.LocalPosition.Y, wrappedChild.LocalPosition.Y, precision: 5);
+            Assert.Equal(referenceChild.LocalPosition.Z, wrappedChild.LocalPosition.Z, precision: 5);
+            Assert.Equal(referenceChild.LocalOrientation.X, wrappedChild.LocalOrientation.X, precision: 5);
+            Assert.Equal(referenceChild.LocalOrientation.Y, wrappedChild.LocalOrientation.Y, precision: 5);
+            Assert.Equal(referenceChild.LocalOrientation.Z, wrappedChild.LocalOrientation.Z, precision: 5);
+            Assert.Equal(referenceChild.LocalOrientation.W, wrappedChild.LocalOrientation.W, precision: 5);
+
+            foreach (float badDelta in invalidDeltas)
+            {
+                wrappedFixture.System.Tick(badDelta, wrappedStore);
+                ChildComponent afterBad = Assert.IsType<ChildComponent>(GetChild(wrappedStore));
+                AssertFinitePose(in afterBad);
+                Assert.Equal(wrappedChild.LocalPosition, afterBad.LocalPosition);
+                Assert.Equal(wrappedChild.LocalOrientation, afterBad.LocalOrientation);
+            }
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            wrappedFixture.System.Tick(0.016f, wrappedStore);
+            wrappedFixture.System.Dispose();
+            referenceFixture.System.Tick(0.016f, referenceStore);
+            referenceFixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void MiningLaserShake_KeepsFirstPersonBeamMuzzleAnchoredToShakenBarrelNozzle()
+    {
+        var fixture = new Fixture();
+        ModelDefinition laserModel = CreateMiningLaserViewModel();
+        fixture.AddItem("laser", viewModel: laserModel, tool: new ToolDefinition { Type = ToolType.Mining });
+        fixture.Materials.Assets["effects/laser_beam"] = new Material(new Shader("laser_beam"), [])
+        {
+            AlphaMode = AlphaMode.Blend,
+        };
+        IAssetDatabase<Swordfish.Graphics.Particles.ParticleEffect> particleDb = new TestAssetDatabase<Swordfish.Graphics.Particles.ParticleEffect>();
+        IInputService inputService = fixture.Input;
+        Swordfish.Physics.IPhysics physics = new FakePhysics();
+        IAssetDatabase<Material> materialDb = fixture.Materials;
+        using var laserSystem = new MiningLaserEffectSystem(
+            in fixture.PlayerData,
+            in fixture.InteractionState,
+            in inputService,
+            in physics,
+            in materialDb,
+            in particleDb
+        );
+
+        var store = new DataStore();
+        var playerTransform = new TransformComponent(
+            new Vector3(3f, 2f, -1f),
+            Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.25f),
+            Vector3.One
+        );
+        int player = CreatePlayer(store, "laser");
+        store.AddOrUpdate(player, playerTransform);
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            laserSystem.Tick(0.016f, store);
+
+            ChildComponent shakenChild = Assert.IsType<ChildComponent>(GetChild(store));
+            Vector3 expectedMuzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in playerTransform, in shakenChild);
+            Vector3 staticMuzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in playerTransform, laserModel);
+            Assert.NotEqual(staticMuzzle, expectedMuzzle);
+
+            Vector3 actualBeamStart = default;
+            var foundBeam = false;
+            store.Query<MeshRendererComponent, TransformComponent>(
+                0f,
+                (float _, DataStore s, int e, in MeshRendererComponent _, in TransformComponent t) =>
+                {
+                    if (!s.Has(typeof(ViewModelComponent), e))
+                    {
+                        actualBeamStart = t.Position;
+                        foundBeam = true;
+                    }
+                }
+            );
+
+            Assert.True(foundBeam);
+            Assert.Equal(expectedMuzzle.X, actualBeamStart.X, precision: 4);
+            Assert.Equal(expectedMuzzle.Y, actualBeamStart.Y, precision: 4);
+            Assert.Equal(expectedMuzzle.Z, actualBeamStart.Z, precision: 4);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            laserSystem.Tick(0.016f, store);
+            fixture.System.Dispose();
         }
     }
 }
