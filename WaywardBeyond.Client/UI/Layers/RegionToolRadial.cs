@@ -9,6 +9,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Layers.Blueprints;
 using WaywardBeyond.Items;
@@ -106,6 +107,7 @@ internal sealed class RegionToolRadial : IUILayer, IActionIndicator
             Category = "Interaction",
             Modifiers = ShortcutModifiers.None,
             Key = Key.R,
+            SharedBindingGroup = GameShortcuts.TOOL_RADIAL_GROUP,
             IsEnabled = Shortcut.DefaultEnabled,
             Action = OnPressed,
             Released = OnReleased,

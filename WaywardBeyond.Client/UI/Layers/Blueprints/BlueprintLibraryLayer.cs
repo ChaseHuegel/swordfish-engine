@@ -8,6 +8,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Globalization;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Components;
@@ -98,15 +99,12 @@ internal sealed class BlueprintLibraryLayer : IUILayer
             Action = Open,
         });
 
-        shortcutService.RegisterShortcut(new Shortcut
-        {
-            Name = "Close Blueprint Library",
-            Category = "RegionTool",
-            Modifiers = ShortcutModifiers.None,
-            Key = Key.Esc,
-            IsEnabled = IsVisible,
-            Action = OnEscapePressed,
-        });
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateBack(),
+            IsVisible,
+            OnEscapePressed
+        );
     }
 
     /// <summary>Opens the Blueprint Library modal if gameplay interaction can be exclusively acquired.</summary>

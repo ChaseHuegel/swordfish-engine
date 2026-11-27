@@ -456,6 +456,208 @@ public class KeybindingSettingsInteractionTests
         Assert.False(KeybindingsSettingsCategory.IsDebugFlagPresent(new CommandLineParser().Parse(["--portable"])));
     }
 
+    [Fact]
+    public void FreshDefaultShortcutsReportNoConflictsAndEnforceToolSubScopes()
+    {
+        var input = new FakeInputService();
+        var shortcuts = new ShortcutService(input, NullLogger.Instance);
+
+        RegisterAllDefaultShortcuts(shortcuts);
+
+        var draft = new SettingsDraft();
+        SettingsCategory category = KeybindingsSettingsCategory.Build(draft, shortcuts, reset: () => { }, includeDeveloper: true);
+        ShortcutBinding[] fixedBindings = KeybindingsSettingsCategory.CollectFixedBindings(shortcuts);
+
+        Assert.False(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        for (var i = 0; i < category.Entries.Length; i++)
+        {
+            if (category.Entries[i] is KeybindingEntry entry)
+            {
+                Assert.False(entry.HasConflict, $"Unexpected default conflict on {entry.ShortcutId} ({entry.Value.ToDisplayString()}).");
+            }
+        }
+
+        //  Region Copy (RegionTool) rebound to T conflicts with Region Rotate Yaw (RegionTool), not Change orientation (BrickPlacement).
+        KeybindingEntry regionCopy = FindEntry(category, GameShortcuts.REGION_COPY);
+        KeybindingEntry regionRotateYaw = FindEntry(category, GameShortcuts.REGION_ROTATE_YAW);
+        KeybindingEntry changeOrientation = FindEntry(category, GameShortcuts.CHANGE_ORIENTATION);
+        KeybindingEntry changeShape = FindEntry(category, GameShortcuts.CHANGE_SHAPE);
+        KeybindingEntry regionRadial = FindEntry(category, GameShortcuts.REGION_TOOL_ACTIONS);
+        KeybindingEntry paintColor = FindEntry(category, GameShortcuts.SELECT_PAINT_COLOR);
+        KeybindingEntry paintTexture = FindEntry(category, GameShortcuts.SELECT_PAINT_TEXTURE);
+        KeybindingEntry blueprintLibrary = FindEntry(category, GameShortcuts.BLUEPRINT_LIBRARY);
+        KeybindingEntry moveForward = FindEntry(category, GameShortcuts.MOVE_FORWARD);
+        KeybindingEntry sendChat = FindEntry(category, GameShortcuts.SEND_CHAT);
+
+        regionCopy.SetValue(new ShortcutBinding(Key.T));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(regionCopy.HasConflict);
+        Assert.True(regionRotateYaw.HasConflict);
+        Assert.False(changeOrientation.HasConflict);
+
+        //  Region Copy (RegionTool) rebound to R conflicts with Region tool actions (RegionTool), not other tool radials.
+        regionCopy.SetValue(new ShortcutBinding(Key.R));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(regionCopy.HasConflict);
+        Assert.True(regionRadial.HasConflict);
+        Assert.False(changeShape.HasConflict);
+        Assert.False(paintColor.HasConflict);
+        Assert.False(paintTexture.HasConflict);
+
+        //  Region Copy (RegionTool) overlaps World (Move forward W and Blueprint Library B) and Global (F3).
+        regionCopy.SetValue(new ShortcutBinding(Key.W));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(regionCopy.HasConflict);
+        Assert.True(moveForward.HasConflict);
+
+        regionCopy.SetValue(new ShortcutBinding(Key.B));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(regionCopy.HasConflict);
+        Assert.True(blueprintLibrary.HasConflict);
+
+        regionCopy.SetValue(new ShortcutBinding(Key.F3));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(regionCopy.HasConflict);
+
+        //  RegionTool is isolated from Inventory (Shift+LMB) and Chat (Send chat).
+        regionCopy.SetValue(new ShortcutBinding(MouseButton.Left, ShortcutModifiers.Shift));
+        Assert.False(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+
+        regionCopy.SetValue(regionCopy.DefaultBinding);
+        sendChat.SetValue(new ShortcutBinding(Key.C));
+        Assert.False(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        sendChat.SetValue(sendChat.DefaultBinding);
+
+        //  Blueprint Library (World) rebound to T conflicts with both BrickPlacement and RegionTool actions on T.
+        blueprintLibrary.SetValue(new ShortcutBinding(Key.T));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(blueprintLibrary.HasConflict);
+        Assert.True(changeOrientation.HasConflict);
+        Assert.True(regionRotateYaw.HasConflict);
+        blueprintLibrary.SetValue(blueprintLibrary.DefaultBinding);
+
+        //  Move forward (World) rebound to R conflicts with all four tool radials across every equipped-item sub-scope.
+        moveForward.SetValue(new ShortcutBinding(Key.R));
+        Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
+        Assert.True(moveForward.HasConflict);
+        Assert.True(changeShape.HasConflict);
+        Assert.True(paintColor.HasConflict);
+        Assert.True(paintTexture.HasConflict);
+        Assert.True(regionRadial.HasConflict);
+    }
+
+    private static KeybindingEntry FindEntry(SettingsCategory category, string shortcutId)
+    {
+        for (var i = 0; i < category.Entries.Length; i++)
+        {
+            if (category.Entries[i] is KeybindingEntry entry
+                && string.Equals(entry.ShortcutId, shortcutId, StringComparison.Ordinal))
+            {
+                return entry;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No keybinding entry found for \"{shortcutId}\".");
+    }
+
+    private static void RegisterAllDefaultShortcuts(IShortcutService shortcuts)
+    {
+        shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move forward", Key.W));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move backward", Key.S));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Strafe left", Key.A));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Strafe right", Key.D));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move up", Key.Space));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move down", Key.Control));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Roll left", Key.Q));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Roll right", Key.E));
+
+        shortcuts.RegisterShortcut(GameShortcuts.CreatePrimaryAction());
+        shortcuts.RegisterShortcut(GameShortcuts.CreateSecondaryAction());
+        shortcuts.RegisterShortcut(GameShortcuts.CreatePickBrick());
+        shortcuts.RegisterShortcut(new Shortcut
+        {
+            Category = "Interaction",
+            Name = "Snap Placement",
+            Key = Key.Shift,
+            IgnoreUnboundModifiers = true,
+            IsEnabled = Shortcut.DefaultEnabled,
+        });
+        shortcuts.RegisterShortcut(new Shortcut
+        {
+            Category = "Interaction",
+            Name = "Change shape",
+            Key = Key.R,
+            SharedBindingGroup = GameShortcuts.TOOL_RADIAL_GROUP,
+            IsEnabled = Shortcut.DefaultEnabled,
+        });
+        shortcuts.RegisterShortcut(new Shortcut
+        {
+            Category = "Interaction",
+            Name = "Change orientation",
+            Key = Key.T,
+            IsEnabled = Shortcut.DefaultEnabled,
+        });
+        shortcuts.RegisterShortcut(new Shortcut
+        {
+            Category = "Interaction",
+            Name = "Select paint color",
+            Key = Key.R,
+            SharedBindingGroup = GameShortcuts.TOOL_RADIAL_GROUP,
+            IsEnabled = Shortcut.DefaultEnabled,
+        });
+        shortcuts.RegisterShortcut(new Shortcut
+        {
+            Category = "Interaction",
+            Name = "Select paint texture",
+            Key = Key.R,
+            SharedBindingGroup = GameShortcuts.TOOL_RADIAL_GROUP,
+            IsEnabled = Shortcut.DefaultEnabled,
+        });
+        shortcuts.RegisterShortcut(new Shortcut
+        {
+            Category = "Interaction",
+            Name = "Region tool actions",
+            Key = Key.R,
+            SharedBindingGroup = GameShortcuts.TOOL_RADIAL_GROUP,
+            IsEnabled = Shortcut.DefaultEnabled,
+        });
+
+        shortcuts.RegisterShortcut(new Shortcut("Inventory", "UI", ShortcutModifiers.None, Key.Tab, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateInventoryMoveStack());
+        shortcuts.RegisterShortcut(GameShortcuts.CreateInventorySplitStack());
+        shortcuts.RegisterShortcut(GameShortcuts.CreateInventoryQuickMove());
+        for (var i = 0; i < 9; i++)
+        {
+            shortcuts.RegisterShortcut(GameShortcuts.CreateSlot(i));
+        }
+
+        GameShortcuts.RegisterOrAddHandler(shortcuts, GameShortcuts.CreateBack(), Shortcut.DefaultEnabled, () => { });
+        shortcuts.RegisterShortcut(new Shortcut("Open Chat", "Chat", ShortcutModifiers.None, Key.Enter, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Send Chat", "Chat", ShortcutModifiers.None, Key.Enter, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Quicksave", "General", ShortcutModifiers.None, Key.F5, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Take screenshot", "General", ShortcutModifiers.None, Key.F12, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Toggle UI", "UI", ShortcutModifiers.None, Key.F1, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Feedback form", "UI", ShortcutModifiers.None, Key.F8, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Toggle Fullscreen", "UI", ShortcutModifiers.None, Key.F11, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Alt Toggle Fullscreen", "UI", ShortcutModifiers.Alt, Key.Enter, Shortcut.DefaultEnabled, () => { }));
+
+        shortcuts.RegisterShortcut(new Shortcut("Toggle debug", "Developer", ShortcutModifiers.None, Key.F3, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Toggle voxel gizmos", "Developer/Debug", ShortcutModifiers.None, Key.F2, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Toggle UI debug", "Developer/Debug", ShortcutModifiers.None, Key.F4, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Cycle SAO debug", "Developer/Debug", ShortcutModifiers.None, Key.F6, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Toggle physics debug", "Developer/Debug", ShortcutModifiers.None, Key.F7, Shortcut.DefaultEnabled, () => { }));
+
+        shortcuts.RegisterShortcut(new Shortcut("Blueprint Library", "RegionTool", ShortcutModifiers.None, Key.B, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Region Copy", "RegionTool", ShortcutModifiers.None, Key.C, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Region Cut", "RegionTool", ShortcutModifiers.None, Key.X, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Region Paste Mode", "RegionTool", ShortcutModifiers.None, Key.V, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Region Rotate Yaw", "RegionTool", ShortcutModifiers.None, Key.T, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Region Rotate Pitch", "RegionTool", ShortcutModifiers.Shift, Key.T, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Region Mirror Horizontal", "RegionTool", ShortcutModifiers.None, Key.F, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Region Mirror Vertical", "RegionTool", ShortcutModifiers.Shift, Key.F, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Region Overwrite Air", "RegionTool", ShortcutModifiers.None, Key.G, Shortcut.DefaultEnabled, () => { }));
+    }
+
     private sealed class Harness
     {
         private readonly UIController _controller = new();

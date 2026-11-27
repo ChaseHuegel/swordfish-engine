@@ -26,6 +26,7 @@ using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Identity;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers;
@@ -291,6 +292,12 @@ public class RegionToolTests
         Assert.Equal(3, layers.Length);
         BlueprintLibraryLayer library = container.Resolve<BlueprintLibraryLayer>();
 
+        IReadOnlyList<ShortcutInfo> registered = shortcuts.GetShortcuts();
+        Assert.Single(registered, s => string.Equals(s.Id, GameShortcuts.BACK, StringComparison.Ordinal));
+        Assert.DoesNotContain(registered, s => string.Equals(s.Name, "Close Blueprint Library", StringComparison.Ordinal));
+        ShortcutInfo radialShortcut = Assert.Single(registered, s => string.Equals(s.Id, GameShortcuts.REGION_TOOL_ACTIONS, StringComparison.Ordinal));
+        Assert.Equal(GameShortcuts.TOOL_RADIAL_GROUP, radialShortcut.SharedBindingGroup);
+
         ClientHost.GameState.Set(ClientGameState.Playing);
         try
         {
@@ -342,21 +349,18 @@ public class RegionToolTests
     {
         public PauseShortcutProbeLayer(IShortcutService shortcutService, InteractionState interactionState)
         {
-            shortcutService.RegisterShortcut(new Shortcut
-            {
-                Name = "Toggle paused",
-                Category = "General",
-                Modifiers = ShortcutModifiers.None,
-                Key = Key.Esc,
-                IsEnabled = () => ClientHost.GameState >= ClientGameState.Playing,
-                Action = () =>
+            GameShortcuts.RegisterOrAddHandler(
+                shortcutService,
+                GameShortcuts.CreateBack(),
+                () => ClientHost.GameState >= ClientGameState.Playing,
+                () =>
                 {
                     if (ClientHost.GameState == ClientGameState.Playing && !interactionState.IsInteractionBlocked())
                     {
                         ClientHost.Pause();
                     }
-                },
-            });
+                }
+            );
         }
 
         public bool IsVisible() => false;
