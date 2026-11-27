@@ -127,7 +127,10 @@ cannot leak a gated session.
 - The client's local `profile.db` is the client-owned storage and the source of
   the join-time seed.
 - Interaction-relevant inventory counts are seeded from the client save at join
-  and are server-owned after join.
+  and are server-owned after join. A character with no saved inventory receives
+  the starter set for the resolved game mode: only the mining laser in
+  Adventure (and for an undefined mode), the full creative loadout in Creative.
+  A saved inventory, even an empty one, is never restocked.
 - Game mode is server-owned. When a level is loaded, the server resolves it from
   the per-level `CharacterEntityData.GameMode` or falls back to
   `Level.DefaultGameMode`, then replicates `GameModeComponent` downstream.

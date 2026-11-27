@@ -7,6 +7,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Items;
 using WaywardBeyond.Server.Systems;
@@ -37,8 +38,8 @@ public class SprayerToolTests
         Assert.NotNull(drill.Value.Tool);
         Assert.Equal(ToolType.Drill, drill.Value.Tool!.Value.Type);
 
-        Assert.Contains(PlayerInitialInventory.StarterInventory(), item => item.ID == "wb:sprayer");
-        Assert.Contains(PlayerInitialInventory.StarterInventory(), item => item.ID == "wb:drill");
+        Assert.Contains(PlayerInitialInventory.StarterInventory(GameMode.Creative), item => item.ID == "wb:sprayer");
+        Assert.Contains(PlayerInitialInventory.StarterInventory(GameMode.Creative), item => item.ID == "wb:drill");
     }
 
     [Fact]
