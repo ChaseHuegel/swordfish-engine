@@ -1,7 +1,9 @@
 ﻿using Shoal.CrashHandling;
+using Shoal.Modularity;
 using Swordfish;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data.Webhooks;
 
 namespace WaywardBeyond.Client.Launcher;
@@ -15,6 +17,7 @@ internal sealed class Application(in string[] args)
     public int Run()
     {
         AppPaths appPaths = SwordfishEngine.ResolveAppPaths(_args, companyName: COMPANY_NAME);
+        ModuleResolutionOptions moduleResolution = PackModuleResolution.CreateOptions(appPaths);
         var options = new CrashHandlerOptions
         {
             AppName = "Wayward Beyond",
@@ -26,7 +29,7 @@ internal sealed class Application(in string[] args)
 
         return CrashSupervisor.Run(_args, options, appArgs =>
         {
-            var engine = new SwordfishEngine(appArgs, appPaths);
+            var engine = new SwordfishEngine(appArgs, appPaths, moduleResolution: moduleResolution);
             return engine.Run();
         });
     }
