@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
@@ -7,6 +8,7 @@ internal readonly record struct NewSaveState(
     bool Creating,
     string Name,
     string Seed,
+    GameMode Mode,
     bool CanCreate,
     string StatusKey,
     bool StatusDanger,
@@ -15,6 +17,3 @@ internal readonly record struct NewSaveState(
     IReadOnlyList<CreateLineState> Lines,
     double CreateElapsed
 );
-
-/// <summary>One line of the creation log and its age.</summary>
-internal readonly record struct CreateLineState(string Text, double Age);

@@ -25,51 +25,68 @@
                         <Element height="4" />
                         <Element class="wb-divider-inner" width="fill" height="1" />
                         <Element height="8" />
-                        <Text text="@L('ui.text.level.form.hint')" class="wb-text-small" width="fill" height="18" />
-                        <Element height="16" />
-                        <FormField width="fill">
-                            <Content name="label">
-                                <Text text="@L('ui.field.level.name')" class="wb-field-label" width="fill" height="16" />
-                            </Content>
-                            <Element layout="horizontal" width="fill" height="32" spacing="8">
-                                <controls:TextInput id="TextBox_SaveName"
-                                                    bind="NameState"
-                                                    input-service="@Input"
-                                                    placeholder="@L('ui.field.level.name.placeholder')"
-                                                    class="wb-field-frame"
-                                                    width="fill"
-                                                    height="fill"
-                                                    font-size="18" />
-                                <IconButton id="Button_RandomSaveName"
-                                            anchor="Center"
-                                            param:glyph="dice"
-                                            param:size="32"
-                                            param:glyphSize="20"
-                                            onclick="OnRandomName" />
+                        <ScrollArea id="NewSave.Form" context="@FormScroll" width="fill" height="fill">
+                            <Element id="NewSave.FormContent" layout="vertical" width="fill" height="fit">
+                                <Text text="@L('ui.text.level.form.hint')" class="wb-text-small" width="fill" height="18" />
+                                <Element height="16" />
+                                <FormField width="fill">
+                                    <Content name="label">
+                                        <Text text="@L('ui.field.level.name')" class="wb-field-label" width="fill" height="16" />
+                                    </Content>
+                                    <Element layout="horizontal" width="fill" height="32" spacing="8">
+                                        <controls:TextInput id="TextBox_SaveName"
+                                                            bind="NameState"
+                                                            input-service="@Input"
+                                                            placeholder="@L('ui.field.level.name.placeholder')"
+                                                            class="wb-field-frame"
+                                                            width="fill"
+                                                            height="fill"
+                                                            font-size="18" />
+                                        <IconButton id="Button_RandomSaveName"
+                                                    anchor="Center"
+                                                    param:glyph="dice"
+                                                    param:size="32"
+                                                    param:glyphSize="20"
+                                                    onclick="OnRandomName" />
+                                    </Element>
+                                </FormField>
+                                <Element height="16" />
+                                <FormField width="fill">
+                                    <Content name="label">
+                                        <Text text="@L('ui.field.level.seed')" class="wb-field-label" width="fill" height="16" />
+                                    </Content>
+                                    <Element layout="horizontal" width="fill" height="32" spacing="8">
+                                        <controls:TextInput id="TextBox_SaveSeed"
+                                                            bind="SeedState"
+                                                            input-service="@Input"
+                                                            placeholder="@L('ui.field.level.seed.placeholder')"
+                                                            class="wb-field-frame"
+                                                            width="fill"
+                                                            height="fill"
+                                                            font-size="18" />
+                                        <IconButton id="Button_RandomSeed"
+                                                    anchor="Center"
+                                                    param:glyph="dice"
+                                                    param:size="32"
+                                                    param:glyphSize="20"
+                                                    onclick="OnRandomSeed" />
+                                    </Element>
+                                </FormField>
+                                <Element height="16" />
+                                <FormField width="fill">
+                                    <Content name="label">
+                                        <Text text="@L('ui.field.level.mode')" class="wb-field-label" width="fill" height="16" />
+                                    </Content>
+                                    <SegmentedControl param:id="Choice_GameMode"
+                                                      param:options="@ModeOptions"
+                                                      param:selected="@ModeIndex(context.Mode)"
+                                                      param:enabled="true"
+                                                      param:onSelect="OnGameModeSelected"
+                                                      width="fill"
+                                                      height="32" />
+                                </FormField>
                             </Element>
-                        </FormField>
-                        <Element height="16" />
-                        <FormField width="fill">
-                            <Content name="label">
-                                <Text text="@L('ui.field.level.seed')" class="wb-field-label" width="fill" height="16" />
-                            </Content>
-                            <Element layout="horizontal" width="fill" height="32" spacing="8">
-                                <controls:TextInput id="TextBox_SaveSeed"
-                                                    bind="SeedState"
-                                                    input-service="@Input"
-                                                    placeholder="@L('ui.field.level.seed.placeholder')"
-                                                    class="wb-field-frame"
-                                                    width="fill"
-                                                    height="fill"
-                                                    font-size="18" />
-                                <IconButton id="Button_RandomSeed"
-                                            anchor="Center"
-                                            param:glyph="dice"
-                                            param:size="32"
-                                            param:glyphSize="20"
-                                            onclick="OnRandomSeed" />
-                            </Element>
-                        </FormField>
+                        </ScrollArea>
                     </Element>
                 </Element>
                 <Element visible="@(UsesStandardLayout(ui.Width) || context.Tab == 1)" class="wb-panel wb-split-fill" layout="none" height="fill" padding="2">
@@ -80,11 +97,18 @@
                         <Element height="8" />
                         <Text text="@DisplayName(context.Name)" class="wb-text-title" width="fill" height="26" />
                         <Element height="8" />
-                        <Text text="@ModeLine()" class="wb-text-small" width="fill" height="18" />
+                        <Text text="@ModeLine(context.Mode)" class="wb-text-small" width="fill" height="18" />
                         <Text text="@Labeled('ui.label.level.seed', DisplaySeed(context.Seed))" class="wb-text-small" width="fill" height="18" />
                         <Text text="@Labeled('ui.label.level.type', L('ui.label.level.type.asteroids'))" class="wb-text-small" width="fill" height="18" />
                         <Element height="16" />
                         <Element class="wb-divider" width="fill" height="1" />
+                        <Element height="16" />
+                        <InfoBox width="fill" height="fill" max-height="96">
+                            <Content name="title">
+                                <Text text="@L('ui.label.info')" class="wb-info-box-label" width="fill" height="16" />
+                            </Content>
+                            <Text text="@ModeDescription(context.Mode)" class="wb-text-small" width="fill" height="fit" wrap="true" vertical-align="top" />
+                        </InfoBox>
                     </Element>
                 </Element>
             </Element>

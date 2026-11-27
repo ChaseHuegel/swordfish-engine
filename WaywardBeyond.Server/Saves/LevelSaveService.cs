@@ -155,24 +155,27 @@ public sealed class LevelSaveService : IDisposable
         LevelSpawn = _gameplayConfig.DefaultSpawnPosition;
     }
 
+    /// <summary>Gets the character's pending or persisted entity state for the active level.</summary>
+    public Result<CharacterEntityData> GetCharacterEntity(ulong characterUuid)
+    {
+        lock (_saveLock)
+        {
+            if (_pendingCharacterLocations.TryGetValue(characterUuid, out PendingCharacterLocation pending))
+            {
+                return Result<CharacterEntityData>.FromSuccess(pending.Data);
+            }
+        }
+
+        return _levelStorage?.GetCharacterEntity(characterUuid) ?? Result<CharacterEntityData>.FromFailure("No level loaded.");
+    }
+
     /// <summary>
     /// Resolves the spawn transform for a character: the persisted per-character location in the level if
     /// one exists (written by the authoritative server), otherwise the level's spawn point.
     /// </summary>
     public bool TryGetSpawnPoint(ulong characterUuid, out Vector3 position, out Quaternion orientation)
     {
-        lock (_saveLock)
-        {
-            if (_pendingCharacterLocations.TryGetValue(characterUuid, out PendingCharacterLocation pending))
-            {
-                CharacterEntityData pendingLocation = pending.Data;
-                position = new Vector3((float)pendingLocation.X, (float)pendingLocation.Y, (float)pendingLocation.Z);
-                orientation = new Quaternion(pendingLocation.OrientationX, pendingLocation.OrientationY, pendingLocation.OrientationZ, pendingLocation.OrientationW);
-                return true;
-            }
-        }
-
-        Result<CharacterEntityData> locationResult = _levelStorage?.GetCharacterEntity(characterUuid) ?? Result<CharacterEntityData>.FromFailure("No level loaded.");
+        Result<CharacterEntityData> locationResult = GetCharacterEntity(characterUuid);
         if (locationResult.Success)
         {
             CharacterEntityData location = locationResult.Value;

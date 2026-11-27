@@ -12,6 +12,7 @@ using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Voxels;
@@ -366,6 +367,14 @@ internal sealed class ClientJoinSystem : IEntitySystem
             accept.OrientationW
         );
         _playerBuilder.Decorate(new Entity(entity, store), character, spawnPosition, spawnOrientation);
+        if (!string.IsNullOrEmpty(accept.Level.Guid))
+        {
+            GameMode levelMode = Enum.IsDefined(accept.Level.DefaultGameMode)
+                ? accept.Level.DefaultGameMode
+                : GameMode.Adventure;
+            store.AddOrUpdate(entity, new GameModeComponent(levelMode));
+        }
+
         _seated = true;
         _logger.LogInformation("Seated local player entity {uuid}.", playerUuid);
     }

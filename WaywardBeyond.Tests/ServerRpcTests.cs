@@ -119,6 +119,37 @@ public class ServerRpcTests
     }
 
     [Fact]
+    public void CreateForwardsRequestedGameModeAndRejectsUndefinedMode()
+    {
+        var catalog = new FakeLevelCatalog();
+        var policy = PermissionPolicy.Create([]);
+        var manager = new ServerLevelManager(catalog, new PermissionResolver(policy), NullLoggerFactory.Instance);
+        ServerPeer peer = CreateGamePeer(clientId: 12, isLocal: true);
+
+        RpcResult<NewLevelResponse> adventure = manager.Create(peer, new NewLevelRequest
+        {
+            Name = "AdventureSave",
+            Seed = "42",
+            GameMode = GameMode.Adventure,
+        });
+
+        Assert.True(adventure.IsSuccess);
+        Assert.True(adventure.Value.Success);
+        Assert.Equal(GameMode.Adventure, catalog.LastGameMode);
+
+        RpcResult<NewLevelResponse> invalid = manager.Create(peer, new NewLevelRequest
+        {
+            Name = "InvalidSave",
+            Seed = "42",
+            GameMode = (GameMode)99,
+        });
+
+        Assert.False(invalid.IsSuccess);
+        Assert.Equal(GameRpcErrors.INVALID_STATE, invalid.ErrorCode);
+        Assert.Equal(1, catalog.Created);
+    }
+
+    [Fact]
     public void PeerRejectsMessagesBeyondItsBurst()
     {
         ServerPeer peer = CreateGamePeer(clientId: 11, isLocal: false);
@@ -521,9 +552,12 @@ public class ServerRpcTests
 
         public int Deleted { get; private set; }
 
+        public GameMode LastGameMode { get; private set; }
+
         public bool Create(string name, string seed, GameMode gameMode, out string levelGuid)
         {
             Created++;
+            LastGameMode = gameMode;
             levelGuid = Guid.NewGuid().ToString();
             return true;
         }

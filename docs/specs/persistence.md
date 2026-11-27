@@ -103,7 +103,9 @@ each world before its container is disposed.
 row. `QueueSaveCharacterLocation` captures one character's transform, scale,
 and game mode on the server thread and queues a single `character_locations`
 upsert on the save worker. It keeps the pending location in memory until the
-worker commits it, so an immediate rejoin reads the latest transform.
+worker commits it, so an immediate rejoin reads the latest transform and game
+mode through `GetCharacterEntity`. A character with no row in the level starts
+at `Level.Spawn` with `Level.DefaultGameMode`.
 `ServerJoinSystem` calls it whenever a player leaves, disconnects, or replaces
 an active session. Character locations are also captured and upserted with each
 full save. The playtime stamping rules are unchanged (`PlayClock.Advance`).
@@ -131,7 +133,8 @@ deletes the level directory on the catalog worker. The call returns
 `GameSaveService` (`WaywardBeyond.Client/Saves/`) is a thin client facade: a
 cached save listing from `ListLevelsRequest`, with `CreateSaveAsync`/`Delete`/
 `TriggerServerSave` routed to the server via `LevelsClient`
-(`WaywardBeyond.Client/Networking/LevelsClient.cs`). `CreateSaveAsync` returns
+(`WaywardBeyond.Client/Networking/LevelsClient.cs`). `CreateSaveAsync` forwards
+the chosen `DefaultGameMode` and returns
 the created `GameSave` after the listing refreshes, so `NewSavePage` can set the
 active save and open the crew manifest. `SelectSavePage` pulls the listing when
 it opens and re-pulls it every second while it stays visible, so a level another

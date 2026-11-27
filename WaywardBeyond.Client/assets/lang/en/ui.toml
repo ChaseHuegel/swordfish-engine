@@ -53,6 +53,7 @@
 "ui.field.level.name.placeholder" = "Enter name"
 "ui.field.level.seed" = "Galaxy seed"
 "ui.field.level.seed.placeholder" = "(random)"
+"ui.field.level.mode" = "Default game mode"
 "ui.label.level.seed.random" = "Random"
 "ui.label.level.untitled" = "Untitled galaxy"
 "ui.label.level.mode" = "Mode"
@@ -63,7 +64,9 @@
 "ui.label.level.type.asteroids" = "Asteroids"
 "ui.label.level.creating" = "Charting galaxy"
 "ui.label.level.chart.empty" = "No systems charted"
-"ui.text.level.form.hint" = "Name the galaxy and set a seed, Spacer"
+"ui.text.level.form.hint" = "Name the galaxy, set a seed, and choose a mode, Spacer"
+"ui.text.level.mode.creative" = "Build freely with unlimited bricks and region tools"
+"ui.text.level.mode.adventure" = "Mine resources to gather bricks and consume them when building"
 "ui.message.level.createFailed" = "Could not chart the galaxy"
 "ui.message.level.randomSeed" = "A random seed will be used"
 

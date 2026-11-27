@@ -2,7 +2,10 @@ using System;
 using System.Numerics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
+using WaywardBeyond.Client.Extensions;
+using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Client.UI.Theme;
+using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
@@ -11,9 +14,19 @@ internal partial class NewSaveView : UiViewBase
 {
     private static readonly char[] TrimChars = [' ', '\t', '.', '\n', '\r'];
 
+    private readonly ILocalization _localization;
+    private readonly string[] _modeOptions;
+
     /// <summary>Initializes the galaxy form view.</summary>
-    public NewSaveView(ILocalization localization) : base(localization)
+    public NewSaveView(ILocalization localization, ScrollAreaState? formScroll = null) : base(localization)
     {
+        _localization = localization;
+        FormScroll = formScroll ?? new ScrollAreaState();
+        _modeOptions =
+        [
+            _localization.GetModeName(GameMode.Creative),
+            _localization.GetModeName(GameMode.Adventure),
+        ];
         NameState = new TextBoxState(
             initialValue: string.Empty,
             options: new TextBoxState.Options(
@@ -31,6 +44,12 @@ internal partial class NewSaveView : UiViewBase
         );
     }
 
+    /// <summary>Gets the form pane scroll state.</summary>
+    public ScrollAreaState FormScroll { get; }
+
+    /// <summary>Gets the localized labels shown in the game mode selector.</summary>
+    public string[] ModeOptions => _modeOptions;
+
     /// <summary>The editable galaxy name state.</summary>
     public TextBoxState NameState;
 
@@ -46,6 +65,9 @@ internal partial class NewSaveView : UiViewBase
     /// <summary>Raised when the seed randomizer is clicked.</summary>
     public Action? RandomSeedRequested { get; set; }
 
+    /// <summary>Raised when a default game mode option is selected.</summary>
+    public Action<GameMode>? GameModeSelected { get; set; }
+
     /// <summary>Raised when a narrow layout tab is clicked.</summary>
     public Action<int>? TabRequested { get; set; }
 
@@ -59,11 +81,23 @@ internal partial class NewSaveView : UiViewBase
 
     partial void OnRandomSeed() => RandomSeedRequested?.Invoke();
 
+    /// <summary>Forwards a game mode choice selection.</summary>
+    public void OnGameModeSelected(string id, int index)
+    {
+        GameModeSelected?.Invoke(index == 1 ? GameMode.Adventure : GameMode.Creative);
+    }
+
     partial void OnSelectTab(int tab) => TabRequested?.Invoke(tab);
 
     partial void OnCancel() => CancelRequested?.Invoke();
 
     partial void OnCreate() => CreateRequested?.Invoke();
+
+    /// <summary>Gets the selector index for a game mode.</summary>
+    public static int ModeIndex(GameMode mode)
+    {
+        return mode == GameMode.Adventure ? 1 : 0;
+    }
 
     /// <summary>Gets the trimmed galaxy name, or the untitled label.</summary>
     public string DisplayName(string name)
@@ -79,9 +113,17 @@ internal partial class NewSaveView : UiViewBase
     }
 
     /// <summary>Gets the created galaxy mode line.</summary>
-    public string ModeLine()
+    public string ModeLine(GameMode mode)
     {
-        return Labeled("ui.label.level.mode", L("ui.label.level.mode.creative"));
+        return Labeled("ui.label.level.mode", _localization.GetModeName(mode));
+    }
+
+    /// <summary>Gets the localized summary of the selected game mode.</summary>
+    public string ModeDescription(GameMode mode)
+    {
+        return mode == GameMode.Adventure
+            ? L("ui.text.level.mode.adventure")
+            : L("ui.text.level.mode.creative");
     }
 
     /// <summary>Formats a labeled detail line.</summary>
