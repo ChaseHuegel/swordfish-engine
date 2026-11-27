@@ -91,8 +91,8 @@ internal sealed class BlueprintLibraryLayer : IUILayer
 
         shortcutService.RegisterShortcut(new Shortcut
         {
-            Name = "Blueprint Library",
-            Category = "RegionTool",
+            Name = "Open library",
+            Category = "Blueprints",
             Modifiers = ShortcutModifiers.None,
             Key = Key.B,
             IsEnabled = () => WaywardBeyond.IsPlaying() && !_open && !_interactionState.IsInteractionBlocked(),

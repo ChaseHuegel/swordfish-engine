@@ -121,14 +121,14 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         _gameplayConfig = gameplayConfig;
         _blueprintDatabase = blueprintDatabase;
 
-        RegisterShortcut(shortcutService, "Region Copy", Key.C, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Copy));
-        RegisterShortcut(shortcutService, "Region Cut", Key.X, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Cut));
-        RegisterShortcut(shortcutService, "Region Paste Mode", Key.V, ShortcutModifiers.None, () => QueueAction(RegionToolAction.TogglePasteMode));
-        RegisterShortcut(shortcutService, "Region Rotate Yaw", Key.T, ShortcutModifiers.None, () => QueueAction(RegionToolAction.RotateYaw));
-        RegisterShortcut(shortcutService, "Region Rotate Pitch", Key.T, ShortcutModifiers.Shift, () => QueueAction(RegionToolAction.RotatePitch));
-        RegisterShortcut(shortcutService, "Region Mirror Horizontal", Key.F, ShortcutModifiers.None, () => QueueAction(RegionToolAction.MirrorHorizontal));
-        RegisterShortcut(shortcutService, "Region Mirror Vertical", Key.F, ShortcutModifiers.Shift, () => QueueAction(RegionToolAction.MirrorVertical));
-        RegisterShortcut(shortcutService, "Region Overwrite Air", Key.G, ShortcutModifiers.None, () => QueueAction(RegionToolAction.ToggleOverwriteAir));
+        RegisterShortcut(shortcutService, "Copy", Key.C, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Copy));
+        RegisterShortcut(shortcutService, "Cut", Key.X, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Cut));
+        RegisterShortcut(shortcutService, "Paste mode", Key.V, ShortcutModifiers.None, () => QueueAction(RegionToolAction.TogglePasteMode));
+        RegisterShortcut(shortcutService, "Rotate yaw", Key.T, ShortcutModifiers.None, () => QueueAction(RegionToolAction.RotateYaw));
+        RegisterShortcut(shortcutService, "Rotate pitch", Key.T, ShortcutModifiers.Shift, () => QueueAction(RegionToolAction.RotatePitch));
+        RegisterShortcut(shortcutService, "Mirror horizontal", Key.F, ShortcutModifiers.None, () => QueueAction(RegionToolAction.MirrorHorizontal));
+        RegisterShortcut(shortcutService, "Mirror vertical", Key.F, ShortcutModifiers.Shift, () => QueueAction(RegionToolAction.MirrorVertical));
+        RegisterShortcut(shortcutService, "Overwrite empty", Key.G, ShortcutModifiers.None, () => QueueAction(RegionToolAction.ToggleOverwriteAir));
     }
 
     /// <inheritdoc/>
@@ -288,7 +288,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         shortcutService.RegisterShortcut(new Shortcut
         {
             Name = name,
-            Category = "RegionTool",
+            Category = "Blueprints",
             Modifiers = modifiers,
             Key = key,
             IsEnabled = IsShortcutEnabled,

@@ -19,7 +19,7 @@ internal enum KeybindingScope
     Drill,
 
     /// <summary>Active during world gameplay only while holding the Blueprint Projector.</summary>
-    RegionTool,
+    BlueprintTool,
 
     /// <summary>Active only while the modal inventory overlay is open.</summary>
     Inventory,

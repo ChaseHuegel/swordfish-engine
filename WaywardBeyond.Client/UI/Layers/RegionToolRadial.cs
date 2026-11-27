@@ -103,7 +103,7 @@ internal sealed class RegionToolRadial : IUILayer, IActionIndicator
 
         shortcutService.RegisterShortcut(new Shortcut
         {
-            Name = "Region tool actions",
+            Name = "Blueprint tool actions",
             Category = "Interaction",
             Modifiers = ShortcutModifiers.None,
             Key = Key.R,

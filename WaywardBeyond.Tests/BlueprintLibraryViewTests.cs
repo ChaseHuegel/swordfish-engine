@@ -243,7 +243,8 @@ public class BlueprintLibraryViewTests
                 new TestLocalization(),
                 NullLogger<BlueprintLibraryLayer>.Instance);
 
-            Shortcut openShortcut = shortcuts.Find("Blueprint Library");
+            Shortcut openShortcut = shortcuts.Find("Open library");
+            Assert.Equal(GameShortcuts.BLUEPRINT_LIBRARY, openShortcut.GetId());
             Shortcut closeShortcut = shortcuts.Find("Back");
             Assert.Equal(GameShortcuts.BACK, closeShortcut.GetId());
 

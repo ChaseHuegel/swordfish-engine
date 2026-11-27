@@ -477,63 +477,63 @@ public class KeybindingSettingsInteractionTests
             }
         }
 
-        //  Region Copy (RegionTool) rebound to T conflicts with Region Rotate Yaw (RegionTool), not Change orientation (BrickPlacement).
-        KeybindingEntry regionCopy = FindEntry(category, GameShortcuts.REGION_COPY);
-        KeybindingEntry regionRotateYaw = FindEntry(category, GameShortcuts.REGION_ROTATE_YAW);
+        //  Blueprint Copy (BlueprintTool) rebound to T conflicts with Blueprint Rotate yaw (BlueprintTool), not Change orientation (BrickPlacement).
+        KeybindingEntry blueprintCopy = FindEntry(category, GameShortcuts.BLUEPRINT_COPY);
+        KeybindingEntry blueprintRotateYaw = FindEntry(category, GameShortcuts.BLUEPRINT_ROTATE_YAW);
         KeybindingEntry changeOrientation = FindEntry(category, GameShortcuts.CHANGE_ORIENTATION);
         KeybindingEntry changeShape = FindEntry(category, GameShortcuts.CHANGE_SHAPE);
-        KeybindingEntry regionRadial = FindEntry(category, GameShortcuts.REGION_TOOL_ACTIONS);
+        KeybindingEntry blueprintRadial = FindEntry(category, GameShortcuts.BLUEPRINT_TOOL_ACTIONS);
         KeybindingEntry paintColor = FindEntry(category, GameShortcuts.SELECT_PAINT_COLOR);
         KeybindingEntry paintTexture = FindEntry(category, GameShortcuts.SELECT_PAINT_TEXTURE);
         KeybindingEntry blueprintLibrary = FindEntry(category, GameShortcuts.BLUEPRINT_LIBRARY);
         KeybindingEntry moveForward = FindEntry(category, GameShortcuts.MOVE_FORWARD);
         KeybindingEntry sendChat = FindEntry(category, GameShortcuts.SEND_CHAT);
 
-        regionCopy.SetValue(new ShortcutBinding(Key.T));
+        blueprintCopy.SetValue(new ShortcutBinding(Key.T));
         Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
-        Assert.True(regionCopy.HasConflict);
-        Assert.True(regionRotateYaw.HasConflict);
+        Assert.True(blueprintCopy.HasConflict);
+        Assert.True(blueprintRotateYaw.HasConflict);
         Assert.False(changeOrientation.HasConflict);
 
-        //  Region Copy (RegionTool) rebound to R conflicts with Region tool actions (RegionTool), not other tool radials.
-        regionCopy.SetValue(new ShortcutBinding(Key.R));
+        //  Blueprint Copy (BlueprintTool) rebound to R conflicts with Blueprint tool actions (BlueprintTool), not other tool radials.
+        blueprintCopy.SetValue(new ShortcutBinding(Key.R));
         Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
-        Assert.True(regionCopy.HasConflict);
-        Assert.True(regionRadial.HasConflict);
+        Assert.True(blueprintCopy.HasConflict);
+        Assert.True(blueprintRadial.HasConflict);
         Assert.False(changeShape.HasConflict);
         Assert.False(paintColor.HasConflict);
         Assert.False(paintTexture.HasConflict);
 
-        //  Region Copy (RegionTool) overlaps World (Move forward W and Blueprint Library B) and Global (F3).
-        regionCopy.SetValue(new ShortcutBinding(Key.W));
+        //  Blueprint Copy (BlueprintTool) overlaps World (Move forward W and Open library B) and Global (F3).
+        blueprintCopy.SetValue(new ShortcutBinding(Key.W));
         Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
-        Assert.True(regionCopy.HasConflict);
+        Assert.True(blueprintCopy.HasConflict);
         Assert.True(moveForward.HasConflict);
 
-        regionCopy.SetValue(new ShortcutBinding(Key.B));
+        blueprintCopy.SetValue(new ShortcutBinding(Key.B));
         Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
-        Assert.True(regionCopy.HasConflict);
+        Assert.True(blueprintCopy.HasConflict);
         Assert.True(blueprintLibrary.HasConflict);
 
-        regionCopy.SetValue(new ShortcutBinding(Key.F3));
+        blueprintCopy.SetValue(new ShortcutBinding(Key.F3));
         Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
-        Assert.True(regionCopy.HasConflict);
+        Assert.True(blueprintCopy.HasConflict);
 
-        //  RegionTool is isolated from Inventory (Shift+LMB) and Chat (Send chat).
-        regionCopy.SetValue(new ShortcutBinding(MouseButton.Left, ShortcutModifiers.Shift));
+        //  BlueprintTool is isolated from Inventory (Shift+LMB) and Chat (Send chat).
+        blueprintCopy.SetValue(new ShortcutBinding(MouseButton.Left, ShortcutModifiers.Shift));
         Assert.False(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
 
-        regionCopy.SetValue(regionCopy.DefaultBinding);
+        blueprintCopy.SetValue(blueprintCopy.DefaultBinding);
         sendChat.SetValue(new ShortcutBinding(Key.C));
         Assert.False(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
         sendChat.SetValue(sendChat.DefaultBinding);
 
-        //  Blueprint Library (World) rebound to T conflicts with both BrickPlacement and RegionTool actions on T.
+        //  Open library (World) rebound to T conflicts with both BrickPlacement and BlueprintTool actions on T.
         blueprintLibrary.SetValue(new ShortcutBinding(Key.T));
         Assert.True(KeybindingsSettingsCategory.UpdateConflicts(category, fixedBindings));
         Assert.True(blueprintLibrary.HasConflict);
         Assert.True(changeOrientation.HasConflict);
-        Assert.True(regionRotateYaw.HasConflict);
+        Assert.True(blueprintRotateYaw.HasConflict);
         blueprintLibrary.SetValue(blueprintLibrary.DefaultBinding);
 
         //  Move forward (World) rebound to R conflicts with all four tool radials across every equipped-item sub-scope.
@@ -543,7 +543,53 @@ public class KeybindingSettingsInteractionTests
         Assert.True(changeShape.HasConflict);
         Assert.True(paintColor.HasConflict);
         Assert.True(paintTexture.HasConflict);
-        Assert.True(regionRadial.HasConflict);
+        Assert.True(blueprintRadial.HasConflict);
+    }
+
+    [Fact]
+    public void KeybindingsCategoryOrdersDeveloperLastAndUsesLocalizedBlueprintLabels()
+    {
+        var input = new FakeInputService();
+        var shortcuts = new ShortcutService(input, NullLogger.Instance);
+
+        RegisterAllDefaultShortcuts(shortcuts);
+        shortcuts.RegisterShortcut(new Shortcut("Custom action", "ModTools", ShortcutModifiers.None, Key.K, Shortcut.DefaultEnabled, () => { }));
+
+        var draft = new SettingsDraft();
+        SettingsCategory category = KeybindingsSettingsCategory.Build(draft, shortcuts, reset: () => { }, includeDeveloper: true);
+
+        var sectionKeys = new List<string>();
+        for (var i = 0; i < category.Rows.Length; i++)
+        {
+            if (category.Rows[i] is SettingsSection section)
+            {
+                sectionKeys.Add(section.LabelKey);
+            }
+        }
+
+        Assert.Equal(
+            [
+                "ui.settings.section.movement",
+                "ui.settings.section.interaction",
+                "ui.settings.section.inventory",
+                "ui.settings.section.blueprints",
+                "ui.settings.section.general",
+                "ModTools",
+                "ui.settings.section.developer",
+            ],
+            sectionKeys
+        );
+
+        Assert.Equal("ui.settings.keybind.blueprintToolActions", FindEntry(category, GameShortcuts.BLUEPRINT_TOOL_ACTIONS).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintLibrary", FindEntry(category, GameShortcuts.BLUEPRINT_LIBRARY).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintCopy", FindEntry(category, GameShortcuts.BLUEPRINT_COPY).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintCut", FindEntry(category, GameShortcuts.BLUEPRINT_CUT).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintPasteMode", FindEntry(category, GameShortcuts.BLUEPRINT_PASTE_MODE).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintRotateYaw", FindEntry(category, GameShortcuts.BLUEPRINT_ROTATE_YAW).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintRotatePitch", FindEntry(category, GameShortcuts.BLUEPRINT_ROTATE_PITCH).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintMirrorHorizontal", FindEntry(category, GameShortcuts.BLUEPRINT_MIRROR_HORIZONTAL).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintMirrorVertical", FindEntry(category, GameShortcuts.BLUEPRINT_MIRROR_VERTICAL).LabelKey);
+        Assert.Equal("ui.settings.keybind.blueprintOverwriteEmpty", FindEntry(category, GameShortcuts.BLUEPRINT_OVERWRITE_EMPTY).LabelKey);
     }
 
     private static KeybindingEntry FindEntry(SettingsCategory category, string shortcutId)
@@ -616,7 +662,7 @@ public class KeybindingSettingsInteractionTests
         shortcuts.RegisterShortcut(new Shortcut
         {
             Category = "Interaction",
-            Name = "Region tool actions",
+            Name = "Blueprint tool actions",
             Key = Key.R,
             SharedBindingGroup = GameShortcuts.TOOL_RADIAL_GROUP,
             IsEnabled = Shortcut.DefaultEnabled,
@@ -647,15 +693,15 @@ public class KeybindingSettingsInteractionTests
         shortcuts.RegisterShortcut(new Shortcut("Cycle SAO debug", "Developer/Debug", ShortcutModifiers.None, Key.F6, Shortcut.DefaultEnabled, () => { }));
         shortcuts.RegisterShortcut(new Shortcut("Toggle physics debug", "Developer/Debug", ShortcutModifiers.None, Key.F7, Shortcut.DefaultEnabled, () => { }));
 
-        shortcuts.RegisterShortcut(new Shortcut("Blueprint Library", "RegionTool", ShortcutModifiers.None, Key.B, Shortcut.DefaultEnabled, () => { }));
-        shortcuts.RegisterShortcut(new Shortcut("Region Copy", "RegionTool", ShortcutModifiers.None, Key.C, Shortcut.DefaultEnabled, () => { }));
-        shortcuts.RegisterShortcut(new Shortcut("Region Cut", "RegionTool", ShortcutModifiers.None, Key.X, Shortcut.DefaultEnabled, () => { }));
-        shortcuts.RegisterShortcut(new Shortcut("Region Paste Mode", "RegionTool", ShortcutModifiers.None, Key.V, Shortcut.DefaultEnabled, () => { }));
-        shortcuts.RegisterShortcut(new Shortcut("Region Rotate Yaw", "RegionTool", ShortcutModifiers.None, Key.T, Shortcut.DefaultEnabled, () => { }));
-        shortcuts.RegisterShortcut(new Shortcut("Region Rotate Pitch", "RegionTool", ShortcutModifiers.Shift, Key.T, Shortcut.DefaultEnabled, () => { }));
-        shortcuts.RegisterShortcut(new Shortcut("Region Mirror Horizontal", "RegionTool", ShortcutModifiers.None, Key.F, Shortcut.DefaultEnabled, () => { }));
-        shortcuts.RegisterShortcut(new Shortcut("Region Mirror Vertical", "RegionTool", ShortcutModifiers.Shift, Key.F, Shortcut.DefaultEnabled, () => { }));
-        shortcuts.RegisterShortcut(new Shortcut("Region Overwrite Air", "RegionTool", ShortcutModifiers.None, Key.G, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Open library", "Blueprints", ShortcutModifiers.None, Key.B, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Copy", "Blueprints", ShortcutModifiers.None, Key.C, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Cut", "Blueprints", ShortcutModifiers.None, Key.X, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Paste mode", "Blueprints", ShortcutModifiers.None, Key.V, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Rotate yaw", "Blueprints", ShortcutModifiers.None, Key.T, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Rotate pitch", "Blueprints", ShortcutModifiers.Shift, Key.T, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Mirror horizontal", "Blueprints", ShortcutModifiers.None, Key.F, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Mirror vertical", "Blueprints", ShortcutModifiers.Shift, Key.F, Shortcut.DefaultEnabled, () => { }));
+        shortcuts.RegisterShortcut(new Shortcut("Overwrite empty", "Blueprints", ShortcutModifiers.None, Key.G, Shortcut.DefaultEnabled, () => { }));
     }
 
     private sealed class Harness
