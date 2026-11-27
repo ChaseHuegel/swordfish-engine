@@ -260,8 +260,8 @@ state is remembered per kind.
 
 | Kind | Body sections |
 |---|---|
-| Item | Placeable, tool, view model, world model, stack |
-| Brick | Shape, color, alpha, passable, shadows, mesh, per-face textures, sounds, colliders |
+| Item | Placeable, tool, statistics (`[Items.Statistics]` with inline key/value validation and save guard), view model, world model, stack |
+| Brick | Shape, color, alpha, cast shadows, passable, statistics (`[Bricks.Statistics]` with inline key/value validation and save guard), mesh, per-face textures, sounds, colliders |
 | Paint | Kind switch, alpha, connected, variants or color |
 | Recipe | Target and execution fields (with searchable tag dropdown), editable `[[Recipes.Inputs]]` and `[[Recipes.Outputs]]` tables with searchable item ID and `tag:*` dropdowns, jump buttons, Command Palette search tokens, and live inbound-reference sync on save (`RecipeFormView`, `AssetTomlEditApplier.ApplyRecipeEdits`) |
 | Skill | Sources map, level curve table and sparkline |
@@ -438,7 +438,7 @@ read-only roots.
 |---|---|---|
 | Safe bulk (`IsSafeBulkFix = true`) | `FMT001`, `FMT002`, `PATH001`, `REF002`, `TAG001`, `ENUM001`, `COLOR001` | Strip UTF-8 BOM, convert CRLF to LF, fix exact path/ID/tag/key casing, normalize resource or localization grammar, remove duplicate tag array items, normalize exact enum casing or separators, and normalize 3-digit or 6-digit hex RGB |
 | Single-item only (`IsSafeBulkFix = false`) | `COLOR001`, `ENUM001`, `REF001`, `LOC001`, `ID002`, `ID003`, `SKILL001`, `SKILL002`, `PAINT001` | Strip alpha from 8-digit hex, suggest unique closest enum or reference match, create missing English localization key, allocate next unique ID, insert `[Skills.Levels]` `1 = 100`, clamp XP below `1` to `1`, or remove conflicting `Color` on texture paint |
-| Manual only (`ValidationFixKind.None`) | `TOML001`, `TOML002`, `ID001`, `COLLIDER001`, `TEX002`, `LOC002`, `SKILL003`, `STYLE001`, `STYLE002` | Syntax errors, deserialize errors, missing IDs, invalid colliders, incomplete connected sequences, duplicate localization keys, zero XP sources, style warnings, and unresolvable `ENUM001`, `REF001`, `PAINT001`, or `SKILL002` findings |
+| Manual only (`ValidationFixKind.None`) | `TOML001`, `TOML002`, `ID001`, `COLLIDER001`, `TEX002`, `LOC002`, `SKILL003`, `STAT001`, `STYLE001`, `STYLE002` | Syntax errors, deserialize errors, missing IDs, invalid colliders, incomplete connected sequences, duplicate localization keys, zero XP sources, invalid brick or item statistics, style warnings, and unresolvable `ENUM001`, `REF001`, `PAINT001`, or `SKILL002` findings |
 
 Live scalar fixes update open writable form fields with undo support, and
 structural or disk fixes apply directly to disk and reload non-dirty documents

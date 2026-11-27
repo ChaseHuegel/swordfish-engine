@@ -17,6 +17,7 @@ using WaywardBeyond.Data;
 using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Permissions;
@@ -116,6 +117,11 @@ public static class ServerComposition
         RegisterServerSystem<ServerParticleFlushSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);
 
+        //  Statistic modifier sources compose like interaction handlers: modules and mods register
+        //  IStatModifierSource implementations via RegisterStatModifierSource<T>() and StatResolver
+        //  orders them once by priority.
+        container.RegisterStatistics();
+
         //  Interaction handlers declare their own stage and priority, so the composition only decides
         //  which handlers exist. The registry is built once at startup, after every module has loaded,
         //  so a mod registers an IInteractionHandler implementation and never touches the registry.
@@ -123,6 +129,7 @@ public static class ServerComposition
         container.Register<IInteractionHandler, PaintHintResolver>(Reuse.Singleton);
         container.Register<IInteractionHandler, HintResolver>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakToolValidator>(Reuse.Singleton);
+        container.Register<IInteractionHandler, AdventureBreakHoldValidator>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelFaceWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakLootReactor>(Reuse.Singleton);

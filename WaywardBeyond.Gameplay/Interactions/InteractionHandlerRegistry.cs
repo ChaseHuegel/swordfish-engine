@@ -55,7 +55,20 @@ public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
     /// <inheritdoc/>
     public InteractionRunResult Run(ref InteractionContext context)
     {
-        for (var stage = 0; stage < STAGE_COUNT; stage++)
+        return Run(ref context, InteractionStage.Select, InteractionStage.React);
+    }
+
+    /// <inheritdoc/>
+    public InteractionRunResult Run(ref InteractionContext context, InteractionStage startStage, InteractionStage endStage)
+    {
+        RequireDefined(startStage, nameof(startStage));
+        RequireDefined(endStage, nameof(endStage));
+        if (startStage > endStage)
+        {
+            throw new ArgumentOutOfRangeException(nameof(startStage), startStage, "Start stage must not follow end stage.");
+        }
+
+        for (int stage = (int)startStage; stage <= (int)endStage; stage++)
         {
             InteractionDecision decision = RunStage((InteractionStage)stage, ref context);
             if (decision is InteractionDecision.Consume or InteractionDecision.Cancel)

@@ -19,6 +19,7 @@ using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Identity;
+using WaywardBeyond.Client.Interactions;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
@@ -47,6 +48,7 @@ using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
+using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Meshing;
 
@@ -336,7 +338,13 @@ public class Injector : IDryIocInjector
 
     private static void RegisterInput(IContainer container)
     {
+        container.RegisterStatistics();
+
         container.Register<InteractionState>(Reuse.Singleton);
+        container.Register<IClientTimedInteraction, AdventureBreakTimedInteraction>(
+            Reuse.Singleton,
+            ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<ClientTimedInteractionController>(Reuse.Singleton);
 
         container.Register<PlayerInteractionService>(Reuse.Singleton);
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();

@@ -8,6 +8,7 @@ using WaywardBeyond.AssetTools.Editing;
 using WaywardBeyond.AssetTools.Workspace;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
@@ -663,6 +664,58 @@ public sealed class WorkspaceValidator
         {
             ValidateModelDefinition(workspace, in asset, doc, "Items.WorldModel", "WorldModel", item.WorldModel.Value, ValidationSeverity.Informational, findings);
         }
+
+        ValidateStatistics(in asset, doc, "Items.Statistics", "item", item.Statistics, findings);
+    }
+
+    private static void ValidateStatistics(
+        in IndexedAsset asset,
+        TomlDocument? doc,
+        string subTablePath,
+        string ownerKind,
+        Dictionary<string, float>? statistics,
+        List<ValidationFinding> findings)
+    {
+        if (statistics == null)
+        {
+            return;
+        }
+
+        foreach (KeyValuePair<string, float> entry in statistics)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Key))
+            {
+                AddFieldFinding(
+                    findings,
+                    "STAT001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    field: null,
+                    "Statistics",
+                    $"Invalid {ownerKind} statistic: key must not be empty.");
+                continue;
+            }
+
+            bool invalidMiningSpeed = string.Equals(entry.Key, StatisticIds.MINING_SPEED, StringComparison.Ordinal)
+                && entry.Value <= 0f;
+            bool invalidHardness = string.Equals(entry.Key, StatisticIds.HARDNESS, StringComparison.Ordinal)
+                && entry.Value < 0f;
+            if (!float.IsFinite(entry.Value) || invalidMiningSpeed || invalidHardness)
+            {
+                TomlFieldSpan? statField = FindEntryField(doc, asset.Provenance.TableIndex, entry.Key, subTablePath);
+                string expected = invalidMiningSpeed
+                    ? "Expected a finite positive number."
+                    : (invalidHardness ? "Expected a finite non-negative number." : "Expected a finite number.");
+                AddFieldFinding(
+                    findings,
+                    "STAT001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    statField,
+                    $"Statistics.{entry.Key}",
+                    $"Invalid {ownerKind} statistic '{entry.Key}' value '{entry.Value}'. {expected}");
+            }
+        }
     }
 
     private static void ValidateModelDefinition(
@@ -697,6 +750,8 @@ public sealed class WorkspaceValidator
         {
             ValidateMeshReference(workspace, in asset, doc, null, "Mesh", "Mesh", brick.Mesh, ValidationSeverity.Broken, findings);
         }
+
+        ValidateStatistics(in asset, doc, "Bricks.Statistics", "brick", brick.Statistics, findings);
 
         if (!string.IsNullOrWhiteSpace(brick.Color) && !IsStrictSixDigitHexRgb(brick.Color))
         {

@@ -31,6 +31,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
 | `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
+| `[Items.Statistics]` | map: string → float | `ItemDefinition.Statistics` (custom numeric statistics such as `"wb:mining_speed"`) |
 | `[Items.ViewModel]` | sub-table | `ModelDefinition` |
 | `[Items.WorldModel]` | sub-table | `ModelDefinition` |
 
@@ -64,10 +65,28 @@ ID = "builtin/core"
 
 ### Tool
 
-`ToolDefinition` (`ToolDefinition.cs`): `Type` (`ToolType`), `Target`. Item
-group membership (`item.tool`, `item.tool.mining`, `item.tool.sprayer`,
-`item.tool.drill`, `item.placeable`) lives in the invariant tag list
-`WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
+`ToolDefinition` (`WaywardBeyond.Items/ToolDefinition.cs`): `Type` (`ToolType`)
+and optional `Target`. Item group membership (`item.tool`, `item.tool.mining`,
+`item.tool.sprayer`, `item.tool.drill`, `item.placeable`) lives in the invariant
+tag list `WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
+
+### Statistics
+
+`ItemDefinition.Statistics` (`WaywardBeyond.Items/ItemDefinition.cs:19`) is an
+optional `[Items.Statistics]` key-value map from statistic id to finite `float`
+value. Base-game keys use the `wb:` namespace (for example `"wb:mining_speed"`).
+Mods add their own namespaced keys without changing source code. `ItemDatabase`
+(`WaywardBeyond.Items/ItemDatabase.cs:59`) logs a warning and skips empty keys
+or non-finite values. `WorkspaceValidator` emits `STAT001` for invalid item
+statistic entries, including non-positive `"wb:mining_speed"` values. See
+[statistics](statistics.md).
+
+Example:
+
+```toml
+[Items.Statistics]
+"wb:mining_speed" = 1.75
+```
 
 ### Model
 
@@ -112,6 +131,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Textures` | sub-table | `BrickTextures` |
 | `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickEventKind` (`Place`, `Break`) |
 | `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
+| `Statistics` | `[Bricks.Statistics]` map: string → float | `BrickDefinition.Statistics` (custom numeric statistics such as `"wb:hardness"`) |
 
 Brick property and group membership (`brick.light`, `brick.entity`,
 `brick.orientable`, `brick.paintable`, `brick.thruster`, `brick.buildable`,
@@ -149,6 +169,24 @@ Default = ["core"]
 `LocalizedTagsDatabase` list defines the tags, and each value is an audio clip
 id. A brick without a declaration is silent. See
 [sound-effects](sound-effects.md).
+
+### Statistics
+
+`BrickDefinition.Statistics` (`WaywardBeyond.Bricks/BrickDefinition.cs:39`) is an
+optional `[Bricks.Statistics]` key-value map from statistic id to finite `float`
+value, matching `[Items.Statistics]`. `"wb:hardness"` sets a brick's base break
+resistance in seconds before mining speed modifiers apply (default `1.0`, `0.0`
+breaks in zero seconds). `BrickDatabase` (`WaywardBeyond.Bricks/BrickDatabase.cs:137`)
+logs a warning and skips empty keys or non-finite values. `WorkspaceValidator`
+emits `STAT001` for invalid brick statistic entries, including negative
+`"wb:hardness"` values. See [statistics](statistics.md).
+
+Example:
+
+```toml
+[Bricks.Statistics]
+"wb:hardness" = 2.5
+```
 
 ### Textures
 
@@ -463,3 +501,7 @@ resolution, `wb:core`, and bundled blueprint loading.
 brick and blueprint placeable items.
 `WaywardBeyond.Tests/LocalizedTagsTests.cs` pins tag value deduplication, first
 occurrence order, and the invariant merge into each language.
+`WaywardBeyond.Tests/TimedBrickBreakingTests.cs` and
+`WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin
+`[Bricks.Statistics]` and `[Items.Statistics]` parsing, fallback defaults, and
+`STAT001` validation findings.

@@ -111,7 +111,8 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             entity,
             paintable,
             orientable,
-            ResolveColor(id, assetInfo.Color)
+            ResolveColor(id, assetInfo.Color),
+            ResolveStatistics(id, assetInfo.Statistics)
         );
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
@@ -131,6 +132,39 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         }
 
         return color;
+    }
+
+    private IReadOnlyDictionary<string, float>? ResolveStatistics(string id, Dictionary<string, float>? statistics)
+    {
+        if (statistics == null || statistics.Count == 0)
+        {
+            return null;
+        }
+
+        Dictionary<string, float>? resolved = null;
+        foreach (KeyValuePair<string, float> entry in statistics)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Key))
+            {
+                _logger.LogWarning("Brick \"{BrickId}\" declares a statistic with an empty key. Skipping.", id);
+                continue;
+            }
+
+            if (!float.IsFinite(entry.Value))
+            {
+                _logger.LogWarning(
+                    "Brick \"{BrickId}\" statistic \"{StatisticId}\" has non-finite value {Value}. Skipping.",
+                    id,
+                    entry.Key,
+                    entry.Value);
+                continue;
+            }
+
+            resolved ??= new Dictionary<string, float>(statistics.Count, StringComparer.Ordinal);
+            resolved[entry.Key] = entry.Value;
+        }
+
+        return resolved;
     }
 
     private BrickColliderShape[] BuildColliders(string brickId, List<BrickColliderDefinition>? definitions)

@@ -58,7 +58,7 @@ overrides after the engine builds
 | `WaywardBeyond.Bodies` | `Injector` | body database, parser |
 | `WaywardBeyond.Skills` | `Injector` | skill database, parser, tags |
 | `WaywardBeyond.Permissions` | `RegisterPermissions()` | permission file parser, loader, and compiled policy |
-| `WaywardBeyond.Gameplay` | none | no registrations. `ServerComposition` registers its one DI type, `IInteractionHandlerRegistry`, and the default handlers |
+| `WaywardBeyond.Gameplay` (statistics) | `StatisticsComposition.RegisterStatistics()`, `RegisterStatModifierSource<T>()` | built-in `IStatModifierSource` implementations, `IStatResolver`, and idempotent modifier source registration for modules and mods. `ServerComposition` still owns `IInteractionHandlerRegistry` and the default interaction handlers |
 
 ## Embedding choices
 
@@ -75,10 +75,15 @@ shared wire-up:
 - Interaction handlers: a handler declares its own stage and priority, and a
   module registers it as an `IInteractionHandler`. `ServerComposition`
   registers the built-ins and the host `IInteractionHandlerRegistry`.
-  `InteractionHandlerEntryPoint` builds the registry from every registration at
-  startup, so a module that adds a handler may load in any order. The registry is
-  not owned by a Gameplay composition entry, because Gameplay has no other
-  registrations and does not reference DryIoc.
+  `InteractionHandlerEntryPoint` builds the registry and `IStatResolver` from
+  every registration at startup, so a module that adds a handler or stat
+  modifier source may load in any order.
+- Statistics: `StatisticsComposition.RegisterStatistics()`
+  (`WaywardBeyond.Gameplay/Statistics/StatisticsComposition.cs:17`) registers
+  the built-in modifier sources and `IStatResolver` idempotently for both
+  client and server compositions. Modules and mods register custom modifier
+  sources through `container.RegisterStatModifierSource<T>()`
+  (`StatisticsComposition.cs:33`).
 
 ## Registration policies
 
@@ -119,6 +124,7 @@ new shared singleton to that list, or a world silently gets a private copy.
 - `WaywardBeyond.Data/Blueprints/BlueprintComposition.cs`
 - `WaywardBeyond.Data/Localization/LocalizationComposition.cs`
 - `WaywardBeyond.Permissions/PermissionsComposition.cs`
+- `WaywardBeyond.Gameplay/Statistics/StatisticsComposition.cs`
 - `WaywardBeyond.Client/Injector.cs`
 - `WaywardBeyond.Client/Networking/ClientRpcHost.cs`
 - `WaywardBeyond.Server.Launcher/Program.cs`

@@ -1,56 +1,56 @@
 #nullable enable
-using Swordfish.Library.IO;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Items;
 using Xunit;
 
 namespace WaywardBeyond.Tests;
 
 /// <summary>
-/// Pins the interaction control scheme: the left button is the primary edge for every item that has a
-/// primary action, only a modifier tool binds the right button to the secondary edge, and an item with no
-/// action for a button produces no edge.
+/// Pins the interaction control scheme: Primary is the main edge for every item that has a primary action,
+/// only a modifier tool binds Secondary to clear its paint, and an item with no action for an input
+/// produces no edge.
 /// </summary>
 public class InteractionIntentTests
 {
     [Fact]
-    public void APlaceableItemPressesThePrimaryEdgeOnTheLeftButton()
+    public void APlaceableItemPressesThePrimaryEdgeOnPrimaryInput()
     {
         Item panel = Placeable("wb:panel");
 
-        Assert.Equal(InteractionKind.PrimaryPressed, InteractionIntent.For(MouseButton.Left, panel));
-        Assert.Equal(InteractionKind.None, InteractionIntent.For(MouseButton.Right, panel));
+        Assert.Equal(InteractionKind.PrimaryPressed, InteractionIntent.For(InteractionInput.Primary, panel));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Secondary, panel));
         Assert.Null(InteractionIntent.PaintMode(panel));
     }
 
     [Fact]
-    public void ARemovalToolPressesThePrimaryEdgeOnTheLeftButton()
+    public void ARemovalToolPressesThePrimaryEdgeOnPrimaryInput()
     {
         Item laser = Tool("laser", ToolType.Mining);
 
-        Assert.Equal(InteractionKind.PrimaryPressed, InteractionIntent.For(MouseButton.Left, laser));
-        Assert.Equal(InteractionKind.None, InteractionIntent.For(MouseButton.Right, laser));
+        Assert.Equal(InteractionKind.PrimaryPressed, InteractionIntent.For(InteractionInput.Primary, laser));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Secondary, laser));
     }
 
     [Theory]
     [InlineData(ToolType.Sprayer, PaintKind.Color)]
     [InlineData(ToolType.Drill, PaintKind.Texture)]
-    public void AModifierToolPressesThePrimaryEdgeOnTheLeftButtonAndTheSecondaryEdgeOnTheRight(ToolType toolType, PaintKind paintMode)
+    public void AModifierToolPressesPrimaryAndSecondaryEdges(ToolType toolType, PaintKind paintMode)
     {
         Item tool = Tool("wb:modifier", toolType);
 
-        Assert.Equal(InteractionKind.PrimaryPressed, InteractionIntent.For(MouseButton.Left, tool));
-        Assert.Equal(InteractionKind.SecondaryPressed, InteractionIntent.For(MouseButton.Right, tool));
+        Assert.Equal(InteractionKind.PrimaryPressed, InteractionIntent.For(InteractionInput.Primary, tool));
+        Assert.Equal(InteractionKind.SecondaryPressed, InteractionIntent.For(InteractionInput.Secondary, tool));
         Assert.Equal(paintMode, InteractionIntent.PaintMode(tool));
     }
 
     [Fact]
     public void EmptyHandsProduceNoEdge()
     {
-        Assert.Equal(InteractionKind.None, InteractionIntent.For(MouseButton.Left, null));
-        Assert.Equal(InteractionKind.None, InteractionIntent.For(MouseButton.Right, null));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Primary, null));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Secondary, null));
         Assert.Null(InteractionIntent.PaintMode(null));
     }
 
@@ -59,16 +59,16 @@ public class InteractionIntentTests
     {
         var item = new Item("wb:relic", "Relic", iconID: null, maxStack: 1, placeable: null, tool: null, viewModel: null, worldModel: null);
 
-        Assert.Equal(InteractionKind.None, InteractionIntent.For(MouseButton.Left, item));
-        Assert.Equal(InteractionKind.None, InteractionIntent.For(MouseButton.Right, item));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Primary, item));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Secondary, item));
     }
 
     [Fact]
-    public void TheMiddleButtonProducesNoEdge()
+    public void NoneInputProducesNoEdge()
     {
         Item laser = Tool("laser", ToolType.Mining);
 
-        Assert.Equal(InteractionKind.None, InteractionIntent.For(MouseButton.Middle, laser));
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.None, laser));
     }
 
     private static Item Placeable(string brickID)

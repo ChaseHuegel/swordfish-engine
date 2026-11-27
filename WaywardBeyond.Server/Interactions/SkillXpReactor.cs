@@ -4,7 +4,7 @@ using Krill;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Server.Components;
+using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Server.Interactions;

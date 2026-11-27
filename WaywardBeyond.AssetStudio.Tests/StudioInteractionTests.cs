@@ -236,6 +236,142 @@ public sealed class StudioInteractionTests
     }
 
     /// <summary>
+    ///     Verifies brick and item statistics authoring, editing, removing, undo/redo, and lossless TOML persistence.
+    /// </summary>
+    [AvaloniaFact]
+    public void BrickAndItemStatisticsEditUndoAndSaveLosslessly()
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"wb-studio-stats-{Path.GetRandomFileName()}");
+        try
+        {
+            var dataDir = Path.Combine(tempRoot, "tool-data");
+            var packDir = Path.Combine(tempRoot, "stats_pack");
+            var assetsDir = Path.Combine(packDir, "assets");
+            Directory.CreateDirectory(Path.Combine(assetsDir, "bricks"));
+            Directory.CreateDirectory(Path.Combine(assetsDir, "items"));
+            Directory.CreateDirectory(Path.Combine(assetsDir, "lang", "en"));
+            Directory.CreateDirectory(Path.Combine(assetsDir, "textures", "block"));
+
+            File.WriteAllText(Path.Combine(packDir, "manifest.toml"), "ID = \"test.stats\"\nName = \"Stats Pack\"\n");
+            File.WriteAllText(Path.Combine(packDir, "pack.toml"), "ID = \"test.stats\"\nNamespace = \"test\"\nContentVersion = 1\nToolVersion = \"0.1.0\"\n");
+            File.WriteAllText(
+                Path.Combine(assetsDir, "lang", "en", "items.toml"),
+                "\"Language\" = \"en\"\n[Translations]\n\"item.laser.name\" = \"Mining Laser\"\n");
+            File.WriteAllBytes(Path.Combine(assetsDir, "textures", "block", "stone.png"), [1, 2, 3, 4]);
+
+            var brickPath = Path.Combine(assetsDir, "bricks", "stone.toml");
+            File.WriteAllText(
+                brickPath,
+                "# preserve comment\n[[Bricks]]\nID = \"test:stone\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"wb:hardness\" = 2.5\n\"test:blast\" = 8.0\n");
+
+            var itemPath = Path.Combine(assetsDir, "items", "laser.toml");
+            File.WriteAllText(
+                itemPath,
+                "# preserve item comment\n[[Items]]\nID = \"test:laser\"\nName = \"item.laser.name\"\n[Items.Tool]\nType = \"mining\"\n[Items.Statistics]\n\"wb:mining_speed\" = 1.75\n\"test:heat\" = 0.5\n");
+
+            Directory.CreateDirectory(dataDir);
+            File.WriteAllText(Path.Combine(dataDir, WaywardBeyond.AssetTools.Settings.ToolDataPaths.PORTABLE_MARKER_FILE), string.Empty);
+            var dataPaths = WaywardBeyond.AssetTools.Settings.ToolDataPaths.Resolve(executableDirectory: dataDir);
+            var service = new AssetToolsStudioWorkspaceService(dataPaths);
+            using var vm = new MainWindowViewModel(
+                service,
+                new SamplePreviewSurfaceProvider(),
+                startOnWelcomeScreen: false,
+                enableLiveGlViewport: false,
+                initialWorkspacePath: packDir);
+
+            //  Brick statistics load, edit, add custom stat, remove stat, undo/redo, and save losslessly.
+            Assert.True(vm.SelectAssetById("test:stone"));
+            var brickDoc = vm.SelectedAsset!;
+            Assert.Equal(2, brickDoc.Statistics.Count);
+            Assert.Contains(brickDoc.Statistics, static s => s.Key == "wb:hardness" && s.Value == "2.5");
+            Assert.Contains(brickDoc.Statistics, static s => s.Key == "test:blast" && s.Value == "8");
+
+            var hardnessRow = brickDoc.Statistics.First(static s => s.Key == "wb:hardness");
+            hardnessRow.Value = "4.25";
+            brickDoc.AddStatisticCommand.Execute(null);
+            Assert.Equal(3, brickDoc.Statistics.Count);
+            brickDoc.Statistics[^1].Key = "test:conductivity";
+            brickDoc.Statistics[^1].Value = "0.85";
+
+            var blastRow = brickDoc.Statistics.First(static s => s.Key == "test:blast");
+            brickDoc.RemoveStatisticCommand.Execute(blastRow);
+            Assert.Equal(2, brickDoc.Statistics.Count);
+
+            vm.UndoCommand.Execute(null);
+            Assert.Equal(3, brickDoc.Statistics.Count);
+            vm.RedoCommand.Execute(null);
+            Assert.Equal(2, brickDoc.Statistics.Count);
+
+            vm.SaveAllCommand.Execute(null);
+            var savedBrickToml = File.ReadAllText(brickPath);
+            Assert.Contains("# preserve comment", savedBrickToml, StringComparison.Ordinal);
+            Assert.Contains("[Bricks.Statistics]", savedBrickToml, StringComparison.Ordinal);
+            Assert.Contains("\"wb:hardness\" = 4.25", savedBrickToml, StringComparison.Ordinal);
+            Assert.Contains("\"test:conductivity\" = 0.85", savedBrickToml, StringComparison.Ordinal);
+            Assert.DoesNotContain("test:blast", savedBrickToml, StringComparison.Ordinal);
+
+            //  Item statistics load, edit, add custom stat, remove stat, undo/redo, and save losslessly.
+            Assert.True(vm.SelectAssetById("test:laser"));
+            var itemDoc = vm.SelectedAsset!;
+            Assert.Equal(2, itemDoc.Statistics.Count);
+            Assert.Contains(itemDoc.Statistics, static s => s.Key == "wb:mining_speed" && s.Value == "1.75");
+            Assert.Contains(itemDoc.Statistics, static s => s.Key == "test:heat" && s.Value == "0.5");
+
+            var speedRow = itemDoc.Statistics.First(static s => s.Key == "wb:mining_speed");
+            speedRow.Value = "3.25";
+            itemDoc.AddStatisticCommand.Execute(null);
+            Assert.Equal(3, itemDoc.Statistics.Count);
+            itemDoc.Statistics[^1].Key = "test:crit_chance";
+            itemDoc.Statistics[^1].Value = "0.15";
+
+            var heatRow = itemDoc.Statistics.First(static s => s.Key == "test:heat");
+            itemDoc.RemoveStatisticCommand.Execute(heatRow);
+            Assert.Equal(2, itemDoc.Statistics.Count);
+
+            vm.UndoCommand.Execute(null);
+            Assert.Equal(3, itemDoc.Statistics.Count);
+            vm.RedoCommand.Execute(null);
+            Assert.Equal(2, itemDoc.Statistics.Count);
+
+            vm.SaveAllCommand.Execute(null);
+            var savedItemToml = File.ReadAllText(itemPath);
+            Assert.Contains("# preserve item comment", savedItemToml, StringComparison.Ordinal);
+            Assert.Contains("[Items.Statistics]", savedItemToml, StringComparison.Ordinal);
+            Assert.Contains("\"wb:mining_speed\" = 3.25", savedItemToml, StringComparison.Ordinal);
+            Assert.Contains("\"test:crit_chance\" = 0.15", savedItemToml, StringComparison.Ordinal);
+            Assert.DoesNotContain("test:heat", savedItemToml, StringComparison.Ordinal);
+
+            //  Invalid statistic values surface inline row validation errors and fail save instead of silently dropping data.
+            var activeSpeedRow = itemDoc.Statistics.First(static s => s.Key == "wb:mining_speed");
+            activeSpeedRow.Value = "not_a_number";
+            Assert.True(activeSpeedRow.IsInvalidValue);
+            Assert.True(activeSpeedRow.HasValidationError);
+            Assert.True(itemDoc.HasInvalidStatistics);
+
+            vm.SaveAllCommand.Execute(null);
+            var afterFailedSaveToml = File.ReadAllText(itemPath);
+            Assert.Contains("\"wb:mining_speed\" = 3.25", afterFailedSaveToml, StringComparison.Ordinal);
+
+            activeSpeedRow.Value = "0";
+            Assert.True(activeSpeedRow.IsInvalidValue);
+            Assert.Contains("greater than 0", activeSpeedRow.ValidationError!, StringComparison.Ordinal);
+
+            activeSpeedRow.Value = "2.5";
+            Assert.False(activeSpeedRow.IsInvalidValue);
+            Assert.False(activeSpeedRow.HasValidationError);
+            Assert.False(itemDoc.HasInvalidStatistics);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
     ///     Verifies MainWindow instantiates and binds without errors in headless mode.
     /// </summary>
     [AvaloniaFact]

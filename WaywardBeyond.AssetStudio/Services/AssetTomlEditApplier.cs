@@ -58,6 +58,8 @@ internal static class AssetTomlEditApplier
         ApplyScalar(doc, tableIndex, "Passable", "Passable", payload, ScalarKind.Boolean);
         ApplyScalar(doc, tableIndex, "Mesh", "Mesh", payload, ScalarKind.OptionalString);
 
+        var brickOrdinal = FindArrayTableOrdinal(doc, "Bricks", tableIndex);
+
         var texturesTable = FindChildTableIndex(doc, tableIndex, "Bricks", "Bricks.Textures");
         if (texturesTable >= 0)
         {
@@ -76,6 +78,11 @@ internal static class AssetTomlEditApplier
         {
             ApplyOptionalSingleItemStringArray(doc, soundsTable, "Place", "SoundPlace", payload);
             ApplyOptionalSingleItemStringArray(doc, soundsTable, "Break", "SoundBreak", payload);
+        }
+
+        if (payload.StatisticsModified && payload.Statistics != null)
+        {
+            return ApplyStatisticsEdits(doc, "Bricks", brickOrdinal, payload.Statistics);
         }
 
         return Result.FromSuccess();
@@ -117,6 +124,166 @@ internal static class AssetTomlEditApplier
         ApplyItemModelSectionEdits(doc, tableIndex, "Items.ViewModel", "ViewModel", payload);
         ApplyItemModelSectionEdits(doc, tableIndex, "Items.WorldModel", "WorldModel", payload);
 
+        if (payload.StatisticsModified && payload.Statistics != null)
+        {
+            return ApplyStatisticsEdits(doc, "Items", itemOrdinal, payload.Statistics);
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private static Result ApplyStatisticsEdits(
+        ToolsDocuments.TomlDocument doc,
+        string arrayTableName,
+        int entryOrdinal,
+        IReadOnlyList<(string Key, string Value)> statistics)
+    {
+        var subTableHeader = $"{arrayTableName}.Statistics";
+        var ownerTableIndex = ResolveArrayTableByOrdinal(doc, arrayTableName, entryOrdinal);
+        if (ownerTableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var desired = new List<(string Key, double Value)>(statistics.Count);
+        var desiredByKey = new Dictionary<string, double>(StringComparer.Ordinal);
+        for (var i = 0; i < statistics.Count; i++)
+        {
+            var key = statistics[i].Key?.Trim() ?? string.Empty;
+            var rawVal = statistics[i].Value?.Trim() ?? string.Empty;
+            if (key.Length == 0)
+            {
+                return Result.FromFailure($"Cannot save [{subTableHeader}]: row #{i + 1} has an empty statistic key.");
+            }
+
+            if (!double.TryParse(rawVal, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedVal) || !double.IsFinite(parsedVal))
+            {
+                return Result.FromFailure($"Cannot save [{subTableHeader}]: statistic '{key}' has invalid numeric value '{rawVal}'.");
+            }
+
+            if (desiredByKey.ContainsKey(key))
+            {
+                return Result.FromFailure($"Cannot save [{subTableHeader}]: duplicate statistic key '{key}'.");
+            }
+
+            desired.Add((key, parsedVal));
+            desiredByKey[key] = parsedVal;
+        }
+
+        var statsTableIndex = FindOwnedSubTableIndex(doc, ownerTableIndex, arrayTableName, subTableHeader);
+        if (desired.Count == 0)
+        {
+            return statsTableIndex >= 0
+                ? RemoveTableSection(doc, statsTableIndex)
+                : Result.FromSuccess();
+        }
+
+        if (statsTableIndex >= 0)
+        {
+            var currentTable = doc.Tables[statsTableIndex];
+            for (var f = currentTable.Fields.Count - 1; f >= 0; f--)
+            {
+                var existingField = currentTable.Fields[f];
+                if (desiredByKey.ContainsKey(existingField.Key))
+                {
+                    continue;
+                }
+
+                var removeResult = doc.RemoveField(in existingField);
+                if (!removeResult.Success)
+                {
+                    return removeResult;
+                }
+
+                ownerTableIndex = ResolveArrayTableByOrdinal(doc, arrayTableName, entryOrdinal);
+                statsTableIndex = FindOwnedSubTableIndex(doc, ownerTableIndex, arrayTableName, subTableHeader);
+                if (statsTableIndex < 0)
+                {
+                    break;
+                }
+
+                currentTable = doc.Tables[statsTableIndex];
+            }
+
+            for (var i = 0; i < desired.Count; i++)
+            {
+                ownerTableIndex = ResolveArrayTableByOrdinal(doc, arrayTableName, entryOrdinal);
+                statsTableIndex = FindOwnedSubTableIndex(doc, ownerTableIndex, arrayTableName, subTableHeader);
+                if (statsTableIndex < 0)
+                {
+                    break;
+                }
+
+                var (key, val) = desired[i];
+                var existing = doc.GetFieldInTable(statsTableIndex, key);
+                if (existing.Success)
+                {
+                    var currentDbl = existing.Value.TypedValue switch
+                    {
+                        double d => d,
+                        long l => (double)l,
+                        _ => double.NaN,
+                    };
+                    if (double.IsNaN(currentDbl) || Math.Abs(currentDbl - val) > 1e-6)
+                    {
+                        var setResult = doc.SetFloat(existing.Value, val);
+                        if (!setResult.Success)
+                        {
+                            return setResult;
+                        }
+                    }
+                }
+                else
+                {
+                    var addResult = doc.AddField(doc.Tables[statsTableIndex], key, FormatTomlFloat(val));
+                    if (!addResult.Success)
+                    {
+                        return addResult;
+                    }
+                }
+            }
+
+            return Result.FromSuccess();
+        }
+
+        var lastOwnedIndex = FindLastOwnedTableIndex(doc, ownerTableIndex, arrayTableName);
+        var insertOffset = Math.Clamp(doc.Tables[lastOwnedIndex].ContentSpan.End, 0, doc.Text.Length);
+        var eol = doc.LineEnding;
+        var block = new StringBuilder($"[{subTableHeader}]");
+        for (var i = 0; i < desired.Count; i++)
+        {
+            block.Append(eol);
+            block.Append(FormatTomlKeySegment(desired[i].Key));
+            block.Append(" = ");
+            block.Append(FormatTomlFloat(desired[i].Value));
+        }
+
+        var before = doc.Text.AsSpan(0, insertOffset);
+        var after = doc.Text.AsSpan(insertOffset);
+        var leading = before.Length == 0
+            || before.EndsWith("\r\n\r\n", StringComparison.Ordinal)
+            || before.EndsWith("\n\n", StringComparison.Ordinal)
+            ? string.Empty
+            : (before.EndsWith("\n", StringComparison.Ordinal) ? eol : string.Concat(eol, eol));
+        var trailing = after.Length == 0
+            ? (doc.HasTrailingNewline ? eol : string.Empty)
+            : (after.StartsWith("\r\n", StringComparison.Ordinal) || after.StartsWith("\n", StringComparison.Ordinal) ? eol : string.Concat(eol, eol));
+
+        var sb = new StringBuilder(doc.Text.Length + leading.Length + block.Length + trailing.Length);
+        sb.Append(before);
+        sb.Append(leading);
+        sb.Append(block);
+        sb.Append(trailing);
+        sb.Append(after);
+
+        var candidate = sb.ToString();
+        var verified = ToolsDocuments.TomlDocument.Parse(candidate, doc.SourcePath);
+        if (verified.HasSyntaxErrors)
+        {
+            return Result.FromFailure("Applying statistic edits produced invalid TOML.");
+        }
+
+        doc.SetRawText(candidate);
         return Result.FromSuccess();
     }
 

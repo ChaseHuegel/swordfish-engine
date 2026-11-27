@@ -47,7 +47,7 @@ candidate. Each candidate clip is equally likely.
 raise it:
 
 - `PlayerInteractionService.FirePresentationHook` raises it after `PlaceEvent`
-  or `BreakEvent` succeeds (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:718`).
+  or `BreakEvent` succeeds (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:747`).
 - `ClientVoxelReconcileSystem.RaiseEditEvent` raises it for unpredicted
   authoritative edits (`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:166`).
 
@@ -92,7 +92,7 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 
 - `WaywardBeyond.Client/Events/BrickEvent.cs:7` — brick presentation event.
 - `WaywardBeyond.Client/Services/BrickSoundListener.cs:9` — brick sound event listener.
-- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs:718` — local prediction trigger.
+- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs:747` — local prediction trigger.
 - `WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:166` — unpredicted authoritative edit trigger.
 - `WaywardBeyond.Client/Systems/AudioChannelSystem.cs:59` — 2D and spatial play queueing.
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:14` — playback service.
@@ -101,8 +101,8 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 - `WaywardBeyond.Client/Services/SoundEffectService.cs:47` — shared tag lookup.
 - `WaywardBeyond.Client/UI/WidgetInteraction.cs:16` — interface tag mapping.
 - `WaywardBeyond.Bricks/BrickEventKind.cs:4` — brick event kind enum.
-- `WaywardBeyond.Bricks/BrickDefinition.cs:16` — brick sound declaration.
-- `WaywardBeyond.Bricks/Brick.cs:25` — loaded brick sound map.
+- `WaywardBeyond.Bricks/BrickDefinition.cs:36` — brick sound declaration.
+- `WaywardBeyond.Bricks/Brick.cs:26` — loaded brick sound map.
 - `WaywardBeyond.Bricks/BrickDatabase.cs:91` — brick sound wiring.
 - `WaywardBeyond.Data/Localization/ILocalizedTagsDatabase.cs:6` — tag contract.
 - `WaywardBeyond.Data/Localization/LocalizedTagsDatabase.cs:13` — tag loader.

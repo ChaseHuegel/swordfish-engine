@@ -37,6 +37,7 @@ public struct InteractionContext
         HeldItemID = heldItemID;
         Placeable = null;
         Resolution = InteractionResolution.None;
+        Hold = InteractionHold.None;
     }
 
     /// <summary>The world store the interaction is resolved against.</summary>
@@ -80,6 +81,9 @@ public struct InteractionContext
 
     /// <summary>The outcome under consideration. Set by <see cref="InteractionStage.Resolve"/> and adjusted downstream.</summary>
     public InteractionResolution Resolution;
+
+    /// <summary>Optional timed hold requirement set by a <see cref="InteractionStage.Validate"/> handler before commit.</summary>
+    public InteractionHold Hold;
 
     /// <summary>Builds the immutable request the shared resolver decides over.</summary>
     public readonly InteractionRequest BuildRequest()

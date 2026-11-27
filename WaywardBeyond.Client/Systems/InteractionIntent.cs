@@ -1,30 +1,29 @@
-using Swordfish.Library.IO;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Items;
 
 namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
-/// Maps a pressed mouse button and the held item to the interaction edge the button produces. The left
-/// button is the primary edge for every item that has a primary action: a modifier tool applies its paint,
-/// a placeable item places its brick, and a removal tool breaks the targeted brick. The right button is the
-/// secondary edge and only a modifier tool binds it, to clear its paint. An item without an action for a
-/// button produces no edge.
+/// Maps a pressed <see cref="InteractionInput"/> channel and the held item to the wire interaction edge it
+/// produces. Primary drives every item that has a primary action: a modifier tool applies its paint, a
+/// placeable item places its brick, and a removal tool breaks the targeted brick. Secondary is bound only by
+/// modifier tools to clear their paint. An item without an action for an input produces no edge.
 /// </summary>
 internal static class InteractionIntent
 {
-    /// <summary>Returns the input edge the pressed button produces with the held item.</summary>
-    public static InteractionKind For(MouseButton button, Item? heldItem)
+    /// <summary>Returns the input edge the pressed <paramref name="input"/> produces with the held item.</summary>
+    public static InteractionKind For(InteractionInput input, Item? heldItem)
     {
         bool isModifierTool = PaintMode(heldItem) != null;
 
-        if (button == MouseButton.Left && (isModifierTool || HasPrimaryBrickAction(heldItem)))
+        if (input == InteractionInput.Primary && (isModifierTool || HasPrimaryBrickAction(heldItem)))
         {
             return InteractionKind.PrimaryPressed;
         }
 
-        if (button == MouseButton.Right && isModifierTool)
+        if (input == InteractionInput.Secondary && isModifierTool)
         {
             return InteractionKind.SecondaryPressed;
         }

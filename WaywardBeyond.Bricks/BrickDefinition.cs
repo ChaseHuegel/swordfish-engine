@@ -34,4 +34,7 @@ public struct BrickDefinition()
 
     /// <summary>The optional custom collider primitives declared for the brick.</summary>
     public List<BrickColliderDefinition>? Colliders;
+
+    /// <summary>Optional custom numeric statistics declared on the brick, keyed by statistic id.</summary>
+    public Dictionary<string, float>? Statistics;
 }

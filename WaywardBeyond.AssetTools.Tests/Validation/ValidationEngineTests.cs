@@ -366,6 +366,71 @@ public sealed class ValidationEngineTests : IDisposable
         Assert.Contains(report.Findings, static f => f.Code == "REF001" && f.Field == "Skills.Sources.Process.tag:missing.item_tag");
     }
 
+    [Fact]
+    public void ValidatesBrickAndItemStatistics()
+    {
+        string pack = CreateMinimalPack("mining_stats_pack");
+        string assets = Path.Combine(pack, "assets");
+        WriteFile(
+            Path.Combine(assets, "lang", "en", "items.toml"),
+            "\"Language\" = \"en\"\n[Translations]\n\"item.tool.name\" = \"Laser\"\n");
+        WriteBytes(Path.Combine(assets, "textures", "block", "stone.png"), [1, 2, 3, 4]);
+
+        WriteFile(
+            Path.Combine(assets, "bricks", "valid_brick.toml"),
+            "[[Bricks]]\nID = \"wb:stone\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"wb:hardness\" = 2.5\n\"mod:thermal_mass\" = -1.0\n");
+        WriteFile(
+            Path.Combine(assets, "bricks", "zero_brick.toml"),
+            "[[Bricks]]\nID = \"wb:fragile\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"wb:hardness\" = 0.0\n");
+        WriteFile(
+            Path.Combine(assets, "bricks", "negative_brick.toml"),
+            "[[Bricks]]\nID = \"wb:bad_hardness\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"wb:hardness\" = -0.5\n");
+        WriteFile(
+            Path.Combine(assets, "bricks", "nan_brick.toml"),
+            "[[Bricks]]\nID = \"wb:nan_stat\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"mod:mass\" = nan\n");
+
+        WriteFile(
+            Path.Combine(assets, "items", "valid_tool.toml"),
+            "[[Items]]\nID = \"wb:fast_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\n[Items.Statistics]\n\"wb:mining_speed\" = 1.75\n\"mod:heat_offset\" = -2.5\n");
+        WriteFile(
+            Path.Combine(assets, "items", "zero_tool.toml"),
+            "[[Items]]\nID = \"wb:zero_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\n[Items.Statistics]\n\"wb:mining_speed\" = 0.0\n");
+        WriteFile(
+            Path.Combine(assets, "items", "negative_tool.toml"),
+            "[[Items]]\nID = \"wb:neg_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\n[Items.Statistics]\n\"wb:mining_speed\" = -1.5\n");
+        WriteFile(
+            Path.Combine(assets, "items", "nan_stat.toml"),
+            "[[Items]]\nID = \"wb:nan_item\"\nName = \"item.tool.name\"\n[Items.Statistics]\n\"mod:energy\" = nan\n");
+
+        WorkspaceIndex ws = new WorkspaceLoader().LoadPack(pack).Value;
+        ValidationReport report = new WorkspaceValidator().Validate(ws);
+
+        Assert.DoesNotContain(report.Findings, static f => f.FilePath.EndsWith("valid_brick.toml", StringComparison.Ordinal));
+        Assert.DoesNotContain(report.Findings, static f => f.FilePath.EndsWith("zero_brick.toml", StringComparison.Ordinal));
+        Assert.DoesNotContain(report.Findings, static f => f.FilePath.EndsWith("valid_tool.toml", StringComparison.Ordinal));
+
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.wb:hardness" &&
+            f.FilePath.EndsWith("negative_brick.toml", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.mod:mass" &&
+            f.FilePath.EndsWith("nan_brick.toml", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.wb:mining_speed" &&
+            f.FilePath.EndsWith("zero_tool.toml", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.wb:mining_speed" &&
+            f.FilePath.EndsWith("negative_tool.toml", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.mod:energy" &&
+            f.FilePath.EndsWith("nan_stat.toml", StringComparison.Ordinal));
+    }
+
     private string CreateMinimalPack(string name)
     {
         string pack = Path.Combine(_tempRoot, name);
