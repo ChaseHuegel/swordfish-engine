@@ -264,6 +264,7 @@ public sealed class AppEngine : IDisposable
         container.RegisterInstance<LoggingConfig>(LoggingConfig);
 
         container.Register<VirtualFileSystem>(Reuse.Singleton);
+        container.Register<ModuleCatalog>(Reuse.Singleton);
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 
         container.RegisterInstance(GetLoggerFactory(), setup: Setup.With(preventDisposal: true));

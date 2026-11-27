@@ -71,6 +71,40 @@ public class ModulesLoaderTests : IDisposable
         Assert.Equal(typeof(ModulesLoaderTests).Assembly, moduleAssemblies[0][0]);
     }
 
+    [Fact]
+    public void Load_RecordsLoadedModulesInCatalog()
+    {
+        string baseModule = CreateContentOnlyModule("base", ("base-only.txt", "base"));
+        string overrideModule = CreateContentOnlyModule("override", ("override-only.txt", "override"));
+
+        var manifests = new List<ParsedFile<ModuleManifest>>
+        {
+            new(new PathInfo(Path.Combine(baseModule, "manifest.toml")), new ModuleManifest("base", "Base")),
+            new(new PathInfo(Path.Combine(overrideModule, "manifest.toml")), new ModuleManifest("override", "Override")),
+        };
+        var options = new ModuleOptions(false, ["base", "override"]);
+        var catalog = new ModuleCatalog();
+        var loader = new ModulesLoader(NullLogger.Instance, options, manifests, catalog);
+
+        loader.Load((_, _) => { });
+
+        Assert.Collection(
+            catalog.Modules,
+            module =>
+            {
+                Assert.Equal("base", module.ID);
+                Assert.Equal("Base", module.Name);
+                Assert.Equal(baseModule, module.Root.Value);
+            },
+            module =>
+            {
+                Assert.Equal("override", module.ID);
+                Assert.Equal("Override", module.Name);
+                Assert.Equal(overrideModule, module.Root.Value);
+            }
+        );
+    }
+
     private string CreateContentOnlyModule(string id, params (string Name, string Contents)[] assets)
     {
         string moduleRoot = Path.Combine(_root, id);
