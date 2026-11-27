@@ -795,6 +795,21 @@ public class ServerRegionSystemTests
         Assert.Equal(harness.BrickRegistry.Id("wb:panel"), harness.StructureVoxels.Get(3, 0, 0).ID);
         Assert.Equal(harness.BrickRegistry.Id("wb:panel"), harness.StructureVoxels.Get(3, 0, 1).ID);
         Assert.Equal(1, harness.GetHeldItemCount());
+
+        //  Out-of-range TargetKind is rejected cleanly without consuming held items.
+        Task<RpcResult<RegionOpResponse>> badKindTask = EnqueuePlaceBlueprintItem(
+            harness,
+            (PasteTargetKind)99,
+            harness.StructureUuid,
+            origin: new Int3(5, 0, 0),
+            spawnPos: Vector3.Zero);
+        harness.System.Tick(1f / 60f, harness.Store);
+
+        RpcResult<RegionOpResponse> badKindResult = await badKindTask;
+        Assert.True(badKindResult.IsSuccess);
+        Assert.False(badKindResult.Value.Success);
+        Assert.Equal("notification.region.invalidTarget", badKindResult.Value.ErrorKey);
+        Assert.Equal(1, harness.GetHeldItemCount());
     }
 
     private static Task<RpcResult<RegionOpResponse>> EnqueuePlaceBlueprintItem(

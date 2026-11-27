@@ -338,7 +338,9 @@ public sealed class ServerRegionSystem(
         }
 
         PlaceBlueprintItemRequest request = call.Request;
-        if ((request.Rotation & ~VALID_ROTATION_MASK) != 0 || (request.Mirror & ~VALID_MIRROR_MASK) != 0)
+        if ((request.TargetKind != PasteTargetKind.IntoStructure && request.TargetKind != PasteTargetKind.NewStructure)
+            || (request.Rotation & ~VALID_ROTATION_MASK) != 0
+            || (request.Mirror & ~VALID_MIRROR_MASK) != 0)
         {
             call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
             return;

@@ -147,6 +147,36 @@ public class ItemPlaceablesTests
         Assert.Contains("wb:core", resolved.Value.BrickPalette!);
     }
 
+    [Fact]
+    public void BundledBlueprintDatabasePreservesSubdirectoriesNamedBlueprints()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"wb-bp-id-{Guid.NewGuid():N}");
+        try
+        {
+            string assetsDir = Path.Combine(tempRoot, "assets");
+            string nestedDir = Path.Combine(assetsDir, "blueprints", "my_blueprints");
+            Directory.CreateDirectory(nestedDir);
+            string sourceCore = Path.Combine("TestFiles", "Items", "assets", "blueprints", "builtin", "core.wbp");
+            File.Copy(sourceCore, Path.Combine(nestedDir, "ship.wbp"));
+
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(assetsDir));
+            var parser = new VirtualFileParseService([new BlueprintDataParser()], vfs);
+            var blueprints = new BundledBlueprintDatabase(NullLogger<BundledBlueprintDatabase>.Instance, parser, vfs);
+
+            Result<BlueprintData> loaded = blueprints.GetBlueprint("my_blueprints/ship");
+            Assert.True(loaded.Success, loaded.Message);
+            Assert.False(blueprints.GetBlueprint("ship").Success);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
     private static (IAssetDatabase<Item> Items, IBrickDatabase Bricks) Load()
     {
         var vfs = new VirtualFileSystem();

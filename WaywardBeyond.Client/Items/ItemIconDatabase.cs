@@ -108,7 +108,7 @@ internal sealed class ItemIconDatabase : IAutoActivate, IDisposable
 
         Item item = itemResult.Value;
         string? iconID = item.IconID;
-        if (iconID != null)
+        if (!string.IsNullOrWhiteSpace(iconID))
         {
             return GetOrLoadTextureIcon(iconID, itemID);
         }

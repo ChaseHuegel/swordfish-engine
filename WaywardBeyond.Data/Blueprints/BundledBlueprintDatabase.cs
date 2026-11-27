@@ -102,11 +102,33 @@ public sealed class BundledBlueprintDatabase
     /// <inheritdoc/>
     protected override string GetAssetID(Entry assetInfo)
     {
-        string normalized = assetInfo.SourcePath.ToString().Replace('\\', '/');
-        int indexOfRoot = normalized.LastIndexOf(ROOT_PREFIX, StringComparison.Ordinal);
-        string relativePath = indexOfRoot >= 0
-            ? normalized[(indexOfRoot + ROOT_PREFIX.Length)..]
-            : Path.GetFileName(normalized);
+        return ExtractBlueprintId(assetInfo.SourcePath.ToString());
+    }
+
+    /// <summary>Extracts a normalized relative blueprint ID (without extension) from a virtual or filesystem path.</summary>
+    internal static string ExtractBlueprintId(string sourcePath)
+    {
+        string normalized = sourcePath.Replace('\\', '/');
+        string relativePath;
+
+        const string assetsPrefix = "/assets/" + ROOT_PREFIX;
+        int assetsIndex = normalized.LastIndexOf(assetsPrefix, StringComparison.Ordinal);
+        if (assetsIndex >= 0)
+        {
+            relativePath = normalized[(assetsIndex + assetsPrefix.Length)..];
+        }
+        else if (normalized.StartsWith(ROOT_PREFIX, StringComparison.Ordinal))
+        {
+            relativePath = normalized[ROOT_PREFIX.Length..];
+        }
+        else
+        {
+            const string slashPrefix = "/" + ROOT_PREFIX;
+            int slashIndex = normalized.IndexOf(slashPrefix, StringComparison.Ordinal);
+            relativePath = slashIndex >= 0
+                ? normalized[(slashIndex + slashPrefix.Length)..]
+                : Path.GetFileName(normalized);
+        }
 
         int extensionIndex = relativePath.LastIndexOf('.');
         return extensionIndex >= 0 ? relativePath[..extensionIndex] : relativePath;

@@ -168,6 +168,7 @@ public class BrickIconTests
         var itemDb = new TestItemDatabase(new Dictionary<string, Item>
         {
             ["wb:core"] = new("wb:core", "Core", iconID: null, 100, new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" }, null, null, null),
+            ["wb:core_empty_icon"] = new("wb:core_empty_icon", "Core Empty Icon", iconID: "", 100, new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" }, null, null, null),
         });
 
         var offscreen = new FakeOffscreenRenderer();
@@ -197,6 +198,9 @@ public class BrickIconTests
         Material coreMat = iconDb.Get("wb:core");
         Assert.Equal("blueprint_icon:builtin/core", coreMat.Textures[0].Name);
         Assert.NotSame(unknownTex, coreMat.Textures[0]);
+
+        Material emptyIconMat = iconDb.Get("wb:core_empty_icon");
+        Assert.Same(coreMat, emptyIconMat);
     }
 
     [Fact]

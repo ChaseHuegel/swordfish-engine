@@ -17,7 +17,8 @@ namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
 /// Renders the selection wireframe box, paste wireframe box, and translucent 3D holographic ghost
-/// mesh from <see cref="RegionToolState"/> when the local player holds the Blueprint Projector.
+/// mesh from <see cref="RegionToolState"/> when the local player holds the Blueprint Projector or a
+/// blueprint placeable item.
 /// </summary>
 internal sealed class RegionPreviewSystem(
     in RegionToolState toolState,
@@ -69,8 +70,12 @@ internal sealed class RegionPreviewSystem(
             return;
         }
 
-        bool holdingProjector = IsHoldingProjector(store);
-        bool holdingBlueprintItem = !holdingProjector && _toolState.IsBlueprintItemActive;
+        Result<ItemSlot> mainHand = _playerData.GetMainHand(store);
+        bool holdingProjector = mainHand.Success && mainHand.Value.Item.Tool?.Type == ToolType.Blueprint;
+        bool holdingBlueprintItem = !holdingProjector
+            && mainHand.Success
+            && ItemPlaceables.IsBlueprintPlaceable(mainHand.Value.Item)
+            && _toolState.IsBlueprintItemActive;
         if (!holdingProjector && !holdingBlueprintItem)
         {
             HideBox(_selectionLines);
@@ -171,12 +176,6 @@ internal sealed class RegionPreviewSystem(
             _lastGhostScale = worldScale;
             _hasGhostTransform = true;
         }
-    }
-
-    private bool IsHoldingProjector(DataStore store)
-    {
-        Result<ItemSlot> mainHand = _playerData.GetMainHand(store);
-        return mainHand.Success && mainHand.Value.Item.Tool?.Type == ToolType.Blueprint;
     }
 
     private void EnsureEntity(DataStore store)
