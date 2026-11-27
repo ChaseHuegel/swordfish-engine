@@ -6,8 +6,8 @@ One subject: generic server-to-client replication of continuous particle emitter
 
 Continuous emitters replicate through `NetworkReplicationSystem` as `ServerOwned` components (`WaywardBeyond.Networking/NetworkingComposition.cs:50-51`).
 
-- **`ParticleEmitterComponent` (Uuid `19`):** Uses `ParticleEmitterCodec` (`WaywardBeyond.Networking/Codecs/ParticleEmitterCodec.cs:11-155`) to serialize `ParticleEmitterMessage`. The codec resolves `EffectId` from `EffectId` or fallback `Effect.ID`. It enforces a non-empty, non-whitespace string up to `MAX_EFFECT_ID_LENGTH` (`128`), a finite non-negative `RateScale`, and finite `Offset` and `LocalDirection` vectors. Unchanged wire payloads skip `DataStore.AddOrUpdate` on clients so dirty flags stay clean.
-- **`ParticleEmitterBindingComponent` (Uuid `20`):** Uses `NsdComponentCodec<ParticleEmitterBindingComponent>` (`WaywardBeyond.Data/Components/ParticleEmitterBindingComponent.cs:7-11`). `ParentEntity` attaches the emitter locally to a replicated parent entity.
+- **`ParticleEmitterComponent` (Uuid `18`):** Uses `ParticleEmitterCodec` (`WaywardBeyond.Networking/Codecs/ParticleEmitterCodec.cs:11-155`) to serialize `ParticleEmitterMessage`. The codec resolves `EffectId` from `EffectId` or fallback `Effect.ID`. It enforces a non-empty, non-whitespace string up to `MAX_EFFECT_ID_LENGTH` (`128`), a finite non-negative `RateScale`, and finite `Offset` and `LocalDirection` vectors. Unchanged wire payloads skip `DataStore.AddOrUpdate` on clients so dirty flags stay clean.
+- **`ParticleEmitterBindingComponent` (Uuid `19`):** Uses `NsdComponentCodec<ParticleEmitterBindingComponent>` (`WaywardBeyond.Data/Components/ParticleEmitterBindingComponent.cs:7-11`). `ParentEntity` attaches the emitter locally to a replicated parent entity.
 
 ## Server particle API
 

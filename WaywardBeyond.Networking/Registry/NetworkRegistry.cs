@@ -18,16 +18,14 @@ public sealed class NetworkRegistry
     private bool _frozen;
 
     /// <summary>
-    /// Registers one networked component. Fails after <see cref="Freeze"/> or on a duplicate type or uuid.
-    /// <paramref name="replicationFilter"/> limits replication to entities it accepts; null replicates for all.
-    /// <paramref name="recipientFilter"/> limits delivery to recipients it accepts; null delivers to all.
+    /// Registers one networked component. Fails after <see cref="Freeze"/>, on a duplicate type or uuid,
+    /// or when a non-server-owned component specifies a scoped <paramref name="audience"/>.
     /// </summary>
     public Result Register<T>(
         Uuid uuid,
         NetworkDirection direction,
         IPayloadCodec<T> codec,
-        Func<DataStore, int, bool>? replicationFilter = null,
-        Func<DataStore, int, ReplicationRecipient, bool>? recipientFilter = null
+        ReplicationAudience audience = ReplicationAudience.All
     )
         where T : struct, IDataComponent
     {
@@ -36,9 +34,9 @@ public sealed class NetworkRegistry
             return Result.FromFailure($"Cannot register {typeof(T).Name}: uuid is Null.");
         }
 
-        if (direction != NetworkDirection.ServerOwned && recipientFilter != null)
+        if (direction != NetworkDirection.ServerOwned && audience != ReplicationAudience.All)
         {
-            return Result.FromFailure($"Cannot register {typeof(T).Name}: recipient filters apply only to {nameof(NetworkDirection.ServerOwned)} components.");
+            return Result.FromFailure($"Cannot register {typeof(T).Name}: scoped replication audiences apply only to {nameof(NetworkDirection.ServerOwned)} components.");
         }
 
         lock (_lock)
@@ -58,7 +56,7 @@ public sealed class NetworkRegistry
                 return Result.FromFailure($"Cannot register {typeof(T).Name}: uuid {uuid} is already registered.");
             }
 
-            var info = new NetworkComponentInfo(typeof(T), uuid, direction, codec, replicationFilter, recipientFilter);
+            var info = new NetworkComponentInfo(typeof(T), uuid, direction, codec, audience);
             _byType[typeof(T)] = info;
             _byUuid[uuid] = info;
             return Result.FromSuccess();

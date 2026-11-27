@@ -52,38 +52,6 @@ message ParticleEmitterBindingComponent
     ulong ParentEntity = 0;
 }
 
-message ColliderMessage
-{
-    ColliderShapeMessage[] Shapes       = 0;
-    Float3Message[]        Positions    = 1;
-    Float4Message[]        Orientations = 2;
-}
-
-message ColliderShapeMessage
-{
-    byte           Type   = 0;
-    float          X      = 1;
-    float          Y      = 2;
-    float          Z      = 3;
-    float          W      = 4;
-    Float3Message[] Points = 5;
-}
-
-message Float3Message
-{
-    float X = 0;
-    float Y = 1;
-    float Z = 2;
-}
-
-message Float4Message
-{
-    float X = 0;
-    float Y = 1;
-    float Z = 2;
-    float W = 3;
-}
-
 message IdentifierMessage
 {
     string Name = 0;

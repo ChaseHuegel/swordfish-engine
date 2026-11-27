@@ -210,6 +210,10 @@ internal sealed class ClientReconcileSystem(
             store.Remove(lookup.Value.Type, entity);
         }
 
+        //  Derive remote character colliders locally from BodyViewComponent so ColliderComponent never
+        //  needs to cross the wire or overwrite the local player's or voxel structures' colliders.
+        EnsureRemoteCharacterColliders(store);
+
         //  The pending ring has not been trimmed yet, so the reconciler can read the look totals at the
         //  server's ack before the trim removes them.
         localPlayerReconciler.ApplySnapshot(store, snapshot.LastProcessedInput);
@@ -424,6 +428,38 @@ internal sealed class ClientReconcileSystem(
             }
 
             ApplyComponent(components[i], store);
+        }
+    }
+
+    private static void EnsureRemoteCharacterColliders(DataStore store)
+    {
+        EnsureRemoteCharacterColliderAction action = new();
+        store.Query<BodyViewComponent, EnsureRemoteCharacterColliderAction>(0f, ref action);
+    }
+
+    private struct EnsureRemoteCharacterColliderAction : IForEach<BodyViewComponent>
+    {
+        /// <inheritdoc/>
+        public void Execute(float delta, DataStore store, int entity, in BodyViewComponent body)
+        {
+            if (store.Has(typeof(PlayerComponent), entity) || store.Has(typeof(ColliderComponent), entity))
+            {
+                return;
+            }
+
+            Vector3 scale = CharacterDefaults.PlayerScale;
+            if (store.TryGet(entity, out TransformComponent transform)
+                && float.IsFinite(transform.Scale.X)
+                && float.IsFinite(transform.Scale.Y)
+                && float.IsFinite(transform.Scale.Z)
+                && transform.Scale.X > 0f
+                && transform.Scale.Y > 0f
+                && transform.Scale.Z > 0f)
+            {
+                scale = transform.Scale;
+            }
+
+            store.AddOrUpdate(entity, CharacterDefaults.CreateCharacterColliderComponent(scale));
         }
     }
 

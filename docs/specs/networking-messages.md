@@ -80,42 +80,6 @@ takes only velocity and angular velocity. Body configuration is read when the
 body is created. Enums travel as bytes because cross-namespace enums do not
 serialize as enums in Needlefish codegen.
 
-## Colliders
-
-`WaywardBeyond.Data/Nsd/components.nsd`:
-
-```nsd
-message ColliderMessage
-{
-    ColliderShapeMessage[] Shapes;
-    Float3Message[]        Positions;
-    Float4Message[]        Orientations;
-}
-
-message ColliderShapeMessage
-{
-    byte           Type;
-    float          X, Y, Z, W;
-    Float3Message[] Points;    // convex hull vertices
-}
-```
-
-A single shape travels as a one-part compound, so the receiver always builds a
-`CompoundShape`. `Type` is the engine `ShapeType` byte and is a wire contract:
-do not reorder that enum. The fields pack per shape:
-
-| Shape | Fields |
-|---|---|
-| `Box3` | `X/Y/Z` extents |
-| `Box2` | `X/Y` extents |
-| `Sphere`, `Circle` | `X` radius |
-| `Capsule`, `Cylinder` | `X` height, `Y` radius |
-| `Plane` | `X/Y/Z` normal, `W` distance |
-| `ConvexHull` | `Points` vertices, at least four |
-
-Only character bodies replicate a collider. The client derives world voxel
-colliders from the level data. See [registry](networking-registry.md).
-
 ## Input component
 
 `InputComponent` is both a networked component and an nsd message
