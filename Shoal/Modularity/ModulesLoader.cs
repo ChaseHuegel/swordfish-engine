@@ -7,21 +7,24 @@ internal class ModulesLoader : IModulesLoader
     private readonly ILogger _logger;
     private readonly ModuleOptions? _options;
     private readonly IReadOnlyCollection<ParsedFile<ModuleManifest>> _manifests;
+    private readonly ModuleCatalog? _catalog;
 
-    public ModulesLoader(ILogger logger, ConfigurationProvider configurationProvider)
-        : this(logger, configurationProvider.GetModuleOptions()?.Value, configurationProvider.GetModuleManifests())
+    public ModulesLoader(ILogger logger, ConfigurationProvider configurationProvider, ModuleCatalog catalog)
+        : this(logger, configurationProvider.GetModuleOptions()?.Value, configurationProvider.GetModuleManifests(), catalog)
     {
     }
 
     internal ModulesLoader(
         ILogger logger,
         ModuleOptions? options,
-        IReadOnlyCollection<ParsedFile<ModuleManifest>> manifests
+        IReadOnlyCollection<ParsedFile<ModuleManifest>> manifests,
+        ModuleCatalog? catalog = null
     )
     {
         _logger = logger;
         _options = options;
         _manifests = manifests;
+        _catalog = catalog;
     }
 
     public void Load(Action<ParsedFile<ModuleManifest>, IReadOnlyList<Assembly>> moduleLoadedCallback)
@@ -76,6 +79,11 @@ internal class ModulesLoader : IModulesLoader
             Result<Exception?> result = LoadModule(moduleLoadedCallback, _logger, _options, manifestFile);
             if (result)
             {
+                _catalog?.Add(new LoadedModule(
+                    manifest.ID ?? string.Empty,
+                    manifest.Name ?? string.Empty,
+                    manifestFile.GetRootPath()));
+
                 _logger.LogInformation("Loaded module \"{name}\" ({id}), by \"{author}\": {description}", manifest.Name, manifest.ID, manifest.Author, manifest.Description);
             }
             else
