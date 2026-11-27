@@ -36,6 +36,11 @@ public sealed class NetworkRegistry
             return Result.FromFailure($"Cannot register {typeof(T).Name}: uuid is Null.");
         }
 
+        if (direction != NetworkDirection.ServerOwned && recipientFilter != null)
+        {
+            return Result.FromFailure($"Cannot register {typeof(T).Name}: recipient filters apply only to {nameof(NetworkDirection.ServerOwned)} components.");
+        }
+
         lock (_lock)
         {
             if (_frozen)

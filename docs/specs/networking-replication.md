@@ -22,8 +22,8 @@ One subject: dirty-driven replication between server and client.
   `ReplicationRecipient` (`ClientId`, session `Entity`, and `EntityUuid`) across
   deltas, full syncs, and `RemovedComponents`. When no collected entry carries a
   `RecipientFilter`, all clients share the serialized arrays without per-client
-  filtering. A delta snapshot that becomes empty after recipient filtering is
-  skipped.
+  filtering. The publisher skips a delta snapshot that becomes empty after
+  recipient filtering.
 - **Despawns** are recorded via `RequestDespawn` before the entity is freed
   (`DataStore.Free` clears the uuid) and broadcast in `RemovedEntities`.
 - **Reliable send.** Each snapshot is a typed `WorldSnapshot` notification. A

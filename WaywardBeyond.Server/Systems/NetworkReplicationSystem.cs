@@ -339,20 +339,6 @@ public sealed class NetworkReplicationSystem
                 continue;
             }
 
-            uint lastProcessedInput = 0;
-            int recipientEntity = Entity.Null;
-            Uuid recipientEntityUuid = Uuid.Null;
-            if (_sessions.TryGetEntity(clientId, out int sessionEntity) && sessionEntity != Entity.Null)
-            {
-                recipientEntity = sessionEntity;
-                recipientEntityUuid = store.GetUuid(sessionEntity);
-                if (store.TryGet(sessionEntity, out NetworkComponent net))
-                {
-                    lastProcessedInput = net.LastAckedInput;
-                }
-            }
-
-            var recipient = new ReplicationRecipient(clientId, recipientEntity, recipientEntityUuid);
             bool isFullSync = _fullSync.Remove(clientId);
 
             //  A joining client's stream is still in flight: no per-tick deltas until the stream
@@ -361,6 +347,25 @@ public sealed class NetworkReplicationSystem
             {
                 continue;
             }
+
+            uint lastProcessedInput = 0;
+            int recipientEntity = Entity.Null;
+            Uuid recipientEntityUuid = Uuid.Null;
+            if (_sessions.TryGetEntity(clientId, out int sessionEntity) && sessionEntity != Entity.Null)
+            {
+                Uuid sessionUuid = store.GetUuid(sessionEntity);
+                if (sessionUuid != Uuid.Null)
+                {
+                    recipientEntity = sessionEntity;
+                    recipientEntityUuid = sessionUuid;
+                    if (store.TryGet(sessionEntity, out NetworkComponent net))
+                    {
+                        lastProcessedInput = net.LastAckedInput;
+                    }
+                }
+            }
+
+            var recipient = new ReplicationRecipient(clientId, recipientEntity, recipientEntityUuid);
 
             ComponentRemoval[] clientRemovals = sharedRemovals
                 ?? FilterRemovals(store, _pendingRemovals, in recipient);
@@ -393,9 +398,11 @@ public sealed class NetworkReplicationSystem
             }
         }
 
-        //  Drop full-sync requests whose client disconnected before the publish and release join payloads.
+        //  Drop full-sync requests whose client disconnected before the publish and release scratch payloads.
         _fullSync.Clear();
         _fullSyncPending.Clear();
+        _filteredComponents.Clear();
+        _filteredRemovals.Clear();
     }
 
     private void DrainStreamEnds()

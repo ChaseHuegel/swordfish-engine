@@ -14,7 +14,7 @@ it through constructor injection.
   component at compile time. Optional `replicationFilter` and `recipientFilter`
   predicates scope replication per entity and per receiving client. The method
   returns `Result` with a contextual failure message (duplicate type, duplicate
-  uuid, `Uuid.Null`).
+  uuid, `Uuid.Null`, or `recipientFilter` on a `ClientOwned` component).
 - `Freeze()` closes the registry to registration and caches the per-direction
   views. `NetworkingComposition` freezes after the built-in registrations, so a
   failed built-in registration is fatal at startup.
@@ -68,14 +68,16 @@ empty, whitespace, or overlong `EffectId` (`> 128`), a negative or non-finite
 
 A registration can pass two optional replication filters:
 
-- **`ReplicationFilter`** (`Func<DataStore, int, bool>?`): Evaluated once per
-  entity before the publisher serializes a delta, a removal, or a full sync. Use
-  it when only some entities replicate a component.
+- **`ReplicationFilter`** (`Func<DataStore, int, bool>?`): The publisher
+  evaluates this filter once per entity before serializing a delta, a removal,
+  or a full sync. Use it when only some entities replicate a component.
 - **`RecipientFilter`** (`Func<DataStore, int, ReplicationRecipient, bool>?`):
-  Evaluated per receiving client during publish fan-out for deltas, full syncs,
-  and component removals. `ReplicationRecipient` carries the recipient's
-  `ClientId`, session `Entity`, and `EntityUuid`. The publisher still serializes
-  each component once and omits filtered entries from that client's snapshot.
+  The publisher evaluates this filter per receiving client during publish
+  fan-out for deltas, full syncs, and component removals. `ReplicationRecipient`
+  carries the recipient's `ClientId`, session `Entity`, and `EntityUuid`. The
+  publisher still serializes each component once and omits filtered entries from
+  that client's snapshot. Only `ServerOwned` registrations accept a
+  `RecipientFilter`.
 
 `ColliderComponent` uses both filters (`WaywardBeyond.Networking/NetworkingComposition.cs:37-43`).
 `ReplicationFilter` accepts only entities carrying `BodyViewComponent` (character
