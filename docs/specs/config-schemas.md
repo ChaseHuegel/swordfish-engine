@@ -306,6 +306,7 @@ See [rendering-shadows](rendering-shadows.md) and [rendering-sao](rendering-sao.
 | `Particles.Enabled` | bool | `true` | enables CPU particle simulation and rendering |
 | `Particles.MaxParticles` | int | `4096` | maximum live particles across all emitters and bursts |
 | `Particles.Density` | float | `1.0` | multiplier for emitter emission rates and burst particle counts, clamped to 0..float.MaxValue |
+| `Particles.BatchCellSize` | float | `8.0` | world-unit edge length of the spatial grid cells used to split particle render batches, clamped to at least 1.0 |
 
 ## `logging.toml` (per app)
 
