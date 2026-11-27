@@ -64,6 +64,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Window video modes and batched display changes | [specs/window-display](specs/window-display.md) |
 | Shortcut key matching, modifiers, and press and release actions | [specs/input-shortcuts](specs/input-shortcuts.md) |
 | Audio playback device discovery, selection, default routing, and hotplug response | [specs/audio](specs/audio.md) |
+| 3D spatial audio: listener resolution, directional panning, distance attenuation, and Doppler shift | [specs/spatial-audio](specs/spatial-audio.md) |
 | Invariant sound tags, brick sound declarations, and playback | [specs/sound-effects](specs/sound-effects.md) |
 | Settings page layout, controls, draft, and apply behavior | [specs/settings-ui](specs/settings-ui.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |

@@ -1,9 +1,11 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Krill;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Audio;
+using Swordfish.ECS;
 using Swordfish.Library.Events;
 using Swordfish.Library.Util;
 using Swordfish.Tests;
@@ -257,6 +259,69 @@ public class BrickSoundListenerTests
         Assert.Empty(fixture.DrainPlayedClips());
     }
 
+    [Fact]
+    public void BrickEventWithWorldPosition_SpawnsSpatialAudioEntityAtPosition()
+    {
+        Fixture fixture = CreateFixture();
+        var worldPos = new Vector3(12.5f, -3f, 8.25f);
+        fixture.BrickEvent.Invoke(new BrickEvent(METAL_BRICK_ID, BrickEventKind.Place, worldPos));
+
+        List<PlayedAudio> played = fixture.DrainPlayedAudio();
+        PlayedAudio entry = Assert.Single(played);
+        Assert.Equal(METAL_PLACE_CLIP, entry.Clip);
+        Assert.True(entry.HasSpatial);
+        Assert.Equal(worldPos, entry.Position);
+    }
+
+    [Fact]
+    public void UnpredictedAuthoritativeEditOnPositionedStructure_SpawnsSpatialAudio()
+    {
+        Fixture fixture = CreateFixture();
+        fixture.Store.AddOrUpdate(fixture.StructureEntity, new TransformComponent(new Vector3(10f, 0f, 0f), Quaternion.Identity));
+
+        fixture.Inbound.VoxelEdits.Enqueue(new VoxelEditMessage
+        {
+            EntityUuid = fixture.StructureUuid.ToValue(),
+            X = 1,
+            Y = 2,
+            Z = 3,
+            Voxel = new Voxel(METAL_BRICK_ID, new ShapeLight(BrickShape.Block, 0), 0),
+            Sequence = 0,
+            BrickId = "wb:panel",
+        });
+
+        fixture.TickReconcileWhilePlaying();
+
+        PlayedAudio entry = Assert.Single(fixture.DrainPlayedAudio());
+        Assert.Equal(METAL_PLACE_CLIP, entry.Clip);
+        Assert.True(entry.HasSpatial);
+        Assert.NotNull(entry.Position);
+    }
+
+    [Fact]
+    public void BrickEventWithoutWorldPosition_PlaysAsNonSpatial2D()
+    {
+        Fixture fixture = CreateFixture();
+        fixture.BrickEvent.Invoke(new BrickEvent(METAL_BRICK_ID, BrickEventKind.Place));
+
+        PlayedAudio entry = Assert.Single(fixture.DrainPlayedAudio());
+        Assert.Equal(METAL_PLACE_CLIP, entry.Clip);
+        Assert.False(entry.HasSpatial);
+        Assert.Null(entry.Position);
+    }
+
+    [Fact]
+    public void InterfaceSound_PlaysAsNonSpatial2D()
+    {
+        Fixture fixture = CreateFixture();
+        fixture.SoundEffects.PlayInterface("metal_place");
+
+        PlayedAudio entry = Assert.Single(fixture.DrainPlayedAudio());
+        Assert.Equal(METAL_PLACE_CLIP, entry.Clip);
+        Assert.False(entry.HasSpatial);
+        Assert.Null(entry.Position);
+    }
+
     private static Fixture CreateFixture(bool cancelPlace = false, bool cancelBreak = false)
     {
         var bricks = new StubBrickDatabase();
@@ -328,6 +393,7 @@ public class BrickSoundListenerTests
         return new Fixture(
             store,
             audioChannels,
+            soundEffects,
             bricks,
             saveManager,
             placeEvent,
@@ -342,9 +408,12 @@ public class BrickSoundListenerTests
         );
     }
 
+    private readonly record struct PlayedAudio(string Clip, bool HasSpatial, Vector3? Position);
+
     private sealed class Fixture(
         DataStore store,
         AudioChannelSystem audioChannels,
+        SoundEffectService soundEffects,
         StubBrickDatabase bricks,
         CharacterSaveManager saveManager,
         EventInvoker<PlaceEvent> placeEvent,
@@ -359,6 +428,7 @@ public class BrickSoundListenerTests
     )
     {
         public readonly DataStore Store = store;
+        public readonly SoundEffectService SoundEffects = soundEffects;
         public readonly StubBrickDatabase Bricks = bricks;
         public readonly EventInvoker<PlaceEvent> PlaceEvent = placeEvent;
         public readonly EventInvoker<BreakEvent> BreakEvent = breakEvent;
@@ -389,6 +459,21 @@ public class BrickSoundListenerTests
             var clips = new List<string>();
             Store.Query<AudioSource>(0f, (float _, DataStore _, int _, in AudioSource source) => clips.Add(source.ID));
             return clips;
+        }
+
+        public List<PlayedAudio> DrainPlayedAudio()
+        {
+            audioChannels.Tick(0f, Store);
+            var played = new List<PlayedAudio>();
+            Store.Query<AudioSource>(0f, (float _, DataStore dataStore, int entity, in AudioSource source) =>
+            {
+                bool hasSpatial = dataStore.TryGet(entity, out SpatialAudio _);
+                Vector3? position = dataStore.TryGet(entity, out TransformComponent transform)
+                    ? transform.Position
+                    : null;
+                played.Add(new PlayedAudio(source.ID, hasSpatial, position));
+            });
+            return played;
         }
 
         public long GetStatistic(string key)
