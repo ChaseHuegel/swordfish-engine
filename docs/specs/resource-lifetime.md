@@ -144,22 +144,26 @@ current. `DisposeManaged` frees the GL handles and the body filter before
 ## Jolt shape wrappers
 
 `JoltPhysicsSystem.TryGetJoltShape` creates managed wrappers for native Jolt
-shapes (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:239-303`). The wrappers are
+shapes (`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:321-384`). The wrappers are
 temporary. Jolt keeps its own reference after `SetShape` or `CreateBody`.
 
 The caller disposes the shape wrapper after `SetShape` and after `CreateBody`
-(`JoltPhysicsSystem.cs:420-424`, `:434-449`). A compound build builds a
+(`JoltPhysicsSystem.cs:502-505`, `:516-532`). A compound build builds a
 `StaticCompoundShape` (or an empty `MutableCompoundShape` when empty) and
 disposes the compound settings and each deduplicated child wrapper before it
-returns the compound wrapper (`JoltPhysicsSystem.cs:239-303`). A convex hull
+returns the compound wrapper (`JoltPhysicsSystem.cs:321-384`). A convex hull
 build disposes its `ConvexHullShapeSettings` before it returns
-(`JoltPhysicsSystem.cs:350-369`).
+(`JoltPhysicsSystem.cs:432-451`).
 
 ## Jolt bodies
 
 A created body is owned by its `PhysicsComponent`. `JoltPhysicsSystem` releases
-a removed body through `PhysicsComponentProcessor` before the solver runs. The
-release is idempotent and does not depend on a later tick.
+a removed body through `PhysicsComponentProcessor` before the solver runs
+(`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:198-201`, `:233`).
+`PhysicsComponent.Release` (`Swordfish/ECS/PhysicsComponent.cs:75-100`) sets the
+body `UserData` to `0` before `RemoveAndDestroyBody` so contact callbacks ignore
+freed or removed bodies. The release is idempotent and does not depend on a
+later tick.
 
 The store captures the removed component value when `Remove` or `Free` clears
 it. `QueryRemoved` reads that captured value, so a freed entity index that is

@@ -112,7 +112,7 @@ camera-facing quad in view space, preserves linear HDR values, and outputs
 - Asset loading: `Swordfish/IO/{AssetPaths,ParticleEffectDefinition,ParticleEffectDatabase}.cs`
 - Renderer, texture guard, and shader: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLParticleRenderer.cs`, `Swordfish/Graphics/SilkNET/OpenGL/GLRenderContext.cs:71-79,214-218`, `Swordfish/assets/shaders/particles.glsl`
 - Pipeline time uniform: [rendering-time](rendering-time.md)
-- Physics ignore-entity raycast: `Swordfish/Physics/IPhysics.cs:15`, `Swordfish/Physics/Jolt/{JoltPhysicsSystem.cs:118-135,JoltRaycastRequest.cs:1-80}`
+- Physics ignore-entity raycast: `Swordfish/Physics/IPhysics.cs:22`, `Swordfish/Physics/Jolt/{JoltPhysicsSystem.cs:123-140,JoltRaycastRequest.cs:1-80}`
 - Settings and DI wiring: `Swordfish/Settings/{ParticleSettings,RenderSettings}.cs`, `Swordfish/EngineContainer.cs:87-89,109-111,133,140`
 
 ## Tests that pin this

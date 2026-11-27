@@ -9,6 +9,13 @@ public interface IPhysics
 
     event EventHandler<EventArgs>? FixedUpdate;
 
+    /// <summary>Raised on the physics tick thread after a solver step for each resolved contact.</summary>
+    event Action<PhysicsContactEvent>? ContactResolved
+    {
+        add { }
+        remove { }
+    }
+
     RaycastResult Raycast(in Ray ray);
 
     /// <summary>Casts <paramref name="ray"/> against physics bodies while ignoring <paramref name="ignoreEntity"/> when non-negative.</summary>
