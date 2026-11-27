@@ -338,6 +338,52 @@ public class ParticleSystemTests
     }
 
     [Fact]
+    public void ParticleSystem_SkipsBurstQueueWhenParticlesDisabled()
+    {
+        var db = new DictionaryAssetDatabase<ParticleEffect>();
+        var settings = new RenderSettings();
+        var system = new ParticleSystem(db, settings, new Random(11));
+        ParticleEffect effect = CreateEffect(id: "spark", burstCount: 1, lifetimeMin: 10f, lifetimeMax: 10f);
+        db.Assets["spark"] = effect;
+        var store = new DataStore();
+
+        settings.Particles.Enabled.Set(false);
+
+        Assert.True(system.EmitBurst("spark", Vector3.Zero, Vector3.UnitY).Success);
+        system.EmitBurst(new ParticleBurstRequest(effect, Vector3.Zero, Vector3.UnitY, Count: 4));
+
+        settings.Particles.Enabled.Set(true);
+        system.Tick(0.016f, store);
+
+        Assert.Equal(0, system.ActiveParticleCount);
+    }
+
+    [Fact]
+    public void ParticleSystem_BoundsPendingBurstQueue()
+    {
+        var db = new DictionaryAssetDatabase<ParticleEffect>();
+        var settings = new RenderSettings();
+        var system = new ParticleSystem(db, settings, new Random(13));
+        ParticleEffect effect = CreateEffect(
+            id: "spark",
+            burstCount: 1,
+            maxParticles: ParticleSystem.MAX_PENDING_BURSTS + 32,
+            lifetimeMin: 10f,
+            lifetimeMax: 10f
+        );
+        var store = new DataStore();
+
+        for (var i = 0; i < ParticleSystem.MAX_PENDING_BURSTS + 32; i++)
+        {
+            system.EmitBurst(new ParticleBurstRequest(effect, Vector3.Zero, Vector3.UnitY, Count: 1));
+        }
+
+        system.Tick(0.016f, store);
+
+        Assert.Equal(ParticleSystem.MAX_PENDING_BURSTS, system.ActiveParticleCount);
+    }
+
+    [Fact]
     public void ParticleSystem_GroupsBatchesByTextureAndBlendModeAndSupportsClear()
     {
         var db = new DictionaryAssetDatabase<ParticleEffect>();
