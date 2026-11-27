@@ -941,12 +941,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         {
             string itemID = contents[i].ID;
             Result<Item> itemResult = _itemDatabase.Get(itemID);
-            if (!itemResult.Success || itemResult.Value.Placeable == null)
+            if (!itemResult.Success || !ItemPlaceables.IsBrickPlaceable(itemResult.Value))
             {
                 continue;
             }
 
-            Result<Brick> placeableBrickResult = _brickDatabase.Get(itemResult.Value.Placeable.Value.ID);
+            Result<Brick> placeableBrickResult = _brickDatabase.Get(itemResult.Value.Placeable!.Value.ID);
             if (placeableBrickResult.Success && placeableBrickResult.Value.DataID == brickID)
             {
                 return i;
@@ -965,7 +965,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_store);
-        if (mainHandResult.Success && mainHandResult.Value.Item.Tool?.Type == ToolType.Blueprint)
+        if (mainHandResult.Success
+            && (mainHandResult.Value.Item.Tool?.Type == ToolType.Blueprint
+                || ItemPlaceables.IsBlueprintPlaceable(mainHandResult.Value.Item)))
         {
             _debugInfo = default;
             HideInteractionVisuals();

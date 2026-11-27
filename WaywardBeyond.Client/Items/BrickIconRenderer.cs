@@ -10,6 +10,8 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 
@@ -124,6 +126,99 @@ internal sealed class BrickIconRenderer : IDisposable
                 }
 
                 rendered[brickIds[i]] = result.Value;
+            }
+        }
+        finally
+        {
+            for (var i = 0; i < meshes.Count; i++)
+            {
+                meshes[i].Dispose();
+            }
+        }
+
+        return rendered;
+    }
+
+    /// <summary>Renders isometric icons for all provided bundled blueprints in a single batched pass.</summary>
+    public Dictionary<string, Texture> RenderBlueprints(
+        IReadOnlyList<BlueprintSummary> summaries,
+        IBundledBlueprintDatabase bundledBlueprints,
+        IBrickRegistry brickRegistry,
+        IBrickDatabase brickDatabase,
+        RegionMeshBuilder regionMeshBuilder,
+        IPaintRegistry? paintRegistry = null
+    )
+    {
+        var rendered = new Dictionary<string, Texture>(summaries.Count, StringComparer.Ordinal);
+        if (summaries.Count == 0)
+        {
+            return rendered;
+        }
+
+        var blueprintIds = new List<string>(summaries.Count);
+        var meshes = new List<Mesh>(summaries.Count);
+        var requests = new List<OffscreenRenderRequest>(summaries.Count);
+
+        try
+        {
+            for (var i = 0; i < summaries.Count; i++)
+            {
+                string id = summaries[i].Id;
+                Result<BlueprintData> dataResult = bundledBlueprints.Get(id);
+                if (!dataResult.Success)
+                {
+                    continue;
+                }
+
+                VoxelRegionData encoded = dataResult.Value.ToRegion();
+                VoxelRegionData decoded = VoxelCodec.Decode(in encoded, brickRegistry, paintRegistry);
+                Result<VoxelMesh> meshResult = regionMeshBuilder.Build(in decoded);
+                if (!meshResult.Success)
+                {
+                    _logger.LogError(meshResult, "Failed to build icon mesh for blueprint \"{blueprint}\".", id);
+                    continue;
+                }
+
+                BrickAlpha alpha = RegionMeshBuilder.ResolveAlphaMode(in decoded, brickDatabase);
+                Mesh mesh = meshResult.Value.ToEngineMesh();
+                (Matrix4x4 view, Matrix4x4 projection) = ComputeIsometricCamera(mesh.Vertices);
+
+                blueprintIds.Add(id);
+                meshes.Add(mesh);
+                requests.Add(new OffscreenRenderRequest(
+                    name: $"blueprint_icon:{id}",
+                    mesh: mesh,
+                    material: _materials.GetMaterial(alpha),
+                    renderOptions: _materials.GetRenderOptions(alpha),
+                    model: Matrix4x4.Identity,
+                    view: view,
+                    projection: projection,
+                    width: ICON_SIZE,
+                    height: ICON_SIZE,
+                    clearColor: Vector4.Zero,
+                    samples: ICON_MSAA_SAMPLES,
+                    mipmaps: true,
+                    filter: TextureFilter.Linear,
+                    colorSpace: ColorSpace.Srgb
+                ));
+            }
+
+            if (requests.Count == 0)
+            {
+                return rendered;
+            }
+
+            Result<Texture>[] results = _offscreenRenderer.RenderBatchToTextures(CollectionsMarshal.AsSpan(requests));
+            for (var i = 0; i < results.Length; i++)
+            {
+                Result<Texture> result = results[i];
+                if (!result.Success)
+                {
+                    _logger.LogError(result, "Failed to render icon for blueprint \"{blueprint}\".", blueprintIds[i]);
+                    continue;
+                }
+
+                rendered[blueprintIds[i]] = result.Value;
             }
         }
         finally

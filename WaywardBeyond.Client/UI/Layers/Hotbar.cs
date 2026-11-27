@@ -141,7 +141,9 @@ internal sealed class Hotbar
         if (_inputService.IsKeyHeld(Key.Shift))
         {
             Result<global::WaywardBeyond.Items.ItemSlot> mainHand = _playerData.GetMainHand(_ecsContext.World.DataStore);
-            if (mainHand.Success && mainHand.Value.Item.Tool?.Type == ToolType.Blueprint)
+            if (mainHand.Success
+                && (mainHand.Value.Item.Tool?.Type == ToolType.Blueprint
+                    || ItemPlaceables.IsBlueprintPlaceable(mainHand.Value.Item)))
             {
                 return;
             }

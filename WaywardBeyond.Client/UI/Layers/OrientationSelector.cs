@@ -187,12 +187,12 @@ internal sealed class OrientationSelector : IUILayer, IActionIndicator
             return false;
         }
 
-        if (mainHandResult.Value.Item.Placeable == null)
+        if (!ItemPlaceables.IsBrickPlaceable(mainHandResult.Value.Item))
         {
             return false;
         }
 
-        PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
+        PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable!.Value;
         Result<Brick> brickInfoResult = _brickDatabase.Get(placeable.ID);
         if (!brickInfoResult.Success)
         {

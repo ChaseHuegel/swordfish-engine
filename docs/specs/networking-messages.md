@@ -214,12 +214,15 @@ ride the reliable send queue with every other server event.
 
 ## Region operations
 
-`WaywardBeyond.Data/Nsd/network.nsd:160-247` defines `PasteTargetKind`,
-`CutRegionRequest`, `PasteRegionRequest`, `RegionUploadPart`, `RegionOpResponse`,
-`VoxelRegionEditMessage`, `VoxelRegionEditPart`, and `VoxelEntitySpawnPart`.
+`WaywardBeyond.Data/Nsd/network.nsd:180-285` defines `PasteTargetKind`,
+`CutRegionRequest`, `PasteRegionRequest`, `PlaceBlueprintItemRequest`,
+`RegionUploadPart`, `RegionOpResponse`, `VoxelRegionEditMessage`,
+`VoxelRegionEditPart`, and `VoxelEntitySpawnPart`.
 Both `PasteRegionRequest` and `VoxelRegionEditMessage` inline flattened region
 dimensions, chunks, and palettes at the root to stay clear of the 65,535-byte
-nested sub-message limit. See [region-blueprints](region-blueprints.md).
+nested sub-message limit. `PlaceBlueprintItemRequest` sends only the target pose
+and transform because the server resolves the blueprint from the player's held
+item. See [region-blueprints](region-blueprints.md).
 
 ## Session heartbeats
 

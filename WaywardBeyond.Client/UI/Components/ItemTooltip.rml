@@ -43,6 +43,13 @@
                               height="14"
                               wrap="false" />
                     </If>
+                    <ElseIf condition="@context.IsBlueprint">
+                        <Text class="wb-tooltip-subtitle"
+                              text="@context.L('ui.label.item.kind.blueprint')"
+                              width="fit"
+                              height="14"
+                              wrap="false" />
+                    </ElseIf>
                     <ElseIf condition="@context.IsMiningTool">
                         <Text class="wb-tooltip-subtitle"
                               text="@context.L('ui.label.item.kind.miningTool')"

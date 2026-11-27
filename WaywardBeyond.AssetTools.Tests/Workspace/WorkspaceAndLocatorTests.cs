@@ -69,8 +69,13 @@ public sealed class WorkspaceAndLocatorTests : IDisposable
         Assert.Equal("missing", workspace.OrderedAlbedoLayerNames[0]);
         Assert.True(workspace.OrderedAlbedoLayerNames.Count > 20);
 
+        IReadOnlyList<InboundReference> panelRefs = workspace.GetInboundReferences("wb:panel");
+        Assert.Contains(panelRefs, static r => r.SourceKind == AssetKind.Item && r.FieldName == "Placeable.ID");
+
+        IReadOnlyList<InboundReference> coreBlueprintRefs = workspace.GetInboundReferences("builtin/core");
+        Assert.Contains(coreBlueprintRefs, static r => r.SourceKind == AssetKind.Item && r.SourceAssetId == "wb:core" && r.FieldName == "Placeable.ID");
+
         IReadOnlyList<InboundReference> coreRefs = workspace.GetInboundReferences("wb:core");
-        Assert.Contains(coreRefs, static r => r.SourceKind == AssetKind.Item && r.FieldName == "Placeable.ID");
         Assert.Contains(coreRefs, static r => r.SourceKind == AssetKind.Tag);
 
         var validator = new WorkspaceValidator();

@@ -11,6 +11,8 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Config;
+using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Items;
 using WaywardBeyond.Meshing;
@@ -28,7 +30,11 @@ internal sealed class PlayerViewModelSystem(
     in VoxelMaterials voxelMaterials,
     in InteractionState interactionState,
     in IInputService inputService,
-    GameplayConfig? gameplayConfig = null
+    GameplayConfig? gameplayConfig = null,
+    IBundledBlueprintDatabase? bundledBlueprints = null,
+    IBrickRegistry? brickRegistry = null,
+    RegionMeshBuilder? regionMeshBuilder = null,
+    IPaintRegistry? paintRegistry = null
 ) : IEntitySystem, IDisposable {
     private static readonly ViewModelAnimationProfile _drillAnimation = new(
         TriggerOnSecondary: true,
@@ -70,6 +76,10 @@ internal sealed class PlayerViewModelSystem(
     private readonly InteractionState _interactionState = interactionState;
     private readonly IInputService _inputService = inputService;
     private readonly GameplayConfig? _gameplayConfig = gameplayConfig;
+    private readonly IBundledBlueprintDatabase? _bundledBlueprints = bundledBlueprints;
+    private readonly IBrickRegistry? _brickRegistry = brickRegistry;
+    private readonly RegionMeshBuilder? _regionMeshBuilder = regionMeshBuilder;
+    private readonly IPaintRegistry? _paintRegistry = paintRegistry;
 
     private Entity? _viewModelEntity;
     private Uuid _viewModelUuid;
@@ -164,6 +174,29 @@ internal sealed class PlayerViewModelSystem(
                     options.CastShadows = false;
                     options.ReceiveShadows = true;
                     return new ResolvedVisuals(brickMesh.Value.ToEngineMesh(), _voxelMaterials.GetMaterial(brick.Alpha), options);
+                }
+            }
+        }
+
+        if (item.Placeable is { Type: PlaceableType.Blueprint } blueprintPlaceable
+            && _bundledBlueprints != null
+            && _brickRegistry != null
+            && _regionMeshBuilder != null)
+        {
+            Result<BlueprintData> blueprintResult = _bundledBlueprints.Get(blueprintPlaceable.ID);
+            if (blueprintResult.Success)
+            {
+                VoxelRegionData encoded = blueprintResult.Value.ToRegion();
+                VoxelRegionData decoded = VoxelCodec.Decode(in encoded, _brickRegistry, _paintRegistry);
+                Result<VoxelMesh> regionMesh = _regionMeshBuilder.Build(in decoded);
+                if (regionMesh.Success)
+                {
+                    VoxelMesh normalized = RegionMeshBuilder.NormalizeToUnitCube(in regionMesh.Value);
+                    BrickAlpha alpha = RegionMeshBuilder.ResolveAlphaMode(in decoded, _brickDatabase);
+                    RenderOptions options = _voxelMaterials.GetRenderOptions(alpha);
+                    options.CastShadows = false;
+                    options.ReceiveShadows = true;
+                    return new ResolvedVisuals(normalized.ToEngineMesh(), _voxelMaterials.GetMaterial(alpha), options);
                 }
             }
         }

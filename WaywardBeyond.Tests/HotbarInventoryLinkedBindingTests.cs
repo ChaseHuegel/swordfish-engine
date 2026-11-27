@@ -129,6 +129,54 @@ public class HotbarInventoryLinkedBindingTests
         }
     }
 
+    [Fact]
+    public void ShiftScrollDoesNotSwitchHotbarSlotWhileHoldingBlueprintPlaceable()
+    {
+        WaywardBeyond.Client.WaywardBeyond.GameState.Set(WaywardBeyond.Client.GameState.Playing);
+        try
+        {
+            var input = new FakeInputService();
+            var shortcuts = new ShortcutService(input, NullLogger.Instance);
+            var world = new World();
+            int player = world.DataStore.Alloc();
+            world.DataStore.AddOrUpdate(player, new PlayerComponent());
+            world.DataStore.AddOrUpdate(player, new InventoryComponent(45));
+            world.DataStore.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 2 });
+            world.DataStore.AddOrUpdate(player, new PendingInventoryComponent());
+
+            var items = new FakeItemDatabase(
+            [
+                new Item("wb:core", "Core", null, 1, new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" }, null, null, null),
+            ]);
+            var icons = new ItemIconDatabase(NullLogger<ItemIconDatabase>.Instance, new StubFileParseService(), new StubTextureDatabase(), items);
+            var playerData = new PlayerData(items);
+            playerData.MutateInventory(world.DataStore, (ref InventoryComponent inventory) =>
+            {
+                inventory.Contents![2] = new ItemData("wb:core", 1, 1);
+            });
+            var ecs = new TestEcsContext(world);
+            var motionProcessor = new ClientPlayerMotionProcessor(input, new FakeWindowContext(), new FakePhysics(), new EventInvoker<PlayerMovedEvent>([]));
+            var interactionState = new InteractionState(motionProcessor);
+            var controlSettings = new ControlSettings();
+
+            _ = new Hotbar(shortcuts, input, icons, playerData, ecs, interactionState, controlSettings);
+
+            //  Shift+Scroll must be reserved for blueprint free-space distance adjustment, not hotbar cycling.
+            input.HeldKeys.Add(Key.Shift);
+            input.Scrolled?.Invoke(input, new ScrolledEventArgs(1f));
+            Assert.Equal(2, playerData.GetActiveSlot(world.DataStore).Value);
+
+            //  Plain scroll without Shift still cycles the hotbar slot normally.
+            input.HeldKeys.Remove(Key.Shift);
+            input.Scrolled?.Invoke(input, new ScrolledEventArgs(1f));
+            Assert.Equal(1, playerData.GetActiveSlot(world.DataStore).Value);
+        }
+        finally
+        {
+            WaywardBeyond.Client.WaywardBeyond.GameState.Set(WaywardBeyond.Client.GameState.MainMenu);
+        }
+    }
+
     private sealed class StubLocalizedTagsDatabase : ILocalizedTagsDatabase
     {
         public LocalizedTags? Invariant { get; } = new(new Dictionary<string, List<string>>());

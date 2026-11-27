@@ -55,6 +55,7 @@ internal sealed class ControlHints : IUILayer
     private HintViewState _regionEmbedHint;
     private HintViewState _regionRadialHint;
     private HintViewState _regionLibraryHint;
+    private HintViewState _blueprintPlaceHint;
     private HintViewState _inventoryHint;
     private HintViewState _inventoryMoveHint;
     private HintViewState _inventorySplitHint;
@@ -65,6 +66,7 @@ internal sealed class ControlHints : IUILayer
     private HintViewState _skillsCloseHint;
     private List<HintViewState> _projectorSelectHints = [];
     private List<HintViewState> _projectorPasteHints = [];
+    private List<HintViewState> _blueprintPlaceableHints = [];
     private int _hintsDirty = 1;
 
     /// <summary>Initializes a new instance of the <see cref="ControlHints"/> class.</summary>
@@ -124,13 +126,18 @@ internal sealed class ControlHints : IUILayer
         else
         {
             Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
-            bool holdingPlaceable = mainHandResult.Success && mainHandResult.Value.Item.Placeable != null;
+            bool holdingBrickPlaceable = mainHandResult.Success && ItemPlaceables.IsBrickPlaceable(mainHandResult.Value.Item);
+            bool holdingBlueprintPlaceable = mainHandResult.Success && ItemPlaceables.IsBlueprintPlaceable(mainHandResult.Value.Item);
             bool holdingProjector = mainHandResult.Success && mainHandResult.Value.Item.Tool?.Type == ToolType.Blueprint;
             if (holdingProjector)
             {
                 hints = BuildProjectorHints();
             }
-            else if (holdingPlaceable)
+            else if (holdingBlueprintPlaceable)
+            {
+                hints = _blueprintPlaceableHints;
+            }
+            else if (holdingBrickPlaceable)
             {
                 hints = BuildPlaceableHints();
             }
@@ -181,6 +188,7 @@ internal sealed class ControlHints : IUILayer
         _regionEmbedHint = CreateDynamicHint(GameShortcuts.SNAP_PLACEMENT, "ui.hint.region.embed", "Shift");
         _regionRadialHint = new HintViewState("R", GetHintAction("ui.hint.region.radial"));
         _regionLibraryHint = new HintViewState("B", GetHintAction("ui.hint.region.library"));
+        _blueprintPlaceHint = CreateDynamicHint(GameShortcuts.PRIMARY_ACTION, "ui.hint.blueprint.place", "LMB");
         _inventoryHint = CreateDynamicHint(GameShortcuts.INVENTORY, "ui.hint.inventory.toggle", "Tab");
 
         _inventoryMoveHint = CreateDynamicHint(GameShortcuts.INVENTORY_MOVE_STACK, "ui.hint.inventory.move", "LMB");
@@ -213,6 +221,18 @@ internal sealed class ControlHints : IUILayer
             _regionDistanceHint,
             _regionRadialHint,
             _regionLibraryHint,
+        ];
+
+        _blueprintPlaceableHints =
+        [
+            _blueprintPlaceHint,
+            _regionRotateHint,
+            _regionMirrorHint,
+            _regionEmbedHint,
+            _regionDistanceHint,
+            _inventoryHint,
+            _skillsHint,
+            _feedbackHint,
         ];
     }
 

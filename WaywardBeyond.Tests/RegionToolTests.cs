@@ -368,6 +368,81 @@ public class RegionToolTests
         public Result RenderUI(double delta, Reef.UIBuilder<Material> ui) => Result.FromSuccess();
     }
 
+    [Fact]
+    public void BlueprintPlaceableItemSupportsTransformsPreviewAndBlocksLibraryAndRegionTools()
+    {
+        using var dir = new TempDirectory();
+        using var harness = new Harness(dir.Path);
+
+        //  Seed projector clipboard first to verify holding a blueprint item preserves it.
+        VoxelRegionData encoded = CreateEncodedTwoBrickRegion(harness.BrickRegistry);
+        harness.ToolState.SetClipboard(in encoded, brickCount: 2, name: "SavedShip", enterPasteMode: true);
+        int clipboardRevision = harness.ToolState.ClipboardRevision;
+
+        //  Equip the blueprint placeable item in slot 3 and tick in Adventure mode.
+        harness.SetGameMode(GameMode.Adventure);
+        harness.SelectCoreItemSlot();
+
+        ClientHost.GameState.Set(ClientGameState.Playing);
+        try
+        {
+            harness.ToolService.Tick(1f / 60f, harness.World.DataStore);
+
+            Assert.True(harness.ToolState.IsBlueprintItemActive);
+            Assert.True(harness.ToolState.TryGetPreviewPlacement(
+                out bool valid,
+                out PasteTargetKind targetKind,
+                out _,
+                out _,
+                out Int3 size,
+                out _,
+                out _,
+                out _));
+            Assert.True(valid);
+            Assert.Equal(PasteTargetKind.NewStructure, targetKind);
+            Assert.Equal(new Int3(2, 1, 1), size);
+
+            //  Region radial and Blueprint Library are blocked while holding a blueprint item.
+            Assert.False(harness.Radial.Available);
+            harness.Library.Open();
+            Assert.False(((IUILayer)harness.Library).IsVisible());
+
+            //  Rotate yaw rotates the held blueprint from 2x1x1 to 1x1x2 without modifying projector clipboard rotation.
+            harness.ToolService.QueueAction(RegionToolAction.RotateYaw);
+            harness.ToolService.Tick(1f / 60f, harness.World.DataStore);
+            Assert.True(harness.ToolState.TryGetPreviewPlacement(out _, out _, out _, out _, out Int3 rotatedSize, out _, out _, out _));
+            Assert.Equal(new Int3(1, 1, 2), rotatedSize);
+            Assert.Equal(Orientation.Identity, harness.ToolState.PasteRotation);
+
+            //  Mirroring applies to the held blueprint without affecting projector paste mirror.
+            harness.ToolService.QueueAction(RegionToolAction.MirrorHorizontal);
+            harness.ToolService.Tick(1f / 60f, harness.World.DataStore);
+            Assert.NotEqual(MirrorAxes.None, harness.ToolState.ActivePlacementMirror);
+            Assert.Equal(MirrorAxes.None, harness.ToolState.PasteMirror);
+
+            //  Projector-only actions (Copy, Cut, TogglePasteMode, ToggleOverwriteAir) are ignored while holding blueprint item.
+            bool overwriteBefore = harness.ToolState.OverwriteAir;
+            harness.ToolService.QueueAction(RegionToolAction.ToggleOverwriteAir);
+            harness.ToolService.QueueAction(RegionToolAction.TogglePasteMode);
+            harness.ToolService.QueueAction(RegionToolAction.Copy);
+            harness.ToolService.Tick(1f / 60f, harness.World.DataStore);
+            Assert.Equal(overwriteBefore, harness.ToolState.OverwriteAir);
+            Assert.Equal(clipboardRevision, harness.ToolState.ClipboardRevision);
+
+            //  Switching back to projector restores the untouched projector clipboard.
+            harness.SelectProjectorSlot();
+            harness.ToolService.Tick(1f / 60f, harness.World.DataStore);
+            Assert.False(harness.ToolState.IsBlueprintItemActive);
+            Assert.True(harness.ToolState.HasClipboard);
+            Assert.Equal("SavedShip", harness.ToolState.ClipboardName);
+            Assert.Equal(RegionToolMode.Paste, harness.ToolState.Mode);
+        }
+        finally
+        {
+            ClientHost.GameState.Set(ClientGameState.MainMenu);
+        }
+    }
+
     private static VoxelRegionData CreateEncodedTwoBrickRegion(IBrickRegistry registry)
     {
         var obj = new VoxelObject(16);
@@ -420,7 +495,32 @@ public class RegionToolTests
                 tool: new ToolDefinition { Type = ToolType.Blueprint },
                 viewModel: null,
                 worldModel: null);
-            var itemDb = new FakeItemDatabase([projectorItem]);
+            var coreItem = new Item(
+                "wb:core",
+                "Core",
+                "",
+                1,
+                placeable: new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" },
+                tool: null,
+                viewModel: null,
+                worldModel: null);
+            var itemDb = new FakeItemDatabase([projectorItem, coreItem]);
+            VoxelRegionData encodedCore = CreateEncodedTwoBrickRegion(BrickRegistry);
+            var bundledBlueprints = new FakeBundledBlueprintDatabase();
+            bundledBlueprints.Add(
+                "builtin/core",
+                new BlueprintData(
+                    new WaywardBeyond.Data.Version(DataVersion.CURRENT, "Wayward Beyond", "Blueprint"),
+                    "Core",
+                    0,
+                    0,
+                    2,
+                    2,
+                    1,
+                    1,
+                    encodedCore.Chunks,
+                    encodedCore.BrickPalette,
+                    encodedCore.PaintPalette));
 
             PlayerData = new PlayerData(itemDb);
             _player = World.DataStore.Alloc();
@@ -429,6 +529,7 @@ public class RegionToolTests
             World.DataStore.AddOrUpdate(_player, new GameModeComponent(GameMode.Creative));
             var inv = new InventoryComponent(36);
             inv.Contents[2] = new ItemData("wb:projector", 1, 1);
+            inv.Contents[3] = new ItemData("wb:core", 1, 1);
             World.DataStore.AddOrUpdate(_player, inv);
             World.DataStore.AddOrUpdate(_player, new EquipmentComponent { ActiveInventorySlot = 0 });
 
@@ -471,7 +572,8 @@ public class RegionToolTests
                 BrickDatabase,
                 Notifications,
                 Formatter,
-                NullLogger<RegionToolService>.Instance);
+                NullLogger<RegionToolService>.Instance,
+                bundledBlueprints: bundledBlueprints);
 
             Library = new BlueprintLibraryLayer(
                 Shortcuts,
@@ -483,7 +585,8 @@ public class RegionToolTests
                 Notifications,
                 Formatter,
                 localization,
-                NullLogger<BlueprintLibraryLayer>.Instance);
+                NullLogger<BlueprintLibraryLayer>.Instance,
+                bundledBlueprints: bundledBlueprints);
 
             Radial = new RegionToolRadial(
                 Shortcuts,
@@ -499,6 +602,10 @@ public class RegionToolTests
         }
 
         public void SelectProjectorSlot() => PlayerData.SetActiveSlot(World.DataStore, 2);
+
+        public void SelectCoreItemSlot() => PlayerData.SetActiveSlot(World.DataStore, 3);
+
+        public void SetGameMode(GameMode mode) => World.DataStore.AddOrUpdate(_player, new GameModeComponent(mode));
 
         public void FlushNotifications() => _windowContext.Update?.Invoke(0.016d);
 
@@ -616,5 +723,16 @@ public class RegionToolTests
         public string? GetString(string value, string cultureName) => GetString(value);
 
         public string? GetString(string value, System.Globalization.CultureInfo cultureInfo) => GetString(value);
+    }
+
+    private sealed class FakeBundledBlueprintDatabase : IBundledBlueprintDatabase
+    {
+        private readonly Dictionary<string, BlueprintData> _blueprints = new(StringComparer.Ordinal);
+        public void Add(string id, BlueprintData data) => _blueprints[id] = data;
+        public IReadOnlyList<BlueprintSummary> ListSummaries() => [];
+        public Result<BlueprintData> Get(string id) =>
+            _blueprints.TryGetValue(id, out BlueprintData data)
+                ? Result<BlueprintData>.FromSuccess(data)
+                : Result<BlueprintData>.FromFailure("Unknown blueprint");
     }
 }

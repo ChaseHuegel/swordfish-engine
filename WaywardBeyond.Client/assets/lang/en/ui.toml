@@ -327,6 +327,7 @@
 "ui.message.skill.empty" = "No skills available"
 
 "ui.label.item.kind.brick" = "Brick"
+"ui.label.item.kind.blueprint" = "Blueprint"
 "ui.label.item.kind.miningTool" = "Mining tool"
 "ui.label.item.kind.conversionTool" = "Conversion tool"
 "ui.label.item.kind.paintTool" = "Paint tool"
@@ -391,6 +392,7 @@
 "ui.hint.region.embed" = "Embed at cell"
 "ui.hint.region.radial" = "Actions"
 "ui.hint.region.library" = "Blueprints"
+"ui.hint.blueprint.place" = "Place"
 "ui.hint.inventory.toggle" = "Inventory"
 "ui.hint.inventory.move" = "Move / stack"
 "ui.hint.inventory.split" = "Split half"

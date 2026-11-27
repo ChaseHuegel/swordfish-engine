@@ -36,6 +36,15 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
     private int _clipboardRevision;
     private string _clipboardName = string.Empty;
 
+    private bool _hasHeldBlueprint;
+    private string _heldBlueprintItemId = string.Empty;
+    private string _heldBlueprintId = string.Empty;
+    private VoxelRegionData _heldBlueprintRegion;
+    private int _heldBlueprintRevision;
+    private Orientation _heldBlueprintRotation = Orientation.Identity;
+    private MirrorAxes _heldBlueprintMirror = MirrorAxes.None;
+    private int _nextRevision;
+
     private Orientation _pasteRotation = Orientation.Identity;
     private MirrorAxes _pasteMirror = MirrorAxes.None;
     private bool _overwriteAir;
@@ -58,6 +67,11 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
     private MirrorAxes _cachedMirror;
     private VoxelRegionData _cachedTransformed;
 
+    private int _heldCachedRevision = -1;
+    private Orientation _heldCachedRotation;
+    private MirrorAxes _heldCachedMirror;
+    private VoxelRegionData _heldCachedTransformed;
+
     /// <summary>Active sub-mode (Select or Paste).</summary>
     public RegionToolMode Mode
     {
@@ -68,6 +82,12 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
     public bool HasClipboard
     {
         get { lock (_gate) return _hasClipboard; }
+    }
+
+    /// <summary>True when a held blueprint placeable item is actively driving prefab placement.</summary>
+    public bool IsBlueprintItemActive
+    {
+        get { lock (_gate) return _hasHeldBlueprint; }
     }
 
     /// <summary>Monotonically incremented whenever the clipboard content changes.</summary>
@@ -88,16 +108,28 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
         get { lock (_gate) return _clipboardName; }
     }
 
-    /// <summary>Current 90-degree paste rotation.</summary>
+    /// <summary>Current 90-degree paste rotation for the projector clipboard.</summary>
     public Orientation PasteRotation
     {
         get { lock (_gate) return _pasteRotation; }
     }
 
-    /// <summary>Current mirror axes mask applied before paste rotation.</summary>
+    /// <summary>Current mirror axes mask applied before paste rotation for the projector clipboard.</summary>
     public MirrorAxes PasteMirror
     {
         get { lock (_gate) return _pasteMirror; }
+    }
+
+    /// <summary>Current 90-degree rotation for whichever placement source is active (blueprint item or projector clipboard).</summary>
+    public Orientation ActivePlacementRotation
+    {
+        get { lock (_gate) return _hasHeldBlueprint ? _heldBlueprintRotation : _pasteRotation; }
+    }
+
+    /// <summary>Current mirror axes mask for whichever placement source is active (blueprint item or projector clipboard).</summary>
+    public MirrorAxes ActivePlacementMirror
+    {
+        get { lock (_gate) return _hasHeldBlueprint ? _heldBlueprintMirror : _pasteMirror; }
     }
 
     /// <summary>When true, air cells inside the pasted region overwrite existing bricks on target structures.</summary>
@@ -247,7 +279,7 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
             _clipboardBrickCount = brickCount;
             _clipboardName = name ?? string.Empty;
             _hasClipboard = region.SizeX > 0 && region.SizeY > 0 && region.SizeZ > 0 && brickCount > 0;
-            _clipboardRevision++;
+            _clipboardRevision = ++_nextRevision;
             _cachedRevision = -1;
             _pasteRotation = Orientation.Identity;
             _pasteMirror = MirrorAxes.None;
@@ -255,6 +287,59 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
             {
                 _mode = RegionToolMode.Paste;
             }
+        }
+    }
+
+    /// <summary>Returns whether the active held blueprint item matches <paramref name="itemId"/> and <paramref name="blueprintId"/>.</summary>
+    public bool MatchesHeldBlueprint(string itemId, string blueprintId)
+    {
+        lock (_gate)
+        {
+            return _hasHeldBlueprint
+                && string.Equals(_heldBlueprintItemId, itemId, StringComparison.Ordinal)
+                && string.Equals(_heldBlueprintId, blueprintId, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>Activates prefab placement state for a held blueprint placeable item without disturbing the projector clipboard.</summary>
+    public void SetHeldBlueprint(string itemId, string blueprintId, in VoxelRegionData region)
+    {
+        lock (_gate)
+        {
+            if (_hasHeldBlueprint
+                && string.Equals(_heldBlueprintItemId, itemId, StringComparison.Ordinal)
+                && string.Equals(_heldBlueprintId, blueprintId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _heldBlueprintItemId = itemId;
+            _heldBlueprintId = blueprintId;
+            _heldBlueprintRegion = region;
+            _hasHeldBlueprint = region.SizeX > 0 && region.SizeY > 0 && region.SizeZ > 0;
+            _heldBlueprintRevision = ++_nextRevision;
+            _heldCachedRevision = -1;
+            _heldBlueprintRotation = Orientation.Identity;
+            _heldBlueprintMirror = MirrorAxes.None;
+        }
+    }
+
+    /// <summary>Clears active held blueprint item placement state without modifying the projector clipboard.</summary>
+    public void ClearHeldBlueprint()
+    {
+        lock (_gate)
+        {
+            if (!_hasHeldBlueprint)
+            {
+                return;
+            }
+
+            _hasHeldBlueprint = false;
+            _heldBlueprintItemId = string.Empty;
+            _heldBlueprintId = string.Empty;
+            _heldBlueprintRegion = default;
+            _heldCachedRevision = -1;
+            _previewVisible = false;
         }
     }
 
@@ -300,31 +385,51 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
         }
     }
 
-    /// <summary>Rotates the paste preview by 90 degrees around the local Y axis (yaw).</summary>
+    /// <summary>Rotates the active placement preview by 90 degrees around the local Y axis (yaw).</summary>
     public void RotateYaw(int steps = 1)
     {
         lock (_gate)
         {
             Quaternion step = Quaternion.CreateFromAxisAngle(Vector3.UnitY, steps * (MathF.PI * 0.5f));
-            _pasteRotation = new Orientation(step * _pasteRotation.ToQuaternion());
+            if (_hasHeldBlueprint)
+            {
+                _heldBlueprintRotation = new Orientation(step * _heldBlueprintRotation.ToQuaternion());
+            }
+            else
+            {
+                _pasteRotation = new Orientation(step * _pasteRotation.ToQuaternion());
+            }
         }
     }
 
-    /// <summary>Rotates the paste preview by 90 degrees around the local X axis (pitch).</summary>
+    /// <summary>Rotates the active placement preview by 90 degrees around the local X axis (pitch).</summary>
     public void RotatePitch(int steps = 1)
     {
         lock (_gate)
         {
             Quaternion step = Quaternion.CreateFromAxisAngle(Vector3.UnitX, steps * (MathF.PI * 0.5f));
-            _pasteRotation = new Orientation(step * _pasteRotation.ToQuaternion());
+            if (_hasHeldBlueprint)
+            {
+                _heldBlueprintRotation = new Orientation(step * _heldBlueprintRotation.ToQuaternion());
+            }
+            else
+            {
+                _pasteRotation = new Orientation(step * _pasteRotation.ToQuaternion());
+            }
         }
     }
 
-    /// <summary>Flips the mirror bit(s) for the requested axis/axes.</summary>
+    /// <summary>Flips the mirror bit(s) for the requested axis/axes on the active placement preview.</summary>
     public MirrorAxes ToggleMirror(MirrorAxes axis)
     {
         lock (_gate)
         {
+            if (_hasHeldBlueprint)
+            {
+                _heldBlueprintMirror ^= axis;
+                return _heldBlueprintMirror;
+            }
+
             _pasteMirror ^= axis;
             return _pasteMirror;
         }
@@ -400,6 +505,44 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
         }
     }
 
+    /// <summary>Returns the cached transformed region for whichever placement source is active (held blueprint item or projector clipboard).</summary>
+    public bool TryGetActivePlacementRegion(
+        IBrickDatabase? brickDatabase,
+        out VoxelRegionData transformed,
+        out int revision,
+        out Orientation rotation,
+        out MirrorAxes mirror
+    )
+    {
+        lock (_gate)
+        {
+            if (_hasHeldBlueprint)
+            {
+                if (_heldCachedRevision != _heldBlueprintRevision
+                    || _heldCachedRotation != _heldBlueprintRotation
+                    || _heldCachedMirror != _heldBlueprintMirror)
+                {
+                    _heldCachedTransformed = VoxelRegionTransform.Transform(
+                        in _heldBlueprintRegion,
+                        _heldBlueprintRotation,
+                        _heldBlueprintMirror,
+                        brickDatabase);
+                    _heldCachedRevision = _heldBlueprintRevision;
+                    _heldCachedRotation = _heldBlueprintRotation;
+                    _heldCachedMirror = _heldBlueprintMirror;
+                }
+
+                transformed = _heldCachedTransformed;
+                revision = _heldBlueprintRevision;
+                rotation = _heldBlueprintRotation;
+                mirror = _heldBlueprintMirror;
+                return true;
+            }
+        }
+
+        return TryGetTransformedClipboard(brickDatabase, out transformed, out revision, out rotation, out mirror);
+    }
+
     /// <summary>Publishes the resolved paste placement pose computed by <see cref="RegionToolService"/>.</summary>
     public void SetPreviewPlacement(
         bool visible,
@@ -466,7 +609,7 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
         }
     }
 
-    /// <summary>Clears world-bound selection and preview on disconnect while preserving the player's clipboard.</summary>
+    /// <summary>Clears world-bound selection, held blueprint state, and preview on disconnect while preserving the player's clipboard.</summary>
     public void ResetTransientOnDisconnect()
     {
         lock (_gate)
@@ -477,6 +620,11 @@ internal sealed class RegionToolState(GameplayConfig? gameplayConfig = null)
             _anchorA = default;
             _anchorB = default;
             _mode = RegionToolMode.Select;
+            _hasHeldBlueprint = false;
+            _heldBlueprintItemId = string.Empty;
+            _heldBlueprintId = string.Empty;
+            _heldBlueprintRegion = default;
+            _heldCachedRevision = -1;
             _previewVisible = false;
         }
     }

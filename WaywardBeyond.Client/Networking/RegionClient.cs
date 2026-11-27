@@ -36,6 +36,23 @@ internal sealed class RegionClient(ClientRpcHost host, ILogger<RegionClient> log
             .ConfigureAwait(false);
     }
 
+    /// <summary>Requests that the server place the player's currently held blueprint placeable item.</summary>
+    public async Task<RpcResult<RegionOpResponse>> PlaceBlueprintItemAsync(
+        PlaceBlueprintItemRequest request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        GameServerApiClient? api = _host.Api;
+        if (api == null)
+        {
+            return RpcResult<RegionOpResponse>.Failure(GameRpcErrors.NOT_JOINED, "client is not connected");
+        }
+
+        return await api
+            .PlaceBlueprintItemAsync(request, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     /// <summary>Fragments and uploads a region paste or spawn request sequentially to the server.</summary>
     public async Task<RpcResult<RegionOpResponse>> PasteRegionAsync(
         PasteRegionRequest request,

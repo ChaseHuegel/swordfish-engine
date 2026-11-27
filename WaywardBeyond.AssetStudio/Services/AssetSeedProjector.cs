@@ -934,6 +934,16 @@ internal static class AssetSeedProjector
 
             var (paletteItems, references, brickPaletteCount, paintPaletteCount, legacyRawIdCount, solidVoxelCount) =
                 ExtractBlueprintPalette(workspace, relativeId, in bp);
+            var inboundBlueprintRefs = workspace.GetInboundReferences(relativeId);
+            for (var r = 0; r < inboundBlueprintRefs.Count; r++)
+            {
+                var inbound = inboundBlueprintRefs[r];
+                references.Add(new InboundReferenceItem(
+                    SourceAssetId: inbound.SourceAssetId,
+                    SourceKind: ToStudioAssetKind(inbound.SourceKind),
+                    FieldPath: inbound.FieldName,
+                    SourceFile: ComputeRelativeFile(workspace, inbound.SourceFilePath)));
+            }
             var effectiveBrickCount = bp.BrickCount > 0 ? bp.BrickCount : solidVoxelCount;
             var brickCountLabel = FormatBlueprintBrickCountLabel(
                 effectiveBrickCount,
@@ -1033,6 +1043,25 @@ internal static class AssetSeedProjector
                 ReferenceResolutionState.Resolved,
                 p.ProviderRootName,
                 p.RelativePath));
+        }
+
+        var sortedBlueprints = new List<KeyValuePair<string, string>>(workspace.WinningBlueprintFiles);
+        sortedBlueprints.Sort(static (left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Key, right.Key));
+        for (var i = 0; i < sortedBlueprints.Count; i++)
+        {
+            var blueprintId = sortedBlueprints[i].Key;
+            var fullPath = sortedBlueprints[i].Value;
+            var ownerRoot = FindOwningRoot(workspace, fullPath);
+            var prov = studioMode == WorkspaceMode.Repo
+                ? AssetProvenance.Repo
+                : (ownerRoot.HasValue && ownerRoot.Value.IsWritable ? AssetProvenance.Pack : AssetProvenance.Base);
+            list.Add(new ReferenceCandidate(
+                blueprintId,
+                ReferenceKind.BlueprintId,
+                prov,
+                ReferenceResolutionState.Resolved,
+                ownerRoot.HasValue ? ownerRoot.Value.Name : "workspace",
+                ComputeRelativeFile(workspace, fullPath)));
         }
 
         foreach (var mat in workspace.GetWinningAssetsByKind(ToolsWorkspace.AssetKind.Material))

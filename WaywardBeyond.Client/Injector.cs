@@ -425,7 +425,7 @@ public class Injector : IDryIocInjector
             Reuse.Singleton
         );
         container.Register<BrickPreviewMeshBuilder>(Reuse.Singleton);
-        container.Register<RegionMeshBuilder>(Reuse.Singleton);
+        container.Register<RegionMeshBuilder>(Reuse.Transient);
         container.Register<RegionPreviewMeshBuilder>(Reuse.Singleton);
         container.Register<BrickPreviewState>(Reuse.Singleton);
         container.Register<BrickPreviewSystem>(Reuse.Singleton);

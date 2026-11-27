@@ -396,7 +396,7 @@ public sealed class StudioIssueRegressionTests
             Assert.Equal(["none", "convert", "mining", "sprayer", "drill", "blueprint"], drillItem.ItemToolTypeField!.Choices);
             Assert.DoesNotContain("laser", drillItem.ItemToolTypeField.Choices);
             Assert.DoesNotContain("projector", drillItem.ItemToolTypeField.Choices);
-            Assert.Equal(["none", "brick"], drillItem.ItemPlaceableTypeField!.Choices);
+            Assert.Equal(["none", "brick", "blueprint"], drillItem.ItemPlaceableTypeField!.Choices);
 
             // #20 Material Shader dropdown populated dynamically from workspace shaders (not stale unlit/emissive!)
             Assert.True(vm.SelectAsset(AssetKind.Material, "bricks/glass"));
@@ -1795,6 +1795,121 @@ public sealed class StudioIssueRegressionTests
             Assert.Equal(Path.GetFullPath(itemsTexDir), Path.GetFullPath(fakePicker.RequestedStartDirectories[1]!));
             Assert.Equal("caution_panel", variantsField.Value);
             Assert.False(variantsField.IsDanger);
+
+            packService.MarkCleanShutdown();
+        }
+        finally
+        {
+            CleanupTempDirectory(tempRoot);
+        }
+    }
+
+    /// <summary>
+    ///     #916: Verifies blueprint placeable items adapt Placeable ID field mode, round-trip TOML cleanly, and resolve 3D previews.
+    /// </summary>
+    [AvaloniaFact]
+    public void BlueprintPlaceableItems_AdaptFieldModeRoundTripTomlAndResolve3DPreview()
+    {
+        var repoRoot = FindRepoRoot();
+        var tempRoot = CreateTempDirectory("blueprint-placeable");
+        try
+        {
+            // Part A: Real repo verifies wb:core loads as PlaceableType.Blueprint with BlueprintId candidates and 3D preview.
+            var repoDataPaths = CreateIsolatedDataPaths(Path.Combine(tempRoot, "repo-data"));
+            var repoService = new AssetToolsStudioWorkspaceService(repoDataPaths);
+            var repoPreview = new StudioGlPreviewController();
+            using var repoVm = new MainWindowViewModel(
+                repoService,
+                repoPreview,
+                startOnWelcomeScreen: false,
+                enableLiveGlViewport: false,
+                initialWorkspacePath: repoRoot);
+
+            Assert.True(repoVm.SelectAsset(AssetKind.Item, "wb:core"));
+            var coreItem = repoVm.SelectedAsset!;
+            Assert.Equal("blueprint", coreItem.ItemPlaceableTypeField!.Value);
+            Assert.Equal("builtin/core", coreItem.ItemPlaceableIdField!.Value);
+            Assert.Equal(ReferenceKind.BlueprintId, coreItem.ItemPlaceableIdField.ReferenceKind);
+            Assert.Equal("Target Blueprint ID", coreItem.ItemPlaceableIdField.Label);
+            Assert.False(coreItem.ItemPlaceableIdField.IsDanger);
+            Assert.Contains(coreItem.ItemPlaceableIdField.FilteredCandidates, c => string.Equals(c.Value, "builtin/core", StringComparison.Ordinal));
+            var resolvedVisual = repoPreview.ResolveItemModelVisual(coreItem, isWorldModel: false, WaywardBeyond.Bricks.BrickShape.Block);
+            Assert.False(resolvedVisual.IsPlaceholder);
+            Assert.True(resolvedVisual.Geometry.Vertices.Length > 0);
+            Assert.Contains("builtin/core", resolvedVisual.SourceLabel, StringComparison.Ordinal);
+
+            // Real repo builtin/core blueprint shows inbound reference from wb:core item.
+            Assert.True(repoVm.SelectAsset(AssetKind.Blueprint, "builtin/core"));
+            var coreBp = repoVm.SelectedAsset!;
+            Assert.Contains(coreBp.InboundReferences, r => r.SourceKind == AssetKind.Item && r.SourceAssetId == "wb:core");
+
+            repoService.MarkCleanShutdown();
+
+            // Part B: Pack workspace tests switching none -> blueprint -> brick -> none with lossless TOML saves.
+            var packDataPaths = CreateIsolatedDataPaths(Path.Combine(tempRoot, "pack-data"));
+            var packDir = Path.Combine(tempRoot, "bp_item_pack");
+            var packService = new AssetToolsStudioWorkspaceService(packDataPaths);
+            Assert.True(packService.CreatePackWorkspace(packDir, "bp_item_pack", "bip", "BP Item Pack", "Tester").Success);
+
+            var bpDestDir = Path.Combine(packDir, "assets", "blueprints", "builtin");
+            Directory.CreateDirectory(bpDestDir);
+            File.Copy(
+                Path.Combine(repoRoot, "WaywardBeyond.Items", "assets", "blueprints", "builtin", "core.wbp"),
+                Path.Combine(bpDestDir, "core.wbp"),
+                overwrite: true);
+
+            File.WriteAllText(
+                Path.Combine(packDir, "assets", "bricks", "panel.toml"),
+                "[[Bricks]]\nID = \"bip:panel\"\nName = \"brick.bip.panel\"\nAlpha = \"Opaque\"\nShape = \"Block\"\n");
+            var itemPath = Path.Combine(packDir, "assets", "items", "beacon.toml");
+            File.WriteAllText(
+                itemPath,
+                "# Keep beacon comment\n[[Items]]\nID = \"bip:beacon\"\nName = \"item.bip.beacon\"\nMaxStack = 4\n");
+
+            using var packVm = new MainWindowViewModel(
+                packService,
+                new StudioGlPreviewController(),
+                startOnWelcomeScreen: false,
+                enableLiveGlViewport: false,
+                initialWorkspacePath: packDir);
+
+            Assert.True(packVm.SelectAsset(AssetKind.Item, "bip:beacon"));
+            var beacon = packVm.SelectedAsset!;
+            Assert.Equal("none", beacon.ItemPlaceableTypeField!.Value);
+
+            // Switch to blueprint -> Placeable ID switches to BlueprintId mode and saves [Items.Placeable].
+            beacon.ItemPlaceableTypeField.Value = "blueprint";
+            Assert.Equal(ReferenceKind.BlueprintId, beacon.ItemPlaceableIdField!.ReferenceKind);
+            Assert.Equal("Target Blueprint ID", beacon.ItemPlaceableIdField.Label);
+            beacon.ItemPlaceableIdField.Value = "builtin/core";
+            Assert.False(beacon.ItemPlaceableIdField.IsDanger);
+
+            packVm.SaveAllCommand.Execute(null);
+            var savedBlueprintToml = File.ReadAllText(itemPath);
+            Assert.Contains("# Keep beacon comment", savedBlueprintToml, StringComparison.Ordinal);
+            Assert.Contains("[Items.Placeable]", savedBlueprintToml, StringComparison.Ordinal);
+            Assert.Contains("Type = \"blueprint\"", savedBlueprintToml, StringComparison.Ordinal);
+            Assert.Contains("ID = \"builtin/core\"", savedBlueprintToml, StringComparison.Ordinal);
+
+            // Switch to brick -> Placeable ID switches to BrickId mode and updates TOML.
+            beacon.ItemPlaceableTypeField.Value = "brick";
+            Assert.Equal(ReferenceKind.BrickId, beacon.ItemPlaceableIdField.ReferenceKind);
+            Assert.Equal("Target Brick ID", beacon.ItemPlaceableIdField.Label);
+            beacon.ItemPlaceableIdField.Value = "bip:panel";
+            Assert.False(beacon.ItemPlaceableIdField.IsDanger);
+
+            packVm.SaveAllCommand.Execute(null);
+            var savedBrickToml = File.ReadAllText(itemPath);
+            Assert.Contains("Type = \"brick\"", savedBrickToml, StringComparison.Ordinal);
+            Assert.Contains("ID = \"bip:panel\"", savedBrickToml, StringComparison.Ordinal);
+
+            // Switch back to none -> removes [Items.Placeable] while preserving surrounding fields and comments.
+            beacon.ItemPlaceableTypeField.Value = "none";
+            packVm.SaveAllCommand.Execute(null);
+            var savedNoneToml = File.ReadAllText(itemPath);
+            Assert.Contains("# Keep beacon comment", savedNoneToml, StringComparison.Ordinal);
+            Assert.DoesNotContain("[Items.Placeable]", savedNoneToml, StringComparison.Ordinal);
+            Assert.Contains("ID = \"bip:beacon\"", savedNoneToml, StringComparison.Ordinal);
 
             packService.MarkCleanShutdown();
         }

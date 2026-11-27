@@ -224,6 +224,60 @@ public static class VoxelRegionApplier
         return voxelObject;
     }
 
+    /// <summary>Returns true when any solid voxel in <paramref name="region"/> placed at <paramref name="origin"/> overlaps a solid voxel in <paramref name="target"/>.</summary>
+    public static bool OverlapsSolidVoxels(VoxelObject target, in VoxelRegionData region, Int3 origin)
+    {
+        if (region.SizeX <= 0 || region.SizeY <= 0 || region.SizeZ <= 0 || region.Chunks == null || region.Chunks.Length == 0)
+        {
+            return false;
+        }
+
+        byte chunkSize = GetValidChunkSize(region.Chunks);
+        int shift = BitOperationsShift(chunkSize);
+        int shift2 = shift * 2;
+        int mask = chunkSize - 1;
+
+        for (var c = 0; c < region.Chunks.Length; c++)
+        {
+            ChunkInfo info = region.Chunks[c];
+            Voxel[]? voxels = info.Chunk.Voxels;
+            if (voxels == null || info.Chunk.Size != chunkSize)
+            {
+                continue;
+            }
+
+            int baseX = info.OffsetX * chunkSize;
+            int baseY = info.OffsetY * chunkSize;
+            int baseZ = info.OffsetZ * chunkSize;
+
+            for (var i = 0; i < voxels.Length; i++)
+            {
+                if (voxels[i].ID == 0)
+                {
+                    continue;
+                }
+
+                int sx = baseX + (i & mask);
+                int sy = baseY + ((i >> shift) & mask);
+                int sz = baseZ + (i >> shift2);
+                if ((uint)sx >= (uint)region.SizeX || (uint)sy >= (uint)region.SizeY || (uint)sz >= (uint)region.SizeZ)
+                {
+                    continue;
+                }
+
+                int tx = origin.X + sx;
+                int ty = origin.Y + sy;
+                int tz = origin.Z + sz;
+                if (target.IsResident(tx, ty, tz) && target.Get(tx, ty, tz).ID != 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Returns true when <paramref name="voxelObject"/> contains at least one non-empty voxel.</summary>
     public static bool HasSolidVoxels(VoxelObject voxelObject)
     {

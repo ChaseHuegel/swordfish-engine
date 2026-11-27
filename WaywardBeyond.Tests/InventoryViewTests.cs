@@ -294,6 +294,21 @@ public sealed class InventoryViewTests : IDisposable
     }
 
     [Fact]
+    public void TooltipShowsBlueprintSubtitleAndOmitsBrickTraitsForBlueprintPlaceable()
+    {
+        var harness = new Harness(1280, 720);
+        harness.Populate();
+        harness.PutItem(6, new ItemData("wb:core", 1, 1));
+
+        harness.Hover("inventorySlot6");
+        Assert.Equal(1, harness.CountText("Core"));
+        Assert.Equal(1, harness.CountText("Blueprint"));
+        Assert.Equal(0, harness.CountText("Brick"));
+        Assert.Equal(0, harness.CountText("Rotatable"));
+        Assert.Equal(0, harness.CountText("Shapeable"));
+    }
+
+    [Fact]
     public void TooltipShowsItemIdSecondSubtitleRowWhenDebugOverlayEnabled()
     {
         var harness = new Harness(1280, 720);
@@ -903,6 +918,16 @@ public sealed class InventoryViewTests : IDisposable
                     null,
                     "item.base.thruster.description"
                 ),
+                new Item(
+                    "wb:core",
+                    "Core",
+                    "core.png",
+                    1,
+                    new PlaceableDefinition { Type = PlaceableType.Blueprint, ID = "builtin/core" },
+                    null,
+                    null,
+                    null
+                ),
             ];
         }
     }
@@ -922,6 +947,7 @@ public sealed class InventoryViewTests : IDisposable
             {
                 "ui.label.inventory.title" => "Inventory",
                 "ui.label.item.kind.brick" => "Brick",
+                "ui.label.item.kind.blueprint" => "Blueprint",
                 "ui.label.item.kind.miningTool" => "Mining tool",
                 "ui.label.item.kind.conversionTool" => "Conversion tool",
                 "ui.label.item.kind.paintTool" => "Paint tool",

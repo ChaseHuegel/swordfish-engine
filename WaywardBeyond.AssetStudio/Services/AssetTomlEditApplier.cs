@@ -93,11 +93,17 @@ internal static class AssetTomlEditApplier
         ApplyScalar(doc, tableIndex, "Icon", "Icon", payload, ScalarKind.OptionalString);
         ApplyScalar(doc, tableIndex, "MaxStack", "MaxStack", payload, ScalarKind.Integer);
 
-        var placeableTable = FindChildTableIndex(doc, tableIndex, "Items", "Items.Placeable");
-        if (placeableTable >= 0)
+        var itemOrdinal = FindArrayTableOrdinal(doc, "Items", tableIndex);
+        var placeableResult = ApplyItemPlaceableEdits(doc, itemOrdinal, payload);
+        if (!placeableResult.Success)
         {
-            ApplyScalar(doc, placeableTable, "Type", "PlaceableType", payload, ScalarKind.String);
-            ApplyScalar(doc, placeableTable, "ID", "PlaceableID", payload, ScalarKind.OptionalString);
+            return placeableResult;
+        }
+
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
         }
 
         var toolTable = FindChildTableIndex(doc, tableIndex, "Items", "Items.Tool");
@@ -111,6 +117,107 @@ internal static class AssetTomlEditApplier
         ApplyItemModelSectionEdits(doc, tableIndex, "Items.WorldModel", "WorldModel", payload);
 
         return Result.FromSuccess();
+    }
+
+    private static Result ApplyItemPlaceableEdits(
+        ToolsDocuments.TomlDocument doc,
+        int itemOrdinal,
+        DocumentSavePayload payload)
+    {
+        if (payload.ModifiedFieldKeys != null
+            && !payload.ModifiedFieldKeys.Contains("PlaceableType")
+            && !payload.ModifiedFieldKeys.Contains("PlaceableID"))
+        {
+            return Result.FromSuccess();
+        }
+
+        var currentItemTable = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
+        if (currentItemTable < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        payload.FieldValues.TryGetValue("PlaceableType", out var rawType);
+        var placeableType = (rawType ?? string.Empty).Trim();
+        var placeableTable = FindChildTableIndex(doc, currentItemTable, "Items", "Items.Placeable");
+
+        if (string.IsNullOrEmpty(placeableType) || string.Equals(placeableType, "none", StringComparison.OrdinalIgnoreCase))
+        {
+            if (placeableTable >= 0)
+            {
+                return RemoveTableSection(doc, placeableTable);
+            }
+
+            return Result.FromSuccess();
+        }
+
+        if (placeableTable < 0)
+        {
+            var insertResult = InsertItemChildTable(doc, currentItemTable, "Items.Placeable");
+            if (!insertResult.Success)
+            {
+                return insertResult;
+            }
+
+            currentItemTable = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
+            if (currentItemTable < 0)
+            {
+                return Result.FromSuccess();
+            }
+
+            placeableTable = FindChildTableIndex(doc, currentItemTable, "Items", "Items.Placeable");
+            if (placeableTable < 0)
+            {
+                return Result.FromSuccess();
+            }
+
+            //  When creating a new [Items.Placeable] table, write both Type and ID even if only one field changed.
+            ApplyScalarUnconditional(doc, placeableTable, "Type", placeableType, ScalarKind.String);
+            placeableTable = RelocateItemChildTable(doc, itemOrdinal, "Items.Placeable");
+            if (placeableTable >= 0 && payload.FieldValues.TryGetValue("PlaceableID", out var initialId) && !string.IsNullOrWhiteSpace(initialId))
+            {
+                ApplyScalarUnconditional(doc, placeableTable, "ID", initialId, ScalarKind.OptionalString);
+            }
+
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, placeableTable, "Type", "PlaceableType", payload, ScalarKind.String);
+        placeableTable = RelocateItemChildTable(doc, itemOrdinal, "Items.Placeable");
+        if (placeableTable >= 0)
+        {
+            ApplyScalar(doc, placeableTable, "ID", "PlaceableID", payload, ScalarKind.OptionalString);
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private static void ApplyScalarUnconditional(
+        ToolsDocuments.TomlDocument doc,
+        int tableIndex,
+        string key,
+        string value,
+        ScalarKind kind)
+    {
+        var existing = doc.GetFieldInTable(tableIndex, key);
+        if (kind == ScalarKind.OptionalString && string.IsNullOrWhiteSpace(value))
+        {
+            if (existing.Success)
+            {
+                doc.RemoveField(existing.Value);
+            }
+
+            return;
+        }
+
+        if (existing.Success)
+        {
+            doc.SetString(existing.Value, value);
+        }
+        else if (tableIndex >= 0 && tableIndex < doc.Tables.Count)
+        {
+            doc.AddField(doc.Tables[tableIndex], key, FormatTomlString(value));
+        }
     }
 
     private static void ApplyItemModelSectionEdits(

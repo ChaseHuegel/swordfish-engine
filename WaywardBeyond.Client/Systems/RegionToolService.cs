@@ -70,11 +70,13 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
     private readonly ConcurrentQueue<Action> _ecsCallbacks = new();
 
     private volatile bool _holdingProjector;
+    private volatile bool _holdingBlueprintItem;
     private volatile bool _pendingEquipProjector;
     private bool _cutInFlight;
     private bool _pasteInFlight;
     private int _sessionGeneration;
     private bool _wasInGame;
+    private string? _failedHeldBlueprintId;
 
     private int _overlapCacheRevision = -1;
     private Orientation _overlapCacheRotation;
@@ -121,14 +123,14 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         _gameplayConfig = gameplayConfig;
         _bundledBlueprints = bundledBlueprints;
 
-        RegisterShortcut(shortcutService, "Copy", Key.C, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Copy));
-        RegisterShortcut(shortcutService, "Cut", Key.X, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Cut));
-        RegisterShortcut(shortcutService, "Paste mode", Key.V, ShortcutModifiers.None, () => QueueAction(RegionToolAction.TogglePasteMode));
-        RegisterShortcut(shortcutService, "Rotate yaw", Key.T, ShortcutModifiers.None, () => QueueAction(RegionToolAction.RotateYaw));
-        RegisterShortcut(shortcutService, "Rotate pitch", Key.T, ShortcutModifiers.Shift, () => QueueAction(RegionToolAction.RotatePitch));
-        RegisterShortcut(shortcutService, "Mirror horizontal", Key.F, ShortcutModifiers.None, () => QueueAction(RegionToolAction.MirrorHorizontal));
-        RegisterShortcut(shortcutService, "Mirror vertical", Key.F, ShortcutModifiers.Shift, () => QueueAction(RegionToolAction.MirrorVertical));
-        RegisterShortcut(shortcutService, "Overwrite empty", Key.G, ShortcutModifiers.None, () => QueueAction(RegionToolAction.ToggleOverwriteAir));
+        RegisterShortcut(shortcutService, "Copy", Key.C, ShortcutModifiers.None, IsProjectorShortcutEnabled, () => QueueAction(RegionToolAction.Copy));
+        RegisterShortcut(shortcutService, "Cut", Key.X, ShortcutModifiers.None, IsProjectorShortcutEnabled, () => QueueAction(RegionToolAction.Cut));
+        RegisterShortcut(shortcutService, "Paste mode", Key.V, ShortcutModifiers.None, IsProjectorShortcutEnabled, () => QueueAction(RegionToolAction.TogglePasteMode));
+        RegisterShortcut(shortcutService, "Rotate yaw", Key.T, ShortcutModifiers.None, IsPlacementTransformShortcutEnabled, () => QueueAction(RegionToolAction.RotateYaw));
+        RegisterShortcut(shortcutService, "Rotate pitch", Key.T, ShortcutModifiers.Shift, IsPlacementTransformShortcutEnabled, () => QueueAction(RegionToolAction.RotatePitch));
+        RegisterShortcut(shortcutService, "Mirror horizontal", Key.F, ShortcutModifiers.None, IsPlacementTransformShortcutEnabled, () => QueueAction(RegionToolAction.MirrorHorizontal));
+        RegisterShortcut(shortcutService, "Mirror vertical", Key.F, ShortcutModifiers.Shift, IsPlacementTransformShortcutEnabled, () => QueueAction(RegionToolAction.MirrorVertical));
+        RegisterShortcut(shortcutService, "Overwrite empty", Key.G, ShortcutModifiers.None, IsProjectorShortcutEnabled, () => QueueAction(RegionToolAction.ToggleOverwriteAir));
     }
 
     /// <inheritdoc/>
@@ -210,6 +212,9 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             }
 
             _holdingProjector = false;
+            _holdingBlueprintItem = false;
+            _failedHeldBlueprintId = null;
+            _toolState.ClearHeldBlueprint();
             DrainIgnoredQueues();
             _toolState.HidePreview();
             return;
@@ -236,18 +241,34 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         if (WaywardBeyond.GameState != GameState.Playing)
         {
             _holdingProjector = false;
+            _holdingBlueprintItem = false;
+            _toolState.ClearHeldBlueprint();
             DrainIgnoredQueues();
             _toolState.HidePreview();
             return;
         }
 
-        bool holding = IsHoldingProjector(store);
-        _holdingProjector = holding;
+        Result<ItemSlot> mainHand = _playerData.GetMainHand(store);
+        bool holdingProjector = mainHand.Success && mainHand.Value.Item.Tool?.Type == ToolType.Blueprint;
+        bool holdingBlueprintItem;
+        if (holdingProjector)
+        {
+            _failedHeldBlueprintId = null;
+            _toolState.ClearHeldBlueprint();
+            holdingBlueprintItem = false;
+        }
+        else
+        {
+            holdingBlueprintItem = UpdateHeldBlueprintItem(mainHand);
+        }
 
-        if (!holding || _interactionState.IsInteractionBlocked())
+        _holdingProjector = holdingProjector;
+        _holdingBlueprintItem = holdingBlueprintItem;
+
+        if ((!holdingProjector && !holdingBlueprintItem) || _interactionState.IsInteractionBlocked())
         {
             DrainIgnoredQueues();
-            if (!holding)
+            if (!holdingProjector && !holdingBlueprintItem)
             {
                 _toolState.HidePreview();
             }
@@ -257,7 +278,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
 
         while (_pendingScrolls.TryDequeue(out float scroll))
         {
-            if (_toolState.Mode == RegionToolMode.Paste)
+            if (holdingBlueprintItem || _toolState.Mode == RegionToolMode.Paste)
             {
                 _toolState.AdjustFreeSpaceDistance(scroll);
             }
@@ -265,17 +286,31 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
 
         while (_pendingActions.TryDequeue(out RegionToolAction action))
         {
-            ExecuteAction(store, action);
+            ExecuteAction(store, action, holdingBlueprintItem);
         }
 
         while (_pendingClicks.TryDequeue(out MouseButton button))
         {
-            ExecuteClick(store, button);
+            if (holdingBlueprintItem)
+            {
+                if (button == MouseButton.Left)
+                {
+                    ExecuteBlueprintItemPlace(store);
+                }
+            }
+            else
+            {
+                ExecuteClick(store, button);
+            }
         }
 
-        if (_toolState.Mode == RegionToolMode.Paste)
+        if (holdingBlueprintItem)
         {
-            UpdatePastePlacement(store);
+            UpdatePastePlacement(store, isBlueprintItem: true);
+        }
+        else if (_toolState.Mode == RegionToolMode.Paste)
+        {
+            UpdatePastePlacement(store, isBlueprintItem: false);
         }
         else
         {
@@ -283,7 +318,59 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         }
     }
 
-    private void RegisterShortcut(IShortcutService shortcutService, string name, Key key, ShortcutModifiers modifiers, Action handler)
+    private bool UpdateHeldBlueprintItem(Result<ItemSlot> mainHand)
+    {
+        if (!mainHand.Success || !ItemPlaceables.IsBlueprintPlaceable(mainHand.Value.Item))
+        {
+            _failedHeldBlueprintId = null;
+            _toolState.ClearHeldBlueprint();
+            return false;
+        }
+
+        Item item = mainHand.Value.Item;
+        string blueprintId = item.Placeable!.Value.ID;
+        if (_toolState.MatchesHeldBlueprint(item.ID, blueprintId))
+        {
+            return true;
+        }
+
+        if (string.Equals(_failedHeldBlueprintId, blueprintId, StringComparison.Ordinal))
+        {
+            _toolState.ClearHeldBlueprint();
+            return false;
+        }
+
+        if (_bundledBlueprints == null)
+        {
+            _failedHeldBlueprintId = blueprintId;
+            _toolState.ClearHeldBlueprint();
+            return false;
+        }
+
+        Result<BlueprintData> loaded = _bundledBlueprints.Get(blueprintId);
+        if (!loaded.Success)
+        {
+            _failedHeldBlueprintId = blueprintId;
+            _toolState.ClearHeldBlueprint();
+            return false;
+        }
+
+        VoxelRegionData encoded = loaded.Value.ToRegion();
+        VoxelRegionData decoded = VoxelCodec.Decode(in encoded, _brickRegistry, _paintRegistry);
+        int brickCount = VoxelRegionApplier.CountSolidVoxels(in decoded);
+        if (brickCount <= 0)
+        {
+            _failedHeldBlueprintId = blueprintId;
+            _toolState.ClearHeldBlueprint();
+            return false;
+        }
+
+        _failedHeldBlueprintId = null;
+        _toolState.SetHeldBlueprint(item.ID, blueprintId, in decoded);
+        return true;
+    }
+
+    private void RegisterShortcut(IShortcutService shortcutService, string name, Key key, ShortcutModifiers modifiers, Func<bool> isEnabled, Action handler)
     {
         shortcutService.RegisterShortcut(new Shortcut
         {
@@ -291,26 +378,37 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             Category = "Blueprints",
             Modifiers = modifiers,
             Key = key,
-            IsEnabled = IsShortcutEnabled,
+            IsEnabled = isEnabled,
             Action = handler,
         });
     }
 
-    private bool IsShortcutEnabled()
+    private bool IsProjectorShortcutEnabled()
     {
         return WaywardBeyond.GameState == GameState.Playing
             && _holdingProjector
             && !_interactionState.IsInteractionBlocked();
     }
 
+    private bool IsPlacementTransformShortcutEnabled()
+    {
+        return WaywardBeyond.GameState == GameState.Playing
+            && (_holdingProjector || _holdingBlueprintItem)
+            && !_interactionState.IsInteractionBlocked();
+    }
+
     private void OnClicked(object? sender, ClickedEventArgs e)
     {
-        if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked() || !_holdingProjector)
+        if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
         {
             return;
         }
 
-        if (e.MouseButton is MouseButton.Left or MouseButton.Right)
+        if (_holdingProjector && e.MouseButton is MouseButton.Left or MouseButton.Right)
+        {
+            _pendingClicks.Enqueue(e.MouseButton);
+        }
+        else if (_holdingBlueprintItem && e.MouseButton == MouseButton.Left)
         {
             _pendingClicks.Enqueue(e.MouseButton);
         }
@@ -318,11 +416,12 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
 
     private void OnScrolled(object? sender, ScrolledEventArgs e)
     {
+        bool canAdjustDistance = _holdingBlueprintItem
+            || (_holdingProjector && _toolState.Mode == RegionToolMode.Paste);
         if (WaywardBeyond.GameState != GameState.Playing
             || _interactionState.IsInteractionBlocked()
-            || !_holdingProjector
-            || !_inputService.IsKeyHeld(Key.Shift)
-            || _toolState.Mode != RegionToolMode.Paste)
+            || !canAdjustDistance
+            || !_inputService.IsKeyHeld(Key.Shift))
         {
             return;
         }
@@ -377,8 +476,17 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         }
     }
 
-    private void ExecuteAction(DataStore store, RegionToolAction action)
+    private void ExecuteAction(DataStore store, RegionToolAction action, bool isBlueprintItem)
     {
+        if (isBlueprintItem && action is not (
+            RegionToolAction.RotateYaw
+            or RegionToolAction.RotatePitch
+            or RegionToolAction.MirrorHorizontal
+            or RegionToolAction.MirrorVertical))
+        {
+            return;
+        }
+
         switch (action)
         {
             case RegionToolAction.SelectMode:
@@ -407,7 +515,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 break;
 
             case RegionToolAction.RotateYaw:
-                if (_toolState.HasClipboard)
+                if (isBlueprintItem || _toolState.HasClipboard)
                 {
                     _toolState.RotateYaw(1);
                 }
@@ -418,7 +526,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 break;
 
             case RegionToolAction.RotatePitch:
-                if (_toolState.HasClipboard)
+                if (isBlueprintItem || _toolState.HasClipboard)
                 {
                     _toolState.RotatePitch(1);
                 }
@@ -429,11 +537,11 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
                 break;
 
             case RegionToolAction.MirrorHorizontal:
-                ApplyCameraRelativeMirror(Vector3.UnitX);
+                ApplyCameraRelativeMirror(Vector3.UnitX, isBlueprintItem);
                 break;
 
             case RegionToolAction.MirrorVertical:
-                ApplyCameraRelativeMirror(Vector3.UnitY);
+                ApplyCameraRelativeMirror(Vector3.UnitY, isBlueprintItem);
                 break;
 
             case RegionToolAction.ToggleOverwriteAir:
@@ -446,9 +554,9 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         }
     }
 
-    private void ApplyCameraRelativeMirror(Vector3 localCameraAxis)
+    private void ApplyCameraRelativeMirror(Vector3 localCameraAxis, bool isBlueprintItem)
     {
-        if (!_toolState.HasClipboard)
+        if (!isBlueprintItem && !_toolState.HasClipboard)
         {
             NotifyAction(_formatter.GetString("notification.region.noClipboard"));
             return;
@@ -463,7 +571,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             previewWorldOrientation = currentOrientation;
         }
 
-        Quaternion pasteFrame = previewWorldOrientation * _toolState.PasteRotation.ToQuaternion();
+        Quaternion pasteFrame = previewWorldOrientation * _toolState.ActivePlacementRotation.ToQuaternion();
         MirrorAxes axis = PickClosestMirrorAxis(cameraAxis, pasteFrame);
         _toolState.ToggleMirror(axis);
     }
@@ -595,9 +703,9 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         });
     }
 
-    private void UpdatePastePlacement(DataStore store)
+    private void UpdatePastePlacement(DataStore store, bool isBlueprintItem)
     {
-        if (!_toolState.TryGetTransformedClipboard(_brickDatabase, out VoxelRegionData region, out int revision, out Orientation rotation, out MirrorAxes mirror))
+        if (!_toolState.TryGetActivePlacementRegion(_brickDatabase, out VoxelRegionData region, out int revision, out Orientation rotation, out MirrorAxes mirror))
         {
             _toolState.HidePreview();
             return;
@@ -618,12 +726,15 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
 
             int maxEdge = _gameplayConfig?.Regions.MaxEdge.Get() ?? RegionLimits.MAX_REGION_EDGE;
             int maxVolume = _gameplayConfig?.Regions.MaxVolume.Get() ?? RegionLimits.MAX_REGION_VOLUME;
+            bool hasTargetVoxels = entity.TryGet(out VoxelComponent targetVoxelComp);
             bool boundsValid = RegionLimits.TryComputePasteMax(origin, regionSize.X, regionSize.Y, regionSize.Z, out Int3 maxCell, maxEdge, maxVolume)
-                && (!entity.TryGet(out VoxelComponent targetVoxelComp)
+                && (!hasTargetVoxels
                     || RegionLimits.IsWithinChunkRange(origin, maxCell, targetVoxelComp.VoxelObject.ChunkSize));
             bool inReach = boundsValid
                 && RegionPlacementResolver.IsBoxWithinReach(origin, maxCell, playerPos, in targetTransform, CharacterDefaults.REGION_PASTE_MAX_REACH);
-            bool overlaps = inReach && OverlapsWorldCached(revision, rotation, mirror, in region, entity.Ptr, in targetTransform, origin);
+            bool overlapsTarget = isBlueprintItem && inReach && hasTargetVoxels
+                && VoxelRegionApplier.OverlapsSolidVoxels(targetVoxelComp.VoxelObject, in region, origin);
+            bool overlaps = inReach && (overlapsTarget || OverlapsWorldCached(revision, rotation, mirror, in region, entity.Ptr, in targetTransform, origin));
             string? errorKey = !boundsValid
                 ? "notification.region.invalidBounds"
                 : (!inReach ? "notification.region.outOfReach" : (overlaps ? "notification.placement.occupied" : null));
@@ -676,6 +787,63 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             spawnErrorKey);
     }
 
+    private void ExecuteBlueprintItemPlace(DataStore store)
+    {
+        if (_pasteInFlight)
+        {
+            return;
+        }
+
+        UpdatePastePlacement(store, isBlueprintItem: true);
+        if (!_toolState.TryGetPreviewPlacement(
+                out bool valid,
+                out PasteTargetKind targetKind,
+                out Uuid targetEntity,
+                out Int3 origin,
+                out _,
+                out Vector3 worldPos,
+                out Quaternion worldRot,
+                out _))
+        {
+            NotifyAction(_formatter.GetString("notification.blueprint.loadFailed"));
+            return;
+        }
+
+        if (!valid)
+        {
+            string invalidKey = _toolState.PreviewInvalidErrorKey;
+            NotifyAction(_formatter.GetString(
+                string.IsNullOrEmpty(invalidKey) ? "notification.placement.occupied" : invalidKey));
+            return;
+        }
+
+        var request = new PlaceBlueprintItemRequest
+        {
+            TargetKind = targetKind,
+            TargetEntity = targetEntity.ToValue(),
+            OriginX = origin.X,
+            OriginY = origin.Y,
+            OriginZ = origin.Z,
+            SpawnX = worldPos.X,
+            SpawnY = worldPos.Y,
+            SpawnZ = worldPos.Z,
+            SpawnOrientationX = worldRot.X,
+            SpawnOrientationY = worldRot.Y,
+            SpawnOrientationZ = worldRot.Z,
+            SpawnOrientationW = worldRot.W,
+            Rotation = _toolState.ActivePlacementRotation.ToByte(),
+            Mirror = (byte)_toolState.ActivePlacementMirror,
+        };
+
+        _pasteInFlight = true;
+        int generation = _sessionGeneration;
+        PasteTargetKind sentKind = targetKind;
+        _regionClient.PlaceBlueprintItemAsync(request).ContinueWith(task =>
+        {
+            _ecsCallbacks.Enqueue(() => HandlePasteCompletion(generation, sentKind, task));
+        });
+    }
+
     private void ExecutePaste(DataStore store)
     {
         if (_pasteInFlight)
@@ -683,7 +851,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
             return;
         }
 
-        UpdatePastePlacement(store);
+        UpdatePastePlacement(store, isBlueprintItem: false);
         if (!_toolState.TryGetPreviewPlacement(
                 out bool valid,
                 out PasteTargetKind targetKind,
@@ -740,50 +908,52 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         PasteTargetKind sentKind = targetKind;
         _regionClient.PasteRegionAsync(request).ContinueWith(task =>
         {
-            _ecsCallbacks.Enqueue(() =>
-            {
-                if (generation != _sessionGeneration || !WaywardBeyond.IsInGame())
-                {
-                    return;
-                }
-
-                _pasteInFlight = false;
-                if (task.IsFaulted || task.IsCanceled)
-                {
-                    NotifyAction(_formatter.GetString("notification.region.invalidTarget"));
-                    return;
-                }
-
-                RpcResult<RegionOpResponse> result = task.Result;
-                if (!result.IsSuccess)
-                {
-                    string key = result.ErrorCode == GameRpcErrors.PERMISSION_DENIED
-                        ? "notification.region.permissionDenied"
-                        : "notification.region.invalidTarget";
-                    NotifyAction(_formatter.GetString(key));
-                    return;
-                }
-
-                if (!result.Value.Success)
-                {
-                    string errKey = string.IsNullOrEmpty(result.Value.ErrorKey)
-                        ? "notification.region.invalidTarget"
-                        : result.Value.ErrorKey!;
-                    NotifyAction(_formatter.GetString(errKey));
-                    return;
-                }
-
-                if (result.Value.SkippedUnknownBricks > 0)
-                {
-                    _notificationService.Push(new Notification(_formatter.GetString("notification.region.pasteSkippedUnknown", result.Value.SkippedUnknownBricks)));
-                }
-
-                string okKey = sentKind == PasteTargetKind.NewStructure
-                    ? "notification.region.spawned"
-                    : "notification.region.pasted";
-                NotifyAction(_formatter.GetString(okKey, result.Value.AffectedBricks));
-            });
+            _ecsCallbacks.Enqueue(() => HandlePasteCompletion(generation, sentKind, task));
         });
+    }
+
+    private void HandlePasteCompletion(int generation, PasteTargetKind sentKind, System.Threading.Tasks.Task<RpcResult<RegionOpResponse>> task)
+    {
+        if (generation != _sessionGeneration || !WaywardBeyond.IsInGame())
+        {
+            return;
+        }
+
+        _pasteInFlight = false;
+        if (task.IsFaulted || task.IsCanceled)
+        {
+            NotifyAction(_formatter.GetString("notification.region.invalidTarget"));
+            return;
+        }
+
+        RpcResult<RegionOpResponse> result = task.Result;
+        if (!result.IsSuccess)
+        {
+            string key = result.ErrorCode == GameRpcErrors.PERMISSION_DENIED
+                ? "notification.region.permissionDenied"
+                : "notification.region.invalidTarget";
+            NotifyAction(_formatter.GetString(key));
+            return;
+        }
+
+        if (!result.Value.Success)
+        {
+            string errKey = string.IsNullOrEmpty(result.Value.ErrorKey)
+                ? "notification.region.invalidTarget"
+                : result.Value.ErrorKey!;
+            NotifyAction(_formatter.GetString(errKey));
+            return;
+        }
+
+        if (result.Value.SkippedUnknownBricks > 0)
+        {
+            _notificationService.Push(new Notification(_formatter.GetString("notification.region.pasteSkippedUnknown", result.Value.SkippedUnknownBricks)));
+        }
+
+        string okKey = sentKind == PasteTargetKind.NewStructure
+            ? "notification.region.spawned"
+            : "notification.region.pasted";
+        NotifyAction(_formatter.GetString(okKey, result.Value.AffectedBricks));
     }
 
     private void ProcessSaveBlueprint(DataStore store, in PendingSaveRequest saveReq)
@@ -945,12 +1115,6 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
     private void NotifyAction(string message)
     {
         _notificationService.Push(new Notification(message, NotificationType.Action));
-    }
-
-    private bool IsHoldingProjector(DataStore store)
-    {
-        Result<ItemSlot> mainHand = _playerData.GetMainHand(store);
-        return mainHand.Success && mainHand.Value.Item.Tool?.Type == ToolType.Blueprint;
     }
 
     private void SelectProjectorSlot(DataStore store)

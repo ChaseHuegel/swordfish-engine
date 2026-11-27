@@ -7,6 +7,8 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Items;
 using Xunit;
@@ -100,6 +102,77 @@ public class ItemPlaceablesTests
             foreach (string itemId in entries!)
             {
                 Assert.True(items.Get(itemId).Success, $"Tag \"{tag}\" references unknown item \"{itemId}\".");
+            }
+        }
+    }
+
+    [Fact]
+    public void CoreItemResolvesAsBundledBlueprintPlaceableAndNotBrick()
+    {
+        var vfs = new VirtualFileSystem();
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Bricks", "assets")));
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Items", "assets")));
+
+        IFileParser[] parsers =
+        [
+            new TomlParser<BrickDefinitions>(),
+            new TomlParser<ItemDefinitions>(),
+            new LocalizedTagDefinitionParser(),
+            new BlueprintDataParser(),
+        ];
+        var parser = new VirtualFileParseService(parsers, vfs);
+        var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+        var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
+        var items = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
+        var blueprints = new BundledBlueprintDatabase(NullLogger<BundledBlueprintDatabase>.Instance, parser, vfs);
+
+        Result<Item> coreItemResult = items.Get("wb:core");
+        Assert.True(coreItemResult.Success);
+        Item coreItem = coreItemResult.Value;
+        Assert.True(ItemPlaceables.IsBlueprintPlaceable(coreItem));
+        Assert.False(ItemPlaceables.IsBrickPlaceable(coreItem));
+        Assert.False(ItemPlaceables.ResolvePlaceable(items, bricks, "wb:core").Success);
+
+        Result<string> blueprintId = ItemPlaceables.ResolveBlueprintId(items, "wb:core");
+        Assert.True(blueprintId.Success);
+        Assert.Equal("builtin/core", blueprintId.Value);
+
+        Result<BlueprintData> resolved = ItemPlaceables.ResolveBlueprint(items, blueprints, "wb:core");
+        Assert.True(resolved.Success, resolved.Message);
+        Assert.Equal(1, resolved.Value.SizeX);
+        Assert.Equal(1, resolved.Value.SizeY);
+        Assert.Equal(1, resolved.Value.SizeZ);
+        Assert.Equal(1, resolved.Value.BrickCount);
+        Assert.NotNull(resolved.Value.BrickPalette);
+        Assert.Contains("wb:core", resolved.Value.BrickPalette!);
+    }
+
+    [Fact]
+    public void BundledBlueprintDatabasePreservesSubdirectoriesNamedBlueprints()
+    {
+        string tempRoot = Path.Combine(Path.GetTempPath(), $"wb-bp-id-{Guid.NewGuid():N}");
+        try
+        {
+            string assetsDir = Path.Combine(tempRoot, "assets");
+            string nestedDir = Path.Combine(assetsDir, "blueprints", "my_blueprints");
+            Directory.CreateDirectory(nestedDir);
+            string sourceCore = Path.Combine("TestFiles", "Items", "assets", "blueprints", "builtin", "core.wbp");
+            File.Copy(sourceCore, Path.Combine(nestedDir, "ship.wbp"));
+
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(assetsDir));
+            var parser = new VirtualFileParseService([new BlueprintDataParser()], vfs);
+            var blueprints = new BundledBlueprintDatabase(NullLogger<BundledBlueprintDatabase>.Instance, parser, vfs);
+
+            Result<BlueprintData> loaded = blueprints.Get("my_blueprints/ship");
+            Assert.True(loaded.Success, loaded.Message);
+            Assert.False(blueprints.Get("ship").Success);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
             }
         }
     }

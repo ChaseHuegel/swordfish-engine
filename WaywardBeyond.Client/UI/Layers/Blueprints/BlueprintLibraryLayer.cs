@@ -94,7 +94,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
             Category = "Blueprints",
             Modifiers = ShortcutModifiers.None,
             Key = Key.B,
-            IsEnabled = () => WaywardBeyond.IsPlaying() && !_open && !_interactionState.IsInteractionBlocked(),
+            IsEnabled = () => WaywardBeyond.IsPlaying() && !_open && !_toolState.IsBlueprintItemActive && !_interactionState.IsInteractionBlocked(),
             Action = Open,
         });
 
@@ -109,7 +109,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
     /// <summary>Opens the Blueprint Library modal if gameplay interaction can be exclusively acquired.</summary>
     public void Open()
     {
-        if (_open || !WaywardBeyond.IsPlaying())
+        if (_open || !WaywardBeyond.IsPlaying() || _toolState.IsBlueprintItemActive)
         {
             return;
         }

@@ -10,11 +10,13 @@ using Swordfish.Physics;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Permissions;
@@ -24,11 +26,12 @@ using WaywardBeyond.Voxels;
 namespace WaywardBeyond.Server.Systems;
 
 /// <summary>
-/// Server-authoritative handler for region cut, copy/blueprint paste, and standalone structure
-/// spawning. Drains inbound <see cref="ServerPeer.CutRegionCalls"/> and
-/// <see cref="ServerPeer.PasteRegionParts"/> on the server world tick, enforces Creative mode and
-/// permissions, sanitizes client payloads against server brick/paint registries, mutates the
-/// authoritative world, and broadcasts fragmented updates to all peers in the world.
+/// Server-authoritative handler for region cut, copy/blueprint paste, standalone structure
+/// spawning, and blueprint placeable items. Drains inbound <see cref="ServerPeer.CutRegionCalls"/>,
+/// <see cref="ServerPeer.PasteRegionParts"/>, and <see cref="ServerPeer.PlaceBlueprintItemCalls"/> on
+/// the server world tick, validates permissions and placement bounds, sanitizes payloads against
+/// server brick/paint registries, mutates the authoritative world, and broadcasts fragmented updates
+/// to all peers in the world.
 /// </summary>
 public sealed class ServerRegionSystem(
     ServerPeers peers,
@@ -41,10 +44,14 @@ public sealed class ServerRegionSystem(
     ILogger<ServerRegionSystem> logger,
     IPaintRegistry? paintRegistry = null,
     IPaintDatabase? paintDatabase = null,
-    GameplayConfig? gameplayConfig = null
+    GameplayConfig? gameplayConfig = null,
+    IItemDatabase? itemDatabase = null,
+    IBundledBlueprintDatabase? bundledBlueprints = null
 ) : IServerWorldSystem
 {
     private const float MIN_QUATERNION_LEN_SQ = 1e-4f;
+    private const byte VALID_ROTATION_MASK = 63;
+    private const byte VALID_MIRROR_MASK = (byte)(MirrorAxes.X | MirrorAxes.Y | MirrorAxes.Z);
 
     private readonly HashSet<Short3> _dirtyChunks = [];
     private uint _nextBatchId;
@@ -71,6 +78,11 @@ public sealed class ServerRegionSystem(
             while (peer.PasteRegionParts.TryDequeue(out ServerPeer.PasteRegionPartCall pasteCall))
             {
                 HandlePastePart(store, peer, in pasteCall);
+            }
+
+            while (peer.PlaceBlueprintItemCalls.TryDequeue(out ServerPeer.PlaceBlueprintItemCall placeCall))
+            {
+                HandlePlaceBlueprintItem(store, peer, in placeCall);
             }
         }
     }
@@ -251,34 +263,164 @@ public sealed class ServerRegionSystem(
         if (request.TargetKind == PasteTargetKind.NewStructure)
         {
             call.Completion.TrySetResult(ExecuteNewStructurePaste(
-                store, in playerTransform, in request, in sanitized, validBrickCount, skippedUnknownBricks));
+                store,
+                in playerTransform,
+                new Vector3(request.SpawnX, request.SpawnY, request.SpawnZ),
+                new Quaternion(request.SpawnOrientationX, request.SpawnOrientationY, request.SpawnOrientationZ, request.SpawnOrientationW),
+                in sanitized,
+                validBrickCount,
+                skippedUnknownBricks));
             return;
         }
 
         call.Completion.TrySetResult(ExecuteIntoStructurePaste(
-            store, in playerTransform, in request, in sanitized, validBrickCount, skippedUnknownBricks));
+            store,
+            in playerTransform,
+            request.TargetEntity,
+            new Int3(request.OriginX, request.OriginY, request.OriginZ),
+            request.OverwriteAir,
+            disallowTargetOverlap: false,
+            in sanitized,
+            validBrickCount,
+            skippedUnknownBricks));
+    }
+
+    private void HandlePlaceBlueprintItem(DataStore store, ServerPeer peer, in ServerPeer.PlaceBlueprintItemCall call)
+    {
+        if (call.CancellationToken.IsCancellationRequested)
+        {
+            call.Completion.TrySetResult(RpcResult<RegionOpResponse>.Failure(
+                GameRpcErrors.INVALID_STATE, "the blueprint placement request was cancelled"));
+            return;
+        }
+
+        if (!sessions.TryGetEntity(peer.GameId, out int playerEntity) ||
+            !store.TryGet(playerEntity, out TransformComponent playerTransform))
+        {
+            call.Completion.TrySetResult(RpcResult<RegionOpResponse>.Failure(
+                GameRpcErrors.NOT_JOINED, "the peer has no active session entity"));
+            return;
+        }
+
+        if (itemDatabase == null || bundledBlueprints == null)
+        {
+            call.Completion.TrySetResult(FailOp("notification.blueprint.loadFailed"));
+            return;
+        }
+
+        if (!store.TryGet(playerEntity, out EquipmentComponent equipment) ||
+            !store.TryGet(playerEntity, out InventoryComponent inventory) ||
+            inventory.Contents == null)
+        {
+            call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
+            return;
+        }
+
+        int slot = equipment.ActiveInventorySlot;
+        if (slot < 0 || slot >= inventory.Contents.Length)
+        {
+            call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
+            return;
+        }
+
+        ItemData held = inventory.Contents[slot];
+        if (held.Count <= 0 || string.IsNullOrEmpty(held.ID))
+        {
+            call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
+            return;
+        }
+
+        Result<BlueprintData> blueprintResult = ItemPlaceables.ResolveBlueprint(itemDatabase, bundledBlueprints, held.ID);
+        if (!blueprintResult.Success)
+        {
+            call.Completion.TrySetResult(FailOp("notification.blueprint.loadFailed"));
+            return;
+        }
+
+        PlaceBlueprintItemRequest request = call.Request;
+        if ((request.TargetKind != PasteTargetKind.IntoStructure && request.TargetKind != PasteTargetKind.NewStructure)
+            || (request.Rotation & ~VALID_ROTATION_MASK) != 0
+            || (request.Mirror & ~VALID_MIRROR_MASK) != 0)
+        {
+            call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
+            return;
+        }
+
+        VoxelRegionData rawRegion = blueprintResult.Value.ToRegion();
+        if (!RegionLimits.IsValidSize(rawRegion.SizeX, rawRegion.SizeY, rawRegion.SizeZ, MaxRegionEdge, MaxRegionVolume) ||
+            !TrySanitizeRegion(in rawRegion, out VoxelRegionData sanitized, out int validBrickCount, out int skippedUnknownBricks))
+        {
+            call.Completion.TrySetResult(FailOp("notification.region.invalidBounds"));
+            return;
+        }
+
+        VoxelRegionData transformed = VoxelRegionTransform.Transform(
+            in sanitized,
+            new Orientation(request.Rotation),
+            (MirrorAxes)request.Mirror,
+            brickDatabase);
+        if (!RegionLimits.IsValidSize(transformed.SizeX, transformed.SizeY, transformed.SizeZ, MaxRegionEdge, MaxRegionVolume))
+        {
+            call.Completion.TrySetResult(FailOp("notification.region.invalidBounds", skippedUnknownBricks));
+            return;
+        }
+
+        RpcResult<RegionOpResponse> result = request.TargetKind == PasteTargetKind.NewStructure
+            ? ExecuteNewStructurePaste(
+                store,
+                in playerTransform,
+                new Vector3(request.SpawnX, request.SpawnY, request.SpawnZ),
+                new Quaternion(request.SpawnOrientationX, request.SpawnOrientationY, request.SpawnOrientationZ, request.SpawnOrientationW),
+                in transformed,
+                validBrickCount,
+                skippedUnknownBricks)
+            : ExecuteIntoStructurePaste(
+                store,
+                in playerTransform,
+                request.TargetEntity,
+                new Int3(request.OriginX, request.OriginY, request.OriginZ),
+                overwriteAir: false,
+                disallowTargetOverlap: true,
+                in transformed,
+                validBrickCount,
+                skippedUnknownBricks);
+
+        if (result.IsSuccess && result.Value.Success && result.Value.AffectedBricks > 0)
+        {
+            GameMode mode = store.TryGet(playerEntity, out GameModeComponent gameMode) ? gameMode.Mode : GameMode.Adventure;
+            if (mode != GameMode.Creative)
+            {
+                InventoryComponent updated = inventory;
+                updated.Remove(slot, 1);
+                store.AddOrUpdate(playerEntity, updated);
+            }
+        }
+
+        call.Completion.TrySetResult(result);
     }
 
     private RpcResult<RegionOpResponse> ExecuteIntoStructurePaste(
         DataStore store,
         in TransformComponent playerTransform,
-        in PasteRegionRequest request,
+        ulong targetEntityUuid,
+        Int3 origin,
+        bool overwriteAir,
+        bool disallowTargetOverlap,
         in VoxelRegionData sanitized,
         int validBrickCount,
         int skippedUnknownBricks
     )
     {
-        if (validBrickCount == 0 && !request.OverwriteAir)
+        if (validBrickCount == 0 && !overwriteAir)
         {
             return FailOp("notification.region.empty", skippedUnknownBricks);
         }
 
-        if (!TryGetTargetStructure(store, request.TargetEntity, out int targetEntity, out VoxelWorldComponent world, out TransformComponent targetTransform))
+        if (!TryGetTargetStructure(store, targetEntityUuid, out int targetEntity, out VoxelWorldComponent world, out TransformComponent targetTransform))
         {
             return FailOp("notification.region.invalidTarget", skippedUnknownBricks);
         }
 
-        var origin = new Int3(request.OriginX, request.OriginY, request.OriginZ);
         if (!RegionLimits.TryComputePasteMax(origin, sanitized.SizeX, sanitized.SizeY, sanitized.SizeZ, out Int3 max, MaxRegionEdge, MaxRegionVolume)
             || !RegionLimits.IsWithinChunkRange(origin, max, world.VoxelObject.ChunkSize))
         {
@@ -290,6 +432,12 @@ public sealed class ServerRegionSystem(
             return FailOp("notification.region.outOfReach", skippedUnknownBricks);
         }
 
+        if (disallowTargetOverlap && validBrickCount > 0 &&
+            VoxelRegionApplier.OverlapsSolidVoxels(world.VoxelObject, in sanitized, origin))
+        {
+            return FailOp("notification.placement.occupied", skippedUnknownBricks);
+        }
+
         if (validBrickCount > 0 &&
             RegionPlacementResolver.IntersectsWorldColliders(physics, targetEntity, in targetTransform, origin, in sanitized, brickDatabase))
         {
@@ -297,7 +445,7 @@ public sealed class ServerRegionSystem(
         }
 
         _dirtyChunks.Clear();
-        int applied = VoxelRegionApplier.ApplyTo(world.VoxelObject, in sanitized, origin, request.OverwriteAir, _dirtyChunks);
+        int applied = VoxelRegionApplier.ApplyTo(world.VoxelObject, in sanitized, origin, overwriteAir, _dirtyChunks);
 
         if (!VoxelRegionApplier.HasSolidVoxels(world.VoxelObject))
         {
@@ -312,11 +460,11 @@ public sealed class ServerRegionSystem(
             VoxelRegionData encoded = VoxelCodec.Encode(in sanitized, brickRegistry, paintRegistry);
             var message = new VoxelRegionEditMessage
             {
-                EntityUuid = request.TargetEntity,
+                EntityUuid = targetEntityUuid,
                 OriginX = origin.X,
                 OriginY = origin.Y,
                 OriginZ = origin.Z,
-                OverwriteAir = request.OverwriteAir,
+                OverwriteAir = overwriteAir,
                 SizeX = encoded.SizeX,
                 SizeY = encoded.SizeY,
                 SizeZ = encoded.SizeZ,
@@ -339,7 +487,8 @@ public sealed class ServerRegionSystem(
     private RpcResult<RegionOpResponse> ExecuteNewStructurePaste(
         DataStore store,
         in TransformComponent playerTransform,
-        in PasteRegionRequest request,
+        Vector3 spawnPosition,
+        Quaternion rawOrientation,
         in VoxelRegionData sanitized,
         int validBrickCount,
         int skippedUnknownBricks
@@ -349,13 +498,6 @@ public sealed class ServerRegionSystem(
         {
             return FailOp("notification.region.empty", skippedUnknownBricks);
         }
-
-        var spawnPosition = new Vector3(request.SpawnX, request.SpawnY, request.SpawnZ);
-        var rawOrientation = new Quaternion(
-            request.SpawnOrientationX,
-            request.SpawnOrientationY,
-            request.SpawnOrientationZ,
-            request.SpawnOrientationW);
 
         if (!IsFinite(spawnPosition) || !IsFinite(rawOrientation) || rawOrientation.LengthSquared() < MIN_QUATERNION_LEN_SQ)
         {

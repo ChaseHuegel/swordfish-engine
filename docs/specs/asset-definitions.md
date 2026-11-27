@@ -25,7 +25,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `ID` | string | `ItemDefinition.ID` |
 | `Name` | string (localization key) | `ItemDefinition.Name` |
 | `Description` | string? (localization key) | `ItemDefinition.Description` |
-| `Icon` | string? | `ItemDefinition.Icon` (optional override. Brick placeables without `Icon` render an isometric 3D icon at startup through `BrickIconRenderer`) |
+| `Icon` | string? | `ItemDefinition.Icon` (optional override. Brick and blueprint placeables without `Icon` render an isometric 3D icon at startup through `BrickIconRenderer`) |
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
 | `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
@@ -34,15 +34,30 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 
 ### Placeable
 
-`PlaceableDefinition` (`PlaceableDefinition.cs`): `Type` (`PlaceableType`),
-`ID` (the namespaced brick ID it places).
+`PlaceableDefinition` (`WaywardBeyond.Items/PlaceableDefinition.cs`) pairs a
+`Type` (`PlaceableType`, `WaywardBeyond.Items/PlaceableType.cs:4`) with an `ID`.
+`ItemPlaceables` (`WaywardBeyond.Items/ItemPlaceables.cs:10`) resolves both
+placeable kinds headlessly on client and server:
 
-Example:
+- `brick`: `ID` names a brick definition (for example `wb:panel`).
+- `blueprint`: `ID` names a bundled `.wbp` blueprint relative to
+  `assets/blueprints/` without the `.wbp` extension (for example `builtin/core`).
+  The server resolves the blueprint through `IBundledBlueprintDatabase`
+  (`WaywardBeyond.Data/Blueprints/IBundledBlueprintDatabase.cs:7`). See
+  [region-blueprints](region-blueprints.md).
+
+Examples:
 
 ```toml
 [Items.Placeable]
 Type = "brick"
-ID = "wb:core"
+ID = "wb:panel"
+```
+
+```toml
+[Items.Placeable]
+Type = "blueprint"
+ID = "builtin/core"
 ```
 
 ### Tool
@@ -61,9 +76,11 @@ defaults to `1,1,1`.
 For `[Items.ViewModel]`, `Mesh` and `Material` are optional. When omitted,
 `PlayerViewModelSystem` (`WaywardBeyond.Client/Systems/PlayerViewModelSystem.cs`)
 infers the resolved voxel mesh and PBR voxel material from `[Items.Placeable]`
-when the item places a brick. If no explicit model or placeable resolves, the
-system falls back to a placeholder cube using the missing-brick checkerboard
-texture layer (`BrickPreviewMeshBuilder.BuildFallback`).
+when the item places a brick or a bundled blueprint. Blueprint view models are
+centered and normalized to fit a unit cube through `RegionMeshBuilder`. If no
+explicit model or placeable resolves, the system falls back to a placeholder
+cube using the missing-brick checkerboard texture layer
+(`BrickPreviewMeshBuilder.BuildFallback`).
 
 Example (placeable brick):
 
@@ -360,7 +377,8 @@ bits. See [seed-phrases](seed-phrases.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,PlaceableDefinition,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
+- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
+- `WaywardBeyond.Data/Blueprints/{IBundledBlueprintDatabase,BundledBlueprintDatabase,BlueprintDataParser}.cs`
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
@@ -392,7 +410,11 @@ colliders, orientation transforms, and mixed-shape interior culling.
 angled-face fallback, rotation invariance, and default fallback on non-block
 shapes.
 `WaywardBeyond.Tests/PlayerViewModelTests.cs` pins optional `ViewModel` mesh and
-material fields, placeable brick view-model inference, shape updates, PBR shadow
-options, and the placeholder checkerboard fallback.
+material fields, placeable brick and blueprint view-model inference, shape
+updates, PBR shadow options, and the placeholder checkerboard fallback.
+`WaywardBeyond.Tests/ItemPlaceablesTests.cs` pins brick and blueprint placeable
+resolution, `wb:core`, and bundled blueprint loading.
+`WaywardBeyond.Tests/BrickIconTests.cs` pins isometric 3D icon baking for both
+brick and blueprint placeable items.
 `WaywardBeyond.Tests/LocalizedTagsTests.cs` pins tag value deduplication, first
 occurrence order, and the invariant merge into each language.

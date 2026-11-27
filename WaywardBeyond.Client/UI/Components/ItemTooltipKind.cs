@@ -4,6 +4,7 @@ namespace WaywardBeyond.Client.UI.Components;
 internal enum ItemTooltipKind
 {
     Brick,
+    Blueprint,
     MiningTool,
     ConversionTool,
     PaintTool,

@@ -11,6 +11,8 @@ public sealed class WorkspaceIndex
     private readonly Dictionary<string, List<InboundReference>> _inboundByTarget;
     private readonly Dictionary<(ResourceKind Kind, string LowerId), IndexedResource> _resourcesCaseInsensitive;
     private readonly Dictionary<string, IndexedResource> _albedoCaseInsensitive;
+    private readonly Dictionary<string, string> _winningBlueprintFiles;
+    private readonly Dictionary<string, string> _blueprintsCaseInsensitive;
 
     /// <summary>
     ///     Creates an immutable workspace index from loaded roots, assets, resources, and references.
@@ -73,6 +75,21 @@ public sealed class WorkspaceIndex
         foreach (KeyValuePair<string, IndexedResource> kvp in winningBlockAlbedoLayers)
         {
             _albedoCaseInsensitive[kvp.Key] = kvp.Value;
+        }
+
+        _winningBlueprintFiles = new Dictionary<string, string>(StringComparer.Ordinal);
+        _blueprintsCaseInsensitive = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < blueprintFiles.Count; i++)
+        {
+            string fullPath = blueprintFiles[i];
+            string? blueprintId = TryExtractBlueprintId(roots, fullPath);
+            if (string.IsNullOrWhiteSpace(blueprintId))
+            {
+                continue;
+            }
+
+            _winningBlueprintFiles[blueprintId] = fullPath;
+            _blueprintsCaseInsensitive[blueprintId] = blueprintId;
         }
     }
 
@@ -155,6 +172,76 @@ public sealed class WorkspaceIndex
     ///     Gets all discovered blueprint <c>.wbp</c> file paths across enabled roots.
     /// </summary>
     public IReadOnlyList<string> BlueprintFiles { get; }
+
+    /// <summary>
+    ///     Gets winning bundled blueprint file paths keyed by normalized relative blueprint ID (without <c>.wbp</c>).
+    /// </summary>
+    public IReadOnlyDictionary<string, string> WinningBlueprintFiles => _winningBlueprintFiles;
+
+    /// <summary>
+    ///     Gets the winning bundled blueprint file path matching case-exact <paramref name="blueprintId"/>.
+    /// </summary>
+    public Result<string> GetBlueprintFile(string blueprintId)
+    {
+        if (!string.IsNullOrEmpty(blueprintId) && _winningBlueprintFiles.TryGetValue(blueprintId, out string? fullPath))
+        {
+            return Result<string>.FromSuccess(fullPath);
+        }
+
+        return Result<string>.FromFailure($"Blueprint '{blueprintId}' was not found.");
+    }
+
+    /// <summary>
+    ///     Finds a winning bundled blueprint ID matching <paramref name="blueprintId"/> case-insensitively to detect case drift.
+    /// </summary>
+    public Result<string> FindBlueprintIdCaseInsensitive(string blueprintId)
+    {
+        if (!string.IsNullOrEmpty(blueprintId) && _blueprintsCaseInsensitive.TryGetValue(blueprintId, out string? canonicalId))
+        {
+            return Result<string>.FromSuccess(canonicalId);
+        }
+
+        return Result<string>.FromFailure($"Blueprint '{blueprintId}' was not found.");
+    }
+
+    private static string? TryExtractBlueprintId(IReadOnlyList<WorkspaceRoot> roots, string fullPath)
+    {
+        string normalizedFull = Path.GetFullPath(fullPath);
+        StringComparison pathComparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        string? matchedBlueprintsDir = null;
+        for (int i = 0; i < roots.Count; i++)
+        {
+            WorkspaceRoot root = roots[i];
+            if (!root.IsEnabled || string.IsNullOrWhiteSpace(root.AssetsDirectory))
+            {
+                continue;
+            }
+
+            string blueprintsDir = Path.GetFullPath(Path.Combine(root.AssetsDirectory, "blueprints"))
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string prefix = blueprintsDir + Path.DirectorySeparatorChar;
+            if (normalizedFull.StartsWith(prefix, pathComparison))
+            {
+                matchedBlueprintsDir = blueprintsDir;
+            }
+        }
+
+        if (matchedBlueprintsDir == null)
+        {
+            return null;
+        }
+
+        string relative = Path.GetRelativePath(matchedBlueprintsDir, normalizedFull).Replace('\\', '/');
+        if (relative.EndsWith(".wbp", StringComparison.OrdinalIgnoreCase))
+        {
+            relative = relative[..^4];
+        }
+
+        return relative;
+    }
 
     /// <summary>
     ///     Gets the winning asset matching <paramref name="kind"/> and <paramref name="id"/>.

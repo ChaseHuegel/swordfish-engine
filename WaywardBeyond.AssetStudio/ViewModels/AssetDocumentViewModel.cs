@@ -41,6 +41,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     private readonly Action<AssetDocumentViewModel, StudioUndoAction>? _onRecordUndo;
     private readonly Func<bool>? _isUndoReplaying;
     private readonly Func<string?, string?>? _resolveTexturePath;
+    private readonly IReadOnlyList<ReferenceCandidate> _allReferenceCandidates;
     private IReadOnlyList<WorkspaceImageEntry> _workspaceImages;
     private string _tomlText = string.Empty;
     private string _newTagValue = string.Empty;
@@ -132,6 +133,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         _onRecordUndo = onRecordUndo;
         _isUndoReplaying = isUndoReplaying;
         _resolveTexturePath = resolveTexturePath;
+        _allReferenceCandidates = candidates;
         _workspaceImages = workspaceImages != null ? [.. workspaceImages] : [];
 
         _id = seed.Id;
@@ -277,8 +279,9 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
                 || seed.ScalarValues.ContainsKey("WorldModelMaterial");
 
             ItemMaxStackField = AddField("MaxStack", "Max Stack", "1..999", GetVal("MaxStack", "64"), isNumeric: true);
-            ItemPlaceableTypeField = AddField("PlaceableType", "Placeable Type", string.Empty, GetVal("PlaceableType", "none"), choices: ["none", "brick"]);
+            ItemPlaceableTypeField = AddField("PlaceableType", "Placeable Type", string.Empty, GetVal("PlaceableType", "none"), choices: ["none", "brick", "blueprint"]);
             ItemPlaceableIdField = AddField("PlaceableID", "Target Brick ID", "namespaced ID · wb:core", GetVal("PlaceableID"), referenceKind: ReferenceKind.BrickId);
+            SyncItemPlaceableIdField();
             ItemToolTypeField = AddField("ToolType", "Tool Type", string.Empty, GetVal("ToolType", "none"), choices: ["none", "convert", "mining", "sprayer", "drill", "blueprint"]);
             ItemToolTargetField = AddField("ToolTarget", "Tool Target", "target tag", GetVal("ToolTarget"));
             ItemViewModelMeshField = AddField("ViewModelMesh", "Mesh", "path + .obj · optional", GetVal("ViewModelMesh"), referenceKind: ReferenceKind.Mesh);
@@ -2590,6 +2593,44 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(IsBrickConnected));
         }
+        else if (field == ItemPlaceableTypeField)
+        {
+            SyncItemPlaceableIdField();
+        }
+    }
+
+    private void SyncItemPlaceableIdField()
+    {
+        if (ItemPlaceableTypeField == null || ItemPlaceableIdField == null)
+        {
+            return;
+        }
+
+        string placeableType = ItemPlaceableTypeField.Value.Trim();
+        if (string.Equals(placeableType, "blueprint", StringComparison.OrdinalIgnoreCase))
+        {
+            ItemPlaceableIdField.ReconfigureReference(
+                "Target Blueprint ID",
+                "blueprint ID · builtin/core",
+                ReferenceKind.BlueprintId,
+                FilterCandidates(_allReferenceCandidates, ReferenceKind.BlueprintId));
+        }
+        else if (string.Equals(placeableType, "brick", StringComparison.OrdinalIgnoreCase))
+        {
+            ItemPlaceableIdField.ReconfigureReference(
+                "Target Brick ID",
+                "namespaced ID · wb:core",
+                ReferenceKind.BrickId,
+                FilterCandidates(_allReferenceCandidates, ReferenceKind.BrickId));
+        }
+        else
+        {
+            ItemPlaceableIdField.ReconfigureReference(
+                "Target ID",
+                "brick or blueprint ID",
+                referenceKind: null,
+                candidates: null);
+        }
     }
 
     private void HandleSkillCurveChanged()
@@ -3372,10 +3413,14 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         sb.AppendLine($"Description = {DescriptionField?.RawTokenText}");
         sb.AppendLine($"Icon        = {IconField?.RawTokenText}");
         sb.AppendLine($"MaxStack    = {ItemMaxStackField?.RawTokenText}");
-        sb.AppendLine();
-        sb.AppendLine("[Items.Placeable]");
-        sb.AppendLine($"Type = {ItemPlaceableTypeField?.RawTokenText}");
-        sb.AppendLine($"ID   = {ItemPlaceableIdField?.RawTokenText}");
+        if (!string.IsNullOrWhiteSpace(ItemPlaceableTypeField?.Value)
+            && !string.Equals(ItemPlaceableTypeField.Value, "none", StringComparison.OrdinalIgnoreCase))
+        {
+            sb.AppendLine();
+            sb.AppendLine("[Items.Placeable]");
+            sb.AppendLine($"Type = {ItemPlaceableTypeField.RawTokenText}");
+            sb.AppendLine($"ID   = {ItemPlaceableIdField?.RawTokenText}");
+        }
         sb.AppendLine();
         sb.AppendLine("[Items.ViewModel]");
         if (!string.IsNullOrWhiteSpace(ItemViewModelMeshField?.Value))

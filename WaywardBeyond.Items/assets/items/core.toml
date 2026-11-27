@@ -4,8 +4,8 @@ Name     = "item.base.core"
 Description = "item.base.core.description"
 MaxStack = 100
 [Items.Placeable]
-Type     = "brick"
-ID       = "wb:core"
+Type     = "blueprint"
+ID       = "builtin/core"
 [Items.ViewModel]
 Position.X = 0.4
 Position.Y = -0.4

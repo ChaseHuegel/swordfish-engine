@@ -602,6 +602,48 @@ public sealed class WorkspaceValidator
                 }
             }
         }
+        else if (item.Placeable.HasValue &&
+            item.Placeable.Value.Type == PlaceableType.Blueprint &&
+            !string.IsNullOrWhiteSpace(item.Placeable.Value.ID))
+        {
+            string blueprintId = item.Placeable.Value.ID;
+            if (!workspace.GetBlueprintFile(blueprintId).Success)
+            {
+                TomlFieldSpan? span = FindEntryField(doc, asset.Provenance.TableIndex, "ID", "Items.Placeable");
+                Result<string> caseMatch = workspace.FindBlueprintIdCaseInsensitive(blueprintId);
+                if (caseMatch.Success)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "PATH001",
+                        ValidationSeverity.CrossPlatform,
+                        in asset,
+                        span,
+                        "Placeable.ID",
+                        $"Placeable blueprint ID '{blueprintId}' differs by case from '{caseMatch.Value}'.",
+                        suggestedFixValue: caseMatch.Value,
+                        fixKind: ValidationFixKind.ReplaceValue,
+                        isSafeBulkFix: true,
+                        fixDescription: "Fix path/ID casing");
+                }
+                else
+                {
+                    string? suggested = FindBestReferenceMatch(blueprintId, workspace.WinningBlueprintFiles.Keys);
+                    AddFieldFinding(
+                        findings,
+                        "REF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        span,
+                        "Placeable.ID",
+                        $"Placeable blueprint '{blueprintId}' was not found.",
+                        suggestedFixValue: suggested,
+                        fixKind: suggested != null ? ValidationFixKind.ReplaceValue : ValidationFixKind.None,
+                        isSafeBulkFix: false,
+                        fixDescription: suggested != null ? "Replace with closest matching blueprint" : null);
+                }
+            }
+        }
 
         if (item.ViewModel.HasValue)
         {
