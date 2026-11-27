@@ -174,10 +174,13 @@ Validation runs strictly at the interaction layer:
   to any paintable brick.
 - `BrickShape.Slope` expands `Front` or `Top` hits to `Front | Top`.
 - `BrickShape.Custom` expands any face hit to `BrickFaceMask.All`.
-- On the client, `PlayerInteractionService` highlights invalid sprayer or drill
-  targets with the invalid outline color. Attempting to paint an invalid target
-  or clear a face with no active-mode override shows a red action notification
-  and skips sending an interaction event.
+- On the client, `PlayerInteractionService` renders a face-targeted wireframe
+  for sprayer and drill targets that matches the expanded mask from
+  `PaintInteractionResolver.ExpandFaceMask` on built-in shapes, and keeps the
+  full-brick custom mesh outline for `BrickShape.Custom`. Invalid targets use
+  the invalid outline color. Attempting to paint an invalid target or clear a
+  face with no active-mode override shows a red action notification and skips
+  sending an interaction event.
 
 `VoxelFaceWriteCommitter` (`WaywardBeyond.Server/Interactions/VoxelFaceWriteCommitter.cs`)
 applies the edit to the live `VoxelObject` without rebuilding colliders and
