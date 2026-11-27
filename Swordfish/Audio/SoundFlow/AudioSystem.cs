@@ -1,3 +1,4 @@
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using SoundFlow.Abstracts;
 using SoundFlow.Abstracts.Devices;
@@ -6,6 +7,7 @@ using SoundFlow.Enums;
 using SoundFlow.Providers;
 using SoundFlow.Structs;
 using Krill;
+using Swordfish.ECS;
 using Swordfish.Library.Collections;
 using Swordfish.Settings;
 
@@ -14,14 +16,18 @@ namespace Swordfish.Audio.SoundFlow;
 internal sealed class AudioSystem : IEntitySystem, IPlaybackDeviceService, IDisposable
 {
     private const float PlaybackDeviceScanInterval = 2f;
+    private const float PARAMETER_EPSILON = 1e-5f;
+    private const float CENTER_PAN = 0.5f;
 
     private readonly AudioEngine _engine;
     private readonly ILogger<AudioSystem> _logger;
+    private readonly AudioSettings _audioSettings;
     private readonly IAssetDatabase<AudioStream> _audioStreamDatabase;
     
     private readonly AudioFormat _format;
     private readonly Dictionary<Uuid, SoundPlayer> _soundPlayers = [];
     private readonly Dictionary<SoundPlayer, string> _soundPlayerSources = [];
+    private readonly Dictionary<Uuid, Vector3> _previousSourcePositions = [];
     private readonly Dictionary<string, AudioPlaybackDevice> _playbackDevices = [];
     private readonly HashSet<string> _failedPlaybackDevices = [];
     
@@ -37,6 +43,8 @@ internal sealed class AudioSystem : IEntitySystem, IPlaybackDeviceService, IDisp
     private bool _publishedPreferredPlaybackDeviceMissing;
     private bool? _hasDefaultPlaybackDevice;
     private float _playbackDeviceScanTimer;
+    private Uuid? _previousListenerUuid;
+    private Vector3 _previousListenerPosition;
 
     /// <inheritdoc/>
     public IReadOnlyList<string> PlaybackDeviceNames => Volatile.Read(ref _publishedPlaybackDeviceNames);
@@ -60,6 +68,7 @@ internal sealed class AudioSystem : IEntitySystem, IPlaybackDeviceService, IDisp
     {
         _logger = logger;
         _engine = engine;
+        _audioSettings = audioSettings;
         _audioStreamDatabase = audioStreamDatabase;
         
         _format = new AudioFormat
@@ -107,8 +116,78 @@ internal sealed class AudioSystem : IEntitySystem, IPlaybackDeviceService, IDisp
         var cleanupAudioPlayerAction = new CleanupAudioPlayerAction(this);
         store.Query<CleanupAudioPlayer, CleanupAudioPlayerAction>(delta, ref cleanupAudioPlayerAction);
 
-        var tickAudioPlayerAction = new TickAudioPlayerAction(this);
+        bool hasListener = TryResolveListener(delta, store, out SpatialListenerState listener);
+        SpatialAudioConfig spatialConfig = new(
+            _audioSettings.Spatial.SpeedOfSound.Get(),
+            _audioSettings.Spatial.DopplerScale.Get(),
+            _audioSettings.Spatial.MinDopplerPitch.Get(),
+            _audioSettings.Spatial.MaxDopplerPitch.Get()
+        );
+
+        var tickAudioPlayerAction = new TickAudioPlayerAction(this, hasListener, in listener, in spatialConfig);
         store.QueryRef<AudioPlayer, AudioSource, TickAudioPlayerAction>(delta, ref tickAudioPlayerAction);
+    }
+
+    private bool TryResolveListener(float delta, DataStore store, out SpatialListenerState listener)
+    {
+        var findListenerAction = new FindListenerAction();
+        store.Query<AudioListener, TransformComponent, FindListenerAction>(delta, ref findListenerAction);
+        if (!findListenerAction.Found)
+        {
+            _previousListenerUuid = null;
+            listener = default;
+            return false;
+        }
+
+        int entity = findListenerAction.Entity;
+        TransformComponent transform = findListenerAction.Transform;
+        Uuid uuid = store.GetUuid(entity);
+
+        Vector3 right = transform.GetRight();
+        float rightLengthSquared = right.LengthSquared();
+        right = rightLengthSquared > PARAMETER_EPSILON * PARAMETER_EPSILON
+            ? right / MathF.Sqrt(rightLengthSquared)
+            : Vector3.UnitX;
+
+        Vector3 velocity = ResolveVelocity(
+            store,
+            entity,
+            in transform.Position,
+            delta,
+            hasPreviousPosition: _previousListenerUuid == uuid,
+            in _previousListenerPosition
+        );
+
+        _previousListenerUuid = uuid;
+        _previousListenerPosition = transform.Position;
+        listener = new SpatialListenerState(transform.Position, right, velocity);
+        return true;
+    }
+
+    private static Vector3 ResolveVelocity(
+        DataStore store,
+        int entity,
+        in Vector3 currentPosition,
+        float delta,
+        bool hasPreviousPosition,
+        in Vector3 previousPosition
+    ) {
+        if (store.TryGet(entity, out PhysicsComponent physics))
+        {
+            return physics.Velocity;
+        }
+
+        if (store.TryGet(entity, out ChildComponent child) && store.TryGet(child.Parent, out PhysicsComponent parentPhysics))
+        {
+            return parentPhysics.Velocity;
+        }
+
+        if (hasPreviousPosition && delta > PARAMETER_EPSILON)
+        {
+            return (currentPosition - previousPosition) / delta;
+        }
+
+        return Vector3.Zero;
     }
 
     private void RefreshPlaybackDevices()
@@ -379,13 +458,41 @@ internal sealed class AudioSystem : IEntitySystem, IPlaybackDeviceService, IDisp
             _owner.DisposeSoundPlayer(soundPlayer);
             _owner._soundPlayers.Remove(uuid);
             _owner._soundPlayerSources.Remove(soundPlayer);
+            _owner._previousSourcePositions.Remove(uuid);
             store.Free(entity);
         }
     }
 
-    private readonly struct TickAudioPlayerAction(in AudioSystem owner) : IForEachRef<AudioPlayer, AudioSource>
+    private struct FindListenerAction : IForEach<AudioListener, TransformComponent>
+    {
+        public bool Found;
+        public int Entity;
+        public TransformComponent Transform;
+
+        public void Execute(float delta, DataStore store, int entity, in AudioListener listener, in TransformComponent transform)
+        {
+            if (Found)
+            {
+                return;
+            }
+
+            Found = true;
+            Entity = entity;
+            Transform = transform;
+        }
+    }
+
+    private readonly struct TickAudioPlayerAction(
+        in AudioSystem owner,
+        bool hasListener,
+        in SpatialListenerState listener,
+        in SpatialAudioConfig spatialConfig
+    ) : IForEachRef<AudioPlayer, AudioSource>
     {
         private readonly AudioSystem _owner = owner;
+        private readonly bool _hasListener = hasListener;
+        private readonly SpatialListenerState _listener = listener;
+        private readonly SpatialAudioConfig _spatialConfig = spatialConfig;
 
         public void Execute(float delta, DataStore store, int entity, ref Ref<AudioPlayer> audioPlayer, ref Ref<AudioSource> audioSource)
         {
@@ -452,14 +559,59 @@ internal sealed class AudioSystem : IEntitySystem, IPlaybackDeviceService, IDisp
                 playbackDevice.MasterMixer.AddComponent(soundPlayer);
             }
 
-            //  Mix volume
-            soundPlayer.Volume = channel.Volume * audioPlayer.Read.Volume;
+            //  Mix volume, pan, and pitch (applying 3D spatialization when present)
+            float targetVolume = MathF.Max(0f, channel.Volume * audioPlayer.Read.Volume);
+            float targetPan = CENTER_PAN;
+            float targetPitch = audioPlayer.Read.Pitch;
+
+            if (_hasListener && store.TryGet(entity, out SpatialAudio spatial) && store.TryGet(entity, out TransformComponent sourceTransform))
+            {
+                bool hasPreviousPosition = _owner._previousSourcePositions.TryGetValue(uuid, out Vector3 previousPosition);
+                Vector3 sourceVelocity = ResolveVelocity(
+                    store,
+                    entity,
+                    in sourceTransform.Position,
+                    delta,
+                    hasPreviousPosition,
+                    in previousPosition
+                );
+                _owner._previousSourcePositions[uuid] = sourceTransform.Position;
+
+                SpatialAudioResult spatialResult = SpatialAudioSolver.Solve(
+                    in _listener,
+                    in sourceTransform.Position,
+                    in sourceVelocity,
+                    in spatial,
+                    in _spatialConfig
+                );
+
+                targetVolume = MathF.Max(0f, targetVolume * spatialResult.VolumeMultiplier);
+                targetPan = spatialResult.Pan;
+                targetPitch *= spatialResult.PitchMultiplier;
+            }
+            else
+            {
+                _owner._previousSourcePositions.Remove(uuid);
+            }
+
+            if (MathF.Abs(soundPlayer.Volume - targetVolume) > PARAMETER_EPSILON)
+            {
+                soundPlayer.Volume = targetVolume;
+            }
+
+            if (MathF.Abs(soundPlayer.Pan - targetPan) > PARAMETER_EPSILON)
+            {
+                soundPlayer.Pan = targetPan;
+            }
 
             //  Manage looping
             soundPlayer.IsLooping = audioPlayer.Read.Loop;
 
             //  Manage pitch
-            soundPlayer.PlaybackSpeed = audioPlayer.Read.Pitch;
+            if (MathF.Abs(soundPlayer.PlaybackSpeed - targetPitch) > PARAMETER_EPSILON)
+            {
+                soundPlayer.PlaybackSpeed = targetPitch;
+            }
 
             //  Manage state
             switch (audioPlayer.Read.State)
