@@ -16,6 +16,7 @@ public sealed class ParticleSystem : IEntitySystem, IParticleService
     private const float HALF_DIAGONAL_FACTOR = 0.71f;
     private const int MAX_MISSING_EFFECT_CACHE = 256;
     internal const int MAX_PENDING_BURSTS = 256;
+    private const float MIN_BATCH_CELL_SIZE = 1f;
 
     private readonly IAssetDatabase<ParticleEffect> _effectDatabase;
     private readonly RenderSettings _renderSettings;
@@ -592,84 +593,7 @@ public sealed class ParticleSystem : IEntitySystem, IParticleService
 
         if (_activeCount > 0)
         {
-            foreach (List<int> bucket in _batchBuckets.Values)
-            {
-                bucket.Clear();
-                _bucketPool.Push(bucket);
-            }
-
-            _batchBuckets.Clear();
-            _batchOrder.Clear();
-
-            for (var i = 0; i < _activeCount; i++)
-            {
-                ParticleEffect effect = _particles[i].Effect;
-                var key = new BatchKey(effect.Texture, effect.BlendMode);
-                if (!_batchBuckets.TryGetValue(key, out List<int>? bucket))
-                {
-                    bucket = _bucketPool.Count > 0 ? _bucketPool.Pop() : new List<int>(32);
-                    _batchBuckets[key] = bucket;
-                    _batchOrder.Add(key);
-                }
-
-                bucket.Add(i);
-            }
-
-            _writeSnapshot.EnsureInstanceCapacity(_activeCount);
-            _writeSnapshot.EnsureBatchCapacity(_batchOrder.Count);
-
-            var instanceOffset = 0;
-            var batchIndex = 0;
-            for (var b = 0; b < _batchOrder.Count; b++)
-            {
-                BatchKey key = _batchOrder[b];
-                List<int> bucket = _batchBuckets[key];
-                int count = bucket.Count;
-                if (count == 0)
-                {
-                    continue;
-                }
-
-                Vector3 min = new(float.PositiveInfinity);
-                Vector3 max = new(float.NegativeInfinity);
-
-                for (var i = 0; i < count; i++)
-                {
-                    ref readonly LiveParticle p = ref _particles[bucket[i]];
-                    float t = Math.Clamp(p.Age / p.Lifetime, 0f, 1f);
-                    float size = p.StartSize + (p.EndSize - p.StartSize) * t;
-                    Vector4 color = Vector4.Lerp(p.StartColor, p.EndColor, t);
-
-                    _writeSnapshot.Instances[instanceOffset + i] = new ParticleInstance
-                    {
-                        Position = p.Position,
-                        Size = size,
-                        Color = color,
-                        Rotation = p.Rotation,
-                        Emissive = p.Effect.EmissiveIntensity,
-                    };
-
-                    var halfExtent = new Vector3(size * HALF_DIAGONAL_FACTOR);
-                    min = Vector3.Min(min, p.Position - halfExtent);
-                    max = Vector3.Max(max, p.Position + halfExtent);
-                }
-
-                Vector3 center = (min + max) * 0.5f;
-                Vector3 extents = (max - min) * 0.5f;
-                var bounds = new BoundingBox(center, extents, extents.Length());
-
-                _writeSnapshot.Batches[batchIndex++] = new ParticleRenderBatch(
-                    key.Texture,
-                    key.BlendMode,
-                    instanceOffset,
-                    count,
-                    bounds
-                );
-                instanceOffset += count;
-            }
-
-            _writeSnapshot.InstanceCount = instanceOffset;
-            _writeSnapshot.BatchCount = batchIndex;
+            PackSnapshotBatches();
         }
 
         lock (_snapshotLock)
@@ -677,6 +601,99 @@ public sealed class ParticleSystem : IEntitySystem, IParticleService
             (_writeSnapshot, _readySnapshot) = (_readySnapshot, _writeSnapshot);
             _hasReadySnapshot = true;
         }
+    }
+
+    private void PackSnapshotBatches()
+    {
+        float cellSize = SanitizeBatchCellSize(_renderSettings.Particles.BatchCellSize.Get());
+        double invCellSize = 1d / cellSize;
+
+        for (var i = 0; i < _activeCount; i++)
+        {
+            ref readonly LiveParticle particle = ref _particles[i];
+            ParticleEffect effect = particle.Effect;
+            var key = new BatchKey(
+                effect.Texture,
+                effect.BlendMode,
+                particle.EmitterOwner,
+                QuantizeCell(particle.Position.X, invCellSize),
+                QuantizeCell(particle.Position.Y, invCellSize),
+                QuantizeCell(particle.Position.Z, invCellSize)
+            );
+            if (!_batchBuckets.TryGetValue(key, out List<int>? bucket))
+            {
+                bucket = _bucketPool.Count > 0 ? _bucketPool.Pop() : new List<int>(32);
+                _batchBuckets[key] = bucket;
+                _batchOrder.Add(key);
+            }
+
+            bucket.Add(i);
+        }
+
+        _writeSnapshot.EnsureInstanceCapacity(_activeCount);
+        _writeSnapshot.EnsureBatchCapacity(_batchOrder.Count);
+
+        var instanceOffset = 0;
+        var batchIndex = 0;
+        for (var b = 0; b < _batchOrder.Count; b++)
+        {
+            BatchKey key = _batchOrder[b];
+            List<int> bucket = _batchBuckets[key];
+            int count = bucket.Count;
+            if (count == 0)
+            {
+                continue;
+            }
+
+            Vector3 min = new(float.PositiveInfinity);
+            Vector3 max = new(float.NegativeInfinity);
+
+            for (var i = 0; i < count; i++)
+            {
+                ref readonly LiveParticle p = ref _particles[bucket[i]];
+                float t = Math.Clamp(p.Age / p.Lifetime, 0f, 1f);
+                float size = p.StartSize + (p.EndSize - p.StartSize) * t;
+                Vector4 color = Vector4.Lerp(p.StartColor, p.EndColor, t);
+
+                _writeSnapshot.Instances[instanceOffset + i] = new ParticleInstance
+                {
+                    Position = p.Position,
+                    Size = size,
+                    Color = color,
+                    Rotation = p.Rotation,
+                    Emissive = p.Effect.EmissiveIntensity,
+                };
+
+                var halfExtent = new Vector3(size * HALF_DIAGONAL_FACTOR);
+                min = Vector3.Min(min, p.Position - halfExtent);
+                max = Vector3.Max(max, p.Position + halfExtent);
+            }
+
+            Vector3 center = (min + max) * 0.5f;
+            Vector3 extents = (max - min) * 0.5f;
+            var bounds = new BoundingBox(center, extents, extents.Length());
+
+            _writeSnapshot.Batches[batchIndex++] = new ParticleRenderBatch(
+                key.Texture,
+                key.BlendMode,
+                instanceOffset,
+                count,
+                bounds
+            );
+            instanceOffset += count;
+        }
+
+        _writeSnapshot.InstanceCount = instanceOffset;
+        _writeSnapshot.BatchCount = batchIndex;
+
+        foreach (List<int> bucket in _batchBuckets.Values)
+        {
+            bucket.Clear();
+            _bucketPool.Push(bucket);
+        }
+
+        _batchBuckets.Clear();
+        _batchOrder.Clear();
     }
 
     private static Vector3 SampleSphereDirection(Random random)
@@ -744,12 +761,50 @@ public sealed class ParticleSystem : IEntitySystem, IParticleService
         return Math.Clamp(rounded, 1, maxAvailable);
     }
 
+    private static float SanitizeBatchCellSize(float cellSize)
+    {
+        if (!float.IsFinite(cellSize) || cellSize <= 0f)
+        {
+            return ParticleSettings.DEFAULT_BATCH_CELL_SIZE;
+        }
+
+        return MathF.Max(cellSize, MIN_BATCH_CELL_SIZE);
+    }
+
+    private static int QuantizeCell(float coordinate, double invCellSize)
+    {
+        double scaled = Math.Floor(coordinate * invCellSize);
+        if (double.IsNaN(scaled))
+        {
+            return 0;
+        }
+
+        if (scaled <= int.MinValue)
+        {
+            return int.MinValue;
+        }
+
+        if (scaled >= int.MaxValue)
+        {
+            return int.MaxValue;
+        }
+
+        return (int)scaled;
+    }
+
     private static bool IsFinite(in Vector3 vector)
     {
         return float.IsFinite(vector.X) && float.IsFinite(vector.Y) && float.IsFinite(vector.Z);
     }
 
-    private readonly record struct BatchKey(Texture? Texture, ParticleBlendMode BlendMode);
+    private readonly record struct BatchKey(
+        Texture? Texture,
+        ParticleBlendMode BlendMode,
+        Uuid EmitterOwner,
+        int CellX,
+        int CellY,
+        int CellZ
+    );
 
     private readonly record struct QueuedBurst(ParticleBurstRequest Request, long Generation);
 
