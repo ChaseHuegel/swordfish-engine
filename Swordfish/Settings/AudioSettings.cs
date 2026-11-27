@@ -5,4 +5,5 @@ namespace Swordfish.Settings;
 public sealed class AudioSettings : Config<AudioSettings>
 {
     public PlaybackSettings Playback { get; private set; } = new();
+    public SpatialAudioSettings Spatial { get; private set; } = new();
 }

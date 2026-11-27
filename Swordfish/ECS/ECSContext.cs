@@ -2,6 +2,7 @@ using System.Numerics;
 using Krill;
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
+using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
@@ -43,6 +44,7 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
         var viewFrustum = new ViewFrustumComponent(renderSettings.NearPlane, renderSettings.FarPlane, renderSettings.FOV);
         camera.AddOrUpdate(viewFrustum);
         camera.Add<CameraComponent>();
+        camera.Add<AudioListener>();
         camera.AddOrUpdate(transform);
         
         //  Assign the camera to the render context as the main camera
