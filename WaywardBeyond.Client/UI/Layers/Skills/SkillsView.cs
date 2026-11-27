@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using Reef.Constraints;
 using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.UI.Components;
 
@@ -8,11 +9,44 @@ namespace WaywardBeyond.Client.UI.Layers.Skills;
 /// <summary>Passive Reef view for the modal skill panel.</summary>
 internal partial class SkillsView(ILocalization localization, ScrollAreaState scroll) : UiViewBase(localization)
 {
+    private const int EMPTY_PANEL_HEIGHT = 180;
+    private const int PANEL_CHROME_HEIGHT = 91;
+    private const int CATEGORY_HEADER_HEIGHT = 25;
+    private const int CATEGORY_GAP = 10;
+    private const int SKILL_ROW_HEIGHT = 70;
+    private const int MAX_PANEL_HEIGHT = 520;
+    private const int VIEWPORT_VERTICAL_MARGIN = 160;
+    private const int MIN_CLAMPED_HEIGHT = 220;
+
     /// <summary>Gets the scroll state for the skill list.</summary>
     public ScrollAreaState Scroll { get; } = scroll;
 
     /// <summary>Raised when the close action is triggered.</summary>
     public Action? CloseRequested { get; set; }
+
+    /// <summary>Computes the panel height constraint tightly around its content up to the scroll cap.</summary>
+    protected static IConstraint PanelHeightConstraint(in SkillsPanelState state, int viewportHeight)
+    {
+        if (!state.HasSkills)
+        {
+            return new Fixed(EMPTY_PANEL_HEIGHT);
+        }
+
+        int desiredHeight = PANEL_CHROME_HEIGHT + EstimateContentHeight(in state);
+        int maxHeight = MaxPanelHeight(viewportHeight);
+        return new Fixed(Math.Min(desiredHeight, maxHeight));
+    }
+
+    /// <summary>Returns whether the skill list exceeds the clamped panel height and needs a scrollbar.</summary>
+    protected static bool NeedsScroll(in SkillsPanelState state, int viewportHeight)
+    {
+        if (!state.HasSkills)
+        {
+            return false;
+        }
+
+        return PANEL_CHROME_HEIGHT + EstimateContentHeight(in state) > MaxPanelHeight(viewportHeight);
+    }
 
     /// <summary>Formats the total skill level summary line.</summary>
     protected string TotalLevelText(int totalLevel)
@@ -47,6 +81,24 @@ internal partial class SkillsView(ILocalization localization, ScrollAreaState sc
     protected static ProgressBarState ProgressTrack(in SkillRowState skill)
     {
         return new ProgressBarState(skill.Progress);
+    }
+
+    private static int EstimateContentHeight(in SkillsPanelState state)
+    {
+        int categories = state.Categories.Count;
+        var skills = 0;
+        for (var i = 0; i < categories; i++)
+        {
+            skills += state.Categories[i].Skills.Count;
+        }
+
+        return categories * CATEGORY_HEADER_HEIGHT + skills * SKILL_ROW_HEIGHT + Math.Max(0, categories - 1) * CATEGORY_GAP;
+    }
+
+    private static int MaxPanelHeight(int viewportHeight)
+    {
+        int available = Math.Max(MIN_CLAMPED_HEIGHT, viewportHeight - VIEWPORT_VERTICAL_MARGIN);
+        return Math.Min(MAX_PANEL_HEIGHT, available);
     }
 
     partial void OnClose() => CloseRequested?.Invoke();

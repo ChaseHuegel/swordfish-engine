@@ -1,16 +1,24 @@
-.wb-skills-header {
-    layout: horizontal;
-    gap: 8px;
+.wb-skills-panel {
+    --extends: wb-panel;
+    padding: 2px;
 }
 
-.wb-skills-body {
-    layout: vertical;
-    gap: 10px;
+.wb-skills-panel-inner {
+    --extends: wb-panel-inner;
+    padding: 16px;
+}
+
+.wb-skills-viewport {
+    padding: 0;
+}
+
+.wb-skills-viewport-scrollable {
+    padding: 0 0 14px 0;
 }
 
 .wb-skills-list {
     layout: vertical;
-    gap: 14px;
+    gap: 10px;
 }
 
 .wb-skills-category {
@@ -18,23 +26,37 @@
     gap: 6px;
 }
 
+.wb-skills-summary {
+    color: var(--wb-accent);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.wb-skills-category-title {
+    color: var(--wb-text-muted);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
 .wb-skills-card {
     color: var(--wb-panel-inner);
     border: 1px var(--wb-border);
     layout: horizontal;
-    gap: 12px;
-    padding: 10px 12px 10px 12px;
+    gap: 10px;
+    padding: 8px 10px 8px 10px;
 }
 
 .wb-skills-icon-frame {
     color: var(--wb-control);
     border: 1px var(--wb-border-inner);
-    padding: 4px;
+    padding: 3px;
 }
 
 .wb-skills-details {
     layout: vertical;
-    gap: 6px;
+    gap: 4px;
 }
 
 .wb-skills-row-header {
@@ -47,10 +69,17 @@
     gap: 8px;
 }
 
-.wb-skills-level {
-    color: var(--wb-primary-bright);
+.wb-skills-name {
+    color: var(--wb-text);
     font-family: var(--wb-font-ui);
     font-size: 16px;
+    vertical-align: middle;
+}
+
+.wb-skills-level {
+    color: var(--wb-primary);
+    font-family: var(--wb-font-ui);
+    font-size: 14px;
     text-align: right;
     vertical-align: middle;
 }

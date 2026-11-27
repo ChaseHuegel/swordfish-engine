@@ -196,7 +196,23 @@ public sealed class SkillsPanelTests : IDisposable
         Assert.Contains(commands, c => c.Text == "Lvl 1");
         Assert.Contains(commands, c => c.Text == "44 / 105 XP");
         Assert.Contains(commands, c => c.Text == "Total 105 XP");
+        Assert.DoesNotContain(commands, c => c.Text == "Close");
         Assert.Contains(commands, c => c.RendererData != null && ReferenceEquals(c.RendererData.Textures[0], miningTexture));
+
+        ElementBounds panelBounds = harness.GetElementBounds("Skills.Panel");
+        Assert.Equal(512, panelBounds.Rect.Size.X);
+        Assert.InRange(panelBounds.Rect.Size.Y, 320, 400);
+
+        //  Live character XP update immediately updates both skill level and total level.
+        character.Statistics =
+        [
+            new Statistic("mining", 105),
+            new Statistic("building", 167),
+            new Statistic("salvaging", 62),
+        ];
+        activeSave.ActiveSave = character;
+        List<RenderCommand<Material>> updatedCommands = harness.Render(0.2d);
+        Assert.Contains(updatedCommands, c => c.Text == "Total level 4");
     }
 
     [Fact]
@@ -300,7 +316,6 @@ public sealed class SkillsPanelTests : IDisposable
             ["ui.label.skill.xpMax"] = "{0} XP (Max)",
             ["ui.label.skill.uncategorized"] = "Other",
             ["ui.message.skill.empty"] = "No skills available",
-            ["ui.button.close"] = "Close",
             ["skill.category.gathering"] = "Gathering",
             ["skill.category.misc"] = "Misc",
             ["skill.name.mining"] = "Mining",
@@ -359,6 +374,8 @@ public sealed class SkillsPanelTests : IDisposable
             Layer.RenderUI(time, _ui);
             return _ui.Build(time);
         }
+
+        public ElementBounds GetElementBounds(string elementId) => _ui.GetElementBounds(elementId);
 
         public void Click(string elementId)
         {
