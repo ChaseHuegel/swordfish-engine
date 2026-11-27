@@ -194,21 +194,21 @@ public sealed class AssetScaffolder
                 "]\n",
 
             AssetKind.Recipe =>
-                "[[recipes]]\n" +
-                $"id               = {qId}\n" +
-                "station_tag      = \"station.workbench\"\n" +
-                "mode             = \"manual\"\n" +
-                "duration_seconds = 2.0\n" +
-                "power_kw         = 0.0\n" +
-                "order            = 0\n" +
+                "[[Recipes]]\n" +
+                $"ID              = {qId}\n" +
+                "TargetTag       = \"station.workbench\"\n" +
+                "Mode            = \"Manual\"\n" +
+                "DurationSeconds = 2.0\n" +
+                "PowerKw         = 0.0\n" +
+                "Order           = 0\n" +
                 "\n" +
-                "[[recipes.inputs]]\n" +
-                "item_id = \"\"\n" +
-                "count   = 1\n" +
+                "[[Recipes.Inputs]]\n" +
+                "ItemId = \"\"\n" +
+                "Count  = 1\n" +
                 "\n" +
-                "[[recipes.outputs]]\n" +
-                "item_id = \"\"\n" +
-                "count   = 1\n",
+                "[[Recipes.Outputs]]\n" +
+                "ItemId = \"\"\n" +
+                "Count  = 1\n",
 
             _ => null
         };
@@ -248,14 +248,14 @@ public sealed class AssetScaffolder
                 new("Species", TomlValueFormatter.FormatBasicString(slug)),
                 new("Gender", "\"Neutral\"")
             ]),
-            AssetKind.Recipe => ("recipes",
+            AssetKind.Recipe => ("Recipes",
             [
-                new("id", qId),
-                new("station_tag", "\"station.workbench\""),
-                new("mode", "\"manual\""),
-                new("duration_seconds", "2.0"),
-                new("power_kw", "0.0"),
-                new("order", "0")
+                new("ID", qId),
+                new("TargetTag", "\"station.workbench\""),
+                new("Mode", "\"Manual\""),
+                new("DurationSeconds", "2.0"),
+                new("PowerKw", "0.0"),
+                new("Order", "0")
             ]),
             _ => (null, null)
         };

@@ -44,50 +44,50 @@ public class RecipeDatabaseTests : IDisposable
             (
                 "recipes/refinery.toml",
                 """
-                [[recipes]]
-                id               = "wb:smelt_panel"
-                station_tag      = "station.refinery"
-                mode             = "auto"
-                duration_seconds = 2.5
-                power_kw         = -18.0
-                category         = "recipe.category.hull"
-                order            = 10
+                [[Recipes]]
+                ID              = "wb:smelt_panel"
+                TargetTag       = "station.refinery"
+                Mode            = "Auto"
+                DurationSeconds = 2.5
+                PowerKw         = -18.0
+                Category        = "recipe.category.hull"
+                Order           = 10
 
-                [[recipes.inputs]]
-                item_id    = "wb:rock"
-                count      = 2
-                slot_group = "wb:input"
+                [[Recipes.Inputs]]
+                ItemId    = "wb:rock"
+                Count     = 2
+                SlotGroup = "wb:input"
 
-                [[recipes.outputs]]
-                item_id = "wb:panel"
-                count   = 1
-                chance  = 0.75
-
-                [[recipes]]
-                id               = "wb:burn_ice"
-                station_tag      = "station.generator"
-                mode             = "Auto"
-                duration_seconds = 5
-                power_kw         = 60
-                order            = 1
-
-                [[recipes.inputs]]
-                item_id = "wb:ice"
-                count   = 1
+                [[Recipes.Outputs]]
+                ItemId = "wb:panel"
+                Count  = 1
+                Chance = 0.75
 
                 [[Recipes]]
-                id               = "wb:hand_grate"
-                station_tag      = "station.suit"
-                duration_seconds = 0
-                power_kw         = 0
+                ID              = "wb:burn_ice"
+                TargetTag       = "station.generator"
+                Mode            = "Auto"
+                DurationSeconds = 5
+                PowerKw         = 60
+                Order           = 1
 
-                [[Recipes.inputs]]
-                item_id = "tag:item.placeable"
-                count   = 1
+                [[Recipes.Inputs]]
+                ItemId = "wb:ice"
+                Count  = 1
 
-                [[Recipes.outputs]]
-                item_id = "wb:grate"
-                count   = 2
+                [[Recipes]]
+                ID              = "wb:hand_grate"
+                TargetTag       = "station.suit"
+                DurationSeconds = 0
+                PowerKw         = 0
+
+                [[Recipes.Inputs]]
+                ItemId = "tag:item.placeable"
+                Count  = 1
+
+                [[Recipes.Outputs]]
+                ItemId = "wb:grate"
+                Count  = 2
                 """
             )
         );
@@ -97,7 +97,7 @@ public class RecipeDatabaseTests : IDisposable
         Result<Recipe> smeltResult = recipes.Get("wb:smelt_panel");
         Assert.True(smeltResult.Success, smeltResult.Message);
         Recipe smelt = smeltResult.Value;
-        Assert.Equal("station.refinery", smelt.StationTag);
+        Assert.Equal("station.refinery", smelt.TargetTag);
         Assert.Equal(RecipeMode.Auto, smelt.Mode);
         Assert.Equal(2.5f, smelt.DurationSeconds);
         Assert.Equal(-18.0f, smelt.PowerKw);
@@ -153,87 +153,87 @@ public class RecipeDatabaseTests : IDisposable
             (
                 "recipes/mixed.toml",
                 """
-                [[recipes]]
-                id               = "wb:valid_first"
-                station_tag      = "station.refinery"
-                mode             = "manual"
-                duration_seconds = 1.0
-                power_kw         = -5.0
-                inputs           = [{ item_id = "wb:rock", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:valid_first"
+                TargetTag       = "station.refinery"
+                Mode            = "Manual"
+                DurationSeconds = 1.0
+                PowerKw         = -5.0
+                Inputs          = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:valid_first"
-                station_tag      = "station.refinery"
-                mode             = "auto"
-                duration_seconds = 2.0
-                inputs           = [{ item_id = "wb:rock", count = 2 }]
-                outputs          = [{ item_id = "wb:grate", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:valid_first"
+                TargetTag       = "station.refinery"
+                Mode            = "Auto"
+                DurationSeconds = 2.0
+                Inputs          = [{ ItemId = "wb:rock", Count = 2 }]
+                Outputs         = [{ ItemId = "wb:grate", Count = 1 }]
 
-                [[recipes]]
-                station_tag      = "station.refinery"
-                inputs           = [{ item_id = "wb:rock", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                TargetTag       = "station.refinery"
+                Inputs          = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:missing_station"
-                inputs           = [{ item_id = "wb:rock", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:missing_station"
+                Inputs          = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:bad_mode"
-                station_tag      = "station.refinery"
-                mode             = "turbo"
-                inputs           = [{ item_id = "wb:rock", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:bad_mode"
+                TargetTag       = "station.refinery"
+                Mode            = "turbo"
+                Inputs          = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:negative_duration"
-                station_tag      = "station.refinery"
-                duration_seconds = -1.0
-                inputs           = [{ item_id = "wb:rock", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:negative_duration"
+                TargetTag       = "station.refinery"
+                DurationSeconds = -1.0
+                Inputs          = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:unknown_input_item"
-                station_tag      = "station.refinery"
-                inputs           = [{ item_id = "wb:missing_item", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:unknown_input_item"
+                TargetTag       = "station.refinery"
+                Inputs          = [{ ItemId = "wb:missing_item", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:unknown_input_tag"
-                station_tag      = "station.refinery"
-                inputs           = [{ item_id = "tag:missing.tag", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:unknown_input_tag"
+                TargetTag       = "station.refinery"
+                Inputs          = [{ ItemId = "tag:missing.tag", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:tag_with_unknown_item"
-                station_tag      = "station.refinery"
-                inputs           = [{ item_id = "tag:recipe.has_missing_item", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:tag_with_unknown_item"
+                TargetTag       = "station.refinery"
+                Inputs          = [{ ItemId = "tag:recipe.has_missing_item", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:unknown_output_item"
-                station_tag      = "station.refinery"
-                inputs           = [{ item_id = "wb:rock", count = 1 }]
-                outputs          = [{ item_id = "wb:missing_output", count = 1 }]
+                [[Recipes]]
+                ID              = "wb:unknown_output_item"
+                TargetTag       = "station.refinery"
+                Inputs          = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:missing_output", Count = 1 }]
 
-                [[recipes]]
-                id               = "wb:bad_chance"
-                station_tag      = "station.refinery"
-                inputs           = [{ item_id = "wb:rock", count = 1 }]
-                outputs          = [{ item_id = "wb:panel", count = 1, chance = 1.5 }]
+                [[Recipes]]
+                ID              = "wb:bad_chance"
+                TargetTag       = "station.refinery"
+                Inputs          = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs         = [{ ItemId = "wb:panel", Count = 1, Chance = 1.5 }]
 
-                [[recipes]]
-                id               = "wb:no_outputs_or_power"
-                station_tag      = "station.refinery"
-                inputs           = [{ item_id = "wb:rock", count = 1 }]
-                power_kw         = -5.0
+                [[Recipes]]
+                ID              = "wb:no_outputs_or_power"
+                TargetTag       = "station.refinery"
+                Inputs          = [{ ItemId = "wb:rock", Count = 1 }]
+                PowerKw         = -5.0
                 """
             ),
             (
                 "recipes/corrupt.toml",
-                "[[recipes]\nnot valid toml = = ="
+                "[[Recipes]\nnot valid toml = = ="
             )
         );
 
@@ -259,54 +259,54 @@ public class RecipeDatabaseTests : IDisposable
     }
 
     [Fact]
-    public void GetByStationTagOrdersByOrderThenId()
+    public void GetByTargetTagOrdersByOrderThenId()
     {
         string recipesDir = CreateAssetsDir(
             "ordering",
             (
                 "recipes/ordered.toml",
                 """
-                [[recipes]]
-                id          = "wb:z_second"
-                station_tag = "station.factory"
-                order       = 2
-                inputs      = [{ item_id = "wb:rock", count = 1 }]
-                outputs     = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:z_second"
+                TargetTag = "station.factory"
+                Order     = 2
+                Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id          = "wb:b_tie"
-                station_tag = "station.factory"
-                order       = 1
-                inputs      = [{ item_id = "wb:rock", count = 1 }]
-                outputs     = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:b_tie"
+                TargetTag = "station.factory"
+                Order     = 1
+                Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id          = "wb:a_tie"
-                station_tag = "station.factory"
-                order       = 1
-                inputs      = [{ item_id = "wb:rock", count = 1 }]
-                outputs     = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:a_tie"
+                TargetTag = "station.factory"
+                Order     = 1
+                Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id          = "wb:other_station"
-                station_tag = "station.oven"
-                order       = 0
-                inputs      = [{ item_id = "wb:ice", count = 1 }]
-                outputs     = [{ item_id = "wb:glass", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:other_station"
+                TargetTag = "station.oven"
+                Order     = 0
+                Inputs    = [{ ItemId = "wb:ice", Count = 1 }]
+                Outputs   = [{ ItemId = "wb:glass", Count = 1 }]
                 """
             )
         );
 
         RecipeDatabase recipes = LoadRecipes(recipesDir);
 
-        IReadOnlyList<Recipe> factory = recipes.GetByStationTag("station.factory");
+        IReadOnlyList<Recipe> factory = recipes.GetByTargetTag("station.factory");
         Assert.Equal(3, factory.Count);
         Assert.Equal("wb:a_tie", factory[0].ID);
         Assert.Equal("wb:b_tie", factory[1].ID);
         Assert.Equal("wb:z_second", factory[2].ID);
 
-        Assert.Single(recipes.GetByStationTag("station.oven"));
-        Assert.Empty(recipes.GetByStationTag("station.unknown"));
+        Assert.Single(recipes.GetByTargetTag("station.oven"));
+        Assert.Empty(recipes.GetByTargetTag("station.unknown"));
     }
 
     [Fact]
@@ -329,32 +329,32 @@ public class RecipeDatabaseTests : IDisposable
             (
                 "recipes/stations.toml",
                 """
-                [[recipes]]
-                id          = "wb:manual_only"
-                station_tag = "station.refinery"
-                mode        = "manual"
-                order       = 0
-                inputs      = [{ item_id = "wb:rock", count = 1 }]
-                outputs     = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:manual_only"
+                TargetTag = "station.refinery"
+                Mode      = "Manual"
+                Order     = 0
+                Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id          = "wb:refined_combo"
-                station_tag = "station.refinery"
-                mode        = "auto"
-                order       = 1
-                inputs      = [
-                    { item_id = "wb:rock", count = 2 },
-                    { item_id = "tag:recipe.mineral", count = 1 },
+                [[Recipes]]
+                ID        = "wb:refined_combo"
+                TargetTag = "station.refinery"
+                Mode      = "Auto"
+                Order     = 1
+                Inputs    = [
+                    { ItemId = "wb:rock", Count = 2 },
+                    { ItemId = "tag:recipe.mineral", Count = 1 },
                 ]
-                outputs     = [{ item_id = "wb:core", count = 1 }]
+                Outputs   = [{ ItemId = "wb:core", Count = 1 }]
 
-                [[recipes]]
-                id          = "wb:single_mineral"
-                station_tag = "station.refinery"
-                mode        = "auto"
-                order       = 2
-                inputs      = [{ item_id = "tag:recipe.mineral", count = 2 }]
-                outputs     = [{ item_id = "wb:glass", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:single_mineral"
+                TargetTag = "station.refinery"
+                Mode      = "Auto"
+                Order     = 2
+                Inputs    = [{ ItemId = "tag:recipe.mineral", Count = 2 }]
+                Outputs   = [{ ItemId = "wb:glass", Count = 1 }]
                 """
             )
         );
@@ -408,12 +408,12 @@ public class RecipeDatabaseTests : IDisposable
             (
                 "recipes/base.toml",
                 """
-                [[recipes]]
-                id          = "wb:di_test"
-                station_tag = "station.suit"
-                mode        = "manual"
-                inputs      = [{ item_id = "wb:rock", count = 1 }]
-                outputs     = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:di_test"
+                TargetTag = "station.suit"
+                Mode      = "Manual"
+                Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
                 """
             )
         );

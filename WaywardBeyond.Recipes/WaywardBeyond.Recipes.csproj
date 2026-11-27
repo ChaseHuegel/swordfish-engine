@@ -27,8 +27,4 @@
       <ProjectReference Include="..\WaywardBeyond.Items\WaywardBeyond.Items.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
     </ItemGroup>
 
-    <ItemGroup>
-      <InternalsVisibleTo Include="WaywardBeyond.AssetTools" />
-    </ItemGroup>
-
 </Project>

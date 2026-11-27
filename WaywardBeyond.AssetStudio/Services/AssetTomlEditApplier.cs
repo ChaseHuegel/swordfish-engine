@@ -491,56 +491,55 @@ internal static class AssetTomlEditApplier
 
     private static Result ApplyRecipeEdits(ToolsDocuments.TomlDocument doc, DocumentSavePayload payload)
     {
-        var tableIndex = ResolveRecipePrimaryTableIndex(doc, payload.TableIndex, payload.EntryIndex);
+        var tableIndex = ResolvePrimaryTableIndex(doc, "Recipes", payload.TableIndex, payload.EntryIndex);
         if (tableIndex < 0)
         {
             return Result.FromSuccess();
         }
 
-        var parentHeader = doc.Tables[tableIndex].HeaderPath;
-        var recipeOrdinal = FindRecipeTableOrdinal(doc, tableIndex);
+        var recipeOrdinal = FindArrayTableOrdinal(doc, "Recipes", tableIndex);
 
-        ApplyScalar(doc, tableIndex, "station_tag", "StationTag", payload, ScalarKind.String);
-        tableIndex = ResolveRecipeTableByOrdinal(doc, recipeOrdinal);
+        ApplyScalar(doc, tableIndex, "TargetTag", "TargetTag", payload, ScalarKind.String);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
         if (tableIndex < 0)
         {
             return Result.FromSuccess();
         }
 
-        ApplyScalar(doc, tableIndex, "mode", "Mode", payload, ScalarKind.String);
-        tableIndex = ResolveRecipeTableByOrdinal(doc, recipeOrdinal);
+        ApplyScalar(doc, tableIndex, "Mode", "Mode", payload, ScalarKind.String);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
         if (tableIndex < 0)
         {
             return Result.FromSuccess();
         }
 
-        ApplyScalar(doc, tableIndex, "duration_seconds", "DurationSeconds", payload, ScalarKind.Float);
-        tableIndex = ResolveRecipeTableByOrdinal(doc, recipeOrdinal);
+        ApplyScalar(doc, tableIndex, "DurationSeconds", "DurationSeconds", payload, ScalarKind.Float);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
         if (tableIndex < 0)
         {
             return Result.FromSuccess();
         }
 
-        ApplyScalar(doc, tableIndex, "power_kw", "PowerKw", payload, ScalarKind.Float);
-        tableIndex = ResolveRecipeTableByOrdinal(doc, recipeOrdinal);
+        ApplyScalar(doc, tableIndex, "PowerKw", "PowerKw", payload, ScalarKind.Float);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
         if (tableIndex < 0)
         {
             return Result.FromSuccess();
         }
 
-        ApplyScalar(doc, tableIndex, "category", "Category", payload, ScalarKind.OptionalString);
-        tableIndex = ResolveRecipeTableByOrdinal(doc, recipeOrdinal);
+        ApplyScalar(doc, tableIndex, "Category", "Category", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
         if (tableIndex < 0)
         {
             return Result.FromSuccess();
         }
 
-        ApplyScalar(doc, tableIndex, "order", "Order", payload, ScalarKind.Integer);
+        ApplyScalar(doc, tableIndex, "Order", "Order", payload, ScalarKind.Integer);
 
         if (payload.RecipeInputsModified && payload.RecipeInputs != null)
         {
-            var inputsBlock = BuildRecipeInputsTomlBlock(parentHeader, payload.RecipeInputs, doc.LineEnding);
-            var inputsResult = ReplaceOwnedRecipeSubTables(doc, recipeOrdinal, "inputs", inputsBlock, insertBeforeOutputs: true);
+            var inputsBlock = BuildRecipeInputsTomlBlock(payload.RecipeInputs, doc.LineEnding);
+            var inputsResult = ReplaceOwnedRecipeSubTables(doc, recipeOrdinal, "Inputs", inputsBlock, insertBeforeOutputs: true);
             if (!inputsResult.Success)
             {
                 return inputsResult;
@@ -549,8 +548,8 @@ internal static class AssetTomlEditApplier
 
         if (payload.RecipeOutputsModified && payload.RecipeOutputs != null)
         {
-            var outputsBlock = BuildRecipeOutputsTomlBlock(parentHeader, payload.RecipeOutputs, doc.LineEnding);
-            var outputsResult = ReplaceOwnedRecipeSubTables(doc, recipeOrdinal, "outputs", outputsBlock, insertBeforeOutputs: false);
+            var outputsBlock = BuildRecipeOutputsTomlBlock(payload.RecipeOutputs, doc.LineEnding);
+            var outputsResult = ReplaceOwnedRecipeSubTables(doc, recipeOrdinal, "Outputs", outputsBlock, insertBeforeOutputs: false);
             if (!outputsResult.Success)
             {
                 return outputsResult;
@@ -560,98 +559,6 @@ internal static class AssetTomlEditApplier
         return Result.FromSuccess();
     }
 
-    private static int ResolveRecipePrimaryTableIndex(ToolsDocuments.TomlDocument doc, int preferredTableIndex, int entryIndex)
-    {
-        if (preferredTableIndex >= 0 && preferredTableIndex < doc.Tables.Count)
-        {
-            var candidate = doc.Tables[preferredTableIndex];
-            if (candidate.IsArrayTable && string.Equals(candidate.HeaderPath, "recipes", StringComparison.OrdinalIgnoreCase))
-            {
-                return candidate.Index;
-            }
-        }
-
-        var seen = 0;
-        for (var i = 0; i < doc.Tables.Count; i++)
-        {
-            var table = doc.Tables[i];
-            if (table.IsArrayTable && string.Equals(table.HeaderPath, "recipes", StringComparison.OrdinalIgnoreCase))
-            {
-                if (seen == entryIndex)
-                {
-                    return table.Index;
-                }
-
-                seen++;
-            }
-        }
-
-        return -1;
-    }
-
-    private static int FindRecipeTableOrdinal(ToolsDocuments.TomlDocument doc, int tableIndex)
-    {
-        var ordinal = 0;
-        for (var i = 0; i < doc.Tables.Count; i++)
-        {
-            var table = doc.Tables[i];
-            if (table.IsArrayTable && string.Equals(table.HeaderPath, "recipes", StringComparison.OrdinalIgnoreCase))
-            {
-                if (table.Index == tableIndex)
-                {
-                    return ordinal;
-                }
-
-                ordinal++;
-            }
-        }
-
-        return 0;
-    }
-
-    private static int ResolveRecipeTableByOrdinal(ToolsDocuments.TomlDocument doc, int ordinal)
-    {
-        var seen = 0;
-        for (var i = 0; i < doc.Tables.Count; i++)
-        {
-            var table = doc.Tables[i];
-            if (table.IsArrayTable && string.Equals(table.HeaderPath, "recipes", StringComparison.OrdinalIgnoreCase))
-            {
-                if (seen == ordinal)
-                {
-                    return table.Index;
-                }
-
-                seen++;
-            }
-        }
-
-        return -1;
-    }
-
-    private static int FindLastOwnedRecipeTableIndex(ToolsDocuments.TomlDocument doc, int recipeTableIndex)
-    {
-        var lastOwned = recipeTableIndex;
-        for (var i = recipeTableIndex + 1; i < doc.Tables.Count; i++)
-        {
-            var next = doc.Tables[i];
-            if (next.IsArrayTable && string.Equals(next.HeaderPath, "recipes", StringComparison.OrdinalIgnoreCase))
-            {
-                break;
-            }
-
-            if (next.HeaderPath.StartsWith("recipes.", StringComparison.OrdinalIgnoreCase))
-            {
-                lastOwned = i;
-                continue;
-            }
-
-            break;
-        }
-
-        return lastOwned;
-    }
-
     private static Result ReplaceOwnedRecipeSubTables(
         ToolsDocuments.TomlDocument doc,
         int recipeOrdinal,
@@ -659,13 +566,13 @@ internal static class AssetTomlEditApplier
         string replacementBlock,
         bool insertBeforeOutputs)
     {
-        var recipeTableIndex = ResolveRecipeTableByOrdinal(doc, recipeOrdinal);
+        var recipeTableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
         if (recipeTableIndex < 0)
         {
             return Result.FromSuccess();
         }
 
-        var lastOwned = FindLastOwnedRecipeTableIndex(doc, recipeTableIndex);
+        var lastOwned = FindLastOwnedTableIndex(doc, recipeTableIndex, "Recipes");
         var targetSuffix = "." + subTableSegment;
 
         //  Remove existing matching owned sub-tables from last to first so offsets stay valid.
@@ -687,20 +594,20 @@ internal static class AssetTomlEditApplier
             return Result.FromSuccess();
         }
 
-        recipeTableIndex = ResolveRecipeTableByOrdinal(doc, recipeOrdinal);
+        recipeTableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
         if (recipeTableIndex < 0)
         {
             return Result.FromSuccess();
         }
 
-        lastOwned = FindLastOwnedRecipeTableIndex(doc, recipeTableIndex);
+        lastOwned = FindLastOwnedTableIndex(doc, recipeTableIndex, "Recipes");
         var insertOffset = Math.Clamp(doc.Tables[lastOwned].ContentSpan.End, 0, doc.Text.Length);
 
         if (insertBeforeOutputs)
         {
             for (var i = recipeTableIndex + 1; i <= lastOwned; i++)
             {
-                if (doc.Tables[i].HeaderPath.EndsWith(".outputs", StringComparison.OrdinalIgnoreCase))
+                if (doc.Tables[i].HeaderPath.EndsWith(".Outputs", StringComparison.OrdinalIgnoreCase))
                 {
                     insertOffset = Math.Clamp(doc.Tables[i].HeaderLineSpan.Start, 0, doc.Text.Length);
                     break;
@@ -777,7 +684,6 @@ internal static class AssetTomlEditApplier
     }
 
     private static string BuildRecipeInputsTomlBlock(
-        string parentHeader,
         IReadOnlyList<(string ItemId, int Count, string SlotGroup)> inputs,
         string eol)
     {
@@ -797,13 +703,13 @@ internal static class AssetTomlEditApplier
 
             var item = inputs[i];
             var count = Math.Max(1, item.Count);
-            sb.Append("[[").Append(parentHeader).Append(".inputs]]").Append(eol);
-            sb.Append("item_id = ").Append(FormatTomlString(item.ItemId?.Trim() ?? string.Empty)).Append(eol);
-            sb.Append("count   = ").Append(count.ToString(CultureInfo.InvariantCulture));
+            sb.Append("[[Recipes.Inputs]]").Append(eol);
+            sb.Append("ItemId = ").Append(FormatTomlString(item.ItemId?.Trim() ?? string.Empty)).Append(eol);
+            sb.Append("Count  = ").Append(count.ToString(CultureInfo.InvariantCulture));
             if (!string.IsNullOrWhiteSpace(item.SlotGroup))
             {
                 sb.Append(eol);
-                sb.Append("slot_group = ").Append(FormatTomlString(item.SlotGroup.Trim()));
+                sb.Append("SlotGroup = ").Append(FormatTomlString(item.SlotGroup.Trim()));
             }
         }
 
@@ -811,7 +717,6 @@ internal static class AssetTomlEditApplier
     }
 
     private static string BuildRecipeOutputsTomlBlock(
-        string parentHeader,
         IReadOnlyList<(string ItemId, int Count, string Chance)> outputs,
         string eol)
     {
@@ -831,15 +736,15 @@ internal static class AssetTomlEditApplier
 
             var item = outputs[i];
             var count = Math.Max(1, item.Count);
-            sb.Append("[[").Append(parentHeader).Append(".outputs]]").Append(eol);
-            sb.Append("item_id = ").Append(FormatTomlString(item.ItemId?.Trim() ?? string.Empty)).Append(eol);
-            sb.Append("count   = ").Append(count.ToString(CultureInfo.InvariantCulture));
+            sb.Append("[[Recipes.Outputs]]").Append(eol);
+            sb.Append("ItemId = ").Append(FormatTomlString(item.ItemId?.Trim() ?? string.Empty)).Append(eol);
+            sb.Append("Count  = ").Append(count.ToString(CultureInfo.InvariantCulture));
             if (!string.IsNullOrWhiteSpace(item.Chance)
                 && double.TryParse(item.Chance.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var chance)
                 && double.IsFinite(chance))
             {
                 sb.Append(eol);
-                sb.Append("chance  = ").Append(FormatTomlFloat(chance));
+                sb.Append("Chance = ").Append(FormatTomlFloat(chance));
             }
         }
 

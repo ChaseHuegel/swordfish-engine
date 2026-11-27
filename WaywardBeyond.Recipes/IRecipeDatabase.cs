@@ -13,19 +13,19 @@ public interface IRecipeDatabase : IAssetDatabase<Recipe>
     /// <summary>Gets all loaded recipes in deterministic order.</summary>
     IReadOnlyList<Recipe> All { get; }
 
-    /// <summary>Gets all recipes for <paramref name="stationTag"/> ordered by <see cref="Recipe.Order"/> then <see cref="Recipe.ID"/>.</summary>
-    IReadOnlyList<Recipe> GetByStationTag(string stationTag);
+    /// <summary>Gets all recipes for <paramref name="targetTag"/> ordered by <see cref="Recipe.Order"/> then <see cref="Recipe.ID"/>.</summary>
+    IReadOnlyList<Recipe> GetByTargetTag(string targetTag);
 
-    /// <summary>Finds the first automatic recipe for <paramref name="stationTag"/> satisfied by <paramref name="inputs"/>.</summary>
-    Result<Recipe> FindAutoMatch(string stationTag, in InventoryComponent inputs)
+    /// <summary>Finds the first automatic recipe for <paramref name="targetTag"/> satisfied by <paramref name="inputs"/>.</summary>
+    Result<Recipe> FindAutoMatch(string targetTag, in InventoryComponent inputs)
     {
         ReadOnlySpan<ItemData> span = inputs.Contents != null ? inputs.Contents.AsSpan() : ReadOnlySpan<ItemData>.Empty;
-        return FindAutoMatch(stationTag, span);
+        return FindAutoMatch(targetTag, span);
     }
 
-    /// <summary>Finds the first automatic recipe for <paramref name="stationTag"/> satisfied by <paramref name="inputs"/>.</summary>
-    Result<Recipe> FindAutoMatch(string stationTag, ReadOnlySpan<ItemData> inputs);
+    /// <summary>Finds the first automatic recipe for <paramref name="targetTag"/> satisfied by <paramref name="inputs"/>.</summary>
+    Result<Recipe> FindAutoMatch(string targetTag, ReadOnlySpan<ItemData> inputs);
 
-    /// <summary>Returns whether any recipe for <paramref name="stationTag"/> accepts <paramref name="itemId"/> as an input.</summary>
-    bool IsValidInputForStation(string stationTag, string itemId);
+    /// <summary>Returns whether any recipe for <paramref name="targetTag"/> accepts <paramref name="itemId"/> as an input.</summary>
+    bool IsValidInputForStation(string targetTag, string itemId);
 }

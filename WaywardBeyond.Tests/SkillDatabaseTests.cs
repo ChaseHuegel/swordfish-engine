@@ -159,33 +159,33 @@ public class SkillDatabaseTests
             File.WriteAllText(
                 Path.Combine(assetsDir, "recipes", "craft.toml"),
                 """
-                [[recipes]]
-                id          = "wb:craft_core"
-                station_tag = "station.synthesizer"
-                mode        = "manual"
-                inputs      = [{ item_id = "wb:rock", count = 2 }]
-                outputs     = [{ item_id = "wb:panel", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:craft_core"
+                TargetTag = "station.synthesizer"
+                Mode      = "Manual"
+                Inputs    = [{ ItemId = "wb:rock", Count = 2 }]
+                Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
-                [[recipes]]
-                id          = "wb:craft_grate"
-                station_tag = "station.synthesizer"
-                mode        = "manual"
-                inputs      = [{ item_id = "wb:rock", count = 1 }]
-                outputs     = [{ item_id = "wb:grate", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:craft_grate"
+                TargetTag = "station.synthesizer"
+                Mode      = "Manual"
+                Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs   = [{ ItemId = "wb:grate", Count = 1 }]
 
-                [[recipes]]
-                id          = "wb:smelt_laser"
-                station_tag = "station.refinery"
-                mode        = "auto"
-                inputs      = [{ item_id = "wb:rock", count = 1 }]
-                outputs     = [{ item_id = "laser", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:smelt_laser"
+                TargetTag = "station.refinery"
+                Mode      = "Auto"
+                Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
+                Outputs   = [{ ItemId = "laser", Count = 1 }]
 
-                [[recipes]]
-                id          = "wb:burn_ice"
-                station_tag = "station.generator"
-                mode        = "auto"
-                power_kw    = 45.0
-                inputs      = [{ item_id = "wb:ice", count = 1 }]
+                [[Recipes]]
+                ID        = "wb:burn_ice"
+                TargetTag = "station.generator"
+                Mode      = "Auto"
+                PowerKw   = 45.0
+                Inputs    = [{ ItemId = "wb:ice", Count = 1 }]
                 """
             );
 
@@ -240,24 +240,24 @@ public class SkillDatabaseTests
 
             //  Precedence: recipe:<id> (25) > direct output item (12) > output item tag (8) > station:<tag> (5).
             Recipe coreRecipe = recipes.Get("wb:craft_core").Value;
-            Assert.Equal(25, manufacturing.GetXP(XPSource.Craft, coreRecipe.ID, coreRecipe.StationTag, coreRecipe.Outputs[0].ItemId).Value);
+            Assert.Equal(25, manufacturing.GetXP(XPSource.Craft, coreRecipe.ID, coreRecipe.TargetTag, coreRecipe.Outputs[0].ItemId).Value);
 
             //  Direct output item override applies when recipe is not overridden.
             Assert.Equal(12, manufacturing.GetXP(XPSource.Craft, "wb:other_panel_recipe", "station.synthesizer", "wb:panel").Value);
 
             //  Output item tag applies over station fallback when no recipe or direct output entry matches.
             Recipe grateRecipe = recipes.Get("wb:craft_grate").Value;
-            Assert.Equal(8, manufacturing.GetXP(XPSource.Craft, grateRecipe.ID, grateRecipe.StationTag, grateRecipe.Outputs[0].ItemId).Value);
+            Assert.Equal(8, manufacturing.GetXP(XPSource.Craft, grateRecipe.ID, grateRecipe.TargetTag, grateRecipe.Outputs[0].ItemId).Value);
 
             //  Station fallback applies when output item matches neither direct nor tag rules.
             Assert.Equal(5, manufacturing.GetXP(XPSource.Craft, "wb:untagged_craft", "station.synthesizer", "laser").Value);
 
             //  Process source handles output item tag and 0-output generator station fallback.
             Recipe laserSmelt = recipes.Get("wb:smelt_laser").Value;
-            Assert.Equal(15, manufacturing.GetXP(XPSource.Process, laserSmelt.ID, laserSmelt.StationTag, [laserSmelt.Outputs[0].ItemId]).Value);
+            Assert.Equal(15, manufacturing.GetXP(XPSource.Process, laserSmelt.ID, laserSmelt.TargetTag, [laserSmelt.Outputs[0].ItemId]).Value);
 
             Recipe genRecipe = recipes.Get("wb:burn_ice").Value;
-            Assert.Equal(2, manufacturing.GetXP(XPSource.Process, genRecipe.ID, genRecipe.StationTag).Value);
+            Assert.Equal(2, manufacturing.GetXP(XPSource.Process, genRecipe.ID, genRecipe.TargetTag).Value);
 
             //  Direct output match applies regardless of station; unmatched station and unknown output yield no XP.
             Assert.Equal(12, manufacturing.GetXP(XPSource.Craft, "wb:none", "station.oven", "wb:panel").Value);

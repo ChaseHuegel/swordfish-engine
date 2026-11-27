@@ -1028,7 +1028,7 @@ public sealed class AssetCloner
             AssetKind.Paint => "Paints",
             AssetKind.Skill => "Skills",
             AssetKind.Body => "Bodies",
-            AssetKind.Recipe => "recipes",
+            AssetKind.Recipe => "Recipes",
             _ => null
         };
     }

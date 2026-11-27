@@ -78,8 +78,8 @@ public sealed class RecipeCrudAndPreviewTests : IDisposable
         Assert.Equal(PreviewSurfaceMode.RecipeFlow, vm.ActivePreviewDescriptor.Mode);
 
         //  Edit scalar fields and ingredient/output lists, verifying live preview updates + undo/redo.
-        recipeDoc.RecipeStationTagField!.Value = "station.smelter";
-        recipeDoc.RecipeModeField!.Value = "auto";
+        recipeDoc.RecipeTargetTagField!.Value = "station.smelter";
+        recipeDoc.RecipeModeField!.Value = "Auto";
         recipeDoc.RecipeDurationField!.Value = "4";
         recipeDoc.RecipePowerKwField!.Value = "-10";
         recipeDoc.RecipeOrderField!.Value = "5";
@@ -127,8 +127,8 @@ public sealed class RecipeCrudAndPreviewTests : IDisposable
 
         Assert.True(vm.SelectAssetById("test:smelt_iron"));
         recipeDoc = vm.SelectedAsset!;
-        Assert.Equal("station.smelter", recipeDoc.RecipeStationTagField!.Value);
-        Assert.Equal("auto", recipeDoc.RecipeModeField!.Value);
+        Assert.Equal("station.smelter", recipeDoc.RecipeTargetTagField!.Value);
+        Assert.Equal("Auto", recipeDoc.RecipeModeField!.Value);
         Assert.Equal(2, recipeDoc.RecipeInputs.Count);
         Assert.Equal("test:iron_ore", recipeDoc.RecipeInputs[0].ItemId);
         Assert.Equal(2, recipeDoc.RecipeInputs[0].Count);

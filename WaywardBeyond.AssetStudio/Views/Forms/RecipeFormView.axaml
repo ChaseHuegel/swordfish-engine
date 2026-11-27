@@ -5,10 +5,10 @@
              x:Class="WaywardBeyond.AssetStudio.Views.Forms.RecipeFormView"
              x:DataType="vm:AssetDocumentViewModel">
   <StackPanel>
-    <!-- Station & Execution Parameters -->
-    <controls:CollapsibleSectionCard Title="Station &amp; Execution" Subtitle="Station tag, trigger mode, duration, and power">
+    <!-- Target & Execution Parameters -->
+    <controls:CollapsibleSectionCard Title="Target &amp; Execution" Subtitle="Target tag, trigger mode, duration, and power">
       <StackPanel Spacing="2">
-        <controls:ScalarFieldRowControl DataContext="{Binding RecipeStationTagField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding RecipeTargetTagField}" />
         <controls:ScalarFieldRowControl DataContext="{Binding RecipeModeField}" />
         <controls:ScalarFieldRowControl DataContext="{Binding RecipeDurationField}" />
         <controls:ScalarFieldRowControl DataContext="{Binding RecipePowerKwField}" />
@@ -17,7 +17,7 @@
       </StackPanel>
     </controls:CollapsibleSectionCard>
 
-    <!-- Inputs ([[recipes.inputs]]) -->
+    <!-- Inputs ([[Recipes.Inputs]]) -->
     <controls:CollapsibleSectionCard Title="Inputs" Subtitle="{Binding RecipeInputsSummary}">
       <StackPanel Spacing="6">
         <Grid ColumnDefinitions="*,Auto">
@@ -102,7 +102,7 @@
       </StackPanel>
     </controls:CollapsibleSectionCard>
 
-    <!-- Outputs ([[recipes.outputs]]) -->
+    <!-- Outputs ([[Recipes.Outputs]]) -->
     <controls:CollapsibleSectionCard Title="Outputs" Subtitle="{Binding RecipeOutputsSummary}">
       <StackPanel Spacing="6">
         <Grid ColumnDefinitions="*,Auto">

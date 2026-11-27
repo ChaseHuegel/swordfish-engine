@@ -276,11 +276,11 @@
                         Padding="4,2"
                         HorizontalAlignment="Left"
                         HorizontalContentAlignment="Left"
-                        IsEnabled="{Binding HasRecipeStationTag}"
+                        IsEnabled="{Binding HasRecipeTargetTag}"
                         Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).NavigateRecipeTargetCommand}"
-                        CommandParameter="{Binding RecipeStationTagLabel}"
-                        ToolTip.Tip="Open station tag">
-                  <TextBlock Text="{Binding RecipeStationTagLabel}"
+                        CommandParameter="{Binding RecipeTargetTagLabel}"
+                        ToolTip.Tip="Open target tag">
+                  <TextBlock Text="{Binding RecipeTargetTagLabel}"
                              Classes="mono"
                              FontSize="11"
                              FontWeight="SemiBold"

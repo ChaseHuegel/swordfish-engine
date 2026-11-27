@@ -24,9 +24,9 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
     private readonly LocalizedTags? _invariantTags;
     private readonly List<Recipe> _loaded = [];
     private readonly IReadOnlyList<Recipe> _all;
-    private readonly Dictionary<string, IReadOnlyList<Recipe>> _byStationTag = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, Recipe[]> _autoByStationTag = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, HashSet<string>> _validInputsByStationTag = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<Recipe>> _byTargetTag = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Recipe[]> _autoByTargetTag = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HashSet<string>> _validInputsByTargetTag = new(StringComparer.Ordinal);
 
     /// <summary>Constructs and loads the recipe database.</summary>
     public RecipeDatabase(
@@ -55,32 +55,32 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
     public IReadOnlyList<Recipe> All => _all;
 
     /// <inheritdoc/>
-    public IReadOnlyList<Recipe> GetByStationTag(string stationTag)
+    public IReadOnlyList<Recipe> GetByTargetTag(string targetTag)
     {
-        if (string.IsNullOrWhiteSpace(stationTag))
+        if (string.IsNullOrWhiteSpace(targetTag))
         {
             return [];
         }
 
-        return _byStationTag.TryGetValue(stationTag, out IReadOnlyList<Recipe>? recipes) ? recipes : [];
+        return _byTargetTag.TryGetValue(targetTag, out IReadOnlyList<Recipe>? recipes) ? recipes : [];
     }
 
     /// <inheritdoc/>
-    public Result<Recipe> FindAutoMatch(string stationTag, in InventoryComponent inputs)
+    public Result<Recipe> FindAutoMatch(string targetTag, in InventoryComponent inputs)
     {
         ReadOnlySpan<ItemData> span = inputs.Contents != null ? inputs.Contents.AsSpan() : ReadOnlySpan<ItemData>.Empty;
-        return FindAutoMatch(stationTag, span);
+        return FindAutoMatch(targetTag, span);
     }
 
     /// <inheritdoc/>
-    public Result<Recipe> FindAutoMatch(string stationTag, ReadOnlySpan<ItemData> inputs)
+    public Result<Recipe> FindAutoMatch(string targetTag, ReadOnlySpan<ItemData> inputs)
     {
-        if (string.IsNullOrWhiteSpace(stationTag) || inputs.IsEmpty)
+        if (string.IsNullOrWhiteSpace(targetTag) || inputs.IsEmpty)
         {
             return Result<Recipe>.FromFailure("No matching automatic recipe found");
         }
 
-        if (!_autoByStationTag.TryGetValue(stationTag, out Recipe[]? candidates) || !HasAnyInput(inputs))
+        if (!_autoByTargetTag.TryGetValue(targetTag, out Recipe[]? candidates) || !HasAnyInput(inputs))
         {
             return Result<Recipe>.FromFailure("No matching automatic recipe found");
         }
@@ -97,14 +97,14 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
     }
 
     /// <inheritdoc/>
-    public bool IsValidInputForStation(string stationTag, string itemId)
+    public bool IsValidInputForStation(string targetTag, string itemId)
     {
-        if (string.IsNullOrWhiteSpace(stationTag) || string.IsNullOrEmpty(itemId))
+        if (string.IsNullOrWhiteSpace(targetTag) || string.IsNullOrEmpty(itemId))
         {
             return false;
         }
 
-        return _validInputsByStationTag.TryGetValue(stationTag, out HashSet<string>? validItems) &&
+        return _validInputsByTargetTag.TryGetValue(targetTag, out HashSet<string>? validItems) &&
                validItems.Contains(itemId);
     }
 
@@ -124,14 +124,6 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
                 yield return resource.Recipes[i];
             }
         }
-
-        if (resource.PascalRecipes != null)
-        {
-            for (var i = 0; i < resource.PascalRecipes.Count; i++)
-            {
-                yield return resource.PascalRecipes[i];
-            }
-        }
     }
 
     /// <inheritdoc/>
@@ -142,20 +134,20 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
     {
         if (string.IsNullOrWhiteSpace(id))
         {
-            return Result<Recipe>.FromFailure("Recipe is missing its id");
+            return Result<Recipe>.FromFailure("Recipe is missing its ID");
         }
 
         if (Get(id).Success)
         {
-            return Result<Recipe>.FromFailure($"Recipe id \"{id}\" is declared more than once");
+            return Result<Recipe>.FromFailure($"Recipe ID \"{id}\" is declared more than once");
         }
 
-        if (string.IsNullOrWhiteSpace(assetInfo.StationTag))
+        if (string.IsNullOrWhiteSpace(assetInfo.TargetTag))
         {
-            return Result<Recipe>.FromFailure($"Recipe \"{id}\" is missing its station_tag");
+            return Result<Recipe>.FromFailure($"Recipe \"{id}\" is missing its TargetTag");
         }
 
-        string stationTag = assetInfo.StationTag.Trim();
+        string targetTag = assetInfo.TargetTag.Trim();
 
         Result<RecipeMode> modeResult = ParseMode(id, assetInfo.Mode);
         if (!modeResult.Success)
@@ -165,12 +157,12 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
 
         if (!float.IsFinite(assetInfo.DurationSeconds) || assetInfo.DurationSeconds < 0f)
         {
-            return Result<Recipe>.FromFailure($"Recipe \"{id}\" has invalid duration_seconds {assetInfo.DurationSeconds}");
+            return Result<Recipe>.FromFailure($"Recipe \"{id}\" has invalid DurationSeconds {assetInfo.DurationSeconds}");
         }
 
         if (!float.IsFinite(assetInfo.PowerKw))
         {
-            return Result<Recipe>.FromFailure($"Recipe \"{id}\" has non-finite power_kw {assetInfo.PowerKw}");
+            return Result<Recipe>.FromFailure($"Recipe \"{id}\" has non-finite PowerKw {assetInfo.PowerKw}");
         }
 
         Result<RecipeIngredient[]> inputsResult = ResolveInputs(id, assetInfo.Inputs);
@@ -188,7 +180,7 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
         string category = string.IsNullOrWhiteSpace(assetInfo.Category) ? string.Empty : assetInfo.Category.Trim();
         var recipe = new Recipe(
             id,
-            stationTag,
+            targetTag,
             modeResult.Value,
             inputsResult.Value,
             outputsResult.Value,
@@ -350,29 +342,29 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
         {
             Recipe recipe = _loaded[i];
 
-            if (!groupedAll.TryGetValue(recipe.StationTag, out List<Recipe>? stationList))
+            if (!groupedAll.TryGetValue(recipe.TargetTag, out List<Recipe>? targetList))
             {
-                stationList = [];
-                groupedAll[recipe.StationTag] = stationList;
+                targetList = [];
+                groupedAll[recipe.TargetTag] = targetList;
             }
 
-            stationList.Add(recipe);
+            targetList.Add(recipe);
 
             if (recipe.Mode == RecipeMode.Auto)
             {
-                if (!groupedAuto.TryGetValue(recipe.StationTag, out List<Recipe>? autoList))
+                if (!groupedAuto.TryGetValue(recipe.TargetTag, out List<Recipe>? autoList))
                 {
                     autoList = [];
-                    groupedAuto[recipe.StationTag] = autoList;
+                    groupedAuto[recipe.TargetTag] = autoList;
                 }
 
                 autoList.Add(recipe);
             }
 
-            if (!_validInputsByStationTag.TryGetValue(recipe.StationTag, out HashSet<string>? validInputs))
+            if (!_validInputsByTargetTag.TryGetValue(recipe.TargetTag, out HashSet<string>? validInputs))
             {
                 validInputs = new HashSet<string>(StringComparer.Ordinal);
-                _validInputsByStationTag[recipe.StationTag] = validInputs;
+                _validInputsByTargetTag[recipe.TargetTag] = validInputs;
             }
 
             ReadOnlySpan<RecipeIngredient> ingredients = recipe.InputSpan;
@@ -386,14 +378,14 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
             }
         }
 
-        foreach ((string stationTag, List<Recipe> recipes) in groupedAll)
+        foreach ((string targetTag, List<Recipe> recipes) in groupedAll)
         {
-            _byStationTag[stationTag] = Array.AsReadOnly(recipes.ToArray());
+            _byTargetTag[targetTag] = Array.AsReadOnly(recipes.ToArray());
         }
 
-        foreach ((string stationTag, List<Recipe> autoRecipes) in groupedAuto)
+        foreach ((string targetTag, List<Recipe> autoRecipes) in groupedAuto)
         {
-            _autoByStationTag[stationTag] = autoRecipes.ToArray();
+            _autoByTargetTag[targetTag] = autoRecipes.ToArray();
         }
     }
 

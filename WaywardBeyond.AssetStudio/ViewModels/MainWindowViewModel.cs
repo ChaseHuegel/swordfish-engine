@@ -4073,7 +4073,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             PreviewSurfaceMode.BodySprite => _bodyPreviewFrames.Count > 0 ? BodyPreviewLabel : $"{spriteState} · {spriteDirection}",
             PreviewSurfaceMode.MaterialPreview => $"{doc.MaterialAlphaModeField?.Value ?? "Opaque"}",
             PreviewSurfaceMode.BlueprintVoxel => doc.BlueprintSizeLabel,
-            PreviewSurfaceMode.RecipeFlow => $"{doc.RecipeStationTagLabel} · {doc.RecipeModeBadge}",
+            PreviewSurfaceMode.RecipeFlow => $"{doc.RecipeTargetTagLabel} · {doc.RecipeModeBadge}",
             _ => $"{doc.Kind} Document",
         };
 

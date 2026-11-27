@@ -420,7 +420,11 @@ public sealed class WorkspaceLoader
             static def => (def.ID ?? string.Empty, def.ID ?? string.Empty),
             state);
 
-        IndexRecipeDirectory(in root, state);
+        IndexArrayAssetDirectory<RecipeDefinitions, RecipeDefinition>(
+            in root, "recipes", "Recipes", AssetKind.Recipe,
+            static defs => defs.Recipes,
+            static def => (def.ID ?? string.Empty, def.ID ?? string.Empty),
+            state);
 
         IndexMaterialDirectory(in root, state);
     }
@@ -503,104 +507,6 @@ public sealed class WorkspaceLoader
                     strictError: parsed.StrictSuccess ? null : parsed.StrictError);
             }
         }
-    }
-
-    private static void IndexRecipeDirectory(in WorkspaceRoot root, IndexBuilderState state)
-    {
-        string directory = Path.Combine(root.AssetsDirectory, "recipes");
-        if (!Directory.Exists(directory))
-        {
-            return;
-        }
-
-        string[] files = Directory.GetFiles(directory, "*.toml", SearchOption.AllDirectories);
-        Array.Sort(files, StringComparer.OrdinalIgnoreCase);
-
-        for (int f = 0; f < files.Length; f++)
-        {
-            string filePath = Path.GetFullPath(files[f]);
-            TomlDocument document = LoadAndTrackDocument(filePath, state);
-            string relativePath = NormalizeRelativePath(root.AssetsDirectory, filePath);
-
-            if (document.HasSyntaxErrors)
-            {
-                continue;
-            }
-
-            List<TomlTableSpan> entryTables = [];
-            for (int t = 0; t < document.Tables.Count; t++)
-            {
-                TomlTableSpan table = document.Tables[t];
-                if (table.IsArrayTable && string.Equals(table.HeaderPath, "recipes", StringComparison.OrdinalIgnoreCase))
-                {
-                    entryTables.Add(table);
-                }
-            }
-
-            DualTomlParseResult<RecipeDefinitions> parsed = DualTomlParser.Parse<RecipeDefinitions>(document.Text);
-            if (!parsed.AuthoritativeSuccess)
-            {
-                var failedProv = new AssetProvenance(root.Id, root.Name, filePath, relativePath, root.IsWritable, 0, -1, []);
-                state.AllAssets.Add(new IndexedAsset(
-                    AssetKind.Recipe,
-                    string.Empty,
-                    Path.GetFileNameWithoutExtension(filePath),
-                    failedProv,
-                    AuthoritativeDefinition: null,
-                    StrictDefinition: null,
-                    AuthoritativeParseFailed: true,
-                    AuthoritativeParseError: parsed.AuthoritativeError,
-                    StrictParseError: parsed.StrictError));
-                continue;
-            }
-
-            List<RecipeDefinition> authItems = CombineRecipeLists(parsed.AuthoritativeValue);
-            List<RecipeDefinition>? strictItems = parsed.StrictSuccess ? CombineRecipeLists(parsed.StrictValue) : null;
-            if (authItems.Count == 0)
-            {
-                continue;
-            }
-
-            for (int e = 0; e < authItems.Count; e++)
-            {
-                RecipeDefinition authDef = authItems[e];
-                object? strictDef = strictItems != null && e < strictItems.Count ? strictItems[e] : null;
-                string id = authDef.ID ?? string.Empty;
-                int tableIndex = e < entryTables.Count ? entryTables[e].Index : -1;
-
-                RegisterIndexedAsset(
-                    state,
-                    in root,
-                    AssetKind.Recipe,
-                    id,
-                    id,
-                    filePath,
-                    relativePath,
-                    e,
-                    tableIndex,
-                    authDef,
-                    strictDef,
-                    authoritativeFailed: false,
-                    authoritativeError: null,
-                    strictError: parsed.StrictSuccess ? null : parsed.StrictError);
-            }
-        }
-    }
-
-    private static List<RecipeDefinition> CombineRecipeLists(RecipeDefinitions defs)
-    {
-        List<RecipeDefinition> combined = [];
-        if (defs.Recipes != null)
-        {
-            combined.AddRange(defs.Recipes);
-        }
-
-        if (defs.PascalRecipes != null)
-        {
-            combined.AddRange(defs.PascalRecipes);
-        }
-
-        return combined;
     }
 
     private static void IndexMaterialDirectory(in WorkspaceRoot root, IndexBuilderState state)
@@ -1126,8 +1032,8 @@ public sealed class WorkspaceLoader
 
     private static void ExtractRecipeReferences(in IndexedAsset asset, in RecipeDefinition recipe, List<InboundReference> refs)
     {
-        AddRefIfPresent(refs, in asset, "station_tag", recipe.StationTag, "station_tag", isInformational: false);
-        AddRefIfPresent(refs, in asset, "category", recipe.Category, "localization", isInformational: true);
+        AddRefIfPresent(refs, in asset, "TargetTag", recipe.TargetTag, "target_tag", isInformational: false);
+        AddRefIfPresent(refs, in asset, "Category", recipe.Category, "localization", isInformational: true);
 
         if (recipe.Inputs != null)
         {
@@ -1142,11 +1048,11 @@ public sealed class WorkspaceLoader
                 string trimmed = rawItemId.Trim();
                 if (trimmed.StartsWith("tag:", StringComparison.Ordinal))
                 {
-                    AddRefIfPresent(refs, in asset, $"inputs[{i}].item_id", trimmed.Substring(4), "tag", isInformational: false);
+                    AddRefIfPresent(refs, in asset, $"Inputs[{i}].ItemId", trimmed.Substring(4), "tag", isInformational: false);
                 }
                 else
                 {
-                    AddRefIfPresent(refs, in asset, $"inputs[{i}].item_id", trimmed, "item", isInformational: false);
+                    AddRefIfPresent(refs, in asset, $"Inputs[{i}].ItemId", trimmed, "item", isInformational: false);
                 }
             }
         }
@@ -1155,7 +1061,7 @@ public sealed class WorkspaceLoader
         {
             for (int i = 0; i < recipe.Outputs.Count; i++)
             {
-                AddRefIfPresent(refs, in asset, $"outputs[{i}].item_id", recipe.Outputs[i].ItemId?.Trim(), "item", isInformational: false);
+                AddRefIfPresent(refs, in asset, $"Outputs[{i}].ItemId", recipe.Outputs[i].ItemId?.Trim(), "item", isInformational: false);
             }
         }
     }

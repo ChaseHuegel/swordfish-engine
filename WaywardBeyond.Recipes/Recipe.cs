@@ -13,7 +13,7 @@ public readonly struct Recipe
 
     internal Recipe(
         string id,
-        string stationTag,
+        string targetTag,
         RecipeMode mode,
         RecipeIngredient[] inputs,
         RecipeOutput[] outputs,
@@ -24,7 +24,7 @@ public readonly struct Recipe
     )
     {
         ID = id;
-        StationTag = stationTag;
+        TargetTag = targetTag;
         Mode = mode;
         _inputs = inputs;
         _inputsReadOnly = Array.AsReadOnly(inputs);
@@ -39,8 +39,8 @@ public readonly struct Recipe
     /// <summary>The unique identifier of the recipe.</summary>
     public string ID { get; }
 
-    /// <summary>The invariant station tag identifying stations that can execute this recipe.</summary>
-    public string StationTag { get; }
+    /// <summary>The invariant target tag identifying stations or targets that can execute this recipe.</summary>
+    public string TargetTag { get; }
 
     /// <summary>Whether the recipe triggers automatically or requires explicit selection.</summary>
     public RecipeMode Mode { get; }

@@ -693,10 +693,10 @@ internal static class AssetSeedProjector
         List<(string ItemId, int Count, string SlotGroup)> inputs,
         List<(string ItemId, int Count, string Chance)> outputs)
     {
-        scalars["StationTag"] = recipe.StationTag ?? string.Empty;
+        scalars["TargetTag"] = recipe.TargetTag ?? string.Empty;
         scalars["Mode"] = string.IsNullOrWhiteSpace(recipe.Mode)
-            ? "manual"
-            : recipe.Mode.Trim().ToLowerInvariant();
+            ? "Manual"
+            : (string.Equals(recipe.Mode.Trim(), "auto", StringComparison.OrdinalIgnoreCase) ? "Auto" : "Manual");
         scalars["DurationSeconds"] = recipe.DurationSeconds.ToString(CultureInfo.InvariantCulture);
         scalars["PowerKw"] = recipe.PowerKw.ToString(CultureInfo.InvariantCulture);
         scalars["Category"] = recipe.Category ?? string.Empty;

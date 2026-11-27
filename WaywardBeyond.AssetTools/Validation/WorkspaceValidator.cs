@@ -165,13 +165,7 @@ public sealed class WorkspaceValidator
         {
             IndexedAsset asset = workspace.AllAssets[i];
             TomlDocument? doc = TryGetDocument(workspace, asset.Provenance.FilePath);
-            string idFieldName = asset.Kind == AssetKind.Recipe ? "id" : "ID";
-            TomlFieldSpan? idSpan = FindEntryField(doc, asset.Provenance.TableIndex, idFieldName);
-            if (!idSpan.HasValue && asset.Kind == AssetKind.Recipe)
-            {
-                idSpan = FindEntryField(doc, asset.Provenance.TableIndex, "ID");
-            }
-
+            TomlFieldSpan? idSpan = FindEntryField(doc, asset.Provenance.TableIndex, "ID");
             int line = idSpan.HasValue ? idSpan.Value.KeySpan.Line : ResolveEntryLine(doc, asset.Provenance.TableIndex);
             int column = idSpan.HasValue ? idSpan.Value.KeySpan.Column : 1;
 
@@ -358,7 +352,7 @@ public sealed class WorkspaceValidator
                     break;
 
                 case AssetKind.Recipe:
-                    CheckEnumField<RecipeMode>(in asset, doc, null, "mode", findings);
+                    CheckEnumField<RecipeMode>(in asset, doc, null, "Mode", findings);
                     break;
             }
         }
@@ -973,20 +967,20 @@ public sealed class WorkspaceValidator
         TomlDocument? doc,
         List<ValidationFinding> findings)
     {
-        TomlFieldSpan? stationField = FindEntryField(doc, asset.Provenance.TableIndex, "station_tag");
-        if (string.IsNullOrWhiteSpace(recipe.StationTag))
+        TomlFieldSpan? targetTagField = FindEntryField(doc, asset.Provenance.TableIndex, "TargetTag");
+        if (string.IsNullOrWhiteSpace(recipe.TargetTag))
         {
             AddFieldFinding(
                 findings,
                 "RECIPE001",
                 ValidationSeverity.Broken,
                 in asset,
-                stationField,
-                "station_tag",
-                $"Recipe '{recipe.ID}' must specify a non-empty station_tag.");
+                targetTagField,
+                "TargetTag",
+                $"Recipe '{recipe.ID}' must specify a non-empty TargetTag.");
         }
 
-        TomlFieldSpan? durationField = FindEntryField(doc, asset.Provenance.TableIndex, "duration_seconds");
+        TomlFieldSpan? durationField = FindEntryField(doc, asset.Provenance.TableIndex, "DurationSeconds");
         if (!float.IsFinite(recipe.DurationSeconds) || recipe.DurationSeconds < 0f)
         {
             AddFieldFinding(
@@ -995,11 +989,11 @@ public sealed class WorkspaceValidator
                 ValidationSeverity.Broken,
                 in asset,
                 durationField,
-                "duration_seconds",
-                $"Recipe '{recipe.ID}' duration_seconds ({recipe.DurationSeconds.ToString(CultureInfo.InvariantCulture)}) must be finite and >= 0.");
+                "DurationSeconds",
+                $"Recipe '{recipe.ID}' DurationSeconds ({recipe.DurationSeconds.ToString(CultureInfo.InvariantCulture)}) must be finite and >= 0.");
         }
 
-        TomlFieldSpan? powerField = FindEntryField(doc, asset.Provenance.TableIndex, "power_kw");
+        TomlFieldSpan? powerField = FindEntryField(doc, asset.Provenance.TableIndex, "PowerKw");
         if (!float.IsFinite(recipe.PowerKw))
         {
             AddFieldFinding(
@@ -1008,8 +1002,8 @@ public sealed class WorkspaceValidator
                 ValidationSeverity.Broken,
                 in asset,
                 powerField,
-                "power_kw",
-                $"Recipe '{recipe.ID}' power_kw must be a finite number.");
+                "PowerKw",
+                $"Recipe '{recipe.ID}' PowerKw must be a finite number.");
         }
 
         if (recipe.Inputs == null || recipe.Inputs.Count == 0)
@@ -1022,7 +1016,7 @@ public sealed class WorkspaceValidator
                 asset.Provenance.FilePath,
                 line,
                 Column: 1,
-                "inputs",
+                "Inputs",
                 $"Recipe '{recipe.ID}' must define at least one input ingredient."));
         }
         else
@@ -1042,8 +1036,8 @@ public sealed class WorkspaceValidator
                         asset.Provenance.FilePath,
                         line,
                         Column: 1,
-                        $"inputs[{i}].item_id",
-                        $"Recipe '{recipe.ID}' input #{i + 1} is missing an item_id."));
+                        $"Inputs[{i}].ItemId",
+                        $"Recipe '{recipe.ID}' input #{i + 1} is missing an ItemId."));
                 }
                 else if (itemId.StartsWith("tag:", StringComparison.Ordinal))
                 {
@@ -1057,7 +1051,7 @@ public sealed class WorkspaceValidator
                             asset.Provenance.FilePath,
                             line,
                             Column: 1,
-                            $"inputs[{i}].item_id",
+                            $"Inputs[{i}].ItemId",
                             $"Recipe '{recipe.ID}' input #{i + 1} has an empty tag selector."));
                     }
                     else if (!workspace.HasTag(tagName, locale: string.Empty))
@@ -1072,7 +1066,7 @@ public sealed class WorkspaceValidator
                                 asset.Provenance.FilePath,
                                 line,
                                 Column: 1,
-                                $"inputs[{i}].item_id",
+                                $"Inputs[{i}].ItemId",
                                 $"Recipe input tag '{tagName}' differs by case from '{caseMatch}'.",
                                 SuggestedFixValue: string.Concat("tag:", caseMatch)));
                         }
@@ -1085,7 +1079,7 @@ public sealed class WorkspaceValidator
                                 asset.Provenance.FilePath,
                                 line,
                                 Column: 1,
-                                $"inputs[{i}].item_id",
+                                $"Inputs[{i}].ItemId",
                                 $"Recipe input tag '{tagName}' was not found in invariant tags."));
                         }
                     }
@@ -1102,7 +1096,7 @@ public sealed class WorkspaceValidator
                             asset.Provenance.FilePath,
                             line,
                             Column: 1,
-                            $"inputs[{i}].item_id",
+                            $"Inputs[{i}].ItemId",
                             $"Recipe input item '{itemId}' differs by case from '{caseMatchItem}'.",
                             SuggestedFixValue: caseMatchItem));
                     }
@@ -1116,7 +1110,7 @@ public sealed class WorkspaceValidator
                             asset.Provenance.FilePath,
                             line,
                             Column: 1,
-                            $"inputs[{i}].item_id",
+                            $"Inputs[{i}].ItemId",
                             $"Recipe input item '{itemId}' was not found.",
                             SuggestedFixValue: suggested));
                     }
@@ -1131,8 +1125,8 @@ public sealed class WorkspaceValidator
                         asset.Provenance.FilePath,
                         line,
                         Column: 1,
-                        $"inputs[{i}].count",
-                        $"Recipe '{recipe.ID}' input #{i + 1} count ({input.Count}) must be >= 1."));
+                        $"Inputs[{i}].Count",
+                        $"Recipe '{recipe.ID}' input #{i + 1} Count ({input.Count}) must be >= 1."));
                 }
             }
         }
@@ -1150,8 +1144,8 @@ public sealed class WorkspaceValidator
                     asset.Provenance.FilePath,
                     line,
                     Column: 1,
-                    "outputs",
-                    $"Recipe '{recipe.ID}' must define at least one output unless power_kw > 0."));
+                    "Outputs",
+                    $"Recipe '{recipe.ID}' must define at least one output unless PowerKw > 0."));
             }
         }
         else
@@ -1171,8 +1165,8 @@ public sealed class WorkspaceValidator
                         asset.Provenance.FilePath,
                         line,
                         Column: 1,
-                        $"outputs[{i}].item_id",
-                        $"Recipe '{recipe.ID}' output #{i + 1} is missing an item_id."));
+                        $"Outputs[{i}].ItemId",
+                        $"Recipe '{recipe.ID}' output #{i + 1} is missing an ItemId."));
                 }
                 else if (!workspace.GetAsset(AssetKind.Item, itemId).Success)
                 {
@@ -1186,7 +1180,7 @@ public sealed class WorkspaceValidator
                             asset.Provenance.FilePath,
                             line,
                             Column: 1,
-                            $"outputs[{i}].item_id",
+                            $"Outputs[{i}].ItemId",
                             $"Recipe output item '{itemId}' differs by case from '{caseMatchItem}'.",
                             SuggestedFixValue: caseMatchItem));
                     }
@@ -1200,7 +1194,7 @@ public sealed class WorkspaceValidator
                             asset.Provenance.FilePath,
                             line,
                             Column: 1,
-                            $"outputs[{i}].item_id",
+                            $"Outputs[{i}].ItemId",
                             $"Recipe output item '{itemId}' was not found.",
                             SuggestedFixValue: suggested));
                     }
@@ -1215,8 +1209,8 @@ public sealed class WorkspaceValidator
                         asset.Provenance.FilePath,
                         line,
                         Column: 1,
-                        $"outputs[{i}].count",
-                        $"Recipe '{recipe.ID}' output #{i + 1} count ({output.Count}) must be >= 1."));
+                        $"Outputs[{i}].Count",
+                        $"Recipe '{recipe.ID}' output #{i + 1} Count ({output.Count}) must be >= 1."));
                 }
 
                 if (output.Chance.HasValue && (!float.IsFinite(output.Chance.Value) || output.Chance.Value <= 0f || output.Chance.Value > 1f))
@@ -1228,8 +1222,8 @@ public sealed class WorkspaceValidator
                         asset.Provenance.FilePath,
                         line,
                         Column: 1,
-                        $"outputs[{i}].chance",
-                        $"Recipe '{recipe.ID}' output #{i + 1} chance ({output.Chance.Value.ToString(CultureInfo.InvariantCulture)}) must be in (0, 1]."));
+                        $"Outputs[{i}].Chance",
+                        $"Recipe '{recipe.ID}' output #{i + 1} Chance ({output.Chance.Value.ToString(CultureInfo.InvariantCulture)}) must be in (0, 1]."));
                 }
             }
         }

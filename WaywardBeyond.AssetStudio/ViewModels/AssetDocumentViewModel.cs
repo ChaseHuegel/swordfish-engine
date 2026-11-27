@@ -331,8 +331,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         // Recipe fields
         if (Kind == AssetKind.Recipe)
         {
-            RecipeStationTagField = AddField("StationTag", "Station Tag", "invariant tag · station.workbench", GetVal("StationTag"), referenceKind: ReferenceKind.Tag);
-            RecipeModeField = AddField("Mode", "Trigger Mode", "auto or manual", GetVal("Mode", "manual"), choices: ["manual", "auto"]);
+            RecipeTargetTagField = AddField("TargetTag", "Target Tag", "invariant tag · station.workbench", GetVal("TargetTag"), referenceKind: ReferenceKind.Tag);
+            RecipeModeField = AddField("Mode", "Trigger Mode", "Auto or Manual", GetVal("Mode", "Manual"), choices: ["Manual", "Auto"]);
             RecipeDurationField = AddField("DurationSeconds", "Duration (s)", "seconds >= 0", GetVal("DurationSeconds", "2"), isNumeric: true);
             RecipePowerKwField = AddField("PowerKw", "Power (kW)", "negative draw · positive generate", GetVal("PowerKw", "0"), isNumeric: true);
             RecipeOrderField = AddField("Order", "Sort Order", "integer · ascending", GetVal("Order", "0"), isNumeric: true);
@@ -1103,15 +1103,15 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     /// </summary>
     public string DataSummaryDetail => Kind switch
     {
-        AssetKind.Recipe => $"{RecipeStationTagLabel} · {RecipeModeBadge} · {RecipePowerLabel}",
+        AssetKind.Recipe => $"{RecipeTargetTagLabel} · {RecipeModeBadge} · {RecipePowerLabel}",
         AssetKind.Skill => SkillCurveSummary,
         AssetKind.Tag => HasDuplicateTags ? "Duplicate entries flagged (not auto-merged)" : "Ordered set · first-occurrence merge",
         AssetKind.Localization => "Localization table",
         _ => ProvenanceDetailLabel,
     };
 
-    /// <summary>Recipe station tag field.</summary>
-    public StudioFieldViewModel? RecipeStationTagField { get; }
+    /// <summary>Recipe target tag field.</summary>
+    public StudioFieldViewModel? RecipeTargetTagField { get; }
 
     /// <summary>Recipe trigger mode field.</summary>
     public StudioFieldViewModel? RecipeModeField { get; }
@@ -1134,13 +1134,13 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     /// <summary>Editable recipe output item rows.</summary>
     public ObservableCollection<RecipeOutputRowViewModel> RecipeOutputs { get; } = [];
 
-    /// <summary>Display label for the recipe station tag.</summary>
-    public string RecipeStationTagLabel => string.IsNullOrWhiteSpace(RecipeStationTagField?.Value)
-        ? "(no station_tag)"
-        : RecipeStationTagField.Value.Trim();
+    /// <summary>Display label for the recipe target tag.</summary>
+    public string RecipeTargetTagLabel => string.IsNullOrWhiteSpace(RecipeTargetTagField?.Value)
+        ? "(no TargetTag)"
+        : RecipeTargetTagField.Value.Trim();
 
-    /// <summary>Whether the recipe station tag is non-empty for deep-link clicks.</summary>
-    public bool HasRecipeStationTag => !string.IsNullOrWhiteSpace(RecipeStationTagField?.Value);
+    /// <summary>Whether the recipe target tag is non-empty for deep-link clicks.</summary>
+    public bool HasRecipeTargetTag => !string.IsNullOrWhiteSpace(RecipeTargetTagField?.Value);
 
     /// <summary>Uppercase mode badge for recipe preview.</summary>
     public string RecipeModeBadge => IsRecipeAutoMode ? "AUTO" : "MANUAL";
@@ -2491,8 +2491,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
 
     private void NotifyRecipePreviewChanged()
     {
-        OnPropertyChanged(nameof(RecipeStationTagLabel));
-        OnPropertyChanged(nameof(HasRecipeStationTag));
+        OnPropertyChanged(nameof(RecipeTargetTagLabel));
+        OnPropertyChanged(nameof(HasRecipeTargetTag));
         OnPropertyChanged(nameof(RecipeModeBadge));
         OnPropertyChanged(nameof(IsRecipeAutoMode));
         OnPropertyChanged(nameof(RecipeDurationLabel));
@@ -3911,29 +3911,29 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
 
     private void AppendRecipeToml(StringBuilder sb)
     {
-        sb.AppendLine("[[recipes]]");
-        sb.AppendLine($"id               = \"{Id}\"");
-        sb.AppendLine($"station_tag      = {RecipeStationTagField?.RawTokenText ?? "\"\""}");
-        sb.AppendLine($"mode             = {RecipeModeField?.RawTokenText ?? "\"manual\""}");
-        sb.AppendLine($"duration_seconds = {RecipeDurationField?.RawTokenText ?? "0"}");
-        sb.AppendLine($"power_kw         = {RecipePowerKwField?.RawTokenText ?? "0"}");
+        sb.AppendLine("[[Recipes]]");
+        sb.AppendLine($"ID              = \"{Id}\"");
+        sb.AppendLine($"TargetTag       = {RecipeTargetTagField?.RawTokenText ?? "\"\""}");
+        sb.AppendLine($"Mode            = {RecipeModeField?.RawTokenText ?? "\"Manual\""}");
+        sb.AppendLine($"DurationSeconds = {RecipeDurationField?.RawTokenText ?? "0"}");
+        sb.AppendLine($"PowerKw         = {RecipePowerKwField?.RawTokenText ?? "0"}");
         if (!string.IsNullOrWhiteSpace(RecipeCategoryField?.Value))
         {
-            sb.AppendLine($"category         = {RecipeCategoryField.RawTokenText}");
+            sb.AppendLine($"Category        = {RecipeCategoryField.RawTokenText}");
         }
 
-        sb.AppendLine($"order            = {RecipeOrderField?.RawTokenText ?? "0"}");
+        sb.AppendLine($"Order           = {RecipeOrderField?.RawTokenText ?? "0"}");
 
         for (var i = 0; i < RecipeInputs.Count; i++)
         {
             var input = RecipeInputs[i];
             sb.AppendLine();
-            sb.AppendLine("[[recipes.inputs]]");
-            sb.AppendLine($"item_id = \"{input.ItemId}\"");
-            sb.AppendLine($"count   = {Math.Max(1, input.Count)}");
+            sb.AppendLine("[[Recipes.Inputs]]");
+            sb.AppendLine($"ItemId = \"{input.ItemId}\"");
+            sb.AppendLine($"Count  = {Math.Max(1, input.Count)}");
             if (!string.IsNullOrWhiteSpace(input.SlotGroup))
             {
-                sb.AppendLine($"slot_group = \"{input.SlotGroup}\"");
+                sb.AppendLine($"SlotGroup = \"{input.SlotGroup}\"");
             }
         }
 
@@ -3941,12 +3941,12 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         {
             var output = RecipeOutputs[i];
             sb.AppendLine();
-            sb.AppendLine("[[recipes.outputs]]");
-            sb.AppendLine($"item_id = \"{output.ItemId}\"");
-            sb.AppendLine($"count   = {Math.Max(1, output.Count)}");
+            sb.AppendLine("[[Recipes.Outputs]]");
+            sb.AppendLine($"ItemId = \"{output.ItemId}\"");
+            sb.AppendLine($"Count  = {Math.Max(1, output.Count)}");
             if (!string.IsNullOrWhiteSpace(output.Chance))
             {
-                sb.AppendLine($"chance  = {output.Chance}");
+                sb.AppendLine($"Chance = {output.Chance}");
             }
         }
     }

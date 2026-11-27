@@ -296,19 +296,19 @@ value types are `Recipe` (`Recipe.cs:7`), `RecipeIngredient`
 (`RecipeIngredient.cs:8`), `RecipeOutput` (`RecipeOutput.cs:4`), and
 `RecipeMode` (`RecipeMode.cs:4`).
 
-Each row is a `[[recipes]]` table (or `[[Recipes]]`):
+Each row is a `[[Recipes]]` table:
 
 | Field | Type | Notes |
 |---|---|---|
-| `id` | string | unique namespaced recipe identifier |
-| `station_tag` | string | invariant station tag identifying stations that run the recipe |
-| `mode` | `RecipeMode` | `auto` or `manual` (`manual` when omitted) |
-| `inputs` | `[[recipes.inputs]]` | at least one entry with `item_id` (item id or `tag:<name>`), `count >= 1`, and optional `slot_group` |
-| `outputs` | `[[recipes.outputs]]` | entries with `item_id`, `count >= 1`, and optional `chance` in `(0, 1]` (`1` when omitted) |
-| `duration_seconds` | float | processing time in seconds (`>= 0`) |
-| `power_kw` | float | negative draws power, positive generates power (generator recipes may omit `outputs` when `power_kw > 0`) |
-| `category` | string? | optional category key |
-| `order` | int | deterministic sort key within a station list |
+| `ID` | string | unique namespaced recipe identifier |
+| `TargetTag` | string | invariant target tag identifying stations or targets that run the recipe |
+| `Mode` | `RecipeMode` | `Auto` or `Manual` (`Manual` when omitted) |
+| `Inputs` | `[[Recipes.Inputs]]` | at least one entry with `ItemId` (item id or `tag:<name>`), `Count >= 1`, and optional `SlotGroup` |
+| `Outputs` | `[[Recipes.Outputs]]` | entries with `ItemId`, `Count >= 1`, and optional `Chance` in `(0, 1]` (`1` when omitted) |
+| `DurationSeconds` | float | processing time in seconds (`>= 0`) |
+| `PowerKw` | float | negative draws power, positive generates power (generator recipes may omit `Outputs` when `PowerKw > 0`) |
+| `Category` | string? | optional category key |
+| `Order` | int | deterministic sort key within a target list |
 
 Recipe files never declare skill XP or skill IDs. Skills own their crafting and
 processing XP rules in `assets/skills/*.toml`. See [skills](skills.md).
@@ -316,7 +316,7 @@ processing XP rules in `assets/skills/*.toml`. See [skills](skills.md).
 `RecipeDatabase` validates every item reference against `IAssetDatabase<Item>`
 and expands `tag:<name>` inputs through `ILocalizedTagsDatabase.Invariant` at
 load time. Invalid rows log an error and skip without crashing.
-`GetByStationTag` returns recipes sorted by `Order` then `ID`. `FindAutoMatch`
+`GetByTargetTag` returns recipes sorted by `Order` then `ID`. `FindAutoMatch`
 matches `RecipeMode.Auto` recipes against `ReadOnlySpan<ItemData>` or
 `in InventoryComponent` without heap allocations, prioritizing exact item
 ingredients before tag ingredients. `IsValidInputForStation` checks whether any
@@ -441,7 +441,7 @@ bits. See [seed-phrases](seed-phrases.md).
 ## Tests that pin this
 
 `WaywardBeyond.Tests/RecipeDatabaseTests.cs` pins recipe TOML parsing, item and
-tag validation errors, `GetByStationTag` ordering, `FindAutoMatch`,
+tag validation errors, `GetByTargetTag` ordering, `FindAutoMatch`,
 `IsValidInputForStation`, and DI registration. `WaywardBeyond.Tests/SkillDatabaseTests.cs` loads the shipped skill and brick tomls
 and pins the schema, the tag expansion, crafting and processing XP sources, and
 the level curve. See [skills](skills.md). `WaywardBeyond.Tests/BodyDatabaseTests.cs` loads the shipped

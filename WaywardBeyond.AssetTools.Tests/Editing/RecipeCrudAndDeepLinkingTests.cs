@@ -40,38 +40,38 @@ public sealed class RecipeCrudAndDeepLinkingTests : IDisposable
 
         WriteFile(
             Path.Combine(assets, "recipes", "smelting.toml"),
-            "[[recipes]]\n" +
-            "id = \"test:smelt_iron\"\n" +
-            "station_tag = \"station.smelter\"\n" +
-            "mode = \"auto\"\n" +
-            "duration_seconds = 3.5\n" +
-            "power_kw = -12.0\n" +
-            "order = 10\n" +
+            "[[Recipes]]\n" +
+            "ID = \"test:smelt_iron\"\n" +
+            "TargetTag = \"station.smelter\"\n" +
+            "Mode = \"Auto\"\n" +
+            "DurationSeconds = 3.5\n" +
+            "PowerKw = -12.0\n" +
+            "Order = 10\n" +
             "\n" +
-            "[[recipes.inputs]]\n" +
-            "item_id = \"test:iron_ore\"\n" +
-            "count = 2\n" +
+            "[[Recipes.Inputs]]\n" +
+            "ItemId = \"test:iron_ore\"\n" +
+            "Count = 2\n" +
             "\n" +
-            "[[recipes.inputs]]\n" +
-            "item_id = \"tag:item.fuel\"\n" +
-            "count = 1\n" +
-            "slot_group = \"fuel\"\n" +
+            "[[Recipes.Inputs]]\n" +
+            "ItemId = \"tag:item.fuel\"\n" +
+            "Count = 1\n" +
+            "SlotGroup = \"fuel\"\n" +
             "\n" +
-            "[[recipes.outputs]]\n" +
-            "item_id = \"test:iron_ingot\"\n" +
-            "count = 1\n" +
-            "chance = 0.75\n" +
+            "[[Recipes.Outputs]]\n" +
+            "ItemId = \"test:iron_ingot\"\n" +
+            "Count = 1\n" +
+            "Chance = 0.75\n" +
             "\n" +
-            "[[recipes]]\n" +
-            "id = \"test:burn_fuel\"\n" +
-            "station_tag = \"station.generator\"\n" +
-            "mode = \"auto\"\n" +
-            "duration_seconds = 10.0\n" +
-            "power_kw = 50.0\n" +
+            "[[Recipes]]\n" +
+            "ID = \"test:burn_fuel\"\n" +
+            "TargetTag = \"station.generator\"\n" +
+            "Mode = \"Auto\"\n" +
+            "DurationSeconds = 10.0\n" +
+            "PowerKw = 50.0\n" +
             "\n" +
-            "[[recipes.inputs]]\n" +
-            "item_id = \"tag:item.fuel\"\n" +
-            "count = 1\n");
+            "[[Recipes.Inputs]]\n" +
+            "ItemId = \"tag:item.fuel\"\n" +
+            "Count = 1\n");
 
         WriteFile(
             Path.Combine(assets, "skills", "metallurgy.toml"),
@@ -106,33 +106,33 @@ public sealed class RecipeCrudAndDeepLinkingTests : IDisposable
 
         WriteFile(
             Path.Combine(assets, "recipes", "broken.toml"),
-            "[[recipes]]\n" +
-            "id = \"test:broken_recipe\"\n" +
-            "station_tag = \"\"\n" +
-            "mode = \"invalid_mode\"\n" +
-            "duration_seconds = -1.0\n" +
-            "power_kw = 0.0\n" +
+            "[[Recipes]]\n" +
+            "ID = \"test:broken_recipe\"\n" +
+            "TargetTag = \"\"\n" +
+            "Mode = \"invalid_mode\"\n" +
+            "DurationSeconds = -1.0\n" +
+            "PowerKw = 0.0\n" +
             "\n" +
-            "[[recipes.inputs]]\n" +
-            "item_id = \"test:missing_ore\"\n" +
-            "count = 0\n" +
+            "[[Recipes.Inputs]]\n" +
+            "ItemId = \"test:missing_ore\"\n" +
+            "Count = 0\n" +
             "\n" +
-            "[[recipes.outputs]]\n" +
-            "item_id = \"test:missing_ingot\"\n" +
-            "count = 1\n" +
-            "chance = 1.5\n");
+            "[[Recipes.Outputs]]\n" +
+            "ItemId = \"test:missing_ingot\"\n" +
+            "Count = 1\n" +
+            "Chance = 1.5\n");
 
         WorkspaceIndex ws = new WorkspaceLoader().LoadPack(pack).Value;
         ValidationReport report = new WorkspaceValidator().Validate(ws);
 
         Assert.True(report.BlocksExport);
-        Assert.Contains(report.Findings, static f => f.Code == "RECIPE001" && f.Field == "station_tag");
-        Assert.Contains(report.Findings, static f => f.Code == "ENUM001" && f.Field == "mode");
-        Assert.Contains(report.Findings, static f => f.Code == "RECIPE002" && f.Field == "duration_seconds");
-        Assert.Contains(report.Findings, static f => f.Code == "REF001" && f.Field == "inputs[0].item_id");
-        Assert.Contains(report.Findings, static f => f.Code == "RECIPE002" && f.Field == "inputs[0].count");
-        Assert.Contains(report.Findings, static f => f.Code == "REF001" && f.Field == "outputs[0].item_id");
-        Assert.Contains(report.Findings, static f => f.Code == "RECIPE002" && f.Field == "outputs[0].chance");
+        Assert.Contains(report.Findings, static f => f.Code == "RECIPE001" && f.Field == "TargetTag");
+        Assert.Contains(report.Findings, static f => f.Code == "ENUM001" && f.Field == "Mode");
+        Assert.Contains(report.Findings, static f => f.Code == "RECIPE002" && f.Field == "DurationSeconds");
+        Assert.Contains(report.Findings, static f => f.Code == "REF001" && f.Field == "Inputs[0].ItemId");
+        Assert.Contains(report.Findings, static f => f.Code == "RECIPE002" && f.Field == "Inputs[0].Count");
+        Assert.Contains(report.Findings, static f => f.Code == "REF001" && f.Field == "Outputs[0].ItemId");
+        Assert.Contains(report.Findings, static f => f.Code == "RECIPE002" && f.Field == "Outputs[0].Chance");
     }
 
     [Fact]
@@ -151,20 +151,20 @@ public sealed class RecipeCrudAndDeepLinkingTests : IDisposable
         //  Populate valid item references and add a skill referencing recipe:test:craft_plate
         WriteFile(
             recipesFile,
-            "[[recipes]]\n" +
-            "id = \"test:craft_plate\"\n" +
-            "station_tag = \"station.smelter\"\n" +
-            "mode = \"manual\"\n" +
-            "duration_seconds = 2.0\n" +
-            "power_kw = -5.0\n" +
+            "[[Recipes]]\n" +
+            "ID = \"test:craft_plate\"\n" +
+            "TargetTag = \"station.smelter\"\n" +
+            "Mode = \"Manual\"\n" +
+            "DurationSeconds = 2.0\n" +
+            "PowerKw = -5.0\n" +
             "\n" +
-            "[[recipes.inputs]]\n" +
-            "item_id = \"test:iron_ore\"\n" +
-            "count = 1\n" +
+            "[[Recipes.Inputs]]\n" +
+            "ItemId = \"test:iron_ore\"\n" +
+            "Count = 1\n" +
             "\n" +
-            "[[recipes.outputs]]\n" +
-            "item_id = \"test:iron_ingot\"\n" +
-            "count = 1\n");
+            "[[Recipes.Outputs]]\n" +
+            "ItemId = \"test:iron_ingot\"\n" +
+            "Count = 1\n");
 
         string skillFile = Path.Combine(assets, "skills", "metallurgy.toml");
         WriteFile(
