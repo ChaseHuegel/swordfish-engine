@@ -417,7 +417,6 @@ message ParticleEmitterMessage
 message ParticleEmitterBindingComponent
 {
     ulong ParentEntity = 0;
-    ulong ExcludeEntity = 1;
 }
 
 message ParticleBurstEntry

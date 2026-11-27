@@ -272,6 +272,56 @@ public sealed class RecipientReplicationFilterTests
         Assert.False(clientStore.IsDirty<ColliderComponent>(localPlayer));
     }
 
+    [Fact]
+    public async Task ExcludedRecipientEntityOmitsAllComponentsRemovalsFullSyncAndDespawnForOwner()
+    {
+        using LoopbackHarness harness = LoopbackHarness.CreateWithDefaultRegistry();
+        LoopbackClient owner = await harness.AddCharacterClientAsync(Uuid.FromValue(601));
+        LoopbackClient observer = await harness.AddCharacterClientAsync(Uuid.FromValue(602));
+        harness.ClearAllDirty();
+
+        Uuid excludedUuid = Uuid.FromValue(650);
+        int excludedEntity = harness.ServerStore.Alloc(excludedUuid);
+        NetworkComponent excludedNet = NetworkComponent.Create();
+        excludedNet.ExcludedRecipientEntity = owner.EntityUuid;
+        harness.ServerStore.AddOrUpdate(excludedEntity, excludedNet);
+        harness.ServerStore.AddOrUpdate(excludedEntity, new TransformComponent(new Vector3(3f, 4f, 5f), Quaternion.Identity, Vector3.One));
+        harness.ServerStore.AddOrUpdate(excludedEntity, new IdentifierComponent(name: null, tag: "game"));
+
+        //  1. Delta omits every component of the excluded entity for the owner while sending all to observer.
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+        WorldSnapshot observerDelta = await observer.WaitForSnapshotAsync();
+        Assert.Contains(observerDelta.Components, c => c.Entity == excludedUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
+        Assert.Empty(owner.Inbound.Snapshots);
+
+        //  2. Full sync omits the excluded entity for the owner while sending it to observer.
+        harness.Replication.RequestFullSync(owner.ServerPeer.GameId);
+        harness.Replication.RequestFullSync(observer.ServerPeer.GameId);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot ownerFullSync = await owner.WaitForSnapshotAsync();
+        WorldSnapshot observerFullSync = await observer.WaitForSnapshotAsync();
+        Assert.DoesNotContain(ownerFullSync.Components, c => c.Entity == excludedUuid.ToValue());
+        Assert.Contains(observerFullSync.Components, c => c.Entity == excludedUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
+
+        //  3. Component removal on a live excluded entity omits the excluded owner while notifying observer.
+        harness.ServerStore.Remove(typeof(IdentifierComponent), excludedEntity);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot observerRemoval = await observer.WaitForSnapshotAsync();
+        Assert.Contains(observerRemoval.RemovedComponents, r => r.Entity == excludedUuid.ToValue());
+        Assert.Empty(owner.Inbound.Snapshots);
+
+        //  4. Entity despawn omits the excluded owner while notifying observer.
+        harness.Replication.RequestDespawn(excludedUuid.ToValue(), owner.EntityUuid);
+        harness.ServerStore.Free(excludedEntity);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot observerDespawn = await observer.WaitForSnapshotAsync();
+        Assert.Contains(observerDespawn.RemovedEntities, id => id == excludedUuid.ToValue());
+        Assert.Empty(owner.Inbound.Snapshots);
+    }
+
     private static ClientReconcileSystem CreateClientReconcile(ClientInbound inbound, NetworkRegistry registry)
     {
         var motionProcessor = new ClientPlayerMotionProcessor(

@@ -338,26 +338,36 @@ public sealed class MiningLaserEffectsTests
         serverRpcRegistry.Freeze();
         var rpcServer = new RpcServer(transport, serverRpcRegistry);
         var host = new StubRpcHost();
-        var connected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
-        rpcServer.ClientConnected += peer => connected.TrySetResult(peer);
+        TaskCompletionSource<RpcPeer>? pendingConnect = null;
+        rpcServer.ClientConnected += peer => pendingConnect?.TrySetResult(peer);
         rpcServer.Start();
 
-        var connection = new LoopbackRpcClientConnection(transport);
+        var shooterConnection = new LoopbackRpcClientConnection(transport);
+        var observerConnection = new LoopbackRpcClientConnection(transport);
         try
         {
-            await connection.ConnectAsync();
+            pendingConnect = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            await shooterConnection.ConnectAsync();
+            var shooterInbound = new ClientInbound();
+            var shooterRpcRegistry = new RpcRegistry();
+            shooterRpcRegistry.AddService(new ClientHandlers(shooterInbound));
+            shooterRpcRegistry.Freeze();
+            _ = new RpcClient(shooterConnection, shooterRpcRegistry);
+            RpcPeer shooterRpcPeer = await pendingConnect.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            ServerPeer shooterServerPeer = peers.GetOrAdd(host, shooterRpcPeer, isLocal: true);
 
-            var inbound = new ClientInbound();
-            var clientRpcRegistry = new RpcRegistry();
-            clientRpcRegistry.AddService(new ClientHandlers(inbound));
-            clientRpcRegistry.Freeze();
-            _ = new RpcClient(connection, clientRpcRegistry);
+            pendingConnect = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            await observerConnection.ConnectAsync();
+            var observerInbound = new ClientInbound();
+            var observerRpcRegistry = new RpcRegistry();
+            observerRpcRegistry.AddService(new ClientHandlers(observerInbound));
+            observerRpcRegistry.Freeze();
+            _ = new RpcClient(observerConnection, observerRpcRegistry);
+            RpcPeer observerRpcPeer = await pendingConnect.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            ServerPeer observerServerPeer = peers.GetOrAdd(host, observerRpcPeer, isLocal: true);
 
-            RpcPeer rpcPeer = await connected.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            ServerPeer serverPeer = peers.GetOrAdd(host, rpcPeer, isLocal: true);
-
-            Uuid remoteUuid = Uuid.FromValue(9001);
-            int serverEntity = serverStore.Alloc(remoteUuid);
+            Uuid shooterUuid = Uuid.FromValue(9001);
+            int serverEntity = serverStore.Alloc(shooterUuid);
             NetworkComponent serverNet = NetworkComponent.Create();
             serverStore.AddOrUpdate(serverEntity, serverNet);
             serverStore.AddOrUpdate(serverEntity, new OwnedCharacterComponent());
@@ -368,20 +378,33 @@ public sealed class MiningLaserEffectsTests
             inventory.Contents[1] = new ItemData(PICKAXE_ITEM_ID, 1, 1);
             serverStore.AddOrUpdate(serverEntity, inventory);
             serverStore.AddOrUpdate(serverEntity, new InputComponent { PrimaryHeld = false });
-            sessions.Register(serverStore, serverEntity, serverPeer.GameId, new Session(1));
+            sessions.Register(serverStore, serverEntity, shooterServerPeer.GameId, new Session(1));
 
-            var clientStore = new DataStore();
-            int clientEntity = clientStore.Alloc(remoteUuid);
-            clientStore.AddOrUpdate(clientEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
-            clientStore.AddOrUpdate(clientEntity, new BodyViewComponent { Body = "wb:human_m" });
+            Uuid observerUuid = Uuid.FromValue(9002);
+            int observerServerEntity = serverStore.Alloc(observerUuid);
+            serverStore.AddOrUpdate(observerServerEntity, NetworkComponent.Create());
+            sessions.Register(serverStore, observerServerEntity, observerServerPeer.GameId, new Session(2));
+
+            //  Clear initial spawn dirty flags so snapshots carry only laser beam changes.
+            NetworkComponentInfo[] serverOwned = registry.GetComponents(NetworkDirection.ServerOwned);
+            for (var i = 0; i < serverOwned.Length; i++)
+            {
+                serverStore.ClearDirty(serverOwned[i].Type, serverEntity);
+                serverStore.ClearDirty(serverOwned[i].Type, observerServerEntity);
+            }
+
+            var observerStore = new DataStore();
+            int observerMirrorEntity = observerStore.Alloc(shooterUuid);
+            observerStore.AddOrUpdate(observerMirrorEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            observerStore.AddOrUpdate(observerMirrorEntity, new BodyViewComponent { Body = "wb:human_m" });
             var motionProcessor = new ClientPlayerMotionProcessor(
                 new FakeInputService(),
                 new FakeWindowContext(),
                 new FakePhysics(),
                 new EventInvoker<PlayerMovedEvent>([])
             );
-            var clientReconcile = new ClientReconcileSystem(
-                inbound,
+            var observerReconcile = new ClientReconcileSystem(
+                observerInbound,
                 new SnapshotAckTracker(),
                 motionProcessor,
                 new LocalPlayerReconciler(NullLogger<LocalPlayerReconciler>.Instance),
@@ -409,15 +432,16 @@ public sealed class MiningLaserEffectsTests
             Assert.Equal(hitNormal, serverBeam.Normal);
             Assert.True(serverStore.IsDirty<LaserBeamComponent>(serverEntity));
 
-            //  Publish to client mirror via loopback replication.
+            //  Publish replicates LaserBeamComponent to remote observer while omitting the shooter.
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
-            TickReconcileWhilePlaying(clientReconcile, clientStore);
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
+            TickReconcileWhilePlaying(observerReconcile, observerStore);
 
-            Assert.True(clientStore.TryGet(clientEntity, out LaserBeamComponent replicatedBeam));
+            Assert.True(observerStore.TryGet(observerMirrorEntity, out LaserBeamComponent replicatedBeam));
             Assert.True(replicatedBeam.Hit);
             Assert.Equal(hitPoint, replicatedBeam.Target);
             Assert.Equal(hitNormal, replicatedBeam.Normal);
+            Assert.Empty(shooterInbound.Snapshots);
 
             //  Steady aim within deadband must not re-dirty LaserBeamComponent.
             Assert.False(serverStore.IsDirty<LaserBeamComponent>(serverEntity));
@@ -432,20 +456,22 @@ public sealed class MiningLaserEffectsTests
             Assert.Equal(new Vector3(0f, 0f, -CharacterDefaults.DEFAULT_REACH), missBeam.Target);
             Assert.True(serverStore.IsDirty<LaserBeamComponent>(serverEntity));
 
-            //  Releasing primary removes LaserBeamComponent and replicates ComponentRemoval.
+            //  Releasing primary removes LaserBeamComponent and replicates ComponentRemoval only to observers.
             serverStore.AddOrUpdate(serverEntity, new InputComponent { PrimaryHeld = false });
             beamSystem.Tick(serverStore, simStep.CurrentSimTick);
             Assert.False(serverStore.Has(typeof(LaserBeamComponent), serverEntity));
 
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
-            TickReconcileWhilePlaying(clientReconcile, clientStore);
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
+            TickReconcileWhilePlaying(observerReconcile, observerStore);
 
-            Assert.False(clientStore.Has(typeof(LaserBeamComponent), clientEntity));
+            Assert.False(observerStore.Has(typeof(LaserBeamComponent), observerMirrorEntity));
+            Assert.Empty(shooterInbound.Snapshots);
         }
         finally
         {
-            connection.Close();
+            shooterConnection.Close();
+            observerConnection.Close();
             rpcServer.Close();
             transport.Close();
         }

@@ -37,10 +37,11 @@ public sealed class NetworkReplicationSystem
     private readonly List<PendingSnapshot> _pending = [];
     private readonly List<PendingRemoval> _pendingRemovals = [];
     private readonly List<PendingSnapshot> _fullSyncPending = [];
-    private readonly Queue<ulong> _removed = [];
+    private readonly List<PendingDespawn> _removed = [];
 
     private readonly List<ComponentSnapshot> _filteredComponents = [];
     private readonly List<ComponentRemoval> _filteredRemovals = [];
+    private readonly List<ulong> _filteredRemoved = [];
 
     //  Publish buffers. A WorldSnapshot is serialized synchronously inside the publish loop and then
     //  dropped, so the arrays can be reused across publishes when the counts hold steady.
@@ -49,10 +50,12 @@ public sealed class NetworkReplicationSystem
     private ComponentRemoval[] _removalSnapshot = [];
     private ComponentRemoval[] _filteredRemovalSnapshot = [];
     private ulong[] _removedSnapshot = [];
+    private ulong[] _filteredRemovedSnapshot = [];
 
     private bool _pendingHasRecipientFilters;
     private bool _pendingRemovalsHasRecipientFilters;
     private bool _fullSyncHasRecipientFilters;
+    private bool _removedHasRecipientFilters;
 
     //  Clients awaiting a one-shot full-state snapshot (full server-owned state of every networked
     //  entity) on their next publish, in place of that tick's delta. Newly joined clients request it so
@@ -103,11 +106,13 @@ public sealed class NetworkReplicationSystem
     /// <summary>
     /// Records an entity uuid to publish as despawned to connected clients. Must be called before the
     /// entity is freed: <c>DataStore.Free</c> clears the entity's uuid, so the despawn uuid can only be
-    /// captured at the moment ownership is released.
+    /// captured at the moment ownership is released. When <paramref name="excludedRecipientEntity"/> is
+    /// non-null, the client owning that entity uuid does not receive the despawn entry.
     /// </summary>
-    public void RequestDespawn(ulong entityUuid)
+    public void RequestDespawn(ulong entityUuid, Uuid excludedRecipientEntity = default)
     {
-        _removed.Enqueue(entityUuid);
+        _removed.Add(new PendingDespawn(entityUuid, excludedRecipientEntity));
+        _removedHasRecipientFilters |= excludedRecipientEntity != Uuid.Null;
     }
 
     /// <summary>
@@ -314,8 +319,9 @@ public sealed class NetworkReplicationSystem
         ComponentRemoval[]? sharedRemovals = _pendingRemovalsHasRecipientFilters
             ? null
             : CopyRemovals(_pendingRemovals, ref _removalSnapshot);
-        ulong[] removed = ToExactArray(_removed, ref _removedSnapshot);
-        _removed.Clear();
+        ulong[]? sharedRemoved = _removedHasRecipientFilters
+            ? null
+            : CopyDespawns(_removed, ref _removedSnapshot);
 
         ComponentSnapshot[]? sharedFullState = null;
         if (_fullSync.Count > 0)
@@ -369,6 +375,8 @@ public sealed class NetworkReplicationSystem
 
             ComponentRemoval[] clientRemovals = sharedRemovals
                 ?? FilterRemovals(store, _pendingRemovals, in recipient);
+            ulong[] clientRemoved = sharedRemoved
+                ?? FilterDespawns(_removed, in recipient);
 
             ComponentSnapshot[] clientComponents = isFullSync
                 ? sharedFullState ?? FilterFullSyncSnapshots(store, _fullSyncPending, in recipient)
@@ -377,7 +385,7 @@ public sealed class NetworkReplicationSystem
             if (!isFullSync
                 && clientComponents.Length == 0
                 && clientRemovals.Length == 0
-                && removed.Length == 0)
+                && clientRemoved.Length == 0)
             {
                 continue;
             }
@@ -387,7 +395,7 @@ public sealed class NetworkReplicationSystem
                 TickNumber = SimTick,
                 LastProcessedInput = lastProcessedInput,
                 Components = clientComponents,
-                RemovedEntities = removed,
+                RemovedEntities = clientRemoved,
                 RemovedComponents = clientRemovals,
             };
 
@@ -401,8 +409,11 @@ public sealed class NetworkReplicationSystem
         //  Drop full-sync requests whose client disconnected before the publish and release scratch payloads.
         _fullSync.Clear();
         _fullSyncPending.Clear();
+        _removed.Clear();
+        _removedHasRecipientFilters = false;
         _filteredComponents.Clear();
         _filteredRemovals.Clear();
+        _filteredRemoved.Clear();
     }
 
     private void DrainStreamEnds()
@@ -489,7 +500,7 @@ public sealed class NetworkReplicationSystem
         for (var i = 0; i < source.Count; i++)
         {
             PendingSnapshot entry = source[i];
-            if (entry.RecipientFilter == null || entry.RecipientFilter(store, entry.Entity, recipient))
+            if (AcceptsRecipient(store, entry.Entity, entry.ExcludedRecipientEntity, entry.RecipientFilter, in recipient))
             {
                 _filteredComponents.Add(entry.Snapshot);
             }
@@ -505,13 +516,43 @@ public sealed class NetworkReplicationSystem
         for (var i = 0; i < source.Count; i++)
         {
             PendingRemoval entry = source[i];
-            if (entry.RecipientFilter == null || entry.RecipientFilter(store, entry.Entity, recipient))
+            if (AcceptsRecipient(store, entry.Entity, entry.ExcludedRecipientEntity, entry.RecipientFilter, in recipient))
             {
                 _filteredRemovals.Add(entry.Removal);
             }
         }
 
         return ToExactArray(_filteredRemovals, ref _filteredRemovalSnapshot);
+    }
+
+    private ulong[] FilterDespawns(List<PendingDespawn> source, in ReplicationRecipient recipient)
+    {
+        _filteredRemoved.Clear();
+        for (var i = 0; i < source.Count; i++)
+        {
+            PendingDespawn entry = source[i];
+            if (entry.ExcludedRecipientEntity == Uuid.Null || entry.ExcludedRecipientEntity != recipient.EntityUuid)
+            {
+                _filteredRemoved.Add(entry.EntityUuid);
+            }
+        }
+
+        return ToExactArray(_filteredRemoved, ref _filteredRemovedSnapshot);
+    }
+
+    private static bool AcceptsRecipient(
+        DataStore store,
+        int entity,
+        Uuid excludedRecipientEntity,
+        Func<DataStore, int, ReplicationRecipient, bool>? recipientFilter,
+        in ReplicationRecipient recipient
+    ) {
+        if (excludedRecipientEntity != Uuid.Null && excludedRecipientEntity == recipient.EntityUuid)
+        {
+            return false;
+        }
+
+        return recipientFilter == null || recipientFilter(store, entity, recipient);
     }
 
     private static ComponentSnapshot[] CopySnapshots(List<PendingSnapshot> source, ref ComponentSnapshot[] cache)
@@ -570,6 +611,26 @@ public sealed class NetworkReplicationSystem
         return cache;
     }
 
+    private static ulong[] CopyDespawns(List<PendingDespawn> source, ref ulong[] cache)
+    {
+        if (source.Count == 0)
+        {
+            return cache.Length == 0 ? cache : cache = [];
+        }
+
+        if (cache.Length != source.Count)
+        {
+            cache = new ulong[source.Count];
+        }
+
+        for (var i = 0; i < source.Count; i++)
+        {
+            cache[i] = source[i].EntityUuid;
+        }
+
+        return cache;
+    }
+
     /// <summary>
     /// Copies a list into an exact-length array, reusing the previous array when the length matches.
     /// </summary>
@@ -586,25 +647,6 @@ public sealed class NetworkReplicationSystem
         }
 
         source.CopyTo(cache);
-        return cache;
-    }
-
-    /// <summary>
-    /// Copies a queue into an exact-length array, reusing the previous array when the length matches.
-    /// </summary>
-    private static T[] ToExactArray<T>(Queue<T> source, ref T[] cache)
-    {
-        if (source.Count == 0)
-        {
-            return cache.Length == 0 ? cache : cache = [];
-        }
-
-        if (cache.Length != source.Count)
-        {
-            cache = new T[source.Count];
-        }
-
-        source.CopyTo(cache, 0);
         return cache;
     }
 
@@ -719,6 +761,7 @@ public sealed class NetworkReplicationSystem
         public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
         {
             Uuid entityUuid = store.GetUuid(entity);
+            Uuid excludedRecipient = net.ExcludedRecipientEntity;
 
             foreach (NetworkComponentInfo info in Owner._serverOwnedComponents)
             {
@@ -732,6 +775,8 @@ public sealed class NetworkReplicationSystem
                     continue;
                 }
 
+                bool hasRecipientFilter = excludedRecipient != Uuid.Null || info.RecipientFilter != null;
+
                 //  Removal publishes as a ComponentRemoval when the component no longer exists; the
                 //  dirty flag is cleared for both outcomes, and never both in one tick.
                 if (!store.Has(info.Type, entity))
@@ -740,9 +785,10 @@ public sealed class NetworkReplicationSystem
                     Owner._pendingRemovals.Add(new PendingRemoval(
                         new ComponentRemoval(entityUuid.ToValue(), info.Uuid.ToValue()),
                         entity,
+                        excludedRecipient,
                         info.RecipientFilter
                     ));
-                    Owner._pendingRemovalsHasRecipientFilters |= info.RecipientFilter != null;
+                    Owner._pendingRemovalsHasRecipientFilters |= hasRecipientFilter;
                     continue;
                 }
 
@@ -759,9 +805,10 @@ public sealed class NetworkReplicationSystem
                 Owner._pending.Add(new PendingSnapshot(
                     new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), serialize.Value),
                     entity,
+                    excludedRecipient,
                     info.RecipientFilter
                 ));
-                Owner._pendingHasRecipientFilters |= info.RecipientFilter != null;
+                Owner._pendingHasRecipientFilters |= hasRecipientFilter;
             }
         }
     }
@@ -779,6 +826,7 @@ public sealed class NetworkReplicationSystem
         public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
         {
             Uuid entityUuid = store.GetUuid(entity);
+            Uuid excludedRecipient = net.ExcludedRecipientEntity;
             Span<IDataComponent> present = store.Get(entity);
 
             //  `store.Get` boxes per entity; this path is join-time-only (one-shot per joining client),
@@ -801,9 +849,10 @@ public sealed class NetworkReplicationSystem
                     Owner._fullSyncPending.Add(new PendingSnapshot(
                         new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), serialize.Value),
                         entity,
+                        excludedRecipient,
                         info.RecipientFilter
                     ));
-                    Owner._fullSyncHasRecipientFilters |= info.RecipientFilter != null;
+                    Owner._fullSyncHasRecipientFilters |= excludedRecipient != Uuid.Null || info.RecipientFilter != null;
                 }
             }
         }
@@ -825,12 +874,19 @@ public sealed class NetworkReplicationSystem
     private readonly record struct PendingSnapshot(
         ComponentSnapshot Snapshot,
         int Entity,
+        Uuid ExcludedRecipientEntity,
         Func<DataStore, int, ReplicationRecipient, bool>? RecipientFilter
     );
 
     private readonly record struct PendingRemoval(
         ComponentRemoval Removal,
         int Entity,
+        Uuid ExcludedRecipientEntity,
         Func<DataStore, int, ReplicationRecipient, bool>? RecipientFilter
+    );
+
+    private readonly record struct PendingDespawn(
+        ulong EntityUuid,
+        Uuid ExcludedRecipientEntity
     );
 }

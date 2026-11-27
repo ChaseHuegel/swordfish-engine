@@ -13,6 +13,9 @@ public struct NetworkComponent : IDataComponent
     /// <summary>The gameplay session the entity is bound to.</summary>
     public Session Session;
 
+    /// <summary>Entity uuid whose owning client must not receive this entity, or <see cref="Uuid.Null"/> for all clients.</summary>
+    public Uuid ExcludedRecipientEntity;
+
     /// <summary>The newest input sim tick the client has sent.</summary>
     public uint LastAckedInput;
 

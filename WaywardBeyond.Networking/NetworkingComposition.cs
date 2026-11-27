@@ -41,7 +41,12 @@ public static class NetworkingComposition
             static (store, entity) => store.Has(typeof(BodyViewComponent), entity),
             static (_, entity, recipient) => entity != recipient.Entity
         ));
-        Require(registry.Register<LaserBeamComponent>(Uuid.FromValue(18), NetworkDirection.ServerOwned, new NsdComponentCodec<LaserBeamComponent>()));
+        Require(registry.Register<LaserBeamComponent>(
+            Uuid.FromValue(18),
+            NetworkDirection.ServerOwned,
+            new NsdComponentCodec<LaserBeamComponent>(),
+            recipientFilter: static (_, entity, recipient) => entity != recipient.Entity
+        ));
         Require(registry.Register<ParticleEmitterComponent>(Uuid.FromValue(19), NetworkDirection.ServerOwned, new ParticleEmitterCodec()));
         Require(registry.Register<ParticleEmitterBindingComponent>(Uuid.FromValue(20), NetworkDirection.ServerOwned, new NsdComponentCodec<ParticleEmitterBindingComponent>()));
 

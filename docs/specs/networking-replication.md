@@ -17,15 +17,19 @@ One subject: dirty-driven replication between server and client.
   component's `ReplicationFilter` once per entity, serializes every accepted
   dirty `ServerOwned` component into `ComponentSnapshot`s, and composes a
   **per-client** `WorldSnapshot`. Each snapshot carries that client's own
-  `LastProcessedInput`. When any collected component or removal carries a
-  `RecipientFilter`, the publisher evaluates it per client against the client's
-  `ReplicationRecipient` (`ClientId`, session `Entity`, and `EntityUuid`) across
-  deltas, full syncs, and `RemovedComponents`. When no collected entry carries a
-  `RecipientFilter`, all clients share the serialized arrays without per-client
+  `LastProcessedInput`. Entities can also set
+  `NetworkComponent.ExcludedRecipientEntity` to omit the entire entity
+  (components, full sync, `RemovedComponents`, and `RemovedEntities`) from the
+  client owning that entity uuid. When any collected entry carries a
+  `RecipientFilter` or an `ExcludedRecipientEntity`, the publisher filters per
+  client against the client's `ReplicationRecipient` (`ClientId`, session
+  `Entity`, and `EntityUuid`). When no collected entry carries recipient
+  filtering, all clients share the serialized arrays without per-client
   filtering. The publisher skips a delta snapshot that becomes empty after
   recipient filtering.
-- **Despawns** are recorded via `RequestDespawn` before the entity is freed
-  (`DataStore.Free` clears the uuid) and broadcast in `RemovedEntities`.
+- **Despawns** are recorded via `RequestDespawn(entityUuid,
+  excludedRecipientEntity)` before the entity is freed (`DataStore.Free` clears
+  the uuid) and broadcast in `RemovedEntities`, omitting any excluded owner.
 - **Reliable send.** Each snapshot is a typed `WorldSnapshot` notification. A
   payload over `PayloadFragmenter.FRAGMENT_BUDGET` is split into ordered `SnapshotBatch`
   notifications. No snapshot is dropped. A send that the reliable path rejects

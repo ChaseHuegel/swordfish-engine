@@ -86,6 +86,10 @@ data. `RecipientFilter` rejects `entity == recipient.Entity`, so the server
 never sends a client's own character collider back to it. The local player keeps
 its locally built collider without a redundant physics shape reset.
 
+`LaserBeamComponent` uses `RecipientFilter` (`WaywardBeyond.Networking/NetworkingComposition.cs:44-49`)
+to reject `entity == recipient.Entity`. The server omits the shooter's own beam
+updates and removals because the shooter renders a locally predicted beam.
+
 Every failure in `TransformCodec`, `PhysicsCodec`, and `ColliderCodec` carries a
 message that names the entity and the invalid field. The caller writes that
 message into its log.
@@ -107,7 +111,7 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `InteractionEvent` | 15 | ClientOwned | `NsdComponentCodec<InteractionEvent>` |
 | `InventoryEvent` | 16 | ClientOwned | `NsdComponentCodec<InventoryEvent>` |
 | `ColliderComponent` | 17 | ServerOwned | `ColliderCodec` (character bodies only, excludes owner) |
-| `LaserBeamComponent` | 18 | ServerOwned | `NsdComponentCodec<LaserBeamComponent>` |
+| `LaserBeamComponent` | 18 | ServerOwned | `NsdComponentCodec<LaserBeamComponent>` (excludes owner) |
 | `ParticleEmitterComponent` | 19 | ServerOwned | `ParticleEmitterCodec` |
 | `ParticleEmitterBindingComponent` | 20 | ServerOwned | `NsdComponentCodec<ParticleEmitterBindingComponent>` |
 
