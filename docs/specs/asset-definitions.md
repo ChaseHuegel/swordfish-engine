@@ -541,7 +541,7 @@ bits. See [seed-phrases](seed-phrases.md).
 - Parser registration: `WaywardBeyond.Items/Injector.cs:15`,
   `WaywardBeyond.Recipes/Injector.cs:17`,
   `WaywardBeyond.Skills/Injector.cs:16`,
-  `WaywardBeyond.Client/Injector.cs:374`, `WaywardBeyond.Bricks/Injector.cs:17`,
+  `WaywardBeyond.Client/Injector.cs:382`, `WaywardBeyond.Bricks/Injector.cs:17`,
   `WaywardBeyond.Bricks/Injector.cs:23`,
   `WaywardBeyond.Data/DataComposition.cs:26-27`
 

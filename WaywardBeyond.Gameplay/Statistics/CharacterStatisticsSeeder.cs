@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using Krill;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Gameplay.Statistics;
 
 /// <summary>
-/// Builds and seeds runtime <see cref="SkillStateComponent"/> and <see cref="StatisticsComponent"/> from saved
-/// character statistics so client and server evaluate statistics identically through ECS components.
+/// Builds and seeds runtime <see cref="SkillStateComponent"/> and pre-sync <see cref="StatisticsComponent"/>
+/// from saved character statistics.
 /// </summary>
 public static class CharacterStatisticsSeeder
 {
@@ -34,27 +35,29 @@ public static class CharacterStatisticsSeeder
     /// <summary>Creates a <see cref="StatisticsComponent"/> with every non-skill numeric statistic from the character save.</summary>
     public static StatisticsComponent CreateStatistics(Statistic[]? statistics, ISkillDatabase? skillDatabase)
     {
-        var values = new Dictionary<string, float>(StringComparer.Ordinal);
-        if (statistics != null)
+        if (statistics == null || statistics.Length == 0)
         {
-            for (var i = 0; i < statistics.Length; i++)
-            {
-                Statistic statistic = statistics[i];
-                if (string.IsNullOrWhiteSpace(statistic.ID))
-                {
-                    continue;
-                }
-
-                if (skillDatabase != null && skillDatabase.Get(statistic.ID).Success)
-                {
-                    continue;
-                }
-
-                values[statistic.ID] = statistic.Value;
-            }
+            return new StatisticsComponent();
         }
 
-        return new StatisticsComponent(values);
+        var entries = new List<Statistic>(statistics.Length);
+        for (var i = 0; i < statistics.Length; i++)
+        {
+            Statistic statistic = statistics[i];
+            if (string.IsNullOrWhiteSpace(statistic.ID))
+            {
+                continue;
+            }
+
+            if (skillDatabase != null && skillDatabase.Get(statistic.ID).Success)
+            {
+                continue;
+            }
+
+            SetEntry(entries, in statistic);
+        }
+
+        return entries.Count == 0 ? new StatisticsComponent() : new StatisticsComponent([.. entries]);
     }
 
     /// <summary>Seeds <see cref="SkillStateComponent"/> onto <paramref name="entity"/> in <paramref name="store"/>.</summary>
@@ -67,5 +70,19 @@ public static class CharacterStatisticsSeeder
     public static void SeedStatistics(DataStore store, int entity, Statistic[]? statistics, ISkillDatabase? skillDatabase)
     {
         store.AddOrUpdate(entity, CreateStatistics(statistics, skillDatabase));
+    }
+
+    private static void SetEntry(List<Statistic> entries, in Statistic entry)
+    {
+        for (var i = 0; i < entries.Count; i++)
+        {
+            if (string.Equals(entries[i].ID, entry.ID, StringComparison.Ordinal))
+            {
+                entries[i] = entry;
+                return;
+            }
+        }
+
+        entries.Add(entry);
     }
 }

@@ -209,12 +209,10 @@ public class TimedBrickBreakingTests
         Assert.Equal(3.0f, rockHardness, precision: 5);
 
         //  Fast laser (SetBase 2.0) + entity stat (+0.5) + mining skill (+2%/lvl) + mod haste (+50%).
-        var entityStats = new Dictionary<string, float>
-        {
-            [StatisticIds.MINING_SPEED] = 0.5f,
-            ["mod:jump_boost"] = 3.0f,
-        };
-        harness.Store.AddOrUpdate(harness.PlayerEntity, new StatisticsComponent(entityStats));
+        var entityStats = new StatisticsComponent();
+        entityStats.SetFixed(StatisticIds.MINING_SPEED, 0.5f);
+        entityStats.SetFixed("mod:jump_boost", 3.0f);
+        harness.Store.AddOrUpdate(harness.PlayerEntity, entityStats);
         harness.Store.AddOrUpdate(harness.PlayerEntity, new SkillStateComponent(miningXp));
 
         float rockSpeed = resolver.Evaluate(new StatQuery(
@@ -283,7 +281,9 @@ public class TimedBrickBreakingTests
 
         var store = new DataStore();
         int entity = store.Alloc();
-        store.AddOrUpdate(entity, new StatisticsComponent(new Dictionary<string, float> { ["mod:shared"] = 2f }));
+        var entityStats = new StatisticsComponent();
+        entityStats.SetFixed("mod:shared", 2f);
+        store.AddOrUpdate(entity, entityStats);
 
         var resolver = new StatResolver(
         [
@@ -1086,7 +1086,7 @@ public class TimedBrickBreakingTests
             Store.AddOrUpdate(PlayerEntity, inv);
             Store.AddOrUpdate(PlayerEntity, new PendingInteractionComponent(new PendingInteractionQueue()));
             Store.AddOrUpdate(PlayerEntity, new SkillStateComponent(new Dictionary<string, long>(StringComparer.Ordinal)));
-            Store.AddOrUpdate(PlayerEntity, new StatisticsComponent(new Dictionary<string, float>(StringComparer.Ordinal)));
+            Store.AddOrUpdate(PlayerEntity, new StatisticsComponent());
 
             var input = new FakeInputService();
             var window = new FakeWindowContext { Resolution = new Vector2(1280f, 720f) };

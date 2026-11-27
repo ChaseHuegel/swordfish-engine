@@ -1,7 +1,9 @@
+using WaywardBeyond.Data.Components;
+
 namespace WaywardBeyond.Gameplay.Statistics;
 
 /// <summary>
-/// Normal-priority modifier source that reads custom numeric statistics from an entity's
+/// Normal-priority modifier source that reads fixed-point numeric statistics from an entity's
 /// <see cref="StatisticsComponent"/> and adds them to the base total.
 /// </summary>
 public sealed class EntityStatisticModifierSource : IStatModifierSource
@@ -18,7 +20,7 @@ public sealed class EntityStatisticModifierSource : IStatModifierSource
         if (query.Store != null &&
             query.Entity >= 0 &&
             query.Store.TryGet(query.Entity, out StatisticsComponent stats) &&
-            stats.TryGet(query.StatId, out float entityValue) &&
+            stats.TryGetFixed(query.StatId, out float entityValue) &&
             float.IsFinite(entityValue))
         {
             accumulator.Apply(StatModifier.AddBase(entityValue));

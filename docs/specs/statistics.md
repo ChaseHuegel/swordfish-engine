@@ -8,8 +8,8 @@ Bricks, items, and entities all carry string-keyed numeric statistics.
 
 - **Bricks** declare optional `[Bricks.Statistics]` key-value pairs in TOML (`BrickDefinition.Statistics` at `WaywardBeyond.Bricks/BrickDefinition.cs:39`, `Brick.Statistics` at `WaywardBeyond.Bricks/Brick.cs:29`). `BrickDatabase.ResolveStatistics` (`WaywardBeyond.Bricks/BrickDatabase.cs:137`) skips empty keys and non-finite values with a warning log.
 - **Items** declare optional `[Items.Statistics]` key-value pairs in TOML (`ItemDefinition.Statistics` at `WaywardBeyond.Items/ItemDefinition.cs:19`, `Item.Statistics` at `WaywardBeyond.Items/Item.cs:53`). `ItemDatabase.ResolveStatistics` (`WaywardBeyond.Items/ItemDatabase.cs:59`) skips empty keys and non-finite values with a warning log.
-- **Characters and entities** carry key-value statistics on saved `Character.Statistics` (`WaywardBeyond.Data/Nsd/saves.nsd:68`) and on runtime ECS components `StatisticsComponent` (`WaywardBeyond.Gameplay/Statistics/StatisticsComponent.cs:10`) and `SkillStateComponent` (`WaywardBeyond.Gameplay/Statistics/SkillStateComponent.cs:10`). `CharacterStatisticsSeeder` (`WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs:13`) seeds both components onto the player entity identically on the server (`ServerJoinSystem.cs:304`) and the client (`PlayerCharacterEntityBuilder.cs:37`), and `ClientNotificationSystem` (`WaywardBeyond.Client/Systems/ClientNotificationSystem.cs:61`) keeps the client player's `SkillStateComponent` in sync with authoritative `SkillStateUpdateMessage` updates.
-- **Well-known identifiers** live in `StatisticIds` (`WaywardBeyond.Data/Statistics/StatisticIds.cs:4`), including `wb:hardness` (default `1.0`) and `wb:mining_speed` (default `1.0`). Mods define their own namespaced keys without changing engine or game source.
+- **Characters and entities** carry key-value statistics on saved `Character.Statistics` (`WaywardBeyond.Data/Nsd/saves.nsd:68`) and on runtime ECS components `StatisticsComponent` (`WaywardBeyond.Data/Components/StatisticsComponent.cs:8`, replicated `OwnerOnly` from server to owning client) and `SkillStateComponent` (`WaywardBeyond.Gameplay/Statistics/SkillStateComponent.cs:10`). `CharacterStatisticsSeeder` (`WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs:14`) seeds `SkillStateComponent` identically on server (`ServerJoinSystem.cs:307`) and client (`PlayerCharacterEntityBuilder.cs:37`) and seeds the client's pre-sync `StatisticsComponent` (`PlayerCharacterEntityBuilder.cs:38`), while `ServerJoinSystem.SeedStatistics` (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:373`) seeds the authoritative server-owned `StatisticsComponent` with bounds, defaults, and per-level persistence. `ClientNotificationSystem` (`WaywardBeyond.Client/Systems/ClientNotificationSystem.cs:61`) keeps the client player's `SkillStateComponent` in sync with authoritative `SkillStateUpdateMessage` updates.
+- **Well-known identifiers** live in `StatisticIds` (`WaywardBeyond.Data/Statistics/StatisticIds.cs:4`), including `wb:hardness` (default `1.0`) and `wb:mining_speed` (default `1.0`), and in `StatIds` (`WaywardBeyond.Data/Components/StatIds.cs:7`) for vitals, attributes, environmental flags, and buff timers. Mods define their own namespaced keys without changing engine or game source.
 
 ## Evaluation formula
 
@@ -36,19 +36,20 @@ Non-finite modifier values are ignored. A non-finite resolved total falls back t
 |---|---|---|---|
 | `BrickStatisticModifierSource` | `High` | Any (`null`), `StatSubject.Any` or `Brick` | Reads `Brick.Statistics[query.StatId]` and applies `SetBase` |
 | `ItemStatisticModifierSource` | `High` | Any (`null`), `StatSubject.Any` or `Item` | Reads `Item.Statistics[query.StatId]` and applies `SetBase` |
-| `EntityStatisticModifierSource` | `Normal` | Any (`null`) | Reads `StatisticsComponent` from `query.Store`/`query.Entity` and applies `AddBase` |
+| `EntityStatisticModifierSource` | `Normal` | Any (`null`) | Reads fixed-point values from `StatisticsComponent` on `query.Store`/`query.Entity` via `TryGetFixed` and applies `AddBase` |
 | `SkillMiningSpeedModifierSource` | `Normal` | `wb:mining_speed` | Reads `SkillStateComponent` from `query.Store`/`query.Entity` and adds `+2%` (`AddPercent`) per level of the highest `XPSource.Break` skill for `TargetBrickDataId` |
 
-Both `ServerComposition` (`WaywardBeyond.Server/ServerComposition.cs:123`) and `WaywardBeyond.Client/Injector.cs:341` call `container.RegisterStatistics()` (`WaywardBeyond.Gameplay/Statistics/StatisticsComposition.cs:17`) to register the built-in sources and `IStatResolver` idempotently. Game modules and mods register additional modifier sources with `container.RegisterStatModifierSource<T>()` (`StatisticsComposition.cs:33`). `InteractionHandlerEntryPoint` (`WaywardBeyond.Server/Interactions/InteractionHandlerEntryPoint.cs:13`) resolves `IStatResolver` after all modules load so late-loaded mods participate.
+Both `ServerComposition` (`WaywardBeyond.Server/ServerComposition.cs:125`) and `WaywardBeyond.Client/Injector.cs:341` call `container.RegisterStatistics()` (`WaywardBeyond.Gameplay/Statistics/StatisticsComposition.cs:17`) to register the built-in sources and `IStatResolver` idempotently. Game modules and mods register additional modifier sources with `container.RegisterStatModifierSource<T>()` (`StatisticsComposition.cs:33`). `InteractionHandlerEntryPoint` (`WaywardBeyond.Server/Interactions/InteractionHandlerEntryPoint.cs:13`) resolves `IStatResolver` after all modules load so late-loaded mods participate.
 
 ## Source of truth
 
 - `WaywardBeyond.Data/Statistics/StatisticIds.cs`
+- `WaywardBeyond.Data/Components/{StatIds,StatisticsComponent,StatisticsComponentExtensions}.cs`
 - `WaywardBeyond.Bricks/{BrickDefinition,Brick,BrickDatabase}.cs`
 - `WaywardBeyond.Items/{ItemDefinition,Item,ItemDatabase}.cs`
-- `WaywardBeyond.Gameplay/Statistics/{StatSubject,StatModifierOperation,StatModifierPriority,StatModifier,StatAccumulator,StatQuery,IStatModifierSource,IStatResolver,StatResolver,StatisticsComponent,SkillStateComponent,CharacterStatisticsSeeder,StatisticsComposition}.cs`
+- `WaywardBeyond.Gameplay/Statistics/{StatSubject,StatModifierOperation,StatModifierPriority,StatModifier,StatAccumulator,StatQuery,IStatModifierSource,IStatResolver,StatResolver,SkillStateComponent,CharacterStatisticsSeeder,StatisticsComposition}.cs`
 - `WaywardBeyond.Gameplay/Statistics/{BrickStatisticModifierSource,ItemStatisticModifierSource,EntityStatisticModifierSource,SkillMiningSpeedModifierSource}.cs`
-- `WaywardBeyond.Server/ServerComposition.cs:123`, `WaywardBeyond.Server/Systems/ServerJoinSystem.cs:304`, `WaywardBeyond.Client/Voxels/Building/PlayerCharacterEntityBuilder.cs:37`, `WaywardBeyond.Client/Systems/ClientNotificationSystem.cs:61`, `WaywardBeyond.Client/Injector.cs:341`
+- `WaywardBeyond.Server/ServerComposition.cs:125`, `WaywardBeyond.Server/Systems/ServerJoinSystem.cs:307-308`, `WaywardBeyond.Client/Voxels/Building/PlayerCharacterEntityBuilder.cs:37-38`, `WaywardBeyond.Client/Systems/ClientNotificationSystem.cs:61`, `WaywardBeyond.Client/Injector.cs:341`
 
 ## Tests that pin this
 

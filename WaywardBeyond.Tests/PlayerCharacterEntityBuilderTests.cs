@@ -64,7 +64,7 @@ public class PlayerCharacterEntityBuilderTests
         Assert.Equal(0, skillState.GetXP("mod:jump_boost"));
 
         Assert.True(store.TryGet(entity, out StatisticsComponent statistics));
-        Assert.Equal(3f, statistics.Get("mod:jump_boost"));
-        Assert.False(statistics.TryGet("mining", out _));
+        Assert.Equal(3L, statistics.GetValue("mod:jump_boost"));
+        Assert.False(statistics.TryGetValue("mining", out _));
     }
 }

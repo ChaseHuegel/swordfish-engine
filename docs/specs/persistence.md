@@ -132,7 +132,7 @@ pending record in memory until the worker commits it, so an immediate rejoin rea
 latest transform, game mode, and `CharacterEntityData.Statistics`
 (`WaywardBeyond.Data/Nsd/saves.nsd:105`) through `GetCharacterEntity`. A character with
 no row in the level starts at `Level.Spawn` with `Level.DefaultGameMode`.
-`ServerJoinSystem.SeedStatistics` (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:395`)
+`ServerJoinSystem.SeedStatistics` (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:373`)
 seeds vitals and restores `wb:buff.<id>.remaining_ticks` relative to the world's current
 sim tick from `CharacterEntityData.Statistics` on rejoin, or seeds from bounded
 `CharacterState.Statistics` (`WaywardBeyond.Data/Nsd/levels.nsd:77`) and defaults on first
