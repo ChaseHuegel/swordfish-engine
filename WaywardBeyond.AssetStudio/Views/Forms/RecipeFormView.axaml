@@ -12,7 +12,7 @@
         <controls:ScalarFieldRowControl DataContext="{Binding RecipeModeField}" />
         <controls:ScalarFieldRowControl DataContext="{Binding RecipeDurationField}" />
         <controls:ScalarFieldRowControl DataContext="{Binding RecipePowerKwField}" />
-        <controls:ScalarFieldRowControl DataContext="{Binding RecipeOrderField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding RecipePriorityField}" />
         <controls:ScalarFieldRowControl DataContext="{Binding RecipeCategoryField}" />
       </StackPanel>
     </controls:CollapsibleSectionCard>
@@ -58,15 +58,15 @@
                 <DataTemplate x:DataType="vm:RecipeIngredientRowViewModel">
                   <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
                     <Grid ColumnDefinitions="*,72,116,28,28" ColumnSpacing="6">
-                      <TextBox Grid.Column="0"
-                               Text="{Binding ItemId, Mode=TwoWay}"
-                               Watermark="wb:iron_ore or tag:item.fuel"
-                               Classes="studio-input mono" />
+                      <controls:ReferencePickerControl Grid.Column="0"
+                                                       DataContext="{Binding ItemPickerField}" />
                       <TextBox Grid.Column="1"
                                Text="{Binding Count, Mode=TwoWay}"
+                               VerticalAlignment="Top"
                                Classes="studio-input mono" />
                       <TextBox Grid.Column="2"
                                Text="{Binding SlotGroup, Mode=TwoWay}"
+                               VerticalAlignment="Top"
                                Watermark="optional"
                                Classes="studio-input mono" />
                       <Button Grid.Column="3"
@@ -75,6 +75,7 @@
                               Height="26"
                               MinHeight="26"
                               Padding="0"
+                              VerticalAlignment="Top"
                               IsEnabled="{Binding CanNavigate}"
                               Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateRecipeTargetCommand}"
                               CommandParameter="{Binding ItemId}"
@@ -87,6 +88,7 @@
                               Height="26"
                               MinHeight="26"
                               Padding="0"
+                              VerticalAlignment="Top"
                               Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveRecipeInputCommand}"
                               CommandParameter="{Binding}"
                               ToolTip.Tip="Remove input row">
@@ -143,15 +145,15 @@
                 <DataTemplate x:DataType="vm:RecipeOutputRowViewModel">
                   <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
                     <Grid ColumnDefinitions="*,72,96,28,28" ColumnSpacing="6">
-                      <TextBox Grid.Column="0"
-                               Text="{Binding ItemId, Mode=TwoWay}"
-                               Watermark="wb:iron_ingot"
-                               Classes="studio-input mono" />
+                      <controls:ReferencePickerControl Grid.Column="0"
+                                                       DataContext="{Binding ItemPickerField}" />
                       <TextBox Grid.Column="1"
                                Text="{Binding Count, Mode=TwoWay}"
+                               VerticalAlignment="Top"
                                Classes="studio-input mono" />
                       <TextBox Grid.Column="2"
                                Text="{Binding Chance, Mode=TwoWay}"
+                               VerticalAlignment="Top"
                                Watermark="1.0"
                                Classes="studio-input mono" />
                       <Button Grid.Column="3"
@@ -160,6 +162,7 @@
                               Height="26"
                               MinHeight="26"
                               Padding="0"
+                              VerticalAlignment="Top"
                               IsEnabled="{Binding CanNavigate}"
                               Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateRecipeTargetCommand}"
                               CommandParameter="{Binding ItemId}"
@@ -172,6 +175,7 @@
                               Height="26"
                               MinHeight="26"
                               Padding="0"
+                              VerticalAlignment="Top"
                               Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveRecipeOutputCommand}"
                               CommandParameter="{Binding}"
                               ToolTip.Tip="Remove output row">

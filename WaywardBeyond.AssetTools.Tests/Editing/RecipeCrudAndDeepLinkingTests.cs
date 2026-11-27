@@ -46,7 +46,7 @@ public sealed class RecipeCrudAndDeepLinkingTests : IDisposable
             "Mode = \"Auto\"\n" +
             "DurationSeconds = 3.5\n" +
             "PowerKw = -12.0\n" +
-            "Order = 10\n" +
+            "Priority = 10\n" +
             "\n" +
             "[[Recipes.Inputs]]\n" +
             "ItemId = \"test:iron_ore\"\n" +

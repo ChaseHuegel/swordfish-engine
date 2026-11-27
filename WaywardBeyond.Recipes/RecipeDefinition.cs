@@ -29,6 +29,6 @@ public struct RecipeDefinition()
     /// <summary>The optional category localization or grouping key.</summary>
     public string? Category { get; set; }
 
-    /// <summary>The deterministic sort order within a target recipe list.</summary>
-    public int Order { get; set; }
+    /// <summary>The deterministic priority within a target recipe list (lower values sort first).</summary>
+    public int Priority { get; set; }
 }

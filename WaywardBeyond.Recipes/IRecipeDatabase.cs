@@ -13,7 +13,7 @@ public interface IRecipeDatabase : IAssetDatabase<Recipe>
     /// <summary>Gets all loaded recipes in deterministic order.</summary>
     IReadOnlyList<Recipe> All { get; }
 
-    /// <summary>Gets all recipes for <paramref name="targetTag"/> ordered by <see cref="Recipe.Order"/> then <see cref="Recipe.ID"/>.</summary>
+    /// <summary>Gets all recipes for <paramref name="targetTag"/> ordered by <see cref="Recipe.Priority"/> then <see cref="Recipe.ID"/>.</summary>
     IReadOnlyList<Recipe> GetByTargetTag(string targetTag);
 
     /// <summary>Finds the first automatic recipe for <paramref name="targetTag"/> satisfied by <paramref name="inputs"/>.</summary>

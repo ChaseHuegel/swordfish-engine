@@ -187,7 +187,7 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
             assetInfo.DurationSeconds,
             assetInfo.PowerKw,
             category,
-            assetInfo.Order
+            assetInfo.Priority
         );
 
         _loaded.Add(recipe);
@@ -391,8 +391,8 @@ internal sealed class RecipeDatabase : VirtualAssetDatabase<RecipeDefinitions, R
 
     private static int CompareRecipes(Recipe left, Recipe right)
     {
-        int orderCompare = left.Order.CompareTo(right.Order);
-        return orderCompare != 0 ? orderCompare : StringComparer.Ordinal.Compare(left.ID, right.ID);
+        int priorityCompare = left.Priority.CompareTo(right.Priority);
+        return priorityCompare != 0 ? priorityCompare : StringComparer.Ordinal.Compare(left.ID, right.ID);
     }
 
     private static bool HasAnyInput(ReadOnlySpan<ItemData> inputs)

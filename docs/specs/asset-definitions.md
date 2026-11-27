@@ -308,7 +308,7 @@ Each row is a `[[Recipes]]` table:
 | `DurationSeconds` | float | processing time in seconds (`>= 0`) |
 | `PowerKw` | float | negative draws power, positive generates power (generator recipes may omit `Outputs` when `PowerKw > 0`) |
 | `Category` | string? | optional category key |
-| `Order` | int | deterministic sort key within a target list |
+| `Priority` | int | deterministic priority within a target list (lower values sort first) |
 
 Recipe files never declare skill XP or skill IDs. Skills own their crafting and
 processing XP rules in `assets/skills/*.toml`. See [skills](skills.md).
@@ -316,7 +316,7 @@ processing XP rules in `assets/skills/*.toml`. See [skills](skills.md).
 `RecipeDatabase` validates every item reference against `IAssetDatabase<Item>`
 and expands `tag:<name>` inputs through `ILocalizedTagsDatabase.Invariant` at
 load time. Invalid rows log an error and skip without crashing.
-`GetByTargetTag` returns recipes sorted by `Order` then `ID`. `FindAutoMatch`
+`GetByTargetTag` returns recipes sorted by `Priority` then `ID`. `FindAutoMatch`
 matches `RecipeMode.Auto` recipes against `ReadOnlySpan<ItemData>` or
 `in InventoryComponent` without heap allocations, prioritizing exact item
 ingredients before tag ingredients. `IsValidInputForStation` checks whether any

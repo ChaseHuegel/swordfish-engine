@@ -20,7 +20,7 @@ public readonly struct Recipe
         float durationSeconds,
         float powerKw,
         string category,
-        int order
+        int priority
     )
     {
         ID = id;
@@ -33,7 +33,7 @@ public readonly struct Recipe
         DurationSeconds = durationSeconds;
         PowerKw = powerKw;
         Category = category;
-        Order = order;
+        Priority = priority;
     }
 
     /// <summary>The unique identifier of the recipe.</summary>
@@ -66,6 +66,6 @@ public readonly struct Recipe
     /// <summary>The optional category localization or grouping key.</summary>
     public string Category { get; }
 
-    /// <summary>The deterministic sort order within a station recipe list.</summary>
-    public int Order { get; }
+    /// <summary>The deterministic priority within a target recipe list (lower values sort first).</summary>
+    public int Priority { get; }
 }

@@ -700,7 +700,7 @@ internal static class AssetSeedProjector
         scalars["DurationSeconds"] = recipe.DurationSeconds.ToString(CultureInfo.InvariantCulture);
         scalars["PowerKw"] = recipe.PowerKw.ToString(CultureInfo.InvariantCulture);
         scalars["Category"] = recipe.Category ?? string.Empty;
-        scalars["Order"] = recipe.Order.ToString(CultureInfo.InvariantCulture);
+        scalars["Priority"] = recipe.Priority.ToString(CultureInfo.InvariantCulture);
 
         if (recipe.Inputs != null)
         {

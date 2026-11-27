@@ -51,7 +51,7 @@ public class RecipeDatabaseTests : IDisposable
                 DurationSeconds = 2.5
                 PowerKw         = -18.0
                 Category        = "recipe.category.hull"
-                Order           = 10
+                Priority        = 10
 
                 [[Recipes.Inputs]]
                 ItemId    = "wb:rock"
@@ -69,7 +69,7 @@ public class RecipeDatabaseTests : IDisposable
                 Mode            = "Auto"
                 DurationSeconds = 5
                 PowerKw         = 60
-                Order           = 1
+                Priority        = 1
 
                 [[Recipes.Inputs]]
                 ItemId = "wb:ice"
@@ -102,7 +102,7 @@ public class RecipeDatabaseTests : IDisposable
         Assert.Equal(2.5f, smelt.DurationSeconds);
         Assert.Equal(-18.0f, smelt.PowerKw);
         Assert.Equal("recipe.category.hull", smelt.Category);
-        Assert.Equal(10, smelt.Order);
+        Assert.Equal(10, smelt.Priority);
         Assert.Single(smelt.Inputs);
         Assert.Equal("wb:rock", smelt.Inputs[0].ItemId);
         Assert.Null(smelt.Inputs[0].Tag);
@@ -259,7 +259,7 @@ public class RecipeDatabaseTests : IDisposable
     }
 
     [Fact]
-    public void GetByTargetTagOrdersByOrderThenId()
+    public void GetByTargetTagOrdersByPriorityThenId()
     {
         string recipesDir = CreateAssetsDir(
             "ordering",
@@ -269,28 +269,28 @@ public class RecipeDatabaseTests : IDisposable
                 [[Recipes]]
                 ID        = "wb:z_second"
                 TargetTag = "station.factory"
-                Order     = 2
+                Priority  = 2
                 Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
                 Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
                 [[Recipes]]
                 ID        = "wb:b_tie"
                 TargetTag = "station.factory"
-                Order     = 1
+                Priority  = 1
                 Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
                 Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
                 [[Recipes]]
                 ID        = "wb:a_tie"
                 TargetTag = "station.factory"
-                Order     = 1
+                Priority  = 1
                 Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
                 Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
                 [[Recipes]]
                 ID        = "wb:other_station"
                 TargetTag = "station.oven"
-                Order     = 0
+                Priority  = 0
                 Inputs    = [{ ItemId = "wb:ice", Count = 1 }]
                 Outputs   = [{ ItemId = "wb:glass", Count = 1 }]
                 """
@@ -333,7 +333,7 @@ public class RecipeDatabaseTests : IDisposable
                 ID        = "wb:manual_only"
                 TargetTag = "station.refinery"
                 Mode      = "Manual"
-                Order     = 0
+                Priority  = 0
                 Inputs    = [{ ItemId = "wb:rock", Count = 1 }]
                 Outputs   = [{ ItemId = "wb:panel", Count = 1 }]
 
@@ -341,7 +341,7 @@ public class RecipeDatabaseTests : IDisposable
                 ID        = "wb:refined_combo"
                 TargetTag = "station.refinery"
                 Mode      = "Auto"
-                Order     = 1
+                Priority  = 1
                 Inputs    = [
                     { ItemId = "wb:rock", Count = 2 },
                     { ItemId = "tag:recipe.mineral", Count = 1 },
@@ -352,7 +352,7 @@ public class RecipeDatabaseTests : IDisposable
                 ID        = "wb:single_mineral"
                 TargetTag = "station.refinery"
                 Mode      = "Auto"
-                Order     = 2
+                Priority  = 2
                 Inputs    = [{ ItemId = "tag:recipe.mineral", Count = 2 }]
                 Outputs   = [{ ItemId = "wb:glass", Count = 1 }]
                 """

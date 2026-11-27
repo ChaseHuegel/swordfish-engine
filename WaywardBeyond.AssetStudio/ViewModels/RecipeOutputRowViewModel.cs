@@ -16,6 +16,7 @@ public sealed partial class RecipeOutputRowViewModel : ObservableObject
     private string _chance;
     private string? _resolvedThumbnailPath;
     private bool _isResolved;
+    private bool _syncingPicker;
 
     /// <summary>
     ///     Initializes a recipe output item row.
@@ -25,14 +26,31 @@ public sealed partial class RecipeOutputRowViewModel : ObservableObject
         int count,
         string chance,
         Action? onChanged = null,
-        Action<RecipeOutputRowViewModel, string, string, string>? onPropertyTransition = null)
+        Action<RecipeOutputRowViewModel, string, string, string>? onPropertyTransition = null,
+        IReadOnlyList<ReferenceCandidate>? pickerCandidates = null,
+        bool isReadOnly = false)
     {
         _itemId = itemId ?? string.Empty;
         _count = count > 0 ? count : 1;
         _chance = chance ?? string.Empty;
         _onChanged = onChanged;
         _onPropertyTransition = onPropertyTransition;
+        ItemPickerField = new StudioFieldViewModel(
+            fieldKey: "ItemId",
+            label: "Item ID",
+            grammarHint: "wb:iron_ingot",
+            initialValue: _itemId,
+            isReadOnly: isReadOnly,
+            showRawTokenToggle: false,
+            referenceKind: ReferenceKind.ItemId,
+            candidates: pickerCandidates,
+            onValueChanged: HandlePickerValueChanged);
     }
+
+    /// <summary>
+    ///     Searchable item ID reference picker field backing this output row.
+    /// </summary>
+    public StudioFieldViewModel ItemPickerField { get; }
 
     /// <summary>
     ///     Produced item identifier.
@@ -47,6 +65,19 @@ public sealed partial class RecipeOutputRowViewModel : ObservableObject
             if (!SetProperty(ref _itemId, safe))
             {
                 return;
+            }
+
+            if (!_syncingPicker)
+            {
+                _syncingPicker = true;
+                try
+                {
+                    ItemPickerField.ApplyValueForReplay(safe);
+                }
+                finally
+                {
+                    _syncingPicker = false;
+                }
             }
 
             OnPropertyChanged(nameof(DisplayLabel));
@@ -214,6 +245,16 @@ public sealed partial class RecipeOutputRowViewModel : ObservableObject
         {
             case nameof(ItemId):
                 SetProperty(ref _itemId, restoredValue ?? string.Empty, nameof(ItemId));
+                _syncingPicker = true;
+                try
+                {
+                    ItemPickerField.ApplyValueForReplay(_itemId);
+                }
+                finally
+                {
+                    _syncingPicker = false;
+                }
+
                 OnPropertyChanged(nameof(DisplayLabel));
                 OnPropertyChanged(nameof(CanNavigate));
                 break;
@@ -230,6 +271,24 @@ public sealed partial class RecipeOutputRowViewModel : ObservableObject
                 OnPropertyChanged(nameof(HasChanceBadge));
                 OnPropertyChanged(nameof(ChanceBadge));
                 break;
+        }
+    }
+
+    private void HandlePickerValueChanged(StudioFieldViewModel field)
+    {
+        if (_syncingPicker)
+        {
+            return;
+        }
+
+        _syncingPicker = true;
+        try
+        {
+            ItemId = field.Value;
+        }
+        finally
+        {
+            _syncingPicker = false;
         }
     }
 }

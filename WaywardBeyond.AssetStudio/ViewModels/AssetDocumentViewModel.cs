@@ -335,7 +335,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             RecipeModeField = AddField("Mode", "Trigger Mode", "Auto or Manual", GetVal("Mode", "Manual"), choices: ["Manual", "Auto"]);
             RecipeDurationField = AddField("DurationSeconds", "Duration (s)", "seconds >= 0", GetVal("DurationSeconds", "2"), isNumeric: true);
             RecipePowerKwField = AddField("PowerKw", "Power (kW)", "negative draw · positive generate", GetVal("PowerKw", "0"), isNumeric: true);
-            RecipeOrderField = AddField("Order", "Sort Order", "integer · ascending", GetVal("Order", "0"), isNumeric: true);
+            RecipePriorityField = AddField("Priority", "Priority", "integer · lower first", GetVal("Priority", "0"), isNumeric: true);
             RecipeCategoryField = AddField("Category", "Category Key", "optional dot key", GetVal("Category"), referenceKind: ReferenceKind.Localization);
 
             foreach (var input in seed.RecipeInputs)
@@ -1122,8 +1122,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     /// <summary>Recipe power draw/generation field in kilowatts.</summary>
     public StudioFieldViewModel? RecipePowerKwField { get; }
 
-    /// <summary>Recipe deterministic sort order field.</summary>
-    public StudioFieldViewModel? RecipeOrderField { get; }
+    /// <summary>Recipe deterministic priority field (lower values sort first).</summary>
+    public StudioFieldViewModel? RecipePriorityField { get; }
 
     /// <summary>Recipe optional category key field.</summary>
     public StudioFieldViewModel? RecipeCategoryField { get; }
@@ -2332,7 +2332,9 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
                         NotifyRecipePreviewChanged();
                         MarkMutated();
                     });
-            });
+            },
+            pickerCandidates: BuildRecipeInputCandidates(),
+            isReadOnly: IsReadOnly);
         row.RefreshResolution(_allReferenceCandidates);
         return row;
     }
@@ -2381,9 +2383,39 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
                         NotifyRecipePreviewChanged();
                         MarkMutated();
                     });
-            });
+            },
+            pickerCandidates: FilterCandidates(_allReferenceCandidates, ReferenceKind.ItemId),
+            isReadOnly: IsReadOnly);
         row.RefreshResolution(_allReferenceCandidates);
         return row;
+    }
+
+    private IReadOnlyList<ReferenceCandidate> BuildRecipeInputCandidates()
+    {
+        var list = new List<ReferenceCandidate>();
+        for (var i = 0; i < _allReferenceCandidates.Count; i++)
+        {
+            var candidate = _allReferenceCandidates[i];
+            if (candidate.Kind == ReferenceKind.ItemId)
+            {
+                list.Add(candidate);
+            }
+        }
+
+        for (var i = 0; i < _allReferenceCandidates.Count; i++)
+        {
+            var candidate = _allReferenceCandidates[i];
+            if (candidate.Kind == ReferenceKind.Tag)
+            {
+                list.Add(candidate with
+                {
+                    Value = $"tag:{candidate.Value}",
+                    Kind = ReferenceKind.ItemId,
+                });
+            }
+        }
+
+        return list;
     }
 
     private List<(string ItemId, int Count, string SlotGroup)> SnapshotRecipeInputs()
@@ -3922,7 +3954,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             sb.AppendLine($"Category        = {RecipeCategoryField.RawTokenText}");
         }
 
-        sb.AppendLine($"Order           = {RecipeOrderField?.RawTokenText ?? "0"}");
+        sb.AppendLine($"Priority        = {RecipePriorityField?.RawTokenText ?? "0"}");
 
         for (var i = 0; i < RecipeInputs.Count; i++)
         {

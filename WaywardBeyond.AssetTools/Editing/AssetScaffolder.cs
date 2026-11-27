@@ -200,7 +200,7 @@ public sealed class AssetScaffolder
                 "Mode            = \"Manual\"\n" +
                 "DurationSeconds = 2.0\n" +
                 "PowerKw         = 0.0\n" +
-                "Order           = 0\n" +
+                "Priority        = 0\n" +
                 "\n" +
                 "[[Recipes.Inputs]]\n" +
                 "ItemId = \"\"\n" +
@@ -255,7 +255,7 @@ public sealed class AssetScaffolder
                 new("Mode", "\"Manual\""),
                 new("DurationSeconds", "2.0"),
                 new("PowerKw", "0.0"),
-                new("Order", "0")
+                new("Priority", "0")
             ]),
             _ => (null, null)
         };

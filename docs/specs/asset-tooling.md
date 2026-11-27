@@ -263,7 +263,7 @@ state is remembered per kind.
 | Item | Placeable, tool, view model, world model, stack |
 | Brick | Shape, color, alpha, passable, shadows, mesh, per-face textures, sounds, colliders |
 | Paint | Kind switch, alpha, connected, variants or color |
-| Recipe | Target and execution fields, editable `[[Recipes.Inputs]]` and `[[Recipes.Outputs]]` tables with item/tag jump buttons (`RecipeFormView`, `AssetTomlEditApplier.ApplyRecipeEdits`) |
+| Recipe | Target and execution fields (with searchable tag dropdown), editable `[[Recipes.Inputs]]` and `[[Recipes.Outputs]]` tables with searchable item ID and `tag:*` dropdowns and jump buttons (`RecipeFormView`, `AssetTomlEditApplier.ApplyRecipeEdits`) |
 | Skill | Sources map, level curve table and sparkline |
 | Body | Species, gender, editable state and direction sprite maps (`AssetTomlEditApplier` and `BodySpritePickerControl`) |
 | Material | Shader, textures, alpha mode, cutoff |

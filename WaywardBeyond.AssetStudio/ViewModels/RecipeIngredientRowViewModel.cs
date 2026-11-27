@@ -15,6 +15,7 @@ public sealed partial class RecipeIngredientRowViewModel : ObservableObject
     private string _slotGroup;
     private string? _resolvedThumbnailPath;
     private bool _isResolved;
+    private bool _syncingPicker;
 
     /// <summary>
     ///     Initializes a recipe input ingredient row.
@@ -24,14 +25,31 @@ public sealed partial class RecipeIngredientRowViewModel : ObservableObject
         int count,
         string slotGroup,
         Action? onChanged = null,
-        Action<RecipeIngredientRowViewModel, string, string, string>? onPropertyTransition = null)
+        Action<RecipeIngredientRowViewModel, string, string, string>? onPropertyTransition = null,
+        IReadOnlyList<ReferenceCandidate>? pickerCandidates = null,
+        bool isReadOnly = false)
     {
         _itemId = itemId ?? string.Empty;
         _count = count > 0 ? count : 1;
         _slotGroup = slotGroup ?? string.Empty;
         _onChanged = onChanged;
         _onPropertyTransition = onPropertyTransition;
+        ItemPickerField = new StudioFieldViewModel(
+            fieldKey: "ItemId",
+            label: "Item ID",
+            grammarHint: "wb:iron_ore or tag:item.fuel",
+            initialValue: _itemId,
+            isReadOnly: isReadOnly,
+            showRawTokenToggle: false,
+            referenceKind: ReferenceKind.ItemId,
+            candidates: pickerCandidates,
+            onValueChanged: HandlePickerValueChanged);
     }
+
+    /// <summary>
+    ///     Searchable item ID and <c>tag:*</c> reference picker field backing this ingredient row.
+    /// </summary>
+    public StudioFieldViewModel ItemPickerField { get; }
 
     /// <summary>
     ///     Item identifier or <c>tag:&lt;name&gt;</c> selector.
@@ -46,6 +64,19 @@ public sealed partial class RecipeIngredientRowViewModel : ObservableObject
             if (!SetProperty(ref _itemId, safe))
             {
                 return;
+            }
+
+            if (!_syncingPicker)
+            {
+                _syncingPicker = true;
+                try
+                {
+                    ItemPickerField.ApplyValueForReplay(safe);
+                }
+                finally
+                {
+                    _syncingPicker = false;
+                }
             }
 
             OnPropertyChanged(nameof(IsTagSelector));
@@ -209,6 +240,16 @@ public sealed partial class RecipeIngredientRowViewModel : ObservableObject
         {
             case nameof(ItemId):
                 SetProperty(ref _itemId, restoredValue ?? string.Empty, nameof(ItemId));
+                _syncingPicker = true;
+                try
+                {
+                    ItemPickerField.ApplyValueForReplay(_itemId);
+                }
+                finally
+                {
+                    _syncingPicker = false;
+                }
+
                 OnPropertyChanged(nameof(IsTagSelector));
                 OnPropertyChanged(nameof(DisplayLabel));
                 OnPropertyChanged(nameof(CanNavigate));
@@ -225,6 +266,24 @@ public sealed partial class RecipeIngredientRowViewModel : ObservableObject
                 SetProperty(ref _slotGroup, restoredValue ?? string.Empty, nameof(SlotGroup));
                 OnPropertyChanged(nameof(HasSlotGroup));
                 break;
+        }
+    }
+
+    private void HandlePickerValueChanged(StudioFieldViewModel field)
+    {
+        if (_syncingPicker)
+        {
+            return;
+        }
+
+        _syncingPicker = true;
+        try
+        {
+            ItemId = field.Value;
+        }
+        finally
+        {
+            _syncingPicker = false;
         }
     }
 }

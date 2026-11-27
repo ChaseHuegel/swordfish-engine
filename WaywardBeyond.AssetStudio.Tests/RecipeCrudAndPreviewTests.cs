@@ -77,25 +77,42 @@ public sealed class RecipeCrudAndPreviewTests : IDisposable
         Assert.False(vm.Has3DPreviewControls);
         Assert.Equal(PreviewSurfaceMode.RecipeFlow, vm.ActivePreviewDescriptor.Mode);
 
-        //  Edit scalar fields and ingredient/output lists, verifying live preview updates + undo/redo.
-        recipeDoc.RecipeTargetTagField!.Value = "station.smelter";
+        //  Edit scalar fields and ingredient/output lists, verifying searchable pickers, live preview updates, and undo/redo.
+        recipeDoc.RecipeTargetTagField!.PickerFilterText = "smelter";
+        Assert.Contains(recipeDoc.RecipeTargetTagField.FilteredCandidates, static c => c.Value == "station.smelter");
+        recipeDoc.RecipeTargetTagField.SelectCandidateCommand.Execute(
+            recipeDoc.RecipeTargetTagField.FilteredCandidates.First(static c => c.Value == "station.smelter"));
+        Assert.Equal("station.smelter", recipeDoc.RecipeTargetTagField.Value);
+
         recipeDoc.RecipeModeField!.Value = "Auto";
         recipeDoc.RecipeDurationField!.Value = "4";
         recipeDoc.RecipePowerKwField!.Value = "-10";
-        recipeDoc.RecipeOrderField!.Value = "5";
+        recipeDoc.RecipePriorityField!.Value = "5";
 
         Assert.Single(recipeDoc.RecipeInputs);
-        recipeDoc.RecipeInputs[0].ItemId = "test:iron_ore";
+        recipeDoc.RecipeInputs[0].ItemPickerField.PickerFilterText = "iron_ore";
+        Assert.Contains(recipeDoc.RecipeInputs[0].ItemPickerField.FilteredCandidates, static c => c.Value == "test:iron_ore");
+        recipeDoc.RecipeInputs[0].ItemPickerField.SelectCandidateCommand.Execute(
+            recipeDoc.RecipeInputs[0].ItemPickerField.FilteredCandidates.First(static c => c.Value == "test:iron_ore"));
+        Assert.Equal("test:iron_ore", recipeDoc.RecipeInputs[0].ItemId);
         recipeDoc.RecipeInputs[0].Count = 2;
 
         recipeDoc.AddRecipeInputCommand.Execute(null);
         Assert.Equal(2, recipeDoc.RecipeInputs.Count);
-        recipeDoc.RecipeInputs[1].ItemId = "tag:item.fuel";
+        recipeDoc.RecipeInputs[1].ItemPickerField.PickerFilterText = "tag:item.fuel";
+        Assert.Contains(recipeDoc.RecipeInputs[1].ItemPickerField.FilteredCandidates, static c => c.Value == "tag:item.fuel");
+        recipeDoc.RecipeInputs[1].ItemPickerField.SelectCandidateCommand.Execute(
+            recipeDoc.RecipeInputs[1].ItemPickerField.FilteredCandidates.First(static c => c.Value == "tag:item.fuel"));
+        Assert.Equal("tag:item.fuel", recipeDoc.RecipeInputs[1].ItemId);
         recipeDoc.RecipeInputs[1].Count = 1;
         recipeDoc.RecipeInputs[1].SlotGroup = "fuel";
 
         Assert.Single(recipeDoc.RecipeOutputs);
-        recipeDoc.RecipeOutputs[0].ItemId = "test:iron_ingot";
+        recipeDoc.RecipeOutputs[0].ItemPickerField.PickerFilterText = "ingot";
+        Assert.Contains(recipeDoc.RecipeOutputs[0].ItemPickerField.FilteredCandidates, static c => c.Value == "test:iron_ingot");
+        recipeDoc.RecipeOutputs[0].ItemPickerField.SelectCandidateCommand.Execute(
+            recipeDoc.RecipeOutputs[0].ItemPickerField.FilteredCandidates.First(static c => c.Value == "test:iron_ingot"));
+        Assert.Equal("test:iron_ingot", recipeDoc.RecipeOutputs[0].ItemId);
         recipeDoc.RecipeOutputs[0].Count = 1;
         recipeDoc.RecipeOutputs[0].Chance = "0.5";
 

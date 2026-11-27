@@ -534,7 +534,7 @@ internal static class AssetTomlEditApplier
             return Result.FromSuccess();
         }
 
-        ApplyScalar(doc, tableIndex, "Order", "Order", payload, ScalarKind.Integer);
+        ApplyScalar(doc, tableIndex, "Priority", "Priority", payload, ScalarKind.Integer);
 
         if (payload.RecipeInputsModified && payload.RecipeInputs != null)
         {
