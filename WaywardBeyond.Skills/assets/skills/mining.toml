@@ -2,7 +2,7 @@
 ID       = "mining"
 Name     = "skill.name.mining"
 Category = "skill.category.gathering"
-Icon     = "block/rock.png"
+Icon     = "skills/mining.png"
 
 [Skills.Sources.Break]
 "tag:brick.environment" = 1

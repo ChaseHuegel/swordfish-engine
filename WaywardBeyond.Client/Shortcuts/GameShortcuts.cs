@@ -43,6 +43,7 @@ internal static class GameShortcuts
     public const string INVENTORY_QUICK_MOVE = "Inventory/Quick move";
 
     public const string BACK = "General/Back";
+    public const string SKILLS = "UI/Skills";
     public const string OPEN_CHAT = "Chat/Open Chat";
     public const string SEND_CHAT = "Chat/Send Chat";
     public const string QUICKSAVE = "General/Quicksave";

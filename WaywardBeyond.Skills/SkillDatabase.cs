@@ -15,6 +15,7 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
 {
     private readonly IBrickRegistry _brickRegistry;
     private readonly LocalizedTags? _invariantTags;
+    private readonly List<Skill> _allSkills = [];
     private readonly Dictionary<XPSource, List<Skill>> _skillsBySource = [];
 
     /// <summary>Constructs a skill database.</summary>
@@ -29,7 +30,11 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         _brickRegistry = brickRegistry;
         _invariantTags = tagDatabase.Invariant;
         Load();
+        _allSkills.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.ID, right.ID));
     }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<Skill> All => _allSkills;
 
     /// <inheritdoc/>
     public IReadOnlyList<Skill> Get(XPSource xpSource)
@@ -98,6 +103,7 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
 
         var levels = new SortedDictionary<int, int>(declaredLevels);
         var skill = new Skill(id, assetInfo.Name ?? string.Empty, assetInfo.Category ?? string.Empty, assetInfo.Icon, sources, levels);
+        _allSkills.Add(skill);
 
         foreach (XPSource kind in sources.Keys)
         {

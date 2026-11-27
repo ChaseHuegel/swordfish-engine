@@ -37,8 +37,24 @@ public class SkillDatabaseTests
 
         Assert.Equal("skill.name.mining", mining.Name);
         Assert.Equal("skill.category.gathering", mining.Category);
-        Assert.Equal("block/rock.png", mining.Icon);
+        Assert.Equal("skills/mining.png", mining.Icon);
         Assert.Equal(100, mining.Levels.Count);
+    }
+
+    [Fact]
+    public void ListsAllLoadedSkillsInDeterministicOrderWithSkillArtworkIcons()
+    {
+        SkillDatabase skills = Load(SHARED_SKILLS_ROOT).Skills;
+
+        Assert.Equal(["building", "mining", "salvaging"], skills.All.Select(skill => skill.ID).ToArray());
+
+        foreach (Skill skill in skills.All)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(skill.Icon));
+            Assert.StartsWith("skills/", skill.Icon);
+            string expectedPath = Path.Combine("TestFiles", "Client", "assets", "textures", skill.Icon);
+            Assert.True(File.Exists(expectedPath), $"Missing skill icon texture at \"{expectedPath}\".");
+        }
     }
 
     [Fact]

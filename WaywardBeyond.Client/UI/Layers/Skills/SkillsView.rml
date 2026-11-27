@@ -1,0 +1,137 @@
+<Reef xmlns="Reef"
+      xmlns:param="Reef.Param"
+      xmlns:class="Reef.Class"
+      Class="SkillsView"
+      Context="SkillsPanelState"
+      RendererData="Swordfish.Graphics.Material"
+      Namespace="WaywardBeyond.Client.UI.Layers.Skills">
+
+    <Element class="wb-scrim-soft"
+             layout="none"
+             width="100%"
+             height="100%"
+             passthrough="true" />
+
+    <Element id="Skills.Panel"
+             class="wb-skills-panel"
+             anchor="Center"
+             width="512"
+             height="@PanelHeightConstraint(context, ui.Height)"
+             layout="none">
+
+        <Element class="wb-skills-panel-inner"
+                 layout="vertical"
+                 width="fill"
+                 height="fill"
+                 padding="16"
+                 clip="true">
+
+            <Element layout="none" width="fill" height="18">
+                <Text class="wb-panel-header"
+                      text="@L('ui.panel.skill.list')"
+                      width="fill"
+                      height="18"
+                      wrap="false" />
+                <IconButton id="Button_CloseSkills"
+                            anchor="Right Center"
+                            param:glyph="xmark"
+                            param:size="20"
+                            param:glyphSize="14"
+                            onclick="OnClose" />
+            </Element>
+
+            <Element height="4" />
+            <Element class="wb-divider-inner" width="fill" height="1" />
+            <Element height="8" />
+
+            <Element visible="@context.HasSkills" layout="vertical" width="fill" height="fill">
+                <Text text="@TotalLevelText(context.TotalLevel)"
+                      class="wb-skills-summary"
+                      width="fill"
+                      height="16"
+                      wrap="false" />
+                <Element height="8" />
+
+                <Element id="Skills.List" layout="none" width="fill" height="fill">
+                    <Element class="wb-skills-viewport"
+                             class:wb-skills-viewport-scrollable="@NeedsScroll(context, ui.Height)"
+                             layout="vertical"
+                             width="fill"
+                             height="fill"
+                             clip="true"
+                             scroll="vertical"
+                             scroll-y="@Scroll.ReefOffset"
+                             onscroll="@Scroll.OnScroll(ui.GetScrollDelta())">
+                        <Element id="Skills.ListContent" class="wb-skills-list" width="fill" height="fit">
+                            <ForEach in="@context.Categories" as="group">
+                                <Element class="wb-skills-category" width="fill" height="fit">
+                                    <Text text="@L(group.CategoryKey)"
+                                          class="wb-skills-category-title"
+                                          width="fill"
+                                          height="18"
+                                          wrap="false" />
+                                    <Element class="wb-divider-inner" width="fill" height="1" />
+
+                                    <ForEach in="@group.Skills" as="skill">
+                                        <Element id="Row_Skill_{skill.ID}" class="wb-skills-card" width="fill" height="64">
+                                            <Element class="wb-skills-icon-frame" width="40" height="40" anchor="Center">
+                                                <Image source="@skill.Icon"
+                                                       width="fill"
+                                                       height="fill" />
+                                            </Element>
+                                            <Element class="wb-skills-details" width="fill" height="fill">
+                                                <Element class="wb-skills-row-header" width="fill" height="18">
+                                                    <Text text="@L(skill.NameKey)"
+                                                          class="wb-skills-name"
+                                                          width="fill"
+                                                          height="fill"
+                                                          wrap="false" />
+                                                    <Text text="@LevelText(skill.Level)"
+                                                          class="wb-skills-level"
+                                                          width="fit"
+                                                          height="fill"
+                                                          wrap="false" />
+                                                </Element>
+                                                <ProgressBar context="@ProgressTrack(skill)">
+                                                    <ForEach in="@DividerPositions(context, ui.Height)" as="divider">
+                                                        <Element class="wb-skills-bar-divider" x="@divider" />
+                                                    </ForEach>
+                                                </ProgressBar>
+                                                <Element class="wb-skills-row-meta" width="fill" height="16">
+                                                    <Text text="@LevelXpText(skill)"
+                                                          class="wb-text-small"
+                                                          width="fill"
+                                                          height="fill"
+                                                          wrap="false" />
+                                                    <Text text="@TotalXpText(skill.TotalXP)"
+                                                          class="wb-skills-total-xp"
+                                                          width="fit"
+                                                          height="fill"
+                                                          wrap="false" />
+                                                </Element>
+                                            </Element>
+                                        </Element>
+                                    </ForEach>
+                                </Element>
+                            </ForEach>
+                        </Element>
+                    </Element>
+                    <ScrollBar visible="@NeedsScroll(context, ui.Height)"
+                               context="@Scroll.Bar"
+                               anchor="Right"
+                               width="6"
+                               height="fill" />
+                </Element>
+            </Element>
+
+            <EmptyState visible="@(!context.HasSkills)">
+                <Text text="@L('ui.message.skill.empty')"
+                      class="wb-text-body wb-text-dim"
+                      width="fill"
+                      height="fill"
+                      text-align="center"
+                      vertical-align="middle" />
+            </EmptyState>
+        </Element>
+    </Element>
+</Reef>

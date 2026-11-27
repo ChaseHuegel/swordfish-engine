@@ -27,6 +27,7 @@ using WaywardBeyond.Client.Serialization;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Data.Webhooks;
 using WaywardBeyond.Client.Shortcuts;
+using WaywardBeyond.Client.Skills;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers;
@@ -35,6 +36,7 @@ using WaywardBeyond.Client.UI.Layers.Menus;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.UI.Layers.Menus.Pause;
+using WaywardBeyond.Client.UI.Layers.Skills;
 using WaywardBeyond.Client.UI.Settings;
 using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Building;
@@ -289,6 +291,9 @@ public class Injector : IDryIocInjector
         container.Register<Inventory>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Inventory>();
 
+        container.Register<SkillsLayer>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, SkillsLayer>();
+
         container.Register<BlueprintLibraryLayer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, BlueprintLibraryLayer>();
 
@@ -358,6 +363,7 @@ public class Injector : IDryIocInjector
         container.Register<BrickIconRenderer>(Reuse.Singleton);
         container.Register<ItemIconDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, ItemIconDatabase>();
+        container.Register<SkillIconDatabase>(Reuse.Singleton);
 
 
         container.Register<BlueprintDatabase>(Reuse.Singleton);

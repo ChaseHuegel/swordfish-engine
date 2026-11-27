@@ -7,15 +7,15 @@ boundary.
 
 The server owns every gameplay aspect of skills for the life of a session. It
 grants XP, sums it per skill, detects level-ups, and pushes notifications. The
-client seeds its saved skill data at join and then acts as a dumb display: it
-renders notifications the server sends and records the authoritative totals into
-its local character save. No skill math, XP prediction, or level calculation runs
-client-side.
+client seeds its saved skill data at join, records authoritative XP totals into
+its local character save, renders notifications the server sends, and displays
+all skills in the skill panel. The client never predicts or grants XP.
 
 Definitions and mechanics live in a shared module. The server resolves them to
-grant XP (sources, level curves). The client module runs no skill math. It
-localizes only the notification keys the server sends, and skill names are
-localization keys.
+grant XP (sources, level curves). The client reads the shared definitions to
+display every skill, compute read-only level and bar progress from the saved
+authoritative XP totals, resolve skill icons, and localize skill names,
+categories, and notification keys.
 
 ## Definitions
 
@@ -30,19 +30,24 @@ that owns the headless models and the tomls:
   **data id**. `GetXP(XPSource, ushort)` resolves the XP for a brick.
   `CalculateLevel(long)` resolves the level for a total XP amount. A level is
   reached only when the total XP exceeds the sum of every requirement up to it,
-  so an exact threshold reports the lower level.
+  so an exact threshold reports the lower level. `CalculateProgress(long)`
+  returns `SkillProgress` with the resolved level, total XP, XP into the level,
+  next-level requirement, normalized bar progress, and max-level flag.
 - `SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
   `tag:&lt;name&gt;` sources into brick data ids through an injected
   `IBrickRegistry` (the same map the client `BrickDatabase` owns, so ids match
   worldgen and placement), logs a warning on an unknown brick id, an unknown
   tag, or a brick listed twice in one source set, and caches the skills per
-  `XPSource` for the interaction hot path. It reads only the invariant gameplay
-  tag list from `ILocalizedTagsDatabase` (see
-  [asset-definitions](asset-definitions.md)). It never resolves display
-  localization, textures, or icons. It rejects a skill with no ID, a duplicate
-  ID, no level curve, or a level requirement below 1.
-- `ISkillDatabase.cs` — the public contract over the loaded `Skill`s.
+  `XPSource` for the interaction hot path. It exposes `All` in deterministic ID
+  order. It reads only the invariant gameplay tag list from
+  `ILocalizedTagsDatabase` (see [asset-definitions](asset-definitions.md)). It
+  never resolves display localization, textures, or icons. It rejects a skill
+  with no ID, a duplicate ID, no level curve, or a level requirement below 1.
+- `ISkillDatabase.cs` — the public contract over the loaded `Skill`s (`All`,
+  `Get(string)`, and `Get(XPSource)`).
 - `LevelInfo.cs` — the resolved level plus the XP earned into that level.
+- `SkillProgress.cs` — the resolved level, total XP, XP earned into the level,
+  next-level requirement, normalized bar progress, and max-level state.
 - The transient, in-memory per-player XP table lives server-side as
   `WaywardBeyond.Server/Components/SkillStateComponent.cs`. It is never
   persisted and never replicated as a component.
@@ -87,6 +92,29 @@ amount is the XP earned into the current level divided by the next level's
 increment; a max-level skill renders a full bar. Skill XP bars set `Segments`
 to 10 and leave `Color` null so `Bars.cs` uses the default accent fill.
 
+## Skill panel and icon fallback
+
+`SkillsLayer` (`WaywardBeyond.Client/UI/Layers/Skills/SkillsLayer.cs:19`)
+renders the in-game modal skill panel. The `UI/Skills` shortcut (`K` by default,
+rebindable) toggles the panel while playing, and `General/Back` (`Esc`) or the
+close button closes it. The panel acquires an exclusive `InteractionBlocker`
+while open.
+
+The panel lists every skill from `ISkillDatabase.All` and groups the rows by
+`Skill.Category` (falling back to `ui.label.skill.uncategorized` when a skill
+omits `Category`). Each row reads the active character's authoritative total XP
+from `ActiveCharacterSave`, resolves level, XP into the level, next-level
+requirement, and bar fill through `Skill.CalculateProgress`, and localizes
+`Skill.Name` and `Skill.Category` through `SkillsView`.
+
+`SkillIconDatabase` (`WaywardBeyond.Client/Skills/SkillIconDatabase.cs:15`)
+resolves `Skill.Icon` through `IAssetDatabase<Texture>` and caches one UI
+`Material` per texture path. When `Skill.Icon` is empty or does not exist in the
+texture database, `SkillIconDatabase` falls back to `skills/unknown.png`
+(`WaywardBeyond.Client/assets/textures/skills/unknown.png`). An unknown
+non-empty path logs a warning once and caches the fallback material. Shipped
+skill artwork lives under `WaywardBeyond.Client/assets/textures/skills/`.
+
 ## Source of truth
 
 - `WaywardBeyond.Skills/*.cs`
@@ -97,15 +125,25 @@ to 10 and leave `Color` null so `Bars.cs` uses the default accent fill.
 - `WaywardBeyond.Server/Interactions/SkillXpReactor.cs`
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` (seed)
 - `WaywardBeyond.Client/Systems/ClientNotificationSystem.cs`
-- `WaywardBeyond.Client/assets/lang/en/{skills,notification}.toml`
+- `WaywardBeyond.Client/Skills/SkillIconDatabase.cs`
+- `WaywardBeyond.Client/UI/Layers/Skills/{SkillsLayer,SkillsView,SkillsPanelState,SkillCategoryGroupState,SkillRowState}.cs`
+- `WaywardBeyond.Client/UI/Layers/Skills/{SkillsView.rml,SkillsView.rss}`
+- `WaywardBeyond.Client/assets/textures/skills/**`
+- `WaywardBeyond.Client/assets/lang/en/{skills,notification,ui}.toml`
 - `WaywardBeyond.Data/Nsd/saves.nsd` (`Statistic`)
 
 ## Tests that pin this
 
-- `WaywardBeyond.Tests/SkillDatabaseTests.cs` — the shipped definitions load, tag
+- `WaywardBeyond.Tests/SkillDatabaseTests.cs` — the shipped definitions load,
+  `All` returns skills in deterministic order with `skills/` artwork icons, tag
   sources expand to the brick data ids worldgen writes, skills group by
   `XPSource`, the curve stays sorted, and the level thresholds and rejection
   paths hold.
+- `WaywardBeyond.Tests/SkillsPanelTests.cs` — `Skill.CalculateProgress` and the
+  panel rows match `Skill.CalculateLevel` and bar math across thresholds,
+  `SkillIconDatabase` resolves textures, falls back to `skills/unknown.png`, and
+  logs a warning once on an unknown path, and `SkillsLayer` groups skills by
+  category and manages toggle, escape, and close lifecycle.
 - `WaywardBeyond.Tests/SkillXpReactorTests.cs` — the authoritative grant
   accumulates into `SkillStateComponent`, an unknown brick grants nothing, and
   a seeded total continues the curve.

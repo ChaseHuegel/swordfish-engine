@@ -55,6 +55,7 @@
     <None Include="..\WaywardBeyond.Client\assets\materials\effects\laser_beam.toml" Link="TestFiles\Client\assets\materials\effects\laser_beam.toml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Client\assets\meshes\*.obj" Link="TestFiles\Meshing\meshes\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Client\assets\textures\block\*.png" Link="TestFiles\Meshing\textures\block\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Client\assets\textures\skills\*.png" Link="TestFiles\Client\assets\textures\skills\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Client\assets\audio\sounds\**\*.*" Link="assets\audio\sounds\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="_ExcludeUnusedGameAssetsFromTests"

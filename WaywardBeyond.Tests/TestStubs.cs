@@ -200,6 +200,8 @@ internal sealed class StubFileParseService : IFileParseService
 /// <summary>A skill database with no skills.</summary>
 internal sealed class StubSkillDatabase : ISkillDatabase
 {
+    public IReadOnlyList<Skill> All => [];
+
     public Result<Skill> Get(string id) => Result<Skill>.FromFailure("No skills.");
 
     public IReadOnlyList<Skill> Get(XPSource xpSource) => [];

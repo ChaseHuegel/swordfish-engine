@@ -22,9 +22,12 @@ using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Shortcuts;
+using WaywardBeyond.Client.Skills;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI.Layers;
+using WaywardBeyond.Client.UI.Layers.Skills;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
@@ -183,6 +186,38 @@ public class ControlHintsTests
         }
     }
 
+    [Fact]
+    public void ControlHintsShowsSkillsHintAndHidesInventoryHintWhenSkillModalIsOpen()
+    {
+        WaywardBeyond.Client.WaywardBeyond.GameState.Set(WaywardBeyond.Client.GameState.Playing);
+        try
+        {
+            var harness = new Harness();
+
+            List<string> idleTexts = harness.RenderTexts();
+            Assert.Contains("Tab", idleTexts);
+            Assert.Contains("Inventory", idleTexts);
+            Assert.Contains("K", idleTexts);
+            Assert.Contains("Skills", idleTexts);
+
+            harness.OpenSkills();
+            List<string> modalTexts = harness.RenderTexts();
+            Assert.Contains("K / Esc", modalTexts);
+            Assert.Contains("Close", modalTexts);
+            Assert.DoesNotContain("Tab", modalTexts);
+            Assert.DoesNotContain("Inventory", modalTexts);
+
+            harness.Shortcuts.Rebind(GameShortcuts.SKILLS, new ShortcutBinding(Key.L));
+            List<string> reboundModalTexts = harness.RenderTexts();
+            Assert.Contains("L / Esc", reboundModalTexts);
+            Assert.DoesNotContain("K / Esc", reboundModalTexts);
+        }
+        finally
+        {
+            WaywardBeyond.Client.WaywardBeyond.GameState.Set(WaywardBeyond.Client.GameState.MainMenu);
+        }
+    }
+
     private sealed class Harness
     {
         private readonly FakeInputService _input = new();
@@ -190,6 +225,7 @@ public class ControlHintsTests
         private readonly PlayerData _playerData;
         private readonly ControlHints _controlHints;
         private readonly Inventory _inventory;
+        private readonly SkillsLayer _skillsLayer;
         private readonly UIBuilder<Material> _ui;
 
         public ShortcutService Shortcuts { get; }
@@ -253,6 +289,15 @@ public class ControlHintsTests
                 new DebugSettings()
             );
 
+            _skillsLayer = new SkillsLayer(
+                Shortcuts,
+                interactionState,
+                new StubSkillDatabase(),
+                new SkillIconDatabase(NullLogger<SkillIconDatabase>.Instance, new Shader("ui", []), textures),
+                new ActiveCharacterSave(),
+                localization
+            );
+
             for (var i = 0; i < Hotbar.SLOT_COUNT; i++)
             {
                 GameShortcuts.RegisterOrAddHandler(Shortcuts, GameShortcuts.CreateSlot(i));
@@ -268,7 +313,8 @@ public class ControlHintsTests
                 ecsContext,
                 localization,
                 new GameplayConfig(),
-                Shortcuts
+                Shortcuts,
+                skillsLayer: _skillsLayer
             );
 
             _ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), new UIController());
@@ -306,6 +352,11 @@ public class ControlHintsTests
             }
         }
 
+        public void OpenSkills()
+        {
+            _skillsLayer.Open();
+        }
+
         public List<string> RenderTexts()
         {
             _controlHints.RenderUI(0d, _ui);
@@ -341,6 +392,8 @@ public class ControlHintsTests
                 "ui.hint.inventory.quickMove" => "Quick move",
                 "ui.hint.inventory.hotbar" => "Move to hotbar",
                 "ui.hint.inventory.close" => "Close",
+                "ui.hint.skill.toggle" => "Skills",
+                "ui.hint.skill.close" => "Close",
                 "ui.hint.feedback.send" => "Send feedback",
                 _ => value,
             };
