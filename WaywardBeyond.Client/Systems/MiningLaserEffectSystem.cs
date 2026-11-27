@@ -73,7 +73,7 @@ internal sealed class MiningLaserEffectSystem(
     /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
     {
-        if (!WaywardBeyond.IsPlaying())
+        if (!WaywardBeyond.IsInGame())
         {
             ReleaseAll(store);
             return;
