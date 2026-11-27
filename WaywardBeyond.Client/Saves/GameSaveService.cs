@@ -205,7 +205,7 @@ internal sealed class GameSaveService(
     public async Task<GameSave?> CreateSaveAsync(GameOptions options)
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.level.creating", options.Name));
-        bool success = await CreateLevelAsync(options.Name, options.Seed);
+        bool success = await CreateLevelAsync(options.Name, options.Seed, options.DefaultGameMode);
         if (!success)
         {
             return null;
@@ -238,9 +238,9 @@ internal sealed class GameSaveService(
         _levelsClient.SendLeaveGame();
     }
 
-    private async Task<bool> CreateLevelAsync(string name, string seed)
+    private async Task<bool> CreateLevelAsync(string name, string seed, GameMode gameMode)
     {
-        bool success = await _levelsClient.CreateLevelAsync(name, seed, GameMode.Creative);
+        bool success = await _levelsClient.CreateLevelAsync(name, seed, gameMode);
         await RefreshLevelsAsync();
 
         _notificationService.Push(_localizedFormatter.GetString(

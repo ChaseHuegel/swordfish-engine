@@ -12,6 +12,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.UI.Components;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Localization;
 
@@ -36,6 +37,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly Randomizer _randomizer = new();
     private readonly List<string> _createMessages = [];
     private readonly List<double> _createMessageTimes = [];
+    private readonly ScrollAreaState _formScroll = new();
     private readonly NewSaveView _view;
 
     private Menu<MenuPage>? _menu;
@@ -45,6 +47,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private double _nextCreateMessageTime;
     private string _lastCreateMessage = string.Empty;
     private int _narrowTab;
+    private GameMode _defaultGameMode = GameMode.Creative;
 
     public NewSavePage(
         in GameSaveService gameSaveService,
@@ -65,11 +68,12 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _localizedTagDatabase = localizedTagDatabase;
         _seedPhraseService = seedPhraseService;
 
-        _view = new NewSaveView(localization)
+        _view = new NewSaveView(localization, _formScroll)
         {
             Input = inputService,
             RandomNameRequested = OnRandomName,
             RandomSeedRequested = OnRandomSeed,
+            GameModeSelected = OnSelectGameMode,
             TabRequested = OnSelectTab,
             CancelRequested = OnCancel,
             CreateRequested = TryCreate,
@@ -92,6 +96,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             return RenderCreateTask(ui, menu, createTask, delta);
         }
 
+        _formScroll.Measure(ui, "NewSave.Form");
         _view.Render(ui, BuildState());
         return Result.FromSuccess();
     }
@@ -128,6 +133,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _gameSaveManager.ActiveSave = created;
         _view.NameState.Text.Clear();
         _view.SeedState.Text.Clear();
+        _defaultGameMode = GameMode.Creative;
         menu.GoToPage(MenuPage.SelectCharacter);
         return Result.FromSuccess();
     }
@@ -146,6 +152,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             Creating: false,
             currentName,
             seed,
+            _defaultGameMode,
             CanCreate: !nameMissing && !duplicateName,
             statusKey,
             danger,
@@ -175,6 +182,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             Creating: true,
             Name: string.Empty,
             Seed: string.Empty,
+            _defaultGameMode,
             CanCreate: false,
             StatusKey: string.Empty,
             StatusDanger: false,
@@ -258,6 +266,18 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _view.SeedState.Text.Append(_seedPhraseService.SeedToPhrase(Random.Shared.NextInt64()));
     }
 
+    private void OnSelectGameMode(GameMode mode)
+    {
+        if (_defaultGameMode == mode)
+        {
+            return;
+        }
+
+        _createErrorKey = string.Empty;
+        _defaultGameMode = mode;
+        _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Toggle);
+    }
+
     private void OnSelectTab(int tab)
     {
         _narrowTab = tab;
@@ -284,6 +304,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         string seed = string.IsNullOrWhiteSpace(seedValue)
             ? _seedPhraseService.SeedToPhrase(Random.Shared.NextInt64())
             : seedValue;
+        GameMode defaultGameMode = _defaultGameMode;
         _createErrorKey = string.Empty;
         _createTime = 0;
         _nextCreateMessageTime = 0;
@@ -291,7 +312,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _createMessages.Clear();
         _createMessageTimes.Clear();
         _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);
-        _createTask = Task.Run(() => _gameSaveService.CreateSaveAsync(new GameOptions(saveName, seed)));
+        _createTask = Task.Run(() => _gameSaveService.CreateSaveAsync(new GameOptions(saveName, seed, defaultGameMode)));
     }
 
     private void AddCreateMessage()

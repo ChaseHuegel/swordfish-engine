@@ -32,17 +32,20 @@ save levels. Level data is streamed to the client during join.
      hands the join to the world's `ServerJoinSystem`.
 
 2. **Seat the player.** `ServerJoinSystem` loads the authoritative voxel world
-   for `LevelGuid` through the world's `LevelSaveService`, resolves the spawn
-   (persisted per-character location, else `Level.Spawn`; a save hiccup falls
-   back to the level spawn), allocates the server mirror with the character's
-   uuid, seeds the interaction context and skill state from `CharacterState`,
-   binds a fresh `Session`, and binds the peer's claim to the session's
-   permission service. The local peer gets the all-granting set.
+   for `LevelGuid` through the world's `LevelSaveService`. It resolves the spawn
+   and game mode from `LevelSaveService.GetCharacterEntity` (persisted
+   per-character state, else `Level.Spawn` and `Level.DefaultGameMode`). A save
+   hiccup falls back to the level spawn and default mode, and an empty join with
+   no loaded level falls back to `CharacterState.GameMode`. It allocates the
+   server mirror with the character's uuid, seeds the interaction context and
+   skill state, binds a fresh `Session`, and binds the peer's claim to the
+   session's permission service. The local peer gets the all-granting set.
    `JoinAsync` returns `JoinAccept { Level, SpawnX/Y/Z, OrientationX/Y/Z/W,
    PlayerEntity }` only after the session and mirror exist. The client seats
-   the local player with that spawn and resets session-scoped prediction state:
-   look totals, the last input sample, the snapshot ack, and the identity's
-   last applied look history on both sides.
+   the local player with that spawn, sets the initial `GameModeComponent` from
+   `JoinAccept.Level.DefaultGameMode` when a level is named, and resets
+   session-scoped prediction state: look totals, the last input sample, the
+   snapshot ack, and the identity's last applied look history on both sides.
 
 3. **`StreamLevelAsync`.** `ClientJoinSystem` starts the stream call with
    `ClientInbound` as the `IChunkSink<LevelStreamChunk>`. The server thread
@@ -123,8 +126,11 @@ cannot leak a gated session.
 
 - The client's local `profile.db` is the client-owned storage and the source of
   the join-time seed.
-- Interaction-relevant inventory counts and game mode are server-owned after
-  join and replicate downstream.
+- Interaction-relevant inventory counts are seeded from the client save at join
+  and are server-owned after join.
+- Game mode is server-owned. When a level is loaded, the server resolves it from
+  the per-level `CharacterEntityData.GameMode` or falls back to
+  `Level.DefaultGameMode`, then replicates `GameModeComponent` downstream.
 - The active slot stays client-owned (`EquipmentComponent`) and replicates
   upstream for the server to validate.
 - Skill XP is seeded from the client's statistics at join into a transient

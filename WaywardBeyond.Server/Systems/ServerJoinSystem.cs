@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using NsdRpc;
 using Krill;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
@@ -233,30 +234,41 @@ public sealed class ServerJoinSystem(
 
         Vector3 position;
         Quaternion orientation;
+        GameMode gameMode;
         if (levelLoaded)
         {
+            GameMode defaultMode = saveService.CurrentLevel?.DefaultGameMode ?? request.State.GameMode;
             try
             {
-                bool restored = saveService.TryGetSpawnPoint(request.CharacterUuid, out position, out orientation);
-                if (!restored)
+                Result<CharacterEntityData> savedCharacter = saveService.GetCharacterEntity(request.CharacterUuid);
+                if (savedCharacter.Success)
                 {
-                    //  Restored per-character location (or the level spawn point).
+                    CharacterEntityData saved = savedCharacter.Value;
+                    position = new Vector3((float)saved.X, (float)saved.Y, (float)saved.Z);
+                    orientation = new Quaternion(saved.OrientationX, saved.OrientationY, saved.OrientationZ, saved.OrientationW);
+                    gameMode = ResolveGameMode(saved.GameMode);
+                }
+                else
+                {
                     position = saveService.LevelSpawn;
                     orientation = Quaternion.Identity;
+                    gameMode = ResolveGameMode(defaultMode);
                 }
             }
             catch (Exception ex)
             {
-                //  A save hiccup never drops a join: fall back to the level spawn.
+                //  A save hiccup never drops a join: fall back to the level spawn and default mode.
                 logger.LogError(ex, "Failed to resolve the spawn for character {character} in level {level}; using the level spawn.", request.CharacterUuid, levelGuid);
                 position = saveService.LevelSpawn;
                 orientation = Quaternion.Identity;
+                gameMode = ResolveGameMode(defaultMode);
             }
         }
         else
         {
             position = gameplayConfig.DefaultSpawnPosition;
             orientation = Quaternion.Identity;
+            gameMode = ResolveGameMode(request.State.GameMode);
         }
 
         //  Stamp the save's server-owned last-played: someone joined this save.
@@ -286,9 +298,9 @@ public sealed class ServerJoinSystem(
         store.AddOrUpdate(entity, new BodyViewComponent { Body = request.View.Body });
         store.AddOrUpdate(entity, new IdentifierComponent(CharacterNames.Clamp(request.View.Name), tag: "game"));
 
-        //  Seed the server-authoritative interaction context from the joining client's local save. The
-        //  client owns its initial save; from here the server owns these components and replicates them.
-        SeedInteractionContext(store, entity, request.State);
+        //  Seed the server-authoritative interaction context from the joining client's local save and
+        //  the level's resolved game mode. From here the server owns these components and replicates them.
+        SeedInteractionContext(store, entity, request.State, gameMode);
         SeedSkillState(store, entity, request.State, skillDatabase);
 
         Session session = new(_nextSessionId++);
@@ -332,13 +344,13 @@ public sealed class ServerJoinSystem(
     /// is never restocked). The inventory is normalized to the canonical slot count so the replicated
     /// array is always full-size and the active slot is always in bounds.
     /// </summary>
-    private static void SeedInteractionContext(DataStore store, int entity, in CharacterState seed)
+    private static void SeedInteractionContext(DataStore store, int entity, in CharacterState seed, GameMode gameMode)
     {
         var inventory = new InventoryComponent();
         inventory.CopyFrom(PlayerInitialInventory.Resolve(seed.Inventory));
         store.AddOrUpdate(entity, inventory);
         store.AddOrUpdate(entity, new EquipmentComponent(InventoryComponent.ClampSlot(seed.ActiveInventorySlot)));
-        store.AddOrUpdate(entity, new GameModeComponent(ResolveGameMode(seed.GameMode)));
+        store.AddOrUpdate(entity, new GameModeComponent(gameMode));
     }
 
     /// <summary>

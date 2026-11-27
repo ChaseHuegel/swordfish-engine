@@ -214,6 +214,43 @@ public class CharacterLocationSaveTests
         Assert.Equal(secondPosition.Z, (float)persisted.Value.Z, precision: 4);
     }
 
+    [Theory]
+    [InlineData(GameMode.Adventure, GameMode.Creative)]
+    [InlineData(GameMode.Creative, GameMode.Adventure)]
+    public async Task FirstJoinUsesLevelDefaultGameModeOverCharacterState(GameMode levelDefault, GameMode characterSeedMode)
+    {
+        var storage = new InMemoryLevelStorage(LEVEL_GUID, defaultGameMode: levelDefault);
+        using TestHarness harness = CreateHarness(storage);
+        ServerPeer peer = harness.AddPeer(clientId: 1, isLocal: false);
+
+        JoinRequest request = CreateJoinRequest(LEVEL_GUID, characterUuid: 601, characterSeedMode);
+        RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
+        Assert.True(joined.IsSuccess, joined.ErrorMessage);
+        Assert.Equal(levelDefault, joined.Value.Level.DefaultGameMode);
+        Assert.Equal(levelDefault, harness.GetPlayerGameMode(peer.GameId));
+    }
+
+    [Fact]
+    public async Task RejoinRestoresPersistedPerLevelGameMode()
+    {
+        var storage = new InMemoryLevelStorage(LEVEL_GUID, defaultGameMode: GameMode.Adventure);
+        using TestHarness harness = CreateHarness(storage);
+        ServerPeer peer = harness.AddPeer(clientId: 1, isLocal: false);
+
+        JoinRequest request = CreateJoinRequest(LEVEL_GUID, characterUuid: 602, GameMode.Adventure);
+        RpcResult<JoinAccept> firstJoin = await harness.JoinAsync(peer, request);
+        Assert.True(firstJoin.IsSuccess, firstJoin.ErrorMessage);
+        Assert.Equal(GameMode.Adventure, harness.GetPlayerGameMode(peer.GameId));
+
+        harness.SetPlayerGameMode(peer.GameId, GameMode.Creative);
+        harness.JoinQueue.EnqueueLeave(peer.GameId);
+        harness.Tick();
+
+        RpcResult<JoinAccept> rejoin = await harness.JoinAsync(peer, request);
+        Assert.True(rejoin.IsSuccess, rejoin.ErrorMessage);
+        Assert.Equal(GameMode.Creative, harness.GetPlayerGameMode(peer.GameId));
+    }
+
     private static void AssertTransformEqual(Vector3 expectedPosition, Quaternion expectedOrientation, in JoinAccept accept)
     {
         Assert.Equal(expectedPosition.X, accept.SpawnX, precision: 4);
@@ -225,7 +262,7 @@ public class CharacterLocationSaveTests
         Assert.Equal(expectedOrientation.W, accept.OrientationW, precision: 4);
     }
 
-    private static JoinRequest CreateJoinRequest(string levelGuid, ulong characterUuid)
+    private static JoinRequest CreateJoinRequest(string levelGuid, ulong characterUuid, GameMode gameMode = GameMode.Adventure)
     {
         return new JoinRequest
         {
@@ -243,7 +280,7 @@ public class CharacterLocationSaveTests
                 Name = "Explorer",
                 Body = "default",
                 ActiveInventorySlot = 0,
-                GameMode = GameMode.Adventure,
+                GameMode = gameMode,
             },
         };
     }
@@ -318,6 +355,19 @@ public class CharacterLocationSaveTests
             store.AddOrUpdate(entity, new TransformComponent(position, orientation, CharacterDefaults.PlayerScale));
         }
 
+        public GameMode GetPlayerGameMode(Uuid clientId)
+        {
+            Assert.True(sessions.TryGetEntity(clientId, out int entity));
+            Assert.True(store.TryGet(entity, out GameModeComponent mode));
+            return mode.Mode;
+        }
+
+        public void SetPlayerGameMode(Uuid clientId, GameMode mode)
+        {
+            Assert.True(sessions.TryGetEntity(clientId, out int entity));
+            store.AddOrUpdate(entity, new GameModeComponent(mode));
+        }
+
         public void Tick()
         {
             joinSystem.Tick(1f / 60f, store);
@@ -348,7 +398,8 @@ public class CharacterLocationSaveTests
 
     private sealed class InMemoryLevelStorage(
         string levelGuid,
-        Action<CharacterEntityData>? onSaveCharacter = null
+        Action<CharacterEntityData>? onSaveCharacter = null,
+        GameMode defaultGameMode = GameMode.Creative
     ) : ILevelStorage
     {
         private readonly Lock _lock = new();
@@ -360,6 +411,7 @@ public class CharacterLocationSaveTests
             SpawnX = 0,
             SpawnY = 10,
             SpawnZ = 0,
+            DefaultGameMode = defaultGameMode,
         };
 
         public string LevelGuid { get; } = levelGuid;

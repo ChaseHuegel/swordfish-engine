@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
+using Reef;
+using Reef.UI;
+using Swordfish.Graphics;
 using Swordfish.Tests;
 using WaywardBeyond.Client.UI.Layers.Menus.Main;
-using System;
+using WaywardBeyond.Data;
 using Xunit;
 
 namespace WaywardBeyond.Tests;
@@ -39,6 +44,7 @@ public class NewSaveViewTests
                     Creating: true,
                     Name: string.Empty,
                     Seed: string.Empty,
+                    Mode: GameMode.Creative,
                     CanCreate: false,
                     StatusKey: string.Empty,
                     StatusDanger: false,
@@ -78,6 +84,85 @@ public class NewSaveViewTests
         Assert.True(LeftOf(actual, "id=Button_Create ") > 900, "Create did not stay on the right side of the footer.");
     }
 
+    [Fact]
+    public void ClickingAdventureModeSelectsAdventure()
+    {
+        var controller = new UIController();
+        var view = new NewSaveView(new TestLocalization()) { Input = new FakeInputService() };
+        GameMode? selected = null;
+        view.GameModeSelected = mode => selected = mode;
+        var ui = new UIBuilder<Material>(1280, 720, new StubTextEngine(), controller);
+        NewSaveState state = CreateReadyState(GameMode.Creative);
+
+        controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        ElementBounds option = ui.GetElementBounds("Choice_GameMode.1");
+        Assert.True(option.Rect.Size.X > 0 && option.Rect.Size.Y > 0, "Adventure option has no bounds.");
+        int x = option.Rect.Position.X + (option.Rect.Size.X / 2);
+        int y = option.Rect.Position.Y + (option.Rect.Size.Y / 2);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.Left);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.Render(ui, state);
+        ui.Build(0d);
+
+        Assert.Equal(GameMode.Adventure, selected);
+    }
+
+    [Fact]
+    public void AdventureModeRendersAdventureTelemetryAndDescription()
+    {
+        var view = new NewSaveView(new TestLocalization()) { Input = new FakeInputService() };
+        string actual = UiSnapshotTests.CaptureRender(1280, 720, ui => view.Render(ui, CreateReadyState(GameMode.Adventure)));
+
+        Assert.Contains("text=ui.label.level.mode: Adventure", actual, StringComparison.Ordinal);
+        Assert.Contains("text=ui.text.level.mode.adventure", actual, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NarrowLayoutKeepsFooterVisibleAndFormScrollable()
+    {
+        var controller = new UIController();
+        var view = new NewSaveView(new TestLocalization()) { Input = new FakeInputService() };
+        var ui = new UIBuilder<Material>(800, 600, new StubTextEngine(), controller);
+
+        for (var frame = 0; frame < 3; frame++)
+        {
+            controller.UpdateMouse(0, 0, UIController.MouseButtons.None);
+            view.FormScroll.Measure(ui, "NewSave.Form");
+            view.Render(ui, CreateReadyState(GameMode.Creative));
+            ui.Build(0d);
+        }
+
+        ElementBounds createButton = ui.GetElementBounds("Button_Create");
+        Assert.True(createButton.Rect.Size.Y > 0, "Create button was clipped out at 800x600.");
+        Assert.True(createButton.Rect.Bottom <= 480, $"Create button overflowed the 800x600 page (bottom={createButton.Rect.Bottom}).");
+
+        ElementBounds form = ui.GetElementBounds("NewSave.Form");
+        int x = form.Rect.Position.X + (form.Rect.Size.X / 2);
+        int y = form.Rect.Position.Y + (form.Rect.Size.Y / 2);
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None);
+        view.FormScroll.Measure(ui, "NewSave.Form");
+        view.Render(ui, CreateReadyState(GameMode.Creative));
+        ui.Build(0d);
+
+        controller.UpdateMouse(x, y, UIController.MouseButtons.None, scrollDeltaY: -1f);
+        view.FormScroll.Measure(ui, "NewSave.Form");
+        view.Render(ui, CreateReadyState(GameMode.Creative));
+        ui.Build(0d);
+
+        Assert.True(view.FormScroll.Offset > 0, "Narrow galaxy form did not scroll when overflowing.");
+    }
+
     private static int LeftOf(string snapshot, string marker)
     {
         foreach (string line in snapshot.Split('\n'))
@@ -92,12 +177,13 @@ public class NewSaveViewTests
         throw new Xunit.Sdk.XunitException($"No command matches '{marker}'.");
     }
 
-    private static NewSaveState CreateReadyState()
+    private static NewSaveState CreateReadyState(GameMode mode = GameMode.Creative)
     {
         return new NewSaveState(
             Creating: false,
             "Outer Hercules VI",
             "Lunar Steer Glorifies Wormhole",
+            mode,
             CanCreate: true,
             StatusKey: string.Empty,
             StatusDanger: false,
@@ -109,12 +195,13 @@ public class NewSaveViewTests
     }
 
     /// <summary>Builds the empty form state that the legacy capture used.</summary>
-    private static NewSaveState CreateState()
+    private static NewSaveState CreateState(GameMode mode = GameMode.Creative)
     {
         return new NewSaveState(
             Creating: false,
             Name: string.Empty,
             Seed: string.Empty,
+            mode,
             CanCreate: false,
             StatusKey: "ui.message.name.required",
             StatusDanger: true,

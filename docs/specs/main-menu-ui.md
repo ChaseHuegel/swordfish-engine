@@ -117,7 +117,7 @@ Level form:
   one orange border and a cyan left caret bar, not a double outline.
 - `Tab` covers narrow pane switching, Saved signals/Local signals, and attached
   section tabs.
-- `InfoBox` covers the galaxy and stat descriptions.
+- `InfoBox` covers the galaxy mode and stat descriptions.
 - The character form centers the name field, its dice, and the body selector
   group. Each selector row holds a muted label, a discrete stepper, and a dice.
 - The character form asks for confirmation when S.P.A.C.E.R points remain. The
@@ -147,6 +147,11 @@ A save is a galaxy. The game stores levels and characters.
 - The Star chart pane replaces the telemetry panel. Each save is a node at a
   position derived from its seed, and its telemetry shows in a hover card. See
   [star-chart](star-chart.md).
+- The level form collects the galaxy name, the optional seed, and the default
+  game mode (`Creative` or `Adventure`) through a `SegmentedControl`. The form
+  pane scrolls inside a `ScrollArea` on short viewports so the footer stays
+  visible. The telemetry pane shows the selected mode and describes it in an
+  `InfoBox`.
 - Crew manifest is `ICharacterStorage`.
 - Species and gender are the real body selectors. Each one is a stepper over
   the shipped body definitions, and the pair resolves to the `Character.Body`
@@ -216,8 +221,8 @@ whole block scrolls inside the panel with a scrollbar when needed.
 Do not add fake menu controls.
 
 - Sandbox rules have no per-save engine support.
-- Game Mode selection is omitted. Level creation and colonist registration still
-  use Creative mode.
+- Colonist registration omits game mode selection and still stamps `Creative`.
+  The galaxy's default game mode governs play on join.
 - Server description has no backing data.
 - The settings page exposes five categories (Display, Audio, Gameplay, Controls,
   and Keybindings). See [settings-ui](settings-ui.md).
@@ -247,7 +252,7 @@ manages the 3D background while `WaywardBeyond.GameState` is `GameState.MainMenu
 - Star chart view: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectSaveView.rml:1`
 - Star chart component: `WaywardBeyond.Client/UI/Layers/Menus/Main/StarChart.rml:3`
 - Star chart geometry: `WaywardBeyond.Client/UI/Layers/Menus/Main/StarChartLayout.cs:40`
-- Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:24`
+- Level form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewSavePage.cs:20`
 - Crew manifest: `WaywardBeyond.Client/UI/Layers/Menus/Main/SelectCharacterPage.cs:22`
 - Character form: `WaywardBeyond.Client/UI/Layers/Menus/Main/NewCharacterPage.cs:26`
 - Multiplayer: `WaywardBeyond.Client/UI/Layers/Menus/Main/MultiplayerPage.cs:25`
@@ -259,6 +264,8 @@ manages the 3D background while `WaywardBeyond.GameState` is `GameState.MainMenu
 
 ## Tests
 
+- `WaywardBeyond.Tests/NewSaveViewTests.cs` covers the galaxy form snapshots,
+  mode selection, telemetry description, and narrow-layout scrolling.
 - `WaywardBeyond.Tests/SelectCharacterViewTests.cs` compares the migrated view to
   the legacy goldens at 800x600, 1280x720, and 1920x1080. `SelectSaveViewTests`
   compares the save page to `WaywardBeyond.Tests/TestFiles/Snapshots` goldens
