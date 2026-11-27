@@ -60,14 +60,17 @@ Invalid definitions log an error at load and are skipped.
   optional `count`, returning failure on invalid inputs before resolving
   `effectId` and forwarding `count`, `speedScale`, `sizeScale`, and `tintRgba`.
   Requests queue through a `ConcurrentQueue` stamped with a monotonic clear
-  generation and drain on the ECS thread. `Clear()` increments the clear
+  generation and drain on the ECS thread. `EmitBurst` drops the request while
+  `RenderSettings.Particles.Enabled` is false or when the queue holds
+  `MAX_PENDING_BURSTS` (`256`) requests. `Clear()` increments the clear
   generation so pre-clear bursts drop while subsequent bursts spawn after the
   reset.
 - **Emitter safety and culling:** Non-finite emitter transforms and directions are skipped before allocating state or corrupting batch bounds. Batch extents include diagonal billboard rotation (`0.71` times particle size).
 - **Runtime settings:** `RenderSettings.Particles.Enabled`,
   `RenderSettings.Particles.MaxParticles`, and
   `RenderSettings.Particles.Density` (see [config-schemas](config-schemas.md)).
-  Disabling particles clears all live particles and queued bursts. `Density`
+  Disabling particles clears all live particles and queued bursts, and further
+  `EmitBurst` calls drop without queueing. `Density`
   defaults to `1.0`, clamps to `0..float.MaxValue`, and scales emitter rates and
   burst counts (`0` stops new spawns while live particles expire normally).
 - **Debug overlay:** `PerformanceStatsOverlay`
@@ -99,7 +102,7 @@ camera-facing quad in view space, preserves linear HDR values, and outputs
 - Particle types: `Swordfish/Graphics/Particles/{ParticleBlendMode,ParticleRange,ParticleEffect,ParticleEmitterComponent,ParticleEmitterMutedComponent,ParticleBurstRequest,IParticleService,ParticleInstance,ParticleRenderBatch,ParticleRenderSnapshot,ParticleSystem}.cs`
 - Asset loading: `Swordfish/IO/{AssetPaths,ParticleEffectDefinition,ParticleEffectDatabase}.cs`
 - Renderer, texture guard, and shader: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLParticleRenderer.cs`, `Swordfish/Graphics/SilkNET/OpenGL/GLRenderContext.cs:71-79,214-218`, `Swordfish/assets/shaders/particles.glsl`
-- Pipeline time uniform and activation: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:120,372-375,1123`
+- Pipeline time uniform: [rendering-time](rendering-time.md)
 - Physics ignore-entity raycast: `Swordfish/Physics/IPhysics.cs:15`, `Swordfish/Physics/Jolt/{JoltPhysicsSystem.cs:118-135,JoltRaycastRequest.cs:1-80}`
 - Settings and DI wiring: `Swordfish/Settings/{ParticleSettings,RenderSettings}.cs`, `Swordfish/EngineContainer.cs:87-89,109-111,133,140`
 

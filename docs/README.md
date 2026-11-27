@@ -32,6 +32,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Dynamic shadows: Forward+ CSM, point cubemap arrays, filtering, quality presets | [specs/rendering-shadows](specs/rendering-shadows.md) |
 | Ambient occlusion: half-resolution SAO, ping-pong blur, distance clip, presets | [specs/rendering-sao](specs/rendering-sao.md) |
 | Color space, texture decoding, HDR bloom resolve, tonemapping, and sRGB transfer | [specs/rendering-color](specs/rendering-color.md) |
+| Accumulated shader and pulse time, wrap interval, trig precision | [specs/rendering-time](specs/rendering-time.md) |
 | Particle system: asset TOML format, emitters, burst API, GPU instanced renderer | [specs/particles](specs/particles.md) |
 | Mining laser beam, impact particles and light, replication, break spark bursts | [specs/mining-laser-effects](specs/mining-laser-effects.md) |
 | Paint sprayer nozzle mist streams, swatch tinting, solvent strip, coat splatter bursts | [specs/paint-sprayer-effects](specs/paint-sprayer-effects.md) |
