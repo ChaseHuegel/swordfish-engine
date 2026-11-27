@@ -1,0 +1,194 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.RecipeFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel>
+    <!-- Target & Execution Parameters -->
+    <controls:CollapsibleSectionCard Title="Target &amp; Execution" Subtitle="Target tag, trigger mode, duration, and power">
+      <StackPanel Spacing="2">
+        <controls:ScalarFieldRowControl DataContext="{Binding RecipeTargetTagField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding RecipeModeField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding RecipeDurationField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding RecipePowerKwField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding RecipePriorityField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding RecipeCategoryField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Inputs ([[Recipes.Inputs]]) -->
+    <controls:CollapsibleSectionCard Title="Inputs" Subtitle="{Binding RecipeInputsSummary}">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="Use an item ID (wb:iron_ore) or invariant tag selector (tag:item.fuel). Click ↗ to open the referenced asset."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddRecipeInputCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Input" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+              <Grid ColumnDefinitions="*,72,116,28,28" ColumnSpacing="6">
+                <TextBlock Grid.Column="0" Text="ITEM ID OR TAG:*" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="COUNT" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="SLOT GROUP" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+
+            <TextBlock IsVisible="{Binding RecipeHasNoInputs}"
+                       Text="No inputs configured. Add at least one ingredient."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                       Margin="10,10" />
+
+            <ItemsControl ItemsSource="{Binding RecipeInputs}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:RecipeIngredientRowViewModel">
+                  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                    <Grid ColumnDefinitions="*,72,116,28,28" ColumnSpacing="6">
+                      <controls:ReferencePickerControl Grid.Column="0"
+                                                       DataContext="{Binding ItemPickerField}" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding Count, Mode=TwoWay}"
+                               VerticalAlignment="Top"
+                               Classes="studio-input mono" />
+                      <TextBox Grid.Column="2"
+                               Text="{Binding SlotGroup, Mode=TwoWay}"
+                               VerticalAlignment="Top"
+                               Watermark="optional"
+                               Classes="studio-input mono" />
+                      <Button Grid.Column="3"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              VerticalAlignment="Top"
+                              IsEnabled="{Binding CanNavigate}"
+                              Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateRecipeTargetCommand}"
+                              CommandParameter="{Binding ItemId}"
+                              ToolTip.Tip="Open referenced item or tag">
+                        <TextBlock Text="↗" FontSize="12" />
+                      </Button>
+                      <Button Grid.Column="4"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              VerticalAlignment="Top"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveRecipeInputCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove input row">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Outputs ([[Recipes.Outputs]]) -->
+    <controls:CollapsibleSectionCard Title="Outputs" Subtitle="{Binding RecipeOutputsSummary}">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="Produced items with optional drop chance in (0, 1]. Generator recipes (power_kw &gt; 0) may omit outputs."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddRecipeOutputCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Output" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+              <Grid ColumnDefinitions="*,72,96,28,28" ColumnSpacing="6">
+                <TextBlock Grid.Column="0" Text="ITEM ID" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="COUNT" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="CHANCE" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+
+            <TextBlock IsVisible="{Binding RecipeHasNoOutputs}"
+                       Text="No item outputs configured."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                       Margin="10,10" />
+
+            <ItemsControl ItemsSource="{Binding RecipeOutputs}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:RecipeOutputRowViewModel">
+                  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                    <Grid ColumnDefinitions="*,72,96,28,28" ColumnSpacing="6">
+                      <controls:ReferencePickerControl Grid.Column="0"
+                                                       DataContext="{Binding ItemPickerField}" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding Count, Mode=TwoWay}"
+                               VerticalAlignment="Top"
+                               Classes="studio-input mono" />
+                      <TextBox Grid.Column="2"
+                               Text="{Binding Chance, Mode=TwoWay}"
+                               VerticalAlignment="Top"
+                               Watermark="1.0"
+                               Classes="studio-input mono" />
+                      <Button Grid.Column="3"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              VerticalAlignment="Top"
+                              IsEnabled="{Binding CanNavigate}"
+                              Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateRecipeTargetCommand}"
+                              CommandParameter="{Binding ItemId}"
+                              ToolTip.Tip="Open referenced item">
+                        <TextBlock Text="↗" FontSize="12" />
+                      </Button>
+                      <Button Grid.Column="4"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              VerticalAlignment="Top"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveRecipeOutputCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove output row">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

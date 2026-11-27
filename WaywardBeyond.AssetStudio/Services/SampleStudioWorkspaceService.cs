@@ -225,6 +225,7 @@ public sealed class SampleStudioWorkspaceService : IStudioWorkspaceService
             AssetKind.Brick => ["assets/bricks/thruster.toml", "assets/bricks/panel.toml", "assets/bricks/glass.toml"],
             AssetKind.Item => ["assets/items/thruster.toml", "assets/items/drill.toml"],
             AssetKind.Paint => ["assets/paints/colors.toml", "assets/paints/textures.toml"],
+            AssetKind.Recipe => ["assets/recipes/crafting.toml"],
             AssetKind.Skill => ["assets/skills/building.toml", "assets/skills/mining.toml"],
             AssetKind.Body => ["assets/bodies/human_m.toml", "assets/bodies/bot.toml"],
             AssetKind.Material => ["assets/materials/bricks/glass.toml", "assets/materials/bricks/thruster.toml"],
@@ -243,6 +244,7 @@ public sealed class SampleStudioWorkspaceService : IStudioWorkspaceService
             AssetKind.Item => "assets/lang/en/item.toml",
             AssetKind.Brick => "assets/lang/en/brick.toml",
             AssetKind.Paint => "assets/lang/en/paint.toml",
+            AssetKind.Recipe => "assets/lang/en/recipes.toml",
             AssetKind.Skill => "assets/lang/en/skills.toml",
             AssetKind.Body => "assets/lang/en/body.toml",
             _ => "assets/lang/en/ui.toml",
@@ -463,6 +465,12 @@ public sealed class SampleStudioWorkspaceService : IStudioWorkspaceService
     public StudioValidationSyncResult RevalidateWorkspace()
     {
         return new StudioValidationSyncResult(false, [], string.Empty);
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<InboundReferenceItem> GetInboundReferences(AssetKind kind, string assetId)
+    {
+        return [];
     }
 
     /// <inheritdoc/>

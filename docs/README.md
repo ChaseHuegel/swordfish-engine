@@ -39,7 +39,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Chat wire message, relay, logging, and UI | [specs/chat](specs/chat.md) |
 | Persistence: SQLite layout, level databases, storage services | [specs/persistence](specs/persistence.md) |
 | Seed phrase generation, 40-bit dictionary encoding, and 64-bit seed resolution | [specs/seed-phrases](specs/seed-phrases.md) |
-| Asset definition TOML formats (items, bricks, materials, skills) | [specs/asset-definitions](specs/asset-definitions.md) |
+| Asset definition TOML formats (items, bricks, materials, recipes, skills) | [specs/asset-definitions](specs/asset-definitions.md) |
 | Asset tooling: desktop studio, CLI validator, round-trip TOML editor, blueprints, and packs | [specs/asset-tooling](specs/asset-tooling.md) |
 | Asset art style guide: Endesga-32 palette, 3D tool models, planes, UV density, icons | [specs/asset-art-style](specs/asset-art-style.md) |
 | Brick identity, voxel ids, the palette, and data versioning | [specs/brick-identity](specs/brick-identity.md) |

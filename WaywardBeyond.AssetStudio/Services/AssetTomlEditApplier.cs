@@ -35,6 +35,7 @@ internal static class AssetTomlEditApplier
             AssetKind.Paint => ApplyPaintEdits(document, payload),
             AssetKind.Skill => ApplySkillEdits(document, payload),
             AssetKind.Body => ApplyBodyEdits(document, payload),
+            AssetKind.Recipe => ApplyRecipeEdits(document, payload),
             AssetKind.Material => ApplyMaterialEdits(document, payload),
             AssetKind.Tag => ApplyTagEdits(document, payload),
             AssetKind.Localization => ApplyLocalizationEdits(document, payload),
@@ -486,6 +487,268 @@ internal static class AssetTomlEditApplier
         ApplyScalar(doc, tableIndex, "Connected", "Connected", payload, ScalarKind.Boolean);
         ApplyCsvStringArray(doc, tableIndex, "Textures", "Variants", payload);
         return Result.FromSuccess();
+    }
+
+    private static Result ApplyRecipeEdits(ToolsDocuments.TomlDocument doc, DocumentSavePayload payload)
+    {
+        var tableIndex = ResolvePrimaryTableIndex(doc, "Recipes", payload.TableIndex, payload.EntryIndex);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var recipeOrdinal = FindArrayTableOrdinal(doc, "Recipes", tableIndex);
+
+        ApplyScalar(doc, tableIndex, "TargetTag", "TargetTag", payload, ScalarKind.String);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "Mode", "Mode", payload, ScalarKind.String);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "DurationSeconds", "DurationSeconds", payload, ScalarKind.Float);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "PowerKw", "PowerKw", payload, ScalarKind.Float);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "Category", "Category", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "Priority", "Priority", payload, ScalarKind.Integer);
+
+        if (payload.RecipeInputsModified && payload.RecipeInputs != null)
+        {
+            var inputsBlock = BuildRecipeInputsTomlBlock(payload.RecipeInputs, doc.LineEnding);
+            var inputsResult = ReplaceOwnedRecipeSubTables(doc, recipeOrdinal, "Inputs", inputsBlock, insertBeforeOutputs: true);
+            if (!inputsResult.Success)
+            {
+                return inputsResult;
+            }
+        }
+
+        if (payload.RecipeOutputsModified && payload.RecipeOutputs != null)
+        {
+            var outputsBlock = BuildRecipeOutputsTomlBlock(payload.RecipeOutputs, doc.LineEnding);
+            var outputsResult = ReplaceOwnedRecipeSubTables(doc, recipeOrdinal, "Outputs", outputsBlock, insertBeforeOutputs: false);
+            if (!outputsResult.Success)
+            {
+                return outputsResult;
+            }
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private static Result ReplaceOwnedRecipeSubTables(
+        ToolsDocuments.TomlDocument doc,
+        int recipeOrdinal,
+        string subTableSegment,
+        string replacementBlock,
+        bool insertBeforeOutputs)
+    {
+        var recipeTableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
+        if (recipeTableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var lastOwned = FindLastOwnedTableIndex(doc, recipeTableIndex, "Recipes");
+        var targetSuffix = "." + subTableSegment;
+
+        //  Remove existing matching owned sub-tables from last to first so offsets stay valid.
+        for (var i = lastOwned; i > recipeTableIndex; i--)
+        {
+            var table = doc.Tables[i];
+            if (table.HeaderPath.EndsWith(targetSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                var removeResult = RemoveTableSection(doc, i);
+                if (!removeResult.Success)
+                {
+                    return removeResult;
+                }
+            }
+        }
+
+        if (string.IsNullOrEmpty(replacementBlock))
+        {
+            return Result.FromSuccess();
+        }
+
+        recipeTableIndex = ResolveArrayTableByOrdinal(doc, "Recipes", recipeOrdinal);
+        if (recipeTableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        lastOwned = FindLastOwnedTableIndex(doc, recipeTableIndex, "Recipes");
+        var insertOffset = Math.Clamp(doc.Tables[lastOwned].ContentSpan.End, 0, doc.Text.Length);
+
+        if (insertBeforeOutputs)
+        {
+            for (var i = recipeTableIndex + 1; i <= lastOwned; i++)
+            {
+                if (doc.Tables[i].HeaderPath.EndsWith(".Outputs", StringComparison.OrdinalIgnoreCase))
+                {
+                    insertOffset = Math.Clamp(doc.Tables[i].HeaderLineSpan.Start, 0, doc.Text.Length);
+                    break;
+                }
+            }
+        }
+
+        return InsertRecipeTableBlockAtOffset(doc, insertOffset, replacementBlock);
+    }
+
+    private static Result InsertRecipeTableBlockAtOffset(
+        ToolsDocuments.TomlDocument doc,
+        int insertOffset,
+        string block)
+    {
+        var eol = doc.LineEnding;
+        var before = doc.Text.AsSpan(0, insertOffset);
+        var after = doc.Text.AsSpan(insertOffset);
+
+        string leading;
+        if (before.Length == 0)
+        {
+            leading = string.Empty;
+        }
+        else if (before.EndsWith("\r\n\r\n", StringComparison.Ordinal) || before.EndsWith("\n\n", StringComparison.Ordinal))
+        {
+            leading = string.Empty;
+        }
+        else if (before.EndsWith("\n", StringComparison.Ordinal))
+        {
+            leading = eol;
+        }
+        else
+        {
+            leading = string.Concat(eol, eol);
+        }
+
+        string trailing;
+        if (after.Length == 0)
+        {
+            trailing = doc.HasTrailingNewline ? eol : string.Empty;
+        }
+        else if (after.StartsWith("\r\n\r\n", StringComparison.Ordinal) || after.StartsWith("\n\n", StringComparison.Ordinal))
+        {
+            trailing = string.Empty;
+        }
+        else if (after.StartsWith("\r\n", StringComparison.Ordinal) || after.StartsWith("\n", StringComparison.Ordinal))
+        {
+            trailing = eol;
+        }
+        else
+        {
+            trailing = string.Concat(eol, eol);
+        }
+
+        var sb = new StringBuilder(doc.Text.Length + leading.Length + block.Length + trailing.Length);
+        sb.Append(before);
+        sb.Append(leading);
+        sb.Append(block);
+        sb.Append(trailing);
+        sb.Append(after);
+        var candidate = sb.ToString();
+        var parsed = ToolsDocuments.TomlDocument.Parse(candidate, doc.SourcePath);
+        if (parsed.HasSyntaxErrors)
+        {
+            var err = parsed.Diagnostics.Count > 0
+                ? parsed.Diagnostics[0].Message
+                : "Updating recipe sub-tables produced invalid TOML.";
+            return Result.FromFailure(err);
+        }
+
+        doc.SetRawText(candidate);
+        return Result.FromSuccess();
+    }
+
+    private static string BuildRecipeInputsTomlBlock(
+        IReadOnlyList<(string ItemId, int Count, string SlotGroup)> inputs,
+        string eol)
+    {
+        if (inputs.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < inputs.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(eol);
+                sb.Append(eol);
+            }
+
+            var item = inputs[i];
+            var count = Math.Max(1, item.Count);
+            sb.Append("[[Recipes.Inputs]]").Append(eol);
+            sb.Append("ItemId = ").Append(FormatTomlString(item.ItemId?.Trim() ?? string.Empty)).Append(eol);
+            sb.Append("Count  = ").Append(count.ToString(CultureInfo.InvariantCulture));
+            if (!string.IsNullOrWhiteSpace(item.SlotGroup))
+            {
+                sb.Append(eol);
+                sb.Append("SlotGroup = ").Append(FormatTomlString(item.SlotGroup.Trim()));
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildRecipeOutputsTomlBlock(
+        IReadOnlyList<(string ItemId, int Count, string Chance)> outputs,
+        string eol)
+    {
+        if (outputs.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < outputs.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(eol);
+                sb.Append(eol);
+            }
+
+            var item = outputs[i];
+            var count = Math.Max(1, item.Count);
+            sb.Append("[[Recipes.Outputs]]").Append(eol);
+            sb.Append("ItemId = ").Append(FormatTomlString(item.ItemId?.Trim() ?? string.Empty)).Append(eol);
+            sb.Append("Count  = ").Append(count.ToString(CultureInfo.InvariantCulture));
+            if (!string.IsNullOrWhiteSpace(item.Chance)
+                && double.TryParse(item.Chance.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var chance)
+                && double.IsFinite(chance))
+            {
+                sb.Append(eol);
+                sb.Append("Chance = ").Append(FormatTomlFloat(chance));
+            }
+        }
+
+        return sb.ToString();
     }
 
     private static Result ApplySkillEdits(ToolsDocuments.TomlDocument doc, DocumentSavePayload payload)

@@ -9,6 +9,7 @@ using WaywardBeyond.AssetTools.Workspace;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Items;
+using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.AssetTools.Validation;
@@ -305,6 +306,10 @@ public sealed class WorkspaceValidator
                     ValidateBody(workspace, in asset, in body, doc, findings);
                     break;
 
+                case RecipeDefinition recipe:
+                    ValidateRecipe(workspace, in asset, in recipe, doc, findings);
+                    break;
+
                 case MaterialDefinition material:
                     ValidateMaterial(workspace, in asset, in material, doc, findings);
                     break;
@@ -344,6 +349,10 @@ public sealed class WorkspaceValidator
 
                 case AssetKind.Skill:
                     CheckSkillSourceEnums(in asset, doc, findings);
+                    break;
+
+                case AssetKind.Recipe:
+                    CheckEnumField<RecipeMode>(in asset, doc, null, "Mode", findings);
                     break;
             }
         }
@@ -910,7 +919,7 @@ public sealed class WorkspaceValidator
             {
                 if (group.Value != null)
                 {
-                    resolvedSources += ValidateSkillSourceGroup(workspace, in asset, doc, $"Skills.Sources.{group.Key}", group.Value, findings);
+                    resolvedSources += ValidateSkillSourceGroup(workspace, in asset, doc, group.Key, $"Skills.Sources.{group.Key}", group.Value, findings);
                 }
             }
         }
@@ -947,6 +956,275 @@ public sealed class WorkspaceValidator
             if (statePair.Value != null)
             {
                 ValidateBodyStateDirections(workspace, in asset, doc, statePair.Key, statePair.Value, findings);
+            }
+        }
+    }
+
+    private static void ValidateRecipe(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        in RecipeDefinition recipe,
+        TomlDocument? doc,
+        List<ValidationFinding> findings)
+    {
+        TomlFieldSpan? targetTagField = FindEntryField(doc, asset.Provenance.TableIndex, "TargetTag");
+        if (string.IsNullOrWhiteSpace(recipe.TargetTag))
+        {
+            AddFieldFinding(
+                findings,
+                "RECIPE001",
+                ValidationSeverity.Broken,
+                in asset,
+                targetTagField,
+                "TargetTag",
+                $"Recipe '{recipe.ID}' must specify a non-empty TargetTag.");
+        }
+
+        TomlFieldSpan? durationField = FindEntryField(doc, asset.Provenance.TableIndex, "DurationSeconds");
+        if (!float.IsFinite(recipe.DurationSeconds) || recipe.DurationSeconds < 0f)
+        {
+            AddFieldFinding(
+                findings,
+                "RECIPE002",
+                ValidationSeverity.Broken,
+                in asset,
+                durationField,
+                "DurationSeconds",
+                $"Recipe '{recipe.ID}' DurationSeconds ({recipe.DurationSeconds.ToString(CultureInfo.InvariantCulture)}) must be finite and >= 0.");
+        }
+
+        TomlFieldSpan? powerField = FindEntryField(doc, asset.Provenance.TableIndex, "PowerKw");
+        if (!float.IsFinite(recipe.PowerKw))
+        {
+            AddFieldFinding(
+                findings,
+                "RECIPE002",
+                ValidationSeverity.Broken,
+                in asset,
+                powerField,
+                "PowerKw",
+                $"Recipe '{recipe.ID}' PowerKw must be a finite number.");
+        }
+
+        if (recipe.Inputs == null || recipe.Inputs.Count == 0)
+        {
+            int line = ResolveEntryLine(doc, asset.Provenance.TableIndex);
+            findings.Add(new ValidationFinding(
+                "RECIPE001",
+                ValidationSeverity.Broken,
+                asset.Provenance.ProviderRootId,
+                asset.Provenance.FilePath,
+                line,
+                Column: 1,
+                "Inputs",
+                $"Recipe '{recipe.ID}' must define at least one input ingredient."));
+        }
+        else
+        {
+            for (int i = 0; i < recipe.Inputs.Count; i++)
+            {
+                RecipeIngredientDefinition input = recipe.Inputs[i];
+                string itemId = (input.ItemId ?? string.Empty).Trim();
+                int line = ResolveEntryLine(doc, asset.Provenance.TableIndex);
+
+                if (string.IsNullOrEmpty(itemId))
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE001",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"Inputs[{i}].ItemId",
+                        $"Recipe '{recipe.ID}' input #{i + 1} is missing an ItemId."));
+                }
+                else if (itemId.StartsWith("tag:", StringComparison.Ordinal))
+                {
+                    string tagName = itemId.Substring(4);
+                    if (string.IsNullOrWhiteSpace(tagName))
+                    {
+                        findings.Add(new ValidationFinding(
+                            "REF001",
+                            ValidationSeverity.Broken,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"Inputs[{i}].ItemId",
+                            $"Recipe '{recipe.ID}' input #{i + 1} has an empty tag selector."));
+                    }
+                    else if (!workspace.HasTag(tagName, locale: string.Empty))
+                    {
+                        string? caseMatch = FindInvariantTagCaseInsensitive(workspace, tagName);
+                        if (caseMatch != null)
+                        {
+                            findings.Add(new ValidationFinding(
+                                "PATH001",
+                                ValidationSeverity.CrossPlatform,
+                                asset.Provenance.ProviderRootId,
+                                asset.Provenance.FilePath,
+                                line,
+                                Column: 1,
+                                $"Inputs[{i}].ItemId",
+                                $"Recipe input tag '{tagName}' differs by case from '{caseMatch}'.",
+                                SuggestedFixValue: string.Concat("tag:", caseMatch)));
+                        }
+                        else
+                        {
+                            findings.Add(new ValidationFinding(
+                                "REF001",
+                                ValidationSeverity.Broken,
+                                asset.Provenance.ProviderRootId,
+                                asset.Provenance.FilePath,
+                                line,
+                                Column: 1,
+                                $"Inputs[{i}].ItemId",
+                                $"Recipe input tag '{tagName}' was not found in invariant tags."));
+                        }
+                    }
+                }
+                else if (!workspace.GetAsset(AssetKind.Item, itemId).Success)
+                {
+                    string? caseMatchItem = FindCaseInsensitiveAssetId(workspace, AssetKind.Item, itemId);
+                    if (caseMatchItem != null)
+                    {
+                        findings.Add(new ValidationFinding(
+                            "PATH001",
+                            ValidationSeverity.CrossPlatform,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"Inputs[{i}].ItemId",
+                            $"Recipe input item '{itemId}' differs by case from '{caseMatchItem}'.",
+                            SuggestedFixValue: caseMatchItem));
+                    }
+                    else
+                    {
+                        string? suggested = SuggestAssetReference(workspace, AssetKind.Item, itemId);
+                        findings.Add(new ValidationFinding(
+                            "REF001",
+                            ValidationSeverity.Broken,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"Inputs[{i}].ItemId",
+                            $"Recipe input item '{itemId}' was not found.",
+                            SuggestedFixValue: suggested));
+                    }
+                }
+
+                if (input.Count < 1)
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE002",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"Inputs[{i}].Count",
+                        $"Recipe '{recipe.ID}' input #{i + 1} Count ({input.Count}) must be >= 1."));
+                }
+            }
+        }
+
+        bool isGenerator = float.IsFinite(recipe.PowerKw) && recipe.PowerKw > 0f;
+        if (recipe.Outputs == null || recipe.Outputs.Count == 0)
+        {
+            if (!isGenerator)
+            {
+                int line = ResolveEntryLine(doc, asset.Provenance.TableIndex);
+                findings.Add(new ValidationFinding(
+                    "RECIPE001",
+                    ValidationSeverity.Broken,
+                    asset.Provenance.ProviderRootId,
+                    asset.Provenance.FilePath,
+                    line,
+                    Column: 1,
+                    "Outputs",
+                    $"Recipe '{recipe.ID}' must define at least one output unless PowerKw > 0."));
+            }
+        }
+        else
+        {
+            for (int i = 0; i < recipe.Outputs.Count; i++)
+            {
+                RecipeOutputDefinition output = recipe.Outputs[i];
+                string itemId = (output.ItemId ?? string.Empty).Trim();
+                int line = ResolveEntryLine(doc, asset.Provenance.TableIndex);
+
+                if (string.IsNullOrEmpty(itemId))
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE001",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"Outputs[{i}].ItemId",
+                        $"Recipe '{recipe.ID}' output #{i + 1} is missing an ItemId."));
+                }
+                else if (!workspace.GetAsset(AssetKind.Item, itemId).Success)
+                {
+                    string? caseMatchItem = FindCaseInsensitiveAssetId(workspace, AssetKind.Item, itemId);
+                    if (caseMatchItem != null)
+                    {
+                        findings.Add(new ValidationFinding(
+                            "PATH001",
+                            ValidationSeverity.CrossPlatform,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"Outputs[{i}].ItemId",
+                            $"Recipe output item '{itemId}' differs by case from '{caseMatchItem}'.",
+                            SuggestedFixValue: caseMatchItem));
+                    }
+                    else
+                    {
+                        string? suggested = SuggestAssetReference(workspace, AssetKind.Item, itemId);
+                        findings.Add(new ValidationFinding(
+                            "REF001",
+                            ValidationSeverity.Broken,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"Outputs[{i}].ItemId",
+                            $"Recipe output item '{itemId}' was not found.",
+                            SuggestedFixValue: suggested));
+                    }
+                }
+
+                if (output.Count < 1)
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE002",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"Outputs[{i}].Count",
+                        $"Recipe '{recipe.ID}' output #{i + 1} Count ({output.Count}) must be >= 1."));
+                }
+
+                if (output.Chance.HasValue && (!float.IsFinite(output.Chance.Value) || output.Chance.Value <= 0f || output.Chance.Value > 1f))
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE002",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"Outputs[{i}].Chance",
+                        $"Recipe '{recipe.ID}' output #{i + 1} Chance ({output.Chance.Value.ToString(CultureInfo.InvariantCulture)}) must be in (0, 1]."));
+                }
             }
         }
     }
@@ -1257,17 +1535,39 @@ public sealed class WorkspaceValidator
         WorkspaceIndex workspace,
         in IndexedAsset asset,
         TomlDocument? doc,
+        XPSource sourceKind,
         string subPath,
         Dictionary<string, int> sources,
         List<ValidationFinding> findings)
     {
         int resolved = 0;
+        bool isCraftSource = sourceKind is XPSource.Craft or XPSource.Process;
         foreach (KeyValuePair<string, int> source in sources)
         {
             TomlFieldSpan? sourceSpan = FindEntryField(doc, asset.Provenance.TableIndex, source.Key, subPath);
             TomlTextSpan? keySpan = sourceSpan?.KeySpan;
             int line = keySpan.HasValue ? keySpan.Value.Line : ResolveEntryLine(doc, asset.Provenance.TableIndex);
             int col = keySpan.HasValue ? keySpan.Value.Column : 1;
+
+            if (isCraftSource && source.Key.StartsWith("station:", StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrWhiteSpace(source.Key.Substring(8)))
+                {
+                    resolved++;
+                }
+
+                continue;
+            }
+
+            if (isCraftSource && source.Key.StartsWith("recipe:", StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrWhiteSpace(source.Key.Substring(7)))
+                {
+                    resolved++;
+                }
+
+                continue;
+            }
 
             if (source.Key.StartsWith("tag:", StringComparison.Ordinal))
             {
@@ -1314,6 +1614,16 @@ public sealed class WorkspaceValidator
                 }
 
                 if (workspace.GetEffectiveTagValues(tagName, locale: string.Empty).Count > 0)
+                {
+                    resolved++;
+                }
+
+                continue;
+            }
+
+            if (isCraftSource)
+            {
+                if (!string.IsNullOrWhiteSpace(source.Key))
                 {
                     resolved++;
                 }

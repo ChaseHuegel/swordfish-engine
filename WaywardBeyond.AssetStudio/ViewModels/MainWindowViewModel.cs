@@ -641,15 +641,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsDataDocumentPreview => HasSelectedAsset && ActivePreviewDescriptor.Mode == PreviewSurfaceMode.DataDocument;
 
     /// <summary>
+    ///     Whether the active asset is a recipe showing the interactive crafting flow preview.
+    /// </summary>
+    public bool IsRecipePreview => HasSelectedAsset && ActivePreviewDescriptor.Mode == PreviewSurfaceMode.RecipeFlow;
+
+    /// <summary>
     ///     Whether the right inspector renders a graphical preview viewport.
     /// </summary>
-    public bool HasVisualPreview => HasSelectedAsset && !IsDataDocumentPreview;
+    public bool HasVisualPreview => HasSelectedAsset && !IsDataDocumentPreview && !IsRecipePreview;
 
     /// <summary>
     ///     Whether the 3D viewport camera buttons apply to the active preview surface.
     /// </summary>
     public bool Has3DPreviewControls => HasSelectedAsset
         && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.DataDocument
+        && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.RecipeFlow
         && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.PaintSwatch
         && ActivePreviewDescriptor.Mode != PreviewSurfaceMode.BodySprite;
 
@@ -936,6 +942,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasNoSelectedAsset));
         OnPropertyChanged(nameof(HasVisualPreview));
         OnPropertyChanged(nameof(IsDataDocumentPreview));
+        OnPropertyChanged(nameof(IsRecipePreview));
         OnPropertyChanged(nameof(Has3DPreviewControls));
         OnPropertyChanged(nameof(ShowOrientationButton));
         OnPropertyChanged(nameof(IsMaterialPreviewSelected));
@@ -1838,6 +1845,40 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    private void NavigateRecipeTarget(string? rawTarget)
+    {
+        var trimmed = rawTarget?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return;
+        }
+
+        if (trimmed.StartsWith("tag:", StringComparison.Ordinal))
+        {
+            var tagName = trimmed[4..].Trim();
+            if (string.IsNullOrEmpty(tagName)
+                || !SelectAsset(AssetKind.Tag, tagName, relativeFile: null, pushHistory: true))
+            {
+                ShowToast($"Tag '{tagName}' was not found in the workspace.");
+            }
+
+            return;
+        }
+
+        if (SelectAsset(AssetKind.Item, trimmed, relativeFile: null, pushHistory: true))
+        {
+            return;
+        }
+
+        if (SelectAsset(AssetKind.Tag, trimmed, relativeFile: null, pushHistory: true))
+        {
+            return;
+        }
+
+        ShowToast($"Target '{trimmed}' was not found in the workspace.");
+    }
+
+    [RelayCommand]
     private void FocusFinding(ValidationFinding finding)
     {
         if (SelectAsset(null, finding.AssetId, finding.RelativeFile, pushHistory: true, highlightFieldKey: finding.FieldKey))
@@ -2333,6 +2374,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 }
 
                 RebuildValidationGroups();
+                RefreshDocumentInboundReferences();
                 UpdatePreviewDescriptor();
                 return;
             }
@@ -2347,6 +2389,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         RebuildValidationGroups();
         UpdatePreviewDescriptor();
+    }
+
+    private void RefreshDocumentInboundReferences()
+    {
+        if (!_workspaceService.UsesRealBackend)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _allDocuments.Count; i++)
+        {
+            var doc = _allDocuments[i];
+            if (doc.Kind == AssetKind.Blueprint)
+            {
+                continue;
+            }
+
+            doc.SyncInboundReferences(_workspaceService.GetInboundReferences(doc.Kind, doc.Id));
+        }
     }
 
     [RelayCommand]
@@ -3427,6 +3488,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 AssetKind.Brick => "Bricks",
                 AssetKind.Item => "Items",
                 AssetKind.Paint => "Paints",
+                AssetKind.Recipe => "Recipes",
                 AssetKind.Skill => "Skills",
                 AssetKind.Body => "Bodies",
                 AssetKind.Material => "Materials",
@@ -3951,6 +4013,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             IsLiveGlViewportActive = false;
             OnPropertyChanged(nameof(Has3DPreviewControls));
             OnPropertyChanged(nameof(IsDataDocumentPreview));
+            OnPropertyChanged(nameof(IsRecipePreview));
             OnPropertyChanged(nameof(HasVisualPreview));
             OnPropertyChanged(nameof(ShouldMountGlViewport));
             return;
@@ -4030,6 +4093,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
             PreviewSurfaceMode.BodySprite => _bodyPreviewFrames.Count > 0 ? BodyPreviewLabel : $"{spriteState} · {spriteDirection}",
             PreviewSurfaceMode.MaterialPreview => $"{doc.MaterialAlphaModeField?.Value ?? "Opaque"}",
             PreviewSurfaceMode.BlueprintVoxel => doc.BlueprintSizeLabel,
+            PreviewSurfaceMode.RecipeFlow => $"{doc.RecipeTargetTagLabel} · {doc.RecipeModeBadge}",
             _ => $"{doc.Kind} Document",
         };
 
@@ -4055,6 +4119,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(ShowOrientationButton));
         OnPropertyChanged(nameof(IsMaterialPreviewSelected));
         OnPropertyChanged(nameof(IsDataDocumentPreview));
+        OnPropertyChanged(nameof(IsRecipePreview));
         OnPropertyChanged(nameof(HasVisualPreview));
         OnPropertyChanged(nameof(ShouldMountGlViewport));
 

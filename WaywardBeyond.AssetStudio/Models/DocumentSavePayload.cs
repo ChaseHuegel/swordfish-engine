@@ -124,4 +124,24 @@ public sealed class DocumentSavePayload
     ///     Whether skill level progression rows were modified since load or last save.
     /// </summary>
     public bool SkillLevelsModified { get; init; }
+
+    /// <summary>
+    ///     Current input ingredient rows for recipe documents.
+    /// </summary>
+    public IReadOnlyList<(string ItemId, int Count, string SlotGroup)>? RecipeInputs { get; init; }
+
+    /// <summary>
+    ///     Whether recipe input rows were modified since load or last save.
+    /// </summary>
+    public bool RecipeInputsModified { get; init; }
+
+    /// <summary>
+    ///     Current output item rows for recipe documents.
+    /// </summary>
+    public IReadOnlyList<(string ItemId, int Count, string Chance)>? RecipeOutputs { get; init; }
+
+    /// <summary>
+    ///     Whether recipe output rows were modified since load or last save.
+    /// </summary>
+    public bool RecipeOutputsModified { get; init; }
 }

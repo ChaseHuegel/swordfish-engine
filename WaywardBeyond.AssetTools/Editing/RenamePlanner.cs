@@ -248,9 +248,17 @@ public sealed class RenamePlanner
             return Result<RenameFilePlan?>.FromFailure(valueRename.Message);
         }
 
-        if (kind == AssetKind.Brick)
+        if (kind == AssetKind.Brick || kind == AssetKind.Item)
         {
-            Result keyRename = RenameBrickSkillSourceKeys(working, filePath, oldId, newId, recordedEdits);
+            Result keyRename = RenameSkillSourceKeys(working, filePath, oldId, newId, recordedEdits);
+            if (!keyRename.Success)
+            {
+                return Result<RenameFilePlan?>.FromFailure(keyRename.Message);
+            }
+        }
+        else if (kind == AssetKind.Recipe)
+        {
+            Result keyRename = RenameSkillSourceKeys(working, filePath, $"recipe:{oldId}", $"recipe:{newId}", recordedEdits);
             if (!keyRename.Success)
             {
                 return Result<RenameFilePlan?>.FromFailure(keyRename.Message);
@@ -374,11 +382,11 @@ public sealed class RenamePlanner
         }
     }
 
-    private static Result RenameBrickSkillSourceKeys(
+    private static Result RenameSkillSourceKeys(
         TomlDocument working,
         string filePath,
-        string oldBrickId,
-        string newBrickId,
+        string oldSourceKey,
+        string newSourceKey,
         List<RenameEditSpan> edits)
     {
         for (int t = 0; t < working.Tables.Count; t++)
@@ -389,23 +397,23 @@ public sealed class RenamePlanner
                 continue;
             }
 
-            Result<TomlFieldSpan> fieldResult = working.GetFieldInTable(table.Index, oldBrickId);
+            Result<TomlFieldSpan> fieldResult = working.GetFieldInTable(table.Index, oldSourceKey);
             if (!fieldResult.Success)
             {
                 continue;
             }
 
             TomlFieldSpan field = fieldResult.Value;
-            string formattedKey = TomlValueFormatter.FormatKeySegment(newBrickId);
+            string formattedKey = TomlValueFormatter.FormatKeySegment(newSourceKey);
             edits.Add(new RenameEditSpan(
                 filePath,
-                $"{table.HeaderPath}.{oldBrickId}",
+                $"{table.HeaderPath}.{oldSourceKey}",
                 field.KeySpan.Line,
                 field.KeySpan,
                 field.RawKey,
                 formattedKey));
 
-            Result renamed = working.RenameKey(in field, newBrickId);
+            Result renamed = working.RenameKey(in field, newSourceKey);
             if (!renamed.Success)
             {
                 return renamed;

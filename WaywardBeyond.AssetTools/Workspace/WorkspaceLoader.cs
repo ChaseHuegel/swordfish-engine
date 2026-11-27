@@ -4,6 +4,7 @@ using WaywardBeyond.AssetTools.Documents;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Items;
+using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.AssetTools.Workspace;
@@ -18,6 +19,7 @@ public sealed class WorkspaceLoader
         "swordfish",
         "waywardbeyond.bricks",
         "waywardbeyond.items",
+        "waywardbeyond.recipes",
         "waywardbeyond.skills",
         "waywardbeyond.bodies",
         "waywardbeyond.client",
@@ -415,6 +417,12 @@ public sealed class WorkspaceLoader
         IndexArrayAssetDirectory<BodyDefinitions, BodyDefinition>(
             in root, "bodies", "Bodies", AssetKind.Body,
             static defs => defs.Bodies,
+            static def => (def.ID ?? string.Empty, def.ID ?? string.Empty),
+            state);
+
+        IndexArrayAssetDirectory<RecipeDefinitions, RecipeDefinition>(
+            in root, "recipes", "Recipes", AssetKind.Recipe,
+            static defs => defs.Recipes,
             static def => (def.ID ?? string.Empty, def.ID ?? string.Empty),
             state);
 
@@ -851,6 +859,10 @@ public sealed class WorkspaceLoader
                     ExtractBodyReferences(in asset, in body, state.AllReferences);
                     break;
 
+                case RecipeDefinition recipe:
+                    ExtractRecipeReferences(in asset, in recipe, state.AllReferences);
+                    break;
+
                 case MaterialDefinition material:
                     ExtractMaterialReferences(in asset, in material, state.AllReferences);
                     break;
@@ -958,6 +970,28 @@ public sealed class WorkspaceLoader
 
                 foreach (string target in sourceGroup.Value.Keys)
                 {
+                    if (sourceGroup.Key is XPSource.Craft or XPSource.Process)
+                    {
+                        if (target.StartsWith("station:", StringComparison.Ordinal))
+                        {
+                            AddRefIfPresent(refs, in asset, $"Sources.{sourceGroup.Key}", target.Substring(8), "station_tag", isInformational: false);
+                        }
+                        else if (target.StartsWith("recipe:", StringComparison.Ordinal))
+                        {
+                            AddRefIfPresent(refs, in asset, $"Sources.{sourceGroup.Key}", target.Substring(7), "recipe", isInformational: false);
+                        }
+                        else if (target.StartsWith("tag:", StringComparison.Ordinal))
+                        {
+                            AddRefIfPresent(refs, in asset, $"Sources.{sourceGroup.Key}", target.Substring(4), "tag", isInformational: false);
+                        }
+                        else
+                        {
+                            AddRefIfPresent(refs, in asset, $"Sources.{sourceGroup.Key}", target, "item", isInformational: false);
+                        }
+
+                        continue;
+                    }
+
                     bool isTag = target.StartsWith("tag:", StringComparison.Ordinal);
                     string targetId = isTag ? target.Substring(4) : target;
                     string grammar = isTag ? "tag" : "brick";
@@ -992,6 +1026,42 @@ public sealed class WorkspaceLoader
                 {
                     AddRefIfPresent(refs, in asset, $"States.{statePair.Key}.{dirPair.Key}", dirPair.Value[i], "texture", isInformational: false);
                 }
+            }
+        }
+    }
+
+    private static void ExtractRecipeReferences(in IndexedAsset asset, in RecipeDefinition recipe, List<InboundReference> refs)
+    {
+        AddRefIfPresent(refs, in asset, "TargetTag", recipe.TargetTag, "target_tag", isInformational: false);
+        AddRefIfPresent(refs, in asset, "Category", recipe.Category, "localization", isInformational: true);
+
+        if (recipe.Inputs != null)
+        {
+            for (int i = 0; i < recipe.Inputs.Count; i++)
+            {
+                string? rawItemId = recipe.Inputs[i].ItemId;
+                if (string.IsNullOrWhiteSpace(rawItemId))
+                {
+                    continue;
+                }
+
+                string trimmed = rawItemId.Trim();
+                if (trimmed.StartsWith("tag:", StringComparison.Ordinal))
+                {
+                    AddRefIfPresent(refs, in asset, $"Inputs[{i}].ItemId", trimmed.Substring(4), "tag", isInformational: false);
+                }
+                else
+                {
+                    AddRefIfPresent(refs, in asset, $"Inputs[{i}].ItemId", trimmed, "item", isInformational: false);
+                }
+            }
+        }
+
+        if (recipe.Outputs != null)
+        {
+            for (int i = 0; i < recipe.Outputs.Count; i++)
+            {
+                AddRefIfPresent(refs, in asset, $"Outputs[{i}].ItemId", recipe.Outputs[i].ItemId?.Trim(), "item", isInformational: false);
             }
         }
     }

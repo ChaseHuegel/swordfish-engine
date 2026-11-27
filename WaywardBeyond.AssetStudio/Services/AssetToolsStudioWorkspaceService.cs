@@ -5,6 +5,7 @@ using System.Text;
 using Swordfish.Library.Util;
 using WaywardBeyond.AssetStudio.Models;
 using WaywardBeyond.Data;
+using WaywardBeyond.Recipes;
 using GameContentVersion = WaywardBeyond.Data.ContentVersion;
 using ToolsBlueprints = WaywardBeyond.AssetTools.Blueprints;
 using ToolsDiagnostics = WaywardBeyond.AssetTools.Diagnostics;
@@ -987,6 +988,19 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
     }
 
     /// <inheritdoc/>
+    public IReadOnlyList<InboundReferenceItem> GetInboundReferences(AssetKind kind, string assetId)
+    {
+        if (_currentWorkspace == null || string.IsNullOrWhiteSpace(assetId))
+        {
+            return [];
+        }
+
+        return kind == AssetKind.Tag
+            ? AssetSeedProjector.ProjectTagInboundReferences(_currentWorkspace, assetId)
+            : AssetSeedProjector.ProjectInboundReferences(_currentWorkspace, assetId);
+    }
+
+    /// <inheritdoc/>
     public StudioOperationResult FixCaseIssues()
     {
         if (_currentWorkspace == null)
@@ -1493,6 +1507,7 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
             AssetKind.Brick => "bricks",
             AssetKind.Item => "items",
             AssetKind.Paint => "paints",
+            AssetKind.Recipe => "recipes",
             AssetKind.Skill => "skills",
             AssetKind.Body => "bodies",
             AssetKind.Material => "materials",
@@ -1537,6 +1552,7 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
             AssetKind.Item => "assets/lang/en/item.toml",
             AssetKind.Brick => "assets/lang/en/brick.toml",
             AssetKind.Paint => "assets/lang/en/paint.toml",
+            AssetKind.Recipe => "assets/lang/en/recipes.toml",
             AssetKind.Skill => "assets/lang/en/skills.toml",
             AssetKind.Body => "assets/lang/en/body.toml",
             _ => "assets/lang/en/ui.toml",
@@ -1991,6 +2007,39 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
                 : (warnFiles.Contains(p.FilePath) ? ToolsSearch.SearchResolutionState.Warning : ToolsSearch.SearchResolutionState.Resolved);
 
             var localStem = asset.Id.Contains(':') ? asset.Id.Substring(asset.Id.IndexOf(':') + 1) : asset.Id;
+            var extraTokens = new List<string> { localStem, p.ProviderRootName };
+            if (asset.AuthoritativeDefinition is RecipeDefinition recipeDef)
+            {
+                if (!string.IsNullOrWhiteSpace(recipeDef.TargetTag))
+                {
+                    extraTokens.Add(recipeDef.TargetTag.Trim());
+                }
+
+                if (recipeDef.Inputs != null)
+                {
+                    for (var i = 0; i < recipeDef.Inputs.Count; i++)
+                    {
+                        var itemId = recipeDef.Inputs[i].ItemId?.Trim();
+                        if (!string.IsNullOrWhiteSpace(itemId))
+                        {
+                            extraTokens.Add(itemId);
+                        }
+                    }
+                }
+
+                if (recipeDef.Outputs != null)
+                {
+                    for (var i = 0; i < recipeDef.Outputs.Count; i++)
+                    {
+                        var itemId = recipeDef.Outputs[i].ItemId?.Trim();
+                        if (!string.IsNullOrWhiteSpace(itemId))
+                        {
+                            extraTokens.Add(itemId);
+                        }
+                    }
+                }
+            }
+
             entries.Add(new ToolsSearch.SearchEntry(
                 Id: asset.Id,
                 DisplayName: asset.DisplayName,
@@ -2005,7 +2054,7 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
                 AssetKind: asset.Kind.ToString(),
                 LocalizationKey: null,
                 ResourcePath: p.RelativePath,
-                ExtraTokens: [localStem, p.ProviderRootName]));
+                ExtraTokens: extraTokens));
         }
 
         var seenTags = new HashSet<string>(StringComparer.Ordinal);

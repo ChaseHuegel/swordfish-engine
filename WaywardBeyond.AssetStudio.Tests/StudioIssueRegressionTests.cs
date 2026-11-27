@@ -409,7 +409,7 @@ public sealed class StudioIssueRegressionTests
             Assert.Equal(["Block", "Slab", "Stair", "Slope", "Column", "Plate", "Custom", "Any"], coreBrick.BrickShapeField!.Choices);
             Assert.Equal(["Opaque", "Masked", "Blend"], coreBrick.BrickAlphaField!.Choices);
             Assert.Equal(["box", "sphere", "capsule", "cylinder", "hull"], ColliderEntryViewModel.COLLIDER_TYPES);
-            Assert.Equal(["Place", "Break"], SkillSourceRowViewModel.TRIGGERS);
+            Assert.Equal(["Place", "Break", "Craft", "Process"], SkillSourceRowViewModel.TRIGGERS);
 
             service.MarkCleanShutdown();
         }

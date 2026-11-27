@@ -17,7 +17,7 @@ public struct SkillDefinition()
     /// <summary>The icon path of the skill.</summary>
     public string? Icon;
 
-    /// <summary>XP sources keyed by source, then by brick id or <c>tag:&lt;name&gt;</c>.</summary>
+    /// <summary>XP sources keyed by source, then by brick/recipe/output id or prefixed selector (<c>tag:</c>, <c>station:</c>, <c>recipe:</c>).</summary>
     public Dictionary<XPSource, Dictionary<string, int>>? Sources;
 
     /// <summary>The level curve keyed by level.</summary>

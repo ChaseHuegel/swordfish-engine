@@ -193,6 +193,23 @@ public sealed class AssetScaffolder
                 $"    {TomlValueFormatter.FormatBasicString($"block/{slug}.png")},\n" +
                 "]\n",
 
+            AssetKind.Recipe =>
+                "[[Recipes]]\n" +
+                $"ID              = {qId}\n" +
+                "TargetTag       = \"station.workbench\"\n" +
+                "Mode            = \"Manual\"\n" +
+                "DurationSeconds = 2.0\n" +
+                "PowerKw         = 0.0\n" +
+                "Priority        = 0\n" +
+                "\n" +
+                "[[Recipes.Inputs]]\n" +
+                "ItemId = \"\"\n" +
+                "Count  = 1\n" +
+                "\n" +
+                "[[Recipes.Outputs]]\n" +
+                "ItemId = \"\"\n" +
+                "Count  = 1\n",
+
             _ => null
         };
     }
@@ -230,6 +247,15 @@ public sealed class AssetScaffolder
                 new("ID", qId),
                 new("Species", TomlValueFormatter.FormatBasicString(slug)),
                 new("Gender", "\"Neutral\"")
+            ]),
+            AssetKind.Recipe => ("Recipes",
+            [
+                new("ID", qId),
+                new("TargetTag", "\"station.workbench\""),
+                new("Mode", "\"Manual\""),
+                new("DurationSeconds", "2.0"),
+                new("PowerKw", "0.0"),
+                new("Priority", "0")
             ]),
             _ => (null, null)
         };

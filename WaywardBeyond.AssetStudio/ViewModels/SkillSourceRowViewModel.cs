@@ -33,7 +33,7 @@ public sealed partial class SkillSourceRowViewModel : ObservableObject
     /// <summary>
     ///     Supported XP source trigger kinds.
     /// </summary>
-    public static IReadOnlyList<string> TRIGGERS { get; } = ["Place", "Break"];
+    public static IReadOnlyList<string> TRIGGERS { get; } = ["Place", "Break", "Craft", "Process"];
 
     /// <summary>
     ///     Trigger event awarding XP (Place or Break).

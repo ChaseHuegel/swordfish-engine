@@ -106,6 +106,7 @@ Every top-level path and what it is:
 | `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations |
 | `WaywardBeyond.Networking/` | Game networking layer: wire contracts, registry, codecs, transports |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader |
+| `WaywardBeyond.Recipes/` | Shared recipe module: definitions, headless database, station and input matching |
 | `WaywardBeyond.Server/` | Game server module |
 | `WaywardBeyond.Server.Launcher/` | Game server launcher |
 | `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader, server skill state |

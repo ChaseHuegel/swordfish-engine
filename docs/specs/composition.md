@@ -54,6 +54,7 @@ overrides after the engine builds
 | `WaywardBeyond.Server` | `RegisterHost()`, `RegisterServer()` | host wire-up, server composition |
 | `WaywardBeyond.Bricks` | `Injector` | brick and paint databases, registries, parsers |
 | `WaywardBeyond.Items` | `Injector` | item database and parser |
+| `WaywardBeyond.Recipes` | `Injector` | recipe database, parser, tags |
 | `WaywardBeyond.Bodies` | `Injector` | body database, parser |
 | `WaywardBeyond.Skills` | `Injector` | skill database, parser, tags |
 | `WaywardBeyond.Permissions` | `RegisterPermissions()` | permission file parser, loader, and compiled policy |

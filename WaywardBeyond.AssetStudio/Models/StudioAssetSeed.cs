@@ -159,4 +159,14 @@ public sealed class StudioAssetSeed
     ///     State and direction sprite mappings for body documents.
     /// </summary>
     public List<(string State, string Direction, string TexturePath, string SwatchHex)> BodySprites { get; init; } = [];
+
+    /// <summary>
+    ///     Input ingredient rows for recipe documents.
+    /// </summary>
+    public List<(string ItemId, int Count, string SlotGroup)> RecipeInputs { get; init; } = [];
+
+    /// <summary>
+    ///     Output item rows for recipe documents.
+    /// </summary>
+    public List<(string ItemId, int Count, string Chance)> RecipeOutputs { get; init; } = [];
 }

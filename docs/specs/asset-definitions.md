@@ -1,14 +1,16 @@
 # Asset Definition TOML Formats
 
 One subject: the TOML config types that define game content (items, bricks,
-materials, skills). Item definitions live under `WaywardBeyond.Items/assets/`.
-Brick definitions live in `WaywardBeyond.Bricks/assets/`. Skill definitions live
-in `WaywardBeyond.Skills/assets/`. Brick and item localization stays
-client-owned.
+materials, recipes, skills). Item definitions live under
+`WaywardBeyond.Items/assets/`. Brick definitions live in
+`WaywardBeyond.Bricks/assets/`. Recipe definitions load from `recipes/` across
+mounted modules such as `WaywardBeyond.Recipes/`. Skill definitions live in
+`WaywardBeyond.Skills/assets/`. Brick and item localization stays client-owned.
 
 Parser registration: `WaywardBeyond.Items/Injector.cs:15`
-(`RegisterTomlParser<ItemDefinitions>`), `WaywardBeyond.Bricks/Injector.cs:14`
-(`RegisterTomlParser<BrickDefinitions>`), and `WaywardBeyond.Skills/Injector.cs:16`
+(`RegisterTomlParser<ItemDefinitions>`), `WaywardBeyond.Bricks/Injector.cs:17`
+(`RegisterTomlParser<BrickDefinitions>`), `WaywardBeyond.Recipes/Injector.cs:17`
+(`RegisterTomlParser<RecipeDefinitions>`), and `WaywardBeyond.Skills/Injector.cs:16`
 (`RegisterTomlParser<SkillDefinitions>`).
 
 ## Items (`assets/items/*.toml`)
@@ -282,12 +284,50 @@ Particle effect TOML definitions load through `ParticleEffectDatabase`. See
 [particles](particles.md) for the schema, color decoding, blend modes, and
 simulation limits.
 
+## Recipes (`assets/recipes/*.toml`)
+
+Recipes live in the shared `WaywardBeyond.Recipes` module. The module loads
+definitions headlessly through `RecipeDatabase`
+(`WaywardBeyond.Recipes/RecipeDatabase.cs:18`) and exposes `IRecipeDatabase`
+(`WaywardBeyond.Recipes/IRecipeDatabase.cs:11`). Schema types live in
+`RecipeDefinitions.cs:7`, `RecipeDefinition.cs:7`,
+`RecipeIngredientDefinition.cs:6`, and `RecipeOutputDefinition.cs:6`. Runtime
+value types are `Recipe` (`Recipe.cs:7`), `RecipeIngredient`
+(`RecipeIngredient.cs:8`), `RecipeOutput` (`RecipeOutput.cs:4`), and
+`RecipeMode` (`RecipeMode.cs:4`).
+
+Each row is a `[[Recipes]]` table:
+
+| Field | Type | Notes |
+|---|---|---|
+| `ID` | string | unique namespaced recipe identifier |
+| `TargetTag` | string | invariant target tag identifying stations or targets that run the recipe |
+| `Mode` | `RecipeMode` | `Auto` or `Manual` (`Manual` when omitted) |
+| `Inputs` | `[[Recipes.Inputs]]` | at least one entry with `ItemId` (item id or `tag:<name>`), `Count >= 1`, and optional `SlotGroup` |
+| `Outputs` | `[[Recipes.Outputs]]` | entries with `ItemId`, `Count >= 1`, and optional `Chance` in `(0, 1]` (`1` when omitted) |
+| `DurationSeconds` | float | processing time in seconds (`>= 0`) |
+| `PowerKw` | float | negative draws power, positive generates power (generator recipes may omit `Outputs` when `PowerKw > 0`) |
+| `Category` | string? | optional category key |
+| `Priority` | int | deterministic priority within a target list (lower values sort first) |
+
+Recipe files never declare skill XP or skill IDs. Skills own their crafting and
+processing XP rules in `assets/skills/*.toml`. See [skills](skills.md).
+
+`RecipeDatabase` validates every item reference against `IAssetDatabase<Item>`
+and expands `tag:<name>` inputs through `ILocalizedTagsDatabase.Invariant` at
+load time. Invalid rows log an error and skip without crashing.
+`GetByTargetTag` returns recipes sorted by `Priority` then `ID`. `FindAutoMatch`
+matches `RecipeMode.Auto` recipes against `ReadOnlySpan<ItemData>` or
+`in InventoryComponent` without heap allocations, prioritizing exact item
+ingredients before tag ingredients. `IsValidInputForStation` checks whether any
+recipe for that station accepts an item id.
+
 ## Skills (`assets/skills/*.toml`)
 
 Skills live in the shared `WaywardBeyond.Skills` module. The server owns XP
 grants and level-up notifications, and the client renders notifications and the
 skill panel. Schema: `WaywardBeyond.Skills/SkillDefinitions.cs` (collection),
-`SkillDefinition.cs` (row), `XPSource.cs` (enum: `Place`, `Break`).
+`SkillDefinition.cs` (row), `XPSource.cs` (`Place`, `Break`, `Craft`, `Process`).
 
 Each row is a `[[Skills]]` table:
 
@@ -297,7 +337,7 @@ Each row is a `[[Skills]]` table:
 | `Name` | string (localization key) | |
 | `Category` | string (localization key) | groups rows in the client skill panel (`ui.label.skill.uncategorized` when omitted) |
 | `Icon` | string? | skill artwork texture path under `skills/` (e.g. `skills/mining.png`). `SkillIconDatabase` resolves it through `IAssetDatabase<Texture>`, falls back to `skills/unknown.png`, and logs a warning on an unknown path |
-| `[Skills.Sources.<Source>]` | map: brick id or `tag:X` → XP | keyed by `XPSource` (Place/Break) |
+| `[Skills.Sources.<Source>]` | map: target selector → XP | `Place`/`Break` map brick ids or `tag:X`. `Craft`/`Process` map `station:<tag>`, `recipe:<id>`, `tag:<itemTag>`, or direct recipe/output item ids |
 | `[Skills.Levels]` | map: level → XP to advance past the previous level | a level is reached only when total XP exceeds the running sum of requirements, and it is sorted on load |
 
 Tags expand through the invariant `lang/tags/*.toml` lists into brick data ids
@@ -382,7 +422,8 @@ bits. See [seed-phrases](seed-phrases.md).
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
-- `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill,SkillProgress}.cs`
+- `WaywardBeyond.Recipes/{RecipeDefinitions,RecipeDefinition,RecipeIngredientDefinition,RecipeOutputDefinition,RecipeMode,Recipe,RecipeIngredient,RecipeOutput,IRecipeDatabase,RecipeDatabase,Injector}.cs`
+- `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,CraftXpSourceSet,Skill,SkillDatabase,SkillProgress}.cs`
 - `WaywardBeyond.Client/Skills/SkillIconDatabase.cs`
 - `WaywardBeyond.Bricks/BrickEventKind.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
@@ -391,15 +432,19 @@ bits. See [seed-phrases](seed-phrases.md).
 - `WaywardBeyond.Bricks/BrickShape.cs`
 - `WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
-- Parser registration: `WaywardBeyond.Skills/Injector.cs:16`,
-  `WaywardBeyond.Client/Injector.cs:343`, `WaywardBeyond.Bricks/Injector.cs:14`,
-  `WaywardBeyond.Bricks/Injector.cs:20`
+- Parser registration: `WaywardBeyond.Items/Injector.cs:15`,
+  `WaywardBeyond.Recipes/Injector.cs:17`,
+  `WaywardBeyond.Skills/Injector.cs:16`,
+  `WaywardBeyond.Client/Injector.cs:374`, `WaywardBeyond.Bricks/Injector.cs:17`,
+  `WaywardBeyond.Bricks/Injector.cs:23`
 
 ## Tests that pin this
 
-`WaywardBeyond.Tests/SkillDatabaseTests.cs` loads the shipped skill and brick tomls
-and pins the schema, the tag expansion, and the level curve. See
-[skills](skills.md). `WaywardBeyond.Tests/BodyDatabaseTests.cs` loads the shipped
+`WaywardBeyond.Tests/RecipeDatabaseTests.cs` pins recipe TOML parsing, item and
+tag validation errors, `GetByTargetTag` ordering, `FindAutoMatch`,
+`IsValidInputForStation`, and DI registration. `WaywardBeyond.Tests/SkillDatabaseTests.cs` loads the shipped skill and brick tomls
+and pins the schema, the tag expansion, crafting and processing XP sources, and
+the level curve. See [skills](skills.md). `WaywardBeyond.Tests/BodyDatabaseTests.cs` loads the shipped
 body definitions and pins the species order, the gender groups, the species
 carried on each loaded body, and the species and gender resolution.
 `WaywardBeyond.Tests/BrickColliderTests.cs` pins TOML `[[Bricks.Colliders]]`
