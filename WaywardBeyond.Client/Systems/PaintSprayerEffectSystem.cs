@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Numerics;
 using Krill;
 using Swordfish.ECS;
-using Swordfish.Graphics;
 using Swordfish.Graphics.Particles;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
@@ -56,19 +55,23 @@ internal sealed class PaintSprayerEffectSystem(
 
         _seenOwners.Clear();
 
-        if (!_interactionState.IsInteractionBlocked()
-            && (_inputService.IsMouseHeld(MouseButton.Left) || _inputService.IsMouseHeld(MouseButton.Right)))
+        if (!_interactionState.IsInteractionBlocked())
         {
-            FindViewModelChildAction viewModelAction = default;
-            store.Query<ViewModelComponent, MeshRendererComponent, ChildComponent, FindViewModelChildAction>(0f, ref viewModelAction);
-
-            LocalSprayerAction action = new()
+            bool primaryHeld = _inputService.IsMouseHeld(MouseButton.Left);
+            bool secondaryHeld = _inputService.IsMouseHeld(MouseButton.Right);
+            if (primaryHeld || secondaryHeld)
             {
-                Owner = this,
-                HasViewModelChild = viewModelAction.Found,
-                ViewModelChild = viewModelAction.Child,
-            };
-            store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalSprayerAction>(delta, ref action);
+                bool hasViewModelChild = ViewModelGeometry.TryFindActiveChild(store, out ChildComponent viewModelChild);
+
+                LocalSprayerAction action = new()
+                {
+                    Owner = this,
+                    PrimaryHeld = primaryHeld,
+                    HasViewModelChild = hasViewModelChild,
+                    ViewModelChild = viewModelChild,
+                };
+                store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalSprayerAction>(delta, ref action);
+            }
         }
 
         ReleaseStaleSprayers(store);
@@ -79,21 +82,10 @@ internal sealed class PaintSprayerEffectSystem(
         int entity,
         in TransformComponent transform,
         in InventoryComponent inventory,
+        bool primaryHeld,
         bool hasViewModelChild,
         in ChildComponent viewModelChild
     ) {
-        if (_interactionState.IsInteractionBlocked())
-        {
-            return;
-        }
-
-        bool primaryHeld = _inputService.IsMouseHeld(MouseButton.Left);
-        bool secondaryHeld = _inputService.IsMouseHeld(MouseButton.Right);
-        if (!primaryHeld && !secondaryHeld)
-        {
-            return;
-        }
-
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, entity, inventory);
         if (!mainHandResult.Success || mainHandResult.Value.Item.Tool?.Type != ToolType.Sprayer)
         {
@@ -303,27 +295,16 @@ internal sealed class PaintSprayerEffectSystem(
         public readonly Uuid ImpactEmitterUuid = impactEmitterUuid;
     }
 
-    private struct FindViewModelChildAction : IForEach<ViewModelComponent, MeshRendererComponent, ChildComponent>
-    {
-        public bool Found;
-        public ChildComponent Child;
-
-        public void Execute(float delta, DataStore store, int entity, in ViewModelComponent viewModel, in MeshRendererComponent renderer, in ChildComponent child)
-        {
-            Found = true;
-            Child = child;
-        }
-    }
-
     private struct LocalSprayerAction : IForEach<PlayerComponent, TransformComponent, InventoryComponent>
     {
         public PaintSprayerEffectSystem Owner;
+        public bool PrimaryHeld;
         public bool HasViewModelChild;
         public ChildComponent ViewModelChild;
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in TransformComponent transform, in InventoryComponent inventory)
         {
-            Owner.UpdateLocalPlayer(store, entity, in transform, in inventory, HasViewModelChild, in ViewModelChild);
+            Owner.UpdateLocalPlayer(store, entity, in transform, in inventory, PrimaryHeld, HasViewModelChild, in ViewModelChild);
         }
     }
 }

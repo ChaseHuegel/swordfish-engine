@@ -1486,9 +1486,9 @@ public class PlayerViewModelTests
             fixture.System.Tick(0.016f, store);
 
             float maxRotMagnitude = MathF.Sqrt(
-                PlayerViewModelSystem.MAX_ROTATION_OFFSET_PITCH * PlayerViewModelSystem.MAX_ROTATION_OFFSET_PITCH
-                + PlayerViewModelSystem.MAX_ROTATION_OFFSET_YAW * PlayerViewModelSystem.MAX_ROTATION_OFFSET_YAW
-                + PlayerViewModelSystem.MAX_ROTATION_OFFSET_ROLL * PlayerViewModelSystem.MAX_ROTATION_OFFSET_ROLL
+                ViewModelReactiveMotion.MAX_ROTATION_OFFSET_PITCH * ViewModelReactiveMotion.MAX_ROTATION_OFFSET_PITCH
+                + ViewModelReactiveMotion.MAX_ROTATION_OFFSET_YAW * ViewModelReactiveMotion.MAX_ROTATION_OFFSET_YAW
+                + ViewModelReactiveMotion.MAX_ROTATION_OFFSET_ROLL * ViewModelReactiveMotion.MAX_ROTATION_OFFSET_ROLL
             );
 
             for (var i = 0; i < 40; i++)
@@ -1499,9 +1499,9 @@ public class PlayerViewModelTests
 
                 ChildComponent child = Assert.IsType<ChildComponent>(GetChild(store));
                 Vector3 posOffset = child.LocalPosition - restPos;
-                Assert.True(MathF.Abs(posOffset.X) <= PlayerViewModelSystem.MAX_POSITION_OFFSET_X + 1e-5f);
-                Assert.True(MathF.Abs(posOffset.Y) <= PlayerViewModelSystem.MAX_POSITION_OFFSET_Y + 1e-5f);
-                Assert.True(MathF.Abs(posOffset.Z) <= PlayerViewModelSystem.MAX_POSITION_OFFSET_Z + 1e-5f);
+                Assert.True(MathF.Abs(posOffset.X) <= ViewModelReactiveMotion.MAX_POSITION_OFFSET_X + 1e-5f);
+                Assert.True(MathF.Abs(posOffset.Y) <= ViewModelReactiveMotion.MAX_POSITION_OFFSET_Y + 1e-5f);
+                Assert.True(MathF.Abs(posOffset.Z) <= ViewModelReactiveMotion.MAX_POSITION_OFFSET_Z + 1e-5f);
 
                 //  Keep held item well clear of crosshair (X=0, Y=0) and camera near plane (Z=-0.1).
                 Assert.True(child.LocalPosition.X > 0.3f);
@@ -1669,6 +1669,7 @@ public class PlayerViewModelTests
 
             WaywardBeyondGameState.GameState.Set(GameState.Paused);
             fixture.System.Tick(0.016f, store);
+            AssertExactRestingPose(Assert.IsType<ChildComponent>(GetChild(store)), in modelA);
 
             orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, 2.2f);
             store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
@@ -1910,6 +1911,114 @@ public class PlayerViewModelTests
             WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
             laserSystem.Tick(0.016f, store);
             sprayerSystem.Tick(0.016f, store);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_StaysSmoothUnder128HzEcsWith62HzPhysicsSteps()
+    {
+        const float yawRate = -2.0f;
+        const float physicsDt = 0.016f;
+        const float ecsDt = 0.008f;
+
+        var continuousMotion = new ViewModelReactiveMotion();
+        var steppedMotion = new ViewModelReactiveMotion();
+
+        Quaternion continuousOrientation = Quaternion.Identity;
+        Quaternion steppedOrientation = Quaternion.Identity;
+        continuousMotion.SeedOrientation(in continuousOrientation);
+        steppedMotion.SeedOrientation(in steppedOrientation);
+
+        PhysicsComponent idlePhysics = default;
+        float maxTickToTickRipple = 0f;
+        float previousSteppedYaw = 0f;
+
+        //  Run 0.32s total: continuous updates every 8ms, stepped updates orientation only every 16ms (like Jolt under 128 TPS ECS).
+        for (var tick = 0; tick < 40; tick++)
+        {
+            continuousOrientation = Quaternion.Normalize(
+                continuousOrientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawRate * ecsDt)
+            );
+            var continuousTransform = new TransformComponent(Vector3.Zero, continuousOrientation, Vector3.One);
+            continuousMotion.Update(ecsDt, hasTransform: true, in continuousTransform, hasPhysics: false, in idlePhysics);
+
+            if (tick % 2 == 1)
+            {
+                steppedOrientation = Quaternion.Normalize(
+                    steppedOrientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawRate * physicsDt)
+                );
+            }
+
+            var steppedTransform = new TransformComponent(Vector3.Zero, steppedOrientation, Vector3.One);
+            steppedMotion.Update(ecsDt, hasTransform: true, in steppedTransform, hasPhysics: false, in idlePhysics);
+
+            if (tick >= 20)
+            {
+                float ripple = MathF.Abs(steppedMotion.RotationOffset.Y - previousSteppedYaw);
+                maxTickToTickRipple = MathF.Max(maxTickToTickRipple, ripple);
+            }
+
+            previousSteppedYaw = steppedMotion.RotationOffset.Y;
+        }
+
+        //  Stepped 62.5 Hz physics under 128 Hz ECS must track continuous turning closely without 64 Hz sawtooth collapse.
+        Assert.InRange(steppedMotion.RotationOffset.Y, 0.03f, ViewModelReactiveMotion.MAX_ROTATION_OFFSET_YAW);
+        Assert.True(
+            MathF.Abs(steppedMotion.RotationOffset.Y - continuousMotion.RotationOffset.Y) < 0.004f,
+            $"Stepped yaw {steppedMotion.RotationOffset.Y} diverged from continuous {continuousMotion.RotationOffset.Y}"
+        );
+        Assert.True(
+            MathF.Abs(steppedMotion.PositionOffset.X - continuousMotion.PositionOffset.X) < 0.002f,
+            $"Stepped pos X {steppedMotion.PositionOffset.X} diverged from continuous {continuousMotion.PositionOffset.X}"
+        );
+        Assert.True(maxTickToTickRipple < 0.004f, $"Unexpected tick-to-tick ripple: {maxTickToTickRipple}");
+    }
+
+    [Fact]
+    public void ReactiveMotion_PreservesSwayWhenCyclingBrickShapeMidFlight()
+    {
+        var fixture = new Fixture("slope.obj", SentinelMesh(new Vector3(0.1f, 0.2f, 0.3f)));
+        var brickViewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.4f, -0.4f, -0.5f),
+            Rotation = new ModelDefinition.Float3(0f, -60f, 0f),
+            Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f),
+        };
+        fixture.AddBrick("test:panel", BrickShape.Any, TEXTURE_A);
+        fixture.AddItem(
+            "test:panel",
+            placeable: new PlaceableDefinition { Type = PlaceableType.Brick, ID = "test:panel" },
+            viewModel: brickViewModel
+        );
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "test:panel");
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        store.AddOrUpdate(player, new PhysicsComponent(0, Swordfish.Physics.BodyType.Dynamic, Swordfish.Physics.CollisionDetection.Discrete, new Vector3(5f, 0f, 0f), Vector3.Zero));
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.System.Tick(0.016f, store);
+            for (var i = 0; i < 15; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent beforeShapeChange = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(beforeShapeChange.LocalPosition.X < brickViewModel.Position.X - 0.01f);
+
+            fixture.InteractionState.SelectedShape.Set(BrickShape.Slope);
+            fixture.System.Tick(0.016f, store);
+
+            ChildComponent afterShapeChange = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(afterShapeChange.LocalPosition.X < brickViewModel.Position.X - 0.01f);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
             fixture.System.Tick(0.016f, store);
             fixture.System.Dispose();
         }

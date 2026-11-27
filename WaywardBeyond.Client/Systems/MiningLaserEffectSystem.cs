@@ -90,14 +90,13 @@ internal sealed class MiningLaserEffectSystem(
 
         if (WaywardBeyond.IsPlaying() && !_interactionState.IsInteractionBlocked() && _inputService.IsMouseHeld(MouseButton.Left))
         {
-            FindViewModelChildAction viewModelAction = default;
-            store.Query<ViewModelComponent, MeshRendererComponent, ChildComponent, FindViewModelChildAction>(0f, ref viewModelAction);
+            bool hasViewModelChild = ViewModelGeometry.TryFindActiveChild(store, out ChildComponent viewModelChild);
 
             LocalLaserAction localAction = new()
             {
                 Owner = this,
-                HasViewModelChild = viewModelAction.Found,
-                ViewModelChild = viewModelAction.Child,
+                HasViewModelChild = hasViewModelChild,
+                ViewModelChild = viewModelChild,
             };
             store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalLaserAction>(delta, ref localAction);
         }
@@ -362,18 +361,6 @@ internal sealed class MiningLaserEffectSystem(
         public readonly Uuid ImpactEmitterUuid = impactEmitterUuid;
         public bool HasRenderer;
         public bool HasLight;
-    }
-
-    private struct FindViewModelChildAction : IForEach<ViewModelComponent, MeshRendererComponent, ChildComponent>
-    {
-        public ChildComponent Child;
-        public bool Found;
-
-        public void Execute(float delta, DataStore store, int entity, in ViewModelComponent viewModel, in MeshRendererComponent renderer, in ChildComponent child)
-        {
-            Child = child;
-            Found = true;
-        }
     }
 
     private struct LocalLaserAction : IForEach<PlayerComponent, TransformComponent, InventoryComponent>

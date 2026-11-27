@@ -1,7 +1,6 @@
 using System;
 using System.Numerics;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
 using WaywardBeyond.Items;
 using WaywardBeyond.Voxels;
 
@@ -24,27 +23,14 @@ internal static class PaintSprayerGeometry
     /// <summary>Computes the world-space nozzle tip origin for a first-person view-model child transform.</summary>
     public static Vector3 ComputeFirstPersonNozzle(in TransformComponent playerTransform, in ChildComponent viewModelChild)
     {
-        Vector3 worldOrigin = playerTransform.Position + Vector3.Transform(viewModelChild.LocalPosition, playerTransform.Orientation);
-        Quaternion worldOrientation = playerTransform.Orientation * viewModelChild.LocalOrientation;
-        Vector3 worldScale = playerTransform.Scale * viewModelChild.LocalScale;
-        return worldOrigin + Vector3.Transform(_nozzleLocal * worldScale, worldOrientation);
+        return ViewModelGeometry.ComputeWorldPoint(in playerTransform, in viewModelChild, in _nozzleLocal);
     }
 
     /// <summary>Computes the world-space nozzle tip origin for the first-person paint sprayer view model.</summary>
     public static Vector3 ComputeFirstPersonNozzle(in TransformComponent playerTransform, in ModelDefinition? viewModel)
     {
         ModelDefinition model = viewModel ?? _defaultViewModel;
-        var child = new ChildComponent(default)
-        {
-            LocalPosition = new Vector3(model.Position.X, model.Position.Y, model.Position.Z),
-            LocalOrientation = Quaternion.CreateFromYawPitchRoll(
-                model.Rotation.Y * MathS.DEGREES_TO_RADIANS,
-                model.Rotation.X * MathS.DEGREES_TO_RADIANS,
-                model.Rotation.Z * MathS.DEGREES_TO_RADIANS
-            ),
-            LocalScale = new Vector3(model.Scale.X, model.Scale.Y, model.Scale.Z),
-        };
-        return ComputeFirstPersonNozzle(in playerTransform, in child);
+        return ViewModelGeometry.ComputeWorldPoint(in playerTransform, in model, in _nozzleLocal);
     }
 
     /// <summary>Resolves a world-space outward normal and cell-center surface offset for <paramref name="faceMask"/>.</summary>
