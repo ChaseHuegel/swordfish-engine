@@ -151,15 +151,17 @@ public static class VoxelCodec
     /// <summary>Returns a message for the first chunk that declares a size but carries no voxel array.</summary>
     private static string? FindChunkError(ulong uuid, ChunkInfo[]? chunks)
     {
-        if (chunks != null)
+        if (chunks == null)
         {
-            for (var c = 0; c < chunks.Length; c++)
+            return null;
+        }
+        
+        for (var c = 0; c < chunks.Length; c++)
+        {
+            ChunkInfo chunkInfo = chunks[c];
+            if (chunkInfo.Chunk.Size > 0 && chunkInfo.Chunk.Voxels == null)
             {
-                ChunkInfo chunkInfo = chunks[c];
-                if (chunkInfo.Chunk.Size > 0 && chunkInfo.Chunk.Voxels == null)
-                {
-                    return $"Voxel entity {uuid} has a chunk at ({chunkInfo.OffsetX},{chunkInfo.OffsetY},{chunkInfo.OffsetZ}) with size {chunkInfo.Chunk.Size} but no voxels.";
-                }
+                return $"Voxel entity {uuid} has a chunk at ({chunkInfo.OffsetX},{chunkInfo.OffsetY},{chunkInfo.OffsetZ}) with size {chunkInfo.Chunk.Size} but no voxels.";
             }
         }
 
