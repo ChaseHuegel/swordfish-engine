@@ -121,7 +121,8 @@ cadence through `SendSnapshot`.
 - The input system writes a sample only when the movement, look totals, or held
   buttons change, plus a 1 s keepalive. An identical idle sample is not
   uploaded. The server and the client pending ring keep applying the newest
-  staged command until a newer sample supersedes it.
+  staged command until a newer sample supersedes it or it ages past
+  `Protocol.CommandMaxAgeTicks`, which resolves as idle input.
 
 ## Dirty tracking
 

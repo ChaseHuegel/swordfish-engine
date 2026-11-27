@@ -224,6 +224,7 @@ Top-level:
 |---|---|---|
 | `HeartbeatIntervalMs` | `1000` | session heartbeat cadence |
 | `SnapshotHz` | `30` | snapshot and upload cadence |
+| `CommandMaxAgeTicks` | `120` | oldest resolved input command both sides apply, in sim ticks; an older sample is idle input |
 | `JoinStreamTimeoutMs` | `60000` | client join and stream deadline |
 | `CallTimeoutMs` | `30000` | default RPC call deadline |
 | `MaxPendingCalls` | `1024` | pending calls and inbound requests per peer |

@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Numerics;
 using Krill;
 using Swordfish.ECS;
@@ -8,6 +9,7 @@ using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Events;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Networking;
@@ -34,6 +36,7 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
     private readonly EventInvoker<PlayerMovedEvent> _playerMovedEvent;
+    private readonly uint _commandMaxAgeTicks;
 
     private DataStore? _store;
     private bool _inputEnabled;
@@ -49,11 +52,15 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
         in IInputService inputService,
         in IWindowContext windowContext,
         in IPhysics physics,
-        in EventInvoker<PlayerMovedEvent> playerMovedEvent
+        in EventInvoker<PlayerMovedEvent> playerMovedEvent,
+        ProtocolConfig? protocol = null
     ) {
         _inputService = inputService;
         _physics = physics;
         _playerMovedEvent = playerMovedEvent;
+        _commandMaxAgeTicks = protocol == null
+            ? uint.MaxValue
+            : (uint)Math.Max(0, protocol.CommandMaxAgeTicks.Get());
 
         windowContext.Update += OnWindowUpdate;
         windowContext.Focused += OnWindowFocused;
@@ -101,7 +108,7 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
     public void Tick(float delta, DataStore store)
     {
         _store ??= store;
-        _step ??= new SimulationStep(store, _physics, ResolveCommand);
+        _step ??= new SimulationStep(store, _physics, ResolveCommand, _commandMaxAgeTicks);
 
         PlayerMovedAction action = new() { Owner = this };
         store.Query<PlayerComponent, TransformComponent, PlayerMovedAction>(delta, ref action);
@@ -117,7 +124,7 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
         //  sample at or below the tick is idle input, which resolves the same way on both sides.
         if (store.TryGet(entity, out PendingInputComponent pending) && pending.Ring != null)
         {
-            Result<InputComponent> staged = pending.Ring.GetCommand(simTick);
+            Result<InputComponent> staged = pending.Ring.GetCommand(simTick, _commandMaxAgeTicks);
             if (staged.Success)
             {
                 command = staged.Value;

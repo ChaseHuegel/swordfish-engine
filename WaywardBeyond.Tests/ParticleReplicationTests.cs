@@ -942,7 +942,7 @@ public sealed class ParticleReplicationTests
             Assert.True(clearedInput.PrimaryHeld);
             Assert.Equal(0.5f, clearedInput.MovementX);
             Assert.True(serverStore.TryGet(serverPlayer, out NetworkComponent net));
-            Result<InputComponent> staged = net.StagedInputs!.GetCommand(4);
+            Result<InputComponent> staged = net.StagedInputs!.GetCommand(4, uint.MaxValue);
             Assert.True(staged.Success);
             Assert.Null(staged.Value.PaintId);
             Assert.True(staged.Value.PrimaryHeld);
@@ -967,7 +967,7 @@ public sealed class ParticleReplicationTests
 
             Assert.True(serverStore.TryGet(serverPlayer, out InputComponent validInput));
             Assert.Equal("wb:red", validInput.PaintId);
-            Result<InputComponent> validStaged = net.StagedInputs!.GetCommand(5);
+            Result<InputComponent> validStaged = net.StagedInputs!.GetCommand(5, uint.MaxValue);
             Assert.True(validStaged.Success);
             Assert.Equal("wb:red", validStaged.Value.PaintId);
         }

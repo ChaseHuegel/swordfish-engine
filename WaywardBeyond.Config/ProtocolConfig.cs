@@ -10,6 +10,9 @@ public sealed record ProtocolConfig
     
     /// <summary>ECS snapshot cadence per second: the server publish rate and the client upload rate.</summary>
     public DataBinding<int> SnapshotHz { get; private set; } = new(30);
+
+    /// <summary>The oldest resolved input command both sides apply, in sim ticks. An older sample is idle input.</summary>
+    public DataBinding<int> CommandMaxAgeTicks { get; private set; } = new(120);
     
     /// <summary>How long a client-side join may wait for the level stream to complete, in milliseconds.</summary>
     public DataBinding<int> JoinStreamTimeoutMs { get; private set; } = new(60_000);

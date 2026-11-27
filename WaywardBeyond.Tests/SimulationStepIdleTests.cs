@@ -49,6 +49,29 @@ public class SimulationStepIdleTests
     }
 
     [Fact]
+    public void StaleCommandDampsInsteadOfMoving()
+    {
+        var store = new DataStore();
+        int entity = CreateEntity(store);
+        StageInput(store, entity, new InputComponent { MovementZ = 1f, ServerTickAtSample = 0 });
+
+        using var step = new SimulationStep(store, new FakePhysics(), commandMaxAgeTicks: 1);
+        step.AlignTo(0);
+
+        //  Tick 1 is within the bound, so the movement command applies and the body gains velocity.
+        step.Step();
+        Assert.True(store.TryGet(entity, out PhysicsComponent moving));
+        float appliedVelocity = moving.Velocity.Length();
+        Assert.True(appliedVelocity > 0f, "A command within the bound must move the body.");
+
+        //  Past the bound the sample is stale: it must read as idle input and damp the body instead of
+        //  re-applying the movement.
+        step.Step();
+        Assert.True(store.TryGet(entity, out PhysicsComponent damped));
+        Assert.True(damped.Velocity.Length() < appliedVelocity, "A stale command must damp the body instead of moving it.");
+    }
+
+    [Fact]
     public void MissingCommandDampsVelocity()
     {
         var store = new DataStore();

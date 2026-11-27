@@ -7,16 +7,25 @@ namespace WaywardBeyond.Gameplay.Networking;
 /// <summary>Domain lookups and staging rules over the networked staging rings.</summary>
 public static class StageRingExtensions
 {
-    /// <summary>Returns the newest input staged at or before <paramref name="simTick"/>.</summary>
-    public static Result<InputComponent> GetCommand(this StageRing<InputComponent> ring, uint simTick)
+    /// <summary>
+    /// Returns the newest input staged at or before <paramref name="simTick"/> when it is no older than
+    /// <paramref name="maxAgeTicks"/>. A stale newest sample resolves as idle input instead.
+    /// </summary>
+    public static Result<InputComponent> GetCommand(this StageRing<InputComponent> ring, uint simTick, uint maxAgeTicks)
     {
         for (var index = ring.Count - 1; index >= 0; index--)
         {
             InputComponent candidate = ring[index];
-            if (candidate.ServerTickAtSample <= simTick)
+            if (candidate.ServerTickAtSample > simTick)
             {
-                return Result<InputComponent>.FromSuccess(candidate);
+                continue;
             }
+
+            //  This is the newest sample at or below the tick. If it is stale, every older sample is too,
+            //  so the whole ring resolves as idle input rather than falling back to a previous command.
+            return simTick - candidate.ServerTickAtSample <= maxAgeTicks
+                ? Result<InputComponent>.FromSuccess(candidate)
+                : Result<InputComponent>.FromFailure((string?)null);
         }
 
         return Result<InputComponent>.FromFailure((string?)null);

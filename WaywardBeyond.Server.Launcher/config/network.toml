@@ -27,6 +27,7 @@ SendBacklogDisconnectMs = 10000
 [Protocol]
 HeartbeatIntervalMs = 1000
 SnapshotHz = 30
+CommandMaxAgeTicks = 120
 JoinStreamTimeoutMs = 60000
 CallTimeoutMs = 30000
 MaxPendingCalls = 1024
