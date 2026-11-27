@@ -114,6 +114,8 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `ParticleEmitterComponent` | 18 | ServerOwned | `ParticleEmitterCodec` |
 | `ParticleEmitterBindingComponent` | 19 | ServerOwned | `NsdComponentCodec<ParticleEmitterBindingComponent>` |
 
+`InputComponent` (`WaywardBeyond.Data/Nsd/components.nsd:5-19`) serializes movement, look totals, sequence bookkeeping, `DampenersDisabled` (field `8`, default `false` for dampeners enabled), held action buttons, and `PaintId`.
+
 Uuid allocation is stable and intentional. The sequence-gap at 4–9 and the
 assigned ids starting at 10 are reserved. Do not reuse these ids.
 

@@ -16,6 +16,7 @@ internal static class GameShortcuts
     public const string MOVE_DOWN = "Movement/Move down";
     public const string ROLL_LEFT = "Movement/Roll left";
     public const string ROLL_RIGHT = "Movement/Roll right";
+    public const string TOGGLE_DAMPENERS = "Movement/Toggle inertial dampeners";
 
     public const string PRIMARY_ACTION = "Interaction/Primary action";
     public const string SECONDARY_ACTION = "Interaction/Secondary action";
@@ -73,6 +74,20 @@ internal static class GameShortcuts
             Category = category,
             Name = name,
             Key = key,
+            IgnoreUnboundModifiers = true,
+            IsEnabled = Shortcut.DefaultEnabled,
+        };
+    }
+
+    /// <summary>Creates the inertial dampeners toggle shortcut definition.</summary>
+    public static Shortcut CreateToggleDampeners()
+    {
+        return new Shortcut
+        {
+            Category = "Movement",
+            Name = "Toggle inertial dampeners",
+            Modifiers = ShortcutModifiers.None,
+            Key = Key.Z,
             IgnoreUnboundModifiers = true,
             IsEnabled = Shortcut.DefaultEnabled,
         };

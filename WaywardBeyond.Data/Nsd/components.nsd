@@ -12,6 +12,7 @@ message InputComponent
     float LookRoll            = 5;
     uint  SequenceNumber      = 6;
     uint  ServerTickAtSample  = 7;
+    bool  DampenersDisabled   = 8;
     bool  PrimaryHeld         = 9;
     bool  SecondaryHeld       = 10;
     string? PaintId           = 11;

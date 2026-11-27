@@ -90,8 +90,9 @@ which flow as `VoxelEdit` notifications rather than snapshots.
   - `RemovedComponents` runs after `Components` so a pre-removal delta does not
     overwrite a component removal in the same snapshot. Bare entities persist
     until `RemovedEntities` frees them.
-- Trims `PendingInputComponent` by `LastProcessedInput`, and aligns the shared
-  step with the snapshot tick.
+- Trims `PendingInputComponent` by `LastProcessedInput` while retaining the
+  newest trimmed sample in `LastAcked`, and aligns the shared step with the
+  snapshot tick.
 - Creates a missing `PhysicsComponent` from the snapshot's body configuration
   and motion values. A body the client did not build itself (a remote player)
   materializes this way.
@@ -131,11 +132,12 @@ cadence through `SendSnapshot`.
   teardown and leaves the buffers staged.
 - Upload is paced to `SnapshotHz`, not the ECS tick rate. Dirty components
   persist across skipped ticks.
-- The input system writes a sample only when the movement, look totals, or held
-  buttons change, plus a 1 s keepalive. An identical idle sample is not
-  uploaded. The server and the client pending ring keep applying the newest
-  staged command until a newer sample supersedes it or it ages past
-  `Protocol.CommandMaxAgeTicks`, which resolves as idle input.
+- The input system writes a sample only when the movement, look totals, dampener
+  state, or held buttons change, plus a 1 s keepalive. An identical idle sample
+  is not uploaded. The server and the client pending ring keep applying the
+  newest staged command (with `LastAcked` bridging ack trims on the client)
+  until a newer sample supersedes it or it ages past `Protocol.CommandMaxAgeTicks`,
+  which resolves as idle input.
 
 ## Dirty tracking
 

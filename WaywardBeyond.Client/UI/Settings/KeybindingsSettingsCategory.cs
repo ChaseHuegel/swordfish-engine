@@ -373,6 +373,7 @@ internal static class KeybindingsSettingsCategory
             GameShortcuts.MOVE_DOWN => 5,
             GameShortcuts.ROLL_LEFT => 6,
             GameShortcuts.ROLL_RIGHT => 7,
+            GameShortcuts.TOGGLE_DAMPENERS => 8,
 
             GameShortcuts.PRIMARY_ACTION => 100,
             GameShortcuts.SECONDARY_ACTION => 101,
@@ -441,6 +442,7 @@ internal static class KeybindingsSettingsCategory
             GameShortcuts.MOVE_DOWN => "ui.settings.keybind.moveDown",
             GameShortcuts.ROLL_LEFT => "ui.settings.keybind.rollLeft",
             GameShortcuts.ROLL_RIGHT => "ui.settings.keybind.rollRight",
+            GameShortcuts.TOGGLE_DAMPENERS => "ui.settings.keybind.toggleInertialDampeners",
 
             GameShortcuts.PRIMARY_ACTION => "ui.settings.keybind.primaryAction",
             GameShortcuts.SECONDARY_ACTION => "ui.settings.keybind.secondaryAction",

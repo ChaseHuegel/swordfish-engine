@@ -590,6 +590,7 @@ public class KeybindingSettingsInteractionTests
         Assert.Equal("ui.settings.keybind.blueprintMirrorHorizontal", FindEntry(category, GameShortcuts.BLUEPRINT_MIRROR_HORIZONTAL).LabelKey);
         Assert.Equal("ui.settings.keybind.blueprintMirrorVertical", FindEntry(category, GameShortcuts.BLUEPRINT_MIRROR_VERTICAL).LabelKey);
         Assert.Equal("ui.settings.keybind.blueprintOverwriteEmpty", FindEntry(category, GameShortcuts.BLUEPRINT_OVERWRITE_EMPTY).LabelKey);
+        Assert.Equal("ui.settings.keybind.toggleInertialDampeners", FindEntry(category, GameShortcuts.TOGGLE_DAMPENERS).LabelKey);
     }
 
     private static KeybindingEntry FindEntry(SettingsCategory category, string shortcutId)
@@ -616,6 +617,7 @@ public class KeybindingSettingsInteractionTests
         shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move down", Key.Control));
         shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Roll left", Key.Q));
         shortcuts.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Roll right", Key.E));
+        shortcuts.RegisterShortcut(GameShortcuts.CreateToggleDampeners());
 
         shortcuts.RegisterShortcut(GameShortcuts.CreatePrimaryAction());
         shortcuts.RegisterShortcut(GameShortcuts.CreateSecondaryAction());

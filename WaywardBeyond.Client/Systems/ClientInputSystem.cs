@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using System.Threading;
 using Krill;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
@@ -28,10 +29,13 @@ internal sealed class ClientInputSystem : IEntitySystem
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly InteractionState? _interactionState;
 
+    private readonly Lock _dampenersLock = new();
+
     private uint _sequenceNumber;
     private InputComponent _lastSent;
     private bool _hasSent;
     private float _sinceSend;
+    private bool _dampenersDisabled;
 
     //  Running absolute look totals in radians. The wire carries these totals and the shared step applies
     //  the per-sim-tick difference, so no input is dropped regardless of sampling vs physics cadence.
@@ -39,6 +43,16 @@ internal sealed class ClientInputSystem : IEntitySystem
     private float _lookPitch;
     private float _lookYaw;
     private float _lookRoll;
+
+    /// <summary>Whether inertial dampeners are currently enabled for the local player.</summary>
+    public bool DampenersEnabled
+    {
+        get
+        {
+            using Lock.Scope _ = _dampenersLock.EnterScope();
+            return !_dampenersDisabled;
+        }
+    }
 
     public ClientInputSystem(
         in ClientPlayerMotionProcessor motionProcessor,
@@ -61,6 +75,13 @@ internal sealed class ClientInputSystem : IEntitySystem
         shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Move down", Key.Control));
         shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Roll left", Key.Q));
         shortcutService.RegisterShortcut(GameShortcuts.CreateHeld("Movement", "Roll right", Key.E));
+
+        GameShortcuts.RegisterOrAddHandler(
+            shortcutService,
+            GameShortcuts.CreateToggleDampeners(),
+            IsToggleDampenersEnabled,
+            ToggleDampeners
+        );
 
         GameShortcuts.RegisterOrAddHandler(shortcutService, GameShortcuts.CreatePrimaryAction());
         GameShortcuts.RegisterOrAddHandler(shortcutService, GameShortcuts.CreateSecondaryAction());
@@ -94,6 +115,7 @@ internal sealed class ClientInputSystem : IEntitySystem
         bool secondaryHeld = _shortcutService.IsHeld(GameShortcuts.SECONDARY_ACTION);
         bool activePrimary = inputEnabled && primaryHeld;
         bool activeSecondary = inputEnabled && secondaryHeld;
+        bool dampenersDisabled = !DampenersEnabled;
 
         var input = new InputComponent
         {
@@ -104,6 +126,7 @@ internal sealed class ClientInputSystem : IEntitySystem
             LookYaw = _lookYaw,
             LookRoll = _lookRoll,
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,
+            DampenersDisabled = dampenersDisabled,
             PrimaryHeld = activePrimary,
             SecondaryHeld = activeSecondary,
             PaintId = activePrimary ? _interactionState?.SelectedColorPaintId.Get() : null,
@@ -133,6 +156,11 @@ internal sealed class ClientInputSystem : IEntitySystem
     /// <summary>Clears look totals, the last sample, the sim tick, and the step's look history for a new join session.</summary>
     internal void ResetSession(Uuid playerUuid)
     {
+        using (Lock.Scope _ = _dampenersLock.EnterScope())
+        {
+            _dampenersDisabled = false;
+        }
+
         _sequenceNumber = 0;
         _lastSent = default;
         _hasSent = false;
@@ -143,6 +171,22 @@ internal sealed class ClientInputSystem : IEntitySystem
         _motionProcessor.CursorUpdates.Clear();
         _motionProcessor.Step?.AlignTo(0);
         _motionProcessor.Step?.ForgetLookHistory(playerUuid);
+    }
+
+    private bool IsToggleDampenersEnabled()
+    {
+        if (_interactionState != null)
+        {
+            return WaywardBeyond.IsPlaying() && !_interactionState.IsInteractionBlocked();
+        }
+
+        return _motionProcessor.IsInputEnabled;
+    }
+
+    private void ToggleDampeners()
+    {
+        using Lock.Scope _ = _dampenersLock.EnterScope();
+        _dampenersDisabled = !_dampenersDisabled;
     }
 
     /// <summary>
@@ -157,6 +201,7 @@ internal sealed class ClientInputSystem : IEntitySystem
             && a.LookPitch == b.LookPitch
             && a.LookYaw == b.LookYaw
             && a.LookRoll == b.LookRoll
+            && a.DampenersDisabled == b.DampenersDisabled
             && a.PrimaryHeld == b.PrimaryHeld
             && a.SecondaryHeld == b.SecondaryHeld
             && string.Equals(a.PaintId, b.PaintId, StringComparison.Ordinal);

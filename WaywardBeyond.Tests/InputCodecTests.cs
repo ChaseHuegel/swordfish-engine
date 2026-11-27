@@ -35,6 +35,7 @@ public class NetworkComponentCodecTests
             LookRoll = 3.3f,
             SequenceNumber = 9,
             ServerTickAtSample = 7,
+            DampenersDisabled = true,
         };
         store.AddOrUpdate(entity, input);
 
@@ -57,6 +58,8 @@ public class NetworkComponentCodecTests
         Assert.Equal(input.LookRoll, result.LookRoll);
         Assert.Equal(input.SequenceNumber, result.SequenceNumber);
         Assert.Equal(input.ServerTickAtSample, result.ServerTickAtSample);
+        Assert.True(result.DampenersDisabled);
+        Assert.False(new InputComponent().DampenersDisabled);
     }
 
     [Fact]

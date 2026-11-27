@@ -167,12 +167,17 @@ public sealed class SimulationStep : IDisposable
         //  server replicates this component to every client.
         PhysicsComponent current = physics.Read;
         Vector3 torque = DampAngular(current.Torque, fixedTimestamp);
-        Vector3 velocity = DampLinear(current.Velocity, fixedTimestamp);
+        Vector3 velocity = current.Velocity;
 
         //  The command for the current sim tick. Newest-for-tick collapse is handled by the resolver;
-        //  a missing command leaves the damping above as the whole step.
+        //  a missing command damps linear velocity so a stalled stream slows to rest.
         if (_resolveCommand(entity, CurrentSimTick, out InputComponent command))
         {
+            if (!command.DampenersDisabled)
+            {
+                velocity = DampLinear(velocity, fixedTimestamp);
+            }
+
             //  Look: the wire carries absolute look totals; apply their per-sim-tick difference as
             //  angular velocity, decoupled from dt so each step rotates by the full accumulated delta.
             //  Totals are absolute per session, so the delta is tracked per entity identity: a recycled
@@ -201,6 +206,10 @@ public sealed class SimulationStep : IDisposable
             Vector3 direction = command.MovementX * right + command.MovementY * up + command.MovementZ * forward;
 
             velocity += direction * CharacterDefaults.BASE_SPEED * fixedTimestamp;
+        }
+        else
+        {
+            velocity = DampLinear(velocity, fixedTimestamp);
         }
 
         if (torque != current.Torque)
