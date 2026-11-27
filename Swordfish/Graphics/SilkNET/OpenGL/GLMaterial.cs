@@ -77,7 +77,7 @@ internal sealed class GLMaterial : Handle
             ShaderProgram.SetUniform("texture" + i, i);
         }
 
-        return new Scope(new ArraySegment<GLHandle.Scope>(scopes, 0, Textures.Length));
+        return new Scope(new ArraySegment<GLHandle.Scope>(scopes, 0, Textures.Length + 1));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
