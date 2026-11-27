@@ -43,13 +43,13 @@ internal sealed class PlayerViewModelSystem(
     private static readonly ViewModelAnimationProfile _miningLaserAnimation = new(
         TriggerOnSecondary: false,
         PositionAmplitude: new Vector3(0.0024f, 0.002f, 0.003f),
-        PositionFrequency: new Vector3(47f, 59f, 37f),
+        PositionFrequency: new Vector3(27f, 39f, 17f),
         YawAmplitude: 0.003f,
         YawFrequency: 53f,
         PitchAmplitude: 0.004f,
-        PitchFrequency: 43f,
+        PitchFrequency: 23f,
         RollAmplitude: 0.0045f,
-        RollFrequency: 61f
+        RollFrequency: 41f
     );
 
     private static readonly ModelDefinition _defaultViewModel = new()
