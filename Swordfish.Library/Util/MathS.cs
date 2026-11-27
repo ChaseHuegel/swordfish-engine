@@ -9,6 +9,9 @@ public static class MathS
     public const float RADIANS_FULL_REVOLUTION = MathF.PI * 2;
     public const float RADIANS_HALF_REVOLUTION = MathF.PI;
 
+    /// <summary>Elapsed-second interval at which presentation time wraps, a whole number of 2π cycles.</summary>
+    public const double TIME_WRAP_SECONDS = Math.PI * 2 * 512;
+
     public static readonly Random Random = new();
 
     public static float Lerp(float start, float end, float value)
