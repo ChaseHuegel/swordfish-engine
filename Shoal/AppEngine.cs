@@ -34,7 +34,11 @@ public sealed class AppEngine : IDisposable
 
     public IContainer Container { get; }
 
-    private AppEngine(in string[] args, AppPaths appPaths, DryIocInjectCallback? dryIocInjectCallback = null)
+    private AppEngine(
+        in string[] args,
+        AppPaths appPaths,
+        DryIocInjectCallback? dryIocInjectCallback = null,
+        ModuleResolutionOptions? moduleResolution = null)
     {
         ConfigurePaths(appPaths);
         Logger.LogInformation(
@@ -57,7 +61,7 @@ public sealed class AppEngine : IDisposable
             Logger.LogError(ex, "Failed to parse command line arguments.");
         }
 
-        IContainer coreContainer = CreateCoreContainer(commandLineArgs, appPaths);
+        IContainer coreContainer = CreateCoreContainer(commandLineArgs, appPaths, moduleResolution ?? new ModuleResolutionOptions());
         ActivateTomlMappers(coreContainer);
 
         dryIocInjectCallback?.Invoke(coreContainer);
@@ -87,14 +91,20 @@ public sealed class AppEngine : IDisposable
         }
     }
 
-    public static AppEngine Build(in string[] args, AppPaths appPaths)
+    /// <summary>Builds a Shoal application host using the supplied paths and optional module resolution settings.</summary>
+    public static AppEngine Build(in string[] args, AppPaths appPaths, ModuleResolutionOptions? moduleResolution = null)
     {
-        return new AppEngine(args, appPaths);
+        return new AppEngine(args, appPaths, moduleResolution: moduleResolution);
     }
 
-    public static AppEngine Build(in string[] args, AppPaths appPaths, DryIocInjectCallback dryIocInjectCallback)
+    /// <summary>Builds a Shoal application host with an additional core container injection callback.</summary>
+    public static AppEngine Build(
+        in string[] args,
+        AppPaths appPaths,
+        DryIocInjectCallback dryIocInjectCallback,
+        ModuleResolutionOptions? moduleResolution = null)
     {
-        return new AppEngine(args, appPaths, dryIocInjectCallback);
+        return new AppEngine(args, appPaths, dryIocInjectCallback, moduleResolution);
     }
 
     public void Dispose()
@@ -254,12 +264,13 @@ public sealed class AppEngine : IDisposable
         builder.AddProvider(_fileLoggerProvider);
     }
 
-    private IContainer CreateCoreContainer(CommandLineArgs args, AppPaths appPaths)
+    private IContainer CreateCoreContainer(CommandLineArgs args, AppPaths appPaths, ModuleResolutionOptions moduleResolution)
     {
         IContainer container = new Container();
 
         container.RegisterInstance<CommandLineArgs>(args);
         container.RegisterInstance(appPaths);
+        container.RegisterInstance(moduleResolution);
         container.RegisterInstance<LogListener>(_logListener);
         container.RegisterInstance<LoggingConfig>(LoggingConfig);
 
