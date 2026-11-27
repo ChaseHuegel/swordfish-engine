@@ -54,7 +54,7 @@ public sealed class ServerLaserBeamSystem(
         in TransformComponent transform,
         in InputComponent latestInput
     ) {
-        bool primaryHeld = ResolvePrimaryHeld(in net, in latestInput, simTick);
+        bool primaryHeld = ResolvePrimaryHeld(in net, in latestInput, simTick, _simulationStep.CommandMaxAgeTicks);
         bool holdingLaser = primaryHeld && IsHoldingMiningTool(store, entity);
 
         if (!holdingLaser)
@@ -96,18 +96,17 @@ public sealed class ServerLaserBeamSystem(
         store.AddOrUpdate(entity, candidate);
     }
 
-    private static bool ResolvePrimaryHeld(in NetworkComponent net, in InputComponent latestInput, uint simTick)
+    private static bool ResolvePrimaryHeld(in NetworkComponent net, in InputComponent latestInput, uint simTick, uint maxAgeTicks)
     {
-        if (net.StagedInputs != null)
+        //  An empty ring has no staged samples yet, so the live component is the best available source.
+        //  Once samples are staged, a stale or future-only ring resolves as idle instead of falling back.
+        if (net.StagedInputs == null || net.StagedInputs.Count == 0)
         {
-            Result<InputComponent> staged = net.StagedInputs.GetCommand(simTick);
-            if (staged.Success)
-            {
-                return staged.Value.PrimaryHeld;
-            }
+            return latestInput.PrimaryHeld;
         }
 
-        return latestInput.PrimaryHeld;
+        Result<InputComponent> staged = net.StagedInputs.GetCommand(simTick, maxAgeTicks);
+        return staged.Success && staged.Value.PrimaryHeld;
     }
 
     private bool IsHoldingMiningTool(DataStore store, int entity)

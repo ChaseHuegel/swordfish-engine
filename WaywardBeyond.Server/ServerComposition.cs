@@ -82,7 +82,7 @@ public static class ServerComposition
         container.Register<IServerWorldPhysics>(made: Made.Of(() => CreateWorldPhysics(Arg.Of<ILoggerFactory>(), Arg.Of<PhysicsSettings>())), ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         //  The step is disposable and transient by template; each world pins and disposes its own instance.
         container.Register(
-            made: Made.Of(() => CreateSimulationStep(Arg.Of<World>(), Arg.Of<IServerWorldPhysics>())),
+            made: Made.Of(() => CreateSimulationStep(Arg.Of<World>(), Arg.Of<IServerWorldPhysics>(), Arg.Of<ProtocolConfig>())),
             setup: Setup.With(allowDisposableTransient: true)
         );
         container.Register<Func<DataStore, IVoxelInteractionWorld>>(made: Made.Of(() => CreateInteractionWorldFactory(Arg.Of<IServerWorldPhysics>())));
@@ -138,6 +138,7 @@ public static class ServerComposition
     private static void PinSharedSingletons(IContainer container)
     {
         container.Resolve<NetworkRegistry>();
+        container.Resolve<ProtocolConfig>();
         container.Resolve<ILevelCatalog>();
         container.Resolve<PermissionPolicy>();
         container.Resolve<ServerPeers>();
@@ -159,9 +160,9 @@ public static class ServerComposition
         container.Register<IServerWorldSystem, T>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 
-    private static SimulationStep CreateSimulationStep(World world, IServerWorldPhysics physics)
+    private static SimulationStep CreateSimulationStep(World world, IServerWorldPhysics physics, ProtocolConfig protocol)
     {
-        return new SimulationStep(world.DataStore, physics);
+        return new SimulationStep(world.DataStore, physics, commandMaxAgeTicks: (uint)Math.Max(0, protocol.CommandMaxAgeTicks.Get()));
     }
 
     private static IServerWorldPhysics CreateWorldPhysics(ILoggerFactory loggerFactory, PhysicsSettings physicsSettings)

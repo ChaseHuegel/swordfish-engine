@@ -83,8 +83,19 @@ public class StageRingTests
         ring.Add(Input(3, 12));
 
         //  Tick 10 has no staged command; return the newest at or below it (tick 9).
-        Assert.Equal(2u, ring.GetCommand(10).Value.SequenceNumber);
-        Assert.False(ring.GetCommand(4).Success);
+        Assert.Equal(2u, ring.GetCommand(10, uint.MaxValue).Value.SequenceNumber);
+        Assert.False(ring.GetCommand(4, uint.MaxValue).Success);
+    }
+
+    [Fact]
+    public void ReturnsNoCommandWhenTheNewestInputIsStale()
+    {
+        var ring = new StageRing<InputComponent>(8);
+        ring.Add(Input(1, 5));
+        ring.Add(Input(2, 9));
+
+        Assert.Equal(2u, ring.GetCommand(10, maxAgeTicks: 1).Value.SequenceNumber);
+        Assert.False(ring.GetCommand(11, maxAgeTicks: 1).Success);
     }
 
     [Fact]
@@ -98,7 +109,7 @@ public class StageRingTests
         ring.TrimAtOrBelow(9);
 
         Assert.Equal(1, ring.Count);
-        Assert.Equal(3u, ring.GetCommand(12).Value.SequenceNumber);
+        Assert.Equal(3u, ring.GetCommand(12, uint.MaxValue).Value.SequenceNumber);
     }
 
     [Fact]

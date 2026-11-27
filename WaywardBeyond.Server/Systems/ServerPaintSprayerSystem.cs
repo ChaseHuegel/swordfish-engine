@@ -76,7 +76,7 @@ public sealed class ServerPaintSprayerSystem(
         in TransformComponent transform,
         in InputComponent latestInput
     ) {
-        InputComponent input = ResolveInput(in net, in latestInput, simTick);
+        InputComponent input = ResolveInput(in net, in latestInput, simTick, _simulationStep.CommandMaxAgeTicks);
         bool firing = input.PrimaryHeld || input.SecondaryHeld;
         if (!firing
             || !TransformCodec.IsValid(in transform.Position, in transform.Orientation, transform.Scale)
@@ -269,18 +269,17 @@ public sealed class ServerPaintSprayerSystem(
         }
     }
 
-    private static InputComponent ResolveInput(in NetworkComponent net, in InputComponent latestInput, uint simTick)
+    private static InputComponent ResolveInput(in NetworkComponent net, in InputComponent latestInput, uint simTick, uint maxAgeTicks)
     {
-        if (net.StagedInputs != null)
+        //  An empty ring has no staged samples yet, so the live component is the best available source.
+        //  Once samples are staged, a stale or future-only ring resolves as idle instead of falling back.
+        if (net.StagedInputs == null || net.StagedInputs.Count == 0)
         {
-            Result<InputComponent> staged = net.StagedInputs.GetCommand(simTick);
-            if (staged.Success)
-            {
-                return staged.Value;
-            }
+            return latestInput;
         }
 
-        return latestInput;
+        Result<InputComponent> staged = net.StagedInputs.GetCommand(simTick, maxAgeTicks);
+        return staged.Success ? staged.Value : default;
     }
 
     private bool IsHoldingSprayerTool(DataStore store, int entity)

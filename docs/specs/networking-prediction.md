@@ -77,9 +77,18 @@ command resolver reads the pending ring (`StageRingExtensions.GetCommand`)
 instead of the newest live component, so every step after an `AlignTo` applies
 the surviving in-flight inputs tick-exactly. The lookup implements the
 **newest-per-sim-tick rule**: it scans newest-to-oldest and returns the newest
-sample whose `ServerTickAtSample` is at or below the sim tick. The server's
-staged ring uses the same lookup, so both sides consume the same command-per-tick
-sequence and "same input sequence → same state" holds.
+sample whose `ServerTickAtSample` is at or below the sim tick, but only when
+that sample is no older than `Protocol.CommandMaxAgeTicks` (`network.toml`,
+default 120 sim ticks). An older sample resolves no command. The server's
+staged ring uses the same lookup and the same configured bound, so both sides
+consume the same command-per-tick sequence and "same input sequence → same
+state" holds.
+
+The bound turns a stopped client or a network stall into idle input: the body
+damps instead of re-applying the last held movement for as long as the client
+stays silent. A hostile client cannot keep moving by withholding input. The
+one-second client keepalive stays well inside the default bound, so a
+well-behaved idle client keeps its held command active between keepalives.
 
 The client ring is staged by `ClientInputSystem` and trimmed in place by
 `ClientReconcileSystem`. A player without a ring, or a ring with no sample at or
@@ -144,3 +153,5 @@ incoming, correct local-player orientation) → render reads final `Transform`.
 - `WaywardBeyond.Gameplay/SimulationStep.cs` — the shared simulation step
 - `WaywardBeyond.Client/Components/PendingInputComponent.cs`
 - `WaywardBeyond.Gameplay/Networking/StageRing.cs`
+- `WaywardBeyond.Gameplay/Networking/StageRingExtensions.cs` — newest-per-tick command and staleness bound
+- `WaywardBeyond.Config/ProtocolConfig.cs` — `CommandMaxAgeTicks`

@@ -164,8 +164,9 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
         }
 
         //  The ring is trimmed at or below each ack, so an empty lookup means the ack has not advanced
-        //  past the totals already known. Keep them rather than falling back to zero.
-        Result<InputComponent> acked = pending.Ring.GetCommand(ackTick);
+        //  past the totals already known. Keep them rather than falling back to zero. This is ack
+        //  bookkeeping rather than command application, so the command staleness bound does not apply.
+        Result<InputComponent> acked = pending.Ring.GetCommand(ackTick, uint.MaxValue);
         return acked.Success
             ? new Vector3(acked.Value.LookPitch, acked.Value.LookYaw, acked.Value.LookRoll)
             : fallback;

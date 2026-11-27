@@ -22,6 +22,7 @@ public sealed class SimulationStep : IDisposable
     private readonly DataStore _store;
     private readonly IPhysics _physics;
     private readonly CommandResolver _resolveCommand;
+    private readonly uint _commandMaxAgeTicks;
 
     private readonly Dictionary<Uuid, Vector3> _lastAppliedLook = [];
 
@@ -33,6 +34,9 @@ public sealed class SimulationStep : IDisposable
 
     /// <summary>The sim tick the next step applies; the server publishes it and reconcile aligns to it.</summary>
     public uint CurrentSimTick { get; private set; }
+
+    /// <summary>The maximum age of a staged input command a step applies, in sim ticks.</summary>
+    public uint CommandMaxAgeTicks => _commandMaxAgeTicks;
 
     /// <summary>Re-seeds the sim-tick counter so replay continues from the server's tick.</summary>
     public void AlignTo(uint simTick)
@@ -53,20 +57,22 @@ public sealed class SimulationStep : IDisposable
     public SimulationStep(
         DataStore store,
         in IPhysics physics,
-        CommandResolver? resolveCommand = null
+        CommandResolver? resolveCommand = null,
+        uint commandMaxAgeTicks = uint.MaxValue
     ) {
         _store = store;
         _physics = physics;
-        _resolveCommand = resolveCommand ?? ((int entity, uint simTick, out InputComponent command) => ResolveStagedInput(_store, entity, simTick, out command));
+        _commandMaxAgeTicks = commandMaxAgeTicks;
+        _resolveCommand = resolveCommand ?? ((int entity, uint simTick, out InputComponent command) => ResolveStagedInput(_store, entity, simTick, _commandMaxAgeTicks, out command));
         physics.FixedUpdate += OnFixedUpdate;
     }
 
     /// <summary>Resolves the staged input for a sim tick from the store's <see cref="NetworkComponent"/> buffer.</summary>
-    private static bool ResolveStagedInput(DataStore store, int entity, uint simTick, out InputComponent command)
+    private static bool ResolveStagedInput(DataStore store, int entity, uint simTick, uint maxAgeTicks, out InputComponent command)
     {
         if (store.TryGet(entity, out NetworkComponent net) && net.StagedInputs != null)
         {
-            Result<InputComponent> staged = net.StagedInputs.GetCommand(simTick);
+            Result<InputComponent> staged = net.StagedInputs.GetCommand(simTick, maxAgeTicks);
             if (staged.Success)
             {
                 command = staged.Value;
