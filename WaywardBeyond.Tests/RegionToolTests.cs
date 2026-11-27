@@ -527,9 +527,9 @@ public class RegionToolTests
             World.DataStore.AddOrUpdate(_player, new PlayerComponent());
             World.DataStore.AddOrUpdate(_player, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
             World.DataStore.AddOrUpdate(_player, new GameModeComponent(GameMode.Creative));
-            var inv = new InventoryComponent(36);
-            inv.Contents[2] = new ItemData("wb:projector", 1, 1);
-            inv.Contents[3] = new ItemData("wb:core", 1, 1);
+            var inv = InventoryComponent.CreatePlayer();
+            inv.Set(new SlotId(SlotGroups.HOTBAR, 2), new ItemData("wb:projector", 1, 1));
+            inv.Set(new SlotId(SlotGroups.HOTBAR, 3), new ItemData("wb:core", 1, 1));
             World.DataStore.AddOrUpdate(_player, inv);
             World.DataStore.AddOrUpdate(_player, new EquipmentComponent { ActiveInventorySlot = 0 });
 

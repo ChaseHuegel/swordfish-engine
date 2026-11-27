@@ -47,7 +47,8 @@ public sealed class NsdComponentCodec<T> : IPayloadCodec<T>
     {
         try
         {
-            store.AddOrUpdate(entity, _deserialize(payload));
+            T value = _deserialize(payload);
+            store.AddOrUpdate(entity, value);
             return Result.FromSuccess();
         }
         catch (Exception ex)

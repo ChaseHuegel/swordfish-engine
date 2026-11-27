@@ -32,14 +32,14 @@ public sealed class PlaceConsumeReactor : IInteractionHandler
             return InteractionDecision.Continue;
         }
 
-        int slot = equipment.ActiveInventorySlot;
-        if (slot < 0 || slot >= inventory.Contents.Length)
+        var hotbarSlot = new SlotId(SlotGroups.HOTBAR, equipment.ActiveInventorySlot);
+        if (inventory.Get(in hotbarSlot).IsEmpty())
         {
             return InteractionDecision.Continue;
         }
 
-        InventoryComponent updated = inventory;
-        updated.Remove(slot, 1);
+        InventoryComponent updated = inventory.Clone();
+        updated.Remove(in hotbarSlot, 1);
         context.Store.AddOrUpdate(context.Player, updated);
         return InteractionDecision.Continue;
     }

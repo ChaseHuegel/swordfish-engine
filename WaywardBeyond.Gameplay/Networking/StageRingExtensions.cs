@@ -114,14 +114,23 @@ public static class StageRingExtensions
             : Result<InteractionEvent>.FromFailure((string?)null);
     }
 
-    /// <summary>Stages one inventory op, replacing a re-staged sequence in place.</summary>
+    /// <summary>Stages one unified inventory transfer op, replacing a re-staged sequence in place.</summary>
+    public static void Stage(this StageRing<InventoryOp> ring, uint sequenceNumber, in TransferOp transfer)
+    {
+        StageEntry(ring, new InventoryOp(sequenceNumber, in transfer));
+    }
+
+    /// <summary>Stages one legacy inventory op, replacing a re-staged sequence in place.</summary>
     public static void Stage(this StageRing<InventoryOp> ring, uint sequenceNumber, in SlotMoveOp slotMove)
     {
-        var value = new InventoryOp(sequenceNumber, in slotMove);
+        StageEntry(ring, new InventoryOp(sequenceNumber, in slotMove));
+    }
 
+    private static void StageEntry(StageRing<InventoryOp> ring, in InventoryOp value)
+    {
         for (var index = 0; index < ring.Count; index++)
         {
-            if (ring[index].SequenceNumber == sequenceNumber)
+            if (ring[index].SequenceNumber == value.SequenceNumber)
             {
                 ring[index] = value;
                 return;

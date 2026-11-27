@@ -111,21 +111,14 @@ public sealed class ServerLaserBeamSystem(
 
     private bool IsHoldingMiningTool(DataStore store, int entity)
     {
-        if (!store.TryGet(entity, out EquipmentComponent equipment) ||
-            !store.TryGet(entity, out InventoryComponent inventory) ||
-            inventory.Contents == null)
+        if (!store.TryGet(entity, out EquipmentComponent equipment)
+            || !store.TryGet(entity, out InventoryComponent inventory))
         {
             return false;
         }
 
-        int slot = equipment.ActiveInventorySlot;
-        if (slot < 0 || slot >= inventory.Contents.Length)
-        {
-            return false;
-        }
-
-        ItemData itemData = inventory.Contents[slot];
-        if (itemData.Count <= 0 || string.IsNullOrEmpty(itemData.ID))
+        ItemData itemData = inventory.Get(new SlotId(SlotGroups.HOTBAR, equipment.ActiveInventorySlot));
+        if (itemData.IsEmpty())
         {
             return false;
         }

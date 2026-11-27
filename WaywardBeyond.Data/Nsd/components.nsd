@@ -64,9 +64,22 @@ message EquipmentComponent
     int ActiveInventorySlot = 0;
 }
 
+message SlotId
+{
+    string GroupId = 0;
+    int LocalIndex = 1;
+}
+
+message SlotGroupDescriptor
+{
+    string GroupId = 0;
+    int Capacity = 1;
+}
+
 message InventoryComponent
 {
-    WaywardBeyond.Data.ItemData[] Contents = 0;
+    SlotGroupDescriptor[] Groups = 0;
+    WaywardBeyond.Data.KeyedSlotEntry[] Slots = 1;
 }
 
 message GameModeComponent
@@ -119,6 +132,7 @@ message InventoryEvent
     ulong Entity              = 0;
     uint  SequenceNumber      = 1;
     SlotMoveOp? SlotMove      = 2;
+    TransferOp? Transfer      = 3;
 }
 
 message SlotMoveOp
@@ -133,4 +147,20 @@ enum SlotMoveOpMode
 {
     Exact = 0;
     AutoStack = 1;
+}
+
+enum TransferMode
+{
+    Exact = 0;
+    AutoStack = 1;
+}
+
+message TransferOp
+{
+    ulong FromContainer = 0;
+    SlotId FromSlot = 1;
+    ulong ToContainer = 2;
+    SlotId ToSlot = 3;
+    TransferMode Mode = 4;
+    uint? Count = 5;
 }

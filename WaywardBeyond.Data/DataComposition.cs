@@ -1,5 +1,8 @@
 using DryIoc;
+using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
+using Swordfish.Library.IO;
+using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Data.Migrations;
@@ -21,6 +24,29 @@ public static class DataComposition
     {
         container.RegisterTags();
         container.RegisterBundledBlueprints();
+
+        if (!container.IsRegistered<TomlParser<SlotGroupDefinitions>>())
+        {
+            container.Register<TomlParser<SlotGroupDefinitions>>(Reuse.Singleton);
+            container.RegisterMapping<IFileParser<SlotGroupDefinitions>, TomlParser<SlotGroupDefinitions>>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+            container.RegisterMapping<IFileParser, TomlParser<SlotGroupDefinitions>>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        }
+
+        container.RegisterDelegate<SlotGroupSchemaDatabase>(
+            context => new SlotGroupSchemaDatabase(
+                context.Resolve<ILogger<SlotGroupSchemaDatabase>>(IfUnresolved.ReturnDefault),
+                context.Resolve<IFileParseService>(IfUnresolved.ReturnDefault),
+                context.Resolve<VirtualFileSystem>(IfUnresolved.ReturnDefault)),
+            Reuse.Singleton,
+            ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.RegisterMapping<ISlotGroupSchemaDatabase, SlotGroupSchemaDatabase>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+
+        if (!container.IsRegistered<CharacterKeyedInventoryMigration>())
+        {
+            container.Register<CharacterKeyedInventoryMigration>(Reuse.Singleton);
+            container.RegisterMapping<IMigration, CharacterKeyedInventoryMigration>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        }
+
         container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.Register<SeedPhraseService>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.Register<ContentPackVersionChecker>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);

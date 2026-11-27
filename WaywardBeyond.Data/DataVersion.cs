@@ -4,5 +4,5 @@ namespace WaywardBeyond.Data;
 public static class DataVersion
 {
     /// <summary>The data format version stamped into new records and targeted by migrations.</summary>
-    public const uint CURRENT = 4;
+    public const uint CURRENT = 5;
 }

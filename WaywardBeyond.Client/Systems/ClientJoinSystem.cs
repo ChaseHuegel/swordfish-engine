@@ -135,6 +135,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
                 Name = character.Name,
                 Body = character.Body,
                 Inventory = character.Inventory,
+                KeyedInventory = character.KeyedInventory,
                 ActiveInventorySlot = character.ActiveInventorySlot,
                 GameMode = character.GameMode,
                 Statistics = character.Statistics,

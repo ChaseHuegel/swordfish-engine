@@ -48,6 +48,7 @@
     <None Include="..\WaywardBeyond.Items\assets\items\*.toml" Link="TestFiles\Items\assets\items\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Items\assets\blueprints\**\*.wbp" Link="TestFiles\Items\assets\blueprints\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Items\assets\lang\tags\*.toml" Link="TestFiles\Items\assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\WaywardBeyond.Data\assets\inventory\*.toml" Link="TestFiles\Data\assets\inventory\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bodies\assets\bodies\*.toml" Link="TestFiles\Bodies\assets\bodies\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bodies\assets\textures\characters\*.png" Link="TestFiles\Bodies\assets\textures\characters\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\WaywardBeyond.Bricks\assets\bricks\*.toml" Link="assets\bricks\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

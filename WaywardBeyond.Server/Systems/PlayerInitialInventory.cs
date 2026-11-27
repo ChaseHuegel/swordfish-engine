@@ -11,32 +11,36 @@ namespace WaywardBeyond.Server.Systems;
 public static class PlayerInitialInventory
 {
     /// <summary>
-    /// Resolves the inventory the server should grant/seeded for a joining character from its seed
-    /// contents: the saved contents when non-null, otherwise the starter set for <paramref name="gameMode"/>.
-    /// An undefined game mode falls back to the adventure starter set.
+    /// Resolves sparse keyed entries for a joining character from its saved keyed or legacy contents,
+    /// granting the starter set for <paramref name="gameMode"/> only when both are <c>null</c>.
     /// </summary>
-    public static ItemData[] Resolve(ItemData[]? seedContents, GameMode gameMode)
+    public static KeyedSlotEntry[] Resolve(KeyedSlotEntry[]? keyedSeed, ItemData[]? legacySeed, GameMode gameMode)
     {
-        if (seedContents != null)
+        if (keyedSeed != null)
         {
-            return seedContents;
+            return keyedSeed;
+        }
+
+        if (legacySeed != null)
+        {
+            return KeyedInventoryMigration.FromLegacySlots(legacySeed) ?? [];
         }
 
         return StarterInventory(gameMode);
     }
 
     /// <summary>The starter loadout granted to a character with no saved inventory in <paramref name="gameMode"/>.</summary>
-    public static ItemData[] StarterInventory(GameMode gameMode)
+    public static KeyedSlotEntry[] StarterInventory(GameMode gameMode)
     {
         return gameMode == GameMode.Creative
             ? CreativeStarterInventory()
             : AdventureStarterInventory();
     }
 
-    /// <summary>The creative starter loadout: the core tools plus a full building inventory.</summary>
-    private static ItemData[] CreativeStarterInventory()
+    /// <summary>The creative starter loadout: the core tools in the hotbar plus building blocks in the backpack.</summary>
+    private static KeyedSlotEntry[] CreativeStarterInventory()
     {
-        return
+        ItemData[] positional =
         [
             new ItemData("laser", 1, 1),
             new ItemData("wb:sprayer", 1, 1),
@@ -62,14 +66,15 @@ public static class PlayerInitialInventory
             new ItemData("wb:vent", 100, 100),
             new ItemData("wb:control_panel", 100, 100),
         ];
+        return KeyedInventoryMigration.FromLegacySlots(positional) ?? [];
     }
 
     /// <summary>The adventure starter loadout: only the mining laser.</summary>
-    private static ItemData[] AdventureStarterInventory()
+    private static KeyedSlotEntry[] AdventureStarterInventory()
     {
         return
         [
-            new ItemData("laser", 1, 1),
+            new KeyedSlotEntry(SlotGroups.HOTBAR, 0, new ItemData("laser", 1, 1)),
         ];
     }
 }

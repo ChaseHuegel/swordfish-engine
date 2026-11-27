@@ -96,7 +96,8 @@ internal static class HomeFixtures
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,
             _Statistics: null,
-            _Inventory: null
+            _Inventory: null,
+            _KeyedInventory: null
         );
 
         public Result<Character> GetCharacter(ulong id) => throw new NotSupportedException();

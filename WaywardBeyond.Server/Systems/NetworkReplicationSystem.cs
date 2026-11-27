@@ -701,12 +701,18 @@ public sealed class NetworkReplicationSystem
             store.Query<NetworkComponent, StageInteraction>(sessionEntity, 0f, ref stage);
         }
 
-        if (info.Type == typeof(InventoryEvent)
-            && store.TryGet(sessionEntity, out InventoryEvent inventoryEvent)
-            && inventoryEvent.SlotMove != null)
+        if (info.Type == typeof(InventoryEvent) && store.TryGet(sessionEntity, out InventoryEvent inventoryEvent))
         {
-            var stage = new StageInventory(inventoryEvent.SequenceNumber, inventoryEvent.SlotMove.Value);
-            store.Query<NetworkComponent, StageInventory>(sessionEntity, 0f, ref stage);
+            if (inventoryEvent.Transfer != null)
+            {
+                var stage = new StageTransferInventory(inventoryEvent.SequenceNumber, inventoryEvent.Transfer.Value);
+                store.Query<NetworkComponent, StageTransferInventory>(sessionEntity, 0f, ref stage);
+            }
+            else if (inventoryEvent.SlotMove != null)
+            {
+                var stage = new StageInventory(inventoryEvent.SequenceNumber, inventoryEvent.SlotMove.Value);
+                store.Query<NetworkComponent, StageInventory>(sessionEntity, 0f, ref stage);
+            }
         }
     }
 
@@ -740,6 +746,16 @@ public sealed class NetworkReplicationSystem
         public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
         {
             net.StagedInteractions?.Stage(_interaction);
+        }
+    }
+
+    private struct StageTransferInventory(uint sequenceNumber, in TransferOp transfer) : IForEach<NetworkComponent>
+    {
+        private readonly TransferOp _transfer = transfer;
+
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
+        {
+            net.StagedInventoryOps?.Stage(sequenceNumber, in _transfer);
         }
     }
 

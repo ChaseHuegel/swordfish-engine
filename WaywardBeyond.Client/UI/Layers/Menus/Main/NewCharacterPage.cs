@@ -380,7 +380,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,
             _Statistics: null,
-            _Inventory: null
+            _Inventory: null,
+            _KeyedInventory: null
         );
 
         _soundEffectService.PlayInterfaceSound(WidgetInteraction.InterfaceSound.Click);

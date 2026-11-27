@@ -256,9 +256,9 @@ public sealed class PaintSprayerEffectsTests
         fixture.Store.AddOrUpdate(player, new PlayerComponent());
         fixture.Store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
         fixture.Store.AddOrUpdate(player, new EquipmentComponent(0));
-        var inventory = new InventoryComponent(2);
-        inventory.Contents![0] = new ItemData(SPRAYER_ITEM_ID, 1, 1);
-        inventory.Contents[1] = new ItemData(LASER_ITEM_ID, 1, 1);
+        var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 2));
+        inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(SPRAYER_ITEM_ID, 1, 1));
+        inventory.Set(new SlotId(SlotGroups.HOTBAR, 1), new ItemData(LASER_ITEM_ID, 1, 1));
         fixture.Store.AddOrUpdate(player, inventory);
 
         uint redTint = ParticleEffect.PackTint(fixture.Paints.Get(RED_PAINT_ID).Value.Color);
@@ -433,9 +433,9 @@ public sealed class PaintSprayerEffectsTests
             serverStore.AddOrUpdate(serverEntity, new OwnedCharacterComponent());
             serverStore.AddOrUpdate(serverEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
             serverStore.AddOrUpdate(serverEntity, new EquipmentComponent(0));
-            var inventory = new InventoryComponent(2);
-            inventory.Contents![0] = new ItemData(SPRAYER_ITEM_ID, 1, 1);
-            inventory.Contents[1] = new ItemData(LASER_ITEM_ID, 1, 1);
+            var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 2));
+            inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(SPRAYER_ITEM_ID, 1, 1));
+            inventory.Set(new SlotId(SlotGroups.HOTBAR, 1), new ItemData(LASER_ITEM_ID, 1, 1));
             serverStore.AddOrUpdate(serverEntity, inventory);
             serverStore.AddOrUpdate(serverEntity, new InputComponent { PrimaryHeld = false, SecondaryHeld = false });
             sessions.Register(serverStore, serverEntity, shooterServerPeer.GameId, new Session(1));

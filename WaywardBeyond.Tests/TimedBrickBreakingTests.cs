@@ -858,7 +858,7 @@ public class TimedBrickBreakingTests
             Store.AddOrUpdate(PlayerEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
             Store.AddOrUpdate(PlayerEntity, new GameModeComponent(mode));
             Store.AddOrUpdate(PlayerEntity, new EquipmentComponent(0));
-            Store.AddOrUpdate(PlayerEntity, new InventoryComponent(8));
+            Store.AddOrUpdate(PlayerEntity, InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 8)));
             Store.AddOrUpdate(PlayerEntity, new SkillStateComponent(new Dictionary<string, long>()));
             Store.AddOrUpdate(PlayerEntity, new InputComponent());
             _sessions.Register(Store, PlayerEntity, peer.GameId, new Session(1));
@@ -908,10 +908,11 @@ public class TimedBrickBreakingTests
 
         public void SetHeldSlot(int slot, string itemId)
         {
-            if (Store.TryGet(PlayerEntity, out InventoryComponent inv) && inv.Contents != null)
+            if (Store.TryGet(PlayerEntity, out InventoryComponent inv))
             {
-                inv.Contents[slot] = new ItemData(itemId, 1, 1);
-                Store.AddOrUpdate(PlayerEntity, inv);
+                InventoryComponent updated = inv.Clone();
+                updated.Set(new SlotId(SlotGroups.HOTBAR, slot), new ItemData(itemId, 1, 1));
+                Store.AddOrUpdate(PlayerEntity, updated);
             }
         }
 
@@ -946,17 +947,18 @@ public class TimedBrickBreakingTests
 
         public int GetInventoryCount(string itemId)
         {
-            if (!Store.TryGet(PlayerEntity, out InventoryComponent inv) || inv.Contents == null)
+            if (!Store.TryGet(PlayerEntity, out InventoryComponent inv))
             {
                 return 0;
             }
 
+            ReadOnlySpan<ItemData> items = inv.AsSpan();
             var total = 0;
-            for (var i = 0; i < inv.Contents.Length; i++)
+            for (var i = 0; i < items.Length; i++)
             {
-                if (inv.Contents[i].ID == itemId)
+                if (items[i].ID == itemId)
                 {
-                    total += inv.Contents[i].Count;
+                    total += items[i].Count;
                 }
             }
 
@@ -1079,8 +1081,8 @@ public class TimedBrickBreakingTests
             Store.AddOrUpdate(PlayerEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
             Store.AddOrUpdate(PlayerEntity, new GameModeComponent(mode));
             Store.AddOrUpdate(PlayerEntity, new EquipmentComponent(0));
-            var inv = new InventoryComponent(4);
-            inv.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+            InventoryComponent inv = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 4));
+            inv.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
             Store.AddOrUpdate(PlayerEntity, inv);
             Store.AddOrUpdate(PlayerEntity, new PendingInteractionComponent(new PendingInteractionQueue()));
             Store.AddOrUpdate(PlayerEntity, new SkillStateComponent(new Dictionary<string, long>(StringComparer.Ordinal)));
@@ -1389,8 +1391,8 @@ public class TimedBrickBreakingTests
             ServerStore.AddOrUpdate(_serverPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
             ServerStore.AddOrUpdate(_serverPlayer, new GameModeComponent(GameMode.Adventure));
             ServerStore.AddOrUpdate(_serverPlayer, new EquipmentComponent(0));
-            var serverInv = new InventoryComponent(2);
-            serverInv.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+            InventoryComponent serverInv = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 2));
+            serverInv.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
             ServerStore.AddOrUpdate(_serverPlayer, serverInv);
             ServerStore.AddOrUpdate(_serverPlayer, new SkillStateComponent(new Dictionary<string, long>()));
             ServerStore.AddOrUpdate(_serverPlayer, new InputComponent());
@@ -1404,8 +1406,8 @@ public class TimedBrickBreakingTests
             _clientPlayer = ClientStore.Alloc(_serverPlayerUuid);
             ClientStore.AddOrUpdate(_clientPlayer, new PlayerComponent());
             ClientStore.AddOrUpdate(_clientPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
-            var clientInv = new InventoryComponent(2);
-            clientInv.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+            InventoryComponent clientInv = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 2));
+            clientInv.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
             ClientStore.AddOrUpdate(_clientPlayer, new EquipmentComponent(0));
             ClientStore.AddOrUpdate(_clientPlayer, clientInv);
 

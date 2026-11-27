@@ -75,6 +75,7 @@ message CharacterState
     int ActiveInventorySlot = 4;
     GameMode GameMode = 5;
     Statistic[]? Statistics = 6;
+    KeyedSlotEntry[]? KeyedInventory = 7;
 }
 
 message JoinAccept

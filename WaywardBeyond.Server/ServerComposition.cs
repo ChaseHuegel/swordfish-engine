@@ -15,6 +15,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Blueprints;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Statistics;
@@ -96,7 +97,16 @@ public static class ServerComposition
         RegisterServerSystem<ServerJoinSystem>(container);
         RegisterServerSystem<ServerSaveSystem>(container);
         RegisterServerSystem<NetworkApplySystem>(container);
-        RegisterServerSystem<ServerInventorySystem>(container);
+        container.Register<IServerWorldSystem, ServerInventorySystem>(
+            made: Made.Of(() => CreateInventorySystem(
+                Arg.Of<IContainer>(),
+                Arg.Of<ISlotGroupSchemaDatabase>(),
+                Arg.Of<IItemDatabase>(),
+                Arg.Of<SessionManager>(),
+                Arg.Of<IUserPermissionService>()
+            )),
+            ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation
+        );
         RegisterServerSystem<ServerHeartbeatService>(container);
         //  The physics slot is the world's physics bundle itself (same per-world instance as the step's).
         container.Register(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
@@ -160,10 +170,26 @@ public static class ServerComposition
         container.Resolve<IPaintDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<IRecipeDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<ISkillDatabase>();
+        container.Resolve<ISlotGroupSchemaDatabase>();
         if (container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>())
         {
+            container.Resolve<ILocalizedTagsDatabase>(IfUnresolved.ReturnDefault);
             container.Resolve<IBundledBlueprintDatabase>(IfUnresolved.ReturnDefault);
         }
+    }
+
+    private static ServerInventorySystem CreateInventorySystem(
+        IContainer container,
+        ISlotGroupSchemaDatabase schemas,
+        IItemDatabase itemDatabase,
+        SessionManager sessions,
+        IUserPermissionService permissions
+    )
+    {
+        ILocalizedTagsDatabase? tags = container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>()
+            ? container.Resolve<ILocalizedTagsDatabase>(IfUnresolved.ReturnDefault)
+            : null;
+        return new ServerInventorySystem(schemas, tags, itemDatabase, sessions, permissions);
     }
 
     /// <summary>

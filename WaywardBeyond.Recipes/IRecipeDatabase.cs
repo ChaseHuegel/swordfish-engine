@@ -19,8 +19,7 @@ public interface IRecipeDatabase : IAssetDatabase<Recipe>
     /// <summary>Finds the first automatic recipe for <paramref name="targetTag"/> satisfied by <paramref name="inputs"/>.</summary>
     Result<Recipe> FindAutoMatch(string targetTag, in InventoryComponent inputs)
     {
-        ReadOnlySpan<ItemData> span = inputs.Contents != null ? inputs.Contents.AsSpan() : ReadOnlySpan<ItemData>.Empty;
-        return FindAutoMatch(targetTag, span);
+        return FindAutoMatch(targetTag, inputs.AsSpan());
     }
 
     /// <summary>Finds the first automatic recipe for <paramref name="targetTag"/> satisfied by <paramref name="inputs"/>.</summary>

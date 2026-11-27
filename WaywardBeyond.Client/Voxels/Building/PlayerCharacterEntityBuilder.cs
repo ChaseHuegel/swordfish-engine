@@ -11,16 +11,32 @@ using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 
-internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderContext, ISkillDatabase? skillDatabase = null)
+internal sealed class PlayerCharacterEntityBuilder(
+    in IRenderContext renderContext,
+    ISkillDatabase? skillDatabase = null,
+    ISlotGroupSchemaDatabase? schemas = null
+)
 {
     private readonly IRenderContext _renderContext = renderContext;
     private readonly ISkillDatabase? _skillDatabase = skillDatabase;
+    private readonly ISlotGroupSchemaDatabase? _schemas = schemas;
 
     public void Decorate(Entity player, Character character, Vector3 spawnPosition, Quaternion spawnOrientation)
     {
+        var inventory = InventoryComponent.CreatePlayer(_schemas);
+        if (character.KeyedInventory != null)
+        {
+            inventory.LoadSparse(character.KeyedInventory);
+        }
+        else if (character.Inventory != null)
+        {
+            KeyedSlotEntry[] migrated = KeyedInventoryMigration.FromLegacySlots(character.Inventory) ?? [];
+            inventory.LoadSparse(migrated);
+        }
+
         player.Add<PlayerComponent>();
         player.AddOrUpdate(new PendingInventoryComponent());
-        player.AddOrUpdate(new EquipmentComponent(character.ActiveInventorySlot));
+        player.AddOrUpdate(new EquipmentComponent(inventory.ClampHotbarSlot(character.ActiveInventorySlot)));
         player.AddOrUpdate(new IdentifierComponent(character.Name, "game"));
         player.AddOrUpdate(new TransformComponent(
             spawnPosition,
@@ -41,25 +57,6 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
         //  loadout as part of the seeded interaction context and echoes it down through reconcile.
         //  The local build carries only what the saved character had (if anything) so the pre-echo
         //  presentation matches the seed, and the authoritative component replaces it once Playing.
-        var inventory = new InventoryComponent();
-        if (character.Inventory != null)
-        {
-            for (var i = 0; i < character.Inventory.Length; i++)
-            {
-                ItemData itemData = character.Inventory[i];
-
-                if (i < inventory.Contents.Length)
-                {
-                    //  In-place array write; the AddOrUpdate below auto-marks the component dirty
-                    inventory.Contents[i] = itemData;
-                }
-                else
-                {
-                    inventory.Add(itemData);
-                }
-            }
-        }
-
         player.AddOrUpdate(inventory);
 
         //  Child the camera to the player for a first person view

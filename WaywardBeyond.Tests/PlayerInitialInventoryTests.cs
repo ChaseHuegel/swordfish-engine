@@ -14,35 +14,39 @@ public class PlayerInitialInventoryTests
     [Fact]
     public void AdventureStarterInventoryIsTheMiningLaserOnly()
     {
-        ItemData[] starter = PlayerInitialInventory.StarterInventory(GameMode.Adventure);
+        KeyedSlotEntry[] starter = PlayerInitialInventory.StarterInventory(GameMode.Adventure);
 
-        ItemData laser = Assert.Single(starter);
-        Assert.Equal("laser", laser.ID);
-        Assert.Equal(1, laser.Count);
-        Assert.Equal(1, laser.MaxSize);
+        KeyedSlotEntry entry = Assert.Single(starter);
+        Assert.Equal(SlotGroups.HOTBAR, entry.GroupId);
+        Assert.Equal(0, entry.LocalIndex);
+        Assert.Equal("laser", entry.Item.ID);
+        Assert.Equal(1, entry.Item.Count);
+        Assert.Equal(1, entry.Item.MaxSize);
     }
 
     [Fact]
     public void AdventureResolveGrantsTheMiningLaserOnly()
     {
-        ItemData[] resolved = PlayerInitialInventory.Resolve(seedContents: null, GameMode.Adventure);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(keyedSeed: null, legacySeed: null, GameMode.Adventure);
 
-        ItemData laser = Assert.Single(resolved);
-        Assert.Equal("laser", laser.ID);
-        Assert.Equal(1, laser.Count);
+        KeyedSlotEntry entry = Assert.Single(resolved);
+        Assert.Equal(SlotGroups.HOTBAR, entry.GroupId);
+        Assert.Equal(0, entry.LocalIndex);
+        Assert.Equal("laser", entry.Item.ID);
+        Assert.Equal(1, entry.Item.Count);
     }
 
     [Fact]
     public void CreativeResolveGrantsTheFullCreativeLoadout()
     {
-        ItemData[] resolved = PlayerInitialInventory.Resolve(seedContents: null, GameMode.Creative);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(keyedSeed: null, legacySeed: null, GameMode.Creative);
 
         Assert.Equal(PlayerInitialInventory.StarterInventory(GameMode.Creative), resolved);
-        Assert.Contains(resolved, item => item.ID == "laser");
-        Assert.Contains(resolved, item => item.ID == "wb:sprayer");
-        Assert.Contains(resolved, item => item.ID == "wb:drill");
-        Assert.Contains(resolved, item => item.ID == "wb:projector");
-        Assert.Contains(resolved, item => item.ID == "wb:rock" && item.Count == 100);
+        Assert.Contains(resolved, entry => entry.GroupId == SlotGroups.HOTBAR && entry.Item.ID == "laser");
+        Assert.Contains(resolved, entry => entry.GroupId == SlotGroups.HOTBAR && entry.Item.ID == "wb:sprayer");
+        Assert.Contains(resolved, entry => entry.GroupId == SlotGroups.HOTBAR && entry.Item.ID == "wb:drill");
+        Assert.Contains(resolved, entry => entry.GroupId == SlotGroups.HOTBAR && entry.Item.ID == "wb:projector");
+        Assert.Contains(resolved, entry => entry.GroupId == SlotGroups.BACKPACK && entry.Item.ID == "wb:rock" && entry.Item.Count == 100);
         Assert.True(resolved.Length > 1);
     }
 
@@ -51,18 +55,22 @@ public class PlayerInitialInventoryTests
     [InlineData(-1)]
     public void UndefinedGameModeFallsBackToAdventureStarterInventory(int undefinedMode)
     {
-        ItemData[] resolved = PlayerInitialInventory.Resolve(seedContents: null, (GameMode)undefinedMode);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(keyedSeed: null, legacySeed: null, (GameMode)undefinedMode);
 
-        ItemData laser = Assert.Single(resolved);
-        Assert.Equal("laser", laser.ID);
+        KeyedSlotEntry entry = Assert.Single(resolved);
+        Assert.Equal("laser", entry.Item.ID);
     }
 
     [Fact]
     public void SavedInventoryIsPreservedInAdventure()
     {
-        ItemData[] saved = [new ItemData("wb:rock", 5, 100), new ItemData("wb:panel", 2, 100)];
+        KeyedSlotEntry[] saved =
+        [
+            new KeyedSlotEntry(SlotGroups.HOTBAR, 0, new ItemData("wb:rock", 5, 100)),
+            new KeyedSlotEntry(SlotGroups.BACKPACK, 3, new ItemData("wb:panel", 2, 100)),
+        ];
 
-        ItemData[] resolved = PlayerInitialInventory.Resolve(saved, GameMode.Adventure);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(saved, legacySeed: null, GameMode.Adventure);
 
         Assert.Equal(saved, resolved);
     }
@@ -70,9 +78,19 @@ public class PlayerInitialInventoryTests
     [Fact]
     public void EmptySavedInventoryIsPreservedInCreative()
     {
-        ItemData[] saved = [];
+        KeyedSlotEntry[] saved = [];
 
-        ItemData[] resolved = PlayerInitialInventory.Resolve(saved, GameMode.Creative);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(saved, legacySeed: null, GameMode.Creative);
+
+        Assert.Empty(resolved);
+    }
+
+    [Fact]
+    public void EmptyLegacyInventoryIsPreservedWithoutRestocking()
+    {
+        ItemData[] legacySaved = [];
+
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(keyedSeed: null, legacySaved, GameMode.Creative);
 
         Assert.Empty(resolved);
     }

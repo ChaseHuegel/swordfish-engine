@@ -53,20 +53,20 @@ public class ProjectorToolTests
     [Fact]
     public void StarterInventoryIncludesProjectorAlongsideCoreTools()
     {
-        ItemData[] starter = PlayerInitialInventory.StarterInventory(GameMode.Creative);
+        KeyedSlotEntry[] starter = PlayerInitialInventory.StarterInventory(GameMode.Creative);
 
-        int projectorIndex = Array.FindIndex(starter, item => item.ID == "wb:projector");
-        int drillIndex = Array.FindIndex(starter, item => item.ID == "wb:drill");
+        int projectorIndex = Array.FindIndex(starter, entry => entry.Item.ID == "wb:projector");
+        int drillIndex = Array.FindIndex(starter, entry => entry.Item.ID == "wb:drill");
 
         Assert.True(projectorIndex >= 0);
         Assert.True(drillIndex >= 0);
         Assert.True(projectorIndex > drillIndex);
-        Assert.Equal(1, starter[projectorIndex].Count);
-        Assert.Equal(1, starter[projectorIndex].MaxSize);
-        Assert.Contains(starter, item => item.ID == "wb:rock");
-        Assert.Contains(starter, item => item.ID == "wb:panel");
-        Assert.Contains(starter, item => item.ID == "laser");
-        Assert.Contains(starter, item => item.ID == "wb:sprayer");
+        Assert.Equal(1, starter[projectorIndex].Item.Count);
+        Assert.Equal(1, starter[projectorIndex].Item.MaxSize);
+        Assert.Contains(starter, entry => entry.Item.ID == "wb:rock");
+        Assert.Contains(starter, entry => entry.Item.ID == "wb:panel");
+        Assert.Contains(starter, entry => entry.Item.ID == "laser");
+        Assert.Contains(starter, entry => entry.Item.ID == "wb:sprayer");
     }
 
     [Fact]

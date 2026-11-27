@@ -46,7 +46,7 @@ drains.
   message. It binds the generated `Serialize()` and
   `Deserialize(ReadOnlySpan<byte>)` through delegates.
 - Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`/
-  `ParticleEmitterCodec`.
+  `InventoryCodec`/`ParticleEmitterCodec`.
 
 `PhysicsCodec` carries the body configuration (`Layer`, `BodyType`,
 `CollisionDetection`) with velocity and angular velocity. `Apply` creates the
@@ -106,7 +106,7 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `BodyViewComponent` | 10 | ServerOwned | `NsdComponentCodec<BodyViewComponent>` |
 | `IdentifierComponent` | 11 | ServerOwned | `IdentifierCodec` |
 | `EquipmentComponent` | 12 | ClientOwned | `NsdComponentCodec<EquipmentComponent>` |
-| `InventoryComponent` | 13 | ServerOwned | `NsdComponentCodec<InventoryComponent>` |
+| `InventoryComponent` | 13 | ServerOwned | `InventoryCodec` |
 | `GameModeComponent` | 14 | ServerOwned | `NsdComponentCodec<GameModeComponent>` |
 | `InteractionEvent` | 15 | ClientOwned | `NsdComponentCodec<InteractionEvent>` |
 | `InventoryEvent` | 16 | ClientOwned | `NsdComponentCodec<InventoryEvent>` |
@@ -144,7 +144,7 @@ consumes items against its values. See [join](networking-join.md) and
 ## Source of truth
 
 - `WaywardBeyond.Networking/Registry/{NetworkRegistry,NetworkComponentInfo,NetworkDirection,ReplicationAudience}.cs`
-- `WaywardBeyond.Networking/Codecs/{IPayloadCodec,IPayloadCodecOfT,NsdComponentCodec,TransformCodec,PhysicsCodec,IdentifierCodec,ParticleEmitterCodec}.cs`
+- `WaywardBeyond.Networking/Codecs/{IPayloadCodec,IPayloadCodecOfT,NsdComponentCodec,InventoryCodec,TransformCodec,PhysicsCodec,IdentifierCodec,ParticleEmitterCodec}.cs`
 - `WaywardBeyond.Networking/NetworkingComposition.cs`
 - Component declarations: `WaywardBeyond.Data/Components/`
 - Schemas: `WaywardBeyond.Data/Nsd/components.nsd`

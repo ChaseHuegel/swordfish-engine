@@ -136,12 +136,12 @@ space.
 ## Data format versioning and migration
 
 Every save-bearing record stamps a data version. The current version is
-`DataVersion.CURRENT` (`WaywardBeyond.Data/DataVersion.cs`), now `4`.
+`DataVersion.CURRENT` (`WaywardBeyond.Data/DataVersion.cs:7`), now `5`.
 The palette is the durable identity, and pre-palette (data version 3) saves are
 unsupported. `Migrator` (`WaywardBeyond.Data/Migrations/Migrator.cs`)
-and `IMigration` remain for future record migrations, but no migrations ship in
-this build. `DataComposition` registers an empty `Migrator`. See
-[persistence](persistence.md).
+and `IMigration` run registered record migrations. `DataComposition` registers
+`CharacterKeyedInventoryMigration` (`4 -> 5`) to migrate positional character
+inventories to sparse keyed slots. See [persistence](persistence.md).
 
 ## Paint identity and palette
 
@@ -170,4 +170,4 @@ ids render untinted.
 - `WaywardBeyond.Voxels.Tests/FaceOverrideTests.cs:8` (`FaceOverrideTests`) pins
   `PaintPalette` encode/decode, unknown-paint round trips, and two-stage decode
   preservation.
-- No tests pin the migration path because no migrations ship in this build.
+- `WaywardBeyond.Tests/KeyedInventoryTests.cs` pins the `Character` migration from data version 4 to data version 5.

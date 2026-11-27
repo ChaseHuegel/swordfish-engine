@@ -392,9 +392,9 @@ public sealed class MiningLaserEffectsTests
             serverStore.AddOrUpdate(serverEntity, new OwnedCharacterComponent());
             serverStore.AddOrUpdate(serverEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
             serverStore.AddOrUpdate(serverEntity, new EquipmentComponent(0));
-            var inventory = new InventoryComponent(2);
-            inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
-            inventory.Contents[1] = new ItemData(PICKAXE_ITEM_ID, 1, 1);
+            var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 2));
+            inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
+            inventory.Set(new SlotId(SlotGroups.HOTBAR, 1), new ItemData(PICKAXE_ITEM_ID, 1, 1));
             serverStore.AddOrUpdate(serverEntity, inventory);
             serverStore.AddOrUpdate(serverEntity, new InputComponent { PrimaryHeld = false });
             sessions.Register(serverStore, serverEntity, shooterServerPeer.GameId, new Session(1));
@@ -522,9 +522,9 @@ public sealed class MiningLaserEffectsTests
         fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
         fixture.Store.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
         fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
-        var inventory = new InventoryComponent(2);
-        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
-        inventory.Contents[1] = new ItemData(PICKAXE_ITEM_ID, 1, 1);
+        var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 2));
+        inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
+        inventory.Set(new SlotId(SlotGroups.HOTBAR, 1), new ItemData(PICKAXE_ITEM_ID, 1, 1));
         fixture.Store.AddOrUpdate(localPlayer, inventory);
         //  Presence of BodyViewComponent + replicated LaserBeamComponent on local player must never spawn a remote beam.
         fixture.Store.AddOrUpdate(localPlayer, new BodyViewComponent { Body = "wb:human_m" });
@@ -625,8 +625,8 @@ public sealed class MiningLaserEffectsTests
         fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
         fixture.Store.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
         fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
-        var inventory = new InventoryComponent(1);
-        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+        var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 1));
+        inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
         fixture.Store.AddOrUpdate(localPlayer, inventory);
 
         var remotePosition = new Vector3(5f, 0f, 0f);
@@ -704,8 +704,8 @@ public sealed class MiningLaserEffectsTests
         fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
         fixture.Store.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
         fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
-        var inventory = new InventoryComponent(1);
-        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+        var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 1));
+        inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
         fixture.Store.AddOrUpdate(localPlayer, inventory);
 
         GameState previous = WaywardBeyondGameState.GameState.Get();
@@ -761,8 +761,8 @@ public sealed class MiningLaserEffectsTests
         fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
         fixture.Store.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
         fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
-        var inventory = new InventoryComponent(1);
-        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+        var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 1));
+        inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
         fixture.Store.AddOrUpdate(localPlayer, inventory);
 
         GameState previous = WaywardBeyondGameState.GameState.Get();
@@ -808,8 +808,8 @@ public sealed class MiningLaserEffectsTests
         fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
         fixture.Store.AddOrUpdate(localPlayer, playerTransform);
         fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
-        var inventory = new InventoryComponent(1);
-        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+        var inventory = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 1));
+        inventory.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData(LASER_ITEM_ID, 1, 1));
         fixture.Store.AddOrUpdate(localPlayer, inventory);
 
         var shakenChild = new ChildComponent(playerUuid)

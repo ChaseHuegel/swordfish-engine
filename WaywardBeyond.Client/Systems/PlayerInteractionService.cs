@@ -1036,14 +1036,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return null;
         }
 
-        int slot = equipment.ActiveInventorySlot;
-        if (slot < 0 || slot >= inventory.Contents.Length)
-        {
-            return null;
-        }
-
-        ItemData itemData = inventory.Contents[slot];
-        return itemData.Count > 0 ? itemData.ID : null;
+        ItemData itemData = inventory.Get(new SlotId(SlotGroups.HOTBAR, equipment.ActiveInventorySlot));
+        return !itemData.IsEmpty() ? itemData.ID : null;
     }
     
     private ClientVoxelInteractionWorld GetWorld(DataStore store)
@@ -1097,26 +1091,26 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         //  hotbar, otherwise move the whole stack into the active hotbar slot. Both paths replicate
         //  upstream - an active-slot change rides the dirty ClientOwned EquipmentComponent, a hotbar
         //  move rides an InventoryEvent via PlayerData.ApplyMove - so the server stays authoritative.
-        int pickSlot = FindPickSlot(store, clickedVoxel.ID);
-        if (pickSlot < 0)
+        SlotId pickSlot = FindPickSlot(store, clickedVoxel.ID);
+        if (!pickSlot.IsValid)
         {
             return;
         }
 
         int activeSlot = _playerData.GetActiveSlot(store).Value;
-        if (pickSlot >= Hotbar.SLOT_COUNT)
+        if (string.Equals(pickSlot.GroupId, SlotGroups.HOTBAR, StringComparison.Ordinal))
         {
-            _playerData.ApplyMove(store, new SlotMoveOp
-            {
-                Mode = SlotMoveOpMode.Exact,
-                FromSlot = pickSlot,
-                ToSlot = activeSlot,
-                Count = null,
-            });
+            _playerData.SetActiveSlot(store, pickSlot.LocalIndex);
         }
         else
         {
-            _playerData.SetActiveSlot(store, pickSlot);
+            _playerData.ApplyMove(store, new TransferOp(
+                0UL,
+                pickSlot,
+                0UL,
+                new SlotId(SlotGroups.HOTBAR, activeSlot),
+                TransferMode.Exact,
+                null));
         }
     }
 
@@ -1159,19 +1153,37 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
     }
 
-    private int FindPickSlot(DataStore store, int brickID)
+    private SlotId FindPickSlot(DataStore store, int brickID)
     {
         Result<InventoryComponent> inventoryResult = _playerData.GetInventory(store);
-        if (!inventoryResult.Success || inventoryResult.Value.Contents == null)
+        if (!inventoryResult.Success)
         {
-            return -1;
+            return default;
         }
 
-        ItemData[] contents = inventoryResult.Value.Contents;
-        for (var i = 0; i < contents.Length; i++)
+        InventoryComponent inventory = inventoryResult.Value;
+        SlotId hotbarHit = FindPickSlotInGroup(in inventory, SlotGroups.HOTBAR, brickID);
+        if (hotbarHit.IsValid)
         {
-            string itemID = contents[i].ID;
-            Result<Item> itemResult = _itemDatabase.Get(itemID);
+            return hotbarHit;
+        }
+
+        return FindPickSlotInGroup(in inventory, SlotGroups.BACKPACK, brickID);
+    }
+
+    private SlotId FindPickSlotInGroup(in InventoryComponent inventory, string groupId, int brickID)
+    {
+        int capacity = inventory.GetGroupCapacity(groupId);
+        for (var i = 0; i < capacity; i++)
+        {
+            var candidate = new SlotId(groupId, i);
+            ItemData itemData = inventory.Get(in candidate);
+            if (itemData.IsEmpty())
+            {
+                continue;
+            }
+
+            Result<Item> itemResult = _itemDatabase.Get(itemData.ID);
             if (!itemResult.Success || !ItemPlaceables.IsBrickPlaceable(itemResult.Value))
             {
                 continue;
@@ -1180,11 +1192,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             Result<Brick> placeableBrickResult = _brickDatabase.Get(itemResult.Value.Placeable!.Value.ID);
             if (placeableBrickResult.Success && placeableBrickResult.Value.DataID == brickID)
             {
-                return i;
+                return candidate;
             }
         }
 
-        return -1;
+        return default;
     }
 
     private void OnFixedUpdate(object? sender, EventArgs e)
@@ -1810,14 +1822,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in EquipmentComponent equipment, in InventoryComponent inventory)
         {
-            int slot = equipment.ActiveInventorySlot;
-            if (inventory.Contents == null || slot < 0 || slot >= inventory.Contents.Length)
-            {
-                return;
-            }
-
-            ItemData itemData = inventory.Contents[slot];
-            HeldItemID = itemData.Count > 0 ? itemData.ID : null;
+            ItemData itemData = inventory.Get(new SlotId(SlotGroups.HOTBAR, equipment.ActiveInventorySlot));
+            HeldItemID = !itemData.IsEmpty() ? itemData.ID : null;
         }
     }
 }

@@ -259,10 +259,13 @@ public class PlayerViewModelTests
         int entity = store.Alloc();
         store.AddOrUpdate(entity, new PlayerComponent());
         store.AddOrUpdate(entity, new EquipmentComponent { ActiveInventorySlot = 0 });
-        var inventory = new InventoryComponent();
+        var inventory = InventoryComponent.CreatePlayer();
         for (var i = 0; i < slotItemIds.Length; i++)
         {
-            inventory.Contents[i] = new ItemData(slotItemIds[i], 1, 100);
+            SlotId slotId = i < SlotGroups.DEFAULT_HOTBAR_CAPACITY
+                ? new SlotId(SlotGroups.HOTBAR, i)
+                : new SlotId(SlotGroups.BACKPACK, i - SlotGroups.DEFAULT_HOTBAR_CAPACITY);
+            inventory.Set(in slotId, new ItemData(slotItemIds[i], 1, 100));
         }
 
         store.AddOrUpdate(entity, inventory);
@@ -654,8 +657,8 @@ public class PlayerViewModelTests
         DataStore store = world.DataStore;
         int player = store.Alloc();
         store.AddOrUpdate(player, new PlayerComponent());
-        var inv = new InventoryComponent(9);
-        inv.Contents[0] = new ItemData("wb:core", 1, 100);
+        var inv = InventoryComponent.Create(new SlotGroupDescriptor(SlotGroups.HOTBAR, 9));
+        inv.Set(new SlotId(SlotGroups.HOTBAR, 0), new ItemData("wb:core", 1, 100));
         store.AddOrUpdate(player, inv);
         store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 0 });
 

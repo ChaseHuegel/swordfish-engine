@@ -951,7 +951,7 @@ public class ServerRegionSystemTests
         ecsWorld.DataStore.AddOrUpdate(playerEntity, new NetworkComponent());
         ecsWorld.DataStore.AddOrUpdate(playerEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
         ecsWorld.DataStore.AddOrUpdate(playerEntity, new GameModeComponent(mode));
-        ecsWorld.DataStore.AddOrUpdate(playerEntity, new InventoryComponent(36));
+        ecsWorld.DataStore.AddOrUpdate(playerEntity, InventoryComponent.CreatePlayer());
         ecsWorld.DataStore.AddOrUpdate(playerEntity, new EquipmentComponent { ActiveInventorySlot = 0 });
         sessions.Register(ecsWorld.DataStore, playerEntity, peer.GameId, new Session(1));
 
@@ -1037,16 +1037,16 @@ public class ServerRegionSystemTests
 
         public void SetHeldItem(string itemId, int count, int slot = 0)
         {
-            var inv = new InventoryComponent(36);
-            inv.Contents[slot] = new ItemData(itemId, count, 100);
+            var inv = InventoryComponent.CreatePlayer();
+            inv.Set(new SlotId(SlotGroups.HOTBAR, slot), new ItemData(itemId, count, 100));
             Store.AddOrUpdate(playerEntity, inv);
             Store.AddOrUpdate(playerEntity, new EquipmentComponent { ActiveInventorySlot = slot });
         }
 
         public int GetHeldItemCount(int slot = 0)
         {
-            return Store.TryGet(playerEntity, out InventoryComponent inv) && inv.Contents != null && slot < inv.Contents.Length
-                ? inv.Contents[slot].Count
+            return Store.TryGet(playerEntity, out InventoryComponent inv)
+                ? inv.Get(new SlotId(SlotGroups.HOTBAR, slot)).Count
                 : 0;
         }
 

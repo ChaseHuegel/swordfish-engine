@@ -12,6 +12,7 @@ using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Gameplay.Statistics;
+using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Permissions;
@@ -39,7 +40,9 @@ public sealed class ServerJoinSystem(
     ISkillDatabase skillDatabase,
     ServerJoinQueue joinQueue,
     ServerPeers peers,
-    IUserPermissionService permissions
+    IUserPermissionService permissions,
+    ISlotGroupSchemaDatabase? schemas = null,
+    IItemDatabase? itemDatabase = null
 ) : IServerWorldSystem
 {
     private uint _nextSessionId;
@@ -342,16 +345,52 @@ public sealed class ServerJoinSystem(
     /// client owns its initial save; once seeded these are server-owned and replicated to all clients.
     /// Starter inventory is a server-side grant: a client-authored new character seeds <c>null</c>
     /// contents and the server resolves the starter loadout for the resolved game mode, while a saved
-    /// inventory is used as-is (and is never restocked). The inventory is normalized to the canonical
-    /// slot count so the replicated array is always full-size and the active slot is always in bounds.
+    /// inventory is used as-is (and is never restocked). Stack limits are clamped to authoritative item
+    /// definitions and the active slot is clamped to the hotbar capacity.
     /// </summary>
-    private static void SeedInteractionContext(DataStore store, int entity, in CharacterState seed, GameMode gameMode)
+    private void SeedInteractionContext(DataStore store, int entity, in CharacterState seed, GameMode gameMode)
     {
-        var inventory = new InventoryComponent();
-        inventory.CopyFrom(PlayerInitialInventory.Resolve(seed.Inventory, gameMode));
+        var inventory = InventoryComponent.CreatePlayer(schemas);
+        KeyedSlotEntry[] initial = PlayerInitialInventory.Resolve(seed.KeyedInventory, seed.Inventory, gameMode);
+        if (itemDatabase != null && initial.Length > 0)
+        {
+            initial = ClampMaxStackSizes(initial, itemDatabase);
+        }
+
+        inventory.LoadSparse(initial);
         store.AddOrUpdate(entity, inventory);
-        store.AddOrUpdate(entity, new EquipmentComponent(InventoryComponent.ClampSlot(seed.ActiveInventorySlot)));
+        store.AddOrUpdate(entity, new EquipmentComponent(inventory.ClampHotbarSlot(seed.ActiveInventorySlot)));
         store.AddOrUpdate(entity, new GameModeComponent(gameMode));
+    }
+
+    private static KeyedSlotEntry[] ClampMaxStackSizes(KeyedSlotEntry[] entries, IItemDatabase itemDatabase)
+    {
+        var clamped = new KeyedSlotEntry[entries.Length];
+        for (var i = 0; i < entries.Length; i++)
+        {
+            KeyedSlotEntry entry = entries[i];
+            if (entry.Item.IsEmpty())
+            {
+                clamped[i] = entry;
+                continue;
+            }
+
+            Result<Item> itemDef = itemDatabase.Get(entry.Item.ID);
+            if (!itemDef.Success || itemDef.Value.MaxStack <= 0)
+            {
+                clamped[i] = entry;
+                continue;
+            }
+
+            int maxStack = itemDef.Value.MaxStack;
+            int count = Math.Clamp(entry.Item.Count, 1, maxStack);
+            clamped[i] = new KeyedSlotEntry(
+                entry.GroupId,
+                entry.LocalIndex,
+                entry.Item with { Count = count, MaxSize = maxStack });
+        }
+
+        return clamped;
     }
 
     /// <summary>

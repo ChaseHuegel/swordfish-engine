@@ -42,13 +42,9 @@ internal sealed class ActiveSlotNotificationSystem(
                 return;
             }
 
-            ItemData activeStack = default;
-            if (Owner._lastActiveSlot >= 0 && Owner._lastActiveSlot < inventory.Contents.Length)
-            {
-                activeStack = inventory.Contents[Owner._lastActiveSlot];
-            }
+            ItemData activeStack = inventory.Get(new SlotId(SlotGroups.HOTBAR, Owner._lastActiveSlot));
 
-            if (activeStack.Count <= 0 || activeStack.ID == null)
+            if (activeStack.IsEmpty())
             {
                 return;
             }

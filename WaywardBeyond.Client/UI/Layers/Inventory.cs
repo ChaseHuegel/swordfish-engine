@@ -38,6 +38,7 @@ internal sealed class Inventory : IUILayer
     /// </summary>
     private const int PANEL_HEIGHT_CHROME = 137;
     private const int TRAITS_PER_ROW = 2;
+    private const int MAX_DISTRIBUTED_SLOTS = 128;
 
     /// <summary>The inputs that every slot of one row shares.</summary>
     private readonly record struct SlotRowContext(
@@ -69,22 +70,22 @@ internal sealed class Inventory : IUILayer
     private int _slotLabelsDirty = 1;
 
     private bool _open;
-    private int _selectedSlot = -1;
+    private SlotId _selectedSlot;
     private InteractionState.InteractionBlocker? _interactionBlocker;
     private int _moveStackPressed;
     private int _splitStackPressed;
     private int _quickMovePressed;
-    private int _lastQuickMoveSlot = -1;
+    private SlotId _lastQuickMoveSlot;
 
     private bool _dragging;
-    private int _draggingSlot = -1;
+    private SlotId _draggingSlot;
     private bool _rightDistributing;
-    private int _rightOriginSlot = -1;
+    private SlotId _rightOriginSlot;
     private bool _rightLeftOrigin;
     private int _distributedSlotCount;
     private int _distributedRemainder;
-    private readonly int[] _distributedSlots = new int[45];
-    private readonly int[] _distributedAllocations = new int[45];
+    private readonly SlotId[] _distributedSlots = new SlotId[MAX_DISTRIBUTED_SLOTS];
+    private readonly int[] _distributedAllocations = new int[MAX_DISTRIBUTED_SLOTS];
 
     /// <summary>Initializes a new instance of the <see cref="Inventory"/> class.</summary>
     public Inventory(
@@ -144,7 +145,7 @@ internal sealed class Inventory : IUILayer
 
             void SwapSlots()
             {
-                if (_selectedSlot < 0)
+                if (!_selectedSlot.IsValid)
                 {
                     return;
                 }
@@ -154,13 +155,13 @@ internal sealed class Inventory : IUILayer
                 //  Whole-stack move to the hotbar slot; occupied-destination resolution is deterministic
                 //  (stack if the same item with capacity, otherwise swap) on both the prediction and the
                 //  server.
-                ApplyMove(new SlotMoveOp
-                {
-                    Mode = SlotMoveOpMode.Exact,
-                    FromSlot = _selectedSlot,
-                    ToSlot = slotIndex,
-                    Count = null,
-                });
+                ApplyMove(new TransferOp(
+                    0UL,
+                    _selectedSlot,
+                    0UL,
+                    new SlotId(SlotGroups.HOTBAR, slotIndex),
+                    TransferMode.Exact,
+                    null));
             }
         }
 
@@ -208,7 +209,7 @@ internal sealed class Inventory : IUILayer
 
         InventoryComponent inventory = inventoryResult.Value;
         int activeSlot = activeSlotResult.Value;
-        int rowCount = inventory.Contents.Length / SLOTS_PER_ROW;
+        int rowCount = ComputeRowCount(in inventory);
 
         bool movePressed = Interlocked.Exchange(ref _moveStackPressed, 0) == 1;
         bool splitPressed = Interlocked.Exchange(ref _splitStackPressed, 0) == 1;
@@ -217,12 +218,12 @@ internal sealed class Inventory : IUILayer
         bool quickMoveDown = quickMovePressed || _shortcutService.IsHeld(GameShortcuts.INVENTORY_QUICK_MOVE);
         if (!quickMoveDown)
         {
-            _lastQuickMoveSlot = -1;
+            _lastQuickMoveSlot = default;
         }
 
         float scroll = _inputService.GetMouseScroll();
 
-        ItemData dragItemStack = GetSlotStack(in inventory, _draggingSlot);
+        ItemData dragItemStack = GetSlotStack(in inventory, in _draggingSlot);
         if (_dragging && dragItemStack.Count <= 0)
         {
             ResetDragState();
@@ -246,14 +247,14 @@ internal sealed class Inventory : IUILayer
             }
 
             inventory = inventoryResult.Value;
-            dragItemStack = GetSlotStack(in inventory, _draggingSlot);
+            dragItemStack = GetSlotStack(in inventory, in _draggingSlot);
             if (dragItemStack.Count <= 0)
             {
                 ResetDragState();
             }
         }
 
-        ItemData selectedItemStack = GetSlotStack(in inventory, _selectedSlot);
+        ItemData selectedItemStack = GetSlotStack(in inventory, in _selectedSlot);
         bool handledDragClick = ResolveDragClick(movePressed, in dragItemStack, in selectedItemStack);
 
         if (_rightDistributing)
@@ -306,7 +307,7 @@ internal sealed class Inventory : IUILayer
 
         if (!slotIsSelected)
         {
-            _selectedSlot = -1;
+            _selectedSlot = default;
         }
 
         Material? draggedSlotIcon = null;
@@ -374,19 +375,25 @@ internal sealed class Inventory : IUILayer
     /// <summary>Resolves the hovered slot's tooltip content and target anchor.</summary>
     private ItemTooltipState CreateTooltip(in InventoryComponent inventory)
     {
-        if (_dragging || _rightDistributing || _selectedSlot < 0)
+        if (_dragging || _rightDistributing || !_selectedSlot.IsValid)
         {
             return ItemTooltipState.Hidden(_localization);
         }
 
-        ItemData itemStack = GetSlotStack(in inventory, _selectedSlot);
+        ItemData itemStack = GetSlotStack(in inventory, in _selectedSlot);
         if (itemStack.Count <= 0 || itemStack.ID == null)
         {
             return ItemTooltipState.Hidden(_localization);
         }
 
+        int visualSlot = SlotIdToVisualIndex(in _selectedSlot);
+        if (visualSlot < 0)
+        {
+            return ItemTooltipState.Hidden(_localization);
+        }
+
         string debugID = _debugSettings.OverlayVisible ? itemStack.ID : string.Empty;
-        string anchorID = $"inventorySlot{_selectedSlot}";
+        string anchorID = $"inventorySlot{visualSlot}";
         Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
         if (!itemResult.Success)
         {
@@ -513,36 +520,41 @@ internal sealed class Inventory : IUILayer
             return false;
         }
 
-        int fromSlot = _draggingSlot;
+        SlotId fromSlot = _draggingSlot;
         ResetDragState();
 
-        if (dragItemStack.Count <= 0 || _selectedSlot < 0 || _selectedSlot == fromSlot)
+        if (dragItemStack.Count <= 0 || !_selectedSlot.IsValid || _selectedSlot == fromSlot)
         {
             return true;
         }
 
         //  Same item: fill the selected stack from the dragged stack (partial, client-computed).
         //  Otherwise: whole-stack move, which the resolver stacks-or-swaps deterministically.
-        if (dragItemStack.ID == selectedItemStack.ID)
+        if (string.Equals(dragItemStack.ID, selectedItemStack.ID, StringComparison.Ordinal))
         {
-            int available = selectedItemStack.MaxSize - selectedItemStack.Count;
-            ApplyMove(new SlotMoveOp
+            int effectiveMax = _playerData.ValidationContext.ResolveMergeMaxStack(in selectedItemStack, in dragItemStack);
+            int available = effectiveMax - selectedItemStack.Count;
+            if (available > 0)
             {
-                Mode = SlotMoveOpMode.Exact,
-                FromSlot = fromSlot,
-                ToSlot = _selectedSlot,
-                Count = (uint)Math.Max(0, available),
-            });
+                ApplyMove(new TransferOp(
+                    0UL,
+                    fromSlot,
+                    0UL,
+                    _selectedSlot,
+                    TransferMode.Exact,
+                    (uint)available));
+            }
+
             return true;
         }
 
-        ApplyMove(new SlotMoveOp
-        {
-            Mode = SlotMoveOpMode.Exact,
-            FromSlot = fromSlot,
-            ToSlot = _selectedSlot,
-            Count = null,
-        });
+        ApplyMove(new TransferOp(
+            0UL,
+            fromSlot,
+            0UL,
+            _selectedSlot,
+            TransferMode.Exact,
+            null));
         return true;
     }
 
@@ -553,41 +565,41 @@ internal sealed class Inventory : IUILayer
 
         if (_distributedSlotCount == 1 && !_rightLeftOrigin)
         {
-            int targetSlot = _distributedSlots[0];
+            SlotId targetSlot = _distributedSlots[0];
             if (targetSlot != _draggingSlot)
             {
-                ApplyMove(new SlotMoveOp
-                {
-                    Mode = SlotMoveOpMode.Exact,
-                    FromSlot = _draggingSlot,
-                    ToSlot = targetSlot,
-                    Count = 1,
-                });
+                ApplyMove(new TransferOp(
+                    0UL,
+                    _draggingSlot,
+                    0UL,
+                    targetSlot,
+                    TransferMode.Exact,
+                    1));
             }
         }
         else if (_distributedSlotCount > 0)
         {
             for (var i = 0; i < _distributedSlotCount; i++)
             {
-                int targetSlot = _distributedSlots[i];
+                SlotId targetSlot = _distributedSlots[i];
                 int share = _distributedAllocations[i];
                 if (targetSlot == _draggingSlot || share <= 0)
                 {
                     continue;
                 }
 
-                ApplyMove(new SlotMoveOp
-                {
-                    Mode = SlotMoveOpMode.Exact,
-                    FromSlot = _draggingSlot,
-                    ToSlot = targetSlot,
-                    Count = (uint)share,
-                });
+                ApplyMove(new TransferOp(
+                    0UL,
+                    _draggingSlot,
+                    0UL,
+                    targetSlot,
+                    TransferMode.Exact,
+                    (uint)share));
             }
         }
 
         _rightDistributing = false;
-        _rightOriginSlot = -1;
+        _rightOriginSlot = default;
         _rightLeftOrigin = false;
         _distributedSlotCount = 0;
         _distributedRemainder = 0;
@@ -595,12 +607,17 @@ internal sealed class Inventory : IUILayer
 
     private void RecomputeDistribution(in InventoryComponent inventory)
     {
-        ReadOnlySpan<int> targets = _distributedSlots.AsSpan(0, _distributedSlotCount);
+        ReadOnlySpan<SlotId> targets = _distributedSlots.AsSpan(0, _distributedSlotCount);
         Span<int> allocations = _distributedAllocations.AsSpan(0, _distributedSlotCount);
-        _distributedRemainder = InventoryResolver.ComputeDistribution(in inventory, _draggingSlot, targets, allocations);
+        _distributedRemainder = InventoryResolver.ComputeDistribution(
+            in inventory,
+            in _draggingSlot,
+            targets,
+            allocations,
+            _playerData.ValidationContext);
     }
 
-    private void TryAddDistributedSlot(in InventoryComponent inventory, in ItemData dragItemStack, int slotIndex)
+    private void TryAddDistributedSlot(in InventoryComponent inventory, in ItemData dragItemStack, in SlotId slotId)
     {
         if (!_rightDistributing || dragItemStack.Count <= 0 || _distributedSlotCount >= dragItemStack.Count)
         {
@@ -612,24 +629,24 @@ internal sealed class Inventory : IUILayer
             return;
         }
 
-        if (!InventoryResolver.CanDistributeToSlot(in inventory, _draggingSlot, slotIndex))
+        if (!InventoryResolver.CanDistributeToSlot(in inventory, in _draggingSlot, in slotId, _playerData.ValidationContext))
         {
             return;
         }
 
         for (var i = 0; i < _distributedSlotCount; i++)
         {
-            if (_distributedSlots[i] == slotIndex)
+            if (_distributedSlots[i] == slotId)
             {
                 return;
             }
         }
 
-        _distributedSlots[_distributedSlotCount++] = slotIndex;
+        _distributedSlots[_distributedSlotCount++] = slotId;
         RecomputeDistribution(in inventory);
     }
 
-    private int GetDistributedShare(int slotIndex)
+    private int GetDistributedShare(in SlotId slotId)
     {
         if (!_rightDistributing)
         {
@@ -638,7 +655,7 @@ internal sealed class Inventory : IUILayer
 
         for (var i = 0; i < _distributedSlotCount; i++)
         {
-            if (_distributedSlots[i] == slotIndex)
+            if (_distributedSlots[i] == slotId)
             {
                 return _distributedAllocations[i];
             }
@@ -650,13 +667,13 @@ internal sealed class Inventory : IUILayer
     private void ResetDragState()
     {
         _dragging = false;
-        _draggingSlot = -1;
+        _draggingSlot = default;
         _rightDistributing = false;
-        _rightOriginSlot = -1;
+        _rightOriginSlot = default;
         _rightLeftOrigin = false;
         _distributedSlotCount = 0;
         _distributedRemainder = 0;
-        _lastQuickMoveSlot = -1;
+        _lastQuickMoveSlot = default;
     }
 
     private void ClearPendingInput()
@@ -664,7 +681,7 @@ internal sealed class Inventory : IUILayer
         Interlocked.Exchange(ref _moveStackPressed, 0);
         Interlocked.Exchange(ref _splitStackPressed, 0);
         Interlocked.Exchange(ref _quickMovePressed, 0);
-        _lastQuickMoveSlot = -1;
+        _lastQuickMoveSlot = default;
     }
 
     private void OnMoveStackPressed()
@@ -695,51 +712,52 @@ internal sealed class Inventory : IUILayer
         for (var slotIndex = 0; slotIndex < SLOTS_PER_ROW; slotIndex++)
         {
             int inventorySlot = context.RowIndex * SLOTS_PER_ROW + slotIndex;
-            ItemData itemStack = GetSlotStack(in inventory, inventorySlot);
+            SlotId slotId = VisualIndexToSlotId(inventorySlot);
+            ItemData itemStack = GetSlotStack(in inventory, in slotId);
             string elementID = $"inventorySlot{inventorySlot}";
 
             bool hovering = ui.Hovering(elementID);
 
             if (!slotIsSelected && hovering)
             {
-                _selectedSlot = inventorySlot;
+                _selectedSlot = slotId;
                 slotIsSelected = true;
             }
 
             if (_rightDistributing && hovering && context.SplitDown)
             {
-                if (inventorySlot != _rightOriginSlot)
+                if (slotId != _rightOriginSlot)
                 {
                     _rightLeftOrigin = true;
                 }
 
-                ItemData dragItemStack = GetSlotStack(in inventory, _draggingSlot);
-                TryAddDistributedSlot(in inventory, in dragItemStack, inventorySlot);
+                ItemData dragItemStack = GetSlotStack(in inventory, in _draggingSlot);
+                TryAddDistributedSlot(in inventory, in dragItemStack, in slotId);
             }
 
-            int distributedShare = GetDistributedShare(inventorySlot);
+            int distributedShare = GetDistributedShare(in slotId);
             bool isDistributedSlot = _rightDistributing && distributedShare > 0;
-            bool isDraggingSource = _dragging && inventorySlot == _draggingSlot;
-            bool isHovered = inventorySlot == _selectedSlot;
-            bool isEquippedHotbar = inventorySlot < SLOTS_PER_ROW && inventorySlot == context.ActiveSlot;
+            bool isDraggingSource = _dragging && slotId == _draggingSlot;
+            bool isHovered = slotId == _selectedSlot;
+            bool isEquippedHotbar = slotId.GroupId == SlotGroups.HOTBAR && slotId.LocalIndex == context.ActiveSlot;
 
-            ItemData displayStack = GetDisplayStack(in inventory, inventorySlot, in itemStack, distributedShare);
+            ItemData displayStack = GetDisplayStack(in inventory, in slotId, in itemStack, distributedShare);
             bool hasDisplayItem = displayStack.Count > 0 && displayStack.ID != null;
 
             slotStates[inventorySlot] = new ItemSlotState(
                 Icon: hasDisplayItem ? _itemIcons.Get(displayStack.ID!) : null!,
-                Number: inventorySlot < SLOTS_PER_ROW ? _slotLabels[slotIndex] : string.Empty,
+                Number: slotId.GroupId == SlotGroups.HOTBAR ? _slotLabels[slotIndex] : string.Empty,
                 Count: hasDisplayItem ? displayStack.Count.ToString() : null,
                 Equipped: isEquippedHotbar,
                 Hovered: isHovered,
                 Dragging: isDraggingSource || isDistributedSlot
             );
 
-            ApplyDragGestures(in context, inventorySlot, hovering);
+            ApplyDragGestures(in context, in slotId, hovering);
 
             if (itemStack.Count > 0 && itemStack.ID != null)
             {
-                ApplyClickInteraction(in context, inventorySlot, hovering, in itemStack);
+                ApplyClickInteraction(in context, in slotId, hovering, in itemStack);
             }
         }
     }
@@ -748,31 +766,32 @@ internal sealed class Inventory : IUILayer
     {
         for (var i = 0; i < _distributedSlotCount; i++)
         {
-            RefreshSlotState(in inventory, activeSlot, _distributedSlots[i], slotStates);
+            RefreshSlotState(in inventory, activeSlot, in _distributedSlots[i], slotStates);
         }
 
-        RefreshSlotState(in inventory, activeSlot, _draggingSlot, slotStates);
+        RefreshSlotState(in inventory, activeSlot, in _draggingSlot, slotStates);
     }
 
-    private void RefreshSlotState(in InventoryComponent inventory, int activeSlot, int inventorySlot, ItemSlotState[] slotStates)
+    private void RefreshSlotState(in InventoryComponent inventory, int activeSlot, in SlotId slotId, ItemSlotState[] slotStates)
     {
-        if (inventorySlot < 0 || inventorySlot >= slotStates.Length)
+        int visualSlot = SlotIdToVisualIndex(in slotId);
+        if (visualSlot < 0 || visualSlot >= slotStates.Length)
         {
             return;
         }
 
-        ItemData itemStack = GetSlotStack(in inventory, inventorySlot);
-        int distributedShare = GetDistributedShare(inventorySlot);
-        ItemData displayStack = GetDisplayStack(in inventory, inventorySlot, in itemStack, distributedShare);
+        ItemData itemStack = GetSlotStack(in inventory, in slotId);
+        int distributedShare = GetDistributedShare(in slotId);
+        ItemData displayStack = GetDisplayStack(in inventory, in slotId, in itemStack, distributedShare);
         bool hasDisplayItem = displayStack.Count > 0 && displayStack.ID != null;
         bool isDistributedSlot = _rightDistributing && distributedShare > 0;
-        bool isDraggingSource = _dragging && inventorySlot == _draggingSlot;
-        bool isHovered = inventorySlot == _selectedSlot;
-        bool isEquippedHotbar = inventorySlot < SLOTS_PER_ROW && inventorySlot == activeSlot;
+        bool isDraggingSource = _dragging && slotId == _draggingSlot;
+        bool isHovered = slotId == _selectedSlot;
+        bool isEquippedHotbar = slotId.GroupId == SlotGroups.HOTBAR && slotId.LocalIndex == activeSlot;
 
-        slotStates[inventorySlot] = new ItemSlotState(
+        slotStates[visualSlot] = new ItemSlotState(
             Icon: hasDisplayItem ? _itemIcons.Get(displayStack.ID!) : null!,
-            Number: inventorySlot < SLOTS_PER_ROW ? _slotLabels[inventorySlot] : string.Empty,
+            Number: slotId.GroupId == SlotGroups.HOTBAR && slotId.LocalIndex < _slotLabels.Length ? _slotLabels[slotId.LocalIndex] : string.Empty,
             Count: hasDisplayItem ? displayStack.Count.ToString() : null,
             Equipped: isEquippedHotbar,
             Hovered: isHovered,
@@ -787,7 +806,7 @@ internal sealed class Inventory : IUILayer
 
     private ItemData GetDisplayStack(
         in InventoryComponent inventory,
-        int inventorySlot,
+        in SlotId slotId,
         in ItemData itemStack,
         int distributedShare
     )
@@ -797,13 +816,13 @@ internal sealed class Inventory : IUILayer
             return itemStack;
         }
 
-        ItemData dragItemStack = GetSlotStack(in inventory, _draggingSlot);
+        ItemData dragItemStack = GetSlotStack(in inventory, in _draggingSlot);
         if (dragItemStack.IsEmpty())
         {
             return itemStack;
         }
 
-        if (inventorySlot == _draggingSlot)
+        if (slotId == _draggingSlot)
         {
             int count = distributedShare > 0 ? distributedShare : _distributedRemainder;
             return count > 0 ? dragItemStack with { Count = count } : default;
@@ -819,7 +838,7 @@ internal sealed class Inventory : IUILayer
     }
 
     /// <summary>Applies the scroll gesture that changes a dragged stack.</summary>
-    private void ApplyDragGestures(in SlotRowContext context, int inventorySlot, bool hovering)
+    private void ApplyDragGestures(in SlotRowContext context, in SlotId slotId, bool hovering)
     {
         if (!_dragging || _rightDistributing)
         {
@@ -832,28 +851,28 @@ internal sealed class Inventory : IUILayer
             return;
         }
 
-        int sourceSlot = _draggingSlot;
-        int destinationSlot = inventorySlot;
+        SlotId sourceSlot = _draggingSlot;
+        SlotId destinationSlot = slotId;
         if (context.Scroll < 0f)
         {
-            sourceSlot = inventorySlot;
+            sourceSlot = slotId;
             destinationSlot = _draggingSlot;
         }
 
         var amount = (int)Math.Abs(context.Scroll);
-        ApplyMove(new SlotMoveOp
-        {
-            Mode = SlotMoveOpMode.Exact,
-            FromSlot = sourceSlot,
-            ToSlot = destinationSlot,
-            Count = (uint)amount,
-        });
+        ApplyMove(new TransferOp(
+            0UL,
+            sourceSlot,
+            0UL,
+            destinationSlot,
+            TransferMode.Exact,
+            (uint)amount));
     }
 
     /// <summary>Applies the slot gestures that quick-move, split, or pick up a stack.</summary>
     private void ApplyClickInteraction(
         in SlotRowContext context,
-        int inventorySlot,
+        in SlotId slotId,
         bool hovering,
         in ItemData itemStack
     )
@@ -865,71 +884,107 @@ internal sealed class Inventory : IUILayer
 
         if (context.QuickMoveDown)
         {
-            if (!context.QuickMovePressed && inventorySlot == _lastQuickMoveSlot)
+            if (!context.QuickMovePressed && slotId == _lastQuickMoveSlot)
             {
                 return;
             }
 
-            _lastQuickMoveSlot = inventorySlot;
-            ApplyMove(new SlotMoveOp
-            {
-                Mode = SlotMoveOpMode.AutoStack,
-                FromSlot = inventorySlot,
-                ToSlot = -1,
-                Count = null,
-            });
+            _lastQuickMoveSlot = slotId;
+            ApplyMove(new TransferOp(
+                0UL,
+                slotId,
+                0UL,
+                default,
+                TransferMode.AutoStack,
+                null));
             return;
         }
 
         if (context.SplitPressed)
         {
-            ApplySplitMove(in context, inventorySlot, in itemStack);
+            ApplySplitMove(in context, in slotId, in itemStack);
             return;
         }
 
         if (context.MovePressed)
         {
             _dragging = true;
-            _draggingSlot = inventorySlot;
+            _draggingSlot = slotId;
         }
     }
 
     /// <summary>Moves half of a stack into the first empty slot.</summary>
-    private void ApplySplitMove(in SlotRowContext context, int inventorySlot, in ItemData itemStack)
+    private void ApplySplitMove(in SlotRowContext context, in SlotId slotId, in ItemData itemStack)
     {
         InventoryComponent inventory = context.Inventory;
-        int splitTarget = InventoryResolver.FindFirstEmptySlot(in inventory);
-        if (splitTarget < 0)
+        Result<SlotId> splitTarget = InventoryResolver.FindFirstEmptySlot(in inventory, default, _playerData.ValidationContext);
+        if (!splitTarget.Success)
         {
             return;
         }
 
-        ApplyMove(new SlotMoveOp
-        {
-            Mode = SlotMoveOpMode.Exact,
-            FromSlot = inventorySlot,
-            ToSlot = splitTarget,
-            Count = (uint)Math.Max(1, itemStack.Count / 2),
-        });
+        ApplyMove(new TransferOp(
+            0UL,
+            slotId,
+            0UL,
+            splitTarget.Value,
+            TransferMode.Exact,
+            (uint)Math.Max(1, itemStack.Count / 2)));
     }
 
-    private static ItemData GetSlotStack(in InventoryComponent inventory, int slotIndex)
+    private static int ComputeRowCount(in InventoryComponent inventory)
     {
-        if (inventory.Contents != null && slotIndex >= 0 && slotIndex < inventory.Contents.Length)
+        int hotbarCap = inventory.GetGroupCapacity(SlotGroups.HOTBAR);
+        int backpackCap = inventory.GetGroupCapacity(SlotGroups.BACKPACK);
+        int hotbarRows = hotbarCap > 0 ? 1 : 0;
+        int cargoRows = backpackCap > 0 ? (backpackCap + SLOTS_PER_ROW - 1) / SLOTS_PER_ROW : 0;
+        return hotbarRows + cargoRows;
+    }
+
+    private static SlotId VisualIndexToSlotId(int visualIndex)
+    {
+        if (visualIndex < 0)
         {
-            return inventory.Contents[slotIndex];
+            return default;
         }
 
-        return default;
+        return visualIndex < SLOTS_PER_ROW
+            ? new SlotId(SlotGroups.HOTBAR, visualIndex)
+            : new SlotId(SlotGroups.BACKPACK, visualIndex - SLOTS_PER_ROW);
+    }
+
+    private static int SlotIdToVisualIndex(in SlotId slotId)
+    {
+        if (!slotId.IsValid)
+        {
+            return -1;
+        }
+
+        if (string.Equals(slotId.GroupId, SlotGroups.HOTBAR, StringComparison.Ordinal))
+        {
+            return slotId.LocalIndex < SLOTS_PER_ROW ? slotId.LocalIndex : -1;
+        }
+
+        if (string.Equals(slotId.GroupId, SlotGroups.BACKPACK, StringComparison.Ordinal))
+        {
+            return SLOTS_PER_ROW + slotId.LocalIndex;
+        }
+
+        return -1;
+    }
+
+    private static ItemData GetSlotStack(in InventoryComponent inventory, in SlotId slotId)
+    {
+        return slotId.IsValid ? inventory.Get(in slotId) : default;
     }
 
     /// <summary>
-    /// Applies a move op to the local inventory as prediction and stages it for upstream replication,
-    /// through the shared <see cref="PlayerData.ApplyMove"/> entry point.
+    /// Applies a unified transfer op to the local inventory as prediction and stages it for upstream
+    /// replication through the shared <see cref="PlayerData.ApplyMove(DataStore, in TransferOp)"/> entry point.
     /// </summary>
-    private void ApplyMove(in SlotMoveOp moveOp)
+    private void ApplyMove(in TransferOp transferOp)
     {
-        _playerData.ApplyMove(_ecsContext.World.DataStore, moveOp);
+        _playerData.ApplyMove(_ecsContext.World.DataStore, in transferOp);
     }
 
     private void OnToggleInventoryPressed()

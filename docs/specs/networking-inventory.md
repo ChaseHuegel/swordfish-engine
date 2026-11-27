@@ -1,141 +1,128 @@
 # Networking — Inventory Operations
 
-One subject: how inventory moves replicate, from the client-op wire shape to
-the authoritative server apply.
+One subject: how inventory layouts and slot transfers replicate from client prediction to server authority.
 
 ## Model
 
-The server is authoritative over inventory moves. The client applies a move
-locally immediately as prediction; the server validates it against its own
-copy, applies it, and its authoritative `InventoryComponent` echo (already a
-replicated ServerOwned component) flows downstream so an invalid move is
-corrected automatically. The client reports a move as a discrete
-`InventoryEvent`; the server never trusts it without applying the shared
-resolver.
+The server owns inventory state (`InventoryComponent` is `ServerOwned`, UUID `13`). The client applies an intra-inventory move locally as immediate prediction. The server validates every op against its authoritative copy, applies it atomically, and replicates the updated sparse `InventoryComponent` so rejected moves reconcile automatically. Cross-container transfers execute only on the server. Client requests ride as discrete `InventoryEvent` snapshots.
 
-Wire types live in `WaywardBeyond.Data/Nsd/components.nsd`. Component
-declarations live in `WaywardBeyond.Data/Components/`. Staging rings live in
-`WaywardBeyond.Gameplay/Networking/`. The resolver is
-`WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`.
+Schema definitions live in `WaywardBeyond.Data/Nsd/components.nsd`. Shared runtime types live in `WaywardBeyond.Data/Components/` and `WaywardBeyond.Data/Inventory/`. Staging buffers live in `WaywardBeyond.Gameplay/Networking/`. Shared transfer resolution lives in `WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`.
+
+## Keyed slot layout and sparse replication
+
+`InventoryComponent` replaces flat arrays with keyed slot groups addressed by composite value type `SlotId(string GroupId, int LocalIndex)`:
+
+```nsd
+message SlotId
+{
+    string GroupId = 0;
+    int LocalIndex = 1;
+}
+
+message SlotGroupDescriptor
+{
+    string GroupId = 0;
+    int Capacity = 1;
+}
+
+message InventoryComponent
+{
+    SlotGroupDescriptor[] Groups = 0;
+    WaywardBeyond.Data.KeyedSlotEntry[] Slots = 1;
+}
+```
+
+- Canonical group IDs live in `WaywardBeyond.Data/Inventory/SlotGroups.cs:4`. Player inventories carry `wb:hotbar` (9), `wb:backpack` (36), `wb:wearables` (6), and `wb:augments` (5). Containers use machine or chest groups such as `wb:input`, `wb:output`, `wb:fuel`, and `wb:cargo`.
+- Runtime lookups use a contiguous `ItemData[]` store indexed by `SlotGroupLayout` (`WaywardBeyond.Data/Components/SlotGroupLayout.cs:8`), capped at `SlotGroupLayout.MAX_TOTAL_CAPACITY` (`4096`) to reject forged wire layouts. Resizing a group rebuilds group offsets without shifting other groups' logical `SlotId` addresses (`WaywardBeyond.Data/Components/InventoryComponent.cs:259`).
+- Only non-empty slots serialize into `InventoryComponent.Slots` (`WaywardBeyond.Data/Components/InventoryComponent.cs:436`). When `InventoryCodec.Apply` decodes an `InventoryComponent`, it calls `Hydrate()` to rebuild `_layout` and recover orphaned stacks (`WaywardBeyond.Networking/Codecs/InventoryCodec.cs:20-34`).
+- Entries referencing removed groups, out-of-bounds indices, or colliding slots route to free `wb:backpack` slots or persist non-destructively in `Orphans` until capacity becomes available (`WaywardBeyond.Data/Components/InventoryComponent.cs:446-540`). `SyncWireState` drains eligible orphans into `wb:backpack` before building `Slots` (`WaywardBeyond.Data/Components/InventoryComponent.cs:606`), keeping wire round-trips idempotent between server and client.
+
+## Data-driven schemas and tag filters
+
+`SlotGroupSchemaDatabase` (`WaywardBeyond.Data/Inventory/SlotGroupSchemaDatabase.cs:14`) seeds canonical defaults and loads `assets/inventory/*.toml` files (`WaywardBeyond.Data/assets/inventory/slot_groups.toml`). Schemas specify group capacity, group-wide `AllowedTags`, and per-slot `SlotAllowedTags`. Filters match against invariant item tag lists (`ILocalizedTagsDatabase.Invariant`), such as `item.wearable.helmet` on `wb:wearables[0]`, `item.augment` on `wb:augments`, and `item.fuel` on `wb:fuel`.
 
 ## The envelope: `InventoryEvent`
 
 ```nsd
 message InventoryEvent
 {
-    ulong Entity;            // player mirror address (bound to the sender session, see #0001)
-    uint  SequenceNumber;    // retransmit dedupe
-    SlotMoveOp? SlotMove;    // op payload (presence-based union, one member today)
+    ulong Entity              = 0;
+    uint  SequenceNumber      = 1;
+    SlotMoveOp? SlotMove      = 2;
+    TransferOp? Transfer      = 3;
 }
 ```
 
-`InventoryEvent` is registered ClientOwned under uuid 16. Staging mirrors
-`InteractionEvent`: the inbound ring lives on
-`NetworkComponent.StagedInventoryOps`, the server consumes it between the
-replication ApplyStage and interaction processing, and ops are
-sequence-deduplicated (a re-staged sequence overwrites its slot). The last
-consumed sequence also lives on the `NetworkComponent`, so a reused player
-mirror starts at zero instead of inheriting a prior session's watermark.
-Outbound, the client mirrors it with `PendingInventoryComponent.Outbound`,
-drained by `ClientReplicationSystem` and cleared only after the reliable RPC
-path accepts the containing snapshot (see
-[replication](networking-replication.md)).
+`InventoryEvent` is registered `ClientOwned` under UUID `16` (`WaywardBeyond.Networking/NetworkingComposition.cs:32`). Inbound ops stage onto `NetworkComponent.StagedInventoryOps` in `NetworkReplicationSystem` (`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:704-716`). `ServerInventorySystem` drains staged ops in sequence order between `NetworkApplySystem` and interaction processing. Both the staged ring and `LastConsumedInventorySequence` live on `NetworkComponent` so reused player mirrors reset cleanly. Outbound, `ClientReplicationSystem` drains `PendingInventoryComponent.Outbound` (`WaywardBeyond.Client/Systems/ClientReplicationSystem.cs:183-217`) and clears ops only after snapshot acknowledgement.
 
-## The op: `SlotMoveOp`
+## Unified transfer operation: `TransferOp`
 
 ```nsd
-message SlotMoveOp
+enum TransferMode
 {
-    byte  Mode;      // Exact = 0, AutoStack = 1
-    int  FromSlot;
-    int  ToSlot;     // Exact only; -1 for AutoStack
-    uint? Count;     // null = whole stack, a value = exact count
+    Exact = 0;
+    AutoStack = 1;
+}
+
+message TransferOp
+{
+    ulong FromContainer = 0;
+    SlotId FromSlot = 1;
+    ulong ToContainer = 2;
+    SlotId ToSlot = 3;
+    TransferMode Mode = 4;
+    uint? Count = 5;
 }
 ```
 
-- **Exact** moves `Count` (whole stack when null) from `FromSlot` to `ToSlot`.
-  The client computes counts for partial drags and splits.
-  `Count` is clamped to the source stack before narrowing to `int`. A value at
-  or above the stack size takes the whole stack, so a count wider than `int`
-  can never become negative.
-- **AutoStack** (shift+click) moves the whole source stack to the first
-  same-item stack with capacity, else the first empty slot, scanning from the
-  opposite region (a hotbar slot moves into the inventory, an inventory slot
-  moves into the hotbar).
-- There is no explicit swap mode: occupied-destination resolution is
-  deterministic (same item + capacity → stack, otherwise swap; a partial move
-  onto a different item is a no-op).
-- Validation rule: `0 <= slot < inventory.Contents.Length`. An invalid op is a
-  total no-op — it never throws and never partially applies.
+- **Exact** transfers up to `Count` items (or the whole stack when `Count` is null) from `FromSlot` on `FromContainer` to `ToSlot` on `ToContainer`. `Count` clamps to the source stack size before narrowing to `int`. Empty destinations receive a clamped stack, identical items merge up to stack capacity, and whole-stack moves onto different items swap only when both slots pass tag filters and stack limits.
+- **AutoStack** (shift+click) drains the source stack across compatible same-item stacks first, then into the first empty permitted slot. Intra-inventory ops without an explicit target group target `wb:backpack` from `wb:hotbar`, `wb:hotbar` from `wb:backpack`, and `wb:backpack` then `wb:hotbar` from specialty groups. Setting `ToSlot.GroupId` targets a specific group across any valid slots in that group.
+- **Legacy adapter**: `SlotMoveOp` (field `2`) remains wire-compatible. `InventoryResolver.ToTransferOp` translates positional indices (`0..8` to `wb:hotbar`, `9+` to `wb:backpack`) before running the same validation pipeline (`WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs:12`).
 
-## Resolution rules (shared resolver)
+## Server validation and anti-dupe guarantees
 
-Both sides call `InventoryResolver.Apply(ref inventory, in SlotMoveOp)`:
+`ServerInventorySystem` (`WaywardBeyond.Server/Systems/ServerInventorySystem.cs:112-282`) enforces these invariants before committing any change:
 
-1. Bounds-check `FromSlot` (and `ToSlot` for Exact); a null or empty source
-   stack (or `Count == 0`) is a no-op.
-2. Exact: source removed by the count (clamped to the stack); destination
-   empty → place; same item → stack up to capacity; different item → swap for
-   a whole-stack move, no-op for a partial move.
-3. AutoStack: scan the target region for the first same-item stack with
-   capacity, then the first empty slot; no target → no-op.
+1. **Self-alias normalization**: container UUID `0` resolves to the acting player's entity UUID before selecting intra-container vs cross-container resolution, blocking self-aliasing duplication (`WaywardBeyond.Server/Systems/ServerInventorySystem.cs:125-133`).
+2. **Player isolation**: transfers targeting any entity carrying `OwnedCharacterComponent` or an active session client are rejected (`WaywardBeyond.Server/Systems/ServerInventorySystem.cs:223-227`).
+3. **Reach and access checks**: remote containers must carry finite `TransformComponent` positions within reach (`ContainerAccessComponent.MaxReach` when positive, else `CharacterDefaults.DEFAULT_REACH`). `ContainerAccessComponent` (`WaywardBeyond.Gameplay/Components/ContainerAccessComponent.cs:7`) also enforces `ActiveViewer`, `IsLocked` against non-owners, and `RequiredPermission` via `IUserPermissionService`.
+4. **Filter and stack clamping**: `InventoryValidationContext` validates slot filter tags on destination inserts and bidirectional swaps, and clamps stack sizes against `IItemDatabase` authoritative `MaxStack` (`WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs:345-425`). Undefined wire `TransferMode` or `SlotMoveOpMode` values are rejected. Joins clamp seeded stacks identically (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:366`).
+5. **Atomic copy-on-write**: resolvers mutate cloned copies (`InventoryComponent.Clone()`) only when staged ops exist and write back only when validation succeeds (`WaywardBeyond.Server/Systems/ServerInventorySystem.cs:66-203`).
 
-The client computes Exact targets for split (first empty slot via
-`FindFirstEmptySlot`), right-click drag distribution (`ComputeDistribution`),
-and partial drags; the server revalidates the same ops against its own copy, so
-drift is corrected by the echo. `InventoryResolver.Apply` rejects same-slot
-`Exact` moves (`FromSlot == ToSlot`) as a no-op.
+## The client producer and equipment indexing
 
-## The client producer: one mutation entry point
+The client applies moves through `PlayerData.ApplyMove` (`WaywardBeyond.Client/Player/PlayerData.cs:120`), which predicts intra-inventory transfers locally and stages them on `PendingInventoryComponent.Outbound`. Direct production mutation of `InventoryComponent` outside local construction and server authority is prohibited.
 
-The client applies a move through a single entry point,
-`PlayerData.ApplyMove`, which couples the two required steps into one call:
-it predicts the move onto the local server-owned inventory through the shared
-resolver, then stages the same op on the outbound buffer. Both the inventory
-UI and middle-click brick picking go through it. A move that mutates
-`InventoryComponent` without `PlayerData.ApplyMove` is a local-only change
-that never replicates; production client code must not do this. The
-`InventoryComponent` mutation helpers serve server authority and
-local-construction only.
-
-Brick picking (middle click) sends a whole-stack Exact move from the found
-slot into the active hotbar slot. The active-slot change is separate: it
-rides the dirty ClientOwned `EquipmentComponent`, not an inventory op.
+`EquipmentComponent` (UUID `12`, `ClientOwned`) remains strictly dedicated to `ActiveInventorySlot`, which indexes `wb:hotbar` (`WaywardBeyond.Client/Player/PlayerData.cs:100`). Brick picking (middle click) selects an existing `wb:hotbar` slot via `EquipmentComponent` or moves a `wb:backpack` stack to the active hotbar slot via `TransferOp`.
 
 ## Member reservation table
 
-Reserved op members follow the nullable-union pattern; no code is written for
-them until the behavior is designed.
+Reserved op members follow the nullable-union pattern on `InventoryEvent`:
 
-| Member | Reserved shape | Future behavior |
+| Member | Reserved shape | Behavior |
 |---|---|---|
-| `SlotMove` (done) | `SlotMoveOp?` | slot moves: Exact, AutoStack |
-| `Sort` | `byte?` | sort the inventory (mode-qualified) |
-| `Drop` | `UuidInt3?` | drop items into the world |
-| `Transfer` | `TransferOp?` | cross-inventory moves (slot-ref shapes) |
-
-## Adding an op (checklist)
-
-1. Add the union member to `InventoryEvent` in `components.nsd` + codegen.
-2. Add/choose the op message shape; reserved members above need a new message.
-3. Define resolution rules in `InventoryResolver` (client prediction AND
-   server apply must call the same path).
-4. Stage it: no new server machinery — the envelope already rides
-   `NetworkComponent.StagedInventoryOps`.
-5. Extend the client producer to stage the op after predicting: route it
-   through `PlayerData.ApplyMove` (the single entry point), never by mutating
-   `InventoryComponent` directly.
-6. Test: resolver cases + a server e2e apply + echo, mirroring
-   `WaywardBeyond.Tests/InventoryResolverTests.cs`.
+| `SlotMove` (legacy) | `SlotMoveOp?` | positional moves translated via `ToTransferOp` |
+| `Transfer` (done) | `TransferOp?` | keyed Exact and AutoStack intra/cross-container transfers |
+| `Sort` | `byte?` | sort a slot group (reserved) |
+| `Drop` | `UuidInt3?` | drop items into the world (reserved) |
 
 ## Source of truth
 
-- `WaywardBeyond.Data/Nsd/components.nsd`
-- `WaywardBeyond.Data/Components/{InventoryEvent,SlotMoveOp}.cs`
-- `WaywardBeyond.Data/Components/InventoryComponent.cs`
-- `WaywardBeyond.Gameplay/Networking/{NetworkComponent,InventoryOp,StageRing}.cs`
-- `WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`
-- `WaywardBeyond.Server/Systems/ServerInventorySystem.cs`
-- `WaywardBeyond.Client/Player/PlayerData.cs` (`ApplyMove`)
+- `WaywardBeyond.Data/Nsd/{components,saves}.nsd`
+- `WaywardBeyond.Data/Inventory/{SlotGroups,SlotGroupSchemaDatabase,KeyedInventoryMigration}.cs`
+- `WaywardBeyond.Data/assets/inventory/slot_groups.toml`
+- `WaywardBeyond.Data/Components/{InventoryComponent,InventoryEvent,SlotGroupLayout,SlotId,TransferOp}.cs`
+- `WaywardBeyond.Networking/Codecs/InventoryCodec.cs:9-34`
+- `WaywardBeyond.Gameplay/Components/ContainerAccessComponent.cs:7`
+- `WaywardBeyond.Gameplay/Networking/{NetworkComponent,InventoryOp,StageRingExtensions}.cs`
+- `WaywardBeyond.Gameplay/Interactions/{InventoryResolver,InventoryValidationContext}.cs`
+- `WaywardBeyond.Server/Systems/{ServerInventorySystem,ServerJoinSystem,PlayerInitialInventory,NetworkReplicationSystem}.cs`
+- `WaywardBeyond.Client/Player/PlayerData.cs`
 - `WaywardBeyond.Client/Systems/{ClientReplicationSystem,PlayerInteractionService}.cs`
-- `WaywardBeyond.Client/UI/Layers/Inventory.cs`
+- `WaywardBeyond.Client/UI/Layers/{Hotbar,Inventory}.cs`
+
+## Tests that pin this
+
+- `WaywardBeyond.Tests/KeyedInventoryTests.cs` pins group resizing without address shift, sparse wire round-trips, orphan recovery, TOML filter schemas, bidirectional swap rejection, stack clamping, self-alias anti-dupe, reach/viewer/lock/permission enforcement, and player isolation.
+- `WaywardBeyond.Tests/InventoryResolverTests.cs` pins keyed Exact/AutoStack rules, distribution math, empty slot lookup, and `SlotMoveOp` translation.
+- `WaywardBeyond.Tests/NetworkComponentTests.cs` pins sequence watermarks and `ServerInventorySystem` execution.
