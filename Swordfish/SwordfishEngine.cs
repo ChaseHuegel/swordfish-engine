@@ -6,6 +6,7 @@ using Silk.NET.Windowing;
 using Shoal;
 using Shoal.CommandLine;
 using Shoal.CrashHandling;
+using Shoal.Modularity;
 using Silk.NET.Core;
 using Swordfish.Library.IO;
 using Swordfish.Library.Threading;
@@ -39,6 +40,7 @@ public class SwordfishEngine
     
     private readonly string[] _args;
     private readonly AppPaths _appPaths;
+    private readonly ModuleResolutionOptions? _moduleResolution;
     private readonly EngineContainer _engineContainer;
     private readonly ThreadContext _mainThreadContext;
     private readonly IWindow _mainWindow;
@@ -48,9 +50,10 @@ public class SwordfishEngine
     private State _state;
     private int _exitCode;
 
-    public SwordfishEngine(string[] args, AppPaths? appPaths = null, string? companyName = null)
+    public SwordfishEngine(string[] args, AppPaths? appPaths = null, string? companyName = null, ModuleResolutionOptions? moduleResolution = null)
     {
         _appPaths = appPaths ?? ResolveAppPaths(args, companyName);
+        _moduleResolution = moduleResolution;
         AppEngine.ConfigurePaths(_appPaths);
         _logger = AppEngine.CreateLogger(typeof(SwordfishEngine));
 
@@ -177,7 +180,7 @@ public class SwordfishEngine
         }
         
         TransitionState(State.Started, State.Loading);
-        _engine = AppEngine.Build(_args, _appPaths, _engineContainer.Register);
+        _engine = AppEngine.Build(_args, _appPaths, _engineContainer.Register, _moduleResolution);
         TransitionState(State.Loading, State.Loaded);
 
         TransitionState(State.Loaded, State.Waking);
