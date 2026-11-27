@@ -1426,7 +1426,7 @@ internal static class AssetSeedProjector
         return list;
     }
 
-    private static List<InboundReferenceItem> ProjectTagInboundReferences(
+    internal static List<InboundReferenceItem> ProjectTagInboundReferences(
         ToolsWorkspace.WorkspaceIndex workspace,
         string tagName)
     {
@@ -1437,7 +1437,7 @@ internal static class AssetSeedProjector
         return list;
     }
 
-    private static List<InboundReferenceItem> ProjectInboundReferences(
+    internal static List<InboundReferenceItem> ProjectInboundReferences(
         ToolsWorkspace.WorkspaceIndex workspace,
         string targetId)
     {

@@ -468,6 +468,12 @@ public sealed class SampleStudioWorkspaceService : IStudioWorkspaceService
     }
 
     /// <inheritdoc/>
+    public IReadOnlyList<InboundReferenceItem> GetInboundReferences(AssetKind kind, string assetId)
+    {
+        return [];
+    }
+
+    /// <inheritdoc/>
     public StudioOperationResult FixCaseIssues()
     {
         return new StudioOperationResult(true, "Applied sample case fix.");

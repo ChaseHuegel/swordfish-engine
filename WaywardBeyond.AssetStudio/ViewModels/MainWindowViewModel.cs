@@ -2374,6 +2374,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 }
 
                 RebuildValidationGroups();
+                RefreshDocumentInboundReferences();
                 UpdatePreviewDescriptor();
                 return;
             }
@@ -2388,6 +2389,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 
         RebuildValidationGroups();
         UpdatePreviewDescriptor();
+    }
+
+    private void RefreshDocumentInboundReferences()
+    {
+        if (!_workspaceService.UsesRealBackend)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _allDocuments.Count; i++)
+        {
+            var doc = _allDocuments[i];
+            if (doc.Kind == AssetKind.Blueprint)
+            {
+                continue;
+            }
+
+            doc.SyncInboundReferences(_workspaceService.GetInboundReferences(doc.Kind, doc.Id));
+        }
     }
 
     [RelayCommand]

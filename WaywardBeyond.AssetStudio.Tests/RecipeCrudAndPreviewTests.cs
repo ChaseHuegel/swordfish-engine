@@ -134,10 +134,29 @@ public sealed class RecipeCrudAndPreviewTests : IDisposable
         vm.UndoCommand.Execute(null);
         Assert.Single(recipeDoc.RecipeOutputs);
 
-        //  Save to disk, reload workspace, and verify clean validation & persistence.
+        //  Save to disk and verify inbound deep links update immediately without reopening the workspace.
         vm.SaveCurrentAssetCommand.Execute(null);
         Assert.False(recipeDoc.IsDirty);
 
+        Assert.True(vm.SelectAssetById("test:iron_ore"));
+        Assert.Contains(vm.SelectedAsset!.InboundReferences, static r => r.SourceKind == AssetKind.Recipe && r.SourceAssetId == "test:smelt_iron" && r.FieldPath == "Inputs[0].ItemId");
+
+        Assert.True(vm.SelectAssetById("test:iron_ingot"));
+        Assert.Contains(vm.SelectedAsset!.InboundReferences, static r => r.SourceKind == AssetKind.Recipe && r.SourceAssetId == "test:smelt_iron" && r.FieldPath == "Outputs[0].ItemId");
+
+        Assert.True(vm.SelectAssetById("item.fuel"));
+        Assert.Contains(vm.SelectedAsset!.InboundReferences, static r => r.SourceKind == AssetKind.Recipe && r.SourceAssetId == "test:smelt_iron" && r.FieldPath == "Inputs[1].ItemId");
+
+        Assert.True(vm.SelectAssetById("station.smelter"));
+        Assert.Contains(vm.SelectedAsset!.InboundReferences, static r => r.SourceKind == AssetKind.Recipe && r.SourceAssetId == "test:smelt_iron" && r.FieldPath == "TargetTag");
+
+        //  Verify Command Palette search finds recipes by their input/output item IDs as well.
+        vm.OpenCommandPaletteCommand.Execute(null);
+        vm.ActiveCommandPalette!.Query = "iron_ingot";
+        Assert.Contains(vm.ActiveCommandPalette.Results, static r => r.Title == "test:smelt_iron");
+        vm.CloseAllOverlaysCommand.Execute(null);
+
+        //  Reload workspace and verify clean validation & persistence.
         vm.OpenWorkspace(WorkspaceMode.Pack, packDir, "recipe-pack");
         Assert.Equal(0, vm.FatalCount);
         Assert.Equal(0, vm.BrokenCount);

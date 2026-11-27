@@ -1393,6 +1393,20 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     public bool HasNoInboundReferences => InboundReferences.Count == 0;
 
     /// <summary>
+    ///     Replaces the displayed inbound references with a freshly projected list from the workspace index.
+    /// </summary>
+    public void SyncInboundReferences(IReadOnlyList<InboundReferenceItem> updated)
+    {
+        InboundReferences.Clear();
+        for (var i = 0; i < updated.Count; i++)
+        {
+            InboundReferences.Add(updated[i]);
+        }
+
+        OnPropertyChanged(nameof(HasNoInboundReferences));
+    }
+
+    /// <summary>
     ///     Summary label for the skill sparkline header.
     /// </summary>
     public string SkillCurveSummary => SkillLevels.Count == 0

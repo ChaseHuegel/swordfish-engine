@@ -5,6 +5,7 @@ using System.Text;
 using Swordfish.Library.Util;
 using WaywardBeyond.AssetStudio.Models;
 using WaywardBeyond.Data;
+using WaywardBeyond.Recipes;
 using GameContentVersion = WaywardBeyond.Data.ContentVersion;
 using ToolsBlueprints = WaywardBeyond.AssetTools.Blueprints;
 using ToolsDiagnostics = WaywardBeyond.AssetTools.Diagnostics;
@@ -984,6 +985,19 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
             true,
             AssetSeedProjector.ProjectValidationFindings(_currentWorkspace, _lastValidationReport),
             ToolsValidation.ValidationBulkActions.CopyAll(_lastValidationReport));
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<InboundReferenceItem> GetInboundReferences(AssetKind kind, string assetId)
+    {
+        if (_currentWorkspace == null || string.IsNullOrWhiteSpace(assetId))
+        {
+            return [];
+        }
+
+        return kind == AssetKind.Tag
+            ? AssetSeedProjector.ProjectTagInboundReferences(_currentWorkspace, assetId)
+            : AssetSeedProjector.ProjectInboundReferences(_currentWorkspace, assetId);
     }
 
     /// <inheritdoc/>
@@ -1993,6 +2007,39 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
                 : (warnFiles.Contains(p.FilePath) ? ToolsSearch.SearchResolutionState.Warning : ToolsSearch.SearchResolutionState.Resolved);
 
             var localStem = asset.Id.Contains(':') ? asset.Id.Substring(asset.Id.IndexOf(':') + 1) : asset.Id;
+            var extraTokens = new List<string> { localStem, p.ProviderRootName };
+            if (asset.AuthoritativeDefinition is RecipeDefinition recipeDef)
+            {
+                if (!string.IsNullOrWhiteSpace(recipeDef.TargetTag))
+                {
+                    extraTokens.Add(recipeDef.TargetTag.Trim());
+                }
+
+                if (recipeDef.Inputs != null)
+                {
+                    for (var i = 0; i < recipeDef.Inputs.Count; i++)
+                    {
+                        var itemId = recipeDef.Inputs[i].ItemId?.Trim();
+                        if (!string.IsNullOrWhiteSpace(itemId))
+                        {
+                            extraTokens.Add(itemId);
+                        }
+                    }
+                }
+
+                if (recipeDef.Outputs != null)
+                {
+                    for (var i = 0; i < recipeDef.Outputs.Count; i++)
+                    {
+                        var itemId = recipeDef.Outputs[i].ItemId?.Trim();
+                        if (!string.IsNullOrWhiteSpace(itemId))
+                        {
+                            extraTokens.Add(itemId);
+                        }
+                    }
+                }
+            }
+
             entries.Add(new ToolsSearch.SearchEntry(
                 Id: asset.Id,
                 DisplayName: asset.DisplayName,
@@ -2007,7 +2054,7 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
                 AssetKind: asset.Kind.ToString(),
                 LocalizationKey: null,
                 ResourcePath: p.RelativePath,
-                ExtraTokens: [localStem, p.ProviderRootName]));
+                ExtraTokens: extraTokens));
         }
 
         var seenTags = new HashSet<string>(StringComparer.Ordinal);

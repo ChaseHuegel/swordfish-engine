@@ -136,6 +136,11 @@ public interface IStudioWorkspaceService
     StudioValidationSyncResult RevalidateWorkspace();
 
     /// <summary>
+    ///     Returns current inbound references targeting the specified asset from the latest loaded workspace.
+    /// </summary>
+    IReadOnlyList<InboundReferenceItem> GetInboundReferences(AssetKind kind, string assetId);
+
+    /// <summary>
     ///     Rewrites case-only path mismatches in writable files to match exact disk casing.
     /// </summary>
     StudioOperationResult FixCaseIssues();
