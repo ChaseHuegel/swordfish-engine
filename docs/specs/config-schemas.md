@@ -41,16 +41,19 @@ DryIoc services.
 Manifest files require `CopyToOutputDirectory=PreserveNewest` in the `.csproj`. Never
 remove `CopyToOutputDirectory` from manifest files.
 
-## `modules.toml` (per launcher)
+## `modules.toml` (per launcher and per user)
 
-One per launcher (e.g. `Swordfish.Launcher/assets/config/modules.toml`,
-`WaywardBeyond.Client.Launcher/config/modules.toml`). Defines module load order
-and script-compilation permission. Schema: `Shoal/Modularity/ModuleOptions.cs`.
+One per launcher (for example `Swordfish.Launcher/assets/config/modules.toml`,
+`WaywardBeyond.Client.Launcher/config/modules.toml`) plus an optional per-user
+file at `<DataRoot>/config/modules.toml`. Defines module load order and
+script-compilation permission. Schema: `Shoal/Modularity/ModuleOptions.cs`.
+Discovery and merge: `Shoal/DependencyInjection/ConfigurationProvider.cs`,
+`Shoal/Modularity/ModuleResolutionOptions.cs`.
 Loader: `Shoal/Modularity/ModulesLoader.cs`.
 
 | Key | Type | Purpose |
 |---|---|---|
-| `AllowScriptCompilation` | bool | allow C# scripting |
+| `AllowScriptCompilation` | bool | allow C# scripting (authoritative in install config only) |
 | `LoadOrder` | string[] | module ids in load order |
 
 Example:
@@ -62,6 +65,47 @@ LoadOrder = [
     "waywardbeyond.client",
 ]
 ```
+
+### Module search roots and per-user load order
+
+`Shoal` discovers `manifest.toml` files across an ordered list of
+`ModuleSearchRoot` entries configured through `ModuleResolutionOptions`
+(`Shoal/Modularity/ModuleResolutionOptions.cs:4`):
+
+1. `PrimaryRoot` defaults to `modules/` with `ModuleRootPolicy.Full`.
+2. `AppPaths.ModulesRoot` (`<DataRoot>/modules`) scans with
+   `UserDataModulesPolicy` (default `ModuleRootPolicy.ContentOnly`) unless set
+   to `null`, duplicated by `PrimaryRoot`, or overridden in `AdditionalRoots`.
+3. `AdditionalRoots` scan next in declared order. Hosts pass extra roots through
+   `AppEngine.Build` (`Shoal/AppEngine.cs:95`) or `SwordfishEngine`
+   (`Swordfish/SwordfishEngine.cs:53`). Wayward Beyond launchers register
+   `<DataRoot>/packs` with `ModuleRootPolicy.ContentOnly` through
+   `PackModuleResolution.CreateOptions`
+   (`WaywardBeyond.Config/PackModuleResolution.cs:19`).
+
+Each root enforces a `ModuleRootPolicy` (`Shoal/Modularity/ModuleRootPolicy.cs:4`):
+
+- `Full`: allows content assets and managed assemblies.
+- `ContentOnly`: allows content assets only. `Shoal` rejects manifests that
+  declare non-empty `Assemblies` during discovery and loading. Their assemblies
+  do not load and their `assets/` directories do not mount.
+
+Discovery sorts manifest paths deterministically within each root. When two
+roots declare the same module `ID`, the earlier root wins. When no secondary
+root exists on disk, discovery keeps the install-only behavior.
+
+When `MergeUserLoadOrder` is true and `<DataRoot>/config/modules.toml` is a
+distinct file from the install `config/modules.toml`, `ModuleOptions.Merge`
+(`Shoal/Modularity/ModuleOptions.cs:22`) merges both files:
+
+- Install `LoadOrder` entries come first in their exact order.
+- Per-user `LoadOrder` entries append next in their exact order.
+- `ModuleOptions.Merge` skips blank entries and keeps the first occurrence of
+  each duplicate ID, so a user file cannot reorder install modules.
+- `AllowScriptCompilation` uses the install file value (`false` if no install
+  file exists). A per-user file cannot enable script compilation.
+- If the per-user file does not exist or fails to parse, the install config
+  applies unchanged.
 
 ## `chat.toml` (per app)
 
@@ -360,12 +404,19 @@ to `AppPaths.CrashesRoot` (`<DataRoot>/crashes`).
 - `Swordfish.Library/Configuration/Config.cs`
 - `Swordfish.Library/Configuration/SaveLocation.cs`
 - `Shoal/AppEngine.cs`
+- `Shoal/DependencyInjection/ConfigurationProvider.cs`
 - `Shoal.Extensions.Swordfish/ContainerExtensions.cs`
 - `Shoal/Modularity/ModuleManifest.cs`
 - `Shoal/Modularity/ModuleOptions.cs`
+- `Shoal/Modularity/ModuleResolutionOptions.cs`
+- `Shoal/Modularity/ModuleRootPolicy.cs`
+- `Shoal/Modularity/ModuleSearchRoot.cs`
 - `Shoal/Modularity/ModulesLoader.cs`
+- `WaywardBeyond.Config/PackModuleResolution.cs`
 - Launcher `modules.toml` files
 
 ## Tests that pin this
 
-- `Swordfish.Tests/ModulesLoaderTests.cs` covers content-only module asset mounting and load order.
+- `Swordfish.Tests/ModulesLoaderTests.cs` covers content-only module asset mounting, search roots, per-user load-order merge rules, and content-only assembly rejection.
+- `Swordfish.Tests/AppPathsAndConfigTests.cs` covers `AppPaths.ModulesRoot` and user config path resolution.
+- `WaywardBeyond.Tests/PackModuleResolutionTests.cs` covers Wayward Beyond's content-only user packs root registration.

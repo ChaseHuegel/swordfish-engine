@@ -3,6 +3,7 @@ using DryIoc;
 using Shoal;
 using Shoal.CommandLine;
 using Shoal.CrashHandling;
+using Shoal.Modularity;
 using Swordfish.Library.IO;
 using WaywardBeyond.Config;
 using WaywardBeyond.Networking.Discovery;
@@ -30,7 +31,8 @@ internal static class Program
 
     private static int RunServer(string[] args, AppPaths appPaths)
     {
-        AppEngine engine = AppEngine.Build(args, appPaths);
+        ModuleResolutionOptions moduleResolution = PackModuleResolution.CreateOptions(appPaths);
+        AppEngine engine = AppEngine.Build(args, appPaths, moduleResolution);
         ApplyCliOverrides(engine.Container);
 
         Console.CancelKeyPress += (_, e) =>

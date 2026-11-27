@@ -116,9 +116,13 @@ later mount replaces a file at the same virtual path
 It does not treat them as fatal.
 
 The tool reads `config/modules.toml` to show whether a pack is enabled. It does
-not write that file. Module discovery uses paths relative to the process
-working directory (`Shoal/DependencyInjection/ConfigurationProvider.cs:30`,
-`:85`). There is no per-user module directory today.
+not write that file. At runtime, `Shoal` discovers manifests across `modules/`,
+`<DataRoot>/modules`, and configured additional roots, and merges
+`<DataRoot>/config/modules.toml` with the install `config/modules.toml`.
+Wayward Beyond registers `<DataRoot>/packs` as a content-only root through
+`PackModuleResolution.CreateOptions`
+(`WaywardBeyond.Config/PackModuleResolution.cs:19`). See
+[config-schemas](config-schemas.md).
 
 ### Opening a workspace
 
@@ -747,7 +751,8 @@ The tool does not author voxels. The in-game projector does that. See issue
 
 ## Accepted limitations
 
-- No module management and no per-user module directory. See issue 0002.
+- No module management UI in Asset Studio. Content packs load from
+  `<DataRoot>/packs` when enabled in `<DataRoot>/config/modules.toml`.
 - No voxel authoring.
 - No particle TOML or CSV name tag editing.
 - No unused localization key detection.
@@ -775,9 +780,10 @@ The tool does not author voxels. The in-game projector does that. See issue
 - TOML options and writer: `Swordfish.Library/Serialization/Toml/Toml.cs:7`
 - Asset overwrite by load order: `Swordfish.Library/Collections/VirtualAssetDatabase.cs:75`
 - File shadowing by mount order: `Swordfish.Library/IO/VirtualFileSystem.cs:101`
-- Module discovery: `Shoal/DependencyInjection/ConfigurationProvider.cs:30`, `:85`
-- Module asset mount: `Shoal/AppEngine.cs:339`
-- Module loaded callback, including content-only modules: `Shoal/Modularity/ModulesLoader.cs:146`
+- Module discovery and merge: `Shoal/DependencyInjection/ConfigurationProvider.cs:17`, `Shoal/Modularity/ModuleResolutionOptions.cs:4`
+- Wayward Beyond user packs root: `WaywardBeyond.Config/PackModuleResolution.cs:19`
+- Module asset mount: `Shoal/AppEngine.cs:350`
+- Module loaded callback, including content-only modules: `Shoal/Modularity/ModulesLoader.cs:208`
 - Loaded module catalog: `Shoal/Modularity/ModuleCatalog.cs:4`, `Shoal/Modularity/LoadedModule.cs:9`
 - Definition visibility: `WaywardBeyond.Bricks/BrickDefinition.cs:6`
 - Material definition: `Swordfish/IO/MaterialDefinition.cs:6`
