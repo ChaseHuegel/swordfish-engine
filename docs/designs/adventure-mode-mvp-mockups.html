@@ -1,0 +1,3409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wayward Beyond — Adventure Mode MVP UI Mockups (Rev 2)</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* =====================================================================
+       Wayward Beyond Reef Theme Tokens (scoped to .wb-stage, never :root)
+       Exact hex tokens from WaywardBeyond.Client/UI/Theme/Theme.rss
+       ===================================================================== */
+    .wb-stage {
+      --wb-font-ui: ui-monospace, "SFMono-Regular", "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+
+      --wb-text: #f0f3f6;
+      --wb-text-muted: #8da0b8;
+      --wb-text-dim: #45546b;
+      --wb-text-soft: #bfbfbf;
+      --wb-text-faint: #8da0b880;
+
+      --wb-panel: #111723f0;
+      --wb-panel-solid: #111723;
+      --wb-panel-inner: #0d121cf0;
+      --wb-border: #2b384e;
+      --wb-border-inner: #1a2333;
+      --wb-border-hover: #495d7a;
+
+      --wb-accent: #4be3e3;
+      --wb-accent-bright: #a5f3fc;
+      --wb-accent-dark: #162838;
+      --wb-primary: #f2994a;
+      --wb-primary-bright: #ffd27d;
+      --wb-primary-dark: #3d2614;
+      --wb-danger: #e04f7a;
+      --wb-danger-bright: #ff8da6;
+      --wb-danger-dark: #3d141e;
+      --wb-success: #6fcf97;
+      --wb-warning: #f2cc4a;
+
+      --wb-input: #1c2433;
+      --wb-input-focus: #232e42;
+      --wb-control: #151d2a;
+      --wb-selected-surface: #172336;
+      --wb-slot-size: 48px;
+      --wb-selection: #0074ff80;
+      --wb-button: #121826;
+      --wb-button-hover: #1b2538;
+      --wb-scrim: #000000bf;
+      --wb-scrim-soft: #00000080;
+      --wb-scrim-heavy: #000000f2;
+
+      font-family: var(--wb-font-ui);
+      color: var(--wb-text);
+      image-rendering: pixelated;
+      user-select: none;
+    }
+
+    /* Reef DrawCornerCaps(length, thickness, color) */
+    .wb-caps-10 { position: relative; }
+    .wb-caps-10::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      --cap-c: var(--wb-border);
+      background:
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 10px 2px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 2px 10px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 10px 2px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 2px 10px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 10px 2px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 2px 10px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 10px 2px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 2px 10px no-repeat;
+    }
+    .wb-caps-10.wb-caps-hover::after { --cap-c: var(--wb-border-hover); }
+    .wb-caps-10.wb-caps-danger::after { --cap-c: var(--wb-danger); }
+
+    .wb-caps-6 { position: relative; }
+    .wb-caps-6::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      --cap-c: var(--wb-border-hover);
+      background:
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 1px 6px no-repeat;
+    }
+
+    /* Panel & Dividers */
+    .wb-panel { background: var(--wb-panel); padding: 2px; }
+    .wb-panel-inner {
+      border: 1px solid var(--wb-border-inner);
+      padding: 14px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .wb-panel-header {
+      color: var(--wb-text-muted);
+      font-size: 14px;
+      text-align: center;
+      line-height: 18px;
+      letter-spacing: 0.02em;
+    }
+    .wb-divider { background: var(--wb-border); height: 1px; width: 100%; flex-shrink: 0; }
+    .wb-divider-inner { background: var(--wb-border-inner); height: 1px; width: 100%; flex-shrink: 0; }
+    .wb-divider-dashed {
+      height: 1px;
+      width: 100%;
+      background-image: repeating-linear-gradient(to right, var(--wb-border) 0 2px, transparent 2px 6px);
+      flex-shrink: 0;
+    }
+    .wb-info-box {
+      background: var(--wb-panel-inner);
+      border: 1px solid var(--wb-border);
+      padding: 10px;
+    }
+
+    /* Buttons (Components.rss) */
+    .wb-btn {
+      position: relative;
+      background: var(--wb-button);
+      border: 1px solid var(--wb-border);
+      color: var(--wb-text);
+      padding: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: stretch;
+      justify-content: center;
+      transition: background 80ms, border-color 80ms, color 80ms;
+      font-family: var(--wb-font-ui);
+    }
+    .wb-btn-inner {
+      border: 1px solid var(--wb-border-inner);
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 14px;
+      font-size: 14px;
+      gap: 6px;
+    }
+    .wb-btn-compact .wb-btn-inner { padding: 3px 10px; font-size: 12px; }
+    .wb-btn:hover:not(:disabled) {
+      background: var(--wb-button-hover);
+      border-color: var(--wb-border-hover);
+      color: var(--wb-text);
+    }
+    .wb-btn:active:not(:disabled) { background: var(--wb-accent-dark); }
+    .wb-btn-primary { border-color: var(--wb-primary); color: var(--wb-accent-bright); }
+    .wb-btn-primary .wb-btn-inner { border-color: var(--wb-primary-dark); }
+    .wb-btn-primary::after { --cap-c: var(--wb-primary); }
+    .wb-btn-primary:hover:not(:disabled) {
+      background: var(--wb-button-hover);
+      border-color: var(--wb-primary-bright);
+      color: var(--wb-text);
+    }
+    .wb-btn-primary:hover:not(:disabled)::after { --cap-c: var(--wb-primary-bright); }
+    .wb-btn-primary:active:not(:disabled) { background: var(--wb-primary-dark); }
+
+    .wb-btn-danger { border-color: var(--wb-danger); color: var(--wb-danger-bright); }
+    .wb-btn-danger .wb-btn-inner { border-color: var(--wb-danger-dark); }
+    .wb-btn-danger::after { --cap-c: var(--wb-danger); }
+    .wb-btn-danger:hover:not(:disabled) {
+      background: var(--wb-button-hover);
+      border-color: var(--wb-danger-bright);
+      color: var(--wb-text);
+    }
+    .wb-btn-danger:hover:not(:disabled)::after { --cap-c: var(--wb-danger-bright); }
+
+    .wb-btn:disabled {
+      background: var(--wb-panel-inner);
+      border-color: var(--wb-border-inner);
+      color: var(--wb-text-dim);
+      cursor: not-allowed;
+    }
+    .wb-btn:disabled::after { display: none; }
+    .wb-btn:disabled .wb-btn-inner { border-color: transparent; }
+
+    /* IconButton (Components.rss) */
+    .wb-icon-btn {
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--wb-text-muted);
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+      transition: background 80ms, color 80ms;
+    }
+    .wb-icon-btn:hover { background: var(--wb-button-hover); color: var(--wb-text); }
+    .wb-icon-btn-danger { color: var(--wb-danger); }
+    .wb-icon-btn-danger:hover { background: var(--wb-danger-dark); color: var(--wb-danger-bright); }
+
+    /* Attached Tabs (Components.rss) */
+    .wb-tab {
+      position: relative;
+      background: var(--wb-panel-inner);
+      border: 1px solid var(--wb-border);
+      color: var(--wb-text-muted);
+      font-size: 13px;
+      padding: 7px 18px;
+      cursor: pointer;
+      transition: color 80ms, border-color 80ms;
+    }
+    .wb-tab:hover { color: var(--wb-text); }
+    .wb-tab-selected {
+      background: var(--wb-panel-solid);
+      border-color: var(--wb-accent);
+      border-bottom-color: var(--wb-panel-solid);
+      color: var(--wb-accent-bright);
+      z-index: 2;
+    }
+
+    /* Card */
+    .wb-card {
+      position: relative;
+      background: var(--wb-panel-inner);
+      border: 1px solid var(--wb-border);
+      color: var(--wb-text);
+      padding: 7px 10px;
+      transition: background 80ms, border-color 80ms;
+    }
+    .wb-card:hover {
+      background: var(--wb-button-hover);
+      border-color: var(--wb-border-hover);
+    }
+
+    /* ItemSlot (Components.rss: 48x48) */
+    .wb-slot {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      background: var(--wb-control);
+      border: 1px solid var(--wb-border);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity 100ms, border-color 80ms, background 80ms;
+    }
+    .wb-slot:hover {
+      background: var(--wb-button-hover);
+      border-color: var(--wb-accent);
+    }
+    .wb-slot:hover::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      pointer-events: none;
+      --cap-c: var(--wb-accent-bright);
+      background:
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 1px 6px no-repeat;
+    }
+    .wb-slot-selected {
+      background: var(--wb-selection) !important;
+      border-color: var(--wb-primary) !important;
+    }
+    .wb-slot-selected::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      pointer-events: none;
+      --cap-c: var(--wb-primary-bright);
+      background:
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 1px 6px no-repeat;
+    }
+    .wb-slot-equipped {
+      background: var(--wb-selected-surface);
+      border-color: var(--wb-primary);
+    }
+    .wb-slot-valid-in {
+      border-color: var(--wb-accent);
+      box-shadow: inset 0 0 0 1px rgba(75, 227, 227, 0.25);
+    }
+    .wb-slot-dimmed { opacity: 0.34; }
+    .wb-slot-number {
+      position: absolute;
+      top: 1px;
+      left: 3px;
+      font-size: 11px;
+      line-height: 12px;
+      color: var(--wb-text-dim);
+      pointer-events: none;
+    }
+    .wb-slot-selected .wb-slot-number { color: var(--wb-primary-bright); }
+    .wb-slot:hover .wb-slot-number { color: var(--wb-accent-bright); }
+    .wb-slot-count {
+      position: absolute;
+      bottom: 1px;
+      right: 1px;
+      background: var(--wb-scrim-soft);
+      color: var(--wb-text);
+      font-size: 11px;
+      line-height: 13px;
+      padding: 0 3px;
+      pointer-events: none;
+    }
+    .wb-slot-tier-dot {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 5px;
+      height: 5px;
+      pointer-events: none;
+    }
+
+    /* Hotbar & Flush Left-Edge State Grid */
+    .wb-hotbar {
+      background: var(--wb-panel);
+      border: 1px solid var(--wb-border);
+      padding: 8px;
+      display: flex;
+      gap: 6px;
+      height: 66px;
+      align-items: center;
+    }
+    .wb-state-cell {
+      width: 30px;
+      height: 30px;
+      background: var(--wb-panel);
+      border: 1px solid var(--wb-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 120ms, background 120ms, opacity 120ms;
+    }
+
+    /* SegmentedControl */
+    .wb-choice {
+      background: var(--wb-control);
+      border: 1px solid var(--wb-border);
+      padding: 1px;
+      display: grid;
+      gap: 1px;
+    }
+    .wb-choice-cell {
+      background: var(--wb-control);
+      color: var(--wb-text-muted);
+      font-size: 14px;
+      padding: 5px 10px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .wb-choice-cell:hover:not(.wb-choice-selected) { background: var(--wb-button-hover); color: var(--wb-text); }
+    .wb-choice-selected { background: var(--wb-accent-dark); color: var(--wb-accent-bright); }
+
+    /* Input */
+    .wb-input {
+      background: var(--wb-input);
+      border: 1px solid var(--wb-border);
+      color: var(--wb-text);
+      font-family: var(--wb-font-ui);
+      font-size: 14px;
+      padding: 4px 10px;
+      outline: none;
+    }
+    .wb-input:focus { background: var(--wb-input-focus); border-color: var(--wb-border-hover); }
+    .wb-input::placeholder { color: var(--wb-text-dim); }
+
+    /* Keycap & HintPill */
+    .wb-keycap {
+      background: var(--wb-accent-dark);
+      color: var(--wb-accent-bright);
+      border: 1px solid var(--wb-border-hover);
+      font-size: 12px;
+      padding: 1px 6px;
+      line-height: 16px;
+    }
+    .wb-hint-pill {
+      background: var(--wb-panel);
+      border: 1px solid var(--wb-border);
+      padding: 3px 8px 3px 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      color: var(--wb-text);
+    }
+
+    /* ProgressBar */
+    .wb-progress-track {
+      position: relative;
+      background: var(--wb-control);
+      border: 1px solid var(--wb-border);
+      height: 8px;
+      width: 100%;
+      overflow: hidden;
+    }
+    .wb-progress-fill {
+      height: 100%;
+      background: var(--wb-accent);
+      transition: width 100ms linear;
+    }
+
+    /* Scrollbar */
+    .wb-scroll::-webkit-scrollbar { width: 6px; }
+    .wb-scroll::-webkit-scrollbar-track { background: var(--wb-input); }
+    .wb-scroll::-webkit-scrollbar-thumb { background: var(--wb-border-hover); }
+
+    /* Critical Threshold Animations */
+    @keyframes wbPulseDanger {
+      0%, 100% { filter: drop-shadow(0 0 0px transparent); opacity: 1; }
+      50% { filter: drop-shadow(0 0 6px #e04f7a); opacity: 0.58; }
+    }
+    @keyframes wbPulseWarn {
+      0%, 100% { filter: drop-shadow(0 0 0px transparent); opacity: 1; }
+      50% { filter: drop-shadow(0 0 5px #f2cc4a); opacity: 0.72; }
+    }
+    @keyframes wbFadeLow {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+    .wb-pulse-danger { animation: wbPulseDanger 0.9s ease-in-out infinite; }
+    .wb-pulse-warning { animation: wbPulseWarn 1.2s ease-in-out infinite; }
+    .wb-buff-expiring { animation: wbFadeLow 1s ease-in-out infinite; }
+    .wb-pip-shadow { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85)); }
+
+    /* S.P.A.C.E.R. Single-Row Acronym Bar (100% Reef-native) */
+    .wb-spacer-cell {
+      background: var(--wb-panel-inner);
+      border-top: 2px solid transparent;
+      transition: background 80ms, border-color 80ms;
+    }
+    .wb-spacer-cell:hover {
+      background: var(--wb-selected-surface);
+      border-top-color: var(--wb-primary);
+    }
+
+    /* Retro Cassette-Futurism CRT Terminal (100% Reef OpenGL-feasible:
+       flat fills, per-side bevel borders, corner-caps, border-dash, + 2 simple overlay textures) */
+    .wb-crt-chassis {
+      background: #1b2230;
+      border-top: 2px solid #3a4466;
+      border-left: 2px solid #3a4466;
+      border-bottom: 2px solid #0b0e14;
+      border-right: 2px solid #0b0e14;
+    }
+    .wb-crt-bezel-inner {
+      border: 1px solid #262f42;
+    }
+    .wb-crt-well {
+      background: #0b0e14;
+      border-top: 2px solid #05070b;
+      border-left: 2px solid #05070b;
+      border-bottom: 2px solid #2b384e;
+      border-right: 2px solid #2b384e;
+      padding: 4px;
+    }
+    .wb-crt-screen {
+      position: relative;
+      overflow: hidden;
+      background: var(--crt-bg);
+      color: var(--crt-fg);
+      border: 1px solid var(--crt-dim);
+    }
+    /* Optional Texture 1: crt_scanlines.png (tileable 1x3 alpha PNG overlay, passthrough="true") */
+    .wb-crt-tex-scanlines {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.22) 0px,
+        rgba(0, 0, 0, 0.22) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+    }
+    /* Optional Texture 2: crt_vignette.png (64x64 stretched alpha PNG corner-mask overlay, passthrough="true") */
+    .wb-crt-tex-vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 21;
+      background: radial-gradient(ellipse at 50% 48%, transparent 62%, rgba(0, 0, 0, 0.48) 100%);
+    }
+    .wb-crt-btn {
+      background: var(--crt-bg);
+      border: 1px solid var(--crt-dim);
+      color: var(--crt-fg);
+      padding: 1px 6px;
+      font-family: var(--wb-font-ui);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .wb-crt-btn:hover {
+      background: var(--crt-fg);
+      color: var(--crt-bg);
+      border-color: var(--crt-bright);
+    }
+    .wb-crt-btn-danger {
+      border-color: #e04f7a;
+      color: #ff8da6;
+    }
+    .wb-crt-btn-danger:hover {
+      background: #e04f7a;
+      color: #0b0e14;
+      border-color: #ff8da6;
+    }
+    .wb-crt-input {
+      background: var(--crt-bg);
+      border: none;
+      border-bottom: 1px dashed var(--crt-dim);
+      color: var(--crt-bright);
+      font-family: var(--wb-font-ui);
+      font-size: 12px;
+      outline: none;
+      padding: 1px 4px;
+    }
+    .wb-crt-input:focus { border-bottom-color: var(--crt-bright); }
+    .wb-crt-input::placeholder { color: var(--crt-dim); }
+    /* Physical beveled Reef keycap button */
+    .wb-crt-key {
+      background: #1c2433;
+      border-top: 1px solid #495d7a;
+      border-left: 1px solid #495d7a;
+      border-bottom: 2px solid #0b0e14;
+      border-right: 2px solid #0b0e14;
+      color: #c0cbdc;
+      font-family: var(--wb-font-ui);
+      font-size: 11px;
+      padding: 3px 10px;
+      cursor: pointer;
+    }
+    .wb-crt-key:hover { background: #232e42; color: #f0f3f6; }
+    .wb-crt-key:active {
+      border-top: 2px solid #0b0e14;
+      border-left: 2px solid #0b0e14;
+      border-bottom: 1px solid #495d7a;
+      border-right: 1px solid #495d7a;
+    }
+
+    /* Global Reef Tooltip (ItemTooltip.rml) */
+    #wb-tooltip {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      display: none;
+      background: #111723f5;
+      border: 1px solid #2b384e;
+      padding: 2px;
+      min-width: 176px;
+      max-width: 268px;
+      font-family: ui-monospace, "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+    }
+    #wb-tooltip::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      pointer-events: none;
+      --cap-c: #495d7a;
+      background:
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 0 / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 0 / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 0 100% / 1px 6px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 6px 1px no-repeat,
+        linear-gradient(var(--cap-c), var(--cap-c)) 100% 100% / 1px 6px no-repeat;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased m-0 p-0 min-h-screen flex flex-col">
+
+  <!-- Workbench Header (Host-Themed Chrome) -->
+  <header class="bg-[var(--card)] border-b border-[var(--border)] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5">
+      <div class="w-2.5 h-2.5 bg-[#4be3e3] border border-[#a5f3fc]"></div>
+      <div>
+        <h1 class="text-sm font-semibold tracking-tight text-[var(--foreground)] leading-tight">
+          Wayward Beyond — Adventure Mode MVP UI <span class="text-xs font-normal text-[var(--muted-foreground)]">(Rev 2 · Post-Review)</span>
+        </h1>
+        <p class="text-xs text-[var(--muted-foreground)] leading-tight">
+          Refined O2 / Vacuum / Dampener iconography · Zero frivolous copy · Pure in-game stage
+        </p>
+      </div>
+    </div>
+
+    <nav id="surface-nav" class="flex flex-wrap items-center gap-1.5" aria-label="UI Surfaces">
+      <button data-surface="hud" class="nav-btn px-2.5 py-1.5 text-xs font-medium rounded border transition cursor-pointer">1. HUD</button>
+      <button data-surface="tab-inv" class="nav-btn px-2.5 py-1.5 text-xs font-medium rounded border transition cursor-pointer">2. [Tab] Overlay</button>
+      <button data-surface="machine-auto" class="nav-btn px-2.5 py-1.5 text-xs font-medium rounded border transition cursor-pointer">3. [F] Auto-Processor</button>
+      <button data-surface="machine-recipe" class="nav-btn px-2.5 py-1.5 text-xs font-medium rounded border transition cursor-pointer">4. [F] Crafter</button>
+      <button data-surface="computer" class="nav-btn px-2.5 py-1.5 text-xs font-medium rounded border transition cursor-pointer">5. [F] Computer</button>
+      <button data-surface="death" class="nav-btn px-2.5 py-1.5 text-xs font-medium rounded border transition cursor-pointer">6. Death Modal</button>
+      <button data-surface="new-save" class="nav-btn px-2.5 py-1.5 text-xs font-medium rounded border transition cursor-pointer">7. Chart Galaxy</button>
+      <button data-surface="icon-sheet" class="nav-btn px-2.5 py-1.5 text-xs font-medium rounded border transition cursor-pointer">Icon Sheet (4×)</button>
+    </nav>
+  </header>
+
+  <main class="flex-1 p-3 lg:p-4 flex flex-col gap-3 max-w-[1440px] w-full mx-auto">
+    <!-- Host-Chrome Simulator Controls (all non-game debug/preview controls live strictly here) -->
+    <section id="sim-toolbar" class="bg-[var(--card)] border border-[var(--border)] rounded px-3 py-2 flex flex-wrap items-center justify-between gap-3 text-xs"></section>
+
+    <!-- Pure 16:9 Game Viewport -->
+    <section class="wb-stage relative w-full rounded overflow-hidden border border-[var(--border)] shadow-xl" style="min-height: 640px; aspect-ratio: 16 / 9; max-height: 760px; background: #070a10;">
+      <canvas id="space-canvas" class="absolute inset-0 w-full h-full block"></canvas>
+      <div id="stage-layer" class="absolute inset-0" style="z-index: 10;"></div>
+      <div id="toast-layer" class="absolute top-4 right-4 flex flex-col gap-2 pointer-events-none" style="z-index: 50; width: 300px;"></div>
+    </section>
+
+    <!-- Concise Design Review Context Footnote -->
+    <footer id="spec-note" class="bg-[var(--card)] border border-[var(--border)] rounded px-3.5 py-2 text-xs text-[var(--muted-foreground)] flex flex-wrap items-center justify-between gap-2"></footer>
+  </main>
+
+  <!-- Global Reef Tooltip (ItemTooltip.rml) -->
+  <div id="wb-tooltip">
+    <div id="wb-tooltip-inner" style="background:#0d121cf5; border:1px solid #1a2333; padding:8px 10px; display:flex; flex-direction:column; gap:6px;"></div>
+  </div>
+
+<script>
+(() => {
+  /* =========================================================================
+     ENDESGA-32 PIXEL-ART ICON LIBRARY (16x16 crisp SVG sprites)
+     Strict palette from docs/specs/asset-art-style.md
+     ========================================================================= */
+  const px = (rects) => `<svg viewBox="0 0 16 16" shape-rendering="crispEdges" class="w-full h-full block">${rects}</svg>`;
+  const r = (x, y, w, h, f) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`;
+
+  const ICONS = {
+    // --- REFINED HUD SURVIVAL PIPS (16x16 with crisp dark pixel outlines) ---
+
+    // Health Heart (Full): Bold dark outline, bright Endesga crimson core, specular highlight
+    hp_full: px(
+      r(3,2,4,1,'#181425') + r(9,2,4,1,'#181425') +
+      r(2,3,1,2,'#181425') + r(7,3,2,2,'#181425') + r(13,3,1,2,'#181425') +
+      r(1,5,1,4,'#181425') + r(14,5,1,4,'#181425') +
+      r(2,9,1,2,'#181425') + r(13,9,1,2,'#181425') +
+      r(3,11,2,1,'#181425') + r(11,11,2,1,'#181425') +
+      r(5,12,2,1,'#181425') + r(9,12,2,1,'#181425') + r(7,13,2,2,'#181425') +
+      r(3,3,4,2,'#e43b44') + r(9,3,4,2,'#e43b44') + r(2,5,12,4,'#e43b44') +
+      r(3,9,10,2,'#a22633') + r(5,11,6,1,'#a22633') + r(7,12,2,1,'#a22633') +
+      r(4,4,2,2,'#f6757a') + r(3,5,1,2,'#ffffff')
+    ),
+    // Health Heart (Empty): Clean hollow dark silhouette
+    hp_empty: px(
+      r(3,2,4,1,'#3d141e') + r(9,2,4,1,'#3d141e') +
+      r(2,3,1,2,'#3d141e') + r(7,3,2,2,'#3d141e') + r(13,3,1,2,'#3d141e') +
+      r(1,5,1,4,'#3d141e') + r(14,5,1,4,'#3d141e') +
+      r(2,9,1,2,'#3d141e') + r(13,9,1,2,'#3d141e') +
+      r(3,11,2,1,'#3d141e') + r(11,11,2,1,'#3d141e') +
+      r(5,12,2,1,'#3d141e') + r(9,12,2,1,'#3d141e') + r(7,13,2,1,'#3d141e') +
+      r(3,3,4,2,'#181425') + r(9,3,4,2,'#181425') + r(2,5,12,4,'#181425') +
+      r(3,9,10,2,'#181425') + r(5,11,6,1,'#181425') + r(7,12,2,1,'#181425')
+    ),
+
+    // REFINED Oxygen Bubble (Full): Round crisp O2 air bubble + top-left white crescent + companion micro-bubble
+    o2_full: px(
+      // Outer dark rim (12px circle centered at 7.5, 8.5)
+      r(5,2,6,1,'#181425') + r(3,3,2,1,'#181425') + r(11,3,2,1,'#181425') +
+      r(2,4,1,2,'#181425') + r(13,4,1,2,'#181425') +
+      r(1,6,1,5,'#181425') + r(14,6,1,5,'#181425') +
+      r(2,11,1,2,'#181425') + r(13,11,1,2,'#181425') +
+      r(3,13,2,1,'#181425') + r(11,13,2,1,'#181425') + r(5,14,6,1,'#181425') +
+      // Deep cyan ring + luminous inner body
+      r(5,3,6,1,'#0099db') + r(3,4,10,2,'#0099db') + r(2,6,12,5,'#0099db') +
+      r(3,11,10,2,'#124e89') + r(5,13,6,1,'#124e89') +
+      r(4,4,8,7,'#2ce8f5') + r(5,5,6,5,'#0099db') + r(4,9,8,2,'#0099db') +
+      // Glossy specular crescent (top-left) + bottom bounce glint
+      r(4,5,2,3,'#ffffff') + r(5,4,3,1,'#ffffff') + r(6,5,1,1,'#a5f3fc') +
+      r(9,11,2,1,'#2ce8f5') +
+      // Companion tiny bubble (top-right)
+      r(12,1,2,2,'#2ce8f5') + r(12,1,1,1,'#ffffff')
+    ),
+
+    // REFINED Oxygen Bubble (Warning <= 2 icons): Shifts to amber/gold alert bubble
+    o2_warn: px(
+      r(5,2,6,1,'#181425') + r(3,3,2,1,'#181425') + r(11,3,2,1,'#181425') +
+      r(2,4,1,2,'#181425') + r(13,4,1,2,'#181425') +
+      r(1,6,1,5,'#181425') + r(14,6,1,5,'#181425') +
+      r(2,11,1,2,'#181425') + r(13,11,1,2,'#181425') +
+      r(3,13,2,1,'#181425') + r(11,13,2,1,'#181425') + r(5,14,6,1,'#181425') +
+      r(5,3,6,1,'#f77622') + r(3,4,10,2,'#f77622') + r(2,6,12,5,'#f77622') +
+      r(3,11,10,2,'#be4a2f') + r(5,13,6,1,'#be4a2f') +
+      r(4,4,8,7,'#fee761') + r(5,5,6,5,'#feae34') + r(4,9,8,2,'#f77622') +
+      r(4,5,2,3,'#ffffff') + r(5,4,3,1,'#ffffff') + r(9,11,2,1,'#fee761') +
+      r(12,1,2,2,'#fee761') + r(12,1,1,1,'#ffffff')
+    ),
+
+    // REFINED Oxygen Bubble (Empty / Popped): Crisp broken/hollow ring silhouette
+    o2_empty: px(
+      r(5,2,2,1,'#2b384e') + r(9,2,2,1,'#2b384e') +
+      r(3,3,2,1,'#2b384e') + r(11,3,2,1,'#2b384e') +
+      r(2,5,1,2,'#2b384e') + r(13,5,1,2,'#2b384e') +
+      r(2,9,1,2,'#2b384e') + r(13,9,1,2,'#2b384e') +
+      r(3,12,2,1,'#2b384e') + r(11,12,2,1,'#2b384e') +
+      r(5,13,2,1,'#2b384e') + r(9,13,2,1,'#2b384e') +
+      r(4,4,8,8,'#111723') + r(4,5,1,1,'#3a4466')
+    ),
+
+    // REFINED Oxygen Bubble (Critical 0 icons): Hollow crimson alert ring
+    o2_crit: px(
+      r(5,2,6,1,'#e04f7a') + r(3,3,2,1,'#e04f7a') + r(11,3,2,1,'#e04f7a') +
+      r(2,4,1,2,'#e04f7a') + r(13,4,1,2,'#e04f7a') +
+      r(1,6,1,5,'#e04f7a') + r(14,6,1,5,'#e04f7a') +
+      r(2,11,1,2,'#e04f7a') + r(13,11,1,2,'#e04f7a') +
+      r(3,13,2,1,'#e04f7a') + r(11,13,2,1,'#e04f7a') + r(5,14,6,1,'#e04f7a') +
+      r(4,4,8,8,'#261420') +
+      // Crisp small X inside zero-oxygen ring
+      r(5,5,2,2,'#ff8da6') + r(9,5,2,2,'#ff8da6') + r(7,7,2,2,'#e04f7a') +
+      r(5,9,2,2,'#ff8da6') + r(9,9,2,2,'#ff8da6')
+    ),
+
+    // --- REFINED HOTBAR LEFT-EDGE STATE GRID ICONS (16x16) ---
+
+    // REFINED Vacuum (Unpressurized): 3 wavy air/atmosphere streams slashed diagonally in crimson
+    vacuum_on: px(
+      // Wavy atmosphere lines (muted steel)
+      r(2,4,3,1,'#8b9bb4') + r(5,3,3,1,'#8b9bb4') + r(8,4,3,1,'#8b9bb4') + r(11,3,3,1,'#8b9bb4') +
+      r(2,8,3,1,'#c0cbdc') + r(5,7,3,1,'#c0cbdc') + r(8,8,3,1,'#c0cbdc') + r(11,7,3,1,'#c0cbdc') +
+      r(2,12,3,1,'#8b9bb4') + r(5,11,3,1,'#8b9bb4') + r(8,12,3,1,'#8b9bb4') + r(11,11,3,1,'#8b9bb4') +
+      // Bold diagonal crimson prohibition slash (2px crisp stair-step with dark shadow)
+      r(12,2,2,2,'#e43b44') + r(11,3,2,2,'#e43b44') + r(10,4,2,2,'#ff8da6') +
+      r(9,5,2,2,'#e43b44') + r(8,6,2,2,'#ff8da6') + r(7,7,2,2,'#e43b44') +
+      r(6,8,2,2,'#ff8da6') + r(5,9,2,2,'#e43b44') + r(4,10,2,2,'#ff8da6') +
+      r(3,11,2,2,'#e43b44') + r(2,12,2,2,'#e43b44')
+    ),
+
+    // REFINED Pressurized (Sealed Room): Calm unslashed cyan/emerald airflow waves inside subtle seal brackets
+    vacuum_off: px(
+      r(2,4,3,1,'#6fcf97') + r(5,3,3,1,'#6fcf97') + r(8,4,3,1,'#6fcf97') + r(11,3,3,1,'#6fcf97') +
+      r(2,8,3,1,'#2ce8f5') + r(5,7,3,1,'#2ce8f5') + r(8,8,3,1,'#2ce8f5') + r(11,7,3,1,'#2ce8f5') +
+      r(2,12,3,1,'#3e8948') + r(5,11,3,1,'#3e8948') + r(8,12,3,1,'#3e8948') + r(11,11,3,1,'#3e8948')
+    ),
+
+    // REFINED Inertial Dampeners ON (Stabilized / Auto-Brake): 4 inward counter-thrust chevrons clamping a steady white core
+    damp_on: px(
+      // Locked center mass
+      r(6,6,4,4,'#124e89') + r(7,7,2,2,'#ffffff') +
+      // Top inward chevron (pointing down)
+      r(7,4,2,1,'#a5f3fc') + r(6,3,4,1,'#4be3e3') + r(5,2,2,1,'#0099db') + r(9,2,2,1,'#0099db') +
+      // Bottom inward chevron (pointing up)
+      r(7,11,2,1,'#a5f3fc') + r(6,12,4,1,'#4be3e3') + r(5,13,2,1,'#0099db') + r(9,13,2,1,'#0099db') +
+      // Left inward chevron (pointing right)
+      r(4,7,1,2,'#a5f3fc') + r(3,6,1,4,'#4be3e3') + r(2,5,1,2,'#0099db') + r(2,9,1,2,'#0099db') +
+      // Right inward chevron (pointing left)
+      r(11,7,1,2,'#a5f3fc') + r(12,6,1,4,'#4be3e3') + r(13,5,1,2,'#0099db') + r(13,9,1,2,'#0099db')
+    ),
+
+    // REFINED Inertial Dampeners OFF (Free Drift): Unconstrained core drifting diagonally with amber velocity vector & motion streaks
+    damp_off: px(
+      // Motion trail streaks (bottom-left trailing behind)
+      r(2,12,2,2,'#733e39') + r(4,10,2,2,'#d77643') + r(2,9,2,1,'#733e39') + r(6,13,2,1,'#733e39') +
+      // Drifting core body
+      r(6,7,3,3,'#feae34') + r(7,8,1,1,'#ffffff') +
+      // Forward drift arrowhead (top-right)
+      r(9,6,2,2,'#fee761') + r(11,4,2,2,'#fee761') +
+      r(9,3,5,1,'#f2cc4a') + r(12,4,2,4,'#f2cc4a') + r(11,3,2,2,'#ffffff')
+    ),
+
+    // --- ITEMS, TOOLS, BRICKS, MACHINES, SKILLS (Endesga-32) ---
+    laser: px(
+      r(2,9,10,4,'#3a4466') + r(3,10,8,2,'#5a6988') + r(11,9,3,3,'#f77622') +
+      r(14,10,2,1,'#fee761') + r(4,6,5,3,'#8b9bb4') + r(5,7,3,1,'#63c74d') +
+      r(2,13,3,2,'#262b44') + r(8,13,2,2,'#181425') + r(10,8,2,1,'#e43b44')
+    ),
+    reclaimer: px(
+      r(2,7,9,5,'#262b44') + r(3,8,7,3,'#0099db') + r(11,6,3,7,'#5a6988') +
+      r(13,6,2,2,'#2ce8f5') + r(13,11,2,2,'#2ce8f5') + r(12,9,2,1,'#ffffff') +
+      r(4,12,3,3,'#3a4466') + r(6,6,3,1,'#feae34')
+    ),
+    o2_tank: px(
+      r(5,3,6,11,'#c0cbdc') + r(6,4,4,9,'#2ce8f5') + r(6,2,4,2,'#5a6988') +
+      r(7,1,2,1,'#feae34') + r(5,6,6,2,'#3a4466') + r(5,11,6,1,'#3a4466') +
+      r(7,5,1,5,'#ffffff')
+    ),
+    medkit: px(
+      r(2,4,12,9,'#c0cbdc') + r(3,5,10,7,'#ffffff') + r(5,2,6,2,'#5a6988') +
+      r(7,6,2,5,'#e43b44') + r(5,8,6,1,'#e43b44') + r(6,7,4,3,'#e43b44') +
+      r(2,12,12,1,'#8b9bb4')
+    ),
+    ration: px(
+      r(3,4,10,8,'#b86f50') + r(4,5,8,6,'#ead4aa') + r(4,7,8,2,'#feae34') +
+      r(5,5,2,1,'#ffffff') + r(3,4,10,1,'#733e39') + r(3,11,10,1,'#733e39')
+    ),
+    meal: px(
+      r(2,9,12,4,'#8b9bb4') + r(3,10,10,2,'#c0cbdc') + r(4,6,8,4,'#d77643') +
+      r(5,7,3,2,'#63c74d') + r(9,7,2,2,'#fee761') + r(6,3,1,2,'#a5f3fc') + r(9,2,1,3,'#a5f3fc')
+    ),
+    water: px(
+      r(5,3,6,11,'#124e89') + r(6,4,4,9,'#0099db') + r(6,5,2,5,'#2ce8f5') +
+      r(6,2,4,1,'#c0cbdc') + r(7,1,2,1,'#5a6988') + r(7,5,1,2,'#ffffff')
+    ),
+    seed: px(
+      r(6,5,4,6,'#3e8948') + r(5,7,6,3,'#63c74d') + r(7,6,2,2,'#fee761') +
+      r(7,11,2,2,'#733e39') + r(4,4,2,2,'#63c74d') + r(10,4,2,2,'#63c74d')
+    ),
+    soil: px(
+      r(2,4,12,9,'#733e39') + r(3,5,10,7,'#3e2731') + r(4,6,2,2,'#b86f50') +
+      r(9,7,3,2,'#733e39') + r(6,9,2,2,'#b86f50') + r(5,5,2,1,'#3e8948')
+    ),
+    crop: px(
+      r(7,8,2,6,'#3e8948') + r(4,6,3,3,'#63c74d') + r(9,6,3,3,'#63c74d') +
+      r(6,3,4,5,'#fee761') + r(7,4,2,2,'#feae34') + r(5,12,6,2,'#265c42')
+    ),
+    ice: px(
+      r(3,3,10,10,'#0099db') + r(4,4,8,8,'#2ce8f5') + r(5,5,3,3,'#ffffff') +
+      r(9,8,2,3,'#0099db') + r(4,11,8,1,'#124e89')
+    ),
+    rock: px(
+      r(3,4,10,9,'#3a4466') + r(4,3,8,9,'#5a6988') + r(5,5,3,3,'#8b9bb4') +
+      r(9,8,3,3,'#262b44') + r(6,9,2,2,'#3a4466')
+    ),
+    carbon: px(
+      r(4,3,8,10,'#181425') + r(3,5,10,6,'#262b44') + r(5,5,3,3,'#3a4466') +
+      r(8,8,2,2,'#5a6988') + r(6,4,2,1,'#5a6988')
+    ),
+    iron_ore: px(
+      r(3,4,10,9,'#3a4466') + r(4,3,8,9,'#5a6988') + r(5,5,3,2,'#c28569') +
+      r(8,8,3,2,'#d77643') + r(5,9,2,2,'#e4a672')
+    ),
+    iron_ingot: px(
+      r(2,8,12,4,'#5a6988') + r(4,5,8,4,'#8b9bb4') + r(5,6,6,2,'#c0cbdc') +
+      r(6,6,3,1,'#ffffff') + r(3,11,10,1,'#3a4466')
+    ),
+    copper_ore: px(
+      r(3,4,10,9,'#3a4466') + r(4,3,8,9,'#5a6988') + r(5,5,3,2,'#f77622') +
+      r(8,8,3,2,'#feae34') + r(5,9,2,2,'#be4a2f')
+    ),
+    copper_wire: px(
+      r(3,4,10,8,'#be4a2f') + r(4,5,8,6,'#f77622') + r(6,7,4,2,'#181425') +
+      r(5,5,6,1,'#feae34') + r(11,10,3,2,'#d77643')
+    ),
+    silicates: px(
+      r(3,7,10,6,'#c28569') + r(4,5,8,6,'#ead4aa') + r(6,4,4,4,'#ffffff') + r(8,7,2,2,'#2ce8f5')
+    ),
+    aluminum: px(
+      r(2,8,12,4,'#8b9bb4') + r(4,5,8,4,'#c0cbdc') + r(5,6,6,2,'#ffffff') + r(3,11,10,1,'#5a6988')
+    ),
+    gold_chip: px(
+      r(3,3,10,10,'#265c42') + r(4,4,8,8,'#3e8948') + r(6,6,4,4,'#181425') +
+      r(5,2,1,2,'#fee761') + r(8,2,1,2,'#fee761') + r(10,2,1,2,'#fee761') +
+      r(5,12,1,2,'#feae34') + r(8,12,1,2,'#feae34') + r(10,12,1,2,'#feae34') + r(7,7,2,2,'#fee761')
+    ),
+    titanium: px(
+      r(2,8,12,4,'#262b44') + r(4,5,8,4,'#5a6988') + r(5,6,6,2,'#8b9bb4') + r(5,6,4,1,'#2ce8f5')
+    ),
+    panel: px(
+      r(2,2,12,12,'#3a4466') + r(3,3,10,10,'#5a6988') + r(4,4,8,8,'#8b9bb4') +
+      r(4,4,1,1,'#262b44') + r(11,4,1,1,'#262b44') + r(4,11,1,1,'#262b44') + r(11,11,1,1,'#262b44') + r(5,5,6,1,'#c0cbdc')
+    ),
+    caution_panel: px(
+      r(2,2,12,12,'#181425') + r(3,3,10,10,'#feae34') +
+      r(3,3,3,3,'#181425') + r(6,6,3,3,'#181425') + r(9,9,4,4,'#181425') + r(9,3,4,2,'#181425') + r(3,9,3,4,'#181425')
+    ),
+    vent: px(
+      r(2,2,12,12,'#3a4466') + r(3,3,10,10,'#8b9bb4') +
+      r(4,4,8,1,'#181425') + r(4,6,8,1,'#181425') + r(4,8,8,1,'#181425') + r(4,10,8,1,'#181425')
+    ),
+    glass: px(
+      r(2,2,12,12,'#5a6988') + r(3,3,10,10,'#124e89') + r(4,4,8,8,'#0099db') +
+      r(5,5,2,2,'#ffffff') + r(7,7,1,1,'#2ce8f5') + r(9,9,2,2,'#2ce8f5')
+    ),
+    porthole: px(
+      r(2,2,12,12,'#5a6988') + r(4,4,8,8,'#3a4466') + r(5,5,6,6,'#0099db') +
+      r(6,6,2,2,'#a5f3fc') + r(3,3,1,1,'#c0cbdc') + r(12,3,1,1,'#c0cbdc') + r(3,12,1,1,'#c0cbdc') + r(12,12,1,1,'#c0cbdc')
+    ),
+    refinery: px(
+      r(2,3,12,11,'#3a4466') + r(3,4,10,9,'#5a6988') + r(4,6,8,5,'#181425') +
+      r(5,7,6,3,'#f77622') + r(6,8,4,2,'#fee761') + r(4,2,3,2,'#8b9bb4') + r(9,2,3,2,'#8b9bb4')
+    ),
+    synthesizer: px(
+      r(2,2,12,12,'#262b44') + r(3,3,10,10,'#3a4466') + r(4,5,8,6,'#181425') +
+      r(5,6,6,4,'#0099db') + r(6,7,4,2,'#2ce8f5') + r(4,3,2,1,'#63c74d') + r(10,3,2,1,'#feae34')
+    ),
+    o2_extractor: px(
+      r(2,2,12,12,'#3a4466') + r(3,3,10,10,'#8b9bb4') + r(4,4,4,8,'#0099db') +
+      r(5,5,2,6,'#2ce8f5') + r(9,4,3,3,'#181425') + r(10,5,1,1,'#63c74d') + r(9,9,3,3,'#5a6988')
+    ),
+    composter: px(
+      r(2,3,12,11,'#3e2731') + r(3,4,10,9,'#733e39') + r(4,5,8,4,'#265c42') +
+      r(5,6,6,2,'#63c74d') + r(4,10,8,2,'#3a4466')
+    ),
+    oven: px(
+      r(2,2,12,12,'#5a6988') + r(3,3,10,10,'#3a4466') + r(4,7,8,5,'#181425') +
+      r(5,8,6,3,'#e43b44') + r(6,9,4,1,'#fee761') + r(4,4,2,2,'#c0cbdc') + r(7,4,2,2,'#c0cbdc') + r(10,4,2,2,'#feae34')
+    ),
+    generator: px(
+      r(2,3,12,10,'#262b44') + r(3,4,10,8,'#3a4466') + r(4,5,8,6,'#181425') +
+      r(7,5,2,3,'#fee761') + r(6,7,4,2,'#feae34') + r(7,9,2,2,'#f77622') + r(3,13,3,1,'#8b9bb4') + r(10,13,3,1,'#8b9bb4')
+    ),
+    solar_panel: px(
+      r(1,4,14,8,'#8b9bb4') + r(2,5,12,6,'#124e89') + r(2,7,12,1,'#2ce8f5') +
+      r(5,5,1,6,'#2ce8f5') + r(10,5,1,6,'#2ce8f5') + r(7,12,2,3,'#5a6988')
+    ),
+    factory: px(
+      r(2,2,12,12,'#262b44') + r(3,3,10,10,'#5a6988') + r(4,4,8,4,'#feae34') +
+      r(5,5,2,2,'#181425') + r(9,5,2,2,'#181425') + r(4,9,8,3,'#181425') + r(5,10,6,1,'#2ce8f5')
+    ),
+    recycler: px(
+      r(2,2,12,12,'#3a4466') + r(3,3,10,10,'#265c42') + r(5,5,6,6,'#63c74d') + r(6,6,4,4,'#181425') + r(7,4,2,2,'#ffffff')
+    ),
+    conveyer: px(
+      r(1,5,14,6,'#3a4466') + r(2,6,12,4,'#181425') +
+      r(3,7,2,2,'#feae34') + r(7,7,2,2,'#feae34') + r(11,7,2,2,'#feae34')
+    ),
+    computer: px(
+      r(2,2,12,10,'#5a6988') + r(3,3,10,8,'#181425') + r(4,4,8,6,'#193c3e') +
+      r(5,5,5,1,'#2ce8f5') + r(5,7,4,1,'#63c74d') + r(5,9,2,1,'#feae34') + r(4,12,8,2,'#3a4466')
+    ),
+    cargo: px(
+      r(2,3,12,10,'#733e39') + r(3,4,10,8,'#b86f50') + r(3,7,10,2,'#3a4466') + r(7,6,2,4,'#feae34') + r(4,5,8,1,'#d77643')
+    ),
+    airlock: px(
+      r(2,2,12,12,'#3a4466') + r(3,3,10,10,'#5a6988') + r(4,4,3,8,'#8b9bb4') + r(9,4,3,8,'#8b9bb4') + r(7,4,2,8,'#181425') + r(7,7,2,2,'#feae34')
+    ),
+    door: px(
+      r(3,2,10,12,'#3a4466') + r(4,3,8,10,'#8b9bb4') + r(5,4,6,3,'#0099db') + r(10,8,1,2,'#feae34')
+    ),
+    light: px(
+      r(4,2,8,12,'#5a6988') + r(5,4,6,8,'#fee761') + r(6,5,4,6,'#ffffff') + r(4,3,8,1,'#3a4466') + r(4,12,8,1,'#3a4466')
+    ),
+    hydroponic: px(
+      r(2,3,12,11,'#5a6988') + r(3,4,10,9,'#181425') + r(4,4,8,1,'#b55088') +
+      r(4,10,8,2,'#733e39') + r(6,7,2,3,'#63c74d') + r(9,6,2,4,'#63c74d') + r(7,6,1,1,'#fee761')
+    ),
+    suit: px(
+      r(5,2,6,4,'#c0cbdc') + r(6,3,4,2,'#2ce8f5') + r(4,6,8,6,'#8b9bb4') +
+      r(5,7,6,4,'#c0cbdc') + r(6,8,4,2,'#f77622') + r(4,12,3,3,'#5a6988') + r(9,12,3,3,'#5a6988')
+    ),
+    sk_building: px(r(2,9,5,5,'#feae34')+r(8,9,6,5,'#f77622')+r(5,3,6,5,'#fee761')+r(6,4,4,3,'#ead4aa')),
+    sk_mining: px(r(3,11,3,3,'#b86f50')+r(5,9,3,3,'#b86f50')+r(7,7,3,3,'#b86f50')+r(6,3,7,2,'#c0cbdc')+r(11,4,2,5,'#8b9bb4')),
+    sk_salvaging: px(r(3,4,4,4,'#2ce8f5')+r(9,4,4,4,'#0099db')+r(6,7,4,7,'#8b9bb4')+r(5,3,6,2,'#c0cbdc')),
+    sk_farming: px(r(7,7,2,7,'#3e8948')+r(3,5,4,3,'#63c74d')+r(9,4,4,3,'#63c74d')+r(5,12,6,2,'#733e39')),
+    sk_manufacturing: px(r(5,5,6,6,'#8b9bb4')+r(7,2,2,3,'#c0cbdc')+r(7,11,2,3,'#c0cbdc')+r(2,7,3,2,'#c0cbdc')+r(11,7,3,2,'#c0cbdc')+r(7,7,2,2,'#181425')),
+    sk_cooking: px(r(3,7,10,6,'#5a6988')+r(2,7,12,2,'#c0cbdc')+r(5,3,1,3,'#fee761')+r(8,2,1,4,'#feae34')+r(10,3,1,3,'#fee761')),
+    buff_fed: px(r(3,9,10,4,'#8b9bb4')+r(4,5,8,4,'#feae34')+r(5,6,6,2,'#fee761')+r(7,2,2,2,'#6fcf97')),
+    buff_hydrated: px(r(7,2,2,2,'#2ce8f5')+r(6,4,4,3,'#2ce8f5')+r(5,7,6,5,'#0099db')+r(6,12,4,2,'#124e89')+r(6,8,2,2,'#ffffff')),
+    avatar_gorbulan: px(
+      r(4,2,8,7,'#3e8948')+r(3,4,10,4,'#63c74d')+r(5,4,2,2,'#fee761')+r(9,4,2,2,'#fee761')+
+      r(6,7,4,1,'#193c3e')+r(3,9,10,6,'#3a4466')+r(5,10,6,4,'#5a6988')+r(6,11,4,2,'#4be3e3')
+    ),
+    // Equipment slot icons & ghosts
+    eq_head: px(r(4,5,8,4,'#8b9bb4')+r(3,8,10,2,'#5a6988')+r(5,6,6,2,'#c0cbdc')+r(6,7,4,1,'#2ce8f5')),
+    eq_torso: px(r(4,3,8,10,'#3a4466')+r(2,4,2,5,'#3a4466')+r(12,4,2,5,'#3a4466')+r(5,4,6,8,'#5a6988')+r(6,3,4,2,'#181425')+r(6,6,4,2,'#8b9bb4')),
+    eq_legs: px(r(4,2,8,3,'#3a4466')+r(4,5,3,8,'#5a6988')+r(9,5,3,8,'#5a6988')+r(3,12,4,2,'#8b9bb4')+r(9,12,4,2,'#8b9bb4')+r(4,13,3,1,'#f77622')+r(9,13,3,1,'#f77622')),
+    eq_helmet: px(r(4,2,8,2,'#c0cbdc')+r(3,4,10,8,'#8b9bb4')+r(4,5,8,5,'#0099db')+r(5,6,6,3,'#2ce8f5')+r(5,6,2,2,'#ffffff')+r(4,12,8,2,'#3a4466')+r(5,12,6,1,'#feae34')),
+    eq_augment: px(r(4,4,8,8,'#162838')+r(5,5,6,6,'#0099db')+r(6,6,4,4,'#2ce8f5')+r(7,7,2,2,'#ffffff')+r(7,2,2,2,'#4be3e3')+r(7,12,2,2,'#4be3e3')+r(2,7,2,2,'#4be3e3')+r(12,7,2,2,'#4be3e3')),
+    glyph_lock: `<svg viewBox="0 0 12 12" shape-rendering="crispEdges" class="w-3.5 h-3.5 block"><rect x="4" y="2" width="4" height="1" fill="currentColor"/><rect x="3" y="3" width="1" height="3" fill="currentColor"/><rect x="8" y="3" width="1" height="3" fill="currentColor"/><rect x="2" y="6" width="8" height="5" fill="currentColor"/><rect x="5" y="7" width="2" height="2" fill="#0d121c"/></svg>`,
+    // UI Glyphs
+    glyph_x: `<svg viewBox="0 0 12 12" class="w-3 h-3" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M2 2l8 8M10 2l-8 8"/></svg>`,
+    glyph_trash: `<svg viewBox="0 0 14 14" class="w-3.5 h-3.5" fill="currentColor"><path d="M5 1h4v1h3v1.5H2V2h3V1zm-1.5 4h7l-.6 7.5H4.1L3.5 5z"/></svg>`,
+    glyph_bolt: `<svg viewBox="0 0 12 12" class="w-3 h-3" fill="currentColor"><path d="M7 1L2.5 7H6l-1 4 4.5-6H6l1-4z"/></svg>`
+  };
+
+  /* =========================================================================
+     ITEM CATALOG (Concise STE descriptions, zero filler)
+     ========================================================================= */
+  const QUALITY_COLORS = {
+    Low: '#8da0b8', Standard: '#4be3e3', High: '#ffd27d',
+    Common: '#c0cbdc', Uncommon: '#6fcf97', Rare: '#4be3e3', Epic: '#c084fc', Legendary: '#f2994a'
+  };
+
+  const ITEMS = {
+    laser:         { id:'laser', name:'Mining laser', kind:'Mining tool', icon:'laser', quality:'Common', desc:'Breaks mineral bricks.', traits:[], maxStack:1 },
+    reclaimer:     { id:'reclaimer', name:'Reclaimer', kind:'Conversion tool', icon:'reclaimer', quality:'Uncommon', desc:'Deconstructs structural and entity bricks.', traits:[], maxStack:1 },
+    o2_tank:       { id:'o2_tank', name:'Oxygen tank', kind:'Equipment', icon:'o2_tank', quality:'Common', desc:'Supplies portable oxygen in vacuum.', traits:[], maxStack:1, equipSlot:'o2' },
+    suit:          { id:'suit', name:'Space suit', kind:'Equipment', icon:'suit', quality:'Common', desc:'Pressurized frontier EVA suit.', traits:[], maxStack:1, equipSlot:'suit' },
+    eva_helmet:    { id:'eva_helmet', name:'EVA helmet', kind:'Equipment', icon:'eq_helmet', quality:'Common', desc:'Vacuum-sealed visor with comms uplink.', traits:[], maxStack:1, equipSlot:'helmet' },
+    undersuit:     { id:'undersuit', name:'Thermal undersuit', kind:'Equipment', icon:'eq_torso', quality:'Common', desc:'Insulated liner worn beneath EVA plating.', traits:[], maxStack:1, equipSlot:'torso' },
+    eva_boots:     { id:'eva_boots', name:'Mag-grip greaves', kind:'Equipment', icon:'eq_legs', quality:'Common', desc:'Stabilized boots for zero-G hull transit.', traits:[], maxStack:1, equipSlot:'legs' },
+    head_visor:    { id:'head_visor', name:'Surveyor visor', kind:'Equipment', icon:'eq_head', quality:'Uncommon', desc:'Compact optical rangefinder band.', traits:[], maxStack:1, equipSlot:'head' },
+    neural_chip:   { id:'neural_chip', name:'Optix-1 implant', kind:'Augmentation', icon:'eq_augment', quality:'Uncommon', desc:'Sharpens mineral vein edge contrast.', traits:[], maxStack:1, equipSlot:'augment' },
+    medkit:        { id:'medkit', name:'Medical supplies', kind:'Consumable', icon:'medkit', quality:'Common', desc:'Restores 3 health icons.', traits:['Consumable'], maxStack:10, usable:'heal' },
+    ration:        { id:'ration', name:'Ration', kind:'Consumable', icon:'ration', quality:'Common', desc:'Minor food buff or composter input.', traits:['Consumable'], maxStack:20, usable:'buff_ration' },
+    meal:          { id:'meal', name:'Spiced algae stew', kind:'Cooked meal', icon:'meal', quality:'Rare', desc:'Restores 1 health icon. +15% mining speed (5:00).', traits:['Consumable'], maxStack:10, usable:'buff_meal' },
+    water:         { id:'water', name:'Liquid water', kind:'Consumable', icon:'water', quality:'Standard', desc:'+10% O2 efficiency (3:00). Waters farm plots.', traits:['Consumable'], maxStack:20, usable:'buff_water' },
+    seed:          { id:'seed', name:'Hydro-grain seed', kind:'Item', icon:'seed', desc:'Grows in pressurized rooms.', traits:[], maxStack:50 },
+    soil:          { id:'soil', name:'Soil', kind:'Item', icon:'soil', desc:'Composted regolith for farming.', traits:[], maxStack:50 },
+    crop:          { id:'crop', name:'Hydro-grain', kind:'Item', icon:'crop', desc:'Harvested crop for oven cooking.', traits:[], maxStack:50 },
+    ice:           { id:'ice', name:'Raw ice', kind:'Raw mineral', icon:'ice', desc:'Feeds oxygen extractors, ovens, and hydroponics.', traits:[], maxStack:100 },
+    rock:          { id:'rock', name:'Raw rock', kind:'Raw mineral', icon:'rock', desc:'Composts into soil or refines into panels.', traits:[], maxStack:100 },
+    carbon:        { id:'carbon', name:'Raw carbon', kind:'Raw mineral', icon:'carbon', desc:'Fuels generators or refines into steel.', traits:[], maxStack:100 },
+    iron_ore:      { id:'iron_ore', name:'Iron ore', kind:'Raw mineral', icon:'iron_ore', desc:'Refines into hull-grade iron.', traits:[], maxStack:100 },
+    iron_ingot:    { id:'iron_ingot', name:'Refined iron', kind:'Refined material', icon:'iron_ingot', quality:'Standard', desc:'Structural plating and tool frame alloy.', traits:[], maxStack:100 },
+    copper_ore:    { id:'copper_ore', name:'Copper ore', kind:'Raw mineral', icon:'copper_ore', desc:'Refines into copper wiring.', traits:[], maxStack:100 },
+    copper_wire:   { id:'copper_wire', name:'Copper wiring', kind:'Refined material', icon:'copper_wire', quality:'Standard', desc:'Conductive spool for powered bricks.', traits:[], maxStack:100 },
+    silicates:     { id:'silicates', name:'Silica sand', kind:'Raw mineral', icon:'silicates', desc:'Refines into glass and optical lenses.', traits:[], maxStack:100 },
+    aluminum:      { id:'aluminum', name:'Refined aluminum', kind:'Refined material', icon:'aluminum', quality:'High', desc:'Lightweight alloy for vents and frames.', traits:[], maxStack:100 },
+    gold_chip:     { id:'gold_chip', name:'Gold microchip', kind:'Refined material', icon:'gold_chip', quality:'High', desc:'Circuitry for computers and factories.', traits:[], maxStack:100 },
+    titanium:      { id:'titanium', name:'Titanium alloy', kind:'Refined material', icon:'titanium', quality:'High', desc:'High-strength alloy for airlocks and tanks.', traits:[], maxStack:100 },
+    panel:         { id:'panel', name:'Panel', kind:'Brick', icon:'panel', desc:'Standard interior and exterior plating.', traits:['Shapeable','Rotatable'], maxStack:100 },
+    caution_panel: { id:'caution_panel', name:'Caution panel', kind:'Brick', icon:'caution_panel', desc:'Hazard-striped industrial plating.', traits:['Shapeable','Rotatable'], maxStack:100 },
+    vent:          { id:'vent', name:'Vent', kind:'Brick', icon:'vent', desc:'Airflow pass-through grating.', traits:['Rotatable'], maxStack:100 },
+    glass:         { id:'glass', name:'Glass', kind:'Brick', icon:'glass', desc:'Vacuum-sealed transparent pane.', traits:['Shapeable'], maxStack:100 },
+    porthole:      { id:'porthole', name:'Porthole', kind:'Brick', icon:'porthole', desc:'Framed observation window.', traits:['Rotatable'], maxStack:100 },
+    refinery:      { id:'refinery', name:'Refinery', kind:'Entity brick', icon:'refinery', quality:'Uncommon', desc:'Auto-refines raw minerals.', traits:['Rotatable'], maxStack:10 },
+    synthesizer:   { id:'synthesizer', name:'Synthesizer', kind:'Entity brick', icon:'synthesizer', quality:'Common', desc:'Fabricates tools and entity bricks.', traits:['Rotatable'], maxStack:10 },
+    o2_extractor:  { id:'o2_extractor', name:'Oxygen extractor', kind:'Entity brick', icon:'o2_extractor', quality:'Common', desc:'Synthesizes oxygen from ice or water.', traits:['Rotatable'], maxStack:10 },
+    composter:     { id:'composter', name:'Composter', kind:'Entity brick', icon:'composter', quality:'Common', desc:'Converts rock and organics into soil.', traits:['Rotatable'], maxStack:10 },
+    oven:          { id:'oven', name:'Oven', kind:'Entity brick', icon:'oven', quality:'Common', desc:'Cooks meals and melts ice.', traits:['Rotatable'], maxStack:10 },
+    generator:     { id:'generator', name:'Generator', kind:'Entity brick', icon:'generator', quality:'Common', desc:'Burns carbon for grid power.', traits:['Rotatable'], maxStack:10 },
+    solar_panel:   { id:'solar_panel', name:'Solar panel', kind:'Entity brick', icon:'solar_panel', quality:'Common', desc:'Passive grid power from starlight.', traits:['Rotatable'], maxStack:10 },
+    factory:       { id:'factory', name:'Factory', kind:'Entity brick', icon:'factory', quality:'Rare', desc:'Batch crafter with conveyer ports.', traits:['Rotatable'], maxStack:10 },
+    conveyer:      { id:'conveyer', name:'Conveyer', kind:'Entity brick', icon:'conveyer', desc:'Routes items between adjacent ports.', traits:['Rotatable'], maxStack:50 },
+    computer:      { id:'computer', name:'Computer', kind:'Entity brick', icon:'computer', quality:'Uncommon', desc:'Central grid management terminal.', traits:['Rotatable'], maxStack:5 },
+    cargo:         { id:'cargo', name:'Cargo container', kind:'Entity brick', icon:'cargo', desc:'Grid-tracked storage locker.', traits:['Rotatable'], maxStack:20 },
+    airlock:       { id:'airlock', name:'Airlock', kind:'Entity brick', icon:'airlock', quality:'Uncommon', desc:'Pressurized EVA bulkhead.', traits:['Rotatable'], maxStack:10 },
+    door:          { id:'door', name:'Door', kind:'Entity brick', icon:'door', desc:'Powered interior door.', traits:['Rotatable'], maxStack:10 },
+    light:         { id:'light', name:'Light', kind:'Entity brick', icon:'light', desc:'Caged interior lamp.', traits:['Light source','Rotatable'], maxStack:50 },
+    hydroponic:    { id:'hydroponic', name:'Hydroponic bay', kind:'Entity brick', icon:'hydroponic', quality:'Uncommon', desc:'Powered UV crop chamber.', traits:['Rotatable'], maxStack:10 }
+  };
+
+  /* =========================================================================
+     RECIPES (Zero filler prose — pure data)
+     ========================================================================= */
+  const RECIPES = {
+    suit: [
+      { id:'panel', outQty:4, reqs:[{id:'iron_ingot',qty:2},{id:'rock',qty:2}] },
+      { id:'caution_panel', outQty:4, reqs:[{id:'iron_ingot',qty:2},{id:'carbon',qty:1}] },
+      { id:'vent', outQty:2, reqs:[{id:'aluminum',qty:2}] },
+      { id:'glass', outQty:4, reqs:[{id:'silicates',qty:2}] },
+      { id:'porthole', outQty:2, reqs:[{id:'iron_ingot',qty:2},{id:'silicates',qty:1}] },
+      { id:'synthesizer', outQty:1, reqs:[{id:'iron_ingot',qty:4},{id:'copper_wire',qty:2},{id:'aluminum',qty:2}] },
+      { id:'refinery', outQty:1, reqs:[{id:'iron_ingot',qty:6},{id:'rock',qty:4},{id:'copper_wire',qty:2}] },
+      { id:'o2_extractor', outQty:1, reqs:[{id:'iron_ingot',qty:4},{id:'copper_wire',qty:2},{id:'aluminum',qty:2}] },
+      { id:'composter', outQty:1, reqs:[{id:'iron_ingot',qty:3},{id:'rock',qty:4}] },
+      { id:'oven', outQty:1, reqs:[{id:'iron_ingot',qty:4},{id:'copper_wire',qty:2}] },
+      { id:'generator', outQty:1, reqs:[{id:'iron_ingot',qty:5},{id:'copper_wire',qty:3},{id:'carbon',qty:2}] },
+      { id:'light', outQty:2, reqs:[{id:'copper_wire',qty:1},{id:'silicates',qty:1}] }
+    ],
+    synthesizer: [
+      { id:'laser', outQty:1, reqs:[{id:'iron_ingot',qty:4},{id:'copper_wire',qty:3},{id:'silicates',qty:2}] },
+      { id:'reclaimer', outQty:1, reqs:[{id:'iron_ingot',qty:4},{id:'copper_wire',qty:4},{id:'aluminum',qty:2}] },
+      { id:'o2_tank', outQty:1, reqs:[{id:'titanium',qty:3},{id:'aluminum',qty:2}] },
+      { id:'solar_panel', outQty:1, reqs:[{id:'silicates',qty:4},{id:'copper_wire',qty:3},{id:'aluminum',qty:2}] },
+      { id:'computer', outQty:1, reqs:[{id:'iron_ingot',qty:4},{id:'copper_wire',qty:4},{id:'gold_chip',qty:2}] },
+      { id:'factory', outQty:1, reqs:[{id:'iron_ingot',qty:6},{id:'copper_wire',qty:4},{id:'gold_chip',qty:2},{id:'titanium',qty:2}] },
+      { id:'conveyer', outQty:4, reqs:[{id:'iron_ingot',qty:2},{id:'copper_wire',qty:2}] },
+      { id:'cargo', outQty:1, reqs:[{id:'iron_ingot',qty:6},{id:'aluminum',qty:2}] },
+      { id:'airlock', outQty:1, reqs:[{id:'titanium',qty:4},{id:'copper_wire',qty:2},{id:'silicates',qty:2}] },
+      { id:'hydroponic', outQty:1, reqs:[{id:'aluminum',qty:4},{id:'silicates',qty:3},{id:'copper_wire',qty:2}] },
+      { id:'door', outQty:1, reqs:[{id:'iron_ingot',qty:3},{id:'copper_wire',qty:1}] }
+    ],
+    factory: [
+      { id:'panel', outQty:8, reqs:[{id:'iron_ingot',qty:3},{id:'rock',qty:3}] },
+      { id:'conveyer', outQty:8, reqs:[{id:'iron_ingot',qty:3},{id:'copper_wire',qty:3}] },
+      { id:'glass', outQty:8, reqs:[{id:'silicates',qty:3}] },
+      { id:'caution_panel', outQty:8, reqs:[{id:'iron_ingot',qty:3},{id:'carbon',qty:2}] },
+      { id:'cargo', outQty:2, reqs:[{id:'iron_ingot',qty:10},{id:'aluminum',qty:4}] },
+      { id:'solar_panel', outQty:2, reqs:[{id:'silicates',qty:6},{id:'copper_wire',qty:5},{id:'aluminum',qty:4}] }
+    ],
+    oven: [
+      { id:'meal', outQty:1, reqs:[{id:'crop',qty:2},{id:'ice',qty:1}], badge:'+15% mining · 5:00' },
+      { id:'water', outQty:2, reqs:[{id:'ice',qty:2}], badge:'+10% O2 · 3:00' },
+      { id:'ration', outQty:2, reqs:[{id:'crop',qty:2}], badge:'+5% mining · 2:00' }
+    ]
+  };
+
+  /* =========================================================================
+     AUTO-PROCESSOR DEFINITIONS (GAP-4A — Icon-guided, zero tutorial copy)
+     ========================================================================= */
+  const AUTO_MACHINES = {
+    refinery: {
+      name:'Refinery', quality:'Uncommon', stat:'+15% speed', slots:1, ghostIcons:['iron_ore'],
+      rules: {
+        iron_ore:   { out:'iron_ingot', outQty:1, inQty:2 },
+        copper_ore: { out:'copper_wire', outQty:1, inQty:2 },
+        ice:        { out:'water', outQty:1, inQty:1 },
+        rock:       { out:'panel', outQty:1, inQty:3 }
+      },
+      input:[{id:'iron_ore', count:24}], output:{id:'iron_ingot', count:8}, progress:64
+    },
+    composter: {
+      name:'Composter', quality:'Common', stat:'1.0× speed', slots:2, ghostIcons:['rock', 'ration'],
+      dualRule: { a:'rock', b:['ration','crop','carbon'], out:'soil', outQty:1 },
+      input:[{id:'rock', count:12}, {id:'ration', count:4}], output:{id:'soil', count:3}, progress:42
+    },
+    o2_extractor: {
+      name:'Oxygen extractor', quality:'Common', stat:'Sealed', slots:1, ghostIcons:['ice'],
+      rules: {
+        ice:   { out:null, outQty:0, o2Boost:3, inQty:1 },
+        water: { out:null, outQty:0, o2Boost:3, inQty:1 }
+      },
+      input:[{id:'ice', count:18}], output:null, progress:78, isO2:true
+    },
+    recycler: {
+      name:'Recycler', quality:'Rare', stat:'+25% speed', slots:1, ghostIcons:['panel'],
+      rules: {
+        panel:         { out:'iron_ingot', outQty:1, inQty:2 },
+        caution_panel: { out:'iron_ingot', outQty:1, inQty:2 },
+        vent:          { out:'aluminum', outQty:1, inQty:1 },
+        glass:         { out:'silicates', outQty:1, inQty:2 }
+      },
+      input:[{id:'panel', count:10}], output:{id:'iron_ingot', count:4}, progress:30
+    },
+    generator: {
+      name:'Generator', quality:'Common', stat:'+60 kW', slots:1, ghostIcons:['carbon'],
+      rules: { carbon: { out:null, outQty:0, fuel:true, inQty:1 } },
+      input:[{id:'carbon', count:16}], output:null, progress:55, isFuel:true
+    }
+  };
+
+  /* =========================================================================
+     SHARED LIVE STATE
+     ========================================================================= */
+  const state = {
+    surface: 'hud',
+    mode: 'adventure',
+    hp: 8,
+    o2: 7,
+    inVacuum: true,
+    dampeners: true,
+    autoDrainO2: false,
+    activeSlot: 0,
+    miningProgress: 0,
+    isMining: false,
+    showChat: false,
+    showSkillBar: true,
+    activeSkillIdx: 1,
+    lastXpGain: 12,
+    buffs: [
+      { id:'fed', icon:'buff_fed', label:'Well-fed', effect:'+15% mining speed', secs:255 },
+      { id:'hyd', icon:'buff_hydrated', label:'Hydrated', effect:'+10% O2 efficiency', secs:139 }
+    ],
+    tabOverlayPane: 0,
+    selectedSuitRecipe: 'synthesizer',
+    activeAutoMachine: 'refinery',
+    machinePowered: true,
+    activeRecipeMachine: 'synthesizer',
+    selectedMachineRecipe: { synthesizer:'computer', factory:'panel', oven:'meal' },
+    machineOutputSlot: { synthesizer:null, factory:{id:'panel', count:16}, oven:{id:'meal', count:1} },
+    machineCrafting: false,
+    machineCraftPct: 0,
+    gridSealed: true,
+    computerStyle: 'crt', // 'crt' | 'reef'
+    crtTint: 'mono',      // 'mono' (locked) | 'cyan' | 'amber' | 'green'
+    crtTextures: true,    // toggleable crt_scanlines.png + crt_vignette.png overlays
+    gridMachines: [
+      { id:'m1', name:'Oxygen extractor #1', icon:'o2_extractor', status:'Active', kw:-12, enabled:true },
+      { id:'m2', name:'Refinery #1', icon:'refinery', status:'Active', kw:-18, enabled:true },
+      { id:'m3', name:'Hydroponic bay #1', icon:'hydroponic', status:'Growing', kw:-10, enabled:true },
+      { id:'m4', name:'Factory #1', icon:'factory', status:'Idle', kw:-4, enabled:true },
+      { id:'m5', name:'Composter #1', icon:'composter', status:'Active', kw:-6, enabled:true },
+      { id:'m6', name:'Generator #1', icon:'generator', status:'Online', kw:60, enabled:true }
+    ],
+    bpSearch: '',
+    bpNewName: '',
+    bpConfirmDelete: null,
+    blueprints: [
+      { id:'bp1', name:'Starter lifeboat hull', dims:'9 × 5 × 12 · 184 bricks', builtIn:true },
+      { id:'bp2', name:'Pressurized hab module', dims:'7 × 4 × 7 · 142 bricks', builtIn:false },
+      { id:'bp3', name:'Solar refinery skid', dims:'5 × 3 × 6 · 86 bricks', builtIn:false }
+    ],
+    deathCause: 'suffocation',
+    saveName: 'Kepler Drift',
+    saveSeed: 'amber-comet-418',
+    saveMode: 'adventure',
+    saveCreating: false,
+    saveLogIdx: 0,
+    skills: [
+      { id:'building', name:'Building', icon:'sk_building', rank:10, xp:420, xpNext:1000, totalXp:4820,
+        scaling:'10.5m reach · 3 blueprints',
+        milestones:[
+          { r:10, text:'In-place brick replace + blueprint slot' },
+          { r:25, text:'1D line & 2D plane placement' },
+          { r:50, text:'Flood fill placement' },
+          { r:75, text:'3D box & shape placement' },
+          { r:100, text:'Master architect (+max blueprint size)' }
+        ]
+      },
+      { id:'mining', name:'Mining', icon:'sk_mining', rank:14, xp:680, xpNext:1000, totalXp:7140,
+        scaling:'+14% speed · +7% yield',
+        milestones:[
+          { r:10, text:'Bonus mineral yield tier 1' },
+          { r:25, text:'Reduced laser heat drain' },
+          { r:50, text:'Rare vein yield proc' },
+          { r:75, text:'High-density core extraction' },
+          { r:100, text:'Double vein yield chance' }
+        ]
+      },
+      { id:'salvaging', name:'Salvaging', icon:'sk_salvaging', rank:7, xp:310, xpNext:1000, totalXp:2410,
+        scaling:'+7% speed · +7% recycler',
+        milestones:[
+          { r:10, text:'Component recovery tier 1' },
+          { r:25, text:'Bonus structural recovery' },
+          { r:50, text:'Rare microchip recovery' },
+          { r:75, text:'Intact entity-brick salvage chance' },
+          { r:100, text:'Zero-loss reclamation' }
+        ]
+      },
+      { id:'farming', name:'Farming', icon:'sk_farming', rank:4, xp:190, xpNext:1000, totalXp:1190,
+        scaling:'+4% growth · +4% yield',
+        milestones:[
+          { r:10, text:'+15% bonus seed drop' },
+          { r:25, text:'Multi-harvest yield tier 1' },
+          { r:50, text:'High-purity crop yield' },
+          { r:75, text:'Rapid growth stage cycling' },
+          { r:100, text:'2× crop harvest' }
+        ]
+      },
+      { id:'manufacturing', name:'Manufacturing', icon:'sk_manufacturing', rank:11, xp:240, xpNext:1000, totalXp:5240,
+        scaling:'+11% speed · +1 brick qty',
+        milestones:[
+          { r:10, text:'Uncommon (tier 2) gear & machines' },
+          { r:25, text:'Standard materials & Rare (tier 3) crafts' },
+          { r:50, text:'High-purity (tier 3) materials' },
+          { r:75, text:'Epic (tier 4) gear & machines' },
+          { r:100, text:'Legendary (tier 5) fabrication' }
+        ]
+      },
+      { id:'cooking', name:'Cooking', icon:'sk_cooking', rank:3, xp:550, xpNext:1000, totalXp:950,
+        scaling:'+3% speed · +6% duration',
+        milestones:[
+          { r:10, text:'Uncommon (tier 2) meals' },
+          { r:25, text:'Rare (tier 3) multi-stat meals' },
+          { r:50, text:'Epic (tier 4) extended meals' },
+          { r:75, text:'Culinary efficiency tier 4' },
+          { r:100, text:'Legendary (tier 5) meals' }
+        ]
+      }
+    ],
+    hotbar: [
+      { id:'laser', count:1 },
+      { id:'reclaimer', count:1 },
+      { id:'panel', count:48 },
+      { id:'glass', count:16 },
+      { id:'light', count:6 },
+      { id:'medkit', count:3 },
+      { id:'meal', count:2 },
+      { id:'ration', count:5 },
+      null
+    ],
+    inventory: [
+      { id:'iron_ore', count:28 }, { id:'iron_ingot', count:18 }, { id:'copper_ore', count:16 },
+      { id:'copper_wire', count:14 }, { id:'aluminum', count:12 }, { id:'silicates', count:15 },
+      { id:'gold_chip', count:4 }, { id:'titanium', count:6 }, { id:'carbon', count:22 },
+      { id:'ice', count:32 }, { id:'rock', count:24 }, { id:'water', count:4 },
+      { id:'soil', count:2 }, { id:'seed', count:6 }, { id:'crop', count:8 },
+      { id:'caution_panel', count:12 }, { id:'vent', count:6 }, { id:'porthole', count:4 },
+      { id:'head_visor', count:1 }, null, null, null, null, null, null, null, null,
+      null, null, null, null, null, null, null, null, null
+    ],
+    equipment: {
+      head: null,
+      torso: { id:'undersuit', count:1 },
+      legs: { id:'eva_boots', count:1 },
+      helmet: { id:'eva_helmet', count:1 },
+      suit: { id:'suit', count:1 },
+      o2: { id:'o2_tank', count:1 }
+    },
+    augments: [
+      { id:'neural_chip', count:1 },
+      null, null, null, null
+    ],
+    selectedInvSlot: null
+  };
+
+  /* =========================================================================
+     HELPERS
+     ========================================================================= */
+  function countItem(id) {
+    let total = 0;
+    for (const s of state.inventory) if (s && s.id === id) total += s.count;
+    for (const s of state.hotbar) if (s && s.id === id) total += s.count;
+    return total;
+  }
+
+  function consumeItem(id, qty) {
+    let rem = qty;
+    for (const list of [state.inventory, state.hotbar]) {
+      for (let i = 0; i < list.length && rem > 0; i++) {
+        if (list[i] && list[i].id === id) {
+          const take = Math.min(rem, list[i].count);
+          list[i].count -= take;
+          rem -= take;
+          if (list[i].count <= 0) list[i] = null;
+        }
+      }
+    }
+    return rem === 0;
+  }
+
+  function addItem(id, qty) {
+    const def = ITEMS[id];
+    if (!def) return;
+    let rem = qty;
+    for (const list of [state.inventory, state.hotbar]) {
+      for (let i = 0; i < list.length && rem > 0; i++) {
+        if (list[i] && list[i].id === id && list[i].count < def.maxStack) {
+          const add = Math.min(rem, def.maxStack - list[i].count);
+          list[i].count += add;
+          rem -= add;
+        }
+      }
+    }
+    for (const list of [state.inventory, state.hotbar]) {
+      for (let i = 0; i < list.length && rem > 0; i++) {
+        if (!list[i]) {
+          const add = Math.min(rem, def.maxStack);
+          list[i] = { id, count: add };
+          rem -= add;
+        }
+      }
+    }
+  }
+
+  function isValidAutoInput(machineKey, itemId) {
+    const m = AUTO_MACHINES[machineKey];
+    if (m.dualRule) return itemId === m.dualRule.a || m.dualRule.b.includes(itemId);
+    return Boolean(m.rules && m.rules[itemId]);
+  }
+
+  function canCraft(recipe) {
+    return recipe.reqs.every(req => countItem(req.id) >= req.qty);
+  }
+
+  function grantSkillXp(skillId, amount) {
+    const sk = state.skills.find(s => s.id === skillId);
+    if (!sk) return;
+    sk.xp += amount;
+    sk.totalXp += amount;
+    state.activeSkillIdx = state.skills.indexOf(sk);
+    state.lastXpGain = amount;
+    state.showSkillBar = true;
+    while (sk.xp >= sk.xpNext && sk.rank < 100) {
+      sk.xp -= sk.xpNext;
+      sk.rank += 1;
+      const ms = sk.milestones.find(m => m.r === sk.rank);
+      pushToast(
+        ms ? `${sk.name} Lvl ${sk.rank} milestone` : `${sk.name} Lvl ${sk.rank}`,
+        ms ? ms.text : '',
+        ms ? 'primary' : 'accent'
+      );
+    }
+  }
+
+  function pushToast(title, sub, tone = 'accent') {
+    const box = document.getElementById('toast-layer');
+    const borderC = tone === 'primary' ? 'var(--wb-primary)' : tone === 'danger' ? 'var(--wb-danger)' : 'var(--wb-accent)';
+    const textC = tone === 'primary' ? 'var(--wb-primary-bright)' : tone === 'danger' ? 'var(--wb-danger-bright)' : 'var(--wb-accent-bright)';
+    const el = document.createElement('div');
+    el.style.cssText = `background:var(--wb-scrim-soft); border:1px solid var(--wb-border); border-left:3px solid ${borderC}; padding:7px 10px; transition:opacity 240ms;`;
+    el.innerHTML = `
+      <div style="font-size:13px; color:${textC};">${title}</div>
+      ${sub ? `<div style="font-size:11px; color:var(--wb-text-muted); margin-top:2px;">${sub}</div>` : ''}
+    `;
+    box.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 250); }, 2800);
+  }
+
+  function useConsumable(listName, idx) {
+    const list = state[listName];
+    const slot = list[idx];
+    if (!slot) return;
+    const def = ITEMS[slot.id];
+    if (!def.usable) return;
+    if (def.usable === 'heal') {
+      if (state.hp >= 10) return;
+      state.hp = Math.min(10, state.hp + 3);
+    } else if (def.usable === 'buff_meal') {
+      state.hp = Math.min(10, state.hp + 1);
+      const b = state.buffs.find(x => x.id === 'fed');
+      if (b) b.secs = 300;
+      else state.buffs.unshift({ id:'fed', icon:'buff_fed', label:'Well-fed', effect:'+15% mining speed', secs:300 });
+    } else if (def.usable === 'buff_ration') {
+      const b = state.buffs.find(x => x.id === 'fed');
+      if (b) b.secs = Math.max(b.secs, 120);
+      else state.buffs.unshift({ id:'fed', icon:'buff_fed', label:'Ration', effect:'+5% mining speed', secs:120 });
+    } else if (def.usable === 'buff_water') {
+      const b = state.buffs.find(x => x.id === 'hyd');
+      if (b) b.secs = 180;
+      else state.buffs.push({ id:'hyd', icon:'buff_hydrated', label:'Hydrated', effect:'+10% O2 efficiency', secs:180 });
+    }
+    slot.count -= 1;
+    if (slot.count <= 0) list[idx] = null;
+    renderAll();
+  }
+
+  function fmtTime(sec) {
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  }
+
+  /* =========================================================================
+     CUSTOM REEF TOOLTIP (Items, Milestones, & HUD State Icons)
+     ========================================================================= */
+  const tipEl = document.getElementById('wb-tooltip');
+  const tipInner = document.getElementById('wb-tooltip-inner');
+
+  function showCustomTooltip(e, title, subtitle, desc, barColor = '#4be3e3', traits = []) {
+    const traitsHtml = traits.length ? `
+      <div style="height:1px; background:#1a2333; width:100%;"></div>
+      <div style="display:flex; flex-wrap:wrap; gap:4px;">
+        ${traits.map(t => `<span style="background:#162838; border:1px solid #495d7a; padding:2px 6px; font-size:11px; color:#f0f3f6;">${t}</span>`).join('')}
+      </div>
+    ` : '';
+    tipInner.innerHTML = `
+      <div style="display:flex; gap:8px; align-items:stretch;">
+        <div style="width:2px; background:${barColor}; flex-shrink:0;"></div>
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <div style="color:${barColor === '#e04f7a' ? '#ff8da6' : '#ffd27d'}; font-size:14px; line-height:17px; white-space:nowrap;">${title}</div>
+          ${subtitle ? `<div style="color:#8da0b8; font-size:11px; line-height:14px;">${subtitle}</div>` : ''}
+        </div>
+      </div>
+      ${desc ? `<div style="color:#bfbfbf; font-size:12px; line-height:15px;">${desc}</div>` : ''}
+      ${traitsHtml}
+    `;
+    tipEl.style.display = 'block';
+    moveTooltip(e);
+  }
+
+  function showItemTooltip(e, itemId) {
+    const item = ITEMS[itemId];
+    if (!item) return;
+    const qColor = item.quality ? QUALITY_COLORS[item.quality] : '#f2994a';
+    const sub = item.quality ? `${item.kind} · <span style="color:${qColor}">${item.quality}</span>` : item.kind;
+    showCustomTooltip(e, item.name, sub, item.desc, qColor, item.traits || []);
+  }
+
+  function moveTooltip(e) {
+    if (tipEl.style.display !== 'block') return;
+    const pad = 12;
+    let x = e.clientX + pad;
+    let y = e.clientY + pad;
+    const rect = tipEl.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth - 8) x = e.clientX - rect.width - pad;
+    if (y + rect.height > window.innerHeight - 8) y = window.innerHeight - rect.height - 8;
+    tipEl.style.left = Math.max(8, x) + 'px';
+    tipEl.style.top = Math.max(8, y) + 'px';
+  }
+
+  function hideTooltip() { tipEl.style.display = 'none'; }
+  window.addEventListener('mousemove', moveTooltip);
+
+  /* =========================================================================
+     REUSABLE REEF FRAGMENTS
+     ========================================================================= */
+  function renderSlotHtml(slot, opts = {}) {
+    const item = slot ? ITEMS[slot.id] : null;
+    const cls = [
+      'wb-slot',
+      opts.selected ? 'wb-slot-selected' : '',
+      opts.equipped ? 'wb-slot-equipped' : '',
+      opts.validIn ? 'wb-slot-valid-in' : '',
+      opts.dimmed ? 'wb-slot-dimmed' : ''
+    ].filter(Boolean).join(' ');
+    const qColor = item && item.quality ? QUALITY_COLORS[item.quality] : null;
+    const attrs = [
+      item ? `data-tip-item="${item.id}"` : '',
+      opts.dataAttrs || ''
+    ].filter(Boolean).join(' ');
+
+    const emptyInner = opts.ghostIcon
+      ? `<div class="w-8 h-8 opacity-25 pointer-events-none">${ICONS[opts.ghostIcon]}</div>`
+      : '';
+
+    return `
+      <div class="${cls}" ${attrs} style="${opts.style || ''}">
+        ${item ? `<div class="w-9 h-9 pointer-events-none">${ICONS[item.icon]}</div>` : emptyInner}
+        ${opts.num ? `<span class="wb-slot-number">${opts.num}</span>` : ''}
+        ${qColor ? `<span class="wb-slot-tier-dot" style="background:${qColor};"></span>` : ''}
+        ${slot && slot.count > 1 ? `<span class="wb-slot-count">${slot.count}</span>` : ''}
+      </div>
+    `;
+  }
+
+  function renderInventoryGridHtml(mode = 'normal') {
+    const isSel = (list, idx) => state.selectedInvSlot && state.selectedInvSlot.list === list && state.selectedInvSlot.idx === idx;
+    const autoMode = mode === 'auto-insert';
+
+    const makeSlot = (slot, listName, idx, num) => {
+      const valid = autoMode && slot && isValidAutoInput(state.activeAutoMachine, slot.id);
+      const dimmed = autoMode && slot && !valid;
+      return renderSlotHtml(slot, {
+        num,
+        selected: isSel(listName, idx),
+        validIn: valid,
+        dimmed,
+        dataAttrs: `data-inv-list="${listName}" data-inv-idx="${idx}" data-inv-mode="${mode}"`
+      });
+    };
+
+    const cargoRows = [];
+    for (let row = 0; row < 4; row++) {
+      let cells = '';
+      for (let col = 0; col < 9; col++) {
+        const idx = row * 9 + col;
+        cells += makeSlot(state.inventory[idx], 'inventory', idx);
+      }
+      cargoRows.push(`<div class="flex gap-[6px]">${cells}</div>`);
+    }
+    let hotbarCells = '';
+    for (let i = 0; i < 9; i++) {
+      hotbarCells += makeSlot(state.hotbar[i], 'hotbar', i, String(i + 1));
+    }
+    return `
+      <div class="flex flex-col gap-[6px]">${cargoRows.join('')}</div>
+      <div class="my-2.5 wb-divider-dashed"></div>
+      <div class="flex gap-[6px]">${hotbarCells}</div>
+    `;
+  }
+
+  function renderRecipePaneHtml(recipeSetKey, selectedId, craftBtnLabel, outputSlotHtml = '', headerExtra = '') {
+    const list = RECIPES[recipeSetKey];
+    const sel = list.find(r => r.id === selectedId) || list[0];
+    const selDef = ITEMS[sel.id];
+    const ok = canCraft(sel);
+
+    const gridCells = list.map(rec => renderSlotHtml({ id: rec.id, count: rec.outQty }, {
+      selected: rec.id === sel.id,
+      dimmed: !canCraft(rec),
+      dataAttrs: `data-select-recipe="${rec.id}" data-recipe-set="${recipeSetKey}"`
+    })).join('');
+
+    const reqRows = sel.reqs.map(req => {
+      const have = countItem(req.id);
+      const met = have >= req.qty;
+      const reqDef = ITEMS[req.id];
+      return `
+        <div class="flex items-center justify-between gap-2 px-2 py-1.5"
+             style="background:var(--wb-control); border:1px solid ${met ? 'var(--wb-border)' : 'var(--wb-danger-dark)'};"
+             data-tip-item="${req.id}">
+          <div class="w-7 h-7 shrink-0">${ICONS[reqDef.icon]}</div>
+          <span class="text-xs font-semibold tabular-nums" style="color:${met ? 'var(--wb-success)' : 'var(--wb-danger-bright)'};">${have}/${req.qty}</span>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      ${headerExtra}
+      <div class="flex gap-2.5 flex-1 min-h-0">
+        <!-- Left: Icon-based recipe ScrollArea -->
+        <div class="flex flex-col flex-1 min-h-0">
+          <div class="text-[11px] mb-1" style="color:var(--wb-text-muted);">Recipes</div>
+          <div class="wb-scroll flex-1 overflow-y-auto p-2" style="background:var(--wb-panel-inner); border:1px solid var(--wb-border-inner);">
+            <div class="grid grid-cols-4 gap-1.5">${gridCells}</div>
+          </div>
+        </div>
+
+        <!-- Right: Vertical stacked input-icon requirement scroll (icon + ratio only) -->
+        <div class="flex flex-col w-[112px] shrink-0 min-h-0">
+          <div class="text-[11px] mb-1" style="color:var(--wb-text-muted);">Needs</div>
+          <div class="wb-scroll flex-1 overflow-y-auto p-1.5 flex flex-col gap-1.5" style="background:var(--wb-panel-inner); border:1px solid var(--wb-border-inner);">
+            ${reqRows}
+          </div>
+        </div>
+      </div>
+
+      <!-- Selected Item & Craft Action (Zero-Shift Footer) -->
+      <div class="mt-2.5 pt-2.5 shrink-0" style="border-top:1px solid var(--wb-border-inner);">
+        <div class="flex items-center justify-between gap-2 mb-2 min-h-[20px]">
+          <span class="text-sm font-semibold truncate" style="color:var(--wb-accent-bright);">
+            ${selDef.name}${sel.outQty > 1 ? ` ×${sel.outQty}` : ''}
+          </span>
+          ${sel.badge ? `<span class="text-[11px] px-1.5 py-0.5 shrink-0" style="background:var(--wb-accent-dark); color:var(--wb-success);">${sel.badge}</span>` : ''}
+        </div>
+        ${outputSlotHtml ? `
+          <div class="flex items-center gap-3 h-[48px]">
+            <button id="btn-do-craft" data-recipe-set="${recipeSetKey}" data-recipe-id="${sel.id}"
+              class="wb-btn wb-btn-primary wb-caps-6 shrink-0" style="min-width:132px; height:40px;" ${ok && !state.machineCrafting ? '' : 'disabled'}>
+              <span class="wb-btn-inner">${state.machineCrafting ? 'Crafting...' : craftBtnLabel}</span>
+            </button>
+            <div class="wb-progress-track flex-1" style="height:8px;">
+              <div class="wb-progress-fill" style="width:${state.machineCrafting ? state.machineCraftPct : 0}%; background:var(--wb-primary);"></div>
+            </div>
+            ${outputSlotHtml}
+          </div>
+        ` : `
+          <button id="btn-do-craft" data-recipe-set="${recipeSetKey}" data-recipe-id="${sel.id}"
+            class="wb-btn wb-btn-primary wb-caps-6 w-full" style="height:40px;" ${ok ? '' : 'disabled'}>
+            <span class="wb-btn-inner">${craftBtnLabel}</span>
+          </button>
+        `}
+      </div>
+    `;
+  }
+
+  function renderSegmentedBarHtml(pct, fillColor = 'var(--wb-accent)', dividerColor = 'var(--wb-panel-inner)', height = 8) {
+    let divs = '';
+    for (let i = 1; i < 10; i++) {
+      divs += `<div style="position:absolute; top:0; bottom:0; left:${i * 10}%; width:2px; background:${dividerColor};"></div>`;
+    }
+    return `
+      <div class="wb-progress-track" style="height:${height}px;">
+        <div class="wb-progress-fill" style="width:${Math.max(0, Math.min(100, pct))}%; background:${fillColor};"></div>
+        ${divs}
+      </div>
+    `;
+  }
+
+  /* =========================================================================
+     SURFACE RENDERERS
+     ========================================================================= */
+
+  // 1. ACTIVE GAMEPLAY HUD (GAP-2 + GAP-6)
+  function renderHudSurface() {
+    const activeItem = state.hotbar[state.activeSlot];
+    const activeDef = activeItem ? ITEMS[activeItem.id] : null;
+    const sk = state.skills[state.activeSkillIdx];
+    const skPct = Math.round((sk.xp / sk.xpNext) * 100);
+
+    const hpLow = state.hp <= 2;
+    const o2Warn = state.o2 <= 2 && state.o2 > 0;
+    const o2Crit = state.o2 === 0;
+
+    let hpPips = '';
+    for (let i = 0; i < 10; i++) {
+      hpPips += `<div class="w-5 h-5 wb-pip-shadow">${i < state.hp ? ICONS.hp_full : ICONS.hp_empty}</div>`;
+    }
+    let o2Pips = '';
+    for (let i = 0; i < 10; i++) {
+      const icon = o2Crit ? ICONS.o2_crit : (i < state.o2 ? (o2Warn ? ICONS.o2_warn : ICONS.o2_full) : ICONS.o2_empty);
+      o2Pips += `<div class="w-5 h-5 wb-pip-shadow">${icon}</div>`;
+    }
+
+    const buffRows = state.buffs.map(b => `
+      <div class="inline-flex items-center gap-1.5 px-1.5 py-0.5 pointer-events-auto cursor-default ${b.secs <= 10 ? 'wb-buff-expiring' : ''}"
+           style="background:var(--wb-scrim-soft); border:1px solid var(--wb-border-inner);"
+           data-tip-title="${b.label}" data-tip-sub="${fmtTime(b.secs)}" data-tip-desc="${b.effect}" data-tip-color="#6fcf97">
+        <div class="w-4 h-4">${ICONS[b.icon]}</div>
+        <span class="text-xs tabular-nums" style="color:var(--wb-text);">${fmtTime(b.secs)}</span>
+      </div>
+    `).join('');
+
+    const hotbarSlots = state.hotbar.map((slot, i) =>
+      renderSlotHtml(slot, {
+        num: String(i + 1),
+        selected: i === state.activeSlot,
+        dataAttrs: `data-hud-slot="${i}"`
+      })
+    ).join('');
+
+    const isBrick = activeDef && (activeDef.kind === 'Brick' || activeDef.kind === 'Entity brick');
+
+    return `
+      <!-- Top-Center: 10-Segment Skill XP Bar (BarsView.rml) -->
+      ${state.showSkillBar ? `
+        <div class="absolute top-5 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none" style="width:460px;">
+          <div style="background:var(--wb-panel); width:100%; padding:8px 12px; display:flex; flex-direction:column; gap:5px;">
+            <div class="flex items-center justify-between text-sm">
+              <span style="color:var(--wb-text);">${sk.name} Lvl ${sk.rank}</span>
+              <span style="color:var(--wb-accent-bright);">+${state.lastXpGain} XP (${skPct}%)</span>
+            </div>
+            ${renderSegmentedBarHtml(skPct, 'var(--wb-accent)', 'var(--wb-panel-solid)', 7)}
+          </div>
+          <div style="width:100%; height:1px; background:var(--wb-border);"></div>
+        </div>
+      ` : ''}
+
+      <!-- Chat Layer (ChatView.rml) -->
+      ${state.showChat ? `
+        <div class="absolute left-5 bottom-36 wb-caps-10 wb-caps-hover" style="width:390px; background:var(--wb-panel); border:1px solid var(--wb-border); padding:2px;">
+          <div style="border:1px solid var(--wb-border-inner); background:var(--wb-panel-inner);">
+            <div class="flex items-center justify-between px-2.5 py-1 text-[11px]" style="border-bottom:1px solid var(--wb-border-inner); color:var(--wb-accent);">
+              <span>SUBSPACE COMMS // LOCAL</span>
+              <span style="color:var(--wb-text-muted);">[Esc] CLOSE</span>
+            </div>
+            <div class="p-2 flex flex-col gap-1 text-xs" style="height:104px;">
+              <div><span style="color:var(--wb-accent-bright);">Kizo:</span> <span style="color:var(--wb-text);">Hull sealed. Refinery online.</span></div>
+            </div>
+            <div class="px-2 py-1.5 flex items-center gap-2 text-xs" style="border-top:1px solid var(--wb-border-inner); background:var(--wb-input);">
+              <span style="color:var(--wb-accent);">&gt;</span>
+              <span style="color:var(--wb-text-dim);">Enter a message</span>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Center: Crosshair + GAP-6 Minimalist Reticle Progress Bar (ZERO text, ZERO %) -->
+      <div id="reticle-zone" class="absolute inset-0 flex flex-col items-center justify-center cursor-crosshair">
+        <div class="relative w-5 h-5 pointer-events-none">
+          <div style="position:absolute; left:9px; top:2px; width:2px; height:5px; background:rgba(240,243,246,0.92); box-shadow:0 0 2px #000;"></div>
+          <div style="position:absolute; left:9px; bottom:2px; width:2px; height:5px; background:rgba(240,243,246,0.92); box-shadow:0 0 2px #000;"></div>
+          <div style="position:absolute; top:9px; left:2px; height:2px; width:5px; background:rgba(240,243,246,0.92); box-shadow:0 0 2px #000;"></div>
+          <div style="position:absolute; top:9px; right:2px; height:2px; width:5px; background:rgba(240,243,246,0.92); box-shadow:0 0 2px #000;"></div>
+        </div>
+
+        <div class="mt-3 pointer-events-none transition-opacity duration-75" style="width:124px; opacity:${state.miningProgress > 0 ? 1 : 0}; padding:1px; background:#070a10cc;">
+          <div class="wb-progress-track" style="height:6px; background:var(--wb-panel-solid); border-color:var(--wb-border-hover);">
+            <div class="wb-progress-fill" style="width:${state.miningProgress}%; background:${state.activeSlot === 1 ? 'var(--wb-accent)' : 'var(--wb-primary)'};"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom-Left: GAP-2 Borderless Survival Cluster (Hidden in Creative) -->
+      ${state.mode === 'adventure' ? `
+        <div class="absolute left-5 bottom-5 flex flex-col items-start gap-2 pointer-events-none">
+          <div class="flex flex-col items-start gap-1">${buffRows}</div>
+          <div class="flex flex-col gap-1.5">
+            <div class="flex gap-1 ${hpLow ? 'wb-pulse-danger' : ''}" aria-label="Health">${hpPips}</div>
+            <div class="flex gap-1 ${o2Crit ? 'wb-pulse-danger' : o2Warn ? 'wb-pulse-warning' : ''}" aria-label="Oxygen">${o2Pips}</div>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Bottom-Center: Unobstructed Action Label + 3D Gizmo + Flush Left-Edge State Grid + Hotbar -->
+      <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none">
+        <div class="flex flex-col items-center gap-1.5">
+          ${activeDef ? `<div class="text-sm" style="color:var(--wb-text); text-shadow:0 1px 4px #000;">${activeDef.name}</div>` : ''}
+          ${isBrick ? `
+            <div class="w-8 h-8 flex items-center justify-center" style="background:var(--wb-scrim-soft); border:1px solid var(--wb-border);">
+              <svg viewBox="0 0 24 24" class="w-6 h-6">
+                <polygon points="12,3 21,8 12,13 3,8" fill="#4be3e3" fill-opacity="0.35" stroke="#a5f3fc" stroke-width="1.2"/>
+                <polygon points="3,8 12,13 12,21 3,16" fill="#2b384e" stroke="#4be3e3" stroke-width="1"/>
+                <polygon points="21,8 12,13 12,21 21,16" fill="#162838" stroke="#4be3e3" stroke-width="1"/>
+              </svg>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="flex items-stretch gap-2 pointer-events-auto">
+          <!-- Flush 2-high State Stack (30+6+30 = 66px, matching exact 66px Hotbar height) -->
+          ${state.mode === 'adventure' ? `
+            <div class="flex flex-col justify-between gap-1.5">
+              <div class="wb-state-cell cursor-pointer" data-toggle-vacuum="1"
+                   style="border-color:${state.inVacuum ? 'var(--wb-danger)' : 'var(--wb-border)'};
+                          background:${state.inVacuum ? 'var(--wb-danger-dark)' : 'var(--wb-panel)'};
+                          opacity:${state.inVacuum ? 1 : 0.72};"
+                   data-tip-title="${state.inVacuum ? 'Vacuum' : 'Pressurized'}"
+                   data-tip-sub="${state.inVacuum ? 'Unpressurized environment' : 'Sealed room'}"
+                   data-tip-desc="${state.inVacuum ? 'Oxygen tank depleting.' : 'Breathable atmosphere.'}"
+                   data-tip-color="${state.inVacuum ? '#e04f7a' : '#6fcf97'}">
+                <div class="w-5 h-5">${state.inVacuum ? ICONS.vacuum_on : ICONS.vacuum_off}</div>
+              </div>
+              <div class="wb-state-cell cursor-pointer" data-toggle-damp="1"
+                   style="border-color:${state.dampeners ? 'var(--wb-accent)' : 'var(--wb-warning)'};
+                          background:${state.dampeners ? 'var(--wb-accent-dark)' : 'var(--wb-primary-dark)'};"
+                   data-tip-title="Inertial dampeners"
+                   data-tip-sub="${state.dampeners ? 'Active' : 'Drift'}"
+                   data-tip-desc="${state.dampeners ? 'Counter-thrusters stabilize velocity.' : 'Zero-G momentum preserved.'}"
+                   data-tip-color="${state.dampeners ? '#4be3e3' : '#f2cc4a'}">
+                <div class="w-5 h-5">${state.dampeners ? ICONS.damp_on : ICONS.damp_off}</div>
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="wb-hotbar wb-caps-10 wb-caps-hover">${hotbarSlots}</div>
+        </div>
+      </div>
+
+      <!-- Bottom-Right: Contextual ControlHints (ControlHintsView.rml) -->
+      <div class="absolute right-5 bottom-5 flex flex-col items-end gap-1.5 pointer-events-none">
+        ${isBrick ? `
+          <div class="wb-hint-pill"><span class="wb-keycap">R</span><span>Change shape</span></div>
+          <div class="wb-hint-pill"><span class="wb-keycap">T</span><span>Change orientation</span></div>
+        ` : ''}
+        <div class="wb-hint-pill"><span class="wb-keycap">Z</span><span>Dampeners</span></div>
+        <div class="wb-hint-pill"><span class="wb-keycap">Tab</span><span>Inventory</span></div>
+      </div>
+    `;
+  }
+
+  // 2/3/4. UNIFIED TWO-PANE [TAB] OVERLAY (GAP-3 + Contextual GAP-4A Auto-Processor & GAP-4B Crafter Tabs)
+  function renderTabOverlaySurface(contextKind = null) {
+    const totalLevel = state.skills.reduce((a, s) => a + s.rank, 0);
+    const selInvItem = state.selectedInvSlot ? state[state.selectedInvSlot.list][state.selectedInvSlot.idx] : null;
+    const selEquipTarget = selInvItem ? ITEMS[selInvItem.id]?.equipSlot : null;
+
+    // Resolve active tab: contextual 'machine' tab only exists when contextKind is 'auto' or 'recipe'
+    const activeTab = (contextKind && state.tabOverlayPane === 'machine')
+      ? 'machine'
+      : (typeof state.tabOverlayPane === 'number' ? state.tabOverlayPane : 0);
+
+    let contextTabLabel = '';
+    let contextTabBody = '';
+    if (contextKind === 'auto') {
+      const m = AUTO_MACHINES[state.activeAutoMachine];
+      const qColor = QUALITY_COLORS[m.quality];
+      const powered = state.machinePowered;
+      const active = powered && (m.dualRule ? (m.input[0] && m.input[1]) : Boolean(m.input[0]));
+      contextTabLabel = m.name;
+
+      const inputSlotsHtml = m.input.map((sl, i) => `
+        <div class="flex flex-col items-center gap-1.5">
+          ${renderSlotHtml(sl, {
+            ghostIcon: m.ghostIcons[i] || m.ghostIcons[0],
+            dataAttrs: `data-auto-take-in="${i}"`
+          })}
+        </div>
+      `).join('');
+
+      const outputHtml = m.isO2 ? `
+        <button id="btn-refill-o2" class="wb-btn wb-btn-primary wb-btn-compact wb-caps-6">
+          <span class="wb-btn-inner">Refill tank</span>
+        </button>
+      ` : m.isFuel ? `
+        <div class="px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1.5"
+             style="background:${active ? 'var(--wb-accent-dark)' : 'var(--wb-control)'};
+                    border:1px solid ${active ? 'var(--wb-accent)' : 'var(--wb-border)'};
+                    color:${active ? 'var(--wb-accent-bright)' : 'var(--wb-text-dim)'};">
+          ${ICONS.glyph_bolt}<span>${active ? '+60 kW' : '0 kW'}</span>
+        </div>
+      ` : renderSlotHtml(m.output, { dataAttrs: `data-auto-collect="1"` });
+
+      contextTabBody = `
+        <div class="flex items-center justify-between text-xs px-2.5 py-1.5 mb-4"
+             style="background:var(--wb-panel-inner); border:1px solid var(--wb-border-inner);">
+          <div>
+            <span style="color:${qColor}; font-weight:600;">${m.quality}</span>
+            <span style="color:var(--wb-text-muted);"> · ${m.stat}</span>
+          </div>
+          <span class="inline-flex items-center gap-1" style="color:${powered ? 'var(--wb-success)' : 'var(--wb-danger-bright)'};">
+            ${ICONS.glyph_bolt}${powered ? 'Online' : 'Unpowered'}
+          </span>
+        </div>
+
+        <div class="flex-1 flex items-center justify-center gap-4 px-4"
+             style="background:var(--wb-panel-inner); border:1px solid var(--wb-border);">
+          <div class="flex flex-col gap-2">${inputSlotsHtml}</div>
+          <div class="flex-1 flex flex-col items-center gap-2 max-w-[140px]">
+            <div class="wb-progress-track" style="height:8px;">
+              <div class="wb-progress-fill" style="width:${m.progress}%; background:${active ? 'var(--wb-primary)' : 'var(--wb-text-dim)'};"></div>
+            </div>
+          </div>
+          <div class="flex items-center justify-center">${outputHtml}</div>
+        </div>
+      `;
+    } else if (contextKind === 'recipe') {
+      const key = state.activeRecipeMachine;
+      const meta = {
+        synthesizer: { name:'Synthesizer', quality:'Common', btn:'Craft', extra:'' },
+        factory:     { name:'Factory', quality:'Rare', btn:'Queue batch', extra:' · Conveyer' },
+        oven:        { name:'Oven', quality:'Common', btn:'Cook', extra:'' }
+      }[key];
+      const qColor = QUALITY_COLORS[meta.quality];
+      const outSlot = state.machineOutputSlot[key];
+      contextTabLabel = meta.name;
+
+      const headerExtra = `
+        <div class="flex items-center justify-between text-xs mb-2.5 px-2.5 py-1.5" style="background:var(--wb-panel-inner); border:1px solid var(--wb-border-inner);">
+          <div><span style="color:${qColor}; font-weight:600;">${meta.quality}</span><span style="color:var(--wb-text-muted);">${meta.extra}</span></div>
+          <span class="inline-flex items-center gap-1" style="color:${state.machinePowered ? 'var(--wb-success)' : 'var(--wb-danger-bright)'};">
+            ${ICONS.glyph_bolt}${state.machinePowered ? 'Online' : 'Unpowered'}
+          </span>
+        </div>
+      `;
+      const selRecipeId = state.selectedMachineRecipe[key];
+      const outHtml = renderSlotHtml(outSlot, {
+        ghostIcon: ITEMS[selRecipeId]?.icon,
+        dataAttrs:`data-collect-crafter="${key}"`
+      });
+      contextTabBody = renderRecipePaneHtml(key, selRecipeId, meta.btn, outHtml, headerExtra);
+    }
+
+    const spacerStats = [
+      { abbr:'STR', name:'Strength', val:3, desc:'Physical power and carrying capacity' },
+      { abbr:'PRE', name:'Precision', val:5, desc:'Fine motor control and accuracy' },
+      { abbr:'AWA', name:'Awareness', val:6, desc:'Perception and environmental awareness' },
+      { abbr:'CHA', name:'Charisma', val:4, desc:'Social presence and negotiation' },
+      { abbr:'EDU', name:'Education', val:3, desc:'Technical knowledge and research' },
+      { abbr:'RES', name:'Resolve', val:5, desc:'Mental resilience and endurance' }
+    ];
+
+    const renderPaperdollSvg = () => {
+      const eq = state.equipment;
+      const p = (x, y, w, h, f) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}"/>`;
+      let layers = '';
+      layers += p(8,40,16,2,'#162838') + p(10,41,12,1,'#4be3e3');
+      if (eq.o2) {
+        layers += p(6,13,4,13,'#5a6988') + p(7,14,2,10,'#2ce8f5') + p(7,15,1,5,'#ffffff') +
+                  p(22,13,4,13,'#5a6988') + p(23,14,2,10,'#2ce8f5') + p(23,15,1,5,'#ffffff') +
+                  p(6,12,4,1,'#feae34') + p(22,12,4,1,'#feae34') +
+                  p(7,26,2,2,'#3a4466') + p(23,26,2,2,'#3a4466');
+      }
+      if (eq.legs) {
+        layers += p(11,26,4,12,'#3a4466') + p(17,26,4,12,'#3a4466') +
+                  p(12,27,2,9,'#5a6988') + p(18,27,2,9,'#5a6988') +
+                  p(10,36,5,4,'#8b9bb4') + p(17,36,5,4,'#8b9bb4') +
+                  p(10,39,5,1,'#f77622') + p(17,39,5,1,'#f77622');
+      } else {
+        layers += p(11,26,4,13,'#265c42') + p(17,26,4,13,'#265c42') +
+                  p(12,27,2,10,'#3e8948') + p(18,27,2,10,'#3e8948') +
+                  p(10,38,5,2,'#193c3e') + p(17,38,5,2,'#193c3e');
+      }
+      if (eq.suit) {
+        layers += p(9,13,14,14,'#8b9bb4') + p(10,14,12,12,'#c0cbdc') +
+                  p(11,15,10,4,'#5a6988') + p(13,16,6,2,'#181425') + p(14,16,4,2,'#2ce8f5') +
+                  p(10,23,12,2,'#3a4466') + p(14,23,4,2,'#f77622') +
+                  p(6,14,3,4,'#c0cbdc') + p(23,14,3,4,'#c0cbdc') +
+                  p(6,15,3,1,'#f77622') + p(23,15,3,1,'#f77622') +
+                  p(6,18,3,8,'#8b9bb4') + p(23,18,3,8,'#8b9bb4') +
+                  p(6,26,3,3,'#3a4466') + p(23,26,3,3,'#3a4466');
+      } else if (eq.torso) {
+        layers += p(10,13,12,14,'#262b44') + p(11,14,10,12,'#3a4466') +
+                  p(13,15,6,3,'#5a6988') + p(10,23,12,2,'#181425') +
+                  p(7,14,3,11,'#3a4466') + p(22,14,3,11,'#3a4466') +
+                  p(7,25,3,3,'#3e8948') + p(22,25,3,3,'#3e8948');
+      } else {
+        layers += p(10,13,12,14,'#265c42') + p(11,14,10,12,'#3e8948') +
+                  p(7,14,3,13,'#3e8948') + p(22,14,3,13,'#3e8948');
+      }
+      layers += p(11,4,10,8,'#3e8948') + p(10,6,12,5,'#63c74d') +
+                p(12,7,2,2,'#fee761') + p(18,7,2,2,'#fee761') +
+                p(13,7,1,1,'#181425') + p(19,7,1,1,'#181425') +
+                p(14,10,4,1,'#193c3e');
+      if (eq.head) {
+        layers += p(10,5,12,2,'#5a6988') + p(11,6,10,2,'#2ce8f5') + p(12,6,3,1,'#ffffff');
+      }
+      if (eq.helmet) {
+        layers += p(10,2,12,1,'#c0cbdc') + p(9,3,14,1,'#8b9bb4') +
+                  p(8,4,1,8,'#8b9bb4') + p(23,4,1,8,'#8b9bb4') +
+                  p(9,12,14,2,'#5a6988') + p(11,12,10,1,'#feae34') +
+                  `<rect x="9" y="4" width="14" height="8" fill="#2ce8f5" fill-opacity="0.24"/>` +
+                  p(10,4,2,3,'#ffffff') + p(12,4,2,1,'#a5f3fc');
+      }
+      return `<svg viewBox="0 0 32 44" shape-rendering="crispEdges" class="w-full h-full block">${layers}</svg>`;
+    };
+
+    const eqSlotMeta = [
+      { key:'head',   col:'left',  label:'Head',       ghost:'eq_head' },
+      { key:'torso',  col:'left',  label:'Torso',      ghost:'eq_torso' },
+      { key:'legs',   col:'left',  label:'Legs',       ghost:'eq_legs' },
+      { key:'helmet', col:'right', label:'Helmet',     ghost:'eq_helmet' },
+      { key:'suit',   col:'right', label:'Space suit', ghost:'suit' },
+      { key:'o2',     col:'right', label:'O2 / Pack',  ghost:'o2_tank' }
+    ];
+
+    const renderEquipCol = (col) => eqSlotMeta.filter(m => m.col === col).map(m => {
+      const equippedItem = state.equipment[m.key];
+      const validDrop = selEquipTarget === m.key;
+      const emptyTip = equippedItem ? '' : `data-tip-title="${m.label}" data-tip-sub="Empty slot" data-tip-desc="Select gear in inventory or double-click to equip." data-tip-color="#8da0b8"`;
+      return renderSlotHtml(equippedItem, {
+        equipped: Boolean(equippedItem) && !validDrop,
+        validIn: validDrop,
+        ghostIcon: m.ghost,
+        dataAttrs: `data-equip-slot="${m.key}" ${emptyTip}`
+      });
+    }).join('');
+
+    const augThresholds = [10, 25, 50, 75, 100];
+    const augScore = 2 * 5 + 0;
+    const augmentSlotsHtml = augThresholds.map((req, idx) => {
+      const unlocked = augScore >= req;
+      const slotted = unlocked ? state.augments[idx] : null;
+      const validDrop = unlocked && selEquipTarget === 'augment';
+      if (!unlocked) {
+        return `
+          <div class="w-10 h-10 flex items-center justify-center cursor-default"
+               style="background:var(--wb-panel-inner); border:1px solid var(--wb-border-inner); color:var(--wb-text-dim);"
+               data-tip-title="Augment slot ${idx + 1}"
+               data-tip-sub="Locked"
+               data-tip-desc="Requires (2 × Resolve) + Cybernetics ≥ ${req}. Current: ${augScore}."
+               data-tip-color="#8da0b8">
+            ${ICONS.glyph_lock}
+          </div>
+        `;
+      }
+      return `
+        <div class="wb-slot ${validDrop ? 'wb-slot-valid-in' : (slotted ? 'wb-slot-equipped' : '')}" style="width:40px; height:40px;"
+             data-aug-slot="${idx}"
+             ${slotted ? `data-tip-item="${slotted.id}"` : `data-tip-title="Augment slot ${idx + 1}" data-tip-sub="Unlocked" data-tip-desc="Cybernetic, chip, or nanotech socket." data-tip-color="#4be3e3"`}>
+          ${slotted ? `<div class="w-7 h-7 pointer-events-none">${ICONS[ITEMS[slotted.id].icon]}</div>` : `<div class="w-6 h-6 opacity-25 pointer-events-none">${ICONS.eq_augment}</div>`}
+        </div>
+      `;
+    }).join('');
+
+    const skillCards = state.skills.map(sk => {
+      const pct = Math.round((sk.xp / sk.xpNext) * 100);
+      const badges = sk.milestones.map(m => {
+        const unlocked = sk.rank >= m.r;
+        return `
+          <span class="px-1.5 py-0.5 text-[10px] cursor-default"
+                style="background:${unlocked ? 'var(--wb-accent-dark)' : 'var(--wb-control)'};
+                       border:1px solid ${unlocked ? 'var(--wb-accent)' : 'var(--wb-border)'};
+                       color:${unlocked ? 'var(--wb-accent-bright)' : 'var(--wb-text-dim)'};"
+                data-tip-title="${sk.name} · Rank ${m.r}"
+                data-tip-sub="${unlocked ? 'Unlocked' : 'Locked'}"
+                data-tip-desc="${m.text}"
+                data-tip-color="${unlocked ? '#4be3e3' : '#8da0b8'}">
+            ${m.r}${unlocked ? ' ✓' : ''}
+          </span>
+        `;
+      }).join('');
+      return `
+        <div class="p-2.5 flex gap-2.5" style="background:var(--wb-panel-inner); border:1px solid var(--wb-border);">
+          <div class="w-10 h-10 p-1 shrink-0 self-center" style="background:var(--wb-control); border:1px solid var(--wb-border-inner);">
+            ${ICONS[sk.icon]}
+          </div>
+          <div class="flex-1 min-w-0 flex flex-col gap-1">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium" style="color:var(--wb-text);">${sk.name}</span>
+              <span class="text-xs font-semibold" style="color:var(--wb-primary);">Lvl ${sk.rank}</span>
+            </div>
+            ${renderSegmentedBarHtml(pct, 'var(--wb-accent)', 'var(--wb-panel-inner)', 6)}
+            <div class="flex items-center justify-between text-[11px]" style="color:var(--wb-text-muted);">
+              <span>${sk.scaling}</span>
+              <span class="tabular-nums">${sk.xp} / ${sk.xpNext} XP</span>
+            </div>
+            <div class="flex items-center gap-1 mt-0.5">${badges}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const rightPaneContent = activeTab === 'machine' ? contextTabBody
+      : activeTab === 0 ? `
+        <div class="wb-panel-header">Suit crafting</div>
+        <div class="mt-1 mb-3 wb-divider-inner"></div>
+        ${renderRecipePaneHtml('suit', state.selectedSuitRecipe, 'Craft')}
+      ` : activeTab === 1 ? `
+        <div class="text-center mb-2">
+          <div class="text-base font-semibold leading-tight" style="color:var(--wb-text);">Kizo Horo'Krul</div>
+          <div class="text-xs mt-0.5" style="color:var(--wb-accent-bright);">Level ${totalLevel} · Gorbulan</div>
+        </div>
+
+        <div class="flex items-center justify-center gap-3.5 flex-1 min-h-0">
+          <div class="flex flex-col gap-2.5">${renderEquipCol('left')}</div>
+
+          <div class="wb-caps-6 flex-1 max-w-[236px] h-[238px] flex items-center justify-center p-2 relative overflow-hidden"
+               style="background:var(--wb-panel-inner); border:1px solid var(--wb-border);">
+            <div class="absolute inset-0 pointer-events-none opacity-15"
+                 style="background-image:repeating-linear-gradient(0deg, transparent 0 7px, #4be3e3 7px 8px);"></div>
+            <div class="w-[152px] h-[208px] relative z-10">${renderPaperdollSvg()}</div>
+          </div>
+
+          <div class="flex flex-col gap-2.5">${renderEquipCol('right')}</div>
+        </div>
+
+        <div class="flex items-center justify-center gap-2 mt-2.5 mb-3">${augmentSlotsHtml}</div>
+
+        <div class="mb-2" style="border:1px solid var(--wb-border-inner); background:var(--wb-panel-inner);">
+          <div class="grid grid-cols-6 divide-x divide-[#1a2333]">
+            ${spacerStats.map(st => `
+              <div class="wb-spacer-cell h-[30px] flex items-center justify-center gap-1.5 cursor-default"
+                   data-tip-title="${st.name}" data-tip-sub="S.P.A.C.E.R. · ${st.val} / 8" data-tip-desc="${st.desc}" data-tip-color="#f2994a">
+                <span class="text-xs font-bold" style="color:var(--wb-primary);">${st.name[0]}</span>
+                <span class="text-xs font-semibold tabular-nums" style="color:var(--wb-text);">${st.val}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 min-h-[24px]">
+          ${state.buffs.length ? state.buffs.map(b => `
+            <div class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs cursor-default"
+                 style="background:var(--wb-panel-inner); border:1px solid var(--wb-border-inner);"
+                 data-tip-title="${b.label}" data-tip-sub="${fmtTime(b.secs)}" data-tip-desc="${b.effect}" data-tip-color="#6fcf97">
+              <div class="w-3.5 h-3.5 shrink-0">${ICONS[b.icon]}</div>
+              <span class="tabular-nums" style="color:var(--wb-accent-bright);">${fmtTime(b.secs)}</span>
+            </div>
+          `).join('') : `<span class="text-[11px]" style="color:var(--wb-text-dim);">No active buffs</span>`}
+        </div>
+      ` : `
+        <div class="flex items-center justify-between">
+          <span class="w-24"></span>
+          <span class="wb-panel-header">Skills</span>
+          <span class="text-xs text-right w-24" style="color:var(--wb-accent);">Level ${totalLevel}</span>
+        </div>
+        <div class="mt-1 mb-2.5 wb-divider-inner"></div>
+        <div class="wb-scroll flex-1 overflow-y-auto pr-1 flex flex-col gap-2">${skillCards}</div>
+      `;
+
+    const invMode = (contextKind === 'auto' && activeTab === 'machine') ? 'auto-insert' : 'normal';
+    const primaryHint = invMode === 'auto-insert' ? 'Quick insert' : 'Move / equip';
+
+    return `
+      <div class="absolute inset-0 flex items-center justify-center p-6" style="background:var(--wb-scrim-soft);">
+        <div class="w-full max-w-[1032px] h-[524px] flex gap-4">
+          <!-- Persistent Left Pane: Pure 9x4 Inventory + 9x1 Hotbar -->
+          <div class="flex flex-col w-[514px] shrink-0 pt-[34px]">
+            <div class="wb-panel wb-caps-10 flex-1 min-h-0">
+              <div class="wb-panel-inner">
+                <div class="wb-panel-header">Inventory</div>
+                <div class="mt-1 mb-3 wb-divider-inner"></div>
+                <div class="flex-1 flex flex-col justify-center">
+                  ${renderInventoryGridHtml(invMode)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabbed Right Pane: [Contextual Machine Tab (only on F-interact)] | Crafting | Colonist | Skills -->
+          <div class="flex-1 min-w-0 flex flex-col">
+            <div class="flex items-end justify-between -mb-[1px] h-[35px]">
+              <div class="flex gap-1.5">
+                ${contextKind ? `
+                  <button data-tab-pane="machine" class="wb-tab ${activeTab === 'machine' ? 'wb-tab-selected' : ''}"
+                          style="${activeTab !== 'machine' ? 'border-color:var(--wb-primary-dark); color:var(--wb-primary-bright);' : ''}">
+                    ${contextTabLabel}
+                  </button>
+                ` : ''}
+                <button data-tab-pane="0" class="wb-tab ${activeTab === 0 ? 'wb-tab-selected' : ''}">Crafting</button>
+                <button data-tab-pane="1" class="wb-tab ${activeTab === 1 ? 'wb-tab-selected' : ''}">Colonist</button>
+                <button data-tab-pane="2" class="wb-tab ${activeTab === 2 ? 'wb-tab-selected' : ''}">Skills</button>
+              </div>
+              <button data-close-to-hud="1" class="wb-icon-btn mb-1" aria-label="Close">${ICONS.glyph_x}</button>
+            </div>
+            <div class="wb-panel wb-caps-10 flex-1 min-h-0">
+              <div class="wb-panel-inner">
+                ${rightPaneContent}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="absolute right-5 bottom-5 flex flex-col items-end gap-1.5 pointer-events-none">
+        <div class="wb-hint-pill"><span class="wb-keycap">LMB</span><span>${primaryHint}</span></div>
+        <div class="wb-hint-pill"><span class="wb-keycap">${contextKind ? 'Esc' : 'Tab'}</span><span>Close</span></div>
+      </div>
+    `;
+  }
+
+  function renderAutoProcessorSurface() { return renderTabOverlaySurface('auto'); }
+  function renderRecipeCrafterSurface() { return renderTabOverlaySurface('recipe'); }
+
+  // 5. [F] COMPUTER CENTRAL GRID TERMINAL (GAP-5: Cassette-Futurism CRT Alt + Standard Reef)
+  function renderComputerSurface() {
+    const bpLimit = 3;
+    const usedSlots = 64;
+    const maxSlots = 80;
+    const storagePct = Math.round((usedSlots / maxSlots) * 100);
+    const filteredBps = state.blueprints.filter(b => b.name.toLowerCase().includes(state.bpSearch.toLowerCase()));
+
+    const activeLoad = state.gridMachines.filter(m => m.enabled && m.kw < 0).reduce((a, m) => a + Math.abs(m.kw), 0);
+    const genOnline = state.gridMachines.find(m => m.id === 'm6').enabled;
+    const totalGen = 18 + (genOnline ? 60 : 0);
+    const loadPct = Math.min(100, Math.round((activeLoad / Math.max(1, totalGen)) * 100));
+    const gridOk = totalGen >= activeLoad;
+    const powerColor = !gridOk ? 'var(--wb-danger)' : loadPct > 80 ? 'var(--wb-warning)' : 'var(--wb-accent)';
+
+    if (state.computerStyle === 'crt') {
+      const palettes = {
+        cyan:  { bg:'#071116', fg:'#4be3e3', bright:'#a5f3fc', dim:'#245363', warn:'#f2cc4a' },
+        amber: { bg:'#120c06', fg:'#f2994a', bright:'#ffd27d', dim:'#663f1d', warn:'#fee761' },
+        green: { bg:'#07120b', fg:'#6fcf97', bright:'#b8f5cf', dim:'#24573a', warn:'#f2cc4a' },
+        mono:  { bg:'#13121c', fg:'#c0cbdc', bright:'#ffffff', dim:'#5a6988', warn:'#ead4aa' }
+      };
+      const pal = palettes[state.crtTint] || palettes.cyan;
+      const crtVars = `--crt-bg:${pal.bg}; --crt-fg:${pal.fg}; --crt-bright:${pal.bright}; --crt-dim:${pal.dim};`;
+
+      // 8x8 pixel screw sprite (tiny UI texture in Reef)
+      const screwSvg = `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" class="w-2.5 h-2.5 shrink-0 block">
+        <rect x="1" y="0" width="6" height="8" fill="#0b0e14"/><rect x="0" y="1" width="8" height="6" fill="#0b0e14"/>
+        <rect x="1" y="1" width="6" height="6" fill="#3a4466"/><rect x="1" y="1" width="4" height="2" fill="#5a6988"/>
+        <rect x="2" y="3" width="4" height="2" fill="#181425"/>
+      </svg>`;
+
+      // 8x8 pixel LED sprite (flat square Reef bezel + lit pixel core, zero CSS glow)
+      const ledBox = (color) => `<span class="inline-block w-2.5 h-2.5 shrink-0" style="background:${color}; border:1px solid #0b0e14; padding:1px;"><span class="block w-1 h-1" style="background:#ffffff99;"></span></span>`;
+
+      // Reef-native segmented ProgressBar styled in CRT phosphor colors
+      const crtBar = (pct, fillC) => {
+        let divs = '';
+        for (let i = 1; i < 10; i++) {
+          divs += `<div style="position:absolute; top:0; bottom:0; left:${i * 10}%; width:2px; background:${pal.bg};"></div>`;
+        }
+        return `
+          <div style="position:relative; height:8px; width:100%; background:${pal.bg}; border:1px solid ${pal.dim}; overflow:hidden;">
+            <div style="height:100%; width:${Math.max(0, Math.min(100, pct))}%; background:${fillC}; transition:width 100ms linear;"></div>
+            ${divs}
+          </div>
+        `;
+      };
+
+      const louvers = Array.from({ length: 14 }, () => `<span style="width:14px; height:3px; background:#0b0e14; border-bottom:1px solid #2b384e;"></span>`).join('');
+
+      return `
+        <div class="absolute inset-0 flex items-center justify-center p-5" style="background:var(--wb-scrim);">
+          <!-- Reef-Feasible Stepped Cassette-Futurism Chassis (flat fills + per-side bevels + corner-caps) -->
+          <div class="wb-crt-chassis wb-caps-10 wb-caps-hover w-full max-w-[1056px] h-[564px] p-2.5 flex flex-col" style="${crtVars}">
+            <div class="wb-crt-bezel-inner flex-1 min-h-0 p-2.5 flex flex-col gap-2.5">
+              <!-- Top Hardware Bezel: Pixel Screws, Stamped Tag, Pure-Rect Louvers -->
+              <div class="flex items-center justify-between px-0.5">
+                <div class="flex items-center gap-2">
+                  ${screwSvg}
+                  <span class="text-[11px] font-bold tracking-widest uppercase px-2 py-0.5"
+                        style="background:#111723; border:1px solid #2b384e; color:#8da0b8;">
+                    WAY-OS // TERM-04
+                  </span>
+                </div>
+                <div class="flex items-center gap-1">${louvers}</div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] tracking-wider uppercase" style="color:#5a6988;">ASTEROID_OUTPOST_01</span>
+                  ${screwSvg}
+                </div>
+              </div>
+
+              <!-- Recessed CRT Monitor Well (inverted per-side Reef bevel) -->
+              <div class="wb-crt-well flex-1 min-h-0 flex">
+                <div class="wb-crt-screen flex-1 flex flex-col p-3.5 min-h-0">
+                  <!-- Optional Simple Reef Overlay Textures (passthrough="true") -->
+                  ${state.crtTextures ? `<div class="wb-crt-tex-scanlines"></div><div class="wb-crt-tex-vignette"></div>` : ''}
+
+                  <!-- Inverted Phosphor Telemetry Banner (pure flat fill + dark text) -->
+                  <div class="flex items-center justify-between px-2.5 py-1 mb-3 text-xs font-bold tracking-wide shrink-0 relative z-10"
+                       style="background:var(--crt-fg); color:var(--crt-bg);">
+                    <span>GRID://ASTEROID_OUTPOST_01</span>
+                    <div class="flex items-center gap-4 tabular-nums">
+                      <span>BRICKS:0412</span>
+                      <span>ATMO:${state.gridSealed ? 'SEALED' : 'BREACH!'}</span>
+                      <span>BUS:${String(activeLoad).padStart(2,'0')}/${String(totalGen).padStart(2,'0')}KW</span>
+                    </div>
+                  </div>
+
+                  <!-- Two-Column Phosphor Terminal Body -->
+                  <div class="grid grid-cols-2 gap-4 flex-1 min-h-0 relative z-10">
+                    <!-- Left CRT Column: Grid Bus + Machine Nodes -->
+                    <div class="flex flex-col min-h-0 pr-3" style="border-right:1px dashed var(--crt-dim);">
+                      <div class="text-[11px] font-bold tracking-wider mb-1.5" style="color:var(--crt-bright);">[01] GRID BUS TELEMETRY</div>
+                      <div class="p-2 mb-3 text-xs flex flex-col gap-2" style="border:1px solid var(--crt-dim);">
+                        <div class="flex items-center justify-between">
+                          <span>POWER LOAD</span>
+                          <span class="tabular-nums font-bold" style="color:${gridOk ? 'var(--crt-bright)' : '#ff8da6'};">
+                            ${gridOk ? 'ONLINE' : 'OVERLOAD!'} · ${activeLoad}/${totalGen} kW
+                          </span>
+                        </div>
+                        ${crtBar(loadPct, gridOk ? pal.fg : '#e04f7a')}
+                        <div class="flex items-center justify-between pt-1.5" style="border-top:1px dashed var(--crt-dim);">
+                          <span>BULKHEAD SEAL</span>
+                          <button id="btn-toggle-seal" class="wb-crt-btn ${state.gridSealed ? '' : 'wb-crt-btn-danger'}">
+                            ${state.gridSealed ? '■ SEALED 100% O2' : '▲ VACUUM BREACH'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center justify-between text-[11px] font-bold tracking-wider mb-1.5" style="color:var(--crt-bright);">
+                        <span>[02] MACHINE NODES (${String(state.gridMachines.length).padStart(2,'0')})</span>
+                        <span style="color:var(--crt-dim);">BUS / STATE / PWR</span>
+                      </div>
+                      <div class="wb-scroll flex-1 overflow-y-auto flex flex-col gap-1 pr-1 text-xs">
+                        ${state.gridMachines.map((m, i) => {
+                          const st = !m.enabled ? 'OFFLINE' : (!gridOk && m.kw < 0 ? 'NO_PWR' : m.status.toUpperCase());
+                          const stBad = st === 'OFFLINE' || st === 'NO_PWR';
+                          const codeName = m.name.toUpperCase().replace(/\s+/g, '_');
+                          return `
+                            <div class="flex items-center justify-between gap-2 px-2 py-1"
+                                 style="border:1px solid ${stBad ? '#5a2235' : 'var(--crt-dim)'}; background:${m.enabled ? 'transparent' : '#05080c80'};">
+                              <div class="flex items-center gap-2 min-w-0">
+                                <span style="color:var(--crt-dim);">${String(i+1).padStart(2,'0')}</span>
+                                <span class="truncate" style="color:${m.enabled ? 'var(--crt-bright)' : 'var(--crt-dim)'};">${codeName}</span>
+                              </div>
+                              <div class="flex items-center gap-2.5 shrink-0 tabular-nums">
+                                <span style="color:var(--crt-dim);">${m.kw > 0 ? '+' : ''}${m.kw}kW</span>
+                                <span class="w-16 text-right font-bold" style="color:${stBad ? '#ff8da6' : st === 'IDLE' ? pal.warn : 'var(--crt-fg)'};">${st}</span>
+                                <button data-toggle-machine="${m.id}" class="wb-crt-btn ${m.enabled ? '' : 'wb-crt-btn-danger'}" style="min-width:46px;">
+                                  ${m.enabled ? '■ ON' : '□ OFF'}
+                                </button>
+                              </div>
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+                    </div>
+
+                    <!-- Right CRT Column: Cargo Manifest + Blueprint Tape Deck -->
+                    <div class="flex flex-col min-h-0">
+                      <div class="flex items-center justify-between text-[11px] font-bold tracking-wider mb-1.5" style="color:var(--crt-bright);">
+                        <span>[03] CARGO MANIFEST</span>
+                        <span class="tabular-nums">${usedSlots}/${maxSlots} SLOTS</span>
+                      </div>
+                      <div class="p-2 mb-3 text-xs flex flex-col gap-2" style="border:1px solid var(--crt-dim);">
+                        ${crtBar(storagePct, pal.fg)}
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] pt-1" style="border-top:1px dashed var(--crt-dim);">
+                          <div class="flex justify-between"><span>RAW_ICE</span><span style="color:var(--crt-bright);">12</span></div>
+                          <div class="flex justify-between"><span>IRON_STD</span><span style="color:var(--crt-bright);">08</span></div>
+                          <div class="flex justify-between"><span>RAW_ROCK</span><span style="color:var(--crt-bright);">14</span></div>
+                          <div class="flex justify-between"><span>CU_WIRE</span><span style="color:var(--crt-bright);">06</span></div>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center justify-between text-[11px] font-bold tracking-wider mb-1.5" style="color:var(--crt-bright);">
+                        <span>[04] BLUEPRINT TAPE DECK</span>
+                        <span class="tabular-nums">SLOTS ${state.blueprints.filter(b => !b.builtIn).length}/${bpLimit}</span>
+                      </div>
+
+                      <div class="flex items-center gap-2 mb-1.5 text-xs">
+                        <span style="color:var(--crt-bright);">&gt; SAVE</span>
+                        <input id="bp-new-name" type="text" value="${state.bpNewName}" placeholder="blueprint_id" class="wb-crt-input flex-1" />
+                        <button id="btn-save-bp" class="wb-crt-btn font-bold">[WRITE]</button>
+                      </div>
+                      <div class="flex items-center gap-2 mb-2 text-xs">
+                        <span style="color:var(--crt-dim);">&gt; FIND</span>
+                        <input id="bp-search" type="text" value="${state.bpSearch}" placeholder="filter..." class="wb-crt-input flex-1" />
+                      </div>
+
+                      <div class="wb-scroll flex-1 overflow-y-auto flex flex-col gap-1 pr-1 text-xs">
+                        ${filteredBps.map((bp, idx) => `
+                          <div class="flex items-center justify-between gap-2 px-2 py-1.5" style="border:1px solid var(--crt-dim);">
+                            <div class="min-w-0">
+                              <div class="truncate font-bold" style="color:var(--crt-bright);">
+                                <span style="color:var(--crt-dim);">T-${String(idx+1).padStart(2,'0')}</span> ${bp.name.toUpperCase()}
+                              </div>
+                              <div class="text-[10px]" style="color:var(--crt-dim);">${bp.dims}${bp.builtIn ? ' · ROM' : ''}</div>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                              ${state.bpConfirmDelete === bp.id ? `
+                                <button data-bp-confirm-del="${bp.id}" class="wb-crt-btn wb-crt-btn-danger">[CONF?]</button>
+                                <button data-bp-cancel-del="1" class="wb-crt-btn">[NO]</button>
+                              ` : `
+                                <button data-bp-load="${bp.id}" class="wb-crt-btn">[LOAD]</button>
+                                ${!bp.builtIn ? `<button data-bp-req-del="${bp.id}" class="wb-crt-btn wb-crt-btn-danger">[DEL]</button>` : ''}
+                              `}
+                            </div>
+                          </div>
+                        `).join('')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Hardware Bezel: Pixel LEDs + Beveled Reef Key -->
+              <div class="flex items-center justify-between px-0.5">
+                <div class="flex items-center gap-4 text-[10px] tracking-wider uppercase" style="color:#8da0b8;">
+                  ${screwSvg}
+                  <span class="inline-flex items-center gap-1.5">${ledBox(gridOk ? '#6fcf97' : '#e04f7a')}PWR</span>
+                  <span class="inline-flex items-center gap-1.5">${ledBox(state.gridSealed ? '#4be3e3' : '#e04f7a')}SEAL</span>
+                  <span class="inline-flex items-center gap-1.5">${ledBox('#f2994a')}TAPE</span>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                  <button data-close-to-hud="1" class="wb-crt-key">[ESC] DISCONNECT</button>
+                  ${screwSvg}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="absolute inset-0 flex items-center justify-center p-6" style="background:var(--wb-scrim);">
+        <div class="w-full max-w-[1040px] h-[540px] flex gap-4">
+          <!-- Left Pane: Grid Status + Machine Registry -->
+          <div class="wb-panel wb-caps-10 flex-1 min-h-0">
+            <div class="wb-panel-inner">
+              <div class="wb-panel-header">Asteroid Outpost 01</div>
+              <div class="mt-1 mb-3 wb-divider-inner"></div>
+
+              <!-- 1. Grid Status -->
+              <div class="p-2.5 mb-3 flex flex-col gap-2 text-xs" style="background:var(--wb-panel-inner); border:1px solid var(--wb-border);">
+                <div class="flex justify-between">
+                  <span style="color:var(--wb-text-muted);">Bricks</span>
+                  <span>412</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span style="color:var(--wb-text-muted);">Atmosphere</span>
+                  <button id="btn-toggle-seal" class="cursor-pointer font-semibold" style="color:${state.gridSealed ? 'var(--wb-success)' : 'var(--wb-danger-bright)'};">
+                    ${state.gridSealed ? 'Sealed' : 'Vacuum'}
+                  </button>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <div class="flex justify-between">
+                    <span style="color:var(--wb-text-muted);">Power</span>
+                    <span class="tabular-nums" style="color:${gridOk ? 'var(--wb-text)' : 'var(--wb-danger-bright)'};">${activeLoad} / ${totalGen} kW</span>
+                  </div>
+                  ${renderSegmentedBarHtml(loadPct, powerColor, 'var(--wb-panel-inner)', 6)}
+                </div>
+              </div>
+
+              <!-- 2. Machine Registry -->
+              <div class="text-xs mb-1.5" style="color:var(--wb-text-muted);">Machines</div>
+              <div class="wb-scroll flex-1 overflow-y-auto flex flex-col gap-1.5 pr-1">
+                ${state.gridMachines.map(m => {
+                  const st = !m.enabled ? 'Offline' : (!gridOk && m.kw < 0 ? 'Unpowered' : m.status);
+                  const stColor = st === 'Offline' || st === 'Unpowered' ? 'var(--wb-danger-bright)' : st === 'Idle' ? 'var(--wb-warning)' : 'var(--wb-success)';
+                  return `
+                    <div class="wb-card flex items-center justify-between gap-2.5">
+                      <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-6 h-6 shrink-0">${ICONS[m.icon]}</div>
+                        <span class="text-xs truncate">${m.name}</span>
+                      </div>
+                      <div class="flex items-center gap-2.5 shrink-0 text-xs">
+                        <span class="tabular-nums" style="color:var(--wb-text-muted);">${m.kw > 0 ? '+' : ''}${m.kw} kW</span>
+                        <span class="w-16 text-right font-semibold" style="color:${stColor};">${st}</span>
+                        <button data-toggle-machine="${m.id}" class="wb-btn wb-btn-compact" style="min-width:44px;">
+                          <span class="wb-btn-inner">${m.enabled ? 'On' : 'Off'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Pane: Storage Overview + Blueprint Manager -->
+          <div class="wb-panel wb-caps-10 flex-1 min-h-0">
+            <div class="wb-panel-inner">
+              <div class="flex items-center justify-between">
+                <span class="w-6"></span>
+                <span class="wb-panel-header">Storage &amp; blueprints</span>
+                <button data-close-to-hud="1" class="wb-icon-btn" aria-label="Close">${ICONS.glyph_x}</button>
+              </div>
+              <div class="mt-1 mb-3 wb-divider-inner"></div>
+
+              <!-- 3. Storage Overview -->
+              <div class="p-2.5 mb-3" style="background:var(--wb-panel-inner); border:1px solid var(--wb-border);">
+                <div class="flex justify-between text-xs mb-1.5">
+                  <span style="color:var(--wb-text-muted);">Storage</span>
+                  <span class="tabular-nums" style="color:var(--wb-accent-bright);">${usedSlots} / ${maxSlots} slots</span>
+                </div>
+                ${renderSegmentedBarHtml(storagePct, 'var(--wb-accent)', 'var(--wb-panel-inner)', 6)}
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-[11px]" style="color:var(--wb-text-muted);">
+                  <div class="flex justify-between"><span>Raw ice</span><span style="color:var(--wb-text);">12</span></div>
+                  <div class="flex justify-between"><span>Refined iron</span><span style="color:var(--wb-text);">8</span></div>
+                  <div class="flex justify-between"><span>Raw rock</span><span style="color:var(--wb-text);">14</span></div>
+                  <div class="flex justify-between"><span>Copper wiring</span><span style="color:var(--wb-text);">6</span></div>
+                </div>
+              </div>
+
+              <!-- 4. Blueprint Manager -->
+              <div class="flex justify-between text-xs mb-1.5">
+                <span style="color:var(--wb-text-muted);">Blueprints</span>
+                <span class="tabular-nums" style="color:var(--wb-primary);">${state.blueprints.filter(b => !b.builtIn).length} / ${bpLimit} slots</span>
+              </div>
+              <div class="flex gap-2 mb-2">
+                <input id="bp-new-name" type="text" value="${state.bpNewName}" placeholder="Blueprint name..." class="wb-input flex-1 text-xs" />
+                <button id="btn-save-bp" class="wb-btn wb-btn-primary wb-btn-compact wb-caps-6"><span class="wb-btn-inner">Save</span></button>
+              </div>
+              <input id="bp-search" type="text" value="${state.bpSearch}" placeholder="Search blueprints..." class="wb-input w-full text-xs mb-2" />
+
+              <div class="wb-scroll flex-1 overflow-y-auto flex flex-col gap-1.5 pr-1">
+                ${filteredBps.map(bp => `
+                  <div class="wb-card flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="text-xs font-medium truncate">${bp.name}${bp.builtIn ? ` <span style="color:var(--wb-text-dim); font-size:10px;">Built-in</span>` : ''}</div>
+                      <div class="text-[11px]" style="color:var(--wb-text-muted);">${bp.dims}</div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      ${state.bpConfirmDelete === bp.id ? `
+                        <button data-bp-confirm-del="${bp.id}" class="wb-btn wb-btn-danger wb-btn-compact wb-caps-6"><span class="wb-btn-inner">Confirm?</span></button>
+                        <button data-bp-cancel-del="1" class="wb-btn wb-btn-compact"><span class="wb-btn-inner">Cancel</span></button>
+                      ` : `
+                        <button data-bp-load="${bp.id}" class="wb-btn wb-btn-primary wb-btn-compact wb-caps-6"><span class="wb-btn-inner">Load</span></button>
+                        ${!bp.builtIn ? `<button data-bp-req-del="${bp.id}" class="wb-icon-btn wb-icon-btn-danger" aria-label="Delete">${ICONS.glyph_trash}</button>` : ''}
+                      `}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="absolute right-5 bottom-5 flex flex-col items-end gap-1.5 pointer-events-none">
+        <div class="wb-hint-pill"><span class="wb-keycap">Esc</span><span>Close</span></div>
+      </div>
+    `;
+  }
+
+  // 6. DEATH & RESPAWN MODAL (GAP-7 — Pure In-Game View)
+  function renderDeathSurface() {
+    const isSuff = state.deathCause === 'suffocation';
+    return `
+      <div class="absolute inset-0 flex items-center justify-center p-8" style="background:var(--wb-scrim-heavy);">
+        <div class="wb-panel wb-caps-10 wb-caps-danger w-full max-w-[480px]" style="padding:2px;">
+          <div style="border:1px solid var(--wb-danger-dark); padding:26px; display:flex; flex-direction:column; gap:14px;">
+            <div class="text-2xl text-center font-semibold" style="color:var(--wb-text);">Colonist incapacitated</div>
+            <div class="wb-divider"></div>
+
+            <div class="p-3 flex flex-col gap-2 text-sm" style="background:var(--wb-panel-inner); border:1px solid var(--wb-border);">
+              <div class="flex justify-between">
+                <span style="color:var(--wb-text-muted);">Cause</span>
+                <span style="color:var(--wb-danger-bright);">${isSuff ? 'Suffocation' : 'Kinetic impact (34.2 m/s)'}</span>
+              </div>
+              <div class="flex justify-between">
+                <span style="color:var(--wb-text-muted);">Location</span>
+                <span class="tabular-nums" style="color:var(--wb-text);">+142, -18, +304</span>
+              </div>
+            </div>
+
+            <div class="text-xs leading-relaxed text-center" style="color:var(--wb-text-muted);">
+              Your inventory is stored in a recoverable death-container at your last location.
+            </div>
+
+            <div class="flex justify-center pt-1">
+              <button id="btn-respawn" class="wb-btn wb-btn-primary wb-caps-6 w-[220px]">
+                <span class="wb-btn-inner">Respawn</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 7. CHART A GALAXY — NewSavePage (GAP-1)
+  function renderNewSaveSurface() {
+    if (state.saveCreating) {
+      const logs = [
+        'Charting asteroid sector',
+        'Distributing mineral veins',
+        'Staging lifeboat',
+        'Calibrating pressurization'
+      ];
+      return `
+        <div class="absolute inset-0 flex items-center justify-center p-8" style="background:var(--wb-scrim-soft);">
+          <div class="wb-panel wb-caps-10 w-full max-w-[540px] h-[360px]">
+            <div class="wb-panel-inner" style="padding:20px;">
+              <div class="wb-panel-header">Chart a galaxy</div>
+              <div class="mt-1 mb-5 wb-divider-inner"></div>
+              <div class="text-base mb-3" style="color:var(--wb-text);">Charting galaxy</div>
+              <div class="flex flex-col gap-2 text-xs flex-1">
+                ${logs.slice(0, state.saveLogIdx + 1).map(l => `
+                  <div class="flex gap-2">
+                    <span style="color:var(--wb-accent);">&gt;</span>
+                    <span style="color:var(--wb-text-muted);">${l}</span>
+                  </div>
+                `).join('')}
+                <div class="flex items-center gap-2">
+                  <span style="color:var(--wb-accent-bright);">&gt;</span>
+                  <span class="inline-block w-2 h-3 animate-pulse" style="background:var(--wb-accent);"></span>
+                </div>
+              </div>
+              <div class="wb-divider"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    const isAdv = state.saveMode === 'adventure';
+    const desc = isAdv
+      ? 'Chart the frontier from scratch. Gather resources from the expanse and build with what you find.'
+      : 'Build and experiment freely with unlimited resources';
+
+    return `
+      <div class="absolute inset-0 flex items-center justify-center p-8" style="background:var(--wb-scrim-soft);">
+        <div class="w-full max-w-[940px] h-[480px] flex flex-col gap-3">
+          <div class="grid grid-cols-2 gap-5 flex-1 min-h-0">
+            <div class="wb-panel wb-caps-10">
+              <div class="wb-panel-inner" style="padding:20px;">
+                <div class="wb-panel-header">Chart a galaxy</div>
+                <div class="mt-1 mb-3 wb-divider-inner"></div>
+                <div class="text-xs mb-4" style="color:var(--wb-text-muted);">Plot a course into the unknown, Spacer</div>
+
+                <div class="flex flex-col gap-4">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs" style="color:var(--wb-text);">Galaxy name</label>
+                    <div class="flex gap-2">
+                      <input id="inp-save-name" type="text" value="${state.saveName}" placeholder="Enter name" class="wb-input flex-1" />
+                      <button id="btn-rand-name" class="wb-btn wb-btn-compact" aria-label="Randomize name"><span class="wb-btn-inner">⚄</span></button>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs" style="color:var(--wb-text);">Galaxy seed</label>
+                    <div class="flex gap-2">
+                      <input id="inp-save-seed" type="text" value="${state.saveSeed}" placeholder="(random)" class="wb-input flex-1" />
+                      <button id="btn-rand-seed" class="wb-btn wb-btn-compact" aria-label="Randomize seed"><span class="wb-btn-inner">⚄</span></button>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <label class="text-xs" style="color:var(--wb-text);">Game mode</label>
+                    <div class="wb-choice grid-cols-2">
+                      <div data-save-mode="creative" class="wb-choice-cell ${!isAdv ? 'wb-choice-selected' : ''}">Creative</div>
+                      <div data-save-mode="adventure" class="wb-choice-cell ${isAdv ? 'wb-choice-selected' : ''}">Adventure</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="wb-panel wb-caps-10">
+              <div class="wb-panel-inner" style="padding:20px;">
+                <div class="wb-panel-header">Galaxy telemetry</div>
+                <div class="mt-1 mb-3 wb-divider-inner"></div>
+                <div class="text-xl text-center font-semibold mb-3" style="color:var(--wb-text);">${state.saveName.trim() || 'Untitled galaxy'}</div>
+
+                <div class="flex flex-col gap-1 text-xs mb-4" style="color:var(--wb-text-muted);">
+                  <div>Mode: <span style="color:${isAdv ? 'var(--wb-primary)' : 'var(--wb-accent-bright)'};">${isAdv ? 'Adventure' : 'Creative'}</span></div>
+                  <div>Seed: <span style="color:var(--wb-text);">${state.saveSeed.trim() || 'Random'}</span></div>
+                  <div>Type: <span style="color:var(--wb-text);">Asteroids</span></div>
+                </div>
+
+                <div class="wb-divider mb-4"></div>
+
+                <div class="wb-info-box">
+                  <div class="text-xs mb-1" style="color:var(--wb-text);">Info</div>
+                  <div class="wb-divider mb-2"></div>
+                  <div class="text-xs leading-relaxed" style="color:var(--wb-text-muted);">${desc}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4">
+            <button data-close-to-hud="1" class="wb-btn" style="width:160px;"><span class="wb-btn-inner">Cancel</span></button>
+            <div class="text-xs text-center flex-1" style="color:var(--wb-warning);">${state.saveSeed.trim() ? '' : 'A random seed will be used'}</div>
+            <button id="btn-chart-galaxy" class="wb-btn wb-btn-primary wb-caps-6" style="width:200px;" ${state.saveName.trim() ? '' : 'disabled'}>
+              <span class="wb-btn-inner">Chart</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 8. ICON SHEET (4x Zoomed Inspection of Refined Oxygen, Vacuum, Dampener, & Health Icons)
+  function renderIconSheetSurface() {
+    const groups = [
+      {
+        title: 'Oxygen 10-icon bar (Endesga-32 air bubble)',
+        items: [
+          { icon:'o2_full', label:'Normal (3–10)', sub:'Cyan bubble + crescent specular + micro-bubble' },
+          { icon:'o2_warn', label:'Low (1–2)', sub:'Amber shift + gentle pulse' },
+          { icon:'o2_empty', label:'Depleted pip', sub:'Broken hollow ring silhouette' },
+          { icon:'o2_crit', label:'Zero (0)', sub:'Crimson X ring + danger pulse' }
+        ]
+      },
+      {
+        title: 'Vacuum / Atmosphere (Hotbar left-edge top)',
+        items: [
+          { icon:'vacuum_on', label:'Vacuum (Alert)', sub:'Airflow waves crossed by bold crimson slash', frame:'border-color:var(--wb-danger); background:var(--wb-danger-dark);' },
+          { icon:'vacuum_off', label:'Pressurized (Sealed)', sub:'Calm unslashed emerald/cyan airflow waves', frame:'border-color:var(--wb-border); background:var(--wb-panel);' }
+        ]
+      },
+      {
+        title: 'Inertial dampeners [Z] (Hotbar left-edge bottom)',
+        items: [
+          { icon:'damp_on', label:'Active (Stabilized)', sub:'4 inward cyan counter-thrust chevrons clamping core', frame:'border-color:var(--wb-accent); background:var(--wb-accent-dark);' },
+          { icon:'damp_off', label:'Drift (Off)', sub:'Unconstrained amber mass drifting with velocity trail', frame:'border-color:var(--wb-warning); background:var(--wb-primary-dark);' }
+        ]
+      },
+      {
+        title: 'Health 10-icon bar (Paired above Oxygen)',
+        items: [
+          { icon:'hp_full', label:'Full pip', sub:'Crimson heart with dark pixel outline' },
+          { icon:'hp_empty', label:'Empty pip', sub:'Recessed hollow crimson outline' }
+        ]
+      }
+    ];
+
+    return `
+      <div class="absolute inset-0 flex items-center justify-center p-6" style="background:var(--wb-scrim);">
+        <div class="wb-panel wb-caps-10 w-full max-w-[980px] max-h-[580px]">
+          <div class="wb-panel-inner">
+            <div class="wb-panel-header">Refined HUD iconography (1× actual &amp; 4× pixel zoom)</div>
+            <div class="mt-1 mb-3 wb-divider-inner"></div>
+            <div class="wb-scroll flex-1 overflow-y-auto grid grid-cols-2 gap-3 pr-1">
+              ${groups.map(g => `
+                <div class="p-3 flex flex-col gap-2.5" style="background:var(--wb-panel-inner); border:1px solid var(--wb-border);">
+                  <div class="text-xs font-semibold" style="color:var(--wb-accent-bright);">${g.title}</div>
+                  <div class="flex flex-col gap-2">
+                    ${g.items.map(it => `
+                      <div class="flex items-center gap-3 p-2" style="background:var(--wb-control); border:1px solid var(--wb-border-inner);">
+                        <div class="w-12 h-12 p-1.5 shrink-0 flex items-center justify-center" style="border:1px solid var(--wb-border); ${it.frame || 'background:#070a10;'}">
+                          <div class="w-full h-full">${ICONS[it.icon]}</div>
+                        </div>
+                        <div class="w-7 h-7 p-1 shrink-0 flex items-center justify-center" style="border:1px solid var(--wb-border); ${it.frame || 'background:#070a10;'}">
+                          <div class="w-5 h-5">${ICONS[it.icon]}</div>
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-xs font-semibold" style="color:var(--wb-text);">${it.label}</div>
+                          <div class="text-[11px]" style="color:var(--wb-text-muted);">${it.sub}</div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /* =========================================================================
+     HOST-CHROME SIMULATOR TOOLBAR (Keeps game viewport 100% pure!)
+     ========================================================================= */
+  function renderToolbar() {
+    const tb = document.getElementById('sim-toolbar');
+    const note = document.getElementById('spec-note');
+
+    if (state.surface === 'hud') {
+      tb.innerHTML = `
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="flex items-center gap-1.5">
+            <span class="text-[var(--muted-foreground)]">Mode:</span>
+            <select id="ctl-mode" class="bg-[var(--background)] border border-[var(--border)] rounded px-1.5 py-0.5 text-xs">
+              <option value="adventure" ${state.mode === 'adventure' ? 'selected' : ''}>Adventure</option>
+              <option value="creative" ${state.mode === 'creative' ? 'selected' : ''}>Creative</option>
+            </select>
+          </label>
+          <label class="flex items-center gap-1.5">
+            <span class="text-[var(--muted-foreground)]">HP:</span>
+            <input id="ctl-hp" type="range" min="0" max="10" value="${state.hp}" class="w-20 accent-[var(--primary)]" />
+            <span class="font-mono w-7">${state.hp}/10</span>
+          </label>
+          <label class="flex items-center gap-1.5">
+            <span class="text-[var(--muted-foreground)]">O2:</span>
+            <input id="ctl-o2" type="range" min="0" max="10" value="${state.o2}" class="w-20 accent-[var(--primary)]" />
+            <span class="font-mono w-7">${state.o2}/10</span>
+          </label>
+          <button id="ctl-vac" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">
+            Atmo: <strong>${state.inVacuum ? 'Vacuum' : 'Sealed'}</strong>
+          </button>
+          <button id="ctl-damp" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">
+            Dampeners [Z]: <strong>${state.dampeners ? 'On' : 'Drift'}</strong>
+          </button>
+          <button id="ctl-chat" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">
+            Comms: <strong>${state.showChat ? 'Open' : 'Closed'}</strong>
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="ctl-mine-btn" class="px-2.5 py-1 rounded bg-[#f2994a] text-[#111723] font-semibold cursor-pointer">Hold to Mine</button>
+          <button id="ctl-drain" class="px-2 py-1 rounded border border-[var(--border)] cursor-pointer">${state.autoDrainO2 ? 'Stop Drain' : 'Sim O2 Drain'}</button>
+        </div>
+      `;
+      note.innerHTML = `
+        <span><strong>HUD UX Pass:</strong> Borderless 10-icon hearts &amp; O2 bubbles, flush 66px left-edge Vacuum/Dampener stack, zero text clutter on survival &amp; reticle bars.</span>
+        <span>Keys: <code>1–9</code> · <code>Tab</code> · <code>Z</code> · Hold <code>LMB</code> on scene</span>
+      `;
+    } else if (state.surface === 'tab-inv') {
+      tb.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-[var(--muted-foreground)]">Right Pane Tab:</span>
+          <button data-tab-pane="0" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.tabOverlayPane===0?'font-semibold underline':''}">Crafting</button>
+          <button data-tab-pane="1" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.tabOverlayPane===1?'font-semibold underline':''}">Colonist</button>
+          <button data-tab-pane="2" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.tabOverlayPane===2?'font-semibold underline':''}">Skills</button>
+        </div>
+        <button id="ctl-xp-boost" class="px-2.5 py-1 rounded border border-[var(--border)] cursor-pointer">+350 Mining XP</button>
+      `;
+      note.innerHTML = `
+        <span><strong>[Tab] Persistent Inventory Pattern:</strong> Inventory stays pinned on the left across Crafting, Colonist, and Skills so players can equip/unequip wearables &amp; augments straight onto the Hero Paperdoll (try the Surveyor visor in slot 19!).</span>
+        <span>Click gear then target slot · Double-click gear to quick-equip · Click worn slot to unequip</span>
+      `;
+    } else if (state.surface === 'machine-auto') {
+      tb.innerHTML = `
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-[var(--muted-foreground)]">Machine:</span>
+          ${Object.entries(AUTO_MACHINES).map(([k, cfg]) => `
+            <button data-pick-auto="${k}" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.activeAutoMachine===k?'font-semibold underline':''}">${cfg.name}</button>
+          `).join('')}
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="ctl-power" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">Power: <strong>${state.machinePowered ? 'Online' : 'Unpowered'}</strong></button>
+          <button id="ctl-cycle-auto" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">Step Cycle</button>
+        </div>
+      `;
+      note.innerHTML = `
+        <span><strong>Contextual Auto-Processor Tab:</strong> Opens the unified <code>[Tab]</code> overlay with the machine tab auto-selected (hidden on plain <code>[Tab]</code>). Valid inventory inputs highlight only while the machine tab is active.</span>
+        <span>Try switching to Crafting, Colonist, or Skills right beside the machine</span>
+      `;
+    } else if (state.surface === 'machine-recipe') {
+      tb.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-[var(--muted-foreground)]">Crafter:</span>
+          ${[['synthesizer','Synthesizer'],['factory','Factory'],['oven','Oven']].map(([k, label]) => `
+            <button data-pick-crafter="${k}" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.activeRecipeMachine===k?'font-semibold underline':''}">${label}</button>
+          `).join('')}
+        </div>
+        <button id="ctl-power" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">Power: <strong>${state.machinePowered ? 'Online' : 'Unpowered'}</strong></button>
+      `;
+      note.innerHTML = `
+        <span><strong>Contextual Crafter Tab:</strong> Opens the unified <code>[Tab]</code> overlay with the interacted crafter auto-selected (hidden on plain <code>[Tab]</code>), featuring a zero-shift <code>48px</code> inline progress footer.</span>
+        <span>Click Output slot to collect crafted items</span>
+      `;
+    } else if (state.surface === 'computer') {
+      tb.innerHTML = `
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[var(--muted-foreground)]">Style:</span>
+            <button data-comp-style="crt" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.computerStyle==='crt'?'font-semibold underline':''}">Cassette CRT (Alt)</button>
+            <button data-comp-style="reef" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.computerStyle==='reef'?'font-semibold underline':''}">Standard Reef</button>
+          </div>
+          ${state.computerStyle === 'crt' ? `
+            <div class="flex items-center gap-1.5">
+              <span class="text-[var(--muted-foreground)]">Phosphor:</span>
+              <button data-crt-tint="mono" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.crtTint==='mono'?'font-semibold underline':''}">Mono (Locked)</button>
+              <button data-crt-tint="cyan" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.crtTint==='cyan'?'font-semibold underline':''}">Cyan</button>
+              <button data-crt-tint="amber" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.crtTint==='amber'?'font-semibold underline':''}">Amber</button>
+              <button data-crt-tint="green" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.crtTint==='green'?'font-semibold underline':''}">Green</button>
+            </div>
+            <button id="ctl-crt-tex" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">
+              CRT Textures: <strong>${state.crtTextures ? 'On' : 'Off'}</strong>
+            </button>
+          ` : ''}
+        </div>
+        <span class="text-[var(--muted-foreground)]">GAP-5 · Reef OpenGL-feasible</span>
+      `;
+      note.innerHTML = `
+        <span><strong>Reef-Feasible Cassette CRT:</strong> Zero CSS shadows, gradients, or border-radius. Uses only Reef flat fills, per-side bevel borders, <code>border-dash</code>, <code>corner-caps</code>, <code>ProgressBar</code>, 8×8 pixel screw/LED sprites, plus 2 optional alpha PNG overlays (<code>crt_scanlines</code> + <code>crt_vignette</code>).</span>
+        <span>Toggle <strong>CRT Textures</strong> above to compare pure geometry vs. textured overlay</span>
+      `;
+    } else if (state.surface === 'death') {
+      tb.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-[var(--muted-foreground)]">Simulate Cause:</span>
+          <button id="ctl-cause-suff" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.deathCause==='suffocation'?'font-semibold underline':''}">Suffocation</button>
+          <button id="ctl-cause-col" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer ${state.deathCause==='collision'?'font-semibold underline':''}">Kinetic impact</button>
+        </div>
+        <span class="text-[var(--muted-foreground)]">GAP-7 · --wb-scrim-heavy</span>
+      `;
+      note.innerHTML = `
+        <span><strong>Death Modal UX Pass:</strong> Removed preview controls and redundant eyebrow title from the in-game modal; kept one concise sentence confirming death-container recovery.</span>
+        <span>Click Respawn to restore full HP/O2 and return to HUD</span>
+      `;
+    } else if (state.surface === 'new-save') {
+      tb.innerHTML = `
+        <span class="text-[var(--muted-foreground)]">Exact match to implemented <code>NewSaveView.rml</code> + <code>ui.toml</code> copy.</span>
+        ${state.saveCreating ? `<button id="ctl-skip-chart" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">Return to HUD</button>` : `<span class="text-[var(--muted-foreground)]">GAP-1</span>`}
+      `;
+      note.innerHTML = `
+        <span><strong>Chart a Galaxy UX Pass:</strong> Removed non-canonical footer status text; matches live <code>NewSaveView.rml</code> behavior.</span>
+        <span>Click Chart to preview diegetic creation sequence</span>
+      `;
+    } else {
+      tb.innerHTML = `
+        <span class="text-[var(--muted-foreground)]">Side-by-side 4× pixel zoom and 1× actual size preview of all refined Endesga-32 HUD survival and state icons.</span>
+        <button data-close-to-hud="1" class="px-2 py-0.5 rounded border border-[var(--border)] cursor-pointer">View on HUD</button>
+      `;
+      note.innerHTML = `
+        <span><strong>Iconography Pass:</strong> Distinct silhouettes — round cyan O2 bubbles (distinct from hearts &amp; future batteries), slashed airflow waves for Vacuum, inward stabilizer chevrons vs. diagonal drift vector for Dampeners.</span>
+        <span>16×16 Endesga-32 pixel grid</span>
+      `;
+    }
+  }
+
+  /* =========================================================================
+     MASTER RENDER & EVENTS
+     ========================================================================= */
+  function renderAll() {
+    hideTooltip();
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      const active = btn.dataset.surface === state.surface;
+      btn.style.background = active ? 'var(--primary)' : 'transparent';
+      btn.style.color = active ? 'var(--primary-foreground)' : 'var(--foreground)';
+      btn.style.borderColor = active ? 'var(--primary)' : 'var(--border)';
+    });
+
+    renderToolbar();
+
+    const layer = document.getElementById('stage-layer');
+    switch (state.surface) {
+      case 'hud': layer.innerHTML = renderHudSurface(); break;
+      case 'tab-inv': layer.innerHTML = renderTabOverlaySurface(); break;
+      case 'machine-auto': layer.innerHTML = renderAutoProcessorSurface(); break;
+      case 'machine-recipe': layer.innerHTML = renderRecipeCrafterSurface(); break;
+      case 'computer': layer.innerHTML = renderComputerSurface(); break;
+      case 'death': layer.innerHTML = renderDeathSurface(); break;
+      case 'new-save': layer.innerHTML = renderNewSaveSurface(); break;
+      case 'icon-sheet': layer.innerHTML = renderIconSheetSurface(); break;
+    }
+    bindStageEvents();
+  }
+
+  function bindStageEvents() {
+    document.querySelectorAll('[data-tip-item]').forEach(el => {
+      el.addEventListener('mouseenter', e => showItemTooltip(e, el.dataset.tipItem));
+      el.addEventListener('mouseleave', hideTooltip);
+    });
+    document.querySelectorAll('[data-tip-title]').forEach(el => {
+      el.addEventListener('mouseenter', e => showCustomTooltip(e, el.dataset.tipTitle, el.dataset.tipSub, el.dataset.tipDesc, el.dataset.tipColor || '#4be3e3'));
+      el.addEventListener('mouseleave', hideTooltip);
+    });
+
+    // Toolbar controls
+    const ctlMode = document.getElementById('ctl-mode');
+    if (ctlMode) ctlMode.onchange = () => { state.mode = ctlMode.value; renderAll(); };
+    const ctlHp = document.getElementById('ctl-hp');
+    if (ctlHp) ctlHp.oninput = () => {
+      state.hp = +ctlHp.value;
+      if (state.hp === 0 && state.mode === 'adventure') state.surface = 'death';
+      renderAll();
+    };
+    const ctlO2 = document.getElementById('ctl-o2');
+    if (ctlO2) ctlO2.oninput = () => { state.o2 = +ctlO2.value; renderAll(); };
+    const ctlVac = document.getElementById('ctl-vac');
+    if (ctlVac) ctlVac.onclick = () => { state.inVacuum = !state.inVacuum; renderAll(); };
+    const ctlDamp = document.getElementById('ctl-damp');
+    if (ctlDamp) ctlDamp.onclick = () => { state.dampeners = !state.dampeners; renderAll(); };
+    const ctlChat = document.getElementById('ctl-chat');
+    if (ctlChat) ctlChat.onclick = () => { state.showChat = !state.showChat; renderAll(); };
+    const ctlDrain = document.getElementById('ctl-drain');
+    if (ctlDrain) ctlDrain.onclick = () => { state.autoDrainO2 = !state.autoDrainO2; renderAll(); };
+    const ctlPower = document.getElementById('ctl-power');
+    if (ctlPower) ctlPower.onclick = () => { state.machinePowered = !state.machinePowered; renderAll(); };
+    const ctlCycleAuto = document.getElementById('ctl-cycle-auto');
+    if (ctlCycleAuto) ctlCycleAuto.onclick = () => { runAutoProcessCycle(state.activeAutoMachine, true); renderAll(); };
+    const ctlXpBoost = document.getElementById('ctl-xp-boost');
+    if (ctlXpBoost) ctlXpBoost.onclick = () => { grantSkillXp('mining', 350); renderAll(); };
+    const ctlCauseSuff = document.getElementById('ctl-cause-suff');
+    if (ctlCauseSuff) ctlCauseSuff.onclick = () => { state.deathCause = 'suffocation'; renderAll(); };
+    const ctlCauseCol = document.getElementById('ctl-cause-col');
+    if (ctlCauseCol) ctlCauseCol.onclick = () => { state.deathCause = 'collision'; renderAll(); };
+    const ctlSkipChart = document.getElementById('ctl-skip-chart');
+    if (ctlSkipChart) ctlSkipChart.onclick = () => { state.saveCreating = false; state.mode = state.saveMode; state.surface = 'hud'; renderAll(); };
+
+    const startMine = () => { state.isMining = true; };
+    const stopMine = () => { state.isMining = false; state.miningProgress = 0; if (state.surface === 'hud') renderAll(); };
+    const ctlMineBtn = document.getElementById('ctl-mine-btn');
+    if (ctlMineBtn) { ctlMineBtn.onmousedown = startMine; ctlMineBtn.onmouseup = stopMine; ctlMineBtn.onmouseleave = stopMine; }
+    const reticleZone = document.getElementById('reticle-zone');
+    if (reticleZone) { reticleZone.onmousedown = startMine; reticleZone.onmouseup = stopMine; reticleZone.onmouseleave = stopMine; }
+
+    document.querySelectorAll('[data-hud-slot]').forEach(el => {
+      el.onclick = () => { state.activeSlot = +el.dataset.hudSlot; renderAll(); };
+      el.ondblclick = () => useConsumable('hotbar', +el.dataset.hudSlot);
+    });
+    document.querySelectorAll('[data-toggle-vacuum]').forEach(el => el.onclick = () => { state.inVacuum = !state.inVacuum; renderAll(); });
+    document.querySelectorAll('[data-toggle-damp]').forEach(el => el.onclick = () => { state.dampeners = !state.dampeners; renderAll(); });
+    document.querySelectorAll('[data-close-to-hud]').forEach(el => el.onclick = () => { state.surface = 'hud'; renderAll(); });
+    document.querySelectorAll('[data-tab-pane]').forEach(el => el.onclick = () => {
+      const v = el.dataset.tabPane;
+      state.tabOverlayPane = v === 'machine' ? 'machine' : +v;
+      state.selectedInvSlot = null;
+      renderAll();
+    });
+    document.querySelectorAll('[data-pick-auto]').forEach(el => el.onclick = () => { state.activeAutoMachine = el.dataset.pickAuto; state.tabOverlayPane = 'machine'; renderAll(); });
+    document.querySelectorAll('[data-pick-crafter]').forEach(el => el.onclick = () => { state.activeRecipeMachine = el.dataset.pickCrafter; state.tabOverlayPane = 'machine'; renderAll(); });
+    document.querySelectorAll('[data-comp-style]').forEach(el => el.onclick = () => { state.computerStyle = el.dataset.compStyle; renderAll(); });
+    document.querySelectorAll('[data-crt-tint]').forEach(el => el.onclick = () => { state.crtTint = el.dataset.crtTint; renderAll(); });
+    const ctlCrtTex = document.getElementById('ctl-crt-tex');
+    if (ctlCrtTex) ctlCrtTex.onclick = () => { state.crtTextures = !state.crtTextures; renderAll(); };
+    // Two-way Inventory <-> Hero Paperdoll Equipment & Augmentation slots
+    const findFreeInvSlot = () => state.inventory.findIndex(s => !s);
+    document.querySelectorAll('[data-equip-slot]').forEach(el => {
+      el.onclick = () => {
+        const key = el.dataset.equipSlot;
+        if (state.selectedInvSlot) {
+          const { list, idx } = state.selectedInvSlot;
+          const invItem = state[list][idx];
+          if (invItem && ITEMS[invItem.id]?.equipSlot === key) {
+            const prev = state.equipment[key];
+            state.equipment[key] = invItem;
+            state[list][idx] = prev;
+            state.selectedInvSlot = null;
+            renderAll();
+          }
+          return;
+        }
+        // Unequip straight into Inventory
+        const worn = state.equipment[key];
+        if (!worn) return;
+        const freeIdx = findFreeInvSlot();
+        if (freeIdx === -1) { pushToast('Inventory full', '', 'danger'); return; }
+        state.inventory[freeIdx] = worn;
+        state.equipment[key] = null;
+        renderAll();
+      };
+    });
+    document.querySelectorAll('[data-aug-slot]').forEach(el => {
+      el.onclick = () => {
+        const idx = +el.dataset.augSlot;
+        if (state.selectedInvSlot) {
+          const { list, idx: invIdx } = state.selectedInvSlot;
+          const invItem = state[list][invIdx];
+          if (invItem && ITEMS[invItem.id]?.equipSlot === 'augment') {
+            const prev = state.augments[idx];
+            state.augments[idx] = invItem;
+            state[list][invIdx] = prev;
+            state.selectedInvSlot = null;
+            renderAll();
+          }
+          return;
+        }
+        const worn = state.augments[idx];
+        if (!worn) return;
+        const freeIdx = findFreeInvSlot();
+        if (freeIdx === -1) { pushToast('Inventory full', '', 'danger'); return; }
+        state.inventory[freeIdx] = worn;
+        state.augments[idx] = null;
+        renderAll();
+      };
+    });
+
+    // Inventory clicks (move/swap, auto-insert, double-click quick-equip or consume)
+    document.querySelectorAll('[data-inv-list]').forEach(el => {
+      const listName = el.dataset.invList;
+      const idx = +el.dataset.invIdx;
+      const mode = el.dataset.invMode;
+
+      el.onclick = () => {
+        if (mode === 'auto-insert') {
+          const sl = state[listName][idx];
+          if (!sl || !isValidAutoInput(state.activeAutoMachine, sl.id)) return;
+          const m = AUTO_MACHINES[state.activeAutoMachine];
+          if (m.dualRule) {
+            const targetIdx = sl.id === m.dualRule.a ? 0 : 1;
+            if (!m.input[targetIdx] || m.input[targetIdx].id === sl.id) {
+              m.input[targetIdx] = { id:sl.id, count:(m.input[targetIdx]?.count || 0) + sl.count };
+              state[listName][idx] = null;
+              renderAll();
+            }
+          } else if (!m.input[0] || m.input[0].id === sl.id) {
+            m.input[0] = { id:sl.id, count:(m.input[0]?.count || 0) + sl.count };
+            state[listName][idx] = null;
+            renderAll();
+          }
+          return;
+        }
+        if (!state.selectedInvSlot) {
+          if (state[listName][idx]) { state.selectedInvSlot = { list: listName, idx }; renderAll(); }
+        } else {
+          const prev = state.selectedInvSlot;
+          if (prev.list === listName && prev.idx === idx) { state.selectedInvSlot = null; renderAll(); return; }
+          const tmp = state[prev.list][prev.idx];
+          state[prev.list][prev.idx] = state[listName][idx];
+          state[listName][idx] = tmp;
+          state.selectedInvSlot = null;
+          renderAll();
+        }
+      };
+      el.ondblclick = () => {
+        state.selectedInvSlot = null;
+        const sl = state[listName][idx];
+        if (!sl) return;
+        const def = ITEMS[sl.id];
+        if (def?.equipSlot) {
+          if (def.equipSlot === 'augment') {
+            const prev = state.augments[0];
+            state.augments[0] = sl;
+            state[listName][idx] = prev;
+          } else {
+            const prev = state.equipment[def.equipSlot];
+            state.equipment[def.equipSlot] = sl;
+            state[listName][idx] = prev;
+          }
+          renderAll();
+          return;
+        }
+        useConsumable(listName, idx);
+      };
+    });
+
+    // Recipes & crafting
+    document.querySelectorAll('[data-select-recipe]').forEach(el => {
+      el.onclick = () => {
+        const set = el.dataset.recipeSet;
+        if (set === 'suit') state.selectedSuitRecipe = el.dataset.selectRecipe;
+        else state.selectedMachineRecipe[set] = el.dataset.selectRecipe;
+        renderAll();
+      };
+    });
+
+    const craftBtn = document.getElementById('btn-do-craft');
+    if (craftBtn) {
+      craftBtn.onclick = () => {
+        const set = craftBtn.dataset.recipeSet;
+        const rec = RECIPES[set].find(r => r.id === craftBtn.dataset.recipeId);
+        if (!rec || !canCraft(rec)) return;
+        if (set !== 'suit' && !state.machinePowered) { pushToast('Unpowered', '', 'danger'); return; }
+        rec.reqs.forEach(req => consumeItem(req.id, req.qty));
+        if (set === 'suit') {
+          addItem(rec.id, rec.outQty);
+          grantSkillXp('manufacturing', 25);
+          renderAll();
+        } else {
+          state.machineCrafting = true;
+          state.machineCraftPct = 15;
+          renderAll();
+          const timer = setInterval(() => {
+            state.machineCraftPct += 30;
+            if (state.machineCraftPct >= 100) {
+              clearInterval(timer);
+              state.machineCrafting = false;
+              state.machineCraftPct = 0;
+              const cur = state.machineOutputSlot[set];
+              if (cur && cur.id === rec.id) cur.count += rec.outQty;
+              else state.machineOutputSlot[set] = { id: rec.id, count: rec.outQty };
+              grantSkillXp(set === 'oven' ? 'cooking' : 'manufacturing', 35);
+            }
+            renderAll();
+          }, 130);
+        }
+      };
+    }
+
+    document.querySelectorAll('[data-collect-crafter]').forEach(el => {
+      el.onclick = () => {
+        const key = el.dataset.collectCrafter;
+        const out = state.machineOutputSlot[key];
+        if (!out) return;
+        addItem(out.id, out.count);
+        state.machineOutputSlot[key] = null;
+        renderAll();
+      };
+    });
+
+    document.querySelectorAll('[data-auto-take-in]').forEach(el => {
+      el.onclick = () => {
+        const i = +el.dataset.autoTakeIn;
+        const m = AUTO_MACHINES[state.activeAutoMachine];
+        if (!m.input[i]) return;
+        addItem(m.input[i].id, m.input[i].count);
+        m.input[i] = null;
+        renderAll();
+      };
+    });
+    document.querySelectorAll('[data-auto-collect]').forEach(el => {
+      el.onclick = () => {
+        const m = AUTO_MACHINES[state.activeAutoMachine];
+        if (!m.output) return;
+        addItem(m.output.id, m.output.count);
+        m.output = null;
+        renderAll();
+      };
+    });
+    const refillBtn = document.getElementById('btn-refill-o2');
+    if (refillBtn) refillBtn.onclick = () => { state.o2 = 10; pushToast('Oxygen tank refilled', '', 'accent'); renderAll(); };
+
+    // Computer terminal
+    const sealBtn = document.getElementById('btn-toggle-seal');
+    if (sealBtn) sealBtn.onclick = () => { state.gridSealed = !state.gridSealed; state.inVacuum = !state.gridSealed; renderAll(); };
+    document.querySelectorAll('[data-toggle-machine]').forEach(el => {
+      el.onclick = () => {
+        const m = state.gridMachines.find(x => x.id === el.dataset.toggleMachine);
+        if (m) m.enabled = !m.enabled;
+        renderAll();
+      };
+    });
+    const bpSearch = document.getElementById('bp-search');
+    if (bpSearch) bpSearch.oninput = () => { state.bpSearch = bpSearch.value; renderAll(); document.getElementById('bp-search')?.focus(); };
+    const bpNewName = document.getElementById('bp-new-name');
+    if (bpNewName) bpNewName.oninput = () => { state.bpNewName = bpNewName.value; };
+    const saveBpBtn = document.getElementById('btn-save-bp');
+    if (saveBpBtn) {
+      saveBpBtn.onclick = () => {
+        const name = state.bpNewName.trim();
+        if (!name) { pushToast('Enter a blueprint name', '', 'danger'); return; }
+        if (state.blueprints.filter(b => !b.builtIn).length >= 3) { pushToast('Blueprint limit reached', '', 'danger'); return; }
+        state.blueprints.unshift({ id: 'bp' + Date.now(), name, dims: '14 × 6 × 16 · 412 bricks', builtIn: false });
+        state.bpNewName = '';
+        renderAll();
+      };
+    }
+    document.querySelectorAll('[data-bp-load]').forEach(el => {
+      el.onclick = () => {
+        const bp = state.blueprints.find(b => b.id === el.dataset.bpLoad);
+        pushToast(`Loaded ${bp.name}`, '', 'accent');
+      };
+    });
+    document.querySelectorAll('[data-bp-req-del]').forEach(el => el.onclick = () => { state.bpConfirmDelete = el.dataset.bpReqDel; renderAll(); });
+    document.querySelectorAll('[data-bp-cancel-del]').forEach(el => el.onclick = () => { state.bpConfirmDelete = null; renderAll(); });
+    document.querySelectorAll('[data-bp-confirm-del]').forEach(el => el.onclick = () => {
+      state.blueprints = state.blueprints.filter(b => b.id !== el.dataset.bpConfirmDel);
+      state.bpConfirmDelete = null;
+      renderAll();
+    });
+
+    // Death modal
+    const respawnBtn = document.getElementById('btn-respawn');
+    if (respawnBtn) respawnBtn.onclick = () => { state.hp = 10; state.o2 = 10; state.surface = 'hud'; renderAll(); };
+
+    // New save
+    const inpName = document.getElementById('inp-save-name');
+    if (inpName) inpName.oninput = () => { state.saveName = inpName.value; renderAll(); const el = document.getElementById('inp-save-name'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } };
+    const inpSeed = document.getElementById('inp-save-seed');
+    if (inpSeed) inpSeed.oninput = () => { state.saveSeed = inpSeed.value; renderAll(); const el = document.getElementById('inp-save-seed'); if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } };
+    const randName = document.getElementById('btn-rand-name');
+    if (randName) randName.onclick = () => {
+      const names = ['Kepler Drift', 'Ochre Expanse', 'Vespera Belt', 'Helios Reach'];
+      state.saveName = names[(names.indexOf(state.saveName) + 1) % names.length];
+      renderAll();
+    };
+    const randSeed = document.getElementById('btn-rand-seed');
+    if (randSeed) randSeed.onclick = () => {
+      const seeds = ['amber-comet-418', 'cobalt-nebula-902', 'iron-pulsar-174', 'quartz-orbit-661'];
+      state.saveSeed = seeds[(seeds.indexOf(state.saveSeed) + 1) % seeds.length];
+      renderAll();
+    };
+    document.querySelectorAll('[data-save-mode]').forEach(el => {
+      el.onclick = () => { state.saveMode = el.dataset.saveMode; state.mode = state.saveMode; renderAll(); };
+    });
+    const chartBtn = document.getElementById('btn-chart-galaxy');
+    if (chartBtn) {
+      chartBtn.onclick = () => {
+        state.saveCreating = true;
+        state.saveLogIdx = 0;
+        renderAll();
+        const iv = setInterval(() => {
+          state.saveLogIdx += 1;
+          if (state.saveLogIdx >= 4) {
+            clearInterval(iv);
+            setTimeout(() => {
+              if (state.saveCreating) {
+                state.saveCreating = false;
+                state.mode = state.saveMode;
+                state.surface = 'hud';
+                renderAll();
+              }
+            }, 600);
+          }
+          if (state.surface === 'new-save') renderAll();
+        }, 420);
+      };
+    }
+  }
+
+  function runAutoProcessCycle(key) {
+    const m = AUTO_MACHINES[key];
+    if (!state.machinePowered) return;
+    if (m.dualRule) {
+      if (m.input[0] && m.input[1]) {
+        m.input[0].count -= 1; if (m.input[0].count <= 0) m.input[0] = null;
+        m.input[1].count -= 1; if (m.input[1].count <= 0) m.input[1] = null;
+        m.output = { id: m.dualRule.out, count: (m.output?.count || 0) + m.dualRule.outQty };
+        m.progress = 0;
+      }
+      return;
+    }
+    const inp = m.input[0];
+    if (!inp || !m.rules || !m.rules[inp.id]) return;
+    const rule = m.rules[inp.id];
+    if (inp.count < rule.inQty) return;
+    inp.count -= rule.inQty;
+    if (inp.count <= 0) m.input[0] = null;
+    if (rule.o2Boost) {
+      state.o2 = Math.min(10, state.o2 + rule.o2Boost);
+    } else if (rule.out) {
+      m.output = { id: rule.out, count: (m.output?.count || 0) + rule.outQty };
+      grantSkillXp(key === 'recycler' ? 'salvaging' : 'manufacturing', 15);
+    }
+    m.progress = 0;
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.onclick = () => {
+      state.surface = btn.dataset.surface;
+      state.selectedInvSlot = null;
+      if (state.surface === 'machine-auto' || state.surface === 'machine-recipe') {
+        state.tabOverlayPane = 'machine';
+      } else if (state.surface === 'tab-inv' && state.tabOverlayPane === 'machine') {
+        state.tabOverlayPane = 0;
+      }
+      renderAll();
+    };
+  });
+
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key >= '1' && e.key <= '9') {
+      state.activeSlot = Number(e.key) - 1;
+      if (state.surface === 'hud') renderAll();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      if (state.surface === 'tab-inv' || state.surface === 'machine-auto' || state.surface === 'machine-recipe') {
+        state.surface = 'hud';
+      } else {
+        state.surface = 'tab-inv';
+        if (state.tabOverlayPane === 'machine') state.tabOverlayPane = 0;
+      }
+      renderAll();
+    } else if (e.key === 'z' || e.key === 'Z') {
+      state.dampeners = !state.dampeners;
+      if (state.surface === 'hud') renderAll();
+    } else if (e.key === 'Escape' && state.surface !== 'hud') {
+      state.surface = 'hud';
+      renderAll();
+    }
+  });
+
+  /* =========================================================================
+     LIVE TIMERS
+     ========================================================================= */
+  setInterval(() => {
+    if (state.isMining && state.surface === 'hud') {
+      state.miningProgress += 7;
+      if (state.miningProgress >= 100) {
+        state.miningProgress = 0;
+        const isSalvage = state.activeSlot === 1;
+        addItem(isSalvage ? 'iron_ingot' : 'iron_ore', isSalvage ? 1 : 2);
+        grantSkillXp(isSalvage ? 'salvaging' : 'mining', 24);
+      }
+      renderAll();
+    }
+  }, 60);
+
+  setInterval(() => {
+    let dirty = false;
+    state.buffs.forEach(b => { if (b.secs > 0) b.secs -= 1; });
+    state.buffs = state.buffs.filter(b => b.secs > 0);
+    if (state.surface === 'hud' || (state.surface === 'tab-inv' && state.tabOverlayPane === 1)) dirty = true;
+
+    if (state.machinePowered && state.surface === 'machine-auto') {
+      const m = AUTO_MACHINES[state.activeAutoMachine];
+      const hasInput = m.dualRule ? (m.input[0] && m.input[1]) : Boolean(m.input[0]);
+      if (hasInput) {
+        m.progress += 12;
+        if (m.progress >= 100) runAutoProcessCycle(state.activeAutoMachine);
+        dirty = true;
+      }
+    }
+
+    if (state.autoDrainO2 && state.mode === 'adventure' && state.inVacuum && state.surface === 'hud') {
+      if (state.o2 > 0) state.o2 -= 1;
+      else if (state.hp > 0) {
+        state.hp -= 1;
+        if (state.hp === 0) { state.deathCause = 'suffocation'; state.autoDrainO2 = false; state.surface = 'death'; }
+      }
+      dirty = true;
+    }
+
+    if (dirty) renderAll();
+  }, 1000);
+
+  /* =========================================================================
+     SPACE / ASTEROID / LIFEBOAT BACKDROP CANVAS
+     ========================================================================= */
+  const canvas = document.getElementById('space-canvas');
+  const ctx = canvas.getContext('2d');
+  const stars = Array.from({ length: 170 }, (_, i) => ({
+    x: Math.abs((Math.sin(i * 12.9898) * 43758.5453) % 1),
+    y: Math.abs((Math.sin(i * 78.233) * 19341.123) % 1),
+    r: (i % 7 === 0) ? 1.8 : 1,
+    c: i % 19 === 0 ? '#a5f3fc' : i % 23 === 0 ? '#ffd27d' : i % 29 === 0 ? '#ff8da6' : '#f0f3f6',
+    a: 0.25 + (i % 5) * 0.16
+  }));
+
+  function drawScene(t) {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    if (canvas.width !== Math.floor(rect.width) || canvas.height !== Math.floor(rect.height)) {
+      canvas.width = Math.floor(rect.width);
+      canvas.height = Math.floor(rect.height);
+    }
+    const w = canvas.width, h = canvas.height;
+
+    const g = ctx.createRadialGradient(w * 0.65, h * 0.35, 20, w * 0.5, h * 0.5, w * 0.78);
+    g.addColorStop(0, '#131d31');
+    g.addColorStop(0.45, '#0b101b');
+    g.addColorStop(1, '#05070d');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+
+    for (const s of stars) {
+      const twinkle = 0.75 + 0.25 * Math.sin(t * 0.0015 + s.x * 40);
+      ctx.globalAlpha = s.a * twinkle;
+      ctx.fillStyle = s.c;
+      ctx.fillRect(Math.floor(s.x * w), Math.floor(s.y * h), s.r, s.r);
+    }
+    ctx.globalAlpha = 1;
+
+    const drawVoxel = (vx, vy, size, top, left, right) => {
+      ctx.fillStyle = top;
+      ctx.beginPath();
+      ctx.moveTo(vx, vy - size * 0.5); ctx.lineTo(vx + size, vy); ctx.lineTo(vx, vy + size * 0.5); ctx.lineTo(vx - size, vy);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = left;
+      ctx.beginPath();
+      ctx.moveTo(vx - size, vy); ctx.lineTo(vx, vy + size * 0.5); ctx.lineTo(vx, vy + size * 1.45); ctx.lineTo(vx - size, vy + size * 0.95);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = right;
+      ctx.beginPath();
+      ctx.moveTo(vx + size, vy); ctx.lineTo(vx, vy + size * 0.5); ctx.lineTo(vx, vy + size * 1.45); ctx.lineTo(vx + size, vy + size * 0.95);
+      ctx.closePath(); ctx.fill();
+    };
+
+    const bob = Math.sin(t * 0.0008) * 3;
+    const cx = w * 0.54, cy = h * 0.48;
+    [
+      [-60, -25, 32, '#5a6988', '#3a4466', '#262b44'],
+      [-28, -42, 32, '#8b9bb4', '#5a6988', '#3a4466'],
+      [4,   -26, 32, '#2ce8f5', '#0099db', '#124e89'],
+      [-28,  -8, 32, '#c28569', '#733e39', '#3e2731'],
+      [4,     8, 32, '#5a6988', '#3a4466', '#262b44'],
+      [36,  -10, 32, '#5a6988', '#3a4466', '#262b44'],
+      [-60,  10, 32, '#3a4466', '#262b44', '#181425']
+    ].forEach(([ox, oy, sz, c1, c2, c3]) => drawVoxel(cx + ox, cy + oy + bob, sz, c1, c2, c3));
+
+    const lx = w * 0.22, ly = h * 0.46 - bob * 0.7;
+    drawVoxel(lx, ly, 26, '#8b9bb4', '#5a6988', '#3a4466');
+    drawVoxel(lx + 26, ly + 13, 26, '#feae34', '#d77643', '#733e39');
+    drawVoxel(lx - 26, ly + 13, 26, '#0099db', '#124e89', '#162838');
+    drawVoxel(lx, ly + 26, 26, '#5a6988', '#3a4466', '#262b44');
+
+    if (state.isMining && state.surface === 'hud') {
+      ctx.save();
+      ctx.strokeStyle = state.activeSlot === 1 ? '#4be3e3' : '#f2994a';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.moveTo(w * 0.78, h * 0.92); ctx.lineTo(w * 0.5, h * 0.5); ctx.stroke();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
+      for (let i = 0; i < 6; i++) {
+        const ang = (t * 0.02 + i * 1.1);
+        const dist = 6 + (t * 0.06 + i * 7) % 18;
+        ctx.fillStyle = i % 2 === 0 ? '#fee761' : '#a5f3fc';
+        ctx.fillRect(w * 0.5 + Math.cos(ang) * dist, h * 0.5 + Math.sin(ang) * dist, 3, 3);
+      }
+      ctx.restore();
+    }
+
+    requestAnimationFrame(drawScene);
+  }
+
+  renderAll();
+  requestAnimationFrame(drawScene);
+})();
+</script>
+</body>
+</html>
