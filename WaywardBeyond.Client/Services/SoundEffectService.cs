@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using System.Numerics;
 using Krill;
 using Swordfish.Audio;
+using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Systems;
@@ -25,24 +27,24 @@ internal class SoundEffectService
         _randomizer = new Randomizer();
     }
 
-    /// <summary>Plays the brick's declared sound for the provided brick event.</summary>
-    public void PlayEffect(Brick brick, BrickEventKind eventKind)
+    /// <summary>Plays the brick's declared sound for the provided brick event, spatialized when a world position is given.</summary>
+    public void PlayEffect(Brick brick, BrickEventKind eventKind, Vector3? worldPosition = null)
     {
         if (!brick.Sounds.TryGetValue(eventKind, out string[]? tags))
         {
             return;
         }
 
-        Play(EFFECTS_CHANNEL, tags);
+        Play(EFFECTS_CHANNEL, tags, worldPosition);
     }
 
     /// <summary>Plays a random clip from the provided invariant sound tag on the interface channel.</summary>
     public virtual void PlayInterface(string tag)
     {
-        Play(INTERFACE_CHANNEL, [tag]);
+        Play(INTERFACE_CHANNEL, [tag], worldPosition: null);
     }
 
-    private void Play(string channelName, IReadOnlyList<string> tags)
+    private void Play(string channelName, IReadOnlyList<string> tags, Vector3? worldPosition)
     {
         if (_invariantTags == null)
         {
@@ -82,6 +84,16 @@ internal class SoundEffectService
             State = PlayerState.Play,
             ChannelEntity = channel,
         };
-        _audioChannelSystem.EnqueuePlay(audioSource, audioPlayer);
+
+        if (worldPosition.HasValue)
+        {
+            var transform = new TransformComponent(worldPosition.Value);
+            var spatial = new SpatialAudio();
+            _audioChannelSystem.EnqueuePlay(audioSource, audioPlayer, transform, spatial);
+        }
+        else
+        {
+            _audioChannelSystem.EnqueuePlay(audioSource, audioPlayer);
+        }
     }
 }

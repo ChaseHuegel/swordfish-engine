@@ -213,6 +213,23 @@ writes its private backing field instead: `Mode = { _data = "Remote" }`. Add a
 `RegisterDataBinding<T>` line next to `ProfileSettings` for every new binding
 type.
 
+## `audio.toml` (per app)
+
+Engine audio playback format and 3D spatialization tunables, registered via
+`RegisterConfig<AudioSettings>` (`Swordfish/EngineContainer.cs:150`). Schema:
+`Swordfish/Settings/AudioSettings.cs`, `Swordfish/Settings/PlaybackSettings.cs`,
+and `Swordfish/Settings/SpatialAudioSettings.cs`. See [audio](audio.md) and
+[spatial-audio](spatial-audio.md).
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `Playback.SampleRate` | int | `48000` | output sample rate in Hz |
+| `Playback.Channels` | int | `2` | output channel count |
+| `Spatial.SpeedOfSound` | float | `343.0` | speed of sound in world units per second for Doppler pitch shift |
+| `Spatial.DopplerScale` | float | `1.0` | global multiplier applied to Doppler pitch shift, `0` disables Doppler |
+| `Spatial.MinDopplerPitch` | float | `0.5` | minimum Doppler pitch multiplier |
+| `Spatial.MaxDopplerPitch` | float | `2.0` | maximum Doppler pitch multiplier |
+
 ## `volume.toml` (per app)
 
 Client audio preferences, registered via `RegisterConfig<VolumeSettings>`.

@@ -25,28 +25,35 @@ silent at playback. See [asset-definitions](asset-definitions.md).
 
 ## Requests
 
-`SoundEffectService.PlayEffect(brick, eventKind)` reads the brick's declared
-tags and plays a random clip on the `effects` channel
-(`WaywardBeyond.Client/Services/SoundEffectService.cs:29`).
+`SoundEffectService.PlayEffect(brick, eventKind, worldPosition)` reads the
+brick's declared tags and plays a random clip on the `effects` channel
+(`WaywardBeyond.Client/Services/SoundEffectService.cs:31`). When
+`worldPosition` is provided, the queued entity also receives
+`TransformComponent` and `SpatialAudio` for 3D playback relative to the main
+camera's `AudioListener`. See [spatial-audio](spatial-audio.md). When
+`worldPosition` is omitted, the effect plays as a centered 2D sound.
+
 `SoundEffectService.PlayInterface(tag)` plays a random clip on the `interface`
-channel (`SoundEffectService.cs:40`). A request names tags, never clip ids.
+channel as a 2D sound (`SoundEffectService.cs:42`). A request names tags, never
+clip ids.
 
 A request that carries several tags uses every value from every tag as a
 candidate. Each candidate clip is equally likely.
 
 ## Brick triggers
 
-`BrickEvent` carries a brick's voxel id and a `BrickEventKind`
-(`WaywardBeyond.Client/Events/BrickEvent.cs:6`). Two paths raise it:
+`BrickEvent` carries a brick's voxel id, a `BrickEventKind`, and an optional
+`WorldPosition` (`WaywardBeyond.Client/Events/BrickEvent.cs:7`). Two paths
+raise it:
 
 - `PlayerInteractionService.FirePresentationHook` raises it after `PlaceEvent`
-  or `BreakEvent` succeeds (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:652`).
+  or `BreakEvent` succeeds (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:718`).
 - `ClientVoxelReconcileSystem.RaiseEditEvent` raises it for unpredicted
-  authoritative edits (`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:157`).
+  authoritative edits (`WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:166`).
 
 `BrickSoundListener` handles `BrickEvent`, returns early when `Kind` is not
 `Place` or `Break`, resolves the `Brick` from `IBrickDatabase`, and calls
-`SoundEffectService.PlayEffect`
+`SoundEffectService.PlayEffect` with `e.WorldPosition`
 (`WaywardBeyond.Client/Services/BrickSoundListener.cs:9`). Neither producer
 calls `SoundEffectService` for brick audio. Raising `BrickEvent` does not
 invoke `PlaceEvent` or `BreakEvent`, so remote edits do not change local
@@ -83,14 +90,15 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Client/Events/BrickEvent.cs:6` — brick presentation event.
+- `WaywardBeyond.Client/Events/BrickEvent.cs:7` — brick presentation event.
 - `WaywardBeyond.Client/Services/BrickSoundListener.cs:9` — brick sound event listener.
-- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs:652` — local prediction trigger.
-- `WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:157` — unpredicted authoritative edit trigger.
-- `WaywardBeyond.Client/Services/SoundEffectService.cs:12` — playback service.
-- `WaywardBeyond.Client/Services/SoundEffectService.cs:29` — brick effect request.
-- `WaywardBeyond.Client/Services/SoundEffectService.cs:40` — interface request.
-- `WaywardBeyond.Client/Services/SoundEffectService.cs:45` — shared tag lookup.
+- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs:718` — local prediction trigger.
+- `WaywardBeyond.Client/Systems/ClientVoxelReconcileSystem.cs:166` — unpredicted authoritative edit trigger.
+- `WaywardBeyond.Client/Systems/AudioChannelSystem.cs:59` — 2D and spatial play queueing.
+- `WaywardBeyond.Client/Services/SoundEffectService.cs:14` — playback service.
+- `WaywardBeyond.Client/Services/SoundEffectService.cs:31` — brick effect request.
+- `WaywardBeyond.Client/Services/SoundEffectService.cs:42` — interface request.
+- `WaywardBeyond.Client/Services/SoundEffectService.cs:47` — shared tag lookup.
 - `WaywardBeyond.Client/UI/WidgetInteraction.cs:16` — interface tag mapping.
 - `WaywardBeyond.Bricks/BrickEventKind.cs:4` — brick event kind enum.
 - `WaywardBeyond.Bricks/BrickDefinition.cs:16` — brick sound declaration.
@@ -104,8 +112,9 @@ the `interface` channel. See [ui-theme](ui-theme.md).
 ## Tests
 
 - `WaywardBeyond.Tests/BrickSoundListenerTests.cs` covers local prediction
-  triggers, unpredicted authoritative triggers, prediction echo silence, and
-  statistic isolation.
+  triggers, unpredicted authoritative triggers, prediction echo silence,
+  statistic isolation, spatial brick audio attachment, and 2D interface and
+  positionless fallbacks.
 - `WaywardBeyond.Tests/SoundTagTests.cs` covers the shipped brick and interface
   sound tags, their clip resolution, and the presence of every clip file.
 - `WaywardBeyond.Tests/BrickDatabaseTests.cs` covers specific shipped brick

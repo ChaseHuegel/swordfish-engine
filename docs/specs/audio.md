@@ -4,7 +4,8 @@ One subject: playback device discovery, selection, default routing, and response
 to hotplug.
 
 Invariant sound tags and sound-effect requests live in
-[sound-effects](sound-effects.md).
+[sound-effects](sound-effects.md). 3D spatialization, attenuation, panning, and
+Doppler pitch shift live in [spatial-audio](spatial-audio.md).
 
 ## Model
 
@@ -63,7 +64,7 @@ the preference. The host owns persistence. Wayward Beyond stores the value in
 - The audio system enumerates again every 2 seconds. The scan runs on the ECS
   thread.
 - `PlaybackDeviceScanInterval` sets the interval.
-- SoundFlow 1.3.0 has no device-change event. `AudioEngine.UpdateAudioDevicesInfo()`
+- SoundFlow 1.4.2 has no device-change event. `AudioEngine.UpdateAudioDevicesInfo()`
   re-enumerates through miniaudio on each call.
 - A failed scan keeps the previous device set and logs a warning.
 - The device list contains initialized devices only. A device that fails
@@ -119,19 +120,19 @@ the preference. The host owns persistence. Wayward Beyond stores the value in
 
 - `Swordfish/Audio/IPlaybackDeviceService.cs:4` — public service contract.
 - `Swordfish/Audio/PlaybackDevicesChangedEventArgs.cs:4` — event payload.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:14` — service implementation.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:42` — published properties.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:57` — change event.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:77` — preference setter.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:90` — tick and preference apply.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:114` — scan.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:146` — active resolution and publish.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:232` — state comparison.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:276` — handler dispatch.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:319` — remove device.
-- `Swordfish/Audio/SoundFlow/AudioSystem.cs:399` — route a player.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:16` — service implementation.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:50` — published properties.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:65` — change event.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:86` — preference setter.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:99` — tick and preference apply.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:193` — scan.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:225` — active resolution and publish.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:311` — state comparison.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:354` — handler dispatch.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:397` — remove device.
+- `Swordfish/Audio/SoundFlow/AudioSystem.cs:506` — route a player.
 - `Swordfish/Audio/AudioChannel.cs:5` — channel device selection.
-- `Swordfish/EngineContainer.cs:108` — service registration.
+- `Swordfish/EngineContainer.cs:123` — service registration.
 - `Swordfish/Settings/PlaybackSettings.cs:5` — format settings.
 - `WaywardBeyond.Client/Configuration/VolumeSettings.cs:16` — persisted preference.
 - `WaywardBeyond.Client/Configuration/ConfigManager.cs:63` — startup apply.

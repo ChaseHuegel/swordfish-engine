@@ -55,10 +55,16 @@ internal sealed class AudioChannelSystem : IEntitySystem, IDisposable
         return _channelEntities.TryGetValue(name, out channel);
     }
 
-    /// <summary>Queues an audio playback entity to be allocated on the ECS thread.</summary>
+    /// <summary>Enqueues a 2D audio play to be allocated on the ECS thread.</summary>
     public void EnqueuePlay(in AudioSource audioSource, in AudioPlayer audioPlayer)
     {
         _pendingPlays.Enqueue(new AudioPlay(audioSource, audioPlayer));
+    }
+
+    /// <summary>Enqueues a 3D spatial audio play to be allocated on the ECS thread.</summary>
+    public void EnqueuePlay(in AudioSource audioSource, in AudioPlayer audioPlayer, in TransformComponent transform, in SpatialAudio spatial)
+    {
+        _pendingPlays.Enqueue(new AudioPlay(audioSource, audioPlayer, transform, spatial));
     }
 
     /// <inheritdoc/>
@@ -78,7 +84,14 @@ internal sealed class AudioChannelSystem : IEntitySystem, IDisposable
         //  Allocate queued audio plays on the ECS thread
         while (_pendingPlays.TryDequeue(out AudioPlay play))
         {
-            store.Alloc(play.AudioSource, play.AudioPlayer);
+            if (play.IsSpatial)
+            {
+                store.Alloc(play.AudioSource, play.AudioPlayer, play.Transform, play.Spatial);
+            }
+            else
+            {
+                store.Alloc(play.AudioSource, play.AudioPlayer);
+            }
         }
     }
 
@@ -137,9 +150,30 @@ internal sealed class AudioChannelSystem : IEntitySystem, IDisposable
         return WaywardBeyond.GameState == GameState.Paused;
     }
 
-    private readonly struct AudioPlay(in AudioSource audioSource, in AudioPlayer audioPlayer)
+    private readonly struct AudioPlay
     {
-        public readonly AudioSource AudioSource = audioSource;
-        public readonly AudioPlayer AudioPlayer = audioPlayer;
+        public readonly AudioSource AudioSource;
+        public readonly AudioPlayer AudioPlayer;
+        public readonly TransformComponent Transform;
+        public readonly SpatialAudio Spatial;
+        public readonly bool IsSpatial;
+
+        public AudioPlay(in AudioSource audioSource, in AudioPlayer audioPlayer)
+        {
+            AudioSource = audioSource;
+            AudioPlayer = audioPlayer;
+            Transform = default;
+            Spatial = default;
+            IsSpatial = false;
+        }
+
+        public AudioPlay(in AudioSource audioSource, in AudioPlayer audioPlayer, in TransformComponent transform, in SpatialAudio spatial)
+        {
+            AudioSource = audioSource;
+            AudioPlayer = audioPlayer;
+            Transform = transform;
+            Spatial = spatial;
+            IsSpatial = true;
+        }
     }
 }

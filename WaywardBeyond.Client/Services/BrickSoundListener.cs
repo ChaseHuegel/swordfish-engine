@@ -25,7 +25,7 @@ internal sealed class BrickSoundListener(
         Result<Brick> brick = _brickDatabase.Get(e.BrickID);
         if (brick.Success)
         {
-            _soundEffectService.PlayEffect(brick.Value, e.Kind);
+            _soundEffectService.PlayEffect(brick.Value, e.Kind, e.WorldPosition);
         }
 
         return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
