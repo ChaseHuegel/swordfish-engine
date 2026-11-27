@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
@@ -38,38 +39,51 @@ public sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDef
     /// <inheritdoc/>
     protected override Result<Item> LoadAsset(string id, ItemDefinition assetInfo)
     {
-        ToolDefinition? tool = ResolveTool(id, assetInfo.Tool);
+        IReadOnlyDictionary<string, float>? statistics = ResolveStatistics(id, assetInfo.Statistics);
         var item = new Item(
             id,
             assetInfo.Name,
             assetInfo.Icon,
             assetInfo.MaxStack ?? 1,
             assetInfo.Placeable,
-            tool,
+            assetInfo.Tool,
             assetInfo.ViewModel,
             assetInfo.WorldModel,
-            assetInfo.Description
+            assetInfo.Description,
+            statistics
         );
 
         return Result<Item>.FromSuccess(item);
     }
 
-    private ToolDefinition? ResolveTool(string id, ToolDefinition? definition)
+    private IReadOnlyDictionary<string, float>? ResolveStatistics(string id, Dictionary<string, float>? statistics)
     {
-        if (!definition.HasValue)
+        if (statistics == null || statistics.Count == 0)
         {
             return null;
         }
 
-        ToolDefinition resolved = definition.Value;
-        if (resolved.MiningSpeed.HasValue && (!float.IsFinite(resolved.MiningSpeed.Value) || resolved.MiningSpeed.Value <= 0f))
+        Dictionary<string, float>? resolved = null;
+        foreach (KeyValuePair<string, float> entry in statistics)
         {
-            _logger.LogWarning(
-                "Item \"{ItemId}\" tool has invalid MiningSpeed {MiningSpeed}. Using {Default}.",
-                id,
-                resolved.MiningSpeed.Value,
-                ToolDefinition.DEFAULT_MINING_SPEED);
-            resolved.MiningSpeed = ToolDefinition.DEFAULT_MINING_SPEED;
+            if (string.IsNullOrWhiteSpace(entry.Key))
+            {
+                _logger.LogWarning("Item \"{ItemId}\" declares a statistic with an empty key. Skipping.", id);
+                continue;
+            }
+
+            if (!float.IsFinite(entry.Value))
+            {
+                _logger.LogWarning(
+                    "Item \"{ItemId}\" statistic \"{StatisticId}\" has non-finite value {Value}. Skipping.",
+                    id,
+                    entry.Key,
+                    entry.Value);
+                continue;
+            }
+
+            resolved ??= new Dictionary<string, float>(statistics.Count, StringComparer.Ordinal);
+            resolved[entry.Key] = entry.Value;
         }
 
         return resolved;

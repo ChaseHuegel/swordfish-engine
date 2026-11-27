@@ -21,6 +21,75 @@
       </StackPanel>
     </controls:CollapsibleSectionCard>
 
+    <!-- Statistics (extensible key-value numeric attributes such as wb:mining_speed) -->
+    <controls:CollapsibleSectionCard Title="Statistics"
+                                     Subtitle="Custom numeric attributes (e.g. wb:mining_speed)"
+                                     IsExpanded="{Binding HasItemStatistics}">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <TextBlock Grid.Column="0"
+                     Text="Define any built-in or mod statistic key in [Items.Statistics]."
+                     FontSize="11"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddMiningSpeedStatisticCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Mining Speed" />
+          <Button Grid.Column="2"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddItemStatisticCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Statistic" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True"
+                IsVisible="{Binding HasItemStatistics}">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+              <Grid ColumnDefinitions="*,110,28" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Text="STATISTIC KEY" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="VALUE" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+            <ItemsControl ItemsSource="{Binding ItemStatistics}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ItemStatisticRowViewModel">
+                  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                    <Grid ColumnDefinitions="*,110,28" ColumnSpacing="8">
+                      <TextBox Grid.Column="0"
+                               Text="{Binding Key, Mode=TwoWay}"
+                               IsUndoEnabled="False"
+                               Classes="studio-input mono" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding Value, Mode=TwoWay}"
+                               IsUndoEnabled="False"
+                               Classes="studio-input mono" />
+                      <Button Grid.Column="2"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveItemStatisticCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove statistic">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
     <!-- ViewModel -->
     <controls:CollapsibleSectionCard Title="View Model" IsExpanded="False">
       <controls:CollapsibleSectionCard.HeaderAction>

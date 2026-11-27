@@ -466,6 +466,7 @@ internal static class AssetSeedProjector
         var skillSources = new List<(string Trigger, string Target, int Xp)>();
         var skillLevels = new List<(int Level, int XpRequired)>();
         var bodySprites = new List<(string State, string Direction, string TexturePath, string SwatchHex)>();
+        var itemStatistics = new List<(string Key, float Value)>();
         var bodySpriteAbsPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var recipeInputs = new List<(string ItemId, int Count, string SlotGroup)>();
         var recipeOutputs = new List<(string ItemId, int Count, string Chance)>();
@@ -479,7 +480,7 @@ internal static class AssetSeedProjector
                 PopulateBrickFields(in brick, scalars, colliders);
                 break;
             case ItemDefinition item:
-                PopulateItemFields(in item, scalars);
+                PopulateItemFields(in item, scalars, itemStatistics);
                 break;
             case PaintDefinition paint:
                 paintTexturePath = PopulatePaintFields(workspace, in paint, scalars);
@@ -523,6 +524,7 @@ internal static class AssetSeedProjector
             SkillSources = skillSources,
             SkillLevels = skillLevels,
             BodySprites = bodySprites,
+            ItemStatistics = itemStatistics,
             BodySpriteAbsolutePaths = bodySpriteAbsPaths,
             RecipeInputs = recipeInputs,
             RecipeOutputs = recipeOutputs,
@@ -543,6 +545,7 @@ internal static class AssetSeedProjector
         scalars["Alpha"] = brick.Alpha.ToString();
         scalars["CastShadows"] = brick.CastShadows ? "true" : "false";
         scalars["Passable"] = brick.Passable ? "true" : "false";
+        scalars["Hardness"] = (brick.Hardness ?? Brick.DEFAULT_HARDNESS).ToString("0.####", CultureInfo.InvariantCulture);
         scalars["Mesh"] = brick.Mesh ?? string.Empty;
         scalars["Connected"] = brick.Textures.Connected ? "true" : "false";
         scalars["TextureDefault"] = JoinNullableArray(brick.Textures.Default);
@@ -580,7 +583,10 @@ internal static class AssetSeedProjector
         }
     }
 
-    private static void PopulateItemFields(in ItemDefinition item, Dictionary<string, string> scalars)
+    private static void PopulateItemFields(
+        in ItemDefinition item,
+        Dictionary<string, string> scalars,
+        List<(string Key, float Value)> itemStatistics)
     {
         scalars["Name"] = item.Name ?? string.Empty;
         scalars["Description"] = item.Description ?? string.Empty;
@@ -607,6 +613,14 @@ internal static class AssetSeedProjector
         {
             scalars["ToolType"] = "none";
             scalars["ToolTarget"] = string.Empty;
+        }
+
+        if (item.Statistics != null)
+        {
+            foreach (var stat in item.Statistics.OrderBy(static kvp => kvp.Key, StringComparer.Ordinal))
+            {
+                itemStatistics.Add((stat.Key, stat.Value));
+            }
         }
 
         if (item.ViewModel.HasValue)

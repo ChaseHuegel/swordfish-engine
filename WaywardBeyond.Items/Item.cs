@@ -1,8 +1,11 @@
+using System;
+using System.Collections.Generic;
+
 namespace WaywardBeyond.Items;
 
 /// <summary>
-/// The headless view of a loaded item: identity, stacking, and the content it places or targets. Render
-/// assets stay client-side; the item carries only the ids of its icon and model.
+/// The headless view of a loaded item: identity, stacking, statistics, and the content it places or targets.
+/// Render assets stay client-side; the item carries only the ids of its icon and model.
 /// </summary>
 public sealed class Item(
     string id,
@@ -13,8 +16,12 @@ public sealed class Item(
     ToolDefinition? tool,
     ModelDefinition? viewModel,
     ModelDefinition? worldModel,
-    string? description = null
+    string? description = null,
+    IReadOnlyDictionary<string, float>? statistics = null
 ) {
+    private static readonly IReadOnlyDictionary<string, float> _noStatistics =
+        new Dictionary<string, float>(StringComparer.Ordinal);
+
     /// <summary>The canonical namespaced item id.</summary>
     public readonly string ID = id;
 
@@ -41,4 +48,25 @@ public sealed class Item(
 
     /// <summary>The world-model render ids, or null when the item has none.</summary>
     public readonly ModelDefinition? WorldModel = worldModel;
+
+    /// <summary>Custom numeric statistics declared on this item, or empty when none are declared.</summary>
+    public readonly IReadOnlyDictionary<string, float> Statistics = statistics ?? _noStatistics;
+
+    /// <summary>Gets the declared statistic value for <paramref name="statisticId"/>, or <paramref name="defaultValue"/>.</summary>
+    public float GetStatistic(string statisticId, float defaultValue = 0f)
+    {
+        return TryGetStatistic(statisticId, out float value) ? value : defaultValue;
+    }
+
+    /// <summary>Attempts to read the declared statistic value for <paramref name="statisticId"/>.</summary>
+    public bool TryGetStatistic(string statisticId, out float value)
+    {
+        if (string.IsNullOrEmpty(statisticId))
+        {
+            value = 0f;
+            return false;
+        }
+
+        return Statistics.TryGetValue(statisticId, out value);
+    }
 }

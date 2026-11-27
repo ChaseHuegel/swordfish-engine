@@ -116,6 +116,21 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 - With `ImplicitUsings` enabled, omit redundant `using` directives. With it
   off (e.g. `Swordfish.Library`), list them explicitly.
 
+### Member ordering
+
+Follow standard StyleCop element ordering inside a type:
+
+1. Constants and static fields
+2. Instance fields
+3. Constructors and finalizers
+4. Delegates and events
+5. Properties and indexers
+6. Methods
+7. Nested types (enums, structs, classes, interfaces)
+
+Always place nested types at the end of their parent type. Never declare nested
+types above fields, constructors, or methods.
+
 ### Expressions & nesting
 
 Deep nesting hides control flow and collapses a stack trace onto one line.

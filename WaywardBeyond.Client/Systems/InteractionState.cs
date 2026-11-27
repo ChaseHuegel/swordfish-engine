@@ -15,8 +15,8 @@ internal class InteractionState(in ClientPlayerMotionProcessor playerMotionProce
     public readonly DataBinding<string?> SelectedTexturePaintId = new(null);
     public readonly DataBinding<string?> SelectedColorPaintId = new(null);
 
-    /// <summary>Normalized active Adventure Mode break progress in <c>[0..1]</c>.</summary>
-    public readonly DataBinding<float> BreakProgress = new(0f);
+    /// <summary>Normalized active timed interaction hold progress in <c>[0..1]</c>.</summary>
+    public readonly DataBinding<float> HoldProgress = new(0f);
     
     private readonly ClientPlayerMotionProcessor _playerMotionProcessor = playerMotionProcessor;
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];

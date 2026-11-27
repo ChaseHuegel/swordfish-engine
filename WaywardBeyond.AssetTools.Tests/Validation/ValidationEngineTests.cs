@@ -367,7 +367,7 @@ public sealed class ValidationEngineTests : IDisposable
     }
 
     [Fact]
-    public void ValidatesBrickHardnessAndToolMiningSpeed()
+    public void ValidatesBrickHardnessAndItemStatistics()
     {
         string pack = CreateMinimalPack("mining_stats_pack");
         string assets = Path.Combine(pack, "assets");
@@ -388,13 +388,16 @@ public sealed class ValidationEngineTests : IDisposable
 
         WriteFile(
             Path.Combine(assets, "items", "valid_tool.toml"),
-            "[[Items]]\nID = \"wb:fast_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\nMiningSpeed = 1.75\n");
+            "[[Items]]\nID = \"wb:fast_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\n[Items.Statistics]\n\"wb:mining_speed\" = 1.75\n\"mod:heat_offset\" = -2.5\n");
         WriteFile(
             Path.Combine(assets, "items", "zero_tool.toml"),
-            "[[Items]]\nID = \"wb:zero_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\nMiningSpeed = 0.0\n");
+            "[[Items]]\nID = \"wb:zero_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\n[Items.Statistics]\n\"wb:mining_speed\" = 0.0\n");
         WriteFile(
             Path.Combine(assets, "items", "negative_tool.toml"),
-            "[[Items]]\nID = \"wb:neg_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\nMiningSpeed = -1.5\n");
+            "[[Items]]\nID = \"wb:neg_laser\"\nName = \"item.tool.name\"\n[Items.Tool]\nType = \"Mining\"\n[Items.Statistics]\n\"wb:mining_speed\" = -1.5\n");
+        WriteFile(
+            Path.Combine(assets, "items", "nan_stat.toml"),
+            "[[Items]]\nID = \"wb:nan_item\"\nName = \"item.tool.name\"\n[Items.Statistics]\n\"mod:energy\" = nan\n");
 
         WorkspaceIndex ws = new WorkspaceLoader().LoadPack(pack).Value;
         ValidationReport report = new WorkspaceValidator().Validate(ws);
@@ -408,13 +411,17 @@ public sealed class ValidationEngineTests : IDisposable
             f.Field == "Hardness" &&
             f.FilePath.EndsWith("negative_brick.toml", StringComparison.Ordinal));
         Assert.Contains(report.Findings, static f =>
-            f.Code == "TOOL001" &&
-            f.Field == "Tool.MiningSpeed" &&
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.wb:mining_speed" &&
             f.FilePath.EndsWith("zero_tool.toml", StringComparison.Ordinal));
         Assert.Contains(report.Findings, static f =>
-            f.Code == "TOOL001" &&
-            f.Field == "Tool.MiningSpeed" &&
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.wb:mining_speed" &&
             f.FilePath.EndsWith("negative_tool.toml", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.mod:energy" &&
+            f.FilePath.EndsWith("nan_stat.toml", StringComparison.Ordinal));
     }
 
     private string CreateMinimalPack(string name)

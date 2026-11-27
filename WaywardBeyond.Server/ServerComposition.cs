@@ -17,6 +17,7 @@ using WaywardBeyond.Data;
 using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Permissions;
@@ -105,10 +106,7 @@ public static class ServerComposition
                 Arg.Of<ILogger<ServerInteractionSystem>>(),
                 Arg.Of<IInteractionHandlerRegistry>(),
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
-                Arg.Of<SimulationStep>(),
-                Arg.Of<IBrickDatabase>(),
-                Arg.Of<IItemDatabase>(),
-                Arg.Of<ISkillDatabase>()
+                Arg.Of<SimulationStep>()
             ))
         );
         container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
@@ -119,6 +117,14 @@ public static class ServerComposition
         RegisterServerSystem<ServerParticleFlushSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);
 
+        //  Statistic modifier sources compose like interaction handlers: modules and mods register
+        //  IStatModifierSource implementations and StatResolver orders them once by priority.
+        RegisterStatModifierSource<ItemStatisticModifierSource>(container);
+        RegisterStatModifierSource<EntityStatisticModifierSource>(container);
+        RegisterStatModifierSource<SkillMiningSpeedModifierSource>(container);
+        container.Register<StatResolver>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.RegisterMapping<IStatResolver, StatResolver>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+
         //  Interaction handlers declare their own stage and priority, so the composition only decides
         //  which handlers exist. The registry is built once at startup, after every module has loaded,
         //  so a mod registers an IInteractionHandler implementation and never touches the registry.
@@ -126,6 +132,7 @@ public static class ServerComposition
         container.Register<IInteractionHandler, PaintHintResolver>(Reuse.Singleton);
         container.Register<IInteractionHandler, HintResolver>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakToolValidator>(Reuse.Singleton);
+        container.Register<IInteractionHandler, AdventureBreakHoldHandler>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelFaceWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakLootReactor>(Reuse.Singleton);
@@ -190,6 +197,17 @@ public static class ServerComposition
     private static Func<DataStore, IVoxelInteractionWorld> CreateInteractionWorldFactory(IServerWorldPhysics physics)
     {
         return store => new ServerVoxelInteractionWorld(store, physics);
+    }
+
+    private static void RegisterStatModifierSource<T>(IContainer container) where T : class, IStatModifierSource
+    {
+        if (container.IsRegistered<T>())
+        {
+            return;
+        }
+
+        container.Register<T>(Reuse.Singleton);
+        container.RegisterMapping<IStatModifierSource, T>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 
     private static IServerWorldSystem CreateInteractionSystem(ServerInteractionSystem interaction)

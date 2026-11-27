@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using WaywardBeyond.AssetStudio.Models;
 using WaywardBeyond.AssetStudio.Rendering;
 using WaywardBeyond.AssetStudio.Services;
+using WaywardBeyond.Data.Statistics;
 
 namespace WaywardBeyond.AssetStudio.ViewModels;
 
@@ -59,6 +60,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     private bool _skillLevelsModified;
     private bool _recipeInputsModified;
     private bool _recipeOutputsModified;
+    private bool _itemStatisticsModified;
     private bool _hasInitialViewModelTable;
     private bool _hasInitialWorldModelTable;
     private int _saveEpoch;
@@ -253,6 +255,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             BrickAlphaField = AddField("Alpha", "Alpha Mode", string.Empty, GetVal("Alpha", "Opaque"), choices: ["Opaque", "Masked", "Blend"]);
             BrickCastShadowsField = AddField("CastShadows", "Cast Shadows", string.Empty, GetVal("CastShadows", "true"), isBool: true);
             BrickPassableField = AddField("Passable", "Passable", string.Empty, GetVal("Passable", "false"), isBool: true);
+            BrickHardnessField = AddField("Hardness", "Hardness", "base seconds · >= 0 (default 1)", GetVal("Hardness", "1"), isNumeric: true);
             BrickMeshField = AddField("Mesh", "Custom Mesh", "path + .obj · thruster.obj", GetVal("Mesh"), referenceKind: ReferenceKind.Mesh);
             BrickConnectedField = AddField("Connected", "Connected Faces", string.Empty, GetVal("Connected", "false"), isBool: true);
             BrickTexDefaultField = AddField("TextureDefault", "Default Face", "bare layer · core", GetVal("TextureDefault"), referenceKind: ReferenceKind.BrickFace);
@@ -297,6 +300,13 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             ItemWorldModelPositionField = AddField("WorldModelPosition", "Position (X,Y,Z)", "X, Y, Z", GetVal("WorldModelPosition", "0, 0, 0"), isInformational: true, showUnreadBadge: false);
             ItemWorldModelRotationField = AddField("WorldModelRotation", "Rotation (deg)", "X, Y, Z", GetVal("WorldModelRotation", "0, 0, 0"), isInformational: true, showUnreadBadge: false);
             ItemWorldModelScaleField = AddField("WorldModelScale", "Scale (X,Y,Z)", "X, Y, Z", GetVal("WorldModelScale", "1, 1, 1"), isInformational: true, showUnreadBadge: false);
+
+            foreach (var stat in seed.ItemStatistics)
+            {
+                ItemStatistics.Add(CreateItemStatisticRow(stat.Key, stat.Value.ToString("0.####", CultureInfo.InvariantCulture)));
+            }
+
+            RefreshDuplicateItemStatistics();
         }
 
         // Paint fields
@@ -832,6 +842,11 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     public StudioFieldViewModel? BrickPassableField { get; }
 
     /// <summary>
+    ///     Brick break hardness multiplier field.
+    /// </summary>
+    public StudioFieldViewModel? BrickHardnessField { get; }
+
+    /// <summary>
     ///     Brick custom mesh path field.
     /// </summary>
     public StudioFieldViewModel? BrickMeshField { get; }
@@ -1055,6 +1070,16 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     ///     Editable collider rows for brick documents.
     /// </summary>
     public ObservableCollection<ColliderEntryViewModel> Colliders { get; } = [];
+
+    /// <summary>
+    ///     Editable custom statistic rows for item documents.
+    /// </summary>
+    public ObservableCollection<ItemStatisticRowViewModel> ItemStatistics { get; } = [];
+
+    /// <summary>
+    ///     Whether this item document currently defines any custom statistics.
+    /// </summary>
+    public bool HasItemStatistics => ItemStatistics.Count > 0;
 
     /// <summary>
     ///     Editable XP source rows for skill documents.
@@ -1513,6 +1538,16 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             }
         }
 
+        List<(string Key, string Value)>? itemStatistics = null;
+        if (Kind == AssetKind.Item)
+        {
+            itemStatistics = new List<(string Key, string Value)>(ItemStatistics.Count);
+            for (var i = 0; i < ItemStatistics.Count; i++)
+            {
+                itemStatistics.Add((ItemStatistics[i].Key, ItemStatistics[i].Value));
+            }
+        }
+
         return new DocumentSavePayload
         {
             AssetId = Id,
@@ -1543,6 +1578,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             RecipeInputsModified = _recipeInputsModified,
             RecipeOutputs = recipeOutputs,
             RecipeOutputsModified = _recipeOutputsModified,
+            ItemStatistics = itemStatistics,
+            ItemStatisticsModified = _itemStatisticsModified,
         };
     }
 
@@ -1558,6 +1595,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         _skillLevelsModified = false;
         _recipeInputsModified = false;
         _recipeOutputsModified = false;
+        _itemStatisticsModified = false;
         _modifiedFieldKeys.Clear();
         _removedLocalizationKeys.Clear();
         for (var i = 0; i < LocalizationRows.Count; i++)
@@ -2669,6 +2707,212 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
 
         HandleSkillCurveChanged();
         return true;
+    }
+
+    [RelayCommand]
+    private void AddItemStatistic()
+    {
+        AddItemStatisticEntry(GenerateNextItemStatisticKey(), "1");
+    }
+
+    [RelayCommand]
+    private void AddMiningSpeedStatistic()
+    {
+        for (var i = 0; i < ItemStatistics.Count; i++)
+        {
+            if (string.Equals(ItemStatistics[i].Key.Trim(), StatisticIds.MINING_SPEED, StringComparison.Ordinal))
+            {
+                _onActionFeedback?.Invoke($"Statistic \"{StatisticIds.MINING_SPEED}\" is already present.");
+                return;
+            }
+        }
+
+        AddItemStatisticEntry(
+            StatisticIds.MINING_SPEED,
+            StatisticIds.DEFAULT_MINING_SPEED.ToString("0.####", CultureInfo.InvariantCulture));
+    }
+
+    [RelayCommand]
+    private void RemoveItemStatistic(ItemStatisticRowViewModel? row)
+    {
+        if (IsReadOnly || row == null || !ItemStatistics.Contains(row))
+        {
+            return;
+        }
+
+        var before = SnapshotItemStatistics();
+        var wasDirty = IsDirty;
+        var wasModified = _itemStatisticsModified;
+        var recordedEpoch = _saveEpoch;
+
+        ItemStatistics.Remove(row);
+        _itemStatisticsModified = true;
+        RefreshDuplicateItemStatistics();
+        OnPropertyChanged(nameof(HasItemStatistics));
+        var after = SnapshotItemStatistics();
+
+        RecordUndo(
+            "Remove item statistic",
+            coalesceKey: null,
+            undo: () => RestoreItemStatisticsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreItemStatisticsSnapshot(after, true, true, recordedEpoch, isUndo: false));
+
+        MarkMutated();
+    }
+
+    private void AddItemStatisticEntry(string key, string value)
+    {
+        if (IsReadOnly || Kind != AssetKind.Item)
+        {
+            return;
+        }
+
+        var before = SnapshotItemStatistics();
+        var wasDirty = IsDirty;
+        var wasModified = _itemStatisticsModified;
+        var recordedEpoch = _saveEpoch;
+
+        ItemStatistics.Add(CreateItemStatisticRow(key, value));
+        _itemStatisticsModified = true;
+        RefreshDuplicateItemStatistics();
+        OnPropertyChanged(nameof(HasItemStatistics));
+        var after = SnapshotItemStatistics();
+
+        RecordUndo(
+            "Add item statistic",
+            coalesceKey: null,
+            undo: () => RestoreItemStatisticsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreItemStatisticsSnapshot(after, true, true, recordedEpoch, isUndo: false));
+
+        MarkMutated();
+    }
+
+    private string GenerateNextItemStatisticKey()
+    {
+        var existing = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < ItemStatistics.Count; i++)
+        {
+            existing.Add(ItemStatistics[i].Key.Trim());
+        }
+
+        if (!existing.Contains(StatisticIds.MINING_SPEED))
+        {
+            return StatisticIds.MINING_SPEED;
+        }
+
+        var prefix = !string.IsNullOrWhiteSpace(NamespaceBadge) ? NamespaceBadge : "wb";
+        var baseKey = $"{prefix}:custom_stat";
+        if (!existing.Contains(baseKey))
+        {
+            return baseKey;
+        }
+
+        var suffix = 2;
+        while (existing.Contains($"{baseKey}_{suffix}"))
+        {
+            suffix++;
+        }
+
+        return $"{baseKey}_{suffix}";
+    }
+
+    private ItemStatisticRowViewModel CreateItemStatisticRow(string key, string value)
+    {
+        return new ItemStatisticRowViewModel(
+            key,
+            value,
+            onChanged: () =>
+            {
+                _itemStatisticsModified = true;
+                RefreshDuplicateItemStatistics();
+                MarkMutated();
+            },
+            onPropertyTransition: (row, prop, oldVal, newVal) =>
+            {
+                var wasDirty = IsDirty;
+                var wasModified = _itemStatisticsModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Edit item statistic {prop}",
+                    coalesceKey: $"itemstat:{DocumentKey}:{prop}:{ItemStatistics.IndexOf(row)}",
+                    undo: () =>
+                    {
+                        row.ApplyPropertyForReplay(prop, oldVal);
+                        _itemStatisticsModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        RefreshDuplicateItemStatistics();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        row.ApplyPropertyForReplay(prop, newVal);
+                        _itemStatisticsModified = true;
+                        RefreshDuplicateItemStatistics();
+                        MarkMutated();
+                    });
+            });
+    }
+
+    private List<(string Key, string Value)> SnapshotItemStatistics()
+    {
+        var list = new List<(string Key, string Value)>(ItemStatistics.Count);
+        for (var i = 0; i < ItemStatistics.Count; i++)
+        {
+            list.Add((ItemStatistics[i].Key, ItemStatistics[i].Value));
+        }
+
+        return list;
+    }
+
+    private void RestoreItemStatisticsSnapshot(
+        List<(string Key, string Value)> snapshot,
+        bool targetDirty,
+        bool targetModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        ItemStatistics.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            ItemStatistics.Add(CreateItemStatisticRow(snapshot[i].Key, snapshot[i].Value));
+        }
+
+        _itemStatisticsModified = isUndo && _saveEpoch == recordedEpoch
+            ? targetModified
+            : true;
+        RefreshDuplicateItemStatistics();
+        OnPropertyChanged(nameof(HasItemStatistics));
+
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private void RefreshDuplicateItemStatistics()
+    {
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var i = 0; i < ItemStatistics.Count; i++)
+        {
+            var trimmed = ItemStatistics[i].Key.Trim();
+            if (trimmed.Length > 0)
+            {
+                counts[trimmed] = counts.TryGetValue(trimmed, out var count) ? count + 1 : 1;
+            }
+        }
+
+        for (var i = 0; i < ItemStatistics.Count; i++)
+        {
+            var trimmed = ItemStatistics[i].Key.Trim();
+            ItemStatistics[i].IsDuplicateKey = trimmed.Length > 0
+                && counts.TryGetValue(trimmed, out var count)
+                && count > 1;
+        }
     }
 
     [RelayCommand]
@@ -4007,6 +4251,10 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         sb.AppendLine($"Alpha       = {BrickAlphaField?.RawTokenText}");
         sb.AppendLine($"CastShadows = {BrickCastShadowsField?.RawTokenText}");
         sb.AppendLine($"Passable    = {BrickPassableField?.RawTokenText}");
+        if (!string.IsNullOrWhiteSpace(BrickHardnessField?.Value))
+        {
+            sb.AppendLine($"Hardness    = {BrickHardnessField.RawTokenText}");
+        }
         if (!string.IsNullOrWhiteSpace(BrickMeshField?.Value))
         {
             sb.AppendLine($"Mesh        = {BrickMeshField.RawTokenText}");
@@ -4062,6 +4310,23 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             sb.AppendLine("[Items.Placeable]");
             sb.AppendLine($"Type = {ItemPlaceableTypeField.RawTokenText}");
             sb.AppendLine($"ID   = {ItemPlaceableIdField?.RawTokenText}");
+        }
+
+        if (ItemStatistics.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("[Items.Statistics]");
+            for (var i = 0; i < ItemStatistics.Count; i++)
+            {
+                var stat = ItemStatistics[i];
+                var key = stat.Key.Trim();
+                if (key.Length == 0)
+                {
+                    continue;
+                }
+
+                sb.AppendLine($"\"{key}\" = {stat.Value}");
+            }
         }
         sb.AppendLine();
         sb.AppendLine("[Items.ViewModel]");

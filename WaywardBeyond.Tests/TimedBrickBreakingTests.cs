@@ -26,6 +26,7 @@ using WaywardBeyond.Client;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Events;
+using WaywardBeyond.Client.Interactions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Saves;
@@ -42,9 +43,11 @@ using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Registry;
@@ -118,7 +121,7 @@ public class TimedBrickBreakingTests
     }
 
     [Fact]
-    public void ItemDatabase_LoadsMiningSpeed_DefaultsAndInvalidFallback()
+    public void ItemDatabase_LoadsStatistics_CustomKeysAndFiltersNonFinite()
     {
         using TempAssetDir temp = new();
         temp.WriteItems("""
@@ -133,67 +136,99 @@ public class TimedBrickBreakingTests
             Name = "item.fast"
             [Items.Tool]
             Type = "Mining"
-            MiningSpeed = 2.5
+            [Items.Statistics]
+            "wb:mining_speed" = 2.5
+            "mod:beam_heat" = -1.25
 
             [[Items]]
-            ID = "wb:convert_tool"
-            Name = "item.convert"
-            [Items.Tool]
-            Type = "Convert"
-            MiningSpeed = 1.75
-
-            [[Items]]
-            ID = "wb:laser_zero"
-            Name = "item.zero"
-            [Items.Tool]
-            Type = "Mining"
-            MiningSpeed = 0.0
-
-            [[Items]]
-            ID = "wb:laser_negative"
-            Name = "item.negative"
-            [Items.Tool]
-            Type = "Mining"
-            MiningSpeed = -1.5
-
-            [[Items]]
-            ID = "wb:laser_inf"
-            Name = "item.inf"
-            [Items.Tool]
-            Type = "Mining"
-            MiningSpeed = inf
+            ID = "wb:custom_stat_item"
+            Name = "item.custom"
+            [Items.Statistics]
+            "mod:power" = 42.0
+            "mod:bad_nan" = nan
+            "mod:bad_inf" = inf
             """);
 
         ItemDatabase db = temp.LoadItems();
 
-        Assert.Equal(ToolDefinition.DEFAULT_MINING_SPEED, db.Get("wb:laser_default").Value.Tool!.Value.ResolveMiningSpeed());
-        Assert.Equal(2.5f, db.Get("wb:laser_fast").Value.Tool!.Value.ResolveMiningSpeed());
-        Assert.Equal(1.75f, db.Get("wb:convert_tool").Value.Tool!.Value.ResolveMiningSpeed());
-        Assert.Equal(ToolDefinition.DEFAULT_MINING_SPEED, db.Get("wb:laser_zero").Value.Tool!.Value.ResolveMiningSpeed());
-        Assert.Equal(ToolDefinition.DEFAULT_MINING_SPEED, db.Get("wb:laser_negative").Value.Tool!.Value.ResolveMiningSpeed());
-        Assert.Equal(ToolDefinition.DEFAULT_MINING_SPEED, db.Get("wb:laser_inf").Value.Tool!.Value.ResolveMiningSpeed());
+        Item defaultLaser = db.Get("wb:laser_default").Value;
+        Assert.Empty(defaultLaser.Statistics);
+        Assert.Equal(StatisticIds.DEFAULT_MINING_SPEED, defaultLaser.GetStatistic(StatisticIds.MINING_SPEED, StatisticIds.DEFAULT_MINING_SPEED));
+
+        Item fastLaser = db.Get("wb:laser_fast").Value;
+        Assert.Equal(2.5f, fastLaser.GetStatistic(StatisticIds.MINING_SPEED));
+        Assert.Equal(-1.25f, fastLaser.GetStatistic("mod:beam_heat"));
+
+        Item customItem = db.Get("wb:custom_stat_item").Value;
+        Assert.Equal(42.0f, customItem.GetStatistic("mod:power"));
+        Assert.False(customItem.TryGetStatistic("mod:bad_nan", out _));
+        Assert.False(customItem.TryGetStatistic("mod:bad_inf", out _));
     }
 
     [Fact]
-    public void CalculateBreakDuration_ComputesFormulaAndGuardsEdgeCases()
+    public void StatResolver_ComposesItemEntitySkillAndModModifierSources()
     {
-        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, 1.0f, 0), precision: 5);
-        Assert.Equal(1.0f, BreakDuration.CalculateBreakDuration(3.0f, 1.5f, 50), precision: 5);
-        Assert.Equal(0f, BreakDuration.CalculateBreakDuration(0f, 1.5f, 10));
+        using ServerHarness harness = new(GameMode.Adventure, rockHardness: 2.0f, panelHardness: 2.0f, laserSpeed: 1.0f, fastLaserSpeed: 2.0f);
+        var miningXp = new Dictionary<string, long> { ["mining"] = 10_000 };
+        int miningLevel = harness.Skills.Get("mining").Value.CalculateLevel(10_000).Level;
+        Assert.True(miningLevel > 0);
 
-        //  Zero/negative/non-finite divisors fall back safely to DEFAULT_MINING_SPEED (1.0f).
-        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, 0f, 0), precision: 5);
-        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, -4f, 0), precision: 5);
-        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, float.NaN, 0), precision: 5);
-        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, float.PositiveInfinity, 0), precision: 5);
+        //  Add a custom mod modifier source applying +50% to mining speed and *2 to a custom mod stat.
+        var hasteMod = new DelegateStatModifierSource(
+            StatModifierPriority.Normal,
+            StatisticIds.MINING_SPEED,
+            (in StatQuery _, ref StatAccumulator acc) => acc.Apply(StatModifier.AddPercent(0.50f)));
+        var customStatMod = new DelegateStatModifierSource(
+            StatModifierPriority.Normal,
+            "mod:jump_boost",
+            (in StatQuery _, ref StatAccumulator acc) => acc.Apply(StatModifier.Multiply(2.0f)));
 
-        //  Negative/non-finite hardness falls back to DEFAULT_HARDNESS (1.0f).
-        Assert.Equal(0.5f, BreakDuration.CalculateBreakDuration(-1f, 2.0f, 0), precision: 5);
-        Assert.Equal(0.5f, BreakDuration.CalculateBreakDuration(float.NaN, 2.0f, 0), precision: 5);
-        Assert.Equal(0.5f, BreakDuration.CalculateBreakDuration(float.PositiveInfinity, 2.0f, 0), precision: 5);
+        var resolver = new StatResolver(
+        [
+            new ItemStatisticModifierSource(harness.Items),
+            new EntityStatisticModifierSource(),
+            new SkillMiningSpeedModifierSource(harness.Skills),
+            hasteMod,
+            customStatMod,
+        ]);
 
-        //  Negative skill level clamps to 0.
-        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, 1.0f, -20), precision: 5);
+        //  Fast laser (SetBase 2.0) + entity stat (+0.5) + mining skill (+2%/lvl) + mod haste (+50%).
+        var entityStats = new Dictionary<string, float>
+        {
+            [StatisticIds.MINING_SPEED] = 0.5f,
+            ["mod:jump_boost"] = 3.0f,
+        };
+        harness.Store.AddOrUpdate(harness.PlayerEntity, new StatisticsComponent(entityStats));
+
+        float rockSpeed = resolver.Evaluate(new StatQuery(
+            StatisticIds.MINING_SPEED,
+            StatisticIds.DEFAULT_MINING_SPEED,
+            store: harness.Store,
+            entity: harness.PlayerEntity,
+            heldItemId: FAST_LASER_ITEM_ID,
+            targetBrickDataId: harness.RockId,
+            skillXp: miningXp));
+        float expectedRockSpeed = (2.0f + 0.5f) * (1.0f + (miningLevel * SkillMiningSpeedModifierSource.SKILL_SPEED_BONUS_PER_LEVEL) + 0.50f);
+        Assert.Equal(expectedRockSpeed, rockSpeed, precision: 5);
+
+        //  Manufactured panel gets no mining skill bonus, only base + entity + haste.
+        float panelSpeed = resolver.Evaluate(new StatQuery(
+            StatisticIds.MINING_SPEED,
+            StatisticIds.DEFAULT_MINING_SPEED,
+            store: harness.Store,
+            entity: harness.PlayerEntity,
+            heldItemId: FAST_LASER_ITEM_ID,
+            targetBrickDataId: harness.PanelId,
+            skillXp: miningXp));
+        Assert.Equal((2.0f + 0.5f) * 1.50f, panelSpeed, precision: 5);
+
+        //  Arbitrary custom mod statistic flows through the exact same pipeline.
+        float jumpBoost = resolver.Evaluate(new StatQuery(
+            "mod:jump_boost",
+            defaultBase: 1.0f,
+            store: harness.Store,
+            entity: harness.PlayerEntity));
+        Assert.Equal((1.0f + 3.0f) * 2.0f, jumpBoost, precision: 5);
 
         //  Float accumulation drift tolerance completes at target without triggering early.
         var accumulated = 0f;
@@ -201,33 +236,9 @@ public class TimedBrickBreakingTests
         {
             accumulated += 0.02f;
         }
-        Assert.False(BreakDuration.IsComplete(accumulated, 1.0f));
+        Assert.False(TimedInteractionProgress.IsComplete(accumulated, 1.0f));
         accumulated += 0.02f;
-        Assert.True(BreakDuration.IsComplete(accumulated, 1.0f));
-
-        //  Mining skill accelerates environment bricks and Salvaging skill accelerates manufactured bricks.
-        using ServerHarness harness = new(GameMode.Adventure, rockHardness: 2.0f, panelHardness: 2.0f, laserSpeed: 1.0f, fastLaserSpeed: 2.0f);
-        var miningXp = new Dictionary<string, long> { ["mining"] = 10_000 };
-        int miningLevel = harness.Skills.Get("mining").Value.CalculateLevel(10_000).Level;
-        Assert.True(miningLevel > 0);
-
-        float rockWithSkill = BreakDuration.ResolveBreakDuration(
-            harness.Bricks,
-            harness.Items,
-            harness.Skills,
-            harness.RockId,
-            LASER_ITEM_ID,
-            miningXp);
-        float panelWithOnlyMiningXp = BreakDuration.ResolveBreakDuration(
-            harness.Bricks,
-            harness.Items,
-            harness.Skills,
-            harness.PanelId,
-            LASER_ITEM_ID,
-            miningXp);
-
-        Assert.Equal(BreakDuration.CalculateBreakDuration(2.0f, 1.0f, miningLevel), rockWithSkill, precision: 5);
-        Assert.Equal(2.0f, panelWithOnlyMiningXp, precision: 5);
+        Assert.True(TimedInteractionProgress.IsComplete(accumulated, 1.0f));
     }
 
     [Fact]
@@ -241,7 +252,7 @@ public class TimedBrickBreakingTests
         harness.TickServer(0.016f);
 
         Assert.Equal((ushort)0, harness.GetVoxel(0, 0, -4).ID);
-        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.False(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
         Assert.Equal(0, harness.GetInventoryCount(ROCK_BRICK_ID));
     }
 
@@ -260,7 +271,7 @@ public class TimedBrickBreakingTests
         }
 
         Assert.Equal(harness.RockId, harness.GetVoxel(0, 0, -4).ID);
-        Result<ServerInteractionSystem.BreakSessionState> midSession = harness.Interactions.GetBreakSession(harness.PlayerUuid);
+        Result<ServerInteractionSystem.TimedSessionState> midSession = harness.Interactions.GetTimedSession(harness.PlayerUuid);
         Assert.True(midSession.Success);
         Assert.Equal(1.0f, midSession.Value.Elapsed, precision: 3);
         Assert.Equal(2.0f, midSession.Value.RequiredDuration, precision: 3);
@@ -274,7 +285,7 @@ public class TimedBrickBreakingTests
         }
 
         Assert.Equal((ushort)0, harness.GetVoxel(0, 0, -4).ID);
-        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.False(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
         Assert.Equal(1, harness.GetInventoryCount(ROCK_BRICK_ID));
         Assert.True(harness.GetSkillXp("mining") > 0);
     }
@@ -286,7 +297,8 @@ public class TimedBrickBreakingTests
         harness.SetHeldSlot(0, FAST_LASER_ITEM_ID);
         harness.SetSkillXp("mining", 200_000);
         int level = harness.Skills.Get("mining").Value.CalculateLevel(200_000).Level;
-        float expectedDuration = BreakDuration.CalculateBreakDuration(3.0f, 2.0f, level);
+        float expectedSpeed = 2.0f * (1.0f + (level * SkillMiningSpeedModifierSource.SKILL_SPEED_BONUS_PER_LEVEL));
+        float expectedDuration = 3.0f / expectedSpeed;
         Assert.True(expectedDuration < 1.5f);
 
         harness.SetPrimaryHeld(true);
@@ -297,6 +309,37 @@ public class TimedBrickBreakingTests
 
         harness.TickServer(expectedDuration * 0.6f);
         Assert.Equal((ushort)0, harness.GetVoxel(0, 0, -4).ID);
+    }
+
+    [Fact]
+    public void ServerInteractionSystem_CustomModTimedInteraction_ExecutesCommitAfterHold()
+    {
+        var committed = 0;
+        var customValidator = new CustomTimedValidateHandler("mod:charge_action", duration: 0.5f);
+        var customCommitter = new CustomTimedCommitHandler(() => committed++);
+
+        using ServerHarness harness = new(
+            GameMode.Creative,
+            rockHardness: 2.0f,
+            panelHardness: 2.0f,
+            laserSpeed: 1.0f,
+            fastLaserSpeed: 2.0f,
+            extraHandlers: [customValidator, customCommitter]);
+
+        harness.SetHeldSlot(0, LASER_ITEM_ID);
+        harness.SetSecondaryHeld(true);
+        harness.StageInteraction(InteractionKind.SecondaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+
+        harness.TickServer(0.25f);
+        Assert.Equal(0, committed);
+        Result<ServerInteractionSystem.TimedSessionState> session = harness.Interactions.GetTimedSession(harness.PlayerUuid);
+        Assert.True(session.Success);
+        Assert.Equal("mod:charge_action", session.Value.Key.HandlerId);
+        Assert.Equal(0.5f, session.Value.Progress, precision: 3);
+
+        harness.TickServer(0.25f);
+        Assert.Equal(1, committed);
+        Assert.False(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
     }
 
     [Fact]
@@ -311,18 +354,18 @@ public class TimedBrickBreakingTests
         harness.SetPrimaryHeld(false);
         harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
         harness.TickServer(0.5f);
-        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.False(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
         Assert.Equal(harness.RockId, harness.GetVoxel(0, 0, -4).ID);
 
         //  2. Release resets accumulated progress so re-holding requires full duration again.
         harness.SetPrimaryHeld(true);
         harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
         harness.TickServer(1.2f);
-        Assert.True(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.True(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
 
         harness.SetPrimaryHeld(false);
         harness.TickServer(0.1f);
-        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.False(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
 
         harness.SetPrimaryHeld(true);
         harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
@@ -332,25 +375,25 @@ public class TimedBrickBreakingTests
         //  3. Retargeting to another voxel resets progress to 0 for the new target.
         harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(1, 0, -4));
         harness.TickServer(0.25f);
-        Result<ServerInteractionSystem.BreakSessionState> retargeted = harness.Interactions.GetBreakSession(harness.PlayerUuid);
+        Result<ServerInteractionSystem.TimedSessionState> retargeted = harness.Interactions.GetTimedSession(harness.PlayerUuid);
         Assert.True(retargeted.Success);
-        Assert.Equal(new Int3(1, 0, -4), retargeted.Value.TargetCoord);
+        Assert.Equal(new Int3(1, 0, -4), retargeted.Value.Key.TargetCoord);
         Assert.Equal(0.25f, retargeted.Value.Elapsed, precision: 3);
 
         //  4. Switching hotbar slot (even to another mining tool) resets progress immediately.
         harness.SetActiveSlot(1);
         harness.TickServer(0.1f);
-        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.False(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
 
         //  5. Moving out of DEFAULT_REACH resets progress immediately.
         harness.SetActiveSlot(0);
         harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
         harness.TickServer(0.5f);
-        Assert.True(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.True(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
 
         harness.SetPlayerPosition(new Vector3(0f, 0f, 15f));
         harness.TickServer(0.1f);
-        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.False(harness.Interactions.GetTimedSession(harness.PlayerUuid).Success);
         Assert.Equal(harness.RockId, harness.GetVoxel(0, 0, -4).ID);
     }
 
@@ -371,7 +414,7 @@ public class TimedBrickBreakingTests
                 harness.TickClient(0.25f);
             }
 
-            Assert.Equal(0.5f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+            Assert.Equal(0.5f, harness.InteractionState.HoldProgress.Get(), precision: 3);
             Assert.Equal(harness.RockId, harness.Voxels.Get(0, 0, -4).ID);
             Assert.Empty(harness.BreakEvents);
             Assert.Single(harness.StagedEvents, e => e.Kind == InteractionKind.PrimaryPressed);
@@ -379,55 +422,96 @@ public class TimedBrickBreakingTests
             //  Retargeting to (1, 0, -4) resets progress to the new brick's elapsed duration and sends one PrimaryPressed.
             harness.SetRaycastTarget(new Int3(1, 0, -4));
             harness.TickClient(0.25f);
-            Assert.Equal(0.125f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+            Assert.Equal(0.125f, harness.InteractionState.HoldProgress.Get(), precision: 3);
             Assert.Equal(2, harness.CountStaged(InteractionKind.PrimaryPressed));
 
             //  Moving out of DEFAULT_REACH cancels hold, stages PrimaryReleased, and resets progress to 0.
             harness.SetPlayerPosition(new Vector3(0f, 0f, 16f));
             harness.TickClient(0.25f);
-            Assert.Equal(0f, harness.InteractionState.BreakProgress.Get());
+            Assert.Equal(0f, harness.InteractionState.HoldProgress.Get());
             Assert.Equal(1, harness.CountStaged(InteractionKind.PrimaryReleased));
 
             //  Move back in reach, hold halfway, then switch hotbar slot -> resets progress to 0 and emits PrimaryReleased.
             harness.SetPlayerPosition(Vector3.Zero);
             harness.SetRaycastTarget(new Int3(0, 0, -4));
             harness.TickClient(0.5f);
-            Assert.Equal(0.25f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+            Assert.Equal(0.25f, harness.InteractionState.HoldProgress.Get(), precision: 3);
 
             harness.SetActiveSlot(1);
             harness.TickClient(0.1f);
-            Assert.Equal(0f, harness.InteractionState.BreakProgress.Get());
+            Assert.Equal(0f, harness.InteractionState.HoldProgress.Get());
             Assert.Equal(2, harness.CountStaged(InteractionKind.PrimaryReleased));
 
             //  Switch back to mining tool, advance halfway, then replace voxel underneath -> resets progress for new brick.
             harness.SetActiveSlot(0);
             harness.TickClient(0.5f);
-            Assert.Equal(0.25f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+            Assert.Equal(0.25f, harness.InteractionState.HoldProgress.Get(), precision: 3);
 
             ushort panelId = harness.Bricks.Id(PANEL_BRICK_ID);
             harness.Voxels.Set(0, 0, -4, new Voxel(panelId, new ShapeLight(BrickShape.Block, 0), 0));
             harness.TickClient(0.2f);
-            Assert.Equal(0.1f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+            Assert.Equal(0.1f, harness.InteractionState.HoldProgress.Get(), precision: 3);
 
             //  Releasing LMB resets progress to 0 and emits PrimaryReleased.
             harness.SetPrimaryHeld(false);
             harness.TickClient(0.1f);
-            Assert.Equal(0f, harness.InteractionState.BreakProgress.Get());
+            Assert.Equal(0f, harness.InteractionState.HoldProgress.Get());
             Assert.Equal(3, harness.CountStaged(InteractionKind.PrimaryReleased));
 
-            //  Switching to Creative preserves instant predictive break and keeps BreakProgress at 0.
+            //  Switching to Creative preserves instant predictive break and keeps HoldProgress at 0.
             harness.Voxels.Set(0, 0, -4, new Voxel(harness.RockId, new ShapeLight(BrickShape.Block, 0), 0));
             harness.SetGameMode(GameMode.Creative);
             harness.SetPrimaryHeld(true, firePressTrigger: true);
             harness.TickClient(0.016f);
             Assert.Equal((ushort)0, harness.Voxels.Get(0, 0, -4).ID);
             Assert.Single(harness.BreakEvents);
-            Assert.Equal(0f, harness.InteractionState.BreakProgress.Get());
+            Assert.Equal(0f, harness.InteractionState.HoldProgress.Get());
         }
         finally
         {
             WaywardBeyondClient.GameState.Set(previous);
         }
+    }
+
+    [Fact]
+    public void ClientTimedInteractionController_SupportsCustomModTimedInteraction()
+    {
+        var custom = new CustomClientTimedInteraction("mod:scan_hold", duration: 1.0f);
+        var controller = new ClientTimedInteractionController([custom]);
+        var store = new DataStore();
+        var context = new ClientTimedInteractionContext(
+            store,
+            playerEntity: 0,
+            GameMode.Creative,
+            activeSlot: 0,
+            heldItemId: LASER_ITEM_ID,
+            heldItem: null,
+            heldPlaceable: null,
+            tryRaycastBrick: (bool _, bool _, out Entity e, out Voxel v, out Int3 c, out BrickInteraction h) =>
+            {
+                e = default;
+                v = default;
+                c = default;
+                h = default;
+                return false;
+            });
+
+        IClientTimedInteraction? found = controller.FindActive(MouseButton.Right, in context);
+        Assert.Same(custom, found);
+
+        float p1 = controller.Update(custom, isButtonHeld: true, delta: 0.4f, in context, out ClientTimedStageEvent e1);
+        Assert.True(e1.HasEvent);
+        Assert.Equal(InteractionKind.SecondaryPressed, e1.Kind);
+        Assert.Equal(0.4f, p1, precision: 3);
+
+        float p2 = controller.Update(custom, isButtonHeld: true, delta: 0.6f, in context, out ClientTimedStageEvent e2);
+        Assert.False(e2.HasEvent);
+        Assert.Equal(1.0f, p2, precision: 3);
+
+        float p3 = controller.Update(custom, isButtonHeld: false, delta: 0.1f, in context, out ClientTimedStageEvent e3);
+        Assert.True(e3.HasEvent);
+        Assert.Equal(InteractionKind.SecondaryReleased, e3.Kind);
+        Assert.Equal(0f, p3);
     }
 
     [Fact]
@@ -546,8 +630,14 @@ public class TimedBrickBreakingTests
         public ushort RockId { get; }
         public ushort PanelId { get; }
 
-        public ServerHarness(GameMode mode, float rockHardness, float panelHardness, float laserSpeed, float fastLaserSpeed)
-        {
+        public ServerHarness(
+            GameMode mode,
+            float rockHardness,
+            float panelHardness,
+            float laserSpeed,
+            float fastLaserSpeed,
+            IReadOnlyList<IInteractionHandler>? extraHandlers = null
+        ) {
             _assets.WriteBricks($"""
                 [[Bricks]]
                 ID = "{ROCK_BRICK_ID}"
@@ -563,14 +653,16 @@ public class TimedBrickBreakingTests
                 Name = "item.laser"
                 [Items.Tool]
                 Type = "Mining"
-                MiningSpeed = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Items.Statistics]
+                "{StatisticIds.MINING_SPEED}" = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
 
                 [[Items]]
                 ID = "{FAST_LASER_ITEM_ID}"
                 Name = "item.fast_laser"
                 [Items.Tool]
                 Type = "Mining"
-                MiningSpeed = {fastLaserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Items.Statistics]
+                "{StatisticIds.MINING_SPEED}" = {fastLaserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
                 """);
 
             var vfs = new VirtualFileSystem();
@@ -616,25 +708,40 @@ public class TimedBrickBreakingTests
             Store.AddOrUpdate(PlayerEntity, new InputComponent());
             _sessions.Register(Store, PlayerEntity, peer.GameId, new Session(1));
 
-            IInteractionHandler[] handlers =
+            var statResolver = new StatResolver(
             [
+                new ItemStatisticModifierSource(Items),
+                new EntityStatisticModifierSource(),
+                new SkillMiningSpeedModifierSource(Skills),
+            ]);
+
+            var handlers = new List<IInteractionHandler>
+            {
                 new ItemPlaceableSelector(Items, Bricks),
                 new HintResolver(Bricks),
                 new BreakToolValidator(Items),
+                new AdventureBreakHoldHandler(Bricks, statResolver),
                 new VoxelWriteCommitter(_peers, Bricks, Bricks, NullLogger<VoxelWriteCommitter>.Instance),
                 new BreakLootReactor(Bricks),
                 new SkillXpReactor(Skills, _peers, NullLogger<SkillXpReactor>.Instance),
-            ];
+            };
+            if (extraHandlers != null)
+            {
+                handlers.AddRange(extraHandlers);
+            }
+
             var handlerRegistry = new InteractionHandlerRegistry(handlers);
             Interactions = new ServerInteractionSystem(
                 _sessions,
                 NullLogger<ServerInteractionSystem>.Instance,
                 handlerRegistry,
                 s => new ServerVoxelInteractionWorld(s, physics),
-                _simStep,
-                Bricks,
-                Items,
-                Skills);
+                _simStep);
+        }
+
+        public void SetSecondaryHeld(bool held)
+        {
+            Store.AddOrUpdate(PlayerEntity, new InputComponent { SecondaryHeld = held });
         }
 
         public void SetHeldSlot(int slot, string itemId)
@@ -771,7 +878,8 @@ public class TimedBrickBreakingTests
                 Name = "item.laser"
                 [Items.Tool]
                 Type = "Mining"
-                MiningSpeed = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Items.Statistics]
+                "{StatisticIds.MINING_SPEED}" = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
                 """);
 
             var vfs = new VirtualFileSystem();
@@ -825,6 +933,17 @@ public class TimedBrickBreakingTests
             meshDb.Assets["column.obj"] = emptyMesh;
             meshDb.Assets["plate.obj"] = emptyMesh;
 
+            var statResolver = new StatResolver(
+            [
+                new ItemStatisticModifierSource(Items),
+                new EntityStatisticModifierSource(),
+                new SkillMiningSpeedModifierSource(Skills),
+            ]);
+            var timedController = new ClientTimedInteractionController(
+            [
+                new AdventureBreakTimedInteraction(_physics, Bricks, Bricks, statResolver, _characterSave),
+            ]);
+
             var breakProcessor = new RecordingBreakEventProcessor(BreakEvents);
             _service = new PlayerInteractionService(
                 InteractionState,
@@ -850,8 +969,7 @@ public class TimedBrickBreakingTests
                 paintDatabase: null,
                 paintRegistry: null,
                 paintFaceEvent: null,
-                skillDatabase: Skills,
-                activeCharacterSave: _characterSave);
+                timedInteractionController: timedController);
 
             SetRaycastTarget(new Int3(0, 0, -4));
         }
@@ -975,7 +1093,8 @@ public class TimedBrickBreakingTests
                 Name = "item.laser"
                 [Items.Tool]
                 Type = "Mining"
-                MiningSpeed = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Items.Statistics]
+                "{StatisticIds.MINING_SPEED}" = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
                 """);
 
             var vfs = new VirtualFileSystem();
@@ -1007,11 +1126,18 @@ public class TimedBrickBreakingTests
                 _bricks,
                 new GameplayConfig());
 
+            var statResolver = new StatResolver(
+            [
+                new ItemStatisticModifierSource(items),
+                new EntityStatisticModifierSource(),
+                new SkillMiningSpeedModifierSource(skills),
+            ]);
             IInteractionHandler[] handlers =
             [
                 new ItemPlaceableSelector(items, _bricks),
                 new HintResolver(_bricks),
                 new BreakToolValidator(items),
+                new AdventureBreakHoldHandler(_bricks, statResolver),
                 new VoxelWriteCommitter(_peers, _bricks, _bricks, NullLogger<VoxelWriteCommitter>.Instance),
                 new BreakLootReactor(_bricks),
                 new SkillXpReactor(skills, _peers, NullLogger<SkillXpReactor>.Instance),
@@ -1023,10 +1149,7 @@ public class TimedBrickBreakingTests
                 NullLogger<ServerInteractionSystem>.Instance,
                 handlerRegistry,
                 worldFactory,
-                _simStep,
-                _bricks,
-                items,
-                skills);
+                _simStep);
 
             var worldContainer = new Container();
             worldContainer.RegisterInstance(ecsWorld);
@@ -1419,5 +1542,66 @@ public class TimedBrickBreakingTests
         public bool Exists(string levelGuid) => false;
 
         public ILevelStorage? Open(string levelGuid) => null;
+    }
+
+    private delegate void StatApplyCallback(in StatQuery query, ref StatAccumulator accumulator);
+
+    private sealed class DelegateStatModifierSource(
+        StatModifierPriority priority,
+        string? statId,
+        StatApplyCallback callback
+    ) : IStatModifierSource
+    {
+        public StatModifierPriority Priority => priority;
+        public string? StatId => statId;
+
+        public void Apply(in StatQuery query, ref StatAccumulator accumulator)
+        {
+            callback(in query, ref accumulator);
+        }
+    }
+
+    private sealed class CustomTimedValidateHandler(string handlerId, float duration) : IInteractionHandler
+    {
+        public InteractionStage Stage => InteractionStage.Validate;
+        public InteractionPriority Priority => InteractionPriority.High;
+        public InteractionHandlerFilter Filter => new(Kind: InteractionKind.SecondaryPressed);
+
+        public InteractionDecision Handle(ref InteractionContext context)
+        {
+            var key = new TimedInteractionKey(handlerId, Uuid.Null, default, 0);
+            context.Hold = TimedInteractionSpec.Require(key, duration, TimedInteractionInput.Secondary);
+            return InteractionDecision.Handled;
+        }
+    }
+
+    private sealed class CustomTimedCommitHandler(Action onCommit) : IInteractionHandler
+    {
+        public InteractionStage Stage => InteractionStage.Commit;
+        public InteractionPriority Priority => InteractionPriority.High;
+        public InteractionHandlerFilter Filter => new(Kind: InteractionKind.SecondaryPressed);
+
+        public InteractionDecision Handle(ref InteractionContext context)
+        {
+            onCommit();
+            return InteractionDecision.Handled;
+        }
+    }
+
+    private sealed class CustomClientTimedInteraction(string handlerId, float duration) : IClientTimedInteraction
+    {
+        public MouseButton Button => MouseButton.Right;
+
+        public bool AppliesTo(in ClientTimedInteractionContext context) => true;
+
+        public bool TryResolveTarget(in ClientTimedInteractionContext context, out ClientTimedTarget target)
+        {
+            target = new ClientTimedTarget(
+                new TimedInteractionKey(handlerId, Uuid.Null, default, 0),
+                duration,
+                InteractionKind.SecondaryPressed,
+                InteractionKind.SecondaryReleased);
+            return true;
+        }
     }
 }

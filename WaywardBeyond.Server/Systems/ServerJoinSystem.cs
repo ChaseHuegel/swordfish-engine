@@ -12,6 +12,7 @@ using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Permissions;
@@ -302,6 +303,7 @@ public sealed class ServerJoinSystem(
         //  the level's resolved game mode. From here the server owns these components and replicates them.
         SeedInteractionContext(store, entity, request.State, gameMode);
         SeedSkillState(store, entity, request.State, skillDatabase);
+        SeedStatistics(store, entity, request.State, skillDatabase);
 
         Session session = new(_nextSessionId++);
         sessions.Register(store, entity, clientId, session);
@@ -383,6 +385,27 @@ public sealed class ServerJoinSystem(
         }
 
         store.AddOrUpdate(entity, new SkillStateComponent(xpBySkillId));
+    }
+
+    /// <summary>
+    /// Seeds the player's transient runtime <see cref="StatisticsComponent"/> from non-skill character
+    /// statistics in the joining client's save so custom character statistics participate in stat resolution.
+    /// </summary>
+    internal static void SeedStatistics(DataStore store, int entity, in CharacterState seed, ISkillDatabase skillDatabase)
+    {
+        var values = new Dictionary<string, float>(StringComparer.Ordinal);
+        if (seed.Statistics != null)
+        {
+            foreach (Statistic statistic in seed.Statistics)
+            {
+                if (!string.IsNullOrWhiteSpace(statistic.ID) && !skillDatabase.Get(statistic.ID).Success)
+                {
+                    values[statistic.ID] = statistic.Value;
+                }
+            }
+        }
+
+        store.AddOrUpdate(entity, new StatisticsComponent(values));
     }
 
 }

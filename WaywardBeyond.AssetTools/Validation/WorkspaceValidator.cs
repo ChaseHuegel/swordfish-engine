@@ -8,6 +8,7 @@ using WaywardBeyond.AssetTools.Editing;
 using WaywardBeyond.AssetTools.Workspace;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
@@ -664,20 +665,40 @@ public sealed class WorkspaceValidator
             ValidateModelDefinition(workspace, in asset, doc, "Items.WorldModel", "WorldModel", item.WorldModel.Value, ValidationSeverity.Informational, findings);
         }
 
-        if (item.Tool.HasValue && item.Tool.Value.MiningSpeed.HasValue)
+        if (item.Statistics != null)
         {
-            float speed = item.Tool.Value.MiningSpeed.Value;
-            if (!float.IsFinite(speed) || speed <= 0f)
+            foreach (KeyValuePair<string, float> entry in item.Statistics)
             {
-                TomlFieldSpan? speedField = FindEntryField(doc, asset.Provenance.TableIndex, "MiningSpeed", "Items.Tool");
-                AddFieldFinding(
-                    findings,
-                    "TOOL001",
-                    ValidationSeverity.Broken,
-                    in asset,
-                    speedField,
-                    "Tool.MiningSpeed",
-                    $"Invalid tool MiningSpeed '{speed}'. Expected a finite positive number.");
+                if (string.IsNullOrWhiteSpace(entry.Key))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "STAT001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        field: null,
+                        "Statistics",
+                        "Item statistic key must not be empty.");
+                    continue;
+                }
+
+                bool invalidMiningSpeed = string.Equals(entry.Key, StatisticIds.MINING_SPEED, StringComparison.Ordinal)
+                    && entry.Value <= 0f;
+                if (!float.IsFinite(entry.Value) || invalidMiningSpeed)
+                {
+                    TomlFieldSpan? statField = FindEntryField(doc, asset.Provenance.TableIndex, entry.Key, "Items.Statistics");
+                    string expected = invalidMiningSpeed
+                        ? "Expected a finite positive number."
+                        : "Expected a finite number.";
+                    AddFieldFinding(
+                        findings,
+                        "STAT001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        statField,
+                        $"Statistics.{entry.Key}",
+                        $"Invalid item statistic '{entry.Key}' value '{entry.Value}'. {expected}");
+                }
             }
         }
     }

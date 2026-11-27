@@ -169,4 +169,9 @@ public sealed class StudioAssetSeed
     ///     Output item rows for recipe documents.
     /// </summary>
     public List<(string ItemId, int Count, string Chance)> RecipeOutputs { get; init; } = [];
+
+    /// <summary>
+    ///     Custom numeric statistic key-value rows for item documents.
+    /// </summary>
+    public List<(string Key, float Value)> ItemStatistics { get; init; } = [];
 }

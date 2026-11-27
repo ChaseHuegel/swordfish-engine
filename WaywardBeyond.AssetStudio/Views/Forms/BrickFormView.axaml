@@ -13,6 +13,7 @@
         <controls:ScalarFieldRowControl DataContext="{Binding BrickAlphaField}" />
         <controls:ScalarFieldRowControl DataContext="{Binding BrickCastShadowsField}" />
         <controls:ScalarFieldRowControl DataContext="{Binding BrickPassableField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BrickHardnessField}" />
       </StackPanel>
     </controls:CollapsibleSectionCard>
 

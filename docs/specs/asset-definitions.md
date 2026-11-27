@@ -30,7 +30,8 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `Icon` | string? | `ItemDefinition.Icon` (optional override. Brick and blueprint placeables without `Icon` render an isometric 3D icon at startup through `BrickIconRenderer`) |
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
-| `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`, `MiningSpeed`) |
+| `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
+| `[Items.Statistics]` | map: string → float | `ItemDefinition.Statistics` (custom numeric statistics such as `"wb:mining_speed"`) |
 | `[Items.ViewModel]` | sub-table | `ModelDefinition` |
 | `[Items.WorldModel]` | sub-table | `ModelDefinition` |
 
@@ -64,15 +65,28 @@ ID = "builtin/core"
 
 ### Tool
 
-`ToolDefinition` (`WaywardBeyond.Items/ToolDefinition.cs`): `Type` (`ToolType`),
-`Target`, and optional `MiningSpeed` (`float?`, defaults to `1.0`).
-`MiningSpeed` scales timed brick breaking duration in Adventure mode. It must be
-finite and strictly positive. `ItemDatabase` (`WaywardBeyond.Items/ItemDatabase.cs:54`)
-logs a warning and falls back to `1.0` for invalid values. `WorkspaceValidator`
-emits `TOOL001` for invalid `Tool.MiningSpeed` declarations. Item group membership
-(`item.tool`, `item.tool.mining`, `item.tool.sprayer`, `item.tool.drill`,
-`item.placeable`) lives in the invariant tag list
-`WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
+`ToolDefinition` (`WaywardBeyond.Items/ToolDefinition.cs`): `Type` (`ToolType`)
+and optional `Target`. Item group membership (`item.tool`, `item.tool.mining`,
+`item.tool.sprayer`, `item.tool.drill`, `item.placeable`) lives in the invariant
+tag list `WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
+
+### Statistics
+
+`ItemDefinition.Statistics` (`WaywardBeyond.Items/ItemDefinition.cs:19`) is an
+optional `[Items.Statistics]` key-value map from statistic id to finite `float`
+value. Base-game keys use the `wb:` namespace (for example `"wb:mining_speed"`).
+Mods add their own namespaced keys without changing source code. `ItemDatabase`
+(`WaywardBeyond.Items/ItemDatabase.cs:59`) logs a warning and skips empty keys
+or non-finite values. `WorkspaceValidator` emits `STAT001` for invalid item
+statistic entries, including non-positive `"wb:mining_speed"` values. See
+[statistics](statistics.md).
+
+Example:
+
+```toml
+[Items.Statistics]
+"wb:mining_speed" = 1.75
+```
 
 ### Model
 
@@ -480,5 +494,5 @@ brick and blueprint placeable items.
 occurrence order, and the invariant merge into each language.
 `WaywardBeyond.Tests/TimedBrickBreakingTests.cs` and
 `WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin `Hardness`
-and `MiningSpeed` parsing, fallback defaults, and `BRICK001` and `TOOL001`
+and `[Items.Statistics]` parsing, fallback defaults, and `BRICK001` and `STAT001`
 validation findings.

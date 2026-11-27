@@ -3,86 +3,49 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Krill;
 using Swordfish.ECS;
-using Swordfish.Library.Types;
 using Swordfish.Library.Util;
-using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
-using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
-using WaywardBeyond.Items;
 using WaywardBeyond.Server.Components;
-using WaywardBeyond.Skills;
-using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Systems;
 
 /// <summary>
 /// The authoritative interaction pump. Runs once per server tick, between the replication apply stage
 /// (which drains inbound client interaction events into each player mirror's staged buffer) and the
-/// publish stage. In Creative mode interactions resolve and commit immediately; in Adventure mode
-/// brick breaking advances a server-validated timed hold session before committing removal.
+/// publish stage. Immediate interactions commit on the same tick; any interaction whose validation
+/// stage sets <see cref="InteractionContext.Hold"/> advances a server-validated timed session until
+/// completion or cancellation.
 /// </summary>
 public sealed class ServerInteractionSystem(
     SessionManager sessions,
     ILogger<ServerInteractionSystem> logger,
     IInteractionHandlerRegistry handlerRegistry,
     Func<DataStore, IVoxelInteractionWorld> worldFactory,
-    SimulationStep simulationStep,
-    IBrickDatabase? brickDatabase = null,
-    IItemDatabase? itemDatabase = null,
-    ISkillDatabase? skillDatabase = null
+    SimulationStep simulationStep
 ) : IServerWorldSystem
 {
-    private readonly Dictionary<Uuid, BreakSession> _breakSessions = [];
+    private readonly Dictionary<Uuid, TimedSession> _timedSessions = [];
     private readonly HashSet<Uuid> _visitedPlayers = [];
     private readonly List<Uuid> _stalePlayers = [];
 
-    /// <summary>Snapshot of an active Adventure Mode break session for diagnostics and testing.</summary>
-    internal readonly record struct BreakSessionState(
-        Uuid TargetEntityUuid,
-        Int3 TargetCoord,
-        ushort TargetBrickDataId,
-        int ActiveSlot,
-        string? HeldItemId,
-        float Elapsed,
-        float RequiredDuration
-    )
+    /// <summary>Gets the active timed interaction session for a player mirror, if one is running.</summary>
+    internal Result<TimedSessionState> GetTimedSession(Uuid playerUuid)
     {
-        /// <summary>Normalized hold completion in <c>[0..1]</c>.</summary>
-        public float Progress => BreakDuration.NormalizeProgress(Elapsed, RequiredDuration);
-    }
-
-    private struct BreakSession
-    {
-        public Uuid TargetEntityUuid;
-        public Int3 TargetCoord;
-        public ushort TargetBrickDataId;
-        public int ActiveSlot;
-        public string? HeldItemId;
-        public uint Sequence;
-        public float Elapsed;
-        public float RequiredDuration;
-    }
-
-    /// <summary>Gets the active Adventure Mode break session for a player mirror, if one is running.</summary>
-    internal Result<BreakSessionState> GetBreakSession(Uuid playerUuid)
-    {
-        if (_breakSessions.TryGetValue(playerUuid, out BreakSession session))
+        if (_timedSessions.TryGetValue(playerUuid, out TimedSession session))
         {
-            return Result<BreakSessionState>.FromSuccess(new BreakSessionState(
-                session.TargetEntityUuid,
-                session.TargetCoord,
-                session.TargetBrickDataId,
+            return Result<TimedSessionState>.FromSuccess(new TimedSessionState(
+                session.Key,
                 session.ActiveSlot,
                 session.HeldItemId,
                 session.Elapsed,
                 session.RequiredDuration));
         }
 
-        return Result<BreakSessionState>.FromFailure("No active break session.");
+        return Result<TimedSessionState>.FromFailure("No active timed interaction session.");
     }
 
     /// <inheritdoc/>
@@ -91,7 +54,7 @@ public sealed class ServerInteractionSystem(
         Tick(delta, store, simulationStep.CurrentSimTick);
     }
 
-    /// <summary>Processes staged interactions and advances Adventure break holds for <paramref name="simTick"/>.</summary>
+    /// <summary>Processes staged interactions and advances active timed sessions for <paramref name="simTick"/>.</summary>
     public void Tick(float delta, DataStore store, uint simTick)
     {
         float validDelta = float.IsFinite(delta) && delta > 0f ? delta : 0f;
@@ -129,7 +92,7 @@ public sealed class ServerInteractionSystem(
             }
         }
 
-        AdvanceBreakSession(store, entity, playerUuid, delta, simTick, in net, in transform);
+        AdvanceTimedSession(store, entity, playerUuid, delta, simTick, in net, in transform);
     }
 
     private void ProcessInteraction(
@@ -144,18 +107,9 @@ public sealed class ServerInteractionSystem(
         var kind = (InteractionKind)interaction.Kind;
         GameMode mode = GetGameMode(store, player);
 
-        if (mode != GameMode.Adventure)
+        if (ShouldCancelOnRelease(playerUuid, kind))
         {
-            _breakSessions.Remove(playerUuid);
-            RunFullInteraction(store, player, in interaction, in mirror, mode, kind);
-            return;
-        }
-
-        if (kind == InteractionKind.PrimaryReleased)
-        {
-            _breakSessions.Remove(playerUuid);
-            RunFullInteraction(store, player, in interaction, in mirror, mode, kind);
-            return;
+            _timedSessions.Remove(playerUuid);
         }
 
         TryGetHeldEquipment(store, player, out int activeSlot, out string? heldItemId);
@@ -177,75 +131,72 @@ public sealed class ServerInteractionSystem(
         InteractionRunResult preCheck = handlerRegistry.Run(ref context, InteractionStage.Select, InteractionStage.Validate);
         if (preCheck.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
         {
-            if (kind == InteractionKind.PrimaryPressed)
-            {
-                _breakSessions.Remove(playerUuid);
-            }
-
+            CancelMatchingSession(playerUuid, kind);
             logger.LogDebug(
                 "Interaction {sequence} for player {player} ended with {decision}.",
                 interaction.SequenceNumber, player, preCheck.Decision);
             return;
         }
 
-        if (preCheck.Resolution.Action == InteractionAction.None)
+        if (context.Hold.IsRequired)
         {
-            if (kind == InteractionKind.PrimaryPressed)
+            if (!IsInputHeld(store, player, in net, simTick, context.Hold.RequiredInput))
             {
-                _breakSessions.Remove(playerUuid);
+                _timedSessions.Remove(playerUuid);
+                return;
             }
 
+            if (_timedSessions.TryGetValue(playerUuid, out TimedSession existing) &&
+                MatchesSession(in existing, in context.Hold, activeSlot, heldItemId))
+            {
+                existing.Sequence = interaction.SequenceNumber;
+                existing.BrickHint = interaction.Brick;
+                existing.PaintHint = interaction.Paint;
+                existing.Kind = kind;
+                existing.RequiredDuration = context.Hold.RequiredDuration;
+                existing.RequiredInput = context.Hold.RequiredInput;
+                existing.CancelOnEquipmentChange = context.Hold.CancelOnEquipmentChange;
+                _timedSessions[playerUuid] = existing;
+                return;
+            }
+
+            _timedSessions[playerUuid] = new TimedSession
+            {
+                Key = context.Hold.Key,
+                RequiredInput = context.Hold.RequiredInput,
+                CancelOnEquipmentChange = context.Hold.CancelOnEquipmentChange,
+                BrickHint = interaction.Brick,
+                PaintHint = interaction.Paint,
+                Kind = kind,
+                ActiveSlot = activeSlot,
+                HeldItemId = heldItemId,
+                Sequence = interaction.SequenceNumber,
+                Elapsed = 0f,
+                RequiredDuration = context.Hold.RequiredDuration,
+            };
+            return;
+        }
+
+        CancelMatchingSession(playerUuid, kind);
+
+        InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
+        if (commitResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
+        {
+            logger.LogDebug(
+                "Interaction {sequence} for player {player} ended with {decision}.",
+                interaction.SequenceNumber, player, commitResult.Decision);
+            return;
+        }
+
+        if (commitResult.Resolution.Action == InteractionAction.None)
+        {
             logger.LogDebug(
                 "Interaction {sequence} for player {player} resolved to nothing.",
                 interaction.SequenceNumber, player);
-            return;
         }
-
-        if (preCheck.Resolution.Action != InteractionAction.Break)
-        {
-            if (kind == InteractionKind.PrimaryPressed)
-            {
-                _breakSessions.Remove(playerUuid);
-            }
-
-            handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
-            return;
-        }
-
-        if (!IsPrimaryHeld(store, player, in net, simTick))
-        {
-            _breakSessions.Remove(playerUuid);
-            return;
-        }
-
-        Uuid targetUuid = interaction.Brick.HasValue
-            ? Uuid.FromValue(interaction.Brick.Value.TargetEntity)
-            : store.GetUuid(preCheck.Resolution.Entity);
-
-        float requiredDuration = ResolveRequiredDuration(store, player, preCheck.Resolution.Voxel.ID, heldItemId);
-        if (_breakSessions.TryGetValue(playerUuid, out BreakSession existing) &&
-            MatchesSessionTarget(in existing, targetUuid, in preCheck.Resolution.Coordinate, preCheck.Resolution.Voxel.ID, activeSlot, heldItemId))
-        {
-            existing.Sequence = interaction.SequenceNumber;
-            existing.RequiredDuration = requiredDuration;
-            _breakSessions[playerUuid] = existing;
-            return;
-        }
-
-        _breakSessions[playerUuid] = new BreakSession
-        {
-            TargetEntityUuid = targetUuid,
-            TargetCoord = preCheck.Resolution.Coordinate,
-            TargetBrickDataId = preCheck.Resolution.Voxel.ID,
-            ActiveSlot = activeSlot,
-            HeldItemId = heldItemId,
-            Sequence = interaction.SequenceNumber,
-            Elapsed = 0f,
-            RequiredDuration = requiredDuration,
-        };
     }
 
-    private void AdvanceBreakSession(
+    private void AdvanceTimedSession(
         DataStore store,
         int entity,
         Uuid playerUuid,
@@ -254,31 +205,26 @@ public sealed class ServerInteractionSystem(
         in NetworkComponent net,
         in TransformComponent transform
     ) {
-        if (!_breakSessions.TryGetValue(playerUuid, out BreakSession session))
+        if (!_timedSessions.TryGetValue(playerUuid, out TimedSession session))
         {
             return;
         }
 
-        if (GetGameMode(store, entity) != GameMode.Adventure || !IsPrimaryHeld(store, entity, in net, simTick))
+        if (!IsInputHeld(store, entity, in net, simTick, session.RequiredInput))
         {
-            _breakSessions.Remove(playerUuid);
+            _timedSessions.Remove(playerUuid);
             return;
         }
 
         TryGetHeldEquipment(store, entity, out int activeSlot, out string? heldItemId);
-        if (activeSlot != session.ActiveSlot || !string.Equals(heldItemId, session.HeldItemId, StringComparison.Ordinal))
+        if (session.CancelOnEquipmentChange &&
+            (activeSlot != session.ActiveSlot || !string.Equals(heldItemId, session.HeldItemId, StringComparison.Ordinal)))
         {
-            _breakSessions.Remove(playerUuid);
+            _timedSessions.Remove(playerUuid);
             return;
         }
 
-        var hint = new BrickInteraction
-        {
-            TargetEntity = session.TargetEntityUuid.ToValue(),
-            TargetX = session.TargetCoord.X,
-            TargetY = session.TargetCoord.Y,
-            TargetZ = session.TargetCoord.Z,
-        };
+        GameMode mode = GetGameMode(store, entity);
         IVoxelInteractionWorld world = worldFactory(store);
         Uuid clientId = sessions.TryGetClient(entity, out Uuid client) ? client : Uuid.Null;
         InteractionContext context = BuildContext(
@@ -288,106 +234,112 @@ public sealed class ServerInteractionSystem(
             session.Sequence,
             world,
             in transform,
-            hint,
-            paintHint: null,
-            InteractionKind.PrimaryPressed,
-            GameMode.Adventure,
+            session.BrickHint,
+            session.PaintHint,
+            session.Kind,
+            mode,
             heldItemId);
 
         InteractionRunResult validation = handlerRegistry.Run(ref context, InteractionStage.Select, InteractionStage.Validate);
         if (validation.Decision is InteractionDecision.Consume or InteractionDecision.Cancel ||
-            validation.Resolution.Action != InteractionAction.Break ||
-            validation.Resolution.Coordinate != session.TargetCoord ||
-            validation.Resolution.Voxel.ID != session.TargetBrickDataId)
+            !context.Hold.IsRequired ||
+            context.Hold.Key != session.Key)
         {
-            _breakSessions.Remove(playerUuid);
+            _timedSessions.Remove(playerUuid);
             return;
         }
 
-        float requiredDuration = ResolveRequiredDuration(store, entity, session.TargetBrickDataId, heldItemId);
+        float requiredDuration = context.Hold.RequiredDuration;
         float elapsed = session.Elapsed + delta;
 
-        if (BreakDuration.IsComplete(elapsed, requiredDuration))
+        if (TimedInteractionProgress.IsComplete(elapsed, requiredDuration))
         {
-            _breakSessions.Remove(playerUuid);
+            _timedSessions.Remove(playerUuid);
             handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
             return;
         }
 
         session.Elapsed = elapsed;
         session.RequiredDuration = requiredDuration;
-        _breakSessions[playerUuid] = session;
+        session.RequiredInput = context.Hold.RequiredInput;
+        session.CancelOnEquipmentChange = context.Hold.CancelOnEquipmentChange;
+        _timedSessions[playerUuid] = session;
     }
 
-    private void RunFullInteraction(
-        DataStore store,
-        int player,
-        in InteractionEvent interaction,
-        in TransformComponent mirror,
-        GameMode mode,
-        InteractionKind kind
-    ) {
-        TryGetHeldEquipment(store, player, out _, out string? heldItemId);
-        IVoxelInteractionWorld world = worldFactory(store);
-        Uuid clientId = sessions.TryGetClient(player, out Uuid client) ? client : Uuid.Null;
-        InteractionContext context = BuildContext(
-            store,
-            player,
-            clientId,
-            interaction.SequenceNumber,
-            world,
-            in mirror,
-            interaction.Brick,
-            interaction.Paint,
-            kind,
-            mode,
-            heldItemId);
-
-        InteractionRunResult result = handlerRegistry.Run(ref context);
-        if (result.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
+    private bool ShouldCancelOnRelease(Uuid playerUuid, InteractionKind kind)
+    {
+        if (!_timedSessions.TryGetValue(playerUuid, out TimedSession session))
         {
-            logger.LogDebug(
-                "Interaction {sequence} for player {player} ended with {decision}.",
-                interaction.SequenceNumber, player, result.Decision);
+            return false;
+        }
+
+        return (kind == InteractionKind.PrimaryReleased && session.RequiredInput == TimedInteractionInput.Primary) ||
+            (kind == InteractionKind.SecondaryReleased && session.RequiredInput == TimedInteractionInput.Secondary);
+    }
+
+    private void CancelMatchingSession(Uuid playerUuid, InteractionKind kind)
+    {
+        if (!_timedSessions.TryGetValue(playerUuid, out TimedSession session))
+        {
             return;
         }
 
-        if (result.Resolution.Action == InteractionAction.None)
+        bool matchesPrimary = kind is InteractionKind.PrimaryPressed or InteractionKind.PrimaryReleased
+            && session.RequiredInput == TimedInteractionInput.Primary;
+        bool matchesSecondary = kind is InteractionKind.SecondaryPressed or InteractionKind.SecondaryReleased
+            && session.RequiredInput == TimedInteractionInput.Secondary;
+
+        if (matchesPrimary || matchesSecondary)
         {
-            logger.LogDebug(
-                "Interaction {sequence} for player {player} resolved to nothing.",
-                interaction.SequenceNumber, player);
+            _timedSessions.Remove(playerUuid);
         }
     }
 
-    private float ResolveRequiredDuration(DataStore store, int player, ushort brickDataId, string? heldItemId)
-    {
-        IReadOnlyDictionary<string, long>? xpBySkill = store.TryGet(player, out SkillStateComponent skillState)
-            ? skillState.XPBySkill
-            : null;
-        return BreakDuration.ResolveBreakDuration(brickDatabase, itemDatabase, skillDatabase, brickDataId, heldItemId, xpBySkill);
-    }
+    private bool IsInputHeld(
+        DataStore store,
+        int entity,
+        in NetworkComponent net,
+        uint simTick,
+        TimedInteractionInput requiredInput
+    ) {
+        if (requiredInput == TimedInteractionInput.None)
+        {
+            return true;
+        }
 
-    private bool IsPrimaryHeld(DataStore store, int entity, in NetworkComponent net, uint simTick)
-    {
+        InputComponent input;
         if (net.StagedInputs != null && net.StagedInputs.Count > 0)
         {
             Result<InputComponent> staged = net.StagedInputs.GetCommand(simTick, simulationStep.CommandMaxAgeTicks);
-            return staged.Success && staged.Value.PrimaryHeld;
+            if (!staged.Success)
+            {
+                return false;
+            }
+
+            input = staged.Value;
+        }
+        else if (!store.TryGet(entity, out input))
+        {
+            return false;
         }
 
-        return store.TryGet(entity, out InputComponent latestInput) && latestInput.PrimaryHeld;
+        return requiredInput switch
+        {
+            TimedInteractionInput.Primary => input.PrimaryHeld,
+            TimedInteractionInput.Secondary => input.SecondaryHeld,
+            _ => true,
+        };
     }
 
     private void PruneStaleSessions()
     {
-        if (_breakSessions.Count == 0)
+        if (_timedSessions.Count == 0)
         {
             return;
         }
 
         _stalePlayers.Clear();
-        foreach (Uuid playerUuid in _breakSessions.Keys)
+        foreach (Uuid playerUuid in _timedSessions.Keys)
         {
             if (!_visitedPlayers.Contains(playerUuid))
             {
@@ -397,7 +349,7 @@ public sealed class ServerInteractionSystem(
 
         for (var i = 0; i < _stalePlayers.Count; i++)
         {
-            _breakSessions.Remove(_stalePlayers[i]);
+            _timedSessions.Remove(_stalePlayers[i]);
         }
     }
 
@@ -434,18 +386,23 @@ public sealed class ServerInteractionSystem(
         return store.TryGet(player, out GameModeComponent gameMode) ? gameMode.Mode : GameMode.Creative;
     }
 
-    private static bool MatchesSessionTarget(
-        in BreakSession existing,
-        Uuid targetUuid,
-        in Int3 coord,
-        ushort brickDataId,
+    private static bool MatchesSession(
+        in TimedSession existing,
+        in TimedInteractionSpec incoming,
         int activeSlot,
         string? heldItemId
     ) {
-        return existing.TargetEntityUuid == targetUuid &&
-            existing.TargetCoord == coord &&
-            existing.TargetBrickDataId == brickDataId &&
-            existing.ActiveSlot == activeSlot &&
+        if (existing.Key != incoming.Key)
+        {
+            return false;
+        }
+
+        if (!incoming.CancelOnEquipmentChange)
+        {
+            return true;
+        }
+
+        return existing.ActiveSlot == activeSlot &&
             string.Equals(existing.HeldItemId, heldItemId, StringComparison.Ordinal);
     }
 
@@ -470,6 +427,34 @@ public sealed class ServerInteractionSystem(
 
         ItemData item = inventory.Contents[slot];
         heldItemId = item.Count > 0 && !string.IsNullOrEmpty(item.ID) ? item.ID : null;
+    }
+
+    /// <summary>Snapshot of an active server timed interaction session for diagnostics and testing.</summary>
+    internal readonly record struct TimedSessionState(
+        TimedInteractionKey Key,
+        int ActiveSlot,
+        string? HeldItemId,
+        float Elapsed,
+        float RequiredDuration
+    )
+    {
+        /// <summary>Normalized hold completion in <c>[0..1]</c>.</summary>
+        public float Progress => TimedInteractionProgress.Normalize(Elapsed, RequiredDuration);
+    }
+
+    private struct TimedSession
+    {
+        public TimedInteractionKey Key;
+        public TimedInteractionInput RequiredInput;
+        public bool CancelOnEquipmentChange;
+        public BrickInteraction? BrickHint;
+        public PaintInteraction? PaintHint;
+        public InteractionKind Kind;
+        public int ActiveSlot;
+        public string? HeldItemId;
+        public uint Sequence;
+        public float Elapsed;
+        public float RequiredDuration;
     }
 
     private struct ConsumeAction : IForEachRef<NetworkComponent, OwnedCharacterComponent, TransformComponent>

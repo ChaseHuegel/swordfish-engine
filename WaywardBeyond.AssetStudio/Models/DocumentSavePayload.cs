@@ -144,4 +144,14 @@ public sealed class DocumentSavePayload
     ///     Whether recipe output rows were modified since load or last save.
     /// </summary>
     public bool RecipeOutputsModified { get; init; }
+
+    /// <summary>
+    ///     Current custom numeric statistic rows for item documents.
+    /// </summary>
+    public IReadOnlyList<(string Key, string Value)>? ItemStatistics { get; init; }
+
+    /// <summary>
+    ///     Whether item statistics rows were modified since load or last save.
+    /// </summary>
+    public bool ItemStatisticsModified { get; init; }
 }

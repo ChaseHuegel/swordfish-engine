@@ -19,6 +19,7 @@ using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Identity;
+using WaywardBeyond.Client.Interactions;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
@@ -47,6 +48,7 @@ using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
+using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Meshing;
 
@@ -336,7 +338,17 @@ public class Injector : IDryIocInjector
 
     private static void RegisterInput(IContainer container)
     {
+        RegisterStatModifierSource<ItemStatisticModifierSource>(container);
+        RegisterStatModifierSource<EntityStatisticModifierSource>(container);
+        RegisterStatModifierSource<SkillMiningSpeedModifierSource>(container);
+        container.Register<StatResolver>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.RegisterMapping<IStatResolver, StatResolver>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+
         container.Register<InteractionState>(Reuse.Singleton);
+        container.Register<IClientTimedInteraction, AdventureBreakTimedInteraction>(
+            Reuse.Singleton,
+            ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<ClientTimedInteractionController>(Reuse.Singleton);
 
         container.Register<PlayerInteractionService>(Reuse.Singleton);
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
@@ -352,6 +364,17 @@ public class Injector : IDryIocInjector
 
         container.Register<ClientPlayerMotionProcessor>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientPlayerMotionProcessor>();
+    }
+
+    private static void RegisterStatModifierSource<T>(IContainer container) where T : class, IStatModifierSource
+    {
+        if (container.IsRegistered<T>())
+        {
+            return;
+        }
+
+        container.Register<T>(Reuse.Singleton);
+        container.RegisterMapping<IStatModifierSource, T>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 
     private static void RegisterDatabases(IContainer container)

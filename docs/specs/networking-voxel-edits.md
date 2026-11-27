@@ -56,13 +56,7 @@ occupied-cell notification
 (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:479`).
 `WaywardBeyond.Tests/InteractionRepeatTimerTests.cs` pins the timing.
 
-Holding primary with `ToolType.Mining` in Adventure mode switches to timed hold
-breaking (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:882`). The
-client emits one `PrimaryPressed` edge when starting or changing targets, emits
-one `PrimaryReleased` edge on cancellation or release, avoids predictive voxel
-removal during the hold, and advances `InteractionState.BreakProgress` locally
-through the shared `BreakDuration` helper
-(`WaywardBeyond.Gameplay/Interactions/BreakDuration.cs:62`).
+Timed hold interactions (such as holding primary with `ToolType.Mining` in Adventure mode) are handled by registered `IClientTimedInteraction` providers through `ClientTimedInteractionController` (`WaywardBeyond.Client/Interactions/ClientTimedInteractionController.cs:15`). `AdventureBreakTimedInteraction` (`WaywardBeyond.Client/Interactions/AdventureBreakTimedInteraction.cs:26`) emits one `PrimaryPressed` edge when starting or changing targets, emits one `PrimaryReleased` edge on cancellation or release, skips predictive voxel removal during the hold, and advances `InteractionState.HoldProgress` locally through the shared `IStatResolver` pipeline (see [statistics](statistics.md)).
 
 ## Shared resolution
 
@@ -228,11 +222,13 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 
 ## Source of truth
 
-- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs` — click edges, hold-to-repeat dispatch, Adventure hold progress, and prediction
+- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs` — click edges, hold-to-repeat dispatch, timed hold delegation, and prediction
+- `WaywardBeyond.Client/Interactions/` — extensible `IClientTimedInteraction` providers and `ClientTimedInteractionController`
 - `WaywardBeyond.Client/Systems/{InteractionIntent,InteractionRepeatTimer}.cs` — control scheme and repeat timing
-- `WaywardBeyond.Gameplay/Interactions/` — resolver, break duration math, request, handlers, registry
+- `WaywardBeyond.Gameplay/Interactions/` — resolver, timed interaction specs, request, handlers, registry
+- `WaywardBeyond.Gameplay/Statistics/` — extensible statistic modifier pipeline
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs`
-- `WaywardBeyond.Server/Interactions/` — default handlers, including `BreakToolValidator`
+- `WaywardBeyond.Server/Interactions/` — default handlers, including `BreakToolValidator` and `AdventureBreakHoldHandler`
 - `WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`
 - `WaywardBeyond.Gameplay/Networking/{NetworkComponent,StageRing}.cs`
   (`StagedInteractions`)
