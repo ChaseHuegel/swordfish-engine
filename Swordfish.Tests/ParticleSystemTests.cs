@@ -833,4 +833,280 @@ public class ParticleSystemTests
         system.Tick(0.016f, store);
         Assert.Equal(0, system.ActiveParticleCount);
     }
+
+    [Fact]
+    public void ParticleSystem_SplitsEmitterBatchesIndependentlyForFrustumCullingAndTransparentDepth()
+    {
+        var db = new DictionaryAssetDatabase<ParticleEffect>();
+        var settings = new RenderSettings();
+        var system = new ParticleSystem(db, settings, new Random(31));
+        ParticleEffect effect = CreateEffect(
+            id: "mist",
+            texture: null,
+            blendMode: ParticleBlendMode.Alpha,
+            rate: 100f,
+            lifetimeMin: 2f,
+            lifetimeMax: 2f,
+            speedMin: 0f,
+            speedMax: 0f,
+            startSizeMin: 0.4f,
+            startSizeMax: 0.4f,
+            endSizeMin: 0.4f,
+            endSizeMax: 0.4f
+        );
+
+        var store = new DataStore();
+        int frontEmitter = store.Alloc();
+        store.AddOrUpdate(frontEmitter, new TransformComponent(new Vector3(0f, 0f, -10f)));
+        store.AddOrUpdate(frontEmitter, new ParticleEmitterComponent(effect, playing: true));
+
+        int rearEmitter = store.Alloc();
+        store.AddOrUpdate(rearEmitter, new TransformComponent(new Vector3(0f, 0f, 10f)));
+        store.AddOrUpdate(rearEmitter, new ParticleEmitterComponent(effect, playing: true));
+
+        system.Tick(0.02f, store);
+
+        ParticleRenderSnapshot snapshot = system.AcquireRenderSnapshot();
+        Assert.Equal(4, snapshot.InstanceCount);
+        Assert.Equal(2, snapshot.BatchCount);
+
+        Vector3 cameraPosition = Vector3.Zero;
+        Matrix4x4 view = Matrix4x4.CreateLookAt(cameraPosition, new Vector3(0f, 0f, -1f), Vector3.UnitY);
+        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3f, 1f, 0.1f, 100f);
+        Frustum frustum = Frustum.FromViewProjection(view * projection);
+        var glassBounds = new BoundingBox(new Vector3(0f, 0f, -5f), new Vector3(2f, 2f, 0.25f), 2.84f);
+
+        var visibleCount = 0;
+        var culledCount = 0;
+        for (var i = 0; i < snapshot.BatchCount; i++)
+        {
+            BoundingBox bounds = snapshot.Batches[i].Bounds;
+            if (frustum.Intersects(bounds.Center, bounds.Extents))
+            {
+                visibleCount++;
+                Assert.True(bounds.DistanceSquaredTo(cameraPosition) > glassBounds.DistanceSquaredTo(cameraPosition));
+            }
+            else
+            {
+                culledCount++;
+            }
+        }
+
+        Assert.Equal(1, visibleCount);
+        Assert.Equal(1, culledCount);
+
+        //  Distinct emitters straddling the camera inside the same spatial cell still partition separately.
+        system.Clear();
+        store.AddOrUpdate(frontEmitter, new TransformComponent(new Vector3(0f, 0f, 0.5f)));
+        store.AddOrUpdate(rearEmitter, new TransformComponent(new Vector3(0f, 0f, 7.5f)));
+        system.Tick(0.02f, store);
+
+        ParticleRenderSnapshot sameCellSnapshot = system.AcquireRenderSnapshot();
+        Assert.Equal(2, sameCellSnapshot.BatchCount);
+
+        var midCamera = new Vector3(0f, 0f, 4f);
+        Matrix4x4 midView = Matrix4x4.CreateLookAt(midCamera, new Vector3(0f, 0f, 3f), Vector3.UnitY);
+        Frustum midFrustum = Frustum.FromViewProjection(midView * projection);
+        var midGlass = new BoundingBox(new Vector3(0f, 0f, 2f), new Vector3(2f, 2f, 0.25f), 2.84f);
+
+        visibleCount = 0;
+        culledCount = 0;
+        for (var i = 0; i < sameCellSnapshot.BatchCount; i++)
+        {
+            BoundingBox bounds = sameCellSnapshot.Batches[i].Bounds;
+            if (midFrustum.Intersects(bounds.Center, bounds.Extents))
+            {
+                visibleCount++;
+                Assert.True(bounds.DistanceSquaredTo(midCamera) > midGlass.DistanceSquaredTo(midCamera));
+            }
+            else
+            {
+                culledCount++;
+            }
+        }
+
+        Assert.Equal(1, visibleCount);
+        Assert.Equal(1, culledCount);
+
+        //  Two visible emitters on opposite sides of a glass pane sort separately relative to the glass.
+        system.Clear();
+        store.AddOrUpdate(frontEmitter, new TransformComponent(new Vector3(0f, 0f, -2f)));
+        store.AddOrUpdate(rearEmitter, new TransformComponent(new Vector3(0f, 0f, -10f)));
+        system.Tick(0.02f, store);
+
+        ParticleRenderSnapshot straddleGlassSnapshot = system.AcquireRenderSnapshot();
+        Assert.Equal(2, straddleGlassSnapshot.BatchCount);
+
+        float glassDistSq = glassBounds.DistanceSquaredTo(cameraPosition);
+        var aheadOfGlass = 0;
+        var behindGlass = 0;
+        for (var i = 0; i < straddleGlassSnapshot.BatchCount; i++)
+        {
+            BoundingBox bounds = straddleGlassSnapshot.Batches[i].Bounds;
+            Assert.True(frustum.Intersects(bounds.Center, bounds.Extents));
+            float distSq = bounds.DistanceSquaredTo(cameraPosition);
+            if (distSq < glassDistSq)
+            {
+                aheadOfGlass++;
+            }
+            else if (distSq > glassDistSq)
+            {
+                behindGlass++;
+            }
+        }
+
+        Assert.Equal(1, aheadOfGlass);
+        Assert.Equal(1, behindGlass);
+    }
+
+    [Fact]
+    public void ParticleSystem_SplitsDistantBurstsAndMovingEmitterTrailsBySpatialCell()
+    {
+        var db = new DictionaryAssetDatabase<ParticleEffect>();
+        var settings = new RenderSettings();
+        var system = new ParticleSystem(db, settings, new Random(43));
+        ParticleEffect effect = CreateEffect(
+            id: "sparks",
+            texture: null,
+            blendMode: ParticleBlendMode.Additive,
+            rate: 100f,
+            lifetimeMin: 2f,
+            lifetimeMax: 2f,
+            speedMin: 0f,
+            speedMax: 0f,
+            startSizeMin: 0.4f,
+            startSizeMax: 0.4f,
+            endSizeMin: 0.4f,
+            endSizeMax: 0.4f
+        );
+
+        var store = new DataStore();
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(0f, 0f, -12f), Vector3.UnitY, Count: 2));
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(0f, 0f, 12f), Vector3.UnitY, Count: 2));
+        system.Tick(0.016f, store);
+
+        ParticleRenderSnapshot burstSnapshot = system.AcquireRenderSnapshot();
+        Assert.Equal(4, burstSnapshot.InstanceCount);
+        Assert.Equal(2, burstSnapshot.BatchCount);
+
+        Vector3 cameraPosition = Vector3.Zero;
+        Matrix4x4 view = Matrix4x4.CreateLookAt(cameraPosition, new Vector3(0f, 0f, -1f), Vector3.UnitY);
+        Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 3f, 1f, 0.1f, 100f);
+        Frustum frustum = Frustum.FromViewProjection(view * projection);
+        var glassBounds = new BoundingBox(new Vector3(0f, 0f, -5f), new Vector3(2f, 2f, 0.25f), 2.84f);
+
+        var visibleCount = 0;
+        var culledCount = 0;
+        for (var i = 0; i < burstSnapshot.BatchCount; i++)
+        {
+            BoundingBox bounds = burstSnapshot.Batches[i].Bounds;
+            if (frustum.Intersects(bounds.Center, bounds.Extents))
+            {
+                visibleCount++;
+                Assert.True(bounds.DistanceSquaredTo(cameraPosition) > glassBounds.DistanceSquaredTo(cameraPosition));
+            }
+            else
+            {
+                culledCount++;
+            }
+        }
+
+        Assert.Equal(1, visibleCount);
+        Assert.Equal(1, culledCount);
+
+        //  A single moving emitter whose live particles span distant cells also splits spatially.
+        system.Clear();
+        int movingEmitter = store.Alloc();
+        store.AddOrUpdate(movingEmitter, new TransformComponent(new Vector3(0f, 0f, -12f)));
+        store.AddOrUpdate(movingEmitter, new ParticleEmitterComponent(effect, playing: true));
+        system.Tick(0.02f, store);
+
+        store.AddOrUpdate(movingEmitter, new TransformComponent(new Vector3(0f, 0f, 12f)));
+        system.Tick(0.02f, store);
+
+        ParticleRenderSnapshot trailSnapshot = system.AcquireRenderSnapshot();
+        Assert.Equal(4, trailSnapshot.InstanceCount);
+        Assert.Equal(2, trailSnapshot.BatchCount);
+
+        visibleCount = 0;
+        culledCount = 0;
+        for (var i = 0; i < trailSnapshot.BatchCount; i++)
+        {
+            BoundingBox bounds = trailSnapshot.Batches[i].Bounds;
+            if (frustum.Intersects(bounds.Center, bounds.Extents))
+            {
+                visibleCount++;
+                Assert.True(bounds.DistanceSquaredTo(cameraPosition) > glassBounds.DistanceSquaredTo(cameraPosition));
+            }
+            else
+            {
+                culledCount++;
+            }
+        }
+
+        Assert.Equal(1, visibleCount);
+        Assert.Equal(1, culledCount);
+    }
+
+    [Fact]
+    public void ParticleSystem_BatchCellSizeSettingControlsPartitioningAndSanitizesInvalidValues()
+    {
+        var db = new DictionaryAssetDatabase<ParticleEffect>();
+        var settings = new RenderSettings();
+        var system = new ParticleSystem(db, settings, new Random(59));
+        ParticleEffect effect = CreateEffect(
+            id: "cell_test",
+            texture: null,
+            blendMode: ParticleBlendMode.Alpha,
+            rate: 0f,
+            lifetimeMin: 5f,
+            lifetimeMax: 5f,
+            speedMin: 0f,
+            speedMax: 0f
+        );
+
+        var store = new DataStore();
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(1f, 0f, 0f), Vector3.UnitY, Count: 1));
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(5f, 0f, 0f), Vector3.UnitY, Count: 1));
+
+        //  Default 8-unit cell keeps (1, 0, 0) and (5, 0, 0) together.
+        system.Tick(0.016f, store);
+        Assert.Equal(1, system.AcquireRenderSnapshot().BatchCount);
+
+        //  Narrowing cell size to 4 splits (1, 0, 0) and (5, 0, 0) into two cells.
+        settings.Particles.BatchCellSize.Set(4f);
+        system.Tick(0.016f, store);
+        Assert.Equal(2, system.AcquireRenderSnapshot().BatchCount);
+
+        //  Invalid cell sizes fall back to the default 8-unit cell size without corrupting bounds.
+        float[] invalidCellSizes = [0f, -4f, float.NaN, float.PositiveInfinity, float.NegativeInfinity];
+        for (var i = 0; i < invalidCellSizes.Length; i++)
+        {
+            settings.Particles.BatchCellSize.Set(invalidCellSizes[i]);
+            system.Tick(0.016f, store);
+
+            ParticleRenderSnapshot snapshot = system.AcquireRenderSnapshot();
+            Assert.Equal(1, snapshot.BatchCount);
+            Assert.True(float.IsFinite(snapshot.Batches[0].Bounds.Center.X));
+        }
+
+        //  Sub-unit positive cell sizes clamp to the 1-unit minimum.
+        system.Clear();
+        system.Tick(0.016f, store);
+        settings.Particles.BatchCellSize.Set(0.01f);
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(0.2f, 0f, 0f), Vector3.UnitY, Count: 1));
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(0.8f, 0f, 0f), Vector3.UnitY, Count: 1));
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(1.2f, 0f, 0f), Vector3.UnitY, Count: 1));
+        system.Tick(0.016f, store);
+        Assert.Equal(2, system.AcquireRenderSnapshot().BatchCount);
+
+        //  Extreme finite coordinates quantize without integer overflow.
+        system.Clear();
+        system.Tick(0.016f, store);
+        settings.Particles.BatchCellSize.Set(1f);
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(1e20f, 0f, 0f), Vector3.UnitY, Count: 1));
+        system.EmitBurst(new ParticleBurstRequest(effect, new Vector3(-1e20f, 0f, 0f), Vector3.UnitY, Count: 1));
+        system.Tick(0.016f, store);
+        Assert.Equal(2, system.AcquireRenderSnapshot().BatchCount);
+    }
 }
