@@ -112,6 +112,13 @@ internal static class DisplaySettingsCategory
                     options: () => SettingsDefaults.GetViewDistances(draft.ViewDistance),
                     format: value => FormatDistance(localization, value)
                 ),
+                new ToggleEntry(
+                    id: "Settings.FirstPersonSway",
+                    labelKey: "ui.settings.option.firstPersonSway",
+                    get: () => draft.FirstPersonSway,
+                    set: value => draft.FirstPersonSway = value,
+                    defaultValue: () => SettingsDefaults.FIRST_PERSON_SWAY
+                ),
                 new SettingsSection("ui.settings.section.quality"),
                 new ChoiceEntry<AntiAliasing>(
                     id: "Settings.AntiAliasing",

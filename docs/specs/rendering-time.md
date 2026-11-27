@@ -18,8 +18,8 @@ Each accumulator wraps with `MathS.Repeat` (`Swordfish.Library/Util/MathS.cs:27`
 - `MiningLaserEffectSystem` wraps its `float _time` (`WaywardBeyond.Client/Systems/MiningLaserEffectSystem.cs:84-87`)
   before the beam thickness pulse (`MiningLaserEffectSystem.cs:206`) and impact light
   flicker (`MiningLaserEffectSystem.cs:226`). Both use integer radian frequencies.
-- `PlayerViewModelSystem` wraps its `double _animationTime` (`WaywardBeyond.Client/Systems/PlayerViewModelSystem.cs:221-227`)
-  before evaluating the active `ViewModelAnimationProfile` (`PlayerViewModelSystem.cs:31-53`, `:368-407`).
+- `PlayerViewModelSystem` wraps its `double _animationTime` (`WaywardBeyond.Client/Systems/PlayerViewModelSystem.cs:227-233`)
+  before evaluating the active `ViewModelAnimationProfile` (`PlayerViewModelSystem.cs:33-55`, `:379-415`).
   Every drill vibration axis (`59`, `61`, `67`, `73`, and `83` rad/s) and mining laser shake axis
   (`17`, `23`, `27`, `39`, `41`, and `53` rad/s) uses an integer radian frequency.
 
@@ -34,5 +34,5 @@ Use an integer radian frequency for periodic animation.
   after long elapsed time.
 - `WaywardBeyond.Tests/MiningLaserEffectsTests.cs:698` pins the mining pulse after
   a wrap.
-- `WaywardBeyond.Tests/PlayerViewModelTests.cs:938` and `:1142` pin drill vibration
+- `WaywardBeyond.Tests/PlayerViewModelTests.cs:941` and `:1145` pin drill vibration
   and mining laser shake time wrapping and non-finite `delta` handling.

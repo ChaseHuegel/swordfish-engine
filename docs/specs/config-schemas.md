@@ -139,6 +139,7 @@ Gameplay tunables shared by the client and the server, registered via
 | `AutosaveIntervalMs` | int | `300000` | autosave cadence in milliseconds; the settings page uses preset minute intervals |
 | `ControlHints` | bool | `true` | show the control hints overlay |
 | `Crosshair` | bool | `true` | show the crosshair |
+| `FirstPersonSway` | bool | `true` | enable reactive first-person view-model sway when moving and turning |
 | `DefaultSpawnPosition` | float[3] | `[0, 1, 5]` | the position a character spawns at; the level-creation spawn row derives from it |
 | `Regions.MaxEdge` | int | `64` | maximum region edge length in voxels; `0` means unlimited |
 | `Regions.MaxVolume` | int | `65536` | maximum region bounding volume in voxels; `0` means unlimited |

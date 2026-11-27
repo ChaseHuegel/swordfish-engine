@@ -10,6 +10,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Items;
 using WaywardBeyond.Meshing;
@@ -26,7 +27,8 @@ internal sealed class PlayerViewModelSystem(
     in BrickPreviewMeshBuilder brickMeshBuilder,
     in VoxelMaterials voxelMaterials,
     in InteractionState interactionState,
-    in IInputService inputService
+    in IInputService inputService,
+    GameplayConfig? gameplayConfig = null
 ) : IEntitySystem, IDisposable {
     private static readonly ViewModelAnimationProfile _drillAnimation = new(
         TriggerOnSecondary: true,
@@ -67,6 +69,7 @@ internal sealed class PlayerViewModelSystem(
     private readonly VoxelMaterials _voxelMaterials = voxelMaterials;
     private readonly InteractionState _interactionState = interactionState;
     private readonly IInputService _inputService = inputService;
+    private readonly GameplayConfig? _gameplayConfig = gameplayConfig;
 
     private Entity? _viewModelEntity;
     private Uuid _viewModelUuid;
@@ -207,6 +210,9 @@ internal sealed class PlayerViewModelSystem(
         }
     }
 
+    private bool IsReactiveSwayEnabled() =>
+        _gameplayConfig == null || _gameplayConfig.FirstPersonSway.Get();
+
     private void UpdateComposedPose(float delta, DataStore store, Item item)
     {
         if (!_viewModelEntity.HasValue)
@@ -324,6 +330,7 @@ internal sealed class PlayerViewModelSystem(
             Uuid playerUuid = store.GetUuid(entity);
             var key = new ViewModelKey(playerUuid, item.ID, viewModel, shape);
             bool hasTransform = store.TryGet(entity, out TransformComponent playerTransform);
+            bool swayEnabled = Owner.IsReactiveSwayEnabled();
             bool resetMotion = false;
 
             if (!key.Equals(Owner._currentKey))
@@ -340,7 +347,7 @@ internal sealed class PlayerViewModelSystem(
                 if (resetMotion)
                 {
                     Owner._motion.Reset();
-                    if (hasTransform)
+                    if (hasTransform && swayEnabled)
                     {
                         Owner._motion.SeedOrientation(in playerTransform.Orientation);
                     }
@@ -353,7 +360,11 @@ internal sealed class PlayerViewModelSystem(
                 Owner._viewModelEntity!.Value.AddOrUpdate(new MeshRendererComponent(meshRenderer));
             }
 
-            if (!resetMotion)
+            if (!swayEnabled)
+            {
+                Owner._motion.Reset();
+            }
+            else if (!resetMotion)
             {
                 bool hasPhysics = store.TryGet(entity, out PhysicsComponent playerPhysics);
                 Owner._motion.Update(delta, hasTransform, in playerTransform, hasPhysics, in playerPhysics);

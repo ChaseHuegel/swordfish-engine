@@ -21,6 +21,7 @@ using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Items;
@@ -116,6 +117,7 @@ public class PlayerViewModelTests
         public readonly VoxelMaterials VoxelMaterials;
         public readonly FakeInputService Input = new();
         public readonly InteractionState InteractionState;
+        public readonly GameplayConfig GameplayConfig = new();
         public readonly PlayerData PlayerData;
         public readonly PlayerViewModelSystem System;
         public readonly MeshRendererComponentProcessor RendererProcessor = new();
@@ -166,7 +168,8 @@ public class PlayerViewModelTests
                 BrickMeshBuilder,
                 VoxelMaterials,
                 InteractionState,
-                Input
+                Input,
+                GameplayConfig
             );
         }
 
@@ -2015,6 +2018,115 @@ public class PlayerViewModelTests
 
             ChildComponent afterShapeChange = Assert.IsType<ChildComponent>(GetChild(store));
             Assert.True(afterShapeChange.LocalPosition.X < brickViewModel.Position.X - 0.01f);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void ReactiveMotion_DisabledByFirstPersonSwaySetting_RestoresRestingPoseAndKeepsToolAnimations()
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        fixture.AddItem(
+            "wb:drill",
+            viewModel: drillViewModel,
+            tool: new ToolDefinition { Type = ToolType.Drill }
+        );
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "wb:drill");
+        Quaternion orientation = Quaternion.Identity;
+        store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+        store.AddOrUpdate(
+            player,
+            new PhysicsComponent(
+                0,
+                Swordfish.Physics.BodyType.Dynamic,
+                Swordfish.Physics.CollisionDetection.Discrete,
+                new Vector3(6f, 0f, 0f),
+                Vector3.Zero
+            )
+        );
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            Assert.True(fixture.GameplayConfig.FirstPersonSway.Get());
+
+            fixture.System.Tick(0.016f, store);
+            for (var i = 0; i < 15; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent swaying = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(swaying.LocalPosition.X < drillViewModel.Position.X - 0.01f);
+
+            //  Disabling the setting immediately restores exact resting pose and suppresses sway while moving and turning.
+            fixture.GameplayConfig.FirstPersonSway.Set(false);
+            orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.5f));
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+            fixture.System.Tick(0.016f, store);
+
+            ChildComponent disabledPose = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in disabledPose, in drillViewModel);
+
+            //  Tool use animations stay active when reactive sway is disabled.
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent drillingWhileDisabled = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.NotEqual(
+                new Vector3(drillViewModel.Position.X, drillViewModel.Position.Y, drillViewModel.Position.Z),
+                drillingWhileDisabled.LocalPosition
+            );
+
+            fixture.Input.HeldButtons.Remove(MouseButton.Left);
+            orientation = Quaternion.Normalize(orientation * Quaternion.CreateFromAxisAngle(Vector3.UnitY, 1.2f));
+            store.AddOrUpdate(player, new TransformComponent(Vector3.Zero, orientation, Vector3.One));
+            store.AddOrUpdate(
+                player,
+                new PhysicsComponent(
+                    0,
+                    Swordfish.Physics.BodyType.Dynamic,
+                    Swordfish.Physics.CollisionDetection.Discrete,
+                    Vector3.Zero,
+                    Vector3.Zero
+                )
+            );
+            fixture.System.Tick(0.016f, store);
+            ChildComponent settledWhileDisabled = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in settledWhileDisabled, in drillViewModel);
+
+            //  Re-enabling while stationary must not inject an angular spike from rotations that occurred while disabled.
+            fixture.GameplayConfig.FirstPersonSway.Set(true);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent reenabledStationary = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in reenabledStationary, in drillViewModel);
+
+            //  Subsequent motion resumes reactive sway smoothly.
+            Vector3 localRightVelocity = Vector3.Transform(new Vector3(6f, 0f, 0f), orientation);
+            store.AddOrUpdate(
+                player,
+                new PhysicsComponent(
+                    0,
+                    Swordfish.Physics.BodyType.Dynamic,
+                    Swordfish.Physics.CollisionDetection.Discrete,
+                    localRightVelocity,
+                    Vector3.Zero
+                )
+            );
+            for (var i = 0; i < 15; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+            }
+
+            ChildComponent resumedSway = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.True(resumedSway.LocalPosition.X < drillViewModel.Position.X - 0.01f);
         }
         finally
         {
