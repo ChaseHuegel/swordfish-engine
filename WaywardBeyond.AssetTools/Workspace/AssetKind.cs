@@ -48,5 +48,10 @@ public enum AssetKind
     /// <summary>
     ///     Tag list under <c>lang/**/tags/</c>.
     /// </summary>
-    Tag = 8
+    Tag = 8,
+
+    /// <summary>
+    ///     Recipe definition under <c>recipes/</c>.
+    /// </summary>
+    Recipe = 9
 }

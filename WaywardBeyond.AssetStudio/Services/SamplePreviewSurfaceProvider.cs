@@ -35,6 +35,7 @@ public sealed class SamplePreviewSurfaceProvider : IPreviewSurfaceProvider
             AssetKind.Body => PreviewSurfaceMode.BodySprite,
             AssetKind.Material => PreviewSurfaceMode.MaterialPreview,
             AssetKind.Blueprint => PreviewSurfaceMode.BlueprintVoxel,
+            AssetKind.Recipe => PreviewSurfaceMode.RecipeFlow,
             _ => PreviewSurfaceMode.DataDocument,
         };
     }

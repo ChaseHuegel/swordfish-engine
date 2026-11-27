@@ -20,6 +20,7 @@
     <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Items\WaywardBeyond.Items.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Recipes\WaywardBeyond.Recipes.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
   </ItemGroup>

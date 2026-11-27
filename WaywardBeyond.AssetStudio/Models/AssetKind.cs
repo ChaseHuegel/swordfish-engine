@@ -49,4 +49,9 @@ public enum AssetKind
     ///     Binary blueprint structure file.
     /// </summary>
     Blueprint,
+
+    /// <summary>
+    ///     Crafting or processing recipe definition.
+    /// </summary>
+    Recipe,
 }

@@ -625,10 +625,16 @@ public sealed class AssetCloner
             return Result<string>.FromFailure($"Clipboard entry does not begin with [[{tableName}]].");
         }
 
-        Result<TomlFieldSpan> idField = entryDoc.GetFieldInTable(0, "ID");
+        string defaultIdKey = string.Equals(tableName, "recipes", StringComparison.OrdinalIgnoreCase) ? "id" : "ID";
+        Result<TomlFieldSpan> idField = entryDoc.GetFieldInTable(0, defaultIdKey);
+        if (!idField.Success)
+        {
+            idField = entryDoc.GetFieldInTable(0, defaultIdKey == "id" ? "ID" : "id");
+        }
+
         Result editResult = idField.Success
             ? entryDoc.SetString(idField.Value, newId)
-            : entryDoc.AddField(entryDoc.Tables[0], "ID", TomlValueFormatter.FormatBasicString(newId));
+            : entryDoc.AddField(entryDoc.Tables[0], defaultIdKey, TomlValueFormatter.FormatBasicString(newId));
 
         if (!editResult.Success)
         {
@@ -874,7 +880,7 @@ public sealed class AssetCloner
             }
         }
 
-        IReadOnlyList<TomlTableSpan> entryTables = doc.GetTables(tableName);
+        IReadOnlyList<TomlTableSpan> entryTables = CollectArrayTablesCaseInsensitive(doc, tableName);
         for (int i = 0; i < entryTables.Count; i++)
         {
             if (EntryMatchesId(doc, entryTables[i].Index, assetId))
@@ -886,9 +892,29 @@ public sealed class AssetCloner
         return null;
     }
 
+    private static List<TomlTableSpan> CollectArrayTablesCaseInsensitive(TomlDocument doc, string tableName)
+    {
+        List<TomlTableSpan> matches = [];
+        for (int i = 0; i < doc.Tables.Count; i++)
+        {
+            TomlTableSpan table = doc.Tables[i];
+            if (table.IsArrayTable && string.Equals(table.HeaderPath, tableName, StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add(table);
+            }
+        }
+
+        return matches;
+    }
+
     private static bool EntryMatchesId(TomlDocument doc, int tableIndex, string assetId)
     {
         Result<TomlFieldSpan> idField = doc.GetFieldInTable(tableIndex, "ID");
+        if (!idField.Success)
+        {
+            idField = doc.GetFieldInTable(tableIndex, "id");
+        }
+
         return idField.Success &&
                idField.Value.TypedValue is string currentId &&
                string.Equals(currentId, assetId, StringComparison.Ordinal);
@@ -977,10 +1003,15 @@ public sealed class AssetCloner
 
     private static void CollectFileIds(TomlDocument doc, string tableName, HashSet<string> ids)
     {
-        IReadOnlyList<TomlTableSpan> entryTables = doc.GetTables(tableName);
+        IReadOnlyList<TomlTableSpan> entryTables = CollectArrayTablesCaseInsensitive(doc, tableName);
         for (int i = 0; i < entryTables.Count; i++)
         {
             Result<TomlFieldSpan> idField = doc.GetFieldInTable(entryTables[i].Index, "ID");
+            if (!idField.Success)
+            {
+                idField = doc.GetFieldInTable(entryTables[i].Index, "id");
+            }
+
             if (idField.Success && idField.Value.TypedValue is string id && !string.IsNullOrWhiteSpace(id))
             {
                 ids.Add(id);
@@ -997,6 +1028,7 @@ public sealed class AssetCloner
             AssetKind.Paint => "Paints",
             AssetKind.Skill => "Skills",
             AssetKind.Body => "Bodies",
+            AssetKind.Recipe => "recipes",
             _ => null
         };
     }
@@ -1010,6 +1042,7 @@ public sealed class AssetCloner
             AssetKind.Paint => "paints",
             AssetKind.Skill => "skills",
             AssetKind.Body => "bodies",
+            AssetKind.Recipe => "recipes",
             _ => null
         };
     }

@@ -6,6 +6,7 @@ using WaywardBeyond.AssetStudio.Models;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Items;
+using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
 using GameBlueprintData = WaywardBeyond.Data.BlueprintData;
 using GameContentVersion = WaywardBeyond.Data.ContentVersion;
@@ -378,6 +379,7 @@ internal static class AssetSeedProjector
             AssetKind.Tag => ToolsWorkspace.AssetKind.Tag,
             AssetKind.Localization => ToolsWorkspace.AssetKind.Localization,
             AssetKind.Blueprint => ToolsWorkspace.AssetKind.Blueprint,
+            AssetKind.Recipe => ToolsWorkspace.AssetKind.Recipe,
             _ => ToolsWorkspace.AssetKind.Brick,
         };
     }
@@ -398,6 +400,7 @@ internal static class AssetSeedProjector
             ToolsWorkspace.AssetKind.Tag => AssetKind.Tag,
             ToolsWorkspace.AssetKind.Localization => AssetKind.Localization,
             ToolsWorkspace.AssetKind.Blueprint => AssetKind.Blueprint,
+            ToolsWorkspace.AssetKind.Recipe => AssetKind.Recipe,
             _ => AssetKind.Brick,
         };
     }
@@ -413,6 +416,7 @@ internal static class AssetSeedProjector
             (ToolsWorkspace.AssetKind.Brick, AssetKind.Brick, "Bricks"),
             (ToolsWorkspace.AssetKind.Item, AssetKind.Item, "Items"),
             (ToolsWorkspace.AssetKind.Paint, AssetKind.Paint, "Paints"),
+            (ToolsWorkspace.AssetKind.Recipe, AssetKind.Recipe, "Recipes"),
             (ToolsWorkspace.AssetKind.Skill, AssetKind.Skill, "Skills"),
             (ToolsWorkspace.AssetKind.Body, AssetKind.Body, "Bodies"),
             (ToolsWorkspace.AssetKind.Material, AssetKind.Material, "Materials"),
@@ -463,6 +467,8 @@ internal static class AssetSeedProjector
         var skillLevels = new List<(int Level, int XpRequired)>();
         var bodySprites = new List<(string State, string Direction, string TexturePath, string SwatchHex)>();
         var bodySpriteAbsPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var recipeInputs = new List<(string ItemId, int Count, string SlotGroup)>();
+        var recipeOutputs = new List<(string ItemId, int Count, string Chance)>();
         string? bodyFrontPath = null;
         string? materialTexturePath = null;
         string? paintTexturePath = null;
@@ -483,6 +489,9 @@ internal static class AssetSeedProjector
                 break;
             case BodyDefinition body:
                 bodyFrontPath = PopulateBodyFields(workspace, in body, scalars, bodySprites, bodySpriteAbsPaths);
+                break;
+            case RecipeDefinition recipe:
+                PopulateRecipeFields(in recipe, scalars, recipeInputs, recipeOutputs);
                 break;
             case MaterialDefinition material:
                 materialTexturePath = PopulateMaterialFields(workspace, in material, scalars);
@@ -515,6 +524,8 @@ internal static class AssetSeedProjector
             SkillLevels = skillLevels,
             BodySprites = bodySprites,
             BodySpriteAbsolutePaths = bodySpriteAbsPaths,
+            RecipeInputs = recipeInputs,
+            RecipeOutputs = recipeOutputs,
             ResolvedBodyFrontTexturePath = bodyFrontPath,
             ResolvedMaterialTexturePath = materialTexturePath,
             ResolvedPaintTexturePath = paintTexturePath,
@@ -676,6 +687,43 @@ internal static class AssetSeedProjector
         }
     }
 
+    private static void PopulateRecipeFields(
+        in RecipeDefinition recipe,
+        Dictionary<string, string> scalars,
+        List<(string ItemId, int Count, string SlotGroup)> inputs,
+        List<(string ItemId, int Count, string Chance)> outputs)
+    {
+        scalars["StationTag"] = recipe.StationTag ?? string.Empty;
+        scalars["Mode"] = string.IsNullOrWhiteSpace(recipe.Mode)
+            ? "manual"
+            : recipe.Mode.Trim().ToLowerInvariant();
+        scalars["DurationSeconds"] = recipe.DurationSeconds.ToString(CultureInfo.InvariantCulture);
+        scalars["PowerKw"] = recipe.PowerKw.ToString(CultureInfo.InvariantCulture);
+        scalars["Category"] = recipe.Category ?? string.Empty;
+        scalars["Order"] = recipe.Order.ToString(CultureInfo.InvariantCulture);
+
+        if (recipe.Inputs != null)
+        {
+            for (var i = 0; i < recipe.Inputs.Count; i++)
+            {
+                var input = recipe.Inputs[i];
+                inputs.Add((input.ItemId ?? string.Empty, input.Count, input.SlotGroup ?? string.Empty));
+            }
+        }
+
+        if (recipe.Outputs != null)
+        {
+            for (var i = 0; i < recipe.Outputs.Count; i++)
+            {
+                var output = recipe.Outputs[i];
+                var chance = output.Chance.HasValue
+                    ? output.Chance.Value.ToString(CultureInfo.InvariantCulture)
+                    : string.Empty;
+                outputs.Add((output.ItemId ?? string.Empty, output.Count, chance));
+            }
+        }
+    }
+
     private static string? PopulateBodyFields(
         ToolsWorkspace.WorkspaceIndex workspace,
         in BodyDefinition body,
@@ -823,7 +871,7 @@ internal static class AssetSeedProjector
                 BaseContentSha256 = baseHash,
                 TagBaseValues = baseValues,
                 TagFileValues = [.. primary.Values],
-                InboundReferences = ProjectInboundReferences(workspace, $"tag:{primary.TagName}"),
+                InboundReferences = ProjectTagInboundReferences(workspace, primary.TagName),
             });
         }
     }
@@ -1043,6 +1091,25 @@ internal static class AssetSeedProjector
                 ReferenceResolutionState.Resolved,
                 p.ProviderRootName,
                 p.RelativePath));
+        }
+
+        foreach (var item in workspace.GetWinningAssetsByKind(ToolsWorkspace.AssetKind.Item))
+        {
+            var p = item.Provenance;
+            string? itemThumb = null;
+            if (item.AuthoritativeDefinition is ItemDefinition itemDef && !string.IsNullOrWhiteSpace(itemDef.Icon))
+            {
+                itemThumb = ResolveTextureDiskPath(workspace, itemDef.Icon);
+            }
+
+            list.Add(new ReferenceCandidate(
+                item.Id,
+                ReferenceKind.ItemId,
+                MapProvenance(studioMode, in p),
+                ReferenceResolutionState.Resolved,
+                p.ProviderRootName,
+                p.RelativePath,
+                ThumbnailPath: itemThumb));
         }
 
         var sortedBlueprints = new List<KeyValuePair<string, string>>(workspace.WinningBlueprintFiles);
@@ -1359,13 +1426,34 @@ internal static class AssetSeedProjector
         return list;
     }
 
+    private static List<InboundReferenceItem> ProjectTagInboundReferences(
+        ToolsWorkspace.WorkspaceIndex workspace,
+        string tagName)
+    {
+        var list = new List<InboundReferenceItem>();
+        var dedup = new HashSet<string>(StringComparer.Ordinal);
+        AppendInboundReferences(workspace, tagName, dedup, list);
+        AppendInboundReferences(workspace, $"tag:{tagName}", dedup, list);
+        return list;
+    }
+
     private static List<InboundReferenceItem> ProjectInboundReferences(
         ToolsWorkspace.WorkspaceIndex workspace,
         string targetId)
     {
-        var raw = workspace.GetInboundReferences(targetId);
-        var list = new List<InboundReferenceItem>(raw.Count);
+        var list = new List<InboundReferenceItem>();
         var dedup = new HashSet<string>(StringComparer.Ordinal);
+        AppendInboundReferences(workspace, targetId, dedup, list);
+        return list;
+    }
+
+    private static void AppendInboundReferences(
+        ToolsWorkspace.WorkspaceIndex workspace,
+        string targetId,
+        HashSet<string> dedup,
+        List<InboundReferenceItem> list)
+    {
+        var raw = workspace.GetInboundReferences(targetId);
         for (var i = 0; i < raw.Count; i++)
         {
             var r = raw[i];
@@ -1381,8 +1469,6 @@ internal static class AssetSeedProjector
                 r.FieldName,
                 ComputeRelativeFile(workspace, r.SourceFilePath)));
         }
-
-        return list;
     }
 
     private static Dictionary<string, int> CountAssetEntriesPerFile(ToolsWorkspace.WorkspaceIndex workspace)
@@ -2309,6 +2395,11 @@ internal static class AssetSeedProjector
             return AssetKind.Paint;
         }
 
+        if (lower.Contains("/recipes/"))
+        {
+            return AssetKind.Recipe;
+        }
+
         if (lower.Contains("/skills/"))
         {
             return AssetKind.Skill;
@@ -2343,6 +2434,7 @@ internal static class AssetSeedProjector
         {
             AssetKind.Item => "Items",
             AssetKind.Paint => "Paints",
+            AssetKind.Recipe => "Recipes",
             AssetKind.Skill => "Skills",
             AssetKind.Body => "Bodies",
             AssetKind.Material => "Materials",

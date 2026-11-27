@@ -343,6 +343,7 @@ public sealed class CliRunner
             AssetKind.Brick,
             AssetKind.Item,
             AssetKind.Paint,
+            AssetKind.Recipe,
             AssetKind.Skill,
             AssetKind.Body,
             AssetKind.Material

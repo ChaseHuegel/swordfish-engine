@@ -54,4 +54,9 @@ public enum ReferenceKind
     ///     Invariant sound tag identifier defined in sound tag tables.
     /// </summary>
     SoundTag,
+
+    /// <summary>
+    ///     Namespaced item asset identifier.
+    /// </summary>
+    ItemId,
 }

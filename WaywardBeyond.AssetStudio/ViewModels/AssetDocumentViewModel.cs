@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Numerics;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -56,6 +57,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     private bool _hasDirectRawTomlEdit;
     private bool _bodySpritesModified;
     private bool _skillLevelsModified;
+    private bool _recipeInputsModified;
+    private bool _recipeOutputsModified;
     private bool _hasInitialViewModelTable;
     private bool _hasInitialWorldModelTable;
     private int _saveEpoch;
@@ -323,6 +326,27 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             }
 
             RebuildSparklinePoints();
+        }
+
+        // Recipe fields
+        if (Kind == AssetKind.Recipe)
+        {
+            RecipeStationTagField = AddField("StationTag", "Station Tag", "invariant tag · station.workbench", GetVal("StationTag"), referenceKind: ReferenceKind.Tag);
+            RecipeModeField = AddField("Mode", "Trigger Mode", "auto or manual", GetVal("Mode", "manual"), choices: ["manual", "auto"]);
+            RecipeDurationField = AddField("DurationSeconds", "Duration (s)", "seconds >= 0", GetVal("DurationSeconds", "2"), isNumeric: true);
+            RecipePowerKwField = AddField("PowerKw", "Power (kW)", "negative draw · positive generate", GetVal("PowerKw", "0"), isNumeric: true);
+            RecipeOrderField = AddField("Order", "Sort Order", "integer · ascending", GetVal("Order", "0"), isNumeric: true);
+            RecipeCategoryField = AddField("Category", "Category Key", "optional dot key", GetVal("Category"), referenceKind: ReferenceKind.Localization);
+
+            foreach (var input in seed.RecipeInputs)
+            {
+                RecipeInputs.Add(CreateRecipeInputRow(input.ItemId, input.Count, input.SlotGroup));
+            }
+
+            foreach (var output in seed.RecipeOutputs)
+            {
+                RecipeOutputs.Add(CreateRecipeOutputRow(output.ItemId, output.Count, output.Chance));
+            }
         }
 
         // Body fields
@@ -733,6 +757,11 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     public bool IsSkill => Kind == AssetKind.Skill;
 
     /// <summary>
+    ///     Whether the document is a recipe form.
+    /// </summary>
+    public bool IsRecipe => Kind == AssetKind.Recipe;
+
+    /// <summary>
     ///     Whether the document is a body form.
     /// </summary>
     public bool IsBody => Kind == AssetKind.Body;
@@ -1062,6 +1091,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     /// </summary>
     public string DataSummaryMetric => Kind switch
     {
+        AssetKind.Recipe => $"{RecipeInputs.Count} inputs → {RecipeOutputs.Count} outputs · {RecipeDurationLabel}",
         AssetKind.Skill => $"{SkillLevels.Count} levels · {SkillSources.Count} XP sources",
         AssetKind.Tag => $"{TagFileEntries.Count} local · {TagEffectiveEntries.Count} effective",
         AssetKind.Localization => $"{LocalizationRows.Count} keys · locale '{SelectedLocale}'",
@@ -1073,11 +1103,169 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     /// </summary>
     public string DataSummaryDetail => Kind switch
     {
+        AssetKind.Recipe => $"{RecipeStationTagLabel} · {RecipeModeBadge} · {RecipePowerLabel}",
         AssetKind.Skill => SkillCurveSummary,
         AssetKind.Tag => HasDuplicateTags ? "Duplicate entries flagged (not auto-merged)" : "Ordered set · first-occurrence merge",
         AssetKind.Localization => "Localization table",
         _ => ProvenanceDetailLabel,
     };
+
+    /// <summary>Recipe station tag field.</summary>
+    public StudioFieldViewModel? RecipeStationTagField { get; }
+
+    /// <summary>Recipe trigger mode field.</summary>
+    public StudioFieldViewModel? RecipeModeField { get; }
+
+    /// <summary>Recipe processing duration field in seconds.</summary>
+    public StudioFieldViewModel? RecipeDurationField { get; }
+
+    /// <summary>Recipe power draw/generation field in kilowatts.</summary>
+    public StudioFieldViewModel? RecipePowerKwField { get; }
+
+    /// <summary>Recipe deterministic sort order field.</summary>
+    public StudioFieldViewModel? RecipeOrderField { get; }
+
+    /// <summary>Recipe optional category key field.</summary>
+    public StudioFieldViewModel? RecipeCategoryField { get; }
+
+    /// <summary>Editable recipe input ingredient rows.</summary>
+    public ObservableCollection<RecipeIngredientRowViewModel> RecipeInputs { get; } = [];
+
+    /// <summary>Editable recipe output item rows.</summary>
+    public ObservableCollection<RecipeOutputRowViewModel> RecipeOutputs { get; } = [];
+
+    /// <summary>Display label for the recipe station tag.</summary>
+    public string RecipeStationTagLabel => string.IsNullOrWhiteSpace(RecipeStationTagField?.Value)
+        ? "(no station_tag)"
+        : RecipeStationTagField.Value.Trim();
+
+    /// <summary>Whether the recipe station tag is non-empty for deep-link clicks.</summary>
+    public bool HasRecipeStationTag => !string.IsNullOrWhiteSpace(RecipeStationTagField?.Value);
+
+    /// <summary>Uppercase mode badge for recipe preview.</summary>
+    public string RecipeModeBadge => IsRecipeAutoMode ? "AUTO" : "MANUAL";
+
+    /// <summary>Whether the recipe runs automatically when matching inputs are present.</summary>
+    public bool IsRecipeAutoMode => string.Equals(RecipeModeField?.Value?.Trim(), "auto", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Formatted processing duration for recipe preview.</summary>
+    public string RecipeDurationLabel
+    {
+        get
+        {
+            var seconds = ParseRecipeDurationSeconds();
+            if (seconds <= 0.0001)
+            {
+                return "Instant";
+            }
+
+            return string.Create(CultureInfo.InvariantCulture, $"{seconds:0.##} s");
+        }
+    }
+
+    /// <summary>Formatted power delta label in kW for recipe preview.</summary>
+    public string RecipePowerLabel
+    {
+        get
+        {
+            var kw = ParseRecipePowerKw();
+            if (Math.Abs(kw) < 0.0001)
+            {
+                return "0 kW";
+            }
+
+            return kw > 0
+                ? string.Create(CultureInfo.InvariantCulture, $"+{kw:0.##} kW")
+                : string.Create(CultureInfo.InvariantCulture, $"{kw:0.##} kW");
+        }
+    }
+
+    /// <summary>Whether the recipe generates power (<c>power_kw &gt; 0</c>).</summary>
+    public bool IsRecipePowerGeneration => ParseRecipePowerKw() > 0.0001;
+
+    /// <summary>Whether the recipe consumes power (<c>power_kw &lt; 0</c>).</summary>
+    public bool IsRecipePowerConsumption => ParseRecipePowerKw() < -0.0001;
+
+    /// <summary>Calculated cycles/min and energy per cycle summary for recipe preview.</summary>
+    public string RecipeThroughputLabel
+    {
+        get
+        {
+            var seconds = ParseRecipeDurationSeconds();
+            var kw = ParseRecipePowerKw();
+            if (seconds <= 0.0001)
+            {
+                return Math.Abs(kw) < 0.0001 ? "Instant craft · passive" : $"Instant craft · {RecipePowerLabel}";
+            }
+
+            var perMin = 60.0 / seconds;
+            var energyKj = kw * seconds;
+            if (Math.Abs(energyKj) < 0.0001)
+            {
+                return string.Create(CultureInfo.InvariantCulture, $"{perMin:0.#} cycles/min · passive");
+            }
+
+            var energyText = energyKj > 0
+                ? string.Create(CultureInfo.InvariantCulture, $"+{energyKj:0.#} kJ/cycle")
+                : string.Create(CultureInfo.InvariantCulture, $"{energyKj:0.#} kJ/cycle");
+            return string.Create(CultureInfo.InvariantCulture, $"{perMin:0.#} cycles/min · {energyText}");
+        }
+    }
+
+    /// <summary>Section subtitle for recipe inputs.</summary>
+    public string RecipeInputsSummary => RecipeInputs.Count == 1 ? "1 input" : $"{RecipeInputs.Count} inputs";
+
+    /// <summary>Section subtitle for recipe outputs.</summary>
+    public string RecipeOutputsSummary => RecipeOutputs.Count == 1 ? "1 output" : $"{RecipeOutputs.Count} outputs";
+
+    /// <summary>Whether the recipe has at least one input row.</summary>
+    public bool RecipeHasInputs => RecipeInputs.Count > 0;
+
+    /// <summary>Whether the recipe has no input rows.</summary>
+    public bool RecipeHasNoInputs => RecipeInputs.Count == 0;
+
+    /// <summary>Whether the recipe has at least one output row.</summary>
+    public bool RecipeHasOutputs => RecipeOutputs.Count > 0;
+
+    /// <summary>Whether the recipe has no output rows.</summary>
+    public bool RecipeHasNoOutputs => RecipeOutputs.Count == 0;
+
+    /// <summary>Whether the recipe is a power generator with no item outputs.</summary>
+    public bool IsRecipeGeneratorWithoutOutputs => RecipeOutputs.Count == 0 && IsRecipePowerGeneration;
+
+    /// <summary>Count of input/output item or tag references that do not currently resolve in the workspace.</summary>
+    public int RecipeUnresolvedCount
+    {
+        get
+        {
+            var unresolved = 0;
+            for (var i = 0; i < RecipeInputs.Count; i++)
+            {
+                if (!RecipeInputs[i].IsResolved)
+                {
+                    unresolved++;
+                }
+            }
+
+            for (var i = 0; i < RecipeOutputs.Count; i++)
+            {
+                if (!RecipeOutputs[i].IsResolved)
+                {
+                    unresolved++;
+                }
+            }
+
+            return unresolved;
+        }
+    }
+
+    /// <summary>Whether any recipe input or output reference is currently unresolved.</summary>
+    public bool RecipeHasUnresolvedRefs => RecipeUnresolvedCount > 0;
+
+    /// <summary>Warning text shown in the recipe preview when references are unresolved.</summary>
+    public string RecipeUnresolvedSummary => RecipeUnresolvedCount == 1
+        ? "1 unresolved item or tag reference"
+        : $"{RecipeUnresolvedCount} unresolved item or tag references";
 
     /// <summary>
     ///     Available animation state chips with active highlight state for body sprite editing.
@@ -1294,6 +1482,23 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             }
         }
 
+        List<(string ItemId, int Count, string SlotGroup)>? recipeInputs = null;
+        List<(string ItemId, int Count, string Chance)>? recipeOutputs = null;
+        if (Kind == AssetKind.Recipe)
+        {
+            recipeInputs = new List<(string ItemId, int Count, string SlotGroup)>(RecipeInputs.Count);
+            for (var i = 0; i < RecipeInputs.Count; i++)
+            {
+                recipeInputs.Add((RecipeInputs[i].ItemId, RecipeInputs[i].Count, RecipeInputs[i].SlotGroup));
+            }
+
+            recipeOutputs = new List<(string ItemId, int Count, string Chance)>(RecipeOutputs.Count);
+            for (var i = 0; i < RecipeOutputs.Count; i++)
+            {
+                recipeOutputs.Add((RecipeOutputs[i].ItemId, RecipeOutputs[i].Count, RecipeOutputs[i].Chance));
+            }
+        }
+
         return new DocumentSavePayload
         {
             AssetId = Id,
@@ -1320,6 +1525,10 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             BodySpritesModified = _bodySpritesModified,
             SkillLevels = skillLevels,
             SkillLevelsModified = _skillLevelsModified,
+            RecipeInputs = recipeInputs,
+            RecipeInputsModified = _recipeInputsModified,
+            RecipeOutputs = recipeOutputs,
+            RecipeOutputsModified = _recipeOutputsModified,
         };
     }
 
@@ -1333,6 +1542,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         _hasDirectRawTomlEdit = false;
         _bodySpritesModified = false;
         _skillLevelsModified = false;
+        _recipeInputsModified = false;
+        _recipeOutputsModified = false;
         _modifiedFieldKeys.Clear();
         _removedLocalizationKeys.Clear();
         for (var i = 0; i < LocalizationRows.Count; i++)
@@ -1968,6 +2179,342 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void AddRecipeInput()
+    {
+        if (IsReadOnly)
+        {
+            return;
+        }
+
+        var before = SnapshotRecipeInputs();
+        var wasDirty = IsDirty;
+        var wasModified = _recipeInputsModified;
+        var recordedEpoch = _saveEpoch;
+
+        var defaultItem = FirstItemCandidateId();
+        RecipeInputs.Add(CreateRecipeInputRow(defaultItem, 1, string.Empty));
+        _recipeInputsModified = true;
+        var after = SnapshotRecipeInputs();
+
+        RecordUndo(
+            "Add recipe input",
+            coalesceKey: null,
+            undo: () => RestoreRecipeInputsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreRecipeInputsSnapshot(after, true, true, recordedEpoch, isUndo: false));
+
+        NotifyRecipePreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveRecipeInput(RecipeIngredientRowViewModel? row)
+    {
+        if (IsReadOnly || row == null || !RecipeInputs.Contains(row))
+        {
+            return;
+        }
+
+        var before = SnapshotRecipeInputs();
+        var wasDirty = IsDirty;
+        var wasModified = _recipeInputsModified;
+        var recordedEpoch = _saveEpoch;
+
+        RecipeInputs.Remove(row);
+        _recipeInputsModified = true;
+        var after = SnapshotRecipeInputs();
+
+        RecordUndo(
+            "Remove recipe input",
+            coalesceKey: null,
+            undo: () => RestoreRecipeInputsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreRecipeInputsSnapshot(after, true, true, recordedEpoch, isUndo: false));
+
+        NotifyRecipePreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void AddRecipeOutput()
+    {
+        if (IsReadOnly)
+        {
+            return;
+        }
+
+        var before = SnapshotRecipeOutputs();
+        var wasDirty = IsDirty;
+        var wasModified = _recipeOutputsModified;
+        var recordedEpoch = _saveEpoch;
+
+        var defaultItem = FirstItemCandidateId();
+        RecipeOutputs.Add(CreateRecipeOutputRow(defaultItem, 1, string.Empty));
+        _recipeOutputsModified = true;
+        var after = SnapshotRecipeOutputs();
+
+        RecordUndo(
+            "Add recipe output",
+            coalesceKey: null,
+            undo: () => RestoreRecipeOutputsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreRecipeOutputsSnapshot(after, true, true, recordedEpoch, isUndo: false));
+
+        NotifyRecipePreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveRecipeOutput(RecipeOutputRowViewModel? row)
+    {
+        if (IsReadOnly || row == null || !RecipeOutputs.Contains(row))
+        {
+            return;
+        }
+
+        var before = SnapshotRecipeOutputs();
+        var wasDirty = IsDirty;
+        var wasModified = _recipeOutputsModified;
+        var recordedEpoch = _saveEpoch;
+
+        RecipeOutputs.Remove(row);
+        _recipeOutputsModified = true;
+        var after = SnapshotRecipeOutputs();
+
+        RecordUndo(
+            "Remove recipe output",
+            coalesceKey: null,
+            undo: () => RestoreRecipeOutputsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreRecipeOutputsSnapshot(after, true, true, recordedEpoch, isUndo: false));
+
+        NotifyRecipePreviewChanged();
+        MarkMutated();
+    }
+
+    private RecipeIngredientRowViewModel CreateRecipeInputRow(string itemId, int count, string slotGroup)
+    {
+        RecipeIngredientRowViewModel? row = null;
+        row = new RecipeIngredientRowViewModel(
+            itemId,
+            count,
+            slotGroup,
+            onChanged: () =>
+            {
+                row?.RefreshResolution(_allReferenceCandidates);
+                _recipeInputsModified = true;
+                NotifyRecipePreviewChanged();
+                MarkMutated();
+            },
+            onPropertyTransition: (targetRow, propertyName, oldValue, newValue) =>
+            {
+                if (_isUndoReplaying != null && _isUndoReplaying())
+                {
+                    return;
+                }
+
+                var wasDirty = IsDirty;
+                var wasModified = _recipeInputsModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Edit recipe input {propertyName}",
+                    coalesceKey: $"recipe-input:{Id}:{targetRow.GetHashCode()}:{propertyName}",
+                    undo: () =>
+                    {
+                        targetRow.ApplyPropertyForReplay(propertyName, oldValue);
+                        targetRow.RefreshResolution(_allReferenceCandidates);
+                        _recipeInputsModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        NotifyRecipePreviewChanged();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        targetRow.ApplyPropertyForReplay(propertyName, newValue);
+                        targetRow.RefreshResolution(_allReferenceCandidates);
+                        _recipeInputsModified = true;
+                        NotifyRecipePreviewChanged();
+                        MarkMutated();
+                    });
+            });
+        row.RefreshResolution(_allReferenceCandidates);
+        return row;
+    }
+
+    private RecipeOutputRowViewModel CreateRecipeOutputRow(string itemId, int count, string chance)
+    {
+        RecipeOutputRowViewModel? row = null;
+        row = new RecipeOutputRowViewModel(
+            itemId,
+            count,
+            chance,
+            onChanged: () =>
+            {
+                row?.RefreshResolution(_allReferenceCandidates);
+                _recipeOutputsModified = true;
+                NotifyRecipePreviewChanged();
+                MarkMutated();
+            },
+            onPropertyTransition: (targetRow, propertyName, oldValue, newValue) =>
+            {
+                if (_isUndoReplaying != null && _isUndoReplaying())
+                {
+                    return;
+                }
+
+                var wasDirty = IsDirty;
+                var wasModified = _recipeOutputsModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Edit recipe output {propertyName}",
+                    coalesceKey: $"recipe-output:{Id}:{targetRow.GetHashCode()}:{propertyName}",
+                    undo: () =>
+                    {
+                        targetRow.ApplyPropertyForReplay(propertyName, oldValue);
+                        targetRow.RefreshResolution(_allReferenceCandidates);
+                        _recipeOutputsModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        NotifyRecipePreviewChanged();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        targetRow.ApplyPropertyForReplay(propertyName, newValue);
+                        targetRow.RefreshResolution(_allReferenceCandidates);
+                        _recipeOutputsModified = true;
+                        NotifyRecipePreviewChanged();
+                        MarkMutated();
+                    });
+            });
+        row.RefreshResolution(_allReferenceCandidates);
+        return row;
+    }
+
+    private List<(string ItemId, int Count, string SlotGroup)> SnapshotRecipeInputs()
+    {
+        var list = new List<(string, int, string)>(RecipeInputs.Count);
+        for (var i = 0; i < RecipeInputs.Count; i++)
+        {
+            list.Add((RecipeInputs[i].ItemId, RecipeInputs[i].Count, RecipeInputs[i].SlotGroup));
+        }
+
+        return list;
+    }
+
+    private void RestoreRecipeInputsSnapshot(
+        List<(string ItemId, int Count, string SlotGroup)> snapshot,
+        bool targetDirty,
+        bool targetModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        RecipeInputs.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            RecipeInputs.Add(CreateRecipeInputRow(snapshot[i].ItemId, snapshot[i].Count, snapshot[i].SlotGroup));
+        }
+
+        _recipeInputsModified = isUndo && _saveEpoch == recordedEpoch ? targetModified : true;
+        NotifyRecipePreviewChanged();
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private List<(string ItemId, int Count, string Chance)> SnapshotRecipeOutputs()
+    {
+        var list = new List<(string, int, string)>(RecipeOutputs.Count);
+        for (var i = 0; i < RecipeOutputs.Count; i++)
+        {
+            list.Add((RecipeOutputs[i].ItemId, RecipeOutputs[i].Count, RecipeOutputs[i].Chance));
+        }
+
+        return list;
+    }
+
+    private void RestoreRecipeOutputsSnapshot(
+        List<(string ItemId, int Count, string Chance)> snapshot,
+        bool targetDirty,
+        bool targetModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        RecipeOutputs.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            RecipeOutputs.Add(CreateRecipeOutputRow(snapshot[i].ItemId, snapshot[i].Count, snapshot[i].Chance));
+        }
+
+        _recipeOutputsModified = isUndo && _saveEpoch == recordedEpoch ? targetModified : true;
+        NotifyRecipePreviewChanged();
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private string FirstItemCandidateId()
+    {
+        for (var i = 0; i < _allReferenceCandidates.Count; i++)
+        {
+            if (_allReferenceCandidates[i].Kind == ReferenceKind.ItemId)
+            {
+                return _allReferenceCandidates[i].Value;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private double ParseRecipeDurationSeconds()
+    {
+        var raw = RecipeDurationField?.Value?.Trim();
+        return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds) && double.IsFinite(seconds)
+            ? Math.Max(0.0, seconds)
+            : 0.0;
+    }
+
+    private double ParseRecipePowerKw()
+    {
+        var raw = RecipePowerKwField?.Value?.Trim();
+        return double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var kw) && double.IsFinite(kw)
+            ? kw
+            : 0.0;
+    }
+
+    private void NotifyRecipePreviewChanged()
+    {
+        OnPropertyChanged(nameof(RecipeStationTagLabel));
+        OnPropertyChanged(nameof(HasRecipeStationTag));
+        OnPropertyChanged(nameof(RecipeModeBadge));
+        OnPropertyChanged(nameof(IsRecipeAutoMode));
+        OnPropertyChanged(nameof(RecipeDurationLabel));
+        OnPropertyChanged(nameof(RecipePowerLabel));
+        OnPropertyChanged(nameof(IsRecipePowerGeneration));
+        OnPropertyChanged(nameof(IsRecipePowerConsumption));
+        OnPropertyChanged(nameof(RecipeThroughputLabel));
+        OnPropertyChanged(nameof(RecipeInputsSummary));
+        OnPropertyChanged(nameof(RecipeOutputsSummary));
+        OnPropertyChanged(nameof(RecipeHasInputs));
+        OnPropertyChanged(nameof(RecipeHasNoInputs));
+        OnPropertyChanged(nameof(RecipeHasOutputs));
+        OnPropertyChanged(nameof(RecipeHasNoOutputs));
+        OnPropertyChanged(nameof(IsRecipeGeneratorWithoutOutputs));
+        OnPropertyChanged(nameof(RecipeUnresolvedCount));
+        OnPropertyChanged(nameof(RecipeHasUnresolvedRefs));
+        OnPropertyChanged(nameof(RecipeUnresolvedSummary));
+        OnPropertyChanged(nameof(DataSummaryMetric));
+        OnPropertyChanged(nameof(DataSummaryDetail));
+    }
+
+    [RelayCommand]
     private void AddSkillLevel()
     {
         if (IsReadOnly)
@@ -2596,6 +3143,10 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         else if (field == ItemPlaceableTypeField)
         {
             SyncItemPlaceableIdField();
+        }
+        else if (Kind == AssetKind.Recipe)
+        {
+            NotifyRecipePreviewChanged();
         }
     }
 
@@ -3332,6 +3883,9 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             case AssetKind.Skill:
                 AppendSkillToml(sb);
                 break;
+            case AssetKind.Recipe:
+                AppendRecipeToml(sb);
+                break;
             case AssetKind.Body:
                 AppendBodyToml(sb);
                 break;
@@ -3353,6 +3907,48 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         }
 
         return sb.ToString().TrimEnd();
+    }
+
+    private void AppendRecipeToml(StringBuilder sb)
+    {
+        sb.AppendLine("[[recipes]]");
+        sb.AppendLine($"id               = \"{Id}\"");
+        sb.AppendLine($"station_tag      = {RecipeStationTagField?.RawTokenText ?? "\"\""}");
+        sb.AppendLine($"mode             = {RecipeModeField?.RawTokenText ?? "\"manual\""}");
+        sb.AppendLine($"duration_seconds = {RecipeDurationField?.RawTokenText ?? "0"}");
+        sb.AppendLine($"power_kw         = {RecipePowerKwField?.RawTokenText ?? "0"}");
+        if (!string.IsNullOrWhiteSpace(RecipeCategoryField?.Value))
+        {
+            sb.AppendLine($"category         = {RecipeCategoryField.RawTokenText}");
+        }
+
+        sb.AppendLine($"order            = {RecipeOrderField?.RawTokenText ?? "0"}");
+
+        for (var i = 0; i < RecipeInputs.Count; i++)
+        {
+            var input = RecipeInputs[i];
+            sb.AppendLine();
+            sb.AppendLine("[[recipes.inputs]]");
+            sb.AppendLine($"item_id = \"{input.ItemId}\"");
+            sb.AppendLine($"count   = {Math.Max(1, input.Count)}");
+            if (!string.IsNullOrWhiteSpace(input.SlotGroup))
+            {
+                sb.AppendLine($"slot_group = \"{input.SlotGroup}\"");
+            }
+        }
+
+        for (var i = 0; i < RecipeOutputs.Count; i++)
+        {
+            var output = RecipeOutputs[i];
+            sb.AppendLine();
+            sb.AppendLine("[[recipes.outputs]]");
+            sb.AppendLine($"item_id = \"{output.ItemId}\"");
+            sb.AppendLine($"count   = {Math.Max(1, output.Count)}");
+            if (!string.IsNullOrWhiteSpace(output.Chance))
+            {
+                sb.AppendLine($"chance  = {output.Chance}");
+            }
+        }
     }
 
     private void AppendBrickToml(StringBuilder sb)

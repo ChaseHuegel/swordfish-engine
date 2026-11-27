@@ -115,6 +115,7 @@ public sealed class AssetDeleter
             AssetKind.Paint => DeleteArrayTableEntry(fullPath, "Paints", assetId, tableIndex, entryIndex),
             AssetKind.Skill => DeleteArrayTableEntry(fullPath, "Skills", assetId, tableIndex, entryIndex),
             AssetKind.Body => DeleteArrayTableEntry(fullPath, "Bodies", assetId, tableIndex, entryIndex),
+            AssetKind.Recipe => DeleteArrayTableEntry(fullPath, "recipes", assetId, tableIndex, entryIndex),
             _ => Result<AssetDeleteResult>.FromFailure($"Deletion is not supported for asset kind '{kind}'.")
         };
     }
@@ -339,7 +340,7 @@ public sealed class AssetDeleter
         for (int i = 0; i < doc.Tables.Count; i++)
         {
             TomlTableSpan table = doc.Tables[i];
-            if (table.IsArrayTable && string.Equals(table.HeaderPath, tableName, StringComparison.Ordinal))
+            if (table.IsArrayTable && string.Equals(table.HeaderPath, tableName, StringComparison.OrdinalIgnoreCase))
             {
                 matches.Add(table);
             }
@@ -362,7 +363,7 @@ public sealed class AssetDeleter
         {
             TomlTableSpan candidate = doc.Tables[tableIndex.Value];
             if (candidate.IsArrayTable &&
-                string.Equals(candidate.HeaderPath, tableName, StringComparison.Ordinal) &&
+                string.Equals(candidate.HeaderPath, tableName, StringComparison.OrdinalIgnoreCase) &&
                 (!hasAssetId || EntryMatchesId(doc, candidate.Index, assetId!)))
             {
                 return candidate;
@@ -395,6 +396,11 @@ public sealed class AssetDeleter
     private static bool EntryMatchesId(TomlDocument doc, int tableIndex, string assetId)
     {
         Result<TomlFieldSpan> idField = doc.GetFieldInTable(tableIndex, "ID");
+        if (!idField.Success)
+        {
+            idField = doc.GetFieldInTable(tableIndex, "id");
+        }
+
         return idField.Success &&
                idField.Value.TypedValue is string currentId &&
                string.Equals(currentId, assetId, StringComparison.Ordinal);
@@ -408,12 +414,12 @@ public sealed class AssetDeleter
         for (int i = startTableIndex + 1; i < doc.Tables.Count; i++)
         {
             TomlTableSpan next = doc.Tables[i];
-            if (next.IsArrayTable && string.Equals(next.HeaderPath, tableName, StringComparison.Ordinal))
+            if (next.IsArrayTable && string.Equals(next.HeaderPath, tableName, StringComparison.OrdinalIgnoreCase))
             {
                 break;
             }
 
-            if (next.HeaderPath.StartsWith(childPrefix, StringComparison.Ordinal))
+            if (next.HeaderPath.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 lastOwned = i;
                 continue;

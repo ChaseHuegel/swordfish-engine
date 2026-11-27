@@ -11,7 +11,7 @@ scripts are as-built. Each fact links to its source.
 
 The tool edits this content:
 
-- Items, bricks, paints, skills, and bodies. See [asset-definitions](asset-definitions.md).
+- Items, bricks, paints, recipes, skills, and bodies. See [asset-definitions](asset-definitions.md).
 - Materials, which are engine-side flat TOML.
 - Localization tables and invariant tag lists.
 - Blueprint `.wbp` files. See [region-blueprints](region-blueprints.md).
@@ -263,6 +263,7 @@ state is remembered per kind.
 | Item | Placeable, tool, view model, world model, stack |
 | Brick | Shape, color, alpha, passable, shadows, mesh, per-face textures, sounds, colliders |
 | Paint | Kind switch, alpha, connected, variants or color |
+| Recipe | Station and execution fields, editable `[[recipes.inputs]]` and `[[recipes.outputs]]` tables with item/tag jump buttons (`RecipeFormView`, `AssetTomlEditApplier.ApplyRecipeEdits`) |
 | Skill | Sources map, level curve table and sparkline |
 | Body | Species, gender, editable state and direction sprite maps (`AssetTomlEditApplier` and `BodySpritePickerControl`) |
 | Material | Shader, textures, alpha mode, cutoff |
@@ -554,6 +555,7 @@ Preview surfaces:
 | Paint | Color swatch for solid paints. Resolved block albedo layer over a transparency checkerboard for texture paints, with a magenta missing-layer badge when unresolved |
 | Blueprint | Decoded voxel object with brick and paint palettes, masked alpha cutouts, orbit |
 | Body | 2D sprite preview with frame slider and stepper controls |
+| Recipe | Live crafting-flow diagram (`PreviewSurfaceMode.RecipeFlow`) showing clickable station tag, trigger mode, input and output item/tag cards with icons, counts, slot groups, drop chances, duration, power delta, throughput, and unresolved-reference warnings |
 
 `PreviewViewportControl.DrawPaintSwatch`
 (`WaywardBeyond.AssetStudio/Controls/PreviewViewportControl.cs:705`) renders

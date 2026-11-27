@@ -54,4 +54,9 @@ public enum PreviewSurfaceMode
     ///     Placeholder surface for non-3D data documents.
     /// </summary>
     DataDocument,
+
+    /// <summary>
+    ///     Interactive crafting flow diagram preview for recipes.
+    /// </summary>
+    RecipeFlow,
 }

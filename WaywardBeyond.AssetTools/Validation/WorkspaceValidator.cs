@@ -9,6 +9,7 @@ using WaywardBeyond.AssetTools.Workspace;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Items;
+using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.AssetTools.Validation;
@@ -164,7 +165,13 @@ public sealed class WorkspaceValidator
         {
             IndexedAsset asset = workspace.AllAssets[i];
             TomlDocument? doc = TryGetDocument(workspace, asset.Provenance.FilePath);
-            TomlFieldSpan? idSpan = FindEntryField(doc, asset.Provenance.TableIndex, "ID");
+            string idFieldName = asset.Kind == AssetKind.Recipe ? "id" : "ID";
+            TomlFieldSpan? idSpan = FindEntryField(doc, asset.Provenance.TableIndex, idFieldName);
+            if (!idSpan.HasValue && asset.Kind == AssetKind.Recipe)
+            {
+                idSpan = FindEntryField(doc, asset.Provenance.TableIndex, "ID");
+            }
+
             int line = idSpan.HasValue ? idSpan.Value.KeySpan.Line : ResolveEntryLine(doc, asset.Provenance.TableIndex);
             int column = idSpan.HasValue ? idSpan.Value.KeySpan.Column : 1;
 
@@ -305,6 +312,10 @@ public sealed class WorkspaceValidator
                     ValidateBody(workspace, in asset, in body, doc, findings);
                     break;
 
+                case RecipeDefinition recipe:
+                    ValidateRecipe(workspace, in asset, in recipe, doc, findings);
+                    break;
+
                 case MaterialDefinition material:
                     ValidateMaterial(workspace, in asset, in material, doc, findings);
                     break;
@@ -344,6 +355,10 @@ public sealed class WorkspaceValidator
 
                 case AssetKind.Skill:
                     CheckSkillSourceEnums(in asset, doc, findings);
+                    break;
+
+                case AssetKind.Recipe:
+                    CheckEnumField<RecipeMode>(in asset, doc, null, "mode", findings);
                     break;
             }
         }
@@ -947,6 +962,275 @@ public sealed class WorkspaceValidator
             if (statePair.Value != null)
             {
                 ValidateBodyStateDirections(workspace, in asset, doc, statePair.Key, statePair.Value, findings);
+            }
+        }
+    }
+
+    private static void ValidateRecipe(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        in RecipeDefinition recipe,
+        TomlDocument? doc,
+        List<ValidationFinding> findings)
+    {
+        TomlFieldSpan? stationField = FindEntryField(doc, asset.Provenance.TableIndex, "station_tag");
+        if (string.IsNullOrWhiteSpace(recipe.StationTag))
+        {
+            AddFieldFinding(
+                findings,
+                "RECIPE001",
+                ValidationSeverity.Broken,
+                in asset,
+                stationField,
+                "station_tag",
+                $"Recipe '{recipe.ID}' must specify a non-empty station_tag.");
+        }
+
+        TomlFieldSpan? durationField = FindEntryField(doc, asset.Provenance.TableIndex, "duration_seconds");
+        if (!float.IsFinite(recipe.DurationSeconds) || recipe.DurationSeconds < 0f)
+        {
+            AddFieldFinding(
+                findings,
+                "RECIPE002",
+                ValidationSeverity.Broken,
+                in asset,
+                durationField,
+                "duration_seconds",
+                $"Recipe '{recipe.ID}' duration_seconds ({recipe.DurationSeconds.ToString(CultureInfo.InvariantCulture)}) must be finite and >= 0.");
+        }
+
+        TomlFieldSpan? powerField = FindEntryField(doc, asset.Provenance.TableIndex, "power_kw");
+        if (!float.IsFinite(recipe.PowerKw))
+        {
+            AddFieldFinding(
+                findings,
+                "RECIPE002",
+                ValidationSeverity.Broken,
+                in asset,
+                powerField,
+                "power_kw",
+                $"Recipe '{recipe.ID}' power_kw must be a finite number.");
+        }
+
+        if (recipe.Inputs == null || recipe.Inputs.Count == 0)
+        {
+            int line = ResolveEntryLine(doc, asset.Provenance.TableIndex);
+            findings.Add(new ValidationFinding(
+                "RECIPE001",
+                ValidationSeverity.Broken,
+                asset.Provenance.ProviderRootId,
+                asset.Provenance.FilePath,
+                line,
+                Column: 1,
+                "inputs",
+                $"Recipe '{recipe.ID}' must define at least one input ingredient."));
+        }
+        else
+        {
+            for (int i = 0; i < recipe.Inputs.Count; i++)
+            {
+                RecipeIngredientDefinition input = recipe.Inputs[i];
+                string itemId = (input.ItemId ?? string.Empty).Trim();
+                int line = ResolveEntryLine(doc, asset.Provenance.TableIndex);
+
+                if (string.IsNullOrEmpty(itemId))
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE001",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"inputs[{i}].item_id",
+                        $"Recipe '{recipe.ID}' input #{i + 1} is missing an item_id."));
+                }
+                else if (itemId.StartsWith("tag:", StringComparison.Ordinal))
+                {
+                    string tagName = itemId.Substring(4);
+                    if (string.IsNullOrWhiteSpace(tagName))
+                    {
+                        findings.Add(new ValidationFinding(
+                            "REF001",
+                            ValidationSeverity.Broken,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"inputs[{i}].item_id",
+                            $"Recipe '{recipe.ID}' input #{i + 1} has an empty tag selector."));
+                    }
+                    else if (!workspace.HasTag(tagName, locale: string.Empty))
+                    {
+                        string? caseMatch = FindInvariantTagCaseInsensitive(workspace, tagName);
+                        if (caseMatch != null)
+                        {
+                            findings.Add(new ValidationFinding(
+                                "PATH001",
+                                ValidationSeverity.CrossPlatform,
+                                asset.Provenance.ProviderRootId,
+                                asset.Provenance.FilePath,
+                                line,
+                                Column: 1,
+                                $"inputs[{i}].item_id",
+                                $"Recipe input tag '{tagName}' differs by case from '{caseMatch}'.",
+                                SuggestedFixValue: string.Concat("tag:", caseMatch)));
+                        }
+                        else
+                        {
+                            findings.Add(new ValidationFinding(
+                                "REF001",
+                                ValidationSeverity.Broken,
+                                asset.Provenance.ProviderRootId,
+                                asset.Provenance.FilePath,
+                                line,
+                                Column: 1,
+                                $"inputs[{i}].item_id",
+                                $"Recipe input tag '{tagName}' was not found in invariant tags."));
+                        }
+                    }
+                }
+                else if (!workspace.GetAsset(AssetKind.Item, itemId).Success)
+                {
+                    string? caseMatchItem = FindCaseInsensitiveAssetId(workspace, AssetKind.Item, itemId);
+                    if (caseMatchItem != null)
+                    {
+                        findings.Add(new ValidationFinding(
+                            "PATH001",
+                            ValidationSeverity.CrossPlatform,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"inputs[{i}].item_id",
+                            $"Recipe input item '{itemId}' differs by case from '{caseMatchItem}'.",
+                            SuggestedFixValue: caseMatchItem));
+                    }
+                    else
+                    {
+                        string? suggested = SuggestAssetReference(workspace, AssetKind.Item, itemId);
+                        findings.Add(new ValidationFinding(
+                            "REF001",
+                            ValidationSeverity.Broken,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"inputs[{i}].item_id",
+                            $"Recipe input item '{itemId}' was not found.",
+                            SuggestedFixValue: suggested));
+                    }
+                }
+
+                if (input.Count < 1)
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE002",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"inputs[{i}].count",
+                        $"Recipe '{recipe.ID}' input #{i + 1} count ({input.Count}) must be >= 1."));
+                }
+            }
+        }
+
+        bool isGenerator = float.IsFinite(recipe.PowerKw) && recipe.PowerKw > 0f;
+        if (recipe.Outputs == null || recipe.Outputs.Count == 0)
+        {
+            if (!isGenerator)
+            {
+                int line = ResolveEntryLine(doc, asset.Provenance.TableIndex);
+                findings.Add(new ValidationFinding(
+                    "RECIPE001",
+                    ValidationSeverity.Broken,
+                    asset.Provenance.ProviderRootId,
+                    asset.Provenance.FilePath,
+                    line,
+                    Column: 1,
+                    "outputs",
+                    $"Recipe '{recipe.ID}' must define at least one output unless power_kw > 0."));
+            }
+        }
+        else
+        {
+            for (int i = 0; i < recipe.Outputs.Count; i++)
+            {
+                RecipeOutputDefinition output = recipe.Outputs[i];
+                string itemId = (output.ItemId ?? string.Empty).Trim();
+                int line = ResolveEntryLine(doc, asset.Provenance.TableIndex);
+
+                if (string.IsNullOrEmpty(itemId))
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE001",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"outputs[{i}].item_id",
+                        $"Recipe '{recipe.ID}' output #{i + 1} is missing an item_id."));
+                }
+                else if (!workspace.GetAsset(AssetKind.Item, itemId).Success)
+                {
+                    string? caseMatchItem = FindCaseInsensitiveAssetId(workspace, AssetKind.Item, itemId);
+                    if (caseMatchItem != null)
+                    {
+                        findings.Add(new ValidationFinding(
+                            "PATH001",
+                            ValidationSeverity.CrossPlatform,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"outputs[{i}].item_id",
+                            $"Recipe output item '{itemId}' differs by case from '{caseMatchItem}'.",
+                            SuggestedFixValue: caseMatchItem));
+                    }
+                    else
+                    {
+                        string? suggested = SuggestAssetReference(workspace, AssetKind.Item, itemId);
+                        findings.Add(new ValidationFinding(
+                            "REF001",
+                            ValidationSeverity.Broken,
+                            asset.Provenance.ProviderRootId,
+                            asset.Provenance.FilePath,
+                            line,
+                            Column: 1,
+                            $"outputs[{i}].item_id",
+                            $"Recipe output item '{itemId}' was not found.",
+                            SuggestedFixValue: suggested));
+                    }
+                }
+
+                if (output.Count < 1)
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE002",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"outputs[{i}].count",
+                        $"Recipe '{recipe.ID}' output #{i + 1} count ({output.Count}) must be >= 1."));
+                }
+
+                if (output.Chance.HasValue && (!float.IsFinite(output.Chance.Value) || output.Chance.Value <= 0f || output.Chance.Value > 1f))
+                {
+                    findings.Add(new ValidationFinding(
+                        "RECIPE002",
+                        ValidationSeverity.Broken,
+                        asset.Provenance.ProviderRootId,
+                        asset.Provenance.FilePath,
+                        line,
+                        Column: 1,
+                        $"outputs[{i}].chance",
+                        $"Recipe '{recipe.ID}' output #{i + 1} chance ({output.Chance.Value.ToString(CultureInfo.InvariantCulture)}) must be in (0, 1]."));
+                }
             }
         }
     }
