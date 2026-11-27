@@ -366,7 +366,7 @@ and `ReferenceKind.BlueprintId`
 (`WaywardBeyond.AssetStudio/Models/ReferenceKind.cs:6`,
 `WaywardBeyond.AssetStudio/ViewModels/AssetDocumentViewModel.cs:2615`).
 `AssetTomlEditApplier.ApplyItemPlaceableEdits`
-(`WaywardBeyond.AssetStudio/Services/AssetTomlEditApplier.cs:118`) inserts,
+(`WaywardBeyond.AssetStudio/Services/AssetTomlEditApplier.cs:122`) inserts,
 updates, or removes `[Items.Placeable]` losslessly.
 
 ## Tag editor

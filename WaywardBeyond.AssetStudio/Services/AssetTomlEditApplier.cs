@@ -94,7 +94,11 @@ internal static class AssetTomlEditApplier
         ApplyScalar(doc, tableIndex, "MaxStack", "MaxStack", payload, ScalarKind.Integer);
 
         var itemOrdinal = FindArrayTableOrdinal(doc, "Items", tableIndex);
-        ApplyItemPlaceableEdits(doc, itemOrdinal, payload);
+        var placeableResult = ApplyItemPlaceableEdits(doc, itemOrdinal, payload);
+        if (!placeableResult.Success)
+        {
+            return placeableResult;
+        }
 
         tableIndex = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
         if (tableIndex < 0)
@@ -115,7 +119,7 @@ internal static class AssetTomlEditApplier
         return Result.FromSuccess();
     }
 
-    private static void ApplyItemPlaceableEdits(
+    private static Result ApplyItemPlaceableEdits(
         ToolsDocuments.TomlDocument doc,
         int itemOrdinal,
         DocumentSavePayload payload)
@@ -124,13 +128,13 @@ internal static class AssetTomlEditApplier
             && !payload.ModifiedFieldKeys.Contains("PlaceableType")
             && !payload.ModifiedFieldKeys.Contains("PlaceableID"))
         {
-            return;
+            return Result.FromSuccess();
         }
 
         var currentItemTable = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
         if (currentItemTable < 0)
         {
-            return;
+            return Result.FromSuccess();
         }
 
         payload.FieldValues.TryGetValue("PlaceableType", out var rawType);
@@ -141,10 +145,10 @@ internal static class AssetTomlEditApplier
         {
             if (placeableTable >= 0)
             {
-                RemoveTableSection(doc, placeableTable);
+                return RemoveTableSection(doc, placeableTable);
             }
 
-            return;
+            return Result.FromSuccess();
         }
 
         if (placeableTable < 0)
@@ -152,19 +156,19 @@ internal static class AssetTomlEditApplier
             var insertResult = InsertItemChildTable(doc, currentItemTable, "Items.Placeable");
             if (!insertResult.Success)
             {
-                return;
+                return insertResult;
             }
 
             currentItemTable = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
             if (currentItemTable < 0)
             {
-                return;
+                return Result.FromSuccess();
             }
 
             placeableTable = FindChildTableIndex(doc, currentItemTable, "Items", "Items.Placeable");
             if (placeableTable < 0)
             {
-                return;
+                return Result.FromSuccess();
             }
 
             //  When creating a new [Items.Placeable] table, write both Type and ID even if only one field changed.
@@ -175,7 +179,7 @@ internal static class AssetTomlEditApplier
                 ApplyScalarUnconditional(doc, placeableTable, "ID", initialId, ScalarKind.OptionalString);
             }
 
-            return;
+            return Result.FromSuccess();
         }
 
         ApplyScalar(doc, placeableTable, "Type", "PlaceableType", payload, ScalarKind.String);
@@ -184,6 +188,8 @@ internal static class AssetTomlEditApplier
         {
             ApplyScalar(doc, placeableTable, "ID", "PlaceableID", payload, ScalarKind.OptionalString);
         }
+
+        return Result.FromSuccess();
     }
 
     private static void ApplyScalarUnconditional(
