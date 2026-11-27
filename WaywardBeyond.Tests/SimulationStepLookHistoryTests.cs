@@ -76,6 +76,6 @@ public class SimulationStepLookHistoryTests
     private static void StageInput(DataStore store, int entity, in InputComponent input)
     {
         Assert.True(store.TryGet(entity, out NetworkComponent net));
-        net.StagedInputs!.Add(input);
+        net.StagedInputs!.Stage(in input, input.ServerTickAtSample);
     }
 }

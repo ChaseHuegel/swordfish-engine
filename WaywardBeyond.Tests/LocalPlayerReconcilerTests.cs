@@ -230,11 +230,12 @@ public class LocalPlayerReconcilerTests
     private static void AddPendingInput(TestContext context, float lookYaw, uint serverTickAtSample)
     {
         Assert.True(context.Store.TryGet(context.Player, out PendingInputComponent pending));
-        pending.Ring!.Add(new InputComponent
+        var input = new InputComponent
         {
             LookYaw = lookYaw,
             ServerTickAtSample = serverTickAtSample,
-        });
+        };
+        pending.Ring!.Stage(in input, serverTickAtSample);
         context.Store.AddOrUpdate(context.Player, pending);
     }
 
