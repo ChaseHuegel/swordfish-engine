@@ -18,8 +18,8 @@ Each accumulator wraps with `MathS.Repeat` (`Swordfish.Library/Util/MathS.cs:27`
 - `MiningLaserEffectSystem` wraps its `float _time` (`WaywardBeyond.Client/Systems/MiningLaserEffectSystem.cs:84-87`)
   before the beam thickness pulse (`MiningLaserEffectSystem.cs:206`) and impact light
   flicker (`MiningLaserEffectSystem.cs:226`). Both use integer radian frequencies.
-- `PlayerViewModelSystem` wraps its `double _animationTime` (`WaywardBeyond.Client/Systems/PlayerViewModelSystem.cs:290-298`)
-  before evaluating the active `ViewModelAnimationProfile` (`PlayerViewModelSystem.cs:31-53`, `:94-112`).
+- `PlayerViewModelSystem` wraps its `double _animationTime` (`WaywardBeyond.Client/Systems/PlayerViewModelSystem.cs:264-270`)
+  before evaluating the active `ViewModelAnimationProfile` (`PlayerViewModelSystem.cs:70-92`, `:627-666`).
   Every drill vibration axis (`59`, `61`, `67`, `73`, and `83` rad/s) and mining laser shake axis
   (`37`, `43`, `47`, `53`, `59`, and `61` rad/s) uses an integer radian frequency.
 

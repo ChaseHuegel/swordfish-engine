@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Krill;
 using Swordfish.ECS;
+using Swordfish.Graphics;
 using Swordfish.Graphics.Particles;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
@@ -55,8 +56,20 @@ internal sealed class PaintSprayerEffectSystem(
 
         _seenOwners.Clear();
 
-        LocalSprayerAction action = new() { Owner = this };
-        store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalSprayerAction>(delta, ref action);
+        if (!_interactionState.IsInteractionBlocked()
+            && (_inputService.IsMouseHeld(MouseButton.Left) || _inputService.IsMouseHeld(MouseButton.Right)))
+        {
+            FindViewModelChildAction viewModelAction = default;
+            store.Query<ViewModelComponent, MeshRendererComponent, ChildComponent, FindViewModelChildAction>(0f, ref viewModelAction);
+
+            LocalSprayerAction action = new()
+            {
+                Owner = this,
+                HasViewModelChild = viewModelAction.Found,
+                ViewModelChild = viewModelAction.Child,
+            };
+            store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalSprayerAction>(delta, ref action);
+        }
 
         ReleaseStaleSprayers(store);
     }
@@ -65,7 +78,9 @@ internal sealed class PaintSprayerEffectSystem(
         DataStore store,
         int entity,
         in TransformComponent transform,
-        in InventoryComponent inventory
+        in InventoryComponent inventory,
+        bool hasViewModelChild,
+        in ChildComponent viewModelChild
     ) {
         if (_interactionState.IsInteractionBlocked())
         {
@@ -112,13 +127,16 @@ internal sealed class PaintSprayerEffectSystem(
             out _
         );
 
-        Vector3 nozzle = PaintSprayerGeometry.ComputeFirstPersonNozzle(in transform, mainHandResult.Value.Item.ViewModel);
+        Uuid owner = store.GetUuid(entity);
+        Vector3 nozzle = hasViewModelChild && viewModelChild.Parent == owner
+            ? PaintSprayerGeometry.ComputeFirstPersonNozzle(in transform, in viewModelChild)
+            : PaintSprayerGeometry.ComputeFirstPersonNozzle(in transform, mainHandResult.Value.Item.ViewModel);
         Vector3 start = ToolAimGeometry.ComputeSafeStart(in transform, nozzle, target);
         Vector3 sprayDir = ToolAimGeometry.ComputeAimDirection(in transform, start, target);
 
         AddOrUpdateSprayer(
             store,
-            store.GetUuid(entity),
+            owner,
             start,
             sprayDir,
             target,
@@ -285,13 +303,27 @@ internal sealed class PaintSprayerEffectSystem(
         public readonly Uuid ImpactEmitterUuid = impactEmitterUuid;
     }
 
+    private struct FindViewModelChildAction : IForEach<ViewModelComponent, MeshRendererComponent, ChildComponent>
+    {
+        public bool Found;
+        public ChildComponent Child;
+
+        public void Execute(float delta, DataStore store, int entity, in ViewModelComponent viewModel, in MeshRendererComponent renderer, in ChildComponent child)
+        {
+            Found = true;
+            Child = child;
+        }
+    }
+
     private struct LocalSprayerAction : IForEach<PlayerComponent, TransformComponent, InventoryComponent>
     {
         public PaintSprayerEffectSystem Owner;
+        public bool HasViewModelChild;
+        public ChildComponent ViewModelChild;
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in TransformComponent transform, in InventoryComponent inventory)
         {
-            Owner.UpdateLocalPlayer(store, entity, in transform, in inventory);
+            Owner.UpdateLocalPlayer(store, entity, in transform, in inventory, HasViewModelChild, in ViewModelChild);
         }
     }
 }

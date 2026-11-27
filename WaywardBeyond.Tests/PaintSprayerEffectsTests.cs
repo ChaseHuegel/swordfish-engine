@@ -151,6 +151,21 @@ public sealed class PaintSprayerEffectsTests
         Assert.Equal(expectedNozzle.Y, actualNozzle.Y, precision: 4);
         Assert.Equal(expectedNozzle.Z, actualNozzle.Z, precision: 4);
 
+        var animatedChild = new ChildComponent(Uuid.FromValue(1))
+        {
+            LocalPosition = new Vector3(0.48f, -0.52f, -0.28f),
+            LocalOrientation = Quaternion.Normalize(Quaternion.CreateFromYawPitchRoll(-0.04f, 0.03f, -0.05f) * localRot),
+            LocalScale = Vector3.One,
+        };
+        Vector3 animatedNozzle = PaintSprayerGeometry.ComputeFirstPersonNozzle(in scaledTransform, in animatedChild);
+        Vector3 animatedWorldOrigin = scaledTransform.Position + Vector3.Transform(animatedChild.LocalPosition, scaledTransform.Orientation);
+        Quaternion animatedWorldRot = scaledTransform.Orientation * animatedChild.LocalOrientation;
+        Vector3 expectedAnimatedNozzle = animatedWorldOrigin + Vector3.Transform(new Vector3(0f, -0.006f, -0.85f) * childWorldScale, animatedWorldRot);
+        Assert.Equal(expectedAnimatedNozzle.X, animatedNozzle.X, precision: 4);
+        Assert.Equal(expectedAnimatedNozzle.Y, animatedNozzle.Y, precision: 4);
+        Assert.Equal(expectedAnimatedNozzle.Z, animatedNozzle.Z, precision: 4);
+        Assert.NotEqual(actualNozzle, animatedNozzle);
+
         var originTransform = new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One);
         Vector3 originNozzle = PaintSprayerGeometry.ComputeFirstPersonNozzle(in originTransform, null);
         Assert.Equal(originNozzle, ToolAimGeometry.ComputeSafeStart(in originTransform, originNozzle, new Vector3(0f, 0f, -5f)));
