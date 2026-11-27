@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 using DryIoc;
 using Krill;
@@ -349,7 +350,7 @@ public sealed class PaintSprayerEffectsTests
     }
 
     [Fact]
-    public async Task ServerPaintSprayerSystemReplicatesGenericEmittersHandlesLocalMuteRemoteRenderAndDisconnects()
+    public async Task ServerPaintSprayerSystemReplicatesGenericEmittersOmitsShooterAndCleansUpOnDisconnect()
     {
         using var container = new Container();
         container.RegisterNetworking();
@@ -381,23 +382,35 @@ public sealed class PaintSprayerEffectsTests
         serverRpcRegistry.Freeze();
         var rpcServer = new RpcServer(transport, serverRpcRegistry);
         var host = new StubRpcHost();
-        var connected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
-        rpcServer.ClientConnected += peer => connected.TrySetResult(peer);
+        TaskCompletionSource<RpcPeer>? pendingConnect = null;
+        rpcServer.ClientConnected += peer => Volatile.Read(ref pendingConnect)?.TrySetResult(peer);
         rpcServer.Start();
 
-        var connection = new LoopbackRpcClientConnection(transport);
+        var shooterConnection = new LoopbackRpcClientConnection(transport);
+        var observerConnection = new LoopbackRpcClientConnection(transport);
         try
         {
-            await connection.ConnectAsync();
+            var shooterConnected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Volatile.Write(ref pendingConnect, shooterConnected);
+            await shooterConnection.ConnectAsync();
+            var shooterInbound = new ClientInbound();
+            var shooterRpcRegistry = new RpcRegistry();
+            shooterRpcRegistry.AddService(new ClientHandlers(shooterInbound));
+            shooterRpcRegistry.Freeze();
+            _ = new RpcClient(shooterConnection, shooterRpcRegistry);
+            RpcPeer shooterRpcPeer = await shooterConnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            ServerPeer shooterServerPeer = peers.GetOrAdd(host, shooterRpcPeer, isLocal: true);
 
-            var inbound = new ClientInbound();
-            var clientRpcRegistry = new RpcRegistry();
-            clientRpcRegistry.AddService(new ClientHandlers(inbound));
-            clientRpcRegistry.Freeze();
-            _ = new RpcClient(connection, clientRpcRegistry);
-
-            RpcPeer rpcPeer = await connected.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            ServerPeer serverPeer = peers.GetOrAdd(host, rpcPeer, isLocal: true);
+            var observerConnected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Volatile.Write(ref pendingConnect, observerConnected);
+            await observerConnection.ConnectAsync();
+            var observerInbound = new ClientInbound();
+            var observerRpcRegistry = new RpcRegistry();
+            observerRpcRegistry.AddService(new ClientHandlers(observerInbound));
+            observerRpcRegistry.Freeze();
+            _ = new RpcClient(observerConnection, observerRpcRegistry);
+            RpcPeer observerRpcPeer = await observerConnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            ServerPeer observerServerPeer = peers.GetOrAdd(host, observerRpcPeer, isLocal: true);
 
             Uuid shooterUuid = Uuid.FromValue(9101);
             int serverEntity = serverStore.Alloc(shooterUuid);
@@ -410,21 +423,41 @@ public sealed class PaintSprayerEffectsTests
             inventory.Contents[1] = new ItemData(LASER_ITEM_ID, 1, 1);
             serverStore.AddOrUpdate(serverEntity, inventory);
             serverStore.AddOrUpdate(serverEntity, new InputComponent { PrimaryHeld = false, SecondaryHeld = false });
-            sessions.Register(serverStore, serverEntity, serverPeer.GameId, new Session(1));
+            sessions.Register(serverStore, serverEntity, shooterServerPeer.GameId, new Session(1));
 
-            //  Remote observer client setup (local PlayerComponent has a different UUID from shooterUuid).
+            Uuid observerUuid = Uuid.FromValue(9999);
+            int observerServerEntity = serverStore.Alloc(observerUuid);
+            serverStore.AddOrUpdate(observerServerEntity, NetworkComponent.Create());
+            sessions.Register(serverStore, observerServerEntity, observerServerPeer.GameId, new Session(2));
+
+            //  Clear initial spawn dirty flags so subsequent publishes test sprayer emitter traffic cleanly.
+            NetworkComponentInfo[] serverOwned = registry.GetComponents(NetworkDirection.ServerOwned);
+            for (var i = 0; i < serverOwned.Length; i++)
+            {
+                serverStore.ClearDirty(serverOwned[i].Type, serverEntity);
+                serverStore.ClearDirty(serverOwned[i].Type, observerServerEntity);
+            }
+
+            //  Remote observer client setup.
             var remoteObserverStore = new DataStore();
             int remoteMirrorOnObserver = remoteObserverStore.Alloc(shooterUuid);
             remoteObserverStore.AddOrUpdate(remoteMirrorOnObserver, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
             remoteObserverStore.AddOrUpdate(remoteMirrorOnObserver, new BodyViewComponent { Body = "wb:human_m" });
-            int observerPlayer = remoteObserverStore.Alloc(Uuid.FromValue(9999));
+            int observerPlayer = remoteObserverStore.Alloc(observerUuid);
             remoteObserverStore.AddOrUpdate(observerPlayer, new PlayerComponent());
+
+            //  Shooter's own client setup.
+            var shooterClientStore = new DataStore();
+            int shooterLocalPlayer = shooterClientStore.Alloc(shooterUuid);
+            shooterClientStore.AddOrUpdate(shooterLocalPlayer, new PlayerComponent());
+            shooterClientStore.AddOrUpdate(shooterLocalPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            ClientReconcileSystem shooterReconcile = CreateClientReconcile(shooterInbound, registry);
 
             StubAssetDatabase<ParticleEffect> templateDb = CreateTemplateAssetDatabase();
             var observerParticleSystem = new ParticleSystem(templateDb, new RenderSettings(), new Random(13));
             var observerChildSystem = new ChildSystem();
-            var observerParticleSync = new ClientParticleReplicationSystem(inbound, observerParticleSystem, NullLogger<ClientParticleReplicationSystem>.Instance);
-            ClientReconcileSystem observerReconcile = CreateClientReconcile(inbound, registry);
+            var observerParticleSync = new ClientParticleReplicationSystem(observerInbound, observerParticleSystem, NullLogger<ClientParticleReplicationSystem>.Instance);
+            ClientReconcileSystem observerReconcile = CreateClientReconcile(observerInbound, registry);
 
             //  1. Non-firing sprayer or non-sprayer tool spawns zero generic emitters.
             sprayerSystem.Tick(serverStore, simStep.CurrentSimTick);
@@ -435,7 +468,7 @@ public sealed class PaintSprayerEffectsTests
             sprayerSystem.Tick(serverStore, simStep.CurrentSimTick);
             Assert.Equal(0, CountComponents<ParticleEmitterComponent>(serverStore));
 
-            //  2. Firing with sprayer spawns nozzle (ParentEntity + ExcludeEntity) and impact (ExcludeEntity) emitters.
+            //  2. Firing with sprayer spawns nozzle (ParentEntity + server exclusion) and impact (server exclusion) emitters.
             serverStore.AddOrUpdate(serverEntity, new EquipmentComponent(0));
             sprayerSystem.Tick(serverStore, simStep.CurrentSimTick);
             Assert.Equal(serverEntity, physics.LastIgnoredEntity);
@@ -443,6 +476,8 @@ public sealed class PaintSprayerEffectsTests
 
             (int nozzleEntity, ParticleEmitterComponent serverNozzle) = FindEmitterEntity(serverStore, "paint_sprayer_stream");
             (int impactEntity, ParticleEmitterComponent serverImpact) = FindEmitterEntity(serverStore, "paint_sprayer_impact");
+            Uuid nozzleUuid = serverStore.GetUuid(nozzleEntity);
+            Uuid impactUuid = serverStore.GetUuid(impactEntity);
             Assert.Equal(cyanTint, serverNozzle.TintRgba);
             Assert.Equal(cyanTint, serverImpact.TintRgba);
             Assert.True(serverNozzle.Playing);
@@ -450,18 +485,20 @@ public sealed class PaintSprayerEffectsTests
 
             Assert.True(serverStore.TryGet(nozzleEntity, out ParticleEmitterBindingComponent serverNozzleBinding));
             Assert.Equal(shooterUuid.ToValue(), serverNozzleBinding.ParentEntity);
-            Assert.Equal(shooterUuid.ToValue(), serverNozzleBinding.ExcludeEntity);
+            Assert.True(serverStore.TryGet(nozzleEntity, out NetworkComponent nozzleNet));
+            Assert.Equal(shooterUuid, nozzleNet.ExcludedRecipientEntity);
 
-            Assert.True(serverStore.TryGet(impactEntity, out ParticleEmitterBindingComponent serverImpactBinding));
-            Assert.Equal(0UL, serverImpactBinding.ParentEntity);
-            Assert.Equal(shooterUuid.ToValue(), serverImpactBinding.ExcludeEntity);
+            Assert.False(serverStore.Has(typeof(ParticleEmitterBindingComponent), impactEntity));
+            Assert.True(serverStore.TryGet(impactEntity, out NetworkComponent impactNet));
+            Assert.Equal(shooterUuid, impactNet.ExcludedRecipientEntity);
 
-            //  Publish to remote observer over loopback and verify generic emitter rendering + parent tracking.
+            //  Publish to remote observer and shooter: observer gets both emitters, shooter gets zero snapshots.
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
             TickReconcileWhilePlaying(observerReconcile, remoteObserverStore);
 
             Assert.Equal(2, CountComponents<ParticleEmitterComponent>(remoteObserverStore));
+            Assert.Empty(shooterInbound.Snapshots);
 
             //  3. Steady aim leaves emitter components and transforms clean (0 re-dirtied snapshots).
             Assert.False(serverStore.IsDirty<ParticleEmitterComponent>(nozzleEntity));
@@ -498,10 +535,16 @@ public sealed class PaintSprayerEffectsTests
             Assert.False(solventImpact.Playing);
             Assert.False(serverStore.IsDirty<TransformComponent>(impactEntity));
 
-            //  Replicate solvent state to observer and verify observer emits solvent particles, while shooter store mutes them.
+            //  Replicate solvent state: observer emits solvent particles, while shooter receives only its own transform and neither emitter.
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
+            await WaitForSnapshotsAsync(shooterInbound, expectedCount: 1);
             TickReconcileWhilePlaying(observerReconcile, remoteObserverStore);
+            TickReconcileWhilePlaying(shooterReconcile, shooterClientStore);
+
+            Assert.Equal(0, CountComponents<ParticleEmitterComponent>(shooterClientStore));
+            Assert.False(shooterClientStore.TryGet(nozzleUuid, out _));
+            Assert.False(shooterClientStore.TryGet(impactUuid, out _));
 
             GameState previous = WaywardBeyondGameState.GameState.Get();
             WaywardBeyondGameState.GameState.Set(GameState.Playing);
@@ -512,43 +555,22 @@ public sealed class PaintSprayerEffectsTests
                 observerParticleSystem.Tick(0.05f, remoteObserverStore);
                 Assert.True(observerParticleSystem.ActiveParticleCount > 0);
                 Assert.False(remoteObserverStore.Has(typeof(ParticleEmitterMutedComponent), FindEntity(remoteObserverStore, "paint_sprayer_solvent_stream")));
-
-                //  Shooter's own client store mutes both replicated emitters via ExcludeEntity == shooterUuid.
-                var shooterClientStore = new DataStore();
-                int shooterMirror = shooterClientStore.Alloc(shooterUuid);
-                shooterClientStore.AddOrUpdate(shooterMirror, new PlayerComponent());
-                shooterClientStore.AddOrUpdate(shooterMirror, new TransformComponent(new Vector3(3f, 0f, 0f), Quaternion.Identity, Vector3.One));
-                int clientNozzle = shooterClientStore.Alloc(serverStore.GetUuid(nozzleEntity));
-                shooterClientStore.AddOrUpdate(clientNozzle, new TransformComponent(Vector3.Zero));
-                shooterClientStore.AddOrUpdate(clientNozzle, solventNozzle);
-                shooterClientStore.AddOrUpdate(clientNozzle, serverNozzleBinding);
-                int clientImpact = shooterClientStore.Alloc(serverStore.GetUuid(impactEntity));
-                shooterClientStore.AddOrUpdate(clientImpact, new TransformComponent(Vector3.Zero));
-                shooterClientStore.AddOrUpdate(clientImpact, solventImpact);
-                shooterClientStore.AddOrUpdate(clientImpact, serverImpactBinding);
-
-                var shooterParticles = new ParticleSystem(templateDb, new RenderSettings(), new Random(13));
-                var shooterSync = new ClientParticleReplicationSystem(new ClientInbound(), shooterParticles, NullLogger<ClientParticleReplicationSystem>.Instance);
-                shooterSync.Tick(0.016f, shooterClientStore);
-                shooterParticles.Tick(0.05f, shooterClientStore);
-                Assert.True(shooterClientStore.Has(typeof(ParticleEmitterMutedComponent), clientNozzle));
-                Assert.True(shooterClientStore.Has(typeof(ParticleEmitterMutedComponent), clientImpact));
-                Assert.Equal(0, shooterParticles.ActiveParticleCount);
             }
             finally
             {
                 WaywardBeyondGameState.GameState.Set(previous);
             }
 
-            //  7. Releasing fire despawns both emitters on server and replicates removal to client.
+            //  7. Releasing fire despawns both emitters on server and replicates removal only to observer.
             serverStore.AddOrUpdate(serverEntity, new InputComponent { PrimaryHeld = false, SecondaryHeld = false });
             sprayerSystem.Tick(serverStore, simStep.CurrentSimTick);
             Assert.Equal(0, CountComponents<ParticleEmitterComponent>(serverStore));
 
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
             TickReconcileWhilePlaying(observerReconcile, remoteObserverStore);
             Assert.Equal(0, CountComponents<ParticleEmitterComponent>(remoteObserverStore));
+            Assert.Empty(shooterInbound.Snapshots);
 
             //  8. Player disconnect while firing sweeps stale emitter pair cleanly.
             physics.NextHit = new RaycastResult(hit: true, default(Entity), new Vector3(3f, 0f, -4f), hitNormal);
@@ -562,7 +584,8 @@ public sealed class PaintSprayerEffectsTests
         }
         finally
         {
-            connection.Close();
+            shooterConnection.Close();
+            observerConnection.Close();
             rpcServer.Close();
             transport.Close();
         }

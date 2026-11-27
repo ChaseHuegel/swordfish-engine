@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 using DryIoc;
 using Krill;
@@ -147,29 +148,50 @@ public sealed class ParticleReplicationTests
         serverRpcRegistry.Freeze();
         var rpcServer = new RpcServer(transport, serverRpcRegistry);
         var host = new StubRpcHost();
-        var connected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
-        rpcServer.ClientConnected += peer => connected.TrySetResult(peer);
+        TaskCompletionSource<RpcPeer>? pendingConnect = null;
+        rpcServer.ClientConnected += peer => Volatile.Read(ref pendingConnect)?.TrySetResult(peer);
         rpcServer.Start();
 
-        var connection = new LoopbackRpcClientConnection(transport);
+        var ownerConnection = new LoopbackRpcClientConnection(transport);
+        var observerConnection = new LoopbackRpcClientConnection(transport);
         try
         {
-            await connection.ConnectAsync();
+            var ownerConnected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Volatile.Write(ref pendingConnect, ownerConnected);
+            await ownerConnection.ConnectAsync();
+            var ownerInbound = new ClientInbound();
+            var ownerRpcRegistry = new RpcRegistry();
+            ownerRpcRegistry.AddService(new ClientHandlers(ownerInbound));
+            ownerRpcRegistry.Freeze();
+            _ = new RpcClient(ownerConnection, ownerRpcRegistry);
+            RpcPeer ownerRpcPeer = await ownerConnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            ServerPeer ownerPeer = peers.GetOrAdd(host, ownerRpcPeer, isLocal: true);
 
-            var inbound = new ClientInbound();
-            var clientRpcRegistry = new RpcRegistry();
-            clientRpcRegistry.AddService(new ClientHandlers(inbound));
-            clientRpcRegistry.Freeze();
-            _ = new RpcClient(connection, clientRpcRegistry);
+            var observerConnected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Volatile.Write(ref pendingConnect, observerConnected);
+            await observerConnection.ConnectAsync();
+            var observerInbound = new ClientInbound();
+            var observerRpcRegistry = new RpcRegistry();
+            observerRpcRegistry.AddService(new ClientHandlers(observerInbound));
+            observerRpcRegistry.Freeze();
+            _ = new RpcClient(observerConnection, observerRpcRegistry);
+            RpcPeer observerRpcPeer = await observerConnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            ServerPeer observerPeer = peers.GetOrAdd(host, observerRpcPeer, isLocal: true);
 
-            RpcPeer rpcPeer = await connected.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            ServerPeer serverPeer = peers.GetOrAdd(host, rpcPeer, isLocal: true);
+            Uuid ownerUuid = Uuid.FromValue(7001);
+            int serverOwner = serverStore.Alloc(ownerUuid);
+            serverStore.AddOrUpdate(serverOwner, NetworkComponent.Create());
+            sessions.Register(serverStore, serverOwner, ownerPeer.GameId, new Session(1));
 
-            int serverPlayer = serverStore.Alloc(Uuid.FromValue(7001));
-            sessions.Register(serverStore, serverPlayer, serverPeer.GameId, new Session(1));
+            Uuid observerUuid = Uuid.FromValue(7002);
+            int serverObserver = serverStore.Alloc(observerUuid);
+            serverStore.AddOrUpdate(serverObserver, NetworkComponent.Create());
+            sessions.Register(serverStore, serverObserver, observerPeer.GameId, new Session(2));
 
-            var clientStore = new DataStore();
-            ClientReconcileSystem clientReconcile = CreateClientReconcile(inbound, registry);
+            var ownerClientStore = new DataStore();
+            ClientReconcileSystem ownerReconcile = CreateClientReconcile(ownerInbound, registry);
+            var observerClientStore = new DataStore();
+            ClientReconcileSystem observerReconcile = CreateClientReconcile(observerInbound, registry);
 
             //  Invalid emitter requests are rejected safely.
             Assert.False(particleService.SpawnEmitter(serverStore, new ParticleEmitterComponent("", playing: true), Vector3.Zero).Success);
@@ -183,60 +205,70 @@ public sealed class ParticleReplicationTests
                     LocalDirection = Vector3.UnitZ,
                 },
                 new Vector3(4f, 5f, -6f),
-                parentEntity: Uuid.FromValue(7001),
-                excludeEntity: Uuid.FromValue(7001)
+                parentEntity: ownerUuid,
+                excludeEntity: ownerUuid
             );
             Assert.True(spawned.Success, spawned.Message);
             int serverEmitter = spawned.Value;
             Uuid emitterUuid = serverStore.GetUuid(serverEmitter);
+            Assert.True(serverStore.TryGet(serverEmitter, out NetworkComponent emitterNet));
+            Assert.Equal(ownerUuid, emitterNet.ExcludedRecipientEntity);
 
-            //  Delta publish replicates emitter + transform + binding to client.
+            //  Delta publish replicates emitter + transform + binding to observer while omitting excluded owner.
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
-            TickReconcileWhilePlaying(clientReconcile, clientStore);
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
+            TickReconcileWhilePlaying(observerReconcile, observerClientStore);
 
-            Assert.True(clientStore.TryGet(emitterUuid, out int clientEmitter));
-            Assert.True(clientStore.TryGet(clientEmitter, out ParticleEmitterComponent replicated));
+            Assert.True(observerClientStore.TryGet(emitterUuid, out int clientEmitter));
+            Assert.True(observerClientStore.TryGet(clientEmitter, out ParticleEmitterComponent replicated));
             Assert.Equal("beacon", replicated.EffectId);
             Assert.True(replicated.Playing);
             Assert.Equal(1.25f, replicated.RateScale);
             Assert.Equal(0x00FF00FFu, replicated.TintRgba);
-            Assert.True(clientStore.TryGet(clientEmitter, out ParticleEmitterBindingComponent binding));
+            Assert.True(observerClientStore.TryGet(clientEmitter, out ParticleEmitterBindingComponent binding));
             Assert.Equal(7001UL, binding.ParentEntity);
-            Assert.Equal(7001UL, binding.ExcludeEntity);
+            Assert.Empty(ownerInbound.Snapshots);
 
-            //  Full-sync snapshot still carries the un-dirty emitter for late joiners.
-            replication.RequestFullSync(serverPeer.GameId);
-            clientStore.Free(clientEmitter);
+            //  Full-sync snapshot carries the un-dirty emitter for late-joining observers, never for excluded owner.
+            replication.RequestFullSync(observerPeer.GameId);
+            replication.RequestFullSync(ownerPeer.GameId);
+            observerClientStore.Free(clientEmitter);
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
-            TickReconcileWhilePlaying(clientReconcile, clientStore);
-            Assert.True(clientStore.TryGet(emitterUuid, out clientEmitter));
-            Assert.True(clientStore.TryGet(clientEmitter, out ParticleEmitterComponent fullSynced));
-            Assert.Equal("beacon", fullSynced.EffectId);
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
+            await WaitForSnapshotsAsync(ownerInbound, expectedCount: 1);
+            TickReconcileWhilePlaying(observerReconcile, observerClientStore);
+            TickReconcileWhilePlaying(ownerReconcile, ownerClientStore);
 
-            //  Removing ParticleEmitterBindingComponent replicates ComponentRemoval cleanly.
+            Assert.True(observerClientStore.TryGet(emitterUuid, out clientEmitter));
+            Assert.True(observerClientStore.TryGet(clientEmitter, out ParticleEmitterComponent fullSynced));
+            Assert.Equal("beacon", fullSynced.EffectId);
+            Assert.False(ownerClientStore.TryGet(emitterUuid, out _));
+
+            //  Removing ParticleEmitterBindingComponent replicates ComponentRemoval only to observer.
             serverStore.Remove(typeof(ParticleEmitterBindingComponent), serverEmitter);
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
-            TickReconcileWhilePlaying(clientReconcile, clientStore);
-            Assert.False(clientStore.Has(typeof(ParticleEmitterBindingComponent), clientEmitter));
-            Assert.True(clientStore.Has(typeof(ParticleEmitterComponent), clientEmitter));
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
+            TickReconcileWhilePlaying(observerReconcile, observerClientStore);
+            Assert.False(observerClientStore.Has(typeof(ParticleEmitterBindingComponent), clientEmitter));
+            Assert.True(observerClientStore.Has(typeof(ParticleEmitterComponent), clientEmitter));
+            Assert.Empty(ownerInbound.Snapshots);
 
-            //  Despawn guard ignores wrong expectedUuid and frees cleanly when matching.
+            //  Despawn guard ignores wrong expectedUuid and frees cleanly when matching; despawn omits excluded owner.
             particleService.DespawnEmitter(serverStore, serverEmitter, Uuid.FromValue(999999));
             Assert.Equal(emitterUuid, serverStore.GetUuid(serverEmitter));
             particleService.DespawnEmitter(serverStore, serverEmitter, emitterUuid);
             Assert.False(serverStore.TryGet(emitterUuid, out _));
 
             replication.PublishStage(1f, serverStore);
-            await WaitForSnapshotsAsync(inbound, expectedCount: 1);
-            TickReconcileWhilePlaying(clientReconcile, clientStore);
-            Assert.False(clientStore.TryGet(emitterUuid, out _));
+            await WaitForSnapshotsAsync(observerInbound, expectedCount: 1);
+            TickReconcileWhilePlaying(observerReconcile, observerClientStore);
+            Assert.False(observerClientStore.TryGet(emitterUuid, out _));
+            Assert.Empty(ownerInbound.Snapshots);
         }
         finally
         {
-            connection.Close();
+            ownerConnection.Close();
+            observerConnection.Close();
             rpcServer.Close();
             transport.Close();
         }
@@ -255,10 +287,6 @@ public sealed class ParticleReplicationTests
         var store = new DataStore();
 
         Uuid parentUuid = Uuid.FromValue(500);
-        Uuid localObserverUuid = Uuid.FromValue(501);
-        Uuid remoteOwnerUuid = Uuid.FromValue(502);
-        int localPlayer = store.Alloc(localObserverUuid);
-        store.AddOrUpdate(localPlayer, new PlayerComponent());
 
         Uuid emitterUuid = Uuid.FromValue(600);
         int emitter = store.Alloc(emitterUuid);
@@ -271,7 +299,6 @@ public sealed class ParticleReplicationTests
         store.AddOrUpdate(emitter, new ParticleEmitterBindingComponent
         {
             ParentEntity = parentUuid.ToValue(),
-            ExcludeEntity = remoteOwnerUuid.ToValue(),
         });
 
         GameState previous = WaywardBeyondGameState.GameState.Get();
@@ -324,7 +351,7 @@ public sealed class ParticleReplicationTests
     }
 
     [Fact]
-    public void ClientParticleReplicationSystemSuppressesLocalExcludeDetachesClearedParentAndSweepsRemovedBindings()
+    public void ClientParticleReplicationSystemAttachesValidParentMutesInvalidParentsAndSweepsRemovedBindings()
     {
         var db = new StubAssetDatabase<ParticleEffect>();
         db.Assets["thruster"] = CreateEffect("thruster", rate: 100f, lifetimeMin: 2f, lifetimeMax: 2f);
@@ -334,22 +361,18 @@ public sealed class ParticleReplicationTests
         var clientParticles = new ClientParticleReplicationSystem(inbound, particleSystem, NullLogger<ClientParticleReplicationSystem>.Instance);
         var store = new DataStore();
 
-        Uuid localUuid = Uuid.FromValue(8001);
+        Uuid missingParentUuid = Uuid.FromValue(8001);
         Uuid remoteUuid = Uuid.FromValue(8002);
-        int localPlayer = store.Alloc(localUuid);
-        store.AddOrUpdate(localPlayer, new PlayerComponent());
-        store.AddOrUpdate(localPlayer, new TransformComponent(new Vector3(5f, 0f, 0f)));
 
         int remotePlayer = store.Alloc(remoteUuid);
         store.AddOrUpdate(remotePlayer, new TransformComponent(new Vector3(15f, 0f, 0f)));
 
-        int excludedEmitter = store.Alloc(Uuid.FromValue(8101));
-        store.AddOrUpdate(excludedEmitter, new TransformComponent(Vector3.Zero));
-        store.AddOrUpdate(excludedEmitter, new ParticleEmitterComponent("thruster", playing: true));
-        store.AddOrUpdate(excludedEmitter, new ParticleEmitterBindingComponent
+        int missingParentEmitter = store.Alloc(Uuid.FromValue(8101));
+        store.AddOrUpdate(missingParentEmitter, new TransformComponent(Vector3.Zero));
+        store.AddOrUpdate(missingParentEmitter, new ParticleEmitterComponent("thruster", playing: true));
+        store.AddOrUpdate(missingParentEmitter, new ParticleEmitterBindingComponent
         {
-            ParentEntity = localUuid.ToValue(),
-            ExcludeEntity = localUuid.ToValue(),
+            ParentEntity = missingParentUuid.ToValue(),
         });
 
         int visibleEmitter = store.Alloc(Uuid.FromValue(8102));
@@ -358,7 +381,6 @@ public sealed class ParticleReplicationTests
         store.AddOrUpdate(visibleEmitter, new ParticleEmitterBindingComponent
         {
             ParentEntity = remoteUuid.ToValue(),
-            ExcludeEntity = remoteUuid.ToValue(),
         });
 
         //  Self-parented emitter is also muted and never adds ChildComponent pointing to itself.
@@ -376,8 +398,8 @@ public sealed class ParticleReplicationTests
         try
         {
             clientParticles.Tick(0.016f, store);
-            Assert.True(store.Has(typeof(ParticleEmitterMutedComponent), excludedEmitter));
-            Assert.True(store.TryGet(excludedEmitter, out ParticleEmitterComponent stillPlaying) && stillPlaying.Playing);
+            Assert.True(store.Has(typeof(ParticleEmitterMutedComponent), missingParentEmitter));
+            Assert.True(store.TryGet(missingParentEmitter, out ParticleEmitterComponent stillPlaying) && stillPlaying.Playing);
 
             Assert.False(store.Has(typeof(ParticleEmitterMutedComponent), visibleEmitter));
             Assert.True(store.TryGet(visibleEmitter, out ChildComponent remoteChild));
@@ -395,18 +417,17 @@ public sealed class ParticleReplicationTests
                 Assert.Equal(15f, snap.Instances[i].Position.X, precision: 2);
             }
 
-            //  Clearing ParentEntity detaches ChildComponent; removing ParticleEmitterBindingComponent unmutes excludedEmitter.
+            //  Clearing ParentEntity detaches ChildComponent; removing ParticleEmitterBindingComponent unmutes missingParentEmitter.
             store.AddOrUpdate(visibleEmitter, new ParticleEmitterBindingComponent
             {
                 ParentEntity = 0UL,
-                ExcludeEntity = remoteUuid.ToValue(),
             });
-            store.Remove(typeof(ParticleEmitterBindingComponent), excludedEmitter);
+            store.Remove(typeof(ParticleEmitterBindingComponent), missingParentEmitter);
             clientParticles.Tick(0.016f, store);
 
             Assert.False(store.Has(typeof(ChildComponent), visibleEmitter));
-            Assert.False(store.Has(typeof(ParticleEmitterMutedComponent), excludedEmitter));
-            Assert.False(store.Has(typeof(ChildComponent), excludedEmitter));
+            Assert.False(store.Has(typeof(ParticleEmitterMutedComponent), missingParentEmitter));
+            Assert.False(store.Has(typeof(ChildComponent), missingParentEmitter));
         }
         finally
         {
@@ -672,11 +693,8 @@ public sealed class ParticleReplicationTests
         var clientParticles = new ClientParticleReplicationSystem(inbound, particleSystem, NullLogger<ClientParticleReplicationSystem>.Instance);
         var store = new DataStore();
 
-        Uuid localUuid = Uuid.FromValue(9001);
+        Uuid missingParentUuid = Uuid.FromValue(9001);
         Uuid remoteUuid = Uuid.FromValue(9002);
-        int localPlayer = store.Alloc(localUuid);
-        store.AddOrUpdate(localPlayer, new PlayerComponent());
-        store.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero));
 
         int remotePlayer = store.Alloc(remoteUuid);
         store.AddOrUpdate(remotePlayer, new TransformComponent(new Vector3(10f, 0f, 0f)));
@@ -687,19 +705,17 @@ public sealed class ParticleReplicationTests
         var visibleBinding = new ParticleEmitterBindingComponent
         {
             ParentEntity = remoteUuid.ToValue(),
-            ExcludeEntity = remoteUuid.ToValue(),
         };
         store.AddOrUpdate(visibleEmitter, visibleBinding);
 
-        int excludedEmitter = store.Alloc(Uuid.FromValue(9012));
-        store.AddOrUpdate(excludedEmitter, new TransformComponent(Vector3.Zero));
-        store.AddOrUpdate(excludedEmitter, new ParticleEmitterComponent("thruster", playing: true));
-        var excludedBinding = new ParticleEmitterBindingComponent
+        int mutedEmitter = store.Alloc(Uuid.FromValue(9012));
+        store.AddOrUpdate(mutedEmitter, new TransformComponent(Vector3.Zero));
+        store.AddOrUpdate(mutedEmitter, new ParticleEmitterComponent("thruster", playing: true));
+        var mutedBinding = new ParticleEmitterBindingComponent
         {
-            ParentEntity = localUuid.ToValue(),
-            ExcludeEntity = localUuid.ToValue(),
+            ParentEntity = missingParentUuid.ToValue(),
         };
-        store.AddOrUpdate(excludedEmitter, excludedBinding);
+        store.AddOrUpdate(mutedEmitter, mutedBinding);
 
         GameState previous = WaywardBeyondGameState.GameState.Get();
         WaywardBeyondGameState.GameState.Set(GameState.Playing);
@@ -707,7 +723,7 @@ public sealed class ParticleReplicationTests
         {
             clientParticles.Tick(0.016f, store);
             Assert.True(store.TryGet(visibleEmitter, out ChildComponent _));
-            Assert.True(store.Has(typeof(ParticleEmitterMutedComponent), excludedEmitter));
+            Assert.True(store.Has(typeof(ParticleEmitterMutedComponent), mutedEmitter));
 
             //  Switching to Paused must continue draining bursts and syncing binding transitions.
             WaywardBeyondGameState.GameState.Set(GameState.Paused);
@@ -742,26 +758,25 @@ public sealed class ParticleReplicationTests
             store.AddOrUpdate(visibleEmitter, new ParticleEmitterBindingComponent
             {
                 ParentEntity = 0UL,
-                ExcludeEntity = remoteUuid.ToValue(),
             });
-            store.Remove(typeof(ParticleEmitterBindingComponent), excludedEmitter);
+            store.Remove(typeof(ParticleEmitterBindingComponent), mutedEmitter);
             clientParticles.Tick(0.016f, store);
             Assert.False(store.Has(typeof(ChildComponent), visibleEmitter));
-            Assert.False(store.Has(typeof(ParticleEmitterMutedComponent), excludedEmitter));
-            Assert.False(store.Has(typeof(ChildComponent), excludedEmitter));
+            Assert.False(store.Has(typeof(ParticleEmitterMutedComponent), mutedEmitter));
+            Assert.False(store.Has(typeof(ChildComponent), mutedEmitter));
 
             //  Re-attach, then leave play (< Playing): managed components must not leak.
             store.AddOrUpdate(visibleEmitter, visibleBinding);
-            store.AddOrUpdate(excludedEmitter, excludedBinding);
+            store.AddOrUpdate(mutedEmitter, mutedBinding);
             clientParticles.Tick(0.016f, store);
             Assert.True(store.Has(typeof(ChildComponent), visibleEmitter));
-            Assert.True(store.Has(typeof(ParticleEmitterMutedComponent), excludedEmitter));
+            Assert.True(store.Has(typeof(ParticleEmitterMutedComponent), mutedEmitter));
 
             WaywardBeyondGameState.GameState.Set(GameState.Loading);
             clientParticles.Tick(0.016f, store);
             Assert.False(store.Has(typeof(ChildComponent), visibleEmitter));
-            Assert.False(store.Has(typeof(ChildComponent), excludedEmitter));
-            Assert.False(store.Has(typeof(ParticleEmitterMutedComponent), excludedEmitter));
+            Assert.False(store.Has(typeof(ChildComponent), mutedEmitter));
+            Assert.False(store.Has(typeof(ParticleEmitterMutedComponent), mutedEmitter));
         }
         finally
         {

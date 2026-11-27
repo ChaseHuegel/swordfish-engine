@@ -38,6 +38,30 @@ public class ColliderCodecTests
     }
 
     [Fact]
+    public void RegistrationExcludesOwnerFromColliderReplication()
+    {
+        var container = new Container();
+        container.RegisterNetworking();
+
+        Result<NetworkComponentInfo> registration = container.Resolve<NetworkRegistry>().GetInfo<ColliderComponent>();
+        Assert.True(registration.Success);
+        Func<DataStore, int, ReplicationRecipient, bool>? recipientFilter = registration.Value.RecipientFilter;
+        Assert.NotNull(recipientFilter);
+
+        var store = new DataStore();
+        Uuid ownerUuid = Uuid.FromValue(101);
+        Uuid observerUuid = Uuid.FromValue(102);
+        int owner = store.Alloc(ownerUuid);
+        int observer = store.Alloc(observerUuid);
+
+        var ownerRecipient = new ReplicationRecipient(Uuid.FromValue(1), owner, ownerUuid);
+        var observerRecipient = new ReplicationRecipient(Uuid.FromValue(2), observer, observerUuid);
+
+        Assert.False(recipientFilter!(store, owner, ownerRecipient));
+        Assert.True(recipientFilter(store, owner, observerRecipient));
+    }
+
+    [Fact]
     public void CharacterCompoundColliderRoundTrips()
     {
         ColliderComponent original = CharacterDefaults.CreateCharacterColliderComponent(Vector3.One);

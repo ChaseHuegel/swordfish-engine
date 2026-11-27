@@ -166,17 +166,18 @@ public sealed class ServerParticleService(
             LocalDirection = emitter.LocalDirection,
         };
 
-        store.AddOrUpdate(entity, NetworkComponent.Create());
+        NetworkComponent net = NetworkComponent.Create();
+        net.ExcludedRecipientEntity = excludeEntity;
+        store.AddOrUpdate(entity, net);
         store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
         store.AddOrUpdate(entity, new TransformComponent(position, orientation, Vector3.One));
         store.AddOrUpdate(entity, normalized);
 
-        if (parentEntity != Uuid.Null || excludeEntity != Uuid.Null)
+        if (parentEntity != Uuid.Null)
         {
             store.AddOrUpdate(entity, new ParticleEmitterBindingComponent
             {
                 ParentEntity = parentEntity.ToValue(),
-                ExcludeEntity = excludeEntity.ToValue(),
             });
         }
 
@@ -199,7 +200,10 @@ public sealed class ServerParticleService(
     {
         if (entity != Entity.Null && expectedUuid != Uuid.Null && store.GetUuid(entity) == expectedUuid)
         {
-            _replication.RequestDespawn(expectedUuid.ToValue());
+            Uuid excludedRecipient = store.TryGet(entity, out NetworkComponent net)
+                ? net.ExcludedRecipientEntity
+                : Uuid.Null;
+            _replication.RequestDespawn(expectedUuid.ToValue(), excludedRecipient);
             store.Free(entity);
         }
     }

@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Graphics.Particles;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Data.Networking;
@@ -17,7 +16,7 @@ namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
 /// Drains inbound server particle bursts into <see cref="IParticleService"/> and synchronizes
-/// replicated <see cref="ParticleEmitterBindingComponent"/> parent attachment and local owner muting.
+/// replicated <see cref="ParticleEmitterBindingComponent"/> parent attachment.
 /// </summary>
 internal sealed class ClientParticleReplicationSystem(
     in ClientInbound inbound,
@@ -116,15 +115,10 @@ internal sealed class ClientParticleReplicationSystem(
 
     private void SyncEmitterBindings(DataStore store)
     {
-        var findLocal = new FindLocalPlayerAction();
-        store.Query<PlayerComponent, FindLocalPlayerAction>(0f, ref findLocal);
-        Uuid localPlayerUuid = findLocal.PlayerUuid;
-
         _seenBindings.Clear();
         SyncBindingsAction syncAction = new()
         {
             Owner = this,
-            LocalPlayerUuid = localPlayerUuid,
         };
         store.Query<ParticleEmitterComponent, ParticleEmitterBindingComponent, SyncBindingsAction>(0f, ref syncAction);
 
@@ -188,15 +182,10 @@ internal sealed class ClientParticleReplicationSystem(
         DataStore store,
         int entity,
         Uuid entityUuid,
-        Uuid localPlayerUuid,
         in ParticleEmitterBindingComponent binding
     ) {
         _seenBindings.Add(entityUuid);
         _managedBindings.Add(entityUuid);
-
-        bool excluded = binding.ExcludeEntity != 0UL
-            && localPlayerUuid != Uuid.Null
-            && binding.ExcludeUuid == localPlayerUuid;
 
         var parentMissing = false;
         if (binding.ParentEntity != 0UL)
@@ -236,13 +225,12 @@ internal sealed class ClientParticleReplicationSystem(
             DetachManagedChild(store, entity, entityUuid);
         }
 
-        bool shouldMute = excluded || parentMissing;
         bool isMuted = store.Has(typeof(ParticleEmitterMutedComponent), entity);
-        if (shouldMute && !isMuted)
+        if (parentMissing && !isMuted)
         {
             store.AddOrUpdate(entity, new ParticleEmitterMutedComponent());
         }
-        else if (!shouldMute && isMuted)
+        else if (!parentMissing && isMuted)
         {
             store.Remove(typeof(ParticleEmitterMutedComponent), entity);
         }
@@ -256,23 +244,9 @@ internal sealed class ClientParticleReplicationSystem(
         }
     }
 
-    private struct FindLocalPlayerAction : IForEach<PlayerComponent>
-    {
-        public Uuid PlayerUuid;
-
-        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
-        {
-            if (PlayerUuid == Uuid.Null)
-            {
-                PlayerUuid = store.GetUuid(entity);
-            }
-        }
-    }
-
     private struct SyncBindingsAction : IForEach<ParticleEmitterComponent, ParticleEmitterBindingComponent>
     {
         public ClientParticleReplicationSystem Owner;
-        public Uuid LocalPlayerUuid;
 
         public void Execute(
             float delta,
@@ -281,7 +255,7 @@ internal sealed class ClientParticleReplicationSystem(
             in ParticleEmitterComponent emitter,
             in ParticleEmitterBindingComponent binding
         ) {
-            Owner.SyncEntityBinding(store, entity, store.GetUuid(entity), LocalPlayerUuid, in binding);
+            Owner.SyncEntityBinding(store, entity, store.GetUuid(entity), in binding);
         }
     }
 }
