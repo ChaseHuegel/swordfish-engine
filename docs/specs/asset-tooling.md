@@ -738,7 +738,6 @@ The tool does not author voxels. The in-game projector does that. See issue
 ## Accepted limitations
 
 - No module management and no per-user module directory. See issue 0002.
-- Content-only modules do not mount `assets/` in the engine today. See issue 0005.
 - No voxel authoring.
 - No particle TOML or CSV name tag editing.
 - No unused localization key detection.
@@ -768,7 +767,7 @@ The tool does not author voxels. The in-game projector does that. See issue
 - File shadowing by mount order: `Swordfish.Library/IO/VirtualFileSystem.cs:101`
 - Module discovery: `Shoal/DependencyInjection/ConfigurationProvider.cs:30`, `:85`
 - Module asset mount: `Shoal/AppEngine.cs:338`
-- Content-only modules: `Shoal/Modularity/ModulesLoader.cs:93`
+- Module loaded callback, including content-only modules: `Shoal/Modularity/ModulesLoader.cs:141`
 - Definition visibility: `WaywardBeyond.Bricks/BrickDefinition.cs:6`
 - Material definition: `Swordfish/IO/MaterialDefinition.cs:6`
 - OBJ parser: `Swordfish/IO/ObjParser.cs:8`

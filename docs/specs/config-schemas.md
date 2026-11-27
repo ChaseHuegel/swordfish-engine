@@ -21,7 +21,7 @@ One per module (e.g. `Swordfish/manifest.toml`,
 | `RootPathOverride` | PathInfo | no | override module root |
 | `ScriptsPath` | PathInfo | no | scripts location |
 | `AssembliesPath` | PathInfo | no | assemblies location |
-| `Assemblies` | string[] | yes | DLLs that form the module |
+| `Assemblies` | string[] | no | DLLs that form the module; omit for a content-only module |
 
 Example:
 
@@ -33,6 +33,10 @@ Assemblies = [
     "WaywardBeyond.Client.dll",
 ]
 ```
+
+A content-only module omits `Assemblies`. It still mounts its `assets/` directory
+in load order and is recorded as loaded. It does not hook an assembly or register
+DryIoc services.
 
 Manifest files require `CopyToOutputDirectory=PreserveNewest` in the `.csproj`. Never
 remove `CopyToOutputDirectory` from manifest files.
@@ -345,4 +349,4 @@ to `AppPaths.CrashesRoot` (`<DataRoot>/crashes`).
 
 ## Tests that pin this
 
-- `Swordfish.Tests` exercise manifest/module loading (via `TestBase` container).
+- `Swordfish.Tests/ModulesLoaderTests.cs` covers content-only module asset mounting and load order.

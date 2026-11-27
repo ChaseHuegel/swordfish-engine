@@ -2,16 +2,29 @@ using Swordfish.Library.Util;
 
 namespace Shoal.Modularity;
 
-internal class ModulesLoader(
-    in ILogger logger,
-    in ConfigurationProvider configurationProvider
-) : IModulesLoader
+internal class ModulesLoader : IModulesLoader
 {
-    private readonly ILogger _logger = logger;
-    private readonly ModuleOptions? _options = configurationProvider.GetModuleOptions()?.Value;
-    private readonly IReadOnlyCollection<ParsedFile<ModuleManifest>> _manifests = configurationProvider.GetModuleManifests();
+    private readonly ILogger _logger;
+    private readonly ModuleOptions? _options;
+    private readonly IReadOnlyCollection<ParsedFile<ModuleManifest>> _manifests;
 
-    public void Load(Action<ParsedFile<ModuleManifest>, Assembly> assemblyHookCallback)
+    public ModulesLoader(ILogger logger, ConfigurationProvider configurationProvider)
+        : this(logger, configurationProvider.GetModuleOptions()?.Value, configurationProvider.GetModuleManifests())
+    {
+    }
+
+    internal ModulesLoader(
+        ILogger logger,
+        ModuleOptions? options,
+        IReadOnlyCollection<ParsedFile<ModuleManifest>> manifests
+    )
+    {
+        _logger = logger;
+        _options = options;
+        _manifests = manifests;
+    }
+
+    public void Load(Action<ParsedFile<ModuleManifest>, IReadOnlyList<Assembly>> moduleLoadedCallback)
     {
         if (_manifests.Count == 0)
         {
@@ -60,7 +73,7 @@ internal class ModulesLoader(
             }
 
             ModuleManifest manifest = manifestFile.Value;
-            Result<Exception?> result = LoadModule(assemblyHookCallback, _logger, _options, manifestFile);
+            Result<Exception?> result = LoadModule(moduleLoadedCallback, _logger, _options, manifestFile);
             if (result)
             {
                 _logger.LogInformation("Loaded module \"{name}\" ({id}), by \"{author}\": {description}", manifest.Name, manifest.ID, manifest.Author, manifest.Description);
@@ -72,7 +85,7 @@ internal class ModulesLoader(
         }
     }
 
-    private static Result<Exception?> LoadModule(Action<ParsedFile<ModuleManifest>, Assembly> hookCallback, ILogger logger, ModuleOptions options, ParsedFile<ModuleManifest> manifestFile)
+    private static Result<Exception?> LoadModule(Action<ParsedFile<ModuleManifest>, IReadOnlyList<Assembly>> moduleLoadedCallback, ILogger logger, ModuleOptions options, ParsedFile<ModuleManifest> manifestFile)
     {
         ModuleManifest manifest = manifestFile.Value;
         PathInfo directory = manifestFile.GetRootPath();
@@ -90,39 +103,46 @@ internal class ModulesLoader(
         }
 
         //  Load any external assemblies
-        if (manifest.Assemblies == null || manifest.Assemblies.Length <= 0)
-        {
-            return new Result<Exception?>(true, null);
-        }
-
-        PathInfo assembliesPath = manifest.AssembliesPath ?? directory;
-
         var loadedAssemblies = new List<Assembly>();
-        foreach (string assemblyName in manifest.Assemblies)
+        if (manifest.Assemblies != null)
         {
-            PathInfo assemblyPath = assembliesPath.At(assemblyName);
-            try
+            PathInfo assembliesPath = manifest.AssembliesPath ?? directory;
+
+            foreach (string assemblyName in manifest.Assemblies)
             {
-                Assembly assembly = Assembly.LoadFrom(assemblyPath.Value);
-                loadedAssemblies.Add(assembly);
+                PathInfo assemblyPath = assembliesPath.At(assemblyName);
+                try
+                {
+                    Assembly assembly = Assembly.LoadFrom(assemblyPath.Value);
+                    loadedAssemblies.Add(assembly);
+                }
+                catch (Exception ex)
+                {
+                    return new Result<Exception?>(false, ex, $"Error loading assembly: {assemblyName}");
+                }
             }
-            catch (Exception ex)
+
+            foreach (Assembly assembly in loadedAssemblies)
             {
-                return new Result<Exception?>(false, ex, $"Error loading assembly: {assemblyName}");
+                try
+                {
+                    HookAssembly(assembly);
+                }
+                catch (Exception ex)
+                {
+                    return new Result<Exception?>(false, ex, $"Error hooking into assembly: {assembly.FullName}");
+                }
             }
         }
 
-        foreach (Assembly assembly in loadedAssemblies)
+        //  Content-only modules have no assemblies, so notify the host even when the list is empty.
+        try
         {
-            try
-            {
-                HookAssembly(assembly);
-                hookCallback.Invoke(manifestFile, assembly);
-            }
-            catch (Exception ex)
-            {
-                return new Result<Exception?>(false, ex, $"Error hooking into assembly: {assembly.FullName}");
-            }
+            moduleLoadedCallback.Invoke(manifestFile, loadedAssemblies);
+        }
+        catch (Exception ex)
+        {
+            return new Result<Exception?>(false, ex, "Error invoking the module loaded callback.");
         }
 
         return new Result<Exception?>(true, null);
