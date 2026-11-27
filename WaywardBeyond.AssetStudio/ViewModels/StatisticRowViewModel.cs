@@ -13,7 +13,19 @@ public sealed partial class StatisticRowViewModel : ObservableObject
     private string _value;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasKeyError))]
     private bool _isDuplicateKey;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasKeyError))]
+    private bool _isInvalidKey;
+
+    [ObservableProperty]
+    private bool _isInvalidValue;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasValidationError))]
+    private string? _validationError;
 
     /// <summary>
     ///     Initializes a statistic row with its key and numeric value text.
@@ -29,6 +41,16 @@ public sealed partial class StatisticRowViewModel : ObservableObject
         _onChanged = onChanged;
         _onPropertyTransition = onPropertyTransition;
     }
+
+    /// <summary>
+    ///     Whether the key input currently has a validation error (empty or duplicate).
+    /// </summary>
+    public bool HasKeyError => IsDuplicateKey || IsInvalidKey;
+
+    /// <summary>
+    ///     Whether this row currently has an inline validation message to display.
+    /// </summary>
+    public bool HasValidationError => !string.IsNullOrEmpty(ValidationError);
 
     /// <summary>
     ///     Statistic identifier (for example <c>wb:hardness</c>, <c>wb:mining_speed</c>, or a custom mod statistic key).

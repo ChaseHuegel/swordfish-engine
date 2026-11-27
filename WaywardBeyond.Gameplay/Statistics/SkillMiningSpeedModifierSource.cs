@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using WaywardBeyond.Data;
 using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Skills;
 
@@ -24,39 +22,27 @@ public sealed class SkillMiningSpeedModifierSource(ISkillDatabase? skillDatabase
     /// <inheritdoc/>
     public void Apply(in StatQuery query, ref StatAccumulator accumulator)
     {
-        if (skillDatabase == null || query.TargetBrickDataId == 0)
+        if (skillDatabase == null ||
+            query.TargetBrickDataId == 0 ||
+            query.Store == null ||
+            query.Entity < 0 ||
+            !query.Store.TryGet(query.Entity, out SkillStateComponent skillState))
         {
             return;
         }
 
-        int highestLevel = query.SkillXp != null
-            ? ResolveHighestBreakLevel(skillDatabase, query.TargetBrickDataId, new DictionaryXpLookup(query.SkillXp))
-            : ResolveHighestBreakLevel(skillDatabase, query.TargetBrickDataId, new StatisticsXpLookup(query.CharacterStatistics));
-
-        if (highestLevel > 0)
-        {
-            accumulator.Apply(StatModifier.AddPercent(highestLevel * SKILL_SPEED_BONUS_PER_LEVEL));
-        }
-    }
-
-    private static int ResolveHighestBreakLevel<TLookup>(
-        ISkillDatabase skillDatabase,
-        ushort brickDataId,
-        TLookup lookup
-    ) where TLookup : struct, IXpLookup
-    {
         IReadOnlyList<Skill> breakSkills = skillDatabase.Get(XPSource.Break);
         var highestLevel = 0;
 
         for (var i = 0; i < breakSkills.Count; i++)
         {
             Skill skill = breakSkills[i];
-            if (!skill.GetXP(XPSource.Break, brickDataId).Success)
+            if (!skill.GetXP(XPSource.Break, query.TargetBrickDataId).Success)
             {
                 continue;
             }
 
-            long totalXp = lookup.GetXP(skill.ID);
+            long totalXp = skillState.GetXP(skill.ID);
             int level = skill.CalculateLevel(totalXp).Level;
             if (level > highestLevel)
             {
@@ -64,40 +50,9 @@ public sealed class SkillMiningSpeedModifierSource(ISkillDatabase? skillDatabase
             }
         }
 
-        return highestLevel;
-    }
-
-    private interface IXpLookup
-    {
-        long GetXP(string skillId);
-    }
-
-    private readonly struct DictionaryXpLookup(IReadOnlyDictionary<string, long>? map) : IXpLookup
-    {
-        public long GetXP(string skillId)
+        if (highestLevel > 0)
         {
-            return map != null && map.TryGetValue(skillId, out long xp) ? xp : 0L;
-        }
-    }
-
-    private readonly struct StatisticsXpLookup(Statistic[]? statistics) : IXpLookup
-    {
-        public long GetXP(string skillId)
-        {
-            if (statistics == null)
-            {
-                return 0L;
-            }
-
-            for (var i = 0; i < statistics.Length; i++)
-            {
-                if (string.Equals(statistics[i].ID, skillId, StringComparison.Ordinal))
-                {
-                    return statistics[i].Value;
-                }
-            }
-
-            return 0L;
+            accumulator.Apply(StatModifier.AddPercent(highestLevel * SKILL_SPEED_BONUS_PER_LEVEL));
         }
     }
 }

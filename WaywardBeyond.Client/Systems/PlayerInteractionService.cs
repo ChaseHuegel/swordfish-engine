@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using Krill;
 using Reef;
 using Shoal.Modularity;
@@ -94,7 +95,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     //  Press edges are pushed here from shortcut callbacks and drained on the ECS thread in Tick,
     //  because every interaction path (resolution + store mutation + VoxelObject/Rebuild + SFX hooks)
     //  must run on the ECS thread, never off-thread.
-    private readonly ConcurrentQueue<InteractionTrigger> _pendingTriggers = new();
+    private readonly ConcurrentQueue<InteractionInput> _pendingInputs = new();
+    private int _pickRequested;
 
     private readonly InteractionRepeatTimer _primaryRepeat = new(INTERACTION_REPEAT_SECONDS);
     private readonly InteractionRepeatTimer _secondaryRepeat = new(INTERACTION_REPEAT_SECONDS);
@@ -103,6 +105,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     //  not reach back through IECSContext (that would reintroduce a container cycle now that this type
     //  is itself an IEntitySystem), so Tick stashes the store it is handed.
     private DataStore? _store;
+    private DataStore? _cachedWorldStore;
+    private ClientVoxelInteractionWorld? _cachedWorld;
 
     private DebugInfo _debugInfo;
     private volatile string? _heldItemID;
@@ -188,19 +192,19 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             shortcutService,
             GameShortcuts.CreatePrimaryAction(),
             IsGameplayActionEnabled,
-            () => _pendingTriggers.Enqueue(InteractionTrigger.Primary)
+            () => _pendingInputs.Enqueue(InteractionInput.Primary)
         );
         GameShortcuts.RegisterOrAddHandler(
             shortcutService,
             GameShortcuts.CreateSecondaryAction(),
             IsGameplayActionEnabled,
-            () => _pendingTriggers.Enqueue(InteractionTrigger.Secondary)
+            () => _pendingInputs.Enqueue(InteractionInput.Secondary)
         );
         GameShortcuts.RegisterOrAddHandler(
             shortcutService,
             GameShortcuts.CreatePickBrick(),
             IsGameplayActionEnabled,
-            () => _pendingTriggers.Enqueue(InteractionTrigger.Pick)
+            () => Interlocked.Exchange(ref _pickRequested, 1)
         );
 
         var snapModeShortcut = new Shortcut
@@ -250,27 +254,27 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     public void Tick(float delta, DataStore store)
     {
         _store = store;
-        bool hasTimedContext = TryBuildTimedInteractionContext(store, out ClientTimedInteractionContext timedContext);
+        bool needsTimedEvaluation = _timedInteractionController != null &&
+            (_timedInteractionController.HasActiveSession ||
+             !_pendingInputs.IsEmpty ||
+             IsTimedInputHeld(InteractionInput.Primary) ||
+             IsTimedInputHeld(InteractionInput.Secondary));
+
+        ClientTimedInteractionContext timedContext = default;
+        bool hasTimedContext = needsTimedEvaluation && TryBuildTimedInteractionContext(store, out timedContext);
         IClientTimedInteraction? primaryTimed = hasTimedContext
-            ? _timedInteractionController?.FindActive(MouseButton.Left, in timedContext)
+            ? _timedInteractionController?.FindActive(InteractionInput.Primary, in timedContext)
             : null;
         IClientTimedInteraction? secondaryTimed = hasTimedContext
-            ? _timedInteractionController?.FindActive(MouseButton.Right, in timedContext)
+            ? _timedInteractionController?.FindActive(InteractionInput.Secondary, in timedContext)
             : null;
 
-        while (_pendingTriggers.TryDequeue(out InteractionTrigger trigger))
+        while (_pendingInputs.TryDequeue(out InteractionInput input))
         {
-            MouseButton button = trigger switch
+            if ((input == InteractionInput.Primary && primaryTimed != null) ||
+                (input == InteractionInput.Secondary && secondaryTimed != null))
             {
-                InteractionTrigger.Primary => MouseButton.Left,
-                InteractionTrigger.Secondary => MouseButton.Right,
-                _ => MouseButton.Middle,
-            };
-
-            if ((button == MouseButton.Left && primaryTimed != null) ||
-                (button == MouseButton.Right && secondaryTimed != null))
-            {
-                if (button == MouseButton.Left)
+                if (input == InteractionInput.Primary)
                 {
                     _primaryRepeat.Advance(0f, eligible: false);
                 }
@@ -282,15 +286,20 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 continue;
             }
 
-            DispatchButton(button, InteractionSource.Press);
-            BeginRepeat(button);
+            AttemptAction(input, InteractionSource.Press);
+            BeginRepeat(input);
+        }
+
+        if (Interlocked.Exchange(ref _pickRequested, 0) != 0)
+        {
+            OnPickBrick();
         }
 
         UpdateTimedInteractions(delta, store, hasTimedContext, in timedContext, primaryTimed, secondaryTimed);
 
         if (primaryTimed == null)
         {
-            AdvanceRepeat(_primaryRepeat, GameShortcuts.PRIMARY_ACTION, MouseButton.Left, delta);
+            AdvanceRepeat(_primaryRepeat, GameShortcuts.PRIMARY_ACTION, InteractionInput.Primary, delta);
         }
         else
         {
@@ -299,7 +308,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         if (secondaryTimed == null)
         {
-            AdvanceRepeat(_secondaryRepeat, GameShortcuts.SECONDARY_ACTION, MouseButton.Right, delta);
+            AdvanceRepeat(_secondaryRepeat, GameShortcuts.SECONDARY_ACTION, InteractionInput.Secondary, delta);
         }
         else
         {
@@ -318,33 +327,15 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
     }
 
-    private void DispatchButton(MouseButton button, InteractionSource source)
+    /// <summary>Starts hold-to-repeat for an input channel that began a press interaction.</summary>
+    private void BeginRepeat(InteractionInput input)
     {
-        if (button == MouseButton.Left)
-        {
-            OnLeftClick(source);
-        }
-
-        if (button == MouseButton.Right)
-        {
-            OnRightClick(source);
-        }
-
-        if (button == MouseButton.Middle)
-        {
-            OnMiddleClick();
-        }
-    }
-
-    /// <summary>Starts hold-to-repeat for a button that began a press interaction.</summary>
-    private void BeginRepeat(MouseButton button)
-    {
-        if (button == MouseButton.Left)
+        if (input == InteractionInput.Primary)
         {
             _primaryRepeat.Press();
         }
 
-        if (button == MouseButton.Right)
+        if (input == InteractionInput.Secondary)
         {
             _secondaryRepeat.Press();
         }
@@ -354,32 +345,22 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     /// Dispatches a repeat when the binding is still held during play with interaction enabled. A held
     /// press that stops qualifying, such as on release or when a blocker opens, stops repeating.
     /// </summary>
-    private void AdvanceRepeat(InteractionRepeatTimer repeat, string shortcutId, MouseButton button, float delta)
+    private void AdvanceRepeat(InteractionRepeatTimer repeat, string shortcutId, InteractionInput input, float delta)
     {
         bool eligible = IsGameplayActionEnabled() && _shortcutService.IsHeld(shortcutId);
 
         if (repeat.Advance(delta, eligible))
         {
-            DispatchButton(button, InteractionSource.Repeat);
+            AttemptAction(input, InteractionSource.Repeat);
         }
     }
 
-    private void OnLeftClick(InteractionSource source)
-    {
-        AttemptAction(MouseButton.Left, source);
-    }
-
-    private void OnRightClick(InteractionSource source)
-    {
-        AttemptAction(MouseButton.Right, source);
-    }
-
     /// <summary>
-    /// Performs the action the held item binds to the pressed button. The left button is the primary edge
-    /// of every item, and only a modifier tool binds the right button, to clear its paint. Empty hands and
-    /// block items have no brick action, so they break nothing.
+    /// Performs the action the held item binds to <paramref name="input"/>. Primary is the main edge of
+    /// every item, and only a modifier tool binds Secondary, to clear its paint. Empty hands and block
+    /// items have no brick action, so they break nothing.
     /// </summary>
-    private void AttemptAction(MouseButton button, InteractionSource source)
+    private void AttemptAction(InteractionInput input, InteractionSource source)
     {
         if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
         {
@@ -388,8 +369,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         DataStore store = _store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.");
 
-        int playerEntity = -1;
-        store.Query<PlayerComponent>(0f, (float _, DataStore s, int e, in PlayerComponent playerComponent) => playerEntity = e);
+        int playerEntity = FindPlayerEntity(store);
         if (playerEntity < 0)
         {
             return;
@@ -404,7 +384,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         string? heldItemID = GetHeldItemID(store, playerEntity);
         Item? heldItem = GetHeldItem(heldItemID);
 
-        InteractionKind kind = InteractionIntent.For(button, heldItem);
+        InteractionKind kind = InteractionIntent.For(input, heldItem);
         if (kind == InteractionKind.None)
         {
             return;
@@ -432,7 +412,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         Brick? placeable = ResolveHeldPlaceable(heldItemID);
         bool isPlace = placeable != null;
 
-        var world = new ClientVoxelInteractionWorld(store, _physics);
+        ClientVoxelInteractionWorld world = GetWorld(store);
 
         //  Resolve the target structure + cell and the placement orientation from the same screen-space
         //  raycast the ghost preview uses, so the placed brick always matches the previewed orientation.
@@ -575,7 +555,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         );
 
         Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
-        var world = new ClientVoxelInteractionWorld(store, _physics);
+        ClientVoxelInteractionWorld world = GetWorld(store);
         var request = new InteractionRequest(origin, hint: null, kind, placeable: null, gameMode, CharacterDefaults.DEFAULT_REACH, paintHint);
         InteractionResolution resolution = PaintInteractionResolver.Resolve(in request, world, _brickDatabase, _paintDatabase, _paintRegistry);
         if (resolution.Action != InteractionAction.Paint)
@@ -897,28 +877,22 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return;
         }
 
-        IClientTimedInteraction? active = primaryTimed ?? secondaryTimed;
-        if (!hasTimedContext || active == null)
+        if (!hasTimedContext)
         {
-            int playerEntity = hasTimedContext ? timedContext.PlayerEntity : FindPlayerEntity(store);
-            _timedInteractionController.Cancel(out ClientTimedStageEvent cancelEvent);
-            if (cancelEvent.HasEvent && playerEntity >= 0)
-            {
-                StageInteractionEvent(store, playerEntity, cancelEvent.Kind, cancelEvent.BrickHint, cancelEvent.PaintHint);
-            }
-
-            _interactionState.HoldProgress.Set(0f);
+            CancelActiveTimedInteraction(store, hasTimedContext: false, in timedContext);
             return;
         }
 
-        string shortcutId = active.Button == MouseButton.Right
-            ? GameShortcuts.SECONDARY_ACTION
-            : GameShortcuts.PRIMARY_ACTION;
-        bool isButtonHeld = _shortcutService.IsHeld(shortcutId);
+        IClientTimedInteraction? active = SelectHeldTimedInteraction(primaryTimed, secondaryTimed);
+        if (active == null)
+        {
+            CancelActiveTimedInteraction(store, hasTimedContext: true, in timedContext);
+            return;
+        }
 
         float progress = _timedInteractionController.Update(
             active,
-            isButtonHeld,
+            isButtonHeld: true,
             delta,
             in timedContext,
             out ClientTimedStageEvent stageEvent);
@@ -928,6 +902,61 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         _interactionState.HoldProgress.Set(progress);
+    }
+
+    private IClientTimedInteraction? SelectHeldTimedInteraction(
+        IClientTimedInteraction? primaryTimed,
+        IClientTimedInteraction? secondaryTimed
+    ) {
+        bool primaryHeld = primaryTimed != null && IsTimedInputHeld(primaryTimed.Input);
+        bool secondaryHeld = secondaryTimed != null && IsTimedInputHeld(secondaryTimed.Input);
+
+        IClientTimedInteraction? current = _timedInteractionController?.ActiveInteraction;
+        if (ReferenceEquals(current, secondaryTimed) && secondaryHeld)
+        {
+            return secondaryTimed;
+        }
+
+        if (ReferenceEquals(current, primaryTimed) && primaryHeld)
+        {
+            return primaryTimed;
+        }
+
+        if (primaryHeld)
+        {
+            return primaryTimed;
+        }
+
+        return secondaryHeld ? secondaryTimed : null;
+    }
+
+    private void CancelActiveTimedInteraction(
+        DataStore store,
+        bool hasTimedContext,
+        in ClientTimedInteractionContext timedContext
+    ) {
+        if (_timedInteractionController != null && _timedInteractionController.HasActiveSession)
+        {
+            int playerEntity = hasTimedContext ? timedContext.PlayerEntity : FindPlayerEntity(store);
+            _timedInteractionController.Cancel(out ClientTimedStageEvent cancelEvent);
+            if (cancelEvent.HasEvent && playerEntity >= 0)
+            {
+                StageInteractionEvent(store, playerEntity, cancelEvent.Kind, cancelEvent.BrickHint, cancelEvent.PaintHint);
+            }
+        }
+
+        _interactionState.HoldProgress.Set(0f);
+    }
+
+    private bool IsTimedInputHeld(InteractionInput input)
+    {
+        return input switch
+        {
+            InteractionInput.None => true,
+            InteractionInput.Primary => _shortcutService.IsHeld(GameShortcuts.PRIMARY_ACTION),
+            InteractionInput.Secondary => _shortcutService.IsHeld(GameShortcuts.SECONDARY_ACTION),
+            _ => false,
+        };
     }
 
     private bool TryRaycastBrickForTimedInteraction(
@@ -1017,7 +1046,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return itemData.Count > 0 ? itemData.ID : null;
     }
     
-    private void OnMiddleClick()
+    private ClientVoxelInteractionWorld GetWorld(DataStore store)
+    {
+        if (!ReferenceEquals(_cachedWorldStore, store) || _cachedWorld == null)
+        {
+            _cachedWorldStore = store;
+            _cachedWorld = new ClientVoxelInteractionWorld(store, _physics);
+        }
+
+        return _cachedWorld;
+    }
+
+    private void OnPickBrick()
     {
         if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
         {
@@ -1747,13 +1787,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return Result<Brick>.FromSuccess(brickInfoResult.Value);
     }
     
-    private enum InteractionTrigger
-    {
-        Primary,
-        Secondary,
-        Pick,
-    }
-
     /// <summary>Identifies whether an interaction came from a fresh press or a held repeat.</summary>
     private enum InteractionSource
     {

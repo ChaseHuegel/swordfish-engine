@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Swordfish.Library.IO;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Interactions;
 
@@ -17,6 +16,12 @@ internal sealed class ClientTimedInteractionController
 
     private ActiveHoldSession _activeSession;
     private bool _hasActiveSession;
+
+    /// <summary>Whether a timed interaction session is currently active.</summary>
+    public bool HasActiveSession => _hasActiveSession;
+
+    /// <summary>The currently active timed interaction provider, or null when idle.</summary>
+    public IClientTimedInteraction? ActiveInteraction => _hasActiveSession ? _activeSession.Interaction : null;
 
     /// <summary>Constructs the controller from all registered client timed interactions.</summary>
     public ClientTimedInteractionController(IEnumerable<IClientTimedInteraction> interactions)
@@ -38,13 +43,13 @@ internal sealed class ClientTimedInteractionController
         _interactions = list.ToArray();
     }
 
-    /// <summary>Finds the first registered timed interaction claiming <paramref name="button"/> in the current context.</summary>
-    public IClientTimedInteraction? FindActive(MouseButton button, in ClientTimedInteractionContext context)
+    /// <summary>Finds the first registered timed interaction claiming <paramref name="input"/> in the current context.</summary>
+    public IClientTimedInteraction? FindActive(InteractionInput input, in ClientTimedInteractionContext context)
     {
         for (var i = 0; i < _interactions.Length; i++)
         {
             IClientTimedInteraction candidate = _interactions[i];
-            if (candidate.Button == button && candidate.AppliesTo(in context))
+            if (candidate.Input == input && candidate.AppliesTo(in context))
             {
                 return candidate;
             }

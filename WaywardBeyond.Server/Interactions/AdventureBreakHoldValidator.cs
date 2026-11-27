@@ -1,10 +1,8 @@
-using System.Collections.Generic;
 using Krill;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Statistics;
-using WaywardBeyond.Server.Components;
 
 namespace WaywardBeyond.Server.Interactions;
 
@@ -14,7 +12,7 @@ namespace WaywardBeyond.Server.Interactions;
 /// evaluated through the extensible <see cref="IStatResolver"/> pipeline. Higher-priority validate handlers
 /// can override or replace it.
 /// </summary>
-public sealed class AdventureBreakHoldHandler(IStatResolver statResolver) : IInteractionHandler
+public sealed class AdventureBreakHoldValidator(IStatResolver statResolver) : IInteractionHandler
 {
     /// <summary>Stable handler identifier used in <see cref="TimedInteractionKey.HandlerId"/>.</summary>
     public const string HANDLER_ID = "wb:adventure_break";
@@ -49,10 +47,10 @@ public sealed class AdventureBreakHoldHandler(IStatResolver statResolver) : IInt
             context.Resolution.Coordinate,
             brickDataId);
 
-        context.Hold = TimedInteractionSpec.Require(
+        context.Hold = InteractionHold.Require(
             key,
             requiredDuration,
-            TimedInteractionInput.Primary,
+            InteractionInput.Primary,
             cancelOnEquipmentChange: true);
 
         return InteractionDecision.Continue;
@@ -63,8 +61,10 @@ public sealed class AdventureBreakHoldHandler(IStatResolver statResolver) : IInt
         var hardnessQuery = new StatQuery(
             StatisticIds.HARDNESS,
             StatisticIds.DEFAULT_HARDNESS,
+            subject: StatSubject.Brick,
             store: context.Store,
             entity: context.Player,
+            heldItemId: context.HeldItemID,
             targetBrickDataId: brickDataId);
 
         float hardness = statResolver.Evaluate(in hardnessQuery);
@@ -78,18 +78,14 @@ public sealed class AdventureBreakHoldHandler(IStatResolver statResolver) : IInt
             return 0f;
         }
 
-        IReadOnlyDictionary<string, long>? skillXp = context.Store.TryGet(context.Player, out SkillStateComponent skillState)
-            ? skillState.XPBySkill
-            : null;
-
         var speedQuery = new StatQuery(
             StatisticIds.MINING_SPEED,
             StatisticIds.DEFAULT_MINING_SPEED,
+            subject: StatSubject.Item,
             store: context.Store,
             entity: context.Player,
             heldItemId: context.HeldItemID,
-            targetBrickDataId: brickDataId,
-            skillXp: skillXp);
+            targetBrickDataId: brickDataId);
 
         float speed = statResolver.Evaluate(in speedQuery);
         if (!float.IsFinite(speed) || speed <= 0f)

@@ -1,10 +1,8 @@
 using System.Numerics;
 using Krill;
 using Swordfish.ECS;
-using Swordfish.Library.IO;
 using Swordfish.Physics;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
@@ -21,18 +19,20 @@ namespace WaywardBeyond.Client.Interactions;
 /// duration through the shared <see cref="IStatResolver"/> pipeline for <see cref="StatisticIds.HARDNESS"/>
 /// and <see cref="StatisticIds.MINING_SPEED"/>.
 /// </summary>
-internal sealed class AdventureBreakTimedInteraction(
+public sealed class AdventureBreakTimedInteraction(
     IPhysics physics,
     IBrickRegistry brickRegistry,
-    IStatResolver statResolver,
-    ActiveCharacterSave? activeCharacterSave = null
+    IStatResolver statResolver
 ) : IClientTimedInteraction
 {
-    /// <summary>Stable handler identifier matching the server's Adventure break hold handler.</summary>
+    /// <summary>Stable handler identifier matching the server's Adventure break hold validator.</summary>
     public const string HANDLER_ID = "wb:adventure_break";
 
+    private DataStore? _cachedWorldStore;
+    private ClientVoxelInteractionWorld? _cachedWorld;
+
     /// <inheritdoc/>
-    public MouseButton Button => MouseButton.Left;
+    public InteractionInput Input => InteractionInput.Primary;
 
     /// <inheritdoc/>
     public bool AppliesTo(in ClientTimedInteractionContext context)
@@ -57,7 +57,7 @@ internal sealed class AdventureBreakTimedInteraction(
             return false;
         }
 
-        var world = new ClientVoxelInteractionWorld(context.Store, physics);
+        ClientVoxelInteractionWorld world = GetWorld(context.Store);
         Vector3 origin = context.Store.TryGet(context.PlayerEntity, out TransformComponent playerTransform)
             ? playerTransform.Position
             : Vector3.Zero;
@@ -83,10 +83,20 @@ internal sealed class AdventureBreakTimedInteraction(
         target = new ClientTimedTarget(
             key,
             requiredDuration,
-            InteractionKind.PrimaryPressed,
-            InteractionKind.PrimaryReleased,
+            InteractionInput.Primary,
             brickHint: hint);
         return true;
+    }
+
+    private ClientVoxelInteractionWorld GetWorld(DataStore store)
+    {
+        if (!ReferenceEquals(_cachedWorldStore, store) || _cachedWorld == null)
+        {
+            _cachedWorldStore = store;
+            _cachedWorld = new ClientVoxelInteractionWorld(store, physics);
+        }
+
+        return _cachedWorld;
     }
 
     private float ResolveDuration(in ClientTimedInteractionContext context, ushort brickDataId)
@@ -94,8 +104,11 @@ internal sealed class AdventureBreakTimedInteraction(
         var hardnessQuery = new StatQuery(
             StatisticIds.HARDNESS,
             StatisticIds.DEFAULT_HARDNESS,
+            subject: StatSubject.Brick,
             store: context.Store,
             entity: context.PlayerEntity,
+            heldItem: context.HeldItem,
+            heldItemId: context.HeldItemId,
             targetBrickDataId: brickDataId);
 
         float hardness = statResolver.Evaluate(in hardnessQuery);
@@ -109,16 +122,15 @@ internal sealed class AdventureBreakTimedInteraction(
             return 0f;
         }
 
-        Statistic[]? characterStatistics = activeCharacterSave?.ActiveSave?.Statistics;
         var speedQuery = new StatQuery(
             StatisticIds.MINING_SPEED,
             StatisticIds.DEFAULT_MINING_SPEED,
+            subject: StatSubject.Item,
             store: context.Store,
             entity: context.PlayerEntity,
             heldItem: context.HeldItem,
             heldItemId: context.HeldItemId,
-            targetBrickDataId: brickDataId,
-            characterStatistics: characterStatistics);
+            targetBrickDataId: brickDataId);
 
         float speed = statResolver.Evaluate(in speedQuery);
         if (!float.IsFinite(speed) || speed <= 0f)

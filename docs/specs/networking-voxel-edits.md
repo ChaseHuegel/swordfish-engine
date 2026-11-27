@@ -225,10 +225,10 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 - `WaywardBeyond.Client/Systems/PlayerInteractionService.cs` — click edges, hold-to-repeat dispatch, timed hold delegation, and prediction
 - `WaywardBeyond.Client/Interactions/` — extensible `IClientTimedInteraction` providers and `ClientTimedInteractionController`
 - `WaywardBeyond.Client/Systems/{InteractionIntent,InteractionRepeatTimer}.cs` — control scheme and repeat timing
-- `WaywardBeyond.Gameplay/Interactions/` — resolver, timed interaction specs, request, handlers, registry
+- `WaywardBeyond.Gameplay/Interactions/` — resolver, interaction holds, interaction inputs, request, handlers, registry
 - `WaywardBeyond.Gameplay/Statistics/` — extensible statistic modifier pipeline
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs`
-- `WaywardBeyond.Server/Interactions/` — default handlers, including `BreakToolValidator` and `AdventureBreakHoldHandler`
+- `WaywardBeyond.Server/Interactions/` — default handlers, including `BreakToolValidator` and `AdventureBreakHoldValidator`
 - `WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`
 - `WaywardBeyond.Gameplay/Networking/{NetworkComponent,StageRing}.cs`
   (`StagedInteractions`)

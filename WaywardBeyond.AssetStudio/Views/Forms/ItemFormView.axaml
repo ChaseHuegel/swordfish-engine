@@ -60,27 +60,35 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:StatisticRowViewModel">
                   <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
-                    <Grid ColumnDefinitions="*,110,28" ColumnSpacing="8">
-                      <TextBox Grid.Column="0"
-                               Text="{Binding Key, Mode=TwoWay}"
-                               IsUndoEnabled="False"
-                               Classes="studio-input mono" />
-                      <TextBox Grid.Column="1"
-                               Text="{Binding Value, Mode=TwoWay}"
-                               IsUndoEnabled="False"
-                               Classes="studio-input mono" />
-                      <Button Grid.Column="2"
-                              Classes="studio-btn-ghost"
-                              Width="26"
-                              Height="26"
-                              MinHeight="26"
-                              Padding="0"
-                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveStatisticCommand}"
-                              CommandParameter="{Binding}"
-                              ToolTip.Tip="Remove statistic">
-                        <TextBlock Text="×" FontSize="14" />
-                      </Button>
-                    </Grid>
+                    <StackPanel Spacing="3">
+                      <Grid ColumnDefinitions="*,110,28" ColumnSpacing="8">
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding Key, Mode=TwoWay}"
+                                 IsUndoEnabled="False"
+                                 Classes="studio-input mono"
+                                 Classes.danger="{Binding HasKeyError}" />
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding Value, Mode=TwoWay}"
+                                 IsUndoEnabled="False"
+                                 Classes="studio-input mono"
+                                 Classes.danger="{Binding IsInvalidValue}" />
+                        <Button Grid.Column="2"
+                                Classes="studio-btn-ghost"
+                                Width="26"
+                                Height="26"
+                                MinHeight="26"
+                                Padding="0"
+                                Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveStatisticCommand}"
+                                CommandParameter="{Binding}"
+                                ToolTip.Tip="Remove statistic">
+                          <TextBlock Text="×" FontSize="14" />
+                        </Button>
+                      </Grid>
+                      <TextBlock Text="{Binding ValidationError}"
+                                 IsVisible="{Binding HasValidationError}"
+                                 FontSize="10.5"
+                                 Foreground="{DynamicResource StudioDangerBrush}" />
+                    </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -302,8 +301,8 @@ public sealed class ServerJoinSystem(
         //  Seed the server-authoritative interaction context from the joining client's local save and
         //  the level's resolved game mode. From here the server owns these components and replicates them.
         SeedInteractionContext(store, entity, request.State, gameMode);
-        SeedSkillState(store, entity, request.State, skillDatabase);
-        SeedStatistics(store, entity, request.State, skillDatabase);
+        CharacterStatisticsSeeder.SeedSkillState(store, entity, request.State.Statistics, skillDatabase);
+        CharacterStatisticsSeeder.SeedStatistics(store, entity, request.State.Statistics, skillDatabase);
 
         Session session = new(_nextSessionId++);
         sessions.Register(store, entity, clientId, session);
@@ -363,49 +362,4 @@ public sealed class ServerJoinSystem(
     {
         return Enum.IsDefined(gameMode) ? gameMode : GameMode.Adventure;
     }
-
-    /// <summary>
-    /// Seeds the player's transient, server-authoritative skill state from the joining client's saved
-    /// statistics. The client owns the initial seed; only statistics whose id names a known skill are
-    /// carried, and the whole component lives in memory for the session and is freed with the player
-    /// mirror. The server never persists character skill data.
-    /// </summary>
-    internal static void SeedSkillState(DataStore store, int entity, in CharacterState seed, ISkillDatabase skillDatabase)
-    {
-        var xpBySkillId = new Dictionary<string, long>();
-        if (seed.Statistics != null)
-        {
-            foreach (Statistic statistic in seed.Statistics)
-            {
-                if (statistic.ID != null && skillDatabase.Get(statistic.ID).Success)
-                {
-                    xpBySkillId[statistic.ID] = statistic.Value;
-                }
-            }
-        }
-
-        store.AddOrUpdate(entity, new SkillStateComponent(xpBySkillId));
-    }
-
-    /// <summary>
-    /// Seeds the player's transient runtime <see cref="StatisticsComponent"/> from non-skill character
-    /// statistics in the joining client's save so custom character statistics participate in stat resolution.
-    /// </summary>
-    internal static void SeedStatistics(DataStore store, int entity, in CharacterState seed, ISkillDatabase skillDatabase)
-    {
-        var values = new Dictionary<string, float>(StringComparer.Ordinal);
-        if (seed.Statistics != null)
-        {
-            foreach (Statistic statistic in seed.Statistics)
-            {
-                if (!string.IsNullOrWhiteSpace(statistic.ID) && !skillDatabase.Get(statistic.ID).Success)
-                {
-                    values[statistic.ID] = statistic.Value;
-                }
-            }
-        }
-
-        store.AddOrUpdate(entity, new StatisticsComponent(values));
-    }
-
 }

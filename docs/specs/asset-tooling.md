@@ -260,8 +260,8 @@ state is remembered per kind.
 
 | Kind | Body sections |
 |---|---|
-| Item | Placeable, tool, statistics (`[Items.Statistics]`), view model, world model, stack |
-| Brick | Shape, color, alpha, cast shadows, passable, statistics (`[Bricks.Statistics]`), mesh, per-face textures, sounds, colliders |
+| Item | Placeable, tool, statistics (`[Items.Statistics]` with inline key/value validation and save guard), view model, world model, stack |
+| Brick | Shape, color, alpha, cast shadows, passable, statistics (`[Bricks.Statistics]` with inline key/value validation and save guard), mesh, per-face textures, sounds, colliders |
 | Paint | Kind switch, alpha, connected, variants or color |
 | Recipe | Target and execution fields (with searchable tag dropdown), editable `[[Recipes.Inputs]]` and `[[Recipes.Outputs]]` tables with searchable item ID and `tag:*` dropdowns, jump buttons, Command Palette search tokens, and live inbound-reference sync on save (`RecipeFormView`, `AssetTomlEditApplier.ApplyRecipeEdits`) |
 | Skill | Sources map, level curve table and sparkline |

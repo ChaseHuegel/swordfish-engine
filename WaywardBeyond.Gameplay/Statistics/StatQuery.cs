@@ -1,32 +1,33 @@
-using System.Collections.Generic;
 using Krill;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Data;
 using WaywardBeyond.Items;
 
 namespace WaywardBeyond.Gameplay.Statistics;
 
 /// <summary>
 /// Context describing one statistic query evaluated through <see cref="IStatResolver"/>.
-/// Callers populate only the fields relevant to the evaluation site.
+/// Callers set <see cref="Subject"/> to identify which base source owns the statistic and populate
+/// any additional context fields relevant to modifier sources.
 /// </summary>
 public readonly struct StatQuery(
     string statId,
     float defaultBase = 0f,
+    StatSubject subject = StatSubject.Any,
     DataStore? store = null,
     int entity = -1,
     Item? heldItem = null,
     string? heldItemId = null,
     Brick? targetBrick = null,
-    ushort targetBrickDataId = 0,
-    Statistic[]? characterStatistics = null,
-    IReadOnlyDictionary<string, long>? skillXp = null
+    ushort targetBrickDataId = 0
 ) {
     /// <summary>The identifier of the statistic being evaluated.</summary>
     public readonly string StatId = statId;
 
     /// <summary>The fallback base value when no base-setting modifier applies.</summary>
     public readonly float DefaultBase = defaultBase;
+
+    /// <summary>The primary subject supplying the base value for this query.</summary>
+    public readonly StatSubject Subject = subject;
 
     /// <summary>Optional ECS store containing the acting entity.</summary>
     public readonly DataStore? Store = store;
@@ -45,10 +46,4 @@ public readonly struct StatQuery(
 
     /// <summary>Optional target brick data id for target-scoped modifiers, or 0 when absent.</summary>
     public readonly ushort TargetBrickDataId = targetBrickDataId;
-
-    /// <summary>Optional character save statistics array for client-side evaluations without an ECS component.</summary>
-    public readonly Statistic[]? CharacterStatistics = characterStatistics;
-
-    /// <summary>Optional skill XP totals keyed by skill id for server-side evaluations.</summary>
-    public readonly IReadOnlyDictionary<string, long>? SkillXp = skillXp;
 }

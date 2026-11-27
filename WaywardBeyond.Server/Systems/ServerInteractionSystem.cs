@@ -31,6 +31,8 @@ public sealed class ServerInteractionSystem(
     private readonly Dictionary<Uuid, TimedSession> _timedSessions = [];
     private readonly HashSet<Uuid> _visitedPlayers = [];
     private readonly List<Uuid> _stalePlayers = [];
+    private DataStore? _cachedWorldStore;
+    private IVoxelInteractionWorld? _cachedWorld;
 
     /// <summary>Gets the active timed interaction session for a player mirror, if one is running.</summary>
     internal Result<TimedSessionState> GetTimedSession(Uuid playerUuid)
@@ -113,7 +115,7 @@ public sealed class ServerInteractionSystem(
         }
 
         TryGetHeldEquipment(store, player, out int activeSlot, out string? heldItemId);
-        IVoxelInteractionWorld world = worldFactory(store);
+        IVoxelInteractionWorld world = GetWorld(store);
         Uuid clientId = sessions.TryGetClient(player, out Uuid client) ? client : Uuid.Null;
         InteractionContext context = BuildContext(
             store,
@@ -225,7 +227,7 @@ public sealed class ServerInteractionSystem(
         }
 
         GameMode mode = GetGameMode(store, entity);
-        IVoxelInteractionWorld world = worldFactory(store);
+        IVoxelInteractionWorld world = GetWorld(store);
         Uuid clientId = sessions.TryGetClient(entity, out Uuid client) ? client : Uuid.Null;
         InteractionContext context = BuildContext(
             store,
@@ -255,7 +257,14 @@ public sealed class ServerInteractionSystem(
         if (TimedInteractionProgress.IsComplete(elapsed, requiredDuration))
         {
             _timedSessions.Remove(playerUuid);
-            handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
+            InteractionRunResult commitResult = handlerRegistry.Run(ref context, InteractionStage.Commit, InteractionStage.React);
+            if (commitResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
+            {
+                logger.LogDebug(
+                    "Timed interaction {sequence} for player {player} ended with {decision}.",
+                    session.Sequence, entity, commitResult.Decision);
+            }
+
             return;
         }
 
@@ -273,8 +282,7 @@ public sealed class ServerInteractionSystem(
             return false;
         }
 
-        return (kind == InteractionKind.PrimaryReleased && session.RequiredInput == TimedInteractionInput.Primary) ||
-            (kind == InteractionKind.SecondaryReleased && session.RequiredInput == TimedInteractionInput.Secondary);
+        return kind.IsRelease() && kind.ToInput() == session.RequiredInput;
     }
 
     private void CancelMatchingSession(Uuid playerUuid, InteractionKind kind)
@@ -284,12 +292,8 @@ public sealed class ServerInteractionSystem(
             return;
         }
 
-        bool matchesPrimary = kind is InteractionKind.PrimaryPressed or InteractionKind.PrimaryReleased
-            && session.RequiredInput == TimedInteractionInput.Primary;
-        bool matchesSecondary = kind is InteractionKind.SecondaryPressed or InteractionKind.SecondaryReleased
-            && session.RequiredInput == TimedInteractionInput.Secondary;
-
-        if (matchesPrimary || matchesSecondary)
+        InteractionInput input = kind.ToInput();
+        if (input != InteractionInput.None && input == session.RequiredInput)
         {
             _timedSessions.Remove(playerUuid);
         }
@@ -300,9 +304,9 @@ public sealed class ServerInteractionSystem(
         int entity,
         in NetworkComponent net,
         uint simTick,
-        TimedInteractionInput requiredInput
+        InteractionInput requiredInput
     ) {
-        if (requiredInput == TimedInteractionInput.None)
+        if (requiredInput == InteractionInput.None)
         {
             return true;
         }
@@ -323,12 +327,18 @@ public sealed class ServerInteractionSystem(
             return false;
         }
 
-        return requiredInput switch
+        return requiredInput.IsHeld(in input);
+    }
+
+    private IVoxelInteractionWorld GetWorld(DataStore store)
+    {
+        if (!ReferenceEquals(_cachedWorldStore, store) || _cachedWorld == null)
         {
-            TimedInteractionInput.Primary => input.PrimaryHeld,
-            TimedInteractionInput.Secondary => input.SecondaryHeld,
-            _ => true,
-        };
+            _cachedWorldStore = store;
+            _cachedWorld = worldFactory(store);
+        }
+
+        return _cachedWorld;
     }
 
     private void PruneStaleSessions()
@@ -388,7 +398,7 @@ public sealed class ServerInteractionSystem(
 
     private static bool MatchesSession(
         in TimedSession existing,
-        in TimedInteractionSpec incoming,
+        in InteractionHold incoming,
         int activeSlot,
         string? heldItemId
     ) {
@@ -445,7 +455,7 @@ public sealed class ServerInteractionSystem(
     private struct TimedSession
     {
         public TimedInteractionKey Key;
-        public TimedInteractionInput RequiredInput;
+        public InteractionInput RequiredInput;
         public bool CancelOnEquipmentChange;
         public BrickInteraction? BrickHint;
         public PaintInteraction? PaintHint;

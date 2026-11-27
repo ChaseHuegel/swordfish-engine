@@ -151,27 +151,22 @@ internal static class AssetTomlEditApplier
         {
             var key = statistics[i].Key?.Trim() ?? string.Empty;
             var rawVal = statistics[i].Value?.Trim() ?? string.Empty;
-            if (key.Length == 0 || !double.TryParse(rawVal, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedVal) || !double.IsFinite(parsedVal))
+            if (key.Length == 0)
             {
-                continue;
+                return Result.FromFailure($"Cannot save [{subTableHeader}]: row #{i + 1} has an empty statistic key.");
+            }
+
+            if (!double.TryParse(rawVal, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedVal) || !double.IsFinite(parsedVal))
+            {
+                return Result.FromFailure($"Cannot save [{subTableHeader}]: statistic '{key}' has invalid numeric value '{rawVal}'.");
             }
 
             if (desiredByKey.ContainsKey(key))
             {
-                for (var d = 0; d < desired.Count; d++)
-                {
-                    if (string.Equals(desired[d].Key, key, StringComparison.Ordinal))
-                    {
-                        desired[d] = (key, parsedVal);
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                desired.Add((key, parsedVal));
+                return Result.FromFailure($"Cannot save [{subTableHeader}]: duplicate statistic key '{key}'.");
             }
 
+            desired.Add((key, parsedVal));
             desiredByKey[key] = parsedVal;
         }
 

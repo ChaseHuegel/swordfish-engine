@@ -204,6 +204,7 @@ public class TimedBrickBreakingTests
         float rockHardness = resolver.Evaluate(new StatQuery(
             StatisticIds.HARDNESS,
             StatisticIds.DEFAULT_HARDNESS,
+            subject: StatSubject.Brick,
             targetBrickDataId: harness.RockId));
         Assert.Equal(3.0f, rockHardness, precision: 5);
 
@@ -214,15 +215,16 @@ public class TimedBrickBreakingTests
             ["mod:jump_boost"] = 3.0f,
         };
         harness.Store.AddOrUpdate(harness.PlayerEntity, new StatisticsComponent(entityStats));
+        harness.Store.AddOrUpdate(harness.PlayerEntity, new SkillStateComponent(miningXp));
 
         float rockSpeed = resolver.Evaluate(new StatQuery(
             StatisticIds.MINING_SPEED,
             StatisticIds.DEFAULT_MINING_SPEED,
+            subject: StatSubject.Item,
             store: harness.Store,
             entity: harness.PlayerEntity,
             heldItemId: FAST_LASER_ITEM_ID,
-            targetBrickDataId: harness.RockId,
-            skillXp: miningXp));
+            targetBrickDataId: harness.RockId));
         float expectedRockSpeed = (2.0f + 0.5f) * (1.0f + (miningLevel * SkillMiningSpeedModifierSource.SKILL_SPEED_BONUS_PER_LEVEL) + 0.50f);
         Assert.Equal(expectedRockSpeed, rockSpeed, precision: 5);
 
@@ -230,17 +232,18 @@ public class TimedBrickBreakingTests
         float panelSpeed = resolver.Evaluate(new StatQuery(
             StatisticIds.MINING_SPEED,
             StatisticIds.DEFAULT_MINING_SPEED,
+            subject: StatSubject.Item,
             store: harness.Store,
             entity: harness.PlayerEntity,
             heldItemId: FAST_LASER_ITEM_ID,
-            targetBrickDataId: harness.PanelId,
-            skillXp: miningXp));
+            targetBrickDataId: harness.PanelId));
         Assert.Equal((2.0f + 0.5f) * 1.50f, panelSpeed, precision: 5);
 
         //  Arbitrary custom mod statistic flows through the exact same pipeline.
         float jumpBoost = resolver.Evaluate(new StatQuery(
             "mod:jump_boost",
             defaultBase: 1.0f,
+            subject: StatSubject.Entity,
             store: harness.Store,
             entity: harness.PlayerEntity));
         Assert.Equal((1.0f + 3.0f) * 2.0f, jumpBoost, precision: 5);
@@ -254,6 +257,65 @@ public class TimedBrickBreakingTests
         Assert.False(TimedInteractionProgress.IsComplete(accumulated, 1.0f));
         accumulated += 0.02f;
         Assert.True(TimedInteractionProgress.IsComplete(accumulated, 1.0f));
+    }
+
+    [Fact]
+    public void StatSubject_PreventsBrickAndItemBaseCollisionsWhenBothArePresent()
+    {
+        var brick = new Brick(
+            "mod:test_brick",
+            BrickAlpha.Opaque,
+            passable: false,
+            meshID: null,
+            BrickShape.Block,
+            default,
+            statistics: new Dictionary<string, float> { ["mod:shared"] = 10f });
+        var item = new Item(
+            "mod:test_item",
+            "item.test",
+            iconID: null,
+            maxStack: 1,
+            placeable: null,
+            tool: null,
+            viewModel: null,
+            worldModel: null,
+            statistics: new Dictionary<string, float> { ["mod:shared"] = 3f });
+
+        var store = new DataStore();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new StatisticsComponent(new Dictionary<string, float> { ["mod:shared"] = 2f }));
+
+        var resolver = new StatResolver(
+        [
+            new BrickStatisticModifierSource(),
+            new ItemStatisticModifierSource(),
+            new EntityStatisticModifierSource(),
+        ]);
+
+        float brickValue = resolver.Evaluate(new StatQuery("mod:shared", defaultBase: 1f, subject: StatSubject.Brick, store: store, entity: entity, heldItem: item, targetBrick: brick));
+        float itemValue = resolver.Evaluate(new StatQuery("mod:shared", defaultBase: 1f, subject: StatSubject.Item, store: store, entity: entity, heldItem: item, targetBrick: brick));
+        float entityValue = resolver.Evaluate(new StatQuery("mod:shared", defaultBase: 1f, subject: StatSubject.Entity, store: store, entity: entity, heldItem: item, targetBrick: brick));
+
+        Assert.Equal(12f, brickValue, precision: 5);
+        Assert.Equal(5f, itemValue, precision: 5);
+        Assert.Equal(3f, entityValue, precision: 5);
+    }
+
+    [Fact]
+    public void ServerInteractionSystem_CachesInteractionWorldAcrossTimedHoldTicks()
+    {
+        using ServerHarness harness = new(GameMode.Adventure, rockHardness: 2.0f, panelHardness: 2.0f, laserSpeed: 1.0f, fastLaserSpeed: 2.0f);
+        harness.SetHeldSlot(0, LASER_ITEM_ID);
+        harness.SetPrimaryHeld(true);
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+
+        for (var i = 0; i < 10; i++)
+        {
+            harness.TickServer(0.2f);
+        }
+
+        Assert.Equal((ushort)0, harness.GetVoxel(0, 0, -4).ID);
+        Assert.Equal(1, harness.WorldFactoryCalls);
     }
 
     [Fact]
@@ -511,7 +573,7 @@ public class TimedBrickBreakingTests
                 return false;
             });
 
-        IClientTimedInteraction? found = controller.FindActive(MouseButton.Right, in context);
+        IClientTimedInteraction? found = controller.FindActive(InteractionInput.Secondary, in context);
         Assert.Same(custom, found);
 
         float p1 = controller.Update(custom, isButtonHeld: true, delta: 0.4f, in context, out ClientTimedStageEvent e1);
@@ -527,6 +589,82 @@ public class TimedBrickBreakingTests
         Assert.True(e3.HasEvent);
         Assert.Equal(InteractionKind.SecondaryReleased, e3.Kind);
         Assert.Equal(0f, p3);
+    }
+
+    [Fact]
+    public void StatisticsComposition_RegisterStatisticsAndModModifierSource_IsIdempotentAndComposes()
+    {
+        using var container = new Container();
+        container.RegisterStatistics();
+        container.RegisterStatistics();
+        container.RegisterStatModifierSource<ModBonusStatSource>();
+        container.RegisterStatModifierSource<ModBonusStatSource>();
+
+        IStatResolver resolver = container.Resolve<IStatResolver>();
+        Assert.Equal(5, resolver.GetSources().Count);
+
+        float value = resolver.Evaluate(new StatQuery("mod:custom_stat", defaultBase: 10f));
+        Assert.Equal(15f, value, precision: 5);
+    }
+
+    [Fact]
+    public void InteractionInputExtensions_MapsEdgesAndFailsClosedForUnknownInput()
+    {
+        Assert.Equal(InteractionKind.PrimaryPressed, InteractionInput.Primary.ToPressedKind());
+        Assert.Equal(InteractionKind.PrimaryReleased, InteractionInput.Primary.ToReleasedKind());
+        Assert.Equal(InteractionKind.SecondaryPressed, InteractionInput.Secondary.ToPressedKind());
+        Assert.Equal(InteractionKind.SecondaryReleased, InteractionInput.Secondary.ToReleasedKind());
+        Assert.Equal(InteractionKind.None, InteractionInput.None.ToPressedKind());
+        Assert.Equal(InteractionKind.None, InteractionInput.None.ToReleasedKind());
+
+        Assert.Equal(InteractionInput.Primary, InteractionKind.PrimaryPressed.ToInput());
+        Assert.Equal(InteractionInput.Primary, InteractionKind.PrimaryReleased.ToInput());
+        Assert.Equal(InteractionInput.Secondary, InteractionKind.SecondaryPressed.ToInput());
+        Assert.Equal(InteractionInput.Secondary, InteractionKind.SecondaryReleased.ToInput());
+        Assert.Equal(InteractionInput.None, InteractionKind.None.ToInput());
+
+        Assert.True(InteractionKind.PrimaryReleased.IsRelease());
+        Assert.True(InteractionKind.SecondaryReleased.IsRelease());
+        Assert.False(InteractionKind.PrimaryPressed.IsRelease());
+        Assert.False(InteractionKind.SecondaryPressed.IsRelease());
+
+        var bothHeld = new InputComponent { PrimaryHeld = true, SecondaryHeld = true };
+        var noneHeld = new InputComponent { PrimaryHeld = false, SecondaryHeld = false };
+        Assert.True(InteractionInput.None.IsHeld(in noneHeld));
+        Assert.True(InteractionInput.Primary.IsHeld(in bothHeld));
+        Assert.True(InteractionInput.Secondary.IsHeld(in bothHeld));
+        Assert.False(InteractionInput.Primary.IsHeld(in noneHeld));
+        Assert.False(InteractionInput.Secondary.IsHeld(in noneHeld));
+        Assert.False(((InteractionInput)99).IsHeld(in bothHeld));
+    }
+
+    [Fact]
+    public void PlayerInteractionService_SecondaryTimedInteractionRunsWhenPrimaryAlsoApplies()
+    {
+        GameState previous = WaywardBeyondClient.GameState.Get();
+        WaywardBeyondClient.GameState.Set(GameState.Playing);
+        try
+        {
+            var secondaryTimed = new CustomClientTimedInteraction("mod:scan_hold", duration: 1.0f);
+            using ClientHarness harness = new(GameMode.Adventure, rockHardness: 2.0f, laserSpeed: 1.0f, extraTimedInteractions: [secondaryTimed]);
+
+            //  Holding Secondary must activate the secondary timed interaction even though AdventureBreakTimedInteraction also applies to Primary.
+            harness.SetSecondaryHeld(true, firePressTrigger: true);
+            harness.TickClient(0.5f);
+            Assert.Equal(0.5f, harness.InteractionState.HoldProgress.Get(), precision: 3);
+            Assert.Equal(1, harness.CountStaged(InteractionKind.SecondaryPressed));
+            Assert.Equal(0, harness.CountStaged(InteractionKind.PrimaryPressed));
+
+            //  Releasing Secondary cancels cleanly.
+            harness.SetSecondaryHeld(false);
+            harness.TickClient(0.05f);
+            Assert.Equal(0f, harness.InteractionState.HoldProgress.Get());
+            Assert.Equal(1, harness.CountStaged(InteractionKind.SecondaryReleased));
+        }
+        finally
+        {
+            WaywardBeyondClient.GameState.Set(previous);
+        }
     }
 
     [Fact]
@@ -738,7 +876,7 @@ public class TimedBrickBreakingTests
                 new ItemPlaceableSelector(Items, Bricks),
                 new HintResolver(Bricks),
                 new BreakToolValidator(Items),
-                new AdventureBreakHoldHandler(statResolver),
+                new AdventureBreakHoldValidator(statResolver),
                 new VoxelWriteCommitter(_peers, Bricks, Bricks, NullLogger<VoxelWriteCommitter>.Instance),
                 new BreakLootReactor(Bricks),
                 new SkillXpReactor(Skills, _peers, NullLogger<SkillXpReactor>.Instance),
@@ -753,9 +891,15 @@ public class TimedBrickBreakingTests
                 _sessions,
                 NullLogger<ServerInteractionSystem>.Instance,
                 handlerRegistry,
-                s => new ServerVoxelInteractionWorld(s, physics),
+                s =>
+                {
+                    WorldFactoryCalls++;
+                    return new ServerVoxelInteractionWorld(s, physics);
+                },
                 _simStep);
         }
+
+        public int WorldFactoryCalls { get; private set; }
 
         public void SetSecondaryHeld(bool held)
         {
@@ -865,7 +1009,6 @@ public class TimedBrickBreakingTests
         private readonly HoldingShortcutService _shortcuts = new();
         private readonly NotificationService _notifications;
         private readonly PlayerInteractionService _service;
-        private readonly ActiveCharacterSave _characterSave = new();
 
         public DataStore Store { get; } = new();
         public BrickDatabase Bricks { get; }
@@ -879,8 +1022,12 @@ public class TimedBrickBreakingTests
         public List<BreakEvent> BreakEvents { get; } = [];
         public List<InteractionEvent> StagedEvents { get; } = [];
 
-        public ClientHarness(GameMode mode, float rockHardness, float laserSpeed)
-        {
+        public ClientHarness(
+            GameMode mode,
+            float rockHardness,
+            float laserSpeed,
+            IClientTimedInteraction[]? extraTimedInteractions = null
+        ) {
             _assets.WriteBricks($"""
                 [[Bricks]]
                 ID = "{ROCK_BRICK_ID}"
@@ -936,8 +1083,8 @@ public class TimedBrickBreakingTests
             inv.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
             Store.AddOrUpdate(PlayerEntity, inv);
             Store.AddOrUpdate(PlayerEntity, new PendingInteractionComponent(new PendingInteractionQueue()));
-
-            _characterSave.ActiveSave = new Character();
+            Store.AddOrUpdate(PlayerEntity, new SkillStateComponent(new Dictionary<string, long>(StringComparer.Ordinal)));
+            Store.AddOrUpdate(PlayerEntity, new StatisticsComponent(new Dictionary<string, float>(StringComparer.Ordinal)));
 
             var input = new FakeInputService();
             var window = new FakeWindowContext { Resolution = new Vector2(1280f, 720f) };
@@ -960,10 +1107,16 @@ public class TimedBrickBreakingTests
                 new EntityStatisticModifierSource(),
                 new SkillMiningSpeedModifierSource(Skills),
             ]);
-            var timedController = new ClientTimedInteractionController(
-            [
-                new AdventureBreakTimedInteraction(_physics, Bricks, statResolver, _characterSave),
-            ]);
+            var timedInteractions = new List<IClientTimedInteraction>
+            {
+                new AdventureBreakTimedInteraction(_physics, Bricks, statResolver),
+            };
+            if (extraTimedInteractions != null)
+            {
+                timedInteractions.AddRange(extraTimedInteractions);
+            }
+
+            var timedController = new ClientTimedInteractionController(timedInteractions);
 
             var breakProcessor = new RecordingBreakEventProcessor(BreakEvents);
             _service = new PlayerInteractionService(
@@ -1004,6 +1157,15 @@ public class TimedBrickBreakingTests
             }
         }
 
+        public void SetSecondaryHeld(bool held, bool firePressTrigger = false)
+        {
+            _shortcuts.SecondaryHeld = held;
+            if (firePressTrigger)
+            {
+                _shortcuts.InvokeSecondaryAction();
+            }
+        }
+
         public void SetRaycastTarget(Int3 coord)
         {
             var point = new Vector3(coord.X, coord.Y, coord.Z + 0.5f);
@@ -1027,9 +1189,10 @@ public class TimedBrickBreakingTests
 
         public void SetSkillXp(string skillId, long xp)
         {
-            Character c = _characterSave.ActiveSave ?? new Character();
-            c.SetStatistic(skillId, xp);
-            _characterSave.ActiveSave = c;
+            if (Store.TryGet(PlayerEntity, out SkillStateComponent state))
+            {
+                state.SetXP(skillId, xp);
+            }
         }
 
         public int CountStaged(InteractionKind kind)
@@ -1160,7 +1323,7 @@ public class TimedBrickBreakingTests
                 new ItemPlaceableSelector(items, _bricks),
                 new HintResolver(_bricks),
                 new BreakToolValidator(items),
-                new AdventureBreakHoldHandler(statResolver),
+                new AdventureBreakHoldValidator(statResolver),
                 new VoxelWriteCommitter(_peers, _bricks, _bricks, NullLogger<VoxelWriteCommitter>.Instance),
                 new BreakLootReactor(_bricks),
                 new SkillXpReactor(skills, _peers, NullLogger<SkillXpReactor>.Instance),
@@ -1420,6 +1583,8 @@ public class TimedBrickBreakingTests
 
         public bool PrimaryHeld { get; set; }
 
+        public bool SecondaryHeld { get; set; }
+
         public event Action? BindingsChanged
         {
             add { }
@@ -1440,7 +1605,9 @@ public class TimedBrickBreakingTests
 
         public Result<ShortcutBinding> GetBinding(string id) => Result<ShortcutBinding>.FromFailure("Not registered.");
 
-        public bool IsHeld(string id) => id == GameShortcuts.PRIMARY_ACTION && PrimaryHeld;
+        public bool IsHeld(string id) =>
+            (id == GameShortcuts.PRIMARY_ACTION && PrimaryHeld) ||
+            (id == GameShortcuts.SECONDARY_ACTION && SecondaryHeld);
 
         public Result Rebind(string id, ShortcutBinding binding) => Result.FromSuccess();
 
@@ -1461,6 +1628,17 @@ public class TimedBrickBreakingTests
             for (var i = 0; i < _shortcuts.Count; i++)
             {
                 if (_shortcuts[i].GetId() == GameShortcuts.PRIMARY_ACTION && _shortcuts[i].IsEnabled())
+                {
+                    _shortcuts[i].Action?.Invoke();
+                }
+            }
+        }
+
+        public void InvokeSecondaryAction()
+        {
+            for (var i = 0; i < _shortcuts.Count; i++)
+            {
+                if (_shortcuts[i].GetId() == GameShortcuts.SECONDARY_ACTION && _shortcuts[i].IsEnabled())
                 {
                     _shortcuts[i].Action?.Invoke();
                 }
@@ -1584,6 +1762,17 @@ public class TimedBrickBreakingTests
         }
     }
 
+    private sealed class ModBonusStatSource : IStatModifierSource
+    {
+        public StatModifierPriority Priority => StatModifierPriority.Normal;
+        public string? StatId => "mod:custom_stat";
+
+        public void Apply(in StatQuery query, ref StatAccumulator accumulator)
+        {
+            accumulator.Apply(StatModifier.AddPercent(0.5f));
+        }
+    }
+
     private sealed class CustomTimedValidateHandler(string handlerId, float duration) : IInteractionHandler
     {
         public InteractionStage Stage => InteractionStage.Validate;
@@ -1593,7 +1782,7 @@ public class TimedBrickBreakingTests
         public InteractionDecision Handle(ref InteractionContext context)
         {
             var key = new TimedInteractionKey(handlerId, Uuid.Null, default, 0);
-            context.Hold = TimedInteractionSpec.Require(key, duration, TimedInteractionInput.Secondary);
+            context.Hold = InteractionHold.Require(key, duration, InteractionInput.Secondary);
             return InteractionDecision.Handled;
         }
     }
@@ -1613,7 +1802,7 @@ public class TimedBrickBreakingTests
 
     private sealed class CustomClientTimedInteraction(string handlerId, float duration) : IClientTimedInteraction
     {
-        public MouseButton Button => MouseButton.Right;
+        public InteractionInput Input => InteractionInput.Secondary;
 
         public bool AppliesTo(in ClientTimedInteractionContext context) => true;
 
@@ -1622,8 +1811,7 @@ public class TimedBrickBreakingTests
             target = new ClientTimedTarget(
                 new TimedInteractionKey(handlerId, Uuid.Null, default, 0),
                 duration,
-                InteractionKind.SecondaryPressed,
-                InteractionKind.SecondaryReleased);
+                InteractionInput.Secondary);
             return true;
         }
     }

@@ -18,6 +18,11 @@ public sealed class BrickStatisticModifierSource(IBrickDatabase? brickDatabase =
     /// <inheritdoc/>
     public void Apply(in StatQuery query, ref StatAccumulator accumulator)
     {
+        if (query.Subject is not (StatSubject.Any or StatSubject.Brick))
+        {
+            return;
+        }
+
         Brick? brick = ResolveBrick(in query);
         if (brick == null || !brick.TryGetStatistic(query.StatId, out float value) || !float.IsFinite(value))
         {

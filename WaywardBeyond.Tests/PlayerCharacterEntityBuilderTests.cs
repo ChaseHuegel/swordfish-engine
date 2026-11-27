@@ -8,6 +8,8 @@ using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Statistics;
+using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Tests;
 
@@ -17,8 +19,9 @@ public class PlayerCharacterEntityBuilderTests
     [Fact]
     public void DecorateSeatsTheAuthoritativeSpawnAndResetsPredictionState()
     {
+        (SkillDatabase skills, _) = SkillDatabaseTests.CreateSharedFixture();
         var store = new DataStore();
-        var builder = new PlayerCharacterEntityBuilder(new FakeRenderContext(store));
+        var builder = new PlayerCharacterEntityBuilder(new FakeRenderContext(store), skills);
         int entity = store.Alloc();
 
         var character = new Character(
@@ -30,7 +33,11 @@ public class PlayerCharacterEntityBuilderTests
             _Body: string.Empty,
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,
-            _Statistics: null,
+            _Statistics:
+            [
+                new Statistic("mining", 42),
+                new Statistic("mod:jump_boost", 3),
+            ],
             _Inventory: null
         );
 
@@ -51,5 +58,13 @@ public class PlayerCharacterEntityBuilderTests
         Assert.Equal(0f, input.LookPitch);
         Assert.Equal(0f, input.LookYaw);
         Assert.Equal(0f, input.LookRoll);
+
+        Assert.True(store.TryGet(entity, out SkillStateComponent skillState));
+        Assert.Equal(42, skillState.GetXP("mining"));
+        Assert.Equal(0, skillState.GetXP("mod:jump_boost"));
+
+        Assert.True(store.TryGet(entity, out StatisticsComponent statistics));
+        Assert.Equal(3f, statistics.Get("mod:jump_boost"));
+        Assert.False(statistics.TryGet("mining", out _));
     }
 }

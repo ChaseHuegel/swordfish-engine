@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Krill;
 using Swordfish.Library.Globalization;
+using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
@@ -8,6 +11,7 @@ using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay.Statistics;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -50,16 +54,23 @@ internal sealed class ClientNotificationSystem : IEntitySystem
 
         while (_inbound.SkillUpdates.TryDequeue(out SkillStateUpdateMessage skill))
         {
-            ApplySkillState(skill);
+            ApplySkillState(store, skill);
         }
     }
 
-    private void ApplySkillState(in SkillStateUpdateMessage update)
+    private void ApplySkillState(DataStore store, in SkillStateUpdateMessage update)
     {
         if (string.IsNullOrEmpty(update.SkillId))
         {
             return;
         }
+
+        UpdateSkillStateAction syncAction = new()
+        {
+            SkillId = update.SkillId,
+            TotalXp = update.TotalXP,
+        };
+        store.Query<PlayerComponent, UpdateSkillStateAction>(0f, ref syncAction);
 
         Character? activeSave = _characterSaveManager.ActiveSave;
         if (activeSave == null)
@@ -156,5 +167,25 @@ internal sealed class ClientNotificationSystem : IEntitySystem
         }
 
         return resolved;
+    }
+
+    private struct UpdateSkillStateAction : IForEach<PlayerComponent>
+    {
+        public string SkillId;
+        public long TotalXp;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
+        {
+            if (store.TryGet(entity, out SkillStateComponent state) && state.XPBySkill != null)
+            {
+                state.SetXP(SkillId, TotalXp);
+                return;
+            }
+
+            store.AddOrUpdate(entity, new SkillStateComponent(new Dictionary<string, long>(StringComparer.Ordinal)
+            {
+                [SkillId] = TotalXp,
+            }));
+        }
     }
 }

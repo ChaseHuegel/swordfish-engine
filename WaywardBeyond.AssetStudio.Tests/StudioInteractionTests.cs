@@ -341,6 +341,26 @@ public sealed class StudioInteractionTests
             Assert.Contains("\"wb:mining_speed\" = 3.25", savedItemToml, StringComparison.Ordinal);
             Assert.Contains("\"test:crit_chance\" = 0.15", savedItemToml, StringComparison.Ordinal);
             Assert.DoesNotContain("test:heat", savedItemToml, StringComparison.Ordinal);
+
+            //  Invalid statistic values surface inline row validation errors and fail save instead of silently dropping data.
+            var activeSpeedRow = itemDoc.Statistics.First(static s => s.Key == "wb:mining_speed");
+            activeSpeedRow.Value = "not_a_number";
+            Assert.True(activeSpeedRow.IsInvalidValue);
+            Assert.True(activeSpeedRow.HasValidationError);
+            Assert.True(itemDoc.HasInvalidStatistics);
+
+            vm.SaveAllCommand.Execute(null);
+            var afterFailedSaveToml = File.ReadAllText(itemPath);
+            Assert.Contains("\"wb:mining_speed\" = 3.25", afterFailedSaveToml, StringComparison.Ordinal);
+
+            activeSpeedRow.Value = "0";
+            Assert.True(activeSpeedRow.IsInvalidValue);
+            Assert.Contains("greater than 0", activeSpeedRow.ValidationError!, StringComparison.Ordinal);
+
+            activeSpeedRow.Value = "2.5";
+            Assert.False(activeSpeedRow.IsInvalidValue);
+            Assert.False(activeSpeedRow.HasValidationError);
+            Assert.False(itemDoc.HasInvalidStatistics);
         }
         finally
         {

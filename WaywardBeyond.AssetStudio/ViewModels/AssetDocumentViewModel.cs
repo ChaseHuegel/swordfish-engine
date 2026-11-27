@@ -82,6 +82,9 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     private bool _hasSyntaxError;
 
     [ObservableProperty]
+    private bool _hasInvalidStatistics;
+
+    [ObservableProperty]
     private string? _syntaxErrorMessage;
 
     [ObservableProperty]
@@ -277,7 +280,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
                 Statistics.Add(CreateStatisticRow(stat.Key, stat.Value.ToString("0.####", CultureInfo.InvariantCulture)));
             }
 
-            RefreshDuplicateStatistics();
+            RefreshStatisticValidation();
         }
 
         // Item fields
@@ -312,7 +315,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
                 Statistics.Add(CreateStatisticRow(stat.Key, stat.Value.ToString("0.####", CultureInfo.InvariantCulture)));
             }
 
-            RefreshDuplicateStatistics();
+            RefreshStatisticValidation();
         }
 
         // Paint fields
@@ -2743,7 +2746,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
 
         Statistics.Remove(row);
         _statisticsModified = true;
-        RefreshDuplicateStatistics();
+        RefreshStatisticValidation();
         OnPropertyChanged(nameof(HasStatistics));
         var after = SnapshotStatistics();
 
@@ -2784,7 +2787,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
 
         Statistics.Add(CreateStatisticRow(key, value));
         _statisticsModified = true;
-        RefreshDuplicateStatistics();
+        RefreshStatisticValidation();
         OnPropertyChanged(nameof(HasStatistics));
         var after = SnapshotStatistics();
 
@@ -2835,7 +2838,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             onChanged: () =>
             {
                 _statisticsModified = true;
-                RefreshDuplicateStatistics();
+                RefreshStatisticValidation();
                 MarkMutated();
             },
             onPropertyTransition: (row, prop, oldVal, newVal) =>
@@ -2850,7 +2853,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
                     {
                         row.ApplyPropertyForReplay(prop, oldVal);
                         _statisticsModified = _saveEpoch == recordedEpoch ? wasModified : true;
-                        RefreshDuplicateStatistics();
+                        RefreshStatisticValidation();
                         RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
                         RefreshTomlAndNotify();
                     },
@@ -2858,7 +2861,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
                     {
                         row.ApplyPropertyForReplay(prop, newVal);
                         _statisticsModified = true;
-                        RefreshDuplicateStatistics();
+                        RefreshStatisticValidation();
                         MarkMutated();
                     });
             });
@@ -2891,7 +2894,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         _statisticsModified = isUndo && _saveEpoch == recordedEpoch
             ? targetModified
             : true;
-        RefreshDuplicateStatistics();
+        RefreshStatisticValidation();
         OnPropertyChanged(nameof(HasStatistics));
 
         if (isUndo)
@@ -2905,7 +2908,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         }
     }
 
-    private void RefreshDuplicateStatistics()
+    private void RefreshStatisticValidation()
     {
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
         for (var i = 0; i < Statistics.Count; i++)
@@ -2917,13 +2920,59 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             }
         }
 
+        var anyInvalid = false;
         for (var i = 0; i < Statistics.Count; i++)
         {
-            var trimmed = Statistics[i].Key.Trim();
-            Statistics[i].IsDuplicateKey = trimmed.Length > 0
-                && counts.TryGetValue(trimmed, out var count)
-                && count > 1;
+            var row = Statistics[i];
+            var trimmedKey = row.Key.Trim();
+            var trimmedValue = row.Value.Trim();
+
+            var isEmptyKey = trimmedKey.Length == 0;
+            var isDuplicate = !isEmptyKey && counts.TryGetValue(trimmedKey, out var count) && count > 1;
+            var parsedOk = double.TryParse(trimmedValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedValue)
+                && double.IsFinite(parsedValue);
+            var invalidMiningSpeed = parsedOk
+                && string.Equals(trimmedKey, StatisticIds.MINING_SPEED, StringComparison.Ordinal)
+                && parsedValue <= 0d;
+            var invalidHardness = parsedOk
+                && string.Equals(trimmedKey, StatisticIds.HARDNESS, StringComparison.Ordinal)
+                && parsedValue < 0d;
+            var isInvalidValue = !parsedOk || invalidMiningSpeed || invalidHardness;
+
+            string? error = null;
+            if (isEmptyKey)
+            {
+                error = "Statistic key must not be empty.";
+            }
+            else if (isDuplicate)
+            {
+                error = $"Duplicate statistic key \"{trimmedKey}\".";
+            }
+            else if (!parsedOk)
+            {
+                error = "Value must be a finite number.";
+            }
+            else if (invalidMiningSpeed)
+            {
+                error = $"{StatisticIds.MINING_SPEED} must be greater than 0.";
+            }
+            else if (invalidHardness)
+            {
+                error = $"{StatisticIds.HARDNESS} must be 0 or greater.";
+            }
+
+            row.IsInvalidKey = isEmptyKey;
+            row.IsDuplicateKey = isDuplicate;
+            row.IsInvalidValue = isInvalidValue;
+            row.ValidationError = error;
+
+            if (error != null)
+            {
+                anyInvalid = true;
+            }
         }
+
+        HasInvalidStatistics = anyInvalid;
     }
 
     [RelayCommand]

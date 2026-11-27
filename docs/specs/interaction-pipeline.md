@@ -87,9 +87,11 @@ Timed interactions compose through the pipeline rather than living hardcoded ins
 
 - **Server hold declaration:** Any `Validate` handler can require a sustained hold by setting
   `InteractionContext.Hold` (`WaywardBeyond.Gameplay/Interactions/InteractionContext.cs:86`)
-  to a `TimedInteractionSpec` (`TimedInteractionSpec.cs:7`) with a stable `TimedInteractionKey`,
-  `RequiredDuration`, `RequiredInput` (`Primary`, `Secondary`, or `None`), and
-  `CancelOnEquipmentChange`.
+  to an `InteractionHold` (`InteractionHold.cs:7`) with a stable `TimedInteractionKey`,
+  `RequiredDuration`, `RequiredInput` (`InteractionInput.Primary`, `Secondary`, or `None` in
+  `InteractionInput.cs:4`), and `CancelOnEquipmentChange`. `InteractionInputExtensions`
+  (`InteractionInputExtensions.cs:6`) maps `InteractionInput` channels to wire `InteractionKind`
+  edges and `InputComponent` held state, failing closed on unrecognized input values.
 - **Generic server pump:** `ServerInteractionSystem`
   (`WaywardBeyond.Server/Systems/ServerInteractionSystem.cs:23`) runs `Select` through `Validate`.
   Interactions without `Hold.IsRequired` run `Commit` through `React` immediately. When
@@ -98,30 +100,33 @@ Timed interactions compose through the pipeline rather than living hardcoded ins
   the input condition, equipment, and `TimedInteractionKey`, and advances elapsed time. When
   `TimedInteractionProgress.IsComplete` (`TimedInteractionProgress.cs:12`) becomes true, the server
   clears the session and runs `Commit` through `React`.
-- **Adventure brick breaking handler:** `AdventureBreakHoldHandler`
-  (`WaywardBeyond.Server/Interactions/AdventureBreakHoldHandler.cs:18`) registers at
+- **Adventure brick breaking validator:** `AdventureBreakHoldValidator`
+  (`WaywardBeyond.Server/Interactions/AdventureBreakHoldValidator.cs:15`) registers at
   `InteractionStage.Validate` with `Priority.Low` and `GameMode.Adventure`. For `Break` actions, it
   evaluates `StatisticIds.HARDNESS` and `StatisticIds.MINING_SPEED` through `IStatResolver` (see
   [statistics](statistics.md)) to compute `hardness / speed` and populate `context.Hold`. Higher
   priority handlers and custom `IStatModifierSource` implementations can modify or replace it.
 - **Extensible client holds:** `PlayerInteractionService`
-  (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:250`) delegates timed holds to
+  (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:254`) routes both immediate and timed
+  interactions through `InteractionInput` and delegates timed holds to
   `ClientTimedInteractionController`
-  (`WaywardBeyond.Client/Interactions/ClientTimedInteractionController.cs:15`), which runs
-  registered `IClientTimedInteraction` providers (`IClientTimedInteraction.cs:10`).
-  `AdventureBreakTimedInteraction` (`AdventureBreakTimedInteraction.cs:26`) claims Adventure mining
-  holds, suppresses predictive voxel removal and repeat chatter, stages one start edge and one
-  cancel edge, and updates `InteractionState.HoldProgress`
-  (`WaywardBeyond.Client/Systems/InteractionState.cs:19`) using the shared `IStatResolver`.
+  (`WaywardBeyond.Client/Interactions/ClientTimedInteractionController.cs:13`), which runs
+  registered `IClientTimedInteraction` providers (`IClientTimedInteraction.cs:10`) keyed by
+  logical `InteractionInput`. `AdventureBreakTimedInteraction`
+  (`AdventureBreakTimedInteraction.cs:22`) claims Adventure mining holds, suppresses predictive
+  voxel removal and repeat chatter, stages one start edge and one cancel edge, and updates
+  `InteractionState.HoldProgress` (`WaywardBeyond.Client/Systems/InteractionState.cs:19`) using
+  the shared `IStatResolver`. Both `ServerInteractionSystem` and the client interaction services
+  cache their `IVoxelInteractionWorld` per `DataStore` to avoid per-tick allocations during holds.
 
 ## Source of truth
 
 - `WaywardBeyond.Gameplay/Interactions/{InteractionStage,InteractionPriority,InteractionDecision,InteractionRunResult}.cs`
 - `WaywardBeyond.Gameplay/Interactions/{InteractionContext,IInteractionHandler,IInteractionHandlerRegistry,InteractionHandlerRegistry}.cs`
-- `WaywardBeyond.Gameplay/Interactions/{TimedInteractionInput,TimedInteractionKey,TimedInteractionSpec,TimedInteractionProgress,HintResolver}.cs`
+- `WaywardBeyond.Gameplay/Interactions/{InteractionInput,InteractionInputExtensions,InteractionHold,TimedInteractionKey,TimedInteractionProgress,HintResolver}.cs`
 - `WaywardBeyond.Client/Interactions/{IClientTimedInteraction,ClientTimedInteractionContext,ClientTimedTarget,ClientTimedStageEvent,ClientTimedInteractionController,AdventureBreakTimedInteraction}.cs`
 - `WaywardBeyond.Client/Systems/{InteractionState,PlayerInteractionService}.cs`
-- `WaywardBeyond.Server/Interactions/` — default `Select`, `Validate` (`BreakToolValidator`, `AdventureBreakHoldHandler`), `Commit`, and `React` handlers
+- `WaywardBeyond.Server/Interactions/` — default `Select`, `Validate` (`BreakToolValidator`, `AdventureBreakHoldValidator`), `Commit`, and `React` handlers
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs` — generic interaction pump and timed session tracker
 - `WaywardBeyond.Server/ServerComposition.cs` — default handler and stat modifier registration
 - `WaywardBeyond.Tests/TimedBrickBreakingTests.cs` — unit and integration coverage

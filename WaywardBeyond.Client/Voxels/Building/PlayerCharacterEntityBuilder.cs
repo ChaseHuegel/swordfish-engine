@@ -6,12 +6,15 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Statistics;
+using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 
-internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderContext)
+internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderContext, ISkillDatabase? skillDatabase = null)
 {
     private readonly IRenderContext _renderContext = renderContext;
+    private readonly ISkillDatabase? _skillDatabase = skillDatabase;
 
     public void Decorate(Entity player, Character character, Vector3 spawnPosition, Quaternion spawnOrientation)
     {
@@ -28,9 +31,11 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
         player.AddOrUpdate(PendingInputComponent.Create());
         player.AddOrUpdate(CharacterDefaults.CreateCharacterPhysicsComponent());
         player.AddOrUpdate(CharacterDefaults.CreateCharacterColliderComponent(CharacterDefaults.PlayerScale));
-        
+
         player.AddOrUpdate(new CharacterComponent(character));
         player.AddOrUpdate(new GameModeComponent(character.GameMode));
+        player.AddOrUpdate(CharacterStatisticsSeeder.CreateSkillState(character.Statistics, _skillDatabase));
+        player.AddOrUpdate(CharacterStatisticsSeeder.CreateStatistics(character.Statistics, _skillDatabase));
 
         //  The client is not the authority for starter inventory; the server grants the starter
         //  loadout as part of the seeded interaction context and echoes it down through reconcile.

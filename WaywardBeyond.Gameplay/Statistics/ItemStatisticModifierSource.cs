@@ -18,6 +18,11 @@ public sealed class ItemStatisticModifierSource(IItemDatabase? itemDatabase = nu
     /// <inheritdoc/>
     public void Apply(in StatQuery query, ref StatAccumulator accumulator)
     {
+        if (query.Subject is not (StatSubject.Any or StatSubject.Item))
+        {
+            return;
+        }
+
         Item? item = ResolveItem(in query);
         if (item == null || !item.TryGetStatistic(query.StatId, out float value) || !float.IsFinite(value))
         {

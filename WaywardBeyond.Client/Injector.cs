@@ -338,12 +338,7 @@ public class Injector : IDryIocInjector
 
     private static void RegisterInput(IContainer container)
     {
-        RegisterStatModifierSource<BrickStatisticModifierSource>(container);
-        RegisterStatModifierSource<ItemStatisticModifierSource>(container);
-        RegisterStatModifierSource<EntityStatisticModifierSource>(container);
-        RegisterStatModifierSource<SkillMiningSpeedModifierSource>(container);
-        container.Register<StatResolver>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
-        container.RegisterMapping<IStatResolver, StatResolver>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.RegisterStatistics();
 
         container.Register<InteractionState>(Reuse.Singleton);
         container.Register<IClientTimedInteraction, AdventureBreakTimedInteraction>(
@@ -365,17 +360,6 @@ public class Injector : IDryIocInjector
 
         container.Register<ClientPlayerMotionProcessor>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientPlayerMotionProcessor>();
-    }
-
-    private static void RegisterStatModifierSource<T>(IContainer container) where T : class, IStatModifierSource
-    {
-        if (container.IsRegistered<T>())
-        {
-            return;
-        }
-
-        container.Register<T>(Reuse.Singleton);
-        container.RegisterMapping<IStatModifierSource, T>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 
     private static void RegisterDatabases(IContainer container)

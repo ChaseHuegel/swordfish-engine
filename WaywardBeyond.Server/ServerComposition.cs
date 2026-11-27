@@ -118,13 +118,9 @@ public static class ServerComposition
         RegisterServerSystem<NetworkPublishSystem>(container);
 
         //  Statistic modifier sources compose like interaction handlers: modules and mods register
-        //  IStatModifierSource implementations and StatResolver orders them once by priority.
-        RegisterStatModifierSource<BrickStatisticModifierSource>(container);
-        RegisterStatModifierSource<ItemStatisticModifierSource>(container);
-        RegisterStatModifierSource<EntityStatisticModifierSource>(container);
-        RegisterStatModifierSource<SkillMiningSpeedModifierSource>(container);
-        container.Register<StatResolver>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
-        container.RegisterMapping<IStatResolver, StatResolver>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        //  IStatModifierSource implementations via RegisterStatModifierSource<T>() and StatResolver
+        //  orders them once by priority.
+        container.RegisterStatistics();
 
         //  Interaction handlers declare their own stage and priority, so the composition only decides
         //  which handlers exist. The registry is built once at startup, after every module has loaded,
@@ -133,7 +129,7 @@ public static class ServerComposition
         container.Register<IInteractionHandler, PaintHintResolver>(Reuse.Singleton);
         container.Register<IInteractionHandler, HintResolver>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakToolValidator>(Reuse.Singleton);
-        container.Register<IInteractionHandler, AdventureBreakHoldHandler>(Reuse.Singleton);
+        container.Register<IInteractionHandler, AdventureBreakHoldValidator>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelFaceWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, VoxelWriteCommitter>(Reuse.Singleton);
         container.Register<IInteractionHandler, BreakLootReactor>(Reuse.Singleton);
@@ -198,17 +194,6 @@ public static class ServerComposition
     private static Func<DataStore, IVoxelInteractionWorld> CreateInteractionWorldFactory(IServerWorldPhysics physics)
     {
         return store => new ServerVoxelInteractionWorld(store, physics);
-    }
-
-    private static void RegisterStatModifierSource<T>(IContainer container) where T : class, IStatModifierSource
-    {
-        if (container.IsRegistered<T>())
-        {
-            return;
-        }
-
-        container.Register<T>(Reuse.Singleton);
-        container.RegisterMapping<IStatModifierSource, T>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 
     private static IServerWorldSystem CreateInteractionSystem(ServerInteractionSystem interaction)
