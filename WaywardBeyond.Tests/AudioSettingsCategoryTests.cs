@@ -64,6 +64,8 @@ public class AudioSettingsCategoryTests
     {
         SettingsDraft draft = SettingsDraft.CreateDefault(new FakeWindowContext());
         draft.OutputDevice = "Speakers";
+        draft.PausedVolume = 0.25f;
+        draft.BackgroundVolume = 0.75f;
         var service = new FakePlaybackDeviceService();
         service.SetDevices("Speakers");
         SettingsCategory category = AudioSettingsCategory.Build(draft, service, new TestLocalization(), () => { });
@@ -71,6 +73,28 @@ public class AudioSettingsCategoryTests
         category.ResetToDefaults();
 
         Assert.Equal(string.Empty, draft.OutputDevice);
+        Assert.Equal(0.5f, draft.PausedVolume);
+        Assert.Equal(0f, draft.BackgroundVolume);
+    }
+
+    [Fact]
+    public void PausedAndBackgroundSlidersUseExpectedDefaultsAndSteps()
+    {
+        SettingsDraft draft = SettingsDraft.CreateDefault(new FakeWindowContext());
+        var service = new FakePlaybackDeviceService();
+        SettingsCategory category = AudioSettingsCategory.Build(draft, service, new TestLocalization(), () => { });
+
+        SliderEntry paused = FindSliderRow(category, "Settings.PausedVolume");
+        SliderEntry background = FindSliderRow(category, "Settings.BackgroundVolume");
+
+        Assert.Equal("50%", paused.Snapshot().Display);
+        Assert.Equal("0%", background.Snapshot().Display);
+
+        Assert.Equal(-1, paused.Step(-1));
+        Assert.Equal(0.45f, draft.PausedVolume, precision: 3);
+
+        Assert.Equal(1, background.Step(1));
+        Assert.Equal(0.05f, draft.BackgroundVolume, precision: 3);
     }
 
     private static StepperEntry<string> FindOutputDeviceRow(SettingsCategory category)
@@ -84,5 +108,18 @@ public class AudioSettingsCategoryTests
         }
 
         throw new Xunit.Sdk.XunitException("No output device row was found.");
+    }
+
+    private static SliderEntry FindSliderRow(SettingsCategory category, string id)
+    {
+        foreach (SettingsEntry entry in category.Entries)
+        {
+            if (entry is SliderEntry row && row.Id == id)
+            {
+                return row;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No slider row \"{id}\" was found.");
     }
 }

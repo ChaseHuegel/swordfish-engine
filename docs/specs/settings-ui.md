@@ -159,7 +159,7 @@ an unsupported fullscreen resolution falls back to a supported mode,
 `SettingsPage.ApplySettings` syncs the draft to the applied mode and shows
 `ui.settings.status.displayFallback`.
 `SettingsPage.RefreshExternalDisplaySettings` at
-`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:738` keeps the display
+`WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:740` keeps the display
 mode, monitor, and resolution rows in sync when a shortcut or a manual resize
 changes the window while the page is open.
 
@@ -215,7 +215,8 @@ The page exposes only options that the engine supports:
 - Display & Video: display mode, monitor, resolution, UI scale, V-sync, frame
   limit, field of view, view distance, anti-aliasing, ambient occlusion, AO
   quality, bloom, bloom quality, and particle density.
-- Audio: output device, master, music, effects, and interface volume.
+- Audio: output device, master, music, effects, interface, paused volume, and
+  background volume.
 - Gameplay: autosave, autosave interval, control hints, crosshair, and name tag
   distance.
 - Controls: mouse sensitivity, remember shape, and remember orientation.
@@ -256,6 +257,20 @@ frame of the event.
 
 The scan interval is 2 seconds. A hotplug reaches the row on the next scan.
 
+## Paused and background audio
+
+The audio category ends with a `Focus & pause` section containing two volume
+sliders:
+
+- `Settings.PausedVolume` (`VolumeSettings.Paused`, default `50%`) scales all
+  audio channels while `WaywardBeyond.GameState` is `GameState.Paused`.
+- `Settings.BackgroundVolume` (`VolumeSettings.Background`, default `0%`) scales
+  all audio channels while the window is unfocused.
+
+`AudioChannelSystem` tracks focus through `IWindowContext.Focused` and
+`IWindowContext.Unfocused` and applies the smaller multiplier when both states
+are active (`WaywardBeyond.Client/Systems/AudioChannelSystem.cs:92`).
+
 ## Page shell
 
 `IMenuPage.UsesFullContentArea` is at `WaywardBeyond.Client/UI/IMenuPage.cs:13`.
@@ -273,9 +288,11 @@ existing spacer layout.
   `AudioSettingsCategory.cs:11`, `GameplaySettingsCategory.cs:9`,
   `ControlSettingsCategory.cs:10`, `KeybindingsSettingsCategory.cs:36`
 - Audio output row: `WaywardBeyond.Client/UI/Settings/AudioSettingsCategory.cs:24`,
-  `:71`, `:96`
+  `:88`, `:113`
+- Audio focus and pause rows: `WaywardBeyond.Client/UI/Settings/AudioSettingsCategory.cs:66`,
+  `WaywardBeyond.Client/Systems/AudioChannelSystem.cs:12`
 - Audio refresh and apply: `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:81`,
-  `:146`, `:579`, `:677`, `:715`
+  `:146`, `:581`, `:679`, `:717`
 - Keybinding entry and shortcuts: `WaywardBeyond.Client/UI/Settings/KeybindingEntry.cs:7`,
   `WaywardBeyond.Client/UI/Settings/KeybindingScope.cs:4`,
   `WaywardBeyond.Client/Shortcuts/GameShortcuts.cs:7`
@@ -285,7 +302,7 @@ existing spacer layout.
 - Particle density preset: `WaywardBeyond.Client/UI/Settings/ParticleDensity.cs:4`,
   `ParticleDensityExtensions.cs:7`
 - Audio preference: `WaywardBeyond.Client/Configuration/VolumeSettings.cs:14`,
-  `WaywardBeyond.Client/Configuration/ConfigManager.cs:63`
+  `:15`, `:16`, `WaywardBeyond.Client/Configuration/ConfigManager.cs:63`
 - Draft: `WaywardBeyond.Client/UI/Settings/SettingsDraft.cs:13`
 - Defaults: `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:7`
 - Stepper entry: `WaywardBeyond.Client/UI/Settings/StepperEntryOfT.cs:7`
@@ -337,7 +354,10 @@ existing spacer layout.
   steps and drag changes, dynamic option providers, and the bloom, shadow, AO,
   and particle density preset round trips.
 - `WaywardBeyond.Tests/AudioSettingsCategoryTests.cs` covers the output device
-  option order, the missing-device label, and reset.
+  option order, the missing-device label, paused and background slider defaults
+  and steps, and reset.
+- `WaywardBeyond.Tests/AudioChannelSystemTests.cs` covers channel volume mixing,
+  paused and unfocused attenuation, combined attenuation clamping, and disposal.
 - `WaywardBeyond.Tests/DisplaySettingsTests.cs` covers fullscreen video mode
   resolution, fallback, resolution row enablement, and persisted fullscreen
   resolution loading.

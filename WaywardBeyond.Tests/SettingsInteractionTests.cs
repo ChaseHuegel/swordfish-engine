@@ -152,6 +152,30 @@ public class SettingsInteractionTests
         Assert.True(harness.HasText("ui.settings.status.displayFallback"));
     }
 
+    [Fact]
+    public void ApplyingPausedAndBackgroundVolumeUpdatesVolumeSettings()
+    {
+        var harness = new Harness();
+
+        harness.Click(harness.Find("Settings.Category.audio"));
+        harness.Frame();
+
+        harness.Click(harness.Find("Settings.PausedVolume.minus"));
+        harness.Frame();
+        harness.Click(harness.Find("Settings.BackgroundVolume.plus"));
+        harness.Frame();
+
+        //  Changes remain in the draft until applied.
+        Assert.Equal(0.5f, harness.VolumeSettings.Paused.Get(), precision: 3);
+        Assert.Equal(0f, harness.VolumeSettings.Background.Get(), precision: 3);
+
+        harness.Click(harness.Find("Settings.Apply"));
+        harness.Frame();
+
+        Assert.Equal(0.45f, harness.VolumeSettings.Paused.Get(), precision: 3);
+        Assert.Equal(0.05f, harness.VolumeSettings.Background.Get(), precision: 3);
+    }
+
     private static void AssertCategorySwitchResetsScroll(int width, int height, string categoryId)
     {
         var harness = new Harness(width, height);
@@ -177,6 +201,7 @@ public class SettingsInteractionTests
         public FakePlaybackDeviceService PlaybackDeviceService { get; } = new();
         public FakeWindowContext WindowContext { get; } = new();
         public WindowSettings WindowSettings { get; } = new();
+        public VolumeSettings VolumeSettings { get; } = new();
 
         public Harness(int width = 1920, int height = 1080)
         {
@@ -189,7 +214,7 @@ public class SettingsInteractionTests
                 keybindingSettings: new KeybindingSettings(),
                 windowSettings: WindowSettings,
                 renderSettings: new RenderSettings(),
-                volumeSettings: new VolumeSettings(),
+                volumeSettings: VolumeSettings,
                 playbackDeviceService: PlaybackDeviceService,
                 gameplayConfig: new GameplayConfig(),
                 uiSettings: new UISettings(),
