@@ -64,7 +64,7 @@
 "ui.label.level.type.asteroids" = "Asteroids"
 "ui.label.level.creating" = "Charting galaxy"
 "ui.label.level.chart.empty" = "No systems charted"
-"ui.text.level.form.hint" = "Plot your course into uncharted space, Spacer"
+"ui.text.level.form.hint" = "Plot a course into the unknown, Spacer"
 "ui.text.level.mode.creative" = "Build and experiment freely with unlimited resources"
 "ui.text.level.mode.adventure" = "Chart the frontier from scratch. Gather resources from the expanse and build with what you find."
 "ui.message.level.createFailed" = "Could not chart the galaxy"
