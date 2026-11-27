@@ -1,4 +1,5 @@
 using System;
+using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 
@@ -7,14 +8,24 @@ namespace WaywardBeyond.Voxels;
 /// <summary>Normalizes voxel data between the local transient format (in-memory) and the persistent format (wire/disk).</summary>
 public static class VoxelCodec
 {
-    /// <summary>Encodes voxel data from the local format into the persistent format.</summary>
-    public static VoxelEntityData Encode(in VoxelEntityData source, IBrickRegistry map, IPaintRegistry? paintMap = null)
+    /// <summary>
+    /// Encodes voxel data from the local format into the persistent format. Data that already carries the
+    /// required palettes passes through unchanged and reports success. Fails when a chunk declares a size
+    /// but has no voxel array.
+    /// </summary>
+    public static Result<VoxelEntityData> Encode(in VoxelEntityData source, IBrickRegistry map, IPaintRegistry? paintMap = null)
     {
+        string? chunkError = FindChunkError(source.Uuid, source.Chunks);
+        if (chunkError != null)
+        {
+            return Result<VoxelEntityData>.FromFailure(chunkError);
+        }
+
         bool hasBrickPalette = HasPalette(source.BrickPalette);
         bool hasPaintPalette = HasPalette(source.PaintPalette);
         if (hasBrickPalette && (paintMap == null || hasPaintPalette))
         {
-            return source;
+            return Result<VoxelEntityData>.FromSuccess(source);
         }
 
         string[]? brickPalette = hasBrickPalette ? source.BrickPalette : BuildBrickPalette(source.Chunks, map.Name);
@@ -22,7 +33,7 @@ public static class VoxelCodec
             ? source.PaintPalette
             : (paintMap != null ? BuildPaintPalette(source.Chunks, paintMap.Name) : null);
 
-        return new VoxelEntityData(
+        return Result<VoxelEntityData>.FromSuccess(new VoxelEntityData(
             source.Uuid,
             source.X, source.Y, source.Z,
             source.OrientationX, source.OrientationY, source.OrientationZ, source.OrientationW,
@@ -30,18 +41,27 @@ public static class VoxelCodec
             source.Chunks,
             brickPalette,
             paintPalette
-        );
+        ));
     }
 
-    /// <summary>Decodes voxel data from the persistent format into the local format.</summary>
-    public static VoxelEntityData Decode(in VoxelEntityData source, IBrickRegistry map, IPaintRegistry? paintMap = null)
+    /// <summary>
+    /// Decodes voxel data from the persistent format into the local format. Data without a palette passes
+    /// through unchanged and reports success. Fails when a chunk declares a size but has no voxel array.
+    /// </summary>
+    public static Result<VoxelEntityData> Decode(in VoxelEntityData source, IBrickRegistry map, IPaintRegistry? paintMap = null)
     {
+        string? chunkError = FindChunkError(source.Uuid, source.Chunks);
+        if (chunkError != null)
+        {
+            return Result<VoxelEntityData>.FromFailure(chunkError);
+        }
+
         bool hasBrickPalette = HasPalette(source.BrickPalette);
         bool hasPaintPalette = HasPalette(source.PaintPalette);
         bool decodePaint = hasPaintPalette && paintMap != null;
         if (!hasBrickPalette && !decodePaint)
         {
-            return source;
+            return Result<VoxelEntityData>.FromSuccess(source);
         }
 
         string[]? brickPalette = hasBrickPalette ? source.BrickPalette : null;
@@ -55,7 +75,7 @@ public static class VoxelCodec
             : null;
 
         ChunkInfo[] chunks = RemapChunks(source.Chunks, remapBrick, remapPaint);
-        return new VoxelEntityData(
+        return Result<VoxelEntityData>.FromSuccess(new VoxelEntityData(
             source.Uuid,
             source.X, source.Y, source.Z,
             source.OrientationX, source.OrientationY, source.OrientationZ, source.OrientationW,
@@ -63,7 +83,7 @@ public static class VoxelCodec
             chunks,
             null,
             decodePaint ? null : source.PaintPalette
-        );
+        ));
     }
 
     /// <summary>Encodes voxel region data from the local format into the persistent format.</summary>
@@ -126,6 +146,26 @@ public static class VoxelCodec
     private static bool HasPalette(string[]? palette)
     {
         return palette != null && palette.Length > 0;
+    }
+
+    /// <summary>Returns a message for the first chunk that declares a size but carries no voxel array.</summary>
+    private static string? FindChunkError(ulong uuid, ChunkInfo[]? chunks)
+    {
+        if (chunks == null)
+        {
+            return null;
+        }
+        
+        for (var c = 0; c < chunks.Length; c++)
+        {
+            ChunkInfo chunkInfo = chunks[c];
+            if (chunkInfo.Chunk.Size > 0 && chunkInfo.Chunk.Voxels == null)
+            {
+                return $"Voxel entity {uuid} has a chunk at ({chunkInfo.OffsetX},{chunkInfo.OffsetY},{chunkInfo.OffsetZ}) with size {chunkInfo.Chunk.Size} but no voxels.";
+            }
+        }
+
+        return null;
     }
 
     private static ushort PaletteIdToLocalId(ushort paletteIndex, string[] palette, Func<string, ushort> nameToLocalId)

@@ -4,6 +4,7 @@ using System.Numerics;
 using Krill;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
@@ -208,7 +209,14 @@ internal sealed class ClientRegionReconcileSystem(
 
     private void ApplyEntitySpawn(DataStore store, in VoxelEntityData wireData)
     {
-        VoxelEntityData decoded = VoxelCodec.Decode(in wireData, brickRegistry, paintRegistry);
+        Result<VoxelEntityData> decodeResult = VoxelCodec.Decode(in wireData, brickRegistry, paintRegistry);
+        if (!decodeResult.Success)
+        {
+            logger.LogWarning("Dropped spawn of voxel entity {uuid}: {message}", wireData.Uuid, decodeResult.Message);
+            return;
+        }
+
+        VoxelEntityData decoded = decodeResult.Value;
         ChunkInfo[] chunks = decoded.Chunks ?? [];
         byte chunkSize = chunks.Length > 0 ? chunks[0].Chunk.Size : (byte)0;
         if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)

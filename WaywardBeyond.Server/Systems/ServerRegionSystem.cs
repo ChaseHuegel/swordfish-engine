@@ -405,8 +405,15 @@ public sealed class ServerRegionSystem(
             return FailOp("notification.region.empty", skippedUnknownBricks);
         }
 
-        VoxelEntityData encodedSpawn = VoxelCodec.Encode(in rawEntityData, brickRegistry, paintRegistry);
-        BroadcastEntitySpawn(store, in encodedSpawn);
+        Result<VoxelEntityData> encodedSpawn = VoxelCodec.Encode(in rawEntityData, brickRegistry, paintRegistry);
+        if (!encodedSpawn.Success)
+        {
+            logger.LogWarning("Failed to encode spawned voxel entity {uuid}: {message}", newUuid, encodedSpawn.Message);
+        }
+        else
+        {
+            BroadcastEntitySpawn(store, in encodedSpawn.Value);
+        }
 
         return RpcResult<RegionOpResponse>.Success(new RegionOpResponse
         {

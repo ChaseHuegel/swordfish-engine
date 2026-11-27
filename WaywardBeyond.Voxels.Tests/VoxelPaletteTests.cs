@@ -1,4 +1,5 @@
 using System;
+using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 
@@ -93,34 +94,37 @@ public class VoxelCodecTests
     {
         VoxelEntityData local = Structure((LOCAL_ROCK, 0));
 
-        VoxelEntityData encoded = VoxelCodec.Encode(in local, Registry(localRock: LOCAL_ROCK));
+        Result<VoxelEntityData> encoded = VoxelCodec.Encode(in local, Registry(localRock: LOCAL_ROCK));
 
-        Assert.NotNull(encoded.BrickPalette);
-        Assert.Equal(LOCAL_ROCK + 1, encoded.BrickPalette!.Length);
-        Assert.Equal("wb:rock", encoded.BrickPalette[LOCAL_ROCK]);
+        Assert.True(encoded.Success);
+        Assert.NotNull(encoded.Value.BrickPalette);
+        Assert.Equal(LOCAL_ROCK + 1, encoded.Value.BrickPalette!.Length);
+        Assert.Equal("wb:rock", encoded.Value.BrickPalette[LOCAL_ROCK]);
     }
 
     [Fact]
     public void EncodeIsANoOpWhenAPaletteIsAlreadyPresent()
     {
         VoxelEntityData local = Structure((LOCAL_ROCK, 0));
-        VoxelEntityData encoded = VoxelCodec.Encode(in local, Registry(localRock: LOCAL_ROCK));
+        VoxelEntityData encoded = VoxelCodec.Encode(in local, Registry(localRock: LOCAL_ROCK)).Value;
 
-        VoxelEntityData again = VoxelCodec.Encode(in encoded, Registry(localRock: LOCAL_ICE));
+        Result<VoxelEntityData> again = VoxelCodec.Encode(in encoded, Registry(localRock: LOCAL_ICE));
 
-        Assert.Same(encoded.BrickPalette, again.BrickPalette);
+        Assert.True(again.Success);
+        Assert.Same(encoded.BrickPalette, again.Value.BrickPalette);
     }
 
     [Fact]
     public void DecodeResolvesNamesIntoTheLocalIdSpace()
     {
         VoxelEntityData local = Local();
-        VoxelEntityData encoded = VoxelCodec.Encode(in local, Registry(localRock: LOCAL_ROCK));
+        VoxelEntityData encoded = VoxelCodec.Encode(in local, Registry(localRock: LOCAL_ROCK)).Value;
 
-        VoxelEntityData decoded = VoxelCodec.Decode(in encoded, Registry(localRock: LOCAL_ICE));
+        Result<VoxelEntityData> decoded = VoxelCodec.Decode(in encoded, Registry(localRock: LOCAL_ICE));
 
-        Assert.Null(decoded.BrickPalette);
-        Assert.Equal(LOCAL_ICE, decoded.Chunks[0].Chunk.Voxels[0].ID);
+        Assert.True(decoded.Success);
+        Assert.Null(decoded.Value.BrickPalette);
+        Assert.Equal(LOCAL_ICE, decoded.Value.Chunks[0].Chunk.Voxels[0].ID);
     }
 
     [Fact]
@@ -128,23 +132,57 @@ public class VoxelCodecTests
     {
         VoxelEntityData local = Local();
 
-        VoxelEntityData decoded = VoxelCodec.Decode(in local, Registry(localRock: LOCAL_ICE));
+        Result<VoxelEntityData> decoded = VoxelCodec.Decode(in local, Registry(localRock: LOCAL_ICE));
 
-        Assert.Equal(LOCAL_ROCK, decoded.Chunks[0].Chunk.Voxels[0].ID);
+        Assert.True(decoded.Success);
+        Assert.Equal(LOCAL_ROCK, decoded.Value.Chunks[0].Chunk.Voxels[0].ID);
     }
 
     [Fact]
     public void DecodeMapsADroppedPaletteEntryToTheEmptyVoxel()
     {
         VoxelEntityData local = Structure((LOCAL_ROCK, 0));
-        VoxelEntityData encoded = VoxelCodec.Encode(in local, Registry(localRock: LOCAL_ROCK));
+        VoxelEntityData encoded = VoxelCodec.Encode(in local, Registry(localRock: LOCAL_ROCK)).Value;
 
         //  Drop the palette entry the voxel refers to, which a corrupt record can do.
         encoded.BrickPalette![LOCAL_ROCK] = string.Empty;
 
-        VoxelEntityData decoded = VoxelCodec.Decode(in encoded, Registry(localRock: LOCAL_ICE));
+        Result<VoxelEntityData> decoded = VoxelCodec.Decode(in encoded, Registry(localRock: LOCAL_ICE));
 
-        Assert.Equal(0, decoded.Chunks[0].Chunk.Voxels[0].ID);
+        Assert.True(decoded.Success);
+        Assert.Equal(0, decoded.Value.Chunks[0].Chunk.Voxels[0].ID);
+    }
+
+    [Fact]
+    public void EncodeFailsWhenAChunkHasNoVoxels()
+    {
+        var entity = new VoxelEntityData(
+            7, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+            [new ChunkInfo(2, 3, 4, new Chunk(2, null!, null))],
+            null,
+            null
+        );
+
+        Result<VoxelEntityData> encoded = VoxelCodec.Encode(in entity, Registry(localRock: LOCAL_ROCK));
+
+        Assert.False(encoded.Success);
+        Assert.Contains("no voxels", encoded.Message!);
+    }
+
+    [Fact]
+    public void DecodeFailsWhenAChunkHasNoVoxels()
+    {
+        var entity = new VoxelEntityData(
+            7, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+            [new ChunkInfo(2, 3, 4, new Chunk(2, null!, null))],
+            [string.Empty, "wb:rock"],
+            null
+        );
+
+        Result<VoxelEntityData> decoded = VoxelCodec.Decode(in entity, Registry(localRock: LOCAL_ICE));
+
+        Assert.False(decoded.Success);
+        Assert.Contains("no voxels", decoded.Message!);
     }
 
     [Fact]
@@ -195,10 +233,10 @@ public class VoxelCodecTests
             null,
             null
         );
-        VoxelEntityData moddedSaved = VoxelCodec.Encode(in moddedLocal, moddedRegistry);
+        VoxelEntityData moddedSaved = VoxelCodec.Encode(in moddedLocal, moddedRegistry).Value;
 
         var vanillaRegistry = BrickRegistry.FromNames(["wb:rock"]);
-        VoxelEntityData vanillaDecoded = VoxelCodec.Decode(in moddedSaved, vanillaRegistry);
+        VoxelEntityData vanillaDecoded = VoxelCodec.Decode(in moddedSaved, vanillaRegistry).Value;
 
         var vanillaVoxels = new VoxelObject(2, vanillaDecoded.Chunks);
         VoxelPalette vanillaPalette = SingleChunk(vanillaVoxels).Palette;
@@ -220,14 +258,14 @@ public class VoxelCodecTests
             null,
             null
         );
-        VoxelEntityData vanillaSaved = VoxelCodec.Encode(in vanillaLocal, vanillaRegistry);
+        VoxelEntityData vanillaSaved = VoxelCodec.Encode(in vanillaLocal, vanillaRegistry).Value;
 
         Assert.NotNull(vanillaSaved.BrickPalette);
         Assert.Contains("wb:rock", vanillaSaved.BrickPalette!);
         Assert.Contains("mod:ore", vanillaSaved.BrickPalette!);
         Assert.Contains("mod:crystal", vanillaSaved.BrickPalette!);
 
-        VoxelEntityData reloadedModded = VoxelCodec.Decode(in vanillaSaved, moddedRegistry);
+        VoxelEntityData reloadedModded = VoxelCodec.Decode(in vanillaSaved, moddedRegistry).Value;
         var reloadedVoxels = new VoxelObject(2, reloadedModded.Chunks);
         VoxelPalette reloadedPalette = SingleChunk(reloadedVoxels).Palette;
 
