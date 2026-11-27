@@ -329,7 +329,7 @@ public class BrickIconTests
         public IReadOnlyList<BlueprintSummary> ListSummaries() =>
             [new BlueprintSummary(id, data.Name, data.SizeX, data.SizeY, data.SizeZ, data.BrickCount, 0, 0)];
 
-        public Result<BlueprintData> GetBlueprint(string queryId) =>
+        public Result<BlueprintData> Get(string queryId) =>
             string.Equals(queryId, id, StringComparison.Ordinal)
                 ? Result<BlueprintData>.FromSuccess(data)
                 : Result<BlueprintData>.FromFailure("Unknown blueprint");

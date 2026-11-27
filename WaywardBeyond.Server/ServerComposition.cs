@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
 using Krill;
+using Swordfish.Library.IO;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Interactions;
 using WaywardBeyond.Server.Particles;
@@ -64,6 +65,7 @@ public static class ServerComposition
         //  Level generation tuning is server-side; the client never generates worlds.
         container.RegisterConfig<LevelGeneratorConfig>(file: "levelgen.toml");
         container.RegisterDelegate<AsteroidConfig>(context => context.Resolve<LevelGeneratorConfig>().Asteroid, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterDelegate<StarterWreckConfig>(context => context.Resolve<LevelGeneratorConfig>().StarterWreck, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterDataBinding<string[]>();
 
         //  Fail fast on generation tuning that cannot produce a level, rather than at the first create.
@@ -146,10 +148,13 @@ public static class ServerComposition
         container.Resolve<IBrickRegistry>();
         container.Resolve<IBrickDatabase>();
         container.Resolve<IItemDatabase>();
-        container.Resolve<IBundledBlueprintDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<IPaintRegistry>(IfUnresolved.ReturnDefault);
         container.Resolve<IPaintDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<ISkillDatabase>();
+        if (container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>())
+        {
+            container.Resolve<IBundledBlueprintDatabase>(IfUnresolved.ReturnDefault);
+        }
     }
 
     /// <summary>

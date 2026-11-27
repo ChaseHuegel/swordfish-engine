@@ -109,6 +109,6 @@ public static class ItemPlaceables
             return new Result<BlueprintData>(success: false, default, blueprintIdResult.Message, blueprintIdResult.Exception);
         }
 
-        return blueprints.GetBlueprint(blueprintIdResult.Value);
+        return blueprints.Get(blueprintIdResult.Value);
     }
 }

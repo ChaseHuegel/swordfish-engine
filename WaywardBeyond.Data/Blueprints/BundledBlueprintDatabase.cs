@@ -11,22 +11,16 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Data.Blueprints;
 
-/// <summary>
-/// Loads bundled read-only <c>.wbp</c> blueprints from mounted module asset trees for both client and server.
-/// </summary>
-public sealed class BundledBlueprintDatabase
-    : VirtualAssetDatabase<BlueprintData, BundledBlueprintDatabase.Entry, BlueprintData>,
-      IBundledBlueprintDatabase,
-      IAutoActivate
+/// <summary>Loads bundled read-only <c>.wbp</c> blueprint files from <c>blueprints/</c> in the virtual file system.</summary>
+internal sealed class BundledBlueprintDatabase : VirtualAssetDatabase<BlueprintData, Resource<BlueprintData>, BlueprintData>, IAutoActivate, IBundledBlueprintDatabase
 {
-    private const string ROOT_PREFIX = "blueprints/";
+    private const string VIRTUAL_ROOT = "blueprints/";
 
     private readonly string? _userBlueprintsPrefix;
     private readonly Lock _catalogLock = new();
-    private readonly Dictionary<string, BlueprintData> _blueprints = new(StringComparer.Ordinal);
     private readonly List<BlueprintSummary> _summaries = [];
 
-    /// <summary>Constructs the bundled blueprint database from mounted module assets.</summary>
+    /// <summary>Creates the bundled blueprint database and eagerly indexes mounted <c>.wbp</c> assets.</summary>
     public BundledBlueprintDatabase(
         in ILogger<BundledBlueprintDatabase> logger,
         in IFileParseService fileParseService,
@@ -54,20 +48,6 @@ public sealed class BundledBlueprintDatabase
     }
 
     /// <inheritdoc/>
-    public Result<BlueprintData> GetBlueprint(string id)
-    {
-        lock (_catalogLock)
-        {
-            if (!string.IsNullOrEmpty(id) && _blueprints.TryGetValue(id, out BlueprintData data))
-            {
-                return Result<BlueprintData>.FromSuccess(data);
-            }
-
-            return Result<BlueprintData>.FromFailure($"Unknown bundled blueprint \"{id}\"");
-        }
-    }
-
-    /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path)
     {
         if (!path.HasExtension(FileBlueprintStorage.FILE_EXTENSION))
@@ -91,16 +71,16 @@ public sealed class BundledBlueprintDatabase
     }
 
     /// <inheritdoc/>
-    protected override PathInfo GetRootPath() => new(ROOT_PREFIX);
+    protected override PathInfo GetRootPath() => new(VIRTUAL_ROOT);
 
     /// <inheritdoc/>
-    protected override IEnumerable<Entry> GetAssetInfo(PathInfo path, BlueprintData resource)
+    protected override IEnumerable<Resource<BlueprintData>> GetAssetInfo(PathInfo path, BlueprintData resource)
     {
-        yield return new Entry(path, resource);
+        yield return new Resource<BlueprintData>(path, resource);
     }
 
     /// <inheritdoc/>
-    protected override string GetAssetID(Entry assetInfo)
+    protected override string GetAssetID(Resource<BlueprintData> assetInfo)
     {
         return ExtractBlueprintId(assetInfo.SourcePath.ToString());
     }
@@ -111,19 +91,19 @@ public sealed class BundledBlueprintDatabase
         string normalized = sourcePath.Replace('\\', '/');
         string relativePath;
 
-        const string assetsPrefix = "/assets/" + ROOT_PREFIX;
+        const string assetsPrefix = "/assets/" + VIRTUAL_ROOT;
         int assetsIndex = normalized.LastIndexOf(assetsPrefix, StringComparison.Ordinal);
         if (assetsIndex >= 0)
         {
             relativePath = normalized[(assetsIndex + assetsPrefix.Length)..];
         }
-        else if (normalized.StartsWith(ROOT_PREFIX, StringComparison.Ordinal))
+        else if (normalized.StartsWith(VIRTUAL_ROOT, StringComparison.Ordinal))
         {
-            relativePath = normalized[ROOT_PREFIX.Length..];
+            relativePath = normalized[VIRTUAL_ROOT.Length..];
         }
         else
         {
-            const string slashPrefix = "/" + ROOT_PREFIX;
+            const string slashPrefix = "/" + VIRTUAL_ROOT;
             int slashIndex = normalized.IndexOf(slashPrefix, StringComparison.Ordinal);
             relativePath = slashIndex >= 0
                 ? normalized[(slashIndex + slashPrefix.Length)..]
@@ -135,9 +115,9 @@ public sealed class BundledBlueprintDatabase
     }
 
     /// <inheritdoc/>
-    protected override Result<BlueprintData> LoadAsset(string id, Entry assetInfo)
+    protected override Result<BlueprintData> LoadAsset(string id, Resource<BlueprintData> assetInfo)
     {
-        BlueprintData raw = assetInfo.Data;
+        BlueprintData raw = assetInfo.Value;
         if (raw.SizeX <= 0 || raw.SizeY <= 0 || raw.SizeZ <= 0 || raw.Chunks == null)
         {
             return Result<BlueprintData>.FromFailure($"Bundled blueprint \"{id}\" has invalid bounds.");
@@ -157,7 +137,6 @@ public sealed class BundledBlueprintDatabase
 
         lock (_catalogLock)
         {
-            _blueprints[id] = raw;
             int existing = _summaries.FindIndex(s => string.Equals(s.Id, id, StringComparison.Ordinal));
             if (existing >= 0)
             {
@@ -179,15 +158,16 @@ public sealed class BundledBlueprintDatabase
         return Result<BlueprintData>.FromSuccess(raw);
     }
 
-    private static int CountSolidVoxels(in BlueprintData data)
+    private static int CountSolidVoxels(in BlueprintData blueprint)
     {
-        if (data.Chunks == null || data.Chunks.Length == 0)
+        ChunkInfo[]? chunks = blueprint.Chunks;
+        if (chunks == null || chunks.Length == 0)
         {
             return 0;
         }
 
-        byte chunkSize = data.Chunks[0].Chunk.Size;
-        if (chunkSize == 0 || (chunkSize & (chunkSize - 1)) != 0)
+        byte chunkSize = chunks[0].Chunk.Size;
+        if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
         {
             return 0;
         }
@@ -197,9 +177,9 @@ public sealed class BundledBlueprintDatabase
         int mask = chunkSize - 1;
         var count = 0;
 
-        for (var c = 0; c < data.Chunks.Length; c++)
+        for (var c = 0; c < chunks.Length; c++)
         {
-            ChunkInfo info = data.Chunks[c];
+            ChunkInfo info = chunks[c];
             Voxel[]? voxels = info.Chunk.Voxels;
             if (voxels == null || info.Chunk.Size != chunkSize)
             {
@@ -209,6 +189,7 @@ public sealed class BundledBlueprintDatabase
             int baseX = info.OffsetX * chunkSize;
             int baseY = info.OffsetY * chunkSize;
             int baseZ = info.OffsetZ * chunkSize;
+
             for (var i = 0; i < voxels.Length; i++)
             {
                 if (voxels[i].ID == 0)
@@ -219,7 +200,7 @@ public sealed class BundledBlueprintDatabase
                 int x = baseX + (i & mask);
                 int y = baseY + ((i >> shift) & mask);
                 int z = baseZ + (i >> shift2);
-                if ((uint)x < (uint)data.SizeX && (uint)y < (uint)data.SizeY && (uint)z < (uint)data.SizeZ)
+                if ((uint)x < (uint)blueprint.SizeX && (uint)y < (uint)blueprint.SizeY && (uint)z < (uint)blueprint.SizeZ)
                 {
                     count++;
                 }
@@ -227,15 +208,5 @@ public sealed class BundledBlueprintDatabase
         }
 
         return count;
-    }
-
-    /// <summary>Pairs a parsed <see cref="BlueprintData"/> record with its virtual source path.</summary>
-    public readonly struct Entry(PathInfo sourcePath, BlueprintData data)
-    {
-        /// <summary>Virtual source path of the blueprint file.</summary>
-        public readonly PathInfo SourcePath = sourcePath;
-
-        /// <summary>Deserialized blueprint payload.</summary>
-        public readonly BlueprintData Data = data;
     }
 }

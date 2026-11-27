@@ -251,6 +251,82 @@ public class CharacterLocationSaveTests
         Assert.Equal(GameMode.Creative, harness.GetPlayerGameMode(peer.GameId));
     }
 
+    [Theory]
+    [InlineData((int)GameMode.Adventure)]
+    [InlineData(99)]
+    public async Task FirstJoinInAdventureOrUndefinedModeSeedsOnlyTheMiningLaser(int levelDefaultMode)
+    {
+        var storage = new InMemoryLevelStorage(LEVEL_GUID, defaultGameMode: (GameMode)levelDefaultMode);
+        using TestHarness harness = CreateHarness(storage);
+        ServerPeer peer = harness.AddPeer(clientId: 1, isLocal: false);
+
+        JoinRequest request = CreateJoinRequest(LEVEL_GUID, characterUuid: 603, GameMode.Creative);
+        RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
+        Assert.True(joined.IsSuccess, joined.ErrorMessage);
+
+        ItemData[] inventory = harness.GetPlayerInventory(peer.GameId);
+        Assert.Equal("laser", inventory[0].ID);
+        Assert.Equal(1, inventory[0].Count);
+        Assert.DoesNotContain(inventory, item => !item.IsEmpty() && item.ID != "laser");
+    }
+
+    [Fact]
+    public async Task FirstJoinInCreativeSeedsTheFullCreativeLoadout()
+    {
+        var storage = new InMemoryLevelStorage(LEVEL_GUID, defaultGameMode: GameMode.Creative);
+        using TestHarness harness = CreateHarness(storage);
+        ServerPeer peer = harness.AddPeer(clientId: 1, isLocal: false);
+
+        JoinRequest request = CreateJoinRequest(LEVEL_GUID, characterUuid: 604, GameMode.Adventure);
+        RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
+        Assert.True(joined.IsSuccess, joined.ErrorMessage);
+
+        ItemData[] inventory = harness.GetPlayerInventory(peer.GameId);
+        Assert.Contains(inventory, item => item.ID == "laser");
+        Assert.Contains(inventory, item => item.ID == "wb:projector");
+        Assert.Contains(inventory, item => item.ID == "wb:drill");
+        Assert.Contains(inventory, item => item.ID == "wb:rock" && item.Count == 100);
+    }
+
+    [Theory]
+    [InlineData(GameMode.Adventure)]
+    [InlineData(GameMode.Creative)]
+    public async Task JoinPreservesASavedInventoryInBothModes(GameMode levelDefaultMode)
+    {
+        var storage = new InMemoryLevelStorage(LEVEL_GUID, defaultGameMode: levelDefaultMode);
+        using TestHarness harness = CreateHarness(storage);
+        ServerPeer peer = harness.AddPeer(clientId: 1, isLocal: false);
+
+        ItemData[] saved = [new ItemData("wb:rock", 5, 100), new ItemData("wb:panel", 2, 100)];
+        JoinRequest request = CreateJoinRequest(LEVEL_GUID, characterUuid: 605, levelDefaultMode, saved);
+        RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
+        Assert.True(joined.IsSuccess, joined.ErrorMessage);
+
+        ItemData[] inventory = harness.GetPlayerInventory(peer.GameId);
+        Assert.Equal("wb:rock", inventory[0].ID);
+        Assert.Equal(5, inventory[0].Count);
+        Assert.Equal("wb:panel", inventory[1].ID);
+        Assert.Equal(2, inventory[1].Count);
+        Assert.DoesNotContain(inventory, item => !item.IsEmpty() && item.ID == "laser");
+    }
+
+    [Theory]
+    [InlineData(GameMode.Adventure)]
+    [InlineData(GameMode.Creative)]
+    public async Task JoinPreservesAnEmptySavedInventoryInBothModes(GameMode levelDefaultMode)
+    {
+        var storage = new InMemoryLevelStorage(LEVEL_GUID, defaultGameMode: levelDefaultMode);
+        using TestHarness harness = CreateHarness(storage);
+        ServerPeer peer = harness.AddPeer(clientId: 1, isLocal: false);
+
+        JoinRequest request = CreateJoinRequest(LEVEL_GUID, characterUuid: 606, levelDefaultMode, []);
+        RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
+        Assert.True(joined.IsSuccess, joined.ErrorMessage);
+
+        ItemData[] inventory = harness.GetPlayerInventory(peer.GameId);
+        Assert.DoesNotContain(inventory, item => !item.IsEmpty());
+    }
+
     private static void AssertTransformEqual(Vector3 expectedPosition, Quaternion expectedOrientation, in JoinAccept accept)
     {
         Assert.Equal(expectedPosition.X, accept.SpawnX, precision: 4);
@@ -262,7 +338,7 @@ public class CharacterLocationSaveTests
         Assert.Equal(expectedOrientation.W, accept.OrientationW, precision: 4);
     }
 
-    private static JoinRequest CreateJoinRequest(string levelGuid, ulong characterUuid, GameMode gameMode = GameMode.Adventure)
+    private static JoinRequest CreateJoinRequest(string levelGuid, ulong characterUuid, GameMode gameMode = GameMode.Adventure, ItemData[]? inventory = null)
     {
         return new JoinRequest
         {
@@ -279,6 +355,7 @@ public class CharacterLocationSaveTests
                 CharacterUuid = characterUuid,
                 Name = "Explorer",
                 Body = "default",
+                Inventory = inventory,
                 ActiveInventorySlot = 0,
                 GameMode = gameMode,
             },
@@ -360,6 +437,13 @@ public class CharacterLocationSaveTests
             Assert.True(sessions.TryGetEntity(clientId, out int entity));
             Assert.True(store.TryGet(entity, out GameModeComponent mode));
             return mode.Mode;
+        }
+
+        public ItemData[] GetPlayerInventory(Uuid clientId)
+        {
+            Assert.True(sessions.TryGetEntity(clientId, out int entity));
+            Assert.True(store.TryGet(entity, out InventoryComponent inventory));
+            return inventory.Contents!;
         }
 
         public void SetPlayerGameMode(Uuid clientId, GameMode mode)

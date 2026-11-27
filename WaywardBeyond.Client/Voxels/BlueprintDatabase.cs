@@ -14,36 +14,30 @@ using WaywardBeyond.Voxels;
 namespace WaywardBeyond.Client.Voxels;
 
 /// <summary>
-/// Adapts <see cref="IBundledBlueprintDatabase"/> into decoded <see cref="VoxelEntityModel"/> assets
-/// for client scenes while forwarding raw bundled blueprint summaries and data.
+/// Decodes bundled <c>.wbp</c> blueprints from <see cref="IBundledBlueprintDatabase"/> into centered
+/// <see cref="VoxelEntityModel"/> instances for client runtime scenes.
 /// </summary>
 internal sealed class BlueprintDatabase(
     in IBundledBlueprintDatabase bundledBlueprints,
     in IBrickRegistry brickRegistry,
     IPaintRegistry? paintRegistry = null
-) : IAssetDatabase<VoxelEntityModel>, IBundledBlueprintDatabase
+) : IAssetDatabase<VoxelEntityModel>
 {
     private readonly IBundledBlueprintDatabase _bundledBlueprints = bundledBlueprints;
     private readonly IBrickRegistry _brickRegistry = brickRegistry;
     private readonly IPaintRegistry? _paintRegistry = paintRegistry;
-    private readonly Lock _modelsLock = new();
+    private readonly Lock _cacheLock = new();
     private readonly Dictionary<string, VoxelEntityModel> _models = new(StringComparer.Ordinal);
-
-    /// <inheritdoc/>
-    public IReadOnlyList<BlueprintSummary> ListSummaries() => _bundledBlueprints.ListSummaries();
-
-    /// <inheritdoc/>
-    public Result<BlueprintData> GetBlueprint(string id) => _bundledBlueprints.GetBlueprint(id);
 
     /// <inheritdoc/>
     public Result<VoxelEntityModel> Get(string id)
     {
         if (string.IsNullOrEmpty(id))
         {
-            return Result<VoxelEntityModel>.FromFailure($"Unknown bundled blueprint \"{id}\"");
+            return Result<VoxelEntityModel>.FromFailure("Blueprint identifier is required.");
         }
 
-        lock (_modelsLock)
+        lock (_cacheLock)
         {
             if (_models.TryGetValue(id, out VoxelEntityModel cached))
             {
@@ -51,10 +45,10 @@ internal sealed class BlueprintDatabase(
             }
         }
 
-        Result<BlueprintData> rawResult = _bundledBlueprints.GetBlueprint(id);
+        Result<BlueprintData> rawResult = _bundledBlueprints.Get(id);
         if (!rawResult.Success)
         {
-            return new Result<VoxelEntityModel>(false, default, rawResult.Message, rawResult.Exception);
+            return new Result<VoxelEntityModel>(false, default!, rawResult.Message, rawResult.Exception);
         }
 
         BlueprintData raw = rawResult.Value;
@@ -66,12 +60,13 @@ internal sealed class BlueprintDatabase(
         VoxelRegionData encoded = raw.ToRegion();
         VoxelRegionData decoded = VoxelCodec.Decode(in encoded, _brickRegistry, _paintRegistry);
         VoxelObject voxelObject = VoxelRegionApplier.ToCenteredVoxelObject(in decoded, out _);
+
         var model = new VoxelEntityModel(Uuid.NewUuid(), Vector3.Zero, Quaternion.Identity, voxelObject)
         {
             Scale = Vector3.One,
         };
 
-        lock (_modelsLock)
+        lock (_cacheLock)
         {
             _models[id] = model;
         }

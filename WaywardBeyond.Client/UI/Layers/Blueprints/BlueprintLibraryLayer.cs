@@ -12,7 +12,6 @@ using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Components;
-using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Blueprints;
 
@@ -26,7 +25,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
 
     private readonly InteractionState _interactionState;
     private readonly IBlueprintStorage _blueprintStorage;
-    private readonly IBundledBlueprintDatabase? _blueprintDatabase;
+    private readonly IBundledBlueprintDatabase? _bundledBlueprints;
     private readonly RegionToolState _toolState;
     private readonly RegionToolService _toolService;
     private readonly NotificationService _notificationService;
@@ -59,12 +58,12 @@ internal sealed class BlueprintLibraryLayer : IUILayer
         in LocalizedFormatter formatter,
         in ILocalization localization,
         in ILogger<BlueprintLibraryLayer> logger,
-        IBundledBlueprintDatabase? blueprintDatabase = null
+        IBundledBlueprintDatabase? bundledBlueprints = null
     )
     {
         _interactionState = interactionState;
         _blueprintStorage = blueprintStorage;
-        _blueprintDatabase = blueprintDatabase;
+        _bundledBlueprints = bundledBlueprints;
         _toolState = toolState;
         _toolService = toolService;
         _notificationService = notificationService;
@@ -381,7 +380,7 @@ internal sealed class BlueprintLibraryLayer : IUILayer
             _summaries = [];
         }
 
-        _bundledSummaries = _blueprintDatabase?.ListSummaries() ?? [];
+        _bundledSummaries = _bundledBlueprints?.ListSummaries() ?? [];
         _listRevision++;
     }
 

@@ -1212,7 +1212,7 @@ public class ServerRegionSystemTests
         private readonly Dictionary<string, BlueprintData> _blueprints = new(StringComparer.Ordinal);
         public void Add(string id, BlueprintData data) => _blueprints[id] = data;
         public IReadOnlyList<BlueprintSummary> ListSummaries() => [];
-        public Result<BlueprintData> GetBlueprint(string id) =>
+        public Result<BlueprintData> Get(string id) =>
             _blueprints.TryGetValue(id, out BlueprintData data)
                 ? Result<BlueprintData>.FromSuccess(data)
                 : Result<BlueprintData>.FromFailure((string?)null);

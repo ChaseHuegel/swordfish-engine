@@ -1,6 +1,5 @@
 using DryIoc;
 using Shoal.Modularity;
-using Swordfish.Library.IO;
 using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Data.Migrations;
@@ -21,12 +20,7 @@ public static class DataComposition
     public static void RegisterDataServices(this IContainer container)
     {
         container.RegisterTags();
-        container.RegisterMany<BlueprintDataParser>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
-        if (container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>())
-        {
-            container.Register<BundledBlueprintDatabase>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
-            container.RegisterMapping<IBundledBlueprintDatabase, BundledBlueprintDatabase>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
-        }
+        container.RegisterBundledBlueprints();
         container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.Register<SeedPhraseService>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.Register<ContentPackVersionChecker>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);

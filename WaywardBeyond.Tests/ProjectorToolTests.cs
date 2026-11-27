@@ -53,7 +53,7 @@ public class ProjectorToolTests
     [Fact]
     public void StarterInventoryIncludesProjectorAlongsideCoreTools()
     {
-        ItemData[] starter = PlayerInitialInventory.StarterInventory();
+        ItemData[] starter = PlayerInitialInventory.StarterInventory(GameMode.Creative);
 
         int projectorIndex = Array.FindIndex(starter, item => item.ID == "wb:projector");
         int drillIndex = Array.FindIndex(starter, item => item.ID == "wb:drill");

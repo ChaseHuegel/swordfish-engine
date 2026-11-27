@@ -18,22 +18,30 @@ internal static class LaserBeamGeometry
         Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f),
     };
 
+    /// <summary>Computes the world-space barrel nozzle origin for a first-person view-model child transform.</summary>
+    public static Vector3 ComputeFirstPersonMuzzle(in TransformComponent playerTransform, in ChildComponent viewModelChild)
+    {
+        Vector3 worldOrigin = playerTransform.Position + Vector3.Transform(viewModelChild.LocalPosition, playerTransform.Orientation);
+        Quaternion worldOrientation = playerTransform.Orientation * viewModelChild.LocalOrientation;
+        Vector3 worldScale = playerTransform.Scale * viewModelChild.LocalScale;
+        return worldOrigin + Vector3.Transform(_barrelNozzleLocal * worldScale, worldOrientation);
+    }
+
     /// <summary>Computes the world-space barrel nozzle origin for the first-person view model.</summary>
     public static Vector3 ComputeFirstPersonMuzzle(in TransformComponent playerTransform, in ModelDefinition? viewModel)
     {
         ModelDefinition model = viewModel ?? _defaultViewModel;
-        Quaternion localOrientation = Quaternion.CreateFromYawPitchRoll(
-            model.Rotation.Y * MathS.DEGREES_TO_RADIANS,
-            model.Rotation.X * MathS.DEGREES_TO_RADIANS,
-            model.Rotation.Z * MathS.DEGREES_TO_RADIANS
-        );
-        var localScale = new Vector3(model.Scale.X, model.Scale.Y, model.Scale.Z);
-        var localPos = new Vector3(model.Position.X, model.Position.Y, model.Position.Z);
-
-        Vector3 worldOrigin = playerTransform.Position + Vector3.Transform(localPos, playerTransform.Orientation);
-        Quaternion worldOrientation = playerTransform.Orientation * localOrientation;
-        Vector3 worldScale = playerTransform.Scale * localScale;
-        return worldOrigin + Vector3.Transform(_barrelNozzleLocal * worldScale, worldOrientation);
+        var child = new ChildComponent(default)
+        {
+            LocalPosition = new Vector3(model.Position.X, model.Position.Y, model.Position.Z),
+            LocalOrientation = Quaternion.CreateFromYawPitchRoll(
+                model.Rotation.Y * MathS.DEGREES_TO_RADIANS,
+                model.Rotation.X * MathS.DEGREES_TO_RADIANS,
+                model.Rotation.Z * MathS.DEGREES_TO_RADIANS
+            ),
+            LocalScale = new Vector3(model.Scale.X, model.Scale.Y, model.Scale.Z),
+        };
+        return ComputeFirstPersonMuzzle(in playerTransform, in child);
     }
 
     /// <summary>Builds a right-handed orientation whose local -Z axis points along <paramref name="direction"/>.</summary>

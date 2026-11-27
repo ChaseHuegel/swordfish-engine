@@ -164,7 +164,7 @@ internal sealed class BrickIconRenderer : IDisposable
             for (var i = 0; i < summaries.Count; i++)
             {
                 string id = summaries[i].Id;
-                Result<BlueprintData> dataResult = bundledBlueprints.GetBlueprint(id);
+                Result<BlueprintData> dataResult = bundledBlueprints.Get(id);
                 if (!dataResult.Success)
                 {
                     continue;

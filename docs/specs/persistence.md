@@ -59,6 +59,19 @@ deletes, and opens them. `SqliteLevelStorage`
 (`WaywardBeyond.Data/Levels/SqliteLevelStorage.cs`) implements `ILevelStorage`
 over one level database.
 
+## Level generation
+
+`SqliteLevelCatalog.Create` (`WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs:46`)
+invokes `LevelGenerator.Generate` (`WaywardBeyond.Server/Generation/LevelGenerator.cs:59`)
+with the level seed, `GameMode`, and `LevelSpawn` (`GameplayConfig.DefaultSpawnPosition`).
+
+- Every new level generates deterministic asteroid structures encoded with a portable brick palette.
+- New `GameMode.Adventure` levels also spawn a starter wreckage structure from `LevelGeneratorConfig.StarterWreck.BlueprintId` (default `builtin/wrecked_lifeboat` in `WaywardBeyond.Server/assets/blueprints/builtin/wrecked_lifeboat.wbp`), loaded headlessly via `IBundledBlueprintDatabase`.
+- `LevelGenerator` decodes the blueprint against `IBrickRegistry` and optional `IPaintRegistry`, centers it with `VoxelRegionApplier.ToCenteredVoxelObject`, places and orients it deterministically in front of `LevelSpawn` outside the player collider clearance radius, assigns a seed-derived non-zero `Uuid` disjoint from asteroid indices (`0x8000_0001u` tag), and encodes it with portable brick and paint palettes via `VoxelCodec.Encode`.
+- Asteroid placement rejects candidates that intersect either the `LevelSpawn` clearance sphere or the starter wreck clearance sphere.
+- `GameMode.Creative` levels do not spawn the starter wreck.
+- Missing or unreadable starter blueprint data logs a structured warning and skips the wreck instead of failing level creation.
+
 ## `level.db` schema
 
 | Table | Key | Payload |
@@ -195,6 +208,7 @@ no shared broker process to manage.
 - `WaywardBeyond.Data/Levels/SqliteLevelMetadataStorage.cs`
 - `WaywardBeyond.Data/Blueprints/FileBlueprintStorage.cs`
 - `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
+- `WaywardBeyond.Server/Generation/LevelGenerator.cs`
 - `WaywardBeyond.Server/Saves/LevelSaveService.cs`
 - `WaywardBeyond.Server/ServerLevelManager.cs`
 - `WaywardBeyond.Server/ServerHostCommands.cs`
@@ -203,4 +217,5 @@ no shared broker process to manage.
 
 ## Tests that pin this
 
-- No tests pin the playtime rules. The game test suite is unmaintained.
+- `WaywardBeyond.Tests/AdventureStarterWreckTests.cs` pins Adventure starter wreckage persistence, Creative omission, determinism, palette round-trips, and spawn/asteroid clearance.
+- No tests pin the playtime rules.

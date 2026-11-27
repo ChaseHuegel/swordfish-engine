@@ -164,9 +164,9 @@ public class ItemPlaceablesTests
             var parser = new VirtualFileParseService([new BlueprintDataParser()], vfs);
             var blueprints = new BundledBlueprintDatabase(NullLogger<BundledBlueprintDatabase>.Instance, parser, vfs);
 
-            Result<BlueprintData> loaded = blueprints.GetBlueprint("my_blueprints/ship");
+            Result<BlueprintData> loaded = blueprints.Get("my_blueprints/ship");
             Assert.True(loaded.Success, loaded.Message);
-            Assert.False(blueprints.GetBlueprint("ship").Success);
+            Assert.False(blueprints.Get("ship").Success);
         }
         finally
         {

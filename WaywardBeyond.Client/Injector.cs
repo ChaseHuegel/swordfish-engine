@@ -23,7 +23,6 @@ using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Saves;
-using WaywardBeyond.Client.Serialization;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Data.Webhooks;
 using WaywardBeyond.Client.Shortcuts;
