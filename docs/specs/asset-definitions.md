@@ -1,17 +1,20 @@
 # Asset Definition TOML Formats
 
 One subject: the TOML config types that define game content (items, bricks,
-materials, recipes, skills). Item definitions live under
+materials, recipes, skills, HUD bars, buffs). Item definitions live under
 `WaywardBeyond.Items/assets/`. Brick definitions live in
 `WaywardBeyond.Bricks/assets/`. Recipe definitions load from `recipes/` across
 mounted modules such as `WaywardBeyond.Recipes/`. Skill definitions live in
-`WaywardBeyond.Skills/assets/`. Brick and item localization stays client-owned.
+`WaywardBeyond.Skills/assets/`. HUD bar definitions load from `hud_bars/` and
+buff definitions load from `buffs/` across mounted modules. Brick and item
+localization stays client-owned.
 
 Parser registration: `WaywardBeyond.Items/Injector.cs:15`
 (`RegisterTomlParser<ItemDefinitions>`), `WaywardBeyond.Bricks/Injector.cs:17`
 (`RegisterTomlParser<BrickDefinitions>`), `WaywardBeyond.Recipes/Injector.cs:17`
-(`RegisterTomlParser<RecipeDefinitions>`), and `WaywardBeyond.Skills/Injector.cs:16`
-(`RegisterTomlParser<SkillDefinitions>`).
+(`RegisterTomlParser<RecipeDefinitions>`), `WaywardBeyond.Skills/Injector.cs:16`
+(`RegisterTomlParser<SkillDefinitions>`), and
+`WaywardBeyond.Data/DataComposition.cs:26-27` (`RegisterHudBars`, `RegisterBuffs`).
 
 ## Items (`assets/items/*.toml`)
 
@@ -496,7 +499,7 @@ Buff definitions live in the shared `WaywardBeyond.Data` module under `WaywardBe
 | `[[stat_modifiers]]` | table array | rows of `stat_id` with `flat_delta`, `percent_delta`, or both (`!= 0`) |
 | `[regen]` / `[regen_rates]` | table or top-level keys | finite `health_per_sec` and `oxygen_per_sec` regen rates |
 
-A buff cannot specify both top-level regen keys and a regen sub-table (`WaywardBeyond.Data/Buffs/BuffDefinitionsParser.cs:190-194`). `BuffDefinition.Validate` (`WaywardBeyond.Data/Buffs/BuffDefinition.cs:42-109`) returns `Result<BuffDefinition>` and rejects blank ids or names, non-positive durations, invalid stack policies, non-finite regen rates, and modifiers lacking a stat key or non-zero finite delta.
+A buff cannot specify both top-level regen keys and a regen sub-table, or both `[regen]` and `[regen_rates]` (`WaywardBeyond.Data/Buffs/BuffDefinitionsParser.cs:179-205`). `BuffDefinition.Validate` (`WaywardBeyond.Data/Buffs/BuffDefinition.cs:43-112`) returns `Result<BuffDefinition>` and rejects blank ids or names, non-positive durations, invalid stack policies, non-finite regen rates, and modifiers lacking a stat key or non-zero finite delta.
 
 ## Localization
 

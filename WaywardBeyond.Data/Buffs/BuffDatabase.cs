@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Library.Collections;
@@ -12,6 +13,7 @@ namespace WaywardBeyond.Data.Buffs;
 internal sealed class BuffDatabase : VirtualAssetDatabase<BuffDefinitions, BuffEntry, BuffDefinition>, IAutoActivate, IBuffDatabase
 {
     private readonly List<BuffDefinition> _allBuffs = [];
+    private readonly ReadOnlyCollection<BuffDefinition> _readOnlyBuffs;
 
     /// <summary>Constructs and loads the buff database from <c>buffs/*.toml</c>.</summary>
     public BuffDatabase(
@@ -20,12 +22,13 @@ internal sealed class BuffDatabase : VirtualAssetDatabase<BuffDefinitions, BuffE
         in VirtualFileSystem vfs
     ) : base(logger, fileParseService, vfs)
     {
+        _readOnlyBuffs = _allBuffs.AsReadOnly();
         Load();
         _allBuffs.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.ID, right.ID));
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<BuffDefinition> All => _allBuffs;
+    public IReadOnlyList<BuffDefinition> All => _readOnlyBuffs;
 
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");

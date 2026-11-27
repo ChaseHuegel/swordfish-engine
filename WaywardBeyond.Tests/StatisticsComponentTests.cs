@@ -47,12 +47,21 @@ public sealed class StatisticsComponentTests
         Assert.Equal(0f, StatIds.ComputeRemainingSeconds(expiresTick, currentSimTick: expiresTick + 10L, fixedDt));
         Assert.Equal(0f, StatIds.ComputeRemainingSeconds(expiresTick, currentSimTick: 1000L, fixedDt: 0f));
         Assert.Equal(0f, StatIds.ComputeRemainingSeconds(expiresTick, currentSimTick: 1000L, fixedDt: float.NaN));
+        Assert.True(StatIds.ComputeRemainingSeconds(long.MaxValue, currentSimTick: -10L, fixedDt) > 0f);
 
         var stats = new StatisticsComponent();
         Assert.True(stats.SetBuffExpiresTick("wb:well_fed", expiresTick));
         Assert.True(stats.TryGetBuffExpiresTick("wb:well_fed", out long stored));
         Assert.Equal(expiresTick, stored);
         Assert.Equal(30f, stats.GetBuffRemainingSeconds("wb:well_fed", 1000L, fixedDt), precision: 3);
+
+        var extremeBuff = new StatisticsComponent();
+        extremeBuff.SetBuffExpiresTick("wb:well_fed", long.MaxValue);
+        Statistic[]? persistedExtreme = StatisticsComponentExtensions.CapturePersistedServerStatistics(in extremeBuff, currentSimTick: -10L);
+        Assert.NotNull(persistedExtreme);
+        Statistic extremeEntry = Assert.Single(persistedExtreme!);
+        Assert.Equal(StatIds.BuffRemainingTicks("wb:well_fed"), extremeEntry.ID);
+        Assert.Equal(long.MaxValue, extremeEntry.Value);
     }
 
     [Fact]
@@ -71,6 +80,14 @@ public sealed class StatisticsComponentTests
         Assert.False(StatIds.TryParseBuffId("wb:buff..expires_tick", out _));
         Assert.False(StatIds.TryParseBuffId("wb:buff.   .expires_tick", out _));
         Assert.False(StatIds.TryParseBuffId("wb:health", out _));
+
+        string remainingKey = StatIds.BuffRemainingTicks("wb:well_fed");
+        Assert.Equal("wb:buff.wb:well_fed.remaining_ticks", remainingKey);
+        Assert.True(StatIds.IsBuffRemainingTicksKey(remainingKey));
+        Assert.True(StatIds.TryParseBuffRemainingTicksId(remainingKey, out var parsedRemainingId));
+        Assert.Equal("wb:well_fed", parsedRemainingId.ToString());
+        Assert.False(StatIds.IsBuffRemainingTicksKey(key));
+        Assert.False(StatIds.TryParseBuffRemainingTicksId("wb:buff..remaining_ticks", out _));
     }
 
     [Fact]
@@ -119,6 +136,10 @@ public sealed class StatisticsComponentTests
         Assert.Equal(700L, stats.GetValue(ignoreBuff.ExpiryStatId));
         Assert.True(stats.ApplyBuff(in ignoreBuff, currentSimTick: 700L, fixedDt));
         Assert.Equal(1300L, stats.GetValue(ignoreBuff.ExpiryStatId));
+
+        BuffDefinition invalidPolicyBuff = refreshBuff with { StackPolicy = (BuffStackPolicy)99 };
+        Assert.False(stats.ApplyBuff(in invalidPolicyBuff, currentSimTick: 100L, fixedDt));
+        Assert.False(stats.ApplyBuff(in refreshBuff, currentSimTick: -1L, fixedDt));
     }
 
     [Fact]

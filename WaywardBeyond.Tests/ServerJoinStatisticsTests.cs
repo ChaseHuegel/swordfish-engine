@@ -187,6 +187,7 @@ public sealed class ServerJoinStatisticsTests
         liveStats.SetFlag(StatIds.PRESSURIZED, true);
         liveStats.SetBuffExpiresTick("wb:well_fed", 5000L);
         liveStats.SetValue(StatIds.ATTR_STRENGTH, 7L);
+        liveStats.SetFixed("mod:shield", 25f);
         store.AddOrUpdate(player, liveStats);
 
         GameState previous = WaywardBeyondClient.GameState.Get();
@@ -208,6 +209,7 @@ public sealed class ServerJoinStatisticsTests
         Assert.Contains(persisted.Statistics!, s => s.ID == StatIds.HEALTH && s.Value == 68_500L);
         Assert.Contains(persisted.Statistics!, s => s.ID == StatIds.OXYGEN && s.Value == 40_000L);
         Assert.Contains(persisted.Statistics!, s => s.ID == StatIds.ATTR_STRENGTH && s.Value == 7L);
+        Assert.Contains(persisted.Statistics!, s => s.ID == "mod:shield" && s.Value == 25_000L);
         Assert.DoesNotContain(persisted.Statistics!, s => s.ID == StatIds.PRESSURIZED);
         Assert.DoesNotContain(persisted.Statistics!, s => s.ID == StatIds.BuffExpiresTick("wb:well_fed"));
     }
@@ -263,6 +265,53 @@ public sealed class ServerJoinStatisticsTests
         Assert.True(rejoinedStats.TryGetBuffExpiresTick("wb:well_fed", out long activeExpiry));
         Assert.Equal(500L, activeExpiry);
         Assert.False(rejoinedStats.TryGetBuffExpiresTick("wb:expired_old", out _));
+    }
+
+    [Fact]
+    public async Task ServerRestartPreservesRemainingBuffDurationRelativeToNewSimTick()
+    {
+        var storage = new InMemoryLevelStorage(LEVEL_GUID);
+        var joinRequest = new JoinRequest
+        {
+            LevelGuid = LEVEL_GUID,
+            CharacterUuid = 89UL,
+            View = new CharacterView { CharacterUuid = 89UL, Name = "Ada", Body = "wb:human_f" },
+            State = new CharacterState
+            {
+                CharacterUuid = 89UL,
+                Name = "Ada",
+                Body = "wb:human_f",
+                GameMode = GameMode.Adventure,
+            },
+        };
+
+        using (TestHarness firstServer = CreateHarness(storage))
+        {
+            ServerPeer peer = firstServer.AddPeer(clientId: 1);
+            RpcResult<JoinAccept> firstJoin = await firstServer.JoinAsync(peer, joinRequest);
+            Assert.True(firstJoin.IsSuccess, firstJoin.ErrorMessage);
+
+            int serverEntity = firstServer.GetPlayerEntity(peer.GameId);
+            firstServer.AdvanceSimTicks(10_000);
+            Assert.True(firstServer.Store.SetBuffExpiresTick(serverEntity, "wb:well_fed", 10_400L));
+
+            firstServer.JoinQueue.EnqueueLeave(peer.GameId);
+            firstServer.Tick();
+        }
+
+        //  Simulate a fresh server world restart where CurrentSimTick resets to 0.
+        using (TestHarness restartedServer = CreateHarness(storage))
+        {
+            ServerPeer peer = restartedServer.AddPeer(clientId: 2);
+            restartedServer.AdvanceSimTicks(25);
+            RpcResult<JoinAccept> rejoin = await restartedServer.JoinAsync(peer, joinRequest);
+            Assert.True(rejoin.IsSuccess, rejoin.ErrorMessage);
+
+            int rejoinedEntity = restartedServer.GetPlayerEntity(peer.GameId);
+            Assert.True(restartedServer.Store.TryGet(rejoinedEntity, out StatisticsComponent stats));
+            Assert.True(stats.TryGetBuffExpiresTick("wb:well_fed", out long restoredExpiry));
+            Assert.Equal(425L, restoredExpiry);
+        }
     }
 
     private static TestHarness CreateHarness(InMemoryLevelStorage storage)

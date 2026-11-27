@@ -17,26 +17,27 @@ public readonly record struct BuffStatModifier(
             return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" has a stat modifier missing stat_id.");
         }
 
+        string statId = StatId.Trim();
         if (FlatDelta.HasValue && !float.IsFinite(FlatDelta.Value))
         {
-            return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" modifier for \"{StatId}\" has non-finite flat_delta.");
+            return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" modifier for \"{statId}\" has non-finite flat_delta.");
         }
 
         if (PercentDelta.HasValue && !float.IsFinite(PercentDelta.Value))
         {
-            return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" modifier for \"{StatId}\" has non-finite percent_delta.");
+            return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" modifier for \"{statId}\" has non-finite percent_delta.");
         }
 
         if (!FlatDelta.HasValue && !PercentDelta.HasValue)
         {
-            return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" modifier for \"{StatId}\" must specify flat_delta or percent_delta.");
+            return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" modifier for \"{statId}\" must specify flat_delta or percent_delta.");
         }
 
         if ((FlatDelta ?? 0f) == 0f && (PercentDelta ?? 0f) == 0f)
         {
-            return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" modifier for \"{StatId}\" must have a non-zero delta.");
+            return Result<BuffStatModifier>.FromFailure($"Buff \"{buffId}\" modifier for \"{statId}\" must have a non-zero delta.");
         }
 
-        return Result<BuffStatModifier>.FromSuccess(this with { StatId = StatId.Trim() });
+        return Result<BuffStatModifier>.FromSuccess(this with { StatId = statId });
     }
 }

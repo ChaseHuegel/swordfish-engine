@@ -104,19 +104,20 @@ public sealed class BuffDefinitionsParser : IFileParser<BuffDefinitions>
             return true;
         }
 
-        if (string.Equals(raw.Trim(), "refresh", StringComparison.OrdinalIgnoreCase))
+        ReadOnlySpan<char> trimmed = raw.AsSpan().Trim();
+        if (trimmed.Equals("refresh".AsSpan(), StringComparison.OrdinalIgnoreCase))
         {
             policy = BuffStackPolicy.Refresh;
             return true;
         }
 
-        if (string.Equals(raw.Trim(), "extend", StringComparison.OrdinalIgnoreCase))
+        if (trimmed.Equals("extend".AsSpan(), StringComparison.OrdinalIgnoreCase))
         {
             policy = BuffStackPolicy.Extend;
             return true;
         }
 
-        if (string.Equals(raw.Trim(), "ignore", StringComparison.OrdinalIgnoreCase))
+        if (trimmed.Equals("ignore".AsSpan(), StringComparison.OrdinalIgnoreCase))
         {
             policy = BuffStackPolicy.Ignore;
             return true;
@@ -175,16 +176,19 @@ public sealed class BuffDefinitionsParser : IFileParser<BuffDefinitions>
             return false;
         }
 
-        if (!TomlTableReader.TryGetTable(table, "regen_rates", out TomlTable? regenTable, out error))
+        if (!TomlTableReader.TryGetTable(table, "regen_rates", out TomlTable? regenRatesTable, out error)
+            || !TomlTableReader.TryGetTable(table, "regen", out TomlTable? regenShortTable, out error))
         {
             return false;
         }
 
-        if (regenTable == null && !TomlTableReader.TryGetTable(table, "regen", out regenTable, out error))
+        if (regenRatesTable != null && regenShortTable != null)
         {
+            error = "Buff cannot define both [regen] and [regen_rates] sub-tables.";
             return false;
         }
 
+        TomlTable? regenTable = regenRatesTable ?? regenShortTable;
         if (regenTable != null)
         {
             if (topHealth.HasValue || topOxygen.HasValue)

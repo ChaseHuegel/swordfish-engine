@@ -433,27 +433,40 @@ public sealed class ServerJoinSystem(
             oxygenMax = Math.Clamp(savedOxygenMax, StatIds.FIXED_POINT_SCALE, StatIds.MAX_VITAL_FIXED);
         }
 
+        ClientSeedSnapshot clientSnapshot = ExtractClientSeed(clientSeed);
+
         long health = healthMax;
         long oxygen = oxygenMax;
         if (gameMode != GameMode.Creative)
         {
-            if (TryFindSeedVital(persisted, clientSeed, hasPersisted, StatIds.HEALTH, out long rawHealth))
+            if (hasPersisted && TryFindStatistic(persisted, StatIds.HEALTH, out long savedHealth))
             {
-                health = Math.Clamp(rawHealth, 0L, healthMax);
+                health = Math.Clamp(savedHealth, 0L, healthMax);
+            }
+            else if (clientSnapshot.HasHealth)
+            {
+                health = Math.Clamp(clientSnapshot.Health, 0L, healthMax);
             }
 
-            if (TryFindSeedVital(persisted, clientSeed, hasPersisted, StatIds.OXYGEN, out long rawOxygen))
+            if (hasPersisted && TryFindStatistic(persisted, StatIds.OXYGEN, out long savedOxygen))
             {
-                oxygen = Math.Clamp(rawOxygen, 0L, oxygenMax);
+                oxygen = Math.Clamp(savedOxygen, 0L, oxygenMax);
+            }
+            else if (clientSnapshot.HasOxygen)
+            {
+                oxygen = Math.Clamp(clientSnapshot.Oxygen, 0L, oxygenMax);
             }
         }
 
-        var stats = new StatisticsComponent();
-        stats.SetValue(StatIds.HEALTH_MAX, healthMax);
-        stats.SetValue(StatIds.HEALTH, health);
-        stats.SetValue(StatIds.OXYGEN_MAX, oxygenMax);
-        stats.SetValue(StatIds.OXYGEN, oxygen);
-        stats.SetFlag(StatIds.PRESSURIZED, false);
+        int initialCapacity = 5 + StatIds.BaseAttributeIds.Length + (persisted != null ? persisted.Length : 0);
+        var entries = new List<Statistic>(initialCapacity)
+        {
+            new(StatIds.HEALTH_MAX, healthMax),
+            new(StatIds.HEALTH, health),
+            new(StatIds.OXYGEN_MAX, oxygenMax),
+            new(StatIds.OXYGEN, oxygen),
+            new(StatIds.PRESSURIZED, 0L),
+        };
 
         for (var i = 0; i < StatIds.BaseAttributeIds.Length; i++)
         {
@@ -463,12 +476,12 @@ public sealed class ServerJoinSystem(
             {
                 attrValue = Math.Max(StatIds.MIN_ATTRIBUTE, savedAttr);
             }
-            else if (TryFindStatistic(clientSeed, attrId, out long clientAttr))
+            else if (clientSnapshot.TryGetAttribute(i, out long clientAttr))
             {
                 attrValue = Math.Clamp(clientAttr, StatIds.MIN_ATTRIBUTE, StatIds.MAX_BASE_ATTRIBUTE);
             }
 
-            stats.SetValue(attrId, attrValue);
+            entries.Add(new Statistic(attrId, attrValue));
         }
 
         if (persisted != null)
@@ -481,32 +494,88 @@ public sealed class ServerJoinSystem(
                     continue;
                 }
 
-                if (StatIds.IsBuffExpiresTickKey(entry.ID.AsSpan()) && entry.Value <= currentSimTick)
+                if (StatIds.IsBuffExpiresTickKey(entry.ID.AsSpan()))
                 {
                     continue;
                 }
 
-                stats.SetValue(entry.ID, entry.Value);
+                if (StatIds.TryParseBuffRemainingTicksId(entry.ID.AsSpan(), out ReadOnlySpan<char> buffId))
+                {
+                    if (entry.Value <= 0L)
+                    {
+                        continue;
+                    }
+
+                    long restoredExpiry = currentSimTick > long.MaxValue - entry.Value
+                        ? long.MaxValue
+                        : currentSimTick + entry.Value;
+                    SetJoinEntry(entries, new Statistic(StatIds.BuffExpiresTick(buffId), restoredExpiry));
+                    continue;
+                }
+
+                SetJoinEntry(entries, in entry);
             }
         }
 
-        store.AddOrUpdate(entity, stats);
+        store.AddOrUpdate(entity, new StatisticsComponent([.. entries]));
     }
 
-    private static bool TryFindSeedVital(
-        Statistic[]? persisted,
-        Statistic[]? clientSeed,
-        bool hasPersisted,
-        string statId,
-        out long value
-    )
+    private static ClientSeedSnapshot ExtractClientSeed(Statistic[]? clientSeed)
     {
-        if (hasPersisted && TryFindStatistic(persisted, statId, out value))
+        var snapshot = new ClientSeedSnapshot();
+        if (clientSeed == null)
         {
-            return true;
+            return snapshot;
         }
 
-        return TryFindStatistic(clientSeed, statId, out value);
+        for (var i = 0; i < clientSeed.Length; i++)
+        {
+            string? id = clientSeed[i].ID;
+            if (string.IsNullOrEmpty(id))
+            {
+                continue;
+            }
+
+            if (!snapshot.HasHealth && string.Equals(id, StatIds.HEALTH, StringComparison.Ordinal))
+            {
+                snapshot.HasHealth = true;
+                snapshot.Health = clientSeed[i].Value;
+                continue;
+            }
+
+            if (!snapshot.HasOxygen && string.Equals(id, StatIds.OXYGEN, StringComparison.Ordinal))
+            {
+                snapshot.HasOxygen = true;
+                snapshot.Oxygen = clientSeed[i].Value;
+                continue;
+            }
+
+            for (var attrIndex = 0; attrIndex < StatIds.BaseAttributeIds.Length; attrIndex++)
+            {
+                if (!snapshot.HasAttribute(attrIndex)
+                    && string.Equals(id, StatIds.BaseAttributeIds[attrIndex], StringComparison.Ordinal))
+                {
+                    snapshot.SetAttribute(attrIndex, clientSeed[i].Value);
+                    break;
+                }
+            }
+        }
+
+        return snapshot;
+    }
+
+    private static void SetJoinEntry(List<Statistic> entries, in Statistic entry)
+    {
+        for (var i = 0; i < entries.Count; i++)
+        {
+            if (string.Equals(entries[i].ID, entry.ID, StringComparison.Ordinal))
+            {
+                entries[i] = entry;
+                return;
+            }
+        }
+
+        entries.Add(entry);
     }
 
     private static bool TryFindStatistic(Statistic[]? entries, string id, out long value)
@@ -552,5 +621,55 @@ public sealed class ServerJoinSystem(
         return false;
     }
 
->>>>>>> f7a5a8c4 (Add OwnerOnly StatisticsComponent with HudBar and Buff databases #927)
+    private struct ClientSeedSnapshot
+    {
+        public bool HasHealth;
+        public long Health;
+        public bool HasOxygen;
+        public long Oxygen;
+        private int _attributeMask;
+        private long _attr0;
+        private long _attr1;
+        private long _attr2;
+        private long _attr3;
+        private long _attr4;
+        private long _attr5;
+
+        public readonly bool HasAttribute(int index) => (_attributeMask & (1 << index)) != 0;
+
+        public readonly bool TryGetAttribute(int index, out long value)
+        {
+            if (!HasAttribute(index))
+            {
+                value = 0L;
+                return false;
+            }
+
+            value = index switch
+            {
+                0 => _attr0,
+                1 => _attr1,
+                2 => _attr2,
+                3 => _attr3,
+                4 => _attr4,
+                5 => _attr5,
+                _ => 0L,
+            };
+            return true;
+        }
+
+        public void SetAttribute(int index, long value)
+        {
+            _attributeMask |= 1 << index;
+            switch (index)
+            {
+                case 0: _attr0 = value; break;
+                case 1: _attr1 = value; break;
+                case 2: _attr2 = value; break;
+                case 3: _attr3 = value; break;
+                case 4: _attr4 = value; break;
+                case 5: _attr5 = value; break;
+            }
+        }
+    }
 }

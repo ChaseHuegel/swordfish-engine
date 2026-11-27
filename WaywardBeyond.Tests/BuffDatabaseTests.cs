@@ -91,6 +91,7 @@ public sealed class BuffDatabaseTests
             Assert.Equal(0.25f, wellFed.OxygenPerSec);
             Assert.Equal(StatIds.BuffExpiresTick("wb:well_fed"), wellFed.ExpiryStatId);
             Assert.Equal(2, wellFed.StatModifiers.Count);
+            Assert.False(wellFed.StatModifiers is BuffStatModifier[]);
             Assert.Equal(new BuffStatModifier("wb:health_max", FlatDelta: 20f), wellFed.StatModifiers[0]);
             Assert.Equal(new BuffStatModifier("wb:attr.constitution", PercentDelta: 0.1f), wellFed.StatModifiers[1]);
 
@@ -103,6 +104,7 @@ public sealed class BuffDatabaseTests
             BuffDefinition shielded = database.Get("wb:shielded").Value;
             Assert.Equal(BuffStackPolicy.Ignore, shielded.StackPolicy);
             Assert.Empty(shielded.StatModifiers);
+            Assert.False(shielded.StatModifiers is BuffStatModifier[]);
         }
         finally
         {
@@ -178,6 +180,15 @@ public sealed class BuffDatabaseTests
                 health_per_sec = 2.0
 
                 [[buffs]]
+                id = "wb:both_regen_tables"
+                name = "buff.name.both_regen_tables"
+                duration_seconds = 10
+                [buffs.regen]
+                health_per_sec = 1.0
+                [buffs.regen_rates]
+                oxygen_per_sec = 2.0
+
+                [[buffs]]
                 id = "wb:wrong_duration_type"
                 name = "buff.name.wrong_type"
                 duration_seconds = "forever"
@@ -203,7 +214,9 @@ public sealed class BuffDatabaseTests
             Assert.False(database.Get("wb:mod_missing_delta").Success);
             Assert.False(database.Get("wb:mod_zero_delta").Success);
             Assert.False(database.Get("wb:conflicting_regen").Success);
+            Assert.False(database.Get("wb:both_regen_tables").Success);
             Assert.False(database.Get("wb:wrong_duration_type").Success);
+            Assert.False(database.All is System.Collections.Generic.List<BuffDefinition>);
         }
         finally
         {
@@ -235,9 +248,11 @@ public sealed class BuffDatabaseTests
             using var container = new Container();
             container.RegisterInstance(vfs);
             container.RegisterInstance<ILogger<BuffDatabase>>(NullLogger<BuffDatabase>.Instance);
+            container.RegisterInstance<ILogger<Data.HudBars.HudBarDatabase>>(NullLogger<Data.HudBars.HudBarDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Localization.LocalizedTagsDatabase>>(NullLogger<Data.Localization.LocalizedTagsDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Blueprints.BundledBlueprintDatabase>>(NullLogger<Data.Blueprints.BundledBlueprintDatabase>.Instance);
             container.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
+            container.RegisterDataServices();
             container.RegisterDataServices();
 
             IAssetDatabase<BuffDefinition> assetDb = container.Resolve<IAssetDatabase<BuffDefinition>>();
@@ -246,11 +261,23 @@ public sealed class BuffDatabaseTests
             Assert.Same(assetDb, typedDb);
             Assert.True(assetDb.Get("wb:well_fed").Success);
             Assert.Single(typedDb.All);
+            Assert.Single(container.ResolveMany<IFileParser>(), p => p is BuffDefinitionsParser);
+            Assert.Single(container.ResolveMany<Shoal.DependencyInjection.IAutoActivate>(), a => a is BuffDatabase);
         }
         finally
         {
             Directory.Delete(tempRoot, recursive: true);
         }
+    }
+
+    [Fact]
+    public void DataCompositionSkipsBuffDatabaseRegistrationWithoutVfs()
+    {
+        using var container = new Container();
+        container.RegisterBuffs();
+
+        Assert.False(container.IsRegistered<IBuffDatabase>());
+        Assert.Empty(container.ResolveMany<Shoal.DependencyInjection.IAutoActivate>());
     }
 
     private static BuffDatabase LoadDatabase(string assetsRoot)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Library.Collections;
@@ -12,6 +13,7 @@ namespace WaywardBeyond.Data.HudBars;
 internal sealed class HudBarDatabase : VirtualAssetDatabase<HudBarDefinitions, HudBarEntry, HudBarDefinition>, IAutoActivate, IHudBarDatabase
 {
     private readonly List<HudBarDefinition> _allBars = [];
+    private readonly ReadOnlyCollection<HudBarDefinition> _readOnlyBars;
 
     /// <summary>Constructs and loads the HUD bar database from <c>hud_bars/*.toml</c>.</summary>
     public HudBarDatabase(
@@ -20,6 +22,7 @@ internal sealed class HudBarDatabase : VirtualAssetDatabase<HudBarDefinitions, H
         in VirtualFileSystem vfs
     ) : base(logger, fileParseService, vfs)
     {
+        _readOnlyBars = _allBars.AsReadOnly();
         Load();
         _allBars.Sort(static (left, right) =>
         {
@@ -31,7 +34,7 @@ internal sealed class HudBarDatabase : VirtualAssetDatabase<HudBarDefinitions, H
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<HudBarDefinition> All => _allBars;
+    public IReadOnlyList<HudBarDefinition> All => _readOnlyBars;
 
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");

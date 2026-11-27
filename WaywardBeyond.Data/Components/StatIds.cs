@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 
 namespace WaywardBeyond.Data.Components;
 
@@ -53,6 +54,9 @@ public static class StatIds
     /// <summary>Suffix for active buff expiry tick stat IDs.</summary>
     public const string BUFF_EXPIRES_TICK_SUFFIX = ".expires_tick";
 
+    /// <summary>Suffix for persisted buff remaining tick stat IDs.</summary>
+    public const string BUFF_REMAINING_TICKS_SUFFIX = ".remaining_ticks";
+
     /// <summary>Fixed-point multiplier applied to fractional vital values stored as 64-bit integers.</summary>
     public const long FIXED_POINT_SCALE = 1000L;
 
@@ -78,7 +82,7 @@ public static class StatIds
     public const long MAX_VITAL_FIXED = 1_000_000L * FIXED_POINT_SCALE;
 
     /// <summary>Ordered S.P.A.C.E.R. attribute stat IDs matching Strength through Resilience.</summary>
-    public static readonly string[] BaseAttributeIds =
+    public static readonly ImmutableArray<string> BaseAttributeIds =
     [
         ATTR_STRENGTH,
         ATTR_PERCEPTION,
@@ -127,14 +131,25 @@ public static class StatIds
     }
 
     /// <summary>Builds the canonical expiry-tick stat ID for <paramref name="buffId"/>.</summary>
-    public static string BuffExpiresTick(string buffId)
+    public static string BuffExpiresTick(ReadOnlySpan<char> buffId)
     {
-        if (string.IsNullOrWhiteSpace(buffId))
+        if (buffId.IsEmpty || buffId.IsWhiteSpace())
         {
             throw new ArgumentException("Buff ID must not be empty.", nameof(buffId));
         }
 
         return string.Concat(BUFF_PREFIX, buffId, BUFF_EXPIRES_TICK_SUFFIX);
+    }
+
+    /// <summary>Builds the canonical persisted remaining-ticks stat ID for <paramref name="buffId"/>.</summary>
+    public static string BuffRemainingTicks(ReadOnlySpan<char> buffId)
+    {
+        if (buffId.IsEmpty || buffId.IsWhiteSpace())
+        {
+            throw new ArgumentException("Buff ID must not be empty.", nameof(buffId));
+        }
+
+        return string.Concat(BUFF_PREFIX, buffId, BUFF_REMAINING_TICKS_SUFFIX);
     }
 
     /// <summary>Returns whether <paramref name="statId"/> names an active buff expiry tick entry.</summary>
@@ -143,13 +158,30 @@ public static class StatIds
         return TryParseBuffId(statId, out _);
     }
 
+    /// <summary>Returns whether <paramref name="statId"/> names a persisted buff remaining-ticks entry.</summary>
+    public static bool IsBuffRemainingTicksKey(ReadOnlySpan<char> statId)
+    {
+        return TryParseBuffRemainingTicksId(statId, out _);
+    }
+
     /// <summary>Extracts the buff ID slice from a canonical expiry-tick stat ID without allocating.</summary>
     public static bool TryParseBuffId(ReadOnlySpan<char> statId, out ReadOnlySpan<char> buffId)
     {
-        int minLength = BUFF_PREFIX.Length + BUFF_EXPIRES_TICK_SUFFIX.Length + 1;
+        return TryParseBuffKey(statId, BUFF_EXPIRES_TICK_SUFFIX.AsSpan(), out buffId);
+    }
+
+    /// <summary>Extracts the buff ID slice from a persisted remaining-ticks stat ID without allocating.</summary>
+    public static bool TryParseBuffRemainingTicksId(ReadOnlySpan<char> statId, out ReadOnlySpan<char> buffId)
+    {
+        return TryParseBuffKey(statId, BUFF_REMAINING_TICKS_SUFFIX.AsSpan(), out buffId);
+    }
+
+    private static bool TryParseBuffKey(ReadOnlySpan<char> statId, ReadOnlySpan<char> suffix, out ReadOnlySpan<char> buffId)
+    {
+        int minLength = BUFF_PREFIX.Length + suffix.Length + 1;
         if (statId.Length < minLength
             || !statId.StartsWith(BUFF_PREFIX.AsSpan(), StringComparison.Ordinal)
-            || !statId.EndsWith(BUFF_EXPIRES_TICK_SUFFIX.AsSpan(), StringComparison.Ordinal))
+            || !statId.EndsWith(suffix, StringComparison.Ordinal))
         {
             buffId = default;
             return false;
@@ -157,7 +189,7 @@ public static class StatIds
 
         ReadOnlySpan<char> inner = statId.Slice(
             BUFF_PREFIX.Length,
-            statId.Length - BUFF_PREFIX.Length - BUFF_EXPIRES_TICK_SUFFIX.Length);
+            statId.Length - BUFF_PREFIX.Length - suffix.Length);
         if (inner.IsWhiteSpace())
         {
             buffId = default;
@@ -195,7 +227,7 @@ public static class StatIds
             return 0f;
         }
 
-        double remaining = (expiresTick - currentSimTick) * (double)fixedDt;
+        double remaining = ((double)expiresTick - currentSimTick) * fixedDt;
         return remaining >= float.MaxValue ? float.MaxValue : (float)remaining;
     }
 

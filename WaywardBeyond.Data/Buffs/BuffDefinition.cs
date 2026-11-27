@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Components;
 
@@ -73,14 +74,14 @@ public readonly record struct BuffDefinition
         }
 
         IReadOnlyList<BuffStatModifier>? rawModifiers = StatModifiers;
-        BuffStatModifier[] validatedModifiers;
+        IReadOnlyList<BuffStatModifier> validatedModifiers;
         if (rawModifiers == null || rawModifiers.Count == 0)
         {
-            validatedModifiers = [];
+            validatedModifiers = ReadOnlyCollection<BuffStatModifier>.Empty;
         }
         else
         {
-            validatedModifiers = new BuffStatModifier[rawModifiers.Count];
+            var copy = new BuffStatModifier[rawModifiers.Count];
             for (var i = 0; i < rawModifiers.Count; i++)
             {
                 Result<BuffStatModifier> modResult = rawModifiers[i].Validate(id);
@@ -89,8 +90,10 @@ public readonly record struct BuffDefinition
                     return Result<BuffDefinition>.FromFailure(modResult.Message);
                 }
 
-                validatedModifiers[i] = modResult.Value;
+                copy[i] = modResult.Value;
             }
+
+            validatedModifiers = Array.AsReadOnly(copy);
         }
 
         string? description = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim();
@@ -116,7 +119,7 @@ public readonly record struct BuffDefinition
         out long nextExpiresTick
     )
     {
-        if (DurationSeconds <= 0f || !float.IsFinite(DurationSeconds) || fixedDt <= 0f || !float.IsFinite(fixedDt))
+        if (currentSimTick < 0L || DurationSeconds <= 0f || !float.IsFinite(DurationSeconds) || fixedDt <= 0f || !float.IsFinite(fixedDt))
         {
             nextExpiresTick = existingExpiresTick;
             return false;
@@ -139,9 +142,13 @@ public readonly record struct BuffDefinition
                 nextExpiresTick = StatIds.ComputeExpiresTick(baseTick, DurationSeconds, fixedDt);
                 return nextExpiresTick != existingExpiresTick;
 
-            default:
+            case BuffStackPolicy.Refresh:
                 nextExpiresTick = StatIds.ComputeExpiresTick(currentSimTick, DurationSeconds, fixedDt);
                 return nextExpiresTick != existingExpiresTick;
+
+            default:
+                nextExpiresTick = existingExpiresTick;
+                return false;
         }
     }
 }

@@ -236,6 +236,7 @@ public sealed class HudBarDatabaseTests
             Assert.False(database.Get("wb:inverted_thresholds").Success);
             Assert.False(database.Get("wb:bad_color").Success);
             Assert.False(database.Get("wb:wrong_type").Success);
+            Assert.False(database.All is System.Collections.Generic.List<HudBarDefinition>);
         }
         finally
         {
@@ -269,9 +270,11 @@ public sealed class HudBarDatabaseTests
             using var container = new Container();
             container.RegisterInstance(vfs);
             container.RegisterInstance<ILogger<HudBarDatabase>>(NullLogger<HudBarDatabase>.Instance);
+            container.RegisterInstance<ILogger<Data.Buffs.BuffDatabase>>(NullLogger<Data.Buffs.BuffDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Localization.LocalizedTagsDatabase>>(NullLogger<Data.Localization.LocalizedTagsDatabase>.Instance);
             container.RegisterInstance<ILogger<Data.Blueprints.BundledBlueprintDatabase>>(NullLogger<Data.Blueprints.BundledBlueprintDatabase>.Instance);
             container.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
+            container.RegisterDataServices();
             container.RegisterDataServices();
 
             IAssetDatabase<HudBarDefinition> assetDb = container.Resolve<IAssetDatabase<HudBarDefinition>>();
@@ -280,11 +283,23 @@ public sealed class HudBarDatabaseTests
             Assert.Same(assetDb, typedDb);
             Assert.True(assetDb.Get("wb:health").Success);
             Assert.Single(typedDb.All);
+            Assert.Single(container.ResolveMany<IFileParser>(), p => p is HudBarDefinitionsParser);
+            Assert.Single(container.ResolveMany<Shoal.DependencyInjection.IAutoActivate>(), a => a is HudBarDatabase);
         }
         finally
         {
             Directory.Delete(tempRoot, recursive: true);
         }
+    }
+
+    [Fact]
+    public void DataCompositionSkipsHudBarDatabaseRegistrationWithoutVfs()
+    {
+        using var container = new Container();
+        container.RegisterHudBars();
+
+        Assert.False(container.IsRegistered<IHudBarDatabase>());
+        Assert.Empty(container.ResolveMany<Shoal.DependencyInjection.IAutoActivate>());
     }
 
     private static HudBarDatabase LoadDatabase(string assetsRoot)

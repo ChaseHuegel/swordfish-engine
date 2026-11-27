@@ -11,6 +11,9 @@ public static class StatisticsComponentExtensions
     [ThreadStatic]
     private static bool _lastActionChanged;
 
+    [ThreadStatic]
+    private static bool _lastActionExecuted;
+
     /// <summary>Change-gated write of a raw stat value onto <paramref name="stats"/>.</summary>
     public static bool SetValue(ref Ref<StatisticsComponent> stats, string id, long value)
     {
@@ -133,16 +136,16 @@ public static class StatisticsComponentExtensions
             return false;
         }
 
-        if (!store.TryGet(entity, out StatisticsComponent _))
+        var action = new SetValueAction(id, value);
+        if (RunSingleEntityAction(store, entity, ref action, out bool changed))
         {
-            var created = new StatisticsComponent();
-            created.SetValue(id, value);
-            store.AddOrUpdate(entity, created);
-            return true;
+            return changed;
         }
 
-        var action = new SetValueAction(id, value);
-        return RunSingleEntityAction(store, entity, ref action);
+        var created = new StatisticsComponent();
+        created.SetValue(id, value);
+        store.AddOrUpdate(entity, created);
+        return true;
     }
 
     /// <summary>Change-gated write of a fixed-point vital onto <paramref name="entity"/> in <paramref name="store"/>.</summary>
@@ -165,16 +168,16 @@ public static class StatisticsComponentExtensions
             return false;
         }
 
-        if (!store.TryGet(entity, out StatisticsComponent _))
+        var action = new SetBuffAction(buffId, expiresTick);
+        if (RunSingleEntityAction(store, entity, ref action, out bool changed))
         {
-            var created = new StatisticsComponent();
-            created.SetBuffExpiresTick(buffId, expiresTick);
-            store.AddOrUpdate(entity, created);
-            return true;
+            return changed;
         }
 
-        var action = new SetBuffAction(buffId, expiresTick);
-        return RunSingleEntityAction(store, entity, ref action);
+        var created = new StatisticsComponent();
+        created.SetBuffExpiresTick(buffId, expiresTick);
+        store.AddOrUpdate(entity, created);
+        return true;
     }
 
     /// <summary>Change-gated application of <paramref name="buff"/> onto <paramref name="entity"/> in <paramref name="store"/>.</summary>
@@ -185,65 +188,62 @@ public static class StatisticsComponentExtensions
             return false;
         }
 
-        if (!store.Has(typeof(StatisticsComponent), entity))
+        var action = new ApplyBuffAction(in buff, currentSimTick, fixedDt);
+        if (RunSingleEntityAction(store, entity, ref action, out bool changed))
         {
-            var created = new StatisticsComponent();
-            if (!created.ApplyBuff(in buff, currentSimTick, fixedDt))
-            {
-                return false;
-            }
-
-            store.AddOrUpdate(entity, created);
-            return true;
+            return changed;
         }
 
-        var action = new ApplyBuffAction(in buff, currentSimTick, fixedDt);
-        return RunSingleEntityAction(store, entity, ref action);
+        var created = new StatisticsComponent();
+        if (!created.ApplyBuff(in buff, currentSimTick, fixedDt))
+        {
+            return false;
+        }
+
+        store.AddOrUpdate(entity, created);
+        return true;
     }
 
     /// <summary>Change-gated removal of <paramref name="id"/> from <paramref name="entity"/> in <paramref name="store"/>.</summary>
     public static bool RemoveStatistic(this DataStore store, int entity, string id)
     {
-        if (string.IsNullOrEmpty(id) || !store.Has(typeof(StatisticsComponent), entity))
+        if (string.IsNullOrEmpty(id))
         {
             return false;
         }
 
         var action = new RemoveValueAction(id);
-        return RunSingleEntityAction(store, entity, ref action);
+        return RunSingleEntityAction(store, entity, ref action, out bool changed) && changed;
     }
 
     /// <summary>Change-gated removal of <paramref name="buffId"/> from <paramref name="entity"/> in <paramref name="store"/>.</summary>
     public static bool RemoveBuff(this DataStore store, int entity, string buffId)
     {
-        if (string.IsNullOrWhiteSpace(buffId) || !store.Has(typeof(StatisticsComponent), entity))
+        if (string.IsNullOrWhiteSpace(buffId))
         {
             return false;
         }
 
         var action = new RemoveBuffAction(buffId);
-        return RunSingleEntityAction(store, entity, ref action);
+        return RunSingleEntityAction(store, entity, ref action, out bool changed) && changed;
     }
 
     /// <summary>Change-gated pruning of expired buffs on <paramref name="entity"/> in <paramref name="store"/>.</summary>
     public static bool PruneExpiredBuffs(this DataStore store, int entity, long currentSimTick)
     {
-        if (!store.Has(typeof(StatisticsComponent), entity))
-        {
-            return false;
-        }
-
         var action = new PruneBuffsAction(currentSimTick);
-        return RunSingleEntityAction(store, entity, ref action);
+        return RunSingleEntityAction(store, entity, ref action, out bool changed) && changed;
     }
 
-    // Krill's QueryRef copies struct actions by value into a local, so mutations report back through TLS.
-    private static bool RunSingleEntityAction<TAction>(DataStore store, int entity, ref TAction action)
+    //  Krill's single-entity QueryRef copies struct actions by value into a local, so mutations report back through TLS.
+    private static bool RunSingleEntityAction<TAction>(DataStore store, int entity, ref TAction action, out bool changed)
         where TAction : struct, IForEachRef<StatisticsComponent>
     {
+        _lastActionExecuted = false;
         _lastActionChanged = false;
         store.QueryRef<StatisticsComponent, TAction>(entity, 0f, ref action);
-        return _lastActionChanged;
+        changed = _lastActionChanged;
+        return _lastActionExecuted;
     }
 
     /// <summary>Captures surviving server-persisted stats from <paramref name="stats"/> for per-level save storage.</summary>
@@ -255,31 +255,16 @@ public static class StatisticsComponentExtensions
             return null;
         }
 
-        var count = 0;
+        var persisted = new List<Statistic>(entries.Length);
         for (var i = 0; i < entries.Length; i++)
         {
-            if (IsServerPersistedEntry(in entries[i], currentSimTick))
+            if (TryNormalizePersistedServerEntry(in entries[i], currentSimTick, out Statistic normalized))
             {
-                count++;
+                SetInList(persisted, in normalized);
             }
         }
 
-        if (count == 0)
-        {
-            return null;
-        }
-
-        var result = new Statistic[count];
-        var writeIndex = 0;
-        for (var i = 0; i < entries.Length; i++)
-        {
-            if (IsServerPersistedEntry(in entries[i], currentSimTick))
-            {
-                result[writeIndex++] = entries[i];
-            }
-        }
-
-        return result;
+        return persisted.Count == 0 ? null : [.. persisted];
     }
 
     /// <summary>Merges durable replicated stats from <paramref name="stats"/> into a character's saved statistics array.</summary>
@@ -302,7 +287,7 @@ public static class StatisticsComponentExtensions
                     continue;
                 }
 
-                merged.Add(entry);
+                SetInList(merged, in entry);
             }
         }
 
@@ -310,13 +295,13 @@ public static class StatisticsComponentExtensions
         {
             Statistic entry = source[i];
             if (string.IsNullOrWhiteSpace(entry.ID)
-                || !entry.ID.StartsWith(StatIds.NAMESPACE_PREFIX, StringComparison.Ordinal)
+                || entry.ID.IndexOf(':') <= 0
                 || IsTransientClientStat(entry.ID))
             {
                 continue;
             }
 
-            SetInList(merged, entry);
+            SetInList(merged, in entry);
         }
 
         return merged.Count == 0 ? null : [.. merged];
@@ -337,7 +322,7 @@ public static class StatisticsComponentExtensions
                     continue;
                 }
 
-                merged.Add(entry);
+                SetInList(merged, in entry);
             }
         }
 
@@ -351,30 +336,55 @@ public static class StatisticsComponentExtensions
         return merged.Count == 0 ? null : [.. merged];
     }
 
-    private static bool IsServerPersistedEntry(in Statistic entry, long currentSimTick)
+    private static bool TryNormalizePersistedServerEntry(in Statistic entry, long currentSimTick, out Statistic persisted)
     {
         if (string.IsNullOrWhiteSpace(entry.ID))
         {
+            persisted = default;
             return false;
         }
 
         if (string.Equals(entry.ID, StatIds.PRESSURIZED, StringComparison.Ordinal))
         {
+            persisted = default;
             return false;
         }
 
-        if (StatIds.IsBuffExpiresTickKey(entry.ID.AsSpan()))
+        if (StatIds.TryParseBuffId(entry.ID.AsSpan(), out ReadOnlySpan<char> buffId))
         {
-            return entry.Value > currentSimTick;
+            if (entry.Value <= currentSimTick)
+            {
+                persisted = default;
+                return false;
+            }
+
+            ulong diff = unchecked((ulong)entry.Value - (ulong)currentSimTick);
+            long remainingTicks = diff >= (ulong)long.MaxValue ? long.MaxValue : (long)diff;
+            persisted = new Statistic(StatIds.BuffRemainingTicks(buffId), remainingTicks);
+            return true;
         }
 
+        if (StatIds.IsBuffRemainingTicksKey(entry.ID.AsSpan()))
+        {
+            if (entry.Value <= 0L)
+            {
+                persisted = default;
+                return false;
+            }
+
+            persisted = entry;
+            return true;
+        }
+
+        persisted = entry;
         return true;
     }
 
     private static bool IsTransientClientStat(string id)
     {
         return string.Equals(id, StatIds.PRESSURIZED, StringComparison.Ordinal)
-            || StatIds.IsBuffExpiresTickKey(id.AsSpan());
+            || StatIds.IsBuffExpiresTickKey(id.AsSpan())
+            || StatIds.IsBuffRemainingTicksKey(id.AsSpan());
     }
 
     private static Statistic[]? StripTransientCharacterEntries(Statistic[]? existing)
@@ -384,18 +394,18 @@ public static class StatisticsComponentExtensions
             return existing;
         }
 
-        var hasTransient = false;
+        var needsRewrite = false;
         for (var i = 0; i < existing.Length; i++)
         {
             string? id = existing[i].ID;
-            if (id != null && IsTransientClientStat(id))
+            if (string.IsNullOrWhiteSpace(id) || IsTransientClientStat(id))
             {
-                hasTransient = true;
+                needsRewrite = true;
                 break;
             }
         }
 
-        if (!hasTransient)
+        if (!needsRewrite)
         {
             return existing;
         }
@@ -403,10 +413,10 @@ public static class StatisticsComponentExtensions
         var filtered = new List<Statistic>(existing.Length);
         for (var i = 0; i < existing.Length; i++)
         {
-            string? id = existing[i].ID;
-            if (id != null && !IsTransientClientStat(id))
+            Statistic entry = existing[i];
+            if (!string.IsNullOrWhiteSpace(entry.ID) && !IsTransientClientStat(entry.ID))
             {
-                filtered.Add(existing[i]);
+                SetInList(filtered, in entry);
             }
         }
 
@@ -449,6 +459,7 @@ public static class StatisticsComponentExtensions
     {
         public void Execute(float delta, DataStore store, int entity, ref Ref<StatisticsComponent> component)
         {
+            _lastActionExecuted = true;
             _lastActionChanged = SetValue(ref component, id, value);
         }
     }
@@ -457,6 +468,7 @@ public static class StatisticsComponentExtensions
     {
         public void Execute(float delta, DataStore store, int entity, ref Ref<StatisticsComponent> component)
         {
+            _lastActionExecuted = true;
             _lastActionChanged = SetBuffExpiresTick(ref component, buffId, expiresTick);
         }
     }
@@ -467,6 +479,7 @@ public static class StatisticsComponentExtensions
 
         public void Execute(float delta, DataStore store, int entity, ref Ref<StatisticsComponent> component)
         {
+            _lastActionExecuted = true;
             _lastActionChanged = ApplyBuff(ref component, in _buff, currentSimTick, fixedDt);
         }
     }
@@ -475,6 +488,7 @@ public static class StatisticsComponentExtensions
     {
         public void Execute(float delta, DataStore store, int entity, ref Ref<StatisticsComponent> component)
         {
+            _lastActionExecuted = true;
             _lastActionChanged = Remove(ref component, id);
         }
     }
@@ -483,6 +497,7 @@ public static class StatisticsComponentExtensions
     {
         public void Execute(float delta, DataStore store, int entity, ref Ref<StatisticsComponent> component)
         {
+            _lastActionExecuted = true;
             _lastActionChanged = RemoveBuff(ref component, buffId.AsSpan());
         }
     }
@@ -491,6 +506,7 @@ public static class StatisticsComponentExtensions
     {
         public void Execute(float delta, DataStore store, int entity, ref Ref<StatisticsComponent> component)
         {
+            _lastActionExecuted = true;
             _lastActionChanged = PruneExpiredBuffs(ref component, currentSimTick);
         }
     }

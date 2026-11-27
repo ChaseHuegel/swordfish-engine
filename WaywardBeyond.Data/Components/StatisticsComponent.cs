@@ -176,7 +176,7 @@ public partial struct StatisticsComponent : IDataComponent
         return SetValue(StatIds.BuffExpiresTick(buffId), expiresTick);
     }
 
-    /// <summary>Applies <paramref name="buff"/> using its <see cref="BuffDefinition.StackPolicy"/> without allocating.</summary>
+    /// <summary>Applies <paramref name="buff"/> using its <see cref="BuffDefinition.StackPolicy"/>, avoiding allocations when updating an active entry.</summary>
     public bool ApplyBuff(in BuffDefinition buff, long currentSimTick, float fixedDt)
     {
         if (string.IsNullOrWhiteSpace(buff.ExpiryStatId))
