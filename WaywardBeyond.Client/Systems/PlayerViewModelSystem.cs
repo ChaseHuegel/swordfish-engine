@@ -4,6 +4,7 @@ using Krill;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
@@ -24,8 +25,20 @@ internal sealed class PlayerViewModelSystem(
     in IBrickDatabase brickDatabase,
     in BrickPreviewMeshBuilder brickMeshBuilder,
     in VoxelMaterials voxelMaterials,
-    in InteractionState interactionState
+    in InteractionState interactionState,
+    in IInputService inputService
 ) : IEntitySystem, IDisposable {
+    private const float DRILL_VIBRATION_AMPLITUDE_X = 0.005f;
+    private const float DRILL_VIBRATION_AMPLITUDE_Y = 0.005f;
+    private const float DRILL_VIBRATION_AMPLITUDE_Z = 0.007f;
+    private const float DRILL_VIBRATION_PITCH_RADIANS = 0.008f;
+    private const float DRILL_VIBRATION_ROLL_RADIANS = 0.014f;
+    private const float DRILL_VIBRATION_FREQUENCY_X = 67f;
+    private const float DRILL_VIBRATION_FREQUENCY_Y = 83f;
+    private const float DRILL_VIBRATION_FREQUENCY_Z = 59f;
+    private const float DRILL_VIBRATION_FREQUENCY_PITCH = 61f;
+    private const float DRILL_VIBRATION_FREQUENCY_ROLL = 73f;
+
     private static readonly ModelDefinition _defaultViewModel = new()
     {
         Position = new ModelDefinition.Float3(0.4f, -0.4f, -0.5f),
@@ -40,9 +53,13 @@ internal sealed class PlayerViewModelSystem(
     private readonly BrickPreviewMeshBuilder _brickMeshBuilder = brickMeshBuilder;
     private readonly VoxelMaterials _voxelMaterials = voxelMaterials;
     private readonly InteractionState _interactionState = interactionState;
+    private readonly IInputService _inputService = inputService;
 
     private Entity? _viewModelEntity;
     private ViewModelKey? _currentKey;
+    private ChildComponent _restingChild;
+    private double _vibrationTime;
+    private bool _isVibrating;
 
     private readonly record struct ViewModelKey(string ItemID, ModelDefinition Model, BrickShape Shape);
 
@@ -68,6 +85,7 @@ internal sealed class PlayerViewModelSystem(
             Result<ItemSlot> mainHandResult = Owner._playerData.GetMainHand(store, entity, inventory);
             if (!mainHandResult.Success || !WaywardBeyond.IsPlaying())
             {
+                Owner.ResetVibration();
                 if (Owner._currentKey != null)
                 {
                     Owner._currentKey = null;
@@ -82,28 +100,22 @@ internal sealed class PlayerViewModelSystem(
             BrickShape shape = Owner.ResolveShape(item);
             var key = new ViewModelKey(item.ID, viewModel, shape);
 
-            if (key.Equals(Owner._currentKey))
+            if (!key.Equals(Owner._currentKey))
             {
-                return;
+                Owner._currentKey = key;
+                Owner._restingChild = CreateRestingChild(store.GetUuid(entity), in viewModel);
+                Owner._isVibrating = false;
+                Owner._vibrationTime = 0d;
+                Owner.ClearRenderer();
+
+                ResolvedVisuals visuals = Owner.ResolveVisuals(item, viewModel, shape);
+
+                var meshRenderer = new MeshRenderer(visuals.Mesh, visuals.Material, visuals.RenderOptions);
+                Owner._viewModelEntity.Value.AddOrUpdate(new MeshRendererComponent(meshRenderer));
+                Owner._viewModelEntity.Value.AddOrUpdate(Owner._restingChild);
             }
 
-            Owner._currentKey = key;
-            Owner.ClearRenderer();
-
-            ResolvedVisuals visuals = Owner.ResolveVisuals(item, viewModel, shape);
-
-            var meshRenderer = new MeshRenderer(visuals.Mesh, visuals.Material, visuals.RenderOptions);
-            Owner._viewModelEntity.Value.AddOrUpdate(new MeshRendererComponent(meshRenderer));
-            Owner._viewModelEntity.Value.AddOrUpdate(new ChildComponent(store.GetUuid(entity))
-            {
-                LocalPosition = new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z),
-                LocalOrientation = Quaternion.CreateFromYawPitchRoll(
-                    viewModel.Rotation.Y * MathS.DEGREES_TO_RADIANS,
-                    viewModel.Rotation.X * MathS.DEGREES_TO_RADIANS,
-                    viewModel.Rotation.Z * MathS.DEGREES_TO_RADIANS
-                ),
-                LocalScale = new Vector3(viewModel.Scale.X, viewModel.Scale.Y, viewModel.Scale.Z),
-            });
+            Owner.UpdateDrillVibration(delta, item);
         }
     }
 
@@ -194,6 +206,84 @@ internal sealed class PlayerViewModelSystem(
         }
     }
 
+    private bool IsDrillActive(Item item)
+    {
+        if (item.Tool?.Type != ToolType.Drill || _interactionState.IsInteractionBlocked())
+        {
+            return false;
+        }
+
+        return _inputService.IsMouseHeld(MouseButton.Left) || _inputService.IsMouseHeld(MouseButton.Right);
+    }
+
+    private void UpdateDrillVibration(float delta, Item item)
+    {
+        if (!IsDrillActive(item))
+        {
+            ResetVibration();
+            return;
+        }
+
+        if (!_viewModelEntity.HasValue || !float.IsFinite(delta) || delta <= 0f)
+        {
+            return;
+        }
+
+        _vibrationTime = MathS.Repeat(_vibrationTime + delta, MathS.TIME_WRAP_SECONDS);
+        ChildComponent animated = ComputeVibratedChild(in _restingChild, (float)_vibrationTime);
+        _viewModelEntity.Value.AddOrUpdate(animated);
+        _isVibrating = true;
+    }
+
+    private void ResetVibration()
+    {
+        _vibrationTime = 0d;
+        if (!_isVibrating)
+        {
+            return;
+        }
+
+        _isVibrating = false;
+        if (_viewModelEntity.HasValue)
+        {
+            _viewModelEntity.Value.AddOrUpdate(_restingChild);
+        }
+    }
+
+    private static ChildComponent CreateRestingChild(in Uuid parent, in ModelDefinition viewModel)
+    {
+        return new ChildComponent(in parent)
+        {
+            LocalPosition = new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z),
+            LocalOrientation = Quaternion.CreateFromYawPitchRoll(
+                viewModel.Rotation.Y * MathS.DEGREES_TO_RADIANS,
+                viewModel.Rotation.X * MathS.DEGREES_TO_RADIANS,
+                viewModel.Rotation.Z * MathS.DEGREES_TO_RADIANS
+            ),
+            LocalScale = new Vector3(viewModel.Scale.X, viewModel.Scale.Y, viewModel.Scale.Z),
+        };
+    }
+
+    private static ChildComponent ComputeVibratedChild(in ChildComponent resting, float time)
+    {
+        var positionOffset = new Vector3(
+            MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_X) * DRILL_VIBRATION_AMPLITUDE_X,
+            MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_Y) * DRILL_VIBRATION_AMPLITUDE_Y,
+            MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_Z) * DRILL_VIBRATION_AMPLITUDE_Z
+        );
+        var rotationOffset = Quaternion.CreateFromYawPitchRoll(
+            yaw: 0f,
+            pitch: MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_PITCH) * DRILL_VIBRATION_PITCH_RADIANS,
+            roll: MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_ROLL) * DRILL_VIBRATION_ROLL_RADIANS
+        );
+        return new ChildComponent(resting.Parent)
+        {
+            LocalPosition = resting.LocalPosition + positionOffset,
+            LocalOrientation = Quaternion.Normalize(resting.LocalOrientation * rotationOffset),
+            LocalScale = resting.LocalScale,
+        };
+    }
+
     private void FreeViewModel(DataStore store)
     {
         if (_viewModelEntity.HasValue)
@@ -203,6 +293,9 @@ internal sealed class PlayerViewModelSystem(
 
         _viewModelEntity = null;
         _currentKey = null;
+        _restingChild = default;
+        _vibrationTime = 0d;
+        _isVibrating = false;
     }
 
     /// <inheritdoc/>
@@ -210,5 +303,8 @@ internal sealed class PlayerViewModelSystem(
     {
         _viewModelEntity = null;
         _currentKey = null;
+        _restingChild = default;
+        _vibrationTime = 0d;
+        _isVibrating = false;
     }
 }

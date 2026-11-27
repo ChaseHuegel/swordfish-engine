@@ -9,11 +9,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Events;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
+using Swordfish.Tests;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
@@ -111,7 +114,8 @@ public class PlayerViewModelTests
         public readonly TestAssetDatabase<Material> Materials = new();
         public readonly BrickPreviewMeshBuilder BrickMeshBuilder;
         public readonly VoxelMaterials VoxelMaterials;
-        public readonly InteractionState InteractionState = new(null!);
+        public readonly FakeInputService Input = new();
+        public readonly InteractionState InteractionState;
         public readonly PlayerData PlayerData;
         public readonly PlayerViewModelSystem System;
         public readonly MeshRendererComponentProcessor RendererProcessor = new();
@@ -146,6 +150,13 @@ public class PlayerViewModelTests
                 new EngineMeshPreviewDatabase(Meshes)
             );
             VoxelMaterials = new VoxelMaterials(new Shader("lightedArray"), textureArrays);
+            var motionProcessor = new ClientPlayerMotionProcessor(
+                Input,
+                new FakeWindowContext(),
+                new FakePhysics(),
+                new EventInvoker<PlayerMovedEvent>([])
+            );
+            InteractionState = new InteractionState(in motionProcessor);
             PlayerData = new PlayerData(Items);
             System = new PlayerViewModelSystem(
                 PlayerData,
@@ -154,7 +165,8 @@ public class PlayerViewModelTests
                 Bricks,
                 BrickMeshBuilder,
                 VoxelMaterials,
-                InteractionState
+                InteractionState,
+                Input
             );
         }
 
@@ -187,7 +199,8 @@ public class PlayerViewModelTests
         public Item AddItem(
             string id,
             PlaceableDefinition? placeable = null,
-            ModelDefinition? viewModel = null
+            ModelDefinition? viewModel = null,
+            ToolDefinition? tool = null
         ) {
             var item = new Item(
                 id,
@@ -195,7 +208,7 @@ public class PlayerViewModelTests
                 iconID: null,
                 maxStack: 100,
                 placeable,
-                tool: null,
+                tool,
                 viewModel,
                 worldModel: null
             );
@@ -211,6 +224,16 @@ public class PlayerViewModelTests
         public void Execute(float delta, DataStore store, int entity, in MeshRendererComponent component)
         {
             Renderer = component.MeshRenderer;
+        }
+    }
+
+    private struct CaptureChildAction : IForEach<ChildComponent>
+    {
+        public ChildComponent? Child;
+
+        public void Execute(float delta, DataStore store, int entity, in ChildComponent component)
+        {
+            Child = component;
         }
     }
 
@@ -239,6 +262,51 @@ public class PlayerViewModelTests
         var action = new CaptureRendererAction();
         store.Query<MeshRendererComponent, CaptureRendererAction>(0f, ref action);
         return action.Renderer;
+    }
+
+    private static ChildComponent? GetChild(DataStore store)
+    {
+        var action = new CaptureChildAction();
+        store.Query<ChildComponent, CaptureChildAction>(0f, ref action);
+        return action.Child;
+    }
+
+    private static ModelDefinition CreateDrillViewModel()
+    {
+        return new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.5f, -0.5f, -0.3f),
+            Rotation = new ModelDefinition.Float3(0f, 5f, 0f),
+            Scale = new ModelDefinition.Float3(1f, 1f, 1f),
+        };
+    }
+
+    private static Quaternion ExpectedOrientation(in ModelDefinition viewModel)
+    {
+        return Quaternion.CreateFromYawPitchRoll(
+            viewModel.Rotation.Y * MathS.DEGREES_TO_RADIANS,
+            viewModel.Rotation.X * MathS.DEGREES_TO_RADIANS,
+            viewModel.Rotation.Z * MathS.DEGREES_TO_RADIANS
+        );
+    }
+
+    private static void AssertExactRestingPose(in ChildComponent child, in ModelDefinition viewModel)
+    {
+        Assert.Equal(new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z), child.LocalPosition);
+        Assert.Equal(ExpectedOrientation(in viewModel), child.LocalOrientation);
+        Assert.Equal(new Vector3(viewModel.Scale.X, viewModel.Scale.Y, viewModel.Scale.Z), child.LocalScale);
+    }
+
+    private static void AssertFinitePose(in ChildComponent child)
+    {
+        Assert.True(float.IsFinite(child.LocalPosition.X) && float.IsFinite(child.LocalPosition.Y) && float.IsFinite(child.LocalPosition.Z));
+        Assert.True(
+            float.IsFinite(child.LocalOrientation.X)
+            && float.IsFinite(child.LocalOrientation.Y)
+            && float.IsFinite(child.LocalOrientation.Z)
+            && float.IsFinite(child.LocalOrientation.W)
+        );
+        Assert.True(float.IsFinite(child.LocalScale.X) && float.IsFinite(child.LocalScale.Y) && float.IsFinite(child.LocalScale.Z));
     }
 
     [Fact]
@@ -539,5 +607,386 @@ public class PlayerViewModelTests
         Assert.NotNull(laser.Value.ViewModel);
         Assert.Equal("items/laser.obj", laser.Value.ViewModel!.Value.Mesh);
         Assert.Equal("items/laser", laser.Value.ViewModel!.Value.Material);
+    }
+
+    [Theory]
+    [InlineData(MouseButton.Left)]
+    [InlineData(MouseButton.Right)]
+    public void DrillTool_ActivePrimaryOrSecondaryUse_VibratesModeratelyAroundRestingPose(MouseButton button)
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        fixture.AddItem(
+            "wb:drill",
+            viewModel: drillViewModel,
+            tool: new ToolDefinition { Type = ToolType.Drill }
+        );
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "wb:drill");
+        Uuid playerUuid = store.GetUuid(player);
+        var restingPosition = new Vector3(drillViewModel.Position.X, drillViewModel.Position.Y, drillViewModel.Position.Z);
+        Quaternion restingOrientation = ExpectedOrientation(in drillViewModel);
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.System.Tick(0.016f, store);
+            ChildComponent idleChild = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in idleChild, in drillViewModel);
+
+            fixture.Input.HeldButtons.Add(button);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent firstActive = Assert.IsType<ChildComponent>(GetChild(store));
+
+            fixture.System.Tick(0.016f, store);
+            ChildComponent secondActive = Assert.IsType<ChildComponent>(GetChild(store));
+
+            AssertFinitePose(in firstActive);
+            AssertFinitePose(in secondActive);
+            Assert.Equal(playerUuid, firstActive.Parent);
+            Assert.Equal(idleChild.LocalScale, firstActive.LocalScale);
+            Assert.Equal(idleChild.LocalScale, secondActive.LocalScale);
+
+            float firstOffset = Vector3.Distance(firstActive.LocalPosition, restingPosition);
+            float secondOffset = Vector3.Distance(secondActive.LocalPosition, restingPosition);
+            Assert.InRange(firstOffset, 0.0005f, 0.02f);
+            Assert.InRange(secondOffset, 0.0005f, 0.02f);
+            Assert.NotEqual(firstActive.LocalPosition, secondActive.LocalPosition);
+            Assert.NotEqual(restingOrientation, firstActive.LocalOrientation);
+            Assert.NotEqual(firstActive.LocalOrientation, secondActive.LocalOrientation);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void DrillTool_ReleasingButton_ImmediatelyRestoresExactRestingPose()
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        fixture.AddItem(
+            "wb:drill",
+            viewModel: drillViewModel,
+            tool: new ToolDefinition { Type = ToolType.Drill }
+        );
+
+        var store = new DataStore();
+        CreatePlayer(store, "wb:drill");
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent active = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.NotEqual(
+                new Vector3(drillViewModel.Position.X, drillViewModel.Position.Y, drillViewModel.Position.Z),
+                active.LocalPosition
+            );
+
+            fixture.Input.HeldButtons.Remove(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent restored = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in restored, in drillViewModel);
+
+            fixture.System.Tick(0.016f, store);
+            ChildComponent stillIdle = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in stillIdle, in drillViewModel);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void DrillTool_BlockingInteraction_ImmediatelyRestoresExactRestingPose()
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        fixture.AddItem(
+            "wb:drill",
+            viewModel: drillViewModel,
+            tool: new ToolDefinition { Type = ToolType.Drill }
+        );
+
+        var store = new DataStore();
+        CreatePlayer(store, "wb:drill");
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent active = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.NotEqual(
+                new Vector3(drillViewModel.Position.X, drillViewModel.Position.Y, drillViewModel.Position.Z),
+                active.LocalPosition
+            );
+
+            using (fixture.InteractionState.BlockInteraction())
+            {
+                fixture.System.Tick(0.016f, store);
+                ChildComponent blocked = Assert.IsType<ChildComponent>(GetChild(store));
+                AssertExactRestingPose(in blocked, in drillViewModel);
+            }
+
+            fixture.System.Tick(0.016f, store);
+            ChildComponent resumed = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.NotEqual(
+                new Vector3(drillViewModel.Position.X, drillViewModel.Position.Y, drillViewModel.Position.Z),
+                resumed.LocalPosition
+            );
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void DrillTool_PausingGame_ImmediatelyRestoresExactRestingPose()
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        fixture.AddItem(
+            "wb:drill",
+            viewModel: drillViewModel,
+            tool: new ToolDefinition { Type = ToolType.Drill }
+        );
+
+        var store = new DataStore();
+        CreatePlayer(store, "wb:drill");
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Input.HeldButtons.Add(MouseButton.Right);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent active = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.NotEqual(
+                new Vector3(drillViewModel.Position.X, drillViewModel.Position.Y, drillViewModel.Position.Z),
+                active.LocalPosition
+            );
+
+            WaywardBeyondGameState.GameState.Set(GameState.Paused);
+            fixture.System.Tick(0.016f, store);
+
+            Assert.Null(GetRenderer(store));
+            ChildComponent paused = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in paused, in drillViewModel);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void DrillTool_SwitchingToAnotherItemOrEmptySlot_RestoresExactRestingPose()
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        var laserViewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.35f, -0.45f, -0.4f),
+            Rotation = new ModelDefinition.Float3(2f, -15f, 4f),
+            Scale = new ModelDefinition.Float3(0.8f, 0.8f, 0.8f),
+        };
+        fixture.AddItem(
+            "wb:drill",
+            viewModel: drillViewModel,
+            tool: new ToolDefinition { Type = ToolType.Drill }
+        );
+        fixture.AddItem(
+            "laser",
+            viewModel: laserViewModel,
+            tool: new ToolDefinition { Type = ToolType.Mining }
+        );
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "wb:drill", "laser");
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.System.Tick(0.016f, store);
+            ChildComponent active = Assert.IsType<ChildComponent>(GetChild(store));
+            Assert.NotEqual(
+                new Vector3(drillViewModel.Position.X, drillViewModel.Position.Y, drillViewModel.Position.Z),
+                active.LocalPosition
+            );
+
+            store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 1 });
+            fixture.System.Tick(0.016f, store);
+            ChildComponent switchedToLaser = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in switchedToLaser, in laserViewModel);
+
+            store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 0 });
+            fixture.System.Tick(0.016f, store);
+            store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = 2 });
+            fixture.System.Tick(0.016f, store);
+
+            Assert.Null(GetRenderer(store));
+            ChildComponent cleared = Assert.IsType<ChildComponent>(GetChild(store));
+            AssertExactRestingPose(in cleared, in drillViewModel);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void NonDrillItemsAndIdleDrill_KeepExactRestingTransformWithNoDrift()
+    {
+        var fixture = new Fixture();
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        var laserViewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.35f, -0.45f, -0.4f),
+            Rotation = new ModelDefinition.Float3(1f, -10f, 3f),
+            Scale = new ModelDefinition.Float3(0.9f, 0.9f, 0.9f),
+        };
+        var sprayerViewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.45f, -0.42f, -0.35f),
+            Rotation = new ModelDefinition.Float3(0f, -5f, 0f),
+            Scale = new ModelDefinition.Float3(1f, 1f, 1f),
+        };
+        var brickViewModel = new ModelDefinition
+        {
+            Position = new ModelDefinition.Float3(0.4f, -0.4f, -0.5f),
+            Rotation = new ModelDefinition.Float3(0f, -60f, 0f),
+            Scale = new ModelDefinition.Float3(0.25f, 0.25f, 0.25f),
+        };
+
+        fixture.AddBrick("test:block", BrickShape.Block, TEXTURE_A);
+        fixture.AddItem("wb:drill", viewModel: drillViewModel, tool: new ToolDefinition { Type = ToolType.Drill });
+        fixture.AddItem("laser", viewModel: laserViewModel, tool: new ToolDefinition { Type = ToolType.Mining });
+        fixture.AddItem("wb:sprayer", viewModel: sprayerViewModel, tool: new ToolDefinition { Type = ToolType.Sprayer });
+        fixture.AddItem(
+            "test:block",
+            placeable: new PlaceableDefinition { Type = PlaceableType.Brick, ID = "test:block" },
+            viewModel: brickViewModel
+        );
+
+        var store = new DataStore();
+        int player = CreatePlayer(store, "wb:drill", "laser", "wb:sprayer", "test:block");
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                fixture.System.Tick(0.016f, store);
+                ChildComponent idleDrill = Assert.IsType<ChildComponent>(GetChild(store));
+                AssertExactRestingPose(in idleDrill, in drillViewModel);
+            }
+
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            fixture.Input.HeldButtons.Add(MouseButton.Right);
+
+            ModelDefinition[] nonDrillModels = [laserViewModel, sprayerViewModel, brickViewModel];
+            for (var slot = 1; slot <= 3; slot++)
+            {
+                store.AddOrUpdate(player, new EquipmentComponent { ActiveInventorySlot = slot });
+                for (var i = 0; i < 10; i++)
+                {
+                    fixture.System.Tick(0.016f, store);
+                    ChildComponent child = Assert.IsType<ChildComponent>(GetChild(store));
+                    AssertExactRestingPose(in child, in nonDrillModels[slot - 1]);
+                }
+            }
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            fixture.System.Tick(0.016f, store);
+            fixture.System.Dispose();
+        }
+    }
+
+    [Fact]
+    public void DrillTool_VibrationTime_WrapsCleanlyAndHandlesZeroOrNonFiniteDelta()
+    {
+        ModelDefinition drillViewModel = CreateDrillViewModel();
+        var wrappedFixture = new Fixture();
+        wrappedFixture.AddItem("wb:drill", viewModel: drillViewModel, tool: new ToolDefinition { Type = ToolType.Drill });
+        var wrappedStore = new DataStore();
+        CreatePlayer(wrappedStore, "wb:drill");
+
+        var referenceFixture = new Fixture();
+        referenceFixture.AddItem("wb:drill", viewModel: drillViewModel, tool: new ToolDefinition { Type = ToolType.Drill });
+        var referenceStore = new DataStore();
+        CreatePlayer(referenceStore, "wb:drill");
+
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            wrappedFixture.Input.HeldButtons.Add(MouseButton.Left);
+            wrappedFixture.System.Tick(0f, wrappedStore);
+            ChildComponent atZero = Assert.IsType<ChildComponent>(GetChild(wrappedStore));
+            AssertExactRestingPose(in atZero, in drillViewModel);
+
+            wrappedFixture.System.Tick(float.NaN, wrappedStore);
+            wrappedFixture.System.Tick(float.PositiveInfinity, wrappedStore);
+            wrappedFixture.System.Tick(float.NegativeInfinity, wrappedStore);
+            wrappedFixture.System.Tick(-0.016f, wrappedStore);
+            ChildComponent afterInvalidDeltas = Assert.IsType<ChildComponent>(GetChild(wrappedStore));
+            AssertFinitePose(in afterInvalidDeltas);
+            AssertExactRestingPose(in afterInvalidDeltas, in drillViewModel);
+
+            wrappedFixture.System.Tick(0.016f, wrappedStore);
+            var wrapDelta = (float)(MathS.TIME_WRAP_SECONDS + 0.032d);
+            wrappedFixture.System.Tick(wrapDelta, wrappedStore);
+            ChildComponent wrappedChild = Assert.IsType<ChildComponent>(GetChild(wrappedStore));
+            AssertFinitePose(in wrappedChild);
+
+            var expectedWrappedTime = (float)MathS.Repeat(0.016d + wrapDelta, MathS.TIME_WRAP_SECONDS);
+            referenceFixture.Input.HeldButtons.Add(MouseButton.Left);
+            referenceFixture.System.Tick(expectedWrappedTime, referenceStore);
+            ChildComponent referenceChild = Assert.IsType<ChildComponent>(GetChild(referenceStore));
+
+            Assert.Equal(referenceChild.LocalPosition.X, wrappedChild.LocalPosition.X, precision: 5);
+            Assert.Equal(referenceChild.LocalPosition.Y, wrappedChild.LocalPosition.Y, precision: 5);
+            Assert.Equal(referenceChild.LocalPosition.Z, wrappedChild.LocalPosition.Z, precision: 5);
+            Assert.Equal(referenceChild.LocalOrientation.X, wrappedChild.LocalOrientation.X, precision: 5);
+            Assert.Equal(referenceChild.LocalOrientation.Y, wrappedChild.LocalOrientation.Y, precision: 5);
+            Assert.Equal(referenceChild.LocalOrientation.Z, wrappedChild.LocalOrientation.Z, precision: 5);
+            Assert.Equal(referenceChild.LocalOrientation.W, wrappedChild.LocalOrientation.W, precision: 5);
+
+            //  Invalid deltas after active vibration preserve the finite pose without drifting or NaN.
+            wrappedFixture.System.Tick(0f, wrappedStore);
+            wrappedFixture.System.Tick(float.NaN, wrappedStore);
+            wrappedFixture.System.Tick(float.PositiveInfinity, wrappedStore);
+            wrappedFixture.System.Tick(-1f, wrappedStore);
+            ChildComponent afterLateInvalidDeltas = Assert.IsType<ChildComponent>(GetChild(wrappedStore));
+            AssertFinitePose(in afterLateInvalidDeltas);
+            Assert.Equal(wrappedChild.LocalPosition, afterLateInvalidDeltas.LocalPosition);
+            Assert.Equal(wrappedChild.LocalOrientation, afterLateInvalidDeltas.LocalOrientation);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(GameState.MainMenu);
+            wrappedFixture.System.Tick(0.016f, wrappedStore);
+            wrappedFixture.System.Dispose();
+            referenceFixture.System.Tick(0.016f, referenceStore);
+            referenceFixture.System.Dispose();
+        }
     }
 }
