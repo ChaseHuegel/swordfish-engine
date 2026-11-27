@@ -15,6 +15,7 @@ public sealed class ParticleSystem : IEntitySystem, IParticleService
     private const float MAX_DELTA_SECONDS = 0.1f;
     private const float HALF_DIAGONAL_FACTOR = 0.71f;
     private const int MAX_MISSING_EFFECT_CACHE = 256;
+    internal const int MAX_PENDING_BURSTS = 256;
 
     private readonly IAssetDatabase<ParticleEffect> _effectDatabase;
     private readonly RenderSettings _renderSettings;
@@ -65,9 +66,19 @@ public sealed class ParticleSystem : IEntitySystem, IParticleService
     /// <inheritdoc/>
     public void EmitBurst(in ParticleBurstRequest request)
     {
+        if (!_renderSettings.Particles.Enabled.Get())
+        {
+            return;
+        }
+
         Vector3 position = request.Position;
         Vector3 direction = request.Direction;
         if (request.Effect == null || !IsFinite(in position) || !IsFinite(in direction))
+        {
+            return;
+        }
+
+        if (_pendingBursts.Count >= MAX_PENDING_BURSTS)
         {
             return;
         }
