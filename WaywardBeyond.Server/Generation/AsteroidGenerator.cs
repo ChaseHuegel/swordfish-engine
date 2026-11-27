@@ -18,7 +18,7 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
     private readonly SimplexPerlin _simplexPerlin = new(seed, NoiseQuality.Fast);
     private readonly Voxel[] _materialVoxels = ResolveMaterials(brickRegistry, config);
 
-    /// <summary>Generate an asteroid using the provided parameters.</summary>
+    /// <summary>Generates an asteroid. Throws when the generated data cannot be encoded.</summary>
     public VoxelEntityData GenerateAt(Vector3 position, int diameter, Uuid uuid)
     {
         var writer = new VoxelChunkWriter(chunkSize: VoxelObject.DEFAULT_CHUNK_EDGE);
@@ -70,8 +70,14 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
             _BrickPalette: null,
             _PaintPalette: null
         );
-        
-        return VoxelCodec.Encode(voxelEntityData, brickRegistry);
+
+        Result<VoxelEntityData> encoded = VoxelCodec.Encode(voxelEntityData, brickRegistry);
+        if (!encoded.Success)
+        {
+            throw new InvalidOperationException($"Failed to encode generated asteroid {uuid}: {encoded.Message}");
+        }
+
+        return encoded.Value;
     }
 
     private static Voxel[] ResolveMaterials(IBrickRegistry brickRegistry, in AsteroidConfig config)

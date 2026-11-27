@@ -7,6 +7,7 @@ using Krill;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -374,7 +375,14 @@ public sealed class ServerHostCommands(
         }
 
         //  Attach the brick palette so the client can resolve the server's registry ids locally.
-        stream.Payload = VoxelCodec.Encode(data, brickRegistry, paintRegistry).Serialize();
+        Result<VoxelEntityData> encodeResult = VoxelCodec.Encode(data, brickRegistry, paintRegistry);
+        if (!encodeResult.Success)
+        {
+            logger.LogWarning("Skipped streaming voxel entity {uuid}: {message}", data.Uuid, encodeResult.Message);
+            return false;
+        }
+
+        stream.Payload = encodeResult.Value.Serialize();
         payloadBytes = stream.Payload.Length;
         return true;
     }

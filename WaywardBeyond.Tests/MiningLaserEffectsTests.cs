@@ -581,6 +581,128 @@ public sealed class MiningLaserEffectsTests
     }
 
     [Fact]
+    public void MiningLaserEffectSystemKeepsRemoteBeamsVisibleWhilePausedAndStopsLocalPrediction()
+    {
+        EffectSystemFixture fixture = CreateEffectSystemFixture();
+        using MiningLaserEffectSystem system = fixture.System;
+
+        int localPlayer = fixture.Store.Alloc();
+        fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
+        fixture.Store.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
+        var inventory = new InventoryComponent(1);
+        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+        fixture.Store.AddOrUpdate(localPlayer, inventory);
+
+        var remotePosition = new Vector3(5f, 0f, 0f);
+        int remotePlayer = fixture.Store.Alloc();
+        fixture.Store.AddOrUpdate(remotePlayer, new TransformComponent(remotePosition, Quaternion.Identity, Vector3.One));
+        fixture.Store.AddOrUpdate(remotePlayer, new BodyViewComponent { Body = "wb:human_m" });
+        fixture.Store.AddOrUpdate(remotePlayer, new LaserBeamComponent
+        {
+            TargetX = 5f,
+            TargetY = 1f,
+            TargetZ = -3f,
+            NormalX = 0f,
+            NormalY = 0f,
+            NormalZ = 1f,
+            Hit = true,
+        });
+
+        GameState previous = WaywardBeyondGameState.GameState.Get();
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Physics.NextHit = new RaycastResult(true, default(Entity), new Vector3(0f, 0f, -5f), Vector3.UnitY);
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            system.Tick(0.016f, fixture.Store);
+
+            Assert.Equal(2, CountComponents<MeshRendererComponent>(fixture.Store));
+            Assert.Equal(2, CountComponents<LightComponent>(fixture.Store));
+            Assert.Equal(2, CountComponents<ParticleEmitterComponent>(fixture.Store));
+
+            //  Pausing keeps the replicated remote beam, but holding LMB must not emit a local predicted beam.
+            WaywardBeyondGameState.GameState.Set(GameState.Paused);
+            system.Tick(0.016f, fixture.Store);
+
+            Assert.Equal(1, CountComponents<MeshRendererComponent>(fixture.Store));
+            Assert.Equal(1, CountComponents<LightComponent>(fixture.Store));
+            Assert.Equal(1, CountComponents<ParticleEmitterComponent>(fixture.Store));
+            ParticleEmitterComponent pausedEmitter = Assert.Single(CollectComponents<ParticleEmitterComponent>(fixture.Store));
+            Assert.True(pausedEmitter.Playing);
+
+            List<Vector3> pausedStarts = CollectBeamStarts(fixture.Store);
+            Vector3 remoteStart = Assert.Single(pausedStarts);
+            Vector3 expectedRemoteStart = remotePosition + new Vector3(0.25f, -0.25f, -0.35f);
+            Assert.Equal(expectedRemoteStart.X, remoteStart.X, precision: 4);
+            Assert.Equal(expectedRemoteStart.Y, remoteStart.Y, precision: 4);
+            Assert.Equal(expectedRemoteStart.Z, remoteStart.Z, precision: 4);
+
+            //  Several paused ticks must not accumulate or duplicate remote visuals.
+            system.Tick(0.016f, fixture.Store);
+            system.Tick(0.016f, fixture.Store);
+            Assert.Equal(1, CountComponents<MeshRendererComponent>(fixture.Store));
+            Assert.Equal(1, CountComponents<LightComponent>(fixture.Store));
+            Assert.Equal(1, CountComponents<ParticleEmitterComponent>(fixture.Store));
+
+            //  Unpausing restores local prediction alongside the remote beam.
+            WaywardBeyondGameState.GameState.Set(GameState.Playing);
+            system.Tick(0.016f, fixture.Store);
+
+            Assert.Equal(2, CountComponents<MeshRendererComponent>(fixture.Store));
+            Assert.Equal(2, CountComponents<LightComponent>(fixture.Store));
+            Assert.Equal(2, CountComponents<ParticleEmitterComponent>(fixture.Store));
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(previous);
+        }
+    }
+
+    [Fact]
+    public void MiningLaserEffectSystemWrapsPulseTimeAtTheSharedInterval()
+    {
+        EffectSystemFixture fixture = CreateEffectSystemFixture();
+        using MiningLaserEffectSystem system = fixture.System;
+
+        int localPlayer = fixture.Store.Alloc();
+        fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
+        fixture.Store.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
+        var inventory = new InventoryComponent(1);
+        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+        fixture.Store.AddOrUpdate(localPlayer, inventory);
+
+        GameState previous = WaywardBeyondGameState.GameState.Get();
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Physics.NextHit = new RaycastResult(true, default(Entity), new Vector3(0f, 0f, -5f), Vector3.UnitY);
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            system.Tick(0.016f, fixture.Store);
+
+            var delta = (float)(MathS.TIME_WRAP_SECONDS + 1d);
+            system.Tick(delta, fixture.Store);
+
+            double expectedTime = MathS.Repeat((double)(0.016f + delta), MathS.TIME_WRAP_SECONDS);
+            float expectedPulse = 1f + 0.14f * MathF.Sin((float)expectedTime * 48f);
+
+            TransformComponent beamTransform = default;
+            fixture.Store.Query<MeshRendererComponent, TransformComponent>(
+                0f,
+                (float _, DataStore _, int _, in MeshRendererComponent _, in TransformComponent transform) => beamTransform = transform
+            );
+
+            Assert.NotEqual(1f, beamTransform.Scale.X);
+            Assert.Equal(expectedPulse, beamTransform.Scale.X, precision: 4);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(previous);
+        }
+    }
+
+    [Fact]
     public void MiningLaserEffectSystemIgnoresNonFiniteTransformsAndReleasesExistingBeam()
     {
         EffectSystemFixture fixture = CreateEffectSystemFixture();
@@ -810,6 +932,16 @@ public sealed class MiningLaserEffectsTests
         var items = new List<T>();
         store.Query<T>(0f, (float _, DataStore _, int _, in T component) => items.Add(component));
         return items;
+    }
+
+    private static List<Vector3> CollectBeamStarts(DataStore store)
+    {
+        var starts = new List<Vector3>();
+        store.Query<MeshRendererComponent, TransformComponent>(
+            0f,
+            (float _, DataStore _, int _, in MeshRendererComponent _, in TransformComponent transform) => starts.Add(transform.Position)
+        );
+        return starts;
     }
 
     private static async Task WaitForSnapshotsAsync(ClientInbound inbound, int expectedCount)

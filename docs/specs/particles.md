@@ -39,7 +39,7 @@ Invalid definitions log an error at load and are skipped.
 - **ECS emitters:** Attach `ParticleEmitterComponent` alongside `TransformComponent`.
   `ParticleSystem` emits continuously while `Playing` is true, rotating `Offset`
   and `LocalDirection` by the entity orientation. When `Effect` is null,
-  `ParticleSystem.ResolveEmitterEffect` (`Swordfish/Graphics/Particles/ParticleSystem.cs:433-470`)
+  `ParticleSystem.ResolveEmitterEffect` (`Swordfish/Graphics/Particles/ParticleSystem.cs:445-482`)
   resolves `EffectId` once through `IAssetDatabase<ParticleEffect>`, caches the
   loaded asset, and logs unknown ids once without throwing.
 - **Emitter muting:** Attach `ParticleEmitterMutedComponent`
@@ -55,21 +55,26 @@ Invalid definitions log an error at load and are skipped.
   into linear color and multiplies `StartColor` and `EndColor` at spawn time.
 - **One-shot bursts:** Inject `IParticleService` and call `EmitBurst`. The
   7-parameter `EmitBurst` overload (`Swordfish/Graphics/Particles/IParticleService.cs:19-27`,
-  `ParticleSystem.cs:86-128`) validates a finite position and direction,
+  `ParticleSystem.cs:98-140`) validates a finite position and direction,
   finite non-negative `speedScale`, finite positive `sizeScale`, and positive
   optional `count`, returning failure on invalid inputs before resolving
   `effectId` and forwarding `count`, `speedScale`, `sizeScale`, and `tintRgba`.
   Requests queue through a `ConcurrentQueue` stamped with a monotonic clear
-  generation and drain on the ECS thread. `Clear()` increments the clear
+  generation and drain on the ECS thread. `EmitBurst` drops the request while
+  `RenderSettings.Particles.Enabled` is false or when the queue holds
+  `MAX_PENDING_BURSTS` (`256`) requests. `Clear()` increments the clear
   generation so pre-clear bursts drop while subsequent bursts spawn after the
   reset.
 - **Emitter safety and culling:** Non-finite emitter transforms and directions are skipped before allocating state or corrupting batch bounds. Batch extents include diagonal billboard rotation (`0.71` times particle size).
 - **Runtime settings:** `RenderSettings.Particles.Enabled`,
-  `RenderSettings.Particles.MaxParticles`, and
-  `RenderSettings.Particles.Density` (see [config-schemas](config-schemas.md)).
-  Disabling particles clears all live particles and queued bursts. `Density`
+  `RenderSettings.Particles.MaxParticles`, `RenderSettings.Particles.Density`,
+  and `RenderSettings.Particles.BatchCellSize` (see [config-schemas](config-schemas.md)).
+  Disabling particles clears all live particles and queued bursts, and further
+  `EmitBurst` calls drop without queueing. `Density`
   defaults to `1.0`, clamps to `0..float.MaxValue`, and scales emitter rates and
   burst counts (`0` stops new spawns while live particles expire normally).
+  `BatchCellSize` defaults to `8.0` world units, clamps positive values to at
+  least `1.0`, and falls back to `8.0` when non-positive or non-finite.
 - **Debug overlay:** `PerformanceStatsOverlay`
   (`WaywardBeyond.Client/UI/PerformanceStatsOverlay.cs:57-60`) displays
   `Particles: <active> / <max>` (or `Particles: disabled`) in the F3 debug
@@ -79,8 +84,15 @@ Invalid definitions log an error at load and are skipped.
 ## Threading and rendering
 
 `ParticleSystem` runs on the ECS thread with flat pooled arrays and zero per-tick
-allocations. It packs live particles into batches keyed by `(Texture?, BlendMode)` and
-publishes them through a triple-buffered `ParticleRenderSnapshot`. `ParticleRenderSnapshot.Reset`
+allocations. `ParticleSystem.PackSnapshotBatches`
+(`Swordfish/Graphics/Particles/ParticleSystem.cs:606-697`) partitions live
+particles into batches keyed by `(Texture?, BlendMode, EmitterOwner, spatial cell)`
+using `RenderSettings.Particles.BatchCellSize`. Each batch computes tight
+world-space bounds for its localized particles so off-screen emitters and cells
+cull independently and transparent depth sorting matches nearby transparent
+meshes. `ParticleSystem.PublishSnapshot`
+(`Swordfish/Graphics/Particles/ParticleSystem.cs:589-604`) publishes batches
+through a triple-buffered `ParticleRenderSnapshot`. `ParticleRenderSnapshot.Reset`
 clears batch references so unused textures release cleanly.
 
 `GLParticleRenderer` implements `IWorldSpaceRenderStage` and acquires the newest
@@ -99,7 +111,7 @@ camera-facing quad in view space, preserves linear HDR values, and outputs
 - Particle types: `Swordfish/Graphics/Particles/{ParticleBlendMode,ParticleRange,ParticleEffect,ParticleEmitterComponent,ParticleEmitterMutedComponent,ParticleBurstRequest,IParticleService,ParticleInstance,ParticleRenderBatch,ParticleRenderSnapshot,ParticleSystem}.cs`
 - Asset loading: `Swordfish/IO/{AssetPaths,ParticleEffectDefinition,ParticleEffectDatabase}.cs`
 - Renderer, texture guard, and shader: `Swordfish/Graphics/SilkNET/OpenGL/Renderers/GLParticleRenderer.cs`, `Swordfish/Graphics/SilkNET/OpenGL/GLRenderContext.cs:71-79,214-218`, `Swordfish/assets/shaders/particles.glsl`
-- Pipeline time uniform and activation: `Swordfish/Graphics/SilkNET/OpenGL/Pipelines/ForwardPlusRenderingPipeline.cs:120,372-375,1123`
+- Pipeline time uniform: [rendering-time](rendering-time.md)
 - Physics ignore-entity raycast: `Swordfish/Physics/IPhysics.cs:15`, `Swordfish/Physics/Jolt/{JoltPhysicsSystem.cs:118-135,JoltRaycastRequest.cs:1-80}`
 - Settings and DI wiring: `Swordfish/Settings/{ParticleSettings,RenderSettings}.cs`, `Swordfish/EngineContainer.cs:87-89,109-111,133,140`
 

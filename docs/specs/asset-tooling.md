@@ -116,9 +116,13 @@ later mount replaces a file at the same virtual path
 It does not treat them as fatal.
 
 The tool reads `config/modules.toml` to show whether a pack is enabled. It does
-not write that file. Module discovery uses paths relative to the process
-working directory (`Shoal/DependencyInjection/ConfigurationProvider.cs:30`,
-`:85`). There is no per-user module directory today.
+not write that file. At runtime, `Shoal` discovers manifests across `modules/`,
+`<DataRoot>/modules`, and configured additional roots, and merges
+`<DataRoot>/config/modules.toml` with the install `config/modules.toml`.
+Wayward Beyond registers `<DataRoot>/packs` as a content-only root through
+`PackModuleResolution.CreateOptions`
+(`WaywardBeyond.Config/PackModuleResolution.cs:19`). See
+[config-schemas](config-schemas.md).
 
 ### Opening a workspace
 
@@ -624,7 +628,17 @@ writes `pack.toml` at creation. Saving edits never silently rewrites
 | Repo workspace | No metadata, no check |
 
 Packs are a Wayward Beyond concept layered over Shoal modules. The tool does not
-read assemblies. Wayward Beyond does not read `pack.toml` yet. See issue 0003.
+read assemblies. Shoal only exposes the loaded module roots through
+`ModuleCatalog`, so it stays unaware of `pack.toml` and `ContentVersion`.
+Wayward Beyond reads `pack.toml` at startup for every loaded module. A missing
+file is silent. A version mismatch logs a warning and the pack still loads.
+
+| At load | Behavior |
+|---|---|
+| Pack version equals `ContentVersion.CURRENT` | No warning |
+| Pack version is older or newer | Warning, load continues |
+| No `pack.toml` | No check |
+| Unreadable `pack.toml` | Warning, load continues |
 
 ## Export
 
@@ -737,7 +751,8 @@ The tool does not author voxels. The in-game projector does that. See issue
 
 ## Accepted limitations
 
-- No module management and no per-user module directory. See issue 0002.
+- No module management UI in Asset Studio. Content packs load from
+  `<DataRoot>/packs` when enabled in `<DataRoot>/config/modules.toml`.
 - No voxel authoring.
 - No particle TOML or CSV name tag editing.
 - No unused localization key detection.
@@ -745,7 +760,7 @@ The tool does not author voxels. The in-game projector does that. See issue
 - No macOS and no arm64.
 - No git integration.
 - No telemetry.
-- `pack.toml` is advisory until the game reads it.
+- The game warns on pack version skew but does not enforce it.
 
 ## Phases
 
@@ -765,13 +780,16 @@ The tool does not author voxels. The in-game projector does that. See issue
 - TOML options and writer: `Swordfish.Library/Serialization/Toml/Toml.cs:7`
 - Asset overwrite by load order: `Swordfish.Library/Collections/VirtualAssetDatabase.cs:75`
 - File shadowing by mount order: `Swordfish.Library/IO/VirtualFileSystem.cs:101`
-- Module discovery: `Shoal/DependencyInjection/ConfigurationProvider.cs:30`, `:85`
-- Module asset mount: `Shoal/AppEngine.cs:338`
-- Module loaded callback, including content-only modules: `Shoal/Modularity/ModulesLoader.cs:141`
+- Module discovery and merge: `Shoal/DependencyInjection/ConfigurationProvider.cs:17`, `Shoal/Modularity/ModuleResolutionOptions.cs:4`
+- Wayward Beyond user packs root: `WaywardBeyond.Config/PackModuleResolution.cs:19`
+- Module asset mount: `Shoal/AppEngine.cs:350`
+- Module loaded callback, including content-only modules: `Shoal/Modularity/ModulesLoader.cs:208`
+- Loaded module catalog: `Shoal/Modularity/ModuleCatalog.cs:4`, `Shoal/Modularity/LoadedModule.cs:9`
 - Definition visibility: `WaywardBeyond.Bricks/BrickDefinition.cs:6`
 - Material definition: `Swordfish/IO/MaterialDefinition.cs:6`
 - OBJ parser: `Swordfish/IO/ObjParser.cs:8`
 - Content version: `WaywardBeyond.Data/ContentVersion.cs:7`
+- Runtime pack metadata and version check: `WaywardBeyond.Data/Packs/ContentPackMetadata.cs:7`, `WaywardBeyond.Data/Packs/ContentPackVersionChecker.cs:14`
 - Save data version: `WaywardBeyond.Data/DataVersion.cs:7`
 - Shared meshing types: `WaywardBeyond.Meshing/PreviewMesh.cs:6`, `WaywardBeyond.Meshing/ITextureLayerLookup.cs:4`
 - Mesh vertex light: `WaywardBeyond.Meshing/MeshPostPass.cs:366`
@@ -806,6 +824,7 @@ The tool does not author voxels. The in-game projector does that. See issue
 Game, schema, and meshing parity tests:
 
 - `WaywardBeyond.Tests/ContentVersionTests.cs`
+- `WaywardBeyond.Tests/ContentPackVersionTests.cs`
 - `WaywardBeyond.Tests/BrickMeshingHashParityTests.cs`
 - `WaywardBeyond.Tests/Blueprints/FileBlueprintStorageTests.cs`
 - `WaywardBeyond.Voxels.Tests/VoxelRegionTests.cs`

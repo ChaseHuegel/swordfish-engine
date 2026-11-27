@@ -213,7 +213,7 @@ public class ClientRegionReconcileTests
             obj.GetChunkInfos(),
             _BrickPalette: null,
             _PaintPalette: null);
-        VoxelEntityData wire = VoxelCodec.Encode(in rawEntityData, fixture.Registry);
+        VoxelEntityData wire = VoxelCodec.Encode(in rawEntityData, fixture.Registry).Value;
 
         byte[] payload = wire.Serialize();
         int partCount = PayloadFragmenter.PartCount(payload.Length);

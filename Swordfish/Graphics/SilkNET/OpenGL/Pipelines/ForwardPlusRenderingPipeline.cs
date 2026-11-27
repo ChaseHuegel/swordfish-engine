@@ -371,7 +371,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     {
         if (delta > 0.0 && double.IsFinite(delta))
         {
-            _elapsedTime += delta;
+            _elapsedTime = MathS.Repeat(_elapsedTime + delta, MathS.TIME_WRAP_SECONDS);
         }
 
         if (_renderSamples != GetRenderSamples())

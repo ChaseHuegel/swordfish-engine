@@ -106,13 +106,13 @@ public class FaceOverrideTests
             null
         );
 
-        VoxelEntityData saved = VoxelCodec.Encode(in moddedLocal, bricks, moddedPaints);
+        VoxelEntityData saved = VoxelCodec.Encode(in moddedLocal, bricks, moddedPaints).Value;
         Assert.NotNull(saved.PaintPalette);
         Assert.Contains("mod:neon_trim", saved.PaintPalette!);
         Assert.Contains("mod:plasma_blue", saved.PaintPalette!);
 
         //  Decode in vanilla (allocates extension IDs for unknown paints), re-encode, then decode back in modded.
-        VoxelEntityData vanillaDecoded = VoxelCodec.Decode(in saved, bricks, vanillaPaints);
+        VoxelEntityData vanillaDecoded = VoxelCodec.Decode(in saved, bricks, vanillaPaints).Value;
         var vanillaVoxels = new VoxelObject(8, vanillaDecoded.Chunks);
         Assert.True(vanillaVoxels.Get(1, 2, 3).HasFaceOverrides());
         Assert.True(vanillaVoxels.TryGetFaceOverride(1, 2, 3, BrickFace.Front, out FaceOverride vanillaFront));
@@ -125,8 +125,8 @@ public class FaceOverrideTests
             null,
             null
         );
-        VoxelEntityData vanillaResaved = VoxelCodec.Encode(in vanillaLocal, bricks, vanillaPaints);
-        VoxelEntityData reloadedModded = VoxelCodec.Decode(in vanillaResaved, bricks, moddedPaints);
+        VoxelEntityData vanillaResaved = VoxelCodec.Encode(in vanillaLocal, bricks, vanillaPaints).Value;
+        VoxelEntityData reloadedModded = VoxelCodec.Decode(in vanillaResaved, bricks, moddedPaints).Value;
 
         var reloadedVoxels = new VoxelObject(8, reloadedModded.Chunks);
         Assert.True(reloadedVoxels.TryGetFaceOverride(1, 2, 3, BrickFace.Front, out FaceOverride reloadedFront));
@@ -176,14 +176,14 @@ public class FaceOverrideTests
         voxels.SetFaceOverride(1, 1, 1, BrickFaceMask.Front, new FaceOverride(paints.Id("wb:caution"), paints.Id("wb:red")));
 
         var local = new VoxelEntityData(1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, voxels.GetChunkInfos(), null, null);
-        VoxelEntityData encoded = VoxelCodec.Encode(in local, bricks, paints);
+        VoxelEntityData encoded = VoxelCodec.Encode(in local, bricks, paints).Value;
         Assert.NotNull(encoded.PaintPalette);
 
-        VoxelEntityData bricksOnlyDecoded = VoxelCodec.Decode(in encoded, bricks, paintMap: null);
+        VoxelEntityData bricksOnlyDecoded = VoxelCodec.Decode(in encoded, bricks, paintMap: null).Value;
         Assert.Null(bricksOnlyDecoded.BrickPalette);
         Assert.Equal(encoded.PaintPalette, bricksOnlyDecoded.PaintPalette);
 
-        VoxelEntityData fullyDecoded = VoxelCodec.Decode(in bricksOnlyDecoded, bricks, paints);
+        VoxelEntityData fullyDecoded = VoxelCodec.Decode(in bricksOnlyDecoded, bricks, paints).Value;
         Assert.Null(fullyDecoded.PaintPalette);
         var restored = new VoxelObject(8, fullyDecoded.Chunks);
         Assert.True(restored.TryGetFaceOverride(1, 1, 1, BrickFace.Front, out FaceOverride ov));

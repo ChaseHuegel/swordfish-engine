@@ -117,8 +117,14 @@ public sealed class LevelSaveService : IDisposable
         {
             try
             {
-                VoxelEntityData local = VoxelCodec.Decode(in entity, _brickRegistry, _paintRegistry);
-                VoxelWorldEntityFactory.CreateAuthority(store, local, _brickDatabase);
+                Result<VoxelEntityData> decodeResult = VoxelCodec.Decode(in entity, _brickRegistry, _paintRegistry);
+                if (!decodeResult.Success)
+                {
+                    _logger.LogWarning("Skipped voxel entity {uuid} while loading level \"{level}\": {message}", entity.Uuid, levelGuid, decodeResult.Message);
+                    continue;
+                }
+
+                VoxelWorldEntityFactory.CreateAuthority(store, decodeResult.Value, _brickDatabase);
             }
             catch (Exception ex)
             {
@@ -444,6 +450,7 @@ public sealed class LevelSaveService : IDisposable
         CaptureStructureAction structureAction = new()
         {
             Entries = entities,
+            Logger = _logger,
             BrickRegistry = _brickRegistry,
             PaintRegistry = _paintRegistry,
         };
@@ -489,6 +496,7 @@ public sealed class LevelSaveService : IDisposable
     private struct CaptureStructureAction : IForEach<VoxelWorldComponent, TransformComponent>
     {
         public List<VoxelEntityData> Entries;
+        public ILogger Logger;
         public IBrickRegistry BrickRegistry;
         public IPaintRegistry? PaintRegistry;
 
@@ -513,8 +521,14 @@ public sealed class LevelSaveService : IDisposable
                 _PaintPalette: null
             );
             
-            voxelEntityData = VoxelCodec.Encode(voxelEntityData, BrickRegistry, PaintRegistry);
-            Entries.Add(voxelEntityData);
+            Result<VoxelEntityData> encodeResult = VoxelCodec.Encode(voxelEntityData, BrickRegistry, PaintRegistry);
+            if (!encodeResult.Success)
+            {
+                Logger.LogWarning("Skipped saving voxel entity {uuid}: {message}", uuid, encodeResult.Message);
+                return;
+            }
+
+            Entries.Add(encodeResult.Value);
         }
     }
 
