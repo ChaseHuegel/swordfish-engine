@@ -91,3 +91,8 @@
     text-align: right;
     vertical-align: middle;
 }
+
+.wb-skills-bar-divider {
+    --extends: wb-bar-divider;
+    color: var(--wb-panel-inner);
+}

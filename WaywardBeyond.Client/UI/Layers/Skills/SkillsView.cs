@@ -17,6 +17,13 @@ internal partial class SkillsView(ILocalization localization, ScrollAreaState sc
     private const int MAX_PANEL_HEIGHT = 520;
     private const int VIEWPORT_VERTICAL_MARGIN = 160;
     private const int MIN_CLAMPED_HEIGHT = 220;
+    private const int BAR_SEGMENTS = 10;
+    private const int SEGMENT_GAP = 2;
+    private const int TRACK_WIDTH = 406;
+    private const int SCROLLABLE_TRACK_WIDTH = 392;
+
+    private static readonly int[] _dividers = CreateDividerPositions(TRACK_WIDTH);
+    private static readonly int[] _scrollableDividers = CreateDividerPositions(SCROLLABLE_TRACK_WIDTH);
 
     /// <summary>Gets the scroll state for the skill list.</summary>
     public ScrollAreaState Scroll { get; } = scroll;
@@ -81,6 +88,23 @@ internal partial class SkillsView(ILocalization localization, ScrollAreaState sc
     protected static ProgressBarState ProgressTrack(in SkillRowState skill)
     {
         return new ProgressBarState(skill.Progress);
+    }
+
+    /// <summary>Returns the divider x-offsets for a 10-segment skill progress bar.</summary>
+    protected static int[] DividerPositions(in SkillsPanelState state, int viewportHeight)
+    {
+        return NeedsScroll(in state, viewportHeight) ? _scrollableDividers : _dividers;
+    }
+
+    private static int[] CreateDividerPositions(int trackWidth)
+    {
+        var dividers = new int[BAR_SEGMENTS - 1];
+        for (var segmentIndex = 1; segmentIndex < BAR_SEGMENTS; segmentIndex++)
+        {
+            dividers[segmentIndex - 1] = trackWidth * segmentIndex / BAR_SEGMENTS - SEGMENT_GAP / 2;
+        }
+
+        return dividers;
     }
 
     private static int EstimateContentHeight(in SkillsPanelState state)

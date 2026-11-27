@@ -203,6 +203,10 @@ public sealed class SkillsPanelTests : IDisposable
         Assert.Equal(512, panelBounds.Rect.Size.X);
         Assert.InRange(panelBounds.Rect.Size.Y, 320, 400);
 
+        //  Each of the 3 skill progress bars renders 9 segment dividers (10 segments, matching BarsView).
+        int dividerCount = commands.Count(c => c.Rect.Size.X == 2 && c.Rect.Size.Y == 6);
+        Assert.Equal(27, dividerCount);
+
         //  Live character XP update immediately updates both skill level and total level.
         character.Statistics =
         [

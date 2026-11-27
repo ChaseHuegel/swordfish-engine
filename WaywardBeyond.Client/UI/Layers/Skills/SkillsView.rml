@@ -92,7 +92,11 @@
                                                           height="fill"
                                                           wrap="false" />
                                                 </Element>
-                                                <ProgressBar context="@ProgressTrack(skill)" />
+                                                <ProgressBar context="@ProgressTrack(skill)">
+                                                    <ForEach in="@DividerPositions(context, ui.Height)" as="divider">
+                                                        <Element class="wb-skills-bar-divider" x="@divider" />
+                                                    </ForEach>
+                                                </ProgressBar>
                                                 <Element class="wb-skills-row-meta" width="fill" height="16">
                                                     <Text text="@LevelXpText(skill)"
                                                           class="wb-text-small"
