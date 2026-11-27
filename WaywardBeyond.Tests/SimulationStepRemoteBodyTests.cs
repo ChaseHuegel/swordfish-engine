@@ -49,7 +49,7 @@ public class SimulationStepRemoteBodyTests
         //  The staged command belongs to command-driven bodies. A mirror has no InputComponent, so the
         //  step must never resolve it and must not add movement.
         Assert.True(store.TryGet(remoteMirror, out NetworkComponent net));
-        net.StagedInputs!.Add(new InputComponent { MovementZ = 1f, ServerTickAtSample = 0 });
+        net.StagedInputs!.Stage(new InputComponent { MovementZ = 1f, ServerTickAtSample = 0 }, stagedAtSimTick: 0);
         store.ClearDirty<PhysicsComponent>(remoteMirror);
 
         using var step = new SimulationStep(store, new FakePhysics());

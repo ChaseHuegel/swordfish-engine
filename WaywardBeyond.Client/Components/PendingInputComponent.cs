@@ -10,11 +10,11 @@ public struct PendingInputComponent : IDataComponent
     private const int CAPACITY = 128;
 
     /// <summary>The staged input samples, oldest first.</summary>
-    public StageRing<InputComponent>? Ring;
+    public StageRing<StagedInput>? Ring;
 
     /// <summary>Creates the ring for the local player.</summary>
     public static PendingInputComponent Create()
     {
-        return new PendingInputComponent { Ring = new StageRing<InputComponent>(CAPACITY) };
+        return new PendingInputComponent { Ring = new StageRing<StagedInput>(CAPACITY) };
     }
 }

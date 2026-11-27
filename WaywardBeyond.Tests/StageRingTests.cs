@@ -77,10 +77,10 @@ public class StageRingTests
     [Fact]
     public void ReturnsNewestInputAtOrBelowSimTick()
     {
-        var ring = new StageRing<InputComponent>(8);
-        ring.Add(Input(1, 5));
-        ring.Add(Input(2, 9));
-        ring.Add(Input(3, 12));
+        var ring = new StageRing<StagedInput>(8);
+        ring.Stage(Input(1, 5), stagedAtSimTick: 5);
+        ring.Stage(Input(2, 9), stagedAtSimTick: 9);
+        ring.Stage(Input(3, 12), stagedAtSimTick: 12);
 
         //  Tick 10 has no staged command; return the newest at or below it (tick 9).
         Assert.Equal(2u, ring.GetCommand(10, uint.MaxValue).Value.SequenceNumber);
@@ -90,21 +90,43 @@ public class StageRingTests
     [Fact]
     public void ReturnsNoCommandWhenTheNewestInputIsStale()
     {
-        var ring = new StageRing<InputComponent>(8);
-        ring.Add(Input(1, 5));
-        ring.Add(Input(2, 9));
+        var ring = new StageRing<StagedInput>(8);
+        ring.Stage(Input(1, 5), stagedAtSimTick: 5);
+        ring.Stage(Input(2, 9), stagedAtSimTick: 9);
 
         Assert.Equal(2u, ring.GetCommand(10, maxAgeTicks: 1).Value.SequenceNumber);
         Assert.False(ring.GetCommand(11, maxAgeTicks: 1).Success);
     }
 
     [Fact]
+    public void FreshlyStagedInputWithOldServerTickAtSampleIsNotStale()
+    {
+        var ring = new StageRing<StagedInput>(8);
+        //  An idle world may not have published a snapshot for hundreds of ticks, so
+        //  ServerTickAtSample legitimately lags behind the current sim tick.
+        ring.Stage(Input(1, tick: 10), stagedAtSimTick: 500);
+
+        Assert.Equal(1u, ring.GetCommand(501, maxAgeTicks: 120).Value.SequenceNumber);
+        Assert.Equal(1u, ring.GetCommand(620, maxAgeTicks: 120).Value.SequenceNumber);
+        Assert.False(ring.GetCommand(621, maxAgeTicks: 120).Success);
+    }
+
+    [Fact]
+    public void InputStagedAheadOfRealignedSimTickIsNotStale()
+    {
+        var ring = new StageRing<StagedInput>(8);
+        ring.Stage(Input(1, tick: 10), stagedAtSimTick: 200);
+
+        Assert.Equal(1u, ring.GetCommand(195, maxAgeTicks: 120).Value.SequenceNumber);
+    }
+
+    [Fact]
     public void TrimDropsAcknowledgedInputs()
     {
-        var ring = new StageRing<InputComponent>(8);
-        ring.Add(Input(1, 5));
-        ring.Add(Input(2, 9));
-        ring.Add(Input(3, 12));
+        var ring = new StageRing<StagedInput>(8);
+        ring.Stage(Input(1, 5), stagedAtSimTick: 5);
+        ring.Stage(Input(2, 9), stagedAtSimTick: 9);
+        ring.Stage(Input(3, 12), stagedAtSimTick: 12);
 
         ring.TrimAtOrBelow(9);
 

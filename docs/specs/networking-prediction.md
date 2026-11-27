@@ -78,11 +78,14 @@ instead of the newest live component, so every step after an `AlignTo` applies
 the surviving in-flight inputs tick-exactly. The lookup implements the
 **newest-per-sim-tick rule**: it scans newest-to-oldest and returns the newest
 sample whose `ServerTickAtSample` is at or below the sim tick, but only when
-that sample is no older than `Protocol.CommandMaxAgeTicks` (`network.toml`,
-default 120 sim ticks). An older sample resolves no command. The server's
-staged ring uses the same lookup and the same configured bound, so both sides
-consume the same command-per-tick sequence and "same input sequence → same
-state" holds.
+that sample was staged locally no more than `Protocol.CommandMaxAgeTicks`
+(`network.toml`, default 120 sim ticks) ago. An older sample resolves no
+command. Measuring age from the local staging sim tick (`StagedInput.StagedAtSimTick`)
+rather than `ServerTickAtSample` keeps fresh input active on an idle world that
+has not published a snapshot recently, and prevents a hostile client from
+spoofing the age check with a forged `ServerTickAtSample`. The server's staged
+ring uses the same lookup and the same configured bound, so both sides consume
+the same command-per-tick sequence and "same input sequence → same state" holds.
 
 The bound turns a stopped client or a network stall into idle input: the body
 damps instead of re-applying the last held movement for as long as the client
@@ -123,10 +126,10 @@ transport reliability layer.
   store index. A freed index that is recycled with a new identity starts with no
   delta, so it cannot inherit the previous session's totals.
 - A join resets session-scoped prediction state. The client clears its look
-  totals, last input sample, and snapshot ack, and both the client and the server
-  forget the identity's last applied look history. A same-character rejoin reuses
-  the identity, so the forget is required; the step drains forget requests before
-  it applies commands.
+  totals, last input sample, sim tick, and snapshot ack, and both the client and
+  the server forget the identity's last applied look history. A same-character
+  rejoin reuses the identity, so the forget is required; the step drains forget
+  requests before it applies commands.
 - The local player's look stays client-predicted. `JoinAccept` carries the
   server-resolved spawn transform, and `ClientJoinSystem` seeds the local
   `TransformComponent` with it when it seats the player.
@@ -153,5 +156,6 @@ incoming, correct local-player orientation) → render reads final `Transform`.
 - `WaywardBeyond.Gameplay/SimulationStep.cs` — the shared simulation step
 - `WaywardBeyond.Client/Components/PendingInputComponent.cs`
 - `WaywardBeyond.Gameplay/Networking/StageRing.cs`
+- `WaywardBeyond.Gameplay/Networking/StagedInput.cs` — input sample paired with its local staging sim tick
 - `WaywardBeyond.Gameplay/Networking/StageRingExtensions.cs` — newest-per-tick command and staleness bound
 - `WaywardBeyond.Config/ProtocolConfig.cs` — `CommandMaxAgeTicks`

@@ -502,7 +502,7 @@ public sealed class NetworkReplicationSystem
                 store.AddOrUpdate(sessionEntity, input);
             }
 
-            var stage = new StageInput(in input);
+            var stage = new StageInput(in input, SimTick);
             store.QueryRef<NetworkComponent, StageInput>(sessionEntity, 0f, ref stage);
         }
 
@@ -521,9 +521,10 @@ public sealed class NetworkReplicationSystem
         }
     }
 
-    private struct StageInput(in InputComponent input) : IForEachRef<NetworkComponent>
+    private struct StageInput(in InputComponent input, uint stagedAtSimTick) : IForEachRef<NetworkComponent>
     {
         private readonly InputComponent _input = input;
+        private readonly uint _stagedAtSimTick = stagedAtSimTick;
 
         public void Execute(float delta, DataStore store, int entity, ref Ref<NetworkComponent> net)
         {
@@ -534,7 +535,7 @@ public sealed class NetworkReplicationSystem
             }
 
             ref NetworkComponent value = ref net.Write;
-            value.StagedInputs?.Add(_input);
+            value.StagedInputs?.Stage(in _input, _stagedAtSimTick);
 
             if (_input.ServerTickAtSample > value.LastAckedInput)
             {

@@ -23,7 +23,7 @@ public struct NetworkComponent : IDataComponent
     public uint LastConsumedInventorySequence;
 
     /// <summary>Sim-tick-keyed inbound command staging, populated server-side.</summary>
-    public StageRing<InputComponent>? StagedInputs;
+    public StageRing<StagedInput>? StagedInputs;
 
     /// <summary>Sim-tick-keyed inbound interaction staging, populated server-side.</summary>
     public StageRing<InteractionEvent>? StagedInteractions;
@@ -36,7 +36,7 @@ public struct NetworkComponent : IDataComponent
     {
         return new NetworkComponent
         {
-            StagedInputs = new StageRing<InputComponent>(INPUT_CAPACITY),
+            StagedInputs = new StageRing<StagedInput>(INPUT_CAPACITY),
             StagedInteractions = new StageRing<InteractionEvent>(INTERACTION_CAPACITY),
             StagedInventoryOps = new StageRing<InventoryOp>(INVENTORY_CAPACITY),
         };

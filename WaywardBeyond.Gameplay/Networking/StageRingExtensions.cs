@@ -7,24 +7,34 @@ namespace WaywardBeyond.Gameplay.Networking;
 /// <summary>Domain lookups and staging rules over the networked staging rings.</summary>
 public static class StageRingExtensions
 {
+    /// <summary>Stages one input sample tagged with the local sim tick at which it was staged.</summary>
+    public static void Stage(this StageRing<StagedInput> ring, in InputComponent input, uint stagedAtSimTick)
+    {
+        ring.Add(new StagedInput(in input, stagedAtSimTick));
+    }
+
     /// <summary>
-    /// Returns the newest input staged at or before <paramref name="simTick"/> when it is no older than
-    /// <paramref name="maxAgeTicks"/>. A stale newest sample resolves as idle input instead.
+    /// Returns the newest input staged at or before <paramref name="simTick"/> when it was staged no more
+    /// than <paramref name="maxAgeTicks"/> ago. A stale newest sample resolves as idle input instead.
     /// </summary>
-    public static Result<InputComponent> GetCommand(this StageRing<InputComponent> ring, uint simTick, uint maxAgeTicks)
+    public static Result<InputComponent> GetCommand(this StageRing<StagedInput> ring, uint simTick, uint maxAgeTicks)
     {
         for (var index = ring.Count - 1; index >= 0; index--)
         {
-            InputComponent candidate = ring[index];
-            if (candidate.ServerTickAtSample > simTick)
+            StagedInput candidate = ring[index];
+            if (candidate.Input.ServerTickAtSample > simTick)
             {
                 continue;
             }
 
-            //  This is the newest sample at or below the tick. If it is stale, every older sample is too,
-            //  so the whole ring resolves as idle input rather than falling back to a previous command.
-            return simTick - candidate.ServerTickAtSample <= maxAgeTicks
-                ? Result<InputComponent>.FromSuccess(candidate)
+            //  This is the newest sample at or below the tick. Age is measured from when it was
+            //  staged locally rather than ServerTickAtSample, so an idle world without recent
+            //  snapshots stays fresh and a hostile client cannot spoof the age check. If simTick
+            //  rewound below StagedAtSimTick (e.g. after AlignTo), treat the age as zero.
+            bool fresh = simTick <= candidate.StagedAtSimTick
+                || simTick - candidate.StagedAtSimTick <= maxAgeTicks;
+            return fresh
+                ? Result<InputComponent>.FromSuccess(candidate.Input)
                 : Result<InputComponent>.FromFailure((string?)null);
         }
 
@@ -32,9 +42,9 @@ public static class StageRingExtensions
     }
 
     /// <summary>Drops every input staged at or before <paramref name="simTick"/>.</summary>
-    public static void TrimAtOrBelow(this StageRing<InputComponent> ring, uint simTick)
+    public static void TrimAtOrBelow(this StageRing<StagedInput> ring, uint simTick)
     {
-        while (ring.Count > 0 && ring[0].ServerTickAtSample <= simTick)
+        while (ring.Count > 0 && ring[0].Input.ServerTickAtSample <= simTick)
         {
             ring.Advance(1);
         }

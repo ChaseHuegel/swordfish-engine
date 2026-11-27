@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Krill;
 using Microsoft.Extensions.Logging.Abstractions;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Input;
 using Swordfish.Library.IO;
@@ -17,6 +18,7 @@ using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data.Components;
 
 namespace WaywardBeyond.Tests;
@@ -80,6 +82,8 @@ public class ClientInputIdleTests
     {
         TestContext context = CreateContext();
 
+        context.MotionProcessor.Tick(1f / 64f, context.Store);
+        context.MotionProcessor.Step!.AlignTo(5000);
         context.MotionProcessor.CursorUpdates.Enqueue(new Vector2(10f, 0f));
         context.System.Tick(1f / 64f, context.Store);
         Assert.True(context.Store.TryGet(context.Entity, out InputComponent before));
@@ -87,6 +91,7 @@ public class ClientInputIdleTests
 
         context.Store.ClearDirty<InputComponent>(context.Entity);
         context.System.ResetSession(context.Store.GetUuid(context.Entity));
+        Assert.Equal(0u, context.MotionProcessor.Step.CurrentSimTick);
         context.System.Tick(1f / 64f, context.Store);
 
         Assert.True(context.Store.TryGet(context.Entity, out InputComponent after));
@@ -94,6 +99,8 @@ public class ClientInputIdleTests
         Assert.Equal(0f, after.LookYaw);
         Assert.Equal(0f, after.LookRoll);
         Assert.True(context.Store.IsDirty<InputComponent>(context.Entity), "The reset must force a first sample.");
+        Assert.True(context.Store.TryGet(context.Entity, out PendingInputComponent pending));
+        Assert.Equal(0u, pending.Ring![pending.Ring.Count - 1].StagedAtSimTick);
     }
 
     [Fact]
@@ -175,6 +182,58 @@ public class ClientInputIdleTests
         Assert.True(store.TryGet(entity, out InputComponent solvent));
         Assert.True(solvent.SecondaryHeld);
         Assert.Null(solvent.PaintId);
+    }
+
+    [Fact]
+    public void MovementInputAfterCommandMaxAgeTicksWithNoSnapshotsStillMoves()
+    {
+        var inputService = new FakeInputService();
+        var shortcutService = new ShortcutService(inputService, NullLogger.Instance);
+        var windowContext = new FakeWindowContext();
+        var physics = new FakePhysics();
+        var protocol = new ProtocolConfig();
+        var motionProcessor = new ClientPlayerMotionProcessor(
+            inputService,
+            windowContext,
+            physics,
+            new EventInvoker<PlayerMovedEvent>([]),
+            protocol
+        );
+        motionProcessor.SetInputEnabled(true);
+
+        var store = new DataStore();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new PlayerComponent());
+        store.AddOrUpdate(entity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        store.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Discrete));
+        store.AddOrUpdate(entity, new InputComponent());
+        store.AddOrUpdate(entity, PendingInputComponent.Create());
+
+        var snapshotAck = new SnapshotAckTracker();
+        var system = new ClientInputSystem(motionProcessor, shortcutService, new ControlSettings(), snapshotAck);
+
+        //  Bind SimulationStep and advance past CommandMaxAgeTicks (120) with no snapshots arriving.
+        motionProcessor.Tick(1f / 64f, store);
+        int idleTicks = protocol.CommandMaxAgeTicks.Get() + 30;
+        for (var i = 0; i < idleTicks; i++)
+        {
+            motionProcessor.Step!.Step();
+        }
+
+        Assert.Equal(0u, snapshotAck.LastAppliedSnapshotTick);
+        Assert.Equal((uint)idleTicks, motionProcessor.Step!.CurrentSimTick);
+
+        inputService.HeldKeys.Add(Key.W);
+        system.Tick(1f / 64f, store);
+
+        //  ServerTickAtSample still echoes the last applied snapshot tick, not the local sim tick.
+        Assert.True(store.TryGet(entity, out InputComponent sampled));
+        Assert.Equal(0u, sampled.ServerTickAtSample);
+
+        motionProcessor.Step.Step();
+
+        Assert.True(store.TryGet(entity, out PhysicsComponent moved));
+        Assert.True(moved.Velocity.Length() > 0f, "Fresh movement input after 120 idle ticks must not be treated as stale.");
     }
 
     private static TestContext CreateContext()
