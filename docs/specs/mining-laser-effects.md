@@ -37,6 +37,6 @@ Brick destruction raises one-shot break spark bursts on both the predicting play
 - `LaserBeamMesh` shared lifetime flag, non-empty bounds, sheath-before-core draw order, and outward triangle winding.
 - `LaserBeamGeometry` muzzle and beam orientation mapping and `ToolAimGeometry` close-range start fallback, remote origin calculation with non-unit parent scale parity with `ChildSystem`, and finite coordinate validation.
 - `AimRay.TryTrace` hitting the floor directly underneath a player collider using `IPhysics.Raycast(in Ray, int ignoreEntity)` and rejecting non-finite positions.
-- `ServerLaserBeamSystem` tool gating, change-gated dirty state, hit/miss updates, ignore-entity forwarding, and loopback `LaserBeamComponent` add and removal replication.
+- `ServerLaserBeamSystem` tool gating, change-gated dirty state, hit/miss updates, ignore-entity forwarding, shooter self-echo omission across deltas, full syncs, and removals, and loopback `LaserBeamComponent` observer add and removal replication.
 - `MiningLaserEffectSystem` local prediction, hit/miss light and emitter transitions, remote body replication, duplicate local mirror suppression, non-finite transform and target rejection, paused remote beam visibility with local prediction suppressed, pulse time wrapping, and state exit cleanup.
 - `BrickBreakParticleListener`, `ClientVoxelReconcileSystem` remote break world-position events, and `ClientCleanupSystem` particle clearing.

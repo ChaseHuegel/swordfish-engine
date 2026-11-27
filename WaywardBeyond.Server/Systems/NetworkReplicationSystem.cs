@@ -354,24 +354,7 @@ public sealed class NetworkReplicationSystem
                 continue;
             }
 
-            uint lastProcessedInput = 0;
-            int recipientEntity = Entity.Null;
-            Uuid recipientEntityUuid = Uuid.Null;
-            if (_sessions.TryGetEntity(clientId, out int sessionEntity) && sessionEntity != Entity.Null)
-            {
-                Uuid sessionUuid = store.GetUuid(sessionEntity);
-                if (sessionUuid != Uuid.Null)
-                {
-                    recipientEntity = sessionEntity;
-                    recipientEntityUuid = sessionUuid;
-                    if (store.TryGet(sessionEntity, out NetworkComponent net))
-                    {
-                        lastProcessedInput = net.LastAckedInput;
-                    }
-                }
-            }
-
-            var recipient = new ReplicationRecipient(clientId, recipientEntity, recipientEntityUuid);
+            ReplicationRecipient recipient = ResolveRecipient(store, clientId, out uint lastProcessedInput);
 
             ComponentRemoval[] clientRemovals = sharedRemovals
                 ?? FilterRemovals(store, _pendingRemovals, in recipient);
@@ -407,6 +390,8 @@ public sealed class NetworkReplicationSystem
         }
 
         //  Drop full-sync requests whose client disconnected before the publish and release scratch payloads.
+        _pending.Clear();
+        _pendingRemovals.Clear();
         _fullSync.Clear();
         _fullSyncPending.Clear();
         _removed.Clear();
@@ -414,6 +399,28 @@ public sealed class NetworkReplicationSystem
         _filteredComponents.Clear();
         _filteredRemovals.Clear();
         _filteredRemoved.Clear();
+    }
+
+    private ReplicationRecipient ResolveRecipient(DataStore store, Uuid clientId, out uint lastProcessedInput)
+    {
+        lastProcessedInput = 0;
+        if (!_sessions.TryGetEntity(clientId, out int sessionEntity) || sessionEntity == Entity.Null)
+        {
+            return new ReplicationRecipient(clientId, Entity.Null, Uuid.Null);
+        }
+
+        Uuid sessionUuid = store.GetUuid(sessionEntity);
+        if (sessionUuid == Uuid.Null)
+        {
+            return new ReplicationRecipient(clientId, Entity.Null, Uuid.Null);
+        }
+
+        if (store.TryGet(sessionEntity, out NetworkComponent net))
+        {
+            lastProcessedInput = net.LastAckedInput;
+        }
+
+        return new ReplicationRecipient(clientId, sessionEntity, sessionUuid);
     }
 
     private void DrainStreamEnds()

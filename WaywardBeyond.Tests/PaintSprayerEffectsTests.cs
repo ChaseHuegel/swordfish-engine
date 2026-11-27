@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 using System.Threading.Tasks;
 using DryIoc;
 using Krill;
@@ -382,31 +383,33 @@ public sealed class PaintSprayerEffectsTests
         var rpcServer = new RpcServer(transport, serverRpcRegistry);
         var host = new StubRpcHost();
         TaskCompletionSource<RpcPeer>? pendingConnect = null;
-        rpcServer.ClientConnected += peer => pendingConnect?.TrySetResult(peer);
+        rpcServer.ClientConnected += peer => Volatile.Read(ref pendingConnect)?.TrySetResult(peer);
         rpcServer.Start();
 
         var shooterConnection = new LoopbackRpcClientConnection(transport);
         var observerConnection = new LoopbackRpcClientConnection(transport);
         try
         {
-            pendingConnect = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var shooterConnected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Volatile.Write(ref pendingConnect, shooterConnected);
             await shooterConnection.ConnectAsync();
             var shooterInbound = new ClientInbound();
             var shooterRpcRegistry = new RpcRegistry();
             shooterRpcRegistry.AddService(new ClientHandlers(shooterInbound));
             shooterRpcRegistry.Freeze();
             _ = new RpcClient(shooterConnection, shooterRpcRegistry);
-            RpcPeer shooterRpcPeer = await pendingConnect.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            RpcPeer shooterRpcPeer = await shooterConnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
             ServerPeer shooterServerPeer = peers.GetOrAdd(host, shooterRpcPeer, isLocal: true);
 
-            pendingConnect = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var observerConnected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Volatile.Write(ref pendingConnect, observerConnected);
             await observerConnection.ConnectAsync();
             var observerInbound = new ClientInbound();
             var observerRpcRegistry = new RpcRegistry();
             observerRpcRegistry.AddService(new ClientHandlers(observerInbound));
             observerRpcRegistry.Freeze();
             _ = new RpcClient(observerConnection, observerRpcRegistry);
-            RpcPeer observerRpcPeer = await pendingConnect.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            RpcPeer observerRpcPeer = await observerConnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
             ServerPeer observerServerPeer = peers.GetOrAdd(host, observerRpcPeer, isLocal: true);
 
             Uuid shooterUuid = Uuid.FromValue(9101);
