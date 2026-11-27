@@ -63,6 +63,23 @@ internal static class AudioSettingsCategory
                     SettingsDefaults.INTERFACE_VOLUME,
                     localization
                 ),
+                new SettingsSection("ui.settings.section.focus"),
+                BuildVolumeSlider(
+                    "Settings.PausedVolume",
+                    "ui.settings.option.pausedVolume",
+                    () => draft.PausedVolume,
+                    value => draft.PausedVolume = value,
+                    SettingsDefaults.PAUSED_VOLUME,
+                    localization
+                ),
+                BuildVolumeSlider(
+                    "Settings.BackgroundVolume",
+                    "ui.settings.option.backgroundVolume",
+                    () => draft.BackgroundVolume,
+                    value => draft.BackgroundVolume = value,
+                    SettingsDefaults.BACKGROUND_VOLUME,
+                    localization
+                ),
                 new SettingsResetRow("Settings.Reset.audio", reset),
             ]
         );

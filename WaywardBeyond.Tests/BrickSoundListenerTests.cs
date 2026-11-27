@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Audio;
 using Swordfish.Library.Events;
 using Swordfish.Library.Util;
+using Swordfish.Tests;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client;
 using WaywardBeyond.Client.Components;
@@ -280,7 +281,7 @@ public class BrickSoundListenerTests
         });
 
         var store = new DataStore();
-        var audioChannels = new AudioChannelSystem(new VolumeSettings());
+        var audioChannels = new AudioChannelSystem(new VolumeSettings(), new FakeWindowContext());
         audioChannels.Tick(0f, store);
 
         var soundEffects = new SoundEffectService(audioChannels, tags);

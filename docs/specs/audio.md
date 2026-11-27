@@ -133,9 +133,9 @@ the preference. The host owns persistence. Wayward Beyond stores the value in
 - `Swordfish/Audio/AudioChannel.cs:5` — channel device selection.
 - `Swordfish/EngineContainer.cs:108` — service registration.
 - `Swordfish/Settings/PlaybackSettings.cs:5` — format settings.
-- `WaywardBeyond.Client/Configuration/VolumeSettings.cs:14` — persisted preference.
-- `WaywardBeyond.Client/Configuration/ConfigManager.cs:53` — startup apply.
-- `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:300` — apply from the page.
+- `WaywardBeyond.Client/Configuration/VolumeSettings.cs:16` — persisted preference.
+- `WaywardBeyond.Client/Configuration/ConfigManager.cs:63` — startup apply.
+- `WaywardBeyond.Client/UI/Layers/Menus/SettingsPage.cs:581` — apply from the page.
 
 ## Tests
 

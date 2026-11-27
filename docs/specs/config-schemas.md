@@ -226,6 +226,8 @@ Schema: `WaywardBeyond.Client/Configuration/VolumeSettings.cs`.
 | `Music` | float | `0.5` | music channel volume, 0-1 |
 | `Effects` | float | `0.5` | effects channel volume, 0-1 |
 | `Interface` | float | `0.5` | interface channel volume, 0-1 |
+| `Paused` | float | `0.5` | volume multiplier applied to all channels while the game is paused, 0-1 |
+| `Background` | float | `0.0` | volume multiplier applied to all channels while the window is unfocused, 0-1 |
 | `OutputDevice` | string | `""` | preferred playback device name, empty follows the system default |
 
 ## `keybindings.toml` (per app)

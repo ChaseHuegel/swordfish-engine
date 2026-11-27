@@ -102,7 +102,7 @@ public class MenuClickAudioTests
     }
 
     private sealed class RecordingSoundEffectService()
-        : SoundEffectService(new AudioChannelSystem(new VolumeSettings()), new StubTagDatabase())
+        : SoundEffectService(new AudioChannelSystem(new VolumeSettings(), new FakeWindowContext()), new StubTagDatabase())
     {
         public const string EXIT_CLICK_TAG = "ui_exit";
 

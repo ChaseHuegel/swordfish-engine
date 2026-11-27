@@ -575,6 +575,8 @@ internal sealed class SettingsPage<TIdentifier>(
         _volumeSettings.Music.Set(draft.MusicVolume);
         _volumeSettings.Effects.Set(draft.EffectsVolume);
         _volumeSettings.Interface.Set(draft.InterfaceVolume);
+        _volumeSettings.Paused.Set(draft.PausedVolume);
+        _volumeSettings.Background.Set(draft.BackgroundVolume);
         _volumeSettings.OutputDevice.Set(draft.OutputDevice);
         _playbackDeviceService.SetPreferredPlaybackDevice(draft.OutputDevice);
 
