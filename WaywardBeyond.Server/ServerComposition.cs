@@ -119,6 +119,7 @@ public static class ServerComposition
 
         //  Statistic modifier sources compose like interaction handlers: modules and mods register
         //  IStatModifierSource implementations and StatResolver orders them once by priority.
+        RegisterStatModifierSource<BrickStatisticModifierSource>(container);
         RegisterStatModifierSource<ItemStatisticModifierSource>(container);
         RegisterStatModifierSource<EntityStatisticModifierSource>(container);
         RegisterStatModifierSource<SkillMiningSpeedModifierSource>(container);

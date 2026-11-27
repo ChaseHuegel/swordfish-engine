@@ -146,12 +146,12 @@ public sealed class DocumentSavePayload
     public bool RecipeOutputsModified { get; init; }
 
     /// <summary>
-    ///     Current custom numeric statistic rows for item documents.
+    ///     Current custom numeric statistic rows for item and brick documents.
     /// </summary>
-    public IReadOnlyList<(string Key, string Value)>? ItemStatistics { get; init; }
+    public IReadOnlyList<(string Key, string Value)>? Statistics { get; init; }
 
     /// <summary>
-    ///     Whether item statistics rows were modified since load or last save.
+    ///     Whether statistics rows were modified since load or last save.
     /// </summary>
-    public bool ItemStatisticsModified { get; init; }
+    public bool StatisticsModified { get; init; }
 }

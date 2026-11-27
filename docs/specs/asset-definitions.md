@@ -125,13 +125,13 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `ID` | string | unique, namespaced brick id (e.g. `wb:rock`) |
 | `Alpha` | `BrickAlpha` enum | `Opaque` (default), `Masked`, `Blend` (`WaywardBeyond.Bricks/BrickAlpha.cs`) |
 | `Passable` | bool | |
-| `Hardness` | float? | optional break hardness multiplier (default `1.0`, must be finite and non-negative) |
 | `Mesh` | string? | |
 | `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
 | `Color` | string? | optional 6-digit hex RGB default albedo color. White when omitted |
 | `Textures` | sub-table | `BrickTextures` |
 | `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickEventKind` (`Place`, `Break`) |
 | `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
+| `Statistics` | `[Bricks.Statistics]` map: string → float | `BrickDefinition.Statistics` (custom numeric statistics such as `"wb:hardness"`) |
 
 Brick property and group membership (`brick.light`, `brick.entity`,
 `brick.orientable`, `brick.paintable`, `brick.thruster`, `brick.buildable`,
@@ -170,14 +170,23 @@ Default = ["core"]
 id. A brick without a declaration is silent. See
 [sound-effects](sound-effects.md).
 
-### Hardness
+### Statistics
 
-`BrickDefinition.Hardness` (`WaywardBeyond.Bricks/BrickDefinition.cs:21`) sets
-a brick's base break resistance in seconds before tool speed and skill scaling.
-Omitted values load as `Brick.DEFAULT_HARDNESS` (`1.0`, `Brick.cs:14`). A value
-of `0.0` breaks in zero seconds. Negative or non-finite values log a warning and
-fall back to `1.0` in `BrickDatabase` (`WaywardBeyond.Bricks/BrickDatabase.cs:139`).
-`WorkspaceValidator` emits `BRICK001` for invalid `Hardness` declarations.
+`BrickDefinition.Statistics` (`WaywardBeyond.Bricks/BrickDefinition.cs:39`) is an
+optional `[Bricks.Statistics]` key-value map from statistic id to finite `float`
+value, matching `[Items.Statistics]`. `"wb:hardness"` sets a brick's base break
+resistance in seconds before mining speed modifiers apply (default `1.0`, `0.0`
+breaks in zero seconds). `BrickDatabase` (`WaywardBeyond.Bricks/BrickDatabase.cs:137`)
+logs a warning and skips empty keys or non-finite values. `WorkspaceValidator`
+emits `STAT001` for invalid brick statistic entries, including negative
+`"wb:hardness"` values. See [statistics](statistics.md).
+
+Example:
+
+```toml
+[Bricks.Statistics]
+"wb:hardness" = 2.5
+```
 
 ### Textures
 
@@ -493,6 +502,6 @@ brick and blueprint placeable items.
 `WaywardBeyond.Tests/LocalizedTagsTests.cs` pins tag value deduplication, first
 occurrence order, and the invariant merge into each language.
 `WaywardBeyond.Tests/TimedBrickBreakingTests.cs` and
-`WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin `Hardness`
-and `[Items.Statistics]` parsing, fallback defaults, and `BRICK001` and `STAT001`
-validation findings.
+`WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin
+`[Bricks.Statistics]` and `[Items.Statistics]` parsing, fallback defaults, and
+`STAT001` validation findings.

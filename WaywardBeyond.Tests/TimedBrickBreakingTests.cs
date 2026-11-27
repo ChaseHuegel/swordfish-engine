@@ -77,7 +77,7 @@ public class TimedBrickBreakingTests
     private const string FAST_LASER_ITEM_ID = "wb:fast_laser";
 
     [Fact]
-    public void BrickDatabase_LoadsHardness_DefaultsZeroAndInvalidFallback()
+    public void BrickDatabase_LoadsStatistics_CustomKeysAndFiltersNonFinite()
     {
         using TempAssetDir temp = new();
         temp.WriteBricks("""
@@ -86,38 +86,40 @@ public class TimedBrickBreakingTests
 
             [[Bricks]]
             ID = "wb:hard_brick"
-            Hardness = 2.75
+            [Bricks.Statistics]
+            "wb:hardness" = 2.75
+            "mod:blast_resistance" = 12.5
 
             [[Bricks]]
             ID = "wb:fragile_brick"
-            Hardness = 0.0
+            [Bricks.Statistics]
+            "wb:hardness" = 0.0
 
             [[Bricks]]
-            ID = "wb:negative_brick"
-            Hardness = -3.0
-
-            [[Bricks]]
-            ID = "wb:nan_brick"
-            Hardness = nan
-
-            [[Bricks]]
-            ID = "wb:inf_brick"
-            Hardness = inf
+            ID = "wb:bad_stats_brick"
+            [Bricks.Statistics]
+            "wb:hardness" = 1.5
+            "mod:bad_nan" = nan
+            "mod:bad_inf" = inf
             """);
 
         BrickDatabase db = temp.LoadBricks();
 
-        Assert.Equal(Brick.DEFAULT_HARDNESS, db.Get("wb:default_brick").Value.Hardness);
-        Assert.Equal(2.75f, db.Get("wb:hard_brick").Value.Hardness);
-        Assert.Equal(0f, db.Get("wb:fragile_brick").Value.Hardness);
-        Assert.Equal(Brick.DEFAULT_HARDNESS, db.Get("wb:negative_brick").Value.Hardness);
-        Assert.Equal(Brick.DEFAULT_HARDNESS, db.Get("wb:nan_brick").Value.Hardness);
-        Assert.Equal(Brick.DEFAULT_HARDNESS, db.Get("wb:inf_brick").Value.Hardness);
+        Brick defaultBrick = db.Get("wb:default_brick").Value;
+        Assert.Empty(defaultBrick.Statistics);
+        Assert.Equal(StatisticIds.DEFAULT_HARDNESS, defaultBrick.GetStatistic(StatisticIds.HARDNESS, StatisticIds.DEFAULT_HARDNESS));
 
-        Assert.Equal(Brick.DEFAULT_HARDNESS, Brick.ResolveHardness(-1f));
-        Assert.Equal(Brick.DEFAULT_HARDNESS, Brick.ResolveHardness(float.NaN));
-        Assert.Equal(Brick.DEFAULT_HARDNESS, Brick.ResolveHardness(float.PositiveInfinity));
-        Assert.Equal(0f, Brick.ResolveHardness(0f));
+        Brick hardBrick = db.Get("wb:hard_brick").Value;
+        Assert.Equal(2.75f, hardBrick.GetStatistic(StatisticIds.HARDNESS));
+        Assert.Equal(12.5f, hardBrick.GetStatistic("mod:blast_resistance"));
+
+        Brick fragileBrick = db.Get("wb:fragile_brick").Value;
+        Assert.Equal(0f, fragileBrick.GetStatistic(StatisticIds.HARDNESS));
+
+        Brick badStatsBrick = db.Get("wb:bad_stats_brick").Value;
+        Assert.Equal(1.5f, badStatsBrick.GetStatistic(StatisticIds.HARDNESS));
+        Assert.False(badStatsBrick.TryGetStatistic("mod:bad_nan", out _));
+        Assert.False(badStatsBrick.TryGetStatistic("mod:bad_inf", out _));
     }
 
     [Fact]
@@ -173,11 +175,15 @@ public class TimedBrickBreakingTests
         int miningLevel = harness.Skills.Get("mining").Value.CalculateLevel(10_000).Level;
         Assert.True(miningLevel > 0);
 
-        //  Add a custom mod modifier source applying +50% to mining speed and *2 to a custom mod stat.
+        //  Add a custom mod modifier source applying +50% to mining speed, *1.5 to brick hardness, and *2 to a custom mod stat.
         var hasteMod = new DelegateStatModifierSource(
             StatModifierPriority.Normal,
             StatisticIds.MINING_SPEED,
             (in StatQuery _, ref StatAccumulator acc) => acc.Apply(StatModifier.AddPercent(0.50f)));
+        var reinforcedMod = new DelegateStatModifierSource(
+            StatModifierPriority.Normal,
+            StatisticIds.HARDNESS,
+            (in StatQuery _, ref StatAccumulator acc) => acc.Apply(StatModifier.Multiply(1.5f)));
         var customStatMod = new DelegateStatModifierSource(
             StatModifierPriority.Normal,
             "mod:jump_boost",
@@ -185,12 +191,21 @@ public class TimedBrickBreakingTests
 
         var resolver = new StatResolver(
         [
+            new BrickStatisticModifierSource(harness.Bricks),
             new ItemStatisticModifierSource(harness.Items),
             new EntityStatisticModifierSource(),
             new SkillMiningSpeedModifierSource(harness.Skills),
             hasteMod,
+            reinforcedMod,
             customStatMod,
         ]);
+
+        //  Brick hardness flows through the same stat modifier pipeline (base 2.0 * 1.5 reinforced mod = 3.0).
+        float rockHardness = resolver.Evaluate(new StatQuery(
+            StatisticIds.HARDNESS,
+            StatisticIds.DEFAULT_HARDNESS,
+            targetBrickDataId: harness.RockId));
+        Assert.Equal(3.0f, rockHardness, precision: 5);
 
         //  Fast laser (SetBase 2.0) + entity stat (+0.5) + mining skill (+2%/lvl) + mod haste (+50%).
         var entityStats = new Dictionary<string, float>
@@ -641,11 +656,13 @@ public class TimedBrickBreakingTests
             _assets.WriteBricks($"""
                 [[Bricks]]
                 ID = "{ROCK_BRICK_ID}"
-                Hardness = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Bricks.Statistics]
+                "{StatisticIds.HARDNESS}" = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
 
                 [[Bricks]]
                 ID = "{PANEL_BRICK_ID}"
-                Hardness = {panelHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Bricks.Statistics]
+                "{StatisticIds.HARDNESS}" = {panelHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
                 """);
             _assets.WriteItems($"""
                 [[Items]]
@@ -710,6 +727,7 @@ public class TimedBrickBreakingTests
 
             var statResolver = new StatResolver(
             [
+                new BrickStatisticModifierSource(Bricks),
                 new ItemStatisticModifierSource(Items),
                 new EntityStatisticModifierSource(),
                 new SkillMiningSpeedModifierSource(Skills),
@@ -720,7 +738,7 @@ public class TimedBrickBreakingTests
                 new ItemPlaceableSelector(Items, Bricks),
                 new HintResolver(Bricks),
                 new BreakToolValidator(Items),
-                new AdventureBreakHoldHandler(Bricks, statResolver),
+                new AdventureBreakHoldHandler(statResolver),
                 new VoxelWriteCommitter(_peers, Bricks, Bricks, NullLogger<VoxelWriteCommitter>.Instance),
                 new BreakLootReactor(Bricks),
                 new SkillXpReactor(Skills, _peers, NullLogger<SkillXpReactor>.Instance),
@@ -866,11 +884,13 @@ public class TimedBrickBreakingTests
             _assets.WriteBricks($"""
                 [[Bricks]]
                 ID = "{ROCK_BRICK_ID}"
-                Hardness = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Bricks.Statistics]
+                "{StatisticIds.HARDNESS}" = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
 
                 [[Bricks]]
                 ID = "{PANEL_BRICK_ID}"
-                Hardness = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Bricks.Statistics]
+                "{StatisticIds.HARDNESS}" = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
                 """);
             _assets.WriteItems($"""
                 [[Items]]
@@ -935,13 +955,14 @@ public class TimedBrickBreakingTests
 
             var statResolver = new StatResolver(
             [
+                new BrickStatisticModifierSource(Bricks),
                 new ItemStatisticModifierSource(Items),
                 new EntityStatisticModifierSource(),
                 new SkillMiningSpeedModifierSource(Skills),
             ]);
             var timedController = new ClientTimedInteractionController(
             [
-                new AdventureBreakTimedInteraction(_physics, Bricks, Bricks, statResolver, _characterSave),
+                new AdventureBreakTimedInteraction(_physics, Bricks, statResolver, _characterSave),
             ]);
 
             var breakProcessor = new RecordingBreakEventProcessor(BreakEvents);
@@ -1085,7 +1106,8 @@ public class TimedBrickBreakingTests
             _assets.WriteBricks($"""
                 [[Bricks]]
                 ID = "{ROCK_BRICK_ID}"
-                Hardness = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                [Bricks.Statistics]
+                "{StatisticIds.HARDNESS}" = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
                 """);
             _assets.WriteItems($"""
                 [[Items]]
@@ -1128,6 +1150,7 @@ public class TimedBrickBreakingTests
 
             var statResolver = new StatResolver(
             [
+                new BrickStatisticModifierSource(_bricks),
                 new ItemStatisticModifierSource(items),
                 new EntityStatisticModifierSource(),
                 new SkillMiningSpeedModifierSource(skills),
@@ -1137,7 +1160,7 @@ public class TimedBrickBreakingTests
                 new ItemPlaceableSelector(items, _bricks),
                 new HintResolver(_bricks),
                 new BreakToolValidator(items),
-                new AdventureBreakHoldHandler(_bricks, statResolver),
+                new AdventureBreakHoldHandler(statResolver),
                 new VoxelWriteCommitter(_peers, _bricks, _bricks, NullLogger<VoxelWriteCommitter>.Instance),
                 new BreakLootReactor(_bricks),
                 new SkillXpReactor(skills, _peers, NullLogger<SkillXpReactor>.Instance),

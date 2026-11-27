@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using Krill;
-using Swordfish.Library.Util;
-using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Gameplay.Interactions;
@@ -12,13 +10,11 @@ namespace WaywardBeyond.Server.Interactions;
 
 /// <summary>
 /// Validate stage, low priority: requires a timed hold before committing Adventure Mode brick breaks.
-/// Duration is derived from brick hardness and the extensible <see cref="IStatResolver"/> pipeline for
-/// <see cref="StatisticIds.MINING_SPEED"/>. Higher-priority validate handlers can override or replace it.
+/// Duration is derived from <see cref="StatisticIds.HARDNESS"/> and <see cref="StatisticIds.MINING_SPEED"/>
+/// evaluated through the extensible <see cref="IStatResolver"/> pipeline. Higher-priority validate handlers
+/// can override or replace it.
 /// </summary>
-public sealed class AdventureBreakHoldHandler(
-    IBrickDatabase brickDatabase,
-    IStatResolver statResolver
-) : IInteractionHandler
+public sealed class AdventureBreakHoldHandler(IStatResolver statResolver) : IInteractionHandler
 {
     /// <summary>Stable handler identifier used in <see cref="TimedInteractionKey.HandlerId"/>.</summary>
     public const string HANDLER_ID = "wb:adventure_break";
@@ -41,8 +37,7 @@ public sealed class AdventureBreakHoldHandler(
         }
 
         ushort brickDataId = context.Resolution.Voxel.ID;
-        float hardness = ResolveBrickHardness(brickDataId);
-        float requiredDuration = ResolveDuration(in context, brickDataId, hardness);
+        float requiredDuration = ResolveDuration(in context, brickDataId);
 
         Uuid targetUuid = context.Hint.HasValue
             ? Uuid.FromValue(context.Hint.Value.TargetEntity)
@@ -63,19 +58,21 @@ public sealed class AdventureBreakHoldHandler(
         return InteractionDecision.Continue;
     }
 
-    private float ResolveBrickHardness(ushort brickDataId)
+    private float ResolveDuration(in InteractionContext context, ushort brickDataId)
     {
-        if (brickDataId == 0)
+        var hardnessQuery = new StatQuery(
+            StatisticIds.HARDNESS,
+            StatisticIds.DEFAULT_HARDNESS,
+            store: context.Store,
+            entity: context.Player,
+            targetBrickDataId: brickDataId);
+
+        float hardness = statResolver.Evaluate(in hardnessQuery);
+        if (!float.IsFinite(hardness) || hardness < 0f)
         {
-            return Brick.DEFAULT_HARDNESS;
+            hardness = StatisticIds.DEFAULT_HARDNESS;
         }
 
-        Result<Brick> result = brickDatabase.Get(brickDataId);
-        return result.Success ? Brick.ResolveHardness(result.Value.Hardness) : Brick.DEFAULT_HARDNESS;
-    }
-
-    private float ResolveDuration(in InteractionContext context, ushort brickDataId, float hardness)
-    {
         if (hardness == 0f)
         {
             return 0f;
@@ -85,7 +82,7 @@ public sealed class AdventureBreakHoldHandler(
             ? skillState.XPBySkill
             : null;
 
-        var query = new StatQuery(
+        var speedQuery = new StatQuery(
             StatisticIds.MINING_SPEED,
             StatisticIds.DEFAULT_MINING_SPEED,
             store: context.Store,
@@ -94,7 +91,7 @@ public sealed class AdventureBreakHoldHandler(
             targetBrickDataId: brickDataId,
             skillXp: skillXp);
 
-        float speed = statResolver.Evaluate(in query);
+        float speed = statResolver.Evaluate(in speedQuery);
         if (!float.IsFinite(speed) || speed <= 0f)
         {
             speed = StatisticIds.DEFAULT_MINING_SPEED;

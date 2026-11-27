@@ -3,12 +3,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace WaywardBeyond.AssetStudio.ViewModels;
 
 /// <summary>
-///     Represents one custom numeric statistic key-value row on an item definition.
+///     Represents one custom numeric statistic key-value row on an item or brick definition.
 /// </summary>
-public sealed partial class ItemStatisticRowViewModel : ObservableObject
+public sealed partial class StatisticRowViewModel : ObservableObject
 {
     private readonly Action? _onChanged;
-    private readonly Action<ItemStatisticRowViewModel, string, string, string>? _onPropertyTransition;
+    private readonly Action<StatisticRowViewModel, string, string, string>? _onPropertyTransition;
     private string _key;
     private string _value;
 
@@ -16,13 +16,13 @@ public sealed partial class ItemStatisticRowViewModel : ObservableObject
     private bool _isDuplicateKey;
 
     /// <summary>
-    ///     Initializes an item statistic row with its key and numeric value text.
+    ///     Initializes a statistic row with its key and numeric value text.
     /// </summary>
-    public ItemStatisticRowViewModel(
+    public StatisticRowViewModel(
         string key,
         string value,
         Action? onChanged = null,
-        Action<ItemStatisticRowViewModel, string, string, string>? onPropertyTransition = null)
+        Action<StatisticRowViewModel, string, string, string>? onPropertyTransition = null)
     {
         _key = key ?? string.Empty;
         _value = value ?? string.Empty;
@@ -31,7 +31,7 @@ public sealed partial class ItemStatisticRowViewModel : ObservableObject
     }
 
     /// <summary>
-    ///     Statistic identifier (for example <c>wb:mining_speed</c> or a custom mod statistic key).
+    ///     Statistic identifier (for example <c>wb:hardness</c>, <c>wb:mining_speed</c>, or a custom mod statistic key).
     /// </summary>
     public string Key
     {

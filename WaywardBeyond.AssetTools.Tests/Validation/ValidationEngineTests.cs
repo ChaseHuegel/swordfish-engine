@@ -367,7 +367,7 @@ public sealed class ValidationEngineTests : IDisposable
     }
 
     [Fact]
-    public void ValidatesBrickHardnessAndItemStatistics()
+    public void ValidatesBrickAndItemStatistics()
     {
         string pack = CreateMinimalPack("mining_stats_pack");
         string assets = Path.Combine(pack, "assets");
@@ -378,13 +378,16 @@ public sealed class ValidationEngineTests : IDisposable
 
         WriteFile(
             Path.Combine(assets, "bricks", "valid_brick.toml"),
-            "[[Bricks]]\nID = \"wb:stone\"\nShape = \"block\"\nHardness = 2.5\n[Bricks.Textures]\nDefault = [\"stone\"]\n");
+            "[[Bricks]]\nID = \"wb:stone\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"wb:hardness\" = 2.5\n\"mod:thermal_mass\" = -1.0\n");
         WriteFile(
             Path.Combine(assets, "bricks", "zero_brick.toml"),
-            "[[Bricks]]\nID = \"wb:fragile\"\nShape = \"block\"\nHardness = 0.0\n[Bricks.Textures]\nDefault = [\"stone\"]\n");
+            "[[Bricks]]\nID = \"wb:fragile\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"wb:hardness\" = 0.0\n");
         WriteFile(
             Path.Combine(assets, "bricks", "negative_brick.toml"),
-            "[[Bricks]]\nID = \"wb:bad_hardness\"\nShape = \"block\"\nHardness = -0.5\n[Bricks.Textures]\nDefault = [\"stone\"]\n");
+            "[[Bricks]]\nID = \"wb:bad_hardness\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"wb:hardness\" = -0.5\n");
+        WriteFile(
+            Path.Combine(assets, "bricks", "nan_brick.toml"),
+            "[[Bricks]]\nID = \"wb:nan_stat\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"mod:mass\" = nan\n");
 
         WriteFile(
             Path.Combine(assets, "items", "valid_tool.toml"),
@@ -407,9 +410,13 @@ public sealed class ValidationEngineTests : IDisposable
         Assert.DoesNotContain(report.Findings, static f => f.FilePath.EndsWith("valid_tool.toml", StringComparison.Ordinal));
 
         Assert.Contains(report.Findings, static f =>
-            f.Code == "BRICK001" &&
-            f.Field == "Hardness" &&
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.wb:hardness" &&
             f.FilePath.EndsWith("negative_brick.toml", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, static f =>
+            f.Code == "STAT001" &&
+            f.Field == "Statistics.mod:mass" &&
+            f.FilePath.EndsWith("nan_brick.toml", StringComparison.Ordinal));
         Assert.Contains(report.Findings, static f =>
             f.Code == "STAT001" &&
             f.Field == "Statistics.wb:mining_speed" &&

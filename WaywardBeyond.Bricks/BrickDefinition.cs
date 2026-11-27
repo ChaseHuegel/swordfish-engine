@@ -17,9 +17,6 @@ public struct BrickDefinition()
     /// <summary>Whether entities can pass through the brick without colliding.</summary>
     public bool Passable;
 
-    /// <summary>The optional break hardness multiplier of the brick. Defaults to 1.0.</summary>
-    public float? Hardness;
-
     /// <summary>The optional custom mesh path for the brick.</summary>
     public string? Mesh;
 
@@ -37,4 +34,7 @@ public struct BrickDefinition()
 
     /// <summary>The optional custom collider primitives declared for the brick.</summary>
     public List<BrickColliderDefinition>? Colliders;
+
+    /// <summary>Optional custom numeric statistics declared on the brick, keyed by statistic id.</summary>
+    public Dictionary<string, float>? Statistics;
 }

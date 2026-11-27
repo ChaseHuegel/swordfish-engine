@@ -10,11 +10,11 @@ public sealed class Brick
     /// <summary>The minimum ID value.</summary>
     public const ushort MIN_ID = 1;
 
-    /// <summary>The default break hardness multiplier assigned when omitted or invalid.</summary>
-    public const float DEFAULT_HARDNESS = 1.0f;
-
     private static readonly IReadOnlyDictionary<BrickEventKind, string[]> _noSounds =
         new Dictionary<BrickEventKind, string[]>();
+
+    private static readonly IReadOnlyDictionary<string, float> _noStatistics =
+        new Dictionary<string, float>(StringComparer.Ordinal);
     
     /// <inheritdoc cref="BrickDefinition.ID"/>
     public readonly string ID;
@@ -24,6 +24,9 @@ public sealed class Brick
 
     /// <summary>The sound tags declared per <see cref="BrickEventKind"/>, or empty when the brick is silent.</summary>
     public readonly IReadOnlyDictionary<BrickEventKind, string[]> Sounds;
+
+    /// <summary>Custom numeric statistics declared on this brick, or empty when none are declared.</summary>
+    public readonly IReadOnlyDictionary<string, float> Statistics;
 
     public readonly BrickAlpha Alpha;
     public readonly bool CastShadows;
@@ -48,9 +51,6 @@ public sealed class Brick
     public readonly bool Entity;
     public readonly bool Paintable;
 
-    /// <summary>Break hardness multiplier of this brick. Defaults to <see cref="DEFAULT_HARDNESS"/>.</summary>
-    public readonly float Hardness;
-
     private readonly bool _orientable;
 
     public Brick(
@@ -68,7 +68,7 @@ public sealed class Brick
         in bool paintable = false,
         in bool orientable = false,
         in Vector3? color = null,
-        in float hardness = DEFAULT_HARDNESS
+        in IReadOnlyDictionary<string, float>? statistics = null
     ) {
         ID = id;
         Alpha = alpha;
@@ -81,19 +81,31 @@ public sealed class Brick
         LinearColor = Srgb.ToLinear(Color);
         _colliders = colliders ?? [];
         Sounds = sounds ?? _noSounds;
+        Statistics = statistics ?? _noStatistics;
         Shapeable = shape == BrickShape.Any;
         LightSource = lightSource;
         Brightness = LightSource ? 15 : 0;
         Entity = entity;
         Paintable = paintable;
-        Hardness = ResolveHardness(hardness);
         _orientable = orientable;
     }
 
-    /// <summary>Resolves a finite non-negative hardness value, falling back to <see cref="DEFAULT_HARDNESS"/>.</summary>
-    public static float ResolveHardness(float hardness)
+    /// <summary>Gets the declared statistic value for <paramref name="statisticId"/>, or <paramref name="defaultValue"/>.</summary>
+    public float GetStatistic(string statisticId, float defaultValue = 0f)
     {
-        return float.IsFinite(hardness) && hardness >= 0f ? hardness : DEFAULT_HARDNESS;
+        return TryGetStatistic(statisticId, out float value) ? value : defaultValue;
+    }
+
+    /// <summary>Attempts to read the declared statistic value for <paramref name="statisticId"/>.</summary>
+    public bool TryGetStatistic(string statisticId, out float value)
+    {
+        if (string.IsNullOrEmpty(statisticId))
+        {
+            value = 0f;
+            return false;
+        }
+
+        return Statistics.TryGetValue(statisticId, out value);
     }
 
     /// <summary>Returns whether the provided shape is orientable for this brick.</summary>

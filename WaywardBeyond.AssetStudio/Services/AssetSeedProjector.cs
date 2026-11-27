@@ -466,7 +466,7 @@ internal static class AssetSeedProjector
         var skillSources = new List<(string Trigger, string Target, int Xp)>();
         var skillLevels = new List<(int Level, int XpRequired)>();
         var bodySprites = new List<(string State, string Direction, string TexturePath, string SwatchHex)>();
-        var itemStatistics = new List<(string Key, float Value)>();
+        var statistics = new List<(string Key, float Value)>();
         var bodySpriteAbsPaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var recipeInputs = new List<(string ItemId, int Count, string SlotGroup)>();
         var recipeOutputs = new List<(string ItemId, int Count, string Chance)>();
@@ -477,10 +477,10 @@ internal static class AssetSeedProjector
         switch (asset.AuthoritativeDefinition)
         {
             case BrickDefinition brick:
-                PopulateBrickFields(in brick, scalars, colliders);
+                PopulateBrickFields(in brick, scalars, colliders, statistics);
                 break;
             case ItemDefinition item:
-                PopulateItemFields(in item, scalars, itemStatistics);
+                PopulateItemFields(in item, scalars, statistics);
                 break;
             case PaintDefinition paint:
                 paintTexturePath = PopulatePaintFields(workspace, in paint, scalars);
@@ -524,7 +524,7 @@ internal static class AssetSeedProjector
             SkillSources = skillSources,
             SkillLevels = skillLevels,
             BodySprites = bodySprites,
-            ItemStatistics = itemStatistics,
+            Statistics = statistics,
             BodySpriteAbsolutePaths = bodySpriteAbsPaths,
             RecipeInputs = recipeInputs,
             RecipeOutputs = recipeOutputs,
@@ -538,14 +538,14 @@ internal static class AssetSeedProjector
     private static void PopulateBrickFields(
         in BrickDefinition brick,
         Dictionary<string, string> scalars,
-        List<(string Type, string Size, string Offset, string Rotation)> colliders)
+        List<(string Type, string Size, string Offset, string Rotation)> colliders,
+        List<(string Key, float Value)> statistics)
     {
         scalars["Shape"] = brick.Shape.ToString();
         scalars["Color"] = NormalizeHexOrDefault(brick.Color, "#FFFFFF");
         scalars["Alpha"] = brick.Alpha.ToString();
         scalars["CastShadows"] = brick.CastShadows ? "true" : "false";
         scalars["Passable"] = brick.Passable ? "true" : "false";
-        scalars["Hardness"] = (brick.Hardness ?? Brick.DEFAULT_HARDNESS).ToString("0.####", CultureInfo.InvariantCulture);
         scalars["Mesh"] = brick.Mesh ?? string.Empty;
         scalars["Connected"] = brick.Textures.Connected ? "true" : "false";
         scalars["TextureDefault"] = JoinNullableArray(brick.Textures.Default);
@@ -579,6 +579,14 @@ internal static class AssetSeedProjector
                 var offset = FormatFloat3(c.Offset.X, c.Offset.Y, c.Offset.Z);
                 var rot = FormatFloat3(c.Rotation.X, c.Rotation.Y, c.Rotation.Z);
                 colliders.Add((type, size, offset, rot));
+            }
+        }
+
+        if (brick.Statistics != null)
+        {
+            foreach (var stat in brick.Statistics.OrderBy(static kvp => kvp.Key, StringComparer.Ordinal))
+            {
+                statistics.Add((stat.Key, stat.Value));
             }
         }
     }

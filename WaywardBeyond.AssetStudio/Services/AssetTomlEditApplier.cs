@@ -56,8 +56,9 @@ internal static class AssetTomlEditApplier
         ApplyScalar(doc, tableIndex, "Alpha", "Alpha", payload, ScalarKind.String);
         ApplyScalar(doc, tableIndex, "CastShadows", "CastShadows", payload, ScalarKind.Boolean);
         ApplyScalar(doc, tableIndex, "Passable", "Passable", payload, ScalarKind.Boolean);
-        ApplyOptionalFloatScalar(doc, tableIndex, "Hardness", "Hardness", payload);
         ApplyScalar(doc, tableIndex, "Mesh", "Mesh", payload, ScalarKind.OptionalString);
+
+        var brickOrdinal = FindArrayTableOrdinal(doc, "Bricks", tableIndex);
 
         var texturesTable = FindChildTableIndex(doc, tableIndex, "Bricks", "Bricks.Textures");
         if (texturesTable >= 0)
@@ -77,6 +78,11 @@ internal static class AssetTomlEditApplier
         {
             ApplyOptionalSingleItemStringArray(doc, soundsTable, "Place", "SoundPlace", payload);
             ApplyOptionalSingleItemStringArray(doc, soundsTable, "Break", "SoundBreak", payload);
+        }
+
+        if (payload.StatisticsModified && payload.Statistics != null)
+        {
+            return ApplyStatisticsEdits(doc, "Bricks", brickOrdinal, payload.Statistics);
         }
 
         return Result.FromSuccess();
@@ -118,21 +124,23 @@ internal static class AssetTomlEditApplier
         ApplyItemModelSectionEdits(doc, tableIndex, "Items.ViewModel", "ViewModel", payload);
         ApplyItemModelSectionEdits(doc, tableIndex, "Items.WorldModel", "WorldModel", payload);
 
-        if (payload.ItemStatisticsModified && payload.ItemStatistics != null)
+        if (payload.StatisticsModified && payload.Statistics != null)
         {
-            return ApplyItemStatisticsEdits(doc, itemOrdinal, payload.ItemStatistics);
+            return ApplyStatisticsEdits(doc, "Items", itemOrdinal, payload.Statistics);
         }
 
         return Result.FromSuccess();
     }
 
-    private static Result ApplyItemStatisticsEdits(
+    private static Result ApplyStatisticsEdits(
         ToolsDocuments.TomlDocument doc,
-        int itemOrdinal,
+        string arrayTableName,
+        int entryOrdinal,
         IReadOnlyList<(string Key, string Value)> statistics)
     {
-        var itemTableIndex = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
-        if (itemTableIndex < 0)
+        var subTableHeader = $"{arrayTableName}.Statistics";
+        var ownerTableIndex = ResolveArrayTableByOrdinal(doc, arrayTableName, entryOrdinal);
+        if (ownerTableIndex < 0)
         {
             return Result.FromSuccess();
         }
@@ -167,7 +175,7 @@ internal static class AssetTomlEditApplier
             desiredByKey[key] = parsedVal;
         }
 
-        var statsTableIndex = FindOwnedSubTableIndex(doc, itemTableIndex, "Items", "Items.Statistics");
+        var statsTableIndex = FindOwnedSubTableIndex(doc, ownerTableIndex, arrayTableName, subTableHeader);
         if (desired.Count == 0)
         {
             return statsTableIndex >= 0
@@ -192,8 +200,8 @@ internal static class AssetTomlEditApplier
                     return removeResult;
                 }
 
-                itemTableIndex = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
-                statsTableIndex = FindOwnedSubTableIndex(doc, itemTableIndex, "Items", "Items.Statistics");
+                ownerTableIndex = ResolveArrayTableByOrdinal(doc, arrayTableName, entryOrdinal);
+                statsTableIndex = FindOwnedSubTableIndex(doc, ownerTableIndex, arrayTableName, subTableHeader);
                 if (statsTableIndex < 0)
                 {
                     break;
@@ -204,8 +212,8 @@ internal static class AssetTomlEditApplier
 
             for (var i = 0; i < desired.Count; i++)
             {
-                itemTableIndex = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
-                statsTableIndex = FindOwnedSubTableIndex(doc, itemTableIndex, "Items", "Items.Statistics");
+                ownerTableIndex = ResolveArrayTableByOrdinal(doc, arrayTableName, entryOrdinal);
+                statsTableIndex = FindOwnedSubTableIndex(doc, ownerTableIndex, arrayTableName, subTableHeader);
                 if (statsTableIndex < 0)
                 {
                     break;
@@ -243,10 +251,10 @@ internal static class AssetTomlEditApplier
             return Result.FromSuccess();
         }
 
-        var lastOwnedIndex = FindLastOwnedTableIndex(doc, itemTableIndex, "Items");
+        var lastOwnedIndex = FindLastOwnedTableIndex(doc, ownerTableIndex, arrayTableName);
         var insertOffset = Math.Clamp(doc.Tables[lastOwnedIndex].ContentSpan.End, 0, doc.Text.Length);
         var eol = doc.LineEnding;
-        var block = new StringBuilder("[Items.Statistics]");
+        var block = new StringBuilder($"[{subTableHeader}]");
         for (var i = 0; i < desired.Count; i++)
         {
             block.Append(eol);
@@ -277,43 +285,11 @@ internal static class AssetTomlEditApplier
         var verified = ToolsDocuments.TomlDocument.Parse(candidate, doc.SourcePath);
         if (verified.HasSyntaxErrors)
         {
-            return Result.FromFailure("Applying item statistic edits produced invalid TOML.");
+            return Result.FromFailure("Applying statistic edits produced invalid TOML.");
         }
 
         doc.SetRawText(candidate);
         return Result.FromSuccess();
-    }
-
-    private static void ApplyOptionalFloatScalar(
-        ToolsDocuments.TomlDocument doc,
-        int tableIndex,
-        string tomlKey,
-        string fieldKey,
-        DocumentSavePayload payload)
-    {
-        if (payload.ModifiedFieldKeys != null && !payload.ModifiedFieldKeys.Contains(fieldKey))
-        {
-            return;
-        }
-
-        if (!payload.FieldValues.TryGetValue(fieldKey, out var value))
-        {
-            return;
-        }
-
-        var isRawMode = payload.FieldRawModeFlags.TryGetValue(fieldKey, out var rawFlag) && rawFlag;
-        if (!isRawMode && string.IsNullOrWhiteSpace(value))
-        {
-            var existing = doc.GetFieldInTable(tableIndex, tomlKey);
-            if (existing.Success)
-            {
-                doc.RemoveField(existing.Value);
-            }
-
-            return;
-        }
-
-        ApplyScalar(doc, tableIndex, tomlKey, fieldKey, payload, ScalarKind.Float);
     }
 
     private static Result ApplyItemPlaceableEdits(

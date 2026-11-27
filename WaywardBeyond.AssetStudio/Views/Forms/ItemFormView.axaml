@@ -24,7 +24,7 @@
     <!-- Statistics (extensible key-value numeric attributes such as wb:mining_speed) -->
     <controls:CollapsibleSectionCard Title="Statistics"
                                      Subtitle="Custom numeric attributes (e.g. wb:mining_speed)"
-                                     IsExpanded="{Binding HasItemStatistics}">
+                                     IsExpanded="{Binding HasStatistics}">
       <StackPanel Spacing="6">
         <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
           <TextBlock Grid.Column="0"
@@ -39,7 +39,7 @@
                   Content="+ Mining Speed" />
           <Button Grid.Column="2"
                   Classes="studio-btn-compact"
-                  Command="{Binding AddItemStatisticCommand}"
+                  Command="{Binding AddStatisticCommand}"
                   IsEnabled="{Binding !IsReadOnly}"
                   Content="+ Add Statistic" />
         </Grid>
@@ -48,7 +48,7 @@
                 BorderBrush="{DynamicResource StudioBorderBrush}"
                 BorderThickness="1"
                 ClipToBounds="True"
-                IsVisible="{Binding HasItemStatistics}">
+                IsVisible="{Binding HasStatistics}">
           <StackPanel>
             <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
               <Grid ColumnDefinitions="*,110,28" ColumnSpacing="8">
@@ -56,9 +56,9 @@
                 <TextBlock Grid.Column="1" Text="VALUE" Classes="pane-title" VerticalAlignment="Center" />
               </Grid>
             </Border>
-            <ItemsControl ItemsSource="{Binding ItemStatistics}">
+            <ItemsControl ItemsSource="{Binding Statistics}">
               <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:ItemStatisticRowViewModel">
+                <DataTemplate x:DataType="vm:StatisticRowViewModel">
                   <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
                     <Grid ColumnDefinitions="*,110,28" ColumnSpacing="8">
                       <TextBox Grid.Column="0"
@@ -75,7 +75,7 @@
                               Height="26"
                               MinHeight="26"
                               Padding="0"
-                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveItemStatisticCommand}"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveStatisticCommand}"
                               CommandParameter="{Binding}"
                               ToolTip.Tip="Remove statistic">
                         <TextBlock Text="×" FontSize="14" />

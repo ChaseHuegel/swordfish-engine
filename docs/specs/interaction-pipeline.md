@@ -101,7 +101,7 @@ Timed interactions compose through the pipeline rather than living hardcoded ins
 - **Adventure brick breaking handler:** `AdventureBreakHoldHandler`
   (`WaywardBeyond.Server/Interactions/AdventureBreakHoldHandler.cs:18`) registers at
   `InteractionStage.Validate` with `Priority.Low` and `GameMode.Adventure`. For `Break` actions, it
-  resolves brick hardness and evaluates `StatisticIds.MINING_SPEED` through `IStatResolver` (see
+  evaluates `StatisticIds.HARDNESS` and `StatisticIds.MINING_SPEED` through `IStatResolver` (see
   [statistics](statistics.md)) to compute `hardness / speed` and populate `context.Hold`. Higher
   priority handlers and custom `IStatModifierSource` implementations can modify or replace it.
 - **Extensible client holds:** `PlayerInteractionService`

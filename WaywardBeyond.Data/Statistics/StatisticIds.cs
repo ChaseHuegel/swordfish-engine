@@ -1,6 +1,6 @@
 namespace WaywardBeyond.Data.Statistics;
 
-/// <summary>Well-known statistic identifiers shared across items, characters, and stat modifiers.</summary>
+/// <summary>Well-known statistic identifiers shared across items, bricks, characters, and stat modifiers.</summary>
 public static class StatisticIds
 {
     /// <summary>Mining speed multiplier applied when breaking bricks (base 1.0).</summary>
@@ -8,4 +8,10 @@ public static class StatisticIds
 
     /// <summary>Default base value for <see cref="MINING_SPEED"/> when no item or modifier overrides it.</summary>
     public const float DEFAULT_MINING_SPEED = 1.0f;
+
+    /// <summary>Base break hardness of a brick in seconds before mining speed modifiers apply (base 1.0).</summary>
+    public const string HARDNESS = "wb:hardness";
+
+    /// <summary>Default base value for <see cref="HARDNESS"/> when no brick or modifier overrides it.</summary>
+    public const float DEFAULT_HARDNESS = 1.0f;
 }

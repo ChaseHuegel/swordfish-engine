@@ -112,7 +112,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             paintable,
             orientable,
             ResolveColor(id, assetInfo.Color),
-            ResolveHardness(id, assetInfo.Hardness)
+            ResolveStatistics(id, assetInfo.Statistics)
         );
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
@@ -134,24 +134,37 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         return color;
     }
 
-    private float ResolveHardness(string id, float? value)
+    private IReadOnlyDictionary<string, float>? ResolveStatistics(string id, Dictionary<string, float>? statistics)
     {
-        if (!value.HasValue)
+        if (statistics == null || statistics.Count == 0)
         {
-            return Brick.DEFAULT_HARDNESS;
+            return null;
         }
 
-        if (!float.IsFinite(value.Value) || value.Value < 0f)
+        Dictionary<string, float>? resolved = null;
+        foreach (KeyValuePair<string, float> entry in statistics)
         {
-            _logger.LogWarning(
-                "Brick \"{BrickId}\" has invalid Hardness {Hardness}. Using {Default}.",
-                id,
-                value.Value,
-                Brick.DEFAULT_HARDNESS);
-            return Brick.DEFAULT_HARDNESS;
+            if (string.IsNullOrWhiteSpace(entry.Key))
+            {
+                _logger.LogWarning("Brick \"{BrickId}\" declares a statistic with an empty key. Skipping.", id);
+                continue;
+            }
+
+            if (!float.IsFinite(entry.Value))
+            {
+                _logger.LogWarning(
+                    "Brick \"{BrickId}\" statistic \"{StatisticId}\" has non-finite value {Value}. Skipping.",
+                    id,
+                    entry.Key,
+                    entry.Value);
+                continue;
+            }
+
+            resolved ??= new Dictionary<string, float>(statistics.Count, StringComparer.Ordinal);
+            resolved[entry.Key] = entry.Value;
         }
 
-        return value.Value;
+        return resolved;
     }
 
     private BrickColliderShape[] BuildColliders(string brickId, List<BrickColliderDefinition>? definitions)

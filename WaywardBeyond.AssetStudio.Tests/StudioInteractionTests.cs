@@ -236,10 +236,10 @@ public sealed class StudioInteractionTests
     }
 
     /// <summary>
-    ///     Verifies brick hardness and item statistics authoring, undo/redo, and lossless TOML persistence.
+    ///     Verifies brick and item statistics authoring, editing, removing, undo/redo, and lossless TOML persistence.
     /// </summary>
     [AvaloniaFact]
-    public void BrickHardnessAndItemStatisticsEditUndoAndSaveLosslessly()
+    public void BrickAndItemStatisticsEditUndoAndSaveLosslessly()
     {
         var tempRoot = Path.Combine(Path.GetTempPath(), $"wb-studio-stats-{Path.GetRandomFileName()}");
         try
@@ -262,7 +262,7 @@ public sealed class StudioInteractionTests
             var brickPath = Path.Combine(assetsDir, "bricks", "stone.toml");
             File.WriteAllText(
                 brickPath,
-                "# preserve comment\n[[Bricks]]\nID = \"test:stone\"\nShape = \"block\"\nHardness = 2.5\n[Bricks.Textures]\nDefault = [\"stone\"]\n");
+                "# preserve comment\n[[Bricks]]\nID = \"test:stone\"\nShape = \"block\"\n[Bricks.Textures]\nDefault = [\"stone\"]\n[Bricks.Statistics]\n\"wb:hardness\" = 2.5\n\"test:blast\" = 8.0\n");
 
             var itemPath = Path.Combine(assetsDir, "items", "laser.toml");
             File.WriteAllText(
@@ -280,46 +280,59 @@ public sealed class StudioInteractionTests
                 enableLiveGlViewport: false,
                 initialWorkspacePath: packDir);
 
-            //  Brick hardness loads, edits, undoes, redoes, and saves losslessly.
+            //  Brick statistics load, edit, add custom stat, remove stat, undo/redo, and save losslessly.
             Assert.True(vm.SelectAssetById("test:stone"));
             var brickDoc = vm.SelectedAsset!;
-            Assert.NotNull(brickDoc.BrickHardnessField);
-            Assert.Equal("2.5", brickDoc.BrickHardnessField!.Value);
+            Assert.Equal(2, brickDoc.Statistics.Count);
+            Assert.Contains(brickDoc.Statistics, static s => s.Key == "wb:hardness" && s.Value == "2.5");
+            Assert.Contains(brickDoc.Statistics, static s => s.Key == "test:blast" && s.Value == "8");
 
-            brickDoc.BrickHardnessField.Value = "4.25";
-            Assert.True(brickDoc.IsDirty);
+            var hardnessRow = brickDoc.Statistics.First(static s => s.Key == "wb:hardness");
+            hardnessRow.Value = "4.25";
+            brickDoc.AddStatisticCommand.Execute(null);
+            Assert.Equal(3, brickDoc.Statistics.Count);
+            brickDoc.Statistics[^1].Key = "test:conductivity";
+            brickDoc.Statistics[^1].Value = "0.85";
+
+            var blastRow = brickDoc.Statistics.First(static s => s.Key == "test:blast");
+            brickDoc.RemoveStatisticCommand.Execute(blastRow);
+            Assert.Equal(2, brickDoc.Statistics.Count);
+
             vm.UndoCommand.Execute(null);
-            Assert.Equal("2.5", brickDoc.BrickHardnessField.Value);
+            Assert.Equal(3, brickDoc.Statistics.Count);
             vm.RedoCommand.Execute(null);
-            Assert.Equal("4.25", brickDoc.BrickHardnessField.Value);
+            Assert.Equal(2, brickDoc.Statistics.Count);
 
             vm.SaveAllCommand.Execute(null);
             var savedBrickToml = File.ReadAllText(brickPath);
             Assert.Contains("# preserve comment", savedBrickToml, StringComparison.Ordinal);
-            Assert.Contains("Hardness = 4.25", savedBrickToml, StringComparison.Ordinal);
+            Assert.Contains("[Bricks.Statistics]", savedBrickToml, StringComparison.Ordinal);
+            Assert.Contains("\"wb:hardness\" = 4.25", savedBrickToml, StringComparison.Ordinal);
+            Assert.Contains("\"test:conductivity\" = 0.85", savedBrickToml, StringComparison.Ordinal);
+            Assert.DoesNotContain("test:blast", savedBrickToml, StringComparison.Ordinal);
 
             //  Item statistics load, edit, add custom stat, remove stat, undo/redo, and save losslessly.
             Assert.True(vm.SelectAssetById("test:laser"));
             var itemDoc = vm.SelectedAsset!;
-            Assert.Equal(2, itemDoc.ItemStatistics.Count);
-            Assert.Contains(itemDoc.ItemStatistics, static s => s.Key == "wb:mining_speed" && s.Value == "1.75");
-            Assert.Contains(itemDoc.ItemStatistics, static s => s.Key == "test:heat" && s.Value == "0.5");
+            Assert.Equal(2, itemDoc.Statistics.Count);
+            Assert.Contains(itemDoc.Statistics, static s => s.Key == "wb:mining_speed" && s.Value == "1.75");
+            Assert.Contains(itemDoc.Statistics, static s => s.Key == "test:heat" && s.Value == "0.5");
 
-            var speedRow = itemDoc.ItemStatistics.First(static s => s.Key == "wb:mining_speed");
+            var speedRow = itemDoc.Statistics.First(static s => s.Key == "wb:mining_speed");
             speedRow.Value = "3.25";
-            itemDoc.AddItemStatisticCommand.Execute(null);
-            Assert.Equal(3, itemDoc.ItemStatistics.Count);
-            itemDoc.ItemStatistics[^1].Key = "test:crit_chance";
-            itemDoc.ItemStatistics[^1].Value = "0.15";
+            itemDoc.AddStatisticCommand.Execute(null);
+            Assert.Equal(3, itemDoc.Statistics.Count);
+            itemDoc.Statistics[^1].Key = "test:crit_chance";
+            itemDoc.Statistics[^1].Value = "0.15";
 
-            var heatRow = itemDoc.ItemStatistics.First(static s => s.Key == "test:heat");
-            itemDoc.RemoveItemStatisticCommand.Execute(heatRow);
-            Assert.Equal(2, itemDoc.ItemStatistics.Count);
+            var heatRow = itemDoc.Statistics.First(static s => s.Key == "test:heat");
+            itemDoc.RemoveStatisticCommand.Execute(heatRow);
+            Assert.Equal(2, itemDoc.Statistics.Count);
 
             vm.UndoCommand.Execute(null);
-            Assert.Equal(3, itemDoc.ItemStatistics.Count);
+            Assert.Equal(3, itemDoc.Statistics.Count);
             vm.RedoCommand.Execute(null);
-            Assert.Equal(2, itemDoc.ItemStatistics.Count);
+            Assert.Equal(2, itemDoc.Statistics.Count);
 
             vm.SaveAllCommand.Execute(null);
             var savedItemToml = File.ReadAllText(itemPath);

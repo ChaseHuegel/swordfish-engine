@@ -2,11 +2,8 @@ using System.Numerics;
 using Krill;
 using Swordfish.ECS;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
-using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data;
@@ -21,11 +18,11 @@ namespace WaywardBeyond.Client.Interactions;
 
 /// <summary>
 /// Client timed hold provider for Adventure Mode brick breaking with a mining tool. Resolves expected hold
-/// duration through the shared <see cref="IStatResolver"/> pipeline for <see cref="StatisticIds.MINING_SPEED"/>.
+/// duration through the shared <see cref="IStatResolver"/> pipeline for <see cref="StatisticIds.HARDNESS"/>
+/// and <see cref="StatisticIds.MINING_SPEED"/>.
 /// </summary>
 internal sealed class AdventureBreakTimedInteraction(
     IPhysics physics,
-    IBrickDatabase brickDatabase,
     IBrickRegistry brickRegistry,
     IStatResolver statResolver,
     ActiveCharacterSave? activeCharacterSave = null
@@ -94,15 +91,26 @@ internal sealed class AdventureBreakTimedInteraction(
 
     private float ResolveDuration(in ClientTimedInteractionContext context, ushort brickDataId)
     {
-        Result<Brick> brickResult = brickDatabase.Get(brickDataId);
-        float hardness = brickResult.Success ? Brick.ResolveHardness(brickResult.Value.Hardness) : Brick.DEFAULT_HARDNESS;
+        var hardnessQuery = new StatQuery(
+            StatisticIds.HARDNESS,
+            StatisticIds.DEFAULT_HARDNESS,
+            store: context.Store,
+            entity: context.PlayerEntity,
+            targetBrickDataId: brickDataId);
+
+        float hardness = statResolver.Evaluate(in hardnessQuery);
+        if (!float.IsFinite(hardness) || hardness < 0f)
+        {
+            hardness = StatisticIds.DEFAULT_HARDNESS;
+        }
+
         if (hardness == 0f)
         {
             return 0f;
         }
 
         Statistic[]? characterStatistics = activeCharacterSave?.ActiveSave?.Statistics;
-        var query = new StatQuery(
+        var speedQuery = new StatQuery(
             StatisticIds.MINING_SPEED,
             StatisticIds.DEFAULT_MINING_SPEED,
             store: context.Store,
@@ -112,7 +120,7 @@ internal sealed class AdventureBreakTimedInteraction(
             targetBrickDataId: brickDataId,
             characterStatistics: characterStatistics);
 
-        float speed = statResolver.Evaluate(in query);
+        float speed = statResolver.Evaluate(in speedQuery);
         if (!float.IsFinite(speed) || speed <= 0f)
         {
             speed = StatisticIds.DEFAULT_MINING_SPEED;

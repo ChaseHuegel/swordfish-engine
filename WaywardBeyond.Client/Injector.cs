@@ -338,6 +338,7 @@ public class Injector : IDryIocInjector
 
     private static void RegisterInput(IContainer container)
     {
+        RegisterStatModifierSource<BrickStatisticModifierSource>(container);
         RegisterStatModifierSource<ItemStatisticModifierSource>(container);
         RegisterStatModifierSource<EntityStatisticModifierSource>(container);
         RegisterStatModifierSource<SkillMiningSpeedModifierSource>(container);

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Krill;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Items;
 
@@ -16,6 +17,7 @@ public readonly struct StatQuery(
     int entity = -1,
     Item? heldItem = null,
     string? heldItemId = null,
+    Brick? targetBrick = null,
     ushort targetBrickDataId = 0,
     Statistic[]? characterStatistics = null,
     IReadOnlyDictionary<string, long>? skillXp = null
@@ -37,6 +39,9 @@ public readonly struct StatQuery(
 
     /// <summary>Optional held item id used when <see cref="HeldItem"/> is not supplied.</summary>
     public readonly string? HeldItemId = heldItemId;
+
+    /// <summary>Optional resolved target brick.</summary>
+    public readonly Brick? TargetBrick = targetBrick;
 
     /// <summary>Optional target brick data id for target-scoped modifiers, or 0 when absent.</summary>
     public readonly ushort TargetBrickDataId = targetBrickDataId;

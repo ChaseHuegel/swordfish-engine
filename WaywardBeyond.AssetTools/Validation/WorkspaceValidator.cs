@@ -665,40 +665,55 @@ public sealed class WorkspaceValidator
             ValidateModelDefinition(workspace, in asset, doc, "Items.WorldModel", "WorldModel", item.WorldModel.Value, ValidationSeverity.Informational, findings);
         }
 
-        if (item.Statistics != null)
-        {
-            foreach (KeyValuePair<string, float> entry in item.Statistics)
-            {
-                if (string.IsNullOrWhiteSpace(entry.Key))
-                {
-                    AddFieldFinding(
-                        findings,
-                        "STAT001",
-                        ValidationSeverity.Broken,
-                        in asset,
-                        field: null,
-                        "Statistics",
-                        "Item statistic key must not be empty.");
-                    continue;
-                }
+        ValidateStatistics(in asset, doc, "Items.Statistics", "item", item.Statistics, findings);
+    }
 
-                bool invalidMiningSpeed = string.Equals(entry.Key, StatisticIds.MINING_SPEED, StringComparison.Ordinal)
-                    && entry.Value <= 0f;
-                if (!float.IsFinite(entry.Value) || invalidMiningSpeed)
-                {
-                    TomlFieldSpan? statField = FindEntryField(doc, asset.Provenance.TableIndex, entry.Key, "Items.Statistics");
-                    string expected = invalidMiningSpeed
-                        ? "Expected a finite positive number."
-                        : "Expected a finite number.";
-                    AddFieldFinding(
-                        findings,
-                        "STAT001",
-                        ValidationSeverity.Broken,
-                        in asset,
-                        statField,
-                        $"Statistics.{entry.Key}",
-                        $"Invalid item statistic '{entry.Key}' value '{entry.Value}'. {expected}");
-                }
+    private static void ValidateStatistics(
+        in IndexedAsset asset,
+        TomlDocument? doc,
+        string subTablePath,
+        string ownerKind,
+        Dictionary<string, float>? statistics,
+        List<ValidationFinding> findings)
+    {
+        if (statistics == null)
+        {
+            return;
+        }
+
+        foreach (KeyValuePair<string, float> entry in statistics)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Key))
+            {
+                AddFieldFinding(
+                    findings,
+                    "STAT001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    field: null,
+                    "Statistics",
+                    $"Invalid {ownerKind} statistic: key must not be empty.");
+                continue;
+            }
+
+            bool invalidMiningSpeed = string.Equals(entry.Key, StatisticIds.MINING_SPEED, StringComparison.Ordinal)
+                && entry.Value <= 0f;
+            bool invalidHardness = string.Equals(entry.Key, StatisticIds.HARDNESS, StringComparison.Ordinal)
+                && entry.Value < 0f;
+            if (!float.IsFinite(entry.Value) || invalidMiningSpeed || invalidHardness)
+            {
+                TomlFieldSpan? statField = FindEntryField(doc, asset.Provenance.TableIndex, entry.Key, subTablePath);
+                string expected = invalidMiningSpeed
+                    ? "Expected a finite positive number."
+                    : (invalidHardness ? "Expected a finite non-negative number." : "Expected a finite number.");
+                AddFieldFinding(
+                    findings,
+                    "STAT001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    statField,
+                    $"Statistics.{entry.Key}",
+                    $"Invalid {ownerKind} statistic '{entry.Key}' value '{entry.Value}'. {expected}");
             }
         }
     }
@@ -736,18 +751,7 @@ public sealed class WorkspaceValidator
             ValidateMeshReference(workspace, in asset, doc, null, "Mesh", "Mesh", brick.Mesh, ValidationSeverity.Broken, findings);
         }
 
-        if (brick.Hardness.HasValue && (!float.IsFinite(brick.Hardness.Value) || brick.Hardness.Value < 0f))
-        {
-            TomlFieldSpan? hardnessField = FindEntryField(doc, asset.Provenance.TableIndex, "Hardness");
-            AddFieldFinding(
-                findings,
-                "BRICK001",
-                ValidationSeverity.Broken,
-                in asset,
-                hardnessField,
-                "Hardness",
-                $"Invalid brick Hardness '{brick.Hardness.Value}'. Expected a finite non-negative number.");
-        }
+        ValidateStatistics(in asset, doc, "Bricks.Statistics", "brick", brick.Statistics, findings);
 
         if (!string.IsNullOrWhiteSpace(brick.Color) && !IsStrictSixDigitHexRgb(brick.Color))
         {
