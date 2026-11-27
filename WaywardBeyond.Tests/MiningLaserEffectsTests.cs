@@ -634,6 +634,49 @@ public sealed class MiningLaserEffectsTests
     }
 
     [Fact]
+    public void MiningLaserEffectSystemWrapsPulseTimeAtTheSharedInterval()
+    {
+        EffectSystemFixture fixture = CreateEffectSystemFixture();
+        using MiningLaserEffectSystem system = fixture.System;
+
+        int localPlayer = fixture.Store.Alloc();
+        fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
+        fixture.Store.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
+        var inventory = new InventoryComponent(1);
+        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+        fixture.Store.AddOrUpdate(localPlayer, inventory);
+
+        GameState previous = WaywardBeyondGameState.GameState.Get();
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            fixture.Physics.NextHit = new RaycastResult(true, default(Entity), new Vector3(0f, 0f, -5f), Vector3.UnitY);
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            system.Tick(0.016f, fixture.Store);
+
+            var delta = (float)(MathS.TIME_WRAP_SECONDS + 1d);
+            system.Tick(delta, fixture.Store);
+
+            double expectedTime = MathS.Repeat((double)(0.016f + delta), MathS.TIME_WRAP_SECONDS);
+            float expectedPulse = 1f + 0.14f * MathF.Sin((float)expectedTime * 48f);
+
+            TransformComponent beamTransform = default;
+            fixture.Store.Query<MeshRendererComponent, TransformComponent>(
+                0f,
+                (float _, DataStore _, int _, in MeshRendererComponent _, in TransformComponent transform) => beamTransform = transform
+            );
+
+            Assert.NotEqual(1f, beamTransform.Scale.X);
+            Assert.Equal(expectedPulse, beamTransform.Scale.X, precision: 4);
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(previous);
+        }
+    }
+
+    [Fact]
     public void MiningLaserEffectSystemIgnoresNonFiniteTransformsAndReleasesExistingBeam()
     {
         EffectSystemFixture fixture = CreateEffectSystemFixture();

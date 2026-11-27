@@ -83,7 +83,7 @@ internal sealed class MiningLaserEffectSystem(
 
         if (float.IsFinite(delta) && delta > 0f)
         {
-            _time += delta;
+            _time = (float)MathS.Repeat(_time + delta, MathS.TIME_WRAP_SECONDS);
         }
 
         _seenOwners.Clear();
