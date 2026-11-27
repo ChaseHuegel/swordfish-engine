@@ -77,4 +77,25 @@ public class LevelGeneratorConfigTests
         //  Every candidate intersects: the generator must give up instead of spinning the server thread.
         Assert.Throws<InvalidOperationException>(() => new LevelGenerator(1, registry, config).Generate());
     }
+
+    [Fact]
+    public void NegativeStarterWreckDistancesAndClearancesAreRejected()
+    {
+        var negativeMin = new LevelGeneratorConfig();
+        negativeMin.StarterWreck.SpawnDistanceMin.Set(-1f);
+        Assert.Throws<InvalidOperationException>(negativeMin.Validate);
+
+        var invertedRange = new LevelGeneratorConfig();
+        invertedRange.StarterWreck.SpawnDistanceMin.Set(25f);
+        invertedRange.StarterWreck.SpawnDistanceMax.Set(10f);
+        Assert.Throws<InvalidOperationException>(invertedRange.Validate);
+
+        var negativeSpawnClearance = new LevelGeneratorConfig();
+        negativeSpawnClearance.StarterWreck.SpawnClearanceRadius.Set(-0.5f);
+        Assert.Throws<InvalidOperationException>(negativeSpawnClearance.Validate);
+
+        var negativeAsteroidPadding = new LevelGeneratorConfig();
+        negativeAsteroidPadding.StarterWreck.AsteroidClearancePadding.Set(-1f);
+        Assert.Throws<InvalidOperationException>(negativeAsteroidPadding.Validate);
+    }
 }

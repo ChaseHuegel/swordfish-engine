@@ -20,7 +20,7 @@ and world split, the persistence schema, and the CLI surface.
 | `Swordfish.Editor/` | Visual editor module (inspector, hierarchy, file browser) | — | — |
 | `WaywardBeyond.Client/` | Game client module | `net9.0` | — |
 | `WaywardBeyond.Server/` | Game server module | `net9.0` | — |
-| `WaywardBeyond.Data/` | Shared data models, nsd schemas, sqlite storage, localized tag database | `net9.0` | — |
+| `WaywardBeyond.Data/` | Shared data models, nsd schemas, sqlite storage, localized tag and bundled blueprint databases | `net9.0` | — |
 | `WaywardBeyond.Config/` | Shared config types | — | — |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader | `net9.0` | — |
 | `WaywardBeyond.Client.Launcher/` | Game client launcher app | — | — |

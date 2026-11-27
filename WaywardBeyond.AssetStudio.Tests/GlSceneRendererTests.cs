@@ -379,6 +379,68 @@ public sealed class GlSceneRendererTests(ITestOutputHelper output)
         Assert.Equal(0, magentaPixels);
     }
 
+    /// <summary>Decodes real repo builtin/wrecked_lifeboat.wbp via VoxelCodec + StudioPreviewPaintDatabase and renders under software OpenGL.</summary>
+    [Fact]
+    public void SceneRenderer_DecodesAndRendersRealWreckedLifeboatBlueprintWithBrickAndPaintPalette()
+    {
+        string repoRoot = FindRepoRoot();
+        var loader = new ToolsWorkspace.WorkspaceLoader();
+        Result<ToolsWorkspace.WorkspaceIndex> wsResult = loader.LoadRepo(repoRoot);
+        Assert.True(wsResult.Success, wsResult.Message);
+        ToolsWorkspace.WorkspaceIndex workspace = wsResult.Value;
+
+        var assetRoots = workspace.Roots
+            .Where(static r => r.IsEnabled && Directory.Exists(r.AssetsDirectory))
+            .Select(static r => r.AssetsDirectory)
+            .ToList();
+
+        Result<AlbedoTextureArrayData> albedoResult = PbrAlbedoArrayLoader.LoadFromAssetRoots(assetRoots);
+        Assert.True(albedoResult.Success, albedoResult.Message);
+        AlbedoTextureArrayData albedo = albedoResult.Value;
+
+        StudioPreviewBrickDatabase brickDb = StudioPreviewBrickDatabase.FromWorkspace(workspace);
+        StudioPreviewPaintDatabase paintDb = StudioPreviewPaintDatabase.FromWorkspace(workspace);
+        var meshes = new ObjPreviewMeshDatabase(Path.Combine(repoRoot, "WaywardBeyond.Client", "assets", "meshes"));
+        var regionBuilder = new RegionMeshBuilder(brickDb, albedo, meshes, paintDb);
+
+        string lifeboatPath = Path.Combine(repoRoot, "WaywardBeyond.Server", "assets", "blueprints", "builtin", "wrecked_lifeboat.wbp");
+        Assert.True(File.Exists(lifeboatPath), $"Missing wrecked_lifeboat.wbp at '{lifeboatPath}'.");
+
+        BlueprintData bpData = BlueprintData.Deserialize(File.ReadAllBytes(lifeboatPath));
+        VoxelRegionData encoded = bpData.ToRegion();
+        VoxelRegionData decoded = VoxelCodec.Decode(in encoded, brickDb, paintDb);
+        Result<VoxelMesh> meshResult = regionBuilder.Build(in decoded);
+        Assert.True(meshResult.Success, meshResult.Message);
+        Assert.True(meshResult.Value.Vertices.Length > 0);
+        Assert.True(meshResult.Value.Triangles.Length > 0);
+
+        using var glContext = HeadlessEglContext.Create();
+        using var renderer = new SceneRenderer();
+        Assert.True(renderer.Initialize(glContext.GetProcAddress, isOpenGlEs: false).Success);
+        Assert.True(renderer.UploadAlbedoArray(albedo).Success);
+
+        PreviewSceneMesh[] scene =
+        [
+            new PreviewSceneMesh(meshResult.Value, Matrix4x4.Identity, BrickAlpha.Masked, 0.5f, doubleSided: false),
+        ];
+        var camera = new PreviewCamera();
+        camera.ApplyPreset(PreviewCameraPreset.Blueprint);
+        (Vector3 min, Vector3 max) = PreviewSceneMesh.ComputeBounds(scene);
+        camera.FrameBounds(in min, in max, paddingFactor: 1.15f);
+
+        Assert.True(renderer.SetSceneMeshes(scene).Success);
+        Result<byte[]> frame1 = renderer.RenderToRgba(RENDER_SIZE, RENDER_SIZE, camera, _clearColor);
+        Result<byte[]> frame2 = renderer.RenderToRgba(RENDER_SIZE, RENDER_SIZE, camera, _clearColor);
+        Assert.True(frame1.Success, frame1.Message);
+        Assert.True(frame2.Success, frame2.Message);
+        Assert.Equal(HashBytes(frame1.Value), HashBytes(frame2.Value));
+
+        SavePreviewPng("gl-09b-blueprint-wrecked-lifeboat.png", RENDER_SIZE, RENDER_SIZE, frame1.Value);
+        AssertRenderedSurface(frame1.Value, minCoveredPixels: 12_000, minDistinctColors: 12);
+        (int magentaPixels, _) = CountMagentaAndBlackCheckerPixels(frame1.Value);
+        Assert.Equal(0, magentaPixels);
+    }
+
     /// <summary>Renders ViewModel first-person scene and WorldModel floor+body reference scene with 3D gizmos under software OpenGL.</summary>
     [Fact]
     public void SceneRenderer_RendersViewModelAndWorldModelEditorScenesWithGizmosAndReferences()

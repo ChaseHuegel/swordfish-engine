@@ -23,7 +23,6 @@ using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Saves;
-using WaywardBeyond.Client.Serialization;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Data.Webhooks;
 using WaywardBeyond.Client.Shortcuts;
@@ -375,7 +374,6 @@ public class Injector : IDryIocInjector
         container.RegisterTomlParser<ItemDefinitions>();
 
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
-        container.RegisterMany<BlueprintDataParser>();
     }
 
     private static void RegisterEntitySystems(IContainer container)

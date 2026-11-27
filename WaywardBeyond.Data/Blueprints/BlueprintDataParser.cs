@@ -1,11 +1,9 @@
 using Swordfish.Library.IO;
-using WaywardBeyond.Data;
-using WaywardBeyond.Data.Blueprints;
 
-namespace WaywardBeyond.Client.Serialization;
+namespace WaywardBeyond.Data.Blueprints;
 
 /// <summary>Parses binary <c>.wbp</c> blueprint files into raw <see cref="BlueprintData"/>.</summary>
-internal sealed class BlueprintDataParser : IFileParser<BlueprintData>
+public sealed class BlueprintDataParser : IFileParser<BlueprintData>
 {
     /// <inheritdoc/>
     public string[] SupportedExtensions { get; } =

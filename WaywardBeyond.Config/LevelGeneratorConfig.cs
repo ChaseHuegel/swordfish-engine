@@ -25,6 +25,9 @@ public sealed class LevelGeneratorConfig : Config<LevelGeneratorConfig>
     /// <summary>Asteroid generator configuration.</summary>
     public AsteroidConfig Asteroid { get; private set; } = new();
 
+    /// <summary>Adventure starter wreck configuration.</summary>
+    public StarterWreckConfig StarterWreck { get; private set; } = new();
+
     /// <summary>Throws when the generation tuning cannot produce a level.</summary>
     public void Validate()
     {
@@ -55,5 +58,6 @@ public sealed class LevelGeneratorConfig : Config<LevelGeneratorConfig>
         }
 
         Asteroid.Validate();
+        StarterWreck.Validate();
     }
 }

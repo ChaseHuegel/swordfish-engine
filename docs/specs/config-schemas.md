@@ -149,7 +149,9 @@ Gameplay tunables shared by the client and the server, registered via
 Server-side level generation tunables, registered via
 `RegisterConfig<LevelGeneratorConfig>` (`WaywardBeyond.Server/ServerComposition.cs`).
 Schema: `WaywardBeyond.Config/LevelGeneratorConfig.cs`. The `Asteroid` sub-table
-maps `AsteroidConfig` (`WaywardBeyond.Config/AsteroidConfig.cs`), registered by a
+maps `AsteroidConfig` (`WaywardBeyond.Config/AsteroidConfig.cs`) and the
+`StarterWreck` sub-table maps `StarterWreckConfig`
+(`WaywardBeyond.Config/StarterWreckConfig.cs`), each registered by a
 `RegisterDelegate` from the config, like the `NetworkingConfig` sub-configs.
 
 Generation is deterministic for a seed plus the values present when a level is
@@ -158,7 +160,8 @@ created; changing tuning after creation does not rewrite existing levels.
 `LevelGeneratorConfig.Validate` runs at startup and throws on tuning that cannot
 produce a level: a count or radius below 1, an inverted radius range, a
 non-positive world span, a `RadiusMinDivisor` below 1, non-positive noise
-frequency or amplitude, or an empty material list. `AsteroidMaxRadius` is
+frequency or amplitude, an empty material list, negative starter wreck distances
+or clearances, or an inverted starter wreck distance range. `AsteroidMaxRadius` is
 inclusive. A material that is not a known brick fails level creation instead of
 emitting air, and placement stops after 100 candidates per asteroid rather than
 spinning.
@@ -178,6 +181,11 @@ spinning.
 | `Asteroid.NoiseOffsetRange` | int | `1000` | range of the per-world noise offset |
 | `Asteroid.RadiusMinDivisor` | int | `5` | divides an asteroid's width to bound its random radius |
 | `Asteroid.Materials` | string[] | `["wb:rock", "wb:ice"]` | brick names a generated asteroid may be built from |
+| `StarterWreck.BlueprintId` | string | `"builtin/wrecked_lifeboat"` | bundled blueprint ID spawned near `LevelSpawn` in Adventure levels (empty disables) |
+| `StarterWreck.SpawnDistanceMin` | float | `14.0` | minimum distance in meters from `LevelSpawn` to the starter wreck center |
+| `StarterWreck.SpawnDistanceMax` | float | `20.0` | maximum distance in meters from `LevelSpawn` to the starter wreck center |
+| `StarterWreck.SpawnClearanceRadius` | float | `12.0` | minimum asteroid clearance radius in meters around `LevelSpawn` in Adventure levels |
+| `StarterWreck.AsteroidClearancePadding` | float | `12.0` | extra asteroid clearance in meters added beyond the starter wreck bounding radius |
 
 ## `physics.toml` (per app)
 
