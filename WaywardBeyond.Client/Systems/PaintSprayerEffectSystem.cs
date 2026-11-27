@@ -55,8 +55,24 @@ internal sealed class PaintSprayerEffectSystem(
 
         _seenOwners.Clear();
 
-        LocalSprayerAction action = new() { Owner = this };
-        store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalSprayerAction>(delta, ref action);
+        if (!_interactionState.IsInteractionBlocked())
+        {
+            bool primaryHeld = _inputService.IsMouseHeld(MouseButton.Left);
+            bool secondaryHeld = _inputService.IsMouseHeld(MouseButton.Right);
+            if (primaryHeld || secondaryHeld)
+            {
+                bool hasViewModelChild = ViewModelGeometry.TryFindActiveChild(store, out ChildComponent viewModelChild);
+
+                LocalSprayerAction action = new()
+                {
+                    Owner = this,
+                    PrimaryHeld = primaryHeld,
+                    HasViewModelChild = hasViewModelChild,
+                    ViewModelChild = viewModelChild,
+                };
+                store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalSprayerAction>(delta, ref action);
+            }
+        }
 
         ReleaseStaleSprayers(store);
     }
@@ -65,20 +81,11 @@ internal sealed class PaintSprayerEffectSystem(
         DataStore store,
         int entity,
         in TransformComponent transform,
-        in InventoryComponent inventory
+        in InventoryComponent inventory,
+        bool primaryHeld,
+        bool hasViewModelChild,
+        in ChildComponent viewModelChild
     ) {
-        if (_interactionState.IsInteractionBlocked())
-        {
-            return;
-        }
-
-        bool primaryHeld = _inputService.IsMouseHeld(MouseButton.Left);
-        bool secondaryHeld = _inputService.IsMouseHeld(MouseButton.Right);
-        if (!primaryHeld && !secondaryHeld)
-        {
-            return;
-        }
-
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, entity, inventory);
         if (!mainHandResult.Success || mainHandResult.Value.Item.Tool?.Type != ToolType.Sprayer)
         {
@@ -112,13 +119,16 @@ internal sealed class PaintSprayerEffectSystem(
             out _
         );
 
-        Vector3 nozzle = PaintSprayerGeometry.ComputeFirstPersonNozzle(in transform, mainHandResult.Value.Item.ViewModel);
+        Uuid owner = store.GetUuid(entity);
+        Vector3 nozzle = hasViewModelChild && viewModelChild.Parent == owner
+            ? PaintSprayerGeometry.ComputeFirstPersonNozzle(in transform, in viewModelChild)
+            : PaintSprayerGeometry.ComputeFirstPersonNozzle(in transform, mainHandResult.Value.Item.ViewModel);
         Vector3 start = ToolAimGeometry.ComputeSafeStart(in transform, nozzle, target);
         Vector3 sprayDir = ToolAimGeometry.ComputeAimDirection(in transform, start, target);
 
         AddOrUpdateSprayer(
             store,
-            store.GetUuid(entity),
+            owner,
             start,
             sprayDir,
             target,
@@ -288,10 +298,13 @@ internal sealed class PaintSprayerEffectSystem(
     private struct LocalSprayerAction : IForEach<PlayerComponent, TransformComponent, InventoryComponent>
     {
         public PaintSprayerEffectSystem Owner;
+        public bool PrimaryHeld;
+        public bool HasViewModelChild;
+        public ChildComponent ViewModelChild;
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in TransformComponent transform, in InventoryComponent inventory)
         {
-            Owner.UpdateLocalPlayer(store, entity, in transform, in inventory);
+            Owner.UpdateLocalPlayer(store, entity, in transform, in inventory, PrimaryHeld, HasViewModelChild, in ViewModelChild);
         }
     }
 }

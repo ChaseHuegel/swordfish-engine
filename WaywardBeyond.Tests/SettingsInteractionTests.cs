@@ -176,6 +176,31 @@ public class SettingsInteractionTests
         Assert.Equal(0.05f, harness.VolumeSettings.Background.Get(), precision: 3);
     }
 
+    [Fact]
+    public void ApplyingFirstPersonSwayUpdatesGameplayConfig()
+    {
+        var harness = new Harness();
+        Assert.True(harness.GameplayConfig.FirstPersonSway.Get());
+
+        harness.Click(harness.Find("Settings.FirstPersonSway.0"));
+        harness.Frame();
+
+        //  Changes remain in the draft until applied.
+        Assert.True(harness.GameplayConfig.FirstPersonSway.Get());
+
+        harness.Click(harness.Find("Settings.Apply"));
+        harness.Frame();
+
+        Assert.False(harness.GameplayConfig.FirstPersonSway.Get());
+
+        harness.Click(harness.Find("Settings.FirstPersonSway.1"));
+        harness.Frame();
+        harness.Click(harness.Find("Settings.Apply"));
+        harness.Frame();
+
+        Assert.True(harness.GameplayConfig.FirstPersonSway.Get());
+    }
+
     private static void AssertCategorySwitchResetsScroll(int width, int height, string categoryId)
     {
         var harness = new Harness(width, height);
@@ -202,6 +227,7 @@ public class SettingsInteractionTests
         public FakeWindowContext WindowContext { get; } = new();
         public WindowSettings WindowSettings { get; } = new();
         public VolumeSettings VolumeSettings { get; } = new();
+        public GameplayConfig GameplayConfig { get; } = new();
 
         public Harness(int width = 1920, int height = 1080)
         {
@@ -216,7 +242,7 @@ public class SettingsInteractionTests
                 renderSettings: new RenderSettings(),
                 volumeSettings: VolumeSettings,
                 playbackDeviceService: PlaybackDeviceService,
-                gameplayConfig: new GameplayConfig(),
+                gameplayConfig: GameplayConfig,
                 uiSettings: new UISettings(),
                 soundEffectService: null!,
                 windowContext: WindowContext,

@@ -10,6 +10,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Components;
@@ -29,6 +30,7 @@ internal sealed class PlayerViewModelSystem(
     in VoxelMaterials voxelMaterials,
     in InteractionState interactionState,
     in IInputService inputService,
+    GameplayConfig? gameplayConfig = null,
     IBundledBlueprintDatabase? bundledBlueprints = null,
     IBrickRegistry? brickRegistry = null,
     RegionMeshBuilder? regionMeshBuilder = null,
@@ -73,16 +75,19 @@ internal sealed class PlayerViewModelSystem(
     private readonly VoxelMaterials _voxelMaterials = voxelMaterials;
     private readonly InteractionState _interactionState = interactionState;
     private readonly IInputService _inputService = inputService;
+    private readonly GameplayConfig? _gameplayConfig = gameplayConfig;
     private readonly IBundledBlueprintDatabase? _bundledBlueprints = bundledBlueprints;
     private readonly IBrickRegistry? _brickRegistry = brickRegistry;
     private readonly RegionMeshBuilder? _regionMeshBuilder = regionMeshBuilder;
     private readonly IPaintRegistry? _paintRegistry = paintRegistry;
 
     private Entity? _viewModelEntity;
+    private Uuid _viewModelUuid;
     private ViewModelKey? _currentKey;
     private ChildComponent _restingChild;
     private double _animationTime;
     private bool _isAnimating;
+    private ViewModelReactiveMotion _motion;
 
     /// <inheritdoc/>
     public void Tick(float delta, DataStore store)
@@ -97,6 +102,28 @@ internal sealed class PlayerViewModelSystem(
 
         ForEachAction action = new() { Owner = this };
         store.Query<PlayerComponent, InventoryComponent, ForEachAction>(delta, ref action);
+
+        if (!action.VisitedPlayer)
+        {
+            ResetPoseState(store);
+        }
+    }
+
+    private void EnsureViewModelEntity(DataStore store)
+    {
+        if (_viewModelEntity.HasValue && store.GetUuid(_viewModelEntity.Value.Ptr) == _viewModelUuid)
+        {
+            return;
+        }
+
+        int viewModelPtr = store.Alloc();
+        _viewModelEntity = new Entity(viewModelPtr, store);
+        _viewModelUuid = store.GetUuid(viewModelPtr);
+        _viewModelEntity.Value.AddOrUpdate(new IdentifierComponent("PlayerViewModel"));
+        _viewModelEntity.Value.AddOrUpdate(new ViewModelComponent());
+        _viewModelEntity.Value.AddOrUpdate(new TransformComponent());
+        _currentKey = null;
+        _restingChild = default;
     }
 
     private BrickShape ResolveShape(Item item)
@@ -216,96 +243,111 @@ internal sealed class PlayerViewModelSystem(
         }
     }
 
-    private void UpdateToolAnimation(float delta, Item item)
+    private bool IsReactiveSwayEnabled() =>
+        _gameplayConfig == null || _gameplayConfig.FirstPersonSway.Get();
+
+    private void UpdateComposedPose(float delta, DataStore store, Item item)
     {
-        if (!TryGetActiveAnimation(item, out ViewModelAnimationProfile profile))
-        {
-            ResetAnimation();
-            return;
-        }
-
-        if (!_viewModelEntity.HasValue || !float.IsFinite(delta) || delta <= 0f)
+        if (!_viewModelEntity.HasValue)
         {
             return;
         }
 
-        _animationTime = MathS.Repeat(_animationTime + delta, MathS.TIME_WRAP_SECONDS);
-        ChildComponent animated = profile.Evaluate(in _restingChild, (float)_animationTime);
-        _viewModelEntity.Value.AddOrUpdate(animated);
-        _isAnimating = true;
+        ChildComponent pose = _motion.ApplyTo(in _restingChild);
+
+        if (TryGetActiveAnimation(item, out ViewModelAnimationProfile profile))
+        {
+            if (float.IsFinite(delta) && delta > 0f)
+            {
+                _animationTime = MathS.Repeat(_animationTime + delta, MathS.TIME_WRAP_SECONDS);
+                pose = profile.Evaluate(in pose, (float)_animationTime);
+                _isAnimating = true;
+            }
+            else if (_isAnimating)
+            {
+                pose = profile.Evaluate(in pose, (float)_animationTime);
+            }
+        }
+        else
+        {
+            _animationTime = 0d;
+            _isAnimating = false;
+        }
+
+        WriteChildIfChanged(store, in pose);
     }
 
-    private void ResetAnimation()
+    private void WriteChildIfChanged(DataStore store, in ChildComponent desired)
+    {
+        int viewModelPtr = _viewModelEntity!.Value.Ptr;
+        if (store.TryGet(viewModelPtr, out ChildComponent existing)
+            && existing.Parent == desired.Parent
+            && existing.LocalPosition == desired.LocalPosition
+            && existing.LocalOrientation == desired.LocalOrientation
+            && existing.LocalScale == desired.LocalScale)
+        {
+            return;
+        }
+
+        _viewModelEntity.Value.AddOrUpdate(desired);
+    }
+
+    private void ResetPoseState(DataStore store)
     {
         _animationTime = 0d;
-        if (!_isAnimating)
-        {
-            return;
-        }
-
         _isAnimating = false;
-        if (_viewModelEntity.HasValue)
-        {
-            _viewModelEntity.Value.AddOrUpdate(_restingChild);
-        }
-    }
+        _motion.Reset();
 
-    private static ChildComponent CreateRestingChild(in Uuid parent, in ModelDefinition viewModel)
-    {
-        return new ChildComponent(in parent)
+        if (_viewModelEntity.HasValue
+            && store.GetUuid(_viewModelEntity.Value.Ptr) == _viewModelUuid
+            && _restingChild.Parent != Uuid.Null)
         {
-            LocalPosition = new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z),
-            LocalOrientation = Quaternion.CreateFromYawPitchRoll(
-                viewModel.Rotation.Y * MathS.DEGREES_TO_RADIANS,
-                viewModel.Rotation.X * MathS.DEGREES_TO_RADIANS,
-                viewModel.Rotation.Z * MathS.DEGREES_TO_RADIANS
-            ),
-            LocalScale = new Vector3(viewModel.Scale.X, viewModel.Scale.Y, viewModel.Scale.Z),
-        };
+            WriteChildIfChanged(store, in _restingChild);
+        }
     }
 
     private void FreeViewModel(DataStore store)
     {
-        if (_viewModelEntity.HasValue)
+        if (_viewModelEntity.HasValue && store.GetUuid(_viewModelEntity.Value.Ptr) == _viewModelUuid)
         {
             store.Free(_viewModelEntity.Value.Ptr);
         }
 
         _viewModelEntity = null;
+        _viewModelUuid = Uuid.Null;
         _currentKey = null;
         _restingChild = default;
         _animationTime = 0d;
         _isAnimating = false;
+        _motion.Reset();
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
         _viewModelEntity = null;
+        _viewModelUuid = Uuid.Null;
         _currentKey = null;
         _restingChild = default;
         _animationTime = 0d;
         _isAnimating = false;
+        _motion.Reset();
     }
-    
+
     private struct ForEachAction : IForEach<PlayerComponent, InventoryComponent>
     {
         public PlayerViewModelSystem Owner;
+        public bool VisitedPlayer;
 
         public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in InventoryComponent inventory)
         {
-            if (!Owner._viewModelEntity.HasValue)
-            {
-                Owner._viewModelEntity = new Entity(store.Alloc(), store);
-                Owner._viewModelEntity.Value.AddOrUpdate(new IdentifierComponent("PlayerViewModel"));
-                Owner._viewModelEntity.Value.AddOrUpdate(new ViewModelComponent());
-                Owner._viewModelEntity.Value.AddOrUpdate(new TransformComponent());
-            }
+            VisitedPlayer = true;
+            Owner.EnsureViewModelEntity(store);
 
             Result<ItemSlot> mainHandResult = Owner._playerData.GetMainHand(store, entity, inventory);
             if (!mainHandResult.Success || !WaywardBeyond.IsPlaying())
             {
-                Owner.ResetAnimation();
+                Owner.ResetPoseState(store);
                 if (Owner._currentKey != null)
                 {
                     Owner._currentKey = null;
@@ -320,26 +362,51 @@ internal sealed class PlayerViewModelSystem(
             BrickShape shape = Owner.ResolveShape(item);
             Uuid playerUuid = store.GetUuid(entity);
             var key = new ViewModelKey(playerUuid, item.ID, viewModel, shape);
+            bool hasTransform = store.TryGet(entity, out TransformComponent playerTransform);
+            bool swayEnabled = Owner.IsReactiveSwayEnabled();
+            bool resetMotion = false;
 
             if (!key.Equals(Owner._currentKey))
             {
+                resetMotion = Owner._currentKey == null
+                    || Owner._currentKey.Value.PlayerUuid != playerUuid
+                    || !string.Equals(Owner._currentKey.Value.ItemID, item.ID, StringComparison.Ordinal)
+                    || !Owner._currentKey.Value.Model.Equals(viewModel);
+
                 Owner._currentKey = key;
-                Owner._restingChild = CreateRestingChild(in playerUuid, in viewModel);
+                Owner._restingChild = ViewModelGeometry.CreateRestingChild(in playerUuid, in viewModel);
                 Owner._isAnimating = false;
                 Owner._animationTime = 0d;
+                if (resetMotion)
+                {
+                    Owner._motion.Reset();
+                    if (hasTransform && swayEnabled)
+                    {
+                        Owner._motion.SeedOrientation(in playerTransform.Orientation);
+                    }
+                }
+
                 Owner.ClearRenderer();
 
                 ResolvedVisuals visuals = Owner.ResolveVisuals(item, viewModel, shape);
-
                 var meshRenderer = new MeshRenderer(visuals.Mesh, visuals.Material, visuals.RenderOptions);
-                Owner._viewModelEntity.Value.AddOrUpdate(new MeshRendererComponent(meshRenderer));
-                Owner._viewModelEntity.Value.AddOrUpdate(Owner._restingChild);
+                Owner._viewModelEntity!.Value.AddOrUpdate(new MeshRendererComponent(meshRenderer));
             }
 
-            Owner.UpdateToolAnimation(delta, item);
+            if (!swayEnabled)
+            {
+                Owner._motion.Reset();
+            }
+            else if (!resetMotion)
+            {
+                bool hasPhysics = store.TryGet(entity, out PhysicsComponent playerPhysics);
+                Owner._motion.Update(delta, hasTransform, in playerTransform, hasPhysics, in playerPhysics);
+            }
+
+            Owner.UpdateComposedPose(delta, store, item);
         }
     }
-    
+
     private readonly record struct ViewModelKey(Uuid PlayerUuid, string ItemID, ModelDefinition Model, BrickShape Shape);
 
     private readonly record struct ViewModelAnimationProfile(
@@ -364,13 +431,13 @@ internal sealed class PlayerViewModelSystem(
                 MathF.Sin(time * PositionFrequency.Y) * PositionAmplitude.Y,
                 MathF.Sin(time * PositionFrequency.Z) * PositionAmplitude.Z
             );
-            
+
             var rotationOffset = Quaternion.CreateFromYawPitchRoll(
                 yaw: MathF.Sin(time * YawFrequency) * YawAmplitude,
                 pitch: MathF.Sin(time * PitchFrequency) * PitchAmplitude,
                 roll: MathF.Sin(time * RollFrequency) * RollAmplitude
             );
-            
+
             return new ChildComponent(resting.Parent)
             {
                 LocalPosition = resting.LocalPosition + positionOffset,

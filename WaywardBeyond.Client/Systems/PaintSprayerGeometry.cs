@@ -1,7 +1,6 @@
 using System;
 using System.Numerics;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
 using WaywardBeyond.Items;
 using WaywardBeyond.Voxels;
 
@@ -21,22 +20,17 @@ internal static class PaintSprayerGeometry
         Scale = new ModelDefinition.Float3(1f, 1f, 1f),
     };
 
+    /// <summary>Computes the world-space nozzle tip origin for a first-person view-model child transform.</summary>
+    public static Vector3 ComputeFirstPersonNozzle(in TransformComponent playerTransform, in ChildComponent viewModelChild)
+    {
+        return ViewModelGeometry.ComputeWorldPoint(in playerTransform, in viewModelChild, in _nozzleLocal);
+    }
+
     /// <summary>Computes the world-space nozzle tip origin for the first-person paint sprayer view model.</summary>
     public static Vector3 ComputeFirstPersonNozzle(in TransformComponent playerTransform, in ModelDefinition? viewModel)
     {
         ModelDefinition model = viewModel ?? _defaultViewModel;
-        Quaternion localOrientation = Quaternion.CreateFromYawPitchRoll(
-            model.Rotation.Y * MathS.DEGREES_TO_RADIANS,
-            model.Rotation.X * MathS.DEGREES_TO_RADIANS,
-            model.Rotation.Z * MathS.DEGREES_TO_RADIANS
-        );
-        var localScale = new Vector3(model.Scale.X, model.Scale.Y, model.Scale.Z);
-        var localPos = new Vector3(model.Position.X, model.Position.Y, model.Position.Z);
-
-        Vector3 worldOrigin = playerTransform.Position + Vector3.Transform(localPos, playerTransform.Orientation);
-        Quaternion worldOrientation = playerTransform.Orientation * localOrientation;
-        Vector3 worldScale = playerTransform.Scale * localScale;
-        return worldOrigin + Vector3.Transform(_nozzleLocal * worldScale, worldOrientation);
+        return ViewModelGeometry.ComputeWorldPoint(in playerTransform, in model, in _nozzleLocal);
     }
 
     /// <summary>Resolves a world-space outward normal and cell-center surface offset for <paramref name="faceMask"/>.</summary>

@@ -584,6 +584,7 @@ internal sealed class SettingsPage<TIdentifier>(
         _gameplayConfig.AutosaveIntervalMs.Set(draft.AutosaveIntervalMinutes * 60000);
         _gameplayConfig.ControlHints.Set(draft.ControlHints);
         _gameplayConfig.Crosshair.Set(draft.Crosshair);
+        _gameplayConfig.FirstPersonSway.Set(draft.FirstPersonSway);
 
         _uiSettings.NameplateDistance.Set(draft.NameTagDistance);
 

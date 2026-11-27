@@ -197,6 +197,7 @@
 "ui.settings.option.frameLimit" = "Frame limit"
 "ui.settings.option.fov" = "Field of view"
 "ui.settings.option.viewDistance" = "View distance"
+"ui.settings.option.firstPersonSway" = "First person sway"
 "ui.settings.option.antiAliasing" = "Anti-aliasing"
 "ui.settings.option.shadowQuality" = "Shadow quality"
 "ui.settings.option.ambientOcclusion" = "Ambient occlusion"
