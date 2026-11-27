@@ -110,6 +110,7 @@ internal sealed class PlayerViewModelSystem(
         _viewModelEntity.Value.AddOrUpdate(new ViewModelComponent());
         _viewModelEntity.Value.AddOrUpdate(new TransformComponent());
         _currentKey = null;
+        _restingChild = default;
     }
 
     private BrickShape ResolveShape(Item item)

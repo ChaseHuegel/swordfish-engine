@@ -44,7 +44,7 @@ internal struct ViewModelReactiveMotion
     private const float MAX_LOOK_POS_Y = 0.020f;
 
     private const float MAX_STEP_ANGULAR_DELTA = 0.25f;
-    private const float REST_EPSILON_SQ = 1e-8f;
+    private const float REST_EPSILON_SQ = 1e-10f;
 
     private Vector3 _velocityPosOffset;
     private Vector3 _velocityRotOffset;
@@ -108,6 +108,7 @@ internal struct ViewModelReactiveMotion
 
         Vector3 velocityPosTarget = Vector3.Zero;
         Vector3 velocityRotTarget = Vector3.Zero;
+        bool hasAngularImpulse = false;
 
         //  Decay angular sway continuously every tick, then inject bounded displacement impulses
         //  when orientation changes so higher ECS tick rates do not alias against fixed physics steps.
@@ -118,54 +119,12 @@ internal struct ViewModelReactiveMotion
         {
             if (hasPhysics && IsFinite(in physics.Velocity))
             {
-                Vector3 localVelocity = Vector3.Transform(physics.Velocity, Quaternion.Conjugate(currentOrientation));
-                velocityPosTarget = new Vector3(
-                    Math.Clamp(-localVelocity.X * VELOCITY_POS_SCALE_X, -MAX_VELOCITY_POS_X, MAX_VELOCITY_POS_X),
-                    Math.Clamp(-localVelocity.Y * VELOCITY_POS_SCALE_Y, -MAX_VELOCITY_POS_Y, MAX_VELOCITY_POS_Y),
-                    Math.Clamp(-localVelocity.Z * VELOCITY_POS_SCALE_Z, -MAX_VELOCITY_POS_Z, MAX_VELOCITY_POS_Z)
-                );
-                velocityRotTarget = new Vector3(
-                    Math.Clamp(-localVelocity.Y * VELOCITY_PITCH_SCALE, -MAX_VELOCITY_PITCH, MAX_VELOCITY_PITCH),
-                    0f,
-                    Math.Clamp(-localVelocity.X * VELOCITY_ROLL_SCALE, -MAX_VELOCITY_ROLL, MAX_VELOCITY_ROLL)
-                );
+                ComputeVelocityTargets(in physics.Velocity, in currentOrientation, out velocityPosTarget, out velocityRotTarget);
             }
 
             if (_hasLastOrientation)
             {
-                Vector3 localAngularDelta = ComputeLocalAngularDelta(in _lastOrientation, in currentOrientation);
-                if (localAngularDelta != Vector3.Zero)
-                {
-                    Vector3 clampedDelta = ClampVector(
-                        localAngularDelta,
-                        MAX_STEP_ANGULAR_DELTA,
-                        MAX_STEP_ANGULAR_DELTA,
-                        MAX_STEP_ANGULAR_DELTA
-                    );
-                    float impulseScale = SMOOTH_RATE * Math.Clamp(MathF.Exp(-0.5f * SMOOTH_RATE * delta), 0f, 1f);
-                    Vector3 scaledDelta = clampedDelta * impulseScale;
-
-                    _lookRotOffset = ClampVector(
-                        _lookRotOffset + new Vector3(
-                            -scaledDelta.X * LOOK_PITCH_SCALE,
-                            -scaledDelta.Y * LOOK_YAW_SCALE,
-                            -scaledDelta.Z * LOOK_ROLL_SCALE
-                        ),
-                        MAX_LOOK_PITCH,
-                        MAX_LOOK_YAW,
-                        MAX_LOOK_ROLL
-                    );
-                    _lookPosOffset = ClampVector(
-                        _lookPosOffset + new Vector3(
-                            scaledDelta.Y * LOOK_POS_YAW_SCALE,
-                            -scaledDelta.X * LOOK_POS_PITCH_SCALE,
-                            0f
-                        ),
-                        MAX_LOOK_POS_X,
-                        MAX_LOOK_POS_Y,
-                        0f
-                    );
-                }
+                hasAngularImpulse = AccumulateLookImpulse(delta, in _lastOrientation, in currentOrientation);
             }
 
             _lastOrientation = currentOrientation;
@@ -189,12 +148,12 @@ internal struct ViewModelReactiveMotion
             _velocityRotOffset = Vector3.Zero;
         }
 
-        if (_lookPosOffset.LengthSquared() <= REST_EPSILON_SQ)
+        if (!hasAngularImpulse && _lookPosOffset.LengthSquared() <= REST_EPSILON_SQ)
         {
             _lookPosOffset = Vector3.Zero;
         }
 
-        if (_lookRotOffset.LengthSquared() <= REST_EPSILON_SQ)
+        if (!hasAngularImpulse && _lookRotOffset.LengthSquared() <= REST_EPSILON_SQ)
         {
             _lookRotOffset = Vector3.Zero;
         }
@@ -211,6 +170,65 @@ internal struct ViewModelReactiveMotion
             MAX_ROTATION_OFFSET_YAW,
             MAX_ROTATION_OFFSET_ROLL
         );
+    }
+
+    private static void ComputeVelocityTargets(
+        in Vector3 worldVelocity,
+        in Quaternion orientation,
+        out Vector3 posTarget,
+        out Vector3 rotTarget
+    ) {
+        Vector3 localVelocity = Vector3.Transform(worldVelocity, Quaternion.Conjugate(orientation));
+        posTarget = new Vector3(
+            Math.Clamp(-localVelocity.X * VELOCITY_POS_SCALE_X, -MAX_VELOCITY_POS_X, MAX_VELOCITY_POS_X),
+            Math.Clamp(-localVelocity.Y * VELOCITY_POS_SCALE_Y, -MAX_VELOCITY_POS_Y, MAX_VELOCITY_POS_Y),
+            Math.Clamp(-localVelocity.Z * VELOCITY_POS_SCALE_Z, -MAX_VELOCITY_POS_Z, MAX_VELOCITY_POS_Z)
+        );
+        rotTarget = new Vector3(
+            Math.Clamp(-localVelocity.Y * VELOCITY_PITCH_SCALE, -MAX_VELOCITY_PITCH, MAX_VELOCITY_PITCH),
+            0f,
+            Math.Clamp(-localVelocity.X * VELOCITY_ROLL_SCALE, -MAX_VELOCITY_ROLL, MAX_VELOCITY_ROLL)
+        );
+    }
+
+    private bool AccumulateLookImpulse(float delta, in Quaternion previousOrientation, in Quaternion currentOrientation)
+    {
+        Vector3 localAngularDelta = ComputeLocalAngularDelta(in previousOrientation, in currentOrientation);
+        if (localAngularDelta == Vector3.Zero)
+        {
+            return false;
+        }
+
+        Vector3 clampedDelta = ClampVector(
+            localAngularDelta,
+            MAX_STEP_ANGULAR_DELTA,
+            MAX_STEP_ANGULAR_DELTA,
+            MAX_STEP_ANGULAR_DELTA
+        );
+        float impulseScale = SMOOTH_RATE * Math.Clamp(MathF.Exp(-0.5f * SMOOTH_RATE * delta), 0f, 1f);
+        Vector3 scaledDelta = clampedDelta * impulseScale;
+
+        _lookRotOffset = ClampVector(
+            _lookRotOffset + new Vector3(
+                -scaledDelta.X * LOOK_PITCH_SCALE,
+                -scaledDelta.Y * LOOK_YAW_SCALE,
+                -scaledDelta.Z * LOOK_ROLL_SCALE
+            ),
+            MAX_LOOK_PITCH,
+            MAX_LOOK_YAW,
+            MAX_LOOK_ROLL
+        );
+        _lookPosOffset = ClampVector(
+            _lookPosOffset + new Vector3(
+                scaledDelta.Y * LOOK_POS_YAW_SCALE,
+                -scaledDelta.X * LOOK_POS_PITCH_SCALE,
+                0f
+            ),
+            MAX_LOOK_POS_X,
+            MAX_LOOK_POS_Y,
+            0f
+        );
+        return true;
     }
 
     /// <summary>Composes the current reactive motion offsets onto <paramref name="resting"/> in player-local space.</summary>
