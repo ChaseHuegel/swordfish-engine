@@ -48,6 +48,7 @@ internal sealed class ClientReconcileSystem(
     private readonly Dictionary<ulong, int> _latestTransformSnapshots = [];
 
     private bool _wasBelowPlaying = true;
+    private bool _hasAlignedToSnapshot;
 
     public void Tick(float delta, DataStore store)
     {
@@ -63,6 +64,7 @@ internal sealed class ClientReconcileSystem(
         _wasBelowPlaying = belowPlaying;
         if (belowPlaying)
         {
+            _hasAlignedToSnapshot = false;
             localPlayerReconciler.Reset();
             return;
         }
@@ -218,10 +220,11 @@ internal sealed class ClientReconcileSystem(
         //  server's ack before the trim removes them.
         localPlayerReconciler.ApplySnapshot(store, snapshot.LastProcessedInput);
 
-        TrimPendingInput(snapshot.LastProcessedInput, store);
+        TrimPendingInput(snapshot.LastProcessedInput, snapshot.TickNumber, rebaseClock: !_hasAlignedToSnapshot, store);
 
         //  Align live prediction with the server's sim tick after the authoritative state is applied.
         motionProcessor.Step?.AlignTo(snapshot.TickNumber);
+        _hasAlignedToSnapshot = true;
 
         snapshotAck.LastAppliedSnapshotTick = snapshot.TickNumber;
     }
@@ -463,20 +466,55 @@ internal sealed class ClientReconcileSystem(
         }
     }
 
-    private static void TrimPendingInput(uint ackTick, DataStore store)
+    private static void TrimPendingInput(uint ackTick, uint snapshotTick, bool rebaseClock, DataStore store)
     {
-        TrimPendingAction action = new() { AckTick = ackTick };
-        store.Query<PlayerComponent, PendingInputComponent, TrimPendingAction>(0f, ref action);
+        TrimPendingAction action = new()
+        {
+            AckTick = ackTick,
+            SnapshotTick = snapshotTick,
+            RebaseClock = rebaseClock,
+        };
+        store.QueryRef<PlayerComponent, PendingInputComponent, TrimPendingAction>(0f, ref action);
     }
 
-    private struct TrimPendingAction : IForEach<PlayerComponent, PendingInputComponent>
+    private struct TrimPendingAction : IForEachRef<PlayerComponent, PendingInputComponent>
     {
         public uint AckTick;
+        public uint SnapshotTick;
+        public bool RebaseClock;
 
         /// <inheritdoc/>
-        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in PendingInputComponent pending)
+        public void Execute(float delta, DataStore store, int entity, ref Ref<PlayerComponent> player, ref Ref<PendingInputComponent> pending)
         {
-            pending.Ring?.TrimAtOrBelow(AckTick);
+            StageRing<StagedInput>? ring = pending.Read.Ring;
+            if (ring == null)
+            {
+                return;
+            }
+
+            StagedInput? trimmed = ring.TrimAtOrBelow(AckTick);
+            if (RebaseClock)
+            {
+                for (var index = 0; index < ring.Count; index++)
+                {
+                    StagedInput entry = ring[index];
+                    if (entry.StagedAtSimTick < SnapshotTick)
+                    {
+                        ring[index] = new StagedInput(in entry.Input, SnapshotTick);
+                    }
+                }
+            }
+
+            if (trimmed != null)
+            {
+                StagedInput acked = trimmed.Value;
+                if (RebaseClock && acked.StagedAtSimTick < SnapshotTick)
+                {
+                    acked = new StagedInput(in acked.Input, SnapshotTick);
+                }
+
+                pending.Write.LastAcked = acked;
+            }
         }
     }
 }

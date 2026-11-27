@@ -124,7 +124,7 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
         //  sample at or below the tick is idle input, which resolves the same way on both sides.
         if (store.TryGet(entity, out PendingInputComponent pending) && pending.Ring != null)
         {
-            Result<InputComponent> staged = pending.Ring.GetCommand(simTick, _commandMaxAgeTicks);
+            Result<InputComponent> staged = pending.Ring.GetCommand(simTick, _commandMaxAgeTicks, in pending.LastAcked);
             if (staged.Success)
             {
                 command = staged.Value;

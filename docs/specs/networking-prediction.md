@@ -23,14 +23,21 @@ per-world sim state.
 
 ## Input pipeline
 
-- `ClientInputSystem` samples `IInputService` every tick, builds an
-  `InputComponent` (with a monotonic `SequenceNumber` and `ServerTickAtSample`
-  echoing the last applied snapshot tick), writes it to the local player, and
+- `ClientInputSystem` (`WaywardBeyond.Client/Systems/ClientInputSystem.cs:16`)
+  samples `IInputService` every tick, builds an `InputComponent` (with a
+  monotonic `SequenceNumber`, `ServerTickAtSample` echoing the last applied
+  snapshot tick, and `DampenersDisabled`), writes it to the local player, and
   stages it in the player's `PendingInputComponent` ring (128 entries, newest at
-  the end). It writes only when the movement, look totals, or held buttons differ
-  from the last sample it sent, plus a 1 s keepalive. Both sides keep resolving
-  the newest staged command, so an unchanged sample does not need a resend every
-  tick.
+  the end). It writes only when the movement, look totals, dampener state, or
+  held buttons differ from the last sample it sent (`:196-208`), plus a 1 s
+  keepalive. Both sides keep resolving the newest staged command, so an
+  unchanged sample does not need a resend every tick.
+- `ClientInputSystem` registers the rebindable
+  `Movement/Toggle inertial dampeners` shortcut (`Key.Z` default,
+  `WaywardBeyond.Client/Shortcuts/GameShortcuts.cs:19,83-94`) gated on
+  `WaywardBeyond.IsPlaying() && !_interactionState.IsInteractionBlocked()`
+  (`ClientInputSystem.cs:176-184`) and exposes `DampenersEnabled` (`:48-55`).
+  `ResetSession` restores dampeners to enabled on join (`:157-162`).
 - `ClientReplicationSystem` publishes dirty client-owned components upstream.
 - On the server, input is staged per sim tick; the shared step resolves the
   newest staged command at or before the current sim tick.
@@ -94,14 +101,25 @@ one-second client keepalive stays well inside the default bound, so a
 well-behaved idle client keeps its held command active between keepalives.
 
 The client ring is staged by `ClientInputSystem` and trimmed in place by
-`ClientReconcileSystem`. A player without a ring, or a ring with no sample at or
-below the sim tick, resolves no command. That is idle input and it resolves the
-same way on both sides: the step damps the body and applies no movement. There is
-no fallback to the live component, so a replay gap cannot move one side and not
-the other.
+`ClientReconcileSystem` (`WaywardBeyond.Client/Systems/ClientReconcileSystem.cs:469-519`).
+When trimming removes acknowledged entries, `ClientReconcileSystem` stores the
+newest dropped sample in `PendingInputComponent.LastAcked`
+(`WaywardBeyond.Client/Components/PendingInputComponent.cs:16`) and rebases
+initial pre-snapshot clock timestamps on the first snapshot alignment.
+`ClientPlayerMotionProcessor.ResolveCommand`
+(`WaywardBeyond.Client/Systems/ClientPlayerMotionProcessor.cs:117-137`) falls
+back to `PendingInputComponent.LastAcked` (subject to the same
+`CommandMaxAgeTicks` bound) only when `Ring` holds no sample at or below the
+current sim tick. There is no fallback to the live `InputComponent`, so a replay
+gap or stalled stream resolves identically on both sides.
 
-Damping runs every step, with or without a command. A stalled input stream slows
-the body to rest instead of letting it coast at its last velocity.
+`SimulationStep.Execute` (`WaywardBeyond.Gameplay/SimulationStep.cs:158-224`)
+always runs `DampAngular` (`:246-255`). It skips `DampLinear` (`:258-267`) only
+when a resolved command sets `DampenersDisabled` to `true`, letting the body
+coast while thrust and look continue to apply. A commandless step, a stale
+command past `CommandMaxAgeTicks`, and `RemoteBodyDampAction` (`:142-156`) run
+both `DampAngular` and `DampLinear`. A stalled input stream slows the body to
+rest instead of letting it coast at its last velocity.
 
 ## Prediction acks
 
@@ -149,13 +167,14 @@ incoming, correct local-player orientation) → render reads final `Transform`.
 
 ## Source of truth
 
-- `WaywardBeyond.Client/Systems/{ClientInputSystem,ClientJoinSystem,ClientReconcileSystem,ClientReplicationSystem}.cs`
+- `WaywardBeyond.Client/Systems/{ClientInputSystem,ClientJoinSystem,ClientReconcileSystem,ClientReplicationSystem,ClientPlayerMotionProcessor}.cs`
+- `WaywardBeyond.Client/Shortcuts/GameShortcuts.cs` — `TOGGLE_DAMPENERS` shortcut definition
 - `WaywardBeyond.Client/Player/LocalPlayerReconciler.cs` — local-player orientation and angular reconciliation
 - `WaywardBeyond.Gameplay/CharacterDefaults.cs` — `RECONCILE_SNAP_DISTANCE`, shared by both reconcilers
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` — seats the mirror and forgets its prior look history
 - `WaywardBeyond.Gameplay/SimulationStep.cs` — the shared simulation step
-- `WaywardBeyond.Client/Components/PendingInputComponent.cs`
+- `WaywardBeyond.Client/Components/PendingInputComponent.cs` — unacked ring plus `LastAcked` steady-command fallback
 - `WaywardBeyond.Gameplay/Networking/StageRing.cs`
 - `WaywardBeyond.Gameplay/Networking/StagedInput.cs` — input sample paired with its local staging sim tick
-- `WaywardBeyond.Gameplay/Networking/StageRingExtensions.cs` — newest-per-tick command and staleness bound
+- `WaywardBeyond.Gameplay/Networking/StageRingExtensions.cs` — newest-per-tick command, `LastAcked` fallback, trim, and staleness bound
 - `WaywardBeyond.Config/ProtocolConfig.cs` — `CommandMaxAgeTicks`

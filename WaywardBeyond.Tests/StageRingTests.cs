@@ -121,17 +121,44 @@ public class StageRingTests
     }
 
     [Fact]
-    public void TrimDropsAcknowledgedInputs()
+    public void TrimDropsAcknowledgedInputsAndReturnsNewestDroppedSample()
     {
         var ring = new StageRing<StagedInput>(8);
         ring.Stage(Input(1, 5), stagedAtSimTick: 5);
         ring.Stage(Input(2, 9), stagedAtSimTick: 9);
         ring.Stage(Input(3, 12), stagedAtSimTick: 12);
 
-        ring.TrimAtOrBelow(9);
+        StagedInput? trimmed = ring.TrimAtOrBelow(9);
 
+        Assert.NotNull(trimmed);
+        Assert.Equal(2u, trimmed.Value.Input.SequenceNumber);
         Assert.Equal(1, ring.Count);
         Assert.Equal(3u, ring.GetCommand(12, uint.MaxValue).Value.SequenceNumber);
+        Assert.Null(ring.TrimAtOrBelow(9));
+    }
+
+    [Fact]
+    public void GetCommandFallsBackToLastAckedWhenRingHasNoSampleAtOrBelowTick()
+    {
+        var ring = new StageRing<StagedInput>(8);
+        ring.Stage(Input(1, 5), stagedAtSimTick: 5);
+        StagedInput? lastAcked = ring.TrimAtOrBelow(5);
+
+        Result<InputComponent> steady = ring.GetCommand(10, maxAgeTicks: 10, in lastAcked);
+        Assert.True(steady.Success);
+        Assert.Equal(1u, steady.Value.SequenceNumber);
+
+        //  Once lastAcked exceeds maxAgeTicks, it resolves as idle input.
+        Assert.False(ring.GetCommand(16, maxAgeTicks: 10, in lastAcked).Success);
+
+        //  A future sample still allows fallback for earlier ticks during replay.
+        ring.Stage(Input(2, 12), stagedAtSimTick: 12);
+        Result<InputComponent> beforeFuture = ring.GetCommand(10, maxAgeTicks: 10, in lastAcked);
+        Assert.True(beforeFuture.Success);
+        Assert.Equal(1u, beforeFuture.Value.SequenceNumber);
+
+        //  A stale ring entry at or below simTick blocks falling back to lastAcked.
+        Assert.False(ring.GetCommand(25, maxAgeTicks: 10, in lastAcked).Success);
     }
 
     [Fact]

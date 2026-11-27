@@ -262,6 +262,7 @@
 "ui.settings.keybind.moveDown" = "Move down"
 "ui.settings.keybind.rollLeft" = "Roll left"
 "ui.settings.keybind.rollRight" = "Roll right"
+"ui.settings.keybind.toggleInertialDampeners" = "Toggle inertial dampeners"
 "ui.settings.keybind.primaryAction" = "Primary action"
 "ui.settings.keybind.secondaryAction" = "Secondary action"
 "ui.settings.keybind.pickBrick" = "Pick brick"

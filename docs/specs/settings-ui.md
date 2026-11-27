@@ -342,8 +342,8 @@ existing spacer layout.
   trips including saved `"Unbound"` entries, malformed override skipping,
   `SetOverrides`, and `ApplyOverrides`.
 - `WaywardBeyond.Tests/KeybindingSettingsInteractionTests.cs` covers category
-  sections, `Developer` last ordering, localized blueprint labels, single-input
-  capture, Esc cancel without triggering `Back / close`,
+  sections, `Developer` last ordering, localized blueprint and movement labels,
+  single-input capture, Esc cancel without triggering `Back / close`,
   mouse capture click suppression, modal inventory, chat, and equipped-item
   sub-scope isolation, global and fixed-binding conflicts, tool radial shared
   groups, fresh default conflict-free validation, saving unbound actions,

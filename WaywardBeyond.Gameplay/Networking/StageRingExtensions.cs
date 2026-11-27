@@ -15,9 +15,14 @@ public static class StageRingExtensions
 
     /// <summary>
     /// Returns the newest input staged at or before <paramref name="simTick"/> when it was staged no more
-    /// than <paramref name="maxAgeTicks"/> ago. A stale newest sample resolves as idle input instead.
+    /// than <paramref name="maxAgeTicks"/> ago, or <paramref name="lastAcked"/> when the ring has none at or before <paramref name="simTick"/>.
     /// </summary>
-    public static Result<InputComponent> GetCommand(this StageRing<StagedInput> ring, uint simTick, uint maxAgeTicks)
+    public static Result<InputComponent> GetCommand(
+        this StageRing<StagedInput> ring,
+        uint simTick,
+        uint maxAgeTicks,
+        in StagedInput? lastAcked = null
+    )
     {
         for (var index = ring.Count - 1; index >= 0; index--)
         {
@@ -27,27 +32,43 @@ public static class StageRingExtensions
                 continue;
             }
 
-            //  This is the newest sample at or below the tick. Age is measured from when it was
-            //  staged locally rather than ServerTickAtSample, so an idle world without recent
-            //  snapshots stays fresh and a hostile client cannot spoof the age check. If simTick
-            //  rewound below StagedAtSimTick (e.g. after AlignTo), treat the age as zero.
-            bool fresh = simTick <= candidate.StagedAtSimTick
-                || simTick - candidate.StagedAtSimTick <= maxAgeTicks;
-            return fresh
+            return IsFresh(in candidate, simTick, maxAgeTicks)
                 ? Result<InputComponent>.FromSuccess(candidate.Input)
                 : Result<InputComponent>.FromFailure((string?)null);
+        }
+
+        if (lastAcked != null)
+        {
+            StagedInput acked = lastAcked.Value;
+            if (acked.Input.ServerTickAtSample <= simTick && IsFresh(in acked, simTick, maxAgeTicks))
+            {
+                return Result<InputComponent>.FromSuccess(acked.Input);
+            }
         }
 
         return Result<InputComponent>.FromFailure((string?)null);
     }
 
-    /// <summary>Drops every input staged at or before <paramref name="simTick"/>.</summary>
-    public static void TrimAtOrBelow(this StageRing<StagedInput> ring, uint simTick)
+    /// <summary>Drops every input staged at or before <paramref name="simTick"/> and returns the newest dropped sample, if any.</summary>
+    public static StagedInput? TrimAtOrBelow(this StageRing<StagedInput> ring, uint simTick)
     {
+        StagedInput? newest = null;
         while (ring.Count > 0 && ring[0].Input.ServerTickAtSample <= simTick)
         {
+            newest = ring[0];
             ring.Advance(1);
         }
+
+        return newest;
+    }
+
+    private static bool IsFresh(in StagedInput candidate, uint simTick, uint maxAgeTicks)
+    {
+        //  Age is measured from when the sample was staged locally rather than ServerTickAtSample, so an
+        //  idle world without recent snapshots stays fresh and a hostile client cannot spoof the age check.
+        //  If simTick rewound below StagedAtSimTick (e.g. after AlignTo), treat the age as zero.
+        return simTick <= candidate.StagedAtSimTick
+            || simTick - candidate.StagedAtSimTick <= maxAgeTicks;
     }
 
     /// <summary>Stages one interaction edge, replacing a re-staged sequence in place.</summary>

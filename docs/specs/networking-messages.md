@@ -97,15 +97,18 @@ message InputComponent
     float LookRoll           = 5;
     uint  SequenceNumber     = 6;
     uint  ServerTickAtSample = 7;
+    bool  DampenersDisabled  = 8;   // false = inertial dampeners enabled (default)
     bool  PrimaryHeld        = 9;   // continuous held state
     bool  SecondaryHeld      = 10;  // continuous held state
     string? PaintId          = 11;  // active color swatch while primary spraying
 }
 ```
 
+`DampenersDisabled` defaults to `false` (inertial dampeners enabled). When set to `true`, the simulation step skips linear velocity damping while continuing angular velocity damping.
+
 Mouse sensitivity is a client-local setting, never networked. The wire carries
 resolved look, not config. `NetworkReplicationSystem.ApplyComponent`
-(`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:30,497-507`) clears
+(`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:30,678-696`) clears
 inbound `PaintId` values longer than `128` characters to `null` before staging.
 
 Look totals are relative to the current session. A join resets them on the

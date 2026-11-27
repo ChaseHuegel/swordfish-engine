@@ -12,6 +12,9 @@ public struct PendingInputComponent : IDataComponent
     /// <summary>The staged input samples, oldest first.</summary>
     public StageRing<StagedInput>? Ring;
 
+    /// <summary>The newest sample removed after server acknowledgment, kept for steady command prediction.</summary>
+    public StagedInput? LastAcked;
+
     /// <summary>Creates the ring for the local player.</summary>
     public static PendingInputComponent Create()
     {
