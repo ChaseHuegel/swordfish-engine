@@ -20,12 +20,14 @@ public sealed class NetworkRegistry
     /// <summary>
     /// Registers one networked component. Fails after <see cref="Freeze"/> or on a duplicate type or uuid.
     /// <paramref name="replicationFilter"/> limits replication to entities it accepts; null replicates for all.
+    /// <paramref name="recipientFilter"/> limits delivery to recipients it accepts; null delivers to all.
     /// </summary>
     public Result Register<T>(
         Uuid uuid,
         NetworkDirection direction,
         IPayloadCodec<T> codec,
-        Func<DataStore, int, bool>? replicationFilter = null
+        Func<DataStore, int, bool>? replicationFilter = null,
+        Func<DataStore, int, ReplicationRecipient, bool>? recipientFilter = null
     )
         where T : struct, IDataComponent
     {
@@ -51,7 +53,7 @@ public sealed class NetworkRegistry
                 return Result.FromFailure($"Cannot register {typeof(T).Name}: uuid {uuid} is already registered.");
             }
 
-            var info = new NetworkComponentInfo(typeof(T), uuid, direction, codec, replicationFilter);
+            var info = new NetworkComponentInfo(typeof(T), uuid, direction, codec, replicationFilter, recipientFilter);
             _byType[typeof(T)] = info;
             _byUuid[uuid] = info;
             return Result.FromSuccess();

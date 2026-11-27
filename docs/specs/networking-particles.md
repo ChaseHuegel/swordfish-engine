@@ -4,7 +4,7 @@ One subject: generic server-to-client replication of continuous particle emitter
 
 ## Replicated continuous emitters
 
-Continuous emitters replicate through `NetworkReplicationSystem` as `ServerOwned` components (`WaywardBeyond.Networking/NetworkingComposition.cs:43-44`).
+Continuous emitters replicate through `NetworkReplicationSystem` as `ServerOwned` components (`WaywardBeyond.Networking/NetworkingComposition.cs:45-46`).
 
 - **`ParticleEmitterComponent` (Uuid `19`):** Uses `ParticleEmitterCodec` (`WaywardBeyond.Networking/Codecs/ParticleEmitterCodec.cs:11-155`) to serialize `ParticleEmitterMessage`. The codec resolves `EffectId` from `EffectId` or fallback `Effect.ID`. It enforces a non-empty, non-whitespace string up to `MAX_EFFECT_ID_LENGTH` (`128`), a finite non-negative `RateScale`, and finite `Offset` and `LocalDirection` vectors. Unchanged wire payloads skip `DataStore.AddOrUpdate` on clients so dirty flags stay clean.
 - **`ParticleEmitterBindingComponent` (Uuid `20`):** Uses `NsdComponentCodec<ParticleEmitterBindingComponent>` (`WaywardBeyond.Data/Components/ParticleEmitterBindingComponent.cs:7-14`). `ParentEntity` attaches the emitter locally to a replicated parent entity. `ExcludeEntity` suppresses local emission on a matching local player entity while keeping observers unmuted.
@@ -33,7 +33,7 @@ Queued server bursts travel as one `ParticleBurstBatchMessage` per tick using se
 ## Source of truth
 
 - Wire schemas: `WaywardBeyond.Data/Nsd/{components,network}.nsd`, `WaywardBeyond.Data/Components/ParticleEmitterBindingComponent.cs`
-- Codec, registry, and RPC: `WaywardBeyond.Networking/Codecs/ParticleEmitterCodec.cs`, `WaywardBeyond.Networking/NetworkingComposition.cs:43-44`, `WaywardBeyond.Networking/Rpc/{GameRpc,IGameClientApi}.cs`
+- Codec, registry, and RPC: `WaywardBeyond.Networking/Codecs/ParticleEmitterCodec.cs`, `WaywardBeyond.Networking/NetworkingComposition.cs:45-46`, `WaywardBeyond.Networking/Rpc/{GameRpc,IGameClientApi}.cs`
 - Server service and flush: `WaywardBeyond.Server/Particles/{ServerParticleBurst,IServerParticleService,ServerParticleService}.cs`, `WaywardBeyond.Server/Systems/ServerParticleFlushSystem.cs`
 - Client sync and queues: `WaywardBeyond.Client/Networking/{ClientInbound,ClientHandlers}.cs`, `WaywardBeyond.Client/Systems/ClientParticleReplicationSystem.cs`, `WaywardBeyond.Client/Injector.cs:136`
 

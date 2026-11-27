@@ -1,0 +1,450 @@
+#nullable enable
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
+using DryIoc;
+using Krill;
+using Microsoft.Extensions.Logging.Abstractions;
+using NsdRpc;
+using Swordfish.ECS;
+using Swordfish.Library.Types.Shapes;
+using Swordfish.Library.Util;
+using Swordfish.Physics;
+using Swordfish.Tests;
+using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Events;
+using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Config;
+using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Codecs;
+using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Networking.Rpc;
+using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Server;
+using WaywardBeyond.Server.Systems;
+using Xunit;
+using GameState = WaywardBeyond.Client.GameState;
+using WaywardBeyondClient = WaywardBeyond.Client.WaywardBeyond;
+
+namespace WaywardBeyond.Tests;
+
+/// <summary>Pins per-recipient replication filtering across deltas, full syncs, removals, and local player colliders.</summary>
+[Collection("ClientGameState")]
+public sealed class RecipientReplicationFilterTests
+{
+    [Fact]
+    public async Task DeltaPublishEvaluatesPerRecipientFilterAndSkipsEmptyDeltas()
+    {
+        using var harness = await LoopbackHarness.CreateWithDefaultRegistryAsync();
+        LoopbackClient clientA = await harness.AddClientAsync(Uuid.FromValue(101));
+        LoopbackClient clientB = await harness.AddClientAsync(Uuid.FromValue(102));
+
+        //  Clear initial spawn dirty flags before testing isolated deltas.
+        harness.ClearAllDirty();
+
+        //  Dirty only client A's collider: client B receives it, while client A receives no empty delta.
+        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(Vector3.One));
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot snapshotForB = await clientB.WaitForSnapshotAsync();
+        Assert.Single(snapshotForB.Components);
+        Assert.Equal(clientA.EntityUuid.ToValue(), snapshotForB.Components[0].Entity);
+        Assert.Equal(harness.ColliderTypeUuid, snapshotForB.Components[0].TypeUuid);
+        Assert.Empty(clientA.Inbound.Snapshots);
+
+        //  Dirty client A's transform and collider plus a non-character structure's collider.
+        int structure = harness.ServerStore.Alloc(Uuid.FromValue(500));
+        harness.ServerStore.AddOrUpdate(structure, NetworkComponent.Create());
+        harness.ServerStore.AddOrUpdate(structure, new ColliderComponent(new Box3(Vector3.One)));
+
+        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new TransformComponent(new Vector3(5f, 0f, 0f), Quaternion.Identity, Vector3.One));
+        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(Vector3.One));
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot ownerSnapshot = await clientA.WaitForSnapshotAsync();
+        WorldSnapshot observerSnapshot = await clientB.WaitForSnapshotAsync();
+
+        Assert.Contains(ownerSnapshot.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
+        Assert.DoesNotContain(ownerSnapshot.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.ColliderTypeUuid);
+        Assert.DoesNotContain(ownerSnapshot.Components, c => c.Entity == 500UL && c.TypeUuid == harness.ColliderTypeUuid);
+
+        Assert.Contains(observerSnapshot.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
+        Assert.Contains(observerSnapshot.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.ColliderTypeUuid);
+        Assert.DoesNotContain(observerSnapshot.Components, c => c.Entity == 500UL && c.TypeUuid == harness.ColliderTypeUuid);
+    }
+
+    [Fact]
+    public async Task FullSyncEvaluatesPerRecipientFilter()
+    {
+        using var harness = await LoopbackHarness.CreateWithDefaultRegistryAsync();
+        LoopbackClient clientA = await harness.AddClientAsync(Uuid.FromValue(201));
+        LoopbackClient clientB = await harness.AddClientAsync(Uuid.FromValue(202));
+
+        //  Clear dirty flags so only the full-sync snapshot carries component state.
+        harness.ClearAllDirty();
+
+        harness.Replication.RequestFullSync(clientA.ServerPeer.GameId);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot fullSync = await clientA.WaitForSnapshotAsync();
+        Assert.Contains(fullSync.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
+        Assert.DoesNotContain(fullSync.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.ColliderTypeUuid);
+        Assert.Contains(fullSync.Components, c => c.Entity == clientB.EntityUuid.ToValue() && c.TypeUuid == harness.ColliderTypeUuid);
+        Assert.Empty(clientB.Inbound.Snapshots);
+    }
+
+    [Fact]
+    public async Task ComponentRemovalEvaluatesPerRecipientFilter()
+    {
+        using var harness = await LoopbackHarness.CreateWithDefaultRegistryAsync();
+        LoopbackClient clientA = await harness.AddClientAsync(Uuid.FromValue(301));
+        LoopbackClient clientB = await harness.AddClientAsync(Uuid.FromValue(302));
+
+        harness.ClearAllDirty();
+
+        //  Removing client A's collider publishes ComponentRemoval to client B, never to client A.
+        harness.ServerStore.Remove(typeof(ColliderComponent), clientA.ServerEntity);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot observerSnapshot = await clientB.WaitForSnapshotAsync();
+        Assert.Single(observerSnapshot.RemovedComponents);
+        Assert.Equal(clientA.EntityUuid.ToValue(), observerSnapshot.RemovedComponents[0].Entity);
+        Assert.Equal(harness.ColliderTypeUuid, observerSnapshot.RemovedComponents[0].TypeUuid);
+        Assert.Empty(clientA.Inbound.Snapshots);
+    }
+
+    [Fact]
+    public async Task RecipientFilterReceivesRecipientMetadataAndSerializesOncePerDirtyEntity()
+    {
+        var codec = new CountingBodyViewCodec();
+        var observedRecipients = new List<ReplicationRecipient>();
+        var registry = new NetworkRegistry();
+        Uuid bodyViewType = Uuid.FromValue(10);
+
+        Assert.True(registry.Register<BodyViewComponent>(
+            bodyViewType,
+            NetworkDirection.ServerOwned,
+            codec,
+            replicationFilter: static (store, entity) =>
+                store.TryGet(entity, out BodyViewComponent view) && !string.IsNullOrEmpty(view.Body),
+            recipientFilter: (store, entity, recipient) =>
+            {
+                observedRecipients.Add(recipient);
+                return store.GetUuid(entity) != recipient.EntityUuid;
+            }
+        ).Success);
+        registry.Freeze();
+
+        using var harness = await LoopbackHarness.CreateAsync(registry);
+        LoopbackClient clientA = await harness.AddClientAsync(Uuid.FromValue(401), attachDefaultComponents: false);
+        LoopbackClient clientB = await harness.AddClientAsync(Uuid.FromValue(402), attachDefaultComponents: false);
+
+        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new BodyViewComponent { Body = "wb:human_m" });
+        harness.ServerStore.AddOrUpdate(clientB.ServerEntity, new BodyViewComponent { Body = "" });
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot snapshotForB = await clientB.WaitForSnapshotAsync();
+        Assert.Single(snapshotForB.Components);
+        Assert.Equal(clientA.EntityUuid.ToValue(), snapshotForB.Components[0].Entity);
+        Assert.Empty(clientA.Inbound.Snapshots);
+
+        //  Entity B failed the per-entity filter; entity A serialized once despite two recipients.
+        Assert.Equal(1, codec.SerializeCount);
+        Assert.Equal(2, observedRecipients.Count);
+        Assert.Contains(observedRecipients, r =>
+            r.ClientId == clientA.ServerPeer.GameId
+            && r.Entity == clientA.ServerEntity
+            && r.EntityUuid == clientA.EntityUuid);
+        Assert.Contains(observedRecipients, r =>
+            r.ClientId == clientB.ServerPeer.GameId
+            && r.Entity == clientB.ServerEntity
+            && r.EntityUuid == clientB.EntityUuid);
+    }
+
+    [Fact]
+    public async Task LocalPlayerKeepsLocallyBuiltColliderAcrossFullSyncAndDeltaReconcile()
+    {
+        using var harness = await LoopbackHarness.CreateWithDefaultRegistryAsync();
+        LoopbackClient clientA = await harness.AddClientAsync(Uuid.FromValue(501));
+        LoopbackClient clientB = await harness.AddClientAsync(Uuid.FromValue(502));
+
+        //  Build client A's local player with its own locally constructed collider and clear dirty.
+        var clientStore = new DataStore();
+        int localPlayer = clientStore.Alloc(clientA.EntityUuid);
+        clientStore.AddOrUpdate(localPlayer, new PlayerComponent());
+        clientStore.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, CharacterDefaults.PlayerScale));
+        clientStore.AddOrUpdate(localPlayer, CharacterDefaults.CreateCharacterPhysicsComponent());
+        ColliderComponent localCollider = CharacterDefaults.CreateCharacterColliderComponent(CharacterDefaults.PlayerScale);
+        Shape[] originalShapes = localCollider.CompoundShape!.Value.Shapes;
+        clientStore.AddOrUpdate(localPlayer, localCollider);
+        clientStore.AddOrUpdate(localPlayer, new InputComponent());
+        clientStore.AddOrUpdate(localPlayer, PendingInputComponent.Create());
+        clientStore.ClearDirty<ColliderComponent>(localPlayer);
+
+        ClientReconcileSystem reconcile = CreateClientReconcile(clientA.Inbound, harness.Registry);
+
+        //  1. Full-sync join snapshot replicates client B's collider while leaving client A's untouched.
+        harness.ClearAllDirty();
+        harness.Replication.RequestFullSync(clientA.ServerPeer.GameId);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+        await clientA.WaitForSnapshotAsync(dequeue: false);
+        TickReconcileWhilePlaying(reconcile, clientStore);
+
+        Assert.True(clientStore.TryGet(localPlayer, out ColliderComponent afterFullSync));
+        Assert.True(afterFullSync.CompoundShape.HasValue);
+        Assert.Same(originalShapes, afterFullSync.CompoundShape!.Value.Shapes);
+        Assert.False(clientStore.IsDirty<ColliderComponent>(localPlayer));
+
+        Assert.True(clientStore.TryGet(clientB.EntityUuid, out int remotePlayer));
+        Assert.True(clientStore.TryGet(remotePlayer, out ColliderComponent remoteCollider));
+        Assert.True(remoteCollider.CompoundShape.HasValue);
+
+        //  2. Delta snapshot with updated colliders on both players still leaves local player's untouched.
+        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new TransformComponent(new Vector3(1f, 0f, 0f), Quaternion.Identity, CharacterDefaults.PlayerScale));
+        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(new Vector3(2f, 2f, 2f)));
+        harness.ServerStore.AddOrUpdate(clientB.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(new Vector3(2f, 2f, 2f)));
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+        await clientA.WaitForSnapshotAsync(dequeue: false);
+        TickReconcileWhilePlaying(reconcile, clientStore);
+
+        Assert.True(clientStore.TryGet(localPlayer, out ColliderComponent afterDelta));
+        Assert.True(afterDelta.CompoundShape.HasValue);
+        Assert.Same(originalShapes, afterDelta.CompoundShape!.Value.Shapes);
+        Assert.False(clientStore.IsDirty<ColliderComponent>(localPlayer));
+
+        Assert.True(clientStore.TryGet(remotePlayer, out ColliderComponent updatedRemoteCollider));
+        Assert.NotSame(remoteCollider.CompoundShape!.Value.Shapes, updatedRemoteCollider.CompoundShape!.Value.Shapes);
+    }
+
+    private static ClientReconcileSystem CreateClientReconcile(ClientInbound inbound, NetworkRegistry registry)
+    {
+        var motionProcessor = new ClientPlayerMotionProcessor(
+            new FakeInputService(),
+            new FakeWindowContext(),
+            new FakePhysics(),
+            new EventInvoker<PlayerMovedEvent>([])
+        );
+
+        return new ClientReconcileSystem(
+            inbound,
+            new SnapshotAckTracker(),
+            motionProcessor,
+            new LocalPlayerReconciler(NullLogger<LocalPlayerReconciler>.Instance),
+            registry,
+            NullLogger<ClientReconcileSystem>.Instance
+        );
+    }
+
+    private static void TickReconcileWhilePlaying(ClientReconcileSystem reconcile, DataStore store)
+    {
+        GameState previous = WaywardBeyondClient.GameState.Get();
+        WaywardBeyondClient.GameState.Set(GameState.Playing);
+        try
+        {
+            reconcile.Tick(1f / 128f, store);
+        }
+        finally
+        {
+            WaywardBeyondClient.GameState.Set(previous);
+        }
+    }
+
+    private sealed class CountingBodyViewCodec : IPayloadCodec<BodyViewComponent>
+    {
+        private readonly NsdComponentCodec<BodyViewComponent> _inner = new();
+
+        public int SerializeCount { get; private set; }
+
+        /// <inheritdoc/>
+        public Result<byte[]> Serialize(DataStore store, int entity)
+        {
+            SerializeCount++;
+            return _inner.Serialize(store, entity);
+        }
+
+        /// <inheritdoc/>
+        public byte[] Serialize(in BodyViewComponent value)
+        {
+            return _inner.Serialize(in value);
+        }
+
+        /// <inheritdoc/>
+        public Result Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
+        {
+            return _inner.Apply(store, entity, payload);
+        }
+    }
+
+    private sealed class LoopbackHarness : IDisposable
+    {
+        private readonly LoopbackRpcServerTransport _transport;
+        private readonly RpcServer _rpcServer;
+        private readonly StubRpcHost _host = new();
+        private readonly ServerPeers _peers = new();
+        private readonly SessionManager _sessions = new();
+        private readonly List<LoopbackClient> _clients = [];
+        private readonly Lock _connectLock = new();
+        private TaskCompletionSource<RpcPeer>? _pendingConnect;
+        private uint _nextSessionId = 1;
+
+        public DataStore ServerStore { get; } = new();
+        public NetworkRegistry Registry { get; }
+        public NetworkReplicationSystem Replication { get; }
+        public ulong TransformTypeUuid { get; }
+        public ulong ColliderTypeUuid { get; }
+
+        private LoopbackHarness(NetworkRegistry registry)
+        {
+            Registry = registry;
+            Replication = new NetworkReplicationSystem(
+                _peers,
+                _sessions,
+                NullLogger<NetworkReplicationSystem>.Instance,
+                new NetworkingConfig(),
+                registry
+            );
+
+            Result<NetworkComponentInfo> transformInfo = registry.GetInfo<TransformComponent>();
+            TransformTypeUuid = transformInfo.Success ? transformInfo.Value.Uuid.ToValue() : 0UL;
+            Result<NetworkComponentInfo> colliderInfo = registry.GetInfo<ColliderComponent>();
+            ColliderTypeUuid = colliderInfo.Success ? colliderInfo.Value.Uuid.ToValue() : 0UL;
+
+            _transport = new LoopbackRpcServerTransport();
+            var serverRpcRegistry = new RpcRegistry();
+            serverRpcRegistry.Freeze();
+            _rpcServer = new RpcServer(_transport, serverRpcRegistry);
+            _rpcServer.ClientConnected += OnClientConnected;
+            _rpcServer.Start();
+        }
+
+        public static Task<LoopbackHarness> CreateWithDefaultRegistryAsync()
+        {
+            using var container = new Container();
+            container.RegisterNetworking();
+            return CreateAsync(container.Resolve<NetworkRegistry>());
+        }
+
+        public static Task<LoopbackHarness> CreateAsync(NetworkRegistry registry)
+        {
+            return Task.FromResult(new LoopbackHarness(registry));
+        }
+
+        public async Task<LoopbackClient> AddClientAsync(Uuid entityUuid, bool attachDefaultComponents = true)
+        {
+            var connected = new TaskCompletionSource<RpcPeer>(TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (_connectLock)
+            {
+                _pendingConnect = connected;
+            }
+
+            var connection = new LoopbackRpcClientConnection(_transport);
+            await connection.ConnectAsync();
+
+            var inbound = new ClientInbound();
+            var clientRpcRegistry = new RpcRegistry();
+            clientRpcRegistry.AddService(new ClientHandlers(inbound));
+            clientRpcRegistry.Freeze();
+            _ = new RpcClient(connection, clientRpcRegistry);
+
+            RpcPeer rpcPeer = await connected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            ServerPeer serverPeer = _peers.GetOrAdd(_host, rpcPeer, isLocal: true);
+
+            int entity = ServerStore.Alloc(entityUuid);
+            ServerStore.AddOrUpdate(entity, NetworkComponent.Create());
+            if (attachDefaultComponents)
+            {
+                ServerStore.AddOrUpdate(entity, new TransformComponent(Vector3.Zero, Quaternion.Identity, CharacterDefaults.PlayerScale));
+                ServerStore.AddOrUpdate(entity, CharacterDefaults.CreateCharacterPhysicsComponent());
+                ServerStore.AddOrUpdate(entity, CharacterDefaults.CreateCharacterColliderComponent(CharacterDefaults.PlayerScale));
+                ServerStore.AddOrUpdate(entity, new BodyViewComponent { Body = "wb:human_m" });
+            }
+
+            _sessions.Register(ServerStore, entity, serverPeer.GameId, new Session(_nextSessionId++));
+
+            var client = new LoopbackClient(connection, inbound, serverPeer, entity, entityUuid);
+            _clients.Add(client);
+            return client;
+        }
+
+        public void ClearAllDirty()
+        {
+            NetworkComponentInfo[] serverOwned = Registry.GetComponents(NetworkDirection.ServerOwned);
+            for (var i = 0; i < _clients.Count; i++)
+            {
+                int entity = _clients[i].ServerEntity;
+                for (var c = 0; c < serverOwned.Length; c++)
+                {
+                    ServerStore.ClearDirty(serverOwned[c].Type, entity);
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            for (var i = 0; i < _clients.Count; i++)
+            {
+                _clients[i].Connection.Close();
+            }
+
+            _rpcServer.Close();
+            _transport.Close();
+        }
+
+        private void OnClientConnected(RpcPeer peer)
+        {
+            lock (_connectLock)
+            {
+                _pendingConnect?.TrySetResult(peer);
+            }
+        }
+    }
+
+    private sealed class LoopbackClient(
+        LoopbackRpcClientConnection connection,
+        ClientInbound inbound,
+        ServerPeer serverPeer,
+        int serverEntity,
+        Uuid entityUuid
+    )
+    {
+        public LoopbackRpcClientConnection Connection { get; } = connection;
+        public ClientInbound Inbound { get; } = inbound;
+        public ServerPeer ServerPeer { get; } = serverPeer;
+        public int ServerEntity { get; } = serverEntity;
+        public Uuid EntityUuid { get; } = entityUuid;
+
+        public async Task<WorldSnapshot> WaitForSnapshotAsync(bool dequeue = true)
+        {
+            long deadline = Environment.TickCount64 + 5_000;
+            while (Inbound.Snapshots.IsEmpty && Environment.TickCount64 < deadline)
+            {
+                await Task.Delay(5);
+            }
+
+            Assert.False(Inbound.Snapshots.IsEmpty, "Timed out waiting for a replicated snapshot.");
+            if (!dequeue)
+            {
+                Assert.True(Inbound.Snapshots.TryPeek(out ClientInbound.InboundSnapshot peeked));
+                Assert.False(peeked.IsBatch);
+                return peeked.Full;
+            }
+
+            Assert.True(Inbound.Snapshots.TryDequeue(out ClientInbound.InboundSnapshot message));
+            Assert.False(message.IsBatch);
+            return message.Full;
+        }
+    }
+
+    private sealed class StubRpcHost : IRpcHost
+    {
+        public PeerSet Peers => default;
+    }
+}

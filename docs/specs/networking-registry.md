@@ -9,10 +9,12 @@ types to a stable wire uuid, an owning endpoint, and a payload codec. One
 instance is registered as a DI singleton by `NetworkingComposition`; systems take
 it through constructor injection.
 
-- `Register<T>(Uuid, NetworkDirection, IPayloadCodec<T>)` is the only
-  registration path. The typed codec ties the registration to the component at
-  compile time. It returns `Result` with a contextual failure message (duplicate
-  type, duplicate uuid, `Uuid.Null`).
+- `Register<T>(Uuid, NetworkDirection, IPayloadCodec<T>, Func<DataStore, int, bool>?, Func<DataStore, int, ReplicationRecipient, bool>?)`
+  is the only registration path. The typed codec ties the registration to the
+  component at compile time. Optional `replicationFilter` and `recipientFilter`
+  predicates scope replication per entity and per receiving client. The method
+  returns `Result` with a contextual failure message (duplicate type, duplicate
+  uuid, `Uuid.Null`).
 - `Freeze()` closes the registry to registration and caches the per-direction
   views. `NetworkingComposition` freezes after the built-in registrations, so a
   failed built-in registration is fatal at startup.
@@ -64,12 +66,23 @@ orientations. A single shape travels as a one-part compound.
 empty, whitespace, or overlong `EffectId` (`> 128`), a negative or non-finite
 `RateScale`, and non-finite vector fields, and leaves unchanged emitters clean.
 
-A registration may pass a replication filter. The publisher consults it before
-it collects a delta or a full sync, so a component that only some entities carry
-does not replicate for the others. `ColliderComponent` uses a filter: only an
-entity with `BodyViewComponent` (a character body) replicates its collider. The
-client derives a world structure's voxel collider from the level data, so those
-never cross the wire.
+A registration can pass two optional replication filters:
+
+- **`ReplicationFilter`** (`Func<DataStore, int, bool>?`): Evaluated once per
+  entity before the publisher serializes a delta, a removal, or a full sync. Use
+  it when only some entities replicate a component.
+- **`RecipientFilter`** (`Func<DataStore, int, ReplicationRecipient, bool>?`):
+  Evaluated per receiving client during publish fan-out for deltas, full syncs,
+  and component removals. `ReplicationRecipient` carries the recipient's
+  `ClientId`, session `Entity`, and `EntityUuid`. The publisher still serializes
+  each component once and omits filtered entries from that client's snapshot.
+
+`ColliderComponent` uses both filters (`WaywardBeyond.Networking/NetworkingComposition.cs:37-43`).
+`ReplicationFilter` accepts only entities carrying `BodyViewComponent` (character
+bodies), because the client derives world structure voxel colliders from level
+data. `RecipientFilter` rejects `entity == recipient.Entity`, so the server
+never sends a client's own character collider back to it. The local player keeps
+its locally built collider without a redundant physics shape reset.
 
 Every failure in `TransformCodec`, `PhysicsCodec`, and `ColliderCodec` carries a
 message that names the entity and the invalid field. The caller writes that
@@ -91,7 +104,7 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `GameModeComponent` | 14 | ServerOwned | `NsdComponentCodec<GameModeComponent>` |
 | `InteractionEvent` | 15 | ClientOwned | `NsdComponentCodec<InteractionEvent>` |
 | `InventoryEvent` | 16 | ClientOwned | `NsdComponentCodec<InventoryEvent>` |
-| `ColliderComponent` | 17 | ServerOwned | `ColliderCodec` (character bodies only) |
+| `ColliderComponent` | 17 | ServerOwned | `ColliderCodec` (character bodies only, excludes owner) |
 | `LaserBeamComponent` | 18 | ServerOwned | `NsdComponentCodec<LaserBeamComponent>` |
 | `ParticleEmitterComponent` | 19 | ServerOwned | `ParticleEmitterCodec` |
 | `ParticleEmitterBindingComponent` | 20 | ServerOwned | `NsdComponentCodec<ParticleEmitterBindingComponent>` |
@@ -123,7 +136,7 @@ consumes items against its values. See [join](networking-join.md) and
 
 ## Source of truth
 
-- `WaywardBeyond.Networking/Registry/{NetworkRegistry,NetworkComponentInfo,NetworkDirection}.cs`
+- `WaywardBeyond.Networking/Registry/{NetworkRegistry,NetworkComponentInfo,NetworkDirection,ReplicationRecipient}.cs`
 - `WaywardBeyond.Networking/Codecs/{IPayloadCodec,IPayloadCodecOfT,NsdComponentCodec,TransformCodec,PhysicsCodec,IdentifierCodec,ColliderCodec,ParticleEmitterCodec}.cs`
 - `WaywardBeyond.Networking/NetworkingComposition.cs`
 - Component declarations: `WaywardBeyond.Data/Components/`

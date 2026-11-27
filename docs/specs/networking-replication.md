@@ -13,10 +13,17 @@ One subject: dirty-driven replication between server and client.
   Input, interaction events, and inventory ops are staged in the session
   entity's `StageRing<T>` buffers, not applied in place.
   A malformed snapshot from one peer is logged and skipped.
-- **Publish stage** queries entities carrying `NetworkComponent`, serializes
-  every dirty `ServerOwned` component into `ComponentSnapshot`s, and composes a
-  **per-client** `WorldSnapshot`. The component set and removals are shared, but
-  `LastProcessedInput` is that client's own `LastAckedInput`.
+- **Publish stage** queries entities carrying `NetworkComponent`, evaluates each
+  component's `ReplicationFilter` once per entity, serializes every accepted
+  dirty `ServerOwned` component into `ComponentSnapshot`s, and composes a
+  **per-client** `WorldSnapshot`. Each snapshot carries that client's own
+  `LastProcessedInput`. When any collected component or removal carries a
+  `RecipientFilter`, the publisher evaluates it per client against the client's
+  `ReplicationRecipient` (`ClientId`, session `Entity`, and `EntityUuid`) across
+  deltas, full syncs, and `RemovedComponents`. When no collected entry carries a
+  `RecipientFilter`, all clients share the serialized arrays without per-client
+  filtering. A delta snapshot that becomes empty after recipient filtering is
+  skipped.
 - **Despawns** are recorded via `RequestDespawn` before the entity is freed
   (`DataStore.Free` clears the uuid) and broadcast in `RemovedEntities`.
 - **Reliable send.** Each snapshot is a typed `WorldSnapshot` notification. A
@@ -86,8 +93,10 @@ which flow as `VoxelEdit` notifications rather than snapshots.
   and motion values. A body the client did not build itself (a remote player)
   materializes this way.
 - Materializes a replicated `ColliderComponent` from its packed shapes. The
-  server publishes it only for entities with `BodyViewComponent`, so a remote
-  player gets a local body without shipping world voxel colliders.
+  server publishes it only for entities carrying `BodyViewComponent` and omits
+  the recipient's own entity via `RecipientFilter`. A remote player gets a local
+  body without shipping world voxel colliders, and the local player keeps its
+  locally built collider without a redundant physics shape reset.
 - Blends a remote player's authoritative position. An error at or below one
   centimeter is ignored. A larger error moves halfway per snapshot. An error
   beyond `CharacterDefaults.RECONCILE_SNAP_DISTANCE` snaps. Orientation and scale
