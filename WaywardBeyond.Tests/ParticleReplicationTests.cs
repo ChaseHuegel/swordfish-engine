@@ -827,7 +827,7 @@ public sealed class ParticleReplicationTests
 
         ulong transformTypeId = Uuid.FromValue(2).ToValue();
         ulong bodyTypeId = Uuid.FromValue(10).ToValue();
-        ulong emitterTypeId = Uuid.FromValue(19).ToValue();
+        ulong emitterTypeId = Uuid.FromValue(18).ToValue();
 
         GameState previous = WaywardBeyondGameState.GameState.Get();
         try

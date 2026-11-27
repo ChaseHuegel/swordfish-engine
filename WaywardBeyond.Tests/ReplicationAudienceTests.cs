@@ -11,7 +11,6 @@ using NsdRpc;
 using Swordfish.ECS;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
-using Swordfish.Physics;
 using Swordfish.Tests;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Events;
@@ -26,7 +25,6 @@ using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Codecs;
 using WaywardBeyond.Networking.Registry;
-using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Server;
 using WaywardBeyond.Server.Systems;
@@ -36,132 +34,115 @@ using WaywardBeyondClient = WaywardBeyond.Client.WaywardBeyond;
 
 namespace WaywardBeyond.Tests;
 
-/// <summary>Pins per-recipient replication filtering across deltas, full syncs, removals, and local player colliders.</summary>
+/// <summary>Pins declarative replication audiences, entity exclusions, unconditional component removals, and client-derived remote character colliders.</summary>
 [Collection("ClientGameState")]
-public sealed class RecipientReplicationFilterTests
+public sealed class ReplicationAudienceTests
 {
     [Fact]
-    public void RegistryRejectsRecipientFilterOnClientOwnedComponent()
+    public void RegistryRejectsScopedAudienceOnClientOwnedComponent()
     {
         var registry = new NetworkRegistry();
 
-        Result registration = registry.Register<InputComponent>(
+        Result othersOnly = registry.Register<InputComponent>(
             Uuid.FromValue(1),
             NetworkDirection.ClientOwned,
             new NsdComponentCodec<InputComponent>(),
-            recipientFilter: static (_, _, _) => true
+            ReplicationAudience.OthersOnly
+        );
+        Result ownerOnly = registry.Register<EquipmentComponent>(
+            Uuid.FromValue(12),
+            NetworkDirection.ClientOwned,
+            new NsdComponentCodec<EquipmentComponent>(),
+            ReplicationAudience.OwnerOnly
         );
 
-        Assert.False(registration.Success);
-        Assert.Contains("ServerOwned", registration.Message);
+        Assert.False(othersOnly.Success);
+        Assert.Contains("ServerOwned", othersOnly.Message);
+        Assert.False(ownerOnly.Success);
+        Assert.Contains("ServerOwned", ownerOnly.Message);
     }
 
     [Fact]
-    public async Task DeltaPublishEvaluatesPerRecipientFilterAndSkipsEmptyDeltas()
+    public void DefaultRegistryUsesOthersOnlyForLaserBeamAndDoesNotRegisterColliderComponent()
+    {
+        using var container = new Container();
+        container.RegisterNetworking();
+        NetworkRegistry registry = container.Resolve<NetworkRegistry>();
+
+        Result<NetworkComponentInfo> laser = registry.GetInfo<LaserBeamComponent>();
+        Assert.True(laser.Success);
+        Assert.Equal(Uuid.FromValue(17), laser.Value.Uuid);
+        Assert.Equal(ReplicationAudience.OthersOnly, laser.Value.Audience);
+
+        Assert.False(registry.GetInfo<ColliderComponent>().Success);
+    }
+
+    [Fact]
+    public async Task OthersOnlyAudienceOmitsOwnerAcrossDeltaFullSyncAndRemovalAndSkipsEmptyDeltas()
     {
         using LoopbackHarness harness = LoopbackHarness.CreateWithDefaultRegistry();
         LoopbackClient clientA = await harness.AddCharacterClientAsync(Uuid.FromValue(101));
         LoopbackClient clientB = await harness.AddCharacterClientAsync(Uuid.FromValue(102));
-
-        //  Clear initial spawn dirty flags before testing isolated deltas.
         harness.ClearAllDirty();
 
-        //  Dirty only client A's collider: client B receives it, while client A receives no empty delta.
-        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(Vector3.One));
+        //  1. Isolated delta on an OthersOnly component delivers to observer and skips empty delta for owner.
+        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new LaserBeamComponent { TargetX = 4f, Hit = true });
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
-        WorldSnapshot snapshotForB = await clientB.WaitForSnapshotAsync();
-        Assert.Single(snapshotForB.Components);
-        Assert.Equal(clientA.EntityUuid.ToValue(), snapshotForB.Components[0].Entity);
-        Assert.Equal(harness.ColliderTypeUuid, snapshotForB.Components[0].TypeUuid);
+        WorldSnapshot observerDelta = await clientB.WaitForSnapshotAsync();
+        Assert.Single(observerDelta.Components);
+        Assert.Equal(clientA.EntityUuid.ToValue(), observerDelta.Components[0].Entity);
+        Assert.Equal(harness.LaserBeamTypeUuid, observerDelta.Components[0].TypeUuid);
         Assert.Empty(clientA.Inbound.Snapshots);
 
-        //  Dirty client A's transform and collider plus a non-character structure's collider.
-        int structure = harness.ServerStore.Alloc(Uuid.FromValue(500));
-        harness.ServerStore.AddOrUpdate(structure, NetworkComponent.Create());
-        harness.ServerStore.AddOrUpdate(structure, new ColliderComponent(new Box3(Vector3.One)));
-
+        //  2. Mixed delta sends All components to owner while omitting OthersOnly component.
         harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new TransformComponent(new Vector3(5f, 0f, 0f), Quaternion.Identity, Vector3.One));
-        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(Vector3.One));
+        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new LaserBeamComponent { TargetX = 8f, Hit = true });
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
-        WorldSnapshot ownerSnapshot = await clientA.WaitForSnapshotAsync();
-        WorldSnapshot observerSnapshot = await clientB.WaitForSnapshotAsync();
+        WorldSnapshot ownerMixed = await clientA.WaitForSnapshotAsync();
+        WorldSnapshot observerMixed = await clientB.WaitForSnapshotAsync();
 
-        Assert.Contains(ownerSnapshot.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
-        Assert.DoesNotContain(ownerSnapshot.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.ColliderTypeUuid);
-        Assert.DoesNotContain(ownerSnapshot.Components, c => c.Entity == 500UL && c.TypeUuid == harness.ColliderTypeUuid);
+        Assert.Contains(ownerMixed.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
+        Assert.DoesNotContain(ownerMixed.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.LaserBeamTypeUuid);
 
-        Assert.Contains(observerSnapshot.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
-        Assert.Contains(observerSnapshot.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.ColliderTypeUuid);
-        Assert.DoesNotContain(observerSnapshot.Components, c => c.Entity == 500UL && c.TypeUuid == harness.ColliderTypeUuid);
-    }
+        Assert.Contains(observerMixed.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
+        Assert.Contains(observerMixed.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.LaserBeamTypeUuid);
 
-    [Fact]
-    public async Task FullSyncEvaluatesPerRecipientFilter()
-    {
-        using LoopbackHarness harness = LoopbackHarness.CreateWithDefaultRegistry();
-        LoopbackClient clientA = await harness.AddCharacterClientAsync(Uuid.FromValue(201));
-        LoopbackClient clientB = await harness.AddCharacterClientAsync(Uuid.FromValue(202));
-
-        //  Clear dirty flags so only the full-sync snapshot carries component state.
+        //  3. Full sync omits client A's own LaserBeamComponent while including client B's.
+        harness.ServerStore.AddOrUpdate(clientB.ServerEntity, new LaserBeamComponent { TargetZ = 3f, Hit = false });
         harness.ClearAllDirty();
 
         harness.Replication.RequestFullSync(clientA.ServerPeer.GameId);
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
-        WorldSnapshot fullSync = await clientA.WaitForSnapshotAsync();
-        Assert.Contains(fullSync.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
-        Assert.DoesNotContain(fullSync.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.ColliderTypeUuid);
-        Assert.Contains(fullSync.Components, c => c.Entity == clientB.EntityUuid.ToValue() && c.TypeUuid == harness.ColliderTypeUuid);
+        WorldSnapshot fullSyncForA = await clientA.WaitForSnapshotAsync();
+        Assert.Contains(fullSyncForA.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.TransformTypeUuid);
+        Assert.DoesNotContain(fullSyncForA.Components, c => c.Entity == clientA.EntityUuid.ToValue() && c.TypeUuid == harness.LaserBeamTypeUuid);
+        Assert.Contains(fullSyncForA.Components, c => c.Entity == clientB.EntityUuid.ToValue() && c.TypeUuid == harness.LaserBeamTypeUuid);
         Assert.Empty(clientB.Inbound.Snapshots);
+
+        //  4. Simultaneous removal of LaserBeamComponent and BodyViewComponent publishes both removals
+        //     to observer and omits the OthersOnly removal for owner (no removal suppression).
+        harness.ServerStore.Remove(typeof(BodyViewComponent), clientA.ServerEntity);
+        harness.ServerStore.Remove(typeof(LaserBeamComponent), clientA.ServerEntity);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot ownerRemoval = await clientA.WaitForSnapshotAsync();
+        WorldSnapshot observerRemoval = await clientB.WaitForSnapshotAsync();
+
+        Assert.Contains(ownerRemoval.RemovedComponents, r => r.Entity == clientA.EntityUuid.ToValue() && r.TypeUuid == harness.BodyViewTypeUuid);
+        Assert.DoesNotContain(ownerRemoval.RemovedComponents, r => r.Entity == clientA.EntityUuid.ToValue() && r.TypeUuid == harness.LaserBeamTypeUuid);
+
+        Assert.Contains(observerRemoval.RemovedComponents, r => r.Entity == clientA.EntityUuid.ToValue() && r.TypeUuid == harness.BodyViewTypeUuid);
+        Assert.Contains(observerRemoval.RemovedComponents, r => r.Entity == clientA.EntityUuid.ToValue() && r.TypeUuid == harness.LaserBeamTypeUuid);
+        Assert.False(harness.ServerStore.IsDirty<LaserBeamComponent>(clientA.ServerEntity));
     }
 
     [Fact]
-    public async Task ComponentRemovalEvaluatesPerRecipientFilter()
-    {
-        using LoopbackHarness harness = LoopbackHarness.CreateWithDefaultRegistry();
-        LoopbackClient clientA = await harness.AddCharacterClientAsync(Uuid.FromValue(301));
-        LoopbackClient clientB = await harness.AddCharacterClientAsync(Uuid.FromValue(302));
-
-        harness.ClearAllDirty();
-
-        //  1. Isolated removal of client A's collider publishes ComponentRemoval to client B, never to client A.
-        harness.ServerStore.Remove(typeof(ColliderComponent), clientA.ServerEntity);
-        harness.Replication.PublishStage(1f, harness.ServerStore);
-
-        WorldSnapshot observerSnapshot = await clientB.WaitForSnapshotAsync();
-        Assert.Single(observerSnapshot.RemovedComponents);
-        Assert.Equal(clientA.EntityUuid.ToValue(), observerSnapshot.RemovedComponents[0].Entity);
-        Assert.Equal(harness.ColliderTypeUuid, observerSnapshot.RemovedComponents[0].TypeUuid);
-
-        //  2. Re-add, clear dirty, then publish a mixed tick with transform delta + collider removal.
-        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(Vector3.One));
-        harness.ClearAllDirty();
-
-        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new TransformComponent(new Vector3(2f, 0f, 0f), Quaternion.Identity, Vector3.One));
-        harness.ServerStore.Remove(typeof(ColliderComponent), clientA.ServerEntity);
-        harness.Replication.PublishStage(1f, harness.ServerStore);
-
-        //  Client A's first snapshot arrives here, proving step 1 sent nothing and step 2 omits the removal.
-        WorldSnapshot ownerMixed = await clientA.WaitForSnapshotAsync();
-        WorldSnapshot observerMixed = await clientB.WaitForSnapshotAsync();
-
-        Assert.Single(ownerMixed.Components);
-        Assert.Equal(harness.TransformTypeUuid, ownerMixed.Components[0].TypeUuid);
-        Assert.Empty(ownerMixed.RemovedComponents);
-
-        Assert.Single(observerMixed.Components);
-        Assert.Single(observerMixed.RemovedComponents);
-        Assert.Equal(clientA.EntityUuid.ToValue(), observerMixed.RemovedComponents[0].Entity);
-        Assert.Equal(harness.ColliderTypeUuid, observerMixed.RemovedComponents[0].TypeUuid);
-    }
-
-    [Fact]
-    public async Task RecipientFilterReceivesRecipientMetadataAndSerializesOncePerDirtyEntity()
+    public async Task OwnerOnlyAudienceDeliversOnlyToOwnerAndSerializesOncePerDirtyEntity()
     {
         var codec = new CountingBodyViewCodec();
-        var observedRecipients = new List<ReplicationRecipient>();
         var registry = new NetworkRegistry();
         Uuid bodyViewType = Uuid.FromValue(10);
 
@@ -169,65 +150,83 @@ public sealed class RecipientReplicationFilterTests
             bodyViewType,
             NetworkDirection.ServerOwned,
             codec,
-            replicationFilter: static (store, entity) =>
-                store.TryGet(entity, out BodyViewComponent view) && !string.IsNullOrEmpty(view.Body),
-            recipientFilter: (store, entity, recipient) =>
-            {
-                observedRecipients.Add(recipient);
-                return store.GetUuid(entity) != recipient.EntityUuid;
-            }
+            ReplicationAudience.OwnerOnly
         ).Success);
         registry.Freeze();
 
         using LoopbackHarness harness = LoopbackHarness.Create(registry);
-        LoopbackClient clientA = await harness.AddBareClientAsync(Uuid.FromValue(401));
-        LoopbackClient clientB = await harness.AddBareClientAsync(Uuid.FromValue(402));
+        LoopbackClient clientA = await harness.AddBareClientAsync(Uuid.FromValue(201));
+        LoopbackClient clientB = await harness.AddBareClientAsync(Uuid.FromValue(202));
 
+        //  1. Delta delivers only to owner and serializes once despite two recipients.
         harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new BodyViewComponent { Body = "wb:human_m" });
-        harness.ServerStore.AddOrUpdate(clientB.ServerEntity, new BodyViewComponent { Body = "" });
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
-        WorldSnapshot snapshotForB = await clientB.WaitForSnapshotAsync();
-        Assert.Single(snapshotForB.Components);
-        Assert.Equal(clientA.EntityUuid.ToValue(), snapshotForB.Components[0].Entity);
-        Assert.Empty(clientA.Inbound.Snapshots);
-
-        //  Entity B failed the per-entity filter; entity A serialized once despite two recipients.
+        WorldSnapshot ownerDelta = await clientA.WaitForSnapshotAsync();
+        Assert.Single(ownerDelta.Components);
+        Assert.Equal(clientA.EntityUuid.ToValue(), ownerDelta.Components[0].Entity);
+        Assert.Empty(clientB.Inbound.Snapshots);
         Assert.Equal(1, codec.SerializeCount);
-        Assert.Equal(2, observedRecipients.Count);
-        Assert.Contains(observedRecipients, r =>
-            r.ClientId == clientA.ServerPeer.GameId
-            && r.Entity == clientA.ServerEntity
-            && r.EntityUuid == clientA.EntityUuid);
-        Assert.Contains(observedRecipients, r =>
-            r.ClientId == clientB.ServerPeer.GameId
-            && r.Entity == clientB.ServerEntity
-            && r.EntityUuid == clientB.EntityUuid);
+
+        //  2. Full sync delivers only the recipient's own OwnerOnly component.
+        harness.ServerStore.AddOrUpdate(clientB.ServerEntity, new BodyViewComponent { Body = "wb:human_f" });
+        harness.ClearAllDirty();
+
+        harness.Replication.RequestFullSync(clientA.ServerPeer.GameId);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot ownerFullSync = await clientA.WaitForSnapshotAsync();
+        Assert.Single(ownerFullSync.Components);
+        Assert.Equal(clientA.EntityUuid.ToValue(), ownerFullSync.Components[0].Entity);
+        Assert.Empty(clientB.Inbound.Snapshots);
+
+        //  3. Removal delivers only to owner and sends no empty delta to observer.
+        harness.ServerStore.Remove(typeof(BodyViewComponent), clientA.ServerEntity);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+
+        WorldSnapshot ownerRemoval = await clientA.WaitForSnapshotAsync();
+        Assert.Single(ownerRemoval.RemovedComponents);
+        Assert.Equal(clientA.EntityUuid.ToValue(), ownerRemoval.RemovedComponents[0].Entity);
+        Assert.Equal(bodyViewType.ToValue(), ownerRemoval.RemovedComponents[0].TypeUuid);
+        Assert.Empty(clientB.Inbound.Snapshots);
     }
 
     [Fact]
-    public async Task LocalPlayerKeepsLocallyBuiltColliderAcrossFullSyncAndDeltaReconcile()
+    public async Task LocalPlayerKeepsLocallyBuiltColliderAndRemotePlayerDerivesColliderFromBodyView()
     {
         using LoopbackHarness harness = LoopbackHarness.CreateWithDefaultRegistry();
         LoopbackClient clientA = await harness.AddCharacterClientAsync(Uuid.FromValue(501));
         LoopbackClient clientB = await harness.AddCharacterClientAsync(Uuid.FromValue(502));
 
-        //  Build client A's local player with its own locally constructed collider and clear dirty.
+        //  Also create a server voxel structure with a local ColliderComponent.
+        Uuid structureUuid = Uuid.FromValue(550);
+        int serverStructure = harness.ServerStore.Alloc(structureUuid);
+        harness.ServerStore.AddOrUpdate(serverStructure, NetworkComponent.Create());
+        harness.ServerStore.AddOrUpdate(serverStructure, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+        harness.ServerStore.AddOrUpdate(serverStructure, new ColliderComponent(new Box3(Vector3.One)));
+
+        //  Build client A's local player and local structure with their own locally built colliders.
         var clientStore = new DataStore();
         int localPlayer = clientStore.Alloc(clientA.EntityUuid);
         clientStore.AddOrUpdate(localPlayer, new PlayerComponent());
         clientStore.AddOrUpdate(localPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, CharacterDefaults.PlayerScale));
         clientStore.AddOrUpdate(localPlayer, CharacterDefaults.CreateCharacterPhysicsComponent());
         ColliderComponent localCollider = CharacterDefaults.CreateCharacterColliderComponent(CharacterDefaults.PlayerScale);
-        Shape[] originalShapes = localCollider.CompoundShape!.Value.Shapes;
+        Shape[] originalPlayerShapes = localCollider.CompoundShape!.Value.Shapes;
         clientStore.AddOrUpdate(localPlayer, localCollider);
         clientStore.AddOrUpdate(localPlayer, new InputComponent());
         clientStore.AddOrUpdate(localPlayer, PendingInputComponent.Create());
         clientStore.ClearDirty<ColliderComponent>(localPlayer);
 
+        int clientStructure = clientStore.Alloc(structureUuid);
+        var structureCollider = new ColliderComponent(new Box3(new Vector3(2f, 2f, 2f)));
+        clientStore.AddOrUpdate(clientStructure, structureCollider);
+        clientStore.ClearDirty<ColliderComponent>(clientStructure);
+
         ClientReconcileSystem reconcile = CreateClientReconcile(clientA.Inbound, harness.Registry);
 
-        //  1. Full-sync join snapshot replicates client B's collider while leaving client A's untouched.
+        //  1. Full-sync join derives remote player collider from BodyViewComponent while leaving
+        //     local player and structure colliders untouched.
         harness.ClearAllDirty();
         harness.Replication.RequestFullSync(clientA.ServerPeer.GameId);
         harness.Replication.PublishStage(1f, harness.ServerStore);
@@ -236,40 +235,35 @@ public sealed class RecipientReplicationFilterTests
 
         Assert.True(clientStore.TryGet(localPlayer, out ColliderComponent afterFullSync));
         Assert.True(afterFullSync.CompoundShape.HasValue);
-        Assert.Same(originalShapes, afterFullSync.CompoundShape!.Value.Shapes);
+        Assert.Same(originalPlayerShapes, afterFullSync.CompoundShape!.Value.Shapes);
         Assert.False(clientStore.IsDirty<ColliderComponent>(localPlayer));
 
         Assert.True(clientStore.TryGet(clientB.EntityUuid, out int remotePlayer));
         Assert.True(clientStore.TryGet(remotePlayer, out ColliderComponent remoteCollider));
         Assert.True(remoteCollider.CompoundShape.HasValue);
+        Shape[] derivedRemoteShapes = remoteCollider.CompoundShape!.Value.Shapes;
 
-        //  2. Delta snapshot with updated colliders on both players still leaves local player's untouched.
+        Assert.True(clientStore.TryGet(clientStructure, out ColliderComponent structureAfterFullSync));
+        Assert.Equal(structureCollider.Shape, structureAfterFullSync.Shape);
+
+        //  2. Subsequent deltas and server-side ColliderComponent removals leave local player,
+        //     derived remote player, and structure colliders intact without shape resets.
         harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new TransformComponent(new Vector3(1f, 0f, 0f), Quaternion.Identity, CharacterDefaults.PlayerScale));
-        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(new Vector3(2f, 2f, 2f)));
-        harness.ServerStore.AddOrUpdate(clientB.ServerEntity, CharacterDefaults.CreateCharacterColliderComponent(new Vector3(2f, 2f, 2f)));
+        harness.ServerStore.Remove(typeof(ColliderComponent), clientA.ServerEntity);
+        harness.ServerStore.Remove(typeof(ColliderComponent), serverStructure);
         harness.Replication.PublishStage(1f, harness.ServerStore);
         await clientA.WaitUntilSnapshotQueuedAsync();
         TickReconcileWhilePlaying(reconcile, clientStore);
 
         Assert.True(clientStore.TryGet(localPlayer, out ColliderComponent afterDelta));
-        Assert.True(afterDelta.CompoundShape.HasValue);
-        Assert.Same(originalShapes, afterDelta.CompoundShape!.Value.Shapes);
+        Assert.Same(originalPlayerShapes, afterDelta.CompoundShape!.Value.Shapes);
         Assert.False(clientStore.IsDirty<ColliderComponent>(localPlayer));
 
-        Assert.True(clientStore.TryGet(remotePlayer, out ColliderComponent updatedRemoteCollider));
-        Assert.NotSame(remoteCollider.CompoundShape!.Value.Shapes, updatedRemoteCollider.CompoundShape!.Value.Shapes);
+        Assert.True(clientStore.TryGet(remotePlayer, out ColliderComponent remoteAfterDelta));
+        Assert.Same(derivedRemoteShapes, remoteAfterDelta.CompoundShape!.Value.Shapes);
 
-        //  3. Server-side removal of local player's collider still leaves the local player's collider intact.
-        harness.ServerStore.AddOrUpdate(clientA.ServerEntity, new TransformComponent(new Vector3(2f, 0f, 0f), Quaternion.Identity, CharacterDefaults.PlayerScale));
-        harness.ServerStore.Remove(typeof(ColliderComponent), clientA.ServerEntity);
-        harness.Replication.PublishStage(1f, harness.ServerStore);
-        await clientA.WaitUntilSnapshotQueuedAsync();
-        TickReconcileWhilePlaying(reconcile, clientStore);
-
-        Assert.True(clientStore.TryGet(localPlayer, out ColliderComponent afterRemoval));
-        Assert.True(afterRemoval.CompoundShape.HasValue);
-        Assert.Same(originalShapes, afterRemoval.CompoundShape!.Value.Shapes);
-        Assert.False(clientStore.IsDirty<ColliderComponent>(localPlayer));
+        Assert.True(clientStore.TryGet(clientStructure, out ColliderComponent structureAfterRemoval));
+        Assert.Equal(structureCollider.Shape, structureAfterRemoval.Shape);
     }
 
     [Fact]
@@ -397,7 +391,8 @@ public sealed class RecipientReplicationFilterTests
         public NetworkRegistry Registry { get; }
         public NetworkReplicationSystem Replication { get; }
         public ulong TransformTypeUuid { get; }
-        public ulong ColliderTypeUuid { get; }
+        public ulong BodyViewTypeUuid { get; }
+        public ulong LaserBeamTypeUuid { get; }
 
         private LoopbackHarness(NetworkRegistry registry)
         {
@@ -412,8 +407,10 @@ public sealed class RecipientReplicationFilterTests
 
             Result<NetworkComponentInfo> transformInfo = registry.GetInfo<TransformComponent>();
             TransformTypeUuid = transformInfo.Success ? transformInfo.Value.Uuid.ToValue() : 0UL;
-            Result<NetworkComponentInfo> colliderInfo = registry.GetInfo<ColliderComponent>();
-            ColliderTypeUuid = colliderInfo.Success ? colliderInfo.Value.Uuid.ToValue() : 0UL;
+            Result<NetworkComponentInfo> bodyViewInfo = registry.GetInfo<BodyViewComponent>();
+            BodyViewTypeUuid = bodyViewInfo.Success ? bodyViewInfo.Value.Uuid.ToValue() : 0UL;
+            Result<NetworkComponentInfo> laserBeamInfo = registry.GetInfo<LaserBeamComponent>();
+            LaserBeamTypeUuid = laserBeamInfo.Success ? laserBeamInfo.Value.Uuid.ToValue() : 0UL;
 
             _transport = new LoopbackRpcServerTransport();
             var serverRpcRegistry = new RpcRegistry();

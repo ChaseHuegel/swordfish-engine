@@ -10,8 +10,7 @@ public readonly struct NetworkComponentInfo(
     Uuid uuid,
     NetworkDirection direction,
     IPayloadCodec codec,
-    Func<DataStore, int, bool>? replicationFilter = null,
-    Func<DataStore, int, ReplicationRecipient, bool>? recipientFilter = null
+    ReplicationAudience audience = ReplicationAudience.All
 )
 {
     /// <summary>The component type this entry describes.</summary>
@@ -26,9 +25,6 @@ public readonly struct NetworkComponentInfo(
     /// <summary>The codec that serializes and applies the component.</summary>
     public IPayloadCodec Codec { get; } = codec;
 
-    /// <summary>Returns whether an entity replicates this component, or null when every entity does.</summary>
-    public Func<DataStore, int, bool>? ReplicationFilter { get; } = replicationFilter;
-
-    /// <summary>Returns whether a recipient receives this component for an entity, or null when every recipient does.</summary>
-    public Func<DataStore, int, ReplicationRecipient, bool>? RecipientFilter { get; } = recipientFilter;
+    /// <summary>The recipients that receive this server-owned component.</summary>
+    public ReplicationAudience Audience { get; } = audience;
 }

@@ -13,20 +13,19 @@ One subject: dirty-driven replication between server and client.
   Input, interaction events, and inventory ops are staged in the session
   entity's `StageRing<T>` buffers, not applied in place.
   A malformed snapshot from one peer is logged and skipped.
-- **Publish stage** queries entities carrying `NetworkComponent`, evaluates each
-  component's `ReplicationFilter` once per entity, serializes every accepted
-  dirty `ServerOwned` component into `ComponentSnapshot`s, and composes a
+- **Publish stage** queries entities carrying `NetworkComponent`, serializes
+  every dirty `ServerOwned` component into `ComponentSnapshot`s, emits
+  `ComponentRemoval`s for every removed dirty component, and composes a
   **per-client** `WorldSnapshot`. Each snapshot carries that client's own
-  `LastProcessedInput`. Entities can also set
-  `NetworkComponent.ExcludedRecipientEntity` to omit the entire entity
-  (components, full sync, `RemovedComponents`, and `RemovedEntities`) from the
-  client owning that entity uuid. When any collected entry carries a
-  `RecipientFilter` or an `ExcludedRecipientEntity`, the publisher filters per
-  client against the client's `ReplicationRecipient` (`ClientId`, session
-  `Entity`, and `EntityUuid`). When no collected entry carries recipient
-  filtering, all clients share the serialized arrays without per-client
-  filtering. The publisher skips a delta snapshot that becomes empty after
-  recipient filtering.
+  `LastProcessedInput`. Entities can set `NetworkComponent.ExcludedRecipientEntity`
+  to omit the entire entity (components, full sync, `RemovedComponents`, and
+  `RemovedEntities`) from the client owning that entity uuid. When any collected
+  entry has a scoped `ReplicationAudience` (`OwnerOnly` or `OthersOnly`) or an
+  `ExcludedRecipientEntity`, the publisher filters per client against that
+  client's session entity and entity uuid without reading `DataStore` during
+  fan-out. When no collected entry has recipient scoping, all clients share the
+  serialized arrays without per-client filtering. The publisher skips a delta
+  snapshot that becomes empty after recipient filtering.
 - **Despawns** are recorded via `RequestDespawn(entityUuid,
   excludedRecipientEntity)` before the entity is freed (`DataStore.Free` clears
   the uuid) and broadcast in `RemovedEntities`, omitting any excluded owner.
@@ -96,11 +95,12 @@ which flow as `VoxelEdit` notifications rather than snapshots.
 - Creates a missing `PhysicsComponent` from the snapshot's body configuration
   and motion values. A body the client did not build itself (a remote player)
   materializes this way.
-- Materializes a replicated `ColliderComponent` from its packed shapes. The
-  server publishes it only for entities carrying `BodyViewComponent` and omits
-  the recipient's own entity via `RecipientFilter`. A remote player gets a local
-  body without shipping world voxel colliders, and the local player keeps its
-  locally built collider without a redundant physics shape reset.
+- Derives a remote character's `ColliderComponent` locally from
+  `BodyViewComponent` and its positive finite transform scale when the entity
+  lacks `PlayerComponent` and `ColliderComponent`. `ColliderComponent` never
+  crosses the wire, so voxel structures keep their level-derived colliders and
+  the local player keeps its locally built collider without a redundant physics
+  shape reset.
 - Blends a remote player's authoritative position. An error at or below one
   centimeter is ignored. A larger error moves halfway per snapshot. An error
   beyond `CharacterDefaults.RECONCILE_SNAP_DISTANCE` snaps. Orientation and scale

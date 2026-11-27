@@ -198,10 +198,9 @@ public class ClientReconcileSystemTests
             velocity,
             Vector3.Zero
         );
-        ColliderComponent remoteCollider = CharacterDefaults.CreateCharacterColliderComponent(Vector3.One);
         byte[] transformPayload = new TransformCodec().Serialize(new TransformComponent(position, Quaternion.Identity, Vector3.One));
         byte[] physicsPayload = new PhysicsCodec().Serialize(in remotePhysics);
-        byte[] colliderPayload = new ColliderCodec().Serialize(in remoteCollider);
+        byte[] bodyViewPayload = SerializeBodyView("wb:human_m");
 
         var snapshot = new WorldSnapshot
         {
@@ -211,7 +210,7 @@ public class ClientReconcileSystemTests
             [
                 new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(2).ToValue(), transformPayload),
                 new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(3).ToValue(), physicsPayload),
-                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(17).ToValue(), colliderPayload),
+                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(10).ToValue(), bodyViewPayload),
             ],
             RemovedEntities = [],
         };
@@ -253,12 +252,10 @@ public class ClientReconcileSystemTests
             newVelocity,
             Vector3.Zero
         );
-        ColliderComponent newCollider = CharacterDefaults.CreateCharacterColliderComponent(Vector3.One);
 
         byte[] transformPayload = new TransformCodec().Serialize(new TransformComponent(newPosition, Quaternion.Identity, Vector3.One));
         byte[] physicsPayload = new PhysicsCodec().Serialize(in newPhysics);
         byte[] bodyViewPayload = SerializeBodyView("wb:human_f");
-        byte[] colliderPayload = new ColliderCodec().Serialize(in newCollider);
 
         var snapshot = new WorldSnapshot
         {
@@ -269,7 +266,6 @@ public class ClientReconcileSystemTests
                 new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(2).ToValue(), transformPayload),
                 new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(3).ToValue(), physicsPayload),
                 new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(10).ToValue(), bodyViewPayload),
-                new ComponentSnapshot(remoteUuid.ToValue(), Uuid.FromValue(17).ToValue(), colliderPayload),
             ],
             RemovedEntities = [remoteUuid.ToValue()],
         };
@@ -419,7 +415,6 @@ public class ClientReconcileSystemTests
         Assert.True(registry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec()).Success);
         Assert.True(registry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec()).Success);
         Assert.True(registry.Register<BodyViewComponent>(Uuid.FromValue(10), NetworkDirection.ServerOwned, new NsdComponentCodec<BodyViewComponent>()).Success);
-        Assert.True(registry.Register<ColliderComponent>(Uuid.FromValue(17), NetworkDirection.ServerOwned, new ColliderCodec()).Success);
         registry.Freeze();
 
         var motionProcessor = new ClientPlayerMotionProcessor(

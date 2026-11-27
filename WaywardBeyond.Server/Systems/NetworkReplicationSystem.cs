@@ -52,10 +52,10 @@ public sealed class NetworkReplicationSystem
     private ulong[] _removedSnapshot = [];
     private ulong[] _filteredRemovedSnapshot = [];
 
-    private bool _pendingHasRecipientFilters;
-    private bool _pendingRemovalsHasRecipientFilters;
-    private bool _fullSyncHasRecipientFilters;
-    private bool _removedHasRecipientFilters;
+    private bool _pendingHasScopedRecipients;
+    private bool _pendingRemovalsHasScopedRecipients;
+    private bool _fullSyncHasScopedRecipients;
+    private bool _removedHasScopedRecipients;
 
     //  Clients awaiting a one-shot full-state snapshot (full server-owned state of every networked
     //  entity) on their next publish, in place of that tick's delta. Newly joined clients request it so
@@ -112,7 +112,7 @@ public sealed class NetworkReplicationSystem
     public void RequestDespawn(ulong entityUuid, Uuid excludedRecipientEntity = default)
     {
         _removed.Add(new PendingDespawn(entityUuid, excludedRecipientEntity));
-        _removedHasRecipientFilters |= excludedRecipientEntity != Uuid.Null;
+        _removedHasScopedRecipients |= excludedRecipientEntity != Uuid.Null;
     }
 
     /// <summary>
@@ -302,8 +302,8 @@ public sealed class NetworkReplicationSystem
 
         _pending.Clear();
         _pendingRemovals.Clear();
-        _pendingHasRecipientFilters = false;
-        _pendingRemovalsHasRecipientFilters = false;
+        _pendingHasScopedRecipients = false;
+        _pendingRemovalsHasScopedRecipients = false;
 
         OnTickAction onTick = new() { Owner = this };
         store.Query<NetworkComponent, OnTickAction>(delta, ref onTick);
@@ -313,13 +313,13 @@ public sealed class NetworkReplicationSystem
             return;
         }
 
-        ComponentSnapshot[]? sharedComponents = _pendingHasRecipientFilters
+        ComponentSnapshot[]? sharedComponents = _pendingHasScopedRecipients
             ? null
             : CopySnapshots(_pending, ref _pendingSnapshot);
-        ComponentRemoval[]? sharedRemovals = _pendingRemovalsHasRecipientFilters
+        ComponentRemoval[]? sharedRemovals = _pendingRemovalsHasScopedRecipients
             ? null
             : CopyRemovals(_pendingRemovals, ref _removalSnapshot);
-        ulong[]? sharedRemoved = _removedHasRecipientFilters
+        ulong[]? sharedRemoved = _removedHasScopedRecipients
             ? null
             : CopyDespawns(_removed, ref _removedSnapshot);
 
@@ -329,10 +329,10 @@ public sealed class NetworkReplicationSystem
             //  Read-only snapshot of every server-owned component on every networked entity, regardless
             //  of dirty, for clients that joined after those components were last published.
             _fullSyncPending.Clear();
-            _fullSyncHasRecipientFilters = false;
+            _fullSyncHasScopedRecipients = false;
             CollectFullStateAction collect = new() { Owner = this };
             store.Query<NetworkComponent, CollectFullStateAction>(delta, ref collect);
-            if (!_fullSyncHasRecipientFilters)
+            if (!_fullSyncHasScopedRecipients)
             {
                 sharedFullState = CopySnapshots(_fullSyncPending);
             }
@@ -354,16 +354,16 @@ public sealed class NetworkReplicationSystem
                 continue;
             }
 
-            ReplicationRecipient recipient = ResolveRecipient(store, clientId, out uint lastProcessedInput);
+            Recipient recipient = ResolveRecipient(store, clientId, out uint lastProcessedInput);
 
             ComponentRemoval[] clientRemovals = sharedRemovals
-                ?? FilterRemovals(store, _pendingRemovals, in recipient);
+                ?? FilterRemovals(_pendingRemovals, in recipient);
             ulong[] clientRemoved = sharedRemoved
                 ?? FilterDespawns(_removed, in recipient);
 
             ComponentSnapshot[] clientComponents = isFullSync
-                ? sharedFullState ?? FilterFullSyncSnapshots(store, _fullSyncPending, in recipient)
-                : sharedComponents ?? FilterDeltaSnapshots(store, _pending, in recipient);
+                ? sharedFullState ?? FilterFullSyncSnapshots(_fullSyncPending, in recipient)
+                : sharedComponents ?? FilterDeltaSnapshots(_pending, in recipient);
 
             if (!isFullSync
                 && clientComponents.Length == 0
@@ -395,24 +395,24 @@ public sealed class NetworkReplicationSystem
         _fullSync.Clear();
         _fullSyncPending.Clear();
         _removed.Clear();
-        _removedHasRecipientFilters = false;
+        _removedHasScopedRecipients = false;
         _filteredComponents.Clear();
         _filteredRemovals.Clear();
         _filteredRemoved.Clear();
     }
 
-    private ReplicationRecipient ResolveRecipient(DataStore store, Uuid clientId, out uint lastProcessedInput)
+    private Recipient ResolveRecipient(DataStore store, Uuid clientId, out uint lastProcessedInput)
     {
         lastProcessedInput = 0;
         if (!_sessions.TryGetEntity(clientId, out int sessionEntity) || sessionEntity == Entity.Null)
         {
-            return new ReplicationRecipient(clientId, Entity.Null, Uuid.Null);
+            return new Recipient(Entity.Null, Uuid.Null);
         }
 
         Uuid sessionUuid = store.GetUuid(sessionEntity);
         if (sessionUuid == Uuid.Null)
         {
-            return new ReplicationRecipient(clientId, Entity.Null, Uuid.Null);
+            return new Recipient(Entity.Null, Uuid.Null);
         }
 
         if (store.TryGet(sessionEntity, out NetworkComponent net))
@@ -420,7 +420,7 @@ public sealed class NetworkReplicationSystem
             lastProcessedInput = net.LastAckedInput;
         }
 
-        return new ReplicationRecipient(clientId, sessionEntity, sessionUuid);
+        return new Recipient(sessionEntity, sessionUuid);
     }
 
     private void DrainStreamEnds()
@@ -478,52 +478,40 @@ public sealed class NetworkReplicationSystem
         return true;
     }
 
-    private ComponentSnapshot[] FilterDeltaSnapshots(
-        DataStore store,
-        List<PendingSnapshot> source,
-        in ReplicationRecipient recipient
-    ) {
-        PopulateFilteredSnapshots(store, source, in recipient);
+    private ComponentSnapshot[] FilterDeltaSnapshots(List<PendingSnapshot> source, in Recipient recipient)
+    {
+        PopulateFilteredSnapshots(source, in recipient);
         return ToExactArray(_filteredComponents, ref _filteredComponentSnapshot);
     }
 
-    private ComponentSnapshot[] FilterFullSyncSnapshots(
-        DataStore store,
-        List<PendingSnapshot> source,
-        in ReplicationRecipient recipient
-    ) {
-        PopulateFilteredSnapshots(store, source, in recipient);
+    private ComponentSnapshot[] FilterFullSyncSnapshots(List<PendingSnapshot> source, in Recipient recipient)
+    {
+        PopulateFilteredSnapshots(source, in recipient);
         ComponentSnapshot[] copy = _filteredComponents.Count == 0 ? [] : _filteredComponents.ToArray();
         _filteredComponents.Clear();
         return copy;
     }
 
-    private void PopulateFilteredSnapshots(
-        DataStore store,
-        List<PendingSnapshot> source,
-        in ReplicationRecipient recipient
-    ) {
+    private void PopulateFilteredSnapshots(List<PendingSnapshot> source, in Recipient recipient)
+    {
         _filteredComponents.Clear();
         for (var i = 0; i < source.Count; i++)
         {
             PendingSnapshot entry = source[i];
-            if (AcceptsRecipient(store, entry.Entity, entry.ExcludedRecipientEntity, entry.RecipientFilter, in recipient))
+            if (AcceptsRecipient(entry.Entity, entry.ExcludedRecipientEntity, entry.Audience, in recipient))
             {
                 _filteredComponents.Add(entry.Snapshot);
             }
         }
     }
 
-    private ComponentRemoval[] FilterRemovals(
-        DataStore store,
-        List<PendingRemoval> source,
-        in ReplicationRecipient recipient
-    ) {
+    private ComponentRemoval[] FilterRemovals(List<PendingRemoval> source, in Recipient recipient)
+    {
         _filteredRemovals.Clear();
         for (var i = 0; i < source.Count; i++)
         {
             PendingRemoval entry = source[i];
-            if (AcceptsRecipient(store, entry.Entity, entry.ExcludedRecipientEntity, entry.RecipientFilter, in recipient))
+            if (AcceptsRecipient(entry.Entity, entry.ExcludedRecipientEntity, entry.Audience, in recipient))
             {
                 _filteredRemovals.Add(entry.Removal);
             }
@@ -532,7 +520,7 @@ public sealed class NetworkReplicationSystem
         return ToExactArray(_filteredRemovals, ref _filteredRemovalSnapshot);
     }
 
-    private ulong[] FilterDespawns(List<PendingDespawn> source, in ReplicationRecipient recipient)
+    private ulong[] FilterDespawns(List<PendingDespawn> source, in Recipient recipient)
     {
         _filteredRemoved.Clear();
         for (var i = 0; i < source.Count; i++)
@@ -548,18 +536,22 @@ public sealed class NetworkReplicationSystem
     }
 
     private static bool AcceptsRecipient(
-        DataStore store,
         int entity,
         Uuid excludedRecipientEntity,
-        Func<DataStore, int, ReplicationRecipient, bool>? recipientFilter,
-        in ReplicationRecipient recipient
+        ReplicationAudience audience,
+        in Recipient recipient
     ) {
         if (excludedRecipientEntity != Uuid.Null && excludedRecipientEntity == recipient.EntityUuid)
         {
             return false;
         }
 
-        return recipientFilter == null || recipientFilter(store, entity, recipient);
+        return audience switch
+        {
+            ReplicationAudience.OwnerOnly => recipient.Entity != Entity.Null && entity == recipient.Entity,
+            ReplicationAudience.OthersOnly => entity != recipient.Entity,
+            _ => true,
+        };
     }
 
     private static ComponentSnapshot[] CopySnapshots(List<PendingSnapshot> source, ref ComponentSnapshot[] cache)
@@ -777,12 +769,7 @@ public sealed class NetworkReplicationSystem
                     continue;
                 }
 
-                if (info.ReplicationFilter != null && !info.ReplicationFilter(store, entity))
-                {
-                    continue;
-                }
-
-                bool hasRecipientFilter = excludedRecipient != Uuid.Null || info.RecipientFilter != null;
+                bool hasScopedRecipients = excludedRecipient != Uuid.Null || info.Audience != ReplicationAudience.All;
 
                 //  Removal publishes as a ComponentRemoval when the component no longer exists; the
                 //  dirty flag is cleared for both outcomes, and never both in one tick.
@@ -793,9 +780,9 @@ public sealed class NetworkReplicationSystem
                         new ComponentRemoval(entityUuid.ToValue(), info.Uuid.ToValue()),
                         entity,
                         excludedRecipient,
-                        info.RecipientFilter
+                        info.Audience
                     ));
-                    Owner._pendingRemovalsHasRecipientFilters |= hasRecipientFilter;
+                    Owner._pendingRemovalsHasScopedRecipients |= hasScopedRecipients;
                     continue;
                 }
 
@@ -813,9 +800,9 @@ public sealed class NetworkReplicationSystem
                     new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), serialize.Value),
                     entity,
                     excludedRecipient,
-                    info.RecipientFilter
+                    info.Audience
                 ));
-                Owner._pendingHasRecipientFilters |= hasRecipientFilter;
+                Owner._pendingHasScopedRecipients |= hasScopedRecipients;
             }
         }
     }
@@ -840,11 +827,6 @@ public sealed class NetworkReplicationSystem
             //  so the boxing is bounded by joins, not by the per-tick hot path.
             foreach (NetworkComponentInfo info in Owner._serverOwnedComponents)
             {
-                if (info.ReplicationFilter != null && !info.ReplicationFilter(store, entity))
-                {
-                    continue;
-                }
-
                 if (!Contains(present, info.Type))
                 {
                     continue;
@@ -857,9 +839,9 @@ public sealed class NetworkReplicationSystem
                         new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), serialize.Value),
                         entity,
                         excludedRecipient,
-                        info.RecipientFilter
+                        info.Audience
                     ));
-                    Owner._fullSyncHasRecipientFilters |= excludedRecipient != Uuid.Null || info.RecipientFilter != null;
+                    Owner._fullSyncHasScopedRecipients |= excludedRecipient != Uuid.Null || info.Audience != ReplicationAudience.All;
                 }
             }
         }
@@ -878,18 +860,20 @@ public sealed class NetworkReplicationSystem
         }
     }
 
+    private readonly record struct Recipient(int Entity, Uuid EntityUuid);
+
     private readonly record struct PendingSnapshot(
         ComponentSnapshot Snapshot,
         int Entity,
         Uuid ExcludedRecipientEntity,
-        Func<DataStore, int, ReplicationRecipient, bool>? RecipientFilter
+        ReplicationAudience Audience
     );
 
     private readonly record struct PendingRemoval(
         ComponentRemoval Removal,
         int Entity,
         Uuid ExcludedRecipientEntity,
-        Func<DataStore, int, ReplicationRecipient, bool>? RecipientFilter
+        ReplicationAudience Audience
     );
 
     private readonly record struct PendingDespawn(
