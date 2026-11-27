@@ -663,6 +663,23 @@ public sealed class WorkspaceValidator
         {
             ValidateModelDefinition(workspace, in asset, doc, "Items.WorldModel", "WorldModel", item.WorldModel.Value, ValidationSeverity.Informational, findings);
         }
+
+        if (item.Tool.HasValue && item.Tool.Value.MiningSpeed.HasValue)
+        {
+            float speed = item.Tool.Value.MiningSpeed.Value;
+            if (!float.IsFinite(speed) || speed <= 0f)
+            {
+                TomlFieldSpan? speedField = FindEntryField(doc, asset.Provenance.TableIndex, "MiningSpeed", "Items.Tool");
+                AddFieldFinding(
+                    findings,
+                    "TOOL001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    speedField,
+                    "Tool.MiningSpeed",
+                    $"Invalid tool MiningSpeed '{speed}'. Expected a finite positive number.");
+            }
+        }
     }
 
     private static void ValidateModelDefinition(
@@ -696,6 +713,19 @@ public sealed class WorkspaceValidator
         if (!string.IsNullOrWhiteSpace(brick.Mesh))
         {
             ValidateMeshReference(workspace, in asset, doc, null, "Mesh", "Mesh", brick.Mesh, ValidationSeverity.Broken, findings);
+        }
+
+        if (brick.Hardness.HasValue && (!float.IsFinite(brick.Hardness.Value) || brick.Hardness.Value < 0f))
+        {
+            TomlFieldSpan? hardnessField = FindEntryField(doc, asset.Provenance.TableIndex, "Hardness");
+            AddFieldFinding(
+                findings,
+                "BRICK001",
+                ValidationSeverity.Broken,
+                in asset,
+                hardnessField,
+                "Hardness",
+                $"Invalid brick Hardness '{brick.Hardness.Value}'. Expected a finite non-negative number.");
         }
 
         if (!string.IsNullOrWhiteSpace(brick.Color) && !IsStrictSixDigitHexRgb(brick.Color))

@@ -13,6 +13,9 @@ public interface IInteractionHandlerRegistry
     /// <summary>Runs every stage for one interaction, stopping on <c>Consume</c> or <c>Cancel</c>.</summary>
     InteractionRunResult Run(ref InteractionContext context);
 
+    /// <summary>Runs an inclusive stage slice for one interaction, stopping on <c>Consume</c> or <c>Cancel</c>.</summary>
+    InteractionRunResult Run(ref InteractionContext context, InteractionStage startStage, InteractionStage endStage);
+
     /// <summary>The handlers in one stage, ordered by priority and then DI registration order.</summary>
     IReadOnlyList<IInteractionHandler> GetHandlers(InteractionStage stage);
 }

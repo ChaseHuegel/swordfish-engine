@@ -22,6 +22,7 @@ using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Extensions;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.Shortcuts;
 using WaywardBeyond.Client.UI;
@@ -32,6 +33,7 @@ using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Items;
+using WaywardBeyond.Skills;
 using WaywardBeyond.Voxels;
 
 using WaywardBeyond.Client.Voxels.Processing;
@@ -89,11 +91,15 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly EventInvoker<BreakEvent> _breakEvent;
     private readonly EventInvoker<BrickEvent> _brickEvent;
     private readonly EventInvoker<PaintFaceEvent>? _paintFaceEvent;
+    private readonly ISkillDatabase? _skillDatabase;
+    private readonly ActiveCharacterSave? _activeCharacterSave;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly NotificationService _notificationService;
     private readonly ILocalization _localization;
 
     private uint _interactionSequence;
+    private BreakHoldSession _activeBreakHold;
+    private bool _hasActiveBreakHold;
 
     //  Press edges are pushed here from shortcut callbacks and drained on the ECS thread in Tick,
     //  because every interaction path (resolution + store mutation + VoxelObject/Rebuild + SFX hooks)
@@ -134,7 +140,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in ILocalization localization,
         IPaintDatabase? paintDatabase = null,
         IPaintRegistry? paintRegistry = null,
-        EventInvoker<PaintFaceEvent>? paintFaceEvent = null
+        EventInvoker<PaintFaceEvent>? paintFaceEvent = null,
+        ISkillDatabase? skillDatabase = null,
+        ActiveCharacterSave? activeCharacterSave = null
     ) {
         _interactionState = interactionState;
         _brickPreviewState = brickPreviewState;
@@ -156,6 +164,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _breakEvent = breakEvent;
         _brickEvent = brickEvent;
         _paintFaceEvent = paintFaceEvent;
+        _skillDatabase = skillDatabase;
+        _activeCharacterSave = activeCharacterSave;
         _snapshotAck = snapshotAck;
         _notificationService = notificationService;
         _localization = localization;
@@ -251,6 +261,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     public void Tick(float delta, DataStore store)
     {
         _store = store;
+        bool adventureTimedBreak = IsAdventureTimedBreakMode(store, out int playerEntity, out GameMode mode, out int activeSlot, out string? heldItemId);
+
         while (_pendingTriggers.TryDequeue(out InteractionTrigger trigger))
         {
             MouseButton button = trigger switch
@@ -259,11 +271,28 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
                 InteractionTrigger.Secondary => MouseButton.Right,
                 _ => MouseButton.Middle,
             };
+
+            if (button == MouseButton.Left && adventureTimedBreak)
+            {
+                _primaryRepeat.Advance(0f, eligible: false);
+                continue;
+            }
+
             DispatchButton(button, InteractionSource.Press);
             BeginRepeat(button);
         }
 
-        AdvanceRepeat(_primaryRepeat, GameShortcuts.PRIMARY_ACTION, MouseButton.Left, delta);
+        if (adventureTimedBreak && heldItemId != null)
+        {
+            _primaryRepeat.Advance(0f, eligible: false);
+            UpdateAdventureBreakHold(delta, store, playerEntity, mode, activeSlot, heldItemId);
+        }
+        else
+        {
+            CancelAdventureBreakHold(store, playerEntity);
+            AdvanceRepeat(_primaryRepeat, GameShortcuts.PRIMARY_ACTION, MouseButton.Left, delta);
+        }
+
         AdvanceRepeat(_secondaryRepeat, GameShortcuts.SECONDARY_ACTION, MouseButton.Right, delta);
 
         if (_debugSettings.OverlayVisible)
@@ -806,6 +835,225 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         return new PendingInteractionComponent(new PendingInteractionQueue());
+    }
+
+    private bool IsAdventureTimedBreakMode(
+        DataStore store,
+        out int playerEntity,
+        out GameMode mode,
+        out int activeSlot,
+        out string? heldItemId
+    ) {
+        playerEntity = FindPlayerEntity(store);
+        mode = GameMode.Creative;
+        activeSlot = -1;
+        heldItemId = null;
+
+        if (playerEntity < 0 || !IsGameplayActionEnabled())
+        {
+            return false;
+        }
+
+        if (store.TryGet(playerEntity, out GameModeComponent gameModeComponent))
+        {
+            mode = gameModeComponent.Mode;
+        }
+
+        if (mode != GameMode.Adventure)
+        {
+            return false;
+        }
+
+        if (store.TryGet(playerEntity, out EquipmentComponent equipment))
+        {
+            activeSlot = equipment.ActiveInventorySlot;
+        }
+
+        heldItemId = GetHeldItemID(store, playerEntity);
+        if (string.IsNullOrEmpty(heldItemId) || ResolveHeldPlaceable(heldItemId) != null)
+        {
+            return false;
+        }
+
+        Item? heldItem = GetHeldItem(heldItemId);
+        return heldItem?.Tool?.Type == ToolType.Mining;
+    }
+
+    private void UpdateAdventureBreakHold(
+        float delta,
+        DataStore store,
+        int playerEntity,
+        GameMode mode,
+        int activeSlot,
+        string heldItemId
+    ) {
+        if (!_shortcutService.IsHeld(GameShortcuts.PRIMARY_ACTION))
+        {
+            CancelAdventureBreakHold(store, playerEntity);
+            return;
+        }
+
+        var world = new ClientVoxelInteractionWorld(store, _physics);
+        if (!TryGetBrickFromScreenSpace(
+            offset: false,
+            reachAround: true,
+            out Entity entity,
+            out Voxel targetVoxel,
+            out Int3 coordinate,
+            out _,
+            out TransformComponent targetTransform,
+            out Vector3 clickedPoint,
+            out _))
+        {
+            CancelAdventureBreakHold(store, playerEntity);
+            return;
+        }
+
+        BrickInteraction hint = BuildInteractionHint(
+            isPlace: false,
+            placeable: null,
+            store,
+            coordinate,
+            entity.Ptr,
+            in targetTransform,
+            clickedPoint);
+
+        Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
+        var request = new InteractionRequest(origin, hint, InteractionKind.PrimaryPressed, null, mode, CharacterDefaults.DEFAULT_REACH);
+        InteractionResolution resolution = InteractionResolver.Resolve(in request, world, _brickRegistry);
+        if (resolution.Action != InteractionAction.Break || targetVoxel.ID == 0)
+        {
+            CancelAdventureBreakHold(store, playerEntity);
+            return;
+        }
+
+        Uuid targetUuid = store.GetUuid(resolution.Entity);
+        ushort brickDataId = resolution.Voxel.ID;
+        float requiredDuration = ResolveClientBreakDuration(brickDataId, heldItemId);
+
+        if (!_hasActiveBreakHold || !MatchesActiveBreakHold(in _activeBreakHold, targetUuid, in resolution.Coordinate, brickDataId, activeSlot, heldItemId))
+        {
+            _hasActiveBreakHold = true;
+            _activeBreakHold = new BreakHoldSession
+            {
+                TargetEntityUuid = targetUuid,
+                TargetCoord = resolution.Coordinate,
+                TargetBrickDataId = brickDataId,
+                ActiveSlot = activeSlot,
+                HeldItemId = heldItemId,
+                Elapsed = 0f,
+                RequiredDuration = requiredDuration,
+                InteractionSent = true,
+                Completed = false,
+            };
+            StageInteractionEvent(store, playerEntity, InteractionKind.PrimaryPressed, hint);
+        }
+
+        if (_activeBreakHold.Completed)
+        {
+            SetBreakProgress(1f);
+            return;
+        }
+
+        float validDelta = float.IsFinite(delta) && delta > 0f ? delta : 0f;
+        _activeBreakHold.Elapsed += validDelta;
+        _activeBreakHold.RequiredDuration = requiredDuration;
+        float progress = BreakDuration.NormalizeProgress(_activeBreakHold.Elapsed, requiredDuration);
+        _activeBreakHold.Completed = BreakDuration.IsComplete(_activeBreakHold.Elapsed, requiredDuration);
+        SetBreakProgress(progress);
+    }
+
+    private void CancelAdventureBreakHold(DataStore store, int playerEntity)
+    {
+        if (!_hasActiveBreakHold)
+        {
+            SetBreakProgress(0f);
+            return;
+        }
+
+        if (_activeBreakHold.InteractionSent && playerEntity >= 0)
+        {
+            StageInteractionEvent(store, playerEntity, InteractionKind.PrimaryReleased, hint: null);
+        }
+
+        _hasActiveBreakHold = false;
+        _activeBreakHold = default;
+        SetBreakProgress(0f);
+    }
+
+    private void StageInteractionEvent(DataStore store, int playerEntity, InteractionKind kind, BrickInteraction? hint)
+    {
+        PendingInteractionComponent pending = GetOrCreatePending(store, playerEntity);
+        uint sequence = ++_interactionSequence;
+        uint serverTickAtSample = _snapshotAck.LastAppliedSnapshotTick;
+
+        var interaction = new InteractionEvent
+        {
+            Entity = store.GetUuid(playerEntity).ToValue(),
+            SequenceNumber = sequence,
+            ServerTickAtSample = serverTickAtSample,
+            Kind = kind,
+            Brick = hint,
+        };
+
+        pending.Outbound.Stage(interaction);
+        store.AddOrUpdate(playerEntity, pending);
+    }
+
+    private float ResolveClientBreakDuration(ushort brickDataId, string heldItemId)
+    {
+        Statistic[]? statistics = _activeCharacterSave?.ActiveSave?.Statistics;
+        return BreakDuration.ResolveBreakDuration(_brickDatabase, _itemDatabase, _skillDatabase, brickDataId, heldItemId, statistics);
+    }
+
+    private void SetBreakProgress(float progress)
+    {
+        _interactionState.BreakProgress.Set(progress);
+    }
+
+    private static bool MatchesActiveBreakHold(
+        in BreakHoldSession session,
+        Uuid targetUuid,
+        in Int3 coord,
+        ushort brickDataId,
+        int activeSlot,
+        string heldItemId
+    ) {
+        return session.TargetEntityUuid == targetUuid &&
+            session.TargetCoord == coord &&
+            session.TargetBrickDataId == brickDataId &&
+            session.ActiveSlot == activeSlot &&
+            string.Equals(session.HeldItemId, heldItemId, StringComparison.Ordinal);
+    }
+
+    private static int FindPlayerEntity(DataStore store)
+    {
+        PlayerLookupQuery query = new() { Entity = -1 };
+        store.Query<PlayerComponent, PlayerLookupQuery>(0f, ref query);
+        return query.Entity;
+    }
+
+    private struct BreakHoldSession
+    {
+        public Uuid TargetEntityUuid;
+        public Int3 TargetCoord;
+        public ushort TargetBrickDataId;
+        public int ActiveSlot;
+        public string HeldItemId;
+        public float Elapsed;
+        public float RequiredDuration;
+        public bool InteractionSent;
+        public bool Completed;
+    }
+
+    private struct PlayerLookupQuery : IForEach<PlayerComponent>
+    {
+        public int Entity;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
+        {
+            Entity = entity;
+        }
     }
 
     private static string? GetHeldItemID(DataStore store, int playerEntity)

@@ -9,6 +9,9 @@ namespace WaywardBeyond.Server.Components;
 /// </summary>
 public readonly struct SkillStateComponent(Dictionary<string, long> xpBySkillId) : IDataComponent
 {
+    /// <summary>The underlying per-skill XP totals keyed by skill id, or null on a default instance.</summary>
+    public IReadOnlyDictionary<string, long>? XPBySkill => xpBySkillId;
+
     /// <summary>Gets the total XP recorded for a skill, or 0 when none is recorded.</summary>
     public long GetXP(string skillID)
     {

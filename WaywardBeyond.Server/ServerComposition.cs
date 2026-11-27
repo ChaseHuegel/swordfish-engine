@@ -105,7 +105,10 @@ public static class ServerComposition
                 Arg.Of<ILogger<ServerInteractionSystem>>(),
                 Arg.Of<IInteractionHandlerRegistry>(),
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
-                Arg.Of<SimulationStep>()
+                Arg.Of<SimulationStep>(),
+                Arg.Of<IBrickDatabase>(),
+                Arg.Of<IItemDatabase>(),
+                Arg.Of<ISkillDatabase>()
             ))
         );
         container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));

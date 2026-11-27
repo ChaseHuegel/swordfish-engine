@@ -1,0 +1,1423 @@
+#nullable enable
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Numerics;
+using System.Threading.Tasks;
+using DryIoc;
+using Krill;
+using Microsoft.Extensions.Logging.Abstractions;
+using NsdRpc;
+using Swordfish.ECS;
+using Swordfish.Graphics;
+using Swordfish.Graphics.Particles;
+using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Library.Collections;
+using Swordfish.Library.Events;
+using Swordfish.Library.Globalization;
+using Swordfish.Library.IO;
+using Swordfish.Library.Serialization.Toml;
+using Swordfish.Library.Types;
+using Swordfish.Library.Util;
+using Swordfish.Physics;
+using Swordfish.Tests;
+using WaywardBeyond.Bricks;
+using WaywardBeyond.Client;
+using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Configuration;
+using WaywardBeyond.Client.Events;
+using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Client.Player;
+using WaywardBeyond.Client.Saves;
+using WaywardBeyond.Client.Services;
+using WaywardBeyond.Client.Shortcuts;
+using WaywardBeyond.Client.Statistics;
+using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.UI;
+using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Client.Voxels.Processing;
+using WaywardBeyond.Config;
+using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Levels;
+using WaywardBeyond.Data.Localization;
+using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Gameplay.Networking;
+using WaywardBeyond.Items;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Permissions;
+using WaywardBeyond.Server;
+using WaywardBeyond.Server.Components;
+using WaywardBeyond.Server.Interactions;
+using WaywardBeyond.Server.Particles;
+using WaywardBeyond.Server.Permissions;
+using WaywardBeyond.Server.Saves;
+using WaywardBeyond.Server.Systems;
+using WaywardBeyond.Skills;
+using WaywardBeyond.Voxels;
+using Xunit;
+using WaywardBeyondClient = WaywardBeyond.Client.WaywardBeyond;
+
+namespace WaywardBeyond.Tests;
+
+/// <summary>Tests Adventure Mode timed brick breaking, duration math, server validation, client progress, and laser visuals.</summary>
+[Collection("ClientGameState")]
+public class TimedBrickBreakingTests
+{
+    private const string ROCK_BRICK_ID = "wb:rock";
+    private const string PANEL_BRICK_ID = "wb:panel";
+    private const string LASER_ITEM_ID = "wb:laser";
+    private const string FAST_LASER_ITEM_ID = "wb:fast_laser";
+
+    [Fact]
+    public void BrickDatabase_LoadsHardness_DefaultsZeroAndInvalidFallback()
+    {
+        using TempAssetDir temp = new();
+        temp.WriteBricks("""
+            [[Bricks]]
+            ID = "wb:default_brick"
+
+            [[Bricks]]
+            ID = "wb:hard_brick"
+            Hardness = 2.75
+
+            [[Bricks]]
+            ID = "wb:fragile_brick"
+            Hardness = 0.0
+
+            [[Bricks]]
+            ID = "wb:negative_brick"
+            Hardness = -3.0
+
+            [[Bricks]]
+            ID = "wb:nan_brick"
+            Hardness = nan
+
+            [[Bricks]]
+            ID = "wb:inf_brick"
+            Hardness = inf
+            """);
+
+        BrickDatabase db = temp.LoadBricks();
+
+        Assert.Equal(Brick.DEFAULT_HARDNESS, db.Get("wb:default_brick").Value.Hardness);
+        Assert.Equal(2.75f, db.Get("wb:hard_brick").Value.Hardness);
+        Assert.Equal(0f, db.Get("wb:fragile_brick").Value.Hardness);
+        Assert.Equal(Brick.DEFAULT_HARDNESS, db.Get("wb:negative_brick").Value.Hardness);
+        Assert.Equal(Brick.DEFAULT_HARDNESS, db.Get("wb:nan_brick").Value.Hardness);
+        Assert.Equal(Brick.DEFAULT_HARDNESS, db.Get("wb:inf_brick").Value.Hardness);
+
+        Assert.Equal(Brick.DEFAULT_HARDNESS, Brick.ResolveHardness(-1f));
+        Assert.Equal(Brick.DEFAULT_HARDNESS, Brick.ResolveHardness(float.NaN));
+        Assert.Equal(Brick.DEFAULT_HARDNESS, Brick.ResolveHardness(float.PositiveInfinity));
+        Assert.Equal(0f, Brick.ResolveHardness(0f));
+    }
+
+    [Fact]
+    public void ItemDatabase_LoadsMiningSpeed_DefaultsAndInvalidFallback()
+    {
+        using TempAssetDir temp = new();
+        temp.WriteItems("""
+            [[Items]]
+            ID = "wb:laser_default"
+            Name = "item.default"
+            [Items.Tool]
+            Type = "Mining"
+
+            [[Items]]
+            ID = "wb:laser_fast"
+            Name = "item.fast"
+            [Items.Tool]
+            Type = "Mining"
+            MiningSpeed = 2.5
+
+            [[Items]]
+            ID = "wb:convert_tool"
+            Name = "item.convert"
+            [Items.Tool]
+            Type = "Convert"
+            MiningSpeed = 1.75
+
+            [[Items]]
+            ID = "wb:laser_zero"
+            Name = "item.zero"
+            [Items.Tool]
+            Type = "Mining"
+            MiningSpeed = 0.0
+
+            [[Items]]
+            ID = "wb:laser_negative"
+            Name = "item.negative"
+            [Items.Tool]
+            Type = "Mining"
+            MiningSpeed = -1.5
+
+            [[Items]]
+            ID = "wb:laser_inf"
+            Name = "item.inf"
+            [Items.Tool]
+            Type = "Mining"
+            MiningSpeed = inf
+            """);
+
+        ItemDatabase db = temp.LoadItems();
+
+        Assert.Equal(ToolDefinition.DEFAULT_MINING_SPEED, db.Get("wb:laser_default").Value.Tool!.Value.ResolveMiningSpeed());
+        Assert.Equal(2.5f, db.Get("wb:laser_fast").Value.Tool!.Value.ResolveMiningSpeed());
+        Assert.Equal(1.75f, db.Get("wb:convert_tool").Value.Tool!.Value.ResolveMiningSpeed());
+        Assert.Equal(ToolDefinition.DEFAULT_MINING_SPEED, db.Get("wb:laser_zero").Value.Tool!.Value.ResolveMiningSpeed());
+        Assert.Equal(ToolDefinition.DEFAULT_MINING_SPEED, db.Get("wb:laser_negative").Value.Tool!.Value.ResolveMiningSpeed());
+        Assert.Equal(ToolDefinition.DEFAULT_MINING_SPEED, db.Get("wb:laser_inf").Value.Tool!.Value.ResolveMiningSpeed());
+    }
+
+    [Fact]
+    public void CalculateBreakDuration_ComputesFormulaAndGuardsEdgeCases()
+    {
+        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, 1.0f, 0), precision: 5);
+        Assert.Equal(1.0f, BreakDuration.CalculateBreakDuration(3.0f, 1.5f, 50), precision: 5);
+        Assert.Equal(0f, BreakDuration.CalculateBreakDuration(0f, 1.5f, 10));
+
+        //  Zero/negative/non-finite divisors fall back safely to DEFAULT_MINING_SPEED (1.0f).
+        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, 0f, 0), precision: 5);
+        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, -4f, 0), precision: 5);
+        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, float.NaN, 0), precision: 5);
+        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, float.PositiveInfinity, 0), precision: 5);
+
+        //  Negative/non-finite hardness falls back to DEFAULT_HARDNESS (1.0f).
+        Assert.Equal(0.5f, BreakDuration.CalculateBreakDuration(-1f, 2.0f, 0), precision: 5);
+        Assert.Equal(0.5f, BreakDuration.CalculateBreakDuration(float.NaN, 2.0f, 0), precision: 5);
+        Assert.Equal(0.5f, BreakDuration.CalculateBreakDuration(float.PositiveInfinity, 2.0f, 0), precision: 5);
+
+        //  Negative skill level clamps to 0.
+        Assert.Equal(2.0f, BreakDuration.CalculateBreakDuration(2.0f, 1.0f, -20), precision: 5);
+
+        //  Float accumulation drift tolerance completes at target without triggering early.
+        var accumulated = 0f;
+        for (var i = 0; i < 49; i++)
+        {
+            accumulated += 0.02f;
+        }
+        Assert.False(BreakDuration.IsComplete(accumulated, 1.0f));
+        accumulated += 0.02f;
+        Assert.True(BreakDuration.IsComplete(accumulated, 1.0f));
+
+        //  Mining skill accelerates environment bricks and Salvaging skill accelerates manufactured bricks.
+        using ServerHarness harness = new(GameMode.Adventure, rockHardness: 2.0f, panelHardness: 2.0f, laserSpeed: 1.0f, fastLaserSpeed: 2.0f);
+        var miningXp = new Dictionary<string, long> { ["mining"] = 10_000 };
+        int miningLevel = harness.Skills.Get("mining").Value.CalculateLevel(10_000).Level;
+        Assert.True(miningLevel > 0);
+
+        float rockWithSkill = BreakDuration.ResolveBreakDuration(
+            harness.Bricks,
+            harness.Items,
+            harness.Skills,
+            harness.RockId,
+            LASER_ITEM_ID,
+            miningXp);
+        float panelWithOnlyMiningXp = BreakDuration.ResolveBreakDuration(
+            harness.Bricks,
+            harness.Items,
+            harness.Skills,
+            harness.PanelId,
+            LASER_ITEM_ID,
+            miningXp);
+
+        Assert.Equal(BreakDuration.CalculateBreakDuration(2.0f, 1.0f, miningLevel), rockWithSkill, precision: 5);
+        Assert.Equal(2.0f, panelWithOnlyMiningXp, precision: 5);
+    }
+
+    [Fact]
+    public void ServerInteractionSystem_CreativeMode_PreservesInstantBreak()
+    {
+        using ServerHarness harness = new(GameMode.Creative, rockHardness: 5.0f, panelHardness: 1.0f, laserSpeed: 1.0f, fastLaserSpeed: 2.0f);
+        harness.SetHeldSlot(0, LASER_ITEM_ID);
+        harness.SetPrimaryHeld(false);
+
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+        harness.TickServer(0.016f);
+
+        Assert.Equal((ushort)0, harness.GetVoxel(0, 0, -4).ID);
+        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.Equal(0, harness.GetInventoryCount(ROCK_BRICK_ID));
+    }
+
+    [Fact]
+    public void ServerInteractionSystem_AdventureMode_CompletesTimedHoldAndGrantsLootAndXp()
+    {
+        using ServerHarness harness = new(GameMode.Adventure, rockHardness: 2.0f, panelHardness: 2.0f, laserSpeed: 1.0f, fastLaserSpeed: 2.0f);
+        harness.SetHeldSlot(0, LASER_ITEM_ID);
+        harness.SetPrimaryHeld(true);
+
+        //  Single PrimaryPressed starts the timed hold; zero additional interaction events are sent mid-hold.
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+        for (var i = 0; i < 10; i++)
+        {
+            harness.TickServer(0.1f);
+        }
+
+        Assert.Equal(harness.RockId, harness.GetVoxel(0, 0, -4).ID);
+        Result<ServerInteractionSystem.BreakSessionState> midSession = harness.Interactions.GetBreakSession(harness.PlayerUuid);
+        Assert.True(midSession.Success);
+        Assert.Equal(1.0f, midSession.Value.Elapsed, precision: 3);
+        Assert.Equal(2.0f, midSession.Value.RequiredDuration, precision: 3);
+        Assert.Equal(0.5f, midSession.Value.Progress, precision: 3);
+        Assert.Equal(0, harness.GetInventoryCount(ROCK_BRICK_ID));
+        Assert.Equal(0, harness.GetSkillXp("mining"));
+
+        for (var i = 0; i < 10; i++)
+        {
+            harness.TickServer(0.1f);
+        }
+
+        Assert.Equal((ushort)0, harness.GetVoxel(0, 0, -4).ID);
+        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.Equal(1, harness.GetInventoryCount(ROCK_BRICK_ID));
+        Assert.True(harness.GetSkillXp("mining") > 0);
+    }
+
+    [Fact]
+    public void ServerInteractionSystem_AdventureMode_AppliesToolSpeedAndSkillScaling()
+    {
+        using ServerHarness harness = new(GameMode.Adventure, rockHardness: 3.0f, panelHardness: 2.0f, laserSpeed: 1.0f, fastLaserSpeed: 2.0f);
+        harness.SetHeldSlot(0, FAST_LASER_ITEM_ID);
+        harness.SetSkillXp("mining", 200_000);
+        int level = harness.Skills.Get("mining").Value.CalculateLevel(200_000).Level;
+        float expectedDuration = BreakDuration.CalculateBreakDuration(3.0f, 2.0f, level);
+        Assert.True(expectedDuration < 1.5f);
+
+        harness.SetPrimaryHeld(true);
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+
+        harness.TickServer(expectedDuration * 0.5f);
+        Assert.Equal(harness.RockId, harness.GetVoxel(0, 0, -4).ID);
+
+        harness.TickServer(expectedDuration * 0.6f);
+        Assert.Equal((ushort)0, harness.GetVoxel(0, 0, -4).ID);
+    }
+
+    [Fact]
+    public void ServerInteractionSystem_AdventureMode_ResetsOnReleaseRetargetSlotSwitchAndOutOfReach()
+    {
+        using ServerHarness harness = new(GameMode.Adventure, rockHardness: 2.0f, panelHardness: 2.0f, laserSpeed: 1.0f, fastLaserSpeed: 2.0f);
+        harness.SetHeldSlot(0, LASER_ITEM_ID);
+        harness.SetHeldSlot(1, FAST_LASER_ITEM_ID);
+        harness.SetActiveSlot(0);
+
+        //  1. Tap without PrimaryHeld does not start a session or break.
+        harness.SetPrimaryHeld(false);
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+        harness.TickServer(0.5f);
+        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.Equal(harness.RockId, harness.GetVoxel(0, 0, -4).ID);
+
+        //  2. Release resets accumulated progress so re-holding requires full duration again.
+        harness.SetPrimaryHeld(true);
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+        harness.TickServer(1.2f);
+        Assert.True(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+
+        harness.SetPrimaryHeld(false);
+        harness.TickServer(0.1f);
+        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+
+        harness.SetPrimaryHeld(true);
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+        harness.TickServer(1.2f);
+        Assert.Equal(harness.RockId, harness.GetVoxel(0, 0, -4).ID);
+
+        //  3. Retargeting to another voxel resets progress to 0 for the new target.
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(1, 0, -4));
+        harness.TickServer(0.25f);
+        Result<ServerInteractionSystem.BreakSessionState> retargeted = harness.Interactions.GetBreakSession(harness.PlayerUuid);
+        Assert.True(retargeted.Success);
+        Assert.Equal(new Int3(1, 0, -4), retargeted.Value.TargetCoord);
+        Assert.Equal(0.25f, retargeted.Value.Elapsed, precision: 3);
+
+        //  4. Switching hotbar slot (even to another mining tool) resets progress immediately.
+        harness.SetActiveSlot(1);
+        harness.TickServer(0.1f);
+        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+
+        //  5. Moving out of DEFAULT_REACH resets progress immediately.
+        harness.SetActiveSlot(0);
+        harness.StageInteraction(InteractionKind.PrimaryPressed, harness.StructureUuid, new Int3(0, 0, -4));
+        harness.TickServer(0.5f);
+        Assert.True(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+
+        harness.SetPlayerPosition(new Vector3(0f, 0f, 15f));
+        harness.TickServer(0.1f);
+        Assert.False(harness.Interactions.GetBreakSession(harness.PlayerUuid).Success);
+        Assert.Equal(harness.RockId, harness.GetVoxel(0, 0, -4).ID);
+    }
+
+    [Fact]
+    public void PlayerInteractionService_AdventureMode_TracksProgressWithoutChatterAndResets()
+    {
+        GameState previous = WaywardBeyondClient.GameState.Get();
+        WaywardBeyondClient.GameState.Set(GameState.Playing);
+        try
+        {
+            using ClientHarness harness = new(GameMode.Adventure, rockHardness: 2.0f, laserSpeed: 1.0f);
+            harness.SetSkillXp("mining", 0);
+
+            //  Press and hold LMB on brick at (0, 0, -4).
+            harness.SetPrimaryHeld(true, firePressTrigger: true);
+            for (var i = 0; i < 4; i++)
+            {
+                harness.TickClient(0.25f);
+            }
+
+            Assert.Equal(0.5f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+            Assert.Equal(harness.RockId, harness.Voxels.Get(0, 0, -4).ID);
+            Assert.Empty(harness.BreakEvents);
+            Assert.Single(harness.StagedEvents, e => e.Kind == InteractionKind.PrimaryPressed);
+
+            //  Retargeting to (1, 0, -4) resets progress to the new brick's elapsed duration and sends one PrimaryPressed.
+            harness.SetRaycastTarget(new Int3(1, 0, -4));
+            harness.TickClient(0.25f);
+            Assert.Equal(0.125f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+            Assert.Equal(2, harness.CountStaged(InteractionKind.PrimaryPressed));
+
+            //  Moving out of DEFAULT_REACH cancels hold, stages PrimaryReleased, and resets progress to 0.
+            harness.SetPlayerPosition(new Vector3(0f, 0f, 16f));
+            harness.TickClient(0.25f);
+            Assert.Equal(0f, harness.InteractionState.BreakProgress.Get());
+            Assert.Equal(1, harness.CountStaged(InteractionKind.PrimaryReleased));
+
+            //  Move back in reach, hold halfway, then switch hotbar slot -> resets progress to 0 and emits PrimaryReleased.
+            harness.SetPlayerPosition(Vector3.Zero);
+            harness.SetRaycastTarget(new Int3(0, 0, -4));
+            harness.TickClient(0.5f);
+            Assert.Equal(0.25f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+
+            harness.SetActiveSlot(1);
+            harness.TickClient(0.1f);
+            Assert.Equal(0f, harness.InteractionState.BreakProgress.Get());
+            Assert.Equal(2, harness.CountStaged(InteractionKind.PrimaryReleased));
+
+            //  Switch back to mining tool, advance halfway, then replace voxel underneath -> resets progress for new brick.
+            harness.SetActiveSlot(0);
+            harness.TickClient(0.5f);
+            Assert.Equal(0.25f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+
+            ushort panelId = harness.Bricks.Id(PANEL_BRICK_ID);
+            harness.Voxels.Set(0, 0, -4, new Voxel(panelId, new ShapeLight(BrickShape.Block, 0), 0));
+            harness.TickClient(0.2f);
+            Assert.Equal(0.1f, harness.InteractionState.BreakProgress.Get(), precision: 3);
+
+            //  Releasing LMB resets progress to 0 and emits PrimaryReleased.
+            harness.SetPrimaryHeld(false);
+            harness.TickClient(0.1f);
+            Assert.Equal(0f, harness.InteractionState.BreakProgress.Get());
+            Assert.Equal(3, harness.CountStaged(InteractionKind.PrimaryReleased));
+
+            //  Switching to Creative preserves instant predictive break and keeps BreakProgress at 0.
+            harness.Voxels.Set(0, 0, -4, new Voxel(harness.RockId, new ShapeLight(BrickShape.Block, 0), 0));
+            harness.SetGameMode(GameMode.Creative);
+            harness.SetPrimaryHeld(true, firePressTrigger: true);
+            harness.TickClient(0.016f);
+            Assert.Equal((ushort)0, harness.Voxels.Get(0, 0, -4).ID);
+            Assert.Single(harness.BreakEvents);
+            Assert.Equal(0f, harness.InteractionState.BreakProgress.Get());
+        }
+        finally
+        {
+            WaywardBeyondClient.GameState.Set(previous);
+        }
+    }
+
+    [Fact]
+    public void AdventureTimedBreaking_MaintainsBeamAndImpactSparksDuringHold_AndEmitsBreakBurstOnCompletion()
+    {
+        GameState previous = WaywardBeyondClient.GameState.Get();
+        WaywardBeyondClient.GameState.Set(GameState.Playing);
+        try
+        {
+            using EndToEndBreakHarness harness = new(rockHardness: 1.0f, laserSpeed: 1.0f);
+            harness.StartHold();
+
+            //  Mid-hold: server beam component and client beam/impact emitter remain active continuously.
+            for (var i = 0; i < 4; i++)
+            {
+                harness.TickBoth(0.1f);
+                Assert.True(harness.ServerHasActiveBeam());
+                Assert.True(harness.ClientHasActiveBeamAndImpact());
+                Assert.Empty(harness.Particles.Bursts);
+            }
+
+            //  Finish hold: server commits removal, client reconciles edit, receives skill update, and fires break spark burst.
+            for (var i = 0; i < 6; i++)
+            {
+                harness.TickBoth(0.1f);
+            }
+
+            Assert.Equal((ushort)0, harness.ServerVoxels.Get(0, 0, -4).ID);
+            Assert.Equal((ushort)0, harness.ClientVoxels.Get(0, 0, -4).ID);
+            Assert.Contains(harness.Particles.Bursts, burst => burst.EffectId == "mining_laser_break");
+            Assert.Contains(harness.SkillUpdates, update => update.SkillId == "mining" && update.GainedXP > 0);
+        }
+        finally
+        {
+            WaywardBeyondClient.GameState.Set(previous);
+        }
+    }
+
+    private sealed class TempAssetDir : IDisposable
+    {
+        public string Root { get; } = Path.Combine(Path.GetTempPath(), $"wb-timed-break-{Path.GetRandomFileName()}");
+
+        public TempAssetDir()
+        {
+            Directory.CreateDirectory(Path.Combine(Root, "bricks"));
+            Directory.CreateDirectory(Path.Combine(Root, "items"));
+            Directory.CreateDirectory(Path.Combine(Root, "lang", "tags"));
+            Directory.CreateDirectory(Path.Combine(Root, "skills"));
+
+            string shippedTagsPath = Path.Combine("TestFiles", "Bricks", "assets", "lang", "tags", "bricks.toml");
+            if (File.Exists(shippedTagsPath))
+            {
+                File.Copy(shippedTagsPath, Path.Combine(Root, "lang", "tags", "bricks.toml"), overwrite: true);
+            }
+        }
+
+        public void WriteBricks(string toml) => File.WriteAllText(Path.Combine(Root, "bricks", "bricks.toml"), toml);
+
+        public void WriteItems(string toml) => File.WriteAllText(Path.Combine(Root, "items", "items.toml"), toml);
+
+        public BrickDatabase LoadBricks()
+        {
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(Root));
+            IFileParser[] parsers = [new TomlParser<BrickDefinitions>(), new LocalizedTagDefinitionParser()];
+            var parser = new VirtualFileParseService(parsers, vfs);
+            var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+            return new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
+        }
+
+        public ItemDatabase LoadItems()
+        {
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(Root));
+            IFileParser[] parsers = [new TomlParser<ItemDefinitions>()];
+            var parser = new VirtualFileParseService(parsers, vfs);
+            return new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                if (Directory.Exists(Root))
+                {
+                    Directory.Delete(Root, recursive: true);
+                }
+            }
+            catch
+            {
+                //  Best-effort temp cleanup.
+            }
+        }
+    }
+
+    private sealed class ServerHarness : IDisposable
+    {
+        private readonly TempAssetDir _assets = new();
+        private readonly SimulationStep _simStep;
+        private readonly StubServerConnection _connection = new();
+        private readonly SessionManager _sessions = new();
+        private readonly ServerPeers _peers = new();
+        private readonly VoxelObject _voxels = new(16);
+        private uint _sequence;
+        private uint _simTick;
+
+        public DataStore Store { get; } = new();
+        public BrickDatabase Bricks { get; }
+        public ItemDatabase Items { get; }
+        public SkillDatabase Skills { get; }
+        public ServerInteractionSystem Interactions { get; }
+        public int PlayerEntity { get; }
+        public Uuid PlayerUuid { get; }
+        public int StructureEntity { get; }
+        public Uuid StructureUuid { get; }
+        public ushort RockId { get; }
+        public ushort PanelId { get; }
+
+        public ServerHarness(GameMode mode, float rockHardness, float panelHardness, float laserSpeed, float fastLaserSpeed)
+        {
+            _assets.WriteBricks($"""
+                [[Bricks]]
+                ID = "{ROCK_BRICK_ID}"
+                Hardness = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+
+                [[Bricks]]
+                ID = "{PANEL_BRICK_ID}"
+                Hardness = {panelHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                """);
+            _assets.WriteItems($"""
+                [[Items]]
+                ID = "{LASER_ITEM_ID}"
+                Name = "item.laser"
+                [Items.Tool]
+                Type = "Mining"
+                MiningSpeed = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+
+                [[Items]]
+                ID = "{FAST_LASER_ITEM_ID}"
+                Name = "item.fast_laser"
+                [Items.Tool]
+                Type = "Mining"
+                MiningSpeed = {fastLaserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                """);
+
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(_assets.Root));
+            vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Skills", "assets")));
+
+            IFileParser[] parsers =
+            [
+                new TomlParser<BrickDefinitions>(),
+                new TomlParser<ItemDefinitions>(),
+                new TomlParser<SkillDefinitions>(),
+                new LocalizedTagDefinitionParser(),
+            ];
+            var parser = new VirtualFileParseService(parsers, vfs);
+            var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+            Bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
+            Items = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
+            Skills = new SkillDatabase(NullLogger<SkillDatabase>.Instance, parser, vfs, Bricks, tags);
+
+            RockId = Bricks.Id(ROCK_BRICK_ID);
+            PanelId = Bricks.Id(PANEL_BRICK_ID);
+            _voxels.Set(0, 0, -4, new Voxel(RockId, new ShapeLight(BrickShape.Block, 0), 0));
+            _voxels.Set(1, 0, -4, new Voxel(PanelId, new ShapeLight(BrickShape.Block, 0), 0));
+
+            var physics = new RaycastServerPhysics();
+            _simStep = new SimulationStep(Store, physics);
+            ServerPeer peer = _peers.GetOrAdd(new StubRpcHost(), new RpcPeer(_connection), isLocal: true);
+
+            StructureEntity = Store.Alloc();
+            StructureUuid = Store.GetUuid(StructureEntity);
+            Store.AddOrUpdate(StructureEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            Store.AddOrUpdate(StructureEntity, new VoxelWorldComponent(_voxels));
+
+            PlayerUuid = Uuid.FromValue(5001);
+            PlayerEntity = Store.Alloc(PlayerUuid);
+            Store.AddOrUpdate(PlayerEntity, NetworkComponent.Create());
+            Store.AddOrUpdate(PlayerEntity, new OwnedCharacterComponent());
+            Store.AddOrUpdate(PlayerEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            Store.AddOrUpdate(PlayerEntity, new GameModeComponent(mode));
+            Store.AddOrUpdate(PlayerEntity, new EquipmentComponent(0));
+            Store.AddOrUpdate(PlayerEntity, new InventoryComponent(8));
+            Store.AddOrUpdate(PlayerEntity, new SkillStateComponent(new Dictionary<string, long>()));
+            Store.AddOrUpdate(PlayerEntity, new InputComponent());
+            _sessions.Register(Store, PlayerEntity, peer.GameId, new Session(1));
+
+            IInteractionHandler[] handlers =
+            [
+                new ItemPlaceableSelector(Items, Bricks),
+                new HintResolver(Bricks),
+                new BreakToolValidator(Items),
+                new VoxelWriteCommitter(_peers, Bricks, Bricks, NullLogger<VoxelWriteCommitter>.Instance),
+                new BreakLootReactor(Bricks),
+                new SkillXpReactor(Skills, _peers, NullLogger<SkillXpReactor>.Instance),
+            ];
+            var handlerRegistry = new InteractionHandlerRegistry(handlers);
+            Interactions = new ServerInteractionSystem(
+                _sessions,
+                NullLogger<ServerInteractionSystem>.Instance,
+                handlerRegistry,
+                s => new ServerVoxelInteractionWorld(s, physics),
+                _simStep,
+                Bricks,
+                Items,
+                Skills);
+        }
+
+        public void SetHeldSlot(int slot, string itemId)
+        {
+            if (Store.TryGet(PlayerEntity, out InventoryComponent inv) && inv.Contents != null)
+            {
+                inv.Contents[slot] = new ItemData(itemId, 1, 1);
+                Store.AddOrUpdate(PlayerEntity, inv);
+            }
+        }
+
+        public void SetActiveSlot(int slot)
+        {
+            Store.AddOrUpdate(PlayerEntity, new EquipmentComponent(slot));
+        }
+
+        public void SetPrimaryHeld(bool held)
+        {
+            Store.AddOrUpdate(PlayerEntity, new InputComponent { PrimaryHeld = held });
+        }
+
+        public void SetPlayerPosition(Vector3 position)
+        {
+            Store.AddOrUpdate(PlayerEntity, new TransformComponent(position, Quaternion.Identity, Vector3.One));
+        }
+
+        public void SetSkillXp(string skillId, long xp)
+        {
+            if (Store.TryGet(PlayerEntity, out SkillStateComponent state))
+            {
+                state.SetXP(skillId, xp);
+                Store.AddOrUpdate(PlayerEntity, state);
+            }
+        }
+
+        public long GetSkillXp(string skillId)
+        {
+            return Store.TryGet(PlayerEntity, out SkillStateComponent state) ? state.GetXP(skillId) : 0;
+        }
+
+        public int GetInventoryCount(string itemId)
+        {
+            if (!Store.TryGet(PlayerEntity, out InventoryComponent inv) || inv.Contents == null)
+            {
+                return 0;
+            }
+
+            var total = 0;
+            for (var i = 0; i < inv.Contents.Length; i++)
+            {
+                if (inv.Contents[i].ID == itemId)
+                {
+                    total += inv.Contents[i].Count;
+                }
+            }
+
+            return total;
+        }
+
+        public Voxel GetVoxel(int x, int y, int z) => _voxels.Get(x, y, z);
+
+        public void StageInteraction(InteractionKind kind, Uuid targetUuid, Int3 coord)
+        {
+            if (!Store.TryGet(PlayerEntity, out NetworkComponent net) || net.StagedInteractions == null)
+            {
+                return;
+            }
+
+            uint seq = ++_sequence;
+            net.StagedInteractions.Stage(new InteractionEvent
+            {
+                Entity = PlayerUuid.ToValue(),
+                SequenceNumber = seq,
+                ServerTickAtSample = _simTick,
+                Kind = kind,
+                Brick = new BrickInteraction
+                {
+                    TargetEntity = targetUuid.ToValue(),
+                    TargetX = coord.X,
+                    TargetY = coord.Y,
+                    TargetZ = coord.Z,
+                },
+            });
+        }
+
+        public void TickServer(float delta)
+        {
+            _simTick++;
+            Interactions.Tick(delta, Store, _simTick);
+        }
+
+        public void Dispose()
+        {
+            _simStep.Dispose();
+            _assets.Dispose();
+        }
+    }
+
+    private sealed class ClientHarness : IDisposable
+    {
+        private readonly TempAssetDir _assets = new();
+        private readonly RaycastClientPhysics _physics = new();
+        private readonly HoldingShortcutService _shortcuts = new();
+        private readonly NotificationService _notifications;
+        private readonly PlayerInteractionService _service;
+        private readonly ActiveCharacterSave _characterSave = new();
+
+        public DataStore Store { get; } = new();
+        public BrickDatabase Bricks { get; }
+        public ItemDatabase Items { get; }
+        public SkillDatabase Skills { get; }
+        public InteractionState InteractionState { get; }
+        public VoxelObject Voxels { get; } = new(16);
+        public int StructureEntity { get; }
+        public int PlayerEntity { get; }
+        public ushort RockId { get; }
+        public List<BreakEvent> BreakEvents { get; } = [];
+        public List<InteractionEvent> StagedEvents { get; } = [];
+
+        public ClientHarness(GameMode mode, float rockHardness, float laserSpeed)
+        {
+            _assets.WriteBricks($"""
+                [[Bricks]]
+                ID = "{ROCK_BRICK_ID}"
+                Hardness = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+
+                [[Bricks]]
+                ID = "{PANEL_BRICK_ID}"
+                Hardness = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                """);
+            _assets.WriteItems($"""
+                [[Items]]
+                ID = "{LASER_ITEM_ID}"
+                Name = "item.laser"
+                [Items.Tool]
+                Type = "Mining"
+                MiningSpeed = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                """);
+
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(_assets.Root));
+            vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Skills", "assets")));
+
+            IFileParser[] parsers =
+            [
+                new TomlParser<BrickDefinitions>(),
+                new TomlParser<ItemDefinitions>(),
+                new TomlParser<SkillDefinitions>(),
+                new LocalizedTagDefinitionParser(),
+            ];
+            var parser = new VirtualFileParseService(parsers, vfs);
+            var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+            Bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
+            Items = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
+            Skills = new SkillDatabase(NullLogger<SkillDatabase>.Instance, parser, vfs, Bricks, tags);
+
+            RockId = Bricks.Id(ROCK_BRICK_ID);
+            Voxels.Set(0, 0, -4, new Voxel(RockId, new ShapeLight(BrickShape.Block, 0), 0));
+            Voxels.Set(1, 0, -4, new Voxel(Bricks.Id(PANEL_BRICK_ID), new ShapeLight(BrickShape.Block, 0), 0));
+
+            StructureEntity = Store.Alloc();
+            Store.AddOrUpdate(StructureEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            Store.AddOrUpdate(StructureEntity, new VoxelComponent(Voxels));
+
+            PlayerEntity = Store.Alloc(Uuid.FromValue(7001));
+            Store.AddOrUpdate(PlayerEntity, new PlayerComponent());
+            Store.AddOrUpdate(PlayerEntity, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            Store.AddOrUpdate(PlayerEntity, new GameModeComponent(mode));
+            Store.AddOrUpdate(PlayerEntity, new EquipmentComponent(0));
+            var inv = new InventoryComponent(4);
+            inv.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+            Store.AddOrUpdate(PlayerEntity, inv);
+            Store.AddOrUpdate(PlayerEntity, new PendingInteractionComponent(new PendingInteractionQueue()));
+
+            _characterSave.ActiveSave = new Character();
+
+            var input = new FakeInputService();
+            var window = new FakeWindowContext { Resolution = new Vector2(1280f, 720f) };
+            var motionProcessor = new ClientPlayerMotionProcessor(input, window, _physics, new EventInvoker<PlayerMovedEvent>([]));
+            InteractionState = new InteractionState(in motionProcessor);
+            _notifications = new NotificationService(NullLogger<NotificationService>.Instance, window);
+
+            var meshDb = new StubMeshDatabase();
+            var emptyMesh = new Mesh([], [], [], [], []);
+            meshDb.Assets["slope.obj"] = emptyMesh;
+            meshDb.Assets["stair.obj"] = emptyMesh;
+            meshDb.Assets["slab.obj"] = emptyMesh;
+            meshDb.Assets["column.obj"] = emptyMesh;
+            meshDb.Assets["plate.obj"] = emptyMesh;
+
+            var breakProcessor = new RecordingBreakEventProcessor(BreakEvents);
+            _service = new PlayerInteractionService(
+                InteractionState,
+                new BrickPreviewState(),
+                _physics,
+                new NullLineRenderer(),
+                new FakeRenderContext(Store),
+                window,
+                new PlayerData(Items),
+                Bricks,
+                Bricks,
+                Items,
+                new DebugSettings(),
+                meshDb,
+                _shortcuts,
+                new VoxelLightingService(Bricks),
+                new EventInvoker<PlaceEvent>([]),
+                new EventInvoker<BreakEvent>([breakProcessor]),
+                new EventInvoker<BrickEvent>([]),
+                new SnapshotAckTracker(),
+                _notifications,
+                new TestLocalization(),
+                paintDatabase: null,
+                paintRegistry: null,
+                paintFaceEvent: null,
+                skillDatabase: Skills,
+                activeCharacterSave: _characterSave);
+
+            SetRaycastTarget(new Int3(0, 0, -4));
+        }
+
+        public void SetPrimaryHeld(bool held, bool firePressTrigger = false)
+        {
+            _shortcuts.PrimaryHeld = held;
+            if (firePressTrigger)
+            {
+                _shortcuts.InvokePrimaryAction();
+            }
+        }
+
+        public void SetRaycastTarget(Int3 coord)
+        {
+            var point = new Vector3(coord.X, coord.Y, coord.Z + 0.5f);
+            _physics.NextHit = new RaycastResult(hit: true, new Entity(StructureEntity, Store), point, new Vector3(0f, 0f, 1f));
+        }
+
+        public void SetPlayerPosition(Vector3 position)
+        {
+            Store.AddOrUpdate(PlayerEntity, new TransformComponent(position, Quaternion.Identity, Vector3.One));
+        }
+
+        public void SetActiveSlot(int slot)
+        {
+            Store.AddOrUpdate(PlayerEntity, new EquipmentComponent(slot));
+        }
+
+        public void SetGameMode(GameMode mode)
+        {
+            Store.AddOrUpdate(PlayerEntity, new GameModeComponent(mode));
+        }
+
+        public void SetSkillXp(string skillId, long xp)
+        {
+            Character c = _characterSave.ActiveSave ?? new Character();
+            c.SetStatistic(skillId, xp);
+            _characterSave.ActiveSave = c;
+        }
+
+        public int CountStaged(InteractionKind kind)
+        {
+            var count = 0;
+            for (var i = 0; i < StagedEvents.Count; i++)
+            {
+                if (StagedEvents[i].Kind == kind)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        public void TickClient(float delta)
+        {
+            _service.Tick(delta, Store);
+            if (Store.TryGet(PlayerEntity, out PendingInteractionComponent pending))
+            {
+                for (var i = 0; i < pending.Outbound.Count; i++)
+                {
+                    StagedEvents.Add(pending.Outbound[i]);
+                }
+
+                pending.Outbound.Clear();
+            }
+        }
+
+        public void Dispose()
+        {
+            _notifications.Dispose();
+            _assets.Dispose();
+        }
+    }
+
+    private sealed class EndToEndBreakHarness : IDisposable
+    {
+        private readonly TempAssetDir _assets = new();
+        private readonly SimulationStep _simStep;
+        private readonly ServerWorld _serverWorld;
+        private readonly ServerPeers _peers = new();
+        private readonly SessionManager _sessions = new();
+        private readonly LoopbackRpcServerTransport _transport = new();
+        private readonly RpcServer _rpcServer;
+        private readonly LoopbackRpcClientConnection _clientConnection;
+        private readonly RpcClient _rpcClient;
+        private readonly ClientInbound _clientInbound = new();
+        private readonly FakeInputService _clientInput = new();
+        private readonly RaycastServerPhysics _serverPhysics = new();
+        private readonly RaycastClientPhysics _clientPhysics = new();
+        private readonly BrickDatabase _bricks;
+        private readonly ServerInteractionSystem _serverInteraction;
+        private readonly ServerLaserBeamSystem _serverBeam;
+        private readonly MiningLaserEffectSystem _clientEffects;
+        private readonly ClientVoxelReconcileSystem _clientReconcile;
+        private readonly int _serverPlayer;
+        private readonly Uuid _serverPlayerUuid;
+        private readonly Uuid _serverStructureUuid;
+        private readonly int _clientPlayer;
+        private uint _simTick;
+        private uint _seq;
+
+        public DataStore ServerStore => _serverWorld.Store;
+        public DataStore ClientStore { get; } = new();
+        public VoxelObject ServerVoxels { get; } = new(16);
+        public VoxelObject ClientVoxels { get; } = new(16);
+        public RecordingParticleService Particles { get; } = new();
+        public List<SkillStateUpdateMessage> SkillUpdates { get; } = [];
+
+        public EndToEndBreakHarness(float rockHardness, float laserSpeed)
+        {
+            _assets.WriteBricks($"""
+                [[Bricks]]
+                ID = "{ROCK_BRICK_ID}"
+                Hardness = {rockHardness.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                """);
+            _assets.WriteItems($"""
+                [[Items]]
+                ID = "{LASER_ITEM_ID}"
+                Name = "item.laser"
+                [Items.Tool]
+                Type = "Mining"
+                MiningSpeed = {laserSpeed.ToString(System.Globalization.CultureInfo.InvariantCulture)}
+                """);
+
+            var vfs = new VirtualFileSystem();
+            vfs.Mount(new PathInfo(_assets.Root));
+            vfs.Mount(new PathInfo(Path.Combine("TestFiles", "Skills", "assets")));
+
+            IFileParser[] parsers =
+            [
+                new TomlParser<BrickDefinitions>(),
+                new TomlParser<ItemDefinitions>(),
+                new TomlParser<SkillDefinitions>(),
+                new LocalizedTagDefinitionParser(),
+            ];
+            var parser = new VirtualFileParseService(parsers, vfs);
+            var tags = new LocalizedTagsDatabase(NullLogger<LocalizedTagsDatabase>.Instance, parser, vfs);
+            _bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parser, vfs, tags);
+            var items = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
+            var skills = new SkillDatabase(NullLogger<SkillDatabase>.Instance, parser, vfs, _bricks, tags);
+
+            var ecsWorld = new World();
+            _simStep = new SimulationStep(ecsWorld.DataStore, _serverPhysics);
+            var replication = new NetworkReplicationSystem(_peers, _sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingConfig(), new NetworkRegistry());
+            var permPolicy = PermissionPolicy.Create([new SourcedPermissionFile("test.toml", new PermissionFile())]);
+            var permService = new UserPermissionService(new PermissionResolver(permPolicy));
+            var saveService = new LevelSaveService(
+                NullLogger<LevelSaveService>.Instance,
+                new StubLevelCatalog(),
+                _bricks,
+                _bricks,
+                new GameplayConfig());
+
+            IInteractionHandler[] handlers =
+            [
+                new ItemPlaceableSelector(items, _bricks),
+                new HintResolver(_bricks),
+                new BreakToolValidator(items),
+                new VoxelWriteCommitter(_peers, _bricks, _bricks, NullLogger<VoxelWriteCommitter>.Instance),
+                new BreakLootReactor(_bricks),
+                new SkillXpReactor(skills, _peers, NullLogger<SkillXpReactor>.Instance),
+            ];
+            var handlerRegistry = new InteractionHandlerRegistry(handlers);
+            Func<DataStore, IVoxelInteractionWorld> worldFactory = s => new ServerVoxelInteractionWorld(s, _serverPhysics);
+            _serverInteraction = new ServerInteractionSystem(
+                _sessions,
+                NullLogger<ServerInteractionSystem>.Instance,
+                handlerRegistry,
+                worldFactory,
+                _simStep,
+                _bricks,
+                items,
+                skills);
+
+            var worldContainer = new Container();
+            worldContainer.RegisterInstance(ecsWorld);
+            worldContainer.RegisterInstance(_sessions);
+            worldContainer.RegisterInstance(saveService);
+            worldContainer.RegisterInstance(new ServerJoinQueue());
+            worldContainer.RegisterInstance(replication);
+            worldContainer.RegisterInstance<IInteractionHandlerRegistry>(handlerRegistry);
+            worldContainer.RegisterInstance<IUserPermissionService>(permService);
+            worldContainer.RegisterInstance<IServerWorldPhysics>(_serverPhysics);
+            worldContainer.RegisterInstance(_simStep);
+            worldContainer.RegisterInstance(worldFactory);
+            worldContainer.RegisterInstance(_serverInteraction);
+            worldContainer.RegisterInstance(new ServerParticleService(_peers, _sessions, replication, NullLogger<ServerParticleService>.Instance));
+            _serverWorld = new ServerWorld(worldContainer);
+
+            ushort rockId = _bricks.Id(ROCK_BRICK_ID);
+            ServerVoxels.Set(0, 0, -4, new Voxel(rockId, new ShapeLight(BrickShape.Block, 0), 0));
+            ClientVoxels.Set(0, 0, -4, new Voxel(rockId, new ShapeLight(BrickShape.Block, 0), 0));
+
+            int serverStructure = ServerStore.Alloc();
+            _serverStructureUuid = ServerStore.GetUuid(serverStructure);
+            ServerStore.AddOrUpdate(serverStructure, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            ServerStore.AddOrUpdate(serverStructure, new VoxelWorldComponent(ServerVoxels));
+
+            int clientStructure = ClientStore.Alloc(_serverStructureUuid);
+            ClientStore.AddOrUpdate(clientStructure, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            ClientStore.AddOrUpdate(clientStructure, new VoxelComponent(ClientVoxels));
+
+            var serverRpcRegistry = new RpcRegistry();
+            serverRpcRegistry.Freeze();
+            _rpcServer = new RpcServer(_transport, serverRpcRegistry);
+            TaskCompletionSource<RpcPeer> connectedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _rpcServer.ClientConnected += p => connectedTcs.TrySetResult(p);
+            _rpcServer.Start();
+
+            _clientConnection = new LoopbackRpcClientConnection(_transport);
+            _clientConnection.ConnectAsync().GetAwaiter().GetResult();
+            var clientRpcRegistry = new RpcRegistry();
+            clientRpcRegistry.AddService(new ClientHandlers(_clientInbound));
+            clientRpcRegistry.Freeze();
+            _rpcClient = new RpcClient(_clientConnection, clientRpcRegistry);
+            RpcPeer serverRpcPeer = connectedTcs.Task.GetAwaiter().GetResult();
+            ServerPeer serverPeer = _peers.GetOrAdd(new StubRpcHost(), serverRpcPeer, isLocal: true);
+            serverPeer.World = _serverWorld;
+
+            _serverPlayerUuid = Uuid.FromValue(8001);
+            _serverPlayer = ServerStore.Alloc(_serverPlayerUuid);
+            ServerStore.AddOrUpdate(_serverPlayer, NetworkComponent.Create());
+            ServerStore.AddOrUpdate(_serverPlayer, new OwnedCharacterComponent());
+            ServerStore.AddOrUpdate(_serverPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            ServerStore.AddOrUpdate(_serverPlayer, new GameModeComponent(GameMode.Adventure));
+            ServerStore.AddOrUpdate(_serverPlayer, new EquipmentComponent(0));
+            var serverInv = new InventoryComponent(2);
+            serverInv.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+            ServerStore.AddOrUpdate(_serverPlayer, serverInv);
+            ServerStore.AddOrUpdate(_serverPlayer, new SkillStateComponent(new Dictionary<string, long>()));
+            ServerStore.AddOrUpdate(_serverPlayer, new InputComponent());
+            _sessions.Register(ServerStore, _serverPlayer, serverPeer.GameId, new Session(1));
+
+            _serverBeam = new ServerLaserBeamSystem(_serverPhysics, items, _simStep);
+
+            _serverPhysics.NextHit = new RaycastResult(true, default, new Vector3(0f, 0f, -3.5f), new Vector3(0f, 0f, 1f));
+            _clientPhysics.NextHit = new RaycastResult(true, new Entity(clientStructure, ClientStore), new Vector3(0f, 0f, -3.5f), new Vector3(0f, 0f, 1f));
+
+            _clientPlayer = ClientStore.Alloc(_serverPlayerUuid);
+            ClientStore.AddOrUpdate(_clientPlayer, new PlayerComponent());
+            ClientStore.AddOrUpdate(_clientPlayer, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
+            var clientInv = new InventoryComponent(2);
+            clientInv.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+            ClientStore.AddOrUpdate(_clientPlayer, new EquipmentComponent(0));
+            ClientStore.AddOrUpdate(_clientPlayer, clientInv);
+
+            var motionProcessor = new ClientPlayerMotionProcessor(_clientInput, new FakeWindowContext(), _clientPhysics, new EventInvoker<PlayerMovedEvent>([]));
+            var interactionState = new InteractionState(in motionProcessor);
+            var materialDb = new StubAssetDatabase<Material>
+            {
+                Assets = { ["effects/laser_beam"] = new Material(new Shader("laser_beam"), []) { AlphaMode = AlphaMode.Blend } },
+            };
+            var effectDb = new StubAssetDatabase<ParticleEffect>
+            {
+                Assets = { ["mining_laser_impact"] = CreateParticleEffect("mining_laser_impact") },
+            };
+            _clientEffects = new MiningLaserEffectSystem(new PlayerData(items), interactionState, _clientInput, _clientPhysics, materialDb, effectDb);
+            var breakParticleListener = new BrickBreakParticleListener(Particles);
+            _clientReconcile = new ClientVoxelReconcileSystem(
+                _clientInbound,
+                new SnapshotAckTracker(),
+                _bricks,
+                new VoxelLightingService(_bricks),
+                new EventInvoker<BrickEvent>([breakParticleListener]));
+        }
+
+        public void StartHold()
+        {
+            _clientInput.HeldButtons.Add(MouseButton.Left);
+            ServerStore.AddOrUpdate(_serverPlayer, new InputComponent { PrimaryHeld = true });
+            if (ServerStore.TryGet(_serverPlayer, out NetworkComponent net) && net.StagedInteractions != null)
+            {
+                net.StagedInteractions.Stage(new InteractionEvent
+                {
+                    Entity = _serverPlayerUuid.ToValue(),
+                    SequenceNumber = ++_seq,
+                    ServerTickAtSample = _simTick,
+                    Kind = InteractionKind.PrimaryPressed,
+                    Brick = new BrickInteraction
+                    {
+                        TargetEntity = _serverStructureUuid.ToValue(),
+                        TargetX = 0,
+                        TargetY = 0,
+                        TargetZ = -4,
+                    },
+                });
+            }
+        }
+
+        public void TickBoth(float delta)
+        {
+            _simTick++;
+            _serverInteraction.Tick(delta, ServerStore, _simTick);
+            _serverBeam.Tick(ServerStore, _simTick);
+            if (ServerVoxels.Get(0, 0, -4).ID == 0)
+            {
+                WaitForAsync(() => !_clientInbound.VoxelEdits.IsEmpty && !_clientInbound.SkillUpdates.IsEmpty);
+            }
+
+            while (_clientInbound.SkillUpdates.TryDequeue(out SkillStateUpdateMessage update))
+            {
+                SkillUpdates.Add(update);
+            }
+
+            _clientReconcile.Tick(delta, ClientStore);
+            _clientEffects.Tick(delta, ClientStore);
+        }
+
+        public bool ServerHasActiveBeam()
+        {
+            return ServerStore.TryGet(_serverPlayer, out LaserBeamComponent beam) && beam.Hit;
+        }
+
+        public bool ClientHasActiveBeamAndImpact()
+        {
+            var foundEmitter = false;
+            ClientStore.Query<ParticleEmitterComponent>(0f, (float _, DataStore _, int _, in ParticleEmitterComponent emitter) =>
+            {
+                if (emitter.Playing)
+                {
+                    foundEmitter = true;
+                }
+            });
+            return foundEmitter;
+        }
+
+        private static void WaitForAsync(Func<bool> condition)
+        {
+            long deadline = Environment.TickCount64 + 500;
+            while (!condition() && Environment.TickCount64 < deadline)
+            {
+                Task.Delay(5).GetAwaiter().GetResult();
+            }
+        }
+
+        private static ParticleEffect CreateParticleEffect(string id)
+        {
+            return new ParticleEffect(
+                id,
+                texture: null,
+                ParticleBlendMode.Additive,
+                rate: 55f,
+                burstCount: 8,
+                maxParticles: 128,
+                new ParticleRange(0.12f, 0.28f),
+                new ParticleRange(2.5f, 6.0f),
+                spreadDegrees: 62f,
+                spawnRadius: 0.05f,
+                new ParticleRange(0.04f, 0.075f),
+                new ParticleRange(0.01f, 0.02f),
+                Vector4.One,
+                secondaryStartColor: null,
+                endColor: Vector4.One,
+                emissiveIntensity: 3.2f,
+                gravity: Vector3.Zero,
+                drag: 3.2f,
+                new ParticleRange(0f, 0f),
+                new ParticleRange(0f, 0f));
+        }
+
+        public void Dispose()
+        {
+            _ = _rpcClient;
+            _clientConnection.Close();
+            _rpcServer.Close();
+            _transport.Close();
+            _serverWorld.Dispose();
+            _simStep.Dispose();
+            _assets.Dispose();
+        }
+    }
+
+    private sealed class RaycastClientPhysics : IPhysics
+    {
+        public RaycastResult NextHit { get; set; }
+        public float FixedTimestamp => 1f / 64f;
+
+        public event EventHandler<EventArgs>? FixedUpdate
+        {
+            add { }
+            remove { }
+        }
+
+        public RaycastResult Raycast(in Ray ray) => NextHit;
+
+        public RaycastResult Raycast(in Ray ray, int ignoreEntity) => NextHit;
+
+        public bool Overlaps(in ShapeOverlapQuery query) => false;
+
+        public void SetGravity(Vector3 gravity) { }
+    }
+
+    private sealed class RaycastServerPhysics : IServerWorldPhysics
+    {
+        public RaycastResult NextHit { get; set; }
+        public float FixedTimestamp => 1f / 64f;
+
+        public event EventHandler<EventArgs>? FixedUpdate
+        {
+            add { }
+            remove { }
+        }
+
+        public RaycastResult Raycast(in Ray ray) => NextHit;
+
+        public RaycastResult Raycast(in Ray ray, int ignoreEntity) => NextHit;
+
+        public bool Overlaps(in ShapeOverlapQuery query) => false;
+
+        public void SetGravity(Vector3 gravity) { }
+
+        public void Tick(float delta, DataStore store) { }
+    }
+
+    private sealed class HoldingShortcutService : IShortcutService
+    {
+        private readonly List<Shortcut> _shortcuts = [];
+
+        public bool PrimaryHeld { get; set; }
+
+        public event Action? BindingsChanged
+        {
+            add { }
+            remove { }
+        }
+
+        public bool IsCapturing => false;
+
+        public bool RegisterShortcut(Shortcut shortcut)
+        {
+            _shortcuts.Add(shortcut);
+            return true;
+        }
+
+        public bool AddHandler(string id, Func<bool>? isEnabled, Action action, Action? released = null) => true;
+
+        public IReadOnlyList<ShortcutInfo> GetShortcuts() => [];
+
+        public Result<ShortcutBinding> GetBinding(string id) => Result<ShortcutBinding>.FromFailure("Not registered.");
+
+        public bool IsHeld(string id) => id == GameShortcuts.PRIMARY_ACTION && PrimaryHeld;
+
+        public Result Rebind(string id, ShortcutBinding binding) => Result.FromSuccess();
+
+        public Result ResetBinding(string id) => Result.FromSuccess();
+
+        public void ResetAllBindings() { }
+
+        public void ApplyOverrides(IReadOnlyDictionary<string, ShortcutBinding> overrides) { }
+
+        public IReadOnlyDictionary<string, ShortcutBinding> GetOverrides() => new Dictionary<string, ShortcutBinding>();
+
+        public void BeginCapture(Action<ShortcutCaptureResult> onCompleted) { }
+
+        public void CancelCapture() { }
+
+        public void InvokePrimaryAction()
+        {
+            for (var i = 0; i < _shortcuts.Count; i++)
+            {
+                if (_shortcuts[i].GetId() == GameShortcuts.PRIMARY_ACTION && _shortcuts[i].IsEnabled())
+                {
+                    _shortcuts[i].Action?.Invoke();
+                }
+            }
+        }
+    }
+
+    private sealed class NullLineRenderer : ILineRenderer
+    {
+        public Line CreateLine(bool alwaysOnTop = false) => new(this, Vector3.Zero, Vector3.Zero, Vector4.Zero);
+
+        public Line CreateLine(Vector3 start, Vector3 end, bool alwaysOnTop = false) => new(this, start, end, Vector4.Zero);
+
+        public Line CreateLine(Vector3 start, Vector3 end, Vector4 color, bool alwaysOnTop = false) => new(this, start, end, color);
+
+        public void DeleteLine(Line line) { }
+    }
+
+    private sealed class StubMeshDatabase : IAssetDatabase<Mesh>
+    {
+        public Dictionary<string, Mesh> Assets { get; } = new(StringComparer.Ordinal);
+
+        public Result<Mesh> Get(string id)
+        {
+            return Assets.TryGetValue(id, out Mesh? mesh)
+                ? Result<Mesh>.FromSuccess(mesh)
+                : Result<Mesh>.FromFailure((string?)null);
+        }
+    }
+
+    private sealed class StubAssetDatabase<T> : IAssetDatabase<T>
+    {
+        public Dictionary<string, T> Assets { get; } = new(StringComparer.Ordinal);
+
+        public Result<T> Get(string id)
+        {
+            return Assets.TryGetValue(id, out T? asset)
+                ? Result<T>.FromSuccess(asset)
+                : Result<T>.FromFailure((string?)null);
+        }
+    }
+
+    private sealed class RecordingBreakEventProcessor(List<BreakEvent> recorded) : IEventProcessor<BreakEvent>
+    {
+        public Result<EventBehavior> ProcessEvent(object sender, BreakEvent e)
+        {
+            recorded.Add(e);
+            return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
+        }
+    }
+
+    private sealed class RecordingParticleService : IParticleService
+    {
+        public readonly List<(string EffectId, Vector3 Position, Vector3 Direction, int? Count)> Bursts = [];
+
+        public int ActiveParticleCount => 0;
+
+        public void EmitBurst(in ParticleBurstRequest request) { }
+
+        public Result EmitBurst(string effectId, Vector3 position, Vector3 direction, int? count = null)
+        {
+            Bursts.Add((effectId, position, direction, count));
+            return Result.FromSuccess();
+        }
+
+        public void Clear() { }
+    }
+
+    private sealed class StubServerConnection : NsdRpc.IServerConnection, IRpcConnectionStats
+    {
+        public ulong ClientId => 1;
+        public System.Net.EndPoint? RemoteEndPoint => null;
+        public bool IsConnected => true;
+        public RpcConnectionStats Stats => default;
+
+        public void Close(RpcDisconnectReason reason = RpcDisconnectReason.LocalClose) { }
+
+        public bool TrySend(ReadOnlySpan<byte> frame) => true;
+
+        public event Action<RpcDisconnectReason>? Disconnected { add { } remove { } }
+
+        public event RpcFrameHandler? FrameReceived { add { } remove { } }
+    }
+
+    private sealed class StubRpcHost : IRpcHost
+    {
+        public PeerSet Peers => default;
+    }
+
+    private sealed class StubLevelCatalog : ILevelCatalog
+    {
+        public bool Create(string name, string seed, GameMode gameMode, out string levelGuid)
+        {
+            levelGuid = Guid.NewGuid().ToString();
+            return true;
+        }
+
+        public Level[] ListLevels() => [];
+
+        public bool Delete(string levelGuid) => false;
+
+        public bool Exists(string levelGuid) => false;
+
+        public ILevelStorage? Open(string levelGuid) => null;
+    }
+}

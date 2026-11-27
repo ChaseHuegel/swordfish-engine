@@ -31,7 +31,7 @@ hint presence is. A hint-less event is valid and resolves to `Action.None`. See
 
 `PlayerInteractionService` receives discrete button edges from
 `IInputService.Clicked` on the window thread, queues them, and drains the queue
-on the ECS thread (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:230`).
+on the ECS thread (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:266`).
 One edge runs one interaction attempt.
 
 The control scheme maps each mouse button to an edge from the held item
@@ -42,8 +42,9 @@ brick. The right button is the secondary edge and only a modifier tool binds it,
 to clear its paint. Empty hands and items without an action for a button produce
 no edge.
 
-Holding primary or secondary repeats the attempt on a 0.2 second interval until
-release (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:55`). The
+Holding primary or secondary in Creative mode, or when placing or painting in
+Adventure mode, repeats the attempt on a 0.2 second interval until
+release (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:58`). The
 interval starts at the press edge. `InteractionRepeatTimer` owns the timing
 (`WaywardBeyond.Client/Systems/InteractionRepeatTimer.cs:4`). The repeat stops on
 release, when the game leaves `Playing`, or when an interaction blocker opens.
@@ -52,8 +53,16 @@ A repeat is a full attempt. It raycasts again, resolves again, predicts again,
 and stages its own `InteractionEvent` with a fresh `SequenceNumber`. A repeat
 that is rejected stays silent: only the press edge pushes an invalid-target or
 occupied-cell notification
-(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:422`).
+(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:479`).
 `WaywardBeyond.Tests/InteractionRepeatTimerTests.cs` pins the timing.
+
+Holding primary with `ToolType.Mining` in Adventure mode switches to timed hold
+breaking (`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:882`). The
+client emits one `PrimaryPressed` edge when starting or changing targets, emits
+one `PrimaryReleased` edge on cancellation or release, avoids predictive voxel
+removal during the hold, and advances `InteractionState.BreakProgress` locally
+through the shared `BreakDuration` helper
+(`WaywardBeyond.Gameplay/Interactions/BreakDuration.cs:62`).
 
 ## Shared resolution
 
@@ -219,9 +228,9 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 
 ## Source of truth
 
-- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs` — click edges, hold-to-repeat dispatch, and prediction
+- `WaywardBeyond.Client/Systems/PlayerInteractionService.cs` — click edges, hold-to-repeat dispatch, Adventure hold progress, and prediction
 - `WaywardBeyond.Client/Systems/{InteractionIntent,InteractionRepeatTimer}.cs` — control scheme and repeat timing
-- `WaywardBeyond.Gameplay/Interactions/` — resolver, request, handlers, registry
+- `WaywardBeyond.Gameplay/Interactions/` — resolver, break duration math, request, handlers, registry
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs`
 - `WaywardBeyond.Server/Interactions/` — default handlers, including `BreakToolValidator`
 - `WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`

@@ -30,7 +30,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `Icon` | string? | `ItemDefinition.Icon` (optional override. Brick and blueprint placeables without `Icon` render an isometric 3D icon at startup through `BrickIconRenderer`) |
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
-| `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
+| `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`, `MiningSpeed`) |
 | `[Items.ViewModel]` | sub-table | `ModelDefinition` |
 | `[Items.WorldModel]` | sub-table | `ModelDefinition` |
 
@@ -64,9 +64,14 @@ ID = "builtin/core"
 
 ### Tool
 
-`ToolDefinition` (`ToolDefinition.cs`): `Type` (`ToolType`), `Target`. Item
-group membership (`item.tool`, `item.tool.mining`, `item.tool.sprayer`,
-`item.tool.drill`, `item.placeable`) lives in the invariant tag list
+`ToolDefinition` (`WaywardBeyond.Items/ToolDefinition.cs`): `Type` (`ToolType`),
+`Target`, and optional `MiningSpeed` (`float?`, defaults to `1.0`).
+`MiningSpeed` scales timed brick breaking duration in Adventure mode. It must be
+finite and strictly positive. `ItemDatabase` (`WaywardBeyond.Items/ItemDatabase.cs:54`)
+logs a warning and falls back to `1.0` for invalid values. `WorkspaceValidator`
+emits `TOOL001` for invalid `Tool.MiningSpeed` declarations. Item group membership
+(`item.tool`, `item.tool.mining`, `item.tool.sprayer`, `item.tool.drill`,
+`item.placeable`) lives in the invariant tag list
 `WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
 
 ### Model
@@ -106,6 +111,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `ID` | string | unique, namespaced brick id (e.g. `wb:rock`) |
 | `Alpha` | `BrickAlpha` enum | `Opaque` (default), `Masked`, `Blend` (`WaywardBeyond.Bricks/BrickAlpha.cs`) |
 | `Passable` | bool | |
+| `Hardness` | float? | optional break hardness multiplier (default `1.0`, must be finite and non-negative) |
 | `Mesh` | string? | |
 | `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
 | `Color` | string? | optional 6-digit hex RGB default albedo color. White when omitted |
@@ -149,6 +155,15 @@ Default = ["core"]
 `LocalizedTagsDatabase` list defines the tags, and each value is an audio clip
 id. A brick without a declaration is silent. See
 [sound-effects](sound-effects.md).
+
+### Hardness
+
+`BrickDefinition.Hardness` (`WaywardBeyond.Bricks/BrickDefinition.cs:21`) sets
+a brick's base break resistance in seconds before tool speed and skill scaling.
+Omitted values load as `Brick.DEFAULT_HARDNESS` (`1.0`, `Brick.cs:14`). A value
+of `0.0` breaks in zero seconds. Negative or non-finite values log a warning and
+fall back to `1.0` in `BrickDatabase` (`WaywardBeyond.Bricks/BrickDatabase.cs:139`).
+`WorkspaceValidator` emits `BRICK001` for invalid `Hardness` declarations.
 
 ### Textures
 
@@ -463,3 +478,7 @@ resolution, `wb:core`, and bundled blueprint loading.
 brick and blueprint placeable items.
 `WaywardBeyond.Tests/LocalizedTagsTests.cs` pins tag value deduplication, first
 occurrence order, and the invariant merge into each language.
+`WaywardBeyond.Tests/TimedBrickBreakingTests.cs` and
+`WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin `Hardness`
+and `MiningSpeed` parsing, fallback defaults, and `BRICK001` and `TOOL001`
+validation findings.

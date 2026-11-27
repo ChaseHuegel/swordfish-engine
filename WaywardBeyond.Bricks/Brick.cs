@@ -10,6 +10,9 @@ public sealed class Brick
     /// <summary>The minimum ID value.</summary>
     public const ushort MIN_ID = 1;
 
+    /// <summary>The default break hardness multiplier assigned when omitted or invalid.</summary>
+    public const float DEFAULT_HARDNESS = 1.0f;
+
     private static readonly IReadOnlyDictionary<BrickEventKind, string[]> _noSounds =
         new Dictionary<BrickEventKind, string[]>();
     
@@ -45,6 +48,9 @@ public sealed class Brick
     public readonly bool Entity;
     public readonly bool Paintable;
 
+    /// <summary>Break hardness multiplier of this brick. Defaults to <see cref="DEFAULT_HARDNESS"/>.</summary>
+    public readonly float Hardness;
+
     private readonly bool _orientable;
 
     public Brick(
@@ -61,7 +67,8 @@ public sealed class Brick
         in bool entity = false,
         in bool paintable = false,
         in bool orientable = false,
-        in Vector3? color = null
+        in Vector3? color = null,
+        in float hardness = DEFAULT_HARDNESS
     ) {
         ID = id;
         Alpha = alpha;
@@ -79,7 +86,14 @@ public sealed class Brick
         Brightness = LightSource ? 15 : 0;
         Entity = entity;
         Paintable = paintable;
+        Hardness = ResolveHardness(hardness);
         _orientable = orientable;
+    }
+
+    /// <summary>Resolves a finite non-negative hardness value, falling back to <see cref="DEFAULT_HARDNESS"/>.</summary>
+    public static float ResolveHardness(float hardness)
+    {
+        return float.IsFinite(hardness) && hardness >= 0f ? hardness : DEFAULT_HARDNESS;
     }
 
     /// <summary>Returns whether the provided shape is orientable for this brick.</summary>

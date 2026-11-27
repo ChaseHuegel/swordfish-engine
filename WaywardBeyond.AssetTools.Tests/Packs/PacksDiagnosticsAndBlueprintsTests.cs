@@ -98,7 +98,7 @@ public sealed class PacksDiagnosticsAndBlueprintsTests : IDisposable
 
         PackExportOutcome zipExport = exporter.Export(cleanWs, outputDir, "0.9.0", format: PackArchiveFormat.Zip);
         Assert.True(zipExport.Success, zipExport.ErrorMessage);
-        Assert.EndsWith("my-pack-1.zip", zipExport.ArchivePath, StringComparison.Ordinal);
+        Assert.EndsWith($"my-pack-{ContentVersion.CURRENT}.zip", zipExport.ArchivePath, StringComparison.Ordinal);
         Assert.True(File.Exists(zipExport.ArchivePath));
 
         using (ZipArchive zip = ZipFile.OpenRead(zipExport.ArchivePath!))
@@ -116,7 +116,7 @@ public sealed class PacksDiagnosticsAndBlueprintsTests : IDisposable
         //  Auto format always defaults to .zip on both Linux and Windows.
         PackExportOutcome autoExport = exporter.Export(cleanWs, outputDir, "0.9.0", format: PackArchiveFormat.Auto);
         Assert.True(autoExport.Success, autoExport.ErrorMessage);
-        Assert.EndsWith("my-pack-1.zip", autoExport.ArchivePath, StringComparison.Ordinal);
+        Assert.EndsWith($"my-pack-{ContentVersion.CURRENT}.zip", autoExport.ArchivePath, StringComparison.Ordinal);
         Assert.True(File.Exists(autoExport.ArchivePath));
         using (ZipArchive autoZip = ZipFile.OpenRead(autoExport.ArchivePath!))
         {
@@ -125,7 +125,7 @@ public sealed class PacksDiagnosticsAndBlueprintsTests : IDisposable
 
         PackExportOutcome tarExport = exporter.Export(cleanWs, outputDir, "0.9.0", format: PackArchiveFormat.TarGz);
         Assert.True(tarExport.Success, tarExport.ErrorMessage);
-        Assert.EndsWith("my-pack-1.tar.gz", tarExport.ArchivePath, StringComparison.Ordinal);
+        Assert.EndsWith($"my-pack-{ContentVersion.CURRENT}.tar.gz", tarExport.ArchivePath, StringComparison.Ordinal);
         Assert.True(File.Exists(tarExport.ArchivePath));
 
         using FileStream fs = File.OpenRead(tarExport.ArchivePath!);

@@ -111,7 +111,8 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             entity,
             paintable,
             orientable,
-            ResolveColor(id, assetInfo.Color)
+            ResolveColor(id, assetInfo.Color),
+            ResolveHardness(id, assetInfo.Hardness)
         );
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
@@ -131,6 +132,26 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         }
 
         return color;
+    }
+
+    private float ResolveHardness(string id, float? value)
+    {
+        if (!value.HasValue)
+        {
+            return Brick.DEFAULT_HARDNESS;
+        }
+
+        if (!float.IsFinite(value.Value) || value.Value < 0f)
+        {
+            _logger.LogWarning(
+                "Brick \"{BrickId}\" has invalid Hardness {Hardness}. Using {Default}.",
+                id,
+                value.Value,
+                Brick.DEFAULT_HARDNESS);
+            return Brick.DEFAULT_HARDNESS;
+        }
+
+        return value.Value;
     }
 
     private BrickColliderShape[] BuildColliders(string brickId, List<BrickColliderDefinition>? definitions)
