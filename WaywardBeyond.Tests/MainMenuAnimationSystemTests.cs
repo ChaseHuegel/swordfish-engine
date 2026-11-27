@@ -16,13 +16,13 @@ using WaywardBeyond.Client;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Graphics;
-using WaywardBeyond.Client.Serialization;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Meshing;
 using WaywardBeyond.Voxels;
 using Xunit;
@@ -264,11 +264,11 @@ public class MainMenuAnimationSystemTests : IDisposable
 
         using var di = new Container();
         di.RegisterInstance<ILogger<VirtualFileParseService>>(new RecordingLogger<VirtualFileParseService>());
-        di.RegisterInstance<ILogger<BlueprintDatabase>>(new RecordingLogger<BlueprintDatabase>());
+        di.RegisterInstance<ILogger<BundledBlueprintDatabase>>(new RecordingLogger<BundledBlueprintDatabase>());
         di.RegisterInstance<IBrickRegistry>(BrickRegistry.FromNames(knownBricks));
         di.RegisterInstance(vfs);
-        di.RegisterMany<BlueprintDataParser>();
         di.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
+        di.RegisterBundledBlueprints();
         di.Register<BlueprintDatabase>(Reuse.Singleton);
         di.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
 
@@ -279,9 +279,9 @@ public class MainMenuAnimationSystemTests : IDisposable
         Assert.NotNull(result.Value.VoxelObject);
         Assert.Equal(Vector3.One, result.Value.Scale);
 
-        BlueprintDatabase concreteDb = di.Resolve<BlueprintDatabase>();
-        Assert.Contains(concreteDb.ListSummaries(), s => s.Id == MainMenuAnimationSystem.MENU_BLUEPRINT_ID && s.BrickCount == 130);
-        Assert.True(concreteDb.GetBlueprint(MainMenuAnimationSystem.MENU_BLUEPRINT_ID).Success);
+        IBundledBlueprintDatabase bundledDb = di.Resolve<IBundledBlueprintDatabase>();
+        Assert.Contains(bundledDb.ListSummaries(), s => s.Id == MainMenuAnimationSystem.MENU_BLUEPRINT_ID && s.BrickCount == 130);
+        Assert.True(bundledDb.Get(MainMenuAnimationSystem.MENU_BLUEPRINT_ID).Success);
     }
 
     [Fact]
@@ -301,14 +301,6 @@ public class MainMenuAnimationSystemTests : IDisposable
         {
             File.Copy(mainMenuPath, Path.Combine(userBpDir, "my-custom-ship.wbp"));
 
-            string[] knownBricks =
-            [
-                "wb:caution_panel", "wb:control_buttons", "wb:control_panel", "wb:core",
-                "wb:display_console", "wb:display_control", "wb:display_monitor", "wb:glass",
-                "wb:grate", "wb:ice", "wb:light", "wb:panel", "wb:porthole", "wb:rock",
-                "wb:small_light", "wb:storage", "wb:thruster", "wb:truss", "wb:vent",
-            ];
-
             var vfs = new VirtualFileSystem();
             vfs.Mount(new PathInfo(assetsRoot));
             vfs.Mount(new PathInfo(tempDataRoot));
@@ -318,15 +310,13 @@ public class MainMenuAnimationSystemTests : IDisposable
 
             using var di = new Container();
             di.RegisterInstance<ILogger<VirtualFileParseService>>(new RecordingLogger<VirtualFileParseService>());
-            di.RegisterInstance<ILogger<BlueprintDatabase>>(new RecordingLogger<BlueprintDatabase>());
-            di.RegisterInstance<IBrickRegistry>(BrickRegistry.FromNames(knownBricks));
+            di.RegisterInstance<ILogger<BundledBlueprintDatabase>>(new RecordingLogger<BundledBlueprintDatabase>());
             di.RegisterInstance(vfs);
             di.RegisterInstance(storagePaths);
-            di.RegisterMany<BlueprintDataParser>();
             di.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
-            di.Register<BlueprintDatabase>(Reuse.Singleton);
+            di.RegisterBundledBlueprints();
 
-            BlueprintDatabase db = di.Resolve<BlueprintDatabase>();
+            IBundledBlueprintDatabase db = di.Resolve<IBundledBlueprintDatabase>();
             Assert.Contains(db.ListSummaries(), s => s.Id == MainMenuAnimationSystem.MENU_BLUEPRINT_ID);
             Assert.DoesNotContain(db.ListSummaries(), s => s.Id == "my-custom-ship");
         }

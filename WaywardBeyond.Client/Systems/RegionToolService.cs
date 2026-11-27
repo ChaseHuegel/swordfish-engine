@@ -61,7 +61,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
     private readonly LocalizedFormatter _formatter;
     private readonly ILogger<RegionToolService> _logger;
     private readonly GameplayConfig? _gameplayConfig;
-    private readonly BlueprintDatabase? _blueprintDatabase;
+    private readonly IBundledBlueprintDatabase? _bundledBlueprints;
 
     private readonly ConcurrentQueue<MouseButton> _pendingClicks = new();
     private readonly ConcurrentQueue<float> _pendingScrolls = new();
@@ -100,7 +100,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         in ILogger<RegionToolService> logger,
         IPaintRegistry? paintRegistry = null,
         GameplayConfig? gameplayConfig = null,
-        BlueprintDatabase? blueprintDatabase = null
+        IBundledBlueprintDatabase? bundledBlueprints = null
     )
     {
         _inputService = inputService;
@@ -119,7 +119,7 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         _formatter = formatter;
         _logger = logger;
         _gameplayConfig = gameplayConfig;
-        _blueprintDatabase = blueprintDatabase;
+        _bundledBlueprints = bundledBlueprints;
 
         RegisterShortcut(shortcutService, "Copy", Key.C, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Copy));
         RegisterShortcut(shortcutService, "Cut", Key.X, ShortcutModifiers.None, () => QueueAction(RegionToolAction.Cut));
@@ -156,11 +156,11 @@ internal sealed class RegionToolService : IEntryPoint, IEntitySystem
         return LoadBlueprintResultToClipboard(_blueprintStorage.Load(blueprintId));
     }
 
-    /// <summary>Loads bundled <paramref name="blueprintId"/> from <see cref="BlueprintDatabase"/> onto the clipboard, switches to Paste mode, and selects the projector in the hotbar if present.</summary>
+    /// <summary>Loads bundled <paramref name="blueprintId"/> from <see cref="IBundledBlueprintDatabase"/> onto the clipboard, switches to Paste mode, and selects the projector in the hotbar if present.</summary>
     public Result<BlueprintData> LoadBundledBlueprintToClipboard(string blueprintId)
     {
-        Result<BlueprintData> loaded = _blueprintDatabase != null
-            ? _blueprintDatabase.GetBlueprint(blueprintId)
+        Result<BlueprintData> loaded = _bundledBlueprints != null
+            ? _bundledBlueprints.Get(blueprintId)
             : Result<BlueprintData>.FromFailure("Bundled blueprint database is unavailable.");
         return LoadBlueprintResultToClipboard(loaded);
     }

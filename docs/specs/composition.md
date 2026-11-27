@@ -48,7 +48,8 @@ overrides after the engine builds
 |---|---|---|
 | `WaywardBeyond.Networking` | `RegisterNetworking()` | `NetworkRegistry` and the built-in wire components |
 | `WaywardBeyond.Config` | `RegisterNetworkingConfig()` | `network.toml` config, its sub-config views, and validation |
-| `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`) and the content pack version entry point |
+| `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`), bundled blueprints, tags, and the content pack version entry point |
+| `WaywardBeyond.Data` (blueprints) | `BlueprintComposition.RegisterBundledBlueprints()` | headless bundled `.wbp` database (`IBundledBlueprintDatabase`) and parser (`BlueprintDataParser`) |
 | `WaywardBeyond.Data` (localization) | `LocalizationComposition.RegisterTags()` | localized tag database and parser |
 | `WaywardBeyond.Server` | `RegisterHost()`, `RegisterServer()` | host wire-up, server composition |
 | `WaywardBeyond.Bricks` | `Injector` | brick and paint databases, registries, parsers |
@@ -114,6 +115,7 @@ new shared singleton to that list, or a world silently gets a private copy.
 - `WaywardBeyond.Networking/NetworkingComposition.cs`
 - `WaywardBeyond.Config/ConfigComposition.cs`
 - `WaywardBeyond.Data/DataComposition.cs`
+- `WaywardBeyond.Data/Blueprints/BlueprintComposition.cs`
 - `WaywardBeyond.Data/Localization/LocalizationComposition.cs`
 - `WaywardBeyond.Permissions/PermissionsComposition.cs`
 - `WaywardBeyond.Client/Injector.cs`

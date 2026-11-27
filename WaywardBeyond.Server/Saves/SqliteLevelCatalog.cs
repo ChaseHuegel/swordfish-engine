@@ -7,6 +7,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Blueprints;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Server.Generation;
@@ -26,7 +27,9 @@ public sealed class SqliteLevelCatalog(
     in Migrator migrator,
     in GameplayConfig gameplayConfig,
     in LevelGeneratorConfig levelGeneratorConfig,
-    in SeedPhraseService seedPhraseService
+    in SeedPhraseService seedPhraseService,
+    IPaintRegistry? paintRegistry = null,
+    IBundledBlueprintDatabase? bundledBlueprints = null
 ) : ILevelCatalog
 {
     //  The game version stamped on every created level.
@@ -63,7 +66,15 @@ public sealed class SqliteLevelCatalog(
             name
         );
 
-        VoxelEntityData[] entities = new LevelGenerator(seedValue, brickRegistry, _levelGeneratorConfig).Generate();
+        var levelSpawn = new Vector3(level.SpawnX, level.SpawnY, level.SpawnZ);
+        VoxelEntityData[] entities = new LevelGenerator(
+            seedValue,
+            brickRegistry,
+            _levelGeneratorConfig,
+            paintRegistry,
+            bundledBlueprints,
+            _logger
+        ).Generate(gameMode, levelSpawn);
         string directory = _paths.GetLevelDirectory(guidText);
 
         try
