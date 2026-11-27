@@ -88,8 +88,11 @@ internal sealed class MiningLaserEffectSystem(
 
         _seenOwners.Clear();
 
-        LocalLaserAction localAction = new() { Owner = this };
-        store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalLaserAction>(delta, ref localAction);
+        if (WaywardBeyond.IsPlaying())
+        {
+            LocalLaserAction localAction = new() { Owner = this };
+            store.Query<PlayerComponent, TransformComponent, InventoryComponent, LocalLaserAction>(delta, ref localAction);
+        }
 
         RemoteLaserAction remoteAction = new() { Owner = this };
         store.Query<BodyViewComponent, TransformComponent, LaserBeamComponent, RemoteLaserAction>(delta, ref remoteAction);
