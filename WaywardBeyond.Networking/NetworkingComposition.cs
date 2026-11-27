@@ -39,6 +39,12 @@ public static class NetworkingComposition
         ));
         Require(registry.Register<ParticleEmitterComponent>(Uuid.FromValue(18), NetworkDirection.ServerOwned, new ParticleEmitterCodec()));
         Require(registry.Register<ParticleEmitterBindingComponent>(Uuid.FromValue(19), NetworkDirection.ServerOwned, new NsdComponentCodec<ParticleEmitterBindingComponent>()));
+        Require(registry.Register<StatisticsComponent>(
+            Uuid.FromValue(20),
+            NetworkDirection.ServerOwned,
+            new NsdComponentCodec<StatisticsComponent>(),
+            ReplicationAudience.OwnerOnly
+        ));
 
         registry.Freeze();
     }

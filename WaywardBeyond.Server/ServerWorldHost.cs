@@ -175,7 +175,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
                 }
             }
 
-            entry.World.SaveService.Flush(entry.World.Store);
+            entry.World.SaveService.Flush(entry.World.Store, entry.World.SimulationStep.CurrentSimTick);
             entry.World.Dispose();
         }
 
@@ -326,7 +326,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private void UnloadWorld(WorldEntry entry)
     {
         //  Final authoritative flush: captured on the server thread, persisted in the background.
-        entry.World.SaveService.QueueSave(entry.World.Store);
+        entry.World.SaveService.QueueSave(entry.World.Store, entry.World.SimulationStep.CurrentSimTick);
 
         foreach (ServerPeer peer in _peers.Peers)
         {

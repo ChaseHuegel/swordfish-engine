@@ -108,4 +108,6 @@ message CharacterEntityData
     float ScaleZ = 10;
     
     GameMode GameMode = 11;
+    
+    Statistic[]? Statistics = 12;
 }

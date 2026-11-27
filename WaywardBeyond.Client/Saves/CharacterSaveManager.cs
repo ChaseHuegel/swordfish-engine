@@ -63,9 +63,9 @@ internal sealed class CharacterSaveManager(
             Playtime = ActiveSave.Value.Playtime.Advance(nowUtcMs),
         };
 
-        //  Fetch the character's inventory data
-        store.Query<CharacterComponent, TransformComponent>(0f, UpdateInventory);
-        void UpdateInventory(float delta, DataStore store, int entity, in CharacterComponent characterComponent, in TransformComponent transform)
+        //  Fetch the character's inventory and replicated statistics data
+        store.Query<CharacterComponent, TransformComponent>(0f, UpdateCharacterState);
+        void UpdateCharacterState(float delta, DataStore store, int entity, in CharacterComponent characterComponent, in TransformComponent transform)
         {
             //  The local player entity carries the server mirror uuid, not the character's own uuid, so
             //  match through the Character the component holds rather than the entity uuid.
@@ -74,12 +74,10 @@ internal sealed class CharacterSaveManager(
                 return;
             }
 
-            if (!store.TryGet(entity, out InventoryComponent inventoryComponent))
+            if (store.TryGet(entity, out InventoryComponent inventoryComponent))
             {
-                return;
+                character.Inventory = inventoryComponent.ToSparseEntries();
             }
-
-            character.Inventory = inventoryComponent.ToSparseEntries();
 
             if (store.TryGet(entity, out EquipmentComponent equipment))
             {
@@ -89,6 +87,11 @@ internal sealed class CharacterSaveManager(
             if (store.TryGet(entity, out GameModeComponent gameMode))
             {
                 character.GameMode = gameMode.Mode;
+            }
+
+            if (store.TryGet(entity, out StatisticsComponent statistics))
+            {
+                character.Statistics = StatisticsComponentExtensions.MergeClientSavedStatistics(character.Statistics, in statistics);
             }
         }
 

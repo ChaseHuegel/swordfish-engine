@@ -459,6 +459,45 @@ Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 | `Gender` | `Gender` | gender categorization (`Neutral`, `Male`, `Female`) |
 | `[Bodies.States.<state>]` | map: direction tag → texture path list | state tag free-form (`standing`, `floating`, ...) |
 
+## HUD Bars (`assets/hud_bars/*.toml`)
+
+HUD bars live in the shared `WaywardBeyond.Data` module under `WaywardBeyond.Data/HudBars/`. `DataComposition.RegisterDataServices` (`WaywardBeyond.Data/DataComposition.cs:26`) registers `IHudBarDatabase` and `IAssetDatabase<HudBarDefinition>`. `HudBarDefinitionsParser` accepts flat single-bar tables or `[[hud_bars]]` table arrays.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string | required unique bar id (for example `wb:health`) |
+| `stat_id` | string | required current value stat key |
+| `max_stat_id` | string? | optional max value stat key |
+| `default_max` | float? | optional finite positive fallback maximum when `max_stat_id` is omitted or absent |
+| `icon_count` | int | positive integer icon count (defaults to `10`) |
+| `icon_full` | string | required texture asset key for full icons |
+| `icon_half` | string | required texture asset key for half icons |
+| `icon_empty` | string | required texture asset key for empty icons |
+| `warn_threshold` | float | ratio in `[0, 1]` activating warning state (defaults to `0.3`) |
+| `critical_threshold` | float | ratio in `[0, 1]` activating critical state and `<= warn_threshold` (defaults to `0.15`) |
+| `order` | int | vertical stack order with lower values first (defaults to `0`) |
+| `hide_in_creative` | bool | hides the bar in Creative mode (defaults to `false`) |
+| `color_tint` | string? | optional hex sRGBA color parsed through `HexColor.TryParseRgba` |
+
+Validation through `HudBarDefinition.Validate` (`WaywardBeyond.Data/HudBars/HudBarDefinition.cs:61-137`) returns `Result<HudBarDefinition>`. It rejects blank ids, blank stat or icon keys, missing `max_stat_id` without a positive finite `default_max`, `icon_count < 1`, thresholds outside `[0, 1]`, `critical_threshold > warn_threshold`, and invalid hex tints.
+
+## Buffs (`assets/buffs/*.toml`)
+
+Buff definitions live in the shared `WaywardBeyond.Data` module under `WaywardBeyond.Data/Buffs/`. `DataComposition.RegisterDataServices` (`WaywardBeyond.Data/DataComposition.cs:27`) registers `IBuffDatabase` and `IAssetDatabase<BuffDefinition>`. `BuffDefinitionsParser` accepts flat single-buff tables or `[[buffs]]` table arrays.
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string | required unique buff id (for example `wb:well_fed`) |
+| `name` | string (localization key) | required display name key |
+| `description` | string? (localization key) | optional description key |
+| `icon` | string? | optional buff icon texture key |
+| `duration_seconds` | float | required finite duration `> 0` |
+| `stack_policy` | string | `refresh` (default), `extend`, or `ignore` |
+| `[[stat_modifiers]]` | table array | rows of `stat_id` with `flat_delta`, `percent_delta`, or both (`!= 0`) |
+| `[regen]` / `[regen_rates]` | table or top-level keys | finite `health_per_sec` and `oxygen_per_sec` regen rates |
+
+A buff cannot specify both top-level regen keys and a regen sub-table (`WaywardBeyond.Data/Buffs/BuffDefinitionsParser.cs:190-194`). `BuffDefinition.Validate` (`WaywardBeyond.Data/Buffs/BuffDefinition.cs:42-109`) returns `Result<BuffDefinition>` and rejects blank ids or names, non-positive durations, invalid stack policies, non-finite regen rates, and modifiers lacking a stat key or non-zero finite delta.
+
 ## Localization
 
 `assets/lang/en/*.toml` and `assets/lang/tags/*.toml` hold localization entries.
@@ -489,6 +528,9 @@ bits. See [seed-phrases](seed-phrases.md).
 - `WaywardBeyond.Bricks/BrickEventKind.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagValues.cs`
+- `WaywardBeyond.Data/HudBars/{HudBarDefinition,HudBarEntry,HudBarDefinitions,HudBarDefinitionsParser,IHudBarDatabase,HudBarDatabase,HudBarComposition}.cs`
+- `WaywardBeyond.Data/Buffs/{BuffDefinition,BuffEntry,BuffDefinitions,BuffDefinitionsParser,BuffStackPolicy,BuffStatModifier,IBuffDatabase,BuffDatabase,BuffComposition}.cs`
+- `WaywardBeyond.Data/{DataComposition,TomlTableReader}.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`
 - `WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs`
@@ -497,7 +539,8 @@ bits. See [seed-phrases](seed-phrases.md).
   `WaywardBeyond.Recipes/Injector.cs:17`,
   `WaywardBeyond.Skills/Injector.cs:16`,
   `WaywardBeyond.Client/Injector.cs:374`, `WaywardBeyond.Bricks/Injector.cs:17`,
-  `WaywardBeyond.Bricks/Injector.cs:23`
+  `WaywardBeyond.Bricks/Injector.cs:23`,
+  `WaywardBeyond.Data/DataComposition.cs:26-27`
 
 ## Tests that pin this
 
@@ -528,3 +571,8 @@ occurrence order, and the invariant merge into each language.
 `WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin
 `[Bricks.Statistics]` and `[Items.Statistics]` parsing, fallback defaults, and
 `STAT001` validation findings.
+`WaywardBeyond.Tests/HudBarDatabaseTests.cs` pins `hud_bars/*.toml` table-array
+and flat parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
+`WaywardBeyond.Tests/BuffDatabaseTests.cs` pins `buffs/*.toml` parsing, stack
+policies, stat modifiers, regen tables, conflict detection, and validation
+failures.

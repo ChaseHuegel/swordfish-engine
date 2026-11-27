@@ -195,8 +195,8 @@ public sealed class LevelSaveService : IDisposable
         return false;
     }
 
-    /// <summary>Captures one character's location on the server thread and queues its write to the level database.</summary>
-    public void QueueSaveCharacterLocation(DataStore store, int entity)
+    /// <summary>Captures one character's location and surviving statistics on the server thread and queues its write to the level database.</summary>
+    public void QueueSaveCharacterLocation(DataStore store, int entity, uint currentSimTick = 0)
     {
         ILevelStorage? storage = _levelStorage;
         if (string.IsNullOrEmpty(CurrentLevelGuid) || storage == null)
@@ -209,7 +209,7 @@ public sealed class LevelSaveService : IDisposable
             return;
         }
 
-        CharacterEntityData data = CaptureCharacter(store, entity, in transform);
+        CharacterEntityData data = CaptureCharacter(store, entity, in transform, currentSimTick);
         lock (_saveLock)
         {
             long sequence = ++_nextCharacterSaveSequence;
@@ -223,14 +223,14 @@ public sealed class LevelSaveService : IDisposable
     /// save-database writes to a worker. Reading the store must stay on the server thread; the writes
     /// must not block the server tick loop, so they are split. No-op when no level is loaded.
     /// </summary>
-    public void QueueSave(DataStore store)
+    public void QueueSave(DataStore store, uint currentSimTick = 0)
     {
         if (string.IsNullOrEmpty(CurrentLevelGuid) || _levelStorage == null)
         {
             return;
         }
 
-        CapturedSave save = Capture(store);
+        CapturedSave save = Capture(store, currentSimTick);
         lock (_saveLock)
         {
             //  Chain behind the pending save so captures persist in enqueue order: a stale capture
@@ -255,7 +255,7 @@ public sealed class LevelSaveService : IDisposable
     /// run after the server thread has stopped (so the store is not concurrently mutated) and before the
     /// world containers are disposed - the sequencing point that guards the shutdown cascade.
     /// </summary>
-    public void Flush(DataStore store)
+    public void Flush(DataStore store, uint currentSimTick = 0)
     {
         if (string.IsNullOrEmpty(CurrentLevelGuid) || _levelStorage == null)
         {
@@ -263,7 +263,7 @@ public sealed class LevelSaveService : IDisposable
         }
 
         AwaitPendingSave();
-        CapturedSave save = Capture(store);
+        CapturedSave save = Capture(store, currentSimTick);
         lock (_saveLock)
         {
             PersistLocked(save);
@@ -403,10 +403,13 @@ public sealed class LevelSaveService : IDisposable
         }
     }
 
-    private static CharacterEntityData CaptureCharacter(DataStore store, int entity, in TransformComponent transform)
+    private static CharacterEntityData CaptureCharacter(DataStore store, int entity, in TransformComponent transform, uint currentSimTick)
     {
         Uuid uuid = store.GetUuid(entity);
         GameMode gameMode = store.TryGet(entity, out GameModeComponent mode) ? mode.Mode : GameMode.Adventure;
+        Statistic[]? statistics = store.TryGet(entity, out StatisticsComponent stats)
+            ? StatisticsComponentExtensions.CapturePersistedServerStatistics(in stats, currentSimTick)
+            : null;
         return new CharacterEntityData(
             uuid.ToValue(),
             transform.Position.X,
@@ -419,7 +422,8 @@ public sealed class LevelSaveService : IDisposable
             _ScaleX: transform.Scale.X,
             _ScaleY: transform.Scale.Y,
             _ScaleZ: transform.Scale.Z,
-            _GameMode: gameMode
+            _GameMode: gameMode,
+            _Statistics: statistics
         );
     }
 
@@ -437,7 +441,7 @@ public sealed class LevelSaveService : IDisposable
     /// player locations are the server-side transform, never the client's. The actively loaded level's
     /// metadata is stamped (time played) and included so a save persists its server-owned playtime total.
     /// </summary>
-    private CapturedSave Capture(DataStore store)
+    private CapturedSave Capture(DataStore store, uint currentSimTick)
     {
         ILevelStorage storage = _levelStorage
             ?? throw new InvalidOperationException("A level must be loaded before it can be captured.");
@@ -460,6 +464,7 @@ public sealed class LevelSaveService : IDisposable
         CaptureLocationAction locationAction = new()
         {
             Entries = locations,
+            CurrentSimTick = currentSimTick,
         };
         store.Query<OwnedCharacterComponent, TransformComponent, CaptureLocationAction>(0f, ref locationAction);
 
@@ -535,10 +540,11 @@ public sealed class LevelSaveService : IDisposable
     private struct CaptureLocationAction : IForEach<OwnedCharacterComponent, TransformComponent>
     {
         public List<CharacterEntityData> Entries;
+        public uint CurrentSimTick;
 
         public void Execute(float delta, DataStore store, int entity, in OwnedCharacterComponent owned, in TransformComponent transform)
         {
-            Entries.Add(CaptureCharacter(store, entity, in transform));
+            Entries.Add(CaptureCharacter(store, entity, in transform, CurrentSimTick));
         }
     }
 

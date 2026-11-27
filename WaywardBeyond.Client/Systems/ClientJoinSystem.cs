@@ -137,7 +137,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
                 Inventory = character.Inventory,
                 ActiveInventorySlot = character.ActiveInventorySlot,
                 GameMode = character.GameMode,
-                Statistics = character.Statistics,
+                Statistics = StatisticsComponentExtensions.WithCharacterAttributes(in character),
             },
         }, _timeout.Token);
     }

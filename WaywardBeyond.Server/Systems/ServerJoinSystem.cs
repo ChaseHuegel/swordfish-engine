@@ -150,7 +150,7 @@ public sealed class ServerJoinSystem(
 
     private void ReleasePlayerMirror(int entity, DataStore store)
     {
-        saveService.QueueSaveCharacterLocation(store, entity);
+        saveService.QueueSaveCharacterLocation(store, entity, simulationStep.CurrentSimTick);
 
         //  Free captures every component removal; the engine releases the physics body.
         //  Capture the uuid before Free (which clears it) so the despawn can replicate.
@@ -238,6 +238,7 @@ public sealed class ServerJoinSystem(
         Vector3 position;
         Quaternion orientation;
         GameMode gameMode;
+        CharacterEntityData? persistedEntity = null;
         if (levelLoaded)
         {
             GameMode defaultMode = saveService.CurrentLevel?.DefaultGameMode ?? request.State.GameMode;
@@ -247,6 +248,7 @@ public sealed class ServerJoinSystem(
                 if (savedCharacter.Success)
                 {
                     CharacterEntityData saved = savedCharacter.Value;
+                    persistedEntity = saved;
                     position = new Vector3((float)saved.X, (float)saved.Y, (float)saved.Z);
                     orientation = new Quaternion(saved.OrientationX, saved.OrientationY, saved.OrientationZ, saved.OrientationW);
                     gameMode = ResolveGameMode(saved.GameMode);
@@ -305,7 +307,7 @@ public sealed class ServerJoinSystem(
         //  the level's resolved game mode. From here the server owns these components and replicates them.
         SeedInteractionContext(store, entity, request.State, gameMode);
         CharacterStatisticsSeeder.SeedSkillState(store, entity, request.State.Statistics, skillDatabase);
-        CharacterStatisticsSeeder.SeedStatistics(store, entity, request.State.Statistics, skillDatabase);
+        SeedStatistics(store, entity, request.State, gameMode, persistedEntity, simulationStep.CurrentSimTick);
 
         Session session = new(_nextSessionId++);
         sessions.Register(store, entity, clientId, session);
@@ -401,4 +403,154 @@ public sealed class ServerJoinSystem(
     {
         return Enum.IsDefined(gameMode) ? gameMode : GameMode.Adventure;
     }
+
+    /// <summary>
+    /// Seeds the player's server-authoritative <see cref="StatisticsComponent"/> from per-level server
+    /// persistence or the joining client's initial state, applying authoritative defaults and bounds.
+    /// </summary>
+    internal static void SeedStatistics(
+        DataStore store,
+        int entity,
+        in CharacterState seed,
+        GameMode gameMode,
+        CharacterEntityData? persistedEntity = null,
+        long currentSimTick = 0L
+    )
+    {
+        Statistic[]? persisted = persistedEntity != null ? persistedEntity.Value.Statistics : null;
+        bool hasPersisted = persisted != null;
+        Statistic[]? clientSeed = seed.Statistics;
+
+        long healthMax = StatIds.DEFAULT_HEALTH_MAX_FIXED;
+        if (hasPersisted && TryFindStatistic(persisted, StatIds.HEALTH_MAX, out long savedHealthMax))
+        {
+            healthMax = Math.Clamp(savedHealthMax, StatIds.FIXED_POINT_SCALE, StatIds.MAX_VITAL_FIXED);
+        }
+
+        long oxygenMax = StatIds.DEFAULT_OXYGEN_MAX_FIXED;
+        if (hasPersisted && TryFindStatistic(persisted, StatIds.OXYGEN_MAX, out long savedOxygenMax))
+        {
+            oxygenMax = Math.Clamp(savedOxygenMax, StatIds.FIXED_POINT_SCALE, StatIds.MAX_VITAL_FIXED);
+        }
+
+        long health = healthMax;
+        long oxygen = oxygenMax;
+        if (gameMode != GameMode.Creative)
+        {
+            if (TryFindSeedVital(persisted, clientSeed, hasPersisted, StatIds.HEALTH, out long rawHealth))
+            {
+                health = Math.Clamp(rawHealth, 0L, healthMax);
+            }
+
+            if (TryFindSeedVital(persisted, clientSeed, hasPersisted, StatIds.OXYGEN, out long rawOxygen))
+            {
+                oxygen = Math.Clamp(rawOxygen, 0L, oxygenMax);
+            }
+        }
+
+        var stats = new StatisticsComponent();
+        stats.SetValue(StatIds.HEALTH_MAX, healthMax);
+        stats.SetValue(StatIds.HEALTH, health);
+        stats.SetValue(StatIds.OXYGEN_MAX, oxygenMax);
+        stats.SetValue(StatIds.OXYGEN, oxygen);
+        stats.SetFlag(StatIds.PRESSURIZED, false);
+
+        for (var i = 0; i < StatIds.BaseAttributeIds.Length; i++)
+        {
+            string attrId = StatIds.BaseAttributeIds[i];
+            long attrValue = StatIds.MIN_ATTRIBUTE;
+            if (hasPersisted && TryFindStatistic(persisted, attrId, out long savedAttr))
+            {
+                attrValue = Math.Max(StatIds.MIN_ATTRIBUTE, savedAttr);
+            }
+            else if (TryFindStatistic(clientSeed, attrId, out long clientAttr))
+            {
+                attrValue = Math.Clamp(clientAttr, StatIds.MIN_ATTRIBUTE, StatIds.MAX_BASE_ATTRIBUTE);
+            }
+
+            stats.SetValue(attrId, attrValue);
+        }
+
+        if (persisted != null)
+        {
+            for (var i = 0; i < persisted.Length; i++)
+            {
+                Statistic entry = persisted[i];
+                if (string.IsNullOrWhiteSpace(entry.ID) || IsReservedJoinStat(entry.ID))
+                {
+                    continue;
+                }
+
+                if (StatIds.IsBuffExpiresTickKey(entry.ID.AsSpan()) && entry.Value <= currentSimTick)
+                {
+                    continue;
+                }
+
+                stats.SetValue(entry.ID, entry.Value);
+            }
+        }
+
+        store.AddOrUpdate(entity, stats);
+    }
+
+    private static bool TryFindSeedVital(
+        Statistic[]? persisted,
+        Statistic[]? clientSeed,
+        bool hasPersisted,
+        string statId,
+        out long value
+    )
+    {
+        if (hasPersisted && TryFindStatistic(persisted, statId, out value))
+        {
+            return true;
+        }
+
+        return TryFindStatistic(clientSeed, statId, out value);
+    }
+
+    private static bool TryFindStatistic(Statistic[]? entries, string id, out long value)
+    {
+        if (entries == null)
+        {
+            value = 0L;
+            return false;
+        }
+
+        for (var i = 0; i < entries.Length; i++)
+        {
+            if (string.Equals(entries[i].ID, id, StringComparison.Ordinal))
+            {
+                value = entries[i].Value;
+                return true;
+            }
+        }
+
+        value = 0L;
+        return false;
+    }
+
+    private static bool IsReservedJoinStat(string id)
+    {
+        if (string.Equals(id, StatIds.HEALTH, StringComparison.Ordinal)
+            || string.Equals(id, StatIds.HEALTH_MAX, StringComparison.Ordinal)
+            || string.Equals(id, StatIds.OXYGEN, StringComparison.Ordinal)
+            || string.Equals(id, StatIds.OXYGEN_MAX, StringComparison.Ordinal)
+            || string.Equals(id, StatIds.PRESSURIZED, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        for (var i = 0; i < StatIds.BaseAttributeIds.Length; i++)
+        {
+            if (string.Equals(id, StatIds.BaseAttributeIds[i], StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+>>>>>>> f7a5a8c4 (Add OwnerOnly StatisticsComponent with HudBar and Buff databases #927)
 }
