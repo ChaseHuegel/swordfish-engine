@@ -47,7 +47,8 @@ See [specs/krill](specs/krill.md) for the package contract.
 
 - **Shoal modularity**: every feature is a Shoal module. A module = a DLL +
   `manifest.toml` (ID, name, assemblies). Modules are auto-discovered and loaded
-  via `Shoal/Modularity/ModulesLoader.cs`.
+  via `Shoal/Modularity/ModulesLoader.cs`, which records each loaded module root
+  in `ModuleCatalog` for host-side checks.
 - **DI via DryIoc**: `IContainer` everywhere. Modules register services via
   `IDryIocInjector`. See `Shoal/DependencyInjection/`.
 - **ECS-first**: game objects are entities composed of struct components,

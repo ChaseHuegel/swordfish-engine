@@ -1,6 +1,8 @@
 using DryIoc;
+using Shoal.Modularity;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Data.Migrations;
+using WaywardBeyond.Data.Packs;
 
 namespace WaywardBeyond.Data;
 
@@ -19,5 +21,7 @@ public static class DataComposition
         container.RegisterTags();
         container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.Register<SeedPhraseService>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.Register<ContentPackVersionChecker>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.RegisterMapping<IEntryPoint, ContentPackVersionChecker>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 }
