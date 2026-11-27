@@ -910,7 +910,7 @@ public sealed class WorkspaceValidator
             {
                 if (group.Value != null)
                 {
-                    resolvedSources += ValidateSkillSourceGroup(workspace, in asset, doc, $"Skills.Sources.{group.Key}", group.Value, findings);
+                    resolvedSources += ValidateSkillSourceGroup(workspace, in asset, doc, group.Key, $"Skills.Sources.{group.Key}", group.Value, findings);
                 }
             }
         }
@@ -1257,17 +1257,39 @@ public sealed class WorkspaceValidator
         WorkspaceIndex workspace,
         in IndexedAsset asset,
         TomlDocument? doc,
+        XPSource sourceKind,
         string subPath,
         Dictionary<string, int> sources,
         List<ValidationFinding> findings)
     {
         int resolved = 0;
+        bool isCraftSource = sourceKind is XPSource.Craft or XPSource.Process;
         foreach (KeyValuePair<string, int> source in sources)
         {
             TomlFieldSpan? sourceSpan = FindEntryField(doc, asset.Provenance.TableIndex, source.Key, subPath);
             TomlTextSpan? keySpan = sourceSpan?.KeySpan;
             int line = keySpan.HasValue ? keySpan.Value.Line : ResolveEntryLine(doc, asset.Provenance.TableIndex);
             int col = keySpan.HasValue ? keySpan.Value.Column : 1;
+
+            if (isCraftSource && source.Key.StartsWith("station:", StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrWhiteSpace(source.Key.Substring(8)))
+                {
+                    resolved++;
+                }
+
+                continue;
+            }
+
+            if (isCraftSource && source.Key.StartsWith("recipe:", StringComparison.Ordinal))
+            {
+                if (!string.IsNullOrWhiteSpace(source.Key.Substring(7)))
+                {
+                    resolved++;
+                }
+
+                continue;
+            }
 
             if (source.Key.StartsWith("tag:", StringComparison.Ordinal))
             {
@@ -1314,6 +1336,16 @@ public sealed class WorkspaceValidator
                 }
 
                 if (workspace.GetEffectiveTagValues(tagName, locale: string.Empty).Count > 0)
+                {
+                    resolved++;
+                }
+
+                continue;
+            }
+
+            if (isCraftSource)
+            {
+                if (!string.IsNullOrWhiteSpace(source.Key))
                 {
                     resolved++;
                 }

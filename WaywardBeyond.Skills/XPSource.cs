@@ -8,4 +8,10 @@ public enum XPSource
 
     /// <summary>The action is breaking a brick.</summary>
     Break,
+
+    /// <summary>The action is manually crafting a recipe.</summary>
+    Craft,
+
+    /// <summary>The action is processing a recipe in a station.</summary>
+    Process,
 }

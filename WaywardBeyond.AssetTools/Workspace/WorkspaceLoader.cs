@@ -18,6 +18,7 @@ public sealed class WorkspaceLoader
         "swordfish",
         "waywardbeyond.bricks",
         "waywardbeyond.items",
+        "waywardbeyond.recipes",
         "waywardbeyond.skills",
         "waywardbeyond.bodies",
         "waywardbeyond.client",
@@ -958,6 +959,28 @@ public sealed class WorkspaceLoader
 
                 foreach (string target in sourceGroup.Value.Keys)
                 {
+                    if (sourceGroup.Key is XPSource.Craft or XPSource.Process)
+                    {
+                        if (target.StartsWith("station:", StringComparison.Ordinal))
+                        {
+                            AddRefIfPresent(refs, in asset, $"Sources.{sourceGroup.Key}", target.Substring(8), "station_tag", isInformational: false);
+                        }
+                        else if (target.StartsWith("recipe:", StringComparison.Ordinal))
+                        {
+                            AddRefIfPresent(refs, in asset, $"Sources.{sourceGroup.Key}", target.Substring(7), "recipe", isInformational: false);
+                        }
+                        else if (target.StartsWith("tag:", StringComparison.Ordinal))
+                        {
+                            AddRefIfPresent(refs, in asset, $"Sources.{sourceGroup.Key}", target.Substring(4), "tag", isInformational: false);
+                        }
+                        else
+                        {
+                            AddRefIfPresent(refs, in asset, $"Sources.{sourceGroup.Key}", target, "item", isInformational: false);
+                        }
+
+                        continue;
+                    }
+
                     bool isTag = target.StartsWith("tag:", StringComparison.Ordinal);
                     string targetId = isTag ? target.Substring(4) : target;
                     string grammar = isTag ? "tag" : "brick";

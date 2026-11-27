@@ -23,6 +23,7 @@
         <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" ModulePath="waywardbeyond.bricks" />
         <ProjectReference Include="..\WaywardBeyond.Items\WaywardBeyond.Items.csproj" ModulePath="waywardbeyond.items" />
+        <ProjectReference Include="..\WaywardBeyond.Recipes\WaywardBeyond.Recipes.csproj" ModulePath="waywardbeyond.recipes" />
         <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" ModulePath="waywardbeyond.skills" />
         <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" ModulePath="waywardbeyond.bodies" />
         <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" ModulePath="waywardbeyond.server" />

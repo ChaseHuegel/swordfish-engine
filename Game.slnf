@@ -23,6 +23,7 @@
       "WaywardBeyond.Items\\WaywardBeyond.Items.csproj",
       "WaywardBeyond.Networking\\WaywardBeyond.Networking.csproj",
       "WaywardBeyond.Permissions\\WaywardBeyond.Permissions.csproj",
+      "WaywardBeyond.Recipes\\WaywardBeyond.Recipes.csproj",
       "WaywardBeyond.Server\\WaywardBeyond.Server.csproj",
       "WaywardBeyond.Server.Launcher\\WaywardBeyond.Server.Launcher.csproj",
       "WaywardBeyond.Skills\\WaywardBeyond.Skills.csproj",

@@ -1,0 +1,9 @@
+ID = "waywardbeyond.recipes"
+Name = "Wayward Beyond Recipes"
+Description = "Shared crafting and processing recipe definitions for Wayward Beyond."
+Author = "Chase Huegel"
+Website = "https://github.com/ChaseHuegel"
+Source = "https://github.com/ChaseHuegel/swordfish-engine"
+Assemblies = [
+    "WaywardBeyond.Recipes.dll",
+]

@@ -329,6 +329,43 @@ public sealed class ValidationEngineTests : IDisposable
             !f.IsSafeBulkFix);
     }
 
+    [Fact]
+    public void ValidatesCraftAndProcessSkillXpSourcesCleanly()
+    {
+        string pack = CreateMinimalPack("skill_craft_pack");
+        string assets = Path.Combine(pack, "assets");
+        WriteFile(
+            Path.Combine(assets, "lang", "en", "skills.toml"),
+            "\"Language\" = \"en\"\n[Translations]\n\"skill.name.manufacturing\" = \"Manufacturing\"\n");
+        WriteFile(
+            Path.Combine(assets, "lang", "tags", "items.toml"),
+            "\"Language\" = \"\"\n[Tags]\n\"item.placeable\" = [\"wb:panel\"]\n");
+        WriteFile(
+            Path.Combine(assets, "skills", "manufacturing.toml"),
+            "[[Skills]]\n" +
+            "ID = \"manufacturing\"\n" +
+            "Name = \"skill.name.manufacturing\"\n" +
+            "[Skills.Sources.Craft]\n" +
+            "\"station:station.synthesizer\" = 5\n" +
+            "\"recipe:wb:craft_core\" = 20\n" +
+            "\"tag:item.placeable\" = 4\n" +
+            "\"wb:panel\" = 8\n" +
+            "[Skills.Sources.Process]\n" +
+            "\"station:station.refinery\" = 3\n" +
+            "\"tag:missing.item_tag\" = 2\n" +
+            "[Skills.Levels]\n" +
+            "1 = 100\n");
+
+        WorkspaceIndex ws = new WorkspaceLoader().LoadPack(pack).Value;
+        ValidationReport report = new WorkspaceValidator().Validate(ws);
+
+        Assert.DoesNotContain(report.Findings, static f => f.Code == "ENUM001");
+        Assert.DoesNotContain(report.Findings, static f => f.Field.Contains("station:", StringComparison.Ordinal));
+        Assert.DoesNotContain(report.Findings, static f => f.Field.Contains("recipe:", StringComparison.Ordinal));
+        Assert.DoesNotContain(report.Findings, static f => f.Field.Contains("wb:panel", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, static f => f.Code == "REF001" && f.Field == "Skills.Sources.Process.tag:missing.item_tag");
+    }
+
     private string CreateMinimalPack(string name)
     {
         string pack = Path.Combine(_tempRoot, name);

@@ -53,6 +53,7 @@ public sealed class WorkspaceAndLocatorTests : IDisposable
                 "swordfish",
                 "waywardbeyond.bricks",
                 "waywardbeyond.items",
+                "waywardbeyond.recipes",
                 "waywardbeyond.skills",
                 "waywardbeyond.bodies",
                 "waywardbeyond.client",

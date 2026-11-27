@@ -20,6 +20,7 @@ using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Items;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Permissions;
+using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Server;
@@ -150,6 +151,7 @@ public static class ServerComposition
         container.Resolve<IItemDatabase>();
         container.Resolve<IPaintRegistry>(IfUnresolved.ReturnDefault);
         container.Resolve<IPaintDatabase>(IfUnresolved.ReturnDefault);
+        container.Resolve<IRecipeDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<ISkillDatabase>();
         if (container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>())
         {

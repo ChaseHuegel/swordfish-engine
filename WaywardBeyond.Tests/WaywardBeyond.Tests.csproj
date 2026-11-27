@@ -37,6 +37,7 @@
     <ProjectReference Include="..\WaywardBeyond.Meshing\WaywardBeyond.Meshing.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Permissions\WaywardBeyond.Permissions.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Recipes\WaywardBeyond.Recipes.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />

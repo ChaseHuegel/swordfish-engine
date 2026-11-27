@@ -22,27 +22,40 @@ categories, and notification keys.
 `WaywardBeyond.Skills/` is a Shoal module (`waywardbeyond.skills`)
 that owns the headless models and the tomls:
 
-- `XPSource.cs` — `XPSource { Place, Break }`.
+- `XPSource.cs` — `XPSource { Place, Break, Craft, Process }`
+  (`WaywardBeyond.Skills/XPSource.cs:4`).
 - `SkillDefinition.cs`, `SkillDefinitions.cs` — the TOML schema.
-  Sources stay readable as `"wb:rock" = 1` or `"tag:brick.buildable" = 1`.
+  Brick sources use `"wb:rock" = 1` or `"tag:brick.buildable" = 1`.
+  Crafting and processing sources under `[Skills.Sources.Craft]` and
+  `[Skills.Sources.Process]` use `station:<tag>`, `recipe:<id>`, `tag:<itemTag>`,
+  or direct recipe and output item ids. Recipe files never embed skill XP.
+- `CraftXpSourceSet.cs` — resolved crafting and processing XP lookup set
+  (`WaywardBeyond.Skills/CraftXpSourceSet.cs:8`). `Evaluate` resolves XP in
+  precedence order: explicit `recipe:<id>`, direct `recipeId`, direct output
+  item id, expanded output item tag, then `station:<tag>`.
 - `Skill.cs` — the runtime asset: ID, name/category localization keys, icon
-  path, level curve (`SortedDictionary`), and sources keyed by brick
-  **data id**. `GetXP(XPSource, ushort)` resolves the XP for a brick.
-  `CalculateLevel(long)` resolves the level for a total XP amount. A level is
-  reached only when the total XP exceeds the sum of every requirement up to it,
-  so an exact threshold reports the lower level. `CalculateProgress(long)`
-  returns `SkillProgress` with the resolved level, total XP, XP into the level,
-  next-level requirement, normalized bar progress, and max-level flag.
-- `SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
-  `tag:&lt;name&gt;` sources into brick data ids through an injected
-  `IBrickRegistry` (the same map the client `BrickDatabase` owns, so ids match
-  worldgen and placement), logs a warning on an unknown brick id, an unknown
-  tag, or a brick listed twice in one source set, and caches the skills per
-  `XPSource` for the interaction hot path. It exposes `All` in deterministic ID
-  order. It reads only the invariant gameplay tag list from
-  `ILocalizedTagsDatabase` (see [asset-definitions](asset-definitions.md)). It
-  never resolves display localization, textures, or icons. It rejects a skill
-  with no ID, a duplicate ID, no level curve, or a level requirement below 1.
+  path, level curve (`SortedDictionary`), brick sources keyed by brick
+  **data id**, and optional craft/process source sets. `GetXP(XPSource, ushort)`
+  (`WaywardBeyond.Skills/Skill.cs:66`) resolves brick XP.
+  `GetXP(XPSource, string, string, string?)` (`WaywardBeyond.Skills/Skill.cs:79`)
+  and `GetXP(XPSource, string, string, ReadOnlySpan<string>)`
+  (`WaywardBeyond.Skills/Skill.cs:91`) resolve crafting and processing XP
+  without referencing `WaywardBeyond.Recipes`. `CalculateLevel(long)` resolves
+  the level for a total XP amount. A level is reached only when the total XP
+  exceeds the sum of every requirement up to it, so an exact threshold reports
+  the lower level. `CalculateProgress(long)` returns `SkillProgress` with the
+  resolved level, total XP, XP into the level, next-level requirement,
+  normalized bar progress, and max-level flag.
+- `SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`,
+  `WaywardBeyond.Skills/SkillDatabase.cs:14`). Expands `tag:<name>` brick
+  sources into brick data ids through `IBrickRegistry` and expands `tag:<name>`
+  craft/process sources into item ids through `ILocalizedTagsDatabase.Invariant`
+  (see [asset-definitions](asset-definitions.md)). It logs a warning on an
+  unknown brick id, an unknown tag, an empty selector, or a duplicate entry in
+  one source set. It caches skills per `XPSource` in deterministic ID order and
+  exposes `All` in deterministic ID order. It never resolves display
+  localization, textures, or icons. It rejects a skill with no ID, a duplicate
+  ID, no level curve, or a level requirement below 1.
 - `ISkillDatabase.cs` — the public contract over the loaded `Skill`s (`All`,
   `Get(string)`, and `Get(XPSource)`).
 - `LevelInfo.cs` — the resolved level plus the XP earned into that level.
@@ -136,9 +149,10 @@ skill artwork lives under `WaywardBeyond.Client/assets/textures/skills/`.
 
 - `WaywardBeyond.Tests/SkillDatabaseTests.cs` — the shipped definitions load,
   `All` returns skills in deterministic order with `skills/` artwork icons, tag
-  sources expand to the brick data ids worldgen writes, skills group by
-  `XPSource`, the curve stays sorted, and the level thresholds and rejection
-  paths hold.
+  sources expand to the brick data ids worldgen writes, crafting and processing
+  sources evaluate station tags, recipe ids, and output item tags by precedence,
+  skills group by `XPSource`, the curve stays sorted, and the level thresholds
+  and rejection paths hold.
 - `WaywardBeyond.Tests/SkillsPanelTests.cs` — `Skill.CalculateProgress` and the
   panel rows match `Skill.CalculateLevel` and bar math across thresholds,
   `SkillIconDatabase` resolves textures, falls back to `skills/unknown.png`, and
