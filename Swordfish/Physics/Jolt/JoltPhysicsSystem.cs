@@ -45,6 +45,9 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     public event EventHandler<EventArgs>? FixedUpdate;
 
+    /// <inheritdoc/>
+    public event Action<PhysicsContactEvent>? ContactResolved;
+
     public PhysicsSystem System { get; }
     
     private readonly PhysicsSettings _physicsSettings;
@@ -55,6 +58,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     private readonly IgnoreBodyFilter _ignoreBodyFilter = new();
     private readonly List<CollideShapeResult> _overlapResults = [];
     private readonly PhysicsComponentProcessor _removedPhysics = new();
+    private readonly JoltContactBuffer _contactBuffer = new();
     private readonly JobSystem _jobSystem;
 
     private ThreadContext? _context;
@@ -103,6 +107,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
         SetupCollisionFiltering();
         System = new PhysicsSystem(_settings);
+        System.OnContactAdded += OnContactAdded;
         _jobSystem = new JobSystemThreadPool();
         _bodyInterface = System.BodyInterface;
 
@@ -203,20 +208,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         {
             while (_accumulator >= physicsDelta)
             {
-                lock (_solverLock)
-                {
-                    FixedUpdate?.Invoke(this, EventArgs.Empty);
-                    _context.ProcessMessageQueue();
-
-                    var syncJoltToEntity = new SyncJoltToEntityAction(this);
-                    store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntity);
-                    
-                    System.Update(physicsDelta, steps, _jobSystem);
-
-                    var syncEntityToJolt = new SyncEntityToJoltAction(this);
-                    store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJolt);
-                }
-
+                StepSolver(delta, physicsDelta, steps, store);
                 _accumulator -= physicsDelta;
             }
         }
@@ -227,22 +219,103 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 return;
             }
 
-            lock (_solverLock)
-            {
-                FixedUpdate?.Invoke(this, EventArgs.Empty);
-                _context.ProcessMessageQueue();
-
-                var syncJoltToEntityAction = new SyncJoltToEntityAction(this);
-                store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntityAction);
-                
-                System.Update(physicsDelta, steps, _jobSystem);
-                
-                var syncEntityToJoltAction = new SyncEntityToJoltAction(this);
-                store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJoltAction);
-
-                _accumulator -= physicsDelta;
-            }
+            StepSolver(delta, physicsDelta, steps, store);
+            _accumulator -= physicsDelta;
         }
+    }
+
+    private void StepSolver(float delta, float physicsDelta, int steps, DataStore store)
+    {
+        lock (_solverLock)
+        {
+            FixedUpdate?.Invoke(this, EventArgs.Empty);
+            _context!.ProcessMessageQueue();
+            _removedPhysics.Process(store, delta);
+
+            var syncJoltToEntity = new SyncJoltToEntityAction(this);
+            store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntity);
+
+            System.Update(physicsDelta, steps, _jobSystem);
+
+            var syncEntityToJolt = new SyncEntityToJoltAction(this);
+            store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJolt);
+        }
+
+        //  Dispatch outside both _solverLock and the contact buffer so callbacks can freely query physics or mutate the store.
+        _contactBuffer.Drain(ContactResolved);
+    }
+
+    private void OnContactAdded(PhysicsSystem system, in Body body1, in Body body2, in ContactManifold manifold, in ContactSettings settings)
+    {
+        if (ContactResolved == null)
+        {
+            return;
+        }
+
+        if (body1 == null || body2 == null || body1.IsDisposed || body2.IsDisposed)
+        {
+            return;
+        }
+
+        if (!TryDecodeEntityUserData(in body1, out int entityA) || !TryDecodeEntityUserData(in body2, out int entityB))
+        {
+            return;
+        }
+
+        Vector3 normal = manifold.WorldSpaceNormal;
+        Vector3 contactPoint = GetContactPoint(in manifold, in body1, in body2);
+        Vector3 velocityA = body1.IsStatic ? Vector3.Zero : body1.GetPointVelocity(in contactPoint);
+        Vector3 velocityB = body2.IsStatic ? Vector3.Zero : body2.GetPointVelocity(in contactPoint);
+        Vector3 relativeVelocity = velocityA - velocityB;
+        float impactSpeed = MathF.Max(0f, Vector3.Dot(relativeVelocity, normal));
+
+        var contactEvent = new PhysicsContactEvent(
+            entityA,
+            entityB,
+            normal,
+            contactPoint,
+            relativeVelocity,
+            impactSpeed,
+            PhysicsContactKind.Added
+        );
+        _contactBuffer.Add(in contactEvent);
+    }
+
+    private static Vector3 GetContactPoint(in ContactManifold manifold, in Body body1, in Body body2)
+    {
+        uint pointCount = manifold.PointCount;
+        if (pointCount == 0)
+        {
+            return (body1.Position + body2.Position) * 0.5f;
+        }
+
+        Vector3 sum = Vector3.Zero;
+        for (uint i = 0; i < pointCount; i++)
+        {
+            manifold.GetWorldSpaceContactPointOn1(i, out Vector3 point1);
+            manifold.GetWorldSpaceContactPointOn2(i, out Vector3 point2);
+            sum += (point1 + point2) * 0.5f;
+        }
+
+        return sum / pointCount;
+    }
+
+    private static ulong EncodeEntityUserData(int entity)
+    {
+        return entity >= 0 ? (ulong)entity + 1UL : 0UL;
+    }
+
+    private static bool TryDecodeEntityUserData(in Body body, out int entity)
+    {
+        ulong userData = body.GetUserData();
+        if (userData == 0UL || userData - 1UL > int.MaxValue)
+        {
+            entity = -1;
+            return false;
+        }
+
+        entity = (int)(userData - 1UL);
+        return true;
     }
 
     private static bool TryGetJoltShape(ColliderComponent collider, Vector3 scale, out JoltShape joltShape)
@@ -443,6 +516,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 using (shape)
                 using (BodyCreationSettings creationSettings = new(shape, transform.Read.Position, transform.Read.Orientation, (MotionType)physics.Read.BodyType, physics.Read.Layer))
                 {
+                    creationSettings.UserData = EncodeEntityUserData(entity);
                     body = _owner._bodyInterface.CreateBody(creationSettings);
                     _owner._bodyInterface.AddBody(body.ID, physics.Read.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
                     _owner._bodyInterface.SetMotionQuality(body.ID, (MotionQuality)physics.Read.CollisionDetection);

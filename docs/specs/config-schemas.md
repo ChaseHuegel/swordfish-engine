@@ -205,7 +205,7 @@ without an engine container. Defaults live in `Swordfish/Settings/PhysicsSetting
 `System.Numerics.Vector3` itself:
 `Swordfish.Library/Serialization/Toml/Mappers/Vector3DataBindingTomlMapper.cs`.
 Applying gravity happens on change, not per tick:
-`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:105-111` (constructor + `Changed`).
+`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:114-121` (constructor + `Changed`).
 
 ## `network.toml` last-used endpoint
 

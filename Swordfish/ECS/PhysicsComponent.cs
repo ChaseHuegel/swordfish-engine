@@ -80,6 +80,7 @@ public struct PhysicsComponent : IDataComponent
             //  before the removal was captured. Jolt reports whether the body is still added.
             if (BodyInterface.Value.IsAdded(BodyID.Value))
             {
+                BodyInterface.Value.SetUserData(BodyID.Value, 0UL);
                 BodyInterface.Value.RemoveAndDestroyBody(BodyID.Value);
             }
 
