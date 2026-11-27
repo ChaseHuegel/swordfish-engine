@@ -4,6 +4,7 @@ using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Debug;
 
@@ -65,18 +66,20 @@ internal sealed class MeshOutline : IDisposable
         }
     }
 
-    /// <summary>Creates an outline for the mesh.</summary>
+    /// <summary>Creates an outline for the mesh, optionally filtered to triangles matching <paramref name="faceMask"/>.</summary>
     public MeshOutline(
         ILineRenderer lineRenderer,
         Vector4 color,
         Mesh mesh,
         float outset = 1.035f,
-        bool alwaysOnTop = false
+        bool alwaysOnTop = false,
+        BrickFaceMask? faceMask = null,
+        float normalOffset = 0f
     ) {
         _color = color;
         _outset = outset;
 
-        List<LineTemplate> edges = BuildFeatureEdges(mesh);
+        List<LineTemplate> edges = BuildFeatureEdges(mesh, faceMask, normalOffset);
         _lines = new Line[edges.Count];
         _templates = new LineTemplate[edges.Count];
 
@@ -110,7 +113,7 @@ internal sealed class MeshOutline : IDisposable
         }
     }
 
-    private static List<LineTemplate> BuildFeatureEdges(Mesh mesh)
+    private static List<LineTemplate> BuildFeatureEdges(Mesh mesh, BrickFaceMask? faceMask, float normalOffset)
     {
         var edges = new Dictionary<EdgeKey, EdgeData>();
 
@@ -127,6 +130,11 @@ internal sealed class MeshOutline : IDisposable
             }
 
             normal = Vector3.Normalize(normal);
+            if (faceMask != null && !faceMask.Value.HasFace(BrickFaceExtensions.FromLocalNormal(normal)))
+            {
+                continue;
+            }
+
             AddEdge(edges, a, b, normal);
             AddEdge(edges, b, c, normal);
             AddEdge(edges, c, a, normal);
@@ -135,10 +143,21 @@ internal sealed class MeshOutline : IDisposable
         var templates = new List<LineTemplate>(edges.Count);
         foreach (EdgeData data in edges.Values)
         {
-            if (data.Feature || data.Count == 1)
+            if (!data.Feature && data.Count != 1)
             {
-                templates.Add(new LineTemplate(data.A, data.B));
+                continue;
             }
+
+            Vector3 offset = Vector3.Zero;
+            if (normalOffset != 0f)
+            {
+                Vector3 offsetNormal = data.NormalSum.LengthSquared() > 1e-12f
+                    ? Vector3.Normalize(data.NormalSum)
+                    : data.Normal;
+                offset = offsetNormal * normalOffset;
+            }
+
+            templates.Add(new LineTemplate(data.A + offset, data.B + offset));
         }
 
         return templates;
@@ -154,6 +173,7 @@ internal sealed class MeshOutline : IDisposable
                 A = a,
                 B = b,
                 Normal = normal,
+                NormalSum = normal,
                 Count = 1,
             };
             return;
@@ -164,6 +184,7 @@ internal sealed class MeshOutline : IDisposable
             data.Feature = true;
         }
 
+        data.NormalSum += normal;
         data.Count++;
         edges[key] = data;
     }
@@ -254,6 +275,7 @@ internal sealed class MeshOutline : IDisposable
         public Vector3 A;
         public Vector3 B;
         public Vector3 Normal;
+        public Vector3 NormalSum;
         public int Count;
         public bool Feature;
     }

@@ -53,6 +53,7 @@ using DebugInfo = (
 internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDebugOverlay
 {
     private const float OUTLINE_OUTSET = 1.035f;
+    private const float FACE_OUTLINE_OFFSET = (OUTLINE_OUTSET - 1f) * 0.5f;
     private const float INTERACTION_REPEAT_SECONDS = 0.2f;
     private static readonly Vector4 _outlineColor = new(0.5f, 0.5f, 0.5f, 0.8f);
     private static readonly Vector4 _invalidOutlineColor = new(0.95f, 0.25f, 0.25f, 0.9f);
@@ -80,6 +81,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly ItemDatabase _itemDatabase;
     private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<BrickShape, MeshOutline> _shapeOutlines;
+    private readonly Dictionary<(BrickShape Shape, BrickFaceMask Mask), MeshOutline> _faceOutlines;
     private readonly Dictionary<Mesh, MeshOutline> _meshOutlines = [];
     private MeshOutline? _activeOutline;
     private readonly Line[] _debugLines;
@@ -160,6 +162,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _notificationService = notificationService;
         _localization = localization;
 
+        Mesh cube = new Cube();
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
         Mesh slab = meshDatabase.Get("slab.obj").Value;
@@ -168,15 +171,16 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         _shapeOutlines = new Dictionary<BrickShape, MeshOutline>
         {
-            { BrickShape.Any, new MeshOutline(lineRenderer, _outlineColor, new Cube(), outset: OUTLINE_OUTSET)},
-            { BrickShape.Custom, new MeshOutline(lineRenderer, _outlineColor, new Cube(), outset: OUTLINE_OUTSET)},
-            { BrickShape.Block, new MeshOutline(lineRenderer, _outlineColor, new Cube(), outset: OUTLINE_OUTSET)},
+            { BrickShape.Any, new MeshOutline(lineRenderer, _outlineColor, cube, outset: OUTLINE_OUTSET)},
+            { BrickShape.Custom, new MeshOutline(lineRenderer, _outlineColor, cube, outset: OUTLINE_OUTSET)},
+            { BrickShape.Block, new MeshOutline(lineRenderer, _outlineColor, cube, outset: OUTLINE_OUTSET)},
             { BrickShape.Slab, new MeshOutline(lineRenderer, _outlineColor, slab, outset: OUTLINE_OUTSET)},
             { BrickShape.Stair, new MeshOutline(lineRenderer, _outlineColor, stair, outset: OUTLINE_OUTSET)},
             { BrickShape.Slope, new MeshOutline(lineRenderer, _outlineColor, slope, outset: OUTLINE_OUTSET)},
             { BrickShape.Column, new MeshOutline(lineRenderer, _outlineColor, column, outset: OUTLINE_OUTSET)},
             { BrickShape.Plate, new MeshOutline(lineRenderer, _outlineColor, plate, outset: OUTLINE_OUTSET)},
         };
+        _faceOutlines = BuildFaceOutlines(lineRenderer, cube, slab, stair, slope, column, plate);
 
         _debugLines = new Line[3];
         _debugLines[0] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
@@ -981,7 +985,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             : null;
         bool holdingPaintTool = paintToolMode != null;
 
-        if (!TryGetBrickFromScreenSpace(holdingPlaceable, reachAround: !holdingPaintTool, out Entity entity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint)
+        if (!TryGetBrickFromScreenSpace(holdingPlaceable, reachAround: !holdingPaintTool, out Entity entity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint, out Vector3 hitNormal)
             || !holdingPlaceable && clickedVoxel.ID == 0)
         {
             _debugInfo = default;
@@ -1030,10 +1034,19 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         _brickPreviewState.Hide();
-        Vector4 selectionColor = paintToolMode is { } mode && !IsPaintTargetValid(in clickedVoxel, mode)
-            ? _invalidOutlineColor
-            : _outlineColor;
-        ShowSelectionOutline(new ShapeLight(clickedVoxel.ShapeLight).Shape, clickedVoxel, worldPos, placeableOrientation, selectionColor);
+        BrickShape targetShape = new ShapeLight(clickedVoxel.ShapeLight).Shape;
+        if (paintToolMode != null)
+        {
+            Vector4 paintOutlineColor = IsPaintTargetValid(in clickedVoxel, paintToolMode.Value)
+                ? _outlineColor
+                : _invalidOutlineColor;
+            BrickFace hitFace = PaintInteractionResolver.WorldNormalToBrickFace(hitNormal, transformComponent.Orientation, clickedVoxel.GetOrientation());
+            BrickFaceMask targetMask = PaintInteractionResolver.ExpandFaceMask(hitFace.ToMask(), targetShape);
+            ShowPaintSelectionOutline(targetShape, targetMask, in clickedVoxel, worldPos, placeableOrientation, paintOutlineColor);
+            return;
+        }
+
+        ShowSelectionOutline(targetShape, in clickedVoxel, worldPos, placeableOrientation, _outlineColor);
     }
 
     private void HideInteractionVisuals()
@@ -1066,6 +1079,29 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _debugLines[2].Color = new Vector4(0, 0, 1, 1);
         _debugLines[2].Start = worldPos;
         _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, orientation);
+    }
+
+    private void ShowPaintSelectionOutline(
+        BrickShape shape,
+        BrickFaceMask faceMask,
+        in Voxel voxel,
+        Vector3 worldPos,
+        Quaternion orientation,
+        Vector4 color
+    ) {
+        if (shape == BrickShape.Custom)
+        {
+            ShowSelectionOutline(shape, in voxel, worldPos, orientation, color);
+            return;
+        }
+
+        if (_faceOutlines.TryGetValue((shape, faceMask), out MeshOutline? faceOutline))
+        {
+            ActivateOutline(faceOutline, worldPos, orientation, color);
+            return;
+        }
+
+        ShowSelectionOutline(shape, in voxel, worldPos, orientation, color);
     }
 
     private void ShowSelectionOutline(BrickShape shape, in Voxel voxel, Vector3 worldPos, Quaternion orientation, Vector4 color)
@@ -1116,6 +1152,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return;
         }
 
+        ActivateOutline(outline, worldPos, orientation, color);
+    }
+
+    private void ActivateOutline(MeshOutline outline, Vector3 worldPos, Quaternion orientation, Vector4 color)
+    {
         if (_activeOutline != outline)
         {
             HideOutline();
@@ -1125,6 +1166,52 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _activeOutline.Color = color;
         _activeOutline.Visible = true;
         _activeOutline.Render(new TransformComponent(worldPos, orientation, Vector3.One));
+    }
+
+    private static Dictionary<(BrickShape Shape, BrickFaceMask Mask), MeshOutline> BuildFaceOutlines(
+        ILineRenderer lineRenderer,
+        Mesh cube,
+        Mesh slab,
+        Mesh stair,
+        Mesh slope,
+        Mesh column,
+        Mesh plate
+    ) {
+        var outlines = new Dictionary<(BrickShape Shape, BrickFaceMask Mask), MeshOutline>();
+        AddShapeFaceOutlines(outlines, lineRenderer, BrickShape.Block, cube);
+        AddShapeFaceOutlines(outlines, lineRenderer, BrickShape.Slab, slab);
+        AddShapeFaceOutlines(outlines, lineRenderer, BrickShape.Stair, stair);
+        AddShapeFaceOutlines(outlines, lineRenderer, BrickShape.Slope, slope);
+        AddShapeFaceOutlines(outlines, lineRenderer, BrickShape.Column, column);
+        AddShapeFaceOutlines(outlines, lineRenderer, BrickShape.Plate, plate);
+
+        for (var f = 0; f < 6; f++)
+        {
+            BrickFaceMask mask = ((BrickFace)f).ToMask();
+            if (outlines.TryGetValue((BrickShape.Block, mask), out MeshOutline? blockOutline))
+            {
+                outlines[(BrickShape.Any, mask)] = blockOutline;
+            }
+        }
+
+        return outlines;
+    }
+
+    private static void AddShapeFaceOutlines(
+        Dictionary<(BrickShape Shape, BrickFaceMask Mask), MeshOutline> outlines,
+        ILineRenderer lineRenderer,
+        BrickShape shape,
+        Mesh mesh
+    ) {
+        for (var f = 0; f < 6; f++)
+        {
+            BrickFaceMask expandedMask = PaintInteractionResolver.ExpandFaceMask(((BrickFace)f).ToMask(), shape);
+            var key = (shape, expandedMask);
+            if (!outlines.ContainsKey(key))
+            {
+                outlines.Add(key, new MeshOutline(lineRenderer, _outlineColor, mesh, outset: 1f, faceMask: expandedMask, normalOffset: FACE_OUTLINE_OFFSET));
+            }
+        }
     }
 
     private MeshOutline? GetMeshOutline(Mesh? mesh)

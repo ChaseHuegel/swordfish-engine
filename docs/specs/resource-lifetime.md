@@ -130,8 +130,10 @@ the next tick. The registry stores each child's `Uuid`, so a recycled entity
 index is ignored.
 
 The interaction outline uses `Line` handles from `ILineRenderer`
-(`WaywardBeyond.Client/Debug/MeshOutline.cs`). The interaction service keeps
-them for the process lifetime.
+(`WaywardBeyond.Client/Debug/MeshOutline.cs`). `PlayerInteractionService`
+pre-builds full-shape outlines and per-`(BrickShape, BrickFaceMask)` face
+outlines for built-in shapes at startup and keeps them for the process
+lifetime, so `OnFixedUpdate` performs zero per-frame allocations or line churn.
 
 ## Jolt debug renderer
 

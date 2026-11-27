@@ -281,7 +281,7 @@ preserves existing air light when writing an authoritative empty cell.
 (`WaywardBeyond.Client/Systems/BrickPreviewSystem.cs:37`) renders a textured
 preview of the brick that the player will place.
 `PlayerInteractionService.OnFixedUpdate`
-(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:900`) publishes the
+(`WaywardBeyond.Client/Systems/PlayerInteractionService.cs:964`) publishes the
 held brick, effective shape, voxel-local orientation, target cell, and structure
 orientation to `BrickPreviewState`. The system ticks after the physics fixed
 update on the ECS thread. It stays visible while the game is paused and releases
@@ -298,8 +298,15 @@ placement writes it. The builder bakes light level 15 and casts no shadows.
 
 `PlayerInteractionService` also draws a feature-edge outline around the preview
 and around the selected break target (`WaywardBeyond.Client/Debug/MeshOutline.cs`).
-The outline uses an outset scale and depth-tested lines, so it sits just outside
-the mesh. It replaces the previous triangle-web gizmo.
+Full-brick outlines use an outset scale and depth-tested lines, so they sit just
+outside the mesh. When holding a paint modifier tool (`ToolType.Sprayer` or
+`ToolType.Drill`), `PlayerInteractionService` resolves the hit face through
+`PaintInteractionResolver.WorldNormalToBrickFace` and
+`PaintInteractionResolver.ExpandFaceMask`, then renders a cached face-filtered
+outline for built-in shapes (`Block`, `Slab`, `Stair`, `Slope`, `Column`, `Plate`,
+and `Any`). Face outlines offset their edges along the outward face normal instead
+of scaling radially, so recessed and sloped faces stay visible without clipping or
+Z-fighting. `BrickShape.Custom` keeps the full-brick custom mesh outline.
 
 The system keeps one active `MeshRenderer` for the current brick, shape, and
 local orientation. It rebuilds only when that key changes and updates only the
@@ -391,5 +398,7 @@ mode geometry and material selection, the orientation rule for orientable and
 non-orientable bricks, and the preview entity show, hide, deferred replacement,
 pause, and release lifecycle.
 
-`WaywardBeyond.Tests/MeshOutlineTests.cs` pins the feature-edge extraction,
-depth-tested line use, outset, visibility toggle, and open-mesh boundary edges.
+`WaywardBeyond.Tests/MeshOutlineTests.cs` pins feature-edge extraction,
+depth-tested line use, outset, visibility toggle, open-mesh boundary edges,
+face-filtered edge extraction with outward normal offset across built-in shapes
+(`Block`, `Slope`, `Slab`, `Stair`, `Column`, `Plate`), and rotated transforms.
