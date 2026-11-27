@@ -99,14 +99,22 @@ each present id. The palette is the durable, self-describing identity. It
 survives content changes, because a later run resolves the palette name through
 its own `IBrickRegistry`.
 
-`VoxelCodec` (`WaywardBeyond.Voxels/VoxelCodec.cs:8`) owns the boundary:
+`VoxelCodec` (`WaywardBeyond.Voxels/VoxelCodec.cs:9`) owns the boundary:
 
-- `Encode` (`VoxelCodec.cs:11`) attaches a palette to live voxel data through
+- `Encode` (`VoxelCodec.cs:16`) attaches a palette to live voxel data through
   `IBrickRegistry.Name`. Both registered and extension ids write their original
-  brick names back into the palette.
-- `Decode` (`VoxelCodec.cs:37`) resolves each non-empty palette name to the
+  brick names back into the palette. Data that already carries the required
+  palettes passes through unchanged and reports success.
+- `Decode` (`VoxelCodec.cs:51`) resolves each non-empty palette name to the
   caller's local id space through `IBrickRegistry.Resolve`. Unknown brick names
-  receive extension ids and survive a save round trip without loss.
+  receive extension ids and survive a save round trip without loss. Data without
+  a palette passes through unchanged and reports success.
+- Both entity overloads return `Result<VoxelEntityData>`. They fail, rather than
+  carry broken data forward, when a chunk declares a size but has no voxel
+  array. Load and stream callers log a warning and drop the entity, so a failed
+  decode never enters the store or the level stream.
+- The region overloads (`VoxelCodec.cs:90` and `VoxelCodec.cs:115`) return the
+  data directly, matching the blueprint and region pipelines.
 
 `LevelSaveService` encodes palettes when it writes and decodes when it loads.
 On join the server attaches a palette to each streamed structure, and the client
@@ -154,9 +162,10 @@ ids render untinted.
 
 ## Tests that pin this
 
-- `WaywardBeyond.Voxels.Tests/VoxelPaletteTests.cs:86` (`VoxelCodecTests`) pins
+- `WaywardBeyond.Voxels.Tests/VoxelPaletteTests.cs:87` (`VoxelCodecTests`) pins
   palette encode, palette decode, extension id allocation in `BrickRegistry`,
-  and lossless unknown-brick round trips across modded and vanilla registries.
+  lossless unknown-brick round trips across modded and vanilla registries, and
+  the failure result for a chunk with no voxels array.
 - `WaywardBeyond.Voxels.Tests/FaceOverrideTests.cs:8` (`FaceOverrideTests`) pins
   `PaintPalette` encode/decode, unknown-paint round trips, and two-stage decode
   preservation.

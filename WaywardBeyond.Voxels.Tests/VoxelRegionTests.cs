@@ -275,12 +275,12 @@ public class VoxelRegionTests
         Assert.Empty(decodedRegion.Chunks);
 
         var emptyEntity = new VoxelEntityData(1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, null!, null, null);
-        VoxelEntityData encodedEntity = VoxelCodec.Encode(emptyEntity, bricks, paints);
+        VoxelEntityData encodedEntity = VoxelCodec.Encode(emptyEntity, bricks, paints).Value;
         Assert.Null(encodedEntity.BrickPalette);
 
         var palettedNullEntity = new VoxelEntityData(
             1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, null!, [string.Empty, "wb:panel"], [string.Empty, "wb:red"]);
-        VoxelEntityData decodedEntity = VoxelCodec.Decode(palettedNullEntity, bricks, paints);
+        VoxelEntityData decodedEntity = VoxelCodec.Decode(palettedNullEntity, bricks, paints).Value;
         Assert.NotNull(decodedEntity.Chunks);
         Assert.Empty(decodedEntity.Chunks);
     }

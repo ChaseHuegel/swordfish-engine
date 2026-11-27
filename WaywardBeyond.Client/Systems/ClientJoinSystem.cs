@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using Krill;
+using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Voxels.Building;
@@ -393,7 +394,14 @@ internal sealed class ClientJoinSystem : IEntitySystem
         }
 
         //  Resolve the server's palette-indexed voxel ids into this process's local id space.
-        VoxelEntityData local = VoxelCodec.Decode(data, _brickRegistry, _paintRegistry);
+        Result<VoxelEntityData> decodeResult = VoxelCodec.Decode(data, _brickRegistry, _paintRegistry);
+        if (!decodeResult.Success)
+        {
+            _logger.LogWarning("Skipped streamed voxel entity {uuid}: {message}", data.Uuid, decodeResult.Message);
+            return;
+        }
+
+        VoxelEntityData local = decodeResult.Value;
 
         VoxelObject voxelObject;
         try
