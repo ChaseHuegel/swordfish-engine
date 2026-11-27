@@ -33,6 +33,7 @@ public class AppPathsAndConfigTests
         Assert.Equal(expectedRoot, paths.DataRoot.Value);
         Assert.Equal(Path.Combine(expectedRoot, "config"), paths.ConfigRoot.Value);
         Assert.Equal(Path.Combine(expectedRoot, "logs"), paths.LogsRoot.Value);
+        Assert.Equal(Path.Combine(expectedRoot, "modules"), paths.ModulesRoot.Value);
 
         //  Only a real user directory is mounted as an override, never the install fallback.
         Assert.Equal(!string.IsNullOrWhiteSpace(localAppData), paths.MountInVfs);
@@ -61,6 +62,7 @@ public class AppPathsAndConfigTests
         Assert.Equal(Environment.CurrentDirectory, paths.DataRoot.Value);
         Assert.Equal(Path.Combine(Environment.CurrentDirectory, "config"), paths.ConfigRoot.Value);
         Assert.Equal(Path.Combine(Environment.CurrentDirectory, "logs"), paths.LogsRoot.Value);
+        Assert.Equal(Path.Combine(Environment.CurrentDirectory, "modules"), paths.ModulesRoot.Value);
         Assert.False(paths.MountInVfs);
     }
 
