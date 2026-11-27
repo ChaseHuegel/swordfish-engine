@@ -245,6 +245,22 @@ public sealed class MiningLaserEffectsTests
         Assert.Equal(expectedScaledMuzzle.Y, scaledMuzzle.Y, precision: 4);
         Assert.Equal(expectedScaledMuzzle.Z, scaledMuzzle.Z, precision: 4);
 
+        var shakenChild = new ChildComponent(Uuid.FromValue(1))
+        {
+            LocalPosition = new Vector3(0.502f, -0.398f, 0.103f),
+            LocalOrientation = Quaternion.Normalize(vmRot * Quaternion.CreateFromYawPitchRoll(0.003f, -0.004f, 0.005f)),
+            LocalScale = new Vector3(0.25f, 0.25f, 0.25f),
+        };
+        Vector3 shakenMuzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in playerTransform, in shakenChild);
+        Vector3 shakenWorldOrigin = playerTransform.Position + Vector3.Transform(shakenChild.LocalPosition, playerTransform.Orientation);
+        Quaternion shakenWorldOrientation = playerTransform.Orientation * shakenChild.LocalOrientation;
+        Vector3 shakenWorldScale = playerTransform.Scale * shakenChild.LocalScale;
+        Vector3 expectedShakenMuzzle = shakenWorldOrigin + Vector3.Transform(new Vector3(0f, 0f, -1.125f) * shakenWorldScale, shakenWorldOrientation);
+        Assert.Equal(expectedShakenMuzzle.X, shakenMuzzle.X, precision: 4);
+        Assert.Equal(expectedShakenMuzzle.Y, shakenMuzzle.Y, precision: 4);
+        Assert.Equal(expectedShakenMuzzle.Z, shakenMuzzle.Z, precision: 4);
+        Assert.NotEqual(muzzle, shakenMuzzle);
+
         var originTransform = new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One);
         Vector3 originMuzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in originTransform, null);
         Vector3 farTarget = new(0f, 0f, -6f);
@@ -769,6 +785,78 @@ public sealed class MiningLaserEffectsTests
             Assert.Equal(0, CountComponents<MeshRendererComponent>(fixture.Store));
             Assert.Equal(0, CountComponents<LightComponent>(fixture.Store));
             Assert.Equal(0, CountComponents<ParticleEmitterComponent>(fixture.Store));
+        }
+        finally
+        {
+            WaywardBeyondGameState.GameState.Set(previous);
+        }
+    }
+
+    [Fact]
+    public void MiningLaserEffectSystemAnchorsFirstPersonBeamOriginToAnimatedViewModelChild()
+    {
+        EffectSystemFixture fixture = CreateEffectSystemFixture();
+        using MiningLaserEffectSystem system = fixture.System;
+
+        var playerTransform = new TransformComponent(
+            new Vector3(2f, 1.5f, -3f),
+            Quaternion.CreateFromAxisAngle(Vector3.UnitY, 0.35f),
+            Vector3.One
+        );
+        int localPlayer = fixture.Store.Alloc();
+        Uuid playerUuid = fixture.Store.GetUuid(localPlayer);
+        fixture.Store.AddOrUpdate(localPlayer, new PlayerComponent());
+        fixture.Store.AddOrUpdate(localPlayer, playerTransform);
+        fixture.Store.AddOrUpdate(localPlayer, new EquipmentComponent(0));
+        var inventory = new InventoryComponent(1);
+        inventory.Contents![0] = new ItemData(LASER_ITEM_ID, 1, 1);
+        fixture.Store.AddOrUpdate(localPlayer, inventory);
+
+        var shakenChild = new ChildComponent(playerUuid)
+        {
+            LocalPosition = new Vector3(0.5025f, -0.398f, 0.103f),
+            LocalOrientation = Quaternion.CreateFromYawPitchRoll(0.09f, -0.004f, 0.005f),
+            LocalScale = Vector3.One,
+        };
+        int viewModelEntity = fixture.Store.Alloc();
+        fixture.Store.AddOrUpdate(viewModelEntity, new ViewModelComponent());
+        fixture.Store.AddOrUpdate(viewModelEntity, new TransformComponent());
+        fixture.Store.AddOrUpdate(viewModelEntity, shakenChild);
+        var dummyMesh = new Mesh([0], [Vector3.Zero], [Vector4.One], [Vector3.Zero], [Vector3.UnitY]) { Shared = true };
+        var dummyMaterial = new Material(new Shader("lighted"), []);
+        fixture.Store.AddOrUpdate(viewModelEntity, new MeshRendererComponent(new MeshRenderer(dummyMesh, dummyMaterial, default(RenderOptions))));
+
+        GameState previous = WaywardBeyondGameState.GameState.Get();
+        WaywardBeyondGameState.GameState.Set(GameState.Playing);
+        try
+        {
+            Vector3 forward = Vector3.Transform(-Vector3.UnitZ, playerTransform.Orientation);
+            fixture.Physics.NextHit = new RaycastResult(true, default(Entity), playerTransform.Position + forward * 6f, -forward);
+            fixture.Input.HeldButtons.Add(MouseButton.Left);
+            system.Tick(0.016f, fixture.Store);
+
+            //  The beam entity is the only non-ViewModel MeshRendererComponent in the store.
+            Vector3 beamStart = default;
+            var beamFound = false;
+            fixture.Store.Query<MeshRendererComponent, TransformComponent>(
+                0f,
+                (float _, DataStore store, int entity, in MeshRendererComponent _, in TransformComponent transform) =>
+                {
+                    if (!store.Has(typeof(ViewModelComponent), entity))
+                    {
+                        beamStart = transform.Position;
+                        beamFound = true;
+                    }
+                }
+            );
+
+            Assert.True(beamFound);
+            Vector3 expectedShakenMuzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in playerTransform, in shakenChild);
+            Vector3 staticMuzzle = LaserBeamGeometry.ComputeFirstPersonMuzzle(in playerTransform, null);
+            Assert.NotEqual(staticMuzzle, expectedShakenMuzzle);
+            Assert.Equal(expectedShakenMuzzle.X, beamStart.X, precision: 4);
+            Assert.Equal(expectedShakenMuzzle.Y, beamStart.Y, precision: 4);
+            Assert.Equal(expectedShakenMuzzle.Z, beamStart.Z, precision: 4);
         }
         finally
         {

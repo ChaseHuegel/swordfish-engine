@@ -28,16 +28,29 @@ internal sealed class PlayerViewModelSystem(
     in InteractionState interactionState,
     in IInputService inputService
 ) : IEntitySystem, IDisposable {
-    private const float DRILL_VIBRATION_AMPLITUDE_X = 0.005f;
-    private const float DRILL_VIBRATION_AMPLITUDE_Y = 0.005f;
-    private const float DRILL_VIBRATION_AMPLITUDE_Z = 0.007f;
-    private const float DRILL_VIBRATION_PITCH_RADIANS = 0.008f;
-    private const float DRILL_VIBRATION_ROLL_RADIANS = 0.014f;
-    private const float DRILL_VIBRATION_FREQUENCY_X = 67f;
-    private const float DRILL_VIBRATION_FREQUENCY_Y = 83f;
-    private const float DRILL_VIBRATION_FREQUENCY_Z = 59f;
-    private const float DRILL_VIBRATION_FREQUENCY_PITCH = 61f;
-    private const float DRILL_VIBRATION_FREQUENCY_ROLL = 73f;
+    private static readonly ViewModelAnimationProfile _drillAnimation = new(
+        TriggerOnSecondary: true,
+        PositionAmplitude: new Vector3(0.005f, 0.005f, 0.007f),
+        PositionFrequency: new Vector3(67f, 83f, 59f),
+        YawAmplitude: 0f,
+        YawFrequency: 0f,
+        PitchAmplitude: 0.008f,
+        PitchFrequency: 61f,
+        RollAmplitude: 0.014f,
+        RollFrequency: 73f
+    );
+
+    private static readonly ViewModelAnimationProfile _miningLaserAnimation = new(
+        TriggerOnSecondary: false,
+        PositionAmplitude: new Vector3(0.0024f, 0.002f, 0.003f),
+        PositionFrequency: new Vector3(47f, 59f, 37f),
+        YawAmplitude: 0.003f,
+        YawFrequency: 53f,
+        PitchAmplitude: 0.004f,
+        PitchFrequency: 43f,
+        RollAmplitude: 0.0045f,
+        RollFrequency: 61f
+    );
 
     private static readonly ModelDefinition _defaultViewModel = new()
     {
@@ -58,10 +71,46 @@ internal sealed class PlayerViewModelSystem(
     private Entity? _viewModelEntity;
     private ViewModelKey? _currentKey;
     private ChildComponent _restingChild;
-    private double _vibrationTime;
-    private bool _isVibrating;
+    private double _animationTime;
+    private bool _isAnimating;
 
-    private readonly record struct ViewModelKey(string ItemID, ModelDefinition Model, BrickShape Shape);
+    private readonly record struct ViewModelKey(Uuid PlayerUuid, string ItemID, ModelDefinition Model, BrickShape Shape);
+
+    private readonly record struct ViewModelAnimationProfile(
+        bool TriggerOnSecondary,
+        Vector3 PositionAmplitude,
+        Vector3 PositionFrequency,
+        float YawAmplitude,
+        float YawFrequency,
+        float PitchAmplitude,
+        float PitchFrequency,
+        float RollAmplitude,
+        float RollFrequency
+    ) {
+        public bool IsTriggered(IInputService inputService) =>
+            inputService.IsMouseHeld(MouseButton.Left)
+            || (TriggerOnSecondary && inputService.IsMouseHeld(MouseButton.Right));
+
+        public ChildComponent Evaluate(in ChildComponent resting, float time)
+        {
+            var positionOffset = new Vector3(
+                MathF.Sin(time * PositionFrequency.X) * PositionAmplitude.X,
+                MathF.Sin(time * PositionFrequency.Y) * PositionAmplitude.Y,
+                MathF.Sin(time * PositionFrequency.Z) * PositionAmplitude.Z
+            );
+            var rotationOffset = Quaternion.CreateFromYawPitchRoll(
+                yaw: MathF.Sin(time * YawFrequency) * YawAmplitude,
+                pitch: MathF.Sin(time * PitchFrequency) * PitchAmplitude,
+                roll: MathF.Sin(time * RollFrequency) * RollAmplitude
+            );
+            return new ChildComponent(resting.Parent)
+            {
+                LocalPosition = resting.LocalPosition + positionOffset,
+                LocalOrientation = Quaternion.Normalize(resting.LocalOrientation * rotationOffset),
+                LocalScale = resting.LocalScale,
+            };
+        }
+    }
 
     private readonly record struct ResolvedVisuals(
         Mesh Mesh,
@@ -79,13 +128,14 @@ internal sealed class PlayerViewModelSystem(
             {
                 Owner._viewModelEntity = new Entity(store.Alloc(), store);
                 Owner._viewModelEntity.Value.AddOrUpdate(new IdentifierComponent("PlayerViewModel"));
+                Owner._viewModelEntity.Value.AddOrUpdate(new ViewModelComponent());
                 Owner._viewModelEntity.Value.AddOrUpdate(new TransformComponent());
             }
 
             Result<ItemSlot> mainHandResult = Owner._playerData.GetMainHand(store, entity, inventory);
             if (!mainHandResult.Success || !WaywardBeyond.IsPlaying())
             {
-                Owner.ResetVibration();
+                Owner.ResetAnimation();
                 if (Owner._currentKey != null)
                 {
                     Owner._currentKey = null;
@@ -98,14 +148,15 @@ internal sealed class PlayerViewModelSystem(
             Item item = mainHandResult.Value.Item;
             ModelDefinition viewModel = item.ViewModel ?? _defaultViewModel;
             BrickShape shape = Owner.ResolveShape(item);
-            var key = new ViewModelKey(item.ID, viewModel, shape);
+            Uuid playerUuid = store.GetUuid(entity);
+            var key = new ViewModelKey(playerUuid, item.ID, viewModel, shape);
 
             if (!key.Equals(Owner._currentKey))
             {
                 Owner._currentKey = key;
-                Owner._restingChild = CreateRestingChild(store.GetUuid(entity), in viewModel);
-                Owner._isVibrating = false;
-                Owner._vibrationTime = 0d;
+                Owner._restingChild = CreateRestingChild(in playerUuid, in viewModel);
+                Owner._isAnimating = false;
+                Owner._animationTime = 0d;
                 Owner.ClearRenderer();
 
                 ResolvedVisuals visuals = Owner.ResolveVisuals(item, viewModel, shape);
@@ -115,7 +166,7 @@ internal sealed class PlayerViewModelSystem(
                 Owner._viewModelEntity.Value.AddOrUpdate(Owner._restingChild);
             }
 
-            Owner.UpdateDrillVibration(delta, item);
+            Owner.UpdateToolAnimation(delta, item);
         }
     }
 
@@ -206,21 +257,33 @@ internal sealed class PlayerViewModelSystem(
         }
     }
 
-    private bool IsDrillActive(Item item)
+    private bool TryGetActiveAnimation(Item item, out ViewModelAnimationProfile profile)
     {
-        if (item.Tool?.Type != ToolType.Drill || _interactionState.IsInteractionBlocked())
+        if (_interactionState.IsInteractionBlocked() || item.Tool == null)
         {
+            profile = default;
             return false;
         }
 
-        return _inputService.IsMouseHeld(MouseButton.Left) || _inputService.IsMouseHeld(MouseButton.Right);
+        switch (item.Tool.Value.Type)
+        {
+            case ToolType.Drill:
+                profile = _drillAnimation;
+                return profile.IsTriggered(_inputService);
+            case ToolType.Mining:
+                profile = _miningLaserAnimation;
+                return profile.IsTriggered(_inputService);
+            default:
+                profile = default;
+                return false;
+        }
     }
 
-    private void UpdateDrillVibration(float delta, Item item)
+    private void UpdateToolAnimation(float delta, Item item)
     {
-        if (!IsDrillActive(item))
+        if (!TryGetActiveAnimation(item, out ViewModelAnimationProfile profile))
         {
-            ResetVibration();
+            ResetAnimation();
             return;
         }
 
@@ -229,21 +292,21 @@ internal sealed class PlayerViewModelSystem(
             return;
         }
 
-        _vibrationTime = MathS.Repeat(_vibrationTime + delta, MathS.TIME_WRAP_SECONDS);
-        ChildComponent animated = ComputeVibratedChild(in _restingChild, (float)_vibrationTime);
+        _animationTime = MathS.Repeat(_animationTime + delta, MathS.TIME_WRAP_SECONDS);
+        ChildComponent animated = profile.Evaluate(in _restingChild, (float)_animationTime);
         _viewModelEntity.Value.AddOrUpdate(animated);
-        _isVibrating = true;
+        _isAnimating = true;
     }
 
-    private void ResetVibration()
+    private void ResetAnimation()
     {
-        _vibrationTime = 0d;
-        if (!_isVibrating)
+        _animationTime = 0d;
+        if (!_isAnimating)
         {
             return;
         }
 
-        _isVibrating = false;
+        _isAnimating = false;
         if (_viewModelEntity.HasValue)
         {
             _viewModelEntity.Value.AddOrUpdate(_restingChild);
@@ -264,26 +327,6 @@ internal sealed class PlayerViewModelSystem(
         };
     }
 
-    private static ChildComponent ComputeVibratedChild(in ChildComponent resting, float time)
-    {
-        var positionOffset = new Vector3(
-            MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_X) * DRILL_VIBRATION_AMPLITUDE_X,
-            MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_Y) * DRILL_VIBRATION_AMPLITUDE_Y,
-            MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_Z) * DRILL_VIBRATION_AMPLITUDE_Z
-        );
-        var rotationOffset = Quaternion.CreateFromYawPitchRoll(
-            yaw: 0f,
-            pitch: MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_PITCH) * DRILL_VIBRATION_PITCH_RADIANS,
-            roll: MathF.Sin(time * DRILL_VIBRATION_FREQUENCY_ROLL) * DRILL_VIBRATION_ROLL_RADIANS
-        );
-        return new ChildComponent(resting.Parent)
-        {
-            LocalPosition = resting.LocalPosition + positionOffset,
-            LocalOrientation = Quaternion.Normalize(resting.LocalOrientation * rotationOffset),
-            LocalScale = resting.LocalScale,
-        };
-    }
-
     private void FreeViewModel(DataStore store)
     {
         if (_viewModelEntity.HasValue)
@@ -294,8 +337,8 @@ internal sealed class PlayerViewModelSystem(
         _viewModelEntity = null;
         _currentKey = null;
         _restingChild = default;
-        _vibrationTime = 0d;
-        _isVibrating = false;
+        _animationTime = 0d;
+        _isAnimating = false;
     }
 
     /// <inheritdoc/>
@@ -304,7 +347,7 @@ internal sealed class PlayerViewModelSystem(
         _viewModelEntity = null;
         _currentKey = null;
         _restingChild = default;
-        _vibrationTime = 0d;
-        _isVibrating = false;
+        _animationTime = 0d;
+        _isAnimating = false;
     }
 }
