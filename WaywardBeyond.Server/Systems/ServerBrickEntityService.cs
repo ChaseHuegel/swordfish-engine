@@ -64,6 +64,7 @@ public sealed class ServerBrickEntityService
             : [
                 new InventoryBrickEntityDecorator(schemas, itemDatabase),
                 new MachineBrickEntityDecorator(),
+                new PowerBrickEntityDecorator(),
             ];
     }
 
