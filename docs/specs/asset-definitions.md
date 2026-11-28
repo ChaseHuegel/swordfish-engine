@@ -240,7 +240,7 @@ Example:
 
 ### Entity
 
-`BrickDefinition.Entity` (`WaywardBeyond.Bricks/BrickDefinition.cs:42`) is an optional `[Bricks.Entity]` sub-table (`BrickEntityDefinition`, `WaywardBeyond.Bricks/BrickEntityDefinition.cs:6`) that carries structured entity configuration for client and server brick-entity decorators. `BrickDatabase.ResolveEntity` (`WaywardBeyond.Bricks/BrickDatabase.cs:197`) validates the table into `Brick.Entity` (`BrickEntity`, `WaywardBeyond.Bricks/BrickEntity.cs:6`).
+`BrickDefinition.Entity` (`WaywardBeyond.Bricks/BrickDefinition.cs:42`) is an optional `[Bricks.Entity]` sub-table (`BrickEntityDefinition`, `WaywardBeyond.Bricks/BrickEntityDefinition.cs:6`) that carries structured entity configuration for client and server brick-entity decorators. `BrickDatabase.ResolveEntity` (`WaywardBeyond.Bricks/BrickDatabase.cs:204`) validates the table into `Brick.Entity` (`BrickEntity`, `WaywardBeyond.Bricks/BrickEntity.cs:6`).
 
 | Sub-table | Type | Notes |
 |---|---|---|

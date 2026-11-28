@@ -59,7 +59,7 @@ using WaywardBeyondClient = WaywardBeyond.Client.WaywardBeyond;
 namespace WaywardBeyond.Tests;
 
 /// <summary>
-/// Pins brick functional block-entity TOML metadata, server ECS block-entity lifecycle, blueprint spawn +
+/// Pins brick functional brick-entity TOML metadata, server ECS brick-entity lifecycle, blueprint spawn +
 /// cargo seeding, viewer-scoped replication isolation, and <c>level.db</c> save/load round-trips.
 /// </summary>
 [Collection("ClientGameState")]
@@ -358,7 +358,7 @@ public sealed class BrickEntityTests
         Uuid structureUuid = Uuid.FromValue(90001);
         int structureEntity = harness.CreateStructure(structureUuid, Vector3.Zero, Quaternion.Identity, (new Int3(0, 0, 0), bricks.Id("wb:panel")));
 
-        //  Non-functional brick placement allocates no block-entity.
+        //  Non-functional brick placement allocates no brick-entity.
         int panelResult = harness.BrickEntities.OnBrickPlaced(harness.ServerStore, structureUuid, new Int3(0, 0, 0), bricks.Id("wb:panel"));
         Assert.Equal(Entity.Null, panelResult);
         Assert.Equal(0, harness.BrickEntities.Count);
@@ -370,7 +370,7 @@ public sealed class BrickEntityTests
         Assert.NotEqual(structureUuid, firstCandidate);
         int blockerEntity = harness.ServerStore.Alloc(firstCandidate);
 
-        //  Placing a functional wb:storage brick allocates a server ECS block-entity with expected components.
+        //  Placing a functional wb:storage brick allocates a server ECS brick-entity with expected components.
         int storageEntity = harness.BrickEntities.OnBrickPlaced(harness.ServerStore, structureUuid, storageCoord, bricks.Id("wb:storage"));
         Assert.NotEqual(Entity.Null, storageEntity);
         Assert.Equal(1, harness.BrickEntities.Count);
@@ -415,7 +415,7 @@ public sealed class BrickEntityTests
         Assert.Contains(attachSnap.Components, c => c.Entity == storageUuid.ToValue() && c.TypeUuid == harness.MachineStateTypeUuid);
         Assert.Empty(bystander.Inbound.Snapshots);
 
-        //  Breaking the brick in Adventure transfers stored contents to breaker, tears down viewer, and frees block-entity.
+        //  Breaking the brick in Adventure transfers stored contents to breaker, tears down viewer, and frees brick-entity.
         bool broken = harness.BrickEntities.OnBrickBroken(
             harness.ServerStore,
             structureUuid,
@@ -458,11 +458,11 @@ public sealed class BrickEntityTests
         int structure = store.Alloc(structureUuid);
         store.AddOrUpdate(structure, new TransformComponent(new Vector3(10f, 0f, 0f), rot90Y, Vector3.One));
 
-        int blockEntity = brickEntities.OnBrickPlaced(store, structureUuid, new Int3(2, 0, 0), bricks.Id("wb:storage"));
-        Assert.NotEqual(Entity.Null, blockEntity);
-        Uuid blockEntityUuid = store.GetUuid(blockEntity);
+        int brickEntity = brickEntities.OnBrickPlaced(store, structureUuid, new Int3(2, 0, 0), bricks.Id("wb:storage"));
+        Assert.NotEqual(Entity.Null, brickEntity);
+        Uuid brickEntityUuid = store.GetUuid(brickEntity);
 
-        //  Player stands at (10, 0, -1) — 1m from rotated block-entity at (10, 0, -2), well within reach.
+        //  Player stands at (10, 0, -1) — 1m from rotated brick-entity at (10, 0, -2), well within reach.
         Uuid playerUuid = Uuid.FromValue(77002);
         int player = store.Alloc(playerUuid);
         NetworkComponent playerNet = NetworkComponent.Create();
@@ -472,20 +472,20 @@ public sealed class BrickEntityTests
         store.AddOrUpdate(player, new TransformComponent(new Vector3(10f, 0f, -1f), Quaternion.Identity, Vector3.One));
         store.AddOrUpdate(player, playerInv);
 
-        //  Transfer 5 rocks from player hotbar[0] -> block-entity wb:cargo[0].
+        //  Transfer 5 rocks from player hotbar[0] -> brick-entity wb:cargo[0].
         playerNet.StagedInventoryOps!.Stage(
             sequenceNumber: 1,
             new TransferOp(
                 _FromContainer: 0UL,
                 _FromSlot: new SlotId(SlotGroups.HOTBAR, 0),
-                _ToContainer: blockEntityUuid.ToValue(),
+                _ToContainer: brickEntityUuid.ToValue(),
                 _ToSlot: new SlotId(SlotGroups.CARGO, 0),
                 _Mode: TransferMode.Exact,
                 _Count: 5u));
         inventorySystem.Tick(1f / 60f, store);
 
         Assert.True(store.TryGet(player, out InventoryComponent playerAfterPush));
-        Assert.True(store.TryGet(blockEntity, out InventoryComponent blockAfterPush));
+        Assert.True(store.TryGet(brickEntity, out InventoryComponent blockAfterPush));
         Assert.Equal(15, playerAfterPush.Get(new SlotId(SlotGroups.HOTBAR, 0)).Count);
         Assert.Equal(5, blockAfterPush.Get(new SlotId(SlotGroups.CARGO, 0)).Count);
 
@@ -494,7 +494,7 @@ public sealed class BrickEntityTests
         playerNet.StagedInventoryOps!.Stage(
             sequenceNumber: 2,
             new TransferOp(
-                _FromContainer: blockEntityUuid.ToValue(),
+                _FromContainer: brickEntityUuid.ToValue(),
                 _FromSlot: new SlotId(SlotGroups.CARGO, 0),
                 _ToContainer: 0UL,
                 _ToSlot: new SlotId(SlotGroups.HOTBAR, 1),
@@ -502,7 +502,7 @@ public sealed class BrickEntityTests
                 _Count: 5u));
         inventorySystem.Tick(1f / 60f, store);
 
-        Assert.True(store.TryGet(blockEntity, out InventoryComponent blockAfterDenied));
+        Assert.True(store.TryGet(brickEntity, out InventoryComponent blockAfterDenied));
         Assert.Equal(5, blockAfterDenied.Get(new SlotId(SlotGroups.CARGO, 0)).Count);
     }
 
@@ -586,7 +586,7 @@ public sealed class BrickEntityTests
         Assert.True(store.TryGet(spawnedBrickEntity, out MachineStateComponent machine));
         Assert.Equal("station.storage", machine.StationTag);
 
-        //  Seed an item into the storage block-entity, switch player to empty slot, and break it.
+        //  Seed an item into the storage brick-entity, switch player to empty slot, and break it.
         Assert.True(brickEntities.SeedItems(store, spawnedBrickEntity, SlotGroups.CARGO, [new ItemData("wb:ice", 6, 100)]).Success);
         store.AddOrUpdate(player, new EquipmentComponent(1));
 
@@ -649,7 +649,7 @@ public sealed class BrickEntityTests
                 paintRegistry: null,
                 bundledBlueprints: bundled);
 
-            Assert.True(catalog.Create("Adventure Wreck", "seed-block-entity-929", GameMode.Adventure, out string levelGuid));
+            Assert.True(catalog.Create("Adventure Wreck", "seed-brick-entity-929", GameMode.Adventure, out string levelGuid));
 
             var store = new DataStore();
             var brickEntities = new ServerBrickEntityService(bricks);
@@ -682,7 +682,7 @@ public sealed class BrickEntityTests
 
             if (cargoEntity == Entity.Null)
             {
-                //  Fall back to first inventoried block-entity if the starter wreck uses wb:core fuel slot instead.
+                //  Fall back to first inventoried brick-entity if the starter wreck uses wb:core fuel slot instead.
                 cargoEntity = wreckBrickEntities.First(e => store.TryGet(e, out InventoryComponent _));
             }
 
@@ -758,7 +758,7 @@ public sealed class BrickEntityTests
             Assert.True(harness.BrickEntities.TryFindFirstByStationTag(harness.ServerStore, pastedUuid, "station.storage", out int pastedStorage));
             Assert.True(harness.BrickEntities.TryFindFirstByStationTag(harness.ServerStore, pastedUuid, "station.core", out _));
 
-            //  Seed cargo into the freshly pasted blueprint's storage block-entity.
+            //  Seed cargo into the freshly pasted blueprint's storage brick-entity.
             Result<int> pasteSeeded = harness.BrickEntities.SeedItems(
                 harness.ServerStore,
                 pastedStorage,
@@ -829,7 +829,7 @@ public sealed class BrickEntityTests
         Assert.DoesNotContain(fullNonViewer.Components, c => c.Entity == machineUuid.ToValue());
         Assert.Empty(viewerB.Inbound.Snapshots);
 
-        //  2. Unsubscribed block-entity mutation produces zero wire snapshots for all clients and clears dirty flags.
+        //  2. Unsubscribed brick-entity mutation produces zero wire snapshots for all clients and clears dirty flags.
         Assert.True(harness.ServerStore.TryGet(machineEntity, out MachineStateComponent state));
         state.Progress = 1.5f;
         state.Duration = 10f;
@@ -890,7 +890,7 @@ public sealed class BrickEntityTests
         Assert.Equal(machineUuid.ToValue(), deltaB.Components[0].Entity);
         Assert.Empty(nonViewer.Inbound.Snapshots);
 
-        //  5. Explicit detach of viewer A sends despawn ONLY to A and frees client A's mirrored block-entity.
+        //  5. Explicit detach of viewer A sends despawn ONLY to A and frees client A's mirrored brick-entity.
         Assert.True(harness.BrickEntities.DetachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity));
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
@@ -953,7 +953,7 @@ public sealed class BrickEntityTests
             var storagePaths = new StoragePaths(new StorageConfig(), appPaths);
             var gameplayConfig = new GameplayConfig();
             var migrator = new Migrator([]);
-            const string levelGuid = "block-entity-roundtrip-level";
+            const string levelGuid = "brick-entity-roundtrip-level";
 
             //  Seed initial level.db with one structure containing wb:storage, wb:core, and wb:panel.
             Uuid structureUuid = Uuid.FromValue(88001);
@@ -1084,7 +1084,7 @@ public sealed class BrickEntityTests
                 saveService2.Unload(store2);
             }
 
-            //  Session 3: inject orphaned block-entity records (missing structure + non-matching brick coord)
+            //  Session 3: inject orphaned brick-entity records (missing structure + non-matching brick coord)
             //  and verify LoadLevel ignores them AND deletes them from level.db.
             using (var orphanInject = new SqliteLevelStorage(NullLogger<SqliteLevelStorage>.Instance, storagePaths, levelGuid, migrator))
             {

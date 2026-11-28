@@ -16,6 +16,12 @@ internal sealed class LightEntityDecorator(IBrickDatabase brickDatabase, IPaintD
     public bool AppliesTo(Brick brick) => brick.Entity?.Light != null;
 
     /// <inheritdoc/>
+    public void OnRemove(in DataStore store, in int entity)
+    {
+        store.Remove<LightComponent>(entity);
+    }
+
+    /// <inheritdoc/>
     public void Process(in DataStore store, in int parent, in int entity, in VoxelComponent voxelComponent, in VoxelInfo voxelInfo, Brick brick)
     {
         if (brick.Entity?.Light is not BrickLight lightConfig)

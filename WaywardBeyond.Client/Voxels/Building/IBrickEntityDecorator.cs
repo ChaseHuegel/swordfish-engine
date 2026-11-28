@@ -13,4 +13,9 @@ public interface IBrickEntityDecorator
 
     /// <summary>Applies or updates this decorator's components on <paramref name="entity"/>.</summary>
     void Process(in DataStore store, in int parent, in int entity, in VoxelComponent voxelComponent, in VoxelInfo voxelInfo, Brick brick);
+
+    /// <summary>Removes this decorator's components when <paramref name="entity"/> is updated to a brick this decorator no longer applies to.</summary>
+    void OnRemove(in DataStore store, in int entity)
+    {
+    }
 }

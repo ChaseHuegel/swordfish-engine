@@ -105,7 +105,7 @@ A full level save commits one transaction (`ILevelStorage.Save`):
   removed from the world no longer persists.
   - Every `brick_entities` row is replaced by the captured `BrickEntityData`
   snapshot (`ServerBrickEntityService.Capture`,
-  `WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:544`). Each record
+  `WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:564`). Each record
   stores the anchor `(VoxelEntityUuid, VoxelX, VoxelY, VoxelZ)`, `BrickId`,
   sparse keyed `InventoryComponent` entries, and persistent `MachineStateComponent`
   fields (`StationTag`, `ActiveRecipeId`, `Progress`, `Duration`, `PowerEnabled`,
@@ -118,7 +118,7 @@ A full level save commits one transaction (`ILevelStorage.Save`):
 `LevelSaveService.LoadLevel` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:119-203`)
 reads all `brick_entities` rows and delegates each loaded structure to
 `ServerBrickEntityService.RestoreStructure`
-(`WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:335`). Every placed
+(`WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:355`). Every placed
 brick claimed by an `IServerBrickEntityDecorator` allocates a server ECS
 brick-entity with `BrickAnchorComponent` and decorator-provisioned components
 (`InventoryComponent`, `ContainerAccessComponent`, `MachineStateComponent`),

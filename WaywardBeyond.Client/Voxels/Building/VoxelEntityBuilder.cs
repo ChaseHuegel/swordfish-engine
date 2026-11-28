@@ -528,7 +528,7 @@ internal sealed class VoxelEntityBuilder(
                 LocalPosition = new Vector3(voxelInfo.X, voxelInfo.Y, voxelInfo.Z),
             });
 
-            RunDecorators(store, parentEntity, voxelEntity, voxelComponent, voxelInfo, brickResult.Value);
+            RunDecorators(store, parentEntity, voxelEntity, voxelComponent, voxelInfo, brickResult.Value, isUpdate: false);
         }
 
         if (chunkVoxelEntities.Count > 0)
@@ -549,7 +549,8 @@ internal sealed class VoxelEntityBuilder(
         int voxelEntity,
         VoxelComponent voxelComponent,
         in VoxelInfo voxelInfo,
-        Brick brick
+        Brick brick,
+        bool isUpdate
     )
     {
         for (var n = 0; n < _decorators.Length; n++)
@@ -557,6 +558,10 @@ internal sealed class VoxelEntityBuilder(
             if (_decorators[n].AppliesTo(brick))
             {
                 _decorators[n].Process(store, parent: parentEntity, voxelEntity, voxelComponent, voxelInfo, brick);
+            }
+            else if (isUpdate)
+            {
+                _decorators[n].OnRemove(store, voxelEntity);
             }
         }
     }
@@ -602,7 +607,7 @@ internal sealed class VoxelEntityBuilder(
                 Result<Brick> brickResult = Owner._brickDatabase.Get(voxelInfo.Voxel.ID);
                 if (brickResult.Success)
                 {
-                    Owner.RunDecorators(store, ParentEntity, voxelEntity, VoxelComponent, voxelInfo, brickResult.Value);
+                    Owner.RunDecorators(store, ParentEntity, voxelEntity, VoxelComponent, voxelInfo, brickResult.Value, isUpdate: true);
                 }
 
                 UpdatedEntities.Add(i);

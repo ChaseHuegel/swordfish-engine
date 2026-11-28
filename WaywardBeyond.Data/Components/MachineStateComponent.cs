@@ -3,7 +3,7 @@ using Krill;
 
 namespace WaywardBeyond.Data.Components;
 
-/// <summary>Server-authoritative replicated runtime state for a functional block-entity.</summary>
+/// <summary>Server-authoritative replicated runtime state for a brick-entity.</summary>
 public partial struct MachineStateComponent : IDataComponent
 {
     /// <summary>Creates a default machine state with empty station tag and power enabled.</summary>

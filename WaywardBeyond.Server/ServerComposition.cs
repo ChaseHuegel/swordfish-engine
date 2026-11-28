@@ -181,6 +181,9 @@ public static class ServerComposition
         container.Resolve<IRecipeDatabase>(IfUnresolved.ReturnDefault);
         container.Resolve<ISkillDatabase>();
         container.Resolve<ISlotGroupSchemaDatabase>();
+        foreach (IServerBrickEntityDecorator _ in container.ResolveMany<IServerBrickEntityDecorator>())
+        {
+        }
         if (container.IsRegistered<VirtualFileSystem>() && container.IsRegistered<IFileParseService>())
         {
             container.Resolve<ILocalizedTagsDatabase>(IfUnresolved.ReturnDefault);

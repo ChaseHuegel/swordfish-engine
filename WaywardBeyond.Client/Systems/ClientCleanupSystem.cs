@@ -57,6 +57,9 @@ internal sealed class ClientCleanupSystem : IEntitySystem
         FreeMachineAction machines = new();
         store.Query<MachineStateComponent, FreeMachineAction>(0f, ref machines);
 
+        FreeInventoryAction inventories = new();
+        store.Query<InventoryComponent, FreeInventoryAction>(0f, ref inventories);
+
         _logger.LogInformation("Cleaned up the client world on the ECS thread.");
     }
 
@@ -81,6 +84,14 @@ internal sealed class ClientCleanupSystem : IEntitySystem
     private struct FreeMachineAction : IForEach<MachineStateComponent>
     {
         public void Execute(float delta, DataStore store, int entity, in MachineStateComponent state)
+        {
+            store.Free(entity);
+        }
+    }
+
+    private struct FreeInventoryAction : IForEach<InventoryComponent>
+    {
+        public void Execute(float delta, DataStore store, int entity, in InventoryComponent inventory)
         {
             store.Free(entity);
         }

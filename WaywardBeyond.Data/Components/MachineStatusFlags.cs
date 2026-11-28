@@ -18,7 +18,7 @@ public enum MachineStatusFlags : byte
     /// <summary>The machine's output inventory has no room for produced items.</summary>
     OutputFull = 1 << 2,
 
-    /// <summary>A toggleable door or hatch block-entity is open.</summary>
+    /// <summary>A toggleable door or hatch brick-entity is open.</summary>
     Open = 1 << 3,
 
     /// <summary>Subset of status flags persisted across level saves and reloads.</summary>
