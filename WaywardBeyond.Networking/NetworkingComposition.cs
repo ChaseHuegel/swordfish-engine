@@ -26,7 +26,12 @@ public static class NetworkingComposition
         Require(registry.Register<BodyViewComponent>(Uuid.FromValue(10), NetworkDirection.ServerOwned, new NsdComponentCodec<BodyViewComponent>()));
         Require(registry.Register<IdentifierComponent>(Uuid.FromValue(11), NetworkDirection.ServerOwned, new IdentifierCodec()));
         Require(registry.Register<EquipmentComponent>(Uuid.FromValue(12), NetworkDirection.ClientOwned, new NsdComponentCodec<EquipmentComponent>()));
-        Require(registry.Register<InventoryComponent>(Uuid.FromValue(13), NetworkDirection.ServerOwned, new InventoryCodec()));
+        Require(registry.Register<InventoryComponent>(
+            Uuid.FromValue(13),
+            NetworkDirection.ServerOwned,
+            new InventoryCodec(),
+            ReplicationAudience.ViewersOnly
+        ));
         Require(registry.Register<GameModeComponent>(Uuid.FromValue(14), NetworkDirection.ServerOwned, new NsdComponentCodec<GameModeComponent>()));
         Require(registry.Register<InteractionEvent>(Uuid.FromValue(15), NetworkDirection.ClientOwned, new NsdComponentCodec<InteractionEvent>()));
         Require(registry.Register<InventoryEvent>(Uuid.FromValue(16), NetworkDirection.ClientOwned, new NsdComponentCodec<InventoryEvent>()));
@@ -44,6 +49,12 @@ public static class NetworkingComposition
             NetworkDirection.ServerOwned,
             new NsdComponentCodec<StatisticsComponent>(),
             ReplicationAudience.OwnerOnly
+        ));
+        Require(registry.Register<MachineStateComponent>(
+            Uuid.FromValue(21),
+            NetworkDirection.ServerOwned,
+            new NsdComponentCodec<MachineStateComponent>(),
+            ReplicationAudience.ViewersOnly
         ));
 
         registry.Freeze();

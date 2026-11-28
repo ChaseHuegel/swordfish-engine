@@ -178,6 +178,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Sounds` | `[Bricks.Sounds]` map | sound tags per `BrickEventKind` (`Place`, `Break`) |
 | `Colliders` | `[[Bricks.Colliders]]` array | Optional `BrickColliderDefinition` list (`WaywardBeyond.Bricks/BrickColliderDefinition.cs`) |
 | `Statistics` | `[Bricks.Statistics]` map: string → float | `BrickDefinition.Statistics` (custom numeric statistics such as `"wb:hardness"`) |
+| `BlockEntity` | `[Bricks.BlockEntity]` sub-table | Optional `BlockEntityDefinition` (`WaywardBeyond.Bricks/BlockEntityDefinition.cs`) that spawns a server ECS block-entity |
 
 Brick property and group membership (`brick.light`, `brick.entity`,
 `brick.orientable`, `brick.paintable`, `brick.thruster`, `brick.buildable`,
@@ -232,6 +233,35 @@ Example:
 ```toml
 [Bricks.Statistics]
 "wb:hardness" = 2.5
+```
+
+### BlockEntity
+
+`BrickDefinition.BlockEntity` (`WaywardBeyond.Bricks/BrickDefinition.cs:42`) is an optional `[Bricks.BlockEntity]` sub-table (`BlockEntityDefinition`, `WaywardBeyond.Bricks/BlockEntityDefinition.cs:6`) that marks a brick as a server-managed functional block-entity. `BrickDatabase.ResolveBlockEntity` (`WaywardBeyond.Bricks/BrickDatabase.cs:171`) validates the table into `Brick.BlockEntity` (`BrickBlockEntity`, `WaywardBeyond.Bricks/BrickBlockEntity.cs:6`).
+
+| Field | Type | Notes |
+|---|---|---|
+| `StationTag` | string? | station role tag such as `station.storage`, `station.core`, or `station.console` |
+| `SlotGroups` | `[[Bricks.BlockEntity.SlotGroups]]` | optional `BrickSlotGroupDefinition` list (`ID` and optional `Capacity` override) |
+| `PowerKw` | float | nominal power rate in kW (negative draws power, positive generates power) |
+| `Airtight` | bool | marks whether the brick acts as an airtight barrier in its default state |
+| `Toggleable` | bool | marks whether players or systems can toggle the block-entity |
+| `DefaultPowerEnabled` | bool | initial `PowerEnabled` value for newly spawned block-entities (defaults to `true`) |
+| `DefaultOpen` | bool | initial `MachineStatusFlags.Open` state for toggleable doors or hatches (defaults to `false`) |
+
+Non-finite `PowerKw` values log a warning and default to `0`. Slot group rows with empty ids, negative capacities, or duplicate ids log a warning and are skipped. Omitted `Capacity` falls back to `ISlotGroupSchemaDatabase` and canonical `SlotGroups` defaults.
+
+Example (`WaywardBeyond.Bricks/assets/bricks/core.toml:9-16`):
+
+```toml
+[Bricks.BlockEntity]
+StationTag          = "station.core"
+PowerKw             = 50.0
+Airtight            = true
+Toggleable          = true
+DefaultPowerEnabled = true
+[[Bricks.BlockEntity.SlotGroups]]
+ID = "wb:fuel"
 ```
 
 ### Textures
@@ -564,7 +594,7 @@ bits. See [seed-phrases](seed-phrases.md).
 
 - `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,ConsumableDefinition,ConsumableStatModifierDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
 - `WaywardBeyond.Data/Blueprints/{IBundledBlueprintDatabase,BundledBlueprintDatabase,BlueprintDataParser}.cs`
-- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
+- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders,BlockEntityDefinition,BrickSlotGroupDefinition,BrickBlockEntity,BrickSlotGroup}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
 - `WaywardBeyond.Voxels/VoxelCollision.cs`
 - `WaywardBeyond.Data/Inventory/{ISlotGroupSchemaDatabase,SlotGroupSchemaDatabase,SlotGroupSchema,SlotGroupDefinitions,SlotGroupDefinition,SlotFilterDefinition,SlotGroups}.cs`
@@ -620,3 +650,4 @@ occurrence order, and the invariant merge into each language.
 `WaywardBeyond.Tests/BarDatabaseTests.cs` pins `bars/*.toml` `TomlParser<BarDefinitions>` parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
 `WaywardBeyond.Tests/BuffDatabaseTests.cs` pins `buffs/*.toml` `TomlParser<BuffDefinitions>` parsing, stack policies, stat modifiers, data-driven regen rates, and validation failures.
 `WaywardBeyond.Tests/SurvivalSystemTests.cs` pins `[Items.Consumable]` parsing, one-shot statistic modifiers, shipped consumable assets, cooldown use, and buff grants.
+`WaywardBeyond.Tests/BlockEntityTests.cs` pins `[Bricks.BlockEntity]` and `[[Bricks.BlockEntity.SlotGroups]]` parsing, validation fallbacks, and shipped functional brick metadata on `wb:storage`, `wb:core`, and `wb:display_console`.

@@ -32,6 +32,8 @@ public sealed class ServerWorld : IDisposable
     public ServerJoinQueue JoinQueue { get; }
     /// <summary>The world replication stages.</summary>
     public NetworkReplicationSystem Replication { get; }
+    /// <summary>The world server-managed block-entity registry and lifecycle service, or null in minimal test containers.</summary>
+    public ServerBlockEntityService? BlockEntities { get; }
     /// <summary>The world particle replication and burst service.</summary>
     public IServerParticleService Particles { get; }
     /// <summary>The shared simulation step for this world.</summary>
@@ -48,15 +50,18 @@ public sealed class ServerWorld : IDisposable
         _container = container;
         World = Pin<World>(container);
         Sessions = Pin<SessionManager>(container);
-        SaveService = Pin<LevelSaveService>(container);
         JoinQueue = Pin<ServerJoinQueue>(container);
         Replication = Pin<NetworkReplicationSystem>(container);
+        Pin<IUserPermissionService>(container);
+        BlockEntities = container.IsRegistered<ServerBlockEntityService>()
+            ? Pin<ServerBlockEntityService>(container)
+            : null;
+        SaveService = Pin<LevelSaveService>(container);
         ServerParticleService particles = Pin<ServerParticleService>(container);
         container.RegisterInstance<IServerParticleService>(particles, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         Particles = particles;
         //  Shared with every other world, so resolve it from the root instead of pinning a child copy.
         HandlerRegistry = container.Resolve<IInteractionHandlerRegistry>();
-        Pin<IUserPermissionService>(container);
         Pin<IServerWorldPhysics>(container);
         SimulationStep = Pin<SimulationStep>(container);
         Pin<Func<DataStore, IVoxelInteractionWorld>>(container);

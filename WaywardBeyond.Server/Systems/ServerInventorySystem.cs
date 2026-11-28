@@ -205,9 +205,8 @@ public sealed class ServerInventorySystem(
         }
 
         if (!store.TryGet(playerEntity, out TransformComponent playerTransform)
-            || !store.TryGet(containerEntity, out TransformComponent containerTransform)
             || !IsFinite(playerTransform.Position)
-            || !IsFinite(containerTransform.Position))
+            || !TryResolveContainerPosition(store, containerEntity, out Vector3 containerPosition))
         {
             return false;
         }
@@ -236,7 +235,26 @@ public sealed class ServerInventorySystem(
             }
         }
 
-        return Vector3.DistanceSquared(playerTransform.Position, containerTransform.Position) <= maxReach * maxReach;
+        return Vector3.DistanceSquared(playerTransform.Position, containerPosition) <= maxReach * maxReach;
+    }
+
+    private static bool TryResolveContainerPosition(DataStore store, int containerEntity, out Vector3 position)
+    {
+        if (store.TryGet(containerEntity, out TransformComponent containerTransform)
+            && IsFinite(containerTransform.Position))
+        {
+            position = containerTransform.Position;
+            return true;
+        }
+
+        if (store.TryGet(containerEntity, out BrickAnchorComponent anchor)
+            && ServerBlockEntityService.TryResolveWorldPosition(store, in anchor, out position))
+        {
+            return true;
+        }
+
+        position = default;
+        return false;
     }
 
     private bool HasContainerPermission(int playerEntity, string permission)

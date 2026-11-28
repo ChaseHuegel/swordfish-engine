@@ -112,7 +112,8 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             paintable,
             orientable,
             ResolveColor(id, assetInfo.Color),
-            ResolveStatistics(id, assetInfo.Statistics)
+            ResolveStatistics(id, assetInfo.Statistics),
+            ResolveBlockEntity(id, assetInfo.BlockEntity)
         );
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
@@ -165,6 +166,75 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         }
 
         return resolved;
+    }
+
+    private BrickBlockEntity? ResolveBlockEntity(string id, BlockEntityDefinition? definition)
+    {
+        if (definition == null)
+        {
+            return null;
+        }
+
+        BlockEntityDefinition def = definition.Value;
+        string stationTag = string.IsNullOrWhiteSpace(def.StationTag) ? string.Empty : def.StationTag.Trim();
+
+        float powerKw = def.PowerKw;
+        if (!float.IsFinite(powerKw))
+        {
+            _logger.LogWarning("Brick \"{BrickId}\" has non-finite BlockEntity.PowerKw {Value}. Using 0.", id, powerKw);
+            powerKw = 0f;
+        }
+
+        BrickSlotGroup[] slotGroups = ResolveSlotGroups(id, def.SlotGroups);
+        return new BrickBlockEntity(
+            stationTag,
+            slotGroups,
+            powerKw,
+            def.Airtight,
+            def.Toggleable,
+            def.DefaultPowerEnabled,
+            def.DefaultOpen);
+    }
+
+    private BrickSlotGroup[] ResolveSlotGroups(string brickId, List<BrickSlotGroupDefinition>? definitions)
+    {
+        if (definitions == null || definitions.Count == 0)
+        {
+            return [];
+        }
+
+        var resolved = new List<BrickSlotGroup>(definitions.Count);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            BrickSlotGroupDefinition entry = definitions[i];
+            string groupId = string.IsNullOrWhiteSpace(entry.ID) ? string.Empty : entry.ID.Trim();
+            if (groupId.Length == 0)
+            {
+                _logger.LogWarning("Brick \"{BrickId}\" declares a BlockEntity slot group with an empty ID. Skipping.", brickId);
+                continue;
+            }
+
+            if (entry.Capacity.HasValue && entry.Capacity.Value < 0)
+            {
+                _logger.LogWarning(
+                    "Brick \"{BrickId}\" slot group \"{GroupId}\" has negative capacity {Capacity}. Skipping.",
+                    brickId,
+                    groupId,
+                    entry.Capacity.Value);
+                continue;
+            }
+
+            if (!seen.Add(groupId))
+            {
+                _logger.LogWarning("Brick \"{BrickId}\" declares duplicate BlockEntity slot group \"{GroupId}\". Skipping.", brickId, groupId);
+                continue;
+            }
+
+            resolved.Add(new BrickSlotGroup(groupId, entry.Capacity));
+        }
+
+        return resolved.Count > 0 ? [.. resolved] : [];
     }
 
     private BrickColliderShape[] BuildColliders(string brickId, List<BrickColliderDefinition>? definitions)

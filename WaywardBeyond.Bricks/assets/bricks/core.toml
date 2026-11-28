@@ -6,3 +6,11 @@ Place = ["metal_place"]
 Break = ["metal_break"]
 [Bricks.Textures]
 Default = ["core"]
+[Bricks.BlockEntity]
+StationTag          = "station.core"
+PowerKw             = 50.0
+Airtight            = true
+Toggleable          = true
+DefaultPowerEnabled = true
+[[Bricks.BlockEntity.SlotGroups]]
+ID = "wb:fuel"

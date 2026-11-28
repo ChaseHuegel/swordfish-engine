@@ -12,3 +12,8 @@ Front   = ["storage_front"]
 Back    = ["storage_back"]
 Left    = ["storage_side"]
 Right   = ["storage_side"]
+[Bricks.BlockEntity]
+StationTag = "station.storage"
+Airtight   = true
+[[Bricks.BlockEntity.SlotGroups]]
+ID = "wb:cargo"

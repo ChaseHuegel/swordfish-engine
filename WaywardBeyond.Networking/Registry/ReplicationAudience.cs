@@ -11,4 +11,7 @@ public enum ReplicationAudience : byte
 
     /// <summary>Replicates to every connected client except the entity's owning client.</summary>
     OthersOnly = 2,
+
+    /// <summary>Replicates only to the entity's owning client (if any) and explicitly subscribed viewer clients.</summary>
+    ViewersOnly = 3,
 }

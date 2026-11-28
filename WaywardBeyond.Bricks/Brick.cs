@@ -28,6 +28,12 @@ public sealed class Brick
     /// <summary>Custom numeric statistics declared on this brick, or empty when none are declared.</summary>
     public readonly IReadOnlyDictionary<string, float> Statistics;
 
+    /// <summary>Optional functional block-entity metadata declared on this brick, or null when non-functional.</summary>
+    public readonly BrickBlockEntity? BlockEntity;
+
+    /// <summary>Whether placing this brick allocates a server block-entity.</summary>
+    public bool HasBlockEntity => BlockEntity != null;
+
     public readonly BrickAlpha Alpha;
     public readonly bool CastShadows;
     public readonly bool Passable;
@@ -68,7 +74,8 @@ public sealed class Brick
         in bool paintable = false,
         in bool orientable = false,
         in Vector3? color = null,
-        in IReadOnlyDictionary<string, float>? statistics = null
+        in IReadOnlyDictionary<string, float>? statistics = null,
+        in BrickBlockEntity? blockEntity = null
     ) {
         ID = id;
         Alpha = alpha;
@@ -82,6 +89,7 @@ public sealed class Brick
         _colliders = colliders ?? [];
         Sounds = sounds ?? _noSounds;
         Statistics = statistics ?? _noStatistics;
+        BlockEntity = blockEntity;
         Shapeable = shape == BrickShape.Any;
         LightSource = lightSource;
         Brightness = LightSource ? 15 : 0;

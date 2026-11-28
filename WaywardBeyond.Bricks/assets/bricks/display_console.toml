@@ -12,3 +12,8 @@ Bottom  = ["panel.0"]
 Back    = ["vent"]
 Left    = ["greeble1"]
 Right   = ["greeble1"]
+[Bricks.BlockEntity]
+StationTag          = "station.console"
+PowerKw             = -1.0
+Toggleable          = true
+DefaultPowerEnabled = true

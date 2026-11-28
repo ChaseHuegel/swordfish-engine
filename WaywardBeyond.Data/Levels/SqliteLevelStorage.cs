@@ -16,6 +16,16 @@ public sealed class SqliteLevelStorage : ILevelStorage
     private const string CREATE_LEVEL_TABLE_COMMAND = "CREATE TABLE IF NOT EXISTS level (guid TEXT PRIMARY KEY, data BLOB NOT NULL);";
     private const string CREATE_ENTITIES_TABLE_COMMAND = "CREATE TABLE IF NOT EXISTS entities (uuid TEXT PRIMARY KEY, data BLOB NOT NULL);";
     private const string CREATE_CHARACTERS_TABLE_COMMAND = "CREATE TABLE IF NOT EXISTS character_locations (character_uuid TEXT PRIMARY KEY, data BLOB NOT NULL);";
+    private const string CREATE_BLOCK_ENTITIES_TABLE_COMMAND = """
+        CREATE TABLE IF NOT EXISTS block_entities (
+            voxel_entity_uuid TEXT NOT NULL,
+            voxel_x INTEGER NOT NULL,
+            voxel_y INTEGER NOT NULL,
+            voxel_z INTEGER NOT NULL,
+            data BLOB NOT NULL,
+            PRIMARY KEY (voxel_entity_uuid, voxel_x, voxel_y, voxel_z)
+        );
+        """;
 
     private readonly ILogger _logger;
     private readonly string _levelGuid;
@@ -24,6 +34,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
     private readonly SqliteTable _levelTable;
     private readonly SqliteTable _entitiesTable;
     private readonly SqliteTable _charactersTable;
+    private readonly SqliteTable _blockEntitiesTable;
     private readonly Lock _writeLock = new();
     
     private bool _disposed;
@@ -39,6 +50,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
         _levelTable = new SqliteTable(CREATE_LEVEL_TABLE_COMMAND);
         _entitiesTable = new SqliteTable(CREATE_ENTITIES_TABLE_COMMAND);
         _charactersTable = new SqliteTable(CREATE_CHARACTERS_TABLE_COMMAND);
+        _blockEntitiesTable = new SqliteTable(CREATE_BLOCK_ENTITIES_TABLE_COMMAND);
     }
 
     /// <inheritdoc/>
@@ -102,6 +114,41 @@ public sealed class SqliteLevelStorage : ILevelStorage
     }
 
     /// <inheritdoc/>
+    public IReadOnlyList<BlockEntityData> GetBlockEntities()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var blockEntities = new List<BlockEntityData>();
+
+        try
+        {
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _blockEntitiesTable.CreateCommand(connection);
+            command.CommandText = "SELECT data FROM block_entities;";
+
+            using SqliteDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                byte[] data = (byte[])reader["data"];
+                try
+                {
+                    blockEntities.Add(BlockEntityData.Deserialize(data));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Skipping an unreadable block-entity record.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to list block-entities.");
+        }
+
+        return blockEntities;
+    }
+
+    /// <inheritdoc/>
     public Result<CharacterEntityData> GetCharacterEntity(ulong uuid)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -129,6 +176,70 @@ public sealed class SqliteLevelStorage : ILevelStorage
     /// <inheritdoc/>
     public Result Save(Level level, IReadOnlyList<VoxelEntityData> voxelEntities, IReadOnlyList<CharacterEntityData> characterEntities)
     {
+        return SaveCore(level, voxelEntities, characterEntities, blockEntities: null);
+    }
+
+    /// <inheritdoc/>
+    public Result Save(
+        Level level,
+        IReadOnlyList<VoxelEntityData> voxelEntities,
+        IReadOnlyList<CharacterEntityData> characterEntities,
+        IReadOnlyList<BlockEntityData> blockEntities
+    )
+    {
+        return SaveCore(level, voxelEntities, characterEntities, blockEntities);
+    }
+
+    /// <inheritdoc/>
+    public Result DeleteBlockEntities(IReadOnlyList<BlockEntityKey> keys)
+    {
+        using Lock.Scope _ = _writeLock.EnterScope();
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (keys == null || keys.Count == 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        try
+        {
+            using SqliteDatabase.Transaction transaction = _database.BeginTransaction(deferred: false);
+            using SqliteCommand delete = _blockEntitiesTable.CreateCommand(transaction.Connection);
+            delete.CommandText = """
+                DELETE FROM block_entities
+                WHERE voxel_entity_uuid = $uuid AND voxel_x = $x AND voxel_y = $y AND voxel_z = $z;
+                """;
+            delete.Parameters.Add("$uuid", SqliteType.Text);
+            delete.Parameters.Add("$x", SqliteType.Integer);
+            delete.Parameters.Add("$y", SqliteType.Integer);
+            delete.Parameters.Add("$z", SqliteType.Integer);
+
+            for (var i = 0; i < keys.Count; i++)
+            {
+                BlockEntityKey key = keys[i];
+                delete.Parameters["$uuid"].Value = SqliteDatabase.EncodeKey(key.VoxelEntityUuid);
+                delete.Parameters["$x"].Value = key.VoxelX;
+                delete.Parameters["$y"].Value = key.VoxelY;
+                delete.Parameters["$z"].Value = key.VoxelZ;
+                delete.ExecuteNonQuery();
+            }
+
+            transaction.Value.Commit();
+            return Result.FromSuccess();
+        }
+        catch (Exception ex)
+        {
+            return new Result(false, $"Failed to delete orphaned block-entities: {ex.Message}", ex);
+        }
+    }
+
+    private Result SaveCore(
+        Level level,
+        IReadOnlyList<VoxelEntityData> voxelEntities,
+        IReadOnlyList<CharacterEntityData> characterEntities,
+        IReadOnlyList<BlockEntityData>? blockEntities
+    )
+    {
         using Lock.Scope _ = _writeLock.EnterScope();
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -155,6 +266,39 @@ public sealed class SqliteLevelStorage : ILevelStorage
                     insert.Parameters["$uuid"].Value = SqliteDatabase.EncodeKey(entity.Uuid);
                     insert.Parameters["$data"].Value = entity.Serialize();
                     insert.ExecuteNonQuery();
+                }
+            }
+
+            if (blockEntities != null)
+            {
+                using (SqliteCommand deleteBlocks = _blockEntitiesTable.CreateCommand(transaction.Connection))
+                {
+                    deleteBlocks.CommandText = "DELETE FROM block_entities;";
+                    deleteBlocks.ExecuteNonQuery();
+                }
+
+                using (SqliteCommand insertBlocks = _blockEntitiesTable.CreateCommand(transaction.Connection))
+                {
+                    insertBlocks.CommandText = """
+                        INSERT INTO block_entities (voxel_entity_uuid, voxel_x, voxel_y, voxel_z, data)
+                        VALUES ($uuid, $x, $y, $z, $data);
+                        """;
+                    insertBlocks.Parameters.Add("$uuid", SqliteType.Text);
+                    insertBlocks.Parameters.Add("$x", SqliteType.Integer);
+                    insertBlocks.Parameters.Add("$y", SqliteType.Integer);
+                    insertBlocks.Parameters.Add("$z", SqliteType.Integer);
+                    insertBlocks.Parameters.Add("$data", SqliteType.Blob);
+
+                    for (var i = 0; i < blockEntities.Count; i++)
+                    {
+                        BlockEntityData block = blockEntities[i];
+                        insertBlocks.Parameters["$uuid"].Value = SqliteDatabase.EncodeKey(block.VoxelEntityUuid);
+                        insertBlocks.Parameters["$x"].Value = block.VoxelX;
+                        insertBlocks.Parameters["$y"].Value = block.VoxelY;
+                        insertBlocks.Parameters["$z"].Value = block.VoxelZ;
+                        insertBlocks.Parameters["$data"].Value = block.Serialize();
+                        insertBlocks.ExecuteNonQuery();
+                    }
                 }
             }
 

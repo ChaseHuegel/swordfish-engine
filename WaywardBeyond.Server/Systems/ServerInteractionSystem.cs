@@ -25,7 +25,8 @@ public sealed class ServerInteractionSystem(
     ILogger<ServerInteractionSystem> logger,
     IInteractionHandlerRegistry handlerRegistry,
     Func<DataStore, IVoxelInteractionWorld> worldFactory,
-    SimulationStep simulationStep
+    SimulationStep simulationStep,
+    ServerBlockEntityService? blockEntities = null
 ) : IServerWorldSystem
 {
     private readonly Dictionary<Uuid, TimedSession> _timedSessions = [];
@@ -197,7 +198,10 @@ public sealed class ServerInteractionSystem(
             logger.LogDebug(
                 "Interaction {sequence} for player {player} resolved to nothing.",
                 interaction.SequenceNumber, player);
+            return;
         }
+
+        NotifyBlockEntityInteraction(store, in context);
     }
 
     private void AdvanceTimedSession(
@@ -267,8 +271,10 @@ public sealed class ServerInteractionSystem(
                 logger.LogDebug(
                     "Timed interaction {sequence} for player {player} ended with {decision}.",
                     session.Sequence, entity, commitResult.Decision);
+                return;
             }
 
+            NotifyBlockEntityInteraction(store, in context);
             return;
         }
 
@@ -277,6 +283,24 @@ public sealed class ServerInteractionSystem(
         session.RequiredInput = context.Hold.RequiredInput;
         session.CancelOnEquipmentChange = context.Hold.CancelOnEquipmentChange;
         _timedSessions[playerUuid] = session;
+    }
+
+    private void NotifyBlockEntityInteraction(DataStore store, in InteractionContext context)
+    {
+        if (blockEntities == null)
+        {
+            return;
+        }
+
+        InteractionResolution resolution = context.Resolution;
+        if (resolution.Action == InteractionAction.Place)
+        {
+            blockEntities.OnBrickPlaced(store, store.GetUuid(resolution.Entity), resolution.Coordinate, resolution.Voxel.ID);
+        }
+        else if (resolution.Action == InteractionAction.Break)
+        {
+            blockEntities.OnBrickBroken(store, store.GetUuid(resolution.Entity), resolution.Coordinate, context.Player, context.GameMode);
+        }
     }
 
     private bool ShouldCancelOnRelease(Uuid playerUuid, InteractionKind kind)

@@ -82,6 +82,7 @@ public static class ServerComposition
         container.Register<LevelSaveService>(setup: Setup.With(allowDisposableTransient: true));
         container.Register<ServerJoinQueue>();
         container.Register<NetworkReplicationSystem>();
+        container.Register<ServerBlockEntityService>();
         container.Register<ServerParticleService>();
         container.RegisterDelegate<IServerParticleService>(context => context.Resolve<ServerParticleService>());
         //  The world physics bundle is created directly (it owns the engine's Jolt system) and exposed
@@ -120,7 +121,8 @@ public static class ServerComposition
                 Arg.Of<ILogger<ServerInteractionSystem>>(),
                 Arg.Of<IInteractionHandlerRegistry>(),
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
-                Arg.Of<SimulationStep>()
+                Arg.Of<SimulationStep>(),
+                Arg.Of<ServerBlockEntityService>()
             ))
         );
         container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
@@ -128,6 +130,7 @@ public static class ServerComposition
         RegisterServerSystem<ServerPaintSprayerSystem>(container);
         RegisterServerSystem<ServerRegionSystem>(container);
         RegisterServerSystem<ServerChatSystem>(container);
+        RegisterServerSystem<ServerBlockEntitySystem>(container);
         RegisterServerSystem<ServerParticleFlushSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);
 

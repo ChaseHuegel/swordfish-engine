@@ -74,6 +74,19 @@ public sealed class NetworkReplicationSystem
     //  so the tick that enqueues the complete still publishes no deltas, even on an idle tick.
     private readonly HashSet<Uuid> _streamEnds = [];
 
+    //  Viewer-scoped replication state: tracks which connected clients are subscribed to inspect
+    //  non-owned entities (such as server-managed block-entities), queues one-shot initial snapshots
+    //  on attach, and emits targeted entity despawns on detach or entity destruction.
+    private readonly Dictionary<int, HashSet<Uuid>> _viewersByEntity = [];
+    private readonly Dictionary<Uuid, HashSet<int>> _entitiesByViewer = [];
+    private readonly Dictionary<Uuid, List<int>> _pendingViewerAttach = [];
+    private readonly Dictionary<Uuid, List<ulong>> _pendingViewerDespawns = [];
+    private readonly HashSet<ViewerSubscription> _deliveredViewerEntities = [];
+    private readonly List<ComponentSnapshot> _attachScratch = [];
+    private readonly List<ulong> _despawnScratch = [];
+    private readonly List<Uuid> _staleViewerClients = [];
+    private int _activeViewerSubscriptionCount;
+
     /// <summary>The sim tick stamped on the next published snapshot. Set by the publish system.</summary>
     public uint SimTick { get; set; }
 
@@ -155,12 +168,254 @@ public sealed class NetworkReplicationSystem
     /// <summary>
     /// Lifts a client's streaming gate immediately, without a publish. Called when a client leaves or
     /// disconnects before its stream completes, so the gate table cannot grow with abandoned joins.
+    /// Also tears down any active viewer subscriptions held by <paramref name="clientId"/>.
     /// </summary>
     public void CancelStream(Uuid clientId)
     {
         _streamingClients.Remove(clientId);
         _streamEnds.Remove(clientId);
         _fullSync.Remove(clientId);
+        ClearClientViewers(clientId);
+    }
+
+    /// <summary>Total number of active viewer-to-entity subscriptions across this world.</summary>
+    public int ActiveViewerSubscriptionCount => _activeViewerSubscriptionCount;
+
+    /// <summary>
+    /// Subscribes <paramref name="clientId"/> to receive viewer-scoped components for <paramref name="entity"/>
+    /// and queues an initial snapshot of its server-owned state on the next publish.
+    /// </summary>
+    public bool SubscribeViewer(Uuid clientId, int entity)
+    {
+        if (clientId == Uuid.Null || entity == Entity.Null)
+        {
+            return false;
+        }
+
+        if (!_viewersByEntity.TryGetValue(entity, out HashSet<Uuid>? viewers))
+        {
+            viewers = [];
+            _viewersByEntity[entity] = viewers;
+        }
+
+        if (!viewers.Add(clientId))
+        {
+            return false;
+        }
+
+        if (!_entitiesByViewer.TryGetValue(clientId, out HashSet<int>? entities))
+        {
+            entities = [];
+            _entitiesByViewer[clientId] = entities;
+        }
+
+        entities.Add(entity);
+        _activeViewerSubscriptionCount++;
+
+        if (!_pendingViewerAttach.TryGetValue(clientId, out List<int>? pending))
+        {
+            pending = [];
+            _pendingViewerAttach[clientId] = pending;
+        }
+
+        if (!pending.Contains(entity))
+        {
+            pending.Add(entity);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Unsubscribes <paramref name="clientId"/> from <paramref name="entity"/> and queues a targeted
+    /// despawn for <paramref name="entityUuid"/> when the viewer previously received that entity.
+    /// </summary>
+    public bool UnsubscribeViewer(Uuid clientId, int entity, ulong entityUuid)
+    {
+        if (!_viewersByEntity.TryGetValue(entity, out HashSet<Uuid>? viewers) || !viewers.Remove(clientId))
+        {
+            return false;
+        }
+
+        if (viewers.Count == 0)
+        {
+            _viewersByEntity.Remove(entity);
+        }
+
+        if (_entitiesByViewer.TryGetValue(clientId, out HashSet<int>? entities))
+        {
+            entities.Remove(entity);
+            if (entities.Count == 0)
+            {
+                _entitiesByViewer.Remove(clientId);
+            }
+        }
+
+        _activeViewerSubscriptionCount = Math.Max(0, _activeViewerSubscriptionCount - 1);
+        RemovePendingAttach(clientId, entity);
+
+        if (_deliveredViewerEntities.Remove(new ViewerSubscription(clientId, entity)) && entityUuid != 0UL)
+        {
+            EnqueueViewerDespawn(clientId, entityUuid);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Detaches every viewer subscribed to <paramref name="entity"/> and queues a targeted despawn for
+    /// each viewer that had already received <paramref name="entityUuid"/>. Non-viewers receive nothing.
+    /// </summary>
+    public void DetachAllViewers(int entity, ulong entityUuid)
+    {
+        if (!_viewersByEntity.Remove(entity, out HashSet<Uuid>? viewers))
+        {
+            return;
+        }
+
+        foreach (Uuid clientId in viewers)
+        {
+            if (_entitiesByViewer.TryGetValue(clientId, out HashSet<int>? entities))
+            {
+                entities.Remove(entity);
+                if (entities.Count == 0)
+                {
+                    _entitiesByViewer.Remove(clientId);
+                }
+            }
+
+            _activeViewerSubscriptionCount = Math.Max(0, _activeViewerSubscriptionCount - 1);
+            RemovePendingAttach(clientId, entity);
+
+            if (_deliveredViewerEntities.Remove(new ViewerSubscription(clientId, entity)) && entityUuid != 0UL)
+            {
+                EnqueueViewerDespawn(clientId, entityUuid);
+            }
+        }
+    }
+
+    /// <summary>Detaches <paramref name="clientId"/> from every subscribed entity, queuing targeted despawns.</summary>
+    public void DetachClientViewers(Uuid clientId, DataStore store)
+    {
+        if (!_entitiesByViewer.TryGetValue(clientId, out HashSet<int>? entities) || entities.Count == 0)
+        {
+            return;
+        }
+
+        //  Copy to a scratch list because UnsubscribeViewer mutates _entitiesByViewer.
+        var snapshot = new List<int>(entities.Count);
+        foreach (int entity in entities)
+        {
+            snapshot.Add(entity);
+        }
+
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            int entity = snapshot[i];
+            ulong entityUuid = store.GetUuid(entity).ToValue();
+            UnsubscribeViewer(clientId, entity, entityUuid);
+        }
+    }
+
+    /// <summary>Returns whether <paramref name="clientId"/> is subscribed to view <paramref name="entity"/>.</summary>
+    public bool IsViewerSubscribed(int entity, Uuid clientId)
+    {
+        return clientId != Uuid.Null
+            && _viewersByEntity.TryGetValue(entity, out HashSet<Uuid>? viewers)
+            && viewers.Contains(clientId);
+    }
+
+    /// <summary>Returns the number of viewers currently subscribed to <paramref name="entity"/>.</summary>
+    public int GetViewerCount(int entity)
+    {
+        return _viewersByEntity.TryGetValue(entity, out HashSet<Uuid>? viewers) ? viewers.Count : 0;
+    }
+
+    /// <summary>Copies all active viewer subscriptions into <paramref name="destination"/> without allocating.</summary>
+    internal void CopyActiveSubscriptions(List<(Uuid ClientId, int Entity)> destination)
+    {
+        destination.Clear();
+        if (_activeViewerSubscriptionCount == 0)
+        {
+            return;
+        }
+
+        foreach ((int entity, HashSet<Uuid> viewers) in _viewersByEntity)
+        {
+            foreach (Uuid clientId in viewers)
+            {
+                destination.Add((clientId, entity));
+            }
+        }
+    }
+
+    /// <summary>Clears all viewer subscriptions without emitting despawns (used on world unload).</summary>
+    public void ClearAllViewers()
+    {
+        _viewersByEntity.Clear();
+        _entitiesByViewer.Clear();
+        _pendingViewerAttach.Clear();
+        _pendingViewerDespawns.Clear();
+        _deliveredViewerEntities.Clear();
+        _activeViewerSubscriptionCount = 0;
+    }
+
+    private void ClearClientViewers(Uuid clientId)
+    {
+        if (_entitiesByViewer.Remove(clientId, out HashSet<int>? entities))
+        {
+            foreach (int entity in entities)
+            {
+                if (_viewersByEntity.TryGetValue(entity, out HashSet<Uuid>? viewers) && viewers.Remove(clientId))
+                {
+                    if (viewers.Count == 0)
+                    {
+                        _viewersByEntity.Remove(entity);
+                    }
+
+                    _activeViewerSubscriptionCount = Math.Max(0, _activeViewerSubscriptionCount - 1);
+                }
+
+                _deliveredViewerEntities.Remove(new ViewerSubscription(clientId, entity));
+            }
+        }
+
+        _pendingViewerAttach.Remove(clientId);
+        _pendingViewerDespawns.Remove(clientId);
+    }
+
+    private void RemovePendingAttach(Uuid clientId, int entity)
+    {
+        if (!_pendingViewerAttach.TryGetValue(clientId, out List<int>? pending))
+        {
+            return;
+        }
+
+        pending.Remove(entity);
+        if (pending.Count == 0)
+        {
+            _pendingViewerAttach.Remove(clientId);
+        }
+    }
+
+    private void EnqueueViewerDespawn(Uuid clientId, ulong entityUuid)
+    {
+        if (!_pendingViewerDespawns.TryGetValue(clientId, out List<ulong>? despawns))
+        {
+            despawns = [];
+            _pendingViewerDespawns[clientId] = despawns;
+        }
+
+        if (!despawns.Contains(entityUuid))
+        {
+            despawns.Add(entityUuid);
+        }
+    }
+
+    private bool HasViewerOrOwner(int entity)
+    {
+        return (_viewersByEntity.TryGetValue(entity, out HashSet<Uuid>? viewers) && viewers.Count > 0)
+            || _sessions.TryGetClient(entity, out _);
     }
 
     /// <summary>The number of clients whose join stream is still gated.</summary>
@@ -308,7 +563,12 @@ public sealed class NetworkReplicationSystem
         OnTickAction onTick = new() { Owner = this };
         store.Query<NetworkComponent, OnTickAction>(delta, ref onTick);
 
-        if (_pending.Count == 0 && _pendingRemovals.Count == 0 && _removed.Count == 0 && _fullSync.Count == 0)
+        if (_pending.Count == 0
+            && _pendingRemovals.Count == 0
+            && _removed.Count == 0
+            && _fullSync.Count == 0
+            && _pendingViewerAttach.Count == 0
+            && _pendingViewerDespawns.Count == 0)
         {
             return;
         }
@@ -365,6 +625,25 @@ public sealed class NetworkReplicationSystem
                 ? sharedFullState ?? FilterFullSyncSnapshots(_fullSyncPending, in recipient)
                 : sharedComponents ?? FilterDeltaSnapshots(_pending, in recipient);
 
+            if (isFullSync && _entitiesByViewer.TryGetValue(clientId, out HashSet<int>? fullSyncViewed))
+            {
+                foreach (int viewedEntity in fullSyncViewed)
+                {
+                    _deliveredViewerEntities.Add(new ViewerSubscription(clientId, viewedEntity));
+                }
+            }
+
+            List<int>? attachEntities = null;
+            if (_pendingViewerAttach.Remove(clientId, out attachEntities) && attachEntities.Count > 0)
+            {
+                clientComponents = AppendViewerAttachSnapshots(store, in recipient, clientComponents, attachEntities);
+            }
+
+            if (_pendingViewerDespawns.Remove(clientId, out List<ulong>? targetedDespawns) && targetedDespawns.Count > 0)
+            {
+                clientRemoved = AppendTargetedDespawns(store, clientRemoved, targetedDespawns, attachEntities);
+            }
+
             if (!isFullSync
                 && clientComponents.Length == 0
                 && clientRemovals.Length == 0
@@ -389,7 +668,8 @@ public sealed class NetworkReplicationSystem
             }
         }
 
-        //  Drop full-sync requests whose client disconnected before the publish and release scratch payloads.
+        //  Drop full-sync and viewer requests whose client disconnected before the publish and release scratch payloads.
+        PruneDisconnectedViewerQueues();
         _pending.Clear();
         _pendingRemovals.Clear();
         _fullSync.Clear();
@@ -399,6 +679,195 @@ public sealed class NetworkReplicationSystem
         _filteredComponents.Clear();
         _filteredRemovals.Clear();
         _filteredRemoved.Clear();
+        _attachScratch.Clear();
+        _despawnScratch.Clear();
+    }
+
+    private ComponentSnapshot[] AppendViewerAttachSnapshots(
+        DataStore store,
+        in Recipient recipient,
+        ComponentSnapshot[] existing,
+        List<int> attachEntities
+    )
+    {
+        _attachScratch.Clear();
+        for (var i = 0; i < existing.Length; i++)
+        {
+            _attachScratch.Add(existing[i]);
+        }
+
+        for (var i = 0; i < attachEntities.Count; i++)
+        {
+            int attachEntity = attachEntities[i];
+            if (!IsViewerSubscribed(attachEntity, recipient.ClientId))
+            {
+                continue;
+            }
+
+            Uuid entityUuid = store.GetUuid(attachEntity);
+            if (entityUuid == Uuid.Null)
+            {
+                continue;
+            }
+
+            Uuid excludedRecipient = store.TryGet(attachEntity, out NetworkComponent net)
+                ? net.ExcludedRecipientEntity
+                : Uuid.Null;
+            ulong rawUuid = entityUuid.ToValue();
+            var deliveredAny = false;
+
+            for (var c = 0; c < _serverOwnedComponents.Length; c++)
+            {
+                NetworkComponentInfo info = _serverOwnedComponents[c];
+                if (!AcceptsRecipient(attachEntity, excludedRecipient, info.Audience, in recipient))
+                {
+                    continue;
+                }
+
+                if (!store.Has(info.Type, attachEntity))
+                {
+                    continue;
+                }
+
+                ulong typeUuid = info.Uuid.ToValue();
+                if (ContainsSnapshot(_attachScratch, rawUuid, typeUuid))
+                {
+                    deliveredAny = true;
+                    continue;
+                }
+
+                Result<byte[]> serialize = info.Codec.Serialize(store, attachEntity);
+                if (!serialize.Success)
+                {
+                    continue;
+                }
+
+                _attachScratch.Add(new ComponentSnapshot(rawUuid, typeUuid, serialize.Value));
+                deliveredAny = true;
+            }
+
+            if (deliveredAny)
+            {
+                _deliveredViewerEntities.Add(new ViewerSubscription(recipient.ClientId, attachEntity));
+            }
+        }
+
+        if (_attachScratch.Count == existing.Length)
+        {
+            return existing;
+        }
+
+        ComponentSnapshot[] merged = _attachScratch.ToArray();
+        _attachScratch.Clear();
+        return merged;
+    }
+
+    private ulong[] AppendTargetedDespawns(
+        DataStore store,
+        ulong[] existing,
+        List<ulong> targeted,
+        List<int>? attachedThisTick
+    )
+    {
+        _despawnScratch.Clear();
+        for (var i = 0; i < existing.Length; i++)
+        {
+            _despawnScratch.Add(existing[i]);
+        }
+
+        for (var i = 0; i < targeted.Count; i++)
+        {
+            ulong entityUuid = targeted[i];
+            if (entityUuid == 0UL || _despawnScratch.Contains(entityUuid))
+            {
+                continue;
+            }
+
+            if (IsAttachedUuid(store, attachedThisTick, entityUuid))
+            {
+                continue;
+            }
+
+            _despawnScratch.Add(entityUuid);
+        }
+
+        if (_despawnScratch.Count == existing.Length)
+        {
+            return existing;
+        }
+
+        ulong[] merged = _despawnScratch.ToArray();
+        _despawnScratch.Clear();
+        return merged;
+    }
+
+    private static bool IsAttachedUuid(DataStore store, List<int>? attachedThisTick, ulong entityUuid)
+    {
+        if (attachedThisTick == null)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < attachedThisTick.Count; i++)
+        {
+            if (store.GetUuid(attachedThisTick[i]).ToValue() == entityUuid)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsSnapshot(List<ComponentSnapshot> snapshots, ulong entityUuid, ulong typeUuid)
+    {
+        for (var i = 0; i < snapshots.Count; i++)
+        {
+            ComponentSnapshot snapshot = snapshots[i];
+            if (snapshot.Entity == entityUuid && snapshot.TypeUuid == typeUuid)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void PruneDisconnectedViewerQueues()
+    {
+        if (_pendingViewerAttach.Count > 0)
+        {
+            _staleViewerClients.Clear();
+            foreach (Uuid clientId in _pendingViewerAttach.Keys)
+            {
+                if (!_sessions.TryGetEntity(clientId, out _))
+                {
+                    _staleViewerClients.Add(clientId);
+                }
+            }
+
+            for (var i = 0; i < _staleViewerClients.Count; i++)
+            {
+                _pendingViewerAttach.Remove(_staleViewerClients[i]);
+            }
+        }
+
+        if (_pendingViewerDespawns.Count > 0)
+        {
+            _staleViewerClients.Clear();
+            foreach (Uuid clientId in _pendingViewerDespawns.Keys)
+            {
+                if (!_sessions.TryGetEntity(clientId, out _))
+                {
+                    _staleViewerClients.Add(clientId);
+                }
+            }
+
+            for (var i = 0; i < _staleViewerClients.Count; i++)
+            {
+                _pendingViewerDespawns.Remove(_staleViewerClients[i]);
+            }
+        }
     }
 
     private Recipient ResolveRecipient(DataStore store, Uuid clientId, out uint lastProcessedInput)
@@ -406,13 +875,13 @@ public sealed class NetworkReplicationSystem
         lastProcessedInput = 0;
         if (!_sessions.TryGetEntity(clientId, out int sessionEntity) || sessionEntity == Entity.Null)
         {
-            return new Recipient(Entity.Null, Uuid.Null);
+            return new Recipient(clientId, Entity.Null, Uuid.Null);
         }
 
         Uuid sessionUuid = store.GetUuid(sessionEntity);
         if (sessionUuid == Uuid.Null)
         {
-            return new Recipient(Entity.Null, Uuid.Null);
+            return new Recipient(clientId, Entity.Null, Uuid.Null);
         }
 
         if (store.TryGet(sessionEntity, out NetworkComponent net))
@@ -420,7 +889,7 @@ public sealed class NetworkReplicationSystem
             lastProcessedInput = net.LastAckedInput;
         }
 
-        return new Recipient(sessionEntity, sessionUuid);
+        return new Recipient(clientId, sessionEntity, sessionUuid);
     }
 
     private void DrainStreamEnds()
@@ -535,7 +1004,7 @@ public sealed class NetworkReplicationSystem
         return ToExactArray(_filteredRemoved, ref _filteredRemovedSnapshot);
     }
 
-    private static bool AcceptsRecipient(
+    private bool AcceptsRecipient(
         int entity,
         Uuid excludedRecipientEntity,
         ReplicationAudience audience,
@@ -550,6 +1019,8 @@ public sealed class NetworkReplicationSystem
         {
             ReplicationAudience.OwnerOnly => recipient.Entity != Entity.Null && entity == recipient.Entity,
             ReplicationAudience.OthersOnly => entity != recipient.Entity,
+            ReplicationAudience.ViewersOnly => (recipient.Entity != Entity.Null && entity == recipient.Entity)
+                || IsViewerSubscribed(entity, recipient.ClientId),
             _ => true,
         };
     }
@@ -769,6 +1240,12 @@ public sealed class NetworkReplicationSystem
                     continue;
                 }
 
+                if (info.Audience == ReplicationAudience.ViewersOnly && !Owner.HasViewerOrOwner(entity))
+                {
+                    store.ClearDirty(info.Type, entity);
+                    continue;
+                }
+
                 bool hasScopedRecipients = excludedRecipient != Uuid.Null || info.Audience != ReplicationAudience.All;
 
                 //  Removal publishes as a ComponentRemoval when the component no longer exists; the
@@ -827,6 +1304,11 @@ public sealed class NetworkReplicationSystem
             //  so the boxing is bounded by joins, not by the per-tick hot path.
             foreach (NetworkComponentInfo info in Owner._serverOwnedComponents)
             {
+                if (info.Audience == ReplicationAudience.ViewersOnly && !Owner.HasViewerOrOwner(entity))
+                {
+                    continue;
+                }
+
                 if (!Contains(present, info.Type))
                 {
                     continue;
@@ -860,7 +1342,9 @@ public sealed class NetworkReplicationSystem
         }
     }
 
-    private readonly record struct Recipient(int Entity, Uuid EntityUuid);
+    private readonly record struct Recipient(Uuid ClientId, int Entity, Uuid EntityUuid);
+
+    private readonly record struct ViewerSubscription(Uuid ClientId, int Entity);
 
     private readonly record struct PendingSnapshot(
         ComponentSnapshot Snapshot,
