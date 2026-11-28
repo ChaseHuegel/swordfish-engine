@@ -280,7 +280,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
                 using (SqliteCommand insertBlocks = _blockEntitiesTable.CreateCommand(transaction.Connection))
                 {
                     insertBlocks.CommandText = """
-                        INSERT INTO block_entities (voxel_entity_uuid, voxel_x, voxel_y, voxel_z, data)
+                        INSERT OR REPLACE INTO block_entities (voxel_entity_uuid, voxel_x, voxel_y, voxel_z, data)
                         VALUES ($uuid, $x, $y, $z, $data);
                         """;
                     insertBlocks.Parameters.Add("$uuid", SqliteType.Text);

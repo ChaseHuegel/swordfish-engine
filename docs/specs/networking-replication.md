@@ -28,7 +28,7 @@ One subject: dirty-driven replication between server and client.
   per-client filtering. The publisher skips a delta snapshot that becomes empty
   after recipient filtering.
 - **Viewer-scoped subscriptions.** `SubscribeViewer` and `UnsubscribeViewer`
-  (`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:188-262`) manage
+  (`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:188-266`) manage
   explicit viewer subscriptions for non-owned entities such as server
   block-entities. Attaching a viewer queues an initial full snapshot of that
   entity's matching `ServerOwned` components on the next publish. Detaching a

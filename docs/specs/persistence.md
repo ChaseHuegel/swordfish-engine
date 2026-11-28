@@ -115,16 +115,17 @@ A full level save commits one transaction (`ILevelStorage.Save`):
   capture are never deleted. A character not present in the world at save time
   keeps its last location.
 
-`LevelSaveService.LoadLevel` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:119-185`)
+`LevelSaveService.LoadLevel` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:119-203`)
 reads all `block_entities` rows and delegates each loaded structure to
 `ServerBlockEntityService.RestoreStructure`
 (`WaywardBeyond.Server/Systems/ServerBlockEntityService.cs:318`). Every placed
 functional brick allocates a server ECS block-entity with `BrickAnchorComponent`,
 configured `InventoryComponent` slot groups, `ContainerAccessComponent`, and
-`MachineStateComponent`, restoring matching saved data when present. Any saved
-`block_entities` row whose structure no longer exists or whose brick at that
-coordinate no longer matches is deleted through `ILevelStorage.DeleteBlockEntities`
-(`WaywardBeyond.Data/Levels/SqliteLevelStorage.cs:195`).
+`MachineStateComponent`, restoring matching saved data when present. When every
+structure decodes cleanly, any saved `block_entities` row whose structure no
+longer exists or whose brick at that coordinate no longer matches is deleted
+through `ILevelStorage.DeleteBlockEntities`
+(`WaywardBeyond.Data/Levels/SqliteLevelStorage.cs:194`).
 
 The store hands out deserialized models, not bytes. `ILevelStorage.GetLevel`
 returns the level, `GetVoxelEntities` returns the level's registered voxel
