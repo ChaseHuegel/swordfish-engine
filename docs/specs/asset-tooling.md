@@ -777,6 +777,14 @@ folders that receive GL preview PNGs.
 - Tag pushes and `workflow_dispatch` runs set the version. The workflow strips
   a leading `v`. A dispatch without a version uses
   `0.1.0-ci.<run_number>`.
+- `.github/workflows/waywardbeyond.yml` calls this workflow for every tag, so
+  one Release run holds all four archives.
+- A strict `vX.X.X` tag publishes a GitHub Release with the game and Asset
+  Studio archives for `win-x64` and `linux-x64`. The release job waits for
+  `WaywardBeyond.Tests`, `Tools.slnf`, and every packaging job. A suffixed tag
+  such as `v0.1.0-alpha-rc26` uploads workflow artifacts only.
+- The release job replaces the assets when the release already exists. It never
+  edits the release notes of an existing release.
 - The workflow rejects an archive that lacks `README.txt` or contains
   `qps-ploc`, `manifest.toml`, or `assets/`. It also runs `new pack` and
   `validate` from the extracted CLI on each runner.
@@ -851,6 +859,7 @@ folders that receive GL preview PNGs.
 - Game runtime view model and standing height parity sources: `WaywardBeyond.Client/Systems/PlayerViewModelSystem.cs:21`, `WaywardBeyond.Client/UI/Settings/SettingsDefaults.cs:14`, `WaywardBeyond.Gameplay/CharacterDefaults.cs:56`
 - Packaging scripts: `tools/package-asset-studio.sh:1`, `tools/package-asset-studio.ps1:1`
 - Asset Studio CI packaging: `.github/workflows/asset-studio.yml:1`
+- Game CI and GitHub Release publication: `.github/workflows/waywardbeyond.yml:1`
 
 ## Tests that pin this
 

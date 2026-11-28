@@ -58,6 +58,9 @@ dotnet test WaywardBeyond.AssetStudio.Tests --no-build  # xunit Asset Studio hea
   and the brick module, so it runs without the engine.
 - CI publishes game release artifacts from `.github/workflows/waywardbeyond.yml`
   and Asset Studio bundles from `.github/workflows/asset-studio.yml`.
+- A strict `vX.X.X` tag publishes a GitHub Release with all four archives: game
+  and Asset Studio for `win-x64` and `linux-x64`. A suffixed tag such as
+  `v0.1.0-alpha-rc26` uploads workflow artifacts only.
 - No lint or typecheck scripts. `dotnet build` is the check.
 - Stale `launch.json` references `Swordfish/bin/Debug/Swordfish.exe`; the real
   launcher is `Swordfish.Launcher`.

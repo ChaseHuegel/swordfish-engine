@@ -1,73 +1,125 @@
 name: Release
+
 on:
   push:
     tags:
       - '*'
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      value: ${{ steps.resolve.outputs.version }}
+      is-release: ${{ steps.resolve.outputs.is_release }}
+    steps:
+      - name: Resolve version
+        id: resolve
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          tag="${REF_NAME}"
+          version="${tag#v}"
+
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '${tag}' is not a semantic version. Use vX.X.X or vX.X.X-<slug>."
+            exit 1
+          fi
+
+          is_release=false
+          if [[ "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            is_release=true
+          fi
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "is_release=${is_release}" >> "${GITHUB_OUTPUT}"
+          echo "Tag ${tag} resolves to version ${version} (release: ${is_release})."
+
   test:
+    name: Test Wayward Beyond
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 9.0.x
-    - name: Test Wayward Beyond
-      run: dotnet test WaywardBeyond.Tests --verbosity normal
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Test Wayward Beyond
+        run: dotnet test WaywardBeyond.Tests --verbosity normal
 
   generate-msdf:
+    name: Generate MSDF atlases
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Generate MSDF Atlases
-      shell: pwsh
-      run: |
-        $workspaceRoot = $env:GITHUB_WORKSPACE
-        $msdfGenExe = Join-Path $workspaceRoot "Reef/Manifest/msdf-atlas-gen.exe"
-        $fontFiles = Get-ChildItem -Path $workspaceRoot -Recurse -Include *.otf, *.ttf
-        foreach ($fontFile in $fontFiles) {
-            $relativeFontPath = $fontFile.FullName.Substring($workspaceRoot.Length + 1)
-            $relativeFontDir = Split-Path -Path $relativeFontPath -Parent
-        
-            $outputDir = Join-Path (Join-Path $workspaceRoot "artifact") $relativeFontDir
-            New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
-        
-            $outputBaseName = $fontFile.BaseName
-            $imageDestination = Join-Path $outputDir "$($outputBaseName).bmp"
-            $jsonDestination = Join-Path $outputDir "$($outputBaseName).json"
-        
-            Write-Host "Generating MSDF for $($fontFile.FullName) -> $jsonDestination"
-            & $msdfGenExe -font "$($fontFile.FullName)" -imageout "$imageDestination" -json "$jsonDestination" -chars "[0x0000, 0xffff]"
-        }
-    - name: Upload Generated Atlases
-      uses: actions/upload-artifact@v4
-      with:
-        name: generated-atlases
-        path: artifact/
+      - uses: actions/checkout@v4
+      - name: Generate MSDF Atlases
+        shell: pwsh
+        run: |
+          $workspaceRoot = $env:GITHUB_WORKSPACE
+          $msdfGenExe = Join-Path $workspaceRoot "Reef/Manifest/msdf-atlas-gen.exe"
+          $fontFiles = Get-ChildItem -Path $workspaceRoot -Recurse -Include *.otf, *.ttf
+          foreach ($fontFile in $fontFiles) {
+              $relativeFontPath = $fontFile.FullName.Substring($workspaceRoot.Length + 1)
+              $relativeFontDir = Split-Path -Path $relativeFontPath -Parent
 
-  build-artifact-win64:
-    needs: [generate-msdf, test]
+              $outputDir = Join-Path (Join-Path $workspaceRoot "artifact") $relativeFontDir
+              New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+
+              $outputBaseName = $fontFile.BaseName
+              $imageDestination = Join-Path $outputDir "$($outputBaseName).bmp"
+              $jsonDestination = Join-Path $outputDir "$($outputBaseName).json"
+
+              Write-Host "Generating MSDF for $($fontFile.FullName) -> $jsonDestination"
+              & $msdfGenExe -font "$($fontFile.FullName)" -imageout "$imageDestination" -json "$jsonDestination" -chars "[0x0000, 0xffff]"
+          }
+      - name: Upload Generated Atlases
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-atlases
+          path: artifact/
+
+  build-game-win64:
+    name: Build game win-x64
+    needs: [version, generate-msdf, test]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 9.0.x
-    - name: Download MSDF Atlases
-      uses: actions/download-artifact@v4
-      with:
-        name: generated-atlases
-    - name: Publish
-      run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r win-x64 -o artifact
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Wayward Beyond ${{ github.ref_name }} win-x64
-        path: artifact
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Download MSDF Atlases
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-atlases
+      - name: Publish
+        run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r win-x64 -o artifact
+      - name: Package archive
+        env:
+          VERSION: ${{ needs.version.outputs.value }}
+        run: |
+          name="wayward-beyond-${VERSION}-win-x64"
+          mkdir -p dist
+          mv artifact "dist/${name}"
+          (cd dist && zip -qr "../${name}.zip" "${name}")
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wayward Beyond ${{ github.ref_name }} win-x64
+          path: wayward-beyond-*-win-x64.zip
+          if-no-files-found: error
 
-  build-artifact-linux64:
-    needs: [generate-msdf, test]
+  build-game-linux64:
+    name: Build game linux-x64
+    needs: [version, generate-msdf, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,8 +133,80 @@ jobs:
           name: generated-atlases
       - name: Publish
         run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r linux-x64 -o artifact
-      - name: Upload build artifacts
+      - name: Package archive
+        env:
+          VERSION: ${{ needs.version.outputs.value }}
+        run: |
+          name="wayward-beyond-${VERSION}-linux-x64"
+          mkdir -p dist
+          mv artifact "dist/${name}"
+          tar -czf "dist/${name}.tar.gz" -C dist "${name}"
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: Wayward Beyond ${{ github.ref_name }} linux-x64
-          path: artifact
+          path: wayward-beyond-*-linux-x64.tar.gz
+          if-no-files-found: error
+
+  asset-studio:
+    name: Build Asset Studio
+    needs: version
+    uses: ./.github/workflows/asset-studio.yml
+    with:
+      version: ${{ needs.version.outputs.value }}
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [version, test, build-game-win64, build-game-linux64, asset-studio]
+    if: needs.version.outputs.is-release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download game archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Wayward Beyond ${{ github.ref_name }} *
+          path: release-assets
+          merge-multiple: true
+      - name: Download Asset Studio archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wayward-beyond-asset-studio-${{ needs.version.outputs.value }}-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify archives
+        env:
+          VERSION: ${{ needs.version.outputs.value }}
+        run: |
+          expected=(
+            "wayward-beyond-${VERSION}-win-x64.zip"
+            "wayward-beyond-${VERSION}-linux-x64.tar.gz"
+            "wayward-beyond-asset-studio-${VERSION}-win-x64.zip"
+            "wayward-beyond-asset-studio-${VERSION}-linux-x64.tar.gz"
+          )
+          for asset in "${expected[@]}"; do
+            if [[ ! -s "release-assets/${asset}" ]]; then
+              echo "::error::Missing or empty release asset ${asset}."
+              ls -l release-assets
+              exit 1
+            fi
+          done
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.version.outputs.value }}
+        run: |
+          assets=(
+            "release-assets/wayward-beyond-${VERSION}-win-x64.zip"
+            "release-assets/wayward-beyond-${VERSION}-linux-x64.tar.gz"
+            "release-assets/wayward-beyond-asset-studio-${VERSION}-win-x64.zip"
+            "release-assets/wayward-beyond-asset-studio-${VERSION}-linux-x64.tar.gz"
+          )
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists. Replacing its assets."
+            gh release upload "${TAG}" "${assets[@]}" --clobber
+          else
+            gh release create "${TAG}" "${assets[@]}" --verify-tag --title "${TAG}" --generate-notes
+          fi
