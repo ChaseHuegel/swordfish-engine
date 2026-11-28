@@ -67,8 +67,7 @@ jobs:
             libegl1 \
             libgl1-mesa-dri \
             libx11-6 \
-            libfontconfig1 \
-            libgtk-3-0
+            libfontconfig1
       - name: Restore tools
         run: dotnet restore Tools.slnf
       - name: Test tools
