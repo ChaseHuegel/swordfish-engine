@@ -183,7 +183,6 @@ public class KeyedInventoryTests
             4242UL,
             new Playtime(),
             "Saved",
-            0, 0, 0, 0, 0, 0,
             string.Empty,
             0,
             GameMode.Adventure,

@@ -345,6 +345,8 @@ public sealed class CliRunner
             AssetKind.Paint,
             AssetKind.Recipe,
             AssetKind.SlotGroup,
+            AssetKind.Bar,
+            AssetKind.Buff,
             AssetKind.Skill,
             AssetKind.Body,
             AssetKind.Material

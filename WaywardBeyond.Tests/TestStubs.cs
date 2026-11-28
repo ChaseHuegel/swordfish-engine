@@ -134,7 +134,6 @@ internal sealed class StubCharacterStorage(bool hasCharacter) : ICharacterStorag
         1UL,
         _Playtime: new Playtime(),
         "Ada",
-        0, 0, 0, 0, 0, 0,
         _Body: "human",
         _ActiveInventorySlot: 0,
         _GameMode: GameMode.Creative,

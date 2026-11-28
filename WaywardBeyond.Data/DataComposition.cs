@@ -2,7 +2,9 @@ using DryIoc;
 using Shoal.Modularity;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
+using WaywardBeyond.Data.Bars;
 using WaywardBeyond.Data.Blueprints;
+using WaywardBeyond.Data.Buffs;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Data.Packs;
@@ -23,6 +25,8 @@ public static class DataComposition
     {
         container.RegisterTags();
         container.RegisterBundledBlueprints();
+        container.RegisterBars();
+        container.RegisterBuffs();
 
         if (!container.IsRegistered<TomlParser<SlotGroupDefinitions>>())
         {

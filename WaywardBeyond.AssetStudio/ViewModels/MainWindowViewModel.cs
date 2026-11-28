@@ -3517,6 +3517,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
                 AssetKind.Paint => "Paints",
                 AssetKind.Recipe => "Recipes",
                 AssetKind.SlotGroup => "Slot Groups",
+                AssetKind.Bar => "Bars",
+                AssetKind.Buff => "Buffs",
                 AssetKind.Skill => "Skills",
                 AssetKind.Body => "Bodies",
                 AssetKind.Material => "Materials",

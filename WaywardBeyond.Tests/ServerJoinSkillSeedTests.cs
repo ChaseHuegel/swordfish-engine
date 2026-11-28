@@ -1,5 +1,6 @@
 using Krill;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Statistics;
 using WaywardBeyond.Skills;
 using Xunit;
@@ -33,8 +34,8 @@ public class ServerJoinSkillSeedTests
         Assert.Equal(0, state.GetXP("bricks.broken:wb:rock"));
 
         Assert.True(store.TryGet(player, out StatisticsComponent stats));
-        Assert.Equal(12f, stats.Get("bricks.broken:wb:rock"));
-        Assert.False(stats.TryGet("mining", out _));
+        Assert.Equal(12L, stats.GetValue("bricks.broken:wb:rock"));
+        Assert.False(stats.TryGetValue("mining", out _));
     }
 
     [Fact]
@@ -51,6 +52,6 @@ public class ServerJoinSkillSeedTests
         Assert.Equal(0, state.GetXP("mining"));
 
         Assert.True(store.TryGet(player, out StatisticsComponent stats));
-        Assert.False(stats.TryGet("mining", out _));
+        Assert.False(stats.TryGetValue("mining", out _));
     }
 }

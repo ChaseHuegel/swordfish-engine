@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.BarFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel>
+    <!-- Statistic Binding -->
+    <controls:CollapsibleSectionCard Title="Statistic Binding" Subtitle="Bound value and maximum statistic identifiers">
+      <StackPanel Spacing="2">
+        <controls:ScalarFieldRowControl DataContext="{Binding BarStatIdField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarMaxStatIdField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarDefaultMaxField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Icons & Appearance -->
+    <controls:CollapsibleSectionCard Title="Icons &amp; Appearance" Subtitle="Segmented bar textures, tint, and icon count">
+      <StackPanel Spacing="2">
+        <controls:ScalarFieldRowControl DataContext="{Binding BarIconCountField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarIconFullField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarIconHalfField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarIconEmptyField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarColorTintField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Thresholds & Layout -->
+    <controls:CollapsibleSectionCard Title="Thresholds &amp; Layout" Subtitle="Warning levels, sort order, and creative visibility">
+      <StackPanel Spacing="2">
+        <controls:ScalarFieldRowControl DataContext="{Binding BarWarnThresholdField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarCriticalThresholdField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarOrderField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BarHideInCreativeField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

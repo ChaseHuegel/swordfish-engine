@@ -150,7 +150,7 @@ public sealed class ServerJoinSystem(
 
     private void ReleasePlayerMirror(int entity, DataStore store)
     {
-        saveService.QueueSaveCharacterLocation(store, entity);
+        saveService.QueueSaveCharacterLocation(store, entity, simulationStep.CurrentSimTick);
 
         //  Free captures every component removal; the engine releases the physics body.
         //  Capture the uuid before Free (which clears it) so the despawn can replicate.
@@ -238,6 +238,7 @@ public sealed class ServerJoinSystem(
         Vector3 position;
         Quaternion orientation;
         GameMode gameMode;
+        CharacterEntityData? persistedEntity = null;
         if (levelLoaded)
         {
             GameMode defaultMode = saveService.CurrentLevel?.DefaultGameMode ?? request.State.GameMode;
@@ -247,6 +248,7 @@ public sealed class ServerJoinSystem(
                 if (savedCharacter.Success)
                 {
                     CharacterEntityData saved = savedCharacter.Value;
+                    persistedEntity = saved;
                     position = new Vector3((float)saved.X, (float)saved.Y, (float)saved.Z);
                     orientation = new Quaternion(saved.OrientationX, saved.OrientationY, saved.OrientationZ, saved.OrientationW);
                     gameMode = ResolveGameMode(saved.GameMode);
@@ -305,7 +307,7 @@ public sealed class ServerJoinSystem(
         //  the level's resolved game mode. From here the server owns these components and replicates them.
         SeedInteractionContext(store, entity, request.State, gameMode);
         CharacterStatisticsSeeder.SeedSkillState(store, entity, request.State.Statistics, skillDatabase);
-        CharacterStatisticsSeeder.SeedStatistics(store, entity, request.State.Statistics, skillDatabase);
+        CharacterStatisticsSeeder.SeedAuthoritativeStatistics(store, entity, request.State, gameMode, persistedEntity, simulationStep.CurrentSimTick);
 
         Session session = new(_nextSessionId++);
         sessions.Register(store, entity, clientId, session);

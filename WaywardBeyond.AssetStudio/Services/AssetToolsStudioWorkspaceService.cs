@@ -5,6 +5,8 @@ using System.Text;
 using Swordfish.Library.Util;
 using WaywardBeyond.AssetStudio.Models;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Bars;
+using WaywardBeyond.Data.Buffs;
 using WaywardBeyond.Recipes;
 using GameContentVersion = WaywardBeyond.Data.ContentVersion;
 using ToolsBlueprints = WaywardBeyond.AssetTools.Blueprints;
@@ -1549,6 +1551,8 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
             AssetKind.Paint => "paints",
             AssetKind.Recipe => "recipes",
             AssetKind.SlotGroup => "inventory",
+            AssetKind.Bar => "bars",
+            AssetKind.Buff => "buffs",
             AssetKind.Skill => "skills",
             AssetKind.Body => "bodies",
             AssetKind.Material => "materials",
@@ -2111,6 +2115,49 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
                             {
                                 extraTokens.Add(tag);
                             }
+                        }
+                    }
+                }
+            }
+            else if (asset.AuthoritativeDefinition is BarDefinition barDef)
+            {
+                if (!string.IsNullOrWhiteSpace(barDef.StatId))
+                {
+                    extraTokens.Add(barDef.StatId.Trim());
+                }
+
+                if (!string.IsNullOrWhiteSpace(barDef.MaxStatId))
+                {
+                    extraTokens.Add(barDef.MaxStatId.Trim());
+                }
+            }
+            else if (asset.AuthoritativeDefinition is BuffDefinition buffDef)
+            {
+                if (!string.IsNullOrWhiteSpace(buffDef.StackPolicy))
+                {
+                    extraTokens.Add(buffDef.StackPolicy.Trim());
+                }
+
+                if (buffDef.StatModifiers != null)
+                {
+                    for (var i = 0; i < buffDef.StatModifiers.Count; i++)
+                    {
+                        var statId = buffDef.StatModifiers[i].StatId?.Trim();
+                        if (!string.IsNullOrWhiteSpace(statId))
+                        {
+                            extraTokens.Add(statId);
+                        }
+                    }
+                }
+
+                if (buffDef.RegenRates != null)
+                {
+                    for (var i = 0; i < buffDef.RegenRates.Count; i++)
+                    {
+                        var statId = buffDef.RegenRates[i].StatId?.Trim();
+                        if (!string.IsNullOrWhiteSpace(statId))
+                        {
+                            extraTokens.Add(statId);
                         }
                     }
                 }

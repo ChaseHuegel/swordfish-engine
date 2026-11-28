@@ -4,6 +4,7 @@ using Krill;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Permissions;
@@ -24,7 +25,8 @@ public sealed class ServerSaveSystem(
     LevelSaveService saveService,
     IUserPermissionService permissions,
     GameplayConfig gameplayConfig,
-    ILogger<ServerSaveSystem> logger
+    ILogger<ServerSaveSystem> logger,
+    SimulationStep? simulationStep = null
 ) : IServerWorldSystem
 {
     private readonly ILogger _logger = logger;
@@ -130,7 +132,7 @@ public sealed class ServerSaveSystem(
             return;
         }
 
-        saveService.QueueSave(store);
+        saveService.QueueSave(store, simulationStep?.CurrentSimTick ?? 0u);
         BroadcastNotification("notification.level.saving");
     }
 

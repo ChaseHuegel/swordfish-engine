@@ -215,6 +215,27 @@ public sealed class AssetScaffolder
                 $"ID       = {qId}\n" +
                 "Capacity = 1\n",
 
+            AssetKind.Bar =>
+                "[[Bars]]\n" +
+                $"ID                = {qId}\n" +
+                "StatId            = \"wb:health\"\n" +
+                "MaxStatId         = \"wb:health_max\"\n" +
+                "IconCount         = 10\n" +
+                "IconFull          = \"\"\n" +
+                "IconHalf          = \"\"\n" +
+                "IconEmpty         = \"\"\n" +
+                "WarnThreshold     = 0.3\n" +
+                "CriticalThreshold = 0.15\n" +
+                "Order             = 0\n" +
+                "HideInCreative    = false\n",
+
+            AssetKind.Buff =>
+                "[[Buffs]]\n" +
+                $"ID              = {qId}\n" +
+                "Name            = \"\"\n" +
+                "DurationSeconds = 60.0\n" +
+                "StackPolicy     = \"Refresh\"\n",
+
             _ => null
         };
     }
@@ -266,6 +287,27 @@ public sealed class AssetScaffolder
             [
                 new("ID", qId),
                 new("Capacity", "1")
+            ]),
+            AssetKind.Bar => ("Bars",
+            [
+                new("ID", qId),
+                new("StatId", "\"wb:health\""),
+                new("MaxStatId", "\"wb:health_max\""),
+                new("IconCount", "10"),
+                new("IconFull", "\"\""),
+                new("IconHalf", "\"\""),
+                new("IconEmpty", "\"\""),
+                new("WarnThreshold", "0.3"),
+                new("CriticalThreshold", "0.15"),
+                new("Order", "0"),
+                new("HideInCreative", "false")
+            ]),
+            AssetKind.Buff => ("Buffs",
+            [
+                new("ID", qId),
+                new("Name", "\"\""),
+                new("DurationSeconds", "60.0"),
+                new("StackPolicy", "\"Refresh\"")
             ]),
             _ => (null, null)
         };

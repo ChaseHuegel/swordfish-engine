@@ -149,3 +149,8 @@ message TransferOp
     TransferMode Mode = 4;
     uint? Count = 5;
 }
+
+message StatisticsComponent
+{
+    WaywardBeyond.Data.Statistic[] Entries = 0;
+}

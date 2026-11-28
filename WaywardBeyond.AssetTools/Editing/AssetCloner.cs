@@ -1030,6 +1030,8 @@ public sealed class AssetCloner
             AssetKind.Body => "Bodies",
             AssetKind.Recipe => "Recipes",
             AssetKind.SlotGroup => "SlotGroups",
+            AssetKind.Bar => "Bars",
+            AssetKind.Buff => "Buffs",
             _ => null
         };
     }
@@ -1045,6 +1047,8 @@ public sealed class AssetCloner
             AssetKind.Body => "bodies",
             AssetKind.Recipe => "recipes",
             AssetKind.SlotGroup => "inventory",
+            AssetKind.Bar => "bars",
+            AssetKind.Buff => "buffs",
             _ => null
         };
     }

@@ -227,6 +227,8 @@ public sealed class SampleStudioWorkspaceService : IStudioWorkspaceService
             AssetKind.Paint => ["assets/paints/colors.toml", "assets/paints/textures.toml"],
             AssetKind.Recipe => ["assets/recipes/crafting.toml"],
             AssetKind.SlotGroup => ["assets/inventory/slot_groups.toml"],
+            AssetKind.Bar => ["assets/bars/vitals.toml"],
+            AssetKind.Buff => ["assets/buffs/status.toml"],
             AssetKind.Skill => ["assets/skills/building.toml", "assets/skills/mining.toml"],
             AssetKind.Body => ["assets/bodies/human_m.toml", "assets/bodies/bot.toml"],
             AssetKind.Material => ["assets/materials/bricks/glass.toml", "assets/materials/bricks/thruster.toml"],

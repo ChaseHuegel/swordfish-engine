@@ -1,17 +1,20 @@
 # Asset Definition TOML Formats
 
 One subject: the TOML config types that define game content (items, bricks,
-materials, recipes, skills). Item definitions live under
+materials, recipes, skills, bars, buffs). Item definitions live under
 `WaywardBeyond.Items/assets/`. Brick definitions live in
 `WaywardBeyond.Bricks/assets/`. Recipe definitions load from `recipes/` across
 mounted modules such as `WaywardBeyond.Recipes/`. Skill definitions live in
-`WaywardBeyond.Skills/assets/`. Brick and item localization stays client-owned.
+`WaywardBeyond.Skills/assets/`. Bar definitions load from `bars/` and
+buff definitions load from `buffs/` across mounted modules. Brick and item
+localization stays client-owned.
 
 Parser registration: `WaywardBeyond.Items/Injector.cs:15`
 (`RegisterTomlParser<ItemDefinitions>`), `WaywardBeyond.Bricks/Injector.cs:17`
 (`RegisterTomlParser<BrickDefinitions>`), `WaywardBeyond.Recipes/Injector.cs:17`
-(`RegisterTomlParser<RecipeDefinitions>`), and `WaywardBeyond.Skills/Injector.cs:16`
-(`RegisterTomlParser<SkillDefinitions>`).
+(`RegisterTomlParser<RecipeDefinitions>`), `WaywardBeyond.Skills/Injector.cs:16`
+(`RegisterTomlParser<SkillDefinitions>`), and
+`WaywardBeyond.Data/DataComposition.cs:28-29` (`RegisterBars`, `RegisterBuffs`).
 
 ## Items (`assets/items/*.toml`)
 
@@ -459,6 +462,45 @@ Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 | `Gender` | `Gender` | gender categorization (`Neutral`, `Male`, `Female`) |
 | `[Bodies.States.<state>]` | map: direction tag → texture path list | state tag free-form (`standing`, `floating`, ...) |
 
+## Bars (`assets/bars/*.toml`)
+
+Bars live in the shared `WaywardBeyond.Data` module under `WaywardBeyond.Data/Bars/`. `DataComposition.RegisterDataServices` (`WaywardBeyond.Data/DataComposition.cs:28`) registers `TomlParser<BarDefinitions>`, `IBarDatabase`, and `IAssetDatabase<Bar>`. Each file declares a `[[Bars]]` table array.
+
+| Field | Type | Notes |
+|---|---|---|
+| `ID` | string | required unique bar id (for example `wb:health`) |
+| `StatId` | string | required current value stat key |
+| `MaxStatId` | string? | optional max value stat key |
+| `DefaultMax` | float? | optional finite positive fallback maximum when `MaxStatId` is omitted or absent |
+| `IconCount` | int? | positive integer icon count (defaults to `10`) |
+| `IconFull` | string | required texture asset key for full icons |
+| `IconHalf` | string | required texture asset key for half icons |
+| `IconEmpty` | string | required texture asset key for empty icons |
+| `WarnThreshold` | float? | ratio in `[0, 1]` activating warning state (defaults to `0.3`) |
+| `CriticalThreshold` | float? | ratio in `[0, 1]` activating critical state and `<= WarnThreshold` (defaults to `0.15`) |
+| `Order` | int | vertical stack order with lower values first (defaults to `0`) |
+| `HideInCreative` | bool | hides the bar in Creative mode (defaults to `false`) |
+| `ColorTint` | string? | optional hex sRGBA color parsed through `HexColor.TryParseRgba` |
+
+Validation through `Bar.Validate` (`WaywardBeyond.Data/Bars/Bar.cs:61-137`) returns `Result<Bar>`. It rejects blank ids, blank stat or icon keys, missing `MaxStatId` without a positive finite `DefaultMax`, `IconCount < 1`, thresholds outside `[0, 1]`, `CriticalThreshold > WarnThreshold`, and blank or invalid hex tints.
+
+## Buffs (`assets/buffs/*.toml`)
+
+Buff definitions live in the shared `WaywardBeyond.Data` module under `WaywardBeyond.Data/Buffs/`. `DataComposition.RegisterDataServices` (`WaywardBeyond.Data/DataComposition.cs:29`) registers `TomlParser<BuffDefinitions>`, `IBuffDatabase`, and `IAssetDatabase<Buff>`. Each file declares a `[[Buffs]]` table array.
+
+| Field | Type | Notes |
+|---|---|---|
+| `ID` | string | required unique buff id (for example `wb:well_fed`) |
+| `Name` | string (localization key) | required display name key |
+| `Description` | string? (localization key) | optional description key |
+| `Icon` | string? | optional buff icon texture key |
+| `DurationSeconds` | float | required finite duration `> 0` |
+| `StackPolicy` | string? | `Refresh` (default), `Extend`, or `Ignore` |
+| `[[Buffs.StatModifiers]]` | table array | rows of `StatId` with `FlatDelta`, `PercentDelta`, or both (`!= 0`) |
+| `[[Buffs.RegenRates]]` | table array | rows of `StatId` and non-zero finite `PerSecond` periodic rate (positive regen or negative drain) |
+
+`BuffDatabase.LoadAsset` (`WaywardBeyond.Data/Buffs/BuffDatabase.cs:55-92`) validates `StackPolicy` strictly and delegates to `Buff.Validate` (`WaywardBeyond.Data/Buffs/Buff.cs:40-118`), which returns `Result<Buff>` and rejects blank ids or names, non-positive durations, invalid stack policies, modifiers lacking a stat key or non-zero finite delta, and regen rates lacking a stat key or non-zero finite rate.
+
 ## Localization
 
 `assets/lang/en/*.toml` and `assets/lang/tags/*.toml` hold localization entries.
@@ -489,6 +531,9 @@ bits. See [seed-phrases](seed-phrases.md).
 - `WaywardBeyond.Bricks/BrickEventKind.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagValues.cs`
+- `WaywardBeyond.Data/Bars/{BarDefinitions,BarDefinition,Bar,IBarDatabase,BarDatabase,BarComposition}.cs`
+- `WaywardBeyond.Data/Buffs/{BuffDefinitions,BuffDefinition,BuffStatModifierDefinition,BuffRegenRateDefinition,Buff,BuffStackPolicy,BuffStatModifier,BuffRegenRate,IBuffDatabase,BuffDatabase,BuffComposition}.cs`
+- `WaywardBeyond.Data/DataComposition.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,Gender,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`
 - `WaywardBeyond.Client/Graphics/PBRTextureArraysParser.cs`
@@ -496,8 +541,9 @@ bits. See [seed-phrases](seed-phrases.md).
 - Parser registration: `WaywardBeyond.Items/Injector.cs:15`,
   `WaywardBeyond.Recipes/Injector.cs:17`,
   `WaywardBeyond.Skills/Injector.cs:16`,
-  `WaywardBeyond.Client/Injector.cs:374`, `WaywardBeyond.Bricks/Injector.cs:17`,
-  `WaywardBeyond.Bricks/Injector.cs:23`
+  `WaywardBeyond.Client/Injector.cs:382`, `WaywardBeyond.Bricks/Injector.cs:17`,
+  `WaywardBeyond.Bricks/Injector.cs:23`,
+  `WaywardBeyond.Data/DataComposition.cs:28-29`
 
 ## Tests that pin this
 
@@ -528,3 +574,5 @@ occurrence order, and the invariant merge into each language.
 `WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin
 `[Bricks.Statistics]` and `[Items.Statistics]` parsing, fallback defaults, and
 `STAT001` validation findings.
+`WaywardBeyond.Tests/BarDatabaseTests.cs` pins `bars/*.toml` `TomlParser<BarDefinitions>` parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
+`WaywardBeyond.Tests/BuffDatabaseTests.cs` pins `buffs/*.toml` `TomlParser<BuffDefinitions>` parsing, stack policies, stat modifiers, data-driven regen rates, and validation failures.

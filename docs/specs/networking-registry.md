@@ -88,7 +88,9 @@ Only `ServerOwned` registrations accept `OwnerOnly` or `OthersOnly`.
 `LaserBeamComponent` uses `OthersOnly`
 (`WaywardBeyond.Networking/NetworkingComposition.cs:34-39`) so the server omits
 the shooter's own beam updates and removals while the shooter renders a locally
-predicted beam.
+predicted beam. `StatisticsComponent` uses `OwnerOnly`
+(`WaywardBeyond.Networking/NetworkingComposition.cs:42-47`). The server sends a
+player's vitals, attributes, and buff timers only to that owning session.
 
 Every failure in `TransformCodec` and `PhysicsCodec` carries a message that
 names the entity and the invalid field. The caller writes that message into its
@@ -113,6 +115,7 @@ Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 | `LaserBeamComponent` | 17 | ServerOwned | `NsdComponentCodec<LaserBeamComponent>` (`OthersOnly`) |
 | `ParticleEmitterComponent` | 18 | ServerOwned | `ParticleEmitterCodec` |
 | `ParticleEmitterBindingComponent` | 19 | ServerOwned | `NsdComponentCodec<ParticleEmitterBindingComponent>` |
+| `StatisticsComponent` | 20 | ServerOwned | `NsdComponentCodec<StatisticsComponent>` (`OwnerOnly`) |
 
 `InputComponent` (`WaywardBeyond.Data/Nsd/components.nsd:5-19`) serializes movement, look totals, sequence bookkeeping, `DampenersDisabled` (field `8`, default `false` for dampeners enabled), held action buttons, and `PaintId`.
 
@@ -148,3 +151,9 @@ consumes items against its values. See [join](networking-join.md) and
 - `WaywardBeyond.Networking/NetworkingComposition.cs`
 - Component declarations: `WaywardBeyond.Data/Components/`
 - Schemas: `WaywardBeyond.Data/Nsd/components.nsd`
+
+## Tests that pin this
+
+- `WaywardBeyond.Tests/StatisticsReplicationTests.cs` pins `OwnerOnly` audience
+  filtering, full-sync and delta replication, and idle dirty suppression for
+  `StatisticsComponent`.

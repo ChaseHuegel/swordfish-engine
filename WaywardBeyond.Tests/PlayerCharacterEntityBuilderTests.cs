@@ -29,7 +29,6 @@ public class PlayerCharacterEntityBuilderTests
             1UL,
             _Playtime: new Playtime(),
             "Test",
-            0, 0, 0, 0, 0, 0,
             _Body: string.Empty,
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,
@@ -64,7 +63,7 @@ public class PlayerCharacterEntityBuilderTests
         Assert.Equal(0, skillState.GetXP("mod:jump_boost"));
 
         Assert.True(store.TryGet(entity, out StatisticsComponent statistics));
-        Assert.Equal(3f, statistics.Get("mod:jump_boost"));
-        Assert.False(statistics.TryGet("mining", out _));
+        Assert.Equal(3L, statistics.GetValue("mod:jump_boost"));
+        Assert.False(statistics.TryGetValue("mining", out _));
     }
 }

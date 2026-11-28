@@ -184,4 +184,14 @@ public sealed class StudioAssetSeed
     ///     Per-slot filter overrides keyed by local slot index for slot group documents.
     /// </summary>
     public List<(int Index, List<string> AllowedTags)> SlotGroupSlots { get; init; } = [];
+
+    /// <summary>
+    ///     Statistic modifier rows for buff documents.
+    /// </summary>
+    public List<(string StatId, string FlatDelta, string PercentDelta)> BuffStatModifiers { get; init; } = [];
+
+    /// <summary>
+    ///     Regeneration rate rows for buff documents.
+    /// </summary>
+    public List<(string StatId, string PerSecond)> BuffRegenRates { get; init; } = [];
 }

@@ -34,6 +34,8 @@ public sealed class ServerWorld : IDisposable
     public NetworkReplicationSystem Replication { get; }
     /// <summary>The world particle replication and burst service.</summary>
     public IServerParticleService Particles { get; }
+    /// <summary>The shared simulation step for this world.</summary>
+    internal SimulationStep SimulationStep { get; }
 
     /// <summary>The shared interaction handler registry this world resolves through.</summary>
     internal IInteractionHandlerRegistry HandlerRegistry { get; }
@@ -56,7 +58,7 @@ public sealed class ServerWorld : IDisposable
         HandlerRegistry = container.Resolve<IInteractionHandlerRegistry>();
         Pin<IUserPermissionService>(container);
         Pin<IServerWorldPhysics>(container);
-        Pin<SimulationStep>(container);
+        SimulationStep = Pin<SimulationStep>(container);
         Pin<Func<DataStore, IVoxelInteractionWorld>>(container);
         Pin<ServerInteractionSystem>(container);
 

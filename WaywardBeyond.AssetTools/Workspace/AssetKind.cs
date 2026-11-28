@@ -58,5 +58,15 @@ public enum AssetKind
     /// <summary>
     ///     Inventory slot group schema definition under <c>inventory/</c>.
     /// </summary>
-    SlotGroup = 10
+    SlotGroup = 10,
+
+    /// <summary>
+    ///     Data-driven icon bar definition under <c>bars/</c>.
+    /// </summary>
+    Bar = 11,
+
+    /// <summary>
+    ///     Timed buff definition under <c>buffs/</c>.
+    /// </summary>
+    Buff = 12
 }

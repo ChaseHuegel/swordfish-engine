@@ -46,7 +46,16 @@ See [region-blueprints](region-blueprints.md) for the client blueprint storage
 contract and `StorageConfig.BlueprintRoot`.
 
 The client owns `profile.db`. `characters` stores one raw nsd blob per
-character uuid. `level_metadata` stores one raw nsd blob per level guid; the
+character uuid. `CharacterSaveManager.Save` (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:49-108`)
+merges durable namespaced replicated stats from `StatisticsComponent` into
+`Character.Statistics` (`WaywardBeyond.Data/Nsd/saves.nsd:61`) through
+`StatisticsPersistence.MergeClientStatistics`. S.P.A.C.E.R. attributes
+(`wb:strength`, `wb:precision`, `wb:awareness`, `wb:charisma`, `wb:education`,
+`wb:resolve`) live directly in `Character.Statistics` from character creation.
+The merge preserves skill XP and counters and strips transient `wb:pressurized`,
+`wb:buff.<id>.expires_tick`, and `wb:buff.<id>.remaining_ticks` keys.
+`level_metadata` stores
+one raw nsd blob per level guid; the
 model is `LevelMetadata` (`WaywardBeyond.Data/Nsd/saves.nsd`), a wrapper
 around the shared `Playtime` value so client-local per-level fields can be
 added later without touching the authoritative records. The client registers
@@ -113,15 +122,26 @@ switch opens the next level through the catalog, and server shutdown flushes
 each world before its container is disposed.
 
 `MarkActive` and `EndSessionStamp` are small writes that only touch the `level`
-row. `QueueSaveCharacterLocation` captures one character's transform, scale,
-and game mode on the server thread and queues a single `character_locations`
-upsert on the save worker. It keeps the pending location in memory until the
-worker commits it, so an immediate rejoin reads the latest transform and game
-mode through `GetCharacterEntity`. A character with no row in the level starts
-at `Level.Spawn` with `Level.DefaultGameMode`.
-`ServerJoinSystem` calls it whenever a player leaves, disconnects, or replaces
-an active session. Character locations are also captured and upserted with each
-full save. The playtime stamping rules are unchanged (`PlayClock.Advance`).
+row. `QueueSaveCharacterLocation` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:200`)
+calls `CaptureCharacter` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:407-429`) to
+capture transform, scale, game mode, and surviving `StatisticsComponent` entries on the
+server thread and queues a single `character_locations` upsert on the save worker.
+`StatisticsPersistence.CaptureServerStatistics` excludes `wb:pressurized` and expired
+`wb:buff.<id>.expires_tick` entries (`expires_tick <= currentSimTick`), and converts active
+buff expiry ticks into tick-independent `wb:buff.<id>.remaining_ticks` counts so server
+restarts preserve remaining buff duration. It keeps the
+pending record in memory until the worker commits it, so an immediate rejoin reads the
+latest transform, game mode, and `CharacterEntityData.Statistics`
+(`WaywardBeyond.Data/Nsd/saves.nsd:105`) through `GetCharacterEntity`. A character with
+no row in the level starts at `Level.Spawn` with `Level.DefaultGameMode`.
+`CharacterStatisticsSeeder.SeedAuthoritativeStatistics` (`WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs:192`)
+seeds vitals and restores `wb:buff.<id>.remaining_ticks` relative to the world's current
+sim tick from `CharacterEntityData.Statistics` on rejoin, or seeds from bounded
+`CharacterState.Statistics` (`WaywardBeyond.Data/Nsd/levels.nsd:77`) and defaults on first
+join. `ServerJoinSystem` queues a save whenever a player leaves,
+disconnects, or replaces an active session. Character locations and surviving stats are
+also captured and upserted with each full save. The playtime stamping rules are unchanged
+(`PlayClock.Advance`).
 
 ### Server autosave
 
@@ -175,9 +195,9 @@ cadence. Its autosave timer saves the character only. Pause, F5, and close call
 autosaves the level.
 
 Character inventories persist sparsely as `KeyedSlotEntry[]? Inventory` on
-`Character` (`WaywardBeyond.Data/Nsd/saves.nsd:70`) and `CharacterState`
+`Character` (`WaywardBeyond.Data/Nsd/saves.nsd:63`) and `CharacterState`
 (`WaywardBeyond.Data/Nsd/levels.nsd:74`). `CharacterSaveManager` writes
-`ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:82`).
+`ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:80`).
 A `null` `Inventory` signals a new character and grants the starter loadout on
 join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:351`). An empty non-null
 array signals an intentionally emptied inventory that never restocks.
@@ -222,10 +242,16 @@ no shared broker process to manage.
 - `WaywardBeyond.Server/ServerHostCommands.cs`
 - `WaywardBeyond.Server/ServerWorldHost.cs`
 - `WaywardBeyond.Data/Nsd/{saves,voxels,levels,blueprints}.nsd`
+- `WaywardBeyond.Data/Statistics/{StatisticIds,StatisticsPersistence}.cs`
+- `WaywardBeyond.Data/Components/{StatisticsComponent,StatisticsComponentExtensions}.cs`
+- `WaywardBeyond.Gameplay/Statistics/CharacterStatisticsSeeder.cs`
+- `WaywardBeyond.Client/Saves/CharacterSaveManager.cs`
+- `WaywardBeyond.Server/Systems/ServerJoinSystem.cs`
 
 ## Tests that pin this
 
 - `WaywardBeyond.Tests/AdventureStarterWreckTests.cs` pins Adventure starter wreckage persistence, Creative omission, determinism, palette round-trips, and spawn/asteroid clearance.
 - `WaywardBeyond.Tests/KeyedInventoryTests.cs` pins sparse keyed character storage persistence round-trips.
 - `WaywardBeyond.Tests/CharacterLocationSaveTests.cs` pins join inventory seeding and non-restocking rules.
+- `WaywardBeyond.Tests/ServerJoinStatisticsTests.cs` pins join stat seeding, Adventure Mode bounds, expired buff pruning on leave and rejoin, and client durable stat merging.
 - No tests pin the playtime rules.
