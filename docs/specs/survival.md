@@ -43,7 +43,7 @@ All base rates live in `GameplayConfig.Survival`
 
 The simulation accumulates elapsed seconds per player and writes only when the
 cadence is reached, so a `60 Hz` tick does not replicate a tiny oxygen delta.
-Damage, healing, and consumable use write immediately.
+Damage and consumable use write immediately. Buff regen writes on the cadence.
 
 ## Buffs
 
@@ -75,7 +75,8 @@ hintless interaction event and does not predict the effect.
 5. deducts one unit, applies health and oxygen restoration, applies the buff, and
    writes the cooldown tick.
 
-Creative Mode does not claim the use. See
+`ServerSurvivalSystem` removes a cooldown entry once its tick is reached, so
+transient keys do not accumulate. Creative Mode does not claim the use. See
 [interaction-pipeline](interaction-pipeline.md) for stage composition.
 
 ## Damage

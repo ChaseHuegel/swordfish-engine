@@ -201,7 +201,7 @@ Character inventories persist sparsely as `KeyedSlotEntry[]? Inventory` on
 (`WaywardBeyond.Data/Nsd/levels.nsd:74`). `CharacterSaveManager` writes
 `ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:80`).
 A `null` `Inventory` signals a new character and grants the starter loadout on
-join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:351`). An empty non-null
+join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:353`). An empty non-null
 array signals an intentionally emptied inventory that never restocks.
 
 ## Serialization and data versioning

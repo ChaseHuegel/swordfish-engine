@@ -141,6 +141,19 @@ public class SurvivalSystemTests
     }
 
     [Fact]
+    public void ReadyConsumableCooldownsAreRemovedFromStatistics()
+    {
+        using var harness = new SurvivalHarness(GameMode.Adventure, pressurized: true);
+        string cooldownKey = StatisticIds.Cooldown(MEDKIT.AsSpan());
+        harness.Step.AlignTo(500);
+        harness.SetStatistic(cooldownKey, 500L);
+
+        harness.Tick(1f);
+
+        Assert.False(harness.GetStats().TryGetValue(cooldownKey, out _));
+    }
+
+    [Fact]
     public void ItemDatabaseParsesConsumableBlock()
     {
         using TempItemAssets assets = new("""
@@ -242,6 +255,19 @@ public class SurvivalSystemTests
     }
 
     [Fact]
+    public void BuffOnlyConsumableIsNotWastedWhenAnIgnorePolicyBuffIsActive()
+    {
+        var harness = new ConsumeHarness(GameMode.Adventure);
+        harness.Buffs.Add(CreateBuff(WELL_FED, healthPerSecond: 1f, oxygenPerSecond: 0f, BuffStackPolicy.Ignore));
+        harness.Give(RATION, count: 2, new ConsumableDefinition { GrantBuffID = WELL_FED });
+        harness.SetBuffExpiry(WELL_FED, harness.SimTick + 100);
+
+        harness.Consume(RATION);
+
+        Assert.Equal(2, harness.GetHotbarCount(RATION));
+    }
+
+    [Fact]
     public void DamageServiceClampsAndRecordsTheFatalSource()
     {
         var store = new DataStore();
@@ -308,6 +334,33 @@ public class SurvivalSystemTests
         Assert.Equal(200f, stats.GetFixed(StatisticIds.OXYGEN), precision: 3);
     }
 
+    [Fact]
+    public void ShippedConsumablesParseWithTheirEffects()
+    {
+        string root = Path.Combine(GetRepoRoot(), "WaywardBeyond.Items", "assets");
+        var vfs = new VirtualFileSystem();
+        vfs.Mount(new PathInfo(root));
+        IFileParser[] parsers = [new TomlParser<ItemDefinitions>()];
+        var parser = new VirtualFileParseService(parsers, vfs);
+        var database = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
+
+        ConsumableDefinition medkit = database.Get(MEDKIT).Value.Consumable!.Value;
+        Assert.Equal(40f, medkit.HealHp);
+        Assert.Equal(8f, medkit.CooldownSeconds);
+
+        ConsumableDefinition canister = database.Get(O2_CANISTER).Value.Consumable!.Value;
+        Assert.Equal(50f, canister.RestoreO2);
+
+        ConsumableDefinition ration = database.Get(RATION).Value.Consumable!.Value;
+        Assert.Equal(15f, ration.HealHp);
+        Assert.Equal(WELL_FED, ration.GrantBuffID);
+    }
+
+    private static string GetRepoRoot()
+    {
+        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+    }
+
     private static StatisticsComponent CreateStats(float health, float oxygen)
     {
         var stats = new StatisticsComponent();
@@ -318,8 +371,12 @@ public class SurvivalSystemTests
         return stats;
     }
 
-    private static Buff CreateBuff(string id, float healthPerSecond, float oxygenPerSecond)
-    {
+    private static Buff CreateBuff(
+        string id,
+        float healthPerSecond,
+        float oxygenPerSecond,
+        BuffStackPolicy stackPolicy = BuffStackPolicy.Refresh
+    ) {
         IEnumerable<BuffRegenRate> rates = healthPerSecond != 0f && oxygenPerSecond != 0f
             ? [new BuffRegenRate(StatisticIds.HEALTH, healthPerSecond), new BuffRegenRate(StatisticIds.OXYGEN, oxygenPerSecond)]
             : healthPerSecond != 0f
@@ -331,6 +388,7 @@ public class SurvivalSystemTests
             ID = id,
             Name = "buff.test",
             DurationSeconds = 60f,
+            StackPolicy = stackPolicy,
             RegenRates = [.. rates],
         }.Validate().Value;
     }
@@ -382,6 +440,13 @@ public class SurvivalSystemTests
             Store.AddOrUpdate(Player, stats);
         }
 
+        public void SetStatistic(string id, long value)
+        {
+            StatisticsComponent stats = GetStats();
+            stats.SetValue(id, value);
+            Store.AddOrUpdate(Player, stats);
+        }
+
         public void Dispose()
         {
             Step.Dispose();
@@ -413,6 +478,13 @@ public class SurvivalSystemTests
         public StatisticsComponent Stats => Store.TryGet(Player, out StatisticsComponent stats) ? stats : default;
 
         public float GetFixed(string id) => Stats.GetFixed(id);
+
+        public void SetBuffExpiry(string buffId, long expiresTick)
+        {
+            StatisticsComponent stats = Stats;
+            stats.SetBuffExpiresTick(buffId, expiresTick);
+            Store.AddOrUpdate(Player, stats);
+        }
 
         public void Give(string id, int count, ConsumableDefinition consumable)
         {

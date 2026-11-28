@@ -10,7 +10,7 @@ namespace WaywardBeyond.Tests;
 
 /// <summary>
 /// Pins the interaction control scheme: Primary is the main edge for every item that has a primary action,
-/// only a modifier tool binds Secondary to clear its paint, and an item with no action for an input
+/// Secondary clears a modifier tool's paint or uses a consumable, and an item with no action for an input
 /// produces no edge.
 /// </summary>
 public class InteractionIntentTests

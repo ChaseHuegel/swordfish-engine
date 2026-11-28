@@ -113,7 +113,7 @@ back to `PendingInputComponent.LastAcked` (subject to the same
 current sim tick. There is no fallback to the live `InputComponent`, so a replay
 gap or stalled stream resolves identically on both sides.
 
-`SimulationStep.Execute` (`WaywardBeyond.Gameplay/SimulationStep.cs:158-224`)
+`SimulationStep.Execute` (`WaywardBeyond.Gameplay/SimulationStep.cs:161-227`)
 always runs `DampAngular` (`:246-255`). It skips `DampLinear` (`:258-267`) only
 when a resolved command sets `DampenersDisabled` to `true`, letting the body
 coast while thrust and look continue to apply. A commandless step, a stale

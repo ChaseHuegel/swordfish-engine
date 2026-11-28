@@ -357,8 +357,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
     /// <summary>
     /// Performs the action the held item binds to <paramref name="input"/>. Primary is the main edge of
-    /// every item, and only a modifier tool binds Secondary, to clear its paint. Empty hands and block
-    /// items have no brick action, so they break nothing.
+    /// every item. Secondary clears a modifier tool's paint or uses a held consumable. Empty hands and
+    /// block items have no brick action, so they break nothing.
     /// </summary>
     private void AttemptAction(InteractionInput input, InteractionSource source)
     {
@@ -397,10 +397,15 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         //  A consumable is used where the player stands: the server consumes it and applies its effect, so
-        //  no brick target, prediction, or presentation hook is involved.
+        //  no brick target, prediction, or presentation hook is involved. A held secondary does not auto-use
+        //  the item; each use is a fresh press.
         if (kind == InteractionKind.SecondaryPressed && heldItem?.Consumable != null)
         {
-            StageInteractionEvent(store, playerEntity, kind, brickHint: null, paintHint: null);
+            if (source == InteractionSource.Press)
+            {
+                StageInteractionEvent(store, playerEntity, kind, brickHint: null, paintHint: null);
+            }
+
             return;
         }
 

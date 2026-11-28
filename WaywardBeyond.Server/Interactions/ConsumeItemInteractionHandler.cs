@@ -1,5 +1,4 @@
 using System;
-using Krill;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Buffs;
@@ -80,10 +79,11 @@ public sealed class ConsumeItemInteractionHandler(
         float health = Math.Clamp(stats.GetFixed(StatisticIds.HEALTH, healthMax), 0f, healthMax);
         float oxygen = Math.Clamp(stats.GetFixed(StatisticIds.OXYGEN, oxygenMax), 0f, oxygenMax);
 
-        bool hasBuff = TryResolveBuff(consumable.GrantBuffID, out Buff buff);
+        bool grantsBuff = TryResolveBuff(consumable.GrantBuffID, out Buff buff)
+            && WouldChangeBuff(in stats, in buff, simTick, fixedDelta);
         bool canBenefit = (consumable.HealHp > 0f && health < healthMax - BENEFIT_EPSILON)
             || (consumable.RestoreO2 > 0f && oxygen < oxygenMax - BENEFIT_EPSILON)
-            || hasBuff;
+            || grantsBuff;
         if (!canBenefit)
         {
             return InteractionDecision.Continue;
@@ -113,7 +113,7 @@ public sealed class ConsumeItemInteractionHandler(
                 Math.Clamp(oxygen + consumable.RestoreO2, 0f, oxygenMax));
         }
 
-        if (hasBuff)
+        if (grantsBuff)
         {
             context.Store.ApplyBuff(context.Player, in buff, simTick, fixedDelta);
         }
@@ -125,6 +125,12 @@ public sealed class ConsumeItemInteractionHandler(
         }
 
         return InteractionDecision.Continue;
+    }
+
+    private static bool WouldChangeBuff(in StatisticsComponent stats, in Buff buff, long simTick, float fixedDelta)
+    {
+        long existingExpiry = stats.TryGetBuffExpiresTick(buff.ID.AsSpan(), out long expiry) ? expiry : 0L;
+        return buff.TryComputeNextExpiresTick(existingExpiry, simTick, fixedDelta, out _);
     }
 
     private bool TryResolveBuff(string? buffId, out Buff buff)

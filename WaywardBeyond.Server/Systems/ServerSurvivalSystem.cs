@@ -83,6 +83,7 @@ public sealed class ServerSurvivalSystem(
 
         //  Expiry bookkeeping is cheap and must land on the exact sim tick, so it is not cadence-gated.
         StatisticsComponentExtensions.PruneExpiredBuffs(ref stats, simTick);
+        StatisticsComponentExtensions.PruneExpiredCooldowns(ref stats, simTick);
 
         if (mode == GameMode.Creative)
         {
@@ -188,7 +189,10 @@ public sealed class ServerSurvivalSystem(
                 if (string.Equals(rate.StatId, StatisticIds.HEALTH, StringComparison.Ordinal))
                 {
                     float health = Math.Clamp(stats.Read.GetFixed(StatisticIds.HEALTH, healthMax), 0f, healthMax);
-                    StatisticsComponentExtensions.SetFixed(ref stats, StatisticIds.HEALTH, Math.Clamp(health + delta, 0f, healthMax));
+                    if (health > 0f)
+                    {
+                        StatisticsComponentExtensions.SetFixed(ref stats, StatisticIds.HEALTH, Math.Clamp(health + delta, 0f, healthMax));
+                    }
                 }
                 else if (string.Equals(rate.StatId, StatisticIds.OXYGEN, StringComparison.Ordinal))
                 {

@@ -77,7 +77,7 @@ on current runtimes.
 
 ## What stays shared
 
-`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`, the interaction
+`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`, `IBuffDatabase`, the interaction
 handler registry and the default handlers, `NetworkingConfig`,
 `LoopbackRpcServerTransport`, `ServerRpcHost`/`LanHost` (one listen socket),
 `ServerPeers`, `ServerHostCommands`, `ServerHandlers`, `ILevelCatalog` and

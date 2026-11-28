@@ -297,6 +297,69 @@ public partial struct StatisticsComponent : IDataComponent
         return true;
     }
 
+    /// <summary>Returns whether any consumable cooldown entry has reached its ready tick.</summary>
+    internal readonly bool HasExpiredCooldowns(long currentSimTick)
+    {
+        Statistic[]? entries = Entries;
+        if (entries == null || entries.Length == 0)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < entries.Length; i++)
+        {
+            if (IsExpiredCooldown(in entries[i], currentSimTick))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Removes all consumable cooldown entries at or before <paramref name="currentSimTick"/>.</summary>
+    public bool PruneExpiredCooldowns(long currentSimTick)
+    {
+        Statistic[]? entries = Entries;
+        if (entries == null || entries.Length == 0)
+        {
+            return false;
+        }
+
+        var expiredCount = 0;
+        for (var i = 0; i < entries.Length; i++)
+        {
+            if (IsExpiredCooldown(in entries[i], currentSimTick))
+            {
+                expiredCount++;
+            }
+        }
+
+        if (expiredCount == 0)
+        {
+            return false;
+        }
+
+        if (expiredCount == entries.Length)
+        {
+            Entries = [];
+            return true;
+        }
+
+        var remaining = new Statistic[entries.Length - expiredCount];
+        var writeIndex = 0;
+        for (var i = 0; i < entries.Length; i++)
+        {
+            if (!IsExpiredCooldown(in entries[i], currentSimTick))
+            {
+                remaining[writeIndex++] = entries[i];
+            }
+        }
+
+        Entries = remaining;
+        return true;
+    }
+
     private readonly int IndexOf(ReadOnlySpan<char> id)
     {
         Statistic[]? entries = Entries;
@@ -370,6 +433,13 @@ public partial struct StatisticsComponent : IDataComponent
     {
         return entry.ID != null
             && StatisticIds.IsBuffExpiresTickKey(entry.ID.AsSpan())
+            && entry.Value <= currentSimTick;
+    }
+
+    private static bool IsExpiredCooldown(in Statistic entry, long currentSimTick)
+    {
+        return entry.ID != null
+            && StatisticIds.IsCooldownKey(entry.ID.AsSpan())
             && entry.Value <= currentSimTick;
     }
 }

@@ -104,11 +104,11 @@ See [survival](survival.md) for the simulation, damage path, and buff timing.
 
 ### Statistics
 
-`ItemDefinition.Statistics` (`WaywardBeyond.Items/ItemDefinition.cs:19`) is an
+`ItemDefinition.Statistics` (`WaywardBeyond.Items/ItemDefinition.cs:20`) is an
 optional `[Items.Statistics]` key-value map from statistic id to finite `float`
 value. Base-game keys use the `wb:` namespace (for example `"wb:mining_speed"`).
 Mods add their own namespaced keys without changing source code. `ItemDatabase`
-(`WaywardBeyond.Items/ItemDatabase.cs:59`) logs a warning and skips empty keys
+(`WaywardBeyond.Items/ItemDatabase.cs:60`) logs a warning and skips empty keys
 or non-finite values. `WorkspaceValidator` emits `STAT001` for invalid item
 statistic entries, including non-positive `"wb:mining_speed"` values. See
 [statistics](statistics.md).

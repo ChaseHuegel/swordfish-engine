@@ -66,7 +66,7 @@ suppressing reactions, returns it from `Commit`.
 
 ## Consumable use
 
-A consumable item binds `SecondaryPressed` in `InteractionIntent` (`WaywardBeyond.Client/Systems/InteractionIntent.cs:17`).
+A consumable item binds `SecondaryPressed` in `InteractionIntent` (`WaywardBeyond.Client/Systems/InteractionIntent.cs:15`).
 `PlayerInteractionService` stages a hintless secondary event, so no voxel target or prediction is involved.
 On the server, `ConsumeItemInteractionHandler` (`WaywardBeyond.Server/Interactions/ConsumeItemInteractionHandler.cs`)
 runs at `React` with the `SecondaryPressed` and `Adventure` filter. It resolves the held item's
@@ -95,7 +95,7 @@ they must not keep per-world state; it lives in the context or the store.
 Timed interactions compose through the pipeline rather than living hardcoded inside the pump:
 
 - **Server hold declaration:** Any `Validate` handler can require a sustained hold by setting
-  `InteractionContext.Hold` (`WaywardBeyond.Gameplay/Interactions/InteractionContext.cs:86`)
+  `InteractionContext.Hold` (`WaywardBeyond.Gameplay/Interactions/InteractionContext.cs:96`)
   to an `InteractionHold` (`InteractionHold.cs:7`) with a stable `TimedInteractionKey`,
   `RequiredDuration`, `RequiredInput` (`InteractionInput.Primary`, `Secondary`, or `None` in
   `InteractionInput.cs:4`), and `CancelOnEquipmentChange`. `InteractionInputExtensions`
