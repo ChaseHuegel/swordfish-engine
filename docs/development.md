@@ -73,6 +73,9 @@ dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
   -json <id>.json -chars "<charset>"`.
 - CI publishes game release artifacts from `.github/workflows/waywardbeyond.yml`
   and Asset Studio bundles from `.github/workflows/asset-studio.yml`.
+- A strict `vX.X.X` tag publishes a GitHub Release with all four archives: game
+  and Asset Studio for `win-x64` and `linux-x64`. A suffixed tag such as
+  `v0.1.0-alpha-rc26` uploads workflow artifacts only.
 - `Needlefish.Generators` runs as a Roslyn source generator during compilation.
   The repository does not run `nsdc` as a build step. All `.nsd` files live in
   `WaywardBeyond.Data/Nsd`. See [needlefish-codegen](specs/needlefish-codegen.md).
