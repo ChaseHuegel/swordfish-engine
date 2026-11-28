@@ -8,3 +8,8 @@ Break = ["metal_break"]
 [Bricks.Textures]
 Connected = true
 Default   = ["light.0"]
+[Bricks.Entity.Light]
+Size          = 2.4
+Color         = "#FFFFFF"
+Intensity     = 0.051
+TintFromPaint = true

@@ -248,7 +248,7 @@ public sealed class ServerInventorySystem(
         }
 
         if (store.TryGet(containerEntity, out BrickAnchorComponent anchor)
-            && ServerBlockEntityService.TryResolveWorldPosition(store, in anchor, out position))
+            && ServerBrickEntityService.TryResolveWorldPosition(store, in anchor, out position))
         {
             return true;
         }

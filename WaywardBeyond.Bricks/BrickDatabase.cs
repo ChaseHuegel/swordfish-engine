@@ -94,9 +94,13 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     {
         BrickColliderShape[] colliders = BuildColliders(id, assetInfo.Colliders);
         bool lightSource = _invariantTags?.Contains(BrickTags.LIGHT, id) ?? false;
-        bool entity = _invariantTags?.Contains(BrickTags.ENTITY, id) ?? false;
         bool paintable = _invariantTags?.Contains(BrickTags.PAINTABLE, id) ?? false;
         bool orientable = _invariantTags?.Contains(BrickTags.ORIENTABLE, id) ?? false;
+        bool airtight = _invariantTags?.Contains(BrickTags.AIRTIGHT, id) ?? false;
+        bool toggleable = _invariantTags?.Contains(BrickTags.TOGGLEABLE, id) ?? false;
+        bool defaultPowerEnabled = !(_invariantTags?.Contains(BrickTags.DEFAULT_POWER_OFF, id) ?? false);
+        bool defaultOpen = _invariantTags?.Contains(BrickTags.DEFAULT_OPEN, id) ?? false;
+        string stationTag = ResolveStationTag(id);
         var brick = new Brick(
             id,
             assetInfo.Alpha,
@@ -108,15 +112,44 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             colliders,
             assetInfo.Sounds,
             lightSource,
-            entity,
             paintable,
             orientable,
             ResolveColor(id, assetInfo.Color),
             ResolveStatistics(id, assetInfo.Statistics),
-            ResolveBlockEntity(id, assetInfo.BlockEntity)
+            ResolveEntity(id, assetInfo.Entity),
+            airtight,
+            toggleable,
+            defaultPowerEnabled,
+            defaultOpen,
+            stationTag
         );
         _loaded.Add(brick);
         return Result<Brick>.FromSuccess(brick);
+    }
+
+    private string ResolveStationTag(string brickId)
+    {
+        if (_invariantTags == null)
+        {
+            return string.Empty;
+        }
+
+        string? matched = null;
+        foreach (string key in _invariantTags.Keys)
+        {
+            if (!key.StartsWith(BrickTags.STATION_PREFIX, StringComparison.Ordinal)
+                || !_invariantTags.Contains(key, brickId))
+            {
+                continue;
+            }
+
+            if (matched == null || string.CompareOrdinal(key, matched) < 0)
+            {
+                matched = key;
+            }
+        }
+
+        return matched ?? string.Empty;
     }
 
     private Vector3 ResolveColor(string id, string? value)
@@ -168,32 +201,60 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         return resolved;
     }
 
-    private BrickBlockEntity? ResolveBlockEntity(string id, BlockEntityDefinition? definition)
+    private BrickEntity? ResolveEntity(string id, BrickEntityDefinition? definition)
     {
         if (definition == null)
         {
             return null;
         }
 
-        BlockEntityDefinition def = definition.Value;
-        string stationTag = string.IsNullOrWhiteSpace(def.StationTag) ? string.Empty : def.StationTag.Trim();
+        BrickEntityDefinition def = definition.Value;
+        BrickLight? light = ResolveLight(id, def.Light);
+        BrickSlotGroup[] slotGroups = ResolveSlotGroups(id, def.SlotGroups);
+        return new BrickEntity(light, slotGroups);
+    }
 
-        float powerKw = def.PowerKw;
-        if (!float.IsFinite(powerKw))
+    private BrickLight? ResolveLight(string id, BrickLightDefinition? definition)
+    {
+        if (definition == null)
         {
-            _logger.LogWarning("Brick \"{BrickId}\" has non-finite BlockEntity.PowerKw {Value}. Using 0.", id, powerKw);
-            powerKw = 0f;
+            return null;
         }
 
-        BrickSlotGroup[] slotGroups = ResolveSlotGroups(id, def.SlotGroups);
-        return new BrickBlockEntity(
-            stationTag,
-            slotGroups,
-            powerKw,
-            def.Airtight,
-            def.Toggleable,
-            def.DefaultPowerEnabled,
-            def.DefaultOpen);
+        BrickLightDefinition def = definition.Value;
+        float? radius = def.Radius;
+        if (radius.HasValue && (!float.IsFinite(radius.Value) || radius.Value < 0f))
+        {
+            _logger.LogWarning("Brick \"{BrickId}\" has invalid Entity.Light.Radius {Value}. Ignoring.", id, radius.Value);
+            radius = null;
+        }
+
+        float size = def.Size;
+        if (!float.IsFinite(size) || size <= 0f)
+        {
+            _logger.LogWarning("Brick \"{BrickId}\" has invalid Entity.Light.Size {Value}. Using 2.4.", id, size);
+            size = 2.4f;
+        }
+
+        float intensity = def.Intensity;
+        if (!float.IsFinite(intensity) || intensity < 0f)
+        {
+            _logger.LogWarning("Brick \"{BrickId}\" has invalid Entity.Light.Intensity {Value}. Using 1.0.", id, intensity);
+            intensity = 1.0f;
+        }
+
+        Vector3 color = ResolveColor(id, def.Color);
+        Vector3 offset = Vector3.Zero;
+        if (!def.Offset.IsFinite)
+        {
+            _logger.LogWarning("Brick \"{BrickId}\" has non-finite Entity.Light.Offset. Using zero.", id);
+        }
+        else
+        {
+            offset = def.Offset.ToVector3();
+        }
+
+        return new BrickLight(radius, size, color, intensity, def.CastShadows, offset, def.TintFromPaint);
     }
 
     private BrickSlotGroup[] ResolveSlotGroups(string brickId, List<BrickSlotGroupDefinition>? definitions)
@@ -211,7 +272,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             string groupId = string.IsNullOrWhiteSpace(entry.ID) ? string.Empty : entry.ID.Trim();
             if (groupId.Length == 0)
             {
-                _logger.LogWarning("Brick \"{BrickId}\" declares a BlockEntity slot group with an empty ID. Skipping.", brickId);
+                _logger.LogWarning("Brick \"{BrickId}\" declares an Entity slot group with an empty ID. Skipping.", brickId);
                 continue;
             }
 
@@ -227,7 +288,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
 
             if (!seen.Add(groupId))
             {
-                _logger.LogWarning("Brick \"{BrickId}\" declares duplicate BlockEntity slot group \"{GroupId}\". Skipping.", brickId, groupId);
+                _logger.LogWarning("Brick \"{BrickId}\" declares duplicate Entity slot group \"{GroupId}\". Skipping.", brickId, groupId);
                 continue;
             }
 

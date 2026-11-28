@@ -20,46 +20,83 @@ using WaywardBeyond.Voxels;
 namespace WaywardBeyond.Server.Systems;
 
 /// <summary>
-/// Per-world authoritative manager for server ECS block-entities anchored to functional bricks.
-/// Maintains the <c>(VoxelEntityUuid, Int3) -> Entity</c> lookup index, handles placement, break,
-/// region/blueprint sync, viewer attachment and reach eviction, programmatic cargo seeding, and
-/// <c>level.db</c> capture/restore.
+/// Per-world authoritative manager for server ECS brick-entities anchored to bricks claimed by
+/// <see cref="IServerBrickEntityDecorator"/> hooks. Maintains the <c>(VoxelEntityUuid, Int3) -> Entity</c>
+/// lookup index, handles placement, break, region/blueprint sync, viewer attachment and reach eviction,
+/// programmatic cargo seeding, and <c>level.db</c> capture/restore.
 /// </summary>
-public sealed class ServerBlockEntityService(
-    IBrickDatabase brickDatabase,
-    NetworkReplicationSystem? replication = null,
-    SessionManager? sessions = null,
-    ISlotGroupSchemaDatabase? schemas = null,
-    IItemDatabase? itemDatabase = null,
-    IUserPermissionService? permissions = null,
-    ILogger<ServerBlockEntityService>? logger = null
-)
+public sealed class ServerBrickEntityService
 {
-    private const ulong BLOCK_ENTITY_UUID_SALT = 0x517C_C1B7_2722_0A95UL;
-    private const ulong SPLITMIX_INCREMENT = 0x9E37_79B9_7F4A_7C15UL;
+    private readonly IBrickDatabase _brickDatabase;
+    private readonly NetworkReplicationSystem? _replication;
+    private readonly SessionManager? _sessions;
+    private readonly IItemDatabase? _itemDatabase;
+    private readonly IUserPermissionService? _permissions;
+    private readonly ILogger<ServerBrickEntityService>? _logger;
+    private readonly IServerBrickEntityDecorator[] _decorators;
 
     private readonly Dictionary<BrickAnchorComponent, int> _byAnchor = [];
     private readonly Dictionary<Uuid, HashSet<BrickAnchorComponent>> _anchorsByStructure = [];
-    private readonly Dictionary<int, string> _brickIdByEntity = [];
+    private readonly Dictionary<int, Brick> _brickByEntity = [];
     private readonly List<(Uuid ClientId, int Entity)> _subscriptionScratch = [];
     private readonly List<BrickAnchorComponent> _anchorScratch = [];
 
-    /// <summary>The number of live server block-entities tracked by this world.</summary>
+    /// <summary>Constructs a per-world server brick-entity service.</summary>
+    public ServerBrickEntityService(
+        IBrickDatabase brickDatabase,
+        NetworkReplicationSystem? replication = null,
+        SessionManager? sessions = null,
+        ISlotGroupSchemaDatabase? schemas = null,
+        IItemDatabase? itemDatabase = null,
+        IUserPermissionService? permissions = null,
+        ILogger<ServerBrickEntityService>? logger = null,
+        IServerBrickEntityDecorator[]? decorators = null
+    )
+    {
+        _brickDatabase = brickDatabase;
+        _replication = replication;
+        _sessions = sessions;
+        _itemDatabase = itemDatabase;
+        _permissions = permissions;
+        _logger = logger;
+        _decorators = decorators is { Length: > 0 }
+            ? decorators
+            : [
+                new InventoryBrickEntityDecorator(schemas, itemDatabase),
+                new MachineBrickEntityDecorator(),
+            ];
+    }
+
+    /// <summary>The number of live server brick-entities tracked by this world.</summary>
     public int Count => _byAnchor.Count;
 
-    /// <summary>Attempts to resolve the server ECS block-entity anchored at <paramref name="anchor"/>.</summary>
+    /// <summary>Returns whether any registered server decorator applies to <paramref name="brick"/>.</summary>
+    public bool IsServerBrickEntity(Brick brick)
+    {
+        for (var i = 0; i < _decorators.Length; i++)
+        {
+            if (_decorators[i].AppliesTo(brick))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Attempts to resolve the server ECS brick-entity anchored at <paramref name="anchor"/>.</summary>
     public bool TryGetEntity(in BrickAnchorComponent anchor, out int entity)
     {
         return _byAnchor.TryGetValue(anchor, out entity);
     }
 
-    /// <summary>Attempts to resolve the server ECS block-entity anchored at (<paramref name="structureUuid"/>, <paramref name="coord"/>).</summary>
+    /// <summary>Attempts to resolve the server ECS brick-entity anchored at (<paramref name="structureUuid"/>, <paramref name="coord"/>).</summary>
     public bool TryGetEntity(Uuid structureUuid, Int3 coord, out int entity)
     {
         return _byAnchor.TryGetValue(new BrickAnchorComponent(structureUuid, coord), out entity);
     }
 
-    /// <summary>Gets all live block-entity ids anchored to <paramref name="structureUuid"/>.</summary>
+    /// <summary>Gets all live brick-entity ids anchored to <paramref name="structureUuid"/>.</summary>
     public int[] GetEntitiesForStructure(Uuid structureUuid)
     {
         if (!_anchorsByStructure.TryGetValue(structureUuid, out HashSet<BrickAnchorComponent>? anchors) || anchors.Count == 0)
@@ -87,7 +124,7 @@ public sealed class ServerBlockEntityService(
         return trimmed;
     }
 
-    /// <summary>Attempts to find the first block-entity on <paramref name="structureUuid"/> matching <paramref name="stationTag"/>.</summary>
+    /// <summary>Attempts to find the first brick-entity on <paramref name="structureUuid"/> matching <paramref name="stationTag"/>.</summary>
     public bool TryFindFirstByStationTag(DataStore store, Uuid structureUuid, string stationTag, out int entity)
     {
         entity = Entity.Null;
@@ -111,7 +148,7 @@ public sealed class ServerBlockEntityService(
         return false;
     }
 
-    /// <summary>Computes the live world-space position of the block-entity anchored by <paramref name="anchor"/>.</summary>
+    /// <summary>Computes the live world-space position of the brick-entity anchored by <paramref name="anchor"/>.</summary>
     public static bool TryResolveWorldPosition(DataStore store, in BrickAnchorComponent anchor, out Vector3 worldPosition)
     {
         worldPosition = default;
@@ -138,8 +175,8 @@ public sealed class ServerBlockEntityService(
     }
 
     /// <summary>
-    /// Allocates or updates the server block-entity when a brick is placed at (<paramref name="structureUuid"/>, <paramref name="coord"/>).
-    /// Returns the allocated entity id, or <see cref="Entity.Null"/> when the brick has no block-entity metadata.
+    /// Allocates or updates the server brick-entity when a brick is placed at (<paramref name="structureUuid"/>, <paramref name="coord"/>).
+    /// Returns the allocated entity id, or <see cref="Entity.Null"/> when no server decorator applies to the brick.
     /// </summary>
     public int OnBrickPlaced(DataStore store, Uuid structureUuid, Int3 coord, ushort brickDataId)
     {
@@ -148,19 +185,19 @@ public sealed class ServerBlockEntityService(
             return Entity.Null;
         }
 
-        Result<Brick> lookup = brickDatabase.Get(brickDataId);
-        if (!lookup.Success || !lookup.Value.HasBlockEntity)
+        Result<Brick> lookup = _brickDatabase.Get(brickDataId);
+        if (!lookup.Success || !IsServerBrickEntity(lookup.Value))
         {
             RemoveAt(store, new BrickAnchorComponent(structureUuid, coord));
             return Entity.Null;
         }
 
-        return SpawnBlockEntity(store, structureUuid, coord, lookup.Value, persisted: null);
+        return SpawnBrickEntity(store, structureUuid, coord, lookup.Value, persisted: null);
     }
 
     /// <summary>
-    /// Handles breaking a functional brick: transfers stored contents to <paramref name="breakingPlayer"/>
-    /// in non-Creative modes, tears down active viewer sessions, and frees the block-entity.
+    /// Handles breaking a brick with a server entity: transfers stored contents to <paramref name="breakingPlayer"/>
+    /// in non-Creative modes, tears down active viewer sessions, and frees the brick-entity.
     /// </summary>
     public bool OnBrickBroken(
         DataStore store,
@@ -171,23 +208,23 @@ public sealed class ServerBlockEntityService(
     )
     {
         var anchor = new BrickAnchorComponent(structureUuid, coord);
-        if (!_byAnchor.TryGetValue(anchor, out int blockEntity))
+        if (!_byAnchor.TryGetValue(anchor, out int brickEntity))
         {
             return false;
         }
 
         if (gameMode != GameMode.Creative
             && breakingPlayer != Entity.Null
-            && store.TryGet(blockEntity, out InventoryComponent blockInventory))
+            && store.TryGet(brickEntity, out InventoryComponent brickInventory))
         {
-            TransferContentsToPlayer(store, breakingPlayer, in blockInventory);
+            TransferContentsToPlayer(store, breakingPlayer, in brickInventory);
         }
 
-        DestroyBlockEntity(store, anchor, blockEntity);
+        DestroyBrickEntity(store, anchor, brickEntity);
         return true;
     }
 
-    /// <summary>Removes and frees every block-entity anchored to <paramref name="structureUuid"/>.</summary>
+    /// <summary>Removes and frees every brick-entity anchored to <paramref name="structureUuid"/>.</summary>
     public int OnStructureRemoved(DataStore store, Uuid structureUuid)
     {
         if (!_anchorsByStructure.TryGetValue(structureUuid, out HashSet<BrickAnchorComponent>? anchors) || anchors.Count == 0)
@@ -205,9 +242,9 @@ public sealed class ServerBlockEntityService(
         for (var i = 0; i < _anchorScratch.Count; i++)
         {
             BrickAnchorComponent anchor = _anchorScratch[i];
-            if (_byAnchor.TryGetValue(anchor, out int blockEntity))
+            if (_byAnchor.TryGetValue(anchor, out int brickEntity))
             {
-                DestroyBlockEntity(store, anchor, blockEntity);
+                DestroyBrickEntity(store, anchor, brickEntity);
                 removed++;
             }
         }
@@ -217,7 +254,7 @@ public sealed class ServerBlockEntityService(
         return removed;
     }
 
-    /// <summary>Removes and frees every block-entity on <paramref name="structureUuid"/> inside [<paramref name="min"/>, <paramref name="max"/>].</summary>
+    /// <summary>Removes and frees every brick-entity on <paramref name="structureUuid"/> inside [<paramref name="min"/>, <paramref name="max"/>].</summary>
     public int OnRegionCleared(DataStore store, Uuid structureUuid, Int3 min, Int3 max)
     {
         if (!_anchorsByStructure.TryGetValue(structureUuid, out HashSet<BrickAnchorComponent>? anchors) || anchors.Count == 0)
@@ -241,9 +278,9 @@ public sealed class ServerBlockEntityService(
         for (var i = 0; i < _anchorScratch.Count; i++)
         {
             BrickAnchorComponent anchor = _anchorScratch[i];
-            if (_byAnchor.TryGetValue(anchor, out int blockEntity))
+            if (_byAnchor.TryGetValue(anchor, out int brickEntity))
             {
-                DestroyBlockEntity(store, anchor, blockEntity);
+                DestroyBrickEntity(store, anchor, brickEntity);
                 removed++;
             }
         }
@@ -252,7 +289,7 @@ public sealed class ServerBlockEntityService(
         return removed;
     }
 
-    /// <summary>Synchronizes block-entities for every functional brick within a pasted structure region.</summary>
+    /// <summary>Synchronizes brick-entities for every matching brick within a pasted structure region.</summary>
     public void SyncRegion(
         DataStore store,
         Uuid structureUuid,
@@ -284,8 +321,8 @@ public sealed class ServerBlockEntityService(
                         continue;
                     }
 
-                    Result<Brick> lookup = brickDatabase.Get(voxel.ID);
-                    if (!lookup.Success || !lookup.Value.HasBlockEntity)
+                    Result<Brick> lookup = _brickDatabase.Get(voxel.ID);
+                    if (!lookup.Success || !IsServerBrickEntity(lookup.Value))
                     {
                         RemoveAt(store, anchor);
                         continue;
@@ -293,34 +330,34 @@ public sealed class ServerBlockEntityService(
 
                     Brick brick = lookup.Value;
                     if (_byAnchor.TryGetValue(anchor, out int existing)
-                        && _brickIdByEntity.TryGetValue(existing, out string? existingBrickId)
-                        && string.Equals(existingBrickId, brick.ID, StringComparison.Ordinal))
+                        && _brickByEntity.TryGetValue(existing, out Brick? existingBrick)
+                        && string.Equals(existingBrick.ID, brick.ID, StringComparison.Ordinal))
                     {
                         continue;
                     }
 
-                    SpawnBlockEntity(store, structureUuid, coord, brick, persisted: null);
+                    SpawnBrickEntity(store, structureUuid, coord, brick, persisted: null);
                 }
             }
         }
     }
 
-    /// <summary>Scans a freshly created or spawned structure and allocates block-entities for all functional bricks.</summary>
+    /// <summary>Scans a freshly created or spawned structure and allocates brick-entities for all matching bricks.</summary>
     public int SyncStructure(DataStore store, Uuid structureUuid, VoxelObject voxelObject)
     {
         return RestoreStructure(store, structureUuid, voxelObject, persistedByKey: null, matchedKeys: null);
     }
 
     /// <summary>
-    /// Scans <paramref name="voxelObject"/> and allocates block-entities for every functional brick,
+    /// Scans <paramref name="voxelObject"/> and allocates brick-entities for every matching brick,
     /// restoring matching persisted records from <paramref name="persistedByKey"/> and recording matched keys.
     /// </summary>
     public int RestoreStructure(
         DataStore store,
         Uuid structureUuid,
         VoxelObject voxelObject,
-        IReadOnlyDictionary<BlockEntityKey, BlockEntityData>? persistedByKey,
-        HashSet<BlockEntityKey>? matchedKeys
+        IReadOnlyDictionary<BrickEntityKey, BrickEntityData>? persistedByKey,
+        HashSet<BrickEntityKey>? matchedKeys
     )
     {
         if (structureUuid == Uuid.Null || voxelObject == null)
@@ -355,8 +392,8 @@ public sealed class ServerBlockEntityService(
                     continue;
                 }
 
-                Result<Brick> lookup = brickDatabase.Get(brickDataId);
-                if (!lookup.Success || !lookup.Value.HasBlockEntity)
+                Result<Brick> lookup = _brickDatabase.Get(brickDataId);
+                if (!lookup.Success || !IsServerBrickEntity(lookup.Value))
                 {
                     continue;
                 }
@@ -367,11 +404,11 @@ public sealed class ServerBlockEntityService(
                     baseY + ((i >> shift) & mask),
                     baseZ + (i >> shift2));
 
-                BlockEntityData? persisted = null;
+                BrickEntityData? persisted = null;
                 if (persistedByKey != null)
                 {
-                    var key = new BlockEntityKey(rawStructureUuid, coord.X, coord.Y, coord.Z);
-                    if (persistedByKey.TryGetValue(key, out BlockEntityData record)
+                    var key = new BrickEntityKey(rawStructureUuid, coord.X, coord.Y, coord.Z);
+                    if (persistedByKey.TryGetValue(key, out BrickEntityData record)
                         && (string.IsNullOrEmpty(record.BrickId)
                             || string.Equals(record.BrickId, brick.ID, StringComparison.Ordinal)))
                     {
@@ -380,7 +417,7 @@ public sealed class ServerBlockEntityService(
                     }
                 }
 
-                SpawnBlockEntity(store, structureUuid, coord, brick, persisted);
+                SpawnBrickEntity(store, structureUuid, coord, brick, persisted);
                 spawnedCount++;
             }
         }
@@ -388,86 +425,86 @@ public sealed class ServerBlockEntityService(
         return spawnedCount;
     }
 
-    /// <summary>Subscribes <paramref name="clientId"/> as a viewer of <paramref name="blockEntity"/> after reach and access validation.</summary>
-    public Result AttachViewer(DataStore store, Uuid clientId, int blockEntity)
+    /// <summary>Subscribes <paramref name="clientId"/> as a viewer of <paramref name="brickEntity"/> after reach and access validation.</summary>
+    public Result AttachViewer(DataStore store, Uuid clientId, int brickEntity)
     {
-        if (replication == null)
+        if (_replication == null)
         {
             return Result.FromFailure("Replication service is unavailable.");
         }
 
-        if (clientId == Uuid.Null || blockEntity == Entity.Null)
+        if (clientId == Uuid.Null || brickEntity == Entity.Null)
         {
-            return Result.FromFailure("Invalid viewer or block-entity.");
+            return Result.FromFailure("Invalid viewer or brick-entity.");
         }
 
-        if (!store.TryGet(blockEntity, out BrickAnchorComponent anchor)
+        if (!store.TryGet(brickEntity, out BrickAnchorComponent anchor)
             || !_byAnchor.TryGetValue(anchor, out int indexed)
-            || indexed != blockEntity)
+            || indexed != brickEntity)
         {
-            return Result.FromFailure("Target entity is not an active block-entity.");
+            return Result.FromFailure("Target entity is not an active brick-entity.");
         }
 
-        if (sessions == null || !sessions.TryGetEntity(clientId, out int playerEntity))
+        if (_sessions == null || !_sessions.TryGetEntity(clientId, out int playerEntity))
         {
             return Result.FromFailure("Viewer client has no active session.");
         }
 
-        Result access = ValidateViewerAccess(store, clientId, playerEntity, blockEntity, in anchor);
+        Result access = ValidateViewerAccess(store, clientId, playerEntity, brickEntity, in anchor);
         if (!access.Success)
         {
             return access;
         }
 
-        replication.SubscribeViewer(clientId, blockEntity);
+        _replication.SubscribeViewer(clientId, brickEntity);
         return Result.FromSuccess();
     }
 
-    /// <summary>Detaches <paramref name="clientId"/> from <paramref name="blockEntity"/> and queues its client despawn.</summary>
-    public bool DetachViewer(DataStore store, Uuid clientId, int blockEntity)
+    /// <summary>Detaches <paramref name="clientId"/> from <paramref name="brickEntity"/> and queues its client despawn.</summary>
+    public bool DetachViewer(DataStore store, Uuid clientId, int brickEntity)
     {
-        if (replication == null || clientId == Uuid.Null || blockEntity == Entity.Null)
+        if (_replication == null || clientId == Uuid.Null || brickEntity == Entity.Null)
         {
             return false;
         }
 
-        ulong entityUuid = store.GetUuid(blockEntity).ToValue();
-        return replication.UnsubscribeViewer(clientId, blockEntity, entityUuid);
+        ulong entityUuid = store.GetUuid(brickEntity).ToValue();
+        return _replication.UnsubscribeViewer(clientId, brickEntity, entityUuid);
     }
 
-    /// <summary>Detaches any viewer whose block-entity is no longer live, reachable, or permitted.</summary>
+    /// <summary>Detaches any viewer whose brick-entity is no longer live, reachable, or permitted.</summary>
     public void DetachOutOfReachViewers(DataStore store)
     {
-        if (replication == null || replication.ActiveViewerSubscriptionCount == 0)
+        if (_replication == null || _replication.ActiveViewerSubscriptionCount == 0)
         {
             return;
         }
 
-        replication.CopyActiveSubscriptions(_subscriptionScratch);
+        _replication.CopyActiveSubscriptions(_subscriptionScratch);
         for (var i = 0; i < _subscriptionScratch.Count; i++)
         {
-            (Uuid clientId, int blockEntity) = _subscriptionScratch[i];
-            if (!IsViewerStillAuthorized(store, clientId, blockEntity))
+            (Uuid clientId, int brickEntity) = _subscriptionScratch[i];
+            if (!IsViewerStillAuthorized(store, clientId, brickEntity))
             {
-                ulong entityUuid = store.GetUuid(blockEntity).ToValue();
-                replication.UnsubscribeViewer(clientId, blockEntity, entityUuid);
+                ulong entityUuid = store.GetUuid(brickEntity).ToValue();
+                _replication.UnsubscribeViewer(clientId, brickEntity, entityUuid);
             }
         }
 
         _subscriptionScratch.Clear();
     }
 
-    /// <summary>Programmatically seeds <paramref name="items"/> into <paramref name="groupId"/> on <paramref name="blockEntity"/>.</summary>
-    public Result<int> SeedItems(DataStore store, int blockEntity, string groupId, ReadOnlySpan<ItemData> items)
+    /// <summary>Programmatically seeds <paramref name="items"/> into <paramref name="groupId"/> on <paramref name="brickEntity"/>.</summary>
+    public Result<int> SeedItems(DataStore store, int brickEntity, string groupId, ReadOnlySpan<ItemData> items)
     {
-        if (blockEntity == Entity.Null || !store.TryGet(blockEntity, out InventoryComponent inventory))
+        if (brickEntity == Entity.Null || !store.TryGet(brickEntity, out InventoryComponent inventory))
         {
-            return Result<int>.FromFailure("Target block-entity does not carry an inventory.");
+            return Result<int>.FromFailure("Target brick-entity does not carry an inventory.");
         }
 
         if (string.IsNullOrEmpty(groupId) || !inventory.HasGroup(groupId))
         {
-            return Result<int>.FromFailure($"Block-entity inventory does not declare slot group \"{groupId}\".");
+            return Result<int>.FromFailure($"Brick-entity inventory does not declare slot group \"{groupId}\".");
         }
 
         InventoryComponent updated = inventory.Clone();
@@ -488,18 +525,18 @@ public sealed class ServerBlockEntityService(
 
         if (added > 0 || !HasSameSparseEntries(in inventory, in updated))
         {
-            store.AddOrUpdate(blockEntity, updated);
+            store.AddOrUpdate(brickEntity, updated);
         }
 
         return Result<int>.FromSuccess(added);
     }
 
-    /// <summary>Programmatically seeds explicit keyed slot entries onto <paramref name="blockEntity"/>.</summary>
-    public Result<int> SeedSlots(DataStore store, int blockEntity, ReadOnlySpan<KeyedSlotEntry> entries)
+    /// <summary>Programmatically seeds explicit keyed slot entries onto <paramref name="brickEntity"/>.</summary>
+    public Result<int> SeedSlots(DataStore store, int brickEntity, ReadOnlySpan<KeyedSlotEntry> entries)
     {
-        if (blockEntity == Entity.Null || !store.TryGet(blockEntity, out InventoryComponent inventory))
+        if (brickEntity == Entity.Null || !store.TryGet(brickEntity, out InventoryComponent inventory))
         {
-            return Result<int>.FromFailure("Target block-entity does not carry an inventory.");
+            return Result<int>.FromFailure("Target brick-entity does not carry an inventory.");
         }
 
         InventoryComponent updated = inventory.Clone();
@@ -517,21 +554,21 @@ public sealed class ServerBlockEntityService(
 
         if (applied > 0)
         {
-            store.AddOrUpdate(blockEntity, updated);
+            store.AddOrUpdate(brickEntity, updated);
         }
 
         return Result<int>.FromSuccess(applied);
     }
 
-    /// <summary>Captures all live block-entities from <paramref name="store"/> for <c>level.db</c> persistence.</summary>
-    public BlockEntityData[] Capture(DataStore store)
+    /// <summary>Captures all live brick-entities from <paramref name="store"/> for <c>level.db</c> persistence.</summary>
+    public BrickEntityData[] Capture(DataStore store)
     {
         if (_byAnchor.Count == 0)
         {
             return [];
         }
 
-        var captured = new List<BlockEntityData>(_byAnchor.Count);
+        var captured = new List<BrickEntityData>(_byAnchor.Count);
         foreach ((BrickAnchorComponent anchor, int entity) in _byAnchor)
         {
             if (store.GetUuid(entity) == Uuid.Null)
@@ -539,34 +576,41 @@ public sealed class ServerBlockEntityService(
                 continue;
             }
 
-            if (!store.TryGet(entity, out MachineStateComponent machine))
+            bool hasMachine = store.TryGet(entity, out MachineStateComponent machine);
+            bool hasInventory = store.TryGet(entity, out InventoryComponent inventory);
+            if (!hasMachine && !hasInventory)
             {
                 continue;
             }
 
-            string brickId = _brickIdByEntity.TryGetValue(entity, out string? recorded)
-                ? recorded
+            string brickId = _brickByEntity.TryGetValue(entity, out Brick? recorded)
+                ? recorded.ID
                 : string.Empty;
 
-            KeyedSlotEntry[]? inventoryEntries = store.TryGet(entity, out InventoryComponent inventory)
+            KeyedSlotEntry[]? inventoryEntries = hasInventory
                 ? inventory.ToSparseEntries()
                 : null;
 
-            byte persistentFlags = (byte)(machine.StatusFlags & (byte)MachineStatusFlags.PersistentMask);
-            float progress = float.IsFinite(machine.Progress) && machine.Progress > 0f ? machine.Progress : 0f;
-            float duration = float.IsFinite(machine.Duration) && machine.Duration > 0f ? machine.Duration : 0f;
+            string stationTag = hasMachine ? machine.StationTag ?? string.Empty : string.Empty;
+            string? activeRecipeId = hasMachine ? machine.ActiveRecipeId : null;
+            byte persistentFlags = hasMachine
+                ? (byte)(machine.StatusFlags & (byte)MachineStatusFlags.PersistentMask)
+                : (byte)MachineStatusFlags.None;
+            float progress = hasMachine && float.IsFinite(machine.Progress) && machine.Progress > 0f ? machine.Progress : 0f;
+            float duration = hasMachine && float.IsFinite(machine.Duration) && machine.Duration > 0f ? machine.Duration : 0f;
+            bool powerEnabled = hasMachine ? machine.PowerEnabled : true;
 
-            captured.Add(new BlockEntityData(
+            captured.Add(new BrickEntityData(
                 _VoxelEntityUuid: anchor.VoxelEntityUuid.ToValue(),
                 _VoxelX: anchor.VoxelCoord.X,
                 _VoxelY: anchor.VoxelCoord.Y,
                 _VoxelZ: anchor.VoxelCoord.Z,
                 _BrickId: brickId,
-                _StationTag: machine.StationTag ?? string.Empty,
-                _ActiveRecipeId: machine.ActiveRecipeId,
+                _StationTag: stationTag,
+                _ActiveRecipeId: activeRecipeId,
                 _Progress: progress,
                 _Duration: duration,
-                _PowerEnabled: machine.PowerEnabled,
+                _PowerEnabled: powerEnabled,
                 _StatusFlags: persistentFlags,
                 _Inventory: inventoryEntries));
         }
@@ -579,79 +623,41 @@ public sealed class ServerBlockEntityService(
     {
         _byAnchor.Clear();
         _anchorsByStructure.Clear();
-        _brickIdByEntity.Clear();
-        replication?.ClearAllViewers();
+        _brickByEntity.Clear();
+        _replication?.ClearAllViewers();
     }
 
-    /// <summary>Derives a deterministic, non-zero, collision-free entity UUID for (<paramref name="structureUuid"/>, <paramref name="coord"/>).</summary>
-    internal static Uuid DeriveUuid(Uuid structureUuid, Int3 coord, DataStore store)
-    {
-        ulong hash = MixBlockEntityHash(structureUuid.ToValue(), coord.X, coord.Y, coord.Z);
-        Uuid candidate = Uuid.FromValue(hash);
-        while (candidate == Uuid.Null || store.TryGet(candidate, out _))
-        {
-            hash = SplitMix64(hash + SPLITMIX_INCREMENT);
-            candidate = Uuid.FromValue(hash);
-        }
-
-        return candidate;
-    }
-
-    private int SpawnBlockEntity(
+    private int SpawnBrickEntity(
         DataStore store,
         Uuid structureUuid,
         Int3 coord,
         Brick brick,
-        BlockEntityData? persisted
+        BrickEntityData? persisted
     )
     {
-        BrickBlockEntity metadata = brick.BlockEntity!;
         var anchor = new BrickAnchorComponent(structureUuid, coord);
 
         if (_byAnchor.TryGetValue(anchor, out int existing))
         {
-            DestroyBlockEntity(store, anchor, existing);
+            DestroyBrickEntity(store, anchor, existing);
         }
 
-        Uuid entityUuid = DeriveUuid(structureUuid, coord, store);
+        Uuid entityUuid = BrickEntityId.DeriveUnique(structureUuid, coord, store);
         int entity = store.Alloc(entityUuid);
 
         store.AddOrUpdate(entity, new NetworkComponent());
         store.AddOrUpdate(entity, anchor);
-        store.AddOrUpdate(entity, new ContainerAccessComponent
-        {
-            MaxReach = CharacterDefaults.DEFAULT_REACH,
-        });
 
-        if (metadata.HasInventory)
+        for (var i = 0; i < _decorators.Length; i++)
         {
-            InventoryComponent inventory = BuildInventory(metadata.SlotGroups, persisted?.Inventory);
-            store.AddOrUpdate(entity, inventory);
+            if (_decorators[i].AppliesTo(brick))
+            {
+                _decorators[i].OnSpawn(store, entity, brick, in persisted);
+            }
         }
 
-        float progress = persisted != null && float.IsFinite(persisted.Value.Progress) && persisted.Value.Progress > 0f
-            ? persisted.Value.Progress
-            : 0f;
-        float duration = persisted != null && float.IsFinite(persisted.Value.Duration) && persisted.Value.Duration > 0f
-            ? persisted.Value.Duration
-            : 0f;
-        bool powerEnabled = persisted?.PowerEnabled ?? metadata.DefaultPowerEnabled;
-        byte statusFlags = persisted != null
-            ? (byte)(persisted.Value.StatusFlags & (byte)MachineStatusFlags.PersistentMask)
-            : (metadata.DefaultOpen ? (byte)MachineStatusFlags.Open : (byte)MachineStatusFlags.None);
-
-        var machineState = new MachineStateComponent(
-            _StationTag: metadata.StationTag,
-            _ActiveRecipeId: persisted?.ActiveRecipeId,
-            _Progress: progress,
-            _Duration: duration,
-            _PowerEnabled: powerEnabled,
-            _HasPower: false,
-            _StatusFlags: statusFlags);
-        store.AddOrUpdate(entity, machineState);
-
         _byAnchor[anchor] = entity;
-        _brickIdByEntity[entity] = brick.ID;
+        _brickByEntity[entity] = brick;
         if (!_anchorsByStructure.TryGetValue(structureUuid, out HashSet<BrickAnchorComponent>? anchors))
         {
             anchors = [];
@@ -659,51 +665,24 @@ public sealed class ServerBlockEntityService(
         }
 
         anchors.Add(anchor);
-        logger?.LogDebug(
-            "Allocated block-entity {entity} ({uuid}) for brick \"{brick}\" at ({structure}, {coord}).",
+        _logger?.LogDebug(
+            "Allocated brick-entity {entity} ({uuid}) for brick \"{brick}\" at ({structure}, {coord}).",
             entity, entityUuid, brick.ID, structureUuid, coord);
         return entity;
-    }
-
-    private InventoryComponent BuildInventory(IReadOnlyList<BrickSlotGroup> slotGroups, KeyedSlotEntry[]? persistedEntries)
-    {
-        ISlotGroupSchemaDatabase resolvedSchemas = schemas ?? SlotGroupSchemaDatabase.Default;
-        var descriptors = new SlotGroupDescriptor[slotGroups.Count];
-        for (var i = 0; i < slotGroups.Count; i++)
-        {
-            BrickSlotGroup group = slotGroups[i];
-            int capacity = group.Capacity ?? resolvedSchemas.GetCapacity(group.GroupId, GetDefaultGroupCapacity(group.GroupId));
-            descriptors[i] = new SlotGroupDescriptor(group.GroupId, Math.Max(0, capacity));
-        }
-
-        var inventory = InventoryComponent.Create(descriptors);
-        if (persistedEntries != null && persistedEntries.Length > 0)
-        {
-            var sanitized = new KeyedSlotEntry[persistedEntries.Length];
-            for (var i = 0; i < persistedEntries.Length; i++)
-            {
-                KeyedSlotEntry entry = persistedEntries[i];
-                sanitized[i] = new KeyedSlotEntry(entry.GroupId, entry.LocalIndex, ClampItemStack(entry.Item));
-            }
-
-            inventory.LoadSparse(sanitized);
-        }
-
-        return inventory;
     }
 
     private void RemoveAt(DataStore store, in BrickAnchorComponent anchor)
     {
         if (_byAnchor.TryGetValue(anchor, out int existing))
         {
-            DestroyBlockEntity(store, anchor, existing);
+            DestroyBrickEntity(store, anchor, existing);
         }
     }
 
-    private void DestroyBlockEntity(DataStore store, in BrickAnchorComponent anchor, int blockEntity)
+    private void DestroyBrickEntity(DataStore store, in BrickAnchorComponent anchor, int brickEntity)
     {
         _byAnchor.Remove(anchor);
-        _brickIdByEntity.Remove(blockEntity);
+        bool hadBrick = _brickByEntity.Remove(brickEntity, out Brick? brick);
 
         if (_anchorsByStructure.TryGetValue(anchor.VoxelEntityUuid, out HashSet<BrickAnchorComponent>? anchors))
         {
@@ -714,18 +693,29 @@ public sealed class ServerBlockEntityService(
             }
         }
 
-        ulong entityUuid = store.GetUuid(blockEntity).ToValue();
-        replication?.DetachAllViewers(blockEntity, entityUuid);
+        if (hadBrick && brick != null)
+        {
+            for (var i = 0; i < _decorators.Length; i++)
+            {
+                if (_decorators[i].AppliesTo(brick))
+                {
+                    _decorators[i].OnDespawn(store, brickEntity, brick);
+                }
+            }
+        }
+
+        ulong entityUuid = store.GetUuid(brickEntity).ToValue();
+        _replication?.DetachAllViewers(brickEntity, entityUuid);
 
         if (entityUuid != 0UL)
         {
-            store.Free(blockEntity);
+            store.Free(brickEntity);
         }
     }
 
-    private void TransferContentsToPlayer(DataStore store, int breakingPlayer, in InventoryComponent blockInventory)
+    private void TransferContentsToPlayer(DataStore store, int breakingPlayer, in InventoryComponent brickInventory)
     {
-        KeyedSlotEntry[] entries = blockInventory.ToSparseEntries();
+        KeyedSlotEntry[] entries = brickInventory.ToSparseEntries();
         if (entries.Length == 0 || !store.TryGet(breakingPlayer, out InventoryComponent playerInventory))
         {
             return;
@@ -742,8 +732,8 @@ public sealed class ServerBlockEntityService(
 
             if (!updated.Add(in item))
             {
-                logger?.LogDebug(
-                    "Player {player} inventory could not accept all {count}x \"{item}\" from broken block-entity.",
+                _logger?.LogDebug(
+                    "Player {player} inventory could not accept all {count}x \"{item}\" from broken brick-entity.",
                     breakingPlayer, item.Count, item.ID);
             }
         }
@@ -781,7 +771,7 @@ public sealed class ServerBlockEntityService(
         DataStore store,
         Uuid clientId,
         int playerEntity,
-        int blockEntity,
+        int brickEntity,
         in BrickAnchorComponent anchor
     )
     {
@@ -795,11 +785,11 @@ public sealed class ServerBlockEntityService(
 
         if (!TryResolveWorldPosition(store, in anchor, out Vector3 worldPosition))
         {
-            return Result.FromFailure("Block-entity parent structure is unavailable.");
+            return Result.FromFailure("Brick-entity parent structure is unavailable.");
         }
 
         float maxReach = CharacterDefaults.DEFAULT_REACH;
-        if (store.TryGet(blockEntity, out ContainerAccessComponent access))
+        if (store.TryGet(brickEntity, out ContainerAccessComponent access))
         {
             if (access.MaxReach > 0f && float.IsFinite(access.MaxReach))
             {
@@ -808,41 +798,41 @@ public sealed class ServerBlockEntityService(
 
             if (access.ActiveViewer != Uuid.Null && access.ActiveViewer != playerUuid)
             {
-                return Result.FromFailure("Block-entity is currently viewed exclusively by another player.");
+                return Result.FromFailure("Brick-entity is currently viewed exclusively by another player.");
             }
 
             if (access.IsLocked && access.Owner != playerUuid)
             {
-                return Result.FromFailure("Block-entity is locked.");
+                return Result.FromFailure("Brick-entity is locked.");
             }
 
             if (!string.IsNullOrEmpty(access.RequiredPermission)
-                && (permissions == null || !permissions.HasPermission(clientId, access.RequiredPermission)))
+                && (_permissions == null || !_permissions.HasPermission(clientId, access.RequiredPermission)))
             {
-                return Result.FromFailure("Viewer lacks required block-entity permission.");
+                return Result.FromFailure("Viewer lacks required brick-entity permission.");
             }
         }
 
         if (Vector3.DistanceSquared(playerTransform.Position, worldPosition) > maxReach * maxReach)
         {
-            return Result.FromFailure("Block-entity is out of reach.");
+            return Result.FromFailure("Brick-entity is out of reach.");
         }
 
         return Result.FromSuccess();
     }
 
-    private bool IsViewerStillAuthorized(DataStore store, Uuid clientId, int blockEntity)
+    private bool IsViewerStillAuthorized(DataStore store, Uuid clientId, int brickEntity)
     {
-        if (sessions == null
-            || !sessions.TryGetEntity(clientId, out int playerEntity)
-            || !store.TryGet(blockEntity, out BrickAnchorComponent anchor)
+        if (_sessions == null
+            || !_sessions.TryGetEntity(clientId, out int playerEntity)
+            || !store.TryGet(brickEntity, out BrickAnchorComponent anchor)
             || !_byAnchor.TryGetValue(anchor, out int indexed)
-            || indexed != blockEntity)
+            || indexed != brickEntity)
         {
             return false;
         }
 
-        return ValidateViewerAccess(store, clientId, playerEntity, blockEntity, in anchor).Success;
+        return ValidateViewerAccess(store, clientId, playerEntity, brickEntity, in anchor).Success;
     }
 
     private ItemData ClampItemStack(in ItemData item)
@@ -853,9 +843,9 @@ public sealed class ServerBlockEntityService(
         }
 
         int maxSize = item.MaxSize > 0 ? item.MaxSize : 100;
-        if (itemDatabase != null)
+        if (_itemDatabase != null)
         {
-            Result<Item> resolved = itemDatabase.Get(item.ID);
+            Result<Item> resolved = _itemDatabase.Get(item.ID);
             if (resolved.Success && resolved.Value.MaxStack > 0)
             {
                 maxSize = resolved.Value.MaxStack;
@@ -864,36 +854,6 @@ public sealed class ServerBlockEntityService(
 
         int count = Math.Clamp(item.Count, 1, maxSize);
         return new ItemData(item.ID, count, maxSize);
-    }
-
-    private static int GetDefaultGroupCapacity(string groupId)
-    {
-        return groupId switch
-        {
-            SlotGroups.CARGO => SlotGroups.DEFAULT_CARGO_CAPACITY,
-            SlotGroups.HOTBAR => SlotGroups.DEFAULT_HOTBAR_CAPACITY,
-            SlotGroups.BACKPACK => SlotGroups.DEFAULT_BACKPACK_CAPACITY,
-            SlotGroups.WEARABLES => SlotGroups.DEFAULT_WEARABLES_CAPACITY,
-            SlotGroups.AUGMENTS => SlotGroups.DEFAULT_AUGMENTS_CAPACITY,
-            _ => 1,
-        };
-    }
-
-    private static ulong MixBlockEntityHash(ulong structureUuid, int x, int y, int z)
-    {
-        ulong h = BLOCK_ENTITY_UUID_SALT ^ SplitMix64(structureUuid);
-        h = SplitMix64(h ^ (uint)x);
-        h = SplitMix64(h ^ ((ulong)(uint)y << 32));
-        h = SplitMix64(h ^ (uint)z);
-        return h;
-    }
-
-    private static ulong SplitMix64(ulong value)
-    {
-        ulong z = value + SPLITMIX_INCREMENT;
-        z = (z ^ (z >> 30)) * 0xBF58_476D_1CE4_E5B9UL;
-        z = (z ^ (z >> 27)) * 0x94D0_49BB_1331_11EBUL;
-        return z ^ (z >> 31);
     }
 
     private static bool IsFinite(Vector3 value)

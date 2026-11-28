@@ -32,8 +32,8 @@ public sealed class ServerWorld : IDisposable
     public ServerJoinQueue JoinQueue { get; }
     /// <summary>The world replication stages.</summary>
     public NetworkReplicationSystem Replication { get; }
-    /// <summary>The world server-managed block-entity registry and lifecycle service, or null in minimal test containers.</summary>
-    public ServerBlockEntityService? BlockEntities { get; }
+    /// <summary>The world server-managed brick-entity registry and lifecycle service, or null in minimal test containers.</summary>
+    public ServerBrickEntityService? BrickEntities { get; }
     /// <summary>The world particle replication and burst service.</summary>
     public IServerParticleService Particles { get; }
     /// <summary>The shared simulation step for this world.</summary>
@@ -53,8 +53,8 @@ public sealed class ServerWorld : IDisposable
         JoinQueue = Pin<ServerJoinQueue>(container);
         Replication = Pin<NetworkReplicationSystem>(container);
         Pin<IUserPermissionService>(container);
-        BlockEntities = container.IsRegistered<ServerBlockEntityService>()
-            ? Pin<ServerBlockEntityService>(container)
+        BrickEntities = container.IsRegistered<ServerBrickEntityService>()
+            ? Pin<ServerBrickEntityService>(container)
             : null;
         SaveService = Pin<LevelSaveService>(container);
         ServerParticleService particles = Pin<ServerParticleService>(container);

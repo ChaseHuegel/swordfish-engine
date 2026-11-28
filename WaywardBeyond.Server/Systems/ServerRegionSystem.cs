@@ -47,7 +47,7 @@ public sealed class ServerRegionSystem(
     GameplayConfig? gameplayConfig = null,
     IItemDatabase? itemDatabase = null,
     IBundledBlueprintDatabase? bundledBlueprints = null,
-    ServerBlockEntityService? blockEntities = null
+    ServerBrickEntityService? brickEntities = null
 ) : IServerWorldSystem
 {
     private const float MIN_QUATERNION_LEN_SQ = 1e-4f;
@@ -137,13 +137,13 @@ public sealed class ServerRegionSystem(
             Uuid targetUuid = store.GetUuid(targetEntity);
             if (!VoxelRegionApplier.HasSolidVoxels(world.VoxelObject))
             {
-                blockEntities?.OnStructureRemoved(store, targetUuid);
+                brickEntities?.OnStructureRemoved(store, targetUuid);
                 replication.RequestDespawn(targetUuid.ToValue());
                 store.Free(targetEntity);
             }
             else
             {
-                blockEntities?.OnRegionCleared(store, targetUuid, min, max);
+                brickEntities?.OnRegionCleared(store, targetUuid, min, max);
                 store.AddOrUpdate(targetEntity, new ColliderComponent(
                     VoxelColliderBuilder.RebuildDirtyChunks(in world, _dirtyChunks, brickDatabase)));
 
@@ -447,13 +447,13 @@ public sealed class ServerRegionSystem(
         if (!VoxelRegionApplier.HasSolidVoxels(world.VoxelObject))
         {
             Uuid targetUuid = store.GetUuid(targetEntity);
-            blockEntities?.OnStructureRemoved(store, targetUuid);
+            brickEntities?.OnStructureRemoved(store, targetUuid);
             replication.RequestDespawn(targetUuid.ToValue());
             store.Free(targetEntity);
         }
         else if (_dirtyChunks.Count > 0 || applied > 0)
         {
-            blockEntities?.SyncRegion(
+            brickEntities?.SyncRegion(
                 store,
                 store.GetUuid(targetEntity),
                 world.VoxelObject,
@@ -554,9 +554,9 @@ public sealed class ServerRegionSystem(
             return FailOp("notification.region.empty", skippedUnknownBricks);
         }
 
-        if (blockEntities != null && store.TryGet(spawned.Ptr, out VoxelWorldComponent spawnedWorld))
+        if (brickEntities != null && store.TryGet(spawned.Ptr, out VoxelWorldComponent spawnedWorld))
         {
-            blockEntities.SyncStructure(store, newUuid, spawnedWorld.VoxelObject);
+            brickEntities.SyncStructure(store, newUuid, spawnedWorld.VoxelObject);
         }
 
         Result<VoxelEntityData> encodedSpawn = VoxelCodec.Encode(in rawEntityData, brickRegistry, paintRegistry);

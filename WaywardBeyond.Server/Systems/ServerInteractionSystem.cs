@@ -26,7 +26,7 @@ public sealed class ServerInteractionSystem(
     IInteractionHandlerRegistry handlerRegistry,
     Func<DataStore, IVoxelInteractionWorld> worldFactory,
     SimulationStep simulationStep,
-    ServerBlockEntityService? blockEntities = null
+    ServerBrickEntityService? brickEntities = null
 ) : IServerWorldSystem
 {
     private readonly Dictionary<Uuid, TimedSession> _timedSessions = [];
@@ -201,7 +201,7 @@ public sealed class ServerInteractionSystem(
             return;
         }
 
-        NotifyBlockEntityInteraction(store, in context);
+        NotifyBrickEntityInteraction(store, in context);
 
         InteractionRunResult reactResult = handlerRegistry.Run(ref context, InteractionStage.React, InteractionStage.React);
         if (reactResult.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
@@ -284,7 +284,7 @@ public sealed class ServerInteractionSystem(
 
             if (commitResult.Resolution.Action != InteractionAction.None)
             {
-                NotifyBlockEntityInteraction(store, in context);
+                NotifyBrickEntityInteraction(store, in context);
             }
 
             InteractionRunResult reactResult = handlerRegistry.Run(ref context, InteractionStage.React, InteractionStage.React);
@@ -305,9 +305,9 @@ public sealed class ServerInteractionSystem(
         _timedSessions[playerUuid] = session;
     }
 
-    private void NotifyBlockEntityInteraction(DataStore store, in InteractionContext context)
+    private void NotifyBrickEntityInteraction(DataStore store, in InteractionContext context)
     {
-        if (blockEntities == null)
+        if (brickEntities == null)
         {
             return;
         }
@@ -315,11 +315,11 @@ public sealed class ServerInteractionSystem(
         InteractionResolution resolution = context.Resolution;
         if (resolution.Action == InteractionAction.Place)
         {
-            blockEntities.OnBrickPlaced(store, store.GetUuid(resolution.Entity), resolution.Coordinate, resolution.Voxel.ID);
+            brickEntities.OnBrickPlaced(store, store.GetUuid(resolution.Entity), resolution.Coordinate, resolution.Voxel.ID);
         }
         else if (resolution.Action == InteractionAction.Break)
         {
-            blockEntities.OnBrickBroken(store, store.GetUuid(resolution.Entity), resolution.Coordinate, context.Player, context.GameMode);
+            brickEntities.OnBrickBroken(store, store.GetUuid(resolution.Entity), resolution.Coordinate, context.Player, context.GameMode);
         }
     }
 

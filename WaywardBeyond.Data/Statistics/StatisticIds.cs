@@ -21,6 +21,9 @@ public static class StatisticIds
     /// <summary>Default base value for <see cref="HARDNESS"/> when no brick or modifier overrides it.</summary>
     public const float DEFAULT_HARDNESS = 1.0f;
 
+    /// <summary>Nominal power rate of a brick in kW; positive generates power and negative draws power.</summary>
+    public const string POWER_KW = "wb:power_kw";
+
     /// <summary>Current health vital stat ID (fixed-point).</summary>
     public const string HEALTH = "wb:health";
 

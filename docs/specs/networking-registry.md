@@ -99,7 +99,7 @@ player's vitals, attributes, and buff timers only to that owning session.
 `InventoryComponent` (`WaywardBeyond.Networking/NetworkingComposition.cs:29-34`)
 and `MachineStateComponent` (`WaywardBeyond.Networking/NetworkingComposition.cs:53-58`)
 use `ViewersOnly`. Players receive their own `InventoryComponent`, and clients
-subscribed to a server block-entity receive that block-entity's
+subscribed to a server brick-entity receive that brick-entity's
 `InventoryComponent` and `MachineStateComponent` while viewing it.
 
 Every failure in `TransformCodec` and `PhysicsCodec` carries a message that
@@ -168,6 +168,6 @@ consumes items against its values. See [join](networking-join.md) and
 - `WaywardBeyond.Tests/StatisticsReplicationTests.cs` pins `OwnerOnly` audience
   filtering, full-sync and delta replication, and idle dirty suppression for
   `StatisticsComponent`.
-- `WaywardBeyond.Tests/BlockEntityTests.cs` pins `ViewersOnly` registration for
+- `WaywardBeyond.Tests/BrickEntityTests.cs` pins `ViewersOnly` registration for
   `InventoryComponent` and `MachineStateComponent`, initial attach snapshots,
   live deltas, targeted detach despawns, and non-viewer isolation.

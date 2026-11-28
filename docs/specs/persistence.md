@@ -39,7 +39,7 @@ and a 5 second busy timeout.
 | Path | Owner | Tables |
 |---|---|---|
 | `saves/profile.db` | Client | `characters`, `level_metadata` |
-| `saves/<levelGuid>/level.db` | Server | `level`, `entities`, `character_locations`, `block_entities` |
+| `saves/<levelGuid>/level.db` | Server | `level`, `entities`, `character_locations`, `brick_entities` |
 | `blueprints/*.wbp` | Client | Binary nsd `BlueprintData` files (`FileBlueprintStorage`) |
 
 See [region-blueprints](region-blueprints.md) for the client blueprint storage
@@ -89,7 +89,7 @@ with the level seed, `GameMode`, and `LevelSpawn` (`GameplayConfig.DefaultSpawnP
 | `level` | one row, guid column | serialized `Level` metadata |
 | `entities` | entity uuid (text) | serialized `VoxelEntityData` |
 | `character_locations` | character uuid (text) | serialized `CharacterEntityData` |
-| `block_entities` | composite `(voxel_entity_uuid, voxel_x, voxel_y, voxel_z)` | serialized `BlockEntityData` (`WaywardBeyond.Data/Nsd/saves.nsd:108`) |
+| `brick_entities` | composite `(voxel_entity_uuid, voxel_x, voxel_y, voxel_z)` | serialized `BrickEntityData` (`WaywardBeyond.Data/Nsd/saves.nsd:108`) |
 
 Keys are decimal strings because SQLite integers are signed 64-bit and the
 uuids are `ulong`. A player mirror is allocated with the character's uuid, so
@@ -103,9 +103,9 @@ A full level save commits one transaction (`ILevelStorage.Save`):
   - The `level` row upserts.
   - Every `entities` row is replaced by the captured snapshot. A structure
   removed from the world no longer persists.
-  - Every `block_entities` row is replaced by the captured `BlockEntityData`
-  snapshot (`ServerBlockEntityService.Capture`,
-  `WaywardBeyond.Server/Systems/ServerBlockEntityService.cs:527`). Each record
+  - Every `brick_entities` row is replaced by the captured `BrickEntityData`
+  snapshot (`ServerBrickEntityService.Capture`,
+  `WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:544`). Each record
   stores the anchor `(VoxelEntityUuid, VoxelX, VoxelY, VoxelZ)`, `BrickId`,
   sparse keyed `InventoryComponent` entries, and persistent `MachineStateComponent`
   fields (`StationTag`, `ActiveRecipeId`, `Progress`, `Duration`, `PowerEnabled`,
@@ -116,15 +116,16 @@ A full level save commits one transaction (`ILevelStorage.Save`):
   keeps its last location.
 
 `LevelSaveService.LoadLevel` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:119-203`)
-reads all `block_entities` rows and delegates each loaded structure to
-`ServerBlockEntityService.RestoreStructure`
-(`WaywardBeyond.Server/Systems/ServerBlockEntityService.cs:318`). Every placed
-functional brick allocates a server ECS block-entity with `BrickAnchorComponent`,
-configured `InventoryComponent` slot groups, `ContainerAccessComponent`, and
-`MachineStateComponent`, restoring matching saved data when present. When every
-structure decodes cleanly, any saved `block_entities` row whose structure no
-longer exists or whose brick at that coordinate no longer matches is deleted
-through `ILevelStorage.DeleteBlockEntities`
+reads all `brick_entities` rows and delegates each loaded structure to
+`ServerBrickEntityService.RestoreStructure`
+(`WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:335`). Every placed
+brick claimed by an `IServerBrickEntityDecorator` allocates a server ECS
+brick-entity with `BrickAnchorComponent` and decorator-provisioned components
+(`InventoryComponent`, `ContainerAccessComponent`, `MachineStateComponent`),
+restoring matching saved data when present. When every structure decodes cleanly,
+any saved `brick_entities` row whose structure no longer exists or whose brick at
+that coordinate no longer matches is deleted through
+`ILevelStorage.DeleteBrickEntities`
 (`WaywardBeyond.Data/Levels/SqliteLevelStorage.cs:194`).
 
 The store hands out deserialized models, not bytes. `ILevelStorage.GetLevel`
@@ -261,10 +262,11 @@ no shared broker process to manage.
 - `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
 - `WaywardBeyond.Server/Generation/LevelGenerator.cs`
 - `WaywardBeyond.Server/Saves/LevelSaveService.cs`
-- `WaywardBeyond.Server/Systems/{ServerBlockEntityService,ServerBlockEntitySystem}.cs`
+- `WaywardBeyond.Server/Systems/{IServerBrickEntityDecorator,InventoryBrickEntityDecorator,MachineBrickEntityDecorator,ServerBrickEntityService,ServerBrickEntitySystem}.cs`
+- `WaywardBeyond.Gameplay/BrickEntityId.cs`
 - `WaywardBeyond.Gameplay/Components/BrickAnchorComponent.cs`
 - `WaywardBeyond.Data/Components/{MachineStateComponent,MachineStatusFlags}.cs`
-- `WaywardBeyond.Data/Levels/BlockEntityKey.cs`
+- `WaywardBeyond.Data/Levels/BrickEntityKey.cs`
 - `WaywardBeyond.Server/ServerLevelManager.cs`
 - `WaywardBeyond.Server/ServerHostCommands.cs`
 - `WaywardBeyond.Server/ServerWorldHost.cs`
@@ -281,5 +283,5 @@ no shared broker process to manage.
 - `WaywardBeyond.Tests/KeyedInventoryTests.cs` pins sparse keyed character storage persistence round-trips.
 - `WaywardBeyond.Tests/CharacterLocationSaveTests.cs` pins join inventory seeding and non-restocking rules.
 - `WaywardBeyond.Tests/ServerJoinStatisticsTests.cs` pins join stat seeding, Adventure Mode bounds, expired buff pruning on leave and rejoin, and client durable stat merging.
-- `WaywardBeyond.Tests/BlockEntityTests.cs` pins `level.db` `block_entities` save/load round-trips keyed by `(VoxelEntityUuid, Int3)`, starter wreck and blueprint block-entity allocation with cargo seeding, and orphaned record pruning.
+- `WaywardBeyond.Tests/BrickEntityTests.cs` pins `level.db` `brick_entities` save/load round-trips keyed by `(VoxelEntityUuid, Int3)`, starter wreck and blueprint brick-entity allocation with cargo seeding, and orphaned record pruning.
 - No tests pin the playtime rules.

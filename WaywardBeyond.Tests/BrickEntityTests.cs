@@ -23,6 +23,8 @@ using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Client.Voxels.Building;
+using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Blueprints;
@@ -31,6 +33,7 @@ using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Components;
 using WaywardBeyond.Gameplay.Interactions;
@@ -60,75 +63,90 @@ namespace WaywardBeyond.Tests;
 /// cargo seeding, viewer-scoped replication isolation, and <c>level.db</c> save/load round-trips.
 /// </summary>
 [Collection("ClientGameState")]
-public sealed class BlockEntityTests
+public sealed class BrickEntityTests
 {
     [Fact]
-    public void BrickDatabaseLoadsBlockEntityMetadataAndSkipsInvalidEntries()
+    public void BrickDatabaseLoadsBrickEntityMetadataTagsAndStatisticsAndSkipsInvalidEntries()
     {
         BrickDatabase shipped = LoadShippedBricks();
 
         Brick storage = shipped.Get("wb:storage").Value;
-        Assert.True(storage.HasBlockEntity);
-        Assert.Equal("station.storage", storage.BlockEntity!.StationTag);
-        Assert.True(storage.BlockEntity.Airtight);
-        Assert.False(storage.BlockEntity.Toggleable);
-        Assert.True(storage.BlockEntity.HasInventory);
-        Assert.Single(storage.BlockEntity.SlotGroups);
-        Assert.Equal(SlotGroups.CARGO, storage.BlockEntity.SlotGroups[0].GroupId);
-        Assert.Null(storage.BlockEntity.SlotGroups[0].Capacity);
+        Assert.True(storage.HasEntity);
+        Assert.Equal("station.storage", storage.StationTag);
+        Assert.True(storage.Airtight);
+        Assert.False(storage.Toggleable);
+        Assert.True(storage.Entity!.HasInventory);
+        Assert.Single(storage.Entity.SlotGroups);
+        Assert.Equal(SlotGroups.CARGO, storage.Entity.SlotGroups[0].GroupId);
+        Assert.Null(storage.Entity.SlotGroups[0].Capacity);
 
         Brick core = shipped.Get("wb:core").Value;
-        Assert.True(core.HasBlockEntity);
-        Assert.Equal("station.core", core.BlockEntity!.StationTag);
-        Assert.Equal(50f, core.BlockEntity.PowerKw);
-        Assert.True(core.BlockEntity.Airtight);
-        Assert.True(core.BlockEntity.Toggleable);
-        Assert.True(core.BlockEntity.DefaultPowerEnabled);
-        Assert.Single(core.BlockEntity.SlotGroups);
-        Assert.Equal(SlotGroups.FUEL, core.BlockEntity.SlotGroups[0].GroupId);
+        Assert.True(core.HasEntity);
+        Assert.Equal("station.core", core.StationTag);
+        Assert.Equal(50f, core.GetStatistic(StatisticIds.POWER_KW));
+        Assert.True(core.Airtight);
+        Assert.True(core.Toggleable);
+        Assert.True(core.DefaultPowerEnabled);
+        Assert.Single(core.Entity!.SlotGroups);
+        Assert.Equal(SlotGroups.FUEL, core.Entity.SlotGroups[0].GroupId);
 
         Brick console = shipped.Get("wb:display_console").Value;
-        Assert.True(console.HasBlockEntity);
-        Assert.Equal("station.console", console.BlockEntity!.StationTag);
-        Assert.Equal(-1f, console.BlockEntity.PowerKw);
-        Assert.True(console.BlockEntity.Toggleable);
-        Assert.False(console.BlockEntity.HasInventory);
+        Assert.Equal("station.console", console.StationTag);
+        Assert.Equal(-1f, console.GetStatistic(StatisticIds.POWER_KW));
+        Assert.True(console.Toggleable);
+        Assert.False(console.Entity?.HasInventory ?? false);
 
         Brick panel = shipped.Get("wb:panel").Value;
-        Assert.False(panel.HasBlockEntity);
-        Assert.Null(panel.BlockEntity);
+        Assert.False(panel.HasEntity);
+        Assert.Null(panel.Entity);
 
-        //  Custom TOML parsing with explicit slot capacity overrides, default flags, and invalid entries skipped.
+        //  Custom TOML parsing with tags, statistics, [Bricks.Entity.Light], slot overrides, and invalid entries skipped.
         string tempDir = Path.Combine(Path.GetTempPath(), $"wb-be-bricks-{Path.GetRandomFileName()}");
         string bricksDir = Path.Combine(tempDir, "bricks");
+        string tagsDir = Path.Combine(tempDir, "lang", "tags");
         Directory.CreateDirectory(bricksDir);
+        Directory.CreateDirectory(tagsDir);
         try
         {
+            File.WriteAllText(
+                Path.Combine(tagsDir, "bricks.toml"),
+                """
+                "Language" = ""
+                [Tags]
+                "station.refinery" = ["wb:test_refinery"]
+                "brick.airtight" = ["wb:test_refinery"]
+                "brick.toggleable" = ["wb:test_refinery"]
+                "brick.default_power_off" = ["wb:test_refinery"]
+                "brick.default_open" = ["wb:test_refinery"]
+                """
+            );
             File.WriteAllText(
                 Path.Combine(bricksDir, "machines.toml"),
                 """
                 [[Bricks]]
                 ID = "wb:test_refinery"
-                [Bricks.BlockEntity]
-                StationTag = "station.refinery"
-                PowerKw = -12.5
-                Airtight = true
-                Toggleable = true
-                DefaultPowerEnabled = false
-                DefaultOpen = true
-                [[Bricks.BlockEntity.SlotGroups]]
+                [Bricks.Statistics]
+                "wb:power_kw" = -12.5
+                [Bricks.Entity.Light]
+                Radius = 4.5
+                Size = 0.5
+                Color = "#FF8000"
+                Intensity = 3.0
+                CastShadows = true
+                Offset = { X = 0.0, Y = 0.5, Z = 0.25 }
+                [[Bricks.Entity.SlotGroups]]
                 ID = "wb:input"
                 Capacity = 3
-                [[Bricks.BlockEntity.SlotGroups]]
+                [[Bricks.Entity.SlotGroups]]
                 ID = "wb:output"
                 Capacity = 2
-                [[Bricks.BlockEntity.SlotGroups]]
+                [[Bricks.Entity.SlotGroups]]
                 ID = ""
                 Capacity = 1
-                [[Bricks.BlockEntity.SlotGroups]]
+                [[Bricks.Entity.SlotGroups]]
                 ID = "wb:bad_cap"
                 Capacity = -4
-                [[Bricks.BlockEntity.SlotGroups]]
+                [[Bricks.Entity.SlotGroups]]
                 ID = "wb:input"
                 Capacity = 9
                 """
@@ -142,20 +160,160 @@ public sealed class BlockEntityTests
             var bricks = new BrickDatabase(NullLogger<BrickDatabase>.Instance, parseService, vfs, tags);
 
             Brick refinery = bricks.Get("wb:test_refinery").Value;
-            Assert.True(refinery.HasBlockEntity);
-            Assert.Equal("station.refinery", refinery.BlockEntity!.StationTag);
-            Assert.Equal(-12.5f, refinery.BlockEntity.PowerKw);
-            Assert.True(refinery.BlockEntity.Airtight);
-            Assert.True(refinery.BlockEntity.Toggleable);
-            Assert.False(refinery.BlockEntity.DefaultPowerEnabled);
-            Assert.True(refinery.BlockEntity.DefaultOpen);
-            Assert.Equal(2, refinery.BlockEntity.SlotGroups.Count);
-            Assert.Equal(new BrickSlotGroup(SlotGroups.INPUT, 3), refinery.BlockEntity.SlotGroups[0]);
-            Assert.Equal(new BrickSlotGroup(SlotGroups.OUTPUT, 2), refinery.BlockEntity.SlotGroups[1]);
+            Assert.True(refinery.HasEntity);
+            Assert.Equal("station.refinery", refinery.StationTag);
+            Assert.Equal(-12.5f, refinery.GetStatistic(StatisticIds.POWER_KW));
+            Assert.True(refinery.Airtight);
+            Assert.True(refinery.Toggleable);
+            Assert.False(refinery.DefaultPowerEnabled);
+            Assert.True(refinery.DefaultOpen);
+            Assert.Equal(2, refinery.Entity!.SlotGroups.Count);
+            Assert.Equal(new BrickSlotGroup(SlotGroups.INPUT, 3), refinery.Entity.SlotGroups[0]);
+            Assert.Equal(new BrickSlotGroup(SlotGroups.OUTPUT, 2), refinery.Entity.SlotGroups[1]);
+
+            Assert.NotNull(refinery.Entity.Light);
+            BrickLight light = refinery.Entity.Light!.Value;
+            Assert.Equal(4.5f, light.Radius);
+            Assert.Equal(0.5f, light.Size);
+            Assert.Equal(3.0f, light.Intensity);
+            Assert.Equal(true, light.CastShadows);
+            Assert.Equal(new Vector3(0f, 0.5f, 0.25f), light.Offset);
         }
         finally
         {
             Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LightEntityDecoratorRotatesConfiguredOffsetByVoxelOrientation()
+    {
+        var lightConfig = new BrickLight(
+            Radius: 2.0f,
+            Size: 0.4f,
+            Color: new Vector3(0.2f, 0.8f, 1.0f),
+            Intensity: 4.0f,
+            CastShadows: true,
+            Offset: new Vector3(0f, 0f, 0.5f),
+            TintFromPaint: false);
+        var brick = new Brick("wb:beacon", BrickAlpha.Opaque, false, null, BrickShape.Block, default, entity: new BrickEntity(lightConfig));
+
+        var store = new DataStore();
+        int parent = store.Alloc(Uuid.FromValue(77001));
+        int entity = store.Alloc(BrickEntityId.Derive(Uuid.FromValue(77001), new Int3(2, 3, 4)));
+        store.AddOrUpdate(entity, new ChildComponent(Uuid.FromValue(77001)) { LocalPosition = new Vector3(2f, 3f, 4f) });
+
+        //  Rotate 90 degrees around Y (yaw = 1).
+        var orientation = new Orientation(pitch: 0, yaw: 1, roll: 0);
+        var voxel = new Voxel(_ID: 1, _ShapeLight: new ShapeLight(BrickShape.Block, 0), _OrientationFlags: new OrientationFlags(orientation));
+        var voxelComponent = new VoxelComponent(new VoxelObject(16));
+
+        var decorator = new LightEntityDecorator(LoadShippedBricks());
+        decorator.Process(store, parent, entity, voxelComponent, new VoxelInfo(2, 3, 4, voxel), brick);
+
+        Assert.True(store.TryGet(entity, out LightComponent light));
+        Assert.Equal(2.0f, light.Radius);
+        Assert.Equal(0.4f, light.Size);
+        Assert.Equal(4.0f, light.Intensity);
+        Assert.True(light.CastShadows);
+
+        Assert.True(store.TryGet(entity, out ChildComponent child));
+        Vector3 expectedOffset = Vector3.Transform(new Vector3(0f, 0f, 0.5f), orientation.ToQuaternion());
+        Vector3 expectedPos = new Vector3(2f, 3f, 4f) + expectedOffset;
+        Assert.True(Vector3.Distance(expectedPos, child.LocalPosition) < 0.001f);
+    }
+
+    [Fact]
+    public void CustomServerDecoratorHooksBrickEntityLifecycleWithoutCoreEdits()
+    {
+        BrickDatabase bricks = LoadShippedBricks();
+        var customDecorator = new RecordingServerDecorator("wb:panel");
+        var service = new ServerBrickEntityService(bricks, decorators: [customDecorator]);
+
+        var store = new DataStore();
+        Uuid structureUuid = Uuid.FromValue(88001);
+        var coord = new Int3(3, 1, 2);
+
+        int entity = service.OnBrickPlaced(store, structureUuid, coord, bricks.Id("wb:panel"));
+        Assert.NotEqual(Entity.Null, entity);
+        Assert.Equal(1, customDecorator.SpawnCount);
+        Assert.Equal(BrickEntityId.Derive(structureUuid, coord), store.GetUuid(entity));
+
+        Assert.True(service.OnBrickBroken(store, structureUuid, coord));
+        Assert.Equal(1, customDecorator.DespawnCount);
+    }
+
+    [Fact]
+    public async Task ClientReconcilePreservesLocalVisualBrickEntityOnViewerDetach()
+    {
+        BrickDatabase bricks = LoadShippedBricks();
+        using LoopbackHarness harness = LoopbackHarness.Create(bricks);
+        LoopbackClient viewer = await harness.AddPlayerClientAsync(Uuid.FromValue(2601), new Vector3(1f, 0f, 1.5f));
+        harness.ClearAllDirty();
+
+        Uuid structureUuid = Uuid.FromValue(91001);
+        var coreCoord = new Int3(1, 0, 0);
+        harness.CreateStructure(structureUuid, Vector3.Zero, Quaternion.Identity, (coreCoord, bricks.Id("wb:core")));
+        int serverCore = harness.BrickEntities.OnBrickPlaced(harness.ServerStore, structureUuid, coreCoord, bricks.Id("wb:core"));
+        Uuid coreUuid = harness.ServerStore.GetUuid(serverCore);
+        Assert.Equal(BrickEntityId.Derive(structureUuid, coreCoord), coreUuid);
+
+        var clientStore = new DataStore();
+        int localPlayer = clientStore.Alloc(viewer.EntityUuid);
+        clientStore.AddOrUpdate(localPlayer, new PlayerComponent());
+
+        //  Pre-seed a client-side visual brick entity at the exact same deterministic UUID (as VoxelEntityBuilder does).
+        int clientVisualEntity = clientStore.Alloc(coreUuid);
+        clientStore.AddOrUpdate(clientVisualEntity, new BrickAnchorComponent(structureUuid, coreCoord));
+        clientStore.AddOrUpdate(clientVisualEntity, new ChildComponent(structureUuid) { LocalPosition = new Vector3(1f, 0f, 0f) });
+        clientStore.AddOrUpdate(clientVisualEntity, new LightComponent(radius: 3f, color: Vector3.One, size: 0.5f));
+
+        ClientReconcileSystem reconcile = CreateClientReconcile(viewer.Inbound, harness.Registry);
+
+        //  Attaching viewer replicates server components onto the SAME client entity (no duplicate).
+        Assert.True(harness.BrickEntities.AttachViewer(harness.ServerStore, viewer.ServerPeer.GameId, serverCore).Success);
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+        WorldSnapshot attachSnap = await viewer.WaitForSnapshotAsync();
+        viewer.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(attachSnap));
+        TickReconcileWhilePlaying(reconcile, clientStore);
+
+        Assert.True(clientStore.TryGet(coreUuid, out int resolvedClientEntity));
+        Assert.Equal(clientVisualEntity, resolvedClientEntity);
+        Assert.True(clientStore.TryGet(clientVisualEntity, out MachineStateComponent clientMachine));
+        Assert.Equal("station.core", clientMachine.StationTag);
+        Assert.True(clientStore.TryGet(clientVisualEntity, out InventoryComponent _));
+        Assert.True(clientStore.TryGet(clientVisualEntity, out LightComponent _));
+
+        //  Detaching viewer strips server-replicated components while preserving the local visual LightComponent and ChildComponent.
+        Assert.True(harness.BrickEntities.DetachViewer(harness.ServerStore, viewer.ServerPeer.GameId, serverCore));
+        harness.Replication.PublishStage(1f, harness.ServerStore);
+        WorldSnapshot detachSnap = await viewer.WaitForSnapshotAsync();
+        viewer.Inbound.Snapshots.Enqueue(new ClientInbound.InboundSnapshot(detachSnap));
+        TickReconcileWhilePlaying(reconcile, clientStore);
+
+        Assert.True(clientStore.TryGet(coreUuid, out int preservedEntity));
+        Assert.Equal(clientVisualEntity, preservedEntity);
+        Assert.True(clientStore.TryGet(preservedEntity, out LightComponent _));
+        Assert.True(clientStore.TryGet(preservedEntity, out ChildComponent _));
+        Assert.False(clientStore.TryGet(preservedEntity, out MachineStateComponent _));
+        Assert.False(clientStore.TryGet(preservedEntity, out InventoryComponent _));
+    }
+
+    private sealed class RecordingServerDecorator(string targetBrickId) : IServerBrickEntityDecorator
+    {
+        public int SpawnCount { get; private set; }
+        public int DespawnCount { get; private set; }
+
+        public bool AppliesTo(Brick brick) => string.Equals(brick.ID, targetBrickId, StringComparison.Ordinal);
+
+        public void OnSpawn(DataStore store, int entity, Brick brick, in BrickEntityData? persisted)
+        {
+            SpawnCount++;
+        }
+
+        public void OnDespawn(DataStore store, int entity, Brick brick)
+        {
+            DespawnCount++;
         }
     }
 
@@ -201,21 +359,21 @@ public sealed class BlockEntityTests
         int structureEntity = harness.CreateStructure(structureUuid, Vector3.Zero, Quaternion.Identity, (new Int3(0, 0, 0), bricks.Id("wb:panel")));
 
         //  Non-functional brick placement allocates no block-entity.
-        int panelResult = harness.BlockEntities.OnBrickPlaced(harness.ServerStore, structureUuid, new Int3(0, 0, 0), bricks.Id("wb:panel"));
+        int panelResult = harness.BrickEntities.OnBrickPlaced(harness.ServerStore, structureUuid, new Int3(0, 0, 0), bricks.Id("wb:panel"));
         Assert.Equal(Entity.Null, panelResult);
-        Assert.Equal(0, harness.BlockEntities.Count);
+        Assert.Equal(0, harness.BrickEntities.Count);
 
         //  Pre-allocate a colliding entity UUID to verify DeriveUuid avoids collisions safely.
         var storageCoord = new Int3(1, 0, 0);
-        Uuid firstCandidate = ServerBlockEntityService.DeriveUuid(structureUuid, storageCoord, harness.ServerStore);
+        Uuid firstCandidate = BrickEntityId.DeriveUnique(structureUuid, storageCoord, harness.ServerStore);
         Assert.NotEqual(Uuid.Null, firstCandidate);
         Assert.NotEqual(structureUuid, firstCandidate);
         int blockerEntity = harness.ServerStore.Alloc(firstCandidate);
 
         //  Placing a functional wb:storage brick allocates a server ECS block-entity with expected components.
-        int storageEntity = harness.BlockEntities.OnBrickPlaced(harness.ServerStore, structureUuid, storageCoord, bricks.Id("wb:storage"));
+        int storageEntity = harness.BrickEntities.OnBrickPlaced(harness.ServerStore, structureUuid, storageCoord, bricks.Id("wb:storage"));
         Assert.NotEqual(Entity.Null, storageEntity);
-        Assert.Equal(1, harness.BlockEntities.Count);
+        Assert.Equal(1, harness.BrickEntities.Count);
 
         Uuid storageUuid = harness.ServerStore.GetUuid(storageEntity);
         Assert.NotEqual(Uuid.Null, storageUuid);
@@ -223,7 +381,7 @@ public sealed class BlockEntityTests
         Assert.NotEqual(structureUuid, storageUuid);
         Assert.NotEqual(breaker.EntityUuid, storageUuid);
 
-        Assert.True(harness.BlockEntities.TryGetEntity(structureUuid, storageCoord, out int lookedUp));
+        Assert.True(harness.BrickEntities.TryGetEntity(structureUuid, storageCoord, out int lookedUp));
         Assert.Equal(storageEntity, lookedUp);
 
         Assert.True(harness.ServerStore.TryGet(storageEntity, out BrickAnchorComponent anchor));
@@ -240,7 +398,7 @@ public sealed class BlockEntityTests
         Assert.Equal((byte)MachineStatusFlags.None, machineState.StatusFlags);
 
         //  Seed stored items and attach breaker as viewer.
-        Result<int> seeded = harness.BlockEntities.SeedItems(
+        Result<int> seeded = harness.BrickEntities.SeedItems(
             harness.ServerStore,
             storageEntity,
             SlotGroups.CARGO,
@@ -249,7 +407,7 @@ public sealed class BlockEntityTests
         Assert.Equal(1, seeded.Value);
 
         harness.ClearAllDirty();
-        Assert.True(harness.BlockEntities.AttachViewer(harness.ServerStore, breaker.ServerPeer.GameId, storageEntity).Success);
+        Assert.True(harness.BrickEntities.AttachViewer(harness.ServerStore, breaker.ServerPeer.GameId, storageEntity).Success);
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
         WorldSnapshot attachSnap = await breaker.WaitForSnapshotAsync();
@@ -258,15 +416,15 @@ public sealed class BlockEntityTests
         Assert.Empty(bystander.Inbound.Snapshots);
 
         //  Breaking the brick in Adventure transfers stored contents to breaker, tears down viewer, and frees block-entity.
-        bool broken = harness.BlockEntities.OnBrickBroken(
+        bool broken = harness.BrickEntities.OnBrickBroken(
             harness.ServerStore,
             structureUuid,
             storageCoord,
             breaker.ServerEntity,
             GameMode.Adventure);
         Assert.True(broken);
-        Assert.Equal(0, harness.BlockEntities.Count);
-        Assert.False(harness.BlockEntities.TryGetEntity(structureUuid, storageCoord, out _));
+        Assert.Equal(0, harness.BrickEntities.Count);
+        Assert.False(harness.BrickEntities.TryGetEntity(structureUuid, storageCoord, out _));
         Assert.Equal(Uuid.Null, harness.ServerStore.GetUuid(storageEntity));
         Assert.Equal(0, harness.Replication.ActiveViewerSubscriptionCount);
 
@@ -286,11 +444,11 @@ public sealed class BlockEntityTests
     }
 
     [Fact]
-    public void TransferOpWorksOnAnchoredBlockEntitiesEvenWhenStructureMovesAndRotates()
+    public void TransferOpWorksOnAnchoredBrickEntitiesEvenWhenStructureMovesAndRotates()
     {
         BrickDatabase bricks = LoadShippedBricks();
         var store = new DataStore();
-        var blockEntities = new ServerBlockEntityService(bricks);
+        var brickEntities = new ServerBrickEntityService(bricks);
         var inventorySystem = new ServerInventorySystem();
 
         //  Structure translated to (10, 0, 0) and rotated +90 deg around Y:
@@ -300,7 +458,7 @@ public sealed class BlockEntityTests
         int structure = store.Alloc(structureUuid);
         store.AddOrUpdate(structure, new TransformComponent(new Vector3(10f, 0f, 0f), rot90Y, Vector3.One));
 
-        int blockEntity = blockEntities.OnBrickPlaced(store, structureUuid, new Int3(2, 0, 0), bricks.Id("wb:storage"));
+        int blockEntity = brickEntities.OnBrickPlaced(store, structureUuid, new Int3(2, 0, 0), bricks.Id("wb:storage"));
         Assert.NotEqual(Entity.Null, blockEntity);
         Uuid blockEntityUuid = store.GetUuid(blockEntity);
 
@@ -349,7 +507,7 @@ public sealed class BlockEntityTests
     }
 
     [Fact]
-    public void ServerInteractionSystemAllocatesAndCleansUpBlockEntitiesOnPlaceAndBreak()
+    public void ServerInteractionSystemAllocatesAndCleansUpBrickEntitiesOnPlaceAndBreak()
     {
         BrickDatabase bricks = LoadShippedBricks();
         var items = new StubItemDatabase(new Item(
@@ -366,7 +524,7 @@ public sealed class BlockEntityTests
         var sessions = new SessionManager();
         var store = new DataStore();
         var physics = new StubServerWorldPhysics();
-        var blockEntities = new ServerBlockEntityService(bricks, sessions: sessions);
+        var brickEntities = new ServerBrickEntityService(bricks, sessions: sessions);
 
         var handlers = new InteractionHandlerRegistry(
         [
@@ -382,7 +540,7 @@ public sealed class BlockEntityTests
             handlers,
             s => new ServerVoxelInteractionWorld(s, physics),
             simStep,
-            blockEntities);
+            brickEntities);
 
         Uuid structureUuid = Uuid.FromValue(66001);
         int structure = store.Alloc(structureUuid);
@@ -424,12 +582,12 @@ public sealed class BlockEntityTests
         });
         interactionSystem.Tick(1f / 60f, store, simTick: 1);
 
-        Assert.True(blockEntities.TryGetEntity(structureUuid, new Int3(1, 0, 0), out int spawnedBlockEntity));
-        Assert.True(store.TryGet(spawnedBlockEntity, out MachineStateComponent machine));
+        Assert.True(brickEntities.TryGetEntity(structureUuid, new Int3(1, 0, 0), out int spawnedBrickEntity));
+        Assert.True(store.TryGet(spawnedBrickEntity, out MachineStateComponent machine));
         Assert.Equal("station.storage", machine.StationTag);
 
         //  Seed an item into the storage block-entity, switch player to empty slot, and break it.
-        Assert.True(blockEntities.SeedItems(store, spawnedBlockEntity, SlotGroups.CARGO, [new ItemData("wb:ice", 6, 100)]).Success);
+        Assert.True(brickEntities.SeedItems(store, spawnedBrickEntity, SlotGroups.CARGO, [new ItemData("wb:ice", 6, 100)]).Success);
         store.AddOrUpdate(player, new EquipmentComponent(1));
 
         playerNet.StagedInteractions!.Stage(new InteractionEvent
@@ -450,14 +608,14 @@ public sealed class BlockEntityTests
         });
         interactionSystem.Tick(1f / 60f, store, simTick: 2);
 
-        Assert.Equal(0, blockEntities.Count);
-        Assert.Equal(Uuid.Null, store.GetUuid(spawnedBlockEntity));
+        Assert.Equal(0, brickEntities.Count);
+        Assert.Equal(Uuid.Null, store.GetUuid(spawnedBrickEntity));
         Assert.True(store.TryGet(player, out InventoryComponent playerAfterBreak));
         Assert.Equal(6, CountItem(in playerAfterBreak, "wb:ice"));
     }
 
     [Fact]
-    public async Task BlueprintSpawnAndStarterWreckAllocateBlockEntitiesAndAcceptCargoSeeding()
+    public async Task BlueprintSpawnAndStarterWreckAllocateBrickEntitiesAndAcceptCargoSeeding()
     {
         BrickDatabase bricks = LoadShippedBricks();
         string tempRoot = Path.Combine(Path.GetTempPath(), $"wb-be-wreck-{Guid.NewGuid():N}");
@@ -494,7 +652,7 @@ public sealed class BlockEntityTests
             Assert.True(catalog.Create("Adventure Wreck", "seed-block-entity-929", GameMode.Adventure, out string levelGuid));
 
             var store = new DataStore();
-            var blockEntities = new ServerBlockEntityService(bricks);
+            var brickEntities = new ServerBrickEntityService(bricks);
             using var saveService = new LevelSaveService(
                 NullLogger<LevelSaveService>.Instance,
                 catalog,
@@ -502,22 +660,22 @@ public sealed class BlockEntityTests
                 bricks,
                 gameplayConfig,
                 paintRegistry: null,
-                blockEntities: blockEntities);
+                brickEntities: brickEntities);
 
             Assert.True(saveService.LoadLevel(levelGuid, store));
 
             var expectedGen = new LevelGenerator(saveService.CurrentLevel!.Value.Seed, bricks, levelGenConfig, null, bundled);
             Uuid wreckUuid = expectedGen.GenerateStarterWreckUuid();
-            int[] wreckBlockEntities = blockEntities.GetEntitiesForStructure(wreckUuid);
-            Assert.NotEmpty(wreckBlockEntities);
+            int[] wreckBrickEntities = brickEntities.GetEntitiesForStructure(wreckUuid);
+            Assert.NotEmpty(wreckBrickEntities);
 
             //  Verify starter wreck storage container accepts programmatic cargo seeding and persists across reload.
             int cargoEntity = Entity.Null;
-            for (var i = 0; i < wreckBlockEntities.Length; i++)
+            for (var i = 0; i < wreckBrickEntities.Length; i++)
             {
-                if (store.TryGet(wreckBlockEntities[i], out InventoryComponent inv) && inv.HasGroup(SlotGroups.CARGO))
+                if (store.TryGet(wreckBrickEntities[i], out InventoryComponent inv) && inv.HasGroup(SlotGroups.CARGO))
                 {
-                    cargoEntity = wreckBlockEntities[i];
+                    cargoEntity = wreckBrickEntities[i];
                     break;
                 }
             }
@@ -525,12 +683,12 @@ public sealed class BlockEntityTests
             if (cargoEntity == Entity.Null)
             {
                 //  Fall back to first inventoried block-entity if the starter wreck uses wb:core fuel slot instead.
-                cargoEntity = wreckBlockEntities.First(e => store.TryGet(e, out InventoryComponent _));
+                cargoEntity = wreckBrickEntities.First(e => store.TryGet(e, out InventoryComponent _));
             }
 
             Assert.True(store.TryGet(cargoEntity, out InventoryComponent targetInv));
             string seedGroup = targetInv.Groups[0].GroupId;
-            Result<int> seeded = blockEntities.SeedItems(store, cargoEntity, seedGroup, [new ItemData("wb:panel", 7, 100)]);
+            Result<int> seeded = brickEntities.SeedItems(store, cargoEntity, seedGroup, [new ItemData("wb:panel", 7, 100)]);
             Assert.True(seeded.Success);
             Assert.Equal(1, seeded.Value);
             Assert.True(store.TryGet(cargoEntity, out InventoryComponent seededInv));
@@ -554,7 +712,7 @@ public sealed class BlockEntityTests
                 bricks,
                 bricks,
                 NullLogger<ServerRegionSystem>.Instance,
-                blockEntities: harness.BlockEntities);
+                brickEntities: harness.BrickEntities);
 
             var blueprintVoxels = new VoxelObject(VoxelObject.DEFAULT_CHUNK_EDGE);
             blueprintVoxels.Set(0, 0, 0, new Voxel { ID = bricks.Id("wb:storage") });
@@ -596,12 +754,12 @@ public sealed class BlockEntityTests
             Assert.True(pasteResult.IsSuccess && pasteResult.Value.Success, pasteResult.ErrorMessage ?? pasteResult.Value.ErrorKey);
 
             Uuid pastedUuid = Uuid.FromValue(pasteResult.Value.SpawnedEntityUuid);
-            Assert.Equal(2, harness.BlockEntities.GetEntitiesForStructure(pastedUuid).Length);
-            Assert.True(harness.BlockEntities.TryFindFirstByStationTag(harness.ServerStore, pastedUuid, "station.storage", out int pastedStorage));
-            Assert.True(harness.BlockEntities.TryFindFirstByStationTag(harness.ServerStore, pastedUuid, "station.core", out _));
+            Assert.Equal(2, harness.BrickEntities.GetEntitiesForStructure(pastedUuid).Length);
+            Assert.True(harness.BrickEntities.TryFindFirstByStationTag(harness.ServerStore, pastedUuid, "station.storage", out int pastedStorage));
+            Assert.True(harness.BrickEntities.TryFindFirstByStationTag(harness.ServerStore, pastedUuid, "station.core", out _));
 
             //  Seed cargo into the freshly pasted blueprint's storage block-entity.
-            Result<int> pasteSeeded = harness.BlockEntities.SeedItems(
+            Result<int> pasteSeeded = harness.BrickEntities.SeedItems(
                 harness.ServerStore,
                 pastedStorage,
                 SlotGroups.CARGO,
@@ -628,7 +786,7 @@ public sealed class BlockEntityTests
             regionSystem.Tick(1f / 60f, harness.ServerStore);
             RpcResult<RegionOpResponse> cutResult = await cutTcs.Task;
             Assert.True(cutResult.IsSuccess && cutResult.Value.Success);
-            Assert.Equal(0, harness.BlockEntities.Count);
+            Assert.Equal(0, harness.BrickEntities.Count);
             Assert.Equal(Uuid.Null, harness.ServerStore.GetUuid(pastedStorage));
         }
         finally
@@ -651,10 +809,10 @@ public sealed class BlockEntityTests
 
         Uuid structureUuid = Uuid.FromValue(95001);
         harness.CreateStructure(structureUuid, Vector3.Zero, Quaternion.Identity, (new Int3(0, 0, 0), bricks.Id("wb:core")));
-        int machineEntity = harness.BlockEntities.OnBrickPlaced(harness.ServerStore, structureUuid, new Int3(0, 0, 0), bricks.Id("wb:core"));
+        int machineEntity = harness.BrickEntities.OnBrickPlaced(harness.ServerStore, structureUuid, new Int3(0, 0, 0), bricks.Id("wb:core"));
         Uuid machineUuid = harness.ServerStore.GetUuid(machineEntity);
 
-        harness.BlockEntities.SeedItems(harness.ServerStore, machineEntity, SlotGroups.FUEL, [new ItemData("wb:ice", 4, 100)]);
+        harness.BrickEntities.SeedItems(harness.ServerStore, machineEntity, SlotGroups.FUEL, [new ItemData("wb:ice", 4, 100)]);
         harness.ClearAllDirty();
 
         //  1. Join full sync delivers each player's own inventory, omits other players' inventories, and omits block-entities entirely.
@@ -686,7 +844,7 @@ public sealed class BlockEntityTests
         Assert.False(harness.ServerStore.IsDirty<MachineStateComponent>(machineEntity));
 
         //  3. Attaching viewer A streams initial full snapshot of InventoryComponent + MachineStateComponent exclusively to A.
-        Assert.True(harness.BlockEntities.AttachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity).Success);
+        Assert.True(harness.BrickEntities.AttachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity).Success);
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
         WorldSnapshot attachA = await viewerA.WaitForSnapshotAsync();
@@ -712,7 +870,7 @@ public sealed class BlockEntityTests
         Assert.Equal(4, CountItem(in clientInvA, "wb:ice"));
 
         //  4. Attach viewer B as well, then mutate MachineStateComponent: both A and B receive delta, nonViewer receives nothing.
-        Assert.True(harness.BlockEntities.AttachViewer(harness.ServerStore, viewerB.ServerPeer.GameId, machineEntity).Success);
+        Assert.True(harness.BrickEntities.AttachViewer(harness.ServerStore, viewerB.ServerPeer.GameId, machineEntity).Success);
         harness.Replication.PublishStage(1f, harness.ServerStore);
         WorldSnapshot attachB = await viewerB.WaitForSnapshotAsync();
         Assert.Contains(attachB.Components, c => c.Entity == machineUuid.ToValue() && c.TypeUuid == harness.MachineStateTypeUuid);
@@ -733,7 +891,7 @@ public sealed class BlockEntityTests
         Assert.Empty(nonViewer.Inbound.Snapshots);
 
         //  5. Explicit detach of viewer A sends despawn ONLY to A and frees client A's mirrored block-entity.
-        Assert.True(harness.BlockEntities.DetachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity));
+        Assert.True(harness.BrickEntities.DetachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity));
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
         WorldSnapshot detachA = await viewerA.WaitForSnapshotAsync();
@@ -745,12 +903,12 @@ public sealed class BlockEntityTests
         TickReconcileWhilePlaying(reconcileA, clientAStore);
         Assert.False(clientAStore.TryGet(machineUuid, out _));
 
-        //  6. Moving viewer B out of reach causes ServerBlockEntitySystem to detach B and despawn on B's client.
-        var blockEntitySystem = new ServerBlockEntitySystem(harness.BlockEntities);
+        //  6. Moving viewer B out of reach causes ServerBrickEntitySystem to detach B and despawn on B's client.
+        var brickEntitySystem = new ServerBrickEntitySystem(harness.BrickEntities);
         harness.ServerStore.AddOrUpdate(viewerB.ServerEntity, new TransformComponent(new Vector3(0f, 0f, 50f), Quaternion.Identity, Vector3.One));
         harness.ClearAllDirty();
 
-        blockEntitySystem.Tick(1f / 60f, harness.ServerStore);
+        brickEntitySystem.Tick(1f / 60f, harness.ServerStore);
         Assert.False(harness.Replication.IsViewerSubscribed(machineEntity, viewerB.ServerPeer.GameId));
         harness.Replication.PublishStage(1f, harness.ServerStore);
 
@@ -760,14 +918,14 @@ public sealed class BlockEntityTests
         Assert.Empty(nonViewer.Inbound.Snapshots);
 
         //  7. Client disconnect teardown clears active viewer subscriptions without leaks.
-        Assert.True(harness.BlockEntities.AttachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity).Success);
+        Assert.True(harness.BrickEntities.AttachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity).Success);
         Assert.Equal(1, harness.Replication.ActiveViewerSubscriptionCount);
         harness.Replication.CancelStream(viewerA.ServerPeer.GameId);
         Assert.Equal(0, harness.Replication.ActiveViewerSubscriptionCount);
 
         //  8. Recycled entity index safety: if an entity slot is freed and immediately reused by a different
         //     entity, DetachOutOfReachViewers despawns the originally delivered UUID and never the recycled entity.
-        Assert.True(harness.BlockEntities.AttachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity).Success);
+        Assert.True(harness.BrickEntities.AttachViewer(harness.ServerStore, viewerA.ServerPeer.GameId, machineEntity).Success);
         harness.Replication.PublishStage(1f, harness.ServerStore);
         _ = await viewerA.WaitForSnapshotAsync();
 
@@ -776,7 +934,7 @@ public sealed class BlockEntityTests
         int recycledEntity = harness.ServerStore.Alloc(recycledUuid);
         Assert.Equal(machineEntity, recycledEntity);
 
-        blockEntitySystem.Tick(1f / 60f, harness.ServerStore);
+        brickEntitySystem.Tick(1f / 60f, harness.ServerStore);
         harness.Replication.PublishStage(1f, harness.ServerStore);
         WorldSnapshot recycledDetach = await viewerA.WaitForSnapshotAsync();
         Assert.Contains(recycledDetach.RemovedEntities, id => id == machineUuid.ToValue());
@@ -784,7 +942,7 @@ public sealed class BlockEntityTests
     }
 
     [Fact]
-    public void LevelDbSaveLoadRoundTripsBlockEntitiesAndPrunesOrphans()
+    public void LevelDbSaveLoadRoundTripsBrickEntitiesAndPrunesOrphans()
     {
         BrickDatabase bricks = LoadShippedBricks();
         string tempRoot = Path.Combine(Path.GetTempPath(), $"wb-be-save-{Guid.NewGuid():N}");
@@ -842,7 +1000,7 @@ public sealed class BlockEntityTests
 
             //  Session 1: load level, mutate storage inventory and core machine state, then Flush.
             var store1 = new DataStore();
-            var blockEntities1 = new ServerBlockEntityService(bricks);
+            var brickEntities1 = new ServerBrickEntityService(bricks);
             using (var saveService1 = new LevelSaveService(
                 NullLogger<LevelSaveService>.Instance,
                 catalog,
@@ -850,15 +1008,15 @@ public sealed class BlockEntityTests
                 bricks,
                 gameplayConfig,
                 paintRegistry: null,
-                blockEntities: blockEntities1))
+                brickEntities: brickEntities1))
             {
                 Assert.True(saveService1.LoadLevel(levelGuid, store1));
-                Assert.Equal(2, blockEntities1.Count);
+                Assert.Equal(2, brickEntities1.Count);
 
-                Assert.True(blockEntities1.TryGetEntity(structureUuid, new Int3(0, 0, 0), out int storage1));
-                Assert.True(blockEntities1.TryGetEntity(structureUuid, new Int3(1, 0, 0), out int core1));
+                Assert.True(brickEntities1.TryGetEntity(structureUuid, new Int3(0, 0, 0), out int storage1));
+                Assert.True(brickEntities1.TryGetEntity(structureUuid, new Int3(1, 0, 0), out int core1));
 
-                Assert.True(blockEntities1.SeedSlots(
+                Assert.True(brickEntities1.SeedSlots(
                     store1,
                     storage1,
                     [
@@ -866,7 +1024,7 @@ public sealed class BlockEntityTests
                         new KeyedSlotEntry(SlotGroups.CARGO, 5, new ItemData("wb:rock", 33, 100)),
                     ]).Success);
 
-                Assert.True(blockEntities1.SeedSlots(
+                Assert.True(brickEntities1.SeedSlots(
                     store1,
                     core1,
                     [new KeyedSlotEntry(SlotGroups.FUEL, 0, new ItemData("wb:ice", 9, 100))]).Success);
@@ -882,12 +1040,12 @@ public sealed class BlockEntityTests
 
                 saveService1.Flush(store1);
                 saveService1.Unload(store1);
-                Assert.Equal(0, blockEntities1.Count);
+                Assert.Equal(0, brickEntities1.Count);
             }
 
             //  Session 2: reload into a brand-new DataStore and verify full round-trip fidelity.
             var store2 = new DataStore();
-            var blockEntities2 = new ServerBlockEntityService(bricks);
+            var brickEntities2 = new ServerBrickEntityService(bricks);
             using (var saveService2 = new LevelSaveService(
                 NullLogger<LevelSaveService>.Instance,
                 catalog,
@@ -895,13 +1053,13 @@ public sealed class BlockEntityTests
                 bricks,
                 gameplayConfig,
                 paintRegistry: null,
-                blockEntities: blockEntities2))
+                brickEntities: brickEntities2))
             {
                 Assert.True(saveService2.LoadLevel(levelGuid, store2));
-                Assert.Equal(2, blockEntities2.Count);
+                Assert.Equal(2, brickEntities2.Count);
 
-                Assert.True(blockEntities2.TryGetEntity(structureUuid, new Int3(0, 0, 0), out int storage2));
-                Assert.True(blockEntities2.TryGetEntity(structureUuid, new Int3(1, 0, 0), out int core2));
+                Assert.True(brickEntities2.TryGetEntity(structureUuid, new Int3(0, 0, 0), out int storage2));
+                Assert.True(brickEntities2.TryGetEntity(structureUuid, new Int3(1, 0, 0), out int core2));
 
                 Assert.True(store2.TryGet(storage2, out InventoryComponent restoredStorageInv));
                 Assert.Equal("wb:panel", restoredStorageInv.Get(new SlotId(SlotGroups.CARGO, 0)).ID);
@@ -930,10 +1088,10 @@ public sealed class BlockEntityTests
             //  and verify LoadLevel ignores them AND deletes them from level.db.
             using (var orphanInject = new SqliteLevelStorage(NullLogger<SqliteLevelStorage>.Instance, storagePaths, levelGuid, migrator))
             {
-                IReadOnlyList<BlockEntityData> existing = orphanInject.GetBlockEntities();
+                IReadOnlyList<BrickEntityData> existing = orphanInject.GetBrickEntities();
                 Assert.Equal(2, existing.Count);
 
-                var withOrphans = new List<BlockEntityData>(existing)
+                var withOrphans = new List<BrickEntityData>(existing)
                 {
                     new(
                         _VoxelEntityUuid: 999999UL,
@@ -964,11 +1122,11 @@ public sealed class BlockEntityTests
                 };
 
                 Assert.True(orphanInject.Save(level, [encodedStructure], [], withOrphans).Success);
-                Assert.Equal(4, orphanInject.GetBlockEntities().Count);
+                Assert.Equal(4, orphanInject.GetBrickEntities().Count);
             }
 
             var store3 = new DataStore();
-            var blockEntities3 = new ServerBlockEntityService(bricks);
+            var brickEntities3 = new ServerBrickEntityService(bricks);
             using (var saveService3 = new LevelSaveService(
                 NullLogger<LevelSaveService>.Instance,
                 catalog,
@@ -976,18 +1134,18 @@ public sealed class BlockEntityTests
                 bricks,
                 gameplayConfig,
                 paintRegistry: null,
-                blockEntities: blockEntities3))
+                brickEntities: brickEntities3))
             {
                 Assert.True(saveService3.LoadLevel(levelGuid, store3));
-                Assert.Equal(2, blockEntities3.Count);
-                Assert.False(blockEntities3.TryGetEntity(Uuid.FromValue(999999UL), new Int3(0, 0, 0), out _));
-                Assert.False(blockEntities3.TryGetEntity(structureUuid, new Int3(2, 0, 0), out _));
+                Assert.Equal(2, brickEntities3.Count);
+                Assert.False(brickEntities3.TryGetEntity(Uuid.FromValue(999999UL), new Int3(0, 0, 0), out _));
+                Assert.False(brickEntities3.TryGetEntity(structureUuid, new Int3(2, 0, 0), out _));
                 saveService3.Unload(store3);
             }
 
             using (var verifyPruned = new SqliteLevelStorage(NullLogger<SqliteLevelStorage>.Instance, storagePaths, levelGuid, migrator))
             {
-                IReadOnlyList<BlockEntityData> remaining = verifyPruned.GetBlockEntities();
+                IReadOnlyList<BrickEntityData> remaining = verifyPruned.GetBrickEntities();
                 Assert.Equal(2, remaining.Count);
                 Assert.DoesNotContain(remaining, b => b.VoxelEntityUuid == 999999UL);
                 Assert.DoesNotContain(remaining, b => b.VoxelEntityUuid == structureUuid.ToValue() && b.VoxelX == 2);
@@ -1094,7 +1252,7 @@ public sealed class BlockEntityTests
         public SessionManager Sessions { get; } = new();
         public NetworkRegistry Registry { get; }
         public NetworkReplicationSystem Replication { get; }
-        public ServerBlockEntityService BlockEntities { get; }
+        public ServerBrickEntityService BrickEntities { get; }
         public ulong InventoryTypeUuid { get; }
         public ulong MachineStateTypeUuid { get; }
 
@@ -1107,7 +1265,7 @@ public sealed class BlockEntityTests
                 NullLogger<NetworkReplicationSystem>.Instance,
                 new NetworkingConfig(),
                 registry);
-            BlockEntities = new ServerBlockEntityService(
+            BrickEntities = new ServerBrickEntityService(
                 bricks,
                 Replication,
                 Sessions);

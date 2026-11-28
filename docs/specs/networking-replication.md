@@ -30,12 +30,12 @@ One subject: dirty-driven replication between server and client.
 - **Viewer-scoped subscriptions.** `SubscribeViewer` and `UnsubscribeViewer`
   (`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs:188-266`) manage
   explicit viewer subscriptions for non-owned entities such as server
-  block-entities. Attaching a viewer queues an initial full snapshot of that
+  brick-entities. Attaching a viewer queues an initial full snapshot of that
   entity's matching `ServerOwned` components on the next publish. Detaching a
   viewer or calling `DetachAllViewers` queues a targeted `RemovedEntities` entry
   only for viewers that previously received the entity. `CancelStream` tears down
   all viewer subscriptions when a client leaves, disconnects, or rejoins.
-  `ServerBlockEntitySystem` (`WaywardBeyond.Server/Systems/ServerBlockEntitySystem.cs:9`)
+  `ServerBrickEntitySystem` (`WaywardBeyond.Server/Systems/ServerBrickEntitySystem.cs:9`)
   detaches viewers that move out of reach before `NetworkPublishSystem` runs.
 - **Despawns** are recorded via `RequestDespawn(entityUuid,
   excludedRecipientEntity)` before the entity is freed (`DataStore.Free` clears

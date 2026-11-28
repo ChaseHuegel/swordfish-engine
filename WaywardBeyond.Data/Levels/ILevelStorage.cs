@@ -13,8 +13,8 @@ public interface ILevelStorage : IDisposable
     /// <summary>Gets the level's voxel entities.</summary>
     IReadOnlyList<VoxelEntityData> GetVoxelEntities(uint dataVersion);
 
-    /// <summary>Gets the level's persisted block-entities.</summary>
-    IReadOnlyList<BlockEntityData> GetBlockEntities() => [];
+    /// <summary>Gets the level's persisted brick-entities.</summary>
+    IReadOnlyList<BrickEntityData> GetBrickEntities() => [];
 
     /// <summary>Attempts to get a character's entity.</summary>
     Result<CharacterEntityData> GetCharacterEntity(ulong uuid);
@@ -22,16 +22,16 @@ public interface ILevelStorage : IDisposable
     /// <summary>Attempts to commit a full snapshot in one transaction.</summary>
     Result Save(Level level, IReadOnlyList<VoxelEntityData> voxelEntities, IReadOnlyList<CharacterEntityData> characterEntities);
 
-    /// <summary>Attempts to commit a full snapshot including block-entities in one transaction.</summary>
+    /// <summary>Attempts to commit a full snapshot including brick-entities in one transaction.</summary>
     Result Save(
         Level level,
         IReadOnlyList<VoxelEntityData> voxelEntities,
         IReadOnlyList<CharacterEntityData> characterEntities,
-        IReadOnlyList<BlockEntityData> blockEntities
+        IReadOnlyList<BrickEntityData> brickEntities
     ) => Save(level, voxelEntities, characterEntities);
 
-    /// <summary>Deletes orphaned block-entity records keyed by <paramref name="keys"/> in one transaction.</summary>
-    Result DeleteBlockEntities(IReadOnlyList<BlockEntityKey> keys) => Result.FromSuccess();
+    /// <summary>Deletes orphaned brick-entity records keyed by <paramref name="keys"/> in one transaction.</summary>
+    Result DeleteBrickEntities(IReadOnlyList<BrickEntityKey> keys) => Result.FromSuccess();
 
     /// <summary>Attempts to save the level's information.</summary>
     Result Save(Level level);

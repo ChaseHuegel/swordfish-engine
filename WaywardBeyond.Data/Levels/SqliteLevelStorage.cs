@@ -16,8 +16,8 @@ public sealed class SqliteLevelStorage : ILevelStorage
     private const string CREATE_LEVEL_TABLE_COMMAND = "CREATE TABLE IF NOT EXISTS level (guid TEXT PRIMARY KEY, data BLOB NOT NULL);";
     private const string CREATE_ENTITIES_TABLE_COMMAND = "CREATE TABLE IF NOT EXISTS entities (uuid TEXT PRIMARY KEY, data BLOB NOT NULL);";
     private const string CREATE_CHARACTERS_TABLE_COMMAND = "CREATE TABLE IF NOT EXISTS character_locations (character_uuid TEXT PRIMARY KEY, data BLOB NOT NULL);";
-    private const string CREATE_BLOCK_ENTITIES_TABLE_COMMAND = """
-        CREATE TABLE IF NOT EXISTS block_entities (
+    private const string CREATE_BRICK_ENTITIES_TABLE_COMMAND = """
+        CREATE TABLE IF NOT EXISTS brick_entities (
             voxel_entity_uuid TEXT NOT NULL,
             voxel_x INTEGER NOT NULL,
             voxel_y INTEGER NOT NULL,
@@ -34,7 +34,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
     private readonly SqliteTable _levelTable;
     private readonly SqliteTable _entitiesTable;
     private readonly SqliteTable _charactersTable;
-    private readonly SqliteTable _blockEntitiesTable;
+    private readonly SqliteTable _brickEntitiesTable;
     private readonly Lock _writeLock = new();
     
     private bool _disposed;
@@ -50,7 +50,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
         _levelTable = new SqliteTable(CREATE_LEVEL_TABLE_COMMAND);
         _entitiesTable = new SqliteTable(CREATE_ENTITIES_TABLE_COMMAND);
         _charactersTable = new SqliteTable(CREATE_CHARACTERS_TABLE_COMMAND);
-        _blockEntitiesTable = new SqliteTable(CREATE_BLOCK_ENTITIES_TABLE_COMMAND);
+        _brickEntitiesTable = new SqliteTable(CREATE_BRICK_ENTITIES_TABLE_COMMAND);
     }
 
     /// <inheritdoc/>
@@ -114,17 +114,17 @@ public sealed class SqliteLevelStorage : ILevelStorage
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<BlockEntityData> GetBlockEntities()
+    public IReadOnlyList<BrickEntityData> GetBrickEntities()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var blockEntities = new List<BlockEntityData>();
+        var brickEntities = new List<BrickEntityData>();
 
         try
         {
             using SqliteConnection connection = _database.Open();
-            using SqliteCommand command = _blockEntitiesTable.CreateCommand(connection);
-            command.CommandText = "SELECT data FROM block_entities;";
+            using SqliteCommand command = _brickEntitiesTable.CreateCommand(connection);
+            command.CommandText = "SELECT data FROM brick_entities;";
 
             using SqliteDataReader reader = command.ExecuteReader();
             while (reader.Read())
@@ -132,20 +132,20 @@ public sealed class SqliteLevelStorage : ILevelStorage
                 byte[] data = (byte[])reader["data"];
                 try
                 {
-                    blockEntities.Add(BlockEntityData.Deserialize(data));
+                    brickEntities.Add(BrickEntityData.Deserialize(data));
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Skipping an unreadable block-entity record.");
+                    _logger.LogWarning(ex, "Skipping an unreadable brick-entity record.");
                 }
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to list block-entities.");
+            _logger.LogWarning(ex, "Failed to list brick-entities.");
         }
 
-        return blockEntities;
+        return brickEntities;
     }
 
     /// <inheritdoc/>
@@ -176,7 +176,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
     /// <inheritdoc/>
     public Result Save(Level level, IReadOnlyList<VoxelEntityData> voxelEntities, IReadOnlyList<CharacterEntityData> characterEntities)
     {
-        return SaveCore(level, voxelEntities, characterEntities, blockEntities: null);
+        return SaveCore(level, voxelEntities, characterEntities, brickEntities: null);
     }
 
     /// <inheritdoc/>
@@ -184,14 +184,14 @@ public sealed class SqliteLevelStorage : ILevelStorage
         Level level,
         IReadOnlyList<VoxelEntityData> voxelEntities,
         IReadOnlyList<CharacterEntityData> characterEntities,
-        IReadOnlyList<BlockEntityData> blockEntities
+        IReadOnlyList<BrickEntityData> brickEntities
     )
     {
-        return SaveCore(level, voxelEntities, characterEntities, blockEntities);
+        return SaveCore(level, voxelEntities, characterEntities, brickEntities);
     }
 
     /// <inheritdoc/>
-    public Result DeleteBlockEntities(IReadOnlyList<BlockEntityKey> keys)
+    public Result DeleteBrickEntities(IReadOnlyList<BrickEntityKey> keys)
     {
         using Lock.Scope _ = _writeLock.EnterScope();
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -204,9 +204,9 @@ public sealed class SqliteLevelStorage : ILevelStorage
         try
         {
             using SqliteDatabase.Transaction transaction = _database.BeginTransaction(deferred: false);
-            using SqliteCommand delete = _blockEntitiesTable.CreateCommand(transaction.Connection);
+            using SqliteCommand delete = _brickEntitiesTable.CreateCommand(transaction.Connection);
             delete.CommandText = """
-                DELETE FROM block_entities
+                DELETE FROM brick_entities
                 WHERE voxel_entity_uuid = $uuid AND voxel_x = $x AND voxel_y = $y AND voxel_z = $z;
                 """;
             delete.Parameters.Add("$uuid", SqliteType.Text);
@@ -216,7 +216,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
 
             for (var i = 0; i < keys.Count; i++)
             {
-                BlockEntityKey key = keys[i];
+                BrickEntityKey key = keys[i];
                 delete.Parameters["$uuid"].Value = SqliteDatabase.EncodeKey(key.VoxelEntityUuid);
                 delete.Parameters["$x"].Value = key.VoxelX;
                 delete.Parameters["$y"].Value = key.VoxelY;
@@ -229,7 +229,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
         }
         catch (Exception ex)
         {
-            return new Result(false, $"Failed to delete orphaned block-entities: {ex.Message}", ex);
+            return new Result(false, $"Failed to delete orphaned brick-entities: {ex.Message}", ex);
         }
     }
 
@@ -237,7 +237,7 @@ public sealed class SqliteLevelStorage : ILevelStorage
         Level level,
         IReadOnlyList<VoxelEntityData> voxelEntities,
         IReadOnlyList<CharacterEntityData> characterEntities,
-        IReadOnlyList<BlockEntityData>? blockEntities
+        IReadOnlyList<BrickEntityData>? brickEntities
     )
     {
         using Lock.Scope _ = _writeLock.EnterScope();
@@ -269,35 +269,35 @@ public sealed class SqliteLevelStorage : ILevelStorage
                 }
             }
 
-            if (blockEntities != null)
+            if (brickEntities != null)
             {
-                using (SqliteCommand deleteBlocks = _blockEntitiesTable.CreateCommand(transaction.Connection))
+                using (SqliteCommand deleteBricks = _brickEntitiesTable.CreateCommand(transaction.Connection))
                 {
-                    deleteBlocks.CommandText = "DELETE FROM block_entities;";
-                    deleteBlocks.ExecuteNonQuery();
+                    deleteBricks.CommandText = "DELETE FROM brick_entities;";
+                    deleteBricks.ExecuteNonQuery();
                 }
 
-                using (SqliteCommand insertBlocks = _blockEntitiesTable.CreateCommand(transaction.Connection))
+                using (SqliteCommand insertBricks = _brickEntitiesTable.CreateCommand(transaction.Connection))
                 {
-                    insertBlocks.CommandText = """
-                        INSERT OR REPLACE INTO block_entities (voxel_entity_uuid, voxel_x, voxel_y, voxel_z, data)
+                    insertBricks.CommandText = """
+                        INSERT OR REPLACE INTO brick_entities (voxel_entity_uuid, voxel_x, voxel_y, voxel_z, data)
                         VALUES ($uuid, $x, $y, $z, $data);
                         """;
-                    insertBlocks.Parameters.Add("$uuid", SqliteType.Text);
-                    insertBlocks.Parameters.Add("$x", SqliteType.Integer);
-                    insertBlocks.Parameters.Add("$y", SqliteType.Integer);
-                    insertBlocks.Parameters.Add("$z", SqliteType.Integer);
-                    insertBlocks.Parameters.Add("$data", SqliteType.Blob);
+                    insertBricks.Parameters.Add("$uuid", SqliteType.Text);
+                    insertBricks.Parameters.Add("$x", SqliteType.Integer);
+                    insertBricks.Parameters.Add("$y", SqliteType.Integer);
+                    insertBricks.Parameters.Add("$z", SqliteType.Integer);
+                    insertBricks.Parameters.Add("$data", SqliteType.Blob);
 
-                    for (var i = 0; i < blockEntities.Count; i++)
+                    for (var i = 0; i < brickEntities.Count; i++)
                     {
-                        BlockEntityData block = blockEntities[i];
-                        insertBlocks.Parameters["$uuid"].Value = SqliteDatabase.EncodeKey(block.VoxelEntityUuid);
-                        insertBlocks.Parameters["$x"].Value = block.VoxelX;
-                        insertBlocks.Parameters["$y"].Value = block.VoxelY;
-                        insertBlocks.Parameters["$z"].Value = block.VoxelZ;
-                        insertBlocks.Parameters["$data"].Value = block.Serialize();
-                        insertBlocks.ExecuteNonQuery();
+                        BrickEntityData brick = brickEntities[i];
+                        insertBricks.Parameters["$uuid"].Value = SqliteDatabase.EncodeKey(brick.VoxelEntityUuid);
+                        insertBricks.Parameters["$x"].Value = brick.VoxelX;
+                        insertBricks.Parameters["$y"].Value = brick.VoxelY;
+                        insertBricks.Parameters["$z"].Value = brick.VoxelZ;
+                        insertBricks.Parameters["$data"].Value = brick.Serialize();
+                        insertBricks.ExecuteNonQuery();
                     }
                 }
             }

@@ -7,10 +7,14 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
+using Swordfish.Library.Util;
 using Swordfish.Physics;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Components;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Building;
@@ -19,12 +23,14 @@ internal sealed class VoxelEntityBuilder(
     in ILogger logger,
     in VoxelMaterials materials,
     in VoxelObjectBuilder voxelObjectBuilder,
-    in IVoxelEntityDecorator[] decorators,
+    in IBrickDatabase brickDatabase,
+    in IBrickEntityDecorator[] decorators,
     in VoxelSettings voxelSettings
 ) {
     private readonly ILogger _logger = logger;
     private readonly VoxelMaterials _materials = materials;
-    private readonly IVoxelEntityDecorator[] _decorators = decorators;
+    private readonly IBrickDatabase _brickDatabase = brickDatabase;
+    private readonly IBrickEntityDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = voxelObjectBuilder;
     private readonly VoxelSettings _voxelSettings = voxelSettings;
     
@@ -493,7 +499,7 @@ internal sealed class VoxelEntityBuilder(
             ChunkVoxelEntities = chunkVoxelEntities,
             UpdatedEntities = updatedEntities,
         };
-        store.Query<VoxelIdentifierComponent, ChildComponent, ReconcileEntityAction>(0f, ref action);
+        store.Query<BrickAnchorComponent, ChildComponent, ReconcileEntityAction>(0f, ref action);
 
         for (var i = 0; i < chunkVoxelEntities.Count; i++)
         {
@@ -503,20 +509,26 @@ internal sealed class VoxelEntityBuilder(
             }
 
             VoxelInfo voxelInfo = chunkVoxelEntities[i];
+            Result<Brick> brickResult = _brickDatabase.Get(voxelInfo.Voxel.ID);
+            if (!brickResult.Success)
+            {
+                continue;
+            }
 
-            int voxelEntity = store.Alloc();
+            var coord = new Int3(voxelInfo.X, voxelInfo.Y, voxelInfo.Z);
+            Uuid entityUuid = BrickEntityId.Derive(parentUuid, coord);
+            int voxelEntity = store.TryGet(entityUuid, out int existing)
+                ? existing
+                : store.Alloc(entityUuid);
             store.AddOrUpdate(voxelEntity, new IdentifierComponent(name: null, tag: tag));
-            store.AddOrUpdate(voxelEntity, new VoxelIdentifierComponent(voxelInfo.X, voxelInfo.Y, voxelInfo.Z));
+            store.AddOrUpdate(voxelEntity, new BrickAnchorComponent(parentUuid, coord));
             store.AddOrUpdate(voxelEntity, new TransformComponent());
             store.AddOrUpdate(voxelEntity, new ChildComponent(parentUuid)
             {
                 LocalPosition = new Vector3(voxelInfo.X, voxelInfo.Y, voxelInfo.Z),
             });
 
-            for (var n = 0; n < _decorators.Length; n++)
-            {
-                _decorators[n].Process(store, parent: parentEntity, voxelEntity, voxelComponent, voxelInfo);
-            }
+            RunDecorators(store, parentEntity, voxelEntity, voxelComponent, voxelInfo, brickResult.Value);
         }
 
         if (chunkVoxelEntities.Count > 0)
@@ -531,7 +543,25 @@ internal sealed class VoxelEntityBuilder(
         updatedEntities.Clear();
     }
 
-    private struct ReconcileEntityAction : IForEach<VoxelIdentifierComponent, ChildComponent>
+    private void RunDecorators(
+        DataStore store,
+        int parentEntity,
+        int voxelEntity,
+        VoxelComponent voxelComponent,
+        in VoxelInfo voxelInfo,
+        Brick brick
+    )
+    {
+        for (var n = 0; n < _decorators.Length; n++)
+        {
+            if (_decorators[n].AppliesTo(brick))
+            {
+                _decorators[n].Process(store, parent: parentEntity, voxelEntity, voxelComponent, voxelInfo, brick);
+            }
+        }
+    }
+
+    private struct ReconcileEntityAction : IForEach<BrickAnchorComponent, ChildComponent>
     {
         public VoxelEntityBuilder Owner;
         public int ParentEntity;
@@ -542,17 +572,18 @@ internal sealed class VoxelEntityBuilder(
         public List<VoxelInfo> ChunkVoxelEntities;
         public HashSet<int> UpdatedEntities;
 
-        public void Execute(float delta, DataStore store, int voxelEntity, in VoxelIdentifierComponent voxelIdentifier, in ChildComponent child)
+        public void Execute(float delta, DataStore store, int voxelEntity, in BrickAnchorComponent anchor, in ChildComponent child)
         {
-            if (child.Parent != ParentUuid)
+            if (child.Parent != ParentUuid || anchor.VoxelEntityUuid != ParentUuid)
             {
                 return;
             }
 
+            Int3 coord = anchor.VoxelCoord;
             var entityChunk = new Short3(
-                (short)(voxelIdentifier.X >> ChunkShift),
-                (short)(voxelIdentifier.Y >> ChunkShift),
-                (short)(voxelIdentifier.Z >> ChunkShift)
+                (short)(coord.X >> ChunkShift),
+                (short)(coord.Y >> ChunkShift),
+                (short)(coord.Z >> ChunkShift)
             );
 
             if (entityChunk != ChunkOffset)
@@ -563,14 +594,15 @@ internal sealed class VoxelEntityBuilder(
             for (var i = 0; i < ChunkVoxelEntities.Count; i++)
             {
                 VoxelInfo voxelInfo = ChunkVoxelEntities[i];
-                if (voxelInfo.X != voxelIdentifier.X || voxelInfo.Y != voxelIdentifier.Y || voxelInfo.Z != voxelIdentifier.Z)
+                if (voxelInfo.X != coord.X || voxelInfo.Y != coord.Y || voxelInfo.Z != coord.Z)
                 {
                     continue;
                 }
 
-                for (var n = 0; n < Owner._decorators.Length; n++)
+                Result<Brick> brickResult = Owner._brickDatabase.Get(voxelInfo.Voxel.ID);
+                if (brickResult.Success)
                 {
-                    Owner._decorators[n].Process(store, parent: ParentEntity, voxelEntity, VoxelComponent, voxelInfo);
+                    Owner.RunDecorators(store, ParentEntity, voxelEntity, VoxelComponent, voxelInfo, brickResult.Value);
                 }
 
                 UpdatedEntities.Add(i);

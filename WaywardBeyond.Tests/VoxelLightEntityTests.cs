@@ -50,8 +50,16 @@ public class VoxelLightEntityTests
     private static TestBrickDatabase CreateBrickDatabase()
     {
         var db = new TestBrickDatabase();
+        var lampLight = new BrickLight(
+            Radius: null,
+            Size: 2.4f,
+            Color: System.Numerics.Vector3.One,
+            Intensity: 0.051f,
+            CastShadows: null,
+            Offset: System.Numerics.Vector3.Zero,
+            TintFromPaint: true);
         db.Bricks[StoneId] = new Brick("stone", alpha: BrickAlpha.Opaque, passable: false, meshID: null, BrickShape.Block, textures: default);
-        db.Bricks[LampId] = new Brick("lamp", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, lightSource: true);
+        db.Bricks[LampId] = new Brick("lamp", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default, lightSource: true, entity: new BrickEntity(lampLight));
         db.Bricks[GlassId] = new Brick("glass", alpha: BrickAlpha.Blend, passable: false, meshID: null, BrickShape.Block, textures: default);
         return db;
     }
@@ -93,7 +101,7 @@ public class VoxelLightEntityTests
         var voxelInfo = new VoxelInfo(x, y, z, CreateVoxel(LampId, lightLevel: 15));
 
         var decorator = new LightEntityDecorator(db);
-        decorator.Process(store, parent: 0, entity, component, voxelInfo);
+        decorator.Process(store, parent: 0, entity, component, voxelInfo, db.Bricks[LampId]);
 
         return store.Has(typeof(LightComponent), entity) ? entity : -1;
     }
@@ -110,7 +118,7 @@ public class VoxelLightEntityTests
         var component = new VoxelComponent(voxelObject);
         var voxelInfo = new VoxelInfo(8, 8, 8, CreateVoxel(LampId, lightLevel: 15));
 
-        new LightEntityDecorator(db).Process(store, parent: 0, entity, component, voxelInfo);
+        new LightEntityDecorator(db).Process(store, parent: 0, entity, component, voxelInfo, db.Bricks[LampId]);
 
         Assert.True(store.TryGet(entity, out LightComponent light));
         Assert.Equal(15f, light.Radius);
@@ -164,11 +172,11 @@ public class VoxelLightEntityTests
         var voxelInfo = new VoxelInfo(8, 8, 8, CreateVoxel(LampId, lightLevel: 15));
         var decorator = new LightEntityDecorator(db);
 
-        decorator.Process(store, parent: 0, entity, component, voxelInfo);
+        decorator.Process(store, parent: 0, entity, component, voxelInfo, db.Bricks[LampId]);
         Assert.True(store.Has(typeof(LightComponent), entity));
 
         FillNeighbours(voxelObject, CreateVoxel(StoneId, lightLevel: 0), 8, 8, 8);
-        decorator.Process(store, parent: 0, entity, component, voxelInfo);
+        decorator.Process(store, parent: 0, entity, component, voxelInfo, db.Bricks[LampId]);
 
         Assert.False(store.Has(typeof(LightComponent), entity));
     }

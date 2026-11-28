@@ -105,7 +105,7 @@ message CharacterEntityData
     Statistic[]? Statistics = 12;
 }
 
-message BlockEntityData
+message BrickEntityData
 {
     ulong VoxelEntityUuid  = 0;
     int   VoxelX           = 1;

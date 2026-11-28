@@ -36,7 +36,7 @@ public sealed class LevelSaveService : IDisposable
     private readonly IBrickRegistry _brickRegistry;
     private readonly IBrickDatabase _brickDatabase;
     private readonly IPaintRegistry? _paintRegistry;
-    private readonly ServerBlockEntityService? _blockEntities;
+    private readonly ServerBrickEntityService? _brickEntities;
     private readonly Lock _saveLock = new();
     private readonly ConcurrentQueue<bool> _completions = new();
     private readonly Dictionary<ulong, PendingCharacterLocation> _pendingCharacterLocations = [];
@@ -63,14 +63,14 @@ public sealed class LevelSaveService : IDisposable
         IBrickDatabase brickDatabase,
         GameplayConfig gameplayConfig,
         IPaintRegistry? paintRegistry = null,
-        ServerBlockEntityService? blockEntities = null
+        ServerBrickEntityService? brickEntities = null
     ) {
         _logger = logger;
         _levelCatalog = levelCatalog;
         _brickRegistry = brickRegistry;
         _brickDatabase = brickDatabase;
         _paintRegistry = paintRegistry;
-        _blockEntities = blockEntities;
+        _brickEntities = brickEntities;
         _gameplayConfig = gameplayConfig;
         LevelSpawn = _gameplayConfig.DefaultSpawnPosition;
     }
@@ -116,22 +116,22 @@ public sealed class LevelSaveService : IDisposable
         CurrentLevel = level;
         LevelSpawn = new Vector3(level.SpawnX, level.SpawnY, level.SpawnZ);
 
-        Dictionary<BlockEntityKey, BlockEntityData>? persistedBlocks = null;
-        HashSet<BlockEntityKey>? matchedBlockKeys = null;
-        if (_blockEntities != null)
+        Dictionary<BrickEntityKey, BrickEntityData>? persistedBricks = null;
+        HashSet<BrickEntityKey>? matchedBrickKeys = null;
+        if (_brickEntities != null)
         {
-            IReadOnlyList<BlockEntityData> savedBlocks = levelStorage.GetBlockEntities();
-            if (savedBlocks.Count > 0)
+            IReadOnlyList<BrickEntityData> savedBricks = levelStorage.GetBrickEntities();
+            if (savedBricks.Count > 0)
             {
-                persistedBlocks = new Dictionary<BlockEntityKey, BlockEntityData>(savedBlocks.Count);
-                for (var i = 0; i < savedBlocks.Count; i++)
+                persistedBricks = new Dictionary<BrickEntityKey, BrickEntityData>(savedBricks.Count);
+                for (var i = 0; i < savedBricks.Count; i++)
                 {
-                    BlockEntityData block = savedBlocks[i];
-                    var key = new BlockEntityKey(block.VoxelEntityUuid, block.VoxelX, block.VoxelY, block.VoxelZ);
-                    persistedBlocks[key] = block;
+                    BrickEntityData brick = savedBricks[i];
+                    var key = new BrickEntityKey(brick.VoxelEntityUuid, brick.VoxelX, brick.VoxelY, brick.VoxelZ);
+                    persistedBricks[key] = brick;
                 }
 
-                matchedBlockKeys = [];
+                matchedBrickKeys = [];
             }
         }
 
@@ -151,16 +151,16 @@ public sealed class LevelSaveService : IDisposable
                 }
 
                 Entity spawned = VoxelWorldEntityFactory.CreateAuthority(store, decodeResult.Value, _brickDatabase);
-                if (_blockEntities != null
+                if (_brickEntities != null
                     && spawned.Ptr != Entity.Null
                     && store.TryGet(spawned.Ptr, out VoxelWorldComponent voxelWorld))
                 {
-                    _blockEntities.RestoreStructure(
+                    _brickEntities.RestoreStructure(
                         store,
                         Uuid.FromValue(decodeResult.Value.Uuid),
                         voxelWorld.VoxelObject,
-                        persistedBlocks,
-                        matchedBlockKeys);
+                        persistedBricks,
+                        matchedBrickKeys);
                 }
             }
             catch (Exception ex)
@@ -170,12 +170,12 @@ public sealed class LevelSaveService : IDisposable
             }
         }
 
-        if (allStructuresLoaded && persistedBlocks != null && persistedBlocks.Count > 0)
+        if (allStructuresLoaded && persistedBricks != null && persistedBricks.Count > 0)
         {
-            var orphaned = new List<BlockEntityKey>();
-            foreach (BlockEntityKey key in persistedBlocks.Keys)
+            var orphaned = new List<BrickEntityKey>();
+            foreach (BrickEntityKey key in persistedBricks.Keys)
             {
-                if (matchedBlockKeys == null || !matchedBlockKeys.Contains(key))
+                if (matchedBrickKeys == null || !matchedBrickKeys.Contains(key))
                 {
                     orphaned.Add(key);
                 }
@@ -183,18 +183,18 @@ public sealed class LevelSaveService : IDisposable
 
             if (orphaned.Count > 0)
             {
-                Result deleteResult = levelStorage.DeleteBlockEntities(orphaned);
+                Result deleteResult = levelStorage.DeleteBrickEntities(orphaned);
                 if (!deleteResult.Success)
                 {
                     _logger.LogWarning(
                         deleteResult.Exception,
-                        "Failed to prune {count} orphaned block-entity records while loading level \"{level}\": {message}",
+                        "Failed to prune {count} orphaned brick-entity records while loading level \"{level}\": {message}",
                         orphaned.Count, levelGuid, deleteResult.Message);
                 }
                 else
                 {
                     _logger.LogInformation(
-                        "Pruned {count} orphaned block-entity records while loading level \"{level}\".",
+                        "Pruned {count} orphaned brick-entity records while loading level \"{level}\".",
                         orphaned.Count, levelGuid);
                 }
             }
@@ -211,7 +211,7 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     public void Unload(DataStore store)
     {
-        _blockEntities?.Clear();
+        _brickEntities?.Clear();
 
         UnloadAction action = new();
         store.Query<NetworkComponent, UnloadAction>(0f, ref action);
@@ -538,9 +538,9 @@ public sealed class LevelSaveService : IDisposable
         };
         store.Query<OwnedCharacterComponent, TransformComponent, CaptureLocationAction>(0f, ref locationAction);
 
-        BlockEntityData[] blockEntities = _blockEntities?.Capture(store) ?? [];
+        BrickEntityData[] brickEntities = _brickEntities?.Capture(store) ?? [];
 
-        return new CapturedSave(storage, CurrentLevel.Value, entities.ToArray(), locations.ToArray(), blockEntities);
+        return new CapturedSave(storage, CurrentLevel.Value, entities.ToArray(), locations.ToArray(), brickEntities);
     }
 
     private void Persist(in CapturedSave save)
@@ -560,7 +560,7 @@ public sealed class LevelSaveService : IDisposable
         {
             //  The capture owns the storage it was taken from, so a queued save can never land in
             //  whichever level happens to be loaded when the worker runs.
-            Result result = save.Storage.Save(save.Level, save.Entities, save.Locations, save.BlockEntities);
+            Result result = save.Storage.Save(save.Level, save.Entities, save.Locations, save.BrickEntities);
             return result.Success;
         }
         catch (Exception ex)
@@ -631,14 +631,14 @@ public sealed class LevelSaveService : IDisposable
         in Level level,
         in VoxelEntityData[] entities,
         in CharacterEntityData[] locations,
-        in BlockEntityData[] blockEntities
+        in BrickEntityData[] brickEntities
     )
     {
         public readonly ILevelStorage Storage = storage;
         public readonly Level Level = level;
         public readonly VoxelEntityData[] Entities = entities;
         public readonly CharacterEntityData[] Locations = locations;
-        public readonly BlockEntityData[] BlockEntities = blockEntities;
+        public readonly BrickEntityData[] BrickEntities = brickEntities;
     }
 
     private struct UnloadAction : IForEach<NetworkComponent>

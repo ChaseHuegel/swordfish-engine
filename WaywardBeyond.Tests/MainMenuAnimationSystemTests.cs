@@ -335,6 +335,7 @@ public class MainMenuAnimationSystemTests : IDisposable
             logger,
             _container.Resolve<VoxelMaterials>(),
             _container.Resolve<VoxelObjectBuilder>(),
+            _container.Resolve<IBrickDatabase>(),
             [],
             new VoxelSettings()
         );

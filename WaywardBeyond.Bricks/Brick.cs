@@ -15,7 +15,7 @@ public sealed class Brick
 
     private static readonly IReadOnlyDictionary<string, float> _noStatistics =
         new Dictionary<string, float>(StringComparer.Ordinal);
-    
+
     /// <inheritdoc cref="BrickDefinition.ID"/>
     public readonly string ID;
 
@@ -28,11 +28,11 @@ public sealed class Brick
     /// <summary>Custom numeric statistics declared on this brick, or empty when none are declared.</summary>
     public readonly IReadOnlyDictionary<string, float> Statistics;
 
-    /// <summary>Optional functional block-entity metadata declared on this brick, or null when non-functional.</summary>
-    public readonly BrickBlockEntity? BlockEntity;
+    /// <summary>Optional brick-entity metadata declared on this brick, or null when none is declared.</summary>
+    public readonly BrickEntity? Entity;
 
-    /// <summary>Whether placing this brick allocates a server block-entity.</summary>
-    public bool HasBlockEntity => BlockEntity != null;
+    /// <summary>Whether this brick declares <c>[Bricks.Entity]</c> metadata.</summary>
+    public bool HasEntity => Entity != null;
 
     public readonly BrickAlpha Alpha;
     public readonly bool CastShadows;
@@ -54,8 +54,12 @@ public sealed class Brick
     public readonly bool Shapeable;
     public readonly bool LightSource;
     public readonly int Brightness;
-    public readonly bool Entity;
     public readonly bool Paintable;
+    public readonly bool Airtight;
+    public readonly bool Toggleable;
+    public readonly bool DefaultPowerEnabled;
+    public readonly bool DefaultOpen;
+    public readonly string StationTag;
 
     private readonly bool _orientable;
 
@@ -70,12 +74,16 @@ public sealed class Brick
         in BrickColliderShape[]? colliders = null,
         in Dictionary<BrickEventKind, string[]>? sounds = null,
         in bool lightSource = false,
-        in bool entity = false,
         in bool paintable = false,
         in bool orientable = false,
         in Vector3? color = null,
         in IReadOnlyDictionary<string, float>? statistics = null,
-        in BrickBlockEntity? blockEntity = null
+        in BrickEntity? entity = null,
+        in bool airtight = false,
+        in bool toggleable = false,
+        in bool defaultPowerEnabled = true,
+        in bool defaultOpen = false,
+        in string? stationTag = null
     ) {
         ID = id;
         Alpha = alpha;
@@ -89,12 +97,16 @@ public sealed class Brick
         _colliders = colliders ?? [];
         Sounds = sounds ?? _noSounds;
         Statistics = statistics ?? _noStatistics;
-        BlockEntity = blockEntity;
+        Entity = entity;
         Shapeable = shape == BrickShape.Any;
         LightSource = lightSource;
         Brightness = LightSource ? 15 : 0;
-        Entity = entity;
         Paintable = paintable;
+        Airtight = airtight;
+        Toggleable = toggleable;
+        DefaultPowerEnabled = defaultPowerEnabled;
+        DefaultOpen = defaultOpen;
+        StationTag = stationTag ?? string.Empty;
         _orientable = orientable;
     }
 
