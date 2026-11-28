@@ -24,6 +24,9 @@ public static class StatisticIds
     /// <summary>Nominal power rate of a brick in kW; positive generates power and negative draws power.</summary>
     public const string POWER_KW = "wb:power_kw";
 
+    /// <summary>Standby power draw of an idle consumer brick in kW; zero or absent draws the full nominal rating.</summary>
+    public const string POWER_STANDBY_KW = "wb:power_standby_kw";
+
     /// <summary>Current health vital stat ID (fixed-point).</summary>
     public const string HEALTH = "wb:health";
 

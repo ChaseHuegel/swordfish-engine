@@ -38,7 +38,7 @@ namespace WaywardBeyond.Server;
 /// contribute world systems through <see cref="RegisterServerSystem{T}"/>, which appends them after
 /// the built-ins. Registration order is the world's tick order: join/disconnect → saves →
 /// replication apply → inventory → heartbeats → physics → survival → interaction → laser beam → paint sprayer →
-/// chat → particle flush → replication publish.
+/// chat → power → brick-entity viewers → particle flush → replication publish.
 /// </summary>
 public static class ServerComposition
 {
@@ -84,6 +84,7 @@ public static class ServerComposition
         container.Register<NetworkReplicationSystem>();
         container.Register<IServerBrickEntityDecorator, InventoryBrickEntityDecorator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IServerBrickEntityDecorator, MachineBrickEntityDecorator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<IServerBrickEntityDecorator, PowerBrickEntityDecorator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<ServerBrickEntityService>();
         container.Register<ServerParticleService>();
         container.RegisterDelegate<IServerParticleService>(context => context.Resolve<ServerParticleService>());
@@ -132,6 +133,8 @@ public static class ServerComposition
         RegisterServerSystem<ServerPaintSprayerSystem>(container);
         RegisterServerSystem<ServerRegionSystem>(container);
         RegisterServerSystem<ServerChatSystem>(container);
+        //  Power evaluates after placement and machine-state changes, and before snapshots publish.
+        RegisterServerSystem<ServerPowerGridSystem>(container);
         RegisterServerSystem<ServerBrickEntitySystem>(container);
         RegisterServerSystem<ServerParticleFlushSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);

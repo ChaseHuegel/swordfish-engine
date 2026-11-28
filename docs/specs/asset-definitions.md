@@ -249,6 +249,17 @@ Example:
 
 Archetype membership (`station.core`, `station.storage`, `station.console`, `brick.airtight`, `brick.toggleable`, `brick.default_power_off`, `brick.default_open`) lives in `tags/bricks.toml`, and numeric machine ratings such as `"wb:power_kw"` live in `[Bricks.Statistics]`. Client decorators (`IBrickEntityDecorator`) and server decorators (`IServerBrickEntityDecorator`) decide via `AppliesTo(Brick)` which bricks allocate client or server ECS entities, sharing one deterministic entity UUID (`BrickEntityId.Derive`) and `BrickAnchorComponent`.
 
+Power fields are brick statistics:
+
+| Statistic | Meaning |
+|---|---|
+| `wb:power_kw` | signed nominal rating in kW; positive generates power, negative draws power |
+| `wb:power_standby_kw` | optional idle draw in kW for an enabled consumer; zero or absent draws the full rating |
+
+The structure power bus reads these fields and burns generator recipes that
+target `station.generator`. See [power-grid](power-grid.md) for the supply,
+demand, brownout, and fuel rules.
+
 Slot group rows with empty ids, negative capacities, or duplicate ids log a warning and are skipped. Omitted `Capacity` falls back to `ISlotGroupSchemaDatabase` and canonical `SlotGroups` defaults.
 
 Examples (`WaywardBeyond.Bricks/assets/bricks/core.toml:9-12`, `thruster.toml:27-32`):
@@ -462,6 +473,10 @@ matches `RecipeMode.Auto` recipes against `ReadOnlySpan<ItemData>` or
 `in InventoryComponent` without heap allocations, prioritizing exact item
 ingredients before tag ingredients. `IsValidInputForStation` checks whether any
 recipe for that station accepts an item id.
+
+A generator fuel recipe targets `station.generator` with `PowerKw > 0`,
+`DurationSeconds > 0`, and no outputs. The structure power bus ignites it from a
+producer's `wb:fuel` slot group. See [power-grid](power-grid.md).
 
 ## Skills (`assets/skills/*.toml`)
 
