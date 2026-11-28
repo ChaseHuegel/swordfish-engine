@@ -68,7 +68,7 @@ on current runtimes.
   interaction world factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
-  `ServerInventorySystem` → `ServerHeartbeatService` → physics →
+  `ServerInventorySystem` → `ServerHeartbeatService` → physics → `ServerSurvivalSystem` →
   `ServerInteractionSystem` → `ServerLaserBeamSystem` →
   `ServerPaintSprayerSystem` → `ServerChatSystem` →
   `ServerParticleFlushSystem` → `NetworkPublishSystem`.
@@ -77,7 +77,7 @@ on current runtimes.
 
 ## What stays shared
 
-`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`, the interaction
+`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`, `IBuffDatabase`, the interaction
 handler registry and the default handlers, `NetworkingConfig`,
 `LoopbackRpcServerTransport`, `ServerRpcHost`/`LanHost` (one listen socket),
 `ServerPeers`, `ServerHostCommands`, `ServerHandlers`, `ILevelCatalog` and

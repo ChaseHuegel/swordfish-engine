@@ -64,6 +64,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     private bool _slotGroupSlotsModified;
     private bool _buffStatModifiersModified;
     private bool _buffRegenRatesModified;
+    private bool _itemConsumableModified;
+    private bool _itemConsumableModifiersModified;
     private bool _statisticsModified;
     private bool _hasInitialViewModelTable;
     private bool _hasInitialWorldModelTable;
@@ -87,6 +89,9 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _hasInvalidStatistics;
+
+    [ObservableProperty]
+    private bool _hasConsumable;
 
     [ObservableProperty]
     private string? _syntaxErrorMessage;
@@ -306,6 +311,14 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             SyncItemPlaceableIdField();
             ItemToolTypeField = AddField("ToolType", "Tool Type", string.Empty, GetVal("ToolType", "none"), choices: ["none", "convert", "mining", "sprayer", "drill", "blueprint"]);
             ItemToolTargetField = AddField("ToolTarget", "Tool Target", "target tag", GetVal("ToolTarget"));
+            _hasConsumable = seed.ItemHasConsumable;
+            ItemConsumableBuffIdField = AddField("ConsumableBuffID", "Buff ID", "optional · wb:well_fed", GetVal("ConsumableBuffID"), referenceKind: ReferenceKind.BuffId);
+            ItemConsumableCooldownField = AddField("ConsumableCooldownSeconds", "Cooldown (s)", "seconds >= 0", GetVal("ConsumableCooldownSeconds", "0"), isNumeric: true);
+            foreach (var mod in seed.ItemConsumableModifiers)
+            {
+                ItemConsumableModifiers.Add(CreateItemConsumableModifierRow(mod.StatId, mod.FlatDelta, mod.PercentDelta));
+            }
+
             ItemViewModelMeshField = AddField("ViewModelMesh", "Mesh", "path + .obj · optional", GetVal("ViewModelMesh"), referenceKind: ReferenceKind.Mesh);
             ItemViewModelMaterialField = AddField("ViewModelMaterial", "Material", "path no ext · bricks/light", GetVal("ViewModelMaterial"), referenceKind: ReferenceKind.Material);
             ItemViewModelPositionField = AddField("ViewModelPosition", "Position (X,Y,Z)", "X, Y, Z", GetVal("ViewModelPosition", "0.4, -0.4, -0.5"));
@@ -1010,6 +1023,52 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     public StudioFieldViewModel? ItemToolTargetField { get; }
 
     /// <summary>
+    ///     Item consumable optional buff ID reference field.
+    /// </summary>
+    public StudioFieldViewModel? ItemConsumableBuffIdField { get; }
+
+    /// <summary>
+    ///     Item consumable cooldown duration field in seconds.
+    /// </summary>
+    public StudioFieldViewModel? ItemConsumableCooldownField { get; }
+
+    /// <summary>
+    ///     Editable statistic modifier rows for an item's <c>[[Items.Consumable.Modifiers]]</c>.
+    /// </summary>
+    public ObservableCollection<ConsumableStatModifierRowViewModel> ItemConsumableModifiers { get; } = [];
+
+    /// <summary>
+    ///     Summary text displayed in the Consumable section header.
+    /// </summary>
+    public string ItemConsumableSummary
+    {
+        get
+        {
+            if (!HasConsumable)
+            {
+                return "Not consumable";
+            }
+
+            var parts = new List<string>(3);
+            var cooldown = ItemConsumableCooldownField?.Value?.Trim();
+            parts.Add($"{(string.IsNullOrEmpty(cooldown) ? "0" : cooldown)}s cooldown");
+            var buff = ItemConsumableBuffIdField?.Value?.Trim();
+            if (!string.IsNullOrEmpty(buff))
+            {
+                parts.Add(buff);
+            }
+
+            parts.Add(ItemConsumableModifiers.Count == 1 ? "1 modifier" : $"{ItemConsumableModifiers.Count} modifiers");
+            return string.Join(" · ", parts);
+        }
+    }
+
+    /// <summary>
+    ///     Whether the item consumable currently defines no statistic modifier rows.
+    /// </summary>
+    public bool ItemConsumableHasNoModifiers => ItemConsumableModifiers.Count == 0;
+
+    /// <summary>
     ///     Item first-person view model mesh field.
     /// </summary>
     public StudioFieldViewModel? ItemViewModelMeshField { get; }
@@ -1676,6 +1735,16 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             }
         }
 
+        List<(string StatId, string FlatDelta, string PercentDelta)>? itemConsumableModifiers = null;
+        if (Kind == AssetKind.Item)
+        {
+            itemConsumableModifiers = new List<(string StatId, string FlatDelta, string PercentDelta)>(ItemConsumableModifiers.Count);
+            for (var i = 0; i < ItemConsumableModifiers.Count; i++)
+            {
+                itemConsumableModifiers.Add((ItemConsumableModifiers[i].StatId, ItemConsumableModifiers[i].FlatDelta, ItemConsumableModifiers[i].PercentDelta));
+            }
+        }
+
         return new DocumentSavePayload
         {
             AssetId = Id,
@@ -1716,6 +1785,10 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             BuffStatModifiersModified = _buffStatModifiersModified,
             BuffRegenRates = buffRegenRates,
             BuffRegenRatesModified = _buffRegenRatesModified,
+            ItemHasConsumable = HasConsumable,
+            ItemConsumableModified = _itemConsumableModified,
+            ItemConsumableModifiers = itemConsumableModifiers,
+            ItemConsumableModifiersModified = _itemConsumableModifiersModified,
         };
     }
 
@@ -1735,6 +1808,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         _slotGroupSlotsModified = false;
         _buffStatModifiersModified = false;
         _buffRegenRatesModified = false;
+        _itemConsumableModified = false;
+        _itemConsumableModifiersModified = false;
         _statisticsModified = false;
         _modifiedFieldKeys.Clear();
         _removedLocalizationKeys.Clear();
@@ -3036,6 +3111,284 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         {
             MarkMutated();
         }
+    }
+
+    [RelayCommand]
+    private void EnableItemConsumable()
+    {
+        if (IsReadOnly || Kind != AssetKind.Item || HasConsumable)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasConsumableModified = _itemConsumableModified;
+        var wasModifiersModified = _itemConsumableModifiersModified;
+        var recordedEpoch = _saveEpoch;
+        var beforeBuffId = ItemConsumableBuffIdField?.Value ?? string.Empty;
+        var beforeCooldown = ItemConsumableCooldownField?.Value ?? "0";
+        var beforeModifiers = SnapshotItemConsumableModifiers();
+
+        HasConsumable = true;
+        if (string.IsNullOrWhiteSpace(ItemConsumableCooldownField?.Value))
+        {
+            ItemConsumableCooldownField?.ApplyValueForReplay("0");
+        }
+
+        _itemConsumableModified = true;
+        var afterBuffId = ItemConsumableBuffIdField?.Value ?? string.Empty;
+        var afterCooldown = ItemConsumableCooldownField?.Value ?? "0";
+        var afterModifiers = SnapshotItemConsumableModifiers();
+
+        RecordUndo(
+            "Enable item consumable",
+            coalesceKey: null,
+            undo: () => RestoreItemConsumableState(
+                hasConsumable: false,
+                beforeBuffId,
+                beforeCooldown,
+                beforeModifiers,
+                wasDirty,
+                wasConsumableModified,
+                wasModifiersModified,
+                recordedEpoch,
+                isUndo: true),
+            redo: () => RestoreItemConsumableState(
+                hasConsumable: true,
+                afterBuffId,
+                afterCooldown,
+                afterModifiers,
+                wasDirty,
+                wasConsumableModified,
+                wasModifiersModified,
+                recordedEpoch,
+                isUndo: false));
+
+        NotifyItemConsumableChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveItemConsumable()
+    {
+        if (IsReadOnly || Kind != AssetKind.Item || !HasConsumable)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasConsumableModified = _itemConsumableModified;
+        var wasModifiersModified = _itemConsumableModifiersModified;
+        var recordedEpoch = _saveEpoch;
+        var beforeBuffId = ItemConsumableBuffIdField?.Value ?? string.Empty;
+        var beforeCooldown = ItemConsumableCooldownField?.Value ?? "0";
+        var beforeModifiers = SnapshotItemConsumableModifiers();
+
+        HasConsumable = false;
+        ItemConsumableBuffIdField?.ApplyValueForReplay(string.Empty);
+        ItemConsumableCooldownField?.ApplyValueForReplay("0");
+        ItemConsumableModifiers.Clear();
+        _itemConsumableModified = true;
+        _itemConsumableModifiersModified = true;
+
+        var afterModifiers = SnapshotItemConsumableModifiers();
+
+        RecordUndo(
+            "Remove item consumable",
+            coalesceKey: null,
+            undo: () => RestoreItemConsumableState(
+                hasConsumable: true,
+                beforeBuffId,
+                beforeCooldown,
+                beforeModifiers,
+                wasDirty,
+                wasConsumableModified,
+                wasModifiersModified,
+                recordedEpoch,
+                isUndo: true),
+            redo: () => RestoreItemConsumableState(
+                hasConsumable: false,
+                string.Empty,
+                "0",
+                afterModifiers,
+                wasDirty,
+                wasConsumableModified,
+                wasModifiersModified,
+                recordedEpoch,
+                isUndo: false));
+
+        NotifyItemConsumableChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void AddItemConsumableModifier()
+    {
+        if (IsReadOnly || Kind != AssetKind.Item || !HasConsumable)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _itemConsumableModifiersModified;
+        var recordedEpoch = _saveEpoch;
+        var before = SnapshotItemConsumableModifiers();
+
+        ItemConsumableModifiers.Add(CreateItemConsumableModifierRow("wb:health", "10", string.Empty));
+        _itemConsumableModifiersModified = true;
+        var after = SnapshotItemConsumableModifiers();
+
+        RecordUndo(
+            "Add consumable modifier",
+            coalesceKey: null,
+            undo: () => RestoreItemConsumableModifiersSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreItemConsumableModifiersSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifyItemConsumableChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveItemConsumableModifier(ConsumableStatModifierRowViewModel? row)
+    {
+        if (IsReadOnly || Kind != AssetKind.Item || row == null || !ItemConsumableModifiers.Contains(row))
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _itemConsumableModifiersModified;
+        var recordedEpoch = _saveEpoch;
+        var before = SnapshotItemConsumableModifiers();
+
+        ItemConsumableModifiers.Remove(row);
+        _itemConsumableModifiersModified = true;
+        var after = SnapshotItemConsumableModifiers();
+
+        RecordUndo(
+            "Remove consumable modifier",
+            coalesceKey: null,
+            undo: () => RestoreItemConsumableModifiersSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreItemConsumableModifiersSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifyItemConsumableChanged();
+        MarkMutated();
+    }
+
+    private ConsumableStatModifierRowViewModel CreateItemConsumableModifierRow(string statId, string flatDelta, string percentDelta)
+    {
+        return new ConsumableStatModifierRowViewModel(
+            statId,
+            flatDelta,
+            percentDelta,
+            onChanged: () =>
+            {
+                _itemConsumableModifiersModified = true;
+                NotifyItemConsumableChanged();
+                MarkMutated();
+            },
+            onPropertyTransition: (row, prop, oldVal, newVal) =>
+            {
+                var wasDirty = IsDirty;
+                var wasModified = _itemConsumableModifiersModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Edit consumable modifier {prop}",
+                    coalesceKey: $"item-consumable-mod:{DocumentKey}:{row.GetHashCode()}:{prop}",
+                    undo: () =>
+                    {
+                        row.ApplyPropertyForReplay(prop, oldVal);
+                        _itemConsumableModifiersModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        NotifyItemConsumableChanged();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        row.ApplyPropertyForReplay(prop, newVal);
+                        _itemConsumableModifiersModified = true;
+                        NotifyItemConsumableChanged();
+                        MarkMutated();
+                    });
+            },
+            isReadOnly: IsReadOnly);
+    }
+
+    private List<(string StatId, string FlatDelta, string PercentDelta)> SnapshotItemConsumableModifiers()
+    {
+        var list = new List<(string, string, string)>(ItemConsumableModifiers.Count);
+        for (var i = 0; i < ItemConsumableModifiers.Count; i++)
+        {
+            list.Add((ItemConsumableModifiers[i].StatId, ItemConsumableModifiers[i].FlatDelta, ItemConsumableModifiers[i].PercentDelta));
+        }
+
+        return list;
+    }
+
+    private void RestoreItemConsumableState(
+        bool hasConsumable,
+        string buffId,
+        string cooldown,
+        List<(string StatId, string FlatDelta, string PercentDelta)> modifiers,
+        bool targetDirty,
+        bool targetConsumableModified,
+        bool targetModifiersModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        HasConsumable = hasConsumable;
+        ItemConsumableBuffIdField?.ApplyValueForReplay(buffId);
+        ItemConsumableCooldownField?.ApplyValueForReplay(cooldown);
+        ItemConsumableModifiers.Clear();
+        for (var i = 0; i < modifiers.Count; i++)
+        {
+            ItemConsumableModifiers.Add(CreateItemConsumableModifierRow(modifiers[i].StatId, modifiers[i].FlatDelta, modifiers[i].PercentDelta));
+        }
+
+        _itemConsumableModified = isUndo && _saveEpoch == recordedEpoch ? targetConsumableModified : true;
+        _itemConsumableModifiersModified = isUndo && _saveEpoch == recordedEpoch ? targetModifiersModified : true;
+        NotifyItemConsumableChanged();
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private void RestoreItemConsumableModifiersSnapshot(
+        List<(string StatId, string FlatDelta, string PercentDelta)> snapshot,
+        bool targetDirty,
+        bool targetModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        ItemConsumableModifiers.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            ItemConsumableModifiers.Add(CreateItemConsumableModifierRow(snapshot[i].StatId, snapshot[i].FlatDelta, snapshot[i].PercentDelta));
+        }
+
+        _itemConsumableModifiersModified = isUndo && _saveEpoch == recordedEpoch ? targetModified : true;
+        NotifyItemConsumableChanged();
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private void NotifyItemConsumableChanged()
+    {
+        OnPropertyChanged(nameof(ItemConsumableSummary));
+        OnPropertyChanged(nameof(ItemConsumableHasNoModifiers));
     }
 
     private List<(string StatId, string PerSecond)> SnapshotBuffRegenRates()
@@ -4603,6 +4956,11 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(IsBrickConnected));
         }
+        else if ((ItemConsumableBuffIdField != null && field == ItemConsumableBuffIdField)
+            || (ItemConsumableCooldownField != null && field == ItemConsumableCooldownField))
+        {
+            OnPropertyChanged(nameof(ItemConsumableSummary));
+        }
         else if (field == ItemPlaceableTypeField)
         {
             SyncItemPlaceableIdField();
@@ -5638,6 +5996,34 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             sb.AppendLine("[Items.Placeable]");
             sb.AppendLine($"Type = {ItemPlaceableTypeField.RawTokenText}");
             sb.AppendLine($"ID   = {ItemPlaceableIdField?.RawTokenText}");
+        }
+
+        if (HasConsumable)
+        {
+            sb.AppendLine();
+            sb.AppendLine("[Items.Consumable]");
+            if (!string.IsNullOrWhiteSpace(ItemConsumableBuffIdField?.Value))
+            {
+                sb.AppendLine($"BuffID          = {ItemConsumableBuffIdField.RawTokenText}");
+            }
+
+            sb.AppendLine($"CooldownSeconds = {ItemConsumableCooldownField?.RawTokenText ?? "0.0"}");
+            for (var i = 0; i < ItemConsumableModifiers.Count; i++)
+            {
+                var mod = ItemConsumableModifiers[i];
+                sb.AppendLine();
+                sb.AppendLine("[[Items.Consumable.Modifiers]]");
+                sb.AppendLine($"StatId    = \"{mod.StatId.Trim()}\"");
+                if (!string.IsNullOrWhiteSpace(mod.FlatDelta))
+                {
+                    sb.AppendLine($"FlatDelta = {mod.FlatDelta.Trim()}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(mod.PercentDelta))
+                {
+                    sb.AppendLine($"PercentDelta = {mod.PercentDelta.Trim()}");
+                }
+            }
         }
 
         AppendStatisticsToml(sb, "Items.Statistics");

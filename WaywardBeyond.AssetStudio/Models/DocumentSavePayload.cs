@@ -191,6 +191,26 @@ public sealed class DocumentSavePayload
     public IReadOnlyList<(string StatId, string PerSecond)>? BuffRegenRates { get; init; }
 
     /// <summary>
+    ///     Whether an item document currently defines a <c>[Items.Consumable]</c> section.
+    /// </summary>
+    public bool ItemHasConsumable { get; init; }
+
+    /// <summary>
+    ///     Whether an item's consumable section presence or fields were modified since load or last save.
+    /// </summary>
+    public bool ItemConsumableModified { get; init; }
+
+    /// <summary>
+    ///     Current consumable statistic modifier rows for item documents.
+    /// </summary>
+    public IReadOnlyList<(string StatId, string FlatDelta, string PercentDelta)>? ItemConsumableModifiers { get; init; }
+
+    /// <summary>
+    ///     Whether consumable statistic modifier rows were modified since load or last save.
+    /// </summary>
+    public bool ItemConsumableModifiersModified { get; init; }
+
+    /// <summary>
     ///     Whether buff regeneration rate rows were modified since load or last save.
     /// </summary>
     public bool BuffRegenRatesModified { get; init; }

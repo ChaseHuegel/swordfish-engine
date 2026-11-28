@@ -99,6 +99,12 @@ public static class StatisticsPersistence
             return false;
         }
 
+        if (StatisticIds.IsCooldownKey(entry.ID.AsSpan()))
+        {
+            persisted = default;
+            return false;
+        }
+
         if (StatisticIds.TryParseBuffId(entry.ID.AsSpan(), out ReadOnlySpan<char> buffId))
         {
             if (entry.Value <= currentSimTick)
@@ -132,7 +138,8 @@ public static class StatisticsPersistence
     private static bool IsTransientClientStat(string id)
     {
         return string.Equals(id, StatisticIds.PRESSURIZED, StringComparison.Ordinal)
-            || StatisticIds.IsBuffTimerKey(id.AsSpan());
+            || StatisticIds.IsBuffTimerKey(id.AsSpan())
+            || StatisticIds.IsCooldownKey(id.AsSpan());
     }
 
     private static Statistic[]? StripTransientCharacterEntries(Statistic[]? existing)

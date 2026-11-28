@@ -27,4 +27,7 @@ public sealed class GameplayConfig : Config<GameplayConfig>
 
     /// <inheritdoc cref="RegionConfig"/>
     public RegionConfig Regions { get; private set; } = new();
+
+    /// <inheritdoc cref="SurvivalConfig"/>
+    public SurvivalConfig Survival { get; private set; } = new();
 }

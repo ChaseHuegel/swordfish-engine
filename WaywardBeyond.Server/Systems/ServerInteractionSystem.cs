@@ -128,7 +128,9 @@ public sealed class ServerInteractionSystem(
             interaction.Paint,
             kind,
             mode,
-            heldItemId);
+            heldItemId,
+            simTick,
+            simulationStep.FixedDelta);
 
         InteractionRunResult preCheck = handlerRegistry.Run(ref context, InteractionStage.Select, InteractionStage.Validate);
         if (preCheck.Decision is InteractionDecision.Consume or InteractionDecision.Cancel)
@@ -240,7 +242,9 @@ public sealed class ServerInteractionSystem(
             session.PaintHint,
             session.Kind,
             mode,
-            heldItemId);
+            heldItemId,
+            simTick,
+            simulationStep.FixedDelta);
 
         InteractionRunResult validation = handlerRegistry.Run(ref context, InteractionStage.Select, InteractionStage.Validate);
         if (validation.Decision is InteractionDecision.Consume or InteractionDecision.Cancel ||
@@ -374,7 +378,9 @@ public sealed class ServerInteractionSystem(
         PaintInteraction? paintHint,
         InteractionKind kind,
         GameMode mode,
-        string? heldItemId
+        string? heldItemId,
+        long simTick,
+        float fixedDelta
     ) {
         //  The hint and the mirror transform are the only client-authored inputs; the pipeline resolves
         //  the rest against the authority store.
@@ -388,7 +394,7 @@ public sealed class ServerInteractionSystem(
             paintHint
         );
 
-        return new InteractionContext(store, player, clientId, sequence, world, in request, heldItemId);
+        return new InteractionContext(store, player, clientId, sequence, world, in request, heldItemId, simTick, fixedDelta);
     }
 
     private static GameMode GetGameMode(DataStore store, int player)

@@ -53,7 +53,8 @@ merges durable namespaced replicated stats from `StatisticsComponent` into
 (`wb:strength`, `wb:precision`, `wb:awareness`, `wb:charisma`, `wb:education`,
 `wb:resolve`) live directly in `Character.Statistics` from character creation.
 The merge preserves skill XP and counters and strips transient `wb:pressurized`,
-`wb:buff.<id>.expires_tick`, and `wb:buff.<id>.remaining_ticks` keys.
+`wb:buff.<id>.expires_tick`, `wb:buff.<id>.remaining_ticks`, and
+`wb:cooldown.<itemId>` keys.
 `level_metadata` stores
 one raw nsd blob per level guid; the
 model is `LevelMetadata` (`WaywardBeyond.Data/Nsd/saves.nsd`), a wrapper
@@ -126,8 +127,9 @@ row. `QueueSaveCharacterLocation` (`WaywardBeyond.Server/Saves/LevelSaveService.
 calls `CaptureCharacter` (`WaywardBeyond.Server/Saves/LevelSaveService.cs:407-429`) to
 capture transform, scale, game mode, and surviving `StatisticsComponent` entries on the
 server thread and queues a single `character_locations` upsert on the save worker.
-`StatisticsPersistence.CaptureServerStatistics` excludes `wb:pressurized` and expired
-`wb:buff.<id>.expires_tick` entries (`expires_tick <= currentSimTick`), and converts active
+`StatisticsPersistence.CaptureServerStatistics` excludes `wb:pressurized`,
+`wb:cooldown.<itemId>`, and expired `wb:buff.<id>.expires_tick` entries
+(`expires_tick <= currentSimTick`), and converts active
 buff expiry ticks into tick-independent `wb:buff.<id>.remaining_ticks` counts so server
 restarts preserve remaining buff duration. It keeps the
 pending record in memory until the worker commits it, so an immediate rejoin reads the
@@ -199,7 +201,7 @@ Character inventories persist sparsely as `KeyedSlotEntry[]? Inventory` on
 (`WaywardBeyond.Data/Nsd/levels.nsd:74`). `CharacterSaveManager` writes
 `ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:80`).
 A `null` `Inventory` signals a new character and grants the starter loadout on
-join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:351`). An empty non-null
+join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:353`). An empty non-null
 array signals an intentionally emptied inventory that never restocks.
 
 ## Serialization and data versioning

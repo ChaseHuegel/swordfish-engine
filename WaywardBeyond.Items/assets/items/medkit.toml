@@ -1,0 +1,23 @@
+[[Items]]
+ID          = "wb:medkit"
+Name        = "item.base.medkit"
+Description = "item.base.medkit.description"
+Icon        = "items/medkit.png"
+MaxStack    = 10
+[Items.Consumable]
+CooldownSeconds = 8.0
+[[Items.Consumable.Modifiers]]
+StatId    = "wb:health"
+FlatDelta = 40.0
+[Items.ViewModel]
+Mesh       = "items/medkit.obj"
+Material   = "items/medkit"
+Position.X = 0.45
+Position.Y = -0.42
+Position.Z = -0.7
+Rotation.X = 5
+Rotation.Y = -35
+Rotation.Z = 0
+[Items.WorldModel]
+Mesh       = "items/medkit.obj"
+Material   = "items/medkit"

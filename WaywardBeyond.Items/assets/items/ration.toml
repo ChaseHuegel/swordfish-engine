@@ -1,0 +1,24 @@
+[[Items]]
+ID          = "wb:ration"
+Name        = "item.base.ration"
+Description = "item.base.ration.description"
+Icon        = "items/ration.png"
+MaxStack    = 10
+[Items.Consumable]
+BuffID          = "wb:well_fed"
+CooldownSeconds = 5.0
+[[Items.Consumable.Modifiers]]
+StatId    = "wb:health"
+FlatDelta = 15.0
+[Items.ViewModel]
+Mesh       = "items/ration.obj"
+Material   = "items/ration"
+Position.X = 0.42
+Position.Y = -0.42
+Position.Z = -0.65
+Rotation.X = 10
+Rotation.Y = -35
+Rotation.Z = -5
+[Items.WorldModel]
+Mesh       = "items/ration.obj"
+Material   = "items/ration"

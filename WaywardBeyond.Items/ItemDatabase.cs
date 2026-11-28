@@ -50,7 +50,8 @@ public sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDef
             assetInfo.ViewModel,
             assetInfo.WorldModel,
             assetInfo.Description,
-            statistics
+            statistics,
+            assetInfo.Consumable
         );
 
         return Result<Item>.FromSuccess(item);

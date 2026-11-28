@@ -1,0 +1,5 @@
+Shader    = "lighted"
+AlphaMode = "Masked"
+Textures  = [
+    "items/medkit_uv.png",
+]

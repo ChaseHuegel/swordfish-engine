@@ -96,6 +96,12 @@ public static class StatisticsComponentExtensions
         return stats.Read.HasExpiredBuffs(currentSimTick) && stats.Write.PruneExpiredBuffs(currentSimTick);
     }
 
+    /// <summary>Change-gated pruning of ready consumable cooldowns (<c>&lt;= currentSimTick</c>) from <paramref name="stats"/>.</summary>
+    public static bool PruneExpiredCooldowns(ref Ref<StatisticsComponent> stats, long currentSimTick)
+    {
+        return stats.Read.HasExpiredCooldowns(currentSimTick) && stats.Write.PruneExpiredCooldowns(currentSimTick);
+    }
+
     /// <summary>Change-gated write of a raw stat onto <paramref name="entity"/> in <paramref name="store"/>.</summary>
     public static bool SetStatistic(this DataStore store, int entity, string id, long value)
     {

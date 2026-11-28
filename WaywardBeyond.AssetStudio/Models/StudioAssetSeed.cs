@@ -191,6 +191,16 @@ public sealed class StudioAssetSeed
     public List<(string StatId, string FlatDelta, string PercentDelta)> BuffStatModifiers { get; init; } = [];
 
     /// <summary>
+    ///     Whether an item document declares a <c>[Items.Consumable]</c> section.
+    /// </summary>
+    public bool ItemHasConsumable { get; init; }
+
+    /// <summary>
+    ///     Consumable statistic modifier rows for item documents.
+    /// </summary>
+    public List<(string StatId, string FlatDelta, string PercentDelta)> ItemConsumableModifiers { get; init; } = [];
+
+    /// <summary>
     ///     Regeneration rate rows for buff documents.
     /// </summary>
     public List<(string StatId, string PerSecond)> BuffRegenRates { get; init; } = [];

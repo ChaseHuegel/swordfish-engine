@@ -10,7 +10,7 @@ namespace WaywardBeyond.Tests;
 
 /// <summary>
 /// Pins the interaction control scheme: Primary is the main edge for every item that has a primary action,
-/// only a modifier tool binds Secondary to clear its paint, and an item with no action for an input
+/// Secondary clears a modifier tool's paint or uses a consumable, and an item with no action for an input
 /// produces no edge.
 /// </summary>
 public class InteractionIntentTests
@@ -44,6 +44,30 @@ public class InteractionIntentTests
         Assert.Equal(InteractionKind.PrimaryPressed, InteractionIntent.For(InteractionInput.Primary, tool));
         Assert.Equal(InteractionKind.SecondaryPressed, InteractionIntent.For(InteractionInput.Secondary, tool));
         Assert.Equal(paintMode, InteractionIntent.PaintMode(tool));
+    }
+
+    [Fact]
+    public void AConsumableBindsSecondaryAndDoesNotBindPrimary()
+    {
+        var item = new Item(
+            "wb:medkit",
+            "Medkit",
+            iconID: null,
+            maxStack: 10,
+            placeable: null,
+            tool: null,
+            viewModel: null,
+            worldModel: null,
+            consumable: new ConsumableDefinition
+            {
+                Modifiers =
+                [
+                    new ConsumableStatModifierDefinition { StatId = "wb:health", FlatDelta = 40f },
+                ],
+            });
+
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Primary, item));
+        Assert.Equal(InteractionKind.SecondaryPressed, InteractionIntent.For(InteractionInput.Secondary, item));
     }
 
     [Fact]

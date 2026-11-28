@@ -17,7 +17,8 @@ public sealed class Item(
     ModelDefinition? viewModel,
     ModelDefinition? worldModel,
     string? description = null,
-    IReadOnlyDictionary<string, float>? statistics = null
+    IReadOnlyDictionary<string, float>? statistics = null,
+    ConsumableDefinition? consumable = null
 ) {
     private static readonly IReadOnlyDictionary<string, float> _noStatistics =
         new Dictionary<string, float>(StringComparer.Ordinal);
@@ -42,6 +43,9 @@ public sealed class Item(
 
     /// <summary>The tool behavior the item carries, or null when it is not a tool.</summary>
     public readonly ToolDefinition? Tool = tool;
+
+    /// <summary>The survival effect of consuming the item, or null when it is not consumable.</summary>
+    public readonly ConsumableDefinition? Consumable = consumable;
 
     /// <summary>The view-model render ids, or null when the item has none.</summary>
     public readonly ModelDefinition? ViewModel = viewModel;

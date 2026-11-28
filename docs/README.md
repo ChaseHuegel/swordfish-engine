@@ -70,6 +70,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Invariant sound tags, brick sound declarations, and playback | [specs/sound-effects](specs/sound-effects.md) |
 | Settings page layout, controls, draft, and apply behavior | [specs/settings-ui](specs/settings-ui.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
+| Adventure survival: health, oxygen, suffocation, consumables, buffs, and the damage path | [specs/survival](specs/survival.md) |
 | Extensible statistics and modifier pipeline for items, entities, and mods | [specs/statistics](specs/statistics.md) |
 | Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
 | Config schemas: `manifest.toml`, `modules.toml`, `logging.toml` | [specs/config-schemas](specs/config-schemas.md) |

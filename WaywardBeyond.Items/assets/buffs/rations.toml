@@ -1,0 +1,12 @@
+[[Buffs]]
+ID              = "wb:well_fed"
+Name            = "buff.base.well_fed"
+Description     = "buff.base.well_fed.description"
+DurationSeconds = 120.0
+StackPolicy     = "Refresh"
+[[Buffs.RegenRates]]
+StatId    = "wb:health"
+PerSecond = 0.5
+[[Buffs.RegenRates]]
+StatId    = "wb:oxygen"
+PerSecond = 0.25

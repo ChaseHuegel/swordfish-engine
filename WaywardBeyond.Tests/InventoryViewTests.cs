@@ -333,6 +333,19 @@ public sealed class InventoryViewTests : IDisposable
     }
 
     [Fact]
+    public void ConsumableTooltipDisplaysConsumableSubtitle()
+    {
+        var harness = new Harness();
+        harness.PutItem(2, new ItemData("wb:ration", 3, 10));
+        harness.Step();
+
+        harness.Hover("inventorySlot2");
+
+        Assert.Equal("Field Ration", harness.FindText("Field Ration").Text);
+        Assert.Equal("Consumable", harness.FindText("Consumable").Text);
+    }
+
+    [Fact]
     public void ScrollingWhileDraggingMovesOneItemInEitherDirection()
     {
         var harness = new Harness();
@@ -935,6 +948,17 @@ public sealed class InventoryViewTests : IDisposable
                     null,
                     null
                 ),
+                new Item(
+                    "wb:ration",
+                    "Field Ration",
+                    "items/ration.png",
+                    10,
+                    null,
+                    null,
+                    null,
+                    null,
+                    consumable: new ConsumableDefinition { CooldownSeconds = 5f }
+                ),
             ];
         }
     }
@@ -959,6 +983,7 @@ public sealed class InventoryViewTests : IDisposable
                 "ui.label.item.kind.conversionTool" => "Conversion tool",
                 "ui.label.item.kind.paintTool" => "Paint tool",
                 "ui.label.item.kind.textureTool" => "Decorator tool",
+                "ui.label.item.kind.consumable" => "Consumable",
                 "ui.label.item.kind.item" => "Item",
                 "ui.label.item.kind.unknown" => "Unknown item",
                 "ui.label.item.trait.orientable" => "Rotatable",

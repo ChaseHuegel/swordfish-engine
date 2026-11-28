@@ -69,6 +69,9 @@ public static class StatisticIds
     /// <summary>Suffix for persisted buff remaining tick stat IDs.</summary>
     public const string BUFF_REMAINING_TICKS_SUFFIX = ".remaining_ticks";
 
+    /// <summary>Prefix for per-item consumable cooldown stat IDs.</summary>
+    public const string COOLDOWN_PREFIX = "wb:cooldown.";
+
     /// <summary>Fixed-point multiplier applied to fractional vital and modifier values stored as 64-bit integers.</summary>
     public const long FIXED_POINT_SCALE = 1000L;
 
@@ -142,6 +145,25 @@ public static class StatisticIds
         return fixedValue / (float)FIXED_POINT_SCALE;
     }
 
+    /// <summary>Builds the canonical per-item consumable cooldown stat ID for <paramref name="itemId"/>.</summary>
+    public static string Cooldown(ReadOnlySpan<char> itemId)
+    {
+        if (itemId.IsEmpty || itemId.IsWhiteSpace())
+        {
+            throw new ArgumentException("Item ID must not be empty.", nameof(itemId));
+        }
+
+        return string.Concat(COOLDOWN_PREFIX, itemId);
+    }
+
+    /// <summary>Returns whether <paramref name="statId"/> names a per-item consumable cooldown entry.</summary>
+    public static bool IsCooldownKey(ReadOnlySpan<char> statId)
+    {
+        return statId.Length > COOLDOWN_PREFIX.Length
+            && statId.StartsWith(COOLDOWN_PREFIX.AsSpan(), StringComparison.Ordinal)
+            && !statId[COOLDOWN_PREFIX.Length..].IsWhiteSpace();
+    }
+
     /// <summary>Builds the canonical expiry-tick stat ID for <paramref name="buffId"/>.</summary>
     public static string BuffExpiresTick(ReadOnlySpan<char> buffId)
     {
@@ -195,6 +217,11 @@ public static class StatisticIds
     public static bool IsIntegerStat(ReadOnlySpan<char> statId)
     {
         if (statId.Equals(PRESSURIZED.AsSpan(), StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        if (IsCooldownKey(statId))
         {
             return true;
         }

@@ -670,6 +670,11 @@ public sealed class WorkspaceValidator
             }
         }
 
+        if (item.Consumable.HasValue)
+        {
+            ValidateItemConsumable(workspace, in asset, item.Consumable.Value, doc, findings);
+        }
+
         if (item.ViewModel.HasValue)
         {
             ValidateModelDefinition(workspace, in asset, doc, "Items.ViewModel", "ViewModel", item.ViewModel.Value, ValidationSeverity.Broken, findings);
@@ -681,6 +686,172 @@ public sealed class WorkspaceValidator
         }
 
         ValidateStatistics(in asset, doc, "Items.Statistics", "item", item.Statistics, findings);
+    }
+
+    private static void ValidateItemConsumable(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        in ConsumableDefinition consumable,
+        TomlDocument? doc,
+        List<ValidationFinding> findings)
+    {
+        if (!string.IsNullOrWhiteSpace(consumable.BuffID))
+        {
+            string buffId = consumable.BuffID.Trim();
+            if (!workspace.GetAsset(AssetKind.Buff, buffId).Success)
+            {
+                TomlFieldSpan? span = FindEntryField(doc, asset.Provenance.TableIndex, "BuffID", "Items.Consumable");
+                string? caseMatch = FindCaseInsensitiveAssetId(workspace, AssetKind.Buff, buffId);
+                if (caseMatch != null)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "PATH001",
+                        ValidationSeverity.CrossPlatform,
+                        in asset,
+                        span,
+                        "Consumable.BuffID",
+                        $"Consumable buff ID '{buffId}' differs by case from '{caseMatch}'.",
+                        suggestedFixValue: caseMatch,
+                        fixKind: ValidationFixKind.ReplaceValue,
+                        isSafeBulkFix: true,
+                        fixDescription: "Fix path/ID casing");
+                }
+                else
+                {
+                    string? suggested = SuggestAssetReference(workspace, AssetKind.Buff, buffId);
+                    AddFieldFinding(
+                        findings,
+                        "REF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        span,
+                        "Consumable.BuffID",
+                        $"Consumable buff '{buffId}' was not found.",
+                        suggestedFixValue: suggested,
+                        fixKind: suggested != null ? ValidationFixKind.ReplaceValue : ValidationFixKind.None,
+                        isSafeBulkFix: false,
+                        fixDescription: suggested != null ? "Replace with closest matching buff" : null);
+                }
+            }
+        }
+
+        if (!float.IsFinite(consumable.CooldownSeconds) || consumable.CooldownSeconds < 0f)
+        {
+            TomlFieldSpan? cooldownField = FindEntryField(doc, asset.Provenance.TableIndex, "CooldownSeconds", "Items.Consumable");
+            AddFieldFinding(
+                findings,
+                "CONSUMABLE001",
+                ValidationSeverity.Broken,
+                in asset,
+                cooldownField,
+                "Consumable.CooldownSeconds",
+                $"Item '{asset.Id}' Consumable.CooldownSeconds ({consumable.CooldownSeconds}) must be finite and >= 0.");
+        }
+
+        if (consumable.Modifiers != null)
+        {
+            List<TomlTableSpan> modTables = FindOwnedSubTables(doc, asset.Provenance.TableIndex, "Items", "Items.Consumable.Modifiers");
+            for (int i = 0; i < consumable.Modifiers.Count; i++)
+            {
+                ConsumableStatModifierDefinition mod = consumable.Modifiers[i];
+                TomlTableSpan? modTable = i < modTables.Count ? modTables[i] : null;
+                TomlFieldSpan? statField = ResolveSubTableField(doc, modTable, "StatId");
+                TomlFieldSpan? flatField = ResolveSubTableField(doc, modTable, "FlatDelta");
+                TomlFieldSpan? pctField = ResolveSubTableField(doc, modTable, "PercentDelta");
+
+                if (string.IsNullOrWhiteSpace(mod.StatId))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "CONSUMABLE001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        statField,
+                        $"Consumable.Modifiers[{i}].StatId",
+                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] is missing StatId.");
+                }
+
+                if (mod.FlatDelta.HasValue && !float.IsFinite(mod.FlatDelta.Value))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "CONSUMABLE001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        flatField,
+                        $"Consumable.Modifiers[{i}].FlatDelta",
+                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] FlatDelta must be finite.");
+                }
+
+                if (mod.PercentDelta.HasValue && !float.IsFinite(mod.PercentDelta.Value))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "CONSUMABLE001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        pctField,
+                        $"Consumable.Modifiers[{i}].PercentDelta",
+                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] PercentDelta must be finite.");
+                }
+
+                if (!mod.FlatDelta.HasValue && !mod.PercentDelta.HasValue)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "CONSUMABLE001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        flatField ?? statField,
+                        $"Consumable.Modifiers[{i}]",
+                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] must specify FlatDelta or PercentDelta.");
+                }
+                else if ((mod.FlatDelta ?? 0f) == 0f && (mod.PercentDelta ?? 0f) == 0f)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "CONSUMABLE001",
+                        ValidationSeverity.Style,
+                        in asset,
+                        flatField ?? pctField ?? statField,
+                        $"Consumable.Modifiers[{i}]",
+                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] has zero FlatDelta and PercentDelta (no-op).");
+                }
+            }
+        }
+    }
+
+    private static List<TomlTableSpan> FindOwnedSubTables(TomlDocument? doc, int ownerTableIndex, string ownerHeaderPath, string targetHeaderPath)
+    {
+        List<TomlTableSpan> matches = [];
+        if (doc == null || ownerTableIndex < 0 || ownerTableIndex >= doc.Tables.Count)
+        {
+            return matches;
+        }
+
+        string ownerPrefix = ownerHeaderPath + ".";
+        for (int i = ownerTableIndex + 1; i < doc.Tables.Count; i++)
+        {
+            TomlTableSpan next = doc.Tables[i];
+            if (next.IsArrayTable && string.Equals(next.HeaderPath, ownerHeaderPath, StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            if (string.Equals(next.HeaderPath, targetHeaderPath, StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add(next);
+                continue;
+            }
+
+            if (!next.HeaderPath.StartsWith(ownerPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+        }
+
+        return matches;
     }
 
     private static void ValidateStatistics(

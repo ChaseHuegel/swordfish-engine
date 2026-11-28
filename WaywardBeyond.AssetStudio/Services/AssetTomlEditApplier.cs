@@ -124,6 +124,18 @@ internal static class AssetTomlEditApplier
             ApplyScalar(doc, toolTable, "Target", "ToolTarget", payload, ScalarKind.OptionalString);
         }
 
+        var consumableResult = ApplyItemConsumableEdits(doc, itemOrdinal, payload);
+        if (!consumableResult.Success)
+        {
+            return consumableResult;
+        }
+
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
         ApplyItemModelSectionEdits(doc, tableIndex, "Items.ViewModel", "ViewModel", payload);
         ApplyItemModelSectionEdits(doc, tableIndex, "Items.WorldModel", "WorldModel", payload);
 
@@ -361,6 +373,230 @@ internal static class AssetTomlEditApplier
         }
 
         return Result.FromSuccess();
+    }
+
+    private static Result ApplyItemConsumableEdits(
+        ToolsDocuments.TomlDocument doc,
+        int itemOrdinal,
+        DocumentSavePayload payload)
+    {
+        var consumableFieldModified = payload.ModifiedFieldKeys == null
+            || payload.ModifiedFieldKeys.Contains("ConsumableBuffID")
+            || payload.ModifiedFieldKeys.Contains("ConsumableCooldownSeconds");
+        if (!payload.ItemConsumableModified
+            && !payload.ItemConsumableModifiersModified
+            && !consumableFieldModified)
+        {
+            return Result.FromSuccess();
+        }
+
+        var currentItemTable = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
+        if (currentItemTable < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        if (!payload.ItemHasConsumable)
+        {
+            var removeModsResult = RemoveOwnedItemSubTables(doc, itemOrdinal, "Items.Consumable.Modifiers");
+            if (!removeModsResult.Success)
+            {
+                return removeModsResult;
+            }
+
+            var existingConsumable = RelocateItemChildTable(doc, itemOrdinal, "Items.Consumable");
+            if (existingConsumable >= 0)
+            {
+                return RemoveTableSection(doc, existingConsumable);
+            }
+
+            return Result.FromSuccess();
+        }
+
+        var consumableTable = FindChildTableIndex(doc, currentItemTable, "Items", "Items.Consumable");
+        if (consumableTable < 0)
+        {
+            var insertResult = InsertItemChildTable(doc, currentItemTable, "Items.Consumable");
+            if (!insertResult.Success)
+            {
+                return insertResult;
+            }
+
+            consumableTable = RelocateItemChildTable(doc, itemOrdinal, "Items.Consumable");
+            if (consumableTable < 0)
+            {
+                return Result.FromSuccess();
+            }
+
+            if (payload.FieldValues.TryGetValue("ConsumableBuffID", out var initialBuffId)
+                && !string.IsNullOrWhiteSpace(initialBuffId))
+            {
+                ApplyScalarUnconditional(doc, consumableTable, "BuffID", initialBuffId.Trim(), ScalarKind.OptionalString);
+                consumableTable = RelocateItemChildTable(doc, itemOrdinal, "Items.Consumable");
+            }
+
+            if (consumableTable >= 0)
+            {
+                payload.FieldValues.TryGetValue("ConsumableCooldownSeconds", out var rawCooldown);
+                var cooldown = double.TryParse(rawCooldown?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+                    && double.IsFinite(parsed)
+                    ? parsed
+                    : 0d;
+                var existingCooldown = doc.GetFieldInTable(consumableTable, "CooldownSeconds");
+                if (existingCooldown.Success)
+                {
+                    doc.SetFloat(existingCooldown.Value, cooldown);
+                }
+                else
+                {
+                    doc.AddField(doc.Tables[consumableTable], "CooldownSeconds", FormatTomlFloat(cooldown));
+                }
+            }
+
+            if (payload.ItemConsumableModifiers != null && payload.ItemConsumableModifiers.Count > 0)
+            {
+                var modsBlock = BuildItemConsumableModifiersTomlBlock(payload.ItemConsumableModifiers, doc.LineEnding);
+                return ReplaceOwnedItemConsumableModifiers(doc, itemOrdinal, modsBlock);
+            }
+
+            return Result.FromSuccess();
+        }
+
+        if (payload.ModifiedFieldKeys == null || payload.ModifiedFieldKeys.Contains("ConsumableBuffID"))
+        {
+            payload.FieldValues.TryGetValue("ConsumableBuffID", out var buffIdVal);
+            if (string.IsNullOrWhiteSpace(buffIdVal))
+            {
+                var existingBuffId = doc.GetFieldInTable(consumableTable, "BuffID");
+                if (existingBuffId.Success)
+                {
+                    doc.RemoveField(existingBuffId.Value);
+                }
+            }
+            else
+            {
+                ApplyScalar(doc, consumableTable, "BuffID", "ConsumableBuffID", payload, ScalarKind.OptionalString);
+            }
+        }
+
+        consumableTable = RelocateItemChildTable(doc, itemOrdinal, "Items.Consumable");
+        if (consumableTable >= 0)
+        {
+            ApplyScalar(doc, consumableTable, "CooldownSeconds", "ConsumableCooldownSeconds", payload, ScalarKind.Float);
+        }
+
+        if (payload.ItemConsumableModifiersModified && payload.ItemConsumableModifiers != null)
+        {
+            var modsBlock = BuildItemConsumableModifiersTomlBlock(payload.ItemConsumableModifiers, doc.LineEnding);
+            return ReplaceOwnedItemConsumableModifiers(doc, itemOrdinal, modsBlock);
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private static Result RemoveOwnedItemSubTables(
+        ToolsDocuments.TomlDocument doc,
+        int itemOrdinal,
+        string targetHeaderPath)
+    {
+        var ownerTableIndex = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
+        if (ownerTableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var lastOwned = FindLastOwnedTableIndex(doc, ownerTableIndex, "Items");
+        for (var i = lastOwned; i > ownerTableIndex; i--)
+        {
+            if (string.Equals(doc.Tables[i].HeaderPath, targetHeaderPath, StringComparison.OrdinalIgnoreCase))
+            {
+                var removeResult = RemoveTableSection(doc, i);
+                if (!removeResult.Success)
+                {
+                    return removeResult;
+                }
+            }
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private static Result ReplaceOwnedItemConsumableModifiers(
+        ToolsDocuments.TomlDocument doc,
+        int itemOrdinal,
+        string replacementBlock)
+    {
+        var removeResult = RemoveOwnedItemSubTables(doc, itemOrdinal, "Items.Consumable.Modifiers");
+        if (!removeResult.Success)
+        {
+            return removeResult;
+        }
+
+        if (string.IsNullOrEmpty(replacementBlock))
+        {
+            return Result.FromSuccess();
+        }
+
+        var consumableTable = RelocateItemChildTable(doc, itemOrdinal, "Items.Consumable");
+        int insertOffset;
+        if (consumableTable >= 0)
+        {
+            insertOffset = Math.Clamp(doc.Tables[consumableTable].ContentSpan.End, 0, doc.Text.Length);
+        }
+        else
+        {
+            var ownerTableIndex = ResolveArrayTableByOrdinal(doc, "Items", itemOrdinal);
+            if (ownerTableIndex < 0)
+            {
+                return Result.FromSuccess();
+            }
+
+            var lastOwned = FindLastOwnedTableIndex(doc, ownerTableIndex, "Items");
+            insertOffset = Math.Clamp(doc.Tables[lastOwned].ContentSpan.End, 0, doc.Text.Length);
+        }
+
+        return InsertRecipeTableBlockAtOffset(doc, insertOffset, replacementBlock);
+    }
+
+    private static string BuildItemConsumableModifiersTomlBlock(
+        IReadOnlyList<(string StatId, string FlatDelta, string PercentDelta)> modifiers,
+        string eol)
+    {
+        if (modifiers.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < modifiers.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(eol);
+                sb.Append(eol);
+            }
+
+            var mod = modifiers[i];
+            sb.Append("[[Items.Consumable.Modifiers]]").Append(eol);
+            sb.Append("StatId = ").Append(FormatTomlString(mod.StatId?.Trim() ?? string.Empty));
+            if (!string.IsNullOrWhiteSpace(mod.FlatDelta)
+                && double.TryParse(mod.FlatDelta.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var flat)
+                && double.IsFinite(flat))
+            {
+                sb.Append(eol);
+                sb.Append("FlatDelta = ").Append(FormatTomlFloat(flat));
+            }
+
+            if (!string.IsNullOrWhiteSpace(mod.PercentDelta)
+                && double.TryParse(mod.PercentDelta.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var pct)
+                && double.IsFinite(pct))
+            {
+                sb.Append(eol);
+                sb.Append("PercentDelta = ").Append(FormatTomlFloat(pct));
+            }
+        }
+
+        return sb.ToString();
     }
 
     private static void ApplyScalarUnconditional(

@@ -21,7 +21,9 @@ public struct InteractionContext
         uint sequence,
         IVoxelInteractionWorld world,
         in InteractionRequest request,
-        string? heldItemID
+        string? heldItemID,
+        long simTick = 0L,
+        float fixedDelta = 0f
     ) {
         Store = store;
         Player = player;
@@ -35,6 +37,8 @@ public struct InteractionContext
         GameMode = request.GameMode;
         Reach = request.Reach;
         HeldItemID = heldItemID;
+        SimTick = simTick;
+        FixedDelta = fixedDelta;
         Placeable = null;
         Resolution = InteractionResolution.None;
         Hold = InteractionHold.None;
@@ -75,6 +79,12 @@ public struct InteractionContext
 
     /// <summary>The id of the item in the player's active slot, or null.</summary>
     public readonly string? HeldItemID;
+
+    /// <summary>The authoritative server sim tick the interaction runs on.</summary>
+    public readonly long SimTick;
+
+    /// <summary>The fixed simulation timestep in seconds for buff expiry math.</summary>
+    public readonly float FixedDelta;
 
     /// <summary>The content the interaction places. Set by a <see cref="InteractionStage.Select"/> handler.</summary>
     public Brick? Placeable;

@@ -34,6 +34,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
 | `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
+| `[Items.Consumable]` | sub-table | `ConsumableDefinition` (`BuffID`, `CooldownSeconds`, `Modifiers`) |
 | `[Items.Statistics]` | map: string → float | `ItemDefinition.Statistics` (custom numeric statistics such as `"wb:mining_speed"`) |
 | `[Items.ViewModel]` | sub-table | `ModelDefinition` |
 | `[Items.WorldModel]` | sub-table | `ModelDefinition` |
@@ -73,13 +74,55 @@ and optional `Target`. Item group membership (`item.tool`, `item.tool.mining`,
 `item.tool.sprayer`, `item.tool.drill`, `item.placeable`) lives in the invariant
 tag list `WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
 
+### Consumable
+
+`ConsumableDefinition` (`WaywardBeyond.Items/ConsumableDefinition.cs`) marks an
+item as usable with the secondary input in Adventure Mode. The server owns the
+effect and consumes one unit from the active `wb:hotbar` slot. The item is not
+consumed when its modifiers and buff would change nothing.
+
+| Field | Type | Notes |
+|---|---|---|
+| `BuffID` | string? | optional buff id resolved through `IBuffDatabase` and applied with its `StackPolicy` |
+| `CooldownSeconds` | float | minimum seconds between uses; the server records `wb:cooldown.<itemId>` in `StatisticsComponent` |
+| `[[Items.Consumable.Modifiers]]` | table array | one-shot statistic changes applied in declaration order |
+
+Each modifier row is a `ConsumableStatModifierDefinition`
+(`WaywardBeyond.Items/ConsumableStatModifierDefinition.cs`):
+
+| Field | Type | Notes |
+|---|---|---|
+| `StatId` | string | target statistic id |
+| `FlatDelta` | float? | optional additive delta |
+| `PercentDelta` | float? | optional percentage delta applied to the current value |
+
+A row must set `FlatDelta` or `PercentDelta`, and at least one delta must be
+nonzero. The applied value is `(current + FlatDelta) * (1 + PercentDelta)`.
+Health and oxygen clamp to their maximums after the change.
+
+Example:
+
+```toml
+[[Items]]
+ID       = "wb:medkit"
+Name     = "item.base.medkit"
+MaxStack = 10
+[Items.Consumable]
+CooldownSeconds = 8.0
+[[Items.Consumable.Modifiers]]
+StatId    = "wb:health"
+FlatDelta = 40.0
+```
+
+See [survival](survival.md) for the simulation, damage path, and buff timing.
+
 ### Statistics
 
-`ItemDefinition.Statistics` (`WaywardBeyond.Items/ItemDefinition.cs:19`) is an
+`ItemDefinition.Statistics` (`WaywardBeyond.Items/ItemDefinition.cs:20`) is an
 optional `[Items.Statistics]` key-value map from statistic id to finite `float`
 value. Base-game keys use the `wb:` namespace (for example `"wb:mining_speed"`).
 Mods add their own namespaced keys without changing source code. `ItemDatabase`
-(`WaywardBeyond.Items/ItemDatabase.cs:59`) logs a warning and skips empty keys
+(`WaywardBeyond.Items/ItemDatabase.cs:60`) logs a warning and skips empty keys
 or non-finite values. `WorkspaceValidator` emits `STAT001` for invalid item
 statistic entries, including non-positive `"wb:mining_speed"` values. See
 [statistics](statistics.md).
@@ -519,7 +562,7 @@ bits. See [seed-phrases](seed-phrases.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
+- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,ConsumableDefinition,ConsumableStatModifierDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
 - `WaywardBeyond.Data/Blueprints/{IBundledBlueprintDatabase,BundledBlueprintDatabase,BlueprintDataParser}.cs`
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
@@ -576,3 +619,4 @@ occurrence order, and the invariant merge into each language.
 `STAT001` validation findings.
 `WaywardBeyond.Tests/BarDatabaseTests.cs` pins `bars/*.toml` `TomlParser<BarDefinitions>` parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
 `WaywardBeyond.Tests/BuffDatabaseTests.cs` pins `buffs/*.toml` `TomlParser<BuffDefinitions>` parsing, stack policies, stat modifiers, data-driven regen rates, and validation failures.
+`WaywardBeyond.Tests/SurvivalSystemTests.cs` pins `[Items.Consumable]` parsing, one-shot statistic modifiers, shipped consumable assets, cooldown use, and buff grants.
