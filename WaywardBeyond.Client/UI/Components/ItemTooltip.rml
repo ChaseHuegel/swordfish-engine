@@ -85,6 +85,13 @@
                               height="14"
                               wrap="false" />
                     </ElseIf>
+                    <ElseIf condition="@context.IsConsumable">
+                        <Text class="wb-tooltip-subtitle"
+                              text="@context.L('ui.label.item.kind.consumable')"
+                              width="fit"
+                              height="14"
+                              wrap="false" />
+                    </ElseIf>
                     <ElseIf condition="@context.IsUnknown">
                         <Text class="wb-tooltip-subtitle wb-tooltip-subtitle-unknown"
                               text="@context.L('ui.label.item.kind.unknown')"

@@ -334,6 +334,7 @@
 "ui.label.item.kind.paintTool" = "Paint tool"
 "ui.label.item.kind.textureTool" = "Decorator tool"
 "ui.label.item.kind.blueprintTool" = "Blueprint tool"
+"ui.label.item.kind.consumable" = "Consumable"
 "ui.label.item.kind.item" = "Item"
 "ui.label.item.kind.unknown" = "Unknown item"
 

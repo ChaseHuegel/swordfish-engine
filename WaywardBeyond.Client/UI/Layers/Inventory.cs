@@ -450,6 +450,11 @@ internal sealed class Inventory : IUILayer
             };
         }
 
+        if (item.Consumable != null)
+        {
+            return ItemTooltipKind.Consumable;
+        }
+
         return ItemTooltipKind.Item;
     }
 

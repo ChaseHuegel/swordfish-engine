@@ -10,6 +10,7 @@ internal enum ItemTooltipKind
     PaintTool,
     TextureTool,
     BlueprintTool,
+    Consumable,
     Item,
     Unknown,
 }
