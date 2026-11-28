@@ -190,7 +190,7 @@ public static class CharacterStatisticsSeeder
         store.AddOrUpdate(entity, CreateStatistics(statistics, skillDatabase));
     }
 
-    /// <summary>Seeds a server-authoritative <see cref="StatisticsComponent"/> onto <paramref name="entity"/> in <paramref name="store"/>.</summary>
+    /// <summary>Seeds a server-authoritative <see cref="StatisticsComponent"/> (and any persisted <see cref="BaseStatisticsComponent"/>) onto <paramref name="entity"/> in <paramref name="store"/>.</summary>
     public static void SeedAuthoritativeStatistics(
         DataStore store,
         int entity,
@@ -203,6 +203,50 @@ public static class CharacterStatisticsSeeder
     )
     {
         store.AddOrUpdate(entity, CreateAuthoritativeStatistics(in seed, gameMode, persistedEntity, currentSimTick, defaultHealthMax, defaultOxygenMax));
+        if (persistedEntity != null && TryExtractPersistedBaseEntries(persistedEntity.Value.Statistics, out Statistic[]? baseEntries))
+        {
+            store.AddOrUpdate(entity, new BaseStatisticsComponent
+            {
+                Entries = baseEntries,
+                NextBuffExpiryTick = 0L,
+            });
+        }
+    }
+
+    private static bool TryExtractPersistedBaseEntries(Statistic[]? persisted, out Statistic[]? baseEntries)
+    {
+        baseEntries = null;
+        if (persisted == null || persisted.Length == 0)
+        {
+            return false;
+        }
+
+        List<Statistic>? extracted = null;
+        for (var i = 0; i < persisted.Length; i++)
+        {
+            Statistic entry = persisted[i];
+            if (string.IsNullOrWhiteSpace(entry.ID)
+                || !StatisticIds.TryParseBaseStatId(entry.ID.AsSpan(), out ReadOnlySpan<char> innerStatId))
+            {
+                continue;
+            }
+
+            if (!StatisticIds.IsAggregatableStat(innerStatId))
+            {
+                continue;
+            }
+
+            extracted ??= new List<Statistic>(persisted.Length);
+            StatisticsPersistence.UpsertEntry(extracted, new Statistic(innerStatId.ToString(), entry.Value));
+        }
+
+        if (extracted == null || extracted.Count == 0)
+        {
+            return false;
+        }
+
+        baseEntries = [.. extracted];
+        return true;
     }
 
     private static ClientSeed ExtractClientSeed(Statistic[]? clientSeed, Span<long> attributes)
@@ -298,7 +342,8 @@ public static class CharacterStatisticsSeeder
             || string.Equals(id, StatisticIds.OXYGEN, StringComparison.Ordinal)
             || string.Equals(id, StatisticIds.OXYGEN_MAX, StringComparison.Ordinal)
             || string.Equals(id, StatisticIds.PRESSURIZED, StringComparison.Ordinal)
-            || StatisticIds.IsCooldownKey(id.AsSpan()))
+            || StatisticIds.IsCooldownKey(id.AsSpan())
+            || StatisticIds.IsBaseStatKey(id.AsSpan()))
         {
             return true;
         }

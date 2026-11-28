@@ -7,6 +7,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Gameplay.Networking;
 
 namespace WaywardBeyond.Gameplay;
@@ -207,8 +208,9 @@ public sealed class SimulationStep : IDisposable
             Vector3 right = transformValue.GetRight();
             Vector3 up = transformValue.GetUp();
             Vector3 direction = command.MovementX * right + command.MovementY * up + command.MovementZ * forward;
+            float speedMultiplier = ResolveMoveSpeedMultiplier(_store, entity);
 
-            velocity += direction * CharacterDefaults.BASE_SPEED * fixedTimestamp;
+            velocity += direction * (CharacterDefaults.BASE_SPEED * speedMultiplier) * fixedTimestamp;
         }
         else
         {
@@ -224,6 +226,22 @@ public sealed class SimulationStep : IDisposable
         {
             physics.Write.Velocity = velocity;
         }
+    }
+
+    /// <summary>Resolves the clamped movement speed multiplier from the replicated statistics component.</summary>
+    private static float ResolveMoveSpeedMultiplier(DataStore store, int entity)
+    {
+        if (!store.TryGet(entity, out StatisticsComponent stats)
+            || !stats.TryGetFixed(StatisticIds.MOVE_SPEED_PCT, out float moveSpeedPct)
+            || !float.IsFinite(moveSpeedPct))
+        {
+            return 1f;
+        }
+
+        return Math.Clamp(
+            1f + moveSpeedPct,
+            CharacterDefaults.MIN_MOVE_SPEED_MULTIPLIER,
+            CharacterDefaults.MAX_MOVE_SPEED_MULTIPLIER);
     }
 
     /// <summary>Damps a body that applies no input, matching the command pass's commandless step.</summary>

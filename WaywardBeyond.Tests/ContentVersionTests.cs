@@ -17,7 +17,7 @@ namespace WaywardBeyond.Tests;
 public class ContentVersionTests
 {
     private const uint PINNED_CONTENT_VERSION = 1;
-    private const string PINNED_SCHEMA_FINGERPRINT = "8CA13731E20EACA8B4F0D9C273BC5BC6ADB813A266858C9F918677D4FE7EA5D8";
+    private const string PINNED_SCHEMA_FINGERPRINT = "974E789AAB77D9E5861475B893BF5B29070FB4F37B3DA4A80F5C75387DF84BAD";
 
     private static readonly Type[] _definitionTypes =
     [
@@ -27,6 +27,8 @@ public class ContentVersionTests
         typeof(ToolDefinition),
         typeof(ConsumableDefinition),
         typeof(ConsumableStatModifierDefinition),
+        typeof(EquipDefinition),
+        typeof(EquipStatModifierDefinition),
         typeof(ModelDefinition),
         typeof(BrickDefinitions),
         typeof(BrickDefinition),

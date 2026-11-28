@@ -431,6 +431,31 @@ public sealed class ValidationEngineTests : IDisposable
             f.FilePath.EndsWith("nan_stat.toml", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ItemEquipSlotTagAndStatModifiersAreValidated()
+    {
+        string pack = CreateMinimalPack("equip-pack");
+        string assets = Path.Combine(pack, "assets");
+        WriteFile(
+            Path.Combine(assets, "lang", "en", "item.toml"),
+            "\"Language\" = \"en\"\n\n[Translations]\n\"item.equip.name\" = \"Equip Item\"\n");
+
+        WriteFile(
+            Path.Combine(assets, "items", "valid_helmet.toml"),
+            "[[Items]]\nID = \"wb:valid_helmet\"\nName = \"item.equip.name\"\n[Items.Equip]\nSlotTag = \"helmet\"\n[[Items.Equip.StatModifiers]]\nStatId = \"wb:oxygen_max\"\nFlatDelta = 50.0\n");
+        WriteFile(
+            Path.Combine(assets, "items", "bad_equip.toml"),
+            "[[Items]]\nID = \"wb:bad_equip\"\nName = \"item.equip.name\"\n[Items.Equip]\nSlotTag = \"invalid\"\n[[Items.Equip.StatModifiers]]\nStatId = \"\"\n");
+
+        WorkspaceIndex ws = new WorkspaceLoader().LoadPack(pack).Value;
+        ValidationReport report = new WorkspaceValidator().Validate(ws);
+
+        Assert.DoesNotContain(report.Findings, static f => f.FilePath.EndsWith("valid_helmet.toml", StringComparison.Ordinal));
+        Assert.Contains(report.Findings, static f => f.Code == "EQUIP001" && f.Field == "Equip.SlotTag");
+        Assert.Contains(report.Findings, static f => f.Code == "EQUIP001" && f.Field == "Equip.StatModifiers[0].StatId");
+        Assert.Contains(report.Findings, static f => f.Code == "EQUIP001" && f.Field == "Equip.StatModifiers[0]");
+    }
+
     private string CreateMinimalPack(string name)
     {
         string pack = Path.Combine(_tempRoot, name);

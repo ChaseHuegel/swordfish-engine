@@ -55,7 +55,11 @@ clamps to the vital maximums.
 
 `Buff.StackPolicy` (`Refresh`, `Extend`, `Ignore`) decides the next expiry tick
 when a consumable grants a buff that is already active
-(`WaywardBeyond.Data/Buffs/Buff.cs`).
+(`WaywardBeyond.Data/Buffs/Buff.cs`). `ServerStatAggregationSystem`
+(`WaywardBeyond.Server/Systems/ServerStatAggregationSystem.cs`) evaluates active
+`Buff.StatModifiers` alongside wearables, augments, and S.P.A.C.E.R. scaling to
+compute `wb:health_max` and `wb:oxygen_max`, clamping `wb:health` and
+`wb:oxygen` when maximums drop. See [statistics](statistics.md).
 
 ## Consumables
 

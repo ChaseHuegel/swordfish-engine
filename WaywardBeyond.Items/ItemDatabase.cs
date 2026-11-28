@@ -40,6 +40,7 @@ public sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDef
     protected override Result<Item> LoadAsset(string id, ItemDefinition assetInfo)
     {
         IReadOnlyDictionary<string, float>? statistics = ResolveStatistics(id, assetInfo.Statistics);
+        EquipDefinition? equip = ResolveEquip(id, assetInfo.Equip);
         var item = new Item(
             id,
             assetInfo.Name,
@@ -51,10 +52,75 @@ public sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDef
             assetInfo.WorldModel,
             assetInfo.Description,
             statistics,
-            assetInfo.Consumable
+            assetInfo.Consumable,
+            equip
         );
 
         return Result<Item>.FromSuccess(item);
+    }
+
+    private EquipDefinition? ResolveEquip(string id, EquipDefinition? equip)
+    {
+        if (equip == null)
+        {
+            return null;
+        }
+
+        EquipDefinition raw = equip.Value;
+        if (!ItemTags.TryResolveEquipTag(raw.SlotTag, out string resolvedTag))
+        {
+            _logger.LogWarning("Item \"{ItemId}\" declares invalid Equip.SlotTag \"{SlotTag}\". Skipping equip metadata.", id, raw.SlotTag);
+            return null;
+        }
+
+        List<EquipStatModifierDefinition>? validatedModifiers = null;
+        if (raw.StatModifiers != null && raw.StatModifiers.Count > 0)
+        {
+            for (var i = 0; i < raw.StatModifiers.Count; i++)
+            {
+                EquipStatModifierDefinition mod = raw.StatModifiers[i];
+                string statId = mod.StatId?.Trim() ?? string.Empty;
+                if (statId.Length == 0)
+                {
+                    _logger.LogWarning("Item \"{ItemId}\" Equip.StatModifiers[{Index}] has an empty StatId. Skipping.", id, i);
+                    continue;
+                }
+
+                if (mod.FlatDelta.HasValue && !float.IsFinite(mod.FlatDelta.Value))
+                {
+                    _logger.LogWarning("Item \"{ItemId}\" Equip.StatModifiers[{Index}] for \"{StatId}\" has non-finite FlatDelta. Skipping.", id, i, statId);
+                    continue;
+                }
+
+                if (mod.PercentDelta.HasValue && !float.IsFinite(mod.PercentDelta.Value))
+                {
+                    _logger.LogWarning("Item \"{ItemId}\" Equip.StatModifiers[{Index}] for \"{StatId}\" has non-finite PercentDelta. Skipping.", id, i, statId);
+                    continue;
+                }
+
+                float flat = mod.FlatDelta ?? 0f;
+                float pct = mod.PercentDelta ?? 0f;
+                if (flat == 0f && pct == 0f)
+                {
+                    _logger.LogWarning("Item \"{ItemId}\" Equip.StatModifiers[{Index}] for \"{StatId}\" has zero delta. Skipping.", id, i, statId);
+                    continue;
+                }
+
+                validatedModifiers ??= new List<EquipStatModifierDefinition>(raw.StatModifiers.Count);
+                validatedModifiers.Add(new EquipStatModifierDefinition
+                {
+                    StatId = statId,
+                    FlatDelta = mod.FlatDelta,
+                    PercentDelta = mod.PercentDelta,
+                });
+            }
+        }
+
+        return new EquipDefinition
+        {
+            SlotTag = resolvedTag,
+            StatModifiers = validatedModifiers,
+        };
     }
 
     private IReadOnlyDictionary<string, float>? ResolveStatistics(string id, Dictionary<string, float>? statistics)

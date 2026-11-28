@@ -75,6 +75,9 @@ public static class StatisticIds
     /// <summary>Prefix for per-item consumable cooldown stat IDs.</summary>
     public const string COOLDOWN_PREFIX = "wb:cooldown.";
 
+    /// <summary>Prefix for server-persisted base stat entries used to prevent gear/buff double-counting across joins.</summary>
+    public const string BASE_PREFIX = "wb:base.";
+
     /// <summary>Fixed-point multiplier applied to fractional vital and modifier values stored as 64-bit integers.</summary>
     public const long FIXED_POINT_SCALE = 1000L;
 
@@ -157,6 +160,63 @@ public static class StatisticIds
         }
 
         return string.Concat(COOLDOWN_PREFIX, itemId);
+    }
+
+    /// <summary>Builds the canonical server-persisted base stat ID for <paramref name="statId"/>.</summary>
+    public static string BaseStat(ReadOnlySpan<char> statId)
+    {
+        if (statId.IsEmpty || statId.IsWhiteSpace())
+        {
+            throw new ArgumentException("Stat ID must not be empty.", nameof(statId));
+        }
+
+        return string.Concat(BASE_PREFIX, statId);
+    }
+
+    /// <summary>Returns whether <paramref name="statId"/> names a server-persisted base stat entry.</summary>
+    public static bool IsBaseStatKey(ReadOnlySpan<char> statId)
+    {
+        return TryParseBaseStatId(statId, out _);
+    }
+
+    /// <summary>Extracts the underlying stat ID slice from a <c>wb:base.&lt;statId&gt;</c> key without allocating.</summary>
+    public static bool TryParseBaseStatId(ReadOnlySpan<char> statId, out ReadOnlySpan<char> innerStatId)
+    {
+        if (statId.Length <= BASE_PREFIX.Length
+            || !statId.StartsWith(BASE_PREFIX.AsSpan(), StringComparison.Ordinal))
+        {
+            innerStatId = default;
+            return false;
+        }
+
+        ReadOnlySpan<char> inner = statId[BASE_PREFIX.Length..];
+        if (inner.IsWhiteSpace())
+        {
+            innerStatId = default;
+            return false;
+        }
+
+        innerStatId = inner;
+        return true;
+    }
+
+    /// <summary>
+    /// Returns whether <paramref name="statId"/> can participate in derived equipment/buff stat aggregation
+    /// (excludes current vitals, environmental flags, timers, cooldowns, and base-persistence keys).
+    /// </summary>
+    public static bool IsAggregatableStat(ReadOnlySpan<char> statId)
+    {
+        if (statId.IsEmpty || statId.IsWhiteSpace())
+        {
+            return false;
+        }
+
+        return !statId.Equals(HEALTH.AsSpan(), StringComparison.Ordinal)
+            && !statId.Equals(OXYGEN.AsSpan(), StringComparison.Ordinal)
+            && !statId.Equals(PRESSURIZED.AsSpan(), StringComparison.Ordinal)
+            && !IsBuffTimerKey(statId)
+            && !IsCooldownKey(statId)
+            && !IsBaseStatKey(statId);
     }
 
     /// <summary>Returns whether <paramref name="statId"/> names a per-item consumable cooldown entry.</summary>

@@ -13,6 +13,7 @@ public struct ItemDefinition()
     public PlaceableDefinition? Placeable;
     public ToolDefinition? Tool;
     public ConsumableDefinition? Consumable;
+    public EquipDefinition? Equip;
     public ModelDefinition? ViewModel;
     public ModelDefinition? WorldModel;
 

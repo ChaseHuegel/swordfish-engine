@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data;
@@ -32,7 +33,7 @@ public readonly struct InventoryValidationContext
     /// <summary>Optional invariant item tag registry used when evaluating slot filter tags.</summary>
     public LocalizedTags? InvariantTags { get; }
 
-    /// <summary>Optional item database supplying authoritative stack limits.</summary>
+    /// <summary>Optional item database supplying authoritative stack limits and equip metadata.</summary>
     public IAssetDatabase<Item>? Items { get; }
 
     /// <summary>Returns the effective max stack size clamped to any authoritative item definition.</summary>
@@ -59,6 +60,49 @@ public readonly struct InventoryValidationContext
     /// <summary>Returns true when <paramref name="slot"/> accepts <paramref name="item"/>.</summary>
     public bool AllowsItem(in SlotId slot, in ItemData item)
     {
-        return Schemas.AllowsItem(in slot, item.ID, InvariantTags);
+        if (string.IsNullOrEmpty(slot.GroupId) || slot.LocalIndex < 0 || string.IsNullOrEmpty(item.ID))
+        {
+            return false;
+        }
+
+        Result<SlotGroupSchema> schemaResult = Schemas.Get(slot.GroupId);
+        if (!schemaResult.Success)
+        {
+            return true;
+        }
+
+        IReadOnlyList<string> requiredTags = schemaResult.Value.GetAllowedTags(slot.LocalIndex);
+        if (requiredTags.Count == 0)
+        {
+            return true;
+        }
+
+        if (InvariantTags != null)
+        {
+            for (var i = 0; i < requiredTags.Count; i++)
+            {
+                if (InvariantTags.Contains(requiredTags[i], item.ID))
+                {
+                    return true;
+                }
+            }
+        }
+
+        if (Items != null)
+        {
+            Result<Item> itemResult = Items.Get(item.ID);
+            if (itemResult.Success && itemResult.Value.Equip is { } equip && !string.IsNullOrEmpty(equip.SlotTag))
+            {
+                for (var i = 0; i < requiredTags.Count; i++)
+                {
+                    if (ItemTags.EquipMatchesTag(equip.SlotTag, requiredTags[i]))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

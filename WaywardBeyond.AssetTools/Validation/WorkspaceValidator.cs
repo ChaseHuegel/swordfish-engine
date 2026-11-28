@@ -675,6 +675,11 @@ public sealed class WorkspaceValidator
             ValidateItemConsumable(workspace, in asset, item.Consumable.Value, doc, findings);
         }
 
+        if (item.Equip.HasValue)
+        {
+            ValidateItemEquip(in asset, item.Equip.Value, doc, findings);
+        }
+
         if (item.ViewModel.HasValue)
         {
             ValidateModelDefinition(workspace, in asset, doc, "Items.ViewModel", "ViewModel", item.ViewModel.Value, ValidationSeverity.Broken, findings);
@@ -755,70 +760,140 @@ public sealed class WorkspaceValidator
             for (int i = 0; i < consumable.Modifiers.Count; i++)
             {
                 ConsumableStatModifierDefinition mod = consumable.Modifiers[i];
-                TomlTableSpan? modTable = i < modTables.Count ? modTables[i] : null;
-                TomlFieldSpan? statField = ResolveSubTableField(doc, modTable, "StatId");
-                TomlFieldSpan? flatField = ResolveSubTableField(doc, modTable, "FlatDelta");
-                TomlFieldSpan? pctField = ResolveSubTableField(doc, modTable, "PercentDelta");
-
-                if (string.IsNullOrWhiteSpace(mod.StatId))
-                {
-                    AddFieldFinding(
-                        findings,
-                        "CONSUMABLE001",
-                        ValidationSeverity.Broken,
-                        in asset,
-                        statField,
-                        $"Consumable.Modifiers[{i}].StatId",
-                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] is missing StatId.");
-                }
-
-                if (mod.FlatDelta.HasValue && !float.IsFinite(mod.FlatDelta.Value))
-                {
-                    AddFieldFinding(
-                        findings,
-                        "CONSUMABLE001",
-                        ValidationSeverity.Broken,
-                        in asset,
-                        flatField,
-                        $"Consumable.Modifiers[{i}].FlatDelta",
-                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] FlatDelta must be finite.");
-                }
-
-                if (mod.PercentDelta.HasValue && !float.IsFinite(mod.PercentDelta.Value))
-                {
-                    AddFieldFinding(
-                        findings,
-                        "CONSUMABLE001",
-                        ValidationSeverity.Broken,
-                        in asset,
-                        pctField,
-                        $"Consumable.Modifiers[{i}].PercentDelta",
-                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] PercentDelta must be finite.");
-                }
-
-                if (!mod.FlatDelta.HasValue && !mod.PercentDelta.HasValue)
-                {
-                    AddFieldFinding(
-                        findings,
-                        "CONSUMABLE001",
-                        ValidationSeverity.Broken,
-                        in asset,
-                        flatField ?? statField,
-                        $"Consumable.Modifiers[{i}]",
-                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] must specify FlatDelta or PercentDelta.");
-                }
-                else if ((mod.FlatDelta ?? 0f) == 0f && (mod.PercentDelta ?? 0f) == 0f)
-                {
-                    AddFieldFinding(
-                        findings,
-                        "CONSUMABLE001",
-                        ValidationSeverity.Style,
-                        in asset,
-                        flatField ?? pctField ?? statField,
-                        $"Consumable.Modifiers[{i}]",
-                        $"Item '{asset.Id}' Consumable.Modifiers[{i}] has zero FlatDelta and PercentDelta (no-op).");
-                }
+                ValidateItemStatModifier(
+                    in asset,
+                    doc,
+                    modTables,
+                    i,
+                    code: "CONSUMABLE001",
+                    fieldPrefix: $"Consumable.Modifiers[{i}]",
+                    label: $"Item '{asset.Id}' Consumable.Modifiers[{i}]",
+                    mod.StatId,
+                    mod.FlatDelta,
+                    mod.PercentDelta,
+                    findings);
             }
+        }
+    }
+
+    private static void ValidateItemEquip(
+        in IndexedAsset asset,
+        in EquipDefinition equip,
+        TomlDocument? doc,
+        List<ValidationFinding> findings)
+    {
+        if (!ItemTags.TryResolveEquipTag(equip.SlotTag, out _))
+        {
+            TomlFieldSpan? slotTagField = FindEntryField(doc, asset.Provenance.TableIndex, "SlotTag", "Items.Equip");
+            AddFieldFinding(
+                findings,
+                "EQUIP001",
+                ValidationSeverity.Broken,
+                in asset,
+                slotTagField,
+                "Equip.SlotTag",
+                $"Item '{asset.Id}' Equip.SlotTag '{equip.SlotTag}' is invalid.");
+        }
+
+        if (equip.StatModifiers == null)
+        {
+            return;
+        }
+
+        List<TomlTableSpan> modTables = FindOwnedSubTables(doc, asset.Provenance.TableIndex, "Items", "Items.Equip.StatModifiers");
+        for (int i = 0; i < equip.StatModifiers.Count; i++)
+        {
+            EquipStatModifierDefinition mod = equip.StatModifiers[i];
+            ValidateItemStatModifier(
+                in asset,
+                doc,
+                modTables,
+                i,
+                code: "EQUIP001",
+                fieldPrefix: $"Equip.StatModifiers[{i}]",
+                label: $"Item '{asset.Id}' Equip.StatModifiers[{i}]",
+                mod.StatId,
+                mod.FlatDelta,
+                mod.PercentDelta,
+                findings);
+        }
+    }
+
+    private static void ValidateItemStatModifier(
+        in IndexedAsset asset,
+        TomlDocument? doc,
+        List<TomlTableSpan> modTables,
+        int index,
+        string code,
+        string fieldPrefix,
+        string label,
+        string? statId,
+        float? flatDelta,
+        float? percentDelta,
+        List<ValidationFinding> findings)
+    {
+        TomlTableSpan? modTable = index < modTables.Count ? modTables[index] : null;
+        TomlFieldSpan? statField = ResolveSubTableField(doc, modTable, "StatId");
+        TomlFieldSpan? flatField = ResolveSubTableField(doc, modTable, "FlatDelta");
+        TomlFieldSpan? pctField = ResolveSubTableField(doc, modTable, "PercentDelta");
+
+        if (string.IsNullOrWhiteSpace(statId))
+        {
+            AddFieldFinding(
+                findings,
+                code,
+                ValidationSeverity.Broken,
+                in asset,
+                statField,
+                $"{fieldPrefix}.StatId",
+                $"{label} is missing StatId.");
+        }
+
+        if (flatDelta.HasValue && !float.IsFinite(flatDelta.Value))
+        {
+            AddFieldFinding(
+                findings,
+                code,
+                ValidationSeverity.Broken,
+                in asset,
+                flatField,
+                $"{fieldPrefix}.FlatDelta",
+                $"{label} FlatDelta must be finite.");
+        }
+
+        if (percentDelta.HasValue && !float.IsFinite(percentDelta.Value))
+        {
+            AddFieldFinding(
+                findings,
+                code,
+                ValidationSeverity.Broken,
+                in asset,
+                pctField,
+                $"{fieldPrefix}.PercentDelta",
+                $"{label} PercentDelta must be finite.");
+        }
+
+        if (!flatDelta.HasValue && !percentDelta.HasValue)
+        {
+            AddFieldFinding(
+                findings,
+                code,
+                ValidationSeverity.Broken,
+                in asset,
+                flatField ?? statField,
+                fieldPrefix,
+                $"{label} must specify FlatDelta or PercentDelta.");
+        }
+        else if ((flatDelta ?? 0f) == 0f && (percentDelta ?? 0f) == 0f)
+        {
+            AddFieldFinding(
+                findings,
+                code,
+                ValidationSeverity.Style,
+                in asset,
+                flatField ?? pctField ?? statField,
+                fieldPrefix,
+                $"{label} has zero FlatDelta and PercentDelta (no-op).");
         }
     }
 
