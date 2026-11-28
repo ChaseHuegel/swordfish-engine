@@ -59,4 +59,9 @@ public enum ReferenceKind
     ///     Namespaced item asset identifier.
     /// </summary>
     ItemId,
+
+    /// <summary>
+    ///     Namespaced inventory slot group identifier.
+    /// </summary>
+    SlotGroupId,
 }

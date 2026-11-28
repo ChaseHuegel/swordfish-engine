@@ -60,6 +60,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     private bool _skillLevelsModified;
     private bool _recipeInputsModified;
     private bool _recipeOutputsModified;
+    private bool _slotGroupAllowedTagsModified;
+    private bool _slotGroupSlotsModified;
     private bool _statisticsModified;
     private bool _hasInitialViewModelTable;
     private bool _hasInitialWorldModelTable;
@@ -366,6 +368,24 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             {
                 RecipeOutputs.Add(CreateRecipeOutputRow(output.ItemId, output.Count, output.Chance));
             }
+        }
+
+        // SlotGroup fields
+        if (Kind == AssetKind.SlotGroup)
+        {
+            SlotGroupCapacityField = AddField("Capacity", "Capacity", "integer >= 0 · slot count", GetVal("Capacity", "1"), isNumeric: true);
+
+            foreach (var tag in seed.SlotGroupAllowedTags)
+            {
+                SlotGroupAllowedTags.Add(CreateSlotGroupAllowedTagRow(tag));
+            }
+
+            foreach (var slot in seed.SlotGroupSlots)
+            {
+                SlotGroupSlots.Add(CreateSlotFilterRow(slot.Index, slot.AllowedTags));
+            }
+
+            RefreshSlotGroupValidation();
         }
 
         // Body fields
@@ -781,6 +801,16 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     public bool IsRecipe => Kind == AssetKind.Recipe;
 
     /// <summary>
+    ///     Whether the document is an inventory slot group form.
+    /// </summary>
+    public bool IsSlotGroup => Kind == AssetKind.SlotGroup;
+
+    /// <summary>
+    ///     Whether the document is writable and allows structured form edits.
+    /// </summary>
+    public bool CanEditDocument => !IsReadOnly;
+
+    /// <summary>
     ///     Whether the document is a body form.
     /// </summary>
     public bool IsBody => Kind == AssetKind.Body;
@@ -1121,6 +1151,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     public string DataSummaryMetric => Kind switch
     {
         AssetKind.Recipe => $"{RecipeInputs.Count} inputs → {RecipeOutputs.Count} outputs · {RecipeDurationLabel}",
+        AssetKind.SlotGroup => $"{SlotGroupCapacityBadge} · {SlotGroupSlotsSummary}",
         AssetKind.Skill => $"{SkillLevels.Count} levels · {SkillSources.Count} XP sources",
         AssetKind.Tag => $"{TagFileEntries.Count} local · {TagEffectiveEntries.Count} effective",
         AssetKind.Localization => $"{LocalizationRows.Count} keys · locale '{SelectedLocale}'",
@@ -1133,6 +1164,7 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     public string DataSummaryDetail => Kind switch
     {
         AssetKind.Recipe => $"{RecipeTargetTagLabel} · {RecipeModeBadge} · {RecipePowerLabel}",
+        AssetKind.SlotGroup => SlotGroupAllowedTagsSummary,
         AssetKind.Skill => SkillCurveSummary,
         AssetKind.Tag => HasDuplicateTags ? "Duplicate entries flagged (not auto-merged)" : "Ordered set · first-occurrence merge",
         AssetKind.Localization => "Localization table",
@@ -1542,6 +1574,30 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             }
         }
 
+        List<string>? slotGroupAllowedTags = null;
+        List<(int Index, IReadOnlyList<string> AllowedTags)>? slotGroupSlots = null;
+        if (Kind == AssetKind.SlotGroup)
+        {
+            slotGroupAllowedTags = new List<string>(SlotGroupAllowedTags.Count);
+            for (var i = 0; i < SlotGroupAllowedTags.Count; i++)
+            {
+                slotGroupAllowedTags.Add(SlotGroupAllowedTags[i].TagName);
+            }
+
+            slotGroupSlots = new List<(int Index, IReadOnlyList<string> AllowedTags)>(SlotGroupSlots.Count);
+            for (var i = 0; i < SlotGroupSlots.Count; i++)
+            {
+                var slot = SlotGroupSlots[i];
+                var tags = new List<string>(slot.AllowedTags.Count);
+                for (var t = 0; t < slot.AllowedTags.Count; t++)
+                {
+                    tags.Add(slot.AllowedTags[t].TagName);
+                }
+
+                slotGroupSlots.Add((slot.Index, tags));
+            }
+        }
+
         List<(string Key, string Value)>? statistics = null;
         if (Kind is AssetKind.Item or AssetKind.Brick)
         {
@@ -1584,6 +1640,10 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             RecipeOutputsModified = _recipeOutputsModified,
             Statistics = statistics,
             StatisticsModified = _statisticsModified,
+            SlotGroupAllowedTags = slotGroupAllowedTags,
+            SlotGroupAllowedTagsModified = _slotGroupAllowedTagsModified,
+            SlotGroupSlots = slotGroupSlots,
+            SlotGroupSlotsModified = _slotGroupSlotsModified,
         };
     }
 
@@ -1599,6 +1659,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         _skillLevelsModified = false;
         _recipeInputsModified = false;
         _recipeOutputsModified = false;
+        _slotGroupAllowedTagsModified = false;
+        _slotGroupSlotsModified = false;
         _statisticsModified = false;
         _modifiedFieldKeys.Clear();
         _removedLocalizationKeys.Clear();
@@ -2132,6 +2194,17 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             _allFields[i].IsReadOnly = IsReadOnly;
         }
 
+        for (var i = 0; i < SlotGroupAllowedTags.Count; i++)
+        {
+            SlotGroupAllowedTags[i].SetReadOnly(IsReadOnly);
+        }
+
+        for (var i = 0; i < SlotGroupSlots.Count; i++)
+        {
+            SlotGroupSlots[i].IsReadOnly = IsReadOnly;
+        }
+
+        OnPropertyChanged(nameof(CanEditDocument));
         OnPropertyChanged(nameof(CanRenameId));
         OnPropertyChanged(nameof(CanRemoveSelectedBodyState));
     }
@@ -2598,6 +2671,639 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         OnPropertyChanged(nameof(RecipeUnresolvedCount));
         OnPropertyChanged(nameof(RecipeHasUnresolvedRefs));
         OnPropertyChanged(nameof(RecipeUnresolvedSummary));
+        OnPropertyChanged(nameof(DataSummaryMetric));
+        OnPropertyChanged(nameof(DataSummaryDetail));
+    }
+
+    /// <summary>Slot group capacity field.</summary>
+    public StudioFieldViewModel? SlotGroupCapacityField { get; }
+
+    /// <summary>Editable group-wide allowed invariant tag rows.</summary>
+    public ObservableCollection<SlotTagRowViewModel> SlotGroupAllowedTags { get; } = [];
+
+    /// <summary>Editable per-slot filter override rows (<c>[[SlotGroups.Slots]]</c>).</summary>
+    public ObservableCollection<SlotFilterRowViewModel> SlotGroupSlots { get; } = [];
+
+    /// <summary>Parsed non-negative integer capacity for the slot group.</summary>
+    public int SlotGroupCapacityValue => ParseSlotGroupCapacity();
+
+    /// <summary>Formatted capacity badge for slot group previews.</summary>
+    public string SlotGroupCapacityBadge => SlotGroupCapacityValue == 1
+        ? "1 slot"
+        : $"{SlotGroupCapacityValue} slots";
+
+    /// <summary>Section subtitle summarizing group-wide allowed tags.</summary>
+    public string SlotGroupAllowedTagsSummary => SlotGroupAllowedTags.Count == 0
+        ? "Unrestricted (any item)"
+        : (SlotGroupAllowedTags.Count == 1 ? "1 group tag" : $"{SlotGroupAllowedTags.Count} group tags");
+
+    /// <summary>Whether the slot group has at least one group-wide allowed tag.</summary>
+    public bool SlotGroupHasAllowedTags => SlotGroupAllowedTags.Count > 0;
+
+    /// <summary>Whether the slot group has no group-wide allowed tags.</summary>
+    public bool SlotGroupHasNoAllowedTags => SlotGroupAllowedTags.Count == 0;
+
+    /// <summary>Section subtitle summarizing per-slot filter overrides.</summary>
+    public string SlotGroupSlotsSummary => SlotGroupSlots.Count == 0
+        ? "No per-slot overrides"
+        : (SlotGroupSlots.Count == 1 ? "1 per-slot override" : $"{SlotGroupSlots.Count} per-slot overrides");
+
+    /// <summary>Whether the slot group defines at least one per-slot filter override.</summary>
+    public bool SlotGroupHasSlots => SlotGroupSlots.Count > 0;
+
+    /// <summary>Whether the slot group has no per-slot filter overrides.</summary>
+    public bool SlotGroupHasNoSlots => SlotGroupSlots.Count == 0;
+
+    /// <summary>Count of referenced tags across group and per-slot filters that do not resolve in workspace invariant tags.</summary>
+    public int SlotGroupUnresolvedTagCount
+    {
+        get
+        {
+            var unresolved = 0;
+            for (var i = 0; i < SlotGroupAllowedTags.Count; i++)
+            {
+                if (!SlotGroupAllowedTags[i].IsResolved)
+                {
+                    unresolved++;
+                }
+            }
+
+            for (var s = 0; s < SlotGroupSlots.Count; s++)
+            {
+                var slotTags = SlotGroupSlots[s].AllowedTags;
+                for (var t = 0; t < slotTags.Count; t++)
+                {
+                    if (!slotTags[t].IsResolved)
+                    {
+                        unresolved++;
+                    }
+                }
+            }
+
+            return unresolved;
+        }
+    }
+
+    /// <summary>Whether any slot group or per-slot tag filter is currently unresolved.</summary>
+    public bool SlotGroupHasUnresolvedTags => SlotGroupUnresolvedTagCount > 0;
+
+    /// <summary>Diagnostic banner message for unresolved slot group tags.</summary>
+    public string SlotGroupUnresolvedSummary => SlotGroupUnresolvedTagCount == 1
+        ? "1 referenced tag is unresolved in workspace invariant tags."
+        : $"{SlotGroupUnresolvedTagCount} referenced tags are unresolved in workspace invariant tags.";
+
+    /// <summary>Whether any per-slot override has a duplicate or out-of-range index.</summary>
+    public bool SlotGroupHasIndexIssues
+    {
+        get
+        {
+            for (var i = 0; i < SlotGroupSlots.Count; i++)
+            {
+                if (SlotGroupSlots[i].HasIndexWarning)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+    }
+
+    /// <summary>Summary message describing slot override index issues.</summary>
+    public string SlotGroupIndexIssuesSummary
+    {
+        get
+        {
+            var outOfRange = 0;
+            var duplicates = 0;
+            for (var i = 0; i < SlotGroupSlots.Count; i++)
+            {
+                if (SlotGroupSlots[i].IsIndexOutOfRange)
+                {
+                    outOfRange++;
+                }
+
+                if (SlotGroupSlots[i].IsDuplicateIndex)
+                {
+                    duplicates++;
+                }
+            }
+
+            if (outOfRange > 0 && duplicates > 0)
+            {
+                return $"{duplicates} duplicate slot index(es) and {outOfRange} slot index(es) outside 0..{Math.Max(0, SlotGroupCapacityValue - 1)}.";
+            }
+
+            if (duplicates > 0)
+            {
+                return $"{duplicates} duplicate per-slot override index(es) detected.";
+            }
+
+            if (outOfRange > 0)
+            {
+                return $"{outOfRange} per-slot override index(es) exceed Capacity ({SlotGroupCapacityValue}).";
+            }
+
+            return string.Empty;
+        }
+    }
+
+    [RelayCommand]
+    private void AddSlotGroupAllowedTag()
+    {
+        if (IsReadOnly || Kind != AssetKind.SlotGroup)
+        {
+            return;
+        }
+
+        var before = SnapshotSlotGroupAllowedTags();
+        var wasDirty = IsDirty;
+        var wasModified = _slotGroupAllowedTagsModified;
+        var recordedEpoch = _saveEpoch;
+
+        SlotGroupAllowedTags.Add(CreateSlotGroupAllowedTagRow(FirstTagCandidateName()));
+        _slotGroupAllowedTagsModified = true;
+        var after = SnapshotSlotGroupAllowedTags();
+
+        RecordUndo(
+            "Add slot group allowed tag",
+            coalesceKey: null,
+            undo: () => RestoreSlotGroupAllowedTagsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreSlotGroupAllowedTagsSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifySlotGroupPreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveSlotGroupAllowedTag(SlotTagRowViewModel? tagRow)
+    {
+        if (IsReadOnly || Kind != AssetKind.SlotGroup || tagRow == null)
+        {
+            return;
+        }
+
+        var before = SnapshotSlotGroupAllowedTags();
+        if (!SlotGroupAllowedTags.Remove(tagRow))
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _slotGroupAllowedTagsModified;
+        var recordedEpoch = _saveEpoch;
+        _slotGroupAllowedTagsModified = true;
+        var after = SnapshotSlotGroupAllowedTags();
+
+        RecordUndo(
+            "Remove slot group allowed tag",
+            coalesceKey: null,
+            undo: () => RestoreSlotGroupAllowedTagsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreSlotGroupAllowedTagsSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifySlotGroupPreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void AddSlotFilter()
+    {
+        if (IsReadOnly || Kind != AssetKind.SlotGroup)
+        {
+            return;
+        }
+
+        var before = SnapshotSlotGroupSlots();
+        var wasDirty = IsDirty;
+        var wasModified = _slotGroupSlotsModified;
+        var recordedEpoch = _saveEpoch;
+
+        var nextIndex = FindNextAvailableSlotIndex();
+        var defaultTag = FirstTagCandidateName();
+        var initialTags = string.IsNullOrEmpty(defaultTag) ? new List<string>() : new List<string> { defaultTag };
+        SlotGroupSlots.Add(CreateSlotFilterRow(nextIndex, initialTags));
+        _slotGroupSlotsModified = true;
+        RefreshSlotGroupValidation();
+        var after = SnapshotSlotGroupSlots();
+
+        RecordUndo(
+            $"Add slot override #{nextIndex}",
+            coalesceKey: null,
+            undo: () => RestoreSlotGroupSlotsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreSlotGroupSlotsSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifySlotGroupPreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveSlotFilter(SlotFilterRowViewModel? slotRow)
+    {
+        if (IsReadOnly || Kind != AssetKind.SlotGroup || slotRow == null)
+        {
+            return;
+        }
+
+        var before = SnapshotSlotGroupSlots();
+        if (!SlotGroupSlots.Remove(slotRow))
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _slotGroupSlotsModified;
+        var recordedEpoch = _saveEpoch;
+        _slotGroupSlotsModified = true;
+        RefreshSlotGroupValidation();
+        var after = SnapshotSlotGroupSlots();
+
+        RecordUndo(
+            $"Remove slot override #{slotRow.Index}",
+            coalesceKey: null,
+            undo: () => RestoreSlotGroupSlotsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreSlotGroupSlotsSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifySlotGroupPreviewChanged();
+        MarkMutated();
+    }
+
+    private SlotTagRowViewModel CreateSlotGroupAllowedTagRow(string tagName)
+    {
+        SlotTagRowViewModel? row = null;
+        row = new SlotTagRowViewModel(
+            tagName,
+            onChanged: () =>
+            {
+                row?.RefreshResolution(_allReferenceCandidates);
+                _slotGroupAllowedTagsModified = true;
+                NotifySlotGroupPreviewChanged();
+                MarkMutated();
+            },
+            onValueTransition: (targetRow, oldValue, newValue) =>
+            {
+                if (_isUndoReplaying != null && _isUndoReplaying())
+                {
+                    return;
+                }
+
+                var wasDirty = IsDirty;
+                var wasModified = _slotGroupAllowedTagsModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    "Edit slot group allowed tag",
+                    coalesceKey: $"slot-group-tag:{Id}:{targetRow.GetHashCode()}",
+                    undo: () =>
+                    {
+                        targetRow.ApplyValueForReplay(oldValue);
+                        targetRow.RefreshResolution(_allReferenceCandidates);
+                        _slotGroupAllowedTagsModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        NotifySlotGroupPreviewChanged();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        targetRow.ApplyValueForReplay(newValue);
+                        targetRow.RefreshResolution(_allReferenceCandidates);
+                        _slotGroupAllowedTagsModified = true;
+                        NotifySlotGroupPreviewChanged();
+                        MarkMutated();
+                    });
+            },
+            pickerCandidates: FilterCandidates(_allReferenceCandidates, ReferenceKind.Tag),
+            isReadOnly: IsReadOnly);
+        row.RefreshResolution(_allReferenceCandidates);
+        return row;
+    }
+
+    private SlotFilterRowViewModel CreateSlotFilterRow(int index, IReadOnlyList<string> allowedTags)
+    {
+        SlotFilterRowViewModel? slotRow = null;
+        slotRow = new SlotFilterRowViewModel(
+            index,
+            isReadOnly: IsReadOnly,
+            onChanged: _ =>
+            {
+                _slotGroupSlotsModified = true;
+                RefreshSlotGroupValidation();
+                NotifySlotGroupPreviewChanged();
+                MarkMutated();
+            },
+            onIndexTransition: (targetSlot, oldIndex, newIndex) =>
+            {
+                if (_isUndoReplaying != null && _isUndoReplaying())
+                {
+                    return;
+                }
+
+                var wasDirty = IsDirty;
+                var wasModified = _slotGroupSlotsModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Change slot override index {oldIndex} → {newIndex}",
+                    coalesceKey: $"slot-filter-index:{Id}:{targetSlot.GetHashCode()}",
+                    undo: () =>
+                    {
+                        targetSlot.ApplyIndexForReplay(oldIndex);
+                        _slotGroupSlotsModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        RefreshSlotGroupValidation();
+                        NotifySlotGroupPreviewChanged();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        targetSlot.ApplyIndexForReplay(newIndex);
+                        _slotGroupSlotsModified = true;
+                        RefreshSlotGroupValidation();
+                        NotifySlotGroupPreviewChanged();
+                        MarkMutated();
+                    });
+            },
+            onAddTag: HandleAddSlotFilterTag,
+            onRemoveTag: HandleRemoveSlotFilterTag);
+
+        for (var i = 0; i < allowedTags.Count; i++)
+        {
+            slotRow.AllowedTags.Add(CreateSlotFilterTagRow(slotRow, allowedTags[i]));
+        }
+
+        slotRow.NotifyTagsChanged();
+        return slotRow;
+    }
+
+    private SlotTagRowViewModel CreateSlotFilterTagRow(SlotFilterRowViewModel ownerSlot, string tagName)
+    {
+        SlotTagRowViewModel? row = null;
+        row = new SlotTagRowViewModel(
+            tagName,
+            onChanged: () =>
+            {
+                row?.RefreshResolution(_allReferenceCandidates);
+                _slotGroupSlotsModified = true;
+                ownerSlot.NotifyTagsChanged();
+                NotifySlotGroupPreviewChanged();
+                MarkMutated();
+            },
+            onValueTransition: (targetRow, oldValue, newValue) =>
+            {
+                if (_isUndoReplaying != null && _isUndoReplaying())
+                {
+                    return;
+                }
+
+                var wasDirty = IsDirty;
+                var wasModified = _slotGroupSlotsModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Edit slot #{ownerSlot.Index} allowed tag",
+                    coalesceKey: $"slot-filter-tag:{Id}:{ownerSlot.GetHashCode()}:{targetRow.GetHashCode()}",
+                    undo: () =>
+                    {
+                        targetRow.ApplyValueForReplay(oldValue);
+                        targetRow.RefreshResolution(_allReferenceCandidates);
+                        _slotGroupSlotsModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        ownerSlot.NotifyTagsChanged();
+                        NotifySlotGroupPreviewChanged();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        targetRow.ApplyValueForReplay(newValue);
+                        targetRow.RefreshResolution(_allReferenceCandidates);
+                        _slotGroupSlotsModified = true;
+                        ownerSlot.NotifyTagsChanged();
+                        NotifySlotGroupPreviewChanged();
+                        MarkMutated();
+                    });
+            },
+            pickerCandidates: FilterCandidates(_allReferenceCandidates, ReferenceKind.Tag),
+            isReadOnly: IsReadOnly);
+        row.RefreshResolution(_allReferenceCandidates);
+        return row;
+    }
+
+    private void HandleAddSlotFilterTag(SlotFilterRowViewModel slotRow)
+    {
+        if (IsReadOnly || Kind != AssetKind.SlotGroup)
+        {
+            return;
+        }
+
+        var before = SnapshotSlotGroupSlots();
+        var wasDirty = IsDirty;
+        var wasModified = _slotGroupSlotsModified;
+        var recordedEpoch = _saveEpoch;
+
+        slotRow.AllowedTags.Add(CreateSlotFilterTagRow(slotRow, FirstTagCandidateName()));
+        slotRow.NotifyTagsChanged();
+        _slotGroupSlotsModified = true;
+        var after = SnapshotSlotGroupSlots();
+
+        RecordUndo(
+            $"Add tag to slot #{slotRow.Index}",
+            coalesceKey: null,
+            undo: () => RestoreSlotGroupSlotsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreSlotGroupSlotsSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifySlotGroupPreviewChanged();
+        MarkMutated();
+    }
+
+    private void HandleRemoveSlotFilterTag(SlotFilterRowViewModel slotRow, SlotTagRowViewModel tagRow)
+    {
+        if (IsReadOnly || Kind != AssetKind.SlotGroup)
+        {
+            return;
+        }
+
+        var before = SnapshotSlotGroupSlots();
+        if (!slotRow.AllowedTags.Remove(tagRow))
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _slotGroupSlotsModified;
+        var recordedEpoch = _saveEpoch;
+        slotRow.NotifyTagsChanged();
+        _slotGroupSlotsModified = true;
+        var after = SnapshotSlotGroupSlots();
+
+        RecordUndo(
+            $"Remove tag from slot #{slotRow.Index}",
+            coalesceKey: null,
+            undo: () => RestoreSlotGroupSlotsSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreSlotGroupSlotsSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifySlotGroupPreviewChanged();
+        MarkMutated();
+    }
+
+    private List<string> SnapshotSlotGroupAllowedTags()
+    {
+        var list = new List<string>(SlotGroupAllowedTags.Count);
+        for (var i = 0; i < SlotGroupAllowedTags.Count; i++)
+        {
+            list.Add(SlotGroupAllowedTags[i].TagName);
+        }
+
+        return list;
+    }
+
+    private void RestoreSlotGroupAllowedTagsSnapshot(
+        List<string> snapshot,
+        bool targetDirty,
+        bool targetModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        SlotGroupAllowedTags.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            SlotGroupAllowedTags.Add(CreateSlotGroupAllowedTagRow(snapshot[i]));
+        }
+
+        _slotGroupAllowedTagsModified = isUndo && _saveEpoch == recordedEpoch ? targetModified : true;
+        NotifySlotGroupPreviewChanged();
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private List<(int Index, List<string> AllowedTags)> SnapshotSlotGroupSlots()
+    {
+        var list = new List<(int, List<string>)>(SlotGroupSlots.Count);
+        for (var i = 0; i < SlotGroupSlots.Count; i++)
+        {
+            var slot = SlotGroupSlots[i];
+            var tags = new List<string>(slot.AllowedTags.Count);
+            for (var t = 0; t < slot.AllowedTags.Count; t++)
+            {
+                tags.Add(slot.AllowedTags[t].TagName);
+            }
+
+            list.Add((slot.Index, tags));
+        }
+
+        return list;
+    }
+
+    private void RestoreSlotGroupSlotsSnapshot(
+        List<(int Index, List<string> AllowedTags)> snapshot,
+        bool targetDirty,
+        bool targetModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        SlotGroupSlots.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            SlotGroupSlots.Add(CreateSlotFilterRow(snapshot[i].Index, snapshot[i].AllowedTags));
+        }
+
+        _slotGroupSlotsModified = isUndo && _saveEpoch == recordedEpoch ? targetModified : true;
+        RefreshSlotGroupValidation();
+        NotifySlotGroupPreviewChanged();
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private int FindNextAvailableSlotIndex()
+    {
+        var used = new HashSet<int>();
+        for (var i = 0; i < SlotGroupSlots.Count; i++)
+        {
+            used.Add(SlotGroupSlots[i].Index);
+        }
+
+        var candidate = 0;
+        while (used.Contains(candidate))
+        {
+            candidate++;
+        }
+
+        return candidate;
+    }
+
+    private string FirstTagCandidateName()
+    {
+        for (var i = 0; i < _allReferenceCandidates.Count; i++)
+        {
+            var candidate = _allReferenceCandidates[i];
+            if (candidate.Kind == ReferenceKind.Tag && candidate.Value.StartsWith("item.", StringComparison.Ordinal))
+            {
+                return candidate.Value;
+            }
+        }
+
+        for (var i = 0; i < _allReferenceCandidates.Count; i++)
+        {
+            if (_allReferenceCandidates[i].Kind == ReferenceKind.Tag)
+            {
+                return _allReferenceCandidates[i].Value;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private int ParseSlotGroupCapacity()
+    {
+        var raw = SlotGroupCapacityField?.Value?.Trim();
+        return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? Math.Max(0, parsed)
+            : 0;
+    }
+
+    private void RefreshSlotGroupValidation()
+    {
+        var capacity = ParseSlotGroupCapacity();
+        var counts = new Dictionary<int, int>();
+        for (var i = 0; i < SlotGroupSlots.Count; i++)
+        {
+            var idx = SlotGroupSlots[i].Index;
+            counts[idx] = counts.TryGetValue(idx, out var c) ? c + 1 : 1;
+        }
+
+        for (var i = 0; i < SlotGroupSlots.Count; i++)
+        {
+            var slot = SlotGroupSlots[i];
+            var outOfRange = slot.Index < 0 || slot.Index >= capacity;
+            var duplicate = counts.TryGetValue(slot.Index, out var c) && c > 1;
+            slot.SetIndexValidation(outOfRange, duplicate);
+        }
+    }
+
+    private void NotifySlotGroupPreviewChanged()
+    {
+        OnPropertyChanged(nameof(SlotGroupCapacityValue));
+        OnPropertyChanged(nameof(SlotGroupCapacityBadge));
+        OnPropertyChanged(nameof(SlotGroupAllowedTagsSummary));
+        OnPropertyChanged(nameof(SlotGroupHasAllowedTags));
+        OnPropertyChanged(nameof(SlotGroupHasNoAllowedTags));
+        OnPropertyChanged(nameof(SlotGroupSlotsSummary));
+        OnPropertyChanged(nameof(SlotGroupHasSlots));
+        OnPropertyChanged(nameof(SlotGroupHasNoSlots));
+        OnPropertyChanged(nameof(SlotGroupUnresolvedTagCount));
+        OnPropertyChanged(nameof(SlotGroupHasUnresolvedTags));
+        OnPropertyChanged(nameof(SlotGroupUnresolvedSummary));
+        OnPropertyChanged(nameof(SlotGroupHasIndexIssues));
+        OnPropertyChanged(nameof(SlotGroupIndexIssuesSummary));
         OnPropertyChanged(nameof(DataSummaryMetric));
         OnPropertyChanged(nameof(DataSummaryDetail));
     }
@@ -3498,6 +4204,11 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         {
             NotifyRecipePreviewChanged();
         }
+        else if (Kind == AssetKind.SlotGroup)
+        {
+            RefreshSlotGroupValidation();
+            NotifySlotGroupPreviewChanged();
+        }
     }
 
     private void SyncItemPlaceableIdField()
@@ -4236,6 +4947,9 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             case AssetKind.Recipe:
                 AppendRecipeToml(sb);
                 break;
+            case AssetKind.SlotGroup:
+                AppendSlotGroupToml(sb);
+                break;
             case AssetKind.Body:
                 AppendBodyToml(sb);
                 break;
@@ -4298,6 +5012,47 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             {
                 sb.AppendLine($"Chance = {output.Chance}");
             }
+        }
+    }
+
+    private void AppendSlotGroupToml(StringBuilder sb)
+    {
+        sb.AppendLine("[[SlotGroups]]");
+        sb.AppendLine($"ID       = \"{Id}\"");
+        sb.AppendLine($"Capacity = {SlotGroupCapacityField?.RawTokenText ?? "0"}");
+
+        var groupTags = new List<string>();
+        for (var i = 0; i < SlotGroupAllowedTags.Count; i++)
+        {
+            var tag = SlotGroupAllowedTags[i].TagName.Trim();
+            if (tag.Length > 0)
+            {
+                groupTags.Add($"\"{tag}\"");
+            }
+        }
+
+        if (groupTags.Count > 0)
+        {
+            sb.AppendLine($"AllowedTags = [{string.Join(", ", groupTags)}]");
+        }
+
+        for (var s = 0; s < SlotGroupSlots.Count; s++)
+        {
+            var slot = SlotGroupSlots[s];
+            var slotTags = new List<string>();
+            for (var t = 0; t < slot.AllowedTags.Count; t++)
+            {
+                var tag = slot.AllowedTags[t].TagName.Trim();
+                if (tag.Length > 0)
+                {
+                    slotTags.Add($"\"{tag}\"");
+                }
+            }
+
+            sb.AppendLine();
+            sb.AppendLine("[[SlotGroups.Slots]]");
+            sb.AppendLine($"Index = {slot.Index}");
+            sb.AppendLine($"AllowedTags = [{string.Join(", ", slotTags)}]");
         }
     }
 

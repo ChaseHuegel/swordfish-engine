@@ -50,6 +50,11 @@
                        Classes="pane-title"
                        VerticalAlignment="Center" />
             <TextBlock Grid.Column="0"
+                       IsVisible="{Binding IsSlotGroupPreview}"
+                       Text="SLOT GROUP PREVIEW"
+                       Classes="pane-title"
+                       VerticalAlignment="Center" />
+            <TextBlock Grid.Column="0"
                        IsVisible="{Binding IsDataDocumentPreview}"
                        Text="DOCUMENT SUMMARY"
                        Classes="pane-title"
@@ -483,6 +488,151 @@
                       Classes="studio-badge warning"
                       Padding="8,5">
                 <TextBlock Text="{Binding RecipeUnresolvedSummary}"
+                           FontSize="10.5"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap" />
+              </Border>
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <!-- Interactive Slot Group Layout Preview -->
+        <Grid IsVisible="{Binding IsSlotGroupPreview}">
+          <Border Margin="10,10,10,12"
+                  CornerRadius="8"
+                  Background="{DynamicResource StudioSurfaceBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}"
+                  BorderThickness="1"
+                  Padding="10,10"
+                  DataContext="{Binding SelectedAsset}">
+            <StackPanel Spacing="8">
+              <!-- Slot Group Header & Capacity -->
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Id}"
+                           Classes="mono"
+                           FontSize="11.5"
+                           FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                           VerticalAlignment="Center" />
+                <Border Grid.Column="1" Classes="studio-badge info" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding SlotGroupCapacityBadge}"
+                             Classes="mono"
+                             FontSize="9.5"
+                             FontWeight="SemiBold" />
+                </Border>
+              </Grid>
+
+              <!-- Group Allowed Tags -->
+              <StackPanel Spacing="4">
+                <TextBlock Text="GROUP ALLOWED TAGS"
+                           Classes="pane-title"
+                           FontSize="9.5" />
+                <TextBlock IsVisible="{Binding SlotGroupHasNoAllowedTags}"
+                           Text="Unrestricted (accepts any item)"
+                           FontSize="11"
+                           Foreground="{DynamicResource StudioTextMutedBrush}" />
+                <ItemsControl ItemsSource="{Binding SlotGroupAllowedTags}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SlotTagRowViewModel">
+                      <Button Classes="card-action"
+                              Padding="7,4"
+                              Margin="0,0,0,4"
+                              IsEnabled="{Binding CanNavigate}"
+                              Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).NavigateTagTargetCommand}"
+                              CommandParameter="{Binding TagName}"
+                              ToolTip.Tip="Open referenced tag">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                          <TextBlock Grid.Column="0"
+                                     Text="{Binding DisplayLabel}"
+                                     Classes="mono"
+                                     FontSize="10.5"
+                                     FontWeight="SemiBold"
+                                     TextTrimming="CharacterEllipsis"
+                                     Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                                     VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="1"
+                                     Text="↗"
+                                     FontSize="11"
+                                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                                     VerticalAlignment="Center" />
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <!-- Per-Slot Filter Overrides -->
+              <StackPanel Spacing="4">
+                <TextBlock Text="PER-SLOT OVERRIDES"
+                           Classes="pane-title"
+                           FontSize="9.5" />
+                <TextBlock IsVisible="{Binding SlotGroupHasNoSlots}"
+                           Text="All slots inherit group tags"
+                           FontSize="11"
+                           Foreground="{DynamicResource StudioTextMutedBrush}" />
+                <ItemsControl ItemsSource="{Binding SlotGroupSlots}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SlotFilterRowViewModel">
+                      <Border CornerRadius="6"
+                              Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                              BorderBrush="{DynamicResource StudioBorderBrush}"
+                              BorderThickness="1"
+                              Padding="7,5"
+                              Margin="0,0,0,4">
+                        <StackPanel Spacing="4">
+                          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                            <Border Grid.Column="0" Classes="studio-badge info">
+                              <TextBlock Text="{Binding IndexLabel}" Classes="mono" FontSize="9.5" FontWeight="SemiBold" />
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding TagsSummary}"
+                                       FontSize="10"
+                                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                                       VerticalAlignment="Center" />
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding AllowedTags}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="vm:SlotTagRowViewModel">
+                                <Button Classes="card-action"
+                                        Padding="6,3"
+                                        Margin="0,0,0,3"
+                                        IsEnabled="{Binding CanNavigate}"
+                                        Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).NavigateTagTargetCommand}"
+                                        CommandParameter="{Binding TagName}"
+                                        ToolTip.Tip="Open referenced tag">
+                                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding DisplayLabel}"
+                                               Classes="mono"
+                                               FontSize="10"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource StudioTextPrimaryBrush}"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="↗"
+                                               FontSize="10.5"
+                                               Foreground="{DynamicResource StudioTextMutedBrush}"
+                                               VerticalAlignment="Center" />
+                                  </Grid>
+                                </Button>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <!-- Unresolved Tag Warning Banner -->
+              <Border IsVisible="{Binding SlotGroupHasUnresolvedTags}"
+                      Classes="studio-badge warning"
+                      Padding="8,5">
+                <TextBlock Text="{Binding SlotGroupUnresolvedSummary}"
                            FontSize="10.5"
                            FontWeight="SemiBold"
                            TextWrapping="Wrap" />

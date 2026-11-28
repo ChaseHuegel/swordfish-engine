@@ -57,6 +57,16 @@ public sealed class RealWorkspaceIntegrationTests
             Assert.True(vm.SelectAssetById("wb:red"));
             Assert.Equal(AssetKind.Paint, vm.SelectedAsset.Kind);
 
+            Assert.True(vm.SelectAssetById("wb:wearables"));
+            Assert.Equal(AssetKind.SlotGroup, vm.SelectedAsset.Kind);
+            Assert.Equal(6, vm.SelectedAsset.SlotGroupCapacityValue);
+            Assert.Single(vm.SelectedAsset.SlotGroupAllowedTags);
+            Assert.Equal(6, vm.SelectedAsset.SlotGroupSlots.Count);
+            vm.NavigateTagTargetCommand.Execute("item.wearable.helmet");
+            Assert.Equal(AssetKind.Tag, vm.SelectedAsset.Kind);
+            Assert.Equal("item.wearable.helmet", vm.SelectedAsset.Id);
+            Assert.Contains(vm.SelectedAsset.InboundReferences, static r => r.SourceKind == AssetKind.SlotGroup && r.SourceAssetId == "wb:wearables");
+
             Assert.True(vm.SelectAssetById("building"));
             Assert.Equal(AssetKind.Skill, vm.SelectedAsset.Kind);
             Assert.Equal(100, vm.SelectedAsset.SkillLevels.Count);

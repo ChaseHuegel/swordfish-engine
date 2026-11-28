@@ -59,4 +59,9 @@ public enum PreviewSurfaceMode
     ///     Interactive crafting flow diagram preview for recipes.
     /// </summary>
     RecipeFlow,
+
+    /// <summary>
+    ///     Interactive slot group capacity and per-slot tag filter preview.
+    /// </summary>
+    SlotGroupLayout,
 }

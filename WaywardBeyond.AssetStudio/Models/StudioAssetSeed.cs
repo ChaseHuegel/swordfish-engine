@@ -174,4 +174,14 @@ public sealed class StudioAssetSeed
     ///     Custom numeric statistic key-value rows for item and brick documents.
     /// </summary>
     public List<(string Key, float Value)> Statistics { get; init; } = [];
+
+    /// <summary>
+    ///     Group-wide allowed invariant item tag keys for slot group documents.
+    /// </summary>
+    public List<string> SlotGroupAllowedTags { get; init; } = [];
+
+    /// <summary>
+    ///     Per-slot filter overrides keyed by local slot index for slot group documents.
+    /// </summary>
+    public List<(int Index, List<string> AllowedTags)> SlotGroupSlots { get; init; } = [];
 }

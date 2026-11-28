@@ -50,6 +50,7 @@ public sealed class WorkspaceAndLocatorTests : IDisposable
         List<string> enabledRootIds = [.. workspace.Roots.Where(static r => r.IsEnabled).Select(static r => r.Id)];
         Assert.Equal(
             [
+                "waywardbeyond.data",
                 "swordfish",
                 "waywardbeyond.bricks",
                 "waywardbeyond.items",
@@ -64,11 +65,18 @@ public sealed class WorkspaceAndLocatorTests : IDisposable
         Assert.NotEmpty(workspace.GetWinningAssetsByKind(AssetKind.Brick));
         Assert.NotEmpty(workspace.GetWinningAssetsByKind(AssetKind.Item));
         Assert.NotEmpty(workspace.GetWinningAssetsByKind(AssetKind.Paint));
+        Assert.NotEmpty(workspace.GetWinningAssetsByKind(AssetKind.SlotGroup));
         Assert.NotEmpty(workspace.GetWinningAssetsByKind(AssetKind.Skill));
         Assert.NotEmpty(workspace.GetWinningAssetsByKind(AssetKind.Body));
         Assert.NotEmpty(workspace.GetWinningAssetsByKind(AssetKind.Material));
         Assert.Equal("missing", workspace.OrderedAlbedoLayerNames[0]);
         Assert.True(workspace.OrderedAlbedoLayerNames.Count > 20);
+
+        IReadOnlyList<InboundReference> wearableTagRefs = workspace.GetInboundReferences("item.wearable");
+        Assert.Contains(wearableTagRefs, static r => r.SourceKind == AssetKind.SlotGroup && r.SourceAssetId == "wb:wearables" && r.FieldName == "AllowedTags[0]");
+
+        IReadOnlyList<InboundReference> helmetTagRefs = workspace.GetInboundReferences("item.wearable.helmet");
+        Assert.Contains(helmetTagRefs, static r => r.SourceKind == AssetKind.SlotGroup && r.SourceAssetId == "wb:wearables" && r.FieldName == "Slots[0].AllowedTags[0]");
 
         IReadOnlyList<InboundReference> panelRefs = workspace.GetInboundReferences("wb:panel");
         Assert.Contains(panelRefs, static r => r.SourceKind == AssetKind.Item && r.FieldName == "Placeable.ID");

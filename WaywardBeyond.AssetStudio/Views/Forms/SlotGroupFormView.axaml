@@ -1,0 +1,240 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.SlotGroupFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel>
+    <!-- Group Capacity -->
+    <controls:CollapsibleSectionCard Title="Group Schema" Subtitle="Slot group capacity and default layout">
+      <StackPanel Spacing="2">
+        <controls:ScalarFieldRowControl DataContext="{Binding SlotGroupCapacityField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Group Allowed Tags (AllowedTags) -->
+    <controls:CollapsibleSectionCard Title="Group Allowed Tags" Subtitle="{Binding SlotGroupAllowedTagsSummary}">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Grid.Column="0"
+                     Text="Invariant item tags accepted across all slots in this group without an explicit per-slot override. Leave empty to accept any item. Click ↗ to open the tag."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddSlotGroupAllowedTagCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Tag" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+              <Grid ColumnDefinitions="*,28,28" ColumnSpacing="6">
+                <TextBlock Grid.Column="0" Text="INVARIANT TAG" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+
+            <TextBlock IsVisible="{Binding SlotGroupHasNoAllowedTags}"
+                       Text="No group-level tag filters configured (unrestricted)."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                       Margin="10,10" />
+
+            <ItemsControl ItemsSource="{Binding SlotGroupAllowedTags}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SlotTagRowViewModel">
+                  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                    <Grid ColumnDefinitions="*,28,28" ColumnSpacing="6">
+                      <controls:ReferencePickerControl Grid.Column="0"
+                                                       DataContext="{Binding TagPickerField}" />
+                      <Button Grid.Column="1"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              VerticalAlignment="Top"
+                              IsEnabled="{Binding CanNavigate}"
+                              Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateTagTargetCommand}"
+                              CommandParameter="{Binding TagName}"
+                              ToolTip.Tip="Open referenced tag">
+                        <TextBlock Text="↗" FontSize="12" />
+                      </Button>
+                      <Button Grid.Column="2"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              VerticalAlignment="Top"
+                              IsEnabled="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).CanEditDocument}"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveSlotGroupAllowedTagCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove tag filter">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Per-Slot Filter Overrides ([[SlotGroups.Slots]]) -->
+    <controls:CollapsibleSectionCard Title="Per-Slot Overrides" Subtitle="{Binding SlotGroupSlotsSummary}">
+      <StackPanel Spacing="8">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Grid.Column="0"
+                     Text="Override allowed item tags for specific local slot indices (0 .. Capacity - 1). Each slot override replaces the group-level tag list for that index."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddSlotFilterCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Slot" />
+        </Grid>
+
+        <Border IsVisible="{Binding SlotGroupHasIndexIssues}" Classes="studio-banner-danger">
+          <TextBlock Text="{Binding SlotGroupIndexIssuesSummary}"
+                     FontSize="11.5"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioDangerBrush}" />
+        </Border>
+
+        <Border IsVisible="{Binding SlotGroupHasNoSlots}"
+                CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                Padding="10,10">
+          <TextBlock Text="No per-slot overrides configured. All slots inherit the group allowed tags."
+                     FontSize="11.5"
+                     Foreground="{DynamicResource StudioTextMutedBrush}" />
+        </Border>
+
+        <ItemsControl ItemsSource="{Binding SlotGroupSlots}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SlotFilterRowViewModel">
+              <Border CornerRadius="6"
+                      Background="{DynamicResource StudioSurfaceSunkenBrush}"
+                      BorderBrush="{DynamicResource StudioBorderBrush}"
+                      BorderThickness="1"
+                      Margin="0,0,0,8"
+                      ClipToBounds="True">
+                <StackPanel>
+                  <!-- Slot Override Header -->
+                  <Border Background="{DynamicResource StudioSurfaceElevatedBrush}"
+                          BorderBrush="{DynamicResource StudioBorderBrush}"
+                          BorderThickness="0,0,0,1"
+                          Padding="10,6">
+                    <Grid ColumnDefinitions="Auto,68,*,Auto,Auto,Auto" ColumnSpacing="8">
+                      <TextBlock Grid.Column="0"
+                                 Text="INDEX"
+                                 Classes="pane-title"
+                                 VerticalAlignment="Center" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding IndexText, Mode=TwoWay}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               Classes="studio-input mono"
+                               Classes.danger="{Binding HasIndexWarning}"
+                               VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Border Classes="studio-badge info">
+                          <TextBlock Text="{Binding IndexLabel}" Classes="mono" FontSize="10" FontWeight="SemiBold" />
+                        </Border>
+                        <TextBlock Text="{Binding TagsSummary}"
+                                   FontSize="10.5"
+                                   Foreground="{DynamicResource StudioTextMutedBrush}"
+                                   VerticalAlignment="Center" />
+                        <Border Classes="studio-badge danger" IsVisible="{Binding HasIndexWarning}">
+                          <TextBlock Text="{Binding IndexWarningLabel}"
+                                     FontSize="9.5"
+                                     FontWeight="SemiBold"
+                                     Foreground="{DynamicResource StudioDangerBrush}" />
+                        </Border>
+                      </StackPanel>
+                      <Button Grid.Column="3"
+                              Classes="studio-btn-compact"
+                              IsEnabled="{Binding CanEdit}"
+                              Command="{Binding AddTagCommand}"
+                              Content="+ Tag" />
+                      <Button Grid.Column="4"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              IsEnabled="{Binding CanEdit}"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveSlotFilterCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove slot override">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+
+                  <!-- Per-Slot Allowed Tags List -->
+                  <TextBlock IsVisible="{Binding HasNoAllowedTags}"
+                             Text="No tags configured for this slot. Click + Tag to restrict accepted items."
+                             FontSize="11"
+                             Foreground="{DynamicResource StudioTextMutedBrush}"
+                             Margin="10,8" />
+
+                  <ItemsControl ItemsSource="{Binding AllowedTags}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:SlotTagRowViewModel">
+                        <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                          <Grid ColumnDefinitions="*,28,28" ColumnSpacing="6">
+                            <controls:ReferencePickerControl Grid.Column="0"
+                                                             DataContext="{Binding TagPickerField}" />
+                            <Button Grid.Column="1"
+                                    Classes="studio-btn-ghost"
+                                    Width="26"
+                                    Height="26"
+                                    MinHeight="26"
+                                    Padding="0"
+                                    VerticalAlignment="Top"
+                                    IsEnabled="{Binding CanNavigate}"
+                                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateTagTargetCommand}"
+                                    CommandParameter="{Binding TagName}"
+                                    ToolTip.Tip="Open referenced tag">
+                              <TextBlock Text="↗" FontSize="12" />
+                            </Button>
+                            <Button Grid.Column="2"
+                                    Classes="studio-btn-ghost"
+                                    Width="26"
+                                    Height="26"
+                                    MinHeight="26"
+                                    Padding="0"
+                                    VerticalAlignment="Top"
+                                    IsEnabled="{Binding $parent[ItemsControl].((vm:SlotFilterRowViewModel)DataContext).CanEdit}"
+                                    Command="{Binding $parent[ItemsControl].((vm:SlotFilterRowViewModel)DataContext).RemoveTagCommand}"
+                                    CommandParameter="{Binding}"
+                                    ToolTip.Tip="Remove tag from slot">
+                              <TextBlock Text="×" FontSize="14" />
+                            </Button>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

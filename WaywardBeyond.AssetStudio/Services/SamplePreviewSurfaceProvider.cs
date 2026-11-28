@@ -36,6 +36,7 @@ public sealed class SamplePreviewSurfaceProvider : IPreviewSurfaceProvider
             AssetKind.Material => PreviewSurfaceMode.MaterialPreview,
             AssetKind.Blueprint => PreviewSurfaceMode.BlueprintVoxel,
             AssetKind.Recipe => PreviewSurfaceMode.RecipeFlow,
+            AssetKind.SlotGroup => PreviewSurfaceMode.SlotGroupLayout,
             _ => PreviewSurfaceMode.DataDocument,
         };
     }
