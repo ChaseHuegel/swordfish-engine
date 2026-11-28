@@ -1,5 +1,4 @@
 using DryIoc;
-using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
@@ -32,13 +31,7 @@ public static class DataComposition
             container.RegisterMapping<IFileParser, TomlParser<SlotGroupDefinitions>>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         }
 
-        container.RegisterDelegate<SlotGroupSchemaDatabase>(
-            context => new SlotGroupSchemaDatabase(
-                context.Resolve<ILogger<SlotGroupSchemaDatabase>>(IfUnresolved.ReturnDefault),
-                context.Resolve<IFileParseService>(IfUnresolved.ReturnDefault),
-                context.Resolve<VirtualFileSystem>(IfUnresolved.ReturnDefault)),
-            Reuse.Singleton,
-            ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.Register<SlotGroupSchemaDatabase>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.RegisterMapping<ISlotGroupSchemaDatabase, SlotGroupSchemaDatabase>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
 
         container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);

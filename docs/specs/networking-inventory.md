@@ -39,7 +39,7 @@ message InventoryComponent
 
 ## Data-driven schemas and tag filters
 
-`SlotGroupSchemaDatabase` (`WaywardBeyond.Data/Inventory/SlotGroupSchemaDatabase.cs:14`) seeds canonical defaults and loads `assets/inventory/*.toml` files (`WaywardBeyond.Data/assets/inventory/slot_groups.toml`). Schemas specify group capacity, group-wide `AllowedTags`, and per-slot `SlotAllowedTags`. Filters match against invariant item tag lists (`ILocalizedTagsDatabase.Invariant`), such as `item.wearable.helmet` on `wb:wearables[0]`, `item.augment` on `wb:augments`, and `item.fuel` on `wb:fuel`.
+`SlotGroupSchemaDatabase` (`WaywardBeyond.Data/Inventory/SlotGroupSchemaDatabase.cs:14`) loads `assets/inventory/*.toml` files from mounted Shoal modules (`WaywardBeyond.Items/assets/inventory/slot_groups.toml`). Schemas specify group capacity, group-wide `AllowedTags`, and per-slot `SlotAllowedTags`. Filters match against invariant item tag lists (`ILocalizedTagsDatabase.Invariant`), such as `item.wearable.helmet` on `wb:wearables[0]`, `item.augment` on `wb:augments`, and `item.fuel` on `wb:fuel`.
 
 ## The envelope: `InventoryEvent`
 
@@ -107,7 +107,7 @@ Reserved op members follow the nullable-union pattern on `InventoryEvent`:
 
 - `WaywardBeyond.Data/Nsd/{components,saves}.nsd`
 - `WaywardBeyond.Data/Inventory/{SlotGroups,SlotGroupSchemaDatabase,SlotGroupSchema}.cs`
-- `WaywardBeyond.Data/assets/inventory/slot_groups.toml`
+- `WaywardBeyond.Items/assets/inventory/slot_groups.toml`
 - `WaywardBeyond.Data/Components/{InventoryComponent,InventoryEvent,SlotGroupLayout,SlotId,TransferOp}.cs`
 - `WaywardBeyond.Networking/Codecs/InventoryCodec.cs:9-34`
 - `WaywardBeyond.Gameplay/Components/ContainerAccessComponent.cs:7`

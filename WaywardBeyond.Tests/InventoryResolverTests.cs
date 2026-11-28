@@ -1,4 +1,9 @@
 #nullable enable
+using System;
+using System.IO;
+using Microsoft.Extensions.Logging.Abstractions;
+using Swordfish.Library.IO;
+using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
 using Xunit;
 using WaywardBeyond.Data;
@@ -190,6 +195,13 @@ public class InventoryResolverTests
     [Fact]
     public void FindFirstEmptySlotDoesNotSpillIntoFilteredGroupsWhenStartingInBackpack()
     {
+        var vfs = new VirtualFileSystem();
+        vfs.Mount(new PathInfo(Path.Combine(AppContext.BaseDirectory, "TestFiles", "Items", "assets")));
+        IFileParser[] parsers = [new TomlParser<SlotGroupDefinitions>()];
+        var parseService = new VirtualFileParseService(parsers, vfs);
+        var schemas = new SlotGroupSchemaDatabase(NullLogger<SlotGroupSchemaDatabase>.Instance, parseService, vfs);
+        var context = new InventoryValidationContext(schemas);
+
         InventoryComponent inventory = InventoryComponent.Create(
             new SlotGroupDescriptor(SlotGroups.HOTBAR, 1),
             new SlotGroupDescriptor(SlotGroups.BACKPACK, 1),
@@ -198,10 +210,10 @@ public class InventoryResolverTests
         inventory.Set(in Hotbar0, new ItemData("rock", 1, 64));
         inventory.Set(in Backpack0, new ItemData("rock", 1, 64));
 
-        Result<SlotId> fromBackpack = InventoryResolver.FindFirstEmptySlot(in inventory, in Backpack0);
+        Result<SlotId> fromBackpack = InventoryResolver.FindFirstEmptySlot(in inventory, in Backpack0, in context);
         Assert.False(fromBackpack.Success);
 
-        Result<SlotId> explicitWearable = InventoryResolver.FindFirstEmptySlot(in inventory, new SlotId(SlotGroups.WEARABLES, 0));
+        Result<SlotId> explicitWearable = InventoryResolver.FindFirstEmptySlot(in inventory, new SlotId(SlotGroups.WEARABLES, 0), in context);
         Assert.True(explicitWearable.Success);
         Assert.Equal(new SlotId(SlotGroups.WEARABLES, 0), explicitWearable.Value);
     }

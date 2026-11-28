@@ -324,7 +324,7 @@ simulation limits.
 
 ## Inventory slot groups (`assets/inventory/*.toml`)
 
-Slot group schemas live in `WaywardBeyond.Data/assets/inventory/` and load through
+Slot group schemas live in `WaywardBeyond.Items/assets/inventory/` and load through
 `SlotGroupSchemaDatabase` (`WaywardBeyond.Data/Inventory/SlotGroupSchemaDatabase.cs:14`),
 registered via `DataComposition.RegisterDataServices` (`WaywardBeyond.Data/DataComposition.cs:23`).
 Schema structs live in `SlotGroupDefinitions.cs`, `SlotGroupDefinition.cs`, and

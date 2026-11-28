@@ -4,7 +4,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
+using DryIoc;
 using Krill;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Library.IO;
@@ -217,14 +220,19 @@ public class KeyedInventoryTests
         }
     }
 
+    private static SlotGroupSchemaDatabase LoadShippedSchemas()
+    {
+        var vfs = new VirtualFileSystem();
+        vfs.Mount(new PathInfo(Path.Combine(AppContext.BaseDirectory, "TestFiles", "Items", "assets")));
+        IFileParser[] parsers = [new TomlParser<SlotGroupDefinitions>()];
+        var parseService = new VirtualFileParseService(parsers, vfs);
+        return new SlotGroupSchemaDatabase(NullLogger<SlotGroupSchemaDatabase>.Instance, parseService, vfs);
+    }
+
     [Fact]
     public void ShippedSlotGroupTomlAndFilterTagsEnforceGroupAndPerSlotRules()
     {
-        var vfs = new VirtualFileSystem();
-        vfs.Mount(new PathInfo(Path.Combine(AppContext.BaseDirectory, "TestFiles", "Data", "assets")));
-        IFileParser[] parsers = [new TomlParser<SlotGroupDefinitions>()];
-        var parseService = new VirtualFileParseService(parsers, vfs);
-        var schemas = new SlotGroupSchemaDatabase(NullLogger<SlotGroupSchemaDatabase>.Instance, parseService, vfs);
+        SlotGroupSchemaDatabase schemas = LoadShippedSchemas();
 
         Result<SlotGroupSchema> wearableSchema = schemas.Get(SlotGroups.WEARABLES);
         Assert.True(wearableSchema.Success);
@@ -275,14 +283,15 @@ public class KeyedInventoryTests
     [Fact]
     public void AutoStackSupportsExplicitFilteredGroupTarget()
     {
+        SlotGroupSchemaDatabase schemas = LoadShippedSchemas();
         var tags = new LocalizedTags(new Dictionary<string, List<string>>
         {
             [ItemTags.WEARABLE] = ["wb:helmet_alpha"],
             [ItemTags.WEARABLE_HELMET] = ["wb:helmet_alpha"],
         });
-        var context = new InventoryValidationContext(SlotGroupSchemaDatabase.Default, tags);
+        var context = new InventoryValidationContext(schemas, tags);
 
-        InventoryComponent inventory = InventoryComponent.CreatePlayer();
+        InventoryComponent inventory = InventoryComponent.CreatePlayer(schemas);
         inventory.Set(in Backpack0, new ItemData("wb:helmet_alpha", 1, 1));
 
         //  Targeted AutoStack into wb:wearables places the helmet directly into matching slot [0].
@@ -491,6 +500,33 @@ public class KeyedInventoryTests
 
         var badTransfer = new TransferOp(0UL, Hotbar0, 0UL, Backpack0, (TransferMode)99, null);
         Assert.False(InventoryResolver.Apply(ref inv, in badTransfer));
+    }
+
+    [Fact]
+    public void DataCompositionResolvesSlotGroupSchemaDatabaseWithShoalLoggerFactoryAndHeadlessContainer()
+    {
+        using var shoalContainer = new Container();
+        shoalContainer.RegisterInstance<ILoggerFactory>(NullLoggerFactory.Instance);
+        MethodInfo loggerFactoryMethod = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
+        shoalContainer.Register(typeof(ILogger<>), made: Made.Of(req => loggerFactoryMethod.MakeGenericMethod(req.Parent.ImplementationType)));
+        var vfs = new VirtualFileSystem();
+        vfs.Mount(new PathInfo(Path.Combine(AppContext.BaseDirectory, "TestFiles", "Items", "assets")));
+        shoalContainer.RegisterInstance(vfs);
+        shoalContainer.Register<IFileParseService, VirtualFileParseService>(Reuse.Transient);
+        shoalContainer.RegisterDataServices();
+
+        ISlotGroupSchemaDatabase loaded = shoalContainer.Resolve<ISlotGroupSchemaDatabase>();
+        Assert.True(loaded.Get(SlotGroups.HOTBAR).Success);
+        Assert.True(loaded.Get(SlotGroups.BACKPACK).Success);
+        Assert.True(loaded.Get(SlotGroups.WEARABLES).Success);
+        Assert.True(loaded.Get(SlotGroups.AUGMENTS).Success);
+        Assert.True(loaded.Get(SlotGroups.FUEL).Success);
+
+        using var headlessContainer = new Container();
+        headlessContainer.RegisterDataServices();
+
+        ISlotGroupSchemaDatabase headless = headlessContainer.Resolve<ISlotGroupSchemaDatabase>();
+        Assert.False(headless.Get(SlotGroups.HOTBAR).Success);
     }
 
     private sealed class StubItemDatabase(params Item[] items) : IItemDatabase

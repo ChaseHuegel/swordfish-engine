@@ -54,7 +54,6 @@ public sealed class WorkspaceLoader
             : DEFAULT_LOAD_ORDER;
 
         List<WorkspaceRoot> roots = DiscoverModuleRoots(fullRepoRoot, loadOrder, isWritable: true);
-        PrependSharedDataRootIfPresent(roots, Path.Combine(fullRepoRoot, "WaywardBeyond.Data"), isWritable: true);
         if (roots.Count == 0)
         {
             return Result<WorkspaceIndex>.FromFailure($"No modules with manifest.toml found under '{fullRepoRoot}'.");
@@ -96,7 +95,6 @@ public sealed class WorkspaceLoader
                 ? Path.Combine(fullInstallDir, "modules")
                 : fullInstallDir;
             roots.AddRange(DiscoverModuleRoots(modulesContainer, loadOrder, isWritable: false));
-            PrependSharedDataRootIfPresent(roots, fullInstallDir, isWritable: false);
         }
 
         WorkspaceRoot packRoot = CreateSingleRoot(fullPackDir, isWritable: true, loadOrderIndex: roots.Count);
@@ -328,40 +326,6 @@ public sealed class WorkspaceLoader
             IsEnabled: true,
             loadOrderIndex,
             manifest);
-    }
-
-    private static void PrependSharedDataRootIfPresent(List<WorkspaceRoot> roots, string candidateRootDirectory, bool isWritable)
-    {
-        if (string.IsNullOrWhiteSpace(candidateRootDirectory))
-        {
-            return;
-        }
-
-        string fullRoot = Path.GetFullPath(candidateRootDirectory);
-        string assetsDir = Path.Combine(fullRoot, "assets");
-        if (!Directory.Exists(assetsDir))
-        {
-            return;
-        }
-
-        for (int i = 0; i < roots.Count; i++)
-        {
-            if (string.Equals(roots[i].Id, "waywardbeyond.data", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(Path.GetFullPath(roots[i].AssetsDirectory), Path.GetFullPath(assetsDir), StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-        }
-
-        roots.Insert(0, new WorkspaceRoot(
-            "waywardbeyond.data",
-            "Wayward Beyond Data",
-            fullRoot,
-            assetsDir,
-            isWritable,
-            IsEnabled: true,
-            LoadOrderIndex: -1,
-            Manifest: null));
     }
 
     private static string ResolveEffectiveRoot(string moduleDirectory, string? rootPathOverride)

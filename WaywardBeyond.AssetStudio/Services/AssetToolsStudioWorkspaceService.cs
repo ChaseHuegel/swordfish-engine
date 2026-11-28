@@ -1331,7 +1331,7 @@ public sealed class AssetToolsStudioWorkspaceService : IStudioWorkspaceService
                 var root = workspace.Roots[i];
                 if (root.IsWritable
                     && root.IsEnabled
-                    && string.Equals(root.Id, "waywardbeyond.data", StringComparison.OrdinalIgnoreCase))
+                    && string.Equals(root.Id, "waywardbeyond.items", StringComparison.OrdinalIgnoreCase))
                 {
                     return Result<ToolsWorkspace.WorkspaceRoot>.FromSuccess(root);
                 }

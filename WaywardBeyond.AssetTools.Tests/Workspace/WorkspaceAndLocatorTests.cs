@@ -50,7 +50,6 @@ public sealed class WorkspaceAndLocatorTests : IDisposable
         List<string> enabledRootIds = [.. workspace.Roots.Where(static r => r.IsEnabled).Select(static r => r.Id)];
         Assert.Equal(
             [
-                "waywardbeyond.data",
                 "swordfish",
                 "waywardbeyond.bricks",
                 "waywardbeyond.items",

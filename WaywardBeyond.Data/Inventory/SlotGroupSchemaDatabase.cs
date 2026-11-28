@@ -10,17 +10,17 @@ using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Data;
 
-/// <summary>Loads data-driven <see cref="SlotGroupSchema"/> definitions and provides built-in canonical defaults.</summary>
+/// <summary>Loads data-driven <see cref="SlotGroupSchema"/> definitions from VFS TOML files.</summary>
 public sealed class SlotGroupSchemaDatabase : ISlotGroupSchemaDatabase
 {
     private const string VIRTUAL_ROOT = "inventory/";
 
     private readonly FrozenDictionary<string, SlotGroupSchema> _schemas;
 
-    /// <summary>Shared default schema database containing the built-in slot groups.</summary>
+    /// <summary>Shared empty schema database used when no VFS-backed database is supplied.</summary>
     public static ISlotGroupSchemaDatabase Default { get; } = new SlotGroupSchemaDatabase();
 
-    /// <summary>Constructs a schema database seeded with built-in defaults and optional VFS TOML definitions.</summary>
+    /// <summary>Constructs a schema database loaded from optional VFS TOML definitions under <c>inventory/</c>.</summary>
     public SlotGroupSchemaDatabase(
         ILogger<SlotGroupSchemaDatabase>? logger = null,
         IFileParseService? fileParseService = null,
@@ -28,7 +28,6 @@ public sealed class SlotGroupSchemaDatabase : ISlotGroupSchemaDatabase
     )
     {
         var schemas = new Dictionary<string, SlotGroupSchema>(StringComparer.Ordinal);
-        SeedDefaults(schemas);
 
         if (fileParseService != null && vfs != null)
         {
@@ -77,38 +76,6 @@ public sealed class SlotGroupSchemaDatabase : ISlotGroupSchemaDatabase
             : fallback;
     }
 
-    private static void SeedDefaults(Dictionary<string, SlotGroupSchema> schemas)
-    {
-        Register(schemas, new SlotGroupSchema(SlotGroups.HOTBAR, SlotGroups.DEFAULT_HOTBAR_CAPACITY));
-        Register(schemas, new SlotGroupSchema(SlotGroups.BACKPACK, SlotGroups.DEFAULT_BACKPACK_CAPACITY));
-        Register(schemas, new SlotGroupSchema(
-            SlotGroups.WEARABLES,
-            SlotGroups.DEFAULT_WEARABLES_CAPACITY,
-            allowedTags: ["item.wearable"],
-            slotAllowedTags: new Dictionary<int, string[]>
-            {
-                [0] = ["item.wearable.helmet"],
-                [1] = ["item.wearable.torso"],
-                [2] = ["item.wearable.legs"],
-                [3] = ["item.wearable.head"],
-                [4] = ["item.wearable.suit"],
-                [5] = ["item.wearable.o2"],
-            }));
-        Register(schemas, new SlotGroupSchema(
-            SlotGroups.AUGMENTS,
-            SlotGroups.DEFAULT_AUGMENTS_CAPACITY,
-            allowedTags: ["item.augment"]));
-        Register(schemas, new SlotGroupSchema(SlotGroups.INPUT, 1));
-        Register(schemas, new SlotGroupSchema(SlotGroups.OUTPUT, 1));
-        Register(schemas, new SlotGroupSchema(SlotGroups.FUEL, 1, allowedTags: ["item.fuel"]));
-        Register(schemas, new SlotGroupSchema(SlotGroups.CARGO, SlotGroups.DEFAULT_CARGO_CAPACITY));
-    }
-
-    private static void Register(Dictionary<string, SlotGroupSchema> schemas, SlotGroupSchema schema)
-    {
-        schemas[schema.GroupId] = schema;
-    }
-
     private static void LoadFromVfs(
         Dictionary<string, SlotGroupSchema> schemas,
         ILogger<SlotGroupSchemaDatabase>? logger,
@@ -117,6 +84,7 @@ public sealed class SlotGroupSchemaDatabase : ISlotGroupSchemaDatabase
     )
     {
         PathInfo[] files = vfs.GetFiles(new PathInfo(VIRTUAL_ROOT), SearchOption.AllDirectories);
+        var tomlFileCount = 0;
 
         for (var fileIndex = 0; fileIndex < files.Length; fileIndex++)
         {
@@ -125,6 +93,8 @@ public sealed class SlotGroupSchemaDatabase : ISlotGroupSchemaDatabase
             {
                 continue;
             }
+
+            tomlFileCount++;
 
             try
             {
@@ -166,5 +136,7 @@ public sealed class SlotGroupSchemaDatabase : ISlotGroupSchemaDatabase
                 logger?.LogError(ex, "Failed to load slot group schemas from \"{file}\".", file);
             }
         }
+
+        logger?.LogInformation("Loaded {count} SlotGroupSchemas from {files} files.", schemas.Count, tomlFileCount);
     }
 }
