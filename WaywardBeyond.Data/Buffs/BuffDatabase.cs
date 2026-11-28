@@ -10,10 +10,10 @@ using Swordfish.Library.Util;
 namespace WaywardBeyond.Data.Buffs;
 
 /// <inheritdoc/>
-internal sealed class BuffDatabase : VirtualAssetDatabase<BuffDefinitions, BuffEntry, BuffDefinition>, IAutoActivate, IBuffDatabase
+internal sealed class BuffDatabase : VirtualAssetDatabase<BuffDefinitions, BuffDefinition, Buff>, IAutoActivate, IBuffDatabase
 {
-    private readonly List<BuffDefinition> _allBuffs = [];
-    private readonly ReadOnlyCollection<BuffDefinition> _readOnlyBuffs;
+    private readonly List<Buff> _allBuffs = [];
+    private readonly ReadOnlyCollection<Buff> _readOnlyBuffs;
 
     /// <summary>Constructs and loads the buff database from <c>buffs/*.toml</c>.</summary>
     public BuffDatabase(
@@ -28,7 +28,7 @@ internal sealed class BuffDatabase : VirtualAssetDatabase<BuffDefinitions, BuffE
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<BuffDefinition> All => _readOnlyBuffs;
+    public IReadOnlyList<Buff> All => _readOnlyBuffs;
 
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");
@@ -37,32 +37,118 @@ internal sealed class BuffDatabase : VirtualAssetDatabase<BuffDefinitions, BuffE
     protected override PathInfo GetRootPath() => new("buffs/");
 
     /// <inheritdoc/>
-    protected override IEnumerable<BuffEntry> GetAssetInfo(PathInfo path, BuffDefinitions resource) => resource.Entries;
-
-    /// <inheritdoc/>
-    protected override string GetAssetID(BuffEntry assetInfo) => assetInfo.Definition.ID?.Trim() ?? string.Empty;
-
-    /// <inheritdoc/>
-    protected override Result<BuffDefinition> LoadAsset(string id, BuffEntry assetInfo)
+    protected override IEnumerable<BuffDefinition> GetAssetInfo(PathInfo path, BuffDefinitions resource)
     {
-        if (assetInfo.Error != null)
+        if (resource.Buffs != null)
         {
-            return Result<BuffDefinition>.FromFailure(assetInfo.Error);
+            for (var i = 0; i < resource.Buffs.Count; i++)
+            {
+                yield return resource.Buffs[i];
+            }
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override string GetAssetID(BuffDefinition assetInfo) => assetInfo.ID?.Trim() ?? string.Empty;
+
+    /// <inheritdoc/>
+    protected override Result<Buff> LoadAsset(string id, BuffDefinition assetInfo)
+    {
+        Result<BuffStackPolicy> stackPolicyResult = ParseStackPolicy(id, assetInfo.StackPolicy);
+        if (!stackPolicyResult.Success)
+        {
+            return Result<Buff>.FromFailure(stackPolicyResult.Message);
         }
 
-        Result<BuffDefinition> validation = assetInfo.Definition.Validate();
+        BuffStatModifier[] modifiers = ConvertModifiers(assetInfo.StatModifiers);
+        BuffRegenRate[] regenRates = ConvertRegenRates(assetInfo.RegenRates);
+
+        var candidate = new Buff
+        {
+            ID = assetInfo.ID ?? string.Empty,
+            Name = assetInfo.Name ?? string.Empty,
+            Description = assetInfo.Description,
+            Icon = assetInfo.Icon,
+            DurationSeconds = assetInfo.DurationSeconds,
+            StackPolicy = stackPolicyResult.Value,
+            StatModifiers = modifiers,
+            RegenRates = regenRates,
+            ExpiryStatId = string.Empty,
+        };
+
+        Result<Buff> validation = candidate.Validate();
         if (!validation.Success)
         {
             return validation;
         }
 
-        BuffDefinition buff = validation.Value;
+        Buff buff = validation.Value;
         if (Get(buff.ID).Success)
         {
-            return Result<BuffDefinition>.FromFailure($"Buff ID \"{buff.ID}\" is declared more than once.");
+            return Result<Buff>.FromFailure($"Buff ID \"{buff.ID}\" is declared more than once.");
         }
 
         _allBuffs.Add(buff);
-        return Result<BuffDefinition>.FromSuccess(buff);
+        return Result<Buff>.FromSuccess(buff);
+    }
+
+    private static Result<BuffStackPolicy> ParseStackPolicy(string buffId, string? raw)
+    {
+        if (raw == null)
+        {
+            return Result<BuffStackPolicy>.FromSuccess(BuffStackPolicy.Refresh);
+        }
+
+        ReadOnlySpan<char> trimmed = raw.AsSpan().Trim();
+        if (trimmed.Equals("Refresh".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<BuffStackPolicy>.FromSuccess(BuffStackPolicy.Refresh);
+        }
+
+        if (trimmed.Equals("Extend".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<BuffStackPolicy>.FromSuccess(BuffStackPolicy.Extend);
+        }
+
+        if (trimmed.Equals("Ignore".AsSpan(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Result<BuffStackPolicy>.FromSuccess(BuffStackPolicy.Ignore);
+        }
+
+        return Result<BuffStackPolicy>.FromFailure($"Buff \"{buffId}\" has invalid StackPolicy \"{raw}\"; expected Refresh, Extend, or Ignore.");
+    }
+
+    private static BuffStatModifier[] ConvertModifiers(List<BuffStatModifierDefinition>? definitions)
+    {
+        if (definitions == null || definitions.Count == 0)
+        {
+            return [];
+        }
+
+        var result = new BuffStatModifier[definitions.Count];
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            BuffStatModifierDefinition def = definitions[i];
+            result[i] = new BuffStatModifier(def.StatId ?? string.Empty, def.FlatDelta, def.PercentDelta);
+        }
+
+        return result;
+    }
+
+    private static BuffRegenRate[] ConvertRegenRates(List<BuffRegenRateDefinition>? definitions)
+    {
+        if (definitions == null || definitions.Count == 0)
+        {
+            return [];
+        }
+
+        var result = new BuffRegenRate[definitions.Count];
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            BuffRegenRateDefinition def = definitions[i];
+            result[i] = new BuffRegenRate(def.StatId ?? string.Empty, def.PerSecond);
+        }
+
+        return result;
     }
 }

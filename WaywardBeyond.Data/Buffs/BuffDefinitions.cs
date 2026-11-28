@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 namespace WaywardBeyond.Data.Buffs;
 
-/// <summary>Parsed collection of buff entries read from a TOML asset file.</summary>
-internal sealed class BuffDefinitions
+/// <summary>A collection of <see cref="BuffDefinition"/> entries parsed from TOML.</summary>
+public struct BuffDefinitions()
 {
-    /// <summary>Parsed entries from the source file.</summary>
-    internal List<BuffEntry> Entries { get; } = [];
+    /// <summary>The contained <see cref="BuffDefinition"/> entries.</summary>
+    public List<BuffDefinition>? Buffs { get; set; }
 }

@@ -50,8 +50,8 @@ overrides after the engine builds
 | `WaywardBeyond.Config` | `RegisterNetworkingConfig()` | `network.toml` config, its sub-config views, and validation |
 | `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services (`Migrator`, `SeedPhraseService`, `ISlotGroupSchemaDatabase` / `SlotGroupSchemaDatabase`), bundled blueprints, HUD bars, buffs, tags, and the content pack version entry point |
 | `WaywardBeyond.Data` (blueprints) | `BlueprintComposition.RegisterBundledBlueprints()` | headless bundled `.wbp` database (`IBundledBlueprintDatabase`) and parser (`BlueprintDataParser`) |
-| `WaywardBeyond.Data` (HUD bars) | `HudBarComposition.RegisterHudBars()` | headless HUD bar database (`IHudBarDatabase`, `IAssetDatabase<HudBarDefinition>`) and parser (`HudBarDefinitionsParser`) |
-| `WaywardBeyond.Data` (buffs) | `BuffComposition.RegisterBuffs()` | headless buff database (`IBuffDatabase`, `IAssetDatabase<BuffDefinition>`) and parser (`BuffDefinitionsParser`) |
+| `WaywardBeyond.Data` (HUD bars) | `HudBarComposition.RegisterHudBars()` | headless HUD bar database (`IHudBarDatabase`, `IAssetDatabase<HudBar>`) and `TomlParser<HudBarDefinitions>` |
+| `WaywardBeyond.Data` (buffs) | `BuffComposition.RegisterBuffs()` | headless buff database (`IBuffDatabase`, `IAssetDatabase<Buff>`) and `TomlParser<BuffDefinitions>` |
 | `WaywardBeyond.Data` (localization) | `LocalizationComposition.RegisterTags()` | localized tag database and parser |
 | `WaywardBeyond.Server` | `RegisterHost()`, `RegisterServer()` | host wire-up, server composition |
 | `WaywardBeyond.Bricks` | `Injector` | brick and paint databases, registries, parsers |

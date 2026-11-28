@@ -100,7 +100,7 @@ public sealed class StatisticsComponentTests
         const float fixedDt = 1f / 60f;
         var stats = new StatisticsComponent();
 
-        BuffDefinition refreshBuff = new BuffDefinition
+        Buff refreshBuff = new Buff
         {
             ID = "wb:refresh",
             Name = "buff.refresh",
@@ -113,7 +113,7 @@ public sealed class StatisticsComponentTests
         Assert.True(stats.ApplyBuff(in refreshBuff, currentSimTick: 250L, fixedDt));
         Assert.Equal(850L, stats.GetValue(refreshBuff.ExpiryStatId));
 
-        BuffDefinition extendBuff = new BuffDefinition
+        Buff extendBuff = new Buff
         {
             ID = "wb:extend",
             Name = "buff.extend",
@@ -126,7 +126,7 @@ public sealed class StatisticsComponentTests
         Assert.True(stats.ApplyBuff(in extendBuff, currentSimTick: 200L, fixedDt));
         Assert.Equal(1300L, stats.GetValue(extendBuff.ExpiryStatId));
 
-        BuffDefinition ignoreBuff = new BuffDefinition
+        Buff ignoreBuff = new Buff
         {
             ID = "wb:ignore",
             Name = "buff.ignore",
@@ -141,12 +141,12 @@ public sealed class StatisticsComponentTests
         Assert.True(stats.ApplyBuff(in ignoreBuff, currentSimTick: 700L, fixedDt));
         Assert.Equal(1300L, stats.GetValue(ignoreBuff.ExpiryStatId));
 
-        BuffDefinition invalidPolicyBuff = refreshBuff with { StackPolicy = (BuffStackPolicy)99 };
+        Buff invalidPolicyBuff = refreshBuff with { StackPolicy = (BuffStackPolicy)99 };
         Assert.False(stats.ApplyBuff(in invalidPolicyBuff, currentSimTick: 100L, fixedDt));
         Assert.False(stats.ApplyBuff(in refreshBuff, currentSimTick: -1L, fixedDt));
 
         //  Direct unvalidated construction (ExpiryStatId unset) falls back to ID cleanly.
-        var unvalidatedBuff = new BuffDefinition
+        var unvalidatedBuff = new Buff
         {
             ID = "wb:direct_buff",
             Name = "buff.direct",

@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 namespace WaywardBeyond.Data.HudBars;
 
-/// <summary>Parsed collection of HUD bar entries read from a TOML asset file.</summary>
-internal sealed class HudBarDefinitions
+/// <summary>A collection of <see cref="HudBarDefinition"/> entries parsed from TOML.</summary>
+public struct HudBarDefinitions()
 {
-    /// <summary>Parsed entries from the source file.</summary>
-    internal List<HudBarEntry> Entries { get; } = [];
+    /// <summary>The contained <see cref="HudBarDefinition"/> entries.</summary>
+    public List<HudBarDefinition>? HudBars { get; set; }
 }

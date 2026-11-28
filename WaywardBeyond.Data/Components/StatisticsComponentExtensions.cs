@@ -61,7 +61,7 @@ public static class StatisticsComponentExtensions
     }
 
     /// <summary>Change-gated application of <paramref name="buff"/> onto <paramref name="stats"/>.</summary>
-    public static bool ApplyBuff(ref Ref<StatisticsComponent> stats, in BuffDefinition buff, long currentSimTick, float fixedDt)
+    public static bool ApplyBuff(ref Ref<StatisticsComponent> stats, in Buff buff, long currentSimTick, float fixedDt)
     {
         if (!stats.Read.TryComputeBuffExpiry(in buff, currentSimTick, fixedDt, out long nextExpiry, out string? expiryStatId, out ReadOnlySpan<char> fallbackBuffId))
         {
@@ -149,7 +149,7 @@ public static class StatisticsComponentExtensions
     }
 
     /// <summary>Change-gated application of <paramref name="buff"/> onto <paramref name="entity"/> in <paramref name="store"/>.</summary>
-    public static bool ApplyBuff(this DataStore store, int entity, in BuffDefinition buff, long currentSimTick, float fixedDt)
+    public static bool ApplyBuff(this DataStore store, int entity, in Buff buff, long currentSimTick, float fixedDt)
     {
         if (string.IsNullOrWhiteSpace(buff.ExpiryStatId) && string.IsNullOrWhiteSpace(buff.ID))
         {
@@ -232,9 +232,9 @@ public static class StatisticsComponentExtensions
         }
     }
 
-    private readonly struct ApplyBuffAction(in BuffDefinition buff, long currentSimTick, float fixedDt) : IForEachRef<StatisticsComponent>
+    private readonly struct ApplyBuffAction(in Buff buff, long currentSimTick, float fixedDt) : IForEachRef<StatisticsComponent>
     {
-        private readonly BuffDefinition _buff = buff;
+        private readonly Buff _buff = buff;
 
         public void Execute(float delta, DataStore store, int entity, ref Ref<StatisticsComponent> component)
         {

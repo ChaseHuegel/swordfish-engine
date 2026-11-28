@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
+using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.HudBars;
@@ -15,11 +16,11 @@ using Xunit;
 
 namespace WaywardBeyond.Tests;
 
-/// <summary>Covers TOML parsing, validation failures, ordering, and DI wiring for <see cref="HudBarDefinition"/>.</summary>
+/// <summary>Covers TOML parsing, validation failures, ordering, and DI wiring for <see cref="HudBar"/>.</summary>
 public sealed class HudBarDatabaseTests
 {
     [Fact]
-    public void LoadsFlatAndTableArrayHudBarsInOrderAndParsesColorTint()
+    public void LoadsHudBarsInOrderAndParsesColorTint()
     {
         string tempRoot = CreateTempAssetsDir();
         try
@@ -30,25 +31,26 @@ public sealed class HudBarDatabaseTests
             File.WriteAllText(
                 Path.Combine(barsDir, "oxygen.toml"),
                 """
-                id = "wb:oxygen"
-                stat_id = "wb:oxygen"
-                max_stat_id = "wb:oxygen_max"
-                icon_count = 10
-                icon_full = "ui/hud/bubble_full.png"
-                icon_half = "ui/hud/bubble_half.png"
-                icon_empty = "ui/hud/bubble_empty.png"
-                warn_threshold = 0.35
-                critical_threshold = 0.15
-                order = 2
-                hide_in_creative = true
-                color_tint = "#38B764"
+                [[HudBars]]
+                ID = "wb:oxygen"
+                StatId = "wb:oxygen"
+                MaxStatId = "wb:oxygen_max"
+                IconCount = 10
+                IconFull = "ui/hud/bubble_full.png"
+                IconHalf = "ui/hud/bubble_half.png"
+                IconEmpty = "ui/hud/bubble_empty.png"
+                WarnThreshold = 0.35
+                CriticalThreshold = 0.15
+                Order = 2
+                HideInCreative = true
+                ColorTint = "#38B764"
                 """
             );
 
             File.WriteAllText(
                 Path.Combine(barsDir, "extras.toml"),
                 """
-                [[hud_bars]]
+                [[HudBars]]
                 ID = "wb:health"
                 StatId = "wb:health"
                 MaxStatId = "wb:health_max"
@@ -61,16 +63,16 @@ public sealed class HudBarDatabaseTests
                 Order = 1
                 HideInCreative = true
 
-                [[hud_bars]]
-                id = "mod:shield"
-                stat_id = "mod:shield"
-                default_max = 50
-                icon_count = 5
-                icon_full = "mod/shield_full.png"
-                icon_half = "mod/shield_half.png"
-                icon_empty = "mod/shield_empty.png"
-                order = 3
-                hide_in_creative = false
+                [[HudBars]]
+                ID = "mod:shield"
+                StatId = "mod:shield"
+                DefaultMax = 50
+                IconCount = 5
+                IconFull = "mod/shield_full.png"
+                IconHalf = "mod/shield_half.png"
+                IconEmpty = "mod/shield_empty.png"
+                Order = 3
+                HideInCreative = false
                 """
             );
 
@@ -78,9 +80,9 @@ public sealed class HudBarDatabaseTests
 
             Assert.Equal(["wb:health", "wb:oxygen", "mod:shield"], database.All.Select(b => b.ID).ToArray());
 
-            Result<HudBarDefinition> oxygenResult = database.Get("wb:oxygen");
+            Result<HudBar> oxygenResult = database.Get("wb:oxygen");
             Assert.True(oxygenResult.Success);
-            HudBarDefinition oxygen = oxygenResult.Value;
+            HudBar oxygen = oxygenResult.Value;
             Assert.Equal("wb:oxygen", oxygen.StatId);
             Assert.Equal("wb:oxygen_max", oxygen.MaxStatId);
             Assert.Equal(10, oxygen.IconCount);
@@ -91,7 +93,7 @@ public sealed class HudBarDatabaseTests
             Assert.True(oxygen.ColorTintRgba.HasValue);
             Assert.Equal(new Vector4(0x38 / 255f, 0xB7 / 255f, 0x64 / 255f, 1f), oxygen.ColorTintRgba!.Value);
 
-            Result<HudBarDefinition> shieldResult = database.Get("mod:shield");
+            Result<HudBar> shieldResult = database.Get("mod:shield");
             Assert.True(shieldResult.Success);
             Assert.Null(shieldResult.Value.MaxStatId);
             Assert.Equal(50f, shieldResult.Value.DefaultMax);
@@ -116,147 +118,129 @@ public sealed class HudBarDatabaseTests
             File.WriteAllText(
                 Path.Combine(barsDir, "mixed.toml"),
                 """
-                [[hud_bars]]
-                id = "wb:valid"
-                stat_id = "wb:health"
-                max_stat_id = "wb:health_max"
-                icon_count = 10
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
-                warn_threshold = 0.4
-                critical_threshold = 0.2
+                [[HudBars]]
+                ID = "wb:valid"
+                StatId = "wb:health"
+                MaxStatId = "wb:health_max"
+                IconCount = 10
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
+                WarnThreshold = 0.4
+                CriticalThreshold = 0.2
 
-                [[hud_bars]]
-                stat_id = "wb:health"
-                default_max = 100
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
+                [[HudBars]]
+                StatId = "wb:health"
+                DefaultMax = 100
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
 
-                [[hud_bars]]
-                id = "wb:missing_stat"
-                default_max = 100
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
+                [[HudBars]]
+                ID = "wb:missing_stat"
+                DefaultMax = 100
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
 
-                [[hud_bars]]
-                id = "wb:missing_max"
-                stat_id = "wb:health"
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
+                [[HudBars]]
+                ID = "wb:missing_max"
+                StatId = "wb:health"
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
 
-                [[hud_bars]]
-                id = "wb:non_positive_default_max"
-                stat_id = "wb:health"
-                default_max = 0
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
+                [[HudBars]]
+                ID = "wb:non_positive_default_max"
+                StatId = "wb:health"
+                DefaultMax = 0
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
 
-                [[hud_bars]]
-                id = "wb:bad_icon_count"
-                stat_id = "wb:health"
-                default_max = 100
-                icon_count = 0
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
+                [[HudBars]]
+                ID = "wb:bad_icon_count"
+                StatId = "wb:health"
+                DefaultMax = 100
+                IconCount = 0
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
 
-                [[hud_bars]]
-                id = "wb:missing_half_icon"
-                stat_id = "wb:health"
-                default_max = 100
-                icon_full = "full.png"
-                icon_empty = "empty.png"
+                [[HudBars]]
+                ID = "wb:missing_half_icon"
+                StatId = "wb:health"
+                DefaultMax = 100
+                IconFull = "full.png"
+                IconEmpty = "empty.png"
 
-                [[hud_bars]]
-                id = "wb:bad_threshold_range"
-                stat_id = "wb:health"
-                default_max = 100
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
-                warn_threshold = 1.2
-                critical_threshold = 0.2
+                [[HudBars]]
+                ID = "wb:bad_threshold_range"
+                StatId = "wb:health"
+                DefaultMax = 100
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
+                WarnThreshold = 1.2
+                CriticalThreshold = 0.2
 
-                [[hud_bars]]
-                id = "wb:inverted_thresholds"
-                stat_id = "wb:health"
-                default_max = 100
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
-                warn_threshold = 0.2
-                critical_threshold = 0.5
+                [[HudBars]]
+                ID = "wb:inverted_thresholds"
+                StatId = "wb:health"
+                DefaultMax = 100
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
+                WarnThreshold = 0.2
+                CriticalThreshold = 0.5
 
-                [[hud_bars]]
-                id = "wb:bad_color"
-                stat_id = "wb:health"
-                default_max = 100
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
-                color_tint = "not-a-hex"
+                [[HudBars]]
+                ID = "wb:bad_color"
+                StatId = "wb:health"
+                DefaultMax = 100
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
+                ColorTint = "not-a-hex"
 
-                [[hud_bars]]
-                id = "wb:blank_color"
-                stat_id = "wb:health"
-                default_max = 100
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
-                color_tint = "   "
+                [[HudBars]]
+                ID = "wb:blank_color"
+                StatId = "wb:health"
+                DefaultMax = 100
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
+                ColorTint = "   "
 
-                [[hud_bars]]
-                id = "wb:wrong_type"
-                stat_id = "wb:health"
-                default_max = 100
-                icon_count = "ten"
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
-
-                [[hud_bars]]
-                id = "wb:duplicate_alias"
-                stat_id = "wb:health"
-                StatId = "wb:oxygen"
-                default_max = 100
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
-
-                [[hud_bars]]
-                id = "wb:valid"
-                stat_id = "wb:other"
-                default_max = 50
-                icon_full = "other_full.png"
-                icon_half = "other_half.png"
-                icon_empty = "other_empty.png"
+                [[HudBars]]
+                ID = "wb:valid"
+                StatId = "wb:other"
+                DefaultMax = 50
+                IconFull = "other_full.png"
+                IconHalf = "other_half.png"
+                IconEmpty = "other_empty.png"
                 """
             );
 
             File.WriteAllText(
-                Path.Combine(barsDir, "mixed_flat_and_array.toml"),
+                Path.Combine(barsDir, "wrong_type.toml"),
                 """
-                id = "wb:flat_stray"
-                [[hud_bars]]
-                id = "wb:mixed_array_item"
-                stat_id = "wb:health"
-                default_max = 100
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
+                [[HudBars]]
+                ID = "wb:wrong_type"
+                StatId = "wb:health"
+                DefaultMax = 100
+                IconCount = "ten"
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
                 """
             );
 
-            File.WriteAllText(Path.Combine(barsDir, "corrupt.toml"), "id = [broken");
+            File.WriteAllText(Path.Combine(barsDir, "corrupt.toml"), "ID = [broken");
 
             HudBarDatabase database = LoadDatabase(tempRoot);
 
-            HudBarDefinition loaded = Assert.Single(database.All);
+            HudBar loaded = Assert.Single(database.All);
             Assert.Equal("wb:valid", loaded.ID);
             Assert.Equal("wb:health", loaded.StatId);
             Assert.False(database.Get("wb:missing_stat").Success);
@@ -269,9 +253,7 @@ public sealed class HudBarDatabaseTests
             Assert.False(database.Get("wb:bad_color").Success);
             Assert.False(database.Get("wb:blank_color").Success);
             Assert.False(database.Get("wb:wrong_type").Success);
-            Assert.False(database.Get("wb:duplicate_alias").Success);
-            Assert.False(database.Get("wb:mixed_array_item").Success);
-            Assert.False(database.All is System.Collections.Generic.List<HudBarDefinition>);
+            Assert.False(database.All is System.Collections.Generic.List<HudBar>);
         }
         finally
         {
@@ -290,12 +272,13 @@ public sealed class HudBarDatabaseTests
             File.WriteAllText(
                 Path.Combine(barsDir, "health.toml"),
                 """
-                id = "wb:health"
-                stat_id = "wb:health"
-                max_stat_id = "wb:health_max"
-                icon_full = "full.png"
-                icon_half = "half.png"
-                icon_empty = "empty.png"
+                [[HudBars]]
+                ID = "wb:health"
+                StatId = "wb:health"
+                MaxStatId = "wb:health_max"
+                IconFull = "full.png"
+                IconHalf = "half.png"
+                IconEmpty = "empty.png"
                 """
             );
 
@@ -312,13 +295,13 @@ public sealed class HudBarDatabaseTests
             container.RegisterDataServices();
             container.RegisterDataServices();
 
-            IAssetDatabase<HudBarDefinition> assetDb = container.Resolve<IAssetDatabase<HudBarDefinition>>();
+            IAssetDatabase<HudBar> assetDb = container.Resolve<IAssetDatabase<HudBar>>();
             IHudBarDatabase typedDb = container.Resolve<IHudBarDatabase>();
 
             Assert.Same(assetDb, typedDb);
             Assert.True(assetDb.Get("wb:health").Success);
             Assert.Single(typedDb.All);
-            Assert.Single(container.ResolveMany<IFileParser>(), p => p is HudBarDefinitionsParser);
+            Assert.Single(container.ResolveMany<IFileParser>(), p => p is TomlParser<HudBarDefinitions>);
             Assert.Single(container.ResolveMany<Shoal.DependencyInjection.IAutoActivate>(), a => a is HudBarDatabase);
         }
         finally
@@ -341,7 +324,7 @@ public sealed class HudBarDatabaseTests
     {
         var vfs = new VirtualFileSystem();
         Assert.True(vfs.Mount(new PathInfo(assetsRoot)).Success);
-        var parser = new VirtualFileParseService([new HudBarDefinitionsParser()], vfs);
+        var parser = new VirtualFileParseService([new TomlParser<HudBarDefinitions>()], vfs);
         return new HudBarDatabase(NullLogger<HudBarDatabase>.Instance, parser, vfs);
     }
 
