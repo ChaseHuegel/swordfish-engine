@@ -4,5 +4,7 @@ Name        = "item.base.o2_canister"
 Description = "item.base.o2_canister.description"
 MaxStack    = 10
 [Items.Consumable]
-restore_o2       = 50.0
-cooldown_seconds = 4.0
+CooldownSeconds = 4.0
+[[Items.Consumable.Modifiers]]
+StatId    = "wb:oxygen"
+FlatDelta = 50.0

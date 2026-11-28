@@ -4,5 +4,7 @@ Name        = "item.base.medkit"
 Description = "item.base.medkit.description"
 MaxStack    = 10
 [Items.Consumable]
-heal_hp         = 40.0
-cooldown_seconds = 8.0
+CooldownSeconds = 8.0
+[[Items.Consumable.Modifiers]]
+StatId    = "wb:health"
+FlatDelta = 40.0

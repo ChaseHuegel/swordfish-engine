@@ -60,9 +60,10 @@ when a consumable grants a buff that is already active
 ## Consumables
 
 An item opts in with `[Items.Consumable]` (`WaywardBeyond.Items/ConsumableDefinition.cs`):
-`heal_hp`, `restore_o2`, `grant_buff_id`, and `cooldown_seconds`. The secondary
-input produces `SecondaryPressed` for a held consumable. The client stages a
-hintless interaction event and does not predict the effect.
+`BuffID`, `CooldownSeconds`, and `[[Items.Consumable.Modifiers]]`. A modifier row
+sets `StatId` plus `FlatDelta` or `PercentDelta`. The secondary input produces
+`SecondaryPressed` for a held consumable. The client stages a hintless
+interaction event and does not predict the effect.
 
 `ConsumeItemInteractionHandler`
 (`WaywardBeyond.Server/Interactions/ConsumeItemInteractionHandler.cs`) runs at the
@@ -71,9 +72,14 @@ hintless interaction event and does not predict the effect.
 1. resolves the held item and its consumable block;
 2. verifies the active hotbar slot still holds that item;
 3. rejects the use while `wb:cooldown.<itemId>` is ahead of the current sim tick;
-4. refuses to consume an item that would restore nothing and grants no buff;
-5. deducts one unit, applies health and oxygen restoration, applies the buff, and
+4. projects the one-shot modifiers in declaration order and refuses to consume
+   when no statistic changes and no buff would apply;
+5. deducts one unit, writes the projected statistics, applies the buff, and
    writes the cooldown tick.
+
+Modifiers apply as `(current + FlatDelta) * (1 + PercentDelta)`. Health and
+oxygen clamp to their maximums. Any statistic id can be targeted, so a
+consumable can affect vitals, attributes, or mod statistics.
 
 `ServerSurvivalSystem` removes a cooldown entry once its tick is reached, so
 transient keys do not accumulate. Creative Mode does not claim the use. See
@@ -105,7 +111,7 @@ is server-side and is not replicated. Death handling consumes the fatal record i
 - `WaywardBeyond.Data/Components/{DamageStateComponent,StatisticsComponent,StatisticsComponentExtensions}.cs`
 - `WaywardBeyond.Data/Statistics/{StatisticIds,StatisticsPersistence}.cs`
 - `WaywardBeyond.Data/Buffs/{Buff,BuffRegenRate,IBuffDatabase}.cs`
-- `WaywardBeyond.Items/{ConsumableDefinition,ItemDefinition,Item,ItemDatabase}.cs`
+- `WaywardBeyond.Items/{ConsumableDefinition,ConsumableStatModifierDefinition,ItemDefinition,Item,ItemDatabase}.cs`
 - `WaywardBeyond.Server/Interactions/ConsumeItemInteractionHandler.cs`
 - `WaywardBeyond.Client/Systems/{InteractionIntent,PlayerInteractionService}.cs`
 - `WaywardBeyond.Gameplay/Interactions/InteractionContext.cs`

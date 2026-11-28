@@ -16,8 +16,8 @@ namespace WaywardBeyond.Tests;
 /// <summary>Pins the public field and property surface of content definition types to <see cref="ContentVersion.CURRENT"/>.</summary>
 public class ContentVersionTests
 {
-    private const uint PINNED_CONTENT_VERSION = 2;
-    private const string PINNED_SCHEMA_FINGERPRINT = "F41A39F48A15CF1A51F22EBD3F81082132C043498E7EA1048AB21E4E4A501944";
+    private const uint PINNED_CONTENT_VERSION = 3;
+    private const string PINNED_SCHEMA_FINGERPRINT = "19F76D21E198BCCC878C8876318799240F3D3B9F17F4189249E6B44ECDF08AC9";
 
     private static readonly Type[] _definitionTypes =
     [
@@ -26,6 +26,7 @@ public class ContentVersionTests
         typeof(PlaceableDefinition),
         typeof(ToolDefinition),
         typeof(ConsumableDefinition),
+        typeof(ConsumableStatModifierDefinition),
         typeof(ModelDefinition),
         typeof(BrickDefinitions),
         typeof(BrickDefinition),

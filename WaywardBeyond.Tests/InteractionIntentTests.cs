@@ -58,7 +58,13 @@ public class InteractionIntentTests
             tool: null,
             viewModel: null,
             worldModel: null,
-            consumable: new ConsumableDefinition { HealHp = 40f });
+            consumable: new ConsumableDefinition
+            {
+                Modifiers =
+                [
+                    new ConsumableStatModifierDefinition { StatId = "wb:health", FlatDelta = 40f },
+                ],
+            });
 
         Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Primary, item));
         Assert.Equal(InteractionKind.SecondaryPressed, InteractionIntent.For(InteractionInput.Secondary, item));

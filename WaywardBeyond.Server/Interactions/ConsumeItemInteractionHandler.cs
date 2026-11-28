@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Buffs;
@@ -11,15 +12,14 @@ namespace WaywardBeyond.Server.Interactions;
 
 /// <summary>
 /// React stage: uses one data-driven consumable from the active hotbar slot in Adventure Mode. Applies
-/// instant health and oxygen restoration plus an optional buff, then deducts one item. A full-health
-/// item that grants no buff is not wasted. A per-item cooldown gates repeat use.
+/// the item's one-shot statistic modifiers and optional buff, then deducts one item. An item that would
+/// change nothing is not wasted. A per-item cooldown gates repeat use.
 /// </summary>
 public sealed class ConsumeItemInteractionHandler(
     IItemDatabase items,
     IBuffDatabase? buffs = null
 ) : IInteractionHandler
 {
-    private const float BENEFIT_EPSILON = 0.0005f;
     private const float DEFAULT_FIXED_DELTA = 1f / 60f;
 
     /// <inheritdoc/>
@@ -74,17 +74,15 @@ public sealed class ConsumeItemInteractionHandler(
             }
         }
 
-        float healthMax = SanitizeMax(stats.GetFixed(StatisticIds.HEALTH_MAX, StatisticIds.DEFAULT_HEALTH_MAX), StatisticIds.DEFAULT_HEALTH_MAX);
-        float oxygenMax = SanitizeMax(stats.GetFixed(StatisticIds.OXYGEN_MAX, StatisticIds.DEFAULT_OXYGEN_MAX), StatisticIds.DEFAULT_OXYGEN_MAX);
-        float health = Math.Clamp(stats.GetFixed(StatisticIds.HEALTH, healthMax), 0f, healthMax);
-        float oxygen = Math.Clamp(stats.GetFixed(StatisticIds.OXYGEN, oxygenMax), 0f, oxygenMax);
+        Statistic[]? currentEntries = stats.Entries;
+        var projected = currentEntries != null
+            ? new StatisticsComponent([.. currentEntries])
+            : new StatisticsComponent();
+        bool modifiersChanged = ApplyModifiers(ref projected, consumable.Modifiers);
+        bool grantsBuff = TryResolveBuff(consumable.BuffID, out Buff buff)
+            && WouldChangeBuff(in projected, in buff, simTick, fixedDelta);
 
-        bool grantsBuff = TryResolveBuff(consumable.GrantBuffID, out Buff buff)
-            && WouldChangeBuff(in stats, in buff, simTick, fixedDelta);
-        bool canBenefit = (consumable.HealHp > 0f && health < healthMax - BENEFIT_EPSILON)
-            || (consumable.RestoreO2 > 0f && oxygen < oxygenMax - BENEFIT_EPSILON)
-            || grantsBuff;
-        if (!canBenefit)
+        if (!modifiersChanged && !grantsBuff)
         {
             return InteractionDecision.Continue;
         }
@@ -97,20 +95,9 @@ public sealed class ConsumeItemInteractionHandler(
 
         context.Store.AddOrUpdate(context.Player, updated);
 
-        if (consumable.HealHp > 0f)
+        if (modifiersChanged)
         {
-            context.Store.SetStatisticFixed(
-                context.Player,
-                StatisticIds.HEALTH,
-                Math.Clamp(health + consumable.HealHp, 0f, healthMax));
-        }
-
-        if (consumable.RestoreO2 > 0f)
-        {
-            context.Store.SetStatisticFixed(
-                context.Player,
-                StatisticIds.OXYGEN,
-                Math.Clamp(oxygen + consumable.RestoreO2, 0f, oxygenMax));
+            context.Store.AddOrUpdate(context.Player, projected);
         }
 
         if (grantsBuff)
@@ -125,6 +112,112 @@ public sealed class ConsumeItemInteractionHandler(
         }
 
         return InteractionDecision.Continue;
+    }
+
+    private static bool ApplyModifiers(ref StatisticsComponent stats, List<ConsumableStatModifierDefinition>? modifiers)
+    {
+        if (modifiers == null || modifiers.Count == 0)
+        {
+            return false;
+        }
+
+        var changed = false;
+        for (var i = 0; i < modifiers.Count; i++)
+        {
+            ConsumableStatModifierDefinition modifier = modifiers[i];
+            if (!TryNormalizeModifier(in modifier, out string statId, out float flatDelta, out float percentDelta))
+            {
+                continue;
+            }
+
+            changed |= ApplyModifier(ref stats, statId, flatDelta, percentDelta);
+        }
+
+        return changed;
+    }
+
+    private static bool ApplyModifier(ref StatisticsComponent stats, string statId, float flatDelta, float percentDelta)
+    {
+        if (StatisticIds.IsIntegerStat(statId.AsSpan()))
+        {
+            long current = stats.GetValue(statId);
+            if (!TryComputeLong(current, flatDelta, percentDelta, out long next))
+            {
+                return false;
+            }
+
+            return stats.SetValue(statId, next);
+        }
+
+        float currentValue = stats.GetFixed(statId);
+        float nextValue = (currentValue + flatDelta) * (1f + percentDelta);
+        if (!float.IsFinite(nextValue))
+        {
+            return false;
+        }
+
+        nextValue = ClampVital(in stats, statId, nextValue);
+        return stats.SetFixed(statId, nextValue);
+    }
+
+    private static bool TryComputeLong(long current, float flatDelta, float percentDelta, out long next)
+    {
+        double value = ((double)current + flatDelta) * (1.0 + percentDelta);
+        if (!double.IsFinite(value))
+        {
+            next = current;
+            return false;
+        }
+
+        if (value >= long.MaxValue)
+        {
+            next = long.MaxValue;
+        }
+        else if (value <= long.MinValue)
+        {
+            next = long.MinValue;
+        }
+        else
+        {
+            next = (long)Math.Round(value);
+        }
+
+        return true;
+    }
+
+    private static float ClampVital(in StatisticsComponent stats, string statId, float value)
+    {
+        if (string.Equals(statId, StatisticIds.HEALTH, StringComparison.Ordinal))
+        {
+            float max = SanitizeMax(stats.GetFixed(StatisticIds.HEALTH_MAX, StatisticIds.DEFAULT_HEALTH_MAX), StatisticIds.DEFAULT_HEALTH_MAX);
+            return Math.Clamp(value, 0f, max);
+        }
+
+        if (string.Equals(statId, StatisticIds.OXYGEN, StringComparison.Ordinal))
+        {
+            float max = SanitizeMax(stats.GetFixed(StatisticIds.OXYGEN_MAX, StatisticIds.DEFAULT_OXYGEN_MAX), StatisticIds.DEFAULT_OXYGEN_MAX);
+            return Math.Clamp(value, 0f, max);
+        }
+
+        return value;
+    }
+
+    private static bool TryNormalizeModifier(
+        in ConsumableStatModifierDefinition modifier,
+        out string statId,
+        out float flatDelta,
+        out float percentDelta
+    ) {
+        statId = modifier.StatId?.Trim() ?? string.Empty;
+        flatDelta = modifier.FlatDelta ?? 0f;
+        percentDelta = modifier.PercentDelta ?? 0f;
+
+        if (statId.Length == 0 || !float.IsFinite(flatDelta) || !float.IsFinite(percentDelta))
+        {
+            return false;
+        }
+
+        return flatDelta != 0f || percentDelta != 0f;
     }
 
     private static bool WouldChangeBuff(in StatisticsComponent stats, in Buff buff, long simTick, float fixedDelta)
@@ -153,9 +246,8 @@ public sealed class ConsumeItemInteractionHandler(
 
     private static bool HasEffect(in ConsumableDefinition consumable)
     {
-        return consumable.HealHp > 0f
-            || consumable.RestoreO2 > 0f
-            || !string.IsNullOrWhiteSpace(consumable.GrantBuffID);
+        return consumable.Modifiers is { Count: > 0 }
+            || !string.IsNullOrWhiteSpace(consumable.BuffID);
     }
 
     private static float SanitizeMax(float value, float fallback)

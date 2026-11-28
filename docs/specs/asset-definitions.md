@@ -34,7 +34,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
 | `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
-| `[Items.Consumable]` | sub-table | `ConsumableDefinition` (`heal_hp`, `restore_o2`, `grant_buff_id`, `cooldown_seconds`) |
+| `[Items.Consumable]` | sub-table | `ConsumableDefinition` (`BuffID`, `CooldownSeconds`, `Modifiers`) |
 | `[Items.Statistics]` | map: string → float | `ItemDefinition.Statistics` (custom numeric statistics such as `"wb:mining_speed"`) |
 | `[Items.ViewModel]` | sub-table | `ModelDefinition` |
 | `[Items.WorldModel]` | sub-table | `ModelDefinition` |
@@ -78,15 +78,27 @@ tag list `WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
 
 `ConsumableDefinition` (`WaywardBeyond.Items/ConsumableDefinition.cs`) marks an
 item as usable with the secondary input in Adventure Mode. The server owns the
-effect and consumes one unit from the active `wb:hotbar` slot. An item with no
-benefit at the current vitals is not consumed unless it grants a buff.
+effect and consumes one unit from the active `wb:hotbar` slot. The item is not
+consumed when its modifiers and buff would change nothing.
 
 | Field | Type | Notes |
 |---|---|---|
-| `heal_hp` | float | health restored on use |
-| `restore_o2` | float | oxygen restored on use |
-| `grant_buff_id` | string? | optional buff id resolved through `IBuffDatabase` and applied with its `StackPolicy` |
-| `cooldown_seconds` | float | minimum seconds between uses; the server records `wb:cooldown.<itemId>` in `StatisticsComponent` |
+| `BuffID` | string? | optional buff id resolved through `IBuffDatabase` and applied with its `StackPolicy` |
+| `CooldownSeconds` | float | minimum seconds between uses; the server records `wb:cooldown.<itemId>` in `StatisticsComponent` |
+| `[[Items.Consumable.Modifiers]]` | table array | one-shot statistic changes applied in declaration order |
+
+Each modifier row is a `ConsumableStatModifierDefinition`
+(`WaywardBeyond.Items/ConsumableStatModifierDefinition.cs`):
+
+| Field | Type | Notes |
+|---|---|---|
+| `StatId` | string | target statistic id |
+| `FlatDelta` | float? | optional additive delta |
+| `PercentDelta` | float? | optional percentage delta applied to the current value |
+
+A row must set `FlatDelta` or `PercentDelta`, and at least one delta must be
+nonzero. The applied value is `(current + FlatDelta) * (1 + PercentDelta)`.
+Health and oxygen clamp to their maximums after the change.
 
 Example:
 
@@ -96,8 +108,10 @@ ID       = "wb:medkit"
 Name     = "item.base.medkit"
 MaxStack = 10
 [Items.Consumable]
-heal_hp          = 40.0
-cooldown_seconds = 8.0
+CooldownSeconds = 8.0
+[[Items.Consumable.Modifiers]]
+StatId    = "wb:health"
+FlatDelta = 40.0
 ```
 
 See [survival](survival.md) for the simulation, damage path, and buff timing.
@@ -548,7 +562,7 @@ bits. See [seed-phrases](seed-phrases.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,ConsumableDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
+- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,ConsumableDefinition,ConsumableStatModifierDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
 - `WaywardBeyond.Data/Blueprints/{IBundledBlueprintDatabase,BundledBlueprintDatabase,BlueprintDataParser}.cs`
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
@@ -605,3 +619,4 @@ occurrence order, and the invariant merge into each language.
 `STAT001` validation findings.
 `WaywardBeyond.Tests/BarDatabaseTests.cs` pins `bars/*.toml` `TomlParser<BarDefinitions>` parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
 `WaywardBeyond.Tests/BuffDatabaseTests.cs` pins `buffs/*.toml` `TomlParser<BuffDefinitions>` parsing, stack policies, stat modifiers, data-driven regen rates, and validation failures.
+`WaywardBeyond.Tests/SurvivalSystemTests.cs` pins `[Items.Consumable]` parsing, one-shot statistic modifiers, shipped consumable assets, cooldown use, and buff grants.

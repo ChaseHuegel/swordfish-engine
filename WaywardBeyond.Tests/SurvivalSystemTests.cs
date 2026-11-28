@@ -162,10 +162,14 @@ public class SurvivalSystemTests
             Name = "item.medkit"
             MaxStack = 5
             [Items.Consumable]
-            heal_hp = 40.0
-            restore_o2 = 10.0
-            grant_buff_id = "wb:well_fed"
-            cooldown_seconds = 8.0
+            BuffID = "wb:well_fed"
+            CooldownSeconds = 8.0
+            [[Items.Consumable.Modifiers]]
+            StatId = "wb:health"
+            FlatDelta = 40.0
+            [[Items.Consumable.Modifiers]]
+            StatId = "wb:oxygen"
+            FlatDelta = 10.0
             """);
 
         ItemDatabase database = assets.LoadItems();
@@ -174,17 +178,28 @@ public class SurvivalSystemTests
         Assert.True(result.Success);
         Assert.True(result.Value.Consumable.HasValue);
         ConsumableDefinition consumable = result.Value.Consumable.Value;
-        Assert.Equal(40f, consumable.HealHp);
-        Assert.Equal(10f, consumable.RestoreO2);
-        Assert.Equal(WELL_FED, consumable.GrantBuffID);
+        Assert.Equal(WELL_FED, consumable.BuffID);
         Assert.Equal(8f, consumable.CooldownSeconds);
+        Assert.NotNull(consumable.Modifiers);
+        Assert.Collection(
+            consumable.Modifiers!,
+            modifier =>
+            {
+                Assert.Equal(StatisticIds.HEALTH, modifier.StatId);
+                Assert.Equal(40f, modifier.FlatDelta);
+            },
+            modifier =>
+            {
+                Assert.Equal(StatisticIds.OXYGEN, modifier.StatId);
+                Assert.Equal(10f, modifier.FlatDelta);
+            });
     }
 
     [Fact]
     public void ConsumingAMedkitRestoresHealthAndConsumesOneItem()
     {
         var harness = new ConsumeHarness(GameMode.Adventure, health: 50f);
-        harness.Give(MEDKIT, count: 2, new ConsumableDefinition { HealHp = 40f });
+        harness.Give(MEDKIT, count: 2, Consumable(null, 0f, (StatisticIds.HEALTH, 40f)));
 
         harness.Consume(MEDKIT);
 
@@ -196,7 +211,7 @@ public class SurvivalSystemTests
     public void ConsumingAtFullHealthDoesNotWasteTheItem()
     {
         var harness = new ConsumeHarness(GameMode.Adventure, health: 100f);
-        harness.Give(MEDKIT, count: 2, new ConsumableDefinition { HealHp = 40f });
+        harness.Give(MEDKIT, count: 2, Consumable(null, 0f, (StatisticIds.HEALTH, 40f)));
 
         harness.Consume(MEDKIT);
 
@@ -210,7 +225,7 @@ public class SurvivalSystemTests
         //  Creative bypasses survival drain, but a consumable heal is still a valid request. The server
         //  handler only claims Adventure Mode, so the item is untouched.
         var harness = new ConsumeHarness(GameMode.Creative, health: 50f);
-        harness.Give(MEDKIT, count: 2, new ConsumableDefinition { HealHp = 40f });
+        harness.Give(MEDKIT, count: 2, Consumable(null, 0f, (StatisticIds.HEALTH, 40f)));
 
         harness.Consume(MEDKIT);
 
@@ -222,7 +237,7 @@ public class SurvivalSystemTests
     public void OxygenCanisterRestoresOxygen()
     {
         var harness = new ConsumeHarness(GameMode.Adventure, oxygen: 20f);
-        harness.Give(O2_CANISTER, count: 1, new ConsumableDefinition { RestoreO2 = 50f });
+        harness.Give(O2_CANISTER, count: 1, Consumable(null, 0f, (StatisticIds.OXYGEN, 50f)));
 
         harness.Consume(O2_CANISTER);
 
@@ -231,16 +246,40 @@ public class SurvivalSystemTests
     }
 
     [Fact]
+    public void ConsumableModifiersCanTargetNonVitalStatistics()
+    {
+        var harness = new ConsumeHarness(GameMode.Adventure);
+        harness.Give(MEDKIT, count: 1, Consumable(null, 0f, ("mod:focus", 2f)));
+
+        harness.Consume(MEDKIT);
+
+        Assert.Equal(2f, harness.GetFixed("mod:focus"), precision: 3);
+        Assert.Equal(0, harness.GetHotbarCount(MEDKIT));
+    }
+
+    [Fact]
+    public void ConsumablePercentModifierScalesTheCurrentValue()
+    {
+        var harness = new ConsumeHarness(GameMode.Adventure, health: 50f);
+        harness.Give(MEDKIT, count: 1, new ConsumableDefinition
+        {
+            Modifiers =
+            [
+                new ConsumableStatModifierDefinition { StatId = StatisticIds.HEALTH, PercentDelta = 0.5f },
+            ],
+        });
+
+        harness.Consume(MEDKIT);
+
+        Assert.Equal(75f, harness.GetFixed(StatisticIds.HEALTH), precision: 3);
+    }
+
+    [Fact]
     public void RationGrantsItsBuffAndCooldownBlocksImmediateRepeatUse()
     {
         var harness = new ConsumeHarness(GameMode.Adventure, health: 80f);
         harness.Buffs.Add(CreateBuff(WELL_FED, healthPerSecond: 1f, oxygenPerSecond: 0f));
-        harness.Give(RATION, count: 2, new ConsumableDefinition
-        {
-            HealHp = 15f,
-            GrantBuffID = WELL_FED,
-            CooldownSeconds = 5f,
-        });
+        harness.Give(RATION, count: 2, Consumable(WELL_FED, 5f, (StatisticIds.HEALTH, 15f)));
 
         harness.Consume(RATION);
 
@@ -259,7 +298,7 @@ public class SurvivalSystemTests
     {
         var harness = new ConsumeHarness(GameMode.Adventure);
         harness.Buffs.Add(CreateBuff(WELL_FED, healthPerSecond: 1f, oxygenPerSecond: 0f, BuffStackPolicy.Ignore));
-        harness.Give(RATION, count: 2, new ConsumableDefinition { GrantBuffID = WELL_FED });
+        harness.Give(RATION, count: 2, Consumable(WELL_FED, 0f));
         harness.SetBuffExpiry(WELL_FED, harness.SimTick + 100);
 
         harness.Consume(RATION);
@@ -345,15 +384,18 @@ public class SurvivalSystemTests
         var database = new ItemDatabase(NullLogger<ItemDatabase>.Instance, parser, vfs);
 
         ConsumableDefinition medkit = database.Get(MEDKIT).Value.Consumable!.Value;
-        Assert.Equal(40f, medkit.HealHp);
         Assert.Equal(8f, medkit.CooldownSeconds);
+        Assert.Equal(StatisticIds.HEALTH, medkit.Modifiers![0].StatId);
+        Assert.Equal(40f, medkit.Modifiers[0].FlatDelta);
 
         ConsumableDefinition canister = database.Get(O2_CANISTER).Value.Consumable!.Value;
-        Assert.Equal(50f, canister.RestoreO2);
+        Assert.Equal(StatisticIds.OXYGEN, canister.Modifiers![0].StatId);
+        Assert.Equal(50f, canister.Modifiers[0].FlatDelta);
 
         ConsumableDefinition ration = database.Get(RATION).Value.Consumable!.Value;
-        Assert.Equal(15f, ration.HealHp);
-        Assert.Equal(WELL_FED, ration.GrantBuffID);
+        Assert.Equal(WELL_FED, ration.BuffID);
+        Assert.Equal(StatisticIds.HEALTH, ration.Modifiers![0].StatId);
+        Assert.Equal(15f, ration.Modifiers[0].FlatDelta);
     }
 
     private static string GetRepoRoot()
@@ -369,6 +411,29 @@ public class SurvivalSystemTests
         stats.SetFixed(StatisticIds.OXYGEN_MAX, 100f);
         stats.SetFixed(StatisticIds.OXYGEN, oxygen);
         return stats;
+    }
+
+    private static ConsumableDefinition Consumable(
+        string? buffId,
+        float cooldownSeconds,
+        params (string StatId, float FlatDelta)[] modifiers
+    ) {
+        var definitions = new List<ConsumableStatModifierDefinition>(modifiers.Length);
+        for (var i = 0; i < modifiers.Length; i++)
+        {
+            definitions.Add(new ConsumableStatModifierDefinition
+            {
+                StatId = modifiers[i].StatId,
+                FlatDelta = modifiers[i].FlatDelta,
+            });
+        }
+
+        return new ConsumableDefinition
+        {
+            BuffID = buffId,
+            CooldownSeconds = cooldownSeconds,
+            Modifiers = definitions,
+        };
     }
 
     private static Buff CreateBuff(
