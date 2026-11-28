@@ -37,6 +37,12 @@ public static class CharacterDefaults
     /// <summary>The base movement speed in meters per second.</summary>
     public const float BASE_SPEED = 10f;
 
+    /// <summary>The minimum movement speed multiplier applied after stat modifiers.</summary>
+    public const float MIN_MOVE_SPEED_MULTIPLIER = 0.25f;
+
+    /// <summary>The maximum movement speed multiplier applied after stat modifiers.</summary>
+    public const float MAX_MOVE_SPEED_MULTIPLIER = 2.5f;
+
     /// <summary>The per-second linear velocity damping factor.</summary>
     public const float DECELERATION = 2f;
 

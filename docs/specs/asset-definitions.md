@@ -35,6 +35,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
 | `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
 | `[Items.Consumable]` | sub-table | `ConsumableDefinition` (`BuffID`, `CooldownSeconds`, `Modifiers`) |
+| `[Items.Equip]` | sub-table | `EquipDefinition` (`SlotTag`, `StatModifiers`) |
 | `[Items.Statistics]` | map: string → float | `ItemDefinition.Statistics` (custom numeric statistics such as `"wb:mining_speed"`) |
 | `[Items.ViewModel]` | sub-table | `ModelDefinition` |
 | `[Items.WorldModel]` | sub-table | `ModelDefinition` |
@@ -116,13 +117,61 @@ FlatDelta = 40.0
 
 See [survival](survival.md) for the simulation, damage path, and buff timing.
 
+### Equip
+
+`EquipDefinition` (`WaywardBeyond.Items/EquipDefinition.cs`) marks an item as
+wearable equipment or an augment socket module. `ItemDatabase.ResolveEquip`
+(`WaywardBeyond.Items/ItemDatabase.cs:62`) resolves `SlotTag` through
+`ItemTags.TryResolveEquipTag` (`WaywardBeyond.Items/ItemTags.cs:54`) and skips
+invalid `SlotTag` or invalid modifier rows with warning logs.
+`InventoryValidationContext.AllowsItem`
+(`WaywardBeyond.Gameplay/Interactions/InventoryValidationContext.cs:61`)
+matches resolved equip tags against `wb:wearables` and `wb:augments` slot
+filters. `WorkspaceValidator` emits `EQUIP001` for invalid `SlotTag` or
+modifier entries.
+
+| Field | Type | Notes |
+|---|---|---|
+| `SlotTag` | string | short wearable tag (`helmet`, `torso`, `legs`, `head`, `suit`, `o2`), `augment`, or full invariant/namespaced tag |
+| `[[Items.Equip.StatModifiers]]` | table array | rows of `EquipStatModifierDefinition` (`StatId`, `FlatDelta`, `PercentDelta`) |
+
+| Short `SlotTag` | Resolved invariant tag | Slot target |
+|---|---|---|
+| `helmet` | `item.wearable.helmet` | `wb:wearables[0]` |
+| `torso` | `item.wearable.torso` | `wb:wearables[1]` |
+| `legs` | `item.wearable.legs` | `wb:wearables[2]` |
+| `head` | `item.wearable.head` | `wb:wearables[3]` |
+| `suit` | `item.wearable.suit` | `wb:wearables[4]` |
+| `o2` | `item.wearable.o2` | `wb:wearables[5]` |
+| `augment` | `item.augment` | `wb:augments[0..4]` |
+
+Example:
+
+```toml
+[[Items]]
+ID       = "wb:eva_suit"
+Name     = "item.base.eva_suit"
+MaxStack = 1
+[Items.Equip]
+SlotTag = "suit"
+[[Items.Equip.StatModifiers]]
+StatId    = "wb:health_max"
+FlatDelta = 40.0
+[[Items.Equip.StatModifiers]]
+StatId    = "wb:kinetic_resist"
+FlatDelta = 0.25
+```
+
+See [statistics](statistics.md) for how `ServerStatAggregationSystem` aggregates
+equipped modifiers, S.P.A.C.E.R. scaling, and active buffs.
+
 ### Statistics
 
-`ItemDefinition.Statistics` (`WaywardBeyond.Items/ItemDefinition.cs:20`) is an
+`ItemDefinition.Statistics` (`WaywardBeyond.Items/ItemDefinition.cs:21`) is an
 optional `[Items.Statistics]` key-value map from statistic id to finite `float`
 value. Base-game keys use the `wb:` namespace (for example `"wb:mining_speed"`).
 Mods add their own namespaced keys without changing source code. `ItemDatabase`
-(`WaywardBeyond.Items/ItemDatabase.cs:60`) logs a warning and skips empty keys
+(`WaywardBeyond.Items/ItemDatabase.cs:126`) logs a warning and skips empty keys
 or non-finite values. `WorkspaceValidator` emits `STAT001` for invalid item
 statistic entries, including non-positive `"wb:mining_speed"` values. See
 [statistics](statistics.md).
@@ -597,7 +646,7 @@ bits. See [seed-phrases](seed-phrases.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,ConsumableDefinition,ConsumableStatModifierDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
+- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,ConsumableDefinition,ConsumableStatModifierDefinition,EquipDefinition,EquipStatModifierDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
 - `WaywardBeyond.Data/Blueprints/{IBundledBlueprintDatabase,BundledBlueprintDatabase,BlueprintDataParser}.cs`
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders,BrickEntityDefinition,BrickLightDefinition,BrickLight,BrickSlotGroupDefinition,BrickEntity,BrickSlotGroup}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`
@@ -655,4 +704,5 @@ occurrence order, and the invariant merge into each language.
 `WaywardBeyond.Tests/BarDatabaseTests.cs` pins `bars/*.toml` `TomlParser<BarDefinitions>` parsing, defaults, `ColorTint` parsing, ordering, and validation failures.
 `WaywardBeyond.Tests/BuffDatabaseTests.cs` pins `buffs/*.toml` `TomlParser<BuffDefinitions>` parsing, stack policies, stat modifiers, data-driven regen rates, and validation failures.
 `WaywardBeyond.Tests/SurvivalSystemTests.cs` pins `[Items.Consumable]` parsing, one-shot statistic modifiers, shipped consumable assets, cooldown use, and buff grants.
+`WaywardBeyond.Tests/StatAggregationTests.cs` and `WaywardBeyond.AssetTools.Tests/Validation/ValidationEngineTests.cs` pin `[Items.Equip]` parsing, `EQUIP001` validation, and `wb:wearables` / `wb:augments` slot enforcement.
 `WaywardBeyond.Tests/BrickEntityTests.cs` pins `[Bricks.Entity]`, `[Bricks.Entity.Light]`, `[[Bricks.Entity.SlotGroups]]`, archetype tag and statistic resolution, decorator extensibility, and unified client/server brick-entity identity.

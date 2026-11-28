@@ -38,7 +38,7 @@ namespace WaywardBeyond.Server;
 /// contribute world systems through <see cref="RegisterServerSystem{T}"/>, which appends them after
 /// the built-ins. Registration order is the world's tick order: join/disconnect → saves →
 /// replication apply → inventory → heartbeats → physics → survival → interaction → laser beam → paint sprayer →
-/// chat → particle flush → replication publish.
+/// region → stat aggregation → chat → brick entities → particle flush → replication publish.
 /// </summary>
 public static class ServerComposition
 {
@@ -131,6 +131,7 @@ public static class ServerComposition
         RegisterServerSystem<ServerLaserBeamSystem>(container);
         RegisterServerSystem<ServerPaintSprayerSystem>(container);
         RegisterServerSystem<ServerRegionSystem>(container);
+        RegisterServerSystem<ServerStatAggregationSystem>(container);
         RegisterServerSystem<ServerChatSystem>(container);
         RegisterServerSystem<ServerBrickEntitySystem>(container);
         RegisterServerSystem<ServerParticleFlushSystem>(container);

@@ -6,21 +6,36 @@ namespace WaywardBeyond.Data.Statistics;
 /// <summary>Persistence projection and character-save merging helpers for entity statistics.</summary>
 public static class StatisticsPersistence
 {
-    /// <summary>Captures surviving server-persisted stats from <paramref name="entries"/> for per-level save storage.</summary>
-    public static Statistic[]? CaptureServerStatistics(ReadOnlySpan<Statistic> entries, long currentSimTick)
+    /// <summary>Captures surviving server-persisted stats from <paramref name="entries"/> and optional <paramref name="baseEntries"/> for per-level save storage.</summary>
+    public static Statistic[]? CaptureServerStatistics(
+        ReadOnlySpan<Statistic> entries,
+        long currentSimTick,
+        ReadOnlySpan<Statistic> baseEntries = default
+    )
     {
-        if (entries.IsEmpty)
+        if (entries.IsEmpty && baseEntries.IsEmpty)
         {
             return null;
         }
 
-        var persisted = new List<Statistic>(entries.Length);
+        var persisted = new List<Statistic>(entries.Length + baseEntries.Length);
         for (var i = 0; i < entries.Length; i++)
         {
             if (TryNormalizePersistedServerEntry(in entries[i], currentSimTick, out Statistic normalized))
             {
                 UpsertEntry(persisted, in normalized);
             }
+        }
+
+        for (var i = 0; i < baseEntries.Length; i++)
+        {
+            Statistic baseEntry = baseEntries[i];
+            if (string.IsNullOrWhiteSpace(baseEntry.ID) || !StatisticIds.IsAggregatableStat(baseEntry.ID.AsSpan()))
+            {
+                continue;
+            }
+
+            UpsertEntry(persisted, new Statistic(StatisticIds.BaseStat(baseEntry.ID.AsSpan()), baseEntry.Value));
         }
 
         return persisted.Count == 0 ? null : [.. persisted];

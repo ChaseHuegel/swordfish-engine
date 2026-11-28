@@ -477,8 +477,11 @@ public sealed class LevelSaveService : IDisposable
     {
         Uuid uuid = store.GetUuid(entity);
         GameMode gameMode = store.TryGet(entity, out GameModeComponent mode) ? mode.Mode : GameMode.Adventure;
+        Statistic[]? baseEntries = store.TryGet(entity, out BaseStatisticsComponent baseStats)
+            ? baseStats.Entries
+            : null;
         Statistic[]? statistics = store.TryGet(entity, out StatisticsComponent stats)
-            ? StatisticsPersistence.CaptureServerStatistics(stats.Entries, currentSimTick)
+            ? StatisticsPersistence.CaptureServerStatistics(stats.Entries, currentSimTick, baseEntries)
             : null;
         return new CharacterEntityData(
             uuid.ToValue(),

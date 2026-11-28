@@ -39,7 +39,7 @@ message InventoryComponent
 
 ## Data-driven schemas and tag filters
 
-`SlotGroupSchemaDatabase` (`WaywardBeyond.Data/Inventory/SlotGroupSchemaDatabase.cs:14`) loads `assets/inventory/*.toml` files from mounted Shoal modules (`WaywardBeyond.Items/assets/inventory/slot_groups.toml`). Schemas specify group capacity, group-wide `AllowedTags`, and per-slot `SlotAllowedTags`. Filters match against invariant item tag lists (`ILocalizedTagsDatabase.Invariant`), such as `item.wearable.helmet` on `wb:wearables[0]`, `item.augment` on `wb:augments`, and `item.fuel` on `wb:fuel`.
+`SlotGroupSchemaDatabase` (`WaywardBeyond.Data/Inventory/SlotGroupSchemaDatabase.cs:14`) loads `assets/inventory/*.toml` files from mounted Shoal modules (`WaywardBeyond.Items/assets/inventory/slot_groups.toml`). Schemas specify group capacity, group-wide `AllowedTags`, and per-slot `SlotAllowedTags`. `InventoryValidationContext.AllowsItem` (`WaywardBeyond.Gameplay/Interactions/InventoryValidationContext.cs:61`) matches invariant item tag lists (`ILocalizedTagsDatabase.Invariant`) and item `[Items.Equip]` `SlotTag` metadata (`ItemTags.TryResolveEquipTag`), such as `item.wearable.helmet` on `wb:wearables[0]`, `item.augment` on `wb:augments`, and `item.fuel` on `wb:fuel`.
 
 ## The envelope: `InventoryEvent`
 
