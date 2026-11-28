@@ -1,0 +1,5 @@
+Shader    = "lighted"
+AlphaMode = "Masked"
+Textures  = [
+    "items/o2_canister_uv.png",
+]

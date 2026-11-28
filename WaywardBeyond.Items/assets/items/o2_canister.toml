@@ -9,3 +9,15 @@ CooldownSeconds = 4.0
 [[Items.Consumable.Modifiers]]
 StatId    = "wb:oxygen"
 FlatDelta = 50.0
+[Items.ViewModel]
+Mesh       = "items/o2_canister.obj"
+Material   = "items/o2_canister"
+Position.X = 0.45
+Position.Y = -0.45
+Position.Z = -0.65
+Rotation.X = 8
+Rotation.Y = -20
+Rotation.Z = 4
+[Items.WorldModel]
+Mesh       = "items/o2_canister.obj"
+Material   = "items/o2_canister"
