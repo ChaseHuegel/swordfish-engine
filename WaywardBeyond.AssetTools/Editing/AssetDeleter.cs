@@ -117,6 +117,8 @@ public sealed class AssetDeleter
             AssetKind.Body => DeleteArrayTableEntry(fullPath, "Bodies", assetId, tableIndex, entryIndex),
             AssetKind.Recipe => DeleteArrayTableEntry(fullPath, "Recipes", assetId, tableIndex, entryIndex),
             AssetKind.SlotGroup => DeleteArrayTableEntry(fullPath, "SlotGroups", assetId, tableIndex, entryIndex),
+            AssetKind.Bar => DeleteArrayTableEntry(fullPath, "Bars", assetId, tableIndex, entryIndex),
+            AssetKind.Buff => DeleteArrayTableEntry(fullPath, "Buffs", assetId, tableIndex, entryIndex),
             _ => Result<AssetDeleteResult>.FromFailure($"Deletion is not supported for asset kind '{kind}'.")
         };
     }

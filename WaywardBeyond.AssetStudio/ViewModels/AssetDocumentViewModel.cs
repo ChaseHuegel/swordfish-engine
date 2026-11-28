@@ -62,6 +62,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     private bool _recipeOutputsModified;
     private bool _slotGroupAllowedTagsModified;
     private bool _slotGroupSlotsModified;
+    private bool _buffStatModifiersModified;
+    private bool _buffRegenRatesModified;
     private bool _statisticsModified;
     private bool _hasInitialViewModelTable;
     private bool _hasInitialWorldModelTable;
@@ -230,21 +232,24 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         }
 
         // Identity header optional fields
-        if (Kind == AssetKind.Item || Kind == AssetKind.Paint || Kind == AssetKind.Skill)
+        if (Kind == AssetKind.Item || Kind == AssetKind.Paint || Kind == AssetKind.Skill || Kind == AssetKind.Buff)
         {
             var nameHint = Kind switch
             {
                 AssetKind.Paint => "dot key · paint.red.name",
                 AssetKind.Skill => "dot key · skill.name.building",
+                AssetKind.Buff => "dot key · buff.well_fed.name",
                 _ => "dot key · item.base.core",
             };
             NameField = AddField("Name", "Display Name", nameHint, GetVal("Name"), referenceKind: ReferenceKind.Localization);
         }
 
-        if (Kind == AssetKind.Item)
+        if (Kind == AssetKind.Item || Kind == AssetKind.Buff)
         {
-            DescriptionField = AddField("Description", "Description", "dot key · item.base.desc", GetVal("Description"), referenceKind: ReferenceKind.Localization);
-            IconField = AddField("Icon", "Icon Texture", "path + .png · items/drill.png", GetVal("Icon"), referenceKind: ReferenceKind.Texture);
+            var descHint = Kind == AssetKind.Buff ? "dot key · buff.well_fed.desc" : "dot key · item.base.desc";
+            var iconHint = Kind == AssetKind.Buff ? "path + .png · icons/buffs/well_fed.png" : "path + .png · items/drill.png";
+            DescriptionField = AddField("Description", "Description", descHint, GetVal("Description"), referenceKind: ReferenceKind.Localization);
+            IconField = AddField("Icon", "Icon Texture", iconHint, GetVal("Icon"), referenceKind: ReferenceKind.Texture);
         }
         else if (Kind == AssetKind.Skill)
         {
@@ -386,6 +391,40 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             }
 
             RefreshSlotGroupValidation();
+        }
+
+        // Bar fields
+        if (Kind == AssetKind.Bar)
+        {
+            BarStatIdField = AddField("StatId", "Stat ID", "namespaced stat · wb:health", GetVal("StatId", "wb:health"));
+            BarMaxStatIdField = AddField("MaxStatId", "Max Stat ID", "optional · wb:max_health", GetVal("MaxStatId"));
+            BarDefaultMaxField = AddField("DefaultMax", "Default Max", "optional > 0 · 100", GetVal("DefaultMax"), isNumeric: true);
+            BarIconCountField = AddField("IconCount", "Icon Count", "integer > 0 · 10", GetVal("IconCount", "10"), isNumeric: true);
+            BarIconFullField = AddField("IconFull", "Full Icon", "path + .png · ui/hud/heart_full.png", GetVal("IconFull"), referenceKind: ReferenceKind.Texture);
+            BarIconHalfField = AddField("IconHalf", "Half Icon", "path + .png · ui/hud/heart_half.png", GetVal("IconHalf"), referenceKind: ReferenceKind.Texture);
+            BarIconEmptyField = AddField("IconEmpty", "Empty Icon", "path + .png · ui/hud/heart_empty.png", GetVal("IconEmpty"), referenceKind: ReferenceKind.Texture);
+            BarWarnThresholdField = AddField("WarnThreshold", "Warn Threshold", "0..1 · 0.3", GetVal("WarnThreshold", "0.3"), isNumeric: true);
+            BarCriticalThresholdField = AddField("CriticalThreshold", "Critical Threshold", "0..1 · 0.15", GetVal("CriticalThreshold", "0.15"), isNumeric: true);
+            BarOrderField = AddField("Order", "Sort Order", "integer · 0", GetVal("Order", "0"), isNumeric: true);
+            BarHideInCreativeField = AddField("HideInCreative", "Hide in Creative", string.Empty, GetVal("HideInCreative", "false"), isBool: true);
+            BarColorTintField = AddField("ColorTint", "Color Tint", "optional hex · #FF5555", GetVal("ColorTint"), isColor: true);
+        }
+
+        // Buff fields
+        if (Kind == AssetKind.Buff)
+        {
+            BuffDurationField = AddField("DurationSeconds", "Duration (s)", "seconds > 0 · 30", GetVal("DurationSeconds", "30"), isNumeric: true);
+            BuffStackPolicyField = AddField("StackPolicy", "Stack Policy", "Refresh, Extend, or Ignore", GetVal("StackPolicy", "Refresh"), choices: ["Refresh", "Extend", "Ignore"]);
+
+            foreach (var mod in seed.BuffStatModifiers)
+            {
+                BuffStatModifiers.Add(CreateBuffStatModifierRow(mod.StatId, mod.FlatDelta, mod.PercentDelta));
+            }
+
+            foreach (var regen in seed.BuffRegenRates)
+            {
+                BuffRegenRates.Add(CreateBuffRegenRateRow(regen.StatId, regen.PerSecond));
+            }
         }
 
         // Body fields
@@ -806,6 +845,16 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     public bool IsSlotGroup => Kind == AssetKind.SlotGroup;
 
     /// <summary>
+    ///     Whether the document is a HUD bar form.
+    /// </summary>
+    public bool IsBar => Kind == AssetKind.Bar;
+
+    /// <summary>
+    ///     Whether the document is a buff form.
+    /// </summary>
+    public bool IsBuff => Kind == AssetKind.Buff;
+
+    /// <summary>
     ///     Whether the document is writable and allows structured form edits.
     /// </summary>
     public bool CanEditDocument => !IsReadOnly;
@@ -1152,6 +1201,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
     {
         AssetKind.Recipe => $"{RecipeInputs.Count} inputs → {RecipeOutputs.Count} outputs · {RecipeDurationLabel}",
         AssetKind.SlotGroup => $"{SlotGroupCapacityBadge} · {SlotGroupSlotsSummary}",
+        AssetKind.Bar => $"{BarStatIdField?.Value ?? string.Empty} · order {BarOrderField?.Value ?? "0"}",
+        AssetKind.Buff => $"{BuffDurationField?.Value ?? "0"}s · {BuffStatModifiers.Count} mod(s) · {BuffRegenRates.Count} regen",
         AssetKind.Skill => $"{SkillLevels.Count} levels · {SkillSources.Count} XP sources",
         AssetKind.Tag => $"{TagFileEntries.Count} local · {TagEffectiveEntries.Count} effective",
         AssetKind.Localization => $"{LocalizationRows.Count} keys · locale '{SelectedLocale}'",
@@ -1598,6 +1649,23 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             }
         }
 
+        List<(string StatId, string FlatDelta, string PercentDelta)>? buffStatModifiers = null;
+        List<(string StatId, string PerSecond)>? buffRegenRates = null;
+        if (Kind == AssetKind.Buff)
+        {
+            buffStatModifiers = new List<(string StatId, string FlatDelta, string PercentDelta)>(BuffStatModifiers.Count);
+            for (var i = 0; i < BuffStatModifiers.Count; i++)
+            {
+                buffStatModifiers.Add((BuffStatModifiers[i].StatId, BuffStatModifiers[i].FlatDelta, BuffStatModifiers[i].PercentDelta));
+            }
+
+            buffRegenRates = new List<(string StatId, string PerSecond)>(BuffRegenRates.Count);
+            for (var i = 0; i < BuffRegenRates.Count; i++)
+            {
+                buffRegenRates.Add((BuffRegenRates[i].StatId, BuffRegenRates[i].PerSecond));
+            }
+        }
+
         List<(string Key, string Value)>? statistics = null;
         if (Kind is AssetKind.Item or AssetKind.Brick)
         {
@@ -1644,6 +1712,10 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             SlotGroupAllowedTagsModified = _slotGroupAllowedTagsModified,
             SlotGroupSlots = slotGroupSlots,
             SlotGroupSlotsModified = _slotGroupSlotsModified,
+            BuffStatModifiers = buffStatModifiers,
+            BuffStatModifiersModified = _buffStatModifiersModified,
+            BuffRegenRates = buffRegenRates,
+            BuffRegenRatesModified = _buffRegenRatesModified,
         };
     }
 
@@ -1661,6 +1733,8 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
         _recipeOutputsModified = false;
         _slotGroupAllowedTagsModified = false;
         _slotGroupSlotsModified = false;
+        _buffStatModifiersModified = false;
+        _buffRegenRatesModified = false;
         _statisticsModified = false;
         _modifiedFieldKeys.Clear();
         _removedLocalizationKeys.Clear();
@@ -2677,6 +2751,339 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
 
     /// <summary>Slot group capacity field.</summary>
     public StudioFieldViewModel? SlotGroupCapacityField { get; }
+
+    /// <summary>Bar bound statistic identifier field.</summary>
+    public StudioFieldViewModel? BarStatIdField { get; }
+
+    /// <summary>Bar optional maximum statistic identifier field.</summary>
+    public StudioFieldViewModel? BarMaxStatIdField { get; }
+
+    /// <summary>Bar optional default maximum numeric field.</summary>
+    public StudioFieldViewModel? BarDefaultMaxField { get; }
+
+    /// <summary>Bar icon count numeric field.</summary>
+    public StudioFieldViewModel? BarIconCountField { get; }
+
+    /// <summary>Bar full icon texture reference field.</summary>
+    public StudioFieldViewModel? BarIconFullField { get; }
+
+    /// <summary>Bar half icon texture reference field.</summary>
+    public StudioFieldViewModel? BarIconHalfField { get; }
+
+    /// <summary>Bar empty icon texture reference field.</summary>
+    public StudioFieldViewModel? BarIconEmptyField { get; }
+
+    /// <summary>Bar warning threshold ratio field.</summary>
+    public StudioFieldViewModel? BarWarnThresholdField { get; }
+
+    /// <summary>Bar critical threshold ratio field.</summary>
+    public StudioFieldViewModel? BarCriticalThresholdField { get; }
+
+    /// <summary>Bar HUD layout sort order field.</summary>
+    public StudioFieldViewModel? BarOrderField { get; }
+
+    /// <summary>Bar hide-in-creative toggle field.</summary>
+    public StudioFieldViewModel? BarHideInCreativeField { get; }
+
+    /// <summary>Bar optional hex color tint field.</summary>
+    public StudioFieldViewModel? BarColorTintField { get; }
+
+    /// <summary>Buff duration in seconds field.</summary>
+    public StudioFieldViewModel? BuffDurationField { get; }
+
+    /// <summary>Buff stack policy choice field.</summary>
+    public StudioFieldViewModel? BuffStackPolicyField { get; }
+
+    /// <summary>Editable statistic modifier rows (<c>[[Buffs.StatModifiers]]</c>).</summary>
+    public ObservableCollection<BuffStatModifierRowViewModel> BuffStatModifiers { get; } = [];
+
+    /// <summary>Editable regeneration rate rows (<c>[[Buffs.RegenRates]]</c>).</summary>
+    public ObservableCollection<BuffRegenRateRowViewModel> BuffRegenRates { get; } = [];
+
+    /// <summary>Section subtitle summarizing buff stat modifiers.</summary>
+    public string BuffStatModifiersSummary => BuffStatModifiers.Count == 0
+        ? "No stat modifiers"
+        : (BuffStatModifiers.Count == 1 ? "1 stat modifier" : $"{BuffStatModifiers.Count} stat modifiers");
+
+    /// <summary>Whether the buff defines no stat modifiers.</summary>
+    public bool BuffHasNoStatModifiers => BuffStatModifiers.Count == 0;
+
+    /// <summary>Section subtitle summarizing buff regeneration rates.</summary>
+    public string BuffRegenRatesSummary => BuffRegenRates.Count == 0
+        ? "No regen rates"
+        : (BuffRegenRates.Count == 1 ? "1 regen rate" : $"{BuffRegenRates.Count} regen rates");
+
+    /// <summary>Whether the buff defines no regeneration rates.</summary>
+    public bool BuffHasNoRegenRates => BuffRegenRates.Count == 0;
+
+    [RelayCommand]
+    private void AddBuffStatModifier()
+    {
+        if (IsReadOnly || Kind != AssetKind.Buff)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _buffStatModifiersModified;
+        var recordedEpoch = _saveEpoch;
+        var before = SnapshotBuffStatModifiers();
+
+        BuffStatModifiers.Add(CreateBuffStatModifierRow("wb:move_speed", string.Empty, "0.1"));
+        _buffStatModifiersModified = true;
+        var after = SnapshotBuffStatModifiers();
+
+        RecordUndo(
+            "Add stat modifier",
+            coalesceKey: null,
+            undo: () => RestoreBuffStatModifiersSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreBuffStatModifiersSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifyBuffPreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveBuffStatModifier(BuffStatModifierRowViewModel? row)
+    {
+        if (IsReadOnly || Kind != AssetKind.Buff || row == null || !BuffStatModifiers.Contains(row))
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _buffStatModifiersModified;
+        var recordedEpoch = _saveEpoch;
+        var before = SnapshotBuffStatModifiers();
+
+        BuffStatModifiers.Remove(row);
+        _buffStatModifiersModified = true;
+        var after = SnapshotBuffStatModifiers();
+
+        RecordUndo(
+            "Remove stat modifier",
+            coalesceKey: null,
+            undo: () => RestoreBuffStatModifiersSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreBuffStatModifiersSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifyBuffPreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void AddBuffRegenRate()
+    {
+        if (IsReadOnly || Kind != AssetKind.Buff)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _buffRegenRatesModified;
+        var recordedEpoch = _saveEpoch;
+        var before = SnapshotBuffRegenRates();
+
+        BuffRegenRates.Add(CreateBuffRegenRateRow("wb:health", "1.0"));
+        _buffRegenRatesModified = true;
+        var after = SnapshotBuffRegenRates();
+
+        RecordUndo(
+            "Add regen rate",
+            coalesceKey: null,
+            undo: () => RestoreBuffRegenRatesSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreBuffRegenRatesSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifyBuffPreviewChanged();
+        MarkMutated();
+    }
+
+    [RelayCommand]
+    private void RemoveBuffRegenRate(BuffRegenRateRowViewModel? row)
+    {
+        if (IsReadOnly || Kind != AssetKind.Buff || row == null || !BuffRegenRates.Contains(row))
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        var wasModified = _buffRegenRatesModified;
+        var recordedEpoch = _saveEpoch;
+        var before = SnapshotBuffRegenRates();
+
+        BuffRegenRates.Remove(row);
+        _buffRegenRatesModified = true;
+        var after = SnapshotBuffRegenRates();
+
+        RecordUndo(
+            "Remove regen rate",
+            coalesceKey: null,
+            undo: () => RestoreBuffRegenRatesSnapshot(before, wasDirty, wasModified, recordedEpoch, isUndo: true),
+            redo: () => RestoreBuffRegenRatesSnapshot(after, wasDirty, wasModified, recordedEpoch, isUndo: false));
+
+        NotifyBuffPreviewChanged();
+        MarkMutated();
+    }
+
+    private BuffStatModifierRowViewModel CreateBuffStatModifierRow(string statId, string flatDelta, string percentDelta)
+    {
+        return new BuffStatModifierRowViewModel(
+            statId,
+            flatDelta,
+            percentDelta,
+            onChanged: () =>
+            {
+                _buffStatModifiersModified = true;
+                NotifyBuffPreviewChanged();
+                MarkMutated();
+            },
+            onPropertyTransition: (row, prop, oldVal, newVal) =>
+            {
+                var wasDirty = IsDirty;
+                var wasModified = _buffStatModifiersModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Edit buff modifier {prop}",
+                    coalesceKey: $"buff-mod:{DocumentKey}:{row.GetHashCode()}:{prop}",
+                    undo: () =>
+                    {
+                        row.ApplyPropertyForReplay(prop, oldVal);
+                        _buffStatModifiersModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        NotifyBuffPreviewChanged();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        row.ApplyPropertyForReplay(prop, newVal);
+                        _buffStatModifiersModified = true;
+                        NotifyBuffPreviewChanged();
+                        MarkMutated();
+                    });
+            },
+            isReadOnly: IsReadOnly);
+    }
+
+    private BuffRegenRateRowViewModel CreateBuffRegenRateRow(string statId, string perSecond)
+    {
+        return new BuffRegenRateRowViewModel(
+            statId,
+            perSecond,
+            onChanged: () =>
+            {
+                _buffRegenRatesModified = true;
+                NotifyBuffPreviewChanged();
+                MarkMutated();
+            },
+            onPropertyTransition: (row, prop, oldVal, newVal) =>
+            {
+                var wasDirty = IsDirty;
+                var wasModified = _buffRegenRatesModified;
+                var recordedEpoch = _saveEpoch;
+                RecordUndo(
+                    $"Edit buff regen {prop}",
+                    coalesceKey: $"buff-regen:{DocumentKey}:{row.GetHashCode()}:{prop}",
+                    undo: () =>
+                    {
+                        row.ApplyPropertyForReplay(prop, oldVal);
+                        _buffRegenRatesModified = _saveEpoch == recordedEpoch ? wasModified : true;
+                        NotifyBuffPreviewChanged();
+                        RestoreDirtyAfterUndo(wasDirty, recordedEpoch);
+                        RefreshTomlAndNotify();
+                    },
+                    redo: () =>
+                    {
+                        row.ApplyPropertyForReplay(prop, newVal);
+                        _buffRegenRatesModified = true;
+                        NotifyBuffPreviewChanged();
+                        MarkMutated();
+                    });
+            },
+            isReadOnly: IsReadOnly);
+    }
+
+    private List<(string StatId, string FlatDelta, string PercentDelta)> SnapshotBuffStatModifiers()
+    {
+        var list = new List<(string, string, string)>(BuffStatModifiers.Count);
+        for (var i = 0; i < BuffStatModifiers.Count; i++)
+        {
+            list.Add((BuffStatModifiers[i].StatId, BuffStatModifiers[i].FlatDelta, BuffStatModifiers[i].PercentDelta));
+        }
+
+        return list;
+    }
+
+    private void RestoreBuffStatModifiersSnapshot(
+        List<(string StatId, string FlatDelta, string PercentDelta)> snapshot,
+        bool targetDirty,
+        bool targetModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        BuffStatModifiers.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            BuffStatModifiers.Add(CreateBuffStatModifierRow(snapshot[i].StatId, snapshot[i].FlatDelta, snapshot[i].PercentDelta));
+        }
+
+        _buffStatModifiersModified = isUndo && _saveEpoch == recordedEpoch ? targetModified : true;
+        NotifyBuffPreviewChanged();
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private List<(string StatId, string PerSecond)> SnapshotBuffRegenRates()
+    {
+        var list = new List<(string, string)>(BuffRegenRates.Count);
+        for (var i = 0; i < BuffRegenRates.Count; i++)
+        {
+            list.Add((BuffRegenRates[i].StatId, BuffRegenRates[i].PerSecond));
+        }
+
+        return list;
+    }
+
+    private void RestoreBuffRegenRatesSnapshot(
+        List<(string StatId, string PerSecond)> snapshot,
+        bool targetDirty,
+        bool targetModified,
+        int recordedEpoch,
+        bool isUndo)
+    {
+        BuffRegenRates.Clear();
+        for (var i = 0; i < snapshot.Count; i++)
+        {
+            BuffRegenRates.Add(CreateBuffRegenRateRow(snapshot[i].StatId, snapshot[i].PerSecond));
+        }
+
+        _buffRegenRatesModified = isUndo && _saveEpoch == recordedEpoch ? targetModified : true;
+        NotifyBuffPreviewChanged();
+        if (isUndo)
+        {
+            RestoreDirtyAfterUndo(targetDirty, recordedEpoch);
+            RefreshTomlAndNotify();
+        }
+        else
+        {
+            MarkMutated();
+        }
+    }
+
+    private void NotifyBuffPreviewChanged()
+    {
+        OnPropertyChanged(nameof(BuffStatModifiersSummary));
+        OnPropertyChanged(nameof(BuffHasNoStatModifiers));
+        OnPropertyChanged(nameof(BuffRegenRatesSummary));
+        OnPropertyChanged(nameof(BuffHasNoRegenRates));
+        OnPropertyChanged(nameof(DataSummaryMetric));
+        OnPropertyChanged(nameof(DataSummaryDetail));
+    }
 
     /// <summary>Editable group-wide allowed invariant tag rows.</summary>
     public ObservableCollection<SlotTagRowViewModel> SlotGroupAllowedTags { get; } = [];
@@ -4950,6 +5357,12 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             case AssetKind.SlotGroup:
                 AppendSlotGroupToml(sb);
                 break;
+            case AssetKind.Bar:
+                AppendBarToml(sb);
+                break;
+            case AssetKind.Buff:
+                AppendBuffToml(sb);
+                break;
             case AssetKind.Body:
                 AppendBodyToml(sb);
                 break;
@@ -5053,6 +5466,108 @@ public sealed partial class AssetDocumentViewModel : ObservableObject
             sb.AppendLine("[[SlotGroups.Slots]]");
             sb.AppendLine($"Index = {slot.Index}");
             sb.AppendLine($"AllowedTags = [{string.Join(", ", slotTags)}]");
+        }
+    }
+
+    private void AppendBarToml(StringBuilder sb)
+    {
+        sb.AppendLine("[[Bars]]");
+        sb.AppendLine($"ID                = \"{Id}\"");
+        sb.AppendLine($"StatId            = {BarStatIdField?.RawTokenText ?? "\"\""}");
+        if (!string.IsNullOrWhiteSpace(BarMaxStatIdField?.Value))
+        {
+            sb.AppendLine($"MaxStatId         = {BarMaxStatIdField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(BarDefaultMaxField?.Value))
+        {
+            sb.AppendLine($"DefaultMax        = {BarDefaultMaxField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(BarIconCountField?.Value))
+        {
+            sb.AppendLine($"IconCount         = {BarIconCountField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(BarIconFullField?.Value))
+        {
+            sb.AppendLine($"IconFull          = {BarIconFullField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(BarIconHalfField?.Value))
+        {
+            sb.AppendLine($"IconHalf          = {BarIconHalfField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(BarIconEmptyField?.Value))
+        {
+            sb.AppendLine($"IconEmpty         = {BarIconEmptyField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(BarWarnThresholdField?.Value))
+        {
+            sb.AppendLine($"WarnThreshold     = {BarWarnThresholdField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(BarCriticalThresholdField?.Value))
+        {
+            sb.AppendLine($"CriticalThreshold = {BarCriticalThresholdField.RawTokenText}");
+        }
+
+        sb.AppendLine($"Order             = {BarOrderField?.RawTokenText ?? "0"}");
+        sb.AppendLine($"HideInCreative    = {BarHideInCreativeField?.RawTokenText ?? "false"}");
+        if (!string.IsNullOrWhiteSpace(BarColorTintField?.Value))
+        {
+            sb.AppendLine($"ColorTint         = {BarColorTintField.RawTokenText}");
+        }
+    }
+
+    private void AppendBuffToml(StringBuilder sb)
+    {
+        sb.AppendLine("[[Buffs]]");
+        sb.AppendLine($"ID              = \"{Id}\"");
+        if (!string.IsNullOrWhiteSpace(NameField?.Value))
+        {
+            sb.AppendLine($"Name            = {NameField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(DescriptionField?.Value))
+        {
+            sb.AppendLine($"Description     = {DescriptionField.RawTokenText}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(IconField?.Value))
+        {
+            sb.AppendLine($"Icon            = {IconField.RawTokenText}");
+        }
+
+        sb.AppendLine($"DurationSeconds = {BuffDurationField?.RawTokenText ?? "30"}");
+        sb.AppendLine($"StackPolicy     = {BuffStackPolicyField?.RawTokenText ?? "\"Refresh\""}");
+
+        for (var i = 0; i < BuffStatModifiers.Count; i++)
+        {
+            var mod = BuffStatModifiers[i];
+            sb.AppendLine();
+            sb.AppendLine("[[Buffs.StatModifiers]]");
+            sb.AppendLine($"StatId = \"{mod.StatId}\"");
+            if (!string.IsNullOrWhiteSpace(mod.FlatDelta))
+            {
+                sb.AppendLine($"FlatDelta = {mod.FlatDelta}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(mod.PercentDelta))
+            {
+                sb.AppendLine($"PercentDelta = {mod.PercentDelta}");
+            }
+        }
+
+        for (var i = 0; i < BuffRegenRates.Count; i++)
+        {
+            var regen = BuffRegenRates[i];
+            sb.AppendLine();
+            sb.AppendLine("[[Buffs.RegenRates]]");
+            sb.AppendLine($"StatId = \"{regen.StatId}\"");
+            sb.AppendLine($"PerSecond = {(string.IsNullOrWhiteSpace(regen.PerSecond) ? "0.0" : regen.PerSecond)}");
         }
     }
 

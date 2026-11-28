@@ -174,4 +174,24 @@ public sealed class DocumentSavePayload
     ///     Whether per-slot filter override rows were modified since load or last save.
     /// </summary>
     public bool SlotGroupSlotsModified { get; init; }
+
+    /// <summary>
+    ///     Current statistic modifier rows for buff documents.
+    /// </summary>
+    public IReadOnlyList<(string StatId, string FlatDelta, string PercentDelta)>? BuffStatModifiers { get; init; }
+
+    /// <summary>
+    ///     Whether buff statistic modifier rows were modified since load or last save.
+    /// </summary>
+    public bool BuffStatModifiersModified { get; init; }
+
+    /// <summary>
+    ///     Current regeneration rate rows for buff documents.
+    /// </summary>
+    public IReadOnlyList<(string StatId, string PerSecond)>? BuffRegenRates { get; init; }
+
+    /// <summary>
+    ///     Whether buff regeneration rate rows were modified since load or last save.
+    /// </summary>
+    public bool BuffRegenRatesModified { get; init; }
 }

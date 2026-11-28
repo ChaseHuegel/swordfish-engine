@@ -6,6 +6,8 @@ using WaywardBeyond.AssetStudio.Models;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Bars;
+using WaywardBeyond.Data.Buffs;
 using WaywardBeyond.Items;
 using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
@@ -382,6 +384,8 @@ internal static class AssetSeedProjector
             AssetKind.Blueprint => ToolsWorkspace.AssetKind.Blueprint,
             AssetKind.Recipe => ToolsWorkspace.AssetKind.Recipe,
             AssetKind.SlotGroup => ToolsWorkspace.AssetKind.SlotGroup,
+            AssetKind.Bar => ToolsWorkspace.AssetKind.Bar,
+            AssetKind.Buff => ToolsWorkspace.AssetKind.Buff,
             _ => ToolsWorkspace.AssetKind.Brick,
         };
     }
@@ -404,6 +408,8 @@ internal static class AssetSeedProjector
             ToolsWorkspace.AssetKind.Blueprint => AssetKind.Blueprint,
             ToolsWorkspace.AssetKind.Recipe => AssetKind.Recipe,
             ToolsWorkspace.AssetKind.SlotGroup => AssetKind.SlotGroup,
+            ToolsWorkspace.AssetKind.Bar => AssetKind.Bar,
+            ToolsWorkspace.AssetKind.Buff => AssetKind.Buff,
             _ => AssetKind.Brick,
         };
     }
@@ -421,6 +427,8 @@ internal static class AssetSeedProjector
             (ToolsWorkspace.AssetKind.Paint, AssetKind.Paint, "Paints"),
             (ToolsWorkspace.AssetKind.Recipe, AssetKind.Recipe, "Recipes"),
             (ToolsWorkspace.AssetKind.SlotGroup, AssetKind.SlotGroup, "Slot Groups"),
+            (ToolsWorkspace.AssetKind.Bar, AssetKind.Bar, "Bars"),
+            (ToolsWorkspace.AssetKind.Buff, AssetKind.Buff, "Buffs"),
             (ToolsWorkspace.AssetKind.Skill, AssetKind.Skill, "Skills"),
             (ToolsWorkspace.AssetKind.Body, AssetKind.Body, "Bodies"),
             (ToolsWorkspace.AssetKind.Material, AssetKind.Material, "Materials"),
@@ -476,6 +484,8 @@ internal static class AssetSeedProjector
         var recipeOutputs = new List<(string ItemId, int Count, string Chance)>();
         var slotGroupAllowedTags = new List<string>();
         var slotGroupSlots = new List<(int Index, List<string> AllowedTags)>();
+        var buffStatModifiers = new List<(string StatId, string FlatDelta, string PercentDelta)>();
+        var buffRegenRates = new List<(string StatId, string PerSecond)>();
         string? bodyFrontPath = null;
         string? materialTexturePath = null;
         string? paintTexturePath = null;
@@ -502,6 +512,12 @@ internal static class AssetSeedProjector
                 break;
             case SlotGroupDefinition slotGroup:
                 PopulateSlotGroupFields(in slotGroup, scalars, slotGroupAllowedTags, slotGroupSlots);
+                break;
+            case BarDefinition bar:
+                PopulateBarFields(in bar, scalars);
+                break;
+            case BuffDefinition buff:
+                PopulateBuffFields(in buff, scalars, buffStatModifiers, buffRegenRates);
                 break;
             case MaterialDefinition material:
                 materialTexturePath = PopulateMaterialFields(workspace, in material, scalars);
@@ -539,6 +555,8 @@ internal static class AssetSeedProjector
             RecipeOutputs = recipeOutputs,
             SlotGroupAllowedTags = slotGroupAllowedTags,
             SlotGroupSlots = slotGroupSlots,
+            BuffStatModifiers = buffStatModifiers,
+            BuffRegenRates = buffRegenRates,
             ResolvedBodyFrontTexturePath = bodyFrontPath,
             ResolvedMaterialTexturePath = materialTexturePath,
             ResolvedPaintTexturePath = paintTexturePath,
@@ -796,6 +814,71 @@ internal static class AssetSeedProjector
                 }
 
                 slots.Add((slotDef.Index, slotTags));
+            }
+        }
+    }
+
+    private static void PopulateBarFields(
+        in BarDefinition bar,
+        Dictionary<string, string> scalars)
+    {
+        scalars["StatId"] = bar.StatId ?? string.Empty;
+        scalars["MaxStatId"] = bar.MaxStatId ?? string.Empty;
+        scalars["DefaultMax"] = bar.DefaultMax.HasValue
+            ? bar.DefaultMax.Value.ToString(CultureInfo.InvariantCulture)
+            : string.Empty;
+        scalars["IconCount"] = bar.IconCount.HasValue
+            ? bar.IconCount.Value.ToString(CultureInfo.InvariantCulture)
+            : string.Empty;
+        scalars["IconFull"] = bar.IconFull ?? string.Empty;
+        scalars["IconHalf"] = bar.IconHalf ?? string.Empty;
+        scalars["IconEmpty"] = bar.IconEmpty ?? string.Empty;
+        scalars["WarnThreshold"] = bar.WarnThreshold.HasValue
+            ? bar.WarnThreshold.Value.ToString(CultureInfo.InvariantCulture)
+            : string.Empty;
+        scalars["CriticalThreshold"] = bar.CriticalThreshold.HasValue
+            ? bar.CriticalThreshold.Value.ToString(CultureInfo.InvariantCulture)
+            : string.Empty;
+        scalars["Order"] = bar.Order.ToString(CultureInfo.InvariantCulture);
+        scalars["HideInCreative"] = bar.HideInCreative ? "true" : "false";
+        scalars["ColorTint"] = bar.ColorTint ?? string.Empty;
+    }
+
+    private static void PopulateBuffFields(
+        in BuffDefinition buff,
+        Dictionary<string, string> scalars,
+        List<(string StatId, string FlatDelta, string PercentDelta)> statModifiers,
+        List<(string StatId, string PerSecond)> regenRates)
+    {
+        scalars["Name"] = buff.Name ?? string.Empty;
+        scalars["Description"] = buff.Description ?? string.Empty;
+        scalars["Icon"] = buff.Icon ?? string.Empty;
+        scalars["DurationSeconds"] = buff.DurationSeconds.ToString(CultureInfo.InvariantCulture);
+        scalars["StackPolicy"] = string.IsNullOrWhiteSpace(buff.StackPolicy) ? "Refresh" : buff.StackPolicy.Trim();
+
+        if (buff.StatModifiers != null)
+        {
+            for (var i = 0; i < buff.StatModifiers.Count; i++)
+            {
+                var mod = buff.StatModifiers[i];
+                var flat = mod.FlatDelta.HasValue
+                    ? mod.FlatDelta.Value.ToString(CultureInfo.InvariantCulture)
+                    : string.Empty;
+                var pct = mod.PercentDelta.HasValue
+                    ? mod.PercentDelta.Value.ToString(CultureInfo.InvariantCulture)
+                    : string.Empty;
+                statModifiers.Add((mod.StatId ?? string.Empty, flat, pct));
+            }
+        }
+
+        if (buff.RegenRates != null)
+        {
+            for (var i = 0; i < buff.RegenRates.Count; i++)
+            {
+                var regen = buff.RegenRates[i];
+                regenRates.Add((
+                    regen.StatId ?? string.Empty,
+                    regen.PerSecond.ToString(CultureInfo.InvariantCulture)));
             }
         }
     }
@@ -2499,6 +2582,16 @@ internal static class AssetSeedProjector
             return AssetKind.SlotGroup;
         }
 
+        if (lower.Contains("/bars/"))
+        {
+            return AssetKind.Bar;
+        }
+
+        if (lower.Contains("/buffs/"))
+        {
+            return AssetKind.Buff;
+        }
+
         if (lower.Contains("/skills/"))
         {
             return AssetKind.Skill;
@@ -2535,6 +2628,8 @@ internal static class AssetSeedProjector
             AssetKind.Paint => "Paints",
             AssetKind.Recipe => "Recipes",
             AssetKind.SlotGroup => "Slot Groups",
+            AssetKind.Bar => "Bars",
+            AssetKind.Buff => "Buffs",
             AssetKind.Skill => "Skills",
             AssetKind.Body => "Bodies",
             AssetKind.Material => "Materials",

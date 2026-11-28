@@ -37,6 +37,8 @@ internal static class AssetTomlEditApplier
             AssetKind.Body => ApplyBodyEdits(document, payload),
             AssetKind.Recipe => ApplyRecipeEdits(document, payload),
             AssetKind.SlotGroup => ApplySlotGroupEdits(document, payload),
+            AssetKind.Bar => ApplyBarEdits(document, payload),
+            AssetKind.Buff => ApplyBuffEdits(document, payload),
             AssetKind.Material => ApplyMaterialEdits(document, payload),
             AssetKind.Tag => ApplyTagEdits(document, payload),
             AssetKind.Localization => ApplyLocalizationEdits(document, payload),
@@ -1055,6 +1057,379 @@ internal static class AssetTomlEditApplier
         }
 
         return sb.ToString();
+    }
+
+    private static Result ApplyBarEdits(ToolsDocuments.TomlDocument doc, DocumentSavePayload payload)
+    {
+        var tableIndex = ResolvePrimaryTableIndex(doc, "Bars", payload.TableIndex, payload.EntryIndex);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var barOrdinal = FindArrayTableOrdinal(doc, "Bars", tableIndex);
+
+        ApplyScalar(doc, tableIndex, "StatId", "StatId", payload, ScalarKind.String);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "MaxStatId", "MaxStatId", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyOptionalFloatScalar(doc, tableIndex, "DefaultMax", "DefaultMax", payload);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyOptionalIntegerScalar(doc, tableIndex, "IconCount", "IconCount", payload);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "IconFull", "IconFull", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "IconHalf", "IconHalf", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "IconEmpty", "IconEmpty", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyOptionalFloatScalar(doc, tableIndex, "WarnThreshold", "WarnThreshold", payload);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyOptionalFloatScalar(doc, tableIndex, "CriticalThreshold", "CriticalThreshold", payload);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "Order", "Order", payload, ScalarKind.Integer);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "HideInCreative", "HideInCreative", payload, ScalarKind.Boolean);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Bars", barOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "ColorTint", "ColorTint", payload, ScalarKind.OptionalString);
+        return Result.FromSuccess();
+    }
+
+    private static Result ApplyBuffEdits(ToolsDocuments.TomlDocument doc, DocumentSavePayload payload)
+    {
+        var tableIndex = ResolvePrimaryTableIndex(doc, "Buffs", payload.TableIndex, payload.EntryIndex);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var buffOrdinal = FindArrayTableOrdinal(doc, "Buffs", tableIndex);
+
+        ApplyScalar(doc, tableIndex, "Name", "Name", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Buffs", buffOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "Description", "Description", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Buffs", buffOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "Icon", "Icon", payload, ScalarKind.OptionalString);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Buffs", buffOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "DurationSeconds", "DurationSeconds", payload, ScalarKind.Float);
+        tableIndex = ResolveArrayTableByOrdinal(doc, "Buffs", buffOrdinal);
+        if (tableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        ApplyScalar(doc, tableIndex, "StackPolicy", "StackPolicy", payload, ScalarKind.String);
+
+        if (payload.BuffStatModifiersModified && payload.BuffStatModifiers != null)
+        {
+            var modsBlock = BuildBuffStatModifiersTomlBlock(payload.BuffStatModifiers, doc.LineEnding);
+            var modsResult = ReplaceOwnedBuffSubTables(doc, buffOrdinal, "StatModifiers", modsBlock, insertBeforeRegen: true);
+            if (!modsResult.Success)
+            {
+                return modsResult;
+            }
+        }
+
+        if (payload.BuffRegenRatesModified && payload.BuffRegenRates != null)
+        {
+            var regenBlock = BuildBuffRegenRatesTomlBlock(payload.BuffRegenRates, doc.LineEnding);
+            var regenResult = ReplaceOwnedBuffSubTables(doc, buffOrdinal, "RegenRates", regenBlock, insertBeforeRegen: false);
+            if (!regenResult.Success)
+            {
+                return regenResult;
+            }
+        }
+
+        return Result.FromSuccess();
+    }
+
+    private static Result ReplaceOwnedBuffSubTables(
+        ToolsDocuments.TomlDocument doc,
+        int buffOrdinal,
+        string subTableSegment,
+        string replacementBlock,
+        bool insertBeforeRegen)
+    {
+        var ownerTableIndex = ResolveArrayTableByOrdinal(doc, "Buffs", buffOrdinal);
+        if (ownerTableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        var lastOwned = FindLastOwnedTableIndex(doc, ownerTableIndex, "Buffs");
+        var targetSuffix = "." + subTableSegment;
+
+        //  Remove existing matching owned sub-tables from last to first so spans stay valid.
+        for (var i = lastOwned; i > ownerTableIndex; i--)
+        {
+            var table = doc.Tables[i];
+            if (table.HeaderPath.EndsWith(targetSuffix, StringComparison.OrdinalIgnoreCase))
+            {
+                var removeResult = RemoveTableSection(doc, i);
+                if (!removeResult.Success)
+                {
+                    return removeResult;
+                }
+            }
+        }
+
+        if (string.IsNullOrEmpty(replacementBlock))
+        {
+            return Result.FromSuccess();
+        }
+
+        ownerTableIndex = ResolveArrayTableByOrdinal(doc, "Buffs", buffOrdinal);
+        if (ownerTableIndex < 0)
+        {
+            return Result.FromSuccess();
+        }
+
+        lastOwned = FindLastOwnedTableIndex(doc, ownerTableIndex, "Buffs");
+        var insertOffset = Math.Clamp(doc.Tables[lastOwned].ContentSpan.End, 0, doc.Text.Length);
+
+        if (insertBeforeRegen)
+        {
+            for (var i = ownerTableIndex + 1; i <= lastOwned; i++)
+            {
+                if (doc.Tables[i].HeaderPath.EndsWith(".RegenRates", StringComparison.OrdinalIgnoreCase))
+                {
+                    insertOffset = Math.Clamp(doc.Tables[i].HeaderLineSpan.Start, 0, doc.Text.Length);
+                    break;
+                }
+            }
+        }
+
+        return InsertRecipeTableBlockAtOffset(doc, insertOffset, replacementBlock);
+    }
+
+    private static string BuildBuffStatModifiersTomlBlock(
+        IReadOnlyList<(string StatId, string FlatDelta, string PercentDelta)> modifiers,
+        string eol)
+    {
+        if (modifiers.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < modifiers.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(eol);
+                sb.Append(eol);
+            }
+
+            var mod = modifiers[i];
+            sb.Append("[[Buffs.StatModifiers]]").Append(eol);
+            sb.Append("StatId = ").Append(FormatTomlString(mod.StatId?.Trim() ?? string.Empty));
+            if (!string.IsNullOrWhiteSpace(mod.FlatDelta)
+                && double.TryParse(mod.FlatDelta.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var flat)
+                && double.IsFinite(flat))
+            {
+                sb.Append(eol);
+                sb.Append("FlatDelta = ").Append(FormatTomlFloat(flat));
+            }
+
+            if (!string.IsNullOrWhiteSpace(mod.PercentDelta)
+                && double.TryParse(mod.PercentDelta.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var pct)
+                && double.IsFinite(pct))
+            {
+                sb.Append(eol);
+                sb.Append("PercentDelta = ").Append(FormatTomlFloat(pct));
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildBuffRegenRatesTomlBlock(
+        IReadOnlyList<(string StatId, string PerSecond)> regenRates,
+        string eol)
+    {
+        if (regenRates.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < regenRates.Count; i++)
+        {
+            if (i > 0)
+            {
+                sb.Append(eol);
+                sb.Append(eol);
+            }
+
+            var regen = regenRates[i];
+            sb.Append("[[Buffs.RegenRates]]").Append(eol);
+            sb.Append("StatId = ").Append(FormatTomlString(regen.StatId?.Trim() ?? string.Empty)).Append(eol);
+            var perSec = double.TryParse(regen.PerSecond?.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+                && double.IsFinite(parsed)
+                ? parsed
+                : 0d;
+            sb.Append("PerSecond = ").Append(FormatTomlFloat(perSec));
+        }
+
+        return sb.ToString();
+    }
+
+    private static void ApplyOptionalFloatScalar(
+        ToolsDocuments.TomlDocument doc,
+        int tableIndex,
+        string tomlKey,
+        string fieldKey,
+        DocumentSavePayload payload)
+    {
+        if (payload.ModifiedFieldKeys != null && !payload.ModifiedFieldKeys.Contains(fieldKey))
+        {
+            return;
+        }
+
+        if (!payload.FieldValues.TryGetValue(fieldKey, out var value))
+        {
+            return;
+        }
+
+        var trimmed = value?.Trim() ?? string.Empty;
+        var existing = doc.GetFieldInTable(tableIndex, tomlKey);
+        if (trimmed.Length == 0)
+        {
+            if (existing.Success)
+            {
+                doc.RemoveField(existing.Value);
+            }
+
+            return;
+        }
+
+        if (!double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || !double.IsFinite(parsed))
+        {
+            return;
+        }
+
+        if (existing.Success)
+        {
+            doc.SetFloat(existing.Value, parsed);
+        }
+        else if (tableIndex >= 0 && tableIndex < doc.Tables.Count)
+        {
+            doc.AddField(doc.Tables[tableIndex], tomlKey, FormatTomlFloat(parsed));
+        }
+    }
+
+    private static void ApplyOptionalIntegerScalar(
+        ToolsDocuments.TomlDocument doc,
+        int tableIndex,
+        string tomlKey,
+        string fieldKey,
+        DocumentSavePayload payload)
+    {
+        if (payload.ModifiedFieldKeys != null && !payload.ModifiedFieldKeys.Contains(fieldKey))
+        {
+            return;
+        }
+
+        if (!payload.FieldValues.TryGetValue(fieldKey, out var value))
+        {
+            return;
+        }
+
+        var trimmed = value?.Trim() ?? string.Empty;
+        var existing = doc.GetFieldInTable(tableIndex, tomlKey);
+        if (trimmed.Length == 0)
+        {
+            if (existing.Success)
+            {
+                doc.RemoveField(existing.Value);
+            }
+
+            return;
+        }
+
+        if (!long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return;
+        }
+
+        if (existing.Success)
+        {
+            doc.SetInteger(existing.Value, parsed);
+        }
+        else if (tableIndex >= 0 && tableIndex < doc.Tables.Count)
+        {
+            doc.AddField(doc.Tables[tableIndex], tomlKey, parsed.ToString(CultureInfo.InvariantCulture));
+        }
     }
 
     private static List<string> CleanStringList(IReadOnlyList<string>? values)

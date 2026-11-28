@@ -59,4 +59,14 @@ public enum AssetKind
     ///     Inventory slot group schema and per-slot filter override definition.
     /// </summary>
     SlotGroup,
+
+    /// <summary>
+    ///     HUD status bar definition.
+    /// </summary>
+    Bar,
+
+    /// <summary>
+    ///     Temporary buff or debuff status effect definition.
+    /// </summary>
+    Buff,
 }

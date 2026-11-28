@@ -4,6 +4,8 @@ using WaywardBeyond.AssetTools.Documents;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Bars;
+using WaywardBeyond.Data.Buffs;
 using WaywardBeyond.Items;
 using WaywardBeyond.Recipes;
 using WaywardBeyond.Skills;
@@ -431,6 +433,18 @@ public sealed class WorkspaceLoader
             in root, "inventory", "SlotGroups", AssetKind.SlotGroup,
             static defs => defs.SlotGroups,
             static def => (def.ID ?? string.Empty, def.ID ?? string.Empty),
+            state);
+
+        IndexArrayAssetDirectory<BarDefinitions, BarDefinition>(
+            in root, "bars", "Bars", AssetKind.Bar,
+            static defs => defs.Bars,
+            static def => (def.ID ?? string.Empty, def.ID ?? string.Empty),
+            state);
+
+        IndexArrayAssetDirectory<BuffDefinitions, BuffDefinition>(
+            in root, "buffs", "Buffs", AssetKind.Buff,
+            static defs => defs.Buffs,
+            static def => (def.ID ?? string.Empty, def.Name ?? def.ID ?? string.Empty),
             state);
 
         IndexMaterialDirectory(in root, state);
@@ -874,6 +888,14 @@ public sealed class WorkspaceLoader
                     ExtractSlotGroupReferences(in asset, in slotGroup, state.AllReferences);
                     break;
 
+                case BarDefinition bar:
+                    ExtractBarReferences(in asset, in bar, state.AllReferences);
+                    break;
+
+                case BuffDefinition buff:
+                    ExtractBuffReferences(in asset, in buff, state.AllReferences);
+                    break;
+
                 case MaterialDefinition material:
                     ExtractMaterialReferences(in asset, in material, state.AllReferences);
                     break;
@@ -1105,6 +1127,20 @@ public sealed class WorkspaceLoader
                 }
             }
         }
+    }
+
+    private static void ExtractBarReferences(in IndexedAsset asset, in BarDefinition bar, List<InboundReference> refs)
+    {
+        AddRefIfPresent(refs, in asset, "IconFull", bar.IconFull?.Trim(), "texture", isInformational: false);
+        AddRefIfPresent(refs, in asset, "IconHalf", bar.IconHalf?.Trim(), "texture", isInformational: false);
+        AddRefIfPresent(refs, in asset, "IconEmpty", bar.IconEmpty?.Trim(), "texture", isInformational: false);
+    }
+
+    private static void ExtractBuffReferences(in IndexedAsset asset, in BuffDefinition buff, List<InboundReference> refs)
+    {
+        AddRefIfPresent(refs, in asset, "Name", buff.Name?.Trim(), "lang", isInformational: false);
+        AddRefIfPresent(refs, in asset, "Description", buff.Description?.Trim(), "lang", isInformational: true);
+        AddRefIfPresent(refs, in asset, "Icon", buff.Icon?.Trim(), "texture", isInformational: false);
     }
 
     private static void ExtractMaterialReferences(in IndexedAsset asset, in MaterialDefinition material, List<InboundReference> refs)

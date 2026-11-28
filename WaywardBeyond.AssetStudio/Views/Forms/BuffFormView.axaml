@@ -1,0 +1,166 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:WaywardBeyond.AssetStudio.ViewModels"
+             xmlns:controls="clr-namespace:WaywardBeyond.AssetStudio.Controls"
+             x:Class="WaywardBeyond.AssetStudio.Views.Forms.BuffFormView"
+             x:DataType="vm:AssetDocumentViewModel">
+  <StackPanel>
+    <!-- Timing & Stacking -->
+    <controls:CollapsibleSectionCard Title="Timing &amp; Stacking" Subtitle="Duration and re-application stack policy">
+      <StackPanel Spacing="2">
+        <controls:ScalarFieldRowControl DataContext="{Binding BuffDurationField}" />
+        <controls:ScalarFieldRowControl DataContext="{Binding BuffStackPolicyField}" />
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Stat Modifiers ([[Buffs.StatModifiers]]) -->
+    <controls:CollapsibleSectionCard Title="Stat Modifiers" Subtitle="{Binding BuffStatModifiersSummary}">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Grid.Column="0"
+                     Text="Additive flat or multiplicative percent adjustments applied to character statistics while this buff is active."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddBuffStatModifierCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Modifier" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+              <Grid ColumnDefinitions="*,100,100,28" ColumnSpacing="6">
+                <TextBlock Grid.Column="0" Text="STAT ID" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="FLAT DELTA" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="PERCENT DELTA" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+
+            <TextBlock IsVisible="{Binding BuffHasNoStatModifiers}"
+                       Text="No stat modifiers configured."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                       Margin="10,10" />
+
+            <ItemsControl ItemsSource="{Binding BuffStatModifiers}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:BuffStatModifierRowViewModel">
+                  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                    <Grid ColumnDefinitions="*,100,100,28" ColumnSpacing="6">
+                      <TextBox Grid.Column="0"
+                               Text="{Binding StatId, Mode=TwoWay}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               Watermark="wb:move_speed"
+                               Classes="studio-input mono" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding FlatDelta, Mode=TwoWay}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               Watermark="optional"
+                               Classes="studio-input mono" />
+                      <TextBox Grid.Column="2"
+                               Text="{Binding PercentDelta, Mode=TwoWay}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               Watermark="0.25"
+                               Classes="studio-input mono" />
+                      <Button Grid.Column="3"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              IsEnabled="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).CanEditDocument}"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveBuffStatModifierCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove stat modifier">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+
+    <!-- Regen Rates ([[Buffs.RegenRates]]) -->
+    <controls:CollapsibleSectionCard Title="Regen Rates" Subtitle="{Binding BuffRegenRatesSummary}">
+      <StackPanel Spacing="6">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Grid.Column="0"
+                     Text="Per-second statistic regeneration or drain rates applied every tick while this buff is active."
+                     FontSize="11"
+                     TextWrapping="Wrap"
+                     Foreground="{DynamicResource StudioTextMutedBrush}"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="1"
+                  Classes="studio-btn-compact"
+                  Command="{Binding AddBuffRegenRateCommand}"
+                  IsEnabled="{Binding !IsReadOnly}"
+                  Content="+ Add Regen" />
+        </Grid>
+
+        <Border CornerRadius="6"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                ClipToBounds="True">
+          <StackPanel>
+            <Border Background="{DynamicResource StudioSurfaceElevatedBrush}" Padding="8,6">
+              <Grid ColumnDefinitions="*,120,28" ColumnSpacing="6">
+                <TextBlock Grid.Column="0" Text="STAT ID" Classes="pane-title" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="PER SECOND" Classes="pane-title" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+
+            <TextBlock IsVisible="{Binding BuffHasNoRegenRates}"
+                       Text="No regen rates configured."
+                       FontSize="11.5"
+                       Foreground="{DynamicResource StudioTextMutedBrush}"
+                       Margin="10,10" />
+
+            <ItemsControl ItemsSource="{Binding BuffRegenRates}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:BuffRegenRateRowViewModel">
+                  <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="8,4">
+                    <Grid ColumnDefinitions="*,120,28" ColumnSpacing="6">
+                      <TextBox Grid.Column="0"
+                               Text="{Binding StatId, Mode=TwoWay}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               Watermark="wb:health"
+                               Classes="studio-input mono" />
+                      <TextBox Grid.Column="1"
+                               Text="{Binding PerSecond, Mode=TwoWay}"
+                               IsReadOnly="{Binding IsReadOnly}"
+                               Watermark="2.0"
+                               Classes="studio-input mono" />
+                      <Button Grid.Column="2"
+                              Classes="studio-btn-ghost"
+                              Width="26"
+                              Height="26"
+                              MinHeight="26"
+                              Padding="0"
+                              IsEnabled="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).CanEditDocument}"
+                              Command="{Binding $parent[UserControl].((vm:AssetDocumentViewModel)DataContext).RemoveBuffRegenRateCommand}"
+                              CommandParameter="{Binding}"
+                              ToolTip.Tip="Remove regen rate">
+                        <TextBlock Text="×" FontSize="14" />
+                      </Button>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </controls:CollapsibleSectionCard>
+  </StackPanel>
+</UserControl>

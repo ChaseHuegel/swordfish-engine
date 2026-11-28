@@ -9,6 +9,8 @@ using WaywardBeyond.AssetTools.Workspace;
 using WaywardBeyond.Bodies;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Bars;
+using WaywardBeyond.Data.Buffs;
 using WaywardBeyond.Data.Statistics;
 using WaywardBeyond.Items;
 using WaywardBeyond.Recipes;
@@ -314,6 +316,14 @@ public sealed class WorkspaceValidator
 
                 case SlotGroupDefinition slotGroup:
                     ValidateSlotGroup(workspace, in asset, in slotGroup, doc, findings);
+                    break;
+
+                case BarDefinition bar:
+                    ValidateBar(workspace, in asset, in bar, doc, findings);
+                    break;
+
+                case BuffDefinition buff:
+                    ValidateBuff(workspace, in asset, in buff, doc, findings);
                     break;
 
                 case MaterialDefinition material:
@@ -1519,6 +1529,367 @@ public sealed class WorkspaceValidator
             }
 
             if (!next.HeaderPath.StartsWith("SlotGroups.", StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+        }
+
+        return matches;
+    }
+
+    private static void ValidateBar(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        in BarDefinition bar,
+        TomlDocument? doc,
+        List<ValidationFinding> findings)
+    {
+        if (string.IsNullOrWhiteSpace(bar.StatId))
+        {
+            TomlFieldSpan? statField = FindEntryField(doc, asset.Provenance.TableIndex, "StatId");
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                statField,
+                "StatId",
+                $"Bar '{asset.Id}' is missing StatId.");
+        }
+
+        string? maxStatId = string.IsNullOrWhiteSpace(bar.MaxStatId) ? null : bar.MaxStatId.Trim();
+        if (bar.DefaultMax.HasValue && (!float.IsFinite(bar.DefaultMax.Value) || bar.DefaultMax.Value <= 0f))
+        {
+            TomlFieldSpan? defaultMaxField = FindEntryField(doc, asset.Provenance.TableIndex, "DefaultMax");
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                defaultMaxField,
+                "DefaultMax",
+                $"Bar '{asset.Id}' DefaultMax must be finite and > 0.");
+        }
+
+        if (maxStatId == null && !bar.DefaultMax.HasValue)
+        {
+            TomlFieldSpan? maxField = FindEntryField(doc, asset.Provenance.TableIndex, "MaxStatId");
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                maxField,
+                "MaxStatId",
+                $"Bar '{asset.Id}' must specify MaxStatId or a positive DefaultMax.");
+        }
+
+        int iconCount = bar.IconCount ?? Bar.DEFAULT_ICON_COUNT;
+        if (iconCount < 1)
+        {
+            TomlFieldSpan? iconCountField = FindEntryField(doc, asset.Provenance.TableIndex, "IconCount");
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                iconCountField,
+                "IconCount",
+                $"Bar '{asset.Id}' IconCount ({iconCount}) must be >= 1.");
+        }
+
+        ValidateBarIconField(workspace, in asset, doc, "IconFull", bar.IconFull, findings);
+        ValidateBarIconField(workspace, in asset, doc, "IconHalf", bar.IconHalf, findings);
+        ValidateBarIconField(workspace, in asset, doc, "IconEmpty", bar.IconEmpty, findings);
+
+        float warn = bar.WarnThreshold ?? Bar.DEFAULT_WARN_THRESHOLD;
+        if (!float.IsFinite(warn) || warn < 0f || warn > 1f)
+        {
+            TomlFieldSpan? warnField = FindEntryField(doc, asset.Provenance.TableIndex, "WarnThreshold");
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                warnField,
+                "WarnThreshold",
+                $"Bar '{asset.Id}' WarnThreshold must be within [0, 1].");
+        }
+
+        float critical = bar.CriticalThreshold ?? Bar.DEFAULT_CRITICAL_THRESHOLD;
+        if (!float.IsFinite(critical) || critical < 0f || critical > 1f)
+        {
+            TomlFieldSpan? criticalField = FindEntryField(doc, asset.Provenance.TableIndex, "CriticalThreshold");
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                criticalField,
+                "CriticalThreshold",
+                $"Bar '{asset.Id}' CriticalThreshold must be within [0, 1].");
+        }
+        else if (float.IsFinite(warn) && critical > warn)
+        {
+            TomlFieldSpan? criticalField = FindEntryField(doc, asset.Provenance.TableIndex, "CriticalThreshold");
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                criticalField,
+                "CriticalThreshold",
+                $"Bar '{asset.Id}' CriticalThreshold ({critical}) cannot exceed WarnThreshold ({warn}).");
+        }
+
+        if (bar.ColorTint != null && (string.IsNullOrWhiteSpace(bar.ColorTint) || !HexColor.TryParseRgba(bar.ColorTint, out _)))
+        {
+            TomlFieldSpan? colorField = FindEntryField(doc, asset.Provenance.TableIndex, "ColorTint");
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                colorField,
+                "ColorTint",
+                $"Bar '{asset.Id}' has invalid ColorTint '{bar.ColorTint}'.");
+        }
+    }
+
+    private static void ValidateBarIconField(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        TomlDocument? doc,
+        string fieldName,
+        string? value,
+        List<ValidationFinding> findings)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            TomlFieldSpan? field = FindEntryField(doc, asset.Provenance.TableIndex, fieldName);
+            AddFieldFinding(
+                findings,
+                "BAR001",
+                ValidationSeverity.Broken,
+                in asset,
+                field,
+                fieldName,
+                $"Bar '{asset.Id}' is missing {fieldName}.");
+            return;
+        }
+
+        ValidateTextureReference(workspace, in asset, doc, null, fieldName, value.Trim(), ValidationSeverity.Broken, findings);
+    }
+
+    private static void ValidateBuff(
+        WorkspaceIndex workspace,
+        in IndexedAsset asset,
+        in BuffDefinition buff,
+        TomlDocument? doc,
+        List<ValidationFinding> findings)
+    {
+        if (string.IsNullOrWhiteSpace(buff.Name))
+        {
+            TomlFieldSpan? nameField = FindEntryField(doc, asset.Provenance.TableIndex, "Name");
+            AddFieldFinding(
+                findings,
+                "BUFF001",
+                ValidationSeverity.Broken,
+                in asset,
+                nameField,
+                "Name",
+                $"Buff '{asset.Id}' is missing Name localization key.");
+        }
+        else
+        {
+            ValidateLocalizationReference(workspace, in asset, doc, null, "Name", buff.Name.Trim(), ValidationSeverity.Broken, findings);
+        }
+
+        if (!string.IsNullOrWhiteSpace(buff.Description))
+        {
+            ValidateLocalizationReference(workspace, in asset, doc, null, "Description", buff.Description.Trim(), ValidationSeverity.Style, findings);
+        }
+
+        if (!string.IsNullOrWhiteSpace(buff.Icon))
+        {
+            ValidateTextureReference(workspace, in asset, doc, null, "Icon", buff.Icon.Trim(), ValidationSeverity.Broken, findings);
+        }
+
+        if (!float.IsFinite(buff.DurationSeconds) || buff.DurationSeconds <= 0f)
+        {
+            TomlFieldSpan? durationField = FindEntryField(doc, asset.Provenance.TableIndex, "DurationSeconds");
+            AddFieldFinding(
+                findings,
+                "BUFF001",
+                ValidationSeverity.Broken,
+                in asset,
+                durationField,
+                "DurationSeconds",
+                $"Buff '{asset.Id}' DurationSeconds ({buff.DurationSeconds}) must be finite and > 0.");
+        }
+
+        if (buff.StackPolicy != null)
+        {
+            string trimmedPolicy = buff.StackPolicy.Trim();
+            if (!string.Equals(trimmedPolicy, "Refresh", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(trimmedPolicy, "Extend", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(trimmedPolicy, "Ignore", StringComparison.OrdinalIgnoreCase))
+            {
+                TomlFieldSpan? policyField = FindEntryField(doc, asset.Provenance.TableIndex, "StackPolicy");
+                AddFieldFinding(
+                    findings,
+                    "BUFF001",
+                    ValidationSeverity.Broken,
+                    in asset,
+                    policyField,
+                    "StackPolicy",
+                    $"Buff '{asset.Id}' has invalid StackPolicy '{buff.StackPolicy}'; expected Refresh, Extend, or Ignore.");
+            }
+        }
+
+        if (buff.StatModifiers != null)
+        {
+            List<TomlTableSpan> modTables = FindOwnedBuffSubTables(doc, asset.Provenance.TableIndex, "Buffs.StatModifiers");
+            for (int i = 0; i < buff.StatModifiers.Count; i++)
+            {
+                BuffStatModifierDefinition mod = buff.StatModifiers[i];
+                TomlTableSpan? modTable = i < modTables.Count ? modTables[i] : null;
+                TomlFieldSpan? statField = ResolveSubTableField(doc, modTable, "StatId");
+                TomlFieldSpan? flatField = ResolveSubTableField(doc, modTable, "FlatDelta");
+                TomlFieldSpan? pctField = ResolveSubTableField(doc, modTable, "PercentDelta");
+
+                if (string.IsNullOrWhiteSpace(mod.StatId))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BUFF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        statField,
+                        $"StatModifiers[{i}].StatId",
+                        $"Buff '{asset.Id}' StatModifiers[{i}] is missing StatId.");
+                }
+
+                if (mod.FlatDelta.HasValue && !float.IsFinite(mod.FlatDelta.Value))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BUFF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        flatField,
+                        $"StatModifiers[{i}].FlatDelta",
+                        $"Buff '{asset.Id}' StatModifiers[{i}] FlatDelta must be finite.");
+                }
+
+                if (mod.PercentDelta.HasValue && !float.IsFinite(mod.PercentDelta.Value))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BUFF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        pctField,
+                        $"StatModifiers[{i}].PercentDelta",
+                        $"Buff '{asset.Id}' StatModifiers[{i}] PercentDelta must be finite.");
+                }
+
+                if (!mod.FlatDelta.HasValue && !mod.PercentDelta.HasValue)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BUFF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        flatField ?? statField,
+                        $"StatModifiers[{i}]",
+                        $"Buff '{asset.Id}' StatModifiers[{i}] must specify FlatDelta or PercentDelta.");
+                }
+                else if ((mod.FlatDelta ?? 0f) == 0f && (mod.PercentDelta ?? 0f) == 0f)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BUFF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        flatField ?? pctField,
+                        $"StatModifiers[{i}]",
+                        $"Buff '{asset.Id}' StatModifiers[{i}] must have a non-zero delta.");
+                }
+            }
+        }
+
+        if (buff.RegenRates != null)
+        {
+            List<TomlTableSpan> regenTables = FindOwnedBuffSubTables(doc, asset.Provenance.TableIndex, "Buffs.RegenRates");
+            for (int i = 0; i < buff.RegenRates.Count; i++)
+            {
+                BuffRegenRateDefinition regen = buff.RegenRates[i];
+                TomlTableSpan? regenTable = i < regenTables.Count ? regenTables[i] : null;
+                TomlFieldSpan? statField = ResolveSubTableField(doc, regenTable, "StatId");
+                TomlFieldSpan? rateField = ResolveSubTableField(doc, regenTable, "PerSecond");
+
+                if (string.IsNullOrWhiteSpace(regen.StatId))
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BUFF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        statField,
+                        $"RegenRates[{i}].StatId",
+                        $"Buff '{asset.Id}' RegenRates[{i}] is missing StatId.");
+                }
+
+                if (!float.IsFinite(regen.PerSecond) || regen.PerSecond == 0f)
+                {
+                    AddFieldFinding(
+                        findings,
+                        "BUFF001",
+                        ValidationSeverity.Broken,
+                        in asset,
+                        rateField,
+                        $"RegenRates[{i}].PerSecond",
+                        $"Buff '{asset.Id}' RegenRates[{i}] PerSecond must be finite and non-zero.");
+                }
+            }
+        }
+    }
+
+    private static TomlFieldSpan? ResolveSubTableField(TomlDocument? doc, TomlTableSpan? table, string fieldName)
+    {
+        if (doc == null || !table.HasValue)
+        {
+            return null;
+        }
+
+        Result<TomlFieldSpan> res = doc.GetFieldInTable(table.Value.Index, fieldName);
+        return res.Success ? res.Value : null;
+    }
+
+    private static List<TomlTableSpan> FindOwnedBuffSubTables(TomlDocument? doc, int ownerTableIndex, string headerPath)
+    {
+        List<TomlTableSpan> matches = [];
+        if (doc == null || ownerTableIndex < 0 || ownerTableIndex >= doc.Tables.Count)
+        {
+            return matches;
+        }
+
+        for (int i = ownerTableIndex + 1; i < doc.Tables.Count; i++)
+        {
+            TomlTableSpan next = doc.Tables[i];
+            if (next.IsArrayTable && string.Equals(next.HeaderPath, "Buffs", StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
+
+            if (string.Equals(next.HeaderPath, headerPath, StringComparison.OrdinalIgnoreCase))
+            {
+                matches.Add(next);
+                continue;
+            }
+
+            if (!next.HeaderPath.StartsWith("Buffs.", StringComparison.OrdinalIgnoreCase))
             {
                 break;
             }

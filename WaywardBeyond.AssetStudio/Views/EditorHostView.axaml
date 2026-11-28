@@ -45,7 +45,7 @@
               </StackPanel>
             </StackPanel>
 
-            <TextBlock Text="This content pack is ready for authoring. Create your first brick, item, paint, recipe, slot group, skill, body, material, tag, or localization file to get started."
+            <TextBlock Text="This content pack is ready for authoring. Create your first brick, item, paint, recipe, slot group, bar, buff, skill, body, material, tag, or localization file to get started."
                        FontSize="12"
                        LineHeight="18"
                        TextWrapping="Wrap"
@@ -257,6 +257,8 @@
             <forms:PaintFormView IsVisible="{Binding IsPaint}" />
             <forms:RecipeFormView IsVisible="{Binding IsRecipe}" />
             <forms:SlotGroupFormView IsVisible="{Binding IsSlotGroup}" />
+            <forms:BarFormView IsVisible="{Binding IsBar}" />
+            <forms:BuffFormView IsVisible="{Binding IsBuff}" />
             <forms:SkillFormView IsVisible="{Binding IsSkill}" />
             <forms:BodyFormView IsVisible="{Binding IsBody}" />
             <forms:MaterialFormView IsVisible="{Binding IsMaterial}" />
