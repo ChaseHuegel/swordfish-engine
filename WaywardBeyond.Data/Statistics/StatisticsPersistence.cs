@@ -137,9 +137,11 @@ public static class StatisticsPersistence
 
     private static bool IsTransientClientStat(string id)
     {
+        ReadOnlySpan<char> span = id.AsSpan();
         return string.Equals(id, StatisticIds.PRESSURIZED, StringComparison.Ordinal)
-            || StatisticIds.IsBuffTimerKey(id.AsSpan())
-            || StatisticIds.IsCooldownKey(id.AsSpan());
+            || StatisticIds.IsBuffTimerKey(span)
+            || StatisticIds.IsCooldownKey(span)
+            || StatisticIds.IsDeathStat(span);
     }
 
     private static Statistic[]? StripTransientCharacterEntries(Statistic[]? existing)

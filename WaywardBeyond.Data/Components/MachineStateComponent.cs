@@ -6,6 +6,9 @@ namespace WaywardBeyond.Data.Components;
 /// <summary>Server-authoritative replicated runtime state for a brick-entity.</summary>
 public partial struct MachineStateComponent : IDataComponent
 {
+    /// <summary>Canonical station tag assigned to recoverable Death-Container brick-entities.</summary>
+    public const string DEATH_CONTAINER_STATION_TAG = "death_container";
+
     /// <summary>Creates a default machine state with empty station tag and power enabled.</summary>
     public MachineStateComponent()
         : this(

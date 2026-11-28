@@ -42,8 +42,12 @@ public sealed class MachineBrickEntityDecorator : IServerBrickEntityDecorator
             ? (byte)(persisted.Value.StatusFlags & (byte)MachineStatusFlags.PersistentMask)
             : (brick.DefaultOpen ? (byte)MachineStatusFlags.Open : (byte)MachineStatusFlags.None);
 
+        string stationTag = persisted != null && !string.IsNullOrEmpty(persisted.Value.StationTag)
+            ? persisted.Value.StationTag
+            : brick.StationTag;
+
         var machineState = new MachineStateComponent(
-            _StationTag: brick.StationTag,
+            _StationTag: stationTag,
             _ActiveRecipeId: persisted?.ActiveRecipeId,
             _Progress: progress,
             _Duration: duration,

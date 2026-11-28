@@ -49,6 +49,12 @@ public sealed class InventoryBrickEntityDecorator(
         {
             BrickSlotGroup group = slotGroups[i];
             int capacity = group.Capacity ?? resolvedSchemas.GetCapacity(group.GroupId, GetDefaultGroupCapacity(group.GroupId));
+            int persistedMinCapacity = GetRequiredPersistedCapacity(persistedEntries, group.GroupId);
+            if (persistedMinCapacity > capacity)
+            {
+                capacity = Math.Min(persistedMinCapacity, SlotGroupLayout.MAX_TOTAL_CAPACITY);
+            }
+
             descriptors[i] = new SlotGroupDescriptor(group.GroupId, Math.Max(0, capacity));
         }
 
@@ -87,6 +93,37 @@ public sealed class InventoryBrickEntityDecorator(
 
         int count = Math.Clamp(item.Count, 1, maxSize);
         return new ItemData(item.ID, count, maxSize);
+    }
+
+    private static int GetRequiredPersistedCapacity(KeyedSlotEntry[]? persistedEntries, string groupId)
+    {
+        if (persistedEntries == null || persistedEntries.Length == 0 || string.IsNullOrEmpty(groupId))
+        {
+            return 0;
+        }
+
+        var required = 0;
+        for (var i = 0; i < persistedEntries.Length; i++)
+        {
+            KeyedSlotEntry entry = persistedEntries[i];
+            if (entry.Item.IsEmpty() || entry.LocalIndex < 0)
+            {
+                continue;
+            }
+
+            if (string.Equals(entry.GroupId, groupId, StringComparison.Ordinal))
+            {
+                int needed = entry.LocalIndex < SlotGroupLayout.MAX_TOTAL_CAPACITY
+                    ? entry.LocalIndex + 1
+                    : SlotGroupLayout.MAX_TOTAL_CAPACITY;
+                if (needed > required)
+                {
+                    required = needed;
+                }
+            }
+        }
+
+        return required;
     }
 
     private static int GetDefaultGroupCapacity(string groupId)

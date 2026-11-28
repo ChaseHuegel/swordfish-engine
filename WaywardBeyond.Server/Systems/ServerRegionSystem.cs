@@ -306,6 +306,12 @@ public sealed class ServerRegionSystem(
             return;
         }
 
+        if (store.TryGet(playerEntity, out StatisticsComponent playerStats) && playerStats.IsDead)
+        {
+            call.Completion.TrySetResult(FailOp("notification.region.invalidTarget"));
+            return;
+        }
+
         if (itemDatabase == null || bundledBlueprints == null)
         {
             call.Completion.TrySetResult(FailOp("notification.blueprint.loadFailed"));
@@ -592,6 +598,12 @@ public sealed class ServerRegionSystem(
             return false;
         }
 
+        if (store.TryGet(playerEntity, out StatisticsComponent playerStats) && playerStats.IsDead)
+        {
+            error = FailOp("notification.region.invalidTarget");
+            return false;
+        }
+
         GameMode mode = store.TryGet(playerEntity, out GameModeComponent gameMode) ? gameMode.Mode : GameMode.Adventure;
         if (mode != GameMode.Creative)
         {
@@ -627,6 +639,12 @@ public sealed class ServerRegionSystem(
         {
             playerTransform = default;
             error = RpcResult<RegionOpResponse>.Failure(GameRpcErrors.NOT_JOINED, "the peer has no active session entity");
+            return false;
+        }
+
+        if (store.TryGet(playerEntity, out StatisticsComponent playerStats) && playerStats.IsDead)
+        {
+            error = FailOp("notification.region.invalidTarget");
             return false;
         }
 
@@ -938,33 +956,7 @@ public sealed class ServerRegionSystem(
 
     private void BroadcastEntitySpawn(DataStore store, in VoxelEntityData entityData)
     {
-        byte[] payload = entityData.Serialize();
-        uint batchId = ++_nextBatchId;
-        int partCount = PayloadFragmenter.PartCount(payload.Length);
-
-        foreach (Uuid clientId in sessions.Clients)
-        {
-            if (!peers.TryGet(clientId, out ServerPeer peer) || peer.World?.Store != store)
-            {
-                continue;
-            }
-
-            for (var partIndex = 0; partIndex < partCount; partIndex++)
-            {
-                var part = new VoxelEntitySpawnPart
-                {
-                    BatchId = batchId,
-                    PartIndex = (uint)partIndex,
-                    PartCount = (uint)partCount,
-                    Payload = PayloadFragmenter.Slice(payload, partIndex),
-                };
-                if (!peer.Client.VoxelEntitySpawn(part))
-                {
-                    peer.CloseOnRejectedSend(logger);
-                    break;
-                }
-            }
-        }
+        ServerVoxelEntityBroadcaster.BroadcastEntitySpawn(store, sessions, peers, logger, in entityData);
     }
 
     private static RpcResult<RegionOpResponse> FailOp(string errorKey, int skippedUnknownBricks = 0)

@@ -47,7 +47,8 @@ public sealed class ConsumeItemInteractionHandler(
 
         if (!context.Store.TryGet(context.Player, out EquipmentComponent equipment)
             || !context.Store.TryGet(context.Player, out InventoryComponent inventory)
-            || !context.Store.TryGet(context.Player, out StatisticsComponent stats))
+            || !context.Store.TryGet(context.Player, out StatisticsComponent stats)
+            || stats.IsDead)
         {
             return InteractionDecision.Continue;
         }

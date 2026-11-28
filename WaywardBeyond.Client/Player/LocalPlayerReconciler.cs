@@ -32,7 +32,9 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
         CharacterDefaults.RECONCILE_SNAP_DISTANCE * CharacterDefaults.RECONCILE_SNAP_DISTANCE;
 
     private Uuid _player = Uuid.Null;
+    private Vector3 _targetPosition;
     private Quaternion _targetOrientation = Quaternion.Identity;
+    private Vector3 _targetScale = Vector3.One;
     private Vector3 _targetAngularVelocity;
     private Vector3 _ackedLook;
     private bool _hasAuthoritativeTransform;
@@ -41,10 +43,28 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
     public void Reset()
     {
         _player = Uuid.Null;
+        _targetPosition = Vector3.Zero;
         _targetOrientation = Quaternion.Identity;
+        _targetScale = Vector3.One;
         _targetAngularVelocity = Vector3.Zero;
         _ackedLook = Vector3.Zero;
         _hasAuthoritativeTransform = false;
+    }
+
+    /// <summary>Snaps the local player transform directly to the latest authoritative pose and clears residual angular velocity.</summary>
+    public void SnapToTarget(DataStore store)
+    {
+        if (_player == Uuid.Null || !_hasAuthoritativeTransform || !store.TryGet(_player, out int entity))
+        {
+            return;
+        }
+
+        _targetAngularVelocity = Vector3.Zero;
+        var snap = new SnapTransform(in _targetPosition, in _targetOrientation, in _targetScale);
+        store.QueryRef<TransformComponent, SnapTransform>(entity, 0f, ref snap);
+
+        var zeroAngular = new SeatAngularVelocity(Vector3.Zero);
+        store.QueryRef<PhysicsComponent, SeatAngularVelocity>(entity, 0f, ref zeroAngular);
     }
 
     /// <summary>Applies an authoritative transform, records its orientation target, and blends position corrections.</summary>
@@ -67,6 +87,8 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
         store.QueryRef<TransformComponent, SeatTransform>(entity, 0f, ref write);
         _hasAuthoritativeTransform = true;
 
+        _targetPosition = position;
+        _targetScale = scale;
         _targetOrientation = Quaternion.Normalize(orientation);
     }
 
@@ -213,6 +235,32 @@ internal sealed class LocalPlayerReconciler(ILogger<LocalPlayerReconciler> logge
     {
         return float.IsFinite(value.X) && float.IsFinite(value.Y)
             && float.IsFinite(value.Z) && float.IsFinite(value.W);
+    }
+
+    private readonly struct SnapTransform(
+        in Vector3 position,
+        in Quaternion orientation,
+        in Vector3 scale
+    ) : IForEachRef<TransformComponent>
+    {
+        private readonly Vector3 _position = position;
+        private readonly Quaternion _orientation = orientation;
+        private readonly Vector3 _scale = scale;
+
+        /// <inheritdoc/>
+        public void Execute(float delta, DataStore store, int entity, ref Ref<TransformComponent> transform)
+        {
+            ref readonly TransformComponent current = ref transform.Read;
+            if (current.Position == _position && current.Orientation == _orientation && current.Scale == _scale)
+            {
+                return;
+            }
+
+            ref TransformComponent value = ref transform.Write;
+            value.Position = _position;
+            value.Orientation = _orientation;
+            value.Scale = _scale;
+        }
     }
 
     private readonly struct SeatTransform(

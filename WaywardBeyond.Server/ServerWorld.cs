@@ -34,6 +34,8 @@ public sealed class ServerWorld : IDisposable
     public NetworkReplicationSystem Replication { get; }
     /// <summary>The world server-managed brick-entity registry and lifecycle service, or null in minimal test containers.</summary>
     public ServerBrickEntityService? BrickEntities { get; }
+    /// <summary>The world Adventure Mode death and respawn service, or null in minimal test containers.</summary>
+    public ServerDeathService? DeathService { get; }
     /// <summary>The world particle replication and burst service.</summary>
     public IServerParticleService Particles { get; }
     /// <summary>The shared simulation step for this world.</summary>
@@ -64,6 +66,9 @@ public sealed class ServerWorld : IDisposable
         HandlerRegistry = container.Resolve<IInteractionHandlerRegistry>();
         Pin<IServerWorldPhysics>(container);
         SimulationStep = Pin<SimulationStep>(container);
+        DeathService = container.IsRegistered<ServerDeathService>()
+            ? Pin<ServerDeathService>(container)
+            : null;
         Pin<Func<DataStore, IVoxelInteractionWorld>>(container);
         Pin<ServerInteractionSystem>(container);
 

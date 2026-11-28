@@ -76,6 +76,11 @@ public sealed class ServerPaintSprayerSystem(
         in TransformComponent transform,
         in InputComponent latestInput
     ) {
+        if (store.TryGet(entity, out StatisticsComponent stats) && stats.IsDead)
+        {
+            return;
+        }
+
         InputComponent input = ResolveInput(in net, in latestInput, simTick, _simulationStep.CommandMaxAgeTicks);
         bool firing = input.PrimaryHeld || input.SecondaryHeld;
         if (!firing

@@ -40,7 +40,7 @@ A method id is a wire contract. Never change or reuse one between builds.
 |---|---|
 | 1–19 | connection: hello, leave, client heartbeat, server discovery |
 | 20–59 | replication: client snapshot |
-| 60–99 | gameplay commands: chat, region cut, region paste, blueprint item placement |
+| 60–99 | gameplay commands: chat, region cut, region paste, blueprint item placement, respawn |
 | 100–149 | menu: list, create, delete, save |
 | 200–249 | join: join, stream level |
 | 300–349 | server state: snapshot, snapshot batch |
@@ -58,6 +58,7 @@ A method id is a wire contract. Never change or reuse one between builds.
 | 61 | `CutRegion` | client → server | call | `CutRegionRequest` → `RegionOpResponse` |
 | 62 | `PasteRegionPart` | client → server | call | `RegionUploadPart` → `RegionOpResponse` |
 | 63 | `PlaceBlueprintItem` | client → server | call | `PlaceBlueprintItemRequest` → `RegionOpResponse` |
+| 64 | `Respawn` | client → server | call | `RespawnRequest` → `RespawnResponse` |
 | 100 | `ListLevels` | client → server | call | `ListLevelsRequest` → `ListLevelsResponse` |
 | 101 | `CreateLevel` | client → server | call | `NewLevelRequest` → `NewLevelResponse` |
 | 102 | `DeleteLevel` | client → server | call | `DeleteLevelRequest` → `DeleteLevelResponse` |

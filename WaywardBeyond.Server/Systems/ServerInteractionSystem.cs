@@ -10,6 +10,7 @@ using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Gameplay.Networking;
 using WaywardBeyond.Server.Components;
+using WaywardBeyond.Server.Saves;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -26,7 +27,8 @@ public sealed class ServerInteractionSystem(
     IInteractionHandlerRegistry handlerRegistry,
     Func<DataStore, IVoxelInteractionWorld> worldFactory,
     SimulationStep simulationStep,
-    ServerBrickEntityService? brickEntities = null
+    ServerBrickEntityService? brickEntities = null,
+    LevelSaveService? saveService = null
 ) : IServerWorldSystem
 {
     private readonly Dictionary<Uuid, TimedSession> _timedSessions = [];
@@ -82,6 +84,23 @@ public sealed class ServerInteractionSystem(
         _visitedPlayers.Add(playerUuid);
 
         consumedSequence = net.LastConsumedInteractionSequence;
+        if (store.TryGet(entity, out StatisticsComponent stats) && stats.IsDead)
+        {
+            _timedSessions.Remove(playerUuid);
+            if (net.StagedInteractions != null)
+            {
+                StageRing<InteractionEvent> buffer = net.StagedInteractions;
+                Result<InteractionEvent> staged = buffer.Consume(simTick, consumedSequence);
+                while (staged.Success)
+                {
+                    consumedSequence = staged.Value.SequenceNumber;
+                    staged = buffer.Consume(simTick, consumedSequence);
+                }
+            }
+
+            return;
+        }
+
         if (net.StagedInteractions != null)
         {
             StageRing<InteractionEvent> buffer = net.StagedInteractions;
@@ -319,7 +338,17 @@ public sealed class ServerInteractionSystem(
         }
         else if (resolution.Action == InteractionAction.Break)
         {
-            brickEntities.OnBrickBroken(store, store.GetUuid(resolution.Entity), resolution.Coordinate, context.Player, context.GameMode);
+            brickEntities.OnBrickBroken(
+                store,
+                store.GetUuid(resolution.Entity),
+                resolution.Coordinate,
+                out Uuid despawnedStructure,
+                context.Player,
+                context.GameMode);
+            if (despawnedStructure != Uuid.Null)
+            {
+                saveService?.QueueDeleteStructure(despawnedStructure);
+            }
         }
     }
 

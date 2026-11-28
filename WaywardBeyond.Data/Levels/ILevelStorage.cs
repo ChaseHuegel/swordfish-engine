@@ -33,6 +33,12 @@ public interface ILevelStorage : IDisposable
     /// <summary>Deletes orphaned brick-entity records keyed by <paramref name="keys"/> in one transaction.</summary>
     Result DeleteBrickEntities(IReadOnlyList<BrickEntityKey> keys) => Result.FromSuccess();
 
+    /// <summary>Upserts one voxel structure and its associated brick-entities in one transaction.</summary>
+    Result SaveStructure(VoxelEntityData voxelEntity, IReadOnlyList<BrickEntityData> brickEntities) => Result.FromSuccess();
+
+    /// <summary>Deletes one voxel structure and all brick-entities anchored to it in one transaction.</summary>
+    Result DeleteStructure(ulong voxelEntityUuid) => Result.FromSuccess();
+
     /// <summary>Attempts to save the level's information.</summary>
     Result Save(Level level);
 

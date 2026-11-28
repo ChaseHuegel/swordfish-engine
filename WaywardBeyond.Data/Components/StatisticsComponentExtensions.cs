@@ -96,6 +96,12 @@ public static class StatisticsComponentExtensions
         return stats.Read.HasExpiredBuffs(currentSimTick) && stats.Write.PruneExpiredBuffs(currentSimTick);
     }
 
+    /// <summary>Change-gated removal of every buff timer entry from <paramref name="stats"/>.</summary>
+    public static bool ClearAllBuffs(ref Ref<StatisticsComponent> stats)
+    {
+        return stats.Read.HasAnyBuffs() && stats.Write.ClearAllBuffs();
+    }
+
     /// <summary>Change-gated pruning of ready consumable cooldowns (<c>&lt;= currentSimTick</c>) from <paramref name="stats"/>.</summary>
     public static bool PruneExpiredCooldowns(ref Ref<StatisticsComponent> stats, long currentSimTick)
     {
@@ -209,6 +215,13 @@ public static class StatisticsComponentExtensions
         return RunSingleEntityAction(store, entity, ref action, out bool changed) && changed;
     }
 
+    /// <summary>Change-gated removal of every buff timer entry on <paramref name="entity"/> in <paramref name="store"/>.</summary>
+    public static bool ClearAllBuffs(this DataStore store, int entity)
+    {
+        var action = new ClearAllBuffsAction();
+        return RunSingleEntityAction(store, entity, ref action, out bool changed) && changed;
+    }
+
     //  Krill's single-entity QueryRef copies struct actions by value into a local, so mutations report back through TLS.
     private static bool RunSingleEntityAction<TAction>(DataStore store, int entity, ref TAction action, out bool changed)
         where TAction : struct, IForEachRef<StatisticsComponent>
@@ -273,6 +286,15 @@ public static class StatisticsComponentExtensions
         {
             _lastActionExecuted = true;
             _lastActionChanged = PruneExpiredBuffs(ref component, currentSimTick);
+        }
+    }
+
+    private readonly struct ClearAllBuffsAction : IForEachRef<StatisticsComponent>
+    {
+        public void Execute(float delta, DataStore store, int entity, ref Ref<StatisticsComponent> component)
+        {
+            _lastActionExecuted = true;
+            _lastActionChanged = ClearAllBuffs(ref component);
         }
     }
 }

@@ -92,15 +92,24 @@ public static class CharacterStatisticsSeeder
         Span<long> clientAttributes = stackalloc long[StatisticIds.BaseAttributeIds.Length];
         ClientSeed clientSeed = ExtractClientSeed(seed.Statistics, clientAttributes);
 
+        bool isDead = gameMode != GameMode.Creative
+            && hasPersisted
+            && TryFindStatistic(persisted, StatisticIds.DEAD, out long savedDead)
+            && savedDead != 0L;
+
         long health = healthMax;
         long oxygen = oxygenMax;
         if (gameMode != GameMode.Creative)
         {
-            if (hasPersisted && TryFindStatistic(persisted, StatisticIds.HEALTH, out long savedHealth))
+            if (isDead)
+            {
+                health = 0L;
+            }
+            else if (hasPersisted && TryFindStatistic(persisted, StatisticIds.HEALTH, out long savedHealth))
             {
                 health = Math.Clamp(savedHealth, 0L, healthMax);
             }
-            else if (clientSeed.Health.HasValue)
+            else if (clientSeed.Health.HasValue && clientSeed.Health.Value > 0L)
             {
                 health = Math.Clamp(clientSeed.Health.Value, 0L, healthMax);
             }
@@ -115,7 +124,7 @@ public static class CharacterStatisticsSeeder
             }
         }
 
-        int initialCapacity = 5 + StatisticIds.BaseAttributeIds.Length + (persisted != null ? persisted.Length : 0);
+        int initialCapacity = 6 + StatisticIds.BaseAttributeIds.Length + (persisted != null ? persisted.Length : 0);
         var entries = new List<Statistic>(initialCapacity)
         {
             new(StatisticIds.HEALTH_MAX, healthMax),
@@ -123,7 +132,13 @@ public static class CharacterStatisticsSeeder
             new(StatisticIds.OXYGEN_MAX, oxygenMax),
             new(StatisticIds.OXYGEN, oxygen),
             new(StatisticIds.PRESSURIZED, 0L),
+            new(StatisticIds.DEAD, isDead ? 1L : 0L),
         };
+
+        if (isDead && persisted != null)
+        {
+            CopyPersistedDeathMetadata(persisted, entries);
+        }
 
         for (var i = 0; i < StatisticIds.BaseAttributeIds.Length; i++)
         {
@@ -158,7 +173,7 @@ public static class CharacterStatisticsSeeder
 
                 if (StatisticIds.TryParseBuffRemainingTicksId(entry.ID.AsSpan(), out ReadOnlySpan<char> buffId))
                 {
-                    if (entry.Value <= 0L)
+                    if (isDead || entry.Value <= 0L)
                     {
                         continue;
                     }
@@ -291,14 +306,37 @@ public static class CharacterStatisticsSeeder
         return false;
     }
 
+    private static void CopyPersistedDeathMetadata(Statistic[] persisted, List<Statistic> entries)
+    {
+        for (var i = 0; i < persisted.Length; i++)
+        {
+            Statistic entry = persisted[i];
+            if (string.IsNullOrWhiteSpace(entry.ID))
+            {
+                continue;
+            }
+
+            if (string.Equals(entry.ID, StatisticIds.DEATH_CAUSE, StringComparison.Ordinal)
+                || string.Equals(entry.ID, StatisticIds.DEATH_X, StringComparison.Ordinal)
+                || string.Equals(entry.ID, StatisticIds.DEATH_Y, StringComparison.Ordinal)
+                || string.Equals(entry.ID, StatisticIds.DEATH_Z, StringComparison.Ordinal)
+                || string.Equals(entry.ID, StatisticIds.DEATH_HAS_CONTAINER, StringComparison.Ordinal))
+            {
+                StatisticsPersistence.UpsertEntry(entries, in entry);
+            }
+        }
+    }
+
     private static bool IsReservedJoinStat(string id)
     {
+        ReadOnlySpan<char> span = id.AsSpan();
         if (string.Equals(id, StatisticIds.HEALTH, StringComparison.Ordinal)
             || string.Equals(id, StatisticIds.HEALTH_MAX, StringComparison.Ordinal)
             || string.Equals(id, StatisticIds.OXYGEN, StringComparison.Ordinal)
             || string.Equals(id, StatisticIds.OXYGEN_MAX, StringComparison.Ordinal)
             || string.Equals(id, StatisticIds.PRESSURIZED, StringComparison.Ordinal)
-            || StatisticIds.IsCooldownKey(id.AsSpan()))
+            || StatisticIds.IsCooldownKey(span)
+            || StatisticIds.IsDeathStat(span))
         {
             return true;
         }

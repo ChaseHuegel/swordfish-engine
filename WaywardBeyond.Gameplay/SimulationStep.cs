@@ -160,6 +160,12 @@ public sealed class SimulationStep : IDisposable
 
     private void Execute(int entity, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
     {
+        if (_store.TryGet(entity, out StatisticsComponent stats) && stats.IsDead)
+        {
+            Damp(ref physics);
+            return;
+        }
+
         ref readonly TransformComponent transformValue = ref transform.Read;
 
         //  The solver's fixed timestep scales the per-step impulses; both sides run the same step.

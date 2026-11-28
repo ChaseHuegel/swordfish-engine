@@ -283,3 +283,14 @@ message VoxelEntitySpawnPart
     uint PartCount = 2;
     byte[] Payload = 3;
 }
+
+message RespawnRequest
+{
+    byte Dummy = 0;
+}
+
+message RespawnResponse
+{
+    bool Success = 0;
+    string? ErrorKey = 1;
+}

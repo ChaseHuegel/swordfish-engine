@@ -69,9 +69,25 @@ suppressing reactions, returns it from `Commit`.
 A consumable item binds `SecondaryPressed` in `InteractionIntent` (`WaywardBeyond.Client/Systems/InteractionIntent.cs:15`).
 `PlayerInteractionService` stages a hintless secondary event, so no voxel target or prediction is involved.
 On the server, `ConsumeItemInteractionHandler` (`WaywardBeyond.Server/Interactions/ConsumeItemInteractionHandler.cs`)
-runs at `React` with the `SecondaryPressed` and `Adventure` filter. It resolves the held item's
+runs at `React` with the `SecondaryPressed` and `Adventure` filter. It refuses use
+while `StatisticsComponent.IsDead` is true, resolves the held item's
 `[Items.Consumable]` block, checks benefit and cooldown, deducts one unit from the active hotbar slot,
 and applies health, oxygen, and buff effects. See [survival](survival.md).
+
+## Dead-player gating and brick-entity teardown
+
+`ServerInteractionSystem` (`WaywardBeyond.Server/Systems/ServerInteractionSystem.cs:87`)
+blocks all interactions for dead players (`StatisticsComponent.IsDead`). When a player
+is dead, the pump removes any active timed session and drains staged interaction events
+while advancing `LastConsumedInteractionSequence` so queued actions do not replay after
+respawn.
+
+After a committed `Break` interaction, `ServerInteractionSystem.NotifyBrickEntityInteraction`
+(`WaywardBeyond.Server/Systems/ServerInteractionSystem.cs:327`) notifies
+`ServerBrickEntityService.OnBrickBroken` (`WaywardBeyond.Server/Systems/ServerBrickEntityService.cs:219`).
+When breaking a brick carrying `MachineStatusFlags.AutoDespawnWhenEmpty` removes the last
+solid voxel from its parent structure, the service despawns the empty `VoxelEntity` and
+returns its UUID so `ServerInteractionSystem` queues `LevelSaveService.QueueDeleteStructure`.
 
 ## Client prediction
 
@@ -137,5 +153,7 @@ Timed interactions compose through the pipeline rather than living hardcoded ins
 - `WaywardBeyond.Client/Systems/{InteractionState,PlayerInteractionService}.cs`
 - `WaywardBeyond.Server/Interactions/` — default `Select`, `Validate` (`BreakToolValidator`, `AdventureBreakHoldValidator`), `Commit`, and `React` handlers (`BreakLootReactor`, `PlaceConsumeReactor`, `ConsumeItemInteractionHandler`, `SkillXpReactor`)
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs` — generic interaction pump and timed session tracker
+- `WaywardBeyond.Server/Systems/ServerBrickEntityService.cs` — brick-entity lifecycle and auto-despawn structure cleanup on break
 - `WaywardBeyond.Server/ServerComposition.cs` — default handler and stat modifier registration
 - `WaywardBeyond.Tests/TimedBrickBreakingTests.cs` — unit and integration coverage
+- `WaywardBeyond.Tests/DeathAndRespawnTests.cs` — dead-player interaction blocking and Death-Container break despawn coverage
