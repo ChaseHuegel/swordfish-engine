@@ -131,22 +131,7 @@ message InventoryEvent
 {
     ulong Entity              = 0;
     uint  SequenceNumber      = 1;
-    SlotMoveOp? SlotMove      = 2;
-    TransferOp? Transfer      = 3;
-}
-
-message SlotMoveOp
-{
-    SlotMoveOpMode Mode = 0;
-    int FromSlot = 1;
-    int ToSlot = 2;
-    uint? Count = 3;
-}
-
-enum SlotMoveOpMode
-{
-    Exact = 0;
-    AutoStack = 1;
+    TransferOp? Transfer      = 2;
 }
 
 enum TransferMode

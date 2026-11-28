@@ -351,7 +351,7 @@ public sealed class ServerJoinSystem(
     private void SeedInteractionContext(DataStore store, int entity, in CharacterState seed, GameMode gameMode)
     {
         var inventory = InventoryComponent.CreatePlayer(schemas);
-        KeyedSlotEntry[] initial = PlayerInitialInventory.Resolve(seed.KeyedInventory, seed.Inventory, gameMode);
+        KeyedSlotEntry[] initial = PlayerInitialInventory.Resolve(seed.Inventory, gameMode);
         if (itemDatabase != null && initial.Length > 0)
         {
             initial = ClampMaxStackSizes(initial, itemDatabase);

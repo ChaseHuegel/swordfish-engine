@@ -74,39 +74,12 @@ public sealed class ServerInventorySystem(
             consumedSequence = op.SequenceNumber;
 
             //  An invalid op is a no-op, but its sequence is still consumed so it cannot replay.
-            ApplyOp(store, entity, playerUuid, ref updated, in op, ref playerChanged);
+            ApplyTransferOp(store, entity, playerUuid, ref updated, in op.Transfer, ref playerChanged);
             stagedOp = staged.Consume(consumedSequence);
         }
 
         staged.Clear();
         return playerChanged;
-    }
-
-    private void ApplyOp(
-        DataStore store,
-        int playerEntity,
-        Uuid playerUuid,
-        ref InventoryComponent playerInventory,
-        in InventoryOp op,
-        ref bool playerChanged
-    )
-    {
-        if (op.Transfer != null)
-        {
-            ApplyTransferOp(store, playerEntity, playerUuid, ref playerInventory, op.Transfer.Value, ref playerChanged);
-            return;
-        }
-
-        if (op.SlotMove == null)
-        {
-            return;
-        }
-
-        Result<TransferOp> translated = InventoryResolver.ToTransferOp(in playerInventory, op.SlotMove.Value, playerUuid.ToValue());
-        if (translated.Success)
-        {
-            playerChanged |= InventoryResolver.Apply(ref playerInventory, translated.Value, in _context);
-        }
     }
 
     private void ApplyTransferOp(

@@ -91,8 +91,8 @@ caches, such as `InventoryComponent` (`WaywardBeyond.Data/Components/InventoryCo
 apply `[StructLayout(LayoutKind.Auto)]` to prevent field-ordering warnings and
 hydrate caches in `InventoryCodec.Apply` (`WaywardBeyond.Networking/Codecs/InventoryCodec.cs:20-34`)
 after deserialization. Schemas may declare enums. `network.nsd`
-declares `NotificationType` and `components.nsd` declares `SlotMoveOpMode` and
-`TransferMode`, generating each into its schema namespace.
+declares `NotificationType` and `components.nsd` declares `TransferMode`,
+generating each into its schema namespace.
 
 Wire identity lives in `WaywardBeyond.Networking` (`NetworkRegistry`,
 `NetworkDirection`, `IPayloadCodec`). Per-session staging state lives in

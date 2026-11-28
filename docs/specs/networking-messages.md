@@ -166,8 +166,7 @@ message InventoryEvent
 {
     ulong Entity              = 0;
     uint  SequenceNumber      = 1;
-    SlotMoveOp? SlotMove      = 2;    // legacy positional move payload
-    TransferOp? Transfer      = 3;    // keyed intra-inventory or cross-container transfer
+    TransferOp? Transfer      = 2;    // keyed intra-inventory or cross-container transfer
 }
 ```
 
@@ -313,11 +312,10 @@ message CharacterState
     ulong CharacterUuid = 0;
     string Name = 1;
     string Body = 2;
-    ItemData[]? Inventory = 3;
+    KeyedSlotEntry[]? Inventory = 3;
     int ActiveInventorySlot = 4;
     GameMode GameMode = 5;
     Statistic[]? Statistics = 6;   // skill XP seed; server keeps only what matches a skill id
-    KeyedSlotEntry[]? KeyedInventory = 7;
 }
 ```
 

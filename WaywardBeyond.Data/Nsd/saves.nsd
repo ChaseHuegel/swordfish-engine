@@ -67,8 +67,7 @@ message Character
     
     Statistic[]? Statistics = 15;
     
-    ItemData[]? Inventory = 20;
-    KeyedSlotEntry[]? KeyedInventory = 21;
+    KeyedSlotEntry[]? Inventory = 20;
 }
 
 message KeyedSlotEntry

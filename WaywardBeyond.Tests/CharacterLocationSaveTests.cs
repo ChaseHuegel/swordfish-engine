@@ -298,7 +298,11 @@ public class CharacterLocationSaveTests
         using TestHarness harness = CreateHarness(storage);
         ServerPeer peer = harness.AddPeer(clientId: 1, isLocal: false);
 
-        ItemData[] saved = [new ItemData("wb:rock", 5, 100), new ItemData("wb:panel", 2, 100)];
+        KeyedSlotEntry[] saved =
+        [
+            new KeyedSlotEntry(SlotGroups.HOTBAR, 0, new ItemData("wb:rock", 5, 100)),
+            new KeyedSlotEntry(SlotGroups.HOTBAR, 1, new ItemData("wb:panel", 2, 100)),
+        ];
         JoinRequest request = CreateJoinRequest(LEVEL_GUID, characterUuid: 605, levelDefaultMode, saved);
         RpcResult<JoinAccept> joined = await harness.JoinAsync(peer, request);
         Assert.True(joined.IsSuccess, joined.ErrorMessage);
@@ -339,7 +343,7 @@ public class CharacterLocationSaveTests
         Assert.Equal(expectedOrientation.W, accept.OrientationW, precision: 4);
     }
 
-    private static JoinRequest CreateJoinRequest(string levelGuid, ulong characterUuid, GameMode gameMode = GameMode.Adventure, ItemData[]? inventory = null)
+    private static JoinRequest CreateJoinRequest(string levelGuid, ulong characterUuid, GameMode gameMode = GameMode.Adventure, KeyedSlotEntry[]? inventory = null)
     {
         return new JoinRequest
         {

@@ -41,12 +41,6 @@ public static class DataComposition
             ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.RegisterMapping<ISlotGroupSchemaDatabase, SlotGroupSchemaDatabase>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
 
-        if (!container.IsRegistered<CharacterKeyedInventoryMigration>())
-        {
-            container.Register<CharacterKeyedInventoryMigration>(Reuse.Singleton);
-            container.RegisterMapping<IMigration, CharacterKeyedInventoryMigration>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        }
-
         container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.Register<SeedPhraseService>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.Register<ContentPackVersionChecker>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);

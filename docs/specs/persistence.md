@@ -174,31 +174,23 @@ cadence. Its autosave timer saves the character only. Pause, F5, and close call
 `SaveLevelAsync`. Remote clients never request a level save. The server
 autosaves the level.
 
-Character inventories persist sparsely as `KeyedSlotEntry[]? KeyedInventory` on
-`Character` (`WaywardBeyond.Data/Nsd/saves.nsd:71`) and `CharacterState`
-(`WaywardBeyond.Data/Nsd/levels.nsd:78`). `CharacterSaveManager` writes
-`ToSparseEntries()` and clears legacy `Character.Inventory` to `null` on save
-(`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:82`). A `null`
-`KeyedInventory` and `Inventory` signals a new character and grants the starter
-loadout on join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:351`). An
-empty non-null array signals an intentionally emptied inventory that never
-restocks.
+Character inventories persist sparsely as `KeyedSlotEntry[]? Inventory` on
+`Character` (`WaywardBeyond.Data/Nsd/saves.nsd:70`) and `CharacterState`
+(`WaywardBeyond.Data/Nsd/levels.nsd:74`). `CharacterSaveManager` writes
+`ToSparseEntries()` on save (`WaywardBeyond.Client/Saves/CharacterSaveManager.cs:82`).
+A `null` `Inventory` signals a new character and grants the starter loadout on
+join (`WaywardBeyond.Server/Systems/ServerJoinSystem.cs:351`). An empty non-null
+array signals an intentionally emptied inventory that never restocks.
 
 ## Serialization and data versioning
 
-`DataVersion.CURRENT` (`WaywardBeyond.Data/DataVersion.cs:7`) is `5`.
 `Migrator` (`WaywardBeyond.Data/Migrations/Migrator.cs`) gates on
 `DataVersion.CURRENT` and runs per-record forward migrations. Storage types
 guard and migrate on read: `SqliteCharacterStorage`, `SqliteLevelMetadataStorage`,
 and `SqliteLevelStorage` all refuse records stamped by a newer build. Structure
 data carries a brick palette since data version 4. `VoxelCodec` encodes live
-registry-id data to a palette on write and decodes on load. Character saves from
-data version 4 migrate forward via `CharacterKeyedInventoryMigration`
-(`WaywardBeyond.Data/Migrations/CharacterKeyedInventoryMigration.cs:4`), mapping
-positional `Character.Inventory` indices `0..8` to `wb:hotbar` and `9+` to
-`wb:backpack` while preserving `null` vs empty arrays via
-`KeyedInventoryMigration` (`WaywardBeyond.Data/Inventory/KeyedInventoryMigration.cs:13`).
-The `Character` and `Level` records stamp their format via the `Version` message.
+registry-id data to a palette on write and decodes on load. The `Character` and
+`Level` records stamp their format via the `Version` message.
 See [brick-identity](brick-identity.md).
 
 The previous NATS JetStream store is no longer read. Existing JetStream data in
@@ -229,14 +221,11 @@ no shared broker process to manage.
 - `WaywardBeyond.Server/ServerLevelManager.cs`
 - `WaywardBeyond.Server/ServerHostCommands.cs`
 - `WaywardBeyond.Server/ServerWorldHost.cs`
-- `WaywardBeyond.Data/DataVersion.cs:7`
-- `WaywardBeyond.Data/Inventory/KeyedInventoryMigration.cs:13`
-- `WaywardBeyond.Data/Migrations/CharacterKeyedInventoryMigration.cs:4`
 - `WaywardBeyond.Data/Nsd/{saves,voxels,levels,blueprints}.nsd`
 
 ## Tests that pin this
 
 - `WaywardBeyond.Tests/AdventureStarterWreckTests.cs` pins Adventure starter wreckage persistence, Creative omission, determinism, palette round-trips, and spawn/asteroid clearance.
-- `WaywardBeyond.Tests/KeyedInventoryTests.cs` pins sparse character storage persistence and data version 4 to 5 `CharacterKeyedInventoryMigration` round-trips.
+- `WaywardBeyond.Tests/KeyedInventoryTests.cs` pins sparse keyed character storage persistence round-trips.
 - `WaywardBeyond.Tests/CharacterLocationSaveTests.cs` pins join inventory seeding and non-restocking rules.
 - No tests pin the playtime rules.

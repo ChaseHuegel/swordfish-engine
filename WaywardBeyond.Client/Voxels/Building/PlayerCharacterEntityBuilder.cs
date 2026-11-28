@@ -24,14 +24,9 @@ internal sealed class PlayerCharacterEntityBuilder(
     public void Decorate(Entity player, Character character, Vector3 spawnPosition, Quaternion spawnOrientation)
     {
         var inventory = InventoryComponent.CreatePlayer(_schemas);
-        if (character.KeyedInventory != null)
+        if (character.Inventory != null)
         {
-            inventory.LoadSparse(character.KeyedInventory);
-        }
-        else if (character.Inventory != null)
-        {
-            KeyedSlotEntry[] migrated = KeyedInventoryMigration.FromLegacySlots(character.Inventory) ?? [];
-            inventory.LoadSparse(migrated);
+            inventory.LoadSparse(character.Inventory);
         }
 
         player.Add<PlayerComponent>();

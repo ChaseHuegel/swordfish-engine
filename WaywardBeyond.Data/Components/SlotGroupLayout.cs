@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Data.Components;
 
@@ -133,27 +132,6 @@ public sealed class SlotGroupLayout
 
         flatIndex = -1;
         return false;
-    }
-
-    /// <summary>Resolves a flat contiguous store index back to its composite <see cref="SlotId"/>.</summary>
-    public Result<SlotId> GetSlotIdAtFlatIndex(int flatIndex)
-    {
-        if (flatIndex < 0 || flatIndex >= TotalCapacity)
-        {
-            return Result<SlotId>.FromFailure("Flat slot index is out of bounds.");
-        }
-
-        for (var i = 0; i < _ranges.Length; i++)
-        {
-            SlotGroupRange range = _ranges[i];
-            int local = flatIndex - range.Offset;
-            if (local >= 0 && local < range.Capacity)
-            {
-                return Result<SlotId>.FromSuccess(new SlotId(range.GroupId, local));
-            }
-        }
-
-        return Result<SlotId>.FromFailure("Flat slot index does not belong to any group.");
     }
 
     /// <summary>Returns a new layout with <paramref name="groupId"/> resized or appended at <paramref name="newCapacity"/>.</summary>

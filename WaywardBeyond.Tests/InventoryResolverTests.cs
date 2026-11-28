@@ -226,26 +226,6 @@ public class InventoryResolverTests
     }
 
     [Fact]
-    public void TranslatesLegacySlotMoveOpViaCompositeGroups()
-    {
-        InventoryComponent inventory = PlayerInventory();
-        inventory.Set(in Hotbar0, new ItemData("rock", 2, 10));
-        inventory.Set(in Backpack3, new ItemData("rock", 4, 10));
-
-        var legacy = new SlotMoveOp
-        {
-            Mode = SlotMoveOpMode.Exact,
-            FromSlot = 0,
-            ToSlot = CharacterDefaults.HOTBAR_SLOT_COUNT + 3,
-            Count = null,
-        };
-
-        Assert.True(InventoryResolver.Apply(ref inventory, in legacy));
-        Assert.True(inventory.Get(in Hotbar0).IsEmpty());
-        Assert.Equal(6, inventory.Get(in Backpack3).Count);
-    }
-
-    [Fact]
     public void ComputeDistributionSplitsEvenlyAcrossFourSlots()
     {
         InventoryComponent inventory = Inventory(10);

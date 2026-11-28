@@ -38,8 +38,7 @@ public class PlayerCharacterEntityBuilderTests
                 new Statistic("mining", 42),
                 new Statistic("mod:jump_boost", 3),
             ],
-            _Inventory: null,
-            _KeyedInventory: null
+            _Inventory: null
         );
 
         var position = new Vector3(1f, 2f, 3f);

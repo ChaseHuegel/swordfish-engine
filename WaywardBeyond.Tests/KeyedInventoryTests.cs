@@ -164,55 +164,52 @@ public class KeyedInventoryTests
     }
 
     [Fact]
-    public void LegacyPositionalCharacterMigratesCleanlyAcrossVersionsAndSqliteStorage()
+    public void KeyedCharacterInventoryRoundTripsThroughSqliteStorage()
     {
-        Assert.Null(KeyedInventoryMigration.FromLegacySlots(null));
-        Assert.Empty(KeyedInventoryMigration.FromLegacySlots([])!);
+        KeyedSlotEntry[] entries =
+        [
+            new KeyedSlotEntry(SlotGroups.HOTBAR, 0, new ItemData("laser", 1, 1)),
+            new KeyedSlotEntry(SlotGroups.HOTBAR, 8, new ItemData("wb:torch", 12, 32)),
+            new KeyedSlotEntry(SlotGroups.BACKPACK, 0, new ItemData("wb:rock", 64, 64)),
+            new KeyedSlotEntry(SlotGroups.WEARABLES, 0, new ItemData("wb:helmet", 1, 1)),
+            new KeyedSlotEntry(SlotGroups.AUGMENTS, 2, new ItemData("wb:speed_chip", 1, 1)),
+        ];
 
-        var legacySlots = new ItemData[46];
-        legacySlots[0] = new ItemData("laser", 1, 1);
-        legacySlots[8] = new ItemData("wb:torch", 12, 32);
-        legacySlots[9] = new ItemData("wb:rock", 64, 64);
-        legacySlots[44] = new ItemData("wb:panel", 15, 64);
-        legacySlots[45] = new ItemData("wb:core", 2, 16);
-
-        var v4Character = new Character(
-            new Version(DataVersion.CURRENT - 1, "Wayward Beyond", "Save"),
+        var character = new Character(
+            new Version(DataVersion.CURRENT, "Wayward Beyond", "Save"),
             4242UL,
             new Playtime(),
-            "Migrated",
+            "Saved",
             0, 0, 0, 0, 0, 0,
             string.Empty,
             0,
             GameMode.Adventure,
             null,
-            legacySlots,
-            null);
+            entries);
 
-        string tempDir = Path.Combine(Path.GetTempPath(), $"wb-inv-mig-{Guid.NewGuid():N}");
+        string tempDir = Path.Combine(Path.GetTempPath(), $"wb-inv-save-{Guid.NewGuid():N}");
         Directory.CreateDirectory(tempDir);
         try
         {
             var storageConfig = new StorageConfig();
             storageConfig.SaveRoot.Set(tempDir);
             var storagePaths = new StoragePaths(storageConfig, AppPaths.ForWorkingDirectory());
-            var migrator = new Migrator([new CharacterKeyedInventoryMigration()]);
+            var migrator = new Migrator([]);
             var storage = new SqliteCharacterStorage(NullLogger<SqliteCharacterStorage>.Instance, storagePaths, migrator);
 
-            Assert.True(storage.SaveCharacter(v4Character).Success);
+            Assert.True(storage.SaveCharacter(character).Success);
             Result<Character> loaded = storage.GetCharacter(4242UL);
             Assert.True(loaded.Success, loaded.Message);
 
-            Character migrated = loaded.Value;
-            Assert.Equal(DataVersion.CURRENT, migrated.Version.DataVersion);
-            Assert.Null(migrated.Inventory);
-            Assert.NotNull(migrated.KeyedInventory);
-            Assert.Equal(5, migrated.KeyedInventory!.Length);
-            Assert.Contains(migrated.KeyedInventory, entry => entry.GroupId == SlotGroups.HOTBAR && entry.LocalIndex == 0 && entry.Item.ID == "laser");
-            Assert.Contains(migrated.KeyedInventory, entry => entry.GroupId == SlotGroups.HOTBAR && entry.LocalIndex == 8 && entry.Item.ID == "wb:torch");
-            Assert.Contains(migrated.KeyedInventory, entry => entry.GroupId == SlotGroups.BACKPACK && entry.LocalIndex == 0 && entry.Item.ID == "wb:rock");
-            Assert.Contains(migrated.KeyedInventory, entry => entry.GroupId == SlotGroups.BACKPACK && entry.LocalIndex == 35 && entry.Item.ID == "wb:panel");
-            Assert.Contains(migrated.KeyedInventory, entry => entry.GroupId == SlotGroups.BACKPACK && entry.LocalIndex == 36 && entry.Item.ID == "wb:core");
+            Character restored = loaded.Value;
+            Assert.Equal(DataVersion.CURRENT, restored.Version.DataVersion);
+            Assert.NotNull(restored.Inventory);
+            Assert.Equal(5, restored.Inventory!.Length);
+            Assert.Contains(restored.Inventory, entry => entry.GroupId == SlotGroups.HOTBAR && entry.LocalIndex == 0 && entry.Item.ID == "laser");
+            Assert.Contains(restored.Inventory, entry => entry.GroupId == SlotGroups.HOTBAR && entry.LocalIndex == 8 && entry.Item.ID == "wb:torch");
+            Assert.Contains(restored.Inventory, entry => entry.GroupId == SlotGroups.BACKPACK && entry.LocalIndex == 0 && entry.Item.ID == "wb:rock");
+            Assert.Contains(restored.Inventory, entry => entry.GroupId == SlotGroups.WEARABLES && entry.LocalIndex == 0 && entry.Item.ID == "wb:helmet");
+            Assert.Contains(restored.Inventory, entry => entry.GroupId == SlotGroups.AUGMENTS && entry.LocalIndex == 2 && entry.Item.ID == "wb:speed_chip");
         }
         finally
         {
@@ -494,9 +491,6 @@ public class KeyedInventoryTests
 
         var badTransfer = new TransferOp(0UL, Hotbar0, 0UL, Backpack0, (TransferMode)99, null);
         Assert.False(InventoryResolver.Apply(ref inv, in badTransfer));
-
-        var badLegacy = new SlotMoveOp { Mode = (SlotMoveOpMode)99, FromSlot = 0, ToSlot = 1 };
-        Assert.False(InventoryResolver.ToTransferOp(in inv, in badLegacy).Success);
     }
 
     private sealed class StubItemDatabase(params Item[] items) : IItemDatabase

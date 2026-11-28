@@ -5,14 +5,11 @@ using Xunit;
 
 namespace WaywardBeyond.Tests;
 
-/// <summary>
-/// The server grants a mode-appropriate starter inventory to a character with no saved inventory and
-/// never restocks a saved one in either mode.
-/// </summary>
+/// <summary>Pins the starter inventory rules in <see cref="PlayerInitialInventory"/>.</summary>
 public class PlayerInitialInventoryTests
 {
     [Fact]
-    public void AdventureStarterInventoryIsTheMiningLaserOnly()
+    public void AdventureStarterInventoryGrantsOnlyTheMiningLaser()
     {
         KeyedSlotEntry[] starter = PlayerInitialInventory.StarterInventory(GameMode.Adventure);
 
@@ -27,7 +24,7 @@ public class PlayerInitialInventoryTests
     [Fact]
     public void AdventureResolveGrantsTheMiningLaserOnly()
     {
-        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(keyedSeed: null, legacySeed: null, GameMode.Adventure);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(seed: null, GameMode.Adventure);
 
         KeyedSlotEntry entry = Assert.Single(resolved);
         Assert.Equal(SlotGroups.HOTBAR, entry.GroupId);
@@ -39,7 +36,7 @@ public class PlayerInitialInventoryTests
     [Fact]
     public void CreativeResolveGrantsTheFullCreativeLoadout()
     {
-        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(keyedSeed: null, legacySeed: null, GameMode.Creative);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(seed: null, GameMode.Creative);
 
         Assert.Equal(PlayerInitialInventory.StarterInventory(GameMode.Creative), resolved);
         Assert.Contains(resolved, entry => entry.GroupId == SlotGroups.HOTBAR && entry.Item.ID == "laser");
@@ -51,11 +48,11 @@ public class PlayerInitialInventoryTests
     }
 
     [Theory]
-    [InlineData(2)]
+    [InlineData(99)]
     [InlineData(-1)]
     public void UndefinedGameModeFallsBackToAdventureStarterInventory(int undefinedMode)
     {
-        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(keyedSeed: null, legacySeed: null, (GameMode)undefinedMode);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(seed: null, (GameMode)undefinedMode);
 
         KeyedSlotEntry entry = Assert.Single(resolved);
         Assert.Equal("laser", entry.Item.ID);
@@ -70,7 +67,7 @@ public class PlayerInitialInventoryTests
             new KeyedSlotEntry(SlotGroups.BACKPACK, 3, new ItemData("wb:panel", 2, 100)),
         ];
 
-        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(saved, legacySeed: null, GameMode.Adventure);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(saved, GameMode.Adventure);
 
         Assert.Equal(saved, resolved);
     }
@@ -80,17 +77,7 @@ public class PlayerInitialInventoryTests
     {
         KeyedSlotEntry[] saved = [];
 
-        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(saved, legacySeed: null, GameMode.Creative);
-
-        Assert.Empty(resolved);
-    }
-
-    [Fact]
-    public void EmptyLegacyInventoryIsPreservedWithoutRestocking()
-    {
-        ItemData[] legacySaved = [];
-
-        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(keyedSeed: null, legacySaved, GameMode.Creative);
+        KeyedSlotEntry[] resolved = PlayerInitialInventory.Resolve(saved, GameMode.Creative);
 
         Assert.Empty(resolved);
     }

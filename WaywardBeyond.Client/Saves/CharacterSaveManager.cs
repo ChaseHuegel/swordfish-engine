@@ -79,8 +79,7 @@ internal sealed class CharacterSaveManager(
                 return;
             }
 
-            character.KeyedInventory = inventoryComponent.ToSparseEntries();
-            character.Inventory = null;
+            character.Inventory = inventoryComponent.ToSparseEntries();
 
             if (store.TryGet(entity, out EquipmentComponent equipment))
             {
