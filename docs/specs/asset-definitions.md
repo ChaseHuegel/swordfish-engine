@@ -34,6 +34,7 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 | `MaxStack` | int? | `ItemDefinition.MaxStack` |
 | `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
 | `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`) |
+| `[Items.Consumable]` | sub-table | `ConsumableDefinition` (`heal_hp`, `restore_o2`, `grant_buff_id`, `cooldown_seconds`) |
 | `[Items.Statistics]` | map: string → float | `ItemDefinition.Statistics` (custom numeric statistics such as `"wb:mining_speed"`) |
 | `[Items.ViewModel]` | sub-table | `ModelDefinition` |
 | `[Items.WorldModel]` | sub-table | `ModelDefinition` |
@@ -72,6 +73,34 @@ ID = "builtin/core"
 and optional `Target`. Item group membership (`item.tool`, `item.tool.mining`,
 `item.tool.sprayer`, `item.tool.drill`, `item.placeable`) lives in the invariant
 tag list `WaywardBeyond.Items/assets/lang/tags/items.toml` (`ItemTags`).
+
+### Consumable
+
+`ConsumableDefinition` (`WaywardBeyond.Items/ConsumableDefinition.cs`) marks an
+item as usable with the secondary input in Adventure Mode. The server owns the
+effect and consumes one unit from the active `wb:hotbar` slot. An item with no
+benefit at the current vitals is not consumed unless it grants a buff.
+
+| Field | Type | Notes |
+|---|---|---|
+| `heal_hp` | float | health restored on use |
+| `restore_o2` | float | oxygen restored on use |
+| `grant_buff_id` | string? | optional buff id resolved through `IBuffDatabase` and applied with its `StackPolicy` |
+| `cooldown_seconds` | float | minimum seconds between uses; the server records `wb:cooldown.<itemId>` in `StatisticsComponent` |
+
+Example:
+
+```toml
+[[Items]]
+ID       = "wb:medkit"
+Name     = "item.base.medkit"
+MaxStack = 10
+[Items.Consumable]
+heal_hp          = 40.0
+cooldown_seconds = 8.0
+```
+
+See [survival](survival.md) for the simulation, damage path, and buff timing.
 
 ### Statistics
 
@@ -519,7 +548,7 @@ bits. See [seed-phrases](seed-phrases.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
+- `WaywardBeyond.Items/{ItemDefinitions,ItemDefinition,ItemTags,ToolDefinition,ConsumableDefinition,PlaceableDefinition,PlaceableType,ModelDefinition,ItemDatabase,ItemPlaceables}.cs`
 - `WaywardBeyond.Data/Blueprints/{IBundledBlueprintDatabase,BundledBlueprintDatabase,BlueprintDataParser}.cs`
 - `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTags,BrickTextures,BrickAlpha,BrickColliderDefinition,BrickColliderShape,BrickColliders}.cs`
 - `WaywardBeyond.Bricks/{Brick,Srgb}.cs`

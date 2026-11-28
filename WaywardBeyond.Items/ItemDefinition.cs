@@ -12,6 +12,7 @@ public struct ItemDefinition()
     public int? MaxStack;
     public PlaceableDefinition? Placeable;
     public ToolDefinition? Tool;
+    public ConsumableDefinition? Consumable;
     public ModelDefinition? ViewModel;
     public ModelDefinition? WorldModel;
 

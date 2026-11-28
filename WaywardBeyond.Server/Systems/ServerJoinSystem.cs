@@ -307,7 +307,7 @@ public sealed class ServerJoinSystem(
         //  the level's resolved game mode. From here the server owns these components and replicates them.
         SeedInteractionContext(store, entity, request.State, gameMode);
         CharacterStatisticsSeeder.SeedSkillState(store, entity, request.State.Statistics, skillDatabase);
-        CharacterStatisticsSeeder.SeedAuthoritativeStatistics(store, entity, request.State, gameMode, persistedEntity, simulationStep.CurrentSimTick);
+        CharacterStatisticsSeeder.SeedAuthoritativeStatistics(store, entity, request.State, gameMode, persistedEntity, simulationStep.CurrentSimTick, gameplayConfig.Survival.MaxHealth.Get(), gameplayConfig.Survival.MaxOxygen.Get());
 
         Session session = new(_nextSessionId++);
         sessions.Register(store, entity, clientId, session);

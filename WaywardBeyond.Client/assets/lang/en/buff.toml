@@ -1,0 +1,5 @@
+"Language" = "en"
+
+[Translations]
+"buff.base.well_fed" = "Well Fed"
+"buff.base.well_fed.description" = "A hot meal keeps health and oxygen recovering"

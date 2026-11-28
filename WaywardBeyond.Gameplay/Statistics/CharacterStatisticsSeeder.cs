@@ -69,19 +69,21 @@ public static class CharacterStatisticsSeeder
         in CharacterState seed,
         GameMode gameMode,
         CharacterEntityData? persistedEntity = null,
-        long currentSimTick = 0L
+        long currentSimTick = 0L,
+        float defaultHealthMax = StatisticIds.DEFAULT_HEALTH_MAX,
+        float defaultOxygenMax = StatisticIds.DEFAULT_OXYGEN_MAX
     )
     {
         Statistic[]? persisted = persistedEntity != null ? persistedEntity.Value.Statistics : null;
         bool hasPersisted = persisted != null;
 
-        long healthMax = StatisticIds.DEFAULT_HEALTH_MAX_FIXED;
+        long healthMax = ToFixedMax(defaultHealthMax, StatisticIds.DEFAULT_HEALTH_MAX_FIXED);
         if (hasPersisted && TryFindStatistic(persisted, StatisticIds.HEALTH_MAX, out long savedHealthMax))
         {
             healthMax = Math.Clamp(savedHealthMax, StatisticIds.FIXED_POINT_SCALE, StatisticIds.MAX_VITAL_FIXED);
         }
 
-        long oxygenMax = StatisticIds.DEFAULT_OXYGEN_MAX_FIXED;
+        long oxygenMax = ToFixedMax(defaultOxygenMax, StatisticIds.DEFAULT_OXYGEN_MAX_FIXED);
         if (hasPersisted && TryFindStatistic(persisted, StatisticIds.OXYGEN_MAX, out long savedOxygenMax))
         {
             oxygenMax = Math.Clamp(savedOxygenMax, StatisticIds.FIXED_POINT_SCALE, StatisticIds.MAX_VITAL_FIXED);
@@ -195,10 +197,12 @@ public static class CharacterStatisticsSeeder
         in CharacterState seed,
         GameMode gameMode,
         CharacterEntityData? persistedEntity = null,
-        long currentSimTick = 0L
+        long currentSimTick = 0L,
+        float defaultHealthMax = StatisticIds.DEFAULT_HEALTH_MAX,
+        float defaultOxygenMax = StatisticIds.DEFAULT_OXYGEN_MAX
     )
     {
-        store.AddOrUpdate(entity, CreateAuthoritativeStatistics(in seed, gameMode, persistedEntity, currentSimTick));
+        store.AddOrUpdate(entity, CreateAuthoritativeStatistics(in seed, gameMode, persistedEntity, currentSimTick, defaultHealthMax, defaultOxygenMax));
     }
 
     private static ClientSeed ExtractClientSeed(Statistic[]? clientSeed, Span<long> attributes)
@@ -256,6 +260,16 @@ public static class CharacterStatisticsSeeder
 
     private readonly record struct ClientSeed(long? Health, long? Oxygen, int AttributeMask);
 
+    private static long ToFixedMax(float value, long fallback)
+    {
+        if (!float.IsFinite(value) || value <= 0f)
+        {
+            return fallback;
+        }
+
+        return Math.Clamp(StatisticIds.ToFixed(value), StatisticIds.FIXED_POINT_SCALE, StatisticIds.MAX_VITAL_FIXED);
+    }
+
     private static bool TryFindStatistic(Statistic[]? entries, string id, out long value)
     {
         if (entries == null)
@@ -283,7 +297,8 @@ public static class CharacterStatisticsSeeder
             || string.Equals(id, StatisticIds.HEALTH_MAX, StringComparison.Ordinal)
             || string.Equals(id, StatisticIds.OXYGEN, StringComparison.Ordinal)
             || string.Equals(id, StatisticIds.OXYGEN_MAX, StringComparison.Ordinal)
-            || string.Equals(id, StatisticIds.PRESSURIZED, StringComparison.Ordinal))
+            || string.Equals(id, StatisticIds.PRESSURIZED, StringComparison.Ordinal)
+            || StatisticIds.IsCooldownKey(id.AsSpan()))
         {
             return true;
         }

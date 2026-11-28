@@ -47,6 +47,24 @@ public class InteractionIntentTests
     }
 
     [Fact]
+    public void AConsumableBindsSecondaryAndDoesNotBindPrimary()
+    {
+        var item = new Item(
+            "wb:medkit",
+            "Medkit",
+            iconID: null,
+            maxStack: 10,
+            placeable: null,
+            tool: null,
+            viewModel: null,
+            worldModel: null,
+            consumable: new ConsumableDefinition { HealHp = 40f });
+
+        Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Primary, item));
+        Assert.Equal(InteractionKind.SecondaryPressed, InteractionIntent.For(InteractionInput.Secondary, item));
+    }
+
+    [Fact]
     public void EmptyHandsProduceNoEdge()
     {
         Assert.Equal(InteractionKind.None, InteractionIntent.For(InteractionInput.Primary, null));

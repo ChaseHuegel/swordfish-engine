@@ -68,7 +68,7 @@ on current runtimes.
   interaction world factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
-  `ServerInventorySystem` → `ServerHeartbeatService` → physics →
+  `ServerInventorySystem` → `ServerHeartbeatService` → physics → `ServerSurvivalSystem` →
   `ServerInteractionSystem` → `ServerLaserBeamSystem` →
   `ServerPaintSprayerSystem` → `ServerChatSystem` →
   `ServerParticleFlushSystem` → `NetworkPublishSystem`.

@@ -1,0 +1,8 @@
+[[Items]]
+ID          = "wb:medkit"
+Name        = "item.base.medkit"
+Description = "item.base.medkit.description"
+MaxStack    = 10
+[Items.Consumable]
+heal_hp         = 40.0
+cooldown_seconds = 8.0

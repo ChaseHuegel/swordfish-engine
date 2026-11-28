@@ -21,7 +21,7 @@ Select → Resolve → Validate → Commit → React
 | `Resolve` | Derive the base outcome from the client's target hint | `PaintHintResolver` (High) resolves paint hints, `HintResolver` (Normal) runs `InteractionResolver` |
 | `Validate` | Adjust or reject before any authority change | `BreakToolValidator` rejects a break made without a removal tool |
 | `Commit` | Perform the authority change | `VoxelFaceWriteCommitter` (Normal) applies face overrides, `VoxelWriteCommitter` (Low) writes bricks, rebuilds the collider, and broadcasts |
-| `React` | Apply the consequences | `BreakLootReactor`, `PlaceConsumeReactor`, `SkillXpReactor` |
+| `React` | Apply the consequences | `BreakLootReactor`, `PlaceConsumeReactor`, `ConsumeItemInteractionHandler`, `SkillXpReactor` |
 
 The game and its mods register the same kind of handler. There is no privileged path:
 a mod can replace the authority write, cancel it, or produce a different outcome entirely.
@@ -63,6 +63,15 @@ suppressing reactions, returns it from `Commit`.
 - A handler that wrote nothing and wants no downstream processing returns `Cancel`.
 - `React` handlers gate on `InteractionContext.Resolution.Action`, so a pipeline that
   resolved to `None` reacts to nothing.
+
+## Consumable use
+
+A consumable item binds `SecondaryPressed` in `InteractionIntent` (`WaywardBeyond.Client/Systems/InteractionIntent.cs:17`).
+`PlayerInteractionService` stages a hintless secondary event, so no voxel target or prediction is involved.
+On the server, `ConsumeItemInteractionHandler` (`WaywardBeyond.Server/Interactions/ConsumeItemInteractionHandler.cs`)
+runs at `React` with the `SecondaryPressed` and `Adventure` filter. It resolves the held item's
+`[Items.Consumable]` block, checks benefit and cooldown, deducts one unit from the active hotbar slot,
+and applies health, oxygen, and buff effects. See [survival](survival.md).
 
 ## Client prediction
 
@@ -126,7 +135,7 @@ Timed interactions compose through the pipeline rather than living hardcoded ins
 - `WaywardBeyond.Gameplay/Interactions/{InteractionInput,InteractionInputExtensions,InteractionHold,TimedInteractionKey,TimedInteractionProgress,HintResolver}.cs`
 - `WaywardBeyond.Client/Interactions/{IClientTimedInteraction,ClientTimedInteractionContext,ClientTimedTarget,ClientTimedStageEvent,ClientTimedInteractionController,AdventureBreakTimedInteraction}.cs`
 - `WaywardBeyond.Client/Systems/{InteractionState,PlayerInteractionService}.cs`
-- `WaywardBeyond.Server/Interactions/` — default `Select`, `Validate` (`BreakToolValidator`, `AdventureBreakHoldValidator`), `Commit`, and `React` handlers
+- `WaywardBeyond.Server/Interactions/` — default `Select`, `Validate` (`BreakToolValidator`, `AdventureBreakHoldValidator`), `Commit`, and `React` handlers (`BreakLootReactor`, `PlaceConsumeReactor`, `ConsumeItemInteractionHandler`, `SkillXpReactor`)
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs` — generic interaction pump and timed session tracker
 - `WaywardBeyond.Server/ServerComposition.cs` — default handler and stat modifier registration
 - `WaywardBeyond.Tests/TimedBrickBreakingTests.cs` — unit and integration coverage

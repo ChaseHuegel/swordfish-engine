@@ -144,6 +144,12 @@ Gameplay tunables shared by the client and the server, registered via
 | `Regions.MaxEdge` | int | `64` | maximum region edge length in voxels; `0` means unlimited |
 | `Regions.MaxVolume` | int | `65536` | maximum region bounding volume in voxels; `0` means unlimited |
 | `Regions.MaxPayloadBytes` | int | `4194304` | maximum serialized region upload or `.wbp` blueprint file size in bytes; `0` means unlimited |
+| `Survival.MaxHealth` | float | `100` | default maximum health for a new Adventure character |
+| `Survival.MaxOxygen` | float | `100` | default maximum oxygen for a new Adventure character |
+| `Survival.OxygenDrainPerSecond` | float | `2` | oxygen drained per second in vacuum (`wb:pressurized == 0`) |
+| `Survival.OxygenRefillPerSecond` | float | `20` | oxygen restored per second in a pressurized room (`wb:pressurized == 1`) |
+| `Survival.SuffocationDamagePerSecond` | float | `5` | health damage per second while oxygen stays at zero |
+| `Survival.UpdateIntervalSeconds` | float | `0.25` | cadence for continuous oxygen, regen, and buff-expiry writes (minimum `0.05`) |
 
 ## `levelgen.toml` (per app)
 
@@ -423,6 +429,7 @@ to `AppPaths.CrashesRoot` (`<DataRoot>/crashes`).
 - `Shoal/Modularity/ModuleSearchRoot.cs`
 - `Shoal/Modularity/ModulesLoader.cs`
 - `WaywardBeyond.Config/PackModuleResolution.cs`
+- `WaywardBeyond.Config/{GameplayConfig,SurvivalConfig,RegionConfig}.cs`
 - Launcher `modules.toml` files
 
 ## Tests that pin this

@@ -1,0 +1,9 @@
+[[Items]]
+ID          = "wb:ration"
+Name        = "item.base.ration"
+Description = "item.base.ration.description"
+MaxStack    = 10
+[Items.Consumable]
+heal_hp          = 15.0
+grant_buff_id    = "wb:well_fed"
+cooldown_seconds = 5.0

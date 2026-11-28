@@ -26,7 +26,7 @@ public sealed class EntityStatisticModifierSource : IStatModifierSource
         }
 
         ReadOnlySpan<char> statId = query.StatId.AsSpan();
-        if (StatisticIds.IsBuffTimerKey(statId))
+        if (StatisticIds.IsBuffTimerKey(statId) || StatisticIds.IsCooldownKey(statId))
         {
             return;
         }

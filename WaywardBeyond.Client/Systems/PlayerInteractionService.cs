@@ -396,6 +396,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return;
         }
 
+        //  A consumable is used where the player stands: the server consumes it and applies its effect, so
+        //  no brick target, prediction, or presentation hook is involved.
+        if (kind == InteractionKind.SecondaryPressed && heldItem?.Consumable != null)
+        {
+            StageInteractionEvent(store, playerEntity, kind, brickHint: null, paintHint: null);
+            return;
+        }
+
         AttemptVoxelInteraction(store, playerEntity, mode, heldItemID, source);
     }
 

@@ -35,6 +35,9 @@ public sealed class SimulationStep : IDisposable
     /// <summary>The sim tick the next step applies; the server publishes it and reconcile aligns to it.</summary>
     public uint CurrentSimTick { get; private set; }
 
+    /// <summary>The fixed timestep in seconds the physics solver and simulation step advance by.</summary>
+    public float FixedDelta => _physics.FixedTimestamp;
+
     /// <summary>The maximum age of a staged input command a step applies, in sim ticks.</summary>
     public uint CommandMaxAgeTicks => _commandMaxAgeTicks;
 

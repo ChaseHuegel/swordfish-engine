@@ -28,6 +28,8 @@ effective = (base + sum(AddBase)) * (1 + sum(AddPercent)) * product(Multiply)
 
 Non-finite modifier values are ignored. A non-finite resolved total falls back to `DefaultBase`.
 
+Health and oxygen are fixed-point vitals stored in `StatisticsComponent`. `ServerSurvivalSystem` writes their base values and active buff regen, and `DamageService` owns the health-reduction path. Expiry entries use `wb:buff.<id>.expires_tick` and per-item cooldowns use `wb:cooldown.<itemId>`. See [survival](survival.md).
+
 ## Modifier sources and priority
 
 `StatResolver` (`WaywardBeyond.Gameplay/Statistics/StatResolver.cs:7`) sorts registered `IStatModifierSource` implementations once at startup by `StatModifierPriority` (`High`, `Normal`, `Low`) and then DI registration order. A source sets `StatId` to target one statistic, or returns `null` to inspect every query.
@@ -49,6 +51,7 @@ Both `ServerComposition` (`WaywardBeyond.Server/ServerComposition.cs:135`) and `
 - `WaywardBeyond.Items/{ItemDefinition,Item,ItemDatabase}.cs`
 - `WaywardBeyond.Gameplay/Statistics/{StatSubject,StatModifierOperation,StatModifierPriority,StatModifier,StatAccumulator,StatQuery,IStatModifierSource,IStatResolver,StatResolver,SkillStateComponent,CharacterStatisticsSeeder,StatisticsComposition}.cs`
 - `WaywardBeyond.Gameplay/Statistics/{BrickStatisticModifierSource,ItemStatisticModifierSource,EntityStatisticModifierSource,SkillMiningSpeedModifierSource}.cs`
+- `WaywardBeyond.Gameplay/Survival/DamageService.cs`, `WaywardBeyond.Server/Systems/ServerSurvivalSystem.cs`
 - `WaywardBeyond.Server/ServerComposition.cs:135`, `WaywardBeyond.Server/Systems/ServerJoinSystem.cs:309-310`, `WaywardBeyond.Client/Voxels/Building/PlayerCharacterEntityBuilder.cs:48-49`, `WaywardBeyond.Client/Systems/ClientNotificationSystem.cs:61`, `WaywardBeyond.Client/Injector.cs:341`
 
 ## Tests that pin this

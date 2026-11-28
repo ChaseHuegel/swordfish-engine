@@ -8,8 +8,9 @@ namespace WaywardBeyond.Client.Systems;
 /// <summary>
 /// Maps a pressed <see cref="InteractionInput"/> channel and the held item to the wire interaction edge it
 /// produces. Primary drives every item that has a primary action: a modifier tool applies its paint, a
-/// placeable item places its brick, and a removal tool breaks the targeted brick. Secondary is bound only by
-/// modifier tools to clear their paint. An item without an action for an input produces no edge.
+/// placeable item places its brick, and a removal tool breaks the targeted brick. Secondary is bound by
+/// modifier tools to clear their paint and by consumables to use them. An item without an action for an
+/// input produces no edge.
 /// </summary>
 internal static class InteractionIntent
 {
@@ -23,7 +24,7 @@ internal static class InteractionIntent
             return InteractionKind.PrimaryPressed;
         }
 
-        if (input == InteractionInput.Secondary && isModifierTool)
+        if (input == InteractionInput.Secondary && (isModifierTool || heldItem?.Consumable != null))
         {
             return InteractionKind.SecondaryPressed;
         }
